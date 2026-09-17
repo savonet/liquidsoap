@@ -91,10 +91,25 @@ type dedicated_state = {
   encoder_mutex : Mutex.t;
 }
 
+(* [client_id] is a counter rather than the peer address so it can be shown
+   without exposing it. *)
+type client = {
+  client_id : int;
+  ip : string;
+  request_uri : string;
+  protocol : string;
+  headers : (string * string) list;
+  connected_at : float;
+}
+
+type report = { client : client; duration : float; bytes_sent : int }
+
 (* The mutable fields belong to the writer task of the listener's shard;
    connect_listener sets them up before the listener is published. *)
 type 'a listener = {
   id : string;
+  client : client;
+  bytes_sent : int Atomic.t;
   socket : Harbor.Http_transport.socket;
   close : unit -> unit;
   state : 'a;
@@ -197,10 +212,12 @@ let insert_icy_metadata ~metadata listener data =
         in
         insert_at_intervals Strings.empty data
 
-let create_listener ~id ~state ~socket ~close ~metadata_interval ~stream_url
-    ~timeout =
+let create_listener ~id ~client ~state ~socket ~close ~metadata_interval
+    ~stream_url ~timeout =
   {
     id;
+    client;
+    bytes_sent = Atomic.make 0;
     socket;
     close;
     state;
@@ -233,7 +250,10 @@ let append_data_to_listener ~buffer_limit listener data =
 let write_socket listener bytes ofs len =
   match Harbor.write listener.socket bytes ofs len with
     | written ->
-        if written > 0 then listener.last_write_time <- Unix.gettimeofday ();
+        if written > 0 then begin
+          listener.last_write_time <- Unix.gettimeofday ();
+          ignore (Atomic.fetch_and_add listener.bytes_sent written)
+        end;
         written
     | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) -> 0
     | exception exn ->
@@ -431,6 +451,7 @@ class virtual ['a] base p =
     val next_shard = Atomic.make 0
     val shared_metadata : Frame.metadata option Atomic.t = Atomic.make None
     val mutable dump_channel : out_channel option = None
+    val next_client_id = Atomic.make 0
     val on_connect_callbacks = Callbacks.create ()
     val on_disconnect_callbacks = Callbacks.create ()
     val start_stop_mutex = Mutex.create ()
@@ -463,6 +484,7 @@ class virtual ['a] base p =
     method virtual private create_listener
         : protocol:string ->
           id:string ->
+          client:client ->
           socket:Harbor.Http_transport.socket ->
           close:(unit -> unit) ->
           metadata_interval:int option ->
@@ -482,8 +504,32 @@ class virtual ['a] base p =
             acc (Atomic.get shard.members))
         [] shards
 
+    method private report ?(now = Unix.gettimeofday ()) listener =
+      {
+        client = listener.client;
+        duration = now -. listener.client.connected_at;
+        bytes_sent = Atomic.get listener.bytes_sent;
+      }
+
+    method listeners = List.map (fun l -> self#report l) self#get_listeners
+
+    (* A raising callback must not keep the others, or the listener's
+       teardown, from running. *)
+    method private run_callbacks : 'b. ('b -> unit) Callbacks.t -> 'b -> unit =
+      fun callbacks arg ->
+        List.iter
+          (fun fn ->
+            try fn arg
+            with exn ->
+              let bt = Printexc.get_backtrace () in
+              Utils.log_exception ~log:self#log ~bt
+                (Printf.sprintf "Listener callback failed: %s"
+                   (Printexc.to_string exn)))
+          (Callbacks.elements callbacks)
+
     method private handle_disconnect listener =
       if Atomic.compare_and_set listener.closed false true then begin
+        let disconnected_at = Unix.gettimeofday () in
         self#log#info "Listener %s disconnected" listener.id;
         (* The socket is closed by the write task once the listener is out of
            its select set: closing it here could make a concurrent select fail
@@ -498,10 +544,12 @@ class virtual ['a] base p =
             events = [`Delay 0.];
             handler =
               (fun _ ->
-                self#stop_listener_encoder listener;
-                List.iter
-                  (fun fn -> fn listener.id)
-                  (Callbacks.elements on_disconnect_callbacks);
+                (try self#stop_listener_encoder listener
+                 with exn ->
+                   self#log#important "Listener %s encoder stop failed: %s"
+                     listener.id (Printexc.to_string exn));
+                self#run_callbacks on_disconnect_callbacks
+                  (self#report ~now:disconnected_at listener);
                 []);
           }
       end
@@ -548,10 +596,13 @@ class virtual ['a] base p =
     method private write_task_handler shard ~wake_out events =
       match Atomic.get shard.wake with
         | None ->
-            (* The output was stopped: close the listeners disconnected by
-               stop, then this task owns the read end, close it and
-               terminate. *)
-            self#remove_closed_listeners shard;
+            (* Unclosed members were published after [stop] went through the
+               listeners, see [add_listener]. *)
+            List.iter
+              (fun l ->
+                self#handle_disconnect l;
+                l.close ())
+              (Atomic.exchange shard.members []);
             (try Unix.close wake_out with _ -> ());
             []
         | Some _ ->
@@ -672,7 +723,13 @@ class virtual ['a] base p =
         Printf.sprintf "HTTP/%s 200 OK\r\nContent-type: %s\r\n%s%s\r\n" protocol
           encoder_data.format icy_header extra_headers_str
       in
-      let close () = try Harbor.close socket with _ -> () in
+      (* Both the write task and a racing [stop] may close a listener: closing
+         twice could hit an fd number already reused by another connection. *)
+      let socket_closed = Atomic.make false in
+      let close () =
+        if Atomic.compare_and_set socket_closed false true then (
+          try Harbor.close socket with _ -> ())
+      in
       let on_failure exn =
         let error_msg =
           match exn with
@@ -686,8 +743,6 @@ class virtual ['a] base p =
             | e -> Printexc.to_string e
         in
         self#log#info "%s" error_msg;
-        List.find_opt (fun l -> l.id = client_id) self#get_listeners
-        |> Option.iter self#handle_disconnect;
         Harbor.simple_reply ""
       in
       self#log#info "New listener connection from %s" client_id;
@@ -704,14 +759,31 @@ class virtual ['a] base p =
               | Harbor.Reply _ as e -> raise e
               | e -> on_failure e)
         | None -> ());
-      let listener =
-        self#create_listener ~protocol ~id:client_id ~socket ~close
-          ~metadata_interval ~stream_url ~timeout
-      in
+      (* [stop] can empty [shards] concurrently. *)
+      let shards = shards in
       if Array.length shards = 0 then
         Harbor.reply (fun () ->
             Printf.sprintf "HTTP/%s 503 Service Unavailable\r\n" protocol);
-      self#connect_listener ~http_response listener;
+      let client =
+        {
+          client_id = Atomic.fetch_and_add next_client_id 1;
+          ip =
+            Utils.name_of_sockaddr
+              (Unix.getpeername (Harbor.file_descr_of_socket socket));
+          request_uri;
+          protocol;
+          headers;
+          connected_at = Unix.gettimeofday ();
+        }
+      in
+      let listener =
+        self#create_listener ~protocol ~id:client_id ~client ~socket ~close
+          ~metadata_interval ~stream_url ~timeout
+      in
+      (* Connect handlers run before the listener is published so that its
+         disconnect handlers, which only a published listener can trigger,
+         always come after them. *)
+      self#run_callbacks on_connect_callbacks (self#report listener);
       let shard =
         shards.(Atomic.fetch_and_add next_shard 1 mod Array.length shards)
       in
@@ -724,15 +796,28 @@ class virtual ['a] base p =
             (Atomic.compare_and_set shard.members current (listener :: current))
         then add_listener_atomic ()
       in
-      Unix.set_nonblock (Harbor.file_descr_of_socket socket);
-      add_listener_atomic ();
-      self#wake_shard shard;
-      self#log#info "Listener %s connected" client_id;
-      List.iter
-        (fun fn -> fn ~headers ~uri:request_uri ~protocol client_id)
-        (Callbacks.elements on_connect_callbacks);
-      Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
-      Harbor.custom ()
+      (try
+         self#connect_listener ~http_response listener;
+         Unix.set_nonblock (Harbor.file_descr_of_socket socket);
+         add_listener_atomic ()
+       with exn ->
+         self#log#info "Listener %s failed to connect: %s" client_id
+           (Printexc.to_string exn);
+         self#handle_disconnect listener;
+         close ();
+         Harbor.custom ());
+      (* A shard whose write task saw [stop] may never look at its members
+         again. *)
+        match Atomic.get shard.wake with
+        | None ->
+            self#handle_disconnect listener;
+            close ();
+            Harbor.custom ()
+        | Some _ ->
+            self#wake_shard shard;
+            self#log#info "Listener %s connected" client_id;
+            Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
+            Harbor.custom ()
 
     method private register_http_handler =
       Harbor.add_http_handler ~pos ~transport ~port ~verb:`Get ~uri
@@ -763,7 +848,7 @@ class shared_output p =
     val ring =
       ByteRing.create ~capacity:(2 * Lang.to_int (List.assoc "buffer" p))
 
-    method private create_listener ~protocol ~id ~socket ~close
+    method private create_listener ~protocol ~id ~client ~socket ~close
         ~metadata_interval ~stream_url ~timeout =
       match enc with
         | None ->
@@ -772,7 +857,7 @@ class shared_output p =
         | Some _ ->
             create_listener
               ~state:{ offset = 0; carry = ""; carry_ofs = 0 }
-              ~id ~socket ~close ~metadata_interval ~stream_url ~timeout
+              ~id ~client ~socket ~close ~metadata_interval ~stream_url ~timeout
 
     method private connect_listener ~http_response listener =
       let e = Option.get enc in
@@ -970,7 +1055,7 @@ class dedicated_output p =
 
     val mutable current_frame : Frame.t option = None
 
-    method private create_listener ~protocol ~id ~socket ~close
+    method private create_listener ~protocol ~id ~client ~socket ~close
         ~metadata_interval ~stream_url ~timeout =
       match encoder_factory with
         | None ->
@@ -984,7 +1069,7 @@ class dedicated_output p =
                 encoder_mutex = Mutex.create ();
               }
             in
-            create_listener ~state ~id ~socket ~close ~metadata_interval
+            create_listener ~state ~id ~client ~socket ~close ~metadata_interval
               ~stream_url ~timeout
 
     method private connect_listener ~http_response listener =
@@ -1076,63 +1161,87 @@ class dedicated_output p =
         ()
   end
 
+let listener_t =
+  Lang.record_t
+    [
+      ("id", Lang.int_t);
+      ("ip", Lang.string_t);
+      ("uri", Lang.string_t);
+      ("protocol", Lang.string_t);
+      ("headers", Lang.metadata_t);
+      ("connected_at", Lang.float_t);
+      ("duration", Lang.float_t);
+      ("bytes_sent", Lang.int_t);
+    ]
+
+let listener_value { client; duration; bytes_sent } =
+  Lang.record
+    [
+      ("id", Lang.int client.client_id);
+      ("ip", Lang.string client.ip);
+      ("uri", Lang.string client.request_uri);
+      ("protocol", Lang.string client.protocol);
+      ("headers", Lang.metadata_list client.headers);
+      ("connected_at", Lang.float client.connected_at);
+      ("duration", Lang.float duration);
+      ("bytes_sent", Lang.int bytes_sent);
+    ]
+
+let listener_descr =
+  "a record with the listener's `id` (unique per output), `ip` (address \
+   without port), requested `uri`, HTTP `protocol` version, request `headers`, \
+   `connected_at` time, and the `duration` and `bytes_sent` (HTTP response \
+   included) so far"
+
 let _ =
   let return_t = Lang.frame_t (Lang.univ_t ()) Frame.Fields.empty in
+  let listener_callback ~name ~descr register =
+    {
+      Lang_source.name;
+      params = [];
+      descr;
+      register_deprecated_argument = true;
+      arg_t = [(false, "", listener_t)];
+      register =
+        (fun ~params:_ s callback ->
+          register s (fun report -> callback [("", listener_value report)]));
+    }
+  in
   Lang.add_operator ~category:`Output
     ~descr:"Encode and output the stream using the harbor server."
     ~callbacks:
       ([
-         {
-           Lang_source.name = "on_connect";
-           params = [];
-           descr =
-             "Callback when a listener connects. Receives a record with \
-              headers, uri, protocol, and ip fields.";
-           register_deprecated_argument = true;
-           arg_t =
-             [
-               ( false,
-                 "",
-                 Lang.record_t
-                   [
-                     ("headers", Lang.metadata_t);
-                     ("uri", Lang.string_t);
-                     ("protocol", Lang.string_t);
-                     ("ip", Lang.string_t);
-                   ] );
-             ];
-           register =
-             (fun ~params:_ s on_connect ->
-               let callback ~headers ~uri ~protocol ip =
-                 on_connect
-                   [
-                     ( "",
-                       Lang.record
-                         [
-                           ("headers", Lang.metadata_list headers);
-                           ("uri", Lang.string uri);
-                           ("protocol", Lang.string protocol);
-                           ("ip", Lang.string ip);
-                         ] );
-                   ]
-               in
-               s#register_on_connect callback);
-         };
-         {
-           name = "on_disconnect";
-           params = [];
-           descr = "Callback when a listener disconnects.";
-           register_deprecated_argument = true;
-           arg_t = [(false, "", Lang.string_t)];
-           register =
-             (fun ~params:_ s callback ->
-               s#register_on_disconnect (fun ip ->
-                   callback [("", Lang.string ip)]));
-         };
+         listener_callback ~name:"on_connect"
+           ~descr:
+             (Printf.sprintf
+                "Callback when a listener connects, before it receives any \
+                 data. Receives %s."
+                listener_descr) (fun s fn -> s#register_on_connect fn);
+         listener_callback ~name:"on_disconnect"
+           ~descr:
+             (Printf.sprintf
+                "Callback when a listener disconnects. Called exactly once for \
+                 every listener passed to synchronous `on_connect` handlers, \
+                 after them. Receives %s."
+                listener_descr) (fun s fn -> s#register_on_disconnect fn);
        ]
       @ Start_stop.output_callbacks ())
-    ~meth:(Start_stop.meth ()) ~base:Modules.output "harbor" (proto return_t)
-    ~return_t
+    ~meth:
+      (Start_stop.meth ()
+      @ [
+          {
+            name = "listeners";
+            scheme = ([], Lang.fun_t [] (Lang.list_t listener_t));
+            descr =
+              Printf.sprintf "Currently connected listeners. Each entry is %s."
+                listener_descr;
+            value =
+              (fun s ->
+                Lang.val_fun [] (fun _ ->
+                    Lang.list (List.map listener_value s#listeners)));
+          };
+        ])
+    ~base:Modules.output "harbor" (proto return_t) ~return_t
     (fun p ->
       if Lang.to_bool (List.assoc "dedicated_encoder" p) then
         new dedicated_output p

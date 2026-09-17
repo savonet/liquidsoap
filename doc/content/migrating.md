@@ -96,6 +96,18 @@ The `burst` parameter is now nullable. Pass `null` to disable the initial burst:
 output.harbor(mount="stream", burst=null, ...)
 ```
 
+### `output.harbor` listener callbacks
+
+`on_connect` and `on_disconnect` on `output.harbor` now receive the same listener record, which has new `id`, `connected_at`, `duration` and `bytes_sent` fields. The `ip` field no longer includes the client port: use `id` to tell apart connections from the same address.
+
+```liquidsoap
+# Old
+o.on_disconnect(fun (ip) -> log("#{ip} disconnected"))
+
+# New
+o.on_disconnect(fun (listener) -> log("#{listener.ip} disconnected"))
+```
+
 ### Crossfade simplification
 
 The `cross` and `crossfade` operators have been simplified. The separate `start_duration` and `end_duration` parameters have been replaced by a single unified `duration` parameter. The crossfade now buffers the same duration from both ending and starting tracks.

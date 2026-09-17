@@ -209,6 +209,39 @@ def f() =
     icecast.server.config.authentication("<authentication/>").password,
     null
   )
+  a =
+    icecast.server.config.authentication(
+      "<authentication><admin-user>root</admin-user><admin-password>apw</admin-password></authentication>"
+    )
+  test.equal(a.admin_user, "root")
+  test.equal(a.admin_password, "apw")
+
+  # <logging>
+  l =
+    icecast.server.config.logging.parse(
+      '<logging>
+         <accesslog>a.log</accesslog>
+         <errorlog>-</errorlog>
+         <playlistlog>p.log</playlistlog>
+         <loglevel>debug</loglevel>
+         <logsize>100</logsize>
+         <logarchive>1</logarchive>
+         <memorybacklog logfile="error">10</memorybacklog>
+       </logging>'
+    )
+  test.equal(l.accesslog, "a.log")
+  test.equal(l.errorlog, "-")
+  test.equal(l.playlistlog, "p.log")
+  test.equal(l.loglevel, 5)
+  test.equal(l.logsize, 100)
+  test.equal(l.logarchive, true)
+  l = icecast.server.config.logging.parse("<logging/>")
+  test.equal(l.accesslog, null)
+  test.equal(l.loglevel, null)
+  test.equal(l.logarchive, false)
+  test.equal(icecast.server.config.logging.level("1"), 2)
+  test.equal(icecast.server.config.logging.level("INFO"), 4)
+  test.equal(icecast.server.config.logging.level("verbose"), null)
 
   # Full document: repeated mounts, default mount split off, sections optional
   c =
@@ -216,6 +249,7 @@ def f() =
       '<icecast>
          <limits><sources>3</sources></limits>
          <authentication><source-password>pw</source-password></authentication>
+         <logging><playlistlog>p.log</playlistlog></logging>
          <listen-socket><port>9000</port></listen-socket>
          <listen-socket><port>9001</port></listen-socket>
          <http-headers><header name="X-Global" value="1" /></http-headers>
@@ -232,11 +266,73 @@ def f() =
   test.equal(list.map(fun (m) -> m.mount_name, c.mounts), ["/live", "/backup"])
   test.equal(c.tls, false)
   test.equal(c.logdir, null)
+  test.equal(c.logging.playlistlog, "p.log")
+  test.equal(c.admin_password, null)
 
   c = icecast.server.config.parse("<icecast/>")
   test.equal(c.port, null)
+  test.equal(c.logging.accesslog, null)
   test.equal(c.mounts, [])
   test.equal(c.default_mount.mount_name, null)
+
+  # resolve: explicit parameters win over the config file, which wins over defaults
+  c =
+    icecast.server.config.parse(
+      '<icecast>
+         <listen-socket><port>9000</port></listen-socket>
+         <authentication>
+           <source-password>pw</source-password>
+           <admin-password>apw</admin-password>
+         </authentication>
+         <paths><logdir>/logs</logdir></paths>
+         <logging><accesslog>a.log</accesslog></logging>
+       </icecast>'
+    )
+  def resolve(
+    ~port=null,
+    ~password=null,
+    ~access_log=null,
+    ~admin_password=null,
+    ~from_file=true,
+    parsed
+  ) =
+    icecast.server.config.resolve(
+      port=port,
+      password=password,
+      access_log=access_log,
+      playlist_log=null,
+      admin_user=null,
+      admin_password=admin_password,
+      from_file=from_file,
+      parsed
+    )
+  end
+  r =
+    resolve(
+      port=8080,
+      password="explicit",
+      access_log="/tmp/x.log",
+      admin_password="explicit",
+      c
+    )
+  test.equal(r.port, 8080)
+  test.equal(r.password, "explicit")
+  test.equal(r.access_log, "/tmp/x.log")
+  test.equal(r.admin_password, "explicit")
+  r = resolve(c)
+  test.equal(r.port, 9000)
+  test.equal(r.password, "pw")
+  test.equal(r.access_log, "/logs/a.log")
+  test.equal(r.error_log, "/logs/error.log")
+  test.equal(r.playlist_log, null)
+  test.equal(r.admin_user, "admin")
+  test.equal(r.admin_password, "apw")
+  r = resolve(from_file=false, icecast.server.config.empty)
+  test.equal(r.port, 8000)
+  test.equal(r.password, "hackme")
+  test.equal(r.access_log, null)
+  test.equal(r.error_log, null)
+  test.equal(r.admin_password, null)
 
   # Errors name the section
   def fails(doc) =

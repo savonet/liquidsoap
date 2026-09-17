@@ -61,30 +61,153 @@ def f() =
   test.equal(list.map(fst, t.disconnect("/c")), ["/c"])
   test.equal(list.map(fst, t.disconnect("/unknown")), [])
 
-  # listener_table: one disconnect drops one listener from that connection IP
-  l = icecast.server.listener_table()
-  l.connect(
-    connection_ip="1.1.1.1",
-    {ip = "1.1.1.1", protocol = "http", uri = "/a"}
+  # listener_counters: peak, connections and finished-session totals
+  c = icecast.server.listener_counters()
+  c.connect()
+  c.connect()
+  c.disconnect({duration = 1.5, bytes_sent = 10})
+  c.connect()
+  c.disconnect({duration = 2., bytes_sent = 5})
+  test.equal(
+    c.get(),
+    {peak = 2, connections = 3, listening_time = 3.5, bytes_sent = 15}
   )
-  l.connect(
-    connection_ip="1.1.1.1",
-    {ip = "1.1.1.1", protocol = "http", uri = "/a"}
+
+  # ip_hash: 16 hex characters, same value on every run
+  hash = icecast.server.ip_hash
+  test.equal(
+    hash("1.2.3.4"),
+    string.sub(string.digest("icecast.server:1.2.3.4"), start=0, length=16)
   )
-  l.connect(
-    connection_ip="2.2.2.2",
-    {ip = "9.9.9.9", protocol = "http", uri = "/a"}
+  test.equal(r/^[0-9a-f]{16}$/.test(hash("1.2.3.4")), true)
+  test.equal(hash("1.2.3.4") == hash("1.2.3.5"), false)
+
+  # listener_view: X-Forwarded-For resolved, then hashed; headers dropped
+  harbor_listener =
+    {
+      id = 7,
+      ip = "10.0.0.1",
+      uri = "/a",
+      protocol = "1.1",
+      headers = [("x-forwarded-for", "5.5.5.5"), ("user-agent", "VLC/3.0")],
+      connected_at = 100.,
+      duration = 61.9,
+      bytes_sent = 4096
+    }
+  view =
+    icecast.server.listener_view(
+      mount="/a",
+      x_forwarded_for=null,
+      proxy_ips=[],
+      ip_hash=fun (ip) -> "hash(#{ip})",
+      harbor_listener
+    )
+  test.equal(view.ip, "hash(5.5.5.5)")
+  test.equal(view.user_agent, "VLC/3.0")
+  test.equal(view.referer, null)
+  test.equal(view.id, 7)
+  test.equal(view.mount, "/a")
+
+  # log_escape: icecast's %H rules, UTF-8 kept
+  test.equal(
+    icecast.server.log_escape(
+      "a b\"c\\d\te!`é"
+    ),
+    "a\\x20b\\x22c\\x5cd\\x09e\\x21\\x60é"
   )
-  test.equal(list.length(l.all()), 3)
-  test.equal(l.peak(), 3)
-  l.disconnect("1.1.1.1")
-  test.equal(list.map(fun (x) -> x.ip, l.all()), ["9.9.9.9", "1.1.1.1"])
-  l.disconnect("3.3.3.3")
-  test.equal(list.length(l.all()), 2)
-  l.disconnect("2.2.2.2")
-  l.disconnect("1.1.1.1")
-  test.equal(l.all(), [])
-  test.equal(l.peak(), 3)
+  test.equal(
+    icecast.server.log_escape(
+      keep_spaces=true,
+      "a b\n"
+    ),
+    "a b\\x0a"
+  )
+
+  # access_log_line
+  test.equal(
+    icecast.server.access_log_line(now=0., view),
+    "hash(5.5.5.5) - - [#{icecast.server.log_date(0.)}] \"GET /a HTTP/1.1\" 200 \
+     4096 \"-\" \"VLC/3.0\" 61"
+  )
+
+  # playlist_log_line
+  test.equal(
+    icecast.server.playlist_log_line(
+      now=0.,
+      {mount = "/a", listeners = 3, metadata = [("title", "t")]}
+    ),
+    "#{icecast.server.log_date(0.)}|/a|3|t"
+  )
+  test.equal(
+    icecast.server.playlist_log_line(
+      now=0.,
+      {
+        mount = "/a",
+        listeners = 3,
+        metadata = [("artist", "a|b"), ("title", "t\nu")]
+      }
+    ),
+    "#{icecast.server.log_date(0.)}|/a|3|a b - t u"
+  )
+  test.equal(
+    icecast.server.playlist_log_line(
+      now=0.,
+      {mount = "/a", listeners = 0, metadata = []}
+    ),
+    null
+  )
+
+  # log_writer: rotation to .old, or to a timestamped archive
+  dir = file.temp_dir("icecast", "logs")
+  log_path = path.concat(dir, "access.log")
+  write = icecast.server.log_writer(size_limit=5, archive=false, log_path)
+  write(
+    "first line"
+  )
+  write("second")
+  test.equal(file.contents(log_path), "second\n")
+  test.equal(
+    file.contents("#{log_path}.old"),
+    "first line\n"
+  )
+  write = icecast.server.log_writer(size_limit=5, archive=true, log_path)
+  write("third")
+  test.equal(file.contents(log_path), "third\n")
+  test.equal(
+    list.exists(fun (f) -> r/^access\.log\.\d{8}_\d{6}$/.test(f), file.ls(dir)),
+    true
+  )
+  file.rmdir(dir)
+
+  # basic_auth
+  def request(value) =
+    {headers = [("authorization", value)]}
+  end
+  def check_auth(value) =
+    icecast.server.basic_auth(user="admin", password="pw", request(value))
+  end
+  test.equal(
+    check_auth(
+      "Basic #{string.base64.encode("admin:pw")}"
+    ),
+    true
+  )
+  test.equal(
+    check_auth(
+      "Basic #{string.base64.encode("admin:nope")}"
+    ),
+    false
+  )
+  test.equal(
+    check_auth(
+      "Basic !!!"
+    ),
+    false
+  )
+  test.equal(
+    icecast.server.basic_auth(user="admin", password="pw", {headers = []}),
+    false
+  )
 
   # x_forwarded_for / listener_ip
   xff = icecast.server.x_forwarded_for

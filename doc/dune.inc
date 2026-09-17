@@ -1154,6 +1154,20 @@
    content/liq/http-input.liq)))
 
 (rule
+ (alias test-doc-icecast-server-access-log)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-access-log.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-access-log.liq)))
+
+(rule
  (alias test-doc-icecast-server-basic)
  (package liquidsoap)
  (deps
@@ -1208,6 +1222,48 @@
    --check
    --no-fallible-check
    content/liq/icecast-server-dedicated-encoder.liq)))
+
+(rule
+ (alias test-doc-icecast-server-ip-hash)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-ip-hash.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-ip-hash.liq)))
+
+(rule
+ (alias test-doc-icecast-server-listener-callbacks)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-listener-callbacks.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-listener-callbacks.liq)))
+
+(rule
+ (alias test-doc-icecast-server-plain-ips)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-plain-ips.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-plain-ips.liq)))
 
 (rule
  (alias test-doc-icecast-server-serve-auth)
@@ -2297,10 +2353,14 @@
   (alias test-doc-harbor.http.response)
   (alias test-doc-hls-metadata)
   (alias test-doc-http-input)
+  (alias test-doc-icecast-server-access-log)
   (alias test-doc-icecast-server-basic)
   (alias test-doc-icecast-server-complete)
   (alias test-doc-icecast-server-config)
   (alias test-doc-icecast-server-dedicated-encoder)
+  (alias test-doc-icecast-server-ip-hash)
+  (alias test-doc-icecast-server-listener-callbacks)
+  (alias test-doc-icecast-server-plain-ips)
   (alias test-doc-icecast-server-serve-auth)
   (alias test-doc-icecast-server-serve-json)
   (alias test-doc-icy-update)

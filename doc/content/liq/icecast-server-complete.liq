@@ -10,7 +10,7 @@ server =
 fallback_source = playlist("/path/to/music")
 
 # When a DJ connects, log it and optionally do something
-server.on_connect(
+server.on_source_connect(
   fun (r) ->
     begin
       log.important(
@@ -20,7 +20,7 @@ server.on_connect(
     end
 )
 
-server.on_disconnect(
+server.on_source_disconnect(
   fun (r) ->
     log.important(
       "DJ disconnected from #{r.mount}"
