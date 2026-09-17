@@ -77,6 +77,7 @@ let settings.icecast.server.default_muxer_options =
 
 let icecast.server.config = ()
 let icecast.server.config.mount = ()
+let icecast.server.config.logging = ()
 
 # @flag hidden
 def icecast.server.config.warn_unsupported(section, options) =
@@ -423,9 +424,95 @@ end
 # @flag hidden
 def icecast.server.config.authentication(doc) =
   let xml.parse (parsed :
-    {authentication: {"source-password" as source_password: string?}}
+    {
+      authentication: {
+        "source-password" as source_password: string?,
+        "admin-user" as admin_user: string?,
+        "admin-password" as admin_password: string?
+      }
+    }
   ) = doc
-  {password = parsed.authentication.source_password}
+  a = parsed.authentication
+  {
+    password = a.source_password,
+    admin_user = a.admin_user,
+    admin_password = a.admin_password
+  }
+end
+
+# Logging configuration with nothing set.
+# @flag hidden
+let icecast.server.config.logging.empty =
+  {
+    accesslog = (null : string?),
+    errorlog = (null : string?),
+    playlistlog = (null : string?),
+    loglevel = (null : int?),
+    logsize = (null : int?),
+    logarchive = false
+  }
+
+# Log level of liquidsoap for an icecast `<loglevel>`, given as a number (1 error to 4 debug) or a name.
+# @flag hidden
+def icecast.server.config.logging.level(loglevel) =
+  levels =
+    [
+      ("1", 2),
+      ("error", 2),
+      ("eror", 2),
+      ("2", 3),
+      ("warning", 3),
+      ("warn", 3),
+      ("3", 4),
+      ("information", 4),
+      ("info", 4),
+      ("4", 5),
+      ("debug", 5),
+      ("dbug", 5)
+    ]
+  level = list.assoc.nullable(string.case(lower=true, loglevel), levels)
+  if
+    not null.defined(level)
+  then
+    log.important(
+      label="icecast.server",
+      "Unsupported <loglevel> value '#{loglevel}', ignoring"
+    )
+  end
+  level
+end
+
+# Parse a `<logging>` element.
+# @flag hidden
+def icecast.server.config.logging.parse(doc) =
+  let xml.parse (parsed :
+    {
+      logging: {
+        accesslog: string?,
+        errorlog: string?,
+        playlistlog: string?,
+        loglevel: string?,
+        logsize: int?,
+        logarchive: int?,
+        memorybacklog?: {xml_params: [(string * string)]}
+      }
+    }
+  ) = doc
+  l = parsed.logging
+
+  icecast.server.config.warn_unsupported(
+    "logging",
+    [("memorybacklog", null.defined(l?.memorybacklog))]
+  )
+
+  {
+    accesslog = l.accesslog,
+    errorlog = l.errorlog,
+    playlistlog = l.playlistlog,
+    loglevel = null.map(icecast.server.config.logging.level, l.loglevel),
+    logsize = l.logsize,
+    logarchive = l.logarchive == 1
+  }
 end
 
 # Burst for a mount: its own `<burst-size>`, else the global one. A `0` at either level, or `<burst-on-connect>0</burst-on-connect>`, disables bursting.
@@ -454,7 +541,10 @@ let icecast.server.config.empty =
     tls_certificate = (null : string?),
     tls_key = (null : string?),
     logdir = (null : string?),
+    logging = icecast.server.config.logging.empty,
     password = (null : string?),
+    admin_user = (null : string?),
+    admin_password = (null : string?),
     max_sources = (null : int?),
     max_clients = (null : int?),
     client_timeout = (null : float?),
@@ -518,6 +608,7 @@ def icecast.server.config.parse(doc) =
     section("authentication", icecast.server.config.authentication)
   limits = section("limits", icecast.server.config.limits)
   paths = section("paths", icecast.server.config.paths)
+  logging = section("logging", icecast.server.config.logging.parse)
   http_headers = section("http-headers", icecast.server.config.headers)
 
   mounts =
@@ -545,7 +636,10 @@ def icecast.server.config.parse(doc) =
     tls_certificate = paths.tls_certificate,
     tls_key = paths.tls_key,
     logdir = paths.logdir,
+    logging = logging,
     password = authentication.password,
+    admin_user = authentication.admin_user,
+    admin_password = authentication.admin_password,
     max_sources = limits.max_sources,
     max_clients = limits.max_clients,
     client_timeout = limits.client_timeout,
@@ -555,6 +649,57 @@ def icecast.server.config.parse(doc) =
     http_headers = http_headers,
     default_mount = default_mount,
     mounts = mounts
+  }
+end
+
+# Effective `icecast.server` settings: explicit parameters first, then the config file, then defaults. Log files named in the config live in `<logdir>`, and icecast's default log names only apply when a config file is loaded.
+# @flag hidden
+def icecast.server.config.resolve(
+  ~port,
+  ~password,
+  ~access_log,
+  ~playlist_log,
+  ~admin_user,
+  ~admin_password,
+  ~from_file,
+  parsed
+) =
+  logging = parsed.logging
+
+  def log_path(name) =
+    if
+      null.defined(name) and null.get(name) == "-"
+    then
+      "-"
+    elsif
+      null.defined(name) and null.defined(parsed.logdir)
+    then
+      path.concat(null.get(parsed.logdir), null.get(name))
+    else
+      null
+    end
+  end
+
+  def first((param:string?), (fallback:string?)) =
+    if null.defined(param) then param else fallback end
+  end
+
+  def file_default(name, (default:string)) =
+    if from_file then (name ?? default : string?) else name end
+  end
+
+  {
+    port = port ?? (parsed.port ?? 8000),
+    password = password ?? (parsed.password ?? "hackme"),
+    error_log = log_path(file_default(logging.errorlog, "error.log")),
+    access_log =
+      first(
+        access_log,
+        log_path(file_default(logging.accesslog, "access.log"))
+      ),
+    playlist_log = first(playlist_log, log_path(logging.playlistlog)),
+    admin_user = admin_user ?? (parsed.admin_user ?? "admin"),
+    admin_password = first(admin_password, parsed.admin_password)
   }
 end
 
@@ -764,32 +909,157 @@ def icecast.server.mount_table() =
   }
 end
 
-# Listeners of one mount. `output.harbor` reports a disconnect by connection IP only, so one disconnect drops one listener with that connection IP.
+# Listener counters of one mount. Live listeners belong to the mount's output, which pairs every synchronous connect with exactly one later disconnect, so `current` cannot drift.
 # @flag hidden
-def icecast.server.listener_table() =
-  listeners = ref([])
+def icecast.server.listener_counters() =
+  current = ref(0)
   peak = ref(0)
+  connections = ref(0)
+  listening_time = ref(0.)
+  bytes_sent = ref(0)
 
-  def connect(~connection_ip, listener) =
-    listeners := [(connection_ip, listener), ...listeners()]
-    peak := max(peak(), list.length(listeners()))
+  def connect() =
+    atomic(
+      fast=true,
+      fun () ->
+        begin
+          current := current() + 1
+          connections := connections() + 1
+          peak := max(peak(), current())
+        end
+    )
   end
 
-  def disconnect(connection_ip) =
-    listeners := list.assoc.remove(connection_ip, listeners())
+  def disconnect(listener) =
+    atomic(
+      fast=true,
+      fun () ->
+        begin
+          current := current() - 1
+          listening_time := listening_time() + listener.duration
+          bytes_sent := bytes_sent() + listener.bytes_sent
+        end
+    )
   end
 
-  {
-    connect = connect,
-    disconnect = disconnect,
-    all = fun () -> list.map(snd, listeners()),
-    peak = peak
-  }
+  def get() =
+    atomic(
+      fast=true,
+      fun () ->
+        {
+          peak = peak(),
+          connections = connections(),
+          listening_time = listening_time(),
+          bytes_sent = bytes_sent()
+        }
+    )
+  end
+
+  {connect = connect, disconnect = disconnect, get = get}
 end
 
-# Default prepare function for `icecast.server`. Builds a standard fallback source and calls `output.harbor`.
+# Default listener IP hash for `icecast.server`: an MD5 digest of the address with a fixed public key, truncated to 16 hex characters. It keeps addresses out of logs and pages but does not resist someone testing guessed addresses: pass your own `ip_hash` if that matters.
 # @flag extra
 # @category Source / Input / Active
+def icecast.server.ip_hash(ip) =
+  string.sub(string.digest("icecast.server:" ^ ip), start=0, length=16)
+end
+
+# Escape a log field like icecast's `%H` format. Bytes from 0x80 up are kept so UTF-8 text stays readable.
+# @flag hidden
+def icecast.server.log_escape(~keep_spaces=false, s) =
+  def escape(c) =
+    "\\x#{string.hex_of_int(pad=2, string.nth(c, 0))}"
+  end
+  if
+    keep_spaces
+  then
+    r/[\x00-\x1f!"`\\]/g.replace(escape, s)
+  else
+    r/[\x00-\x20!"`\\]/g.replace(escape, s)
+  end
+end
+
+# Icecast date format, in local time.
+# @flag hidden
+def icecast.server.log_date(date) =
+  time.string(
+    time=date,
+    "%d/%b/%Y:%H:%M:%S %z"
+  )
+end
+
+# Access log line for a finished listener session, in icecast's combined log format extended with the connected duration. Icecast stamps the line with the disconnect time.
+# @flag hidden
+def icecast.server.access_log_line(~now, listener) =
+  esc = icecast.server.log_escape
+  request =
+    "GET #{esc(listener.uri)} HTTP/#{esc(listener.protocol)}"
+  referer = esc(keep_spaces=true, listener.referer ?? "-")
+  user_agent = esc(keep_spaces=true, listener.user_agent ?? "-")
+  "#{esc(listener.ip)} - - [#{icecast.server.log_date(now)}] \"#{request}\" 200 #{
+    listener.bytes_sent
+  } \"#{referer}\" \"#{user_agent}\" #{int(listener.duration)}"
+end
+
+# Playlist log line for a metadata update, or `null` when it has no title. Icecast writes the text unescaped: `|` and line breaks are blanked here so each update stays one parseable line.
+# @flag hidden
+def icecast.server.playlist_log_line(~now, update) =
+  artist = update.metadata["artist"]
+  title = update.metadata["title"]
+  text =
+    if
+      artist != "" and title != ""
+    then
+      "#{artist} - #{title}"
+    else
+      "#{artist}#{title}"
+    end
+  if
+    text == ""
+  then
+    null
+  else
+    text =
+      r/[|\r\n]/g.replace(
+        fun (_) ->
+          " ",
+        text
+      )
+    "#{icecast.server.log_date(now)}|#{update.mount}|#{update.listeners}|#{
+      text
+    }"
+  end
+end
+
+# Line writer for an icecast log file. Past `size_limit` bytes the file is renamed to `<path>.old`, or to a timestamped name when `archive` is set. The file is reopened for every line, so external log rotation needs no signal. `-` writes to standard error.
+# @flag hidden
+def icecast.server.log_writer(~size_limit, ~archive, path) =
+  to_stderr = path == "-"
+  path = to_stderr ? "/dev/stderr" : path
+
+  def rotate() =
+    if
+      not to_stderr and file.exists(path) and file.size(path) > size_limit
+    then
+      suffix = archive ? time.string("%Y%m%d_%H%M%S") : "old"
+      file.move(force=true, path, "#{path}.#{suffix}")
+    end
+  end
+
+  fun (line) ->
+    # ponytail: one global atomic section for all logs, per-file locks if log volume ever matters.
+    atomic(
+      fun () ->
+        begin
+          rotate()
+          file.write(append=true, data="#{line}\n", path)
+        end
+    )
+end
+
+# Output of an `icecast.server` mount: its source with an optional fallback, served by `output.harbor`.
+# @flag hidden
 def icecast.server.default_prepare(
   {
     copy_encoder,
@@ -812,7 +1082,8 @@ def icecast.server.default_prepare(
       fallback = f,
       mime_type,
       on_listener_connect,
-      on_listener_disconnect
+      on_listener_disconnect,
+      on_metadata
     }
   ) ->
     begin
@@ -850,8 +1121,20 @@ def icecast.server.default_prepare(
 
       o.on_connect(synchronous=true, on_listener_connect)
       o.on_disconnect(synchronous=true, on_listener_disconnect)
+      o.on_metadata(
+        synchronous=true,
+        fun (metadata) ->
+          on_metadata(
+            {metadata = metadata, listeners = list.length(o.listeners())}
+          )
+      )
 
-      {clock = o.clock, shutdown = o.shutdown, last_metadata = o.last_metadata}
+      {
+        clock = o.clock,
+        shutdown = o.shutdown,
+        last_metadata = o.last_metadata,
+        listeners = o.listeners
+      }
     end
 end
 
@@ -985,6 +1268,40 @@ def icecast.server.listener_ip(
   end
 end
 
+# Public view of an `output.harbor` listener. Its address is resolved through X-Forwarded-For then `ip_hash`, and raw headers are left out since they can carry the unhashed address.
+# @flag hidden
+def icecast.server.listener_view(
+  ~mount,
+  ~x_forwarded_for,
+  ~proxy_ips,
+  ~ip_hash,
+  listener
+) =
+  ip =
+    icecast.server.listener_ip(
+      x_forwarded_for=x_forwarded_for,
+      proxy_ips=proxy_ips,
+      {
+        headers = listener.headers,
+        ip = listener.ip,
+        protocol = listener.protocol,
+        uri = listener.uri
+      }
+    )
+  {
+    id = listener.id,
+    mount = (mount : string),
+    ip = ip_hash(ip),
+    user_agent = list.assoc.nullable("user-agent", listener.headers),
+    referer = list.assoc.nullable("referer", listener.headers),
+    uri = listener.uri,
+    protocol = listener.protocol,
+    connected_at = listener.connected_at,
+    duration = listener.duration,
+    bytes_sent = listener.bytes_sent
+  }
+end
+
 # @flag hidden
 def icecast.server.source_manager(
   ~(name:string),
@@ -999,6 +1316,7 @@ def icecast.server.source_manager(
   ~x_forwarded_for_proxy_ips=null,
   ~x_forwarded_for=null,
   ~format_options=null,
+  ~ip_hash,
   ~global_headers,
   ~default_mount,
   ~mount_configs
@@ -1008,8 +1326,21 @@ def icecast.server.source_manager(
 
   server_clock = clock.create(id=name)
   mounts = icecast.server.mount_table()
-  on_connect_handlers = ref([])
-  on_disconnect_handlers = ref([])
+  on_source_connect_handlers = ref([])
+  on_source_disconnect_handlers = ref([])
+  on_listener_connect_handlers = ref([])
+  on_listener_disconnect_handlers = ref([])
+  on_metadata_handlers = ref([])
+
+  def listener_view(~mount, listener) =
+    icecast.server.listener_view(
+      mount=mount,
+      x_forwarded_for=x_forwarded_for,
+      proxy_ips=x_forwarded_for_proxy_ips,
+      ip_hash=ip_hash,
+      listener
+    )
+  end
 
   def mount_config(mount) =
     icecast.server.config.mount.resolve(
@@ -1059,29 +1390,23 @@ def icecast.server.source_manager(
     fun ({source = main, fallback = backup}) ->
       begin
         mount_id = r/^\//.replace(fun (_) -> "", mount)
-        listeners = icecast.server.listener_table()
+        listeners = icecast.server.listener_counters()
 
-        def on_listener_connect(
-          (
-          info:
-          {
-            headers: [(string * string)],
-            ip: string,
-            protocol: string,
-            uri: string
-          }
-          )
-        ) =
-          ip =
-            icecast.server.listener_ip(
-              x_forwarded_for=x_forwarded_for,
-              proxy_ips=x_forwarded_for_proxy_ips,
-              info
-            )
-          listeners.connect(
-            connection_ip=info.ip,
-            {ip = ip, protocol = info.protocol, uri = info.uri}
-          )
+        def on_listener_connect(listener) =
+          listeners.connect()
+          view = listener_view(mount=mount, listener)
+          list.iter(fun (h) -> h(view), on_listener_connect_handlers())
+        end
+
+        def on_listener_disconnect(listener) =
+          listeners.disconnect(listener)
+          view = listener_view(mount=mount, listener)
+          list.iter(fun (h) -> h(view), on_listener_disconnect_handlers())
+        end
+
+        def on_metadata({metadata, listeners}) =
+          arg = {mount = mount, metadata = metadata, listeners = listeners}
+          list.iter(fun (h) -> h(arg), on_metadata_handlers())
         end
 
         connector =
@@ -1118,7 +1443,8 @@ def icecast.server.source_manager(
                 end,
               mime_type = mime_type,
               on_listener_connect = on_listener_connect,
-              on_listener_disconnect = listeners.disconnect
+              on_listener_disconnect = on_listener_disconnect,
+              on_metadata = on_metadata
             }
           )
         server_clock.unify(output.clock)
@@ -1176,7 +1502,7 @@ def icecast.server.source_manager(
             streams = streams,
             headers = headers
           }
-        list.iter(fun (h) -> h(arg), on_connect_handlers())
+        list.iter(fun (h) -> h(arg), on_source_connect_handlers())
 
         on_source_disconnect(
           synchronous=true,
@@ -1198,7 +1524,10 @@ def icecast.server.source_manager(
                 mounts.disconnect(mount)
               )
               run_command(config.on_disconnect_cmd)
-              list.iter(fun (h) -> h({mount = mount}), on_disconnect_handlers())
+              list.iter(
+                fun (h) -> h({mount = mount}),
+                on_source_disconnect_handlers()
+              )
             end
         )
       end
@@ -1234,12 +1563,28 @@ def icecast.server.source_manager(
     handlers := [...handlers(), wrapped]
   end
 
-  def on_connect(~synchronous=false, handler) =
-    add_handler(on_connect_handlers, synchronous=synchronous, handler)
+  def on_source_connect(~synchronous=false, handler) =
+    add_handler(on_source_connect_handlers, synchronous=synchronous, handler)
   end
 
-  def on_disconnect(~synchronous=false, handler) =
-    add_handler(on_disconnect_handlers, synchronous=synchronous, handler)
+  def on_source_disconnect(~synchronous=false, handler) =
+    add_handler(on_source_disconnect_handlers, synchronous=synchronous, handler)
+  end
+
+  def on_listener_connect(~synchronous=false, handler) =
+    add_handler(on_listener_connect_handlers, synchronous=synchronous, handler)
+  end
+
+  def on_listener_disconnect(~synchronous=false, handler) =
+    add_handler(
+      on_listener_disconnect_handlers,
+      synchronous=synchronous,
+      handler
+    )
+  end
+
+  def on_metadata(~synchronous=false, handler) =
+    add_handler(on_metadata_handlers, synchronous=synchronous, handler)
   end
 
   def get_config(mount) =
@@ -1256,18 +1601,28 @@ def icecast.server.source_manager(
   def stats() =
     list.map(
       fun ((mount, entry)) ->
-        (
-          mount,
-          {
-            name = entry.data.source_name(),
-            content_type = entry.data.format() ?? "",
-            mime_type = entry.data.mime_type(),
-            started = entry.data.start_time(),
-            listeners = entry.data.listeners.all(),
-            peak_listeners = entry.data.listeners.peak(),
-            current_metadata = entry.data.output.last_metadata() ?? []
-          }
-        ),
+        begin
+          counters = entry.data.listeners.get()
+          (
+            mount,
+            {
+              name = entry.data.source_name(),
+              content_type = entry.data.format() ?? "",
+              mime_type = entry.data.mime_type(),
+              started = entry.data.start_time(),
+              listeners =
+                list.map(
+                  fun (l) -> listener_view(mount=mount, l),
+                  entry.data.output.listeners()
+                ),
+              peak_listeners = counters.peak,
+              connections = counters.connections,
+              listening_time = counters.listening_time,
+              bytes_sent = counters.bytes_sent,
+              current_metadata = entry.data.output.last_metadata() ?? []
+            }
+          )
+        end,
       mounts.all()
     )
   end
@@ -1307,10 +1662,74 @@ def icecast.server.source_manager(
     get_config = get_config,
     mounts = fun () -> list.map(fst, mounts.all()),
     get_source = mounts.source,
-    on_connect = on_connect,
-    on_disconnect = on_disconnect,
+    on_source_connect = on_source_connect,
+    on_source_disconnect = on_source_disconnect,
+    on_listener_connect = on_listener_connect,
+    on_listener_disconnect = on_listener_disconnect,
+    on_metadata = on_metadata,
     stats = stats
   }
+end
+
+# Style shared by the status and admin pages.
+# @flag hidden
+let icecast.server.status_css =
+  "*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#222;line-height:1.5}header{background:#16213e;color:#fff;padding:1.25rem \
+   2rem;display:flex;align-items:center;justify-content:space-between}header \
+   h1{font-size:1.3rem;font-weight:500}#status{font-size:.8rem;opacity:.7}main{max-width:860px;margin:2rem \
+   auto;padding:0 \
+   1rem}.empty{text-align:center;color:#888;padding:4rem;background:#fff;border-radius:8px}.card{background:#fff;border-radius:8px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 \
+   1px 3px \
+   rgba(0,0,0,.08)}.card-title{font-size:1.05rem;font-weight:600;color:#16213e;margin-bottom:.75rem;font-family:monospace}.now-playing{background:#eef2ff;color:#3730a3;border-radius:4px;padding:.4rem \
+   .75rem;margin-bottom:.75rem;font-size:.9rem}.now-playing::before{content:'▶ \
+   ';opacity:.7}.meta{display:flex;flex-wrap:wrap;gap:.75rem \
+   2rem;margin-bottom:1rem;font-size:.875rem}.meta-item{display:flex;flex-direction:column}.meta-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:.15rem}hr{border:none;border-top:1px \
+   solid #f0f0f0;margin:.75rem \
+   0}.stats-row{display:flex;align-items:center;gap:2rem}.stat{text-align:center}.stat-n{font-size:1.6rem;font-weight:600;color:#16213e;line-height:1}.stat-l{font-size:.7rem;text-transform:uppercase;color:#888;margin-top:.2rem}"
+
+# Handler answering 401 unless `auth`, when set, accepts the request.
+# @flag hidden
+def icecast.server.wrap_auth(auth, handler) =
+  fun (req, response) ->
+    begin
+      accepted =
+        if
+          null.defined(auth)
+        then
+          auth_fn = null.get(auth)
+          auth_fn(req)
+        else
+          true
+        end
+      if
+        not accepted
+      then
+        response.status_code(401)
+        response.header(
+          "WWW-Authenticate",
+          "Basic realm=\"Liquidsoap\""
+        )
+        response.data("")
+      else
+        handler(req, response)
+      end
+    end
+end
+
+# `true` when the request carries HTTP Basic credentials matching `user` and `password`.
+# @flag hidden
+def icecast.server.basic_auth(~user, ~password, request) =
+  credentials =
+    string.residual(
+      prefix="Basic ",
+      list.assoc(default="", "authorization", request.headers)
+    )
+  try
+    null.defined(credentials)
+    and string.base64.decode(null.get(credentials)) == "#{user}:#{password}"
+  catch _ do
+    false
+  end
 end
 
 # @flag hidden
@@ -1322,20 +1741,6 @@ def icecast.server.serve(
   ~html=null,
   stats
 ) =
-  css =
-    "*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#222;line-height:1.5}header{background:#16213e;color:#fff;padding:1.25rem \
-     2rem;display:flex;align-items:center;justify-content:space-between}header \
-     h1{font-size:1.3rem;font-weight:500}#status{font-size:.8rem;opacity:.7}main{max-width:860px;margin:2rem \
-     auto;padding:0 \
-     1rem}.empty{text-align:center;color:#888;padding:4rem;background:#fff;border-radius:8px}.card{background:#fff;border-radius:8px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 \
-     1px 3px \
-     rgba(0,0,0,.08)}.card-title{font-size:1.05rem;font-weight:600;color:#16213e;margin-bottom:.75rem;font-family:monospace}.now-playing{background:#eef2ff;color:#3730a3;border-radius:4px;padding:.4rem \
-     .75rem;margin-bottom:.75rem;font-size:.9rem}.now-playing::before{content:'▶ \
-     ';opacity:.7}.meta{display:flex;flex-wrap:wrap;gap:.75rem \
-     2rem;margin-bottom:1rem;font-size:.875rem}.meta-item{display:flex;flex-direction:column}.meta-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:.15rem}hr{border:none;border-top:1px \
-     solid #f0f0f0;margin:.75rem \
-     0}.stats-row{display:flex;align-items:center;gap:2rem}.stat{text-align:center}.stat-n{font-size:1.6rem;font-weight:600;color:#16213e;line-height:1}.stat-l{font-size:.7rem;text-transform:uppercase;color:#888;margin-top:.2rem}"
-
   js =
     "async function refresh(){try{const r=await fetch('/status.json');const \
      d=await \
@@ -1375,33 +1780,14 @@ def icecast.server.serve(
     "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta \
      name='viewport' \
      content='width=device-width,initial-scale=1'><title>Liquidsoap \
-     Status</title><style>#{css}</style></head><body><header><h1>Liquidsoap \
-     Status</h1><span id='status'></span></header><main id='mounts'><p \
+     Status</title><style>#{
+      icecast.server.status_css
+    }</style></head><body><header><h1>Liquidsoap Status</h1><span \
+     id='status'></span></header><main id='mounts'><p \
      class='empty'>Loading\u2026</p></main><script>#{js}</script></body></html>"
 
   def wrap_auth(handler) =
-    fun (req, response) ->
-      begin
-        if
-          null.defined(auth)
-        then
-          auth_fn = null.get(auth)
-          if
-            not auth_fn(req)
-          then
-            response.status_code(401)
-            response.header(
-              "WWW-Authenticate",
-              "Basic realm=\"Liquidsoap\""
-            )
-            response.data("")
-          else
-            handler(req, response)
-          end
-        else
-          handler(req, response)
-        end
-      end
+    icecast.server.wrap_auth(auth, handler)
   end
 
   def html_handler(_, response) =
@@ -1462,12 +1848,92 @@ def icecast.server.serve(
   )
 end
 
+# Admin listener page at `/admin/listeners`, with its data at `/admin/listeners.json`. Listener fields are client-controlled, so the page only ever inserts them as text.
+# @flag hidden
+def icecast.server.serve_admin(~port, ~transport, ~user, ~password, stats) =
+  css =
+    "#{
+      icecast.server.status_css
+    }table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{text-align:left;padding:.3rem \
+     .5rem;border-bottom:1px solid \
+     #f0f0f0}th{font-size:.7rem;text-transform:uppercase;color:#888}td:nth-child(2){word-break:break-all}"
+
+  js =
+    "async function refresh(){try{const r=await \
+     fetch('/admin/listeners.json');if(!r.ok)throw r.status;const d=await \
+     r.json();render(d.mounts);document.getElementById('status').textContent='Updated \
+     '+new \
+     Date().toLocaleTimeString();}catch(e){document.getElementById('status').textContent='Connection \
+     error.';}}function el(t,c,x){const \
+     e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=String(x);return \
+     e;}function dur(s){s=Math.floor(s);const \
+     h=Math.floor(s/3600),m=Math.floor(s%3600/60);return (h?h+'h \
+     ':'')+(h||m?m+'m ':'')+s%60+'s';}function stat(n,l){const \
+     s=el('div','stat');s.append(el('div','stat-n',n),el('div','stat-l',l));return \
+     s;}function render(mounts){const \
+     root=document.getElementById('mounts');root.replaceChildren();if(!mounts.length){root.append(el('p','empty','No \
+     active mounts.'));return;}mounts.forEach(m=>{const \
+     card=el('div','card');card.append(el('div','card-title',m.mount));const \
+     row=el('div','stats-row');row.append(stat(m.listeners.length,'Listeners'),stat(m.peak_listeners,'Peak'),stat(m.connections,'Connections'),stat(dur(m.listening_time),'Listened'));card.append(row);if(m.listeners.length){const \
+     t=el('table');const h=el('tr');['Listener','User \
+     agent','Connected','Sent'].forEach(x=>h.append(el('th','',x)));t.append(h);m.listeners.forEach(l=>{const \
+     r=el('tr');r.append(el('td','',l.ip),el('td','',l.user_agent||'-'),el('td','',dur(l.duration)),el('td','',Math.round(l.bytes_sent/1024)+' \
+     KiB'));t.append(r);});card.append(el('hr'),t);}root.append(card);});}refresh();setInterval(refresh,5000);"
+
+  html_page =
+    "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta \
+     name='viewport' \
+     content='width=device-width,initial-scale=1'><title>Liquidsoap \
+     Listeners</title><style>#{css}</style></head><body><header><h1>Liquidsoap \
+     Listeners</h1><span id='status'></span></header><main id='mounts'><p \
+     class='empty'>Loading…</p></main><script>#{js}</script></body></html>"
+
+  def auth(request) =
+    icecast.server.basic_auth(user=user, password=password, request)
+  end
+
+  def json_handler(_, response) =
+    mounts =
+      list.map(
+        fun ((mount, s)) ->
+          {
+            mount = mount,
+            peak_listeners = s.peak_listeners,
+            connections = s.connections,
+            listening_time = s.listening_time,
+            bytes_sent = s.bytes_sent,
+            listeners = s.listeners
+          },
+        stats()
+      )
+    response.json({mounts = mounts})
+  end
+
+  harbor.http.register(
+    port=port,
+    transport=transport,
+    method="GET",
+    "/admin/listeners",
+    icecast.server.wrap_auth(
+      auth,
+      fun (_, response) -> response.html(html_page)
+    )
+  )
+  harbor.http.register(
+    port=port,
+    transport=transport,
+    method="GET",
+    "/admin/listeners.json",
+    icecast.server.wrap_auth(auth, json_handler)
+  )
+end
+
 # Start an icecast-compatible server
 # @flag extra
 # @category Source / Input / Active
 # @param ~name Telnet command namespace
-# @param ~port Port to listen on
-# @param ~password Source password for authentication
+# @param ~port Port to listen on. Overrides `<port>` from the config file, defaults to `8000`.
+# @param ~password Source password for authentication. Overrides `<source-password>` from the config file, defaults to `"hackme"`.
 # @param ~dedicated_encoder When `true`, create a separate encoder instance for each listener. This uses more resources but ensures each listener gets a clean encoder state.
 # @param ~config Optional path to an icecast XML configuration file
 # @param ~serve When `false`, disable the status page at `/` and JSON stats at `/status.json`.
@@ -1477,17 +1943,30 @@ end
 # @param ~x_forwarded_for_proxy_ips List of known reverse-proxy IPs. When set, the `X-Forwarded-For` header is walked right-to-left and the first non-proxy IP is used as the listener IP in stats. Use only when liquidsoap is behind a trusted reverse proxy.
 # @param ~x_forwarded_for Advanced: custom callback `({ip, headers, proxy_ips, protocol, uri}) -> string` to extract the real listener IP. When set, overrides the default `X-Forwarded-For` logic. `proxy_ips` in the record is populated from `x_forwarded_for_proxy_ips`.
 # @param ~format_options Callback `(string) -> [(string * string)]` that returns muxer options for a given container format name. When `null`, falls back to `settings.icecast.server.default_muxer_options`.
-# @callback on_connect Called when a source connects. Receives a record with mount, source, format, streams, and headers fields.
-# @callback on_disconnect Called when a source disconnects. Receives a record with a mount field.
-# @method stats Returns a list of `(mount, stats)` pairs. Each stats record contains: name, content_type, started, listeners, peak_listeners, and current_metadata.
+# @param ~access_log Path of an icecast-style access log, `-` for standard error. Overrides `<accesslog>` from the config file.
+# @param ~playlist_log Path of an icecast-style playlist log, `-` for standard error. Overrides `<playlistlog>` from the config file.
+# @param ~admin_user User name for the admin listener page. Overrides `<admin-user>` from the config file.
+# @param ~admin_password Password for the admin listener page, which is disabled when no password is set. Overrides `<admin-password>` from the config file.
+# @param ~ip_hash Function applied to every listener IP, after X-Forwarded-For resolution, before it reaches callbacks, stats or logs. Defaults to `icecast.server.ip_hash`, a truncated MD5 digest that is the same across restarts. Pass `fun (ip) -> ip` to keep plain IPs.
+# @method on_source_connect Register a handler called when a source connects. Receives a record with mount, source, format, streams, and headers fields.
+# @method on_source_disconnect Register a handler called when a source disconnects. Receives a record with a mount field.
+# @method on_listener_connect Register a handler called when a listener connects. Receives a record with id, mount, ip (hashed), user_agent, referer, uri, protocol, connected_at, duration and bytes_sent fields.
+# @method on_listener_disconnect Register a handler called when a listener disconnects, with the same record as `on_listener_connect` and final duration and bytes_sent. Synchronous handlers are called exactly once per listener, after its connect handlers.
+# @method on_metadata Register a handler called on metadata updates of a mount. Receives a record with mount, metadata, and listeners (count) fields.
+# @method stats Returns a list of `(mount, stats)` pairs. Each stats record contains: name, content_type, mime_type, started, listeners, peak_listeners, connections, listening_time, bytes_sent and current_metadata.
 def replaces icecast.server(
   ~name="icecast.server",
-  ~port=8000,
-  ~password="hackme",
+  ~port=null,
+  ~password=null,
   ~dedicated_encoder=false,
   ~x_forwarded_for_proxy_ips=null,
   ~x_forwarded_for=null,
   ~format_options=null,
+  ~ip_hash=icecast.server.ip_hash,
+  ~access_log=null,
+  ~playlist_log=null,
+  ~admin_user=null,
+  ~admin_password=null,
   ~config=null,
   ~serve=true,
   ~serve_auth=null,
@@ -1505,16 +1984,34 @@ def replaces icecast.server(
       icecast.server.config.empty
     end
 
-  port = parsed.port ?? port
-  password = parsed.password ?? password
+  effective =
+    icecast.server.config.resolve(
+      port=port,
+      password=password,
+      access_log=access_log,
+      playlist_log=playlist_log,
+      admin_user=admin_user,
+      admin_password=admin_password,
+      from_file=null.defined(config),
+      parsed
+    )
+  port = effective.port
+  password = effective.password
   max_sources = parsed.max_sources
+  logging = parsed.logging
 
+  errorlog_path = effective.error_log
   if
-    null.defined(parsed.logdir)
+    null.defined(errorlog_path) and null.get(errorlog_path) != "-"
   then
     settings.log.file := true
-    settings.log.file.path := "#{null.get(parsed.logdir)}/<script>.log"
-    settings.log.stdout := true
+    settings.log.file.path := null.get(errorlog_path)
+  end
+  if null.defined(errorlog_path) then settings.log.stdout := true end
+  if
+    null.defined(logging.loglevel)
+  then
+    settings.log.level := null.get(logging.loglevel)
   end
 
   if
@@ -1566,6 +2063,18 @@ def replaces icecast.server(
     )
   end
 
+  access_log = effective.access_log
+  playlist_log = effective.playlist_log
+
+  def log_writer(path) =
+    icecast.server.log_writer(
+      size_limit=null.map(fun (kib) -> 1024 * kib, logging.logsize)
+        ?? 1000000000,
+      archive=logging.logarchive,
+      path
+    )
+  end
+
   icecast.server.log_config(
     name,
     {
@@ -1592,10 +2101,44 @@ def replaces icecast.server(
       x_forwarded_for_proxy_ips=x_forwarded_for_proxy_ips,
       x_forwarded_for=x_forwarded_for,
       format_options=format_options,
+      ip_hash=ip_hash,
       global_headers=parsed.http_headers,
       default_mount=parsed.default_mount,
       mount_configs=parsed.mounts
     )
+
+  if
+    null.defined(access_log)
+  then
+    log.important(
+      label=name,
+      "Writing access log to #{null.get(access_log)}"
+    )
+    write_access_log = log_writer(null.get(access_log))
+    manager.on_listener_disconnect(
+      synchronous=true,
+      fun (listener) ->
+        write_access_log(icecast.server.access_log_line(now=time(), listener))
+    )
+  end
+
+  if
+    null.defined(playlist_log)
+  then
+    log.important(
+      label=name,
+      "Writing playlist log to #{null.get(playlist_log)}"
+    )
+    write_playlist_log = log_writer(null.get(playlist_log))
+    manager.on_metadata(
+      synchronous=true,
+      fun (update) ->
+        begin
+          line = icecast.server.playlist_log_line(now=time(), update)
+          if null.defined(line) then write_playlist_log(null.get(line)) end
+        end
+    )
+  end
 
   input.harbor.dynamic(
     "/:mount",
@@ -1649,14 +2192,35 @@ def replaces icecast.server(
       html=serve_html,
       manager.stats
     )
+
+    admin_password = effective.admin_password
+    if
+      null.defined(admin_password)
+    then
+      icecast.server.serve_admin(
+        port=port,
+        transport=transport,
+        user=effective.admin_user,
+        password=null.get(admin_password),
+        manager.stats
+      )
+    else
+      log.important(
+        label=name,
+        "Admin listener page disabled: no admin password configured"
+      )
+    end
   end
 
   {
     mounts = manager.mounts,
     get_source = manager.get_source,
     get_config = manager.get_config,
-    on_connect = manager.on_connect,
-    on_disconnect = manager.on_disconnect,
+    on_source_connect = manager.on_source_connect,
+    on_source_disconnect = manager.on_source_disconnect,
+    on_listener_connect = manager.on_listener_connect,
+    on_listener_disconnect = manager.on_listener_disconnect,
+    on_metadata = manager.on_metadata,
     stats = manager.stats
   }
 end

@@ -22,7 +22,9 @@
 - Added support for XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`,
   `file.nfo.metadata`) (#4910).
 - Added Icecast-compatible streaming server (`icecast.server`) with support for source
-  authentication, mount points, relay, and per-listener encoding (#4915).
+  authentication, mount points, relay, and per-listener encoding (#4915). It writes icecast's
+  access and playlist logs, reports listener sessions through callbacks, serves an admin listener
+  page, and hashes listener IPs by default (#5408).
 - Added dedicated encoder mode to `output.harbor`: mount points can now be served with
   a single shared encoder instead of per-listener encoding (#5003).
 - Rewrote JACK I/O using native OCaml bindings, removing the dependency on the `bjack`
@@ -53,6 +55,9 @@
 ## Changed:
 
 - Liquidsoap now requires OCaml 5.5 to build.
+- `output.harbor`'s `on_connect` and `on_disconnect` callbacks now receive a listener record with
+  its session duration and bytes sent, and a new `listeners` method lists connected listeners. The
+  `ip` field no longer includes the client port (#5408).
 - Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
   taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
   Heavy work in a callback or a request resolution no longer stalls playback either.
