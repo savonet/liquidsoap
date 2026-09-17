@@ -7,8 +7,17 @@ def f() =
     output.harbor(%mp3, mount="test", port=3471, dedicated_encoder=true, sine())
 
   def on_connect(_) =
-    count := count() + 1
-    if count() >= 2 then test.pass() end
+    # Both callbacks can run at once: increment and read under one section.
+    n =
+      atomic(
+        fast=true,
+        fun () ->
+          begin
+            count := count() + 1
+            count()
+          end
+      )
+    if n >= 2 then test.pass() end
   end
 
   o.on_connect(synchronous=false, on_connect)

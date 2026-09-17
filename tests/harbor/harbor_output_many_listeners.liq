@@ -7,14 +7,25 @@ def f() =
 
   o = output.harbor(%mp3, mount="test", port=3475, sine())
 
+  # Asynchronous callbacks run in parallel, so each count must be bumped and
+  # read back as one step.
+  def bump(counter) =
+    atomic(
+      fast=true,
+      fun () ->
+        begin
+          counter := counter() + 1
+          counter()
+        end
+    )
+  end
+
   def on_disconnect(_) =
-    disconnected := disconnected() + 1
-    if disconnected() == 12 then test.pass() end
+    if bump(disconnected) == 12 then test.pass() end
   end
 
   def on_connect(_) =
-    connected := connected() + 1
-    if connected() == 12 then thread.run(delay=1., {o.stop()}) end
+    if bump(connected) == 12 then thread.run(delay=1., {o.stop()}) end
   end
 
   o.on_connect(synchronous=false, on_connect)
