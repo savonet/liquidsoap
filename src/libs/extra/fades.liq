@@ -179,7 +179,11 @@ def autocue.plot(
             t0 := source.time(s)
             null.get(t0())
           end
-        let t = float.truncate(digits=4, mode="floor", source.time(s) - t0)
+
+        # Nearest, not floor: source.time is exact but the subtraction below is
+        # not, so flooring makes the output depend on which tick the first frame
+        # landed on.
+        let t = float.truncate(digits=4, mode="nearest", source.time(s) - t0)
         let v = float.truncate(digits=4, mode="floor", s.rms())
         file.write(append=true, data="#{t}\t#{v}\n", fname)
       }
