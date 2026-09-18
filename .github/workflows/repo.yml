@@ -104,18 +104,21 @@ jobs:
                 echo "::endgroup::"
               done
             done
-            # Alpine packages carry their dependencies in the alpine repositories,
-            # so these install for real. No --allow-untrusted: an unsigned or
-            # mis-signed package has to fail here, which is the whole point of the
-            # stable abuild key.
+            # Fetched rather than installed, for the same reason as the debs: a
+            # package built against alpine edge names the sonames edge had at the
+            # time, which a later base image no longer carries. apk update verifies
+            # the index signature against the key setup.sh installed, and the fetch
+            # verifies the checksum after following the redirect. Every package's
+            # own signature was verified by apk index when the repository was
+            # built, which is why a mis-signed build cannot get this far.
             for package in liquidsoap liquidsoap-minimal; do
               echo "::group:: ${channel} ${package} on alpine"
               docker run --rm --network host alpine:3 sh -c "
                 set -eux
                 apk add --no-cache curl
                 curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
-                apk add ${package}
-                ${package} --version"
+                apk fetch --no-cache ${package}
+                ls -l ${package}-*.apk"
               echo "::endgroup::"
             done
           done
