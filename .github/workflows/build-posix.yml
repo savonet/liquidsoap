@@ -36,6 +36,12 @@ on:
       minimal_exclude_deps:
         required: true
         type: string
+      build_stamp:
+        required: true
+        type: string
+    secrets:
+      REPO_ABUILD_KEY:
+        required: false
 
 jobs:
   build_posix:
@@ -85,6 +91,7 @@ jobs:
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
+          BUILD_STAMP: ${{ inputs.build_stamp }}
           DEB_RELEASE: 2
         run: |
           mkdir -p "${LIQ_TMP_DIR}"
@@ -111,7 +118,9 @@ jobs:
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
+          BUILD_STAMP: ${{ inputs.build_stamp }}
           APK_RELEASE: 1
+          REPO_ABUILD_KEY: ${{ secrets.REPO_ABUILD_KEY }}
         run: |
           cd /tmp/liquidsoap-full/liquidsoap
           apk update
@@ -121,8 +130,29 @@ jobs:
           mkdir -p "${LIQ_TMP_DIR}"
           chown -R opam "${LIQ_TMP_DIR}"
           chown -R opam "${GITHUB_OUTPUT}"
-          sudo -u opam -E abuild-keygen -a -n
-          cp /home/opam/.config/abuild/*.pub /etc/apk/keys/
+          # Packages have to be signed with a key clients can be given, or the
+          # repository is only usable with --allow-untrusted. abuild-sign wants
+          # the public key beside the private one, and records its basename in
+          # the index, so clients look for /etc/apk/keys/liquidsoap.rsa.pub.
+          # Forks have no secret and keep a throwaway key: their packages are
+          # build artifacts and are never published.
+          if [ -n "${REPO_ABUILD_KEY}" ]; then
+            mkdir -p /home/opam/.abuild
+            printf '%s' "${REPO_ABUILD_KEY}" > /home/opam/.abuild/liquidsoap.rsa
+            openssl rsa -in /home/opam/.abuild/liquidsoap.rsa -pubout \
+              > /home/opam/.abuild/liquidsoap.rsa.pub
+            # An empty public key leaves abuild signing with a key no client
+            # will match, and nothing else here would notice.
+            test -s /home/opam/.abuild/liquidsoap.rsa.pub
+            echo 'PACKAGER_PRIVKEY="/home/opam/.abuild/liquidsoap.rsa"' \
+              > /home/opam/.abuild/abuild.conf
+            chmod 600 /home/opam/.abuild/liquidsoap.rsa
+            chown -R opam /home/opam/.abuild
+            cp /home/opam/.abuild/liquidsoap.rsa.pub /etc/apk/keys/
+          else
+            sudo -u opam -E abuild-keygen -a -n
+            cp /home/opam/.config/abuild/*.pub /etc/apk/keys/
+          fi
           sudo -u opam -E ./.github/scripts/build-apk.sh
       - name: Upload alpine packages artifacts
         if: matrix.os == 'alpine'
