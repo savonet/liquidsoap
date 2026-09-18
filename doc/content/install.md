@@ -25,12 +25,43 @@ and knows how to handle external dependencies for most OS/distributions.
 
 Lastly, compiling from source should be reserved to developers.
 
+- [Package repositories](#package-repositories)
 - [Debian/Ubuntu](#debianubuntu)
 - [Alpine](#alpine)
 - [Docker](#docker)
 - [Windows](#windows)
 - [Using OPAM](#install-using-opam)
 - [From source](#installing-from-source)
+
+## Package repositories
+
+If you would rather have `apt` or `apk` keep liquidsoap up to date than download a package by hand, we
+publish a repository for each release. Setting one up is a single command, which asks which release you
+want and configures the matching repository:
+
+```shell
+curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh
+```
+
+You can also name the release up front, which is what you want in a `Dockerfile` or any other place with
+no terminal to answer the question:
+
+```shell
+curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh -s -- --channel v2.4.5
+```
+
+There is one channel per supported version: a stable channel following the latest release of that version,
+and a rolling channel rebuilt on every commit. https://repo.liquidsoap.info lists the ones currently
+published. A machine tracking a rolling channel picks up each new build with an ordinary `apt-get upgrade`
+or `apk upgrade`, and the final release supersedes the rolling builds that led up to it.
+
+Both the `liquidsoap` and `liquidsoap-minimal` packages are available from every channel. Re-running the
+script switches channel.
+
+Each channel covers the same distributions and architectures as our release assets: the current Debian stable
+and testing, the current Ubuntu LTS and latest release, and Alpine edge. Debian and Ubuntu packages are built
+for `amd64` and `arm64`, Alpine packages for `x86_64` and `aarch64`. https://repo.liquidsoap.info lists what
+each published channel actually carries.
 
 ## Debian/Ubuntu
 
@@ -43,7 +74,8 @@ For Debian releases prior to `2.5.x`, you also need the [deb-multimedia.org](htt
 
 ## Alpine
 
-Alpine packages are also provided as part of our [release process](https://github.com/savonet/liquidsoap/releases).
+Alpine packages are also provided as part of our [release process](https://github.com/savonet/liquidsoap/releases),
+and through the [package repositories](#package-repositories) described above.
 
 ## Docker
 
