@@ -64,37 +64,39 @@ newest_ocaml() {
   ls "$1" | sed -n 's/.*-ocaml\([0-9][0-9.]*\)[-.].*/\1/p' | sort -V -u | tail -1
 }
 
-# A channel whose packages still carry the distribution, architecture or commit
-# in their name cannot be installed as `liquidsoap`, so it is skipped rather than
-# published half working. It appears on its own once that branch or release has
-# been rebuilt.
-installable() {
+# The release also carries debug symbols and the sanitizer build, neither of which
+# a repository should offer, so the two packages a user installs are named rather
+# than inferred.
+publishable() {
+  case "$1" in liquidsoap | liquidsoap-minimal) return 0 ;; *) return 1 ;; esac
+}
+
+# The one place that decides what a channel publishes. A channel built before
+# packages carried stable names selects nothing and is skipped rather than
+# published half working; it returns on its own once that branch is rebuilt.
+select_packages() {
   local downloads="$1" ocaml="$2" name
+  : > "${WORK}/debs"
+  : > "${WORK}/apks"
+
   for deb in "${downloads}"/*.deb; do
     [ -e "${deb}" ] || continue
-    case "${deb}" in *-dbgsym_*) continue ;; esac
     name=$(dpkg-deb -f "${deb}" Package)
-    case "${name}" in liquidsoap | liquidsoap-minimal) ;; *) return 1 ;; esac
+    publishable "${name}" || continue
+    case "$(dpkg-deb -f "${deb}" Version)" in
+      *"-ocaml${ocaml}-"*) printf '%s\n' "${deb}" >> "${WORK}/debs" ;;
+    esac
   done
+
   for apk in "${downloads}"/*.apk; do
     [ -e "${apk}" ] || continue
     case "${apk}" in *"-ocaml${ocaml}-"*) ;; *) continue ;; esac
     name=$(tar -xOf "${apk}" .PKGINFO | sed -n 's/^pkgname = //p')
-    case "${name}" in liquidsoap | liquidsoap-minimal) ;; *) return 1 ;; esac
+    publishable "${name}" || continue
+    printf '%s\n' "${apk}" >> "${WORK}/apks"
   done
-  return 0
-}
 
-# Listed from what was built, so the page cannot name a distribution or an
-# architecture a channel does not carry.
-dir_names() {
-  find "$1" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
-    sort | paste -sd, - | sed 's/,/, /g'
-}
-
-deb_arches() {
-  grep -h '^Architecture: ' "${SITE}/$1"/deb/*/Packages |
-    sed 's/^Architecture: //' | sort -u | paste -sd, - | sed 's/,/, /g'
+  [ -s "${WORK}/debs" ] && [ -s "${WORK}/apks" ]
 }
 
 index_deb_dir() {
@@ -115,15 +117,12 @@ index_deb_dir() {
 }
 
 build_deb() {
-  local channel="$1" downloads="$2" ocaml="$3" stage="${WORK}/deb" found=
+  local channel="$1" stage="${WORK}/deb"
   rm -rf "${stage}"
 
-  for deb in "${downloads}"/*.deb; do
-    [ -e "${deb}" ] || continue
-    case "${deb}" in *-dbgsym_*) continue ;; esac
+  while IFS= read -r deb; do
     local version
     version=$(dpkg-deb -f "${deb}" Version)
-    case "${version}" in *"-ocaml${ocaml}-"*) ;; *) continue ;; esac
 
     # The distribution a package was built for is in its version --
     # 1:2.5.0-debian-trixie-ocaml5.5.0-2 -- and is the codename /etc/os-release
@@ -134,9 +133,7 @@ build_deb() {
 
     mkdir -p "${stage}/${codename}/pool"
     ln -f "${deb}" "${stage}/${codename}/pool/$(basename "${deb}")"
-    found=1
-  done
-  [ -n "${found}" ] || fail "${channel} has no .deb for ocaml ${ocaml}"
+  done < "${WORK}/debs"
 
   for dir in "${stage}"/*/; do
     local codename out
@@ -163,13 +160,10 @@ EOF
 }
 
 build_apk() {
-  local channel="$1" downloads="$2" ocaml="$3" stage="${WORK}/apk" found=
+  local channel="$1" stage="${WORK}/apk"
   rm -rf "${stage}"
 
-  for apk in "${downloads}"/*.apk; do
-    [ -e "${apk}" ] || continue
-    case "${apk}" in *"-ocaml${ocaml}-"*) ;; *) continue ;; esac
-
+  while IFS= read -r apk; do
     local arch name version canonical
     arch=$(tar -xOf "${apk}" .PKGINFO | sed -n 's/^arch = //p')
     name=$(tar -xOf "${apk}" .PKGINFO | sed -n 's/^pkgname = //p')
@@ -183,9 +177,7 @@ build_apk() {
     printf '/%s/alpine/%s/%s  %s/%s/%s  302\n' \
       "${channel}" "${arch}" "${canonical}" \
       "${PACKAGE_BASE_URL}" "${channel}" "$(basename "${apk}")" >> "${SITE}/_redirects"
-    found=1
-  done
-  [ -n "${found}" ] || fail "${channel} has no .apk for ocaml ${ocaml}"
+  done < "${WORK}/apks"
 
   for dir in "${stage}"/*/; do
     local arch out
@@ -241,13 +233,13 @@ while IFS=$'\t' read -r channel description; do
   [ -n "${ocaml}" ] || fail "no ocaml version in ${channel} assets"
   echo "build-repo: ${channel} ships ocaml ${ocaml}"
 
-  if ! installable "${downloads}" "${ocaml}"; then
-    echo "build-repo: skipping ${channel}, its packages predate stable package names"
+  if ! select_packages "${downloads}" "${ocaml}"; then
+    echo "build-repo: skipping ${channel}, no packages with stable names"
     continue
   fi
 
-  build_deb "${channel}" "${downloads}" "${ocaml}"
-  build_apk "${channel}" "${downloads}" "${ocaml}"
+  build_deb "${channel}"
+  build_apk "${channel}"
 
   printf '%s\t%s\n' "${channel}" "${description}" >> "${SITE}/channels.txt"
 done < <(.github/scripts/release-channels.sh | cut -f1,4)

@@ -86,26 +86,33 @@ jobs:
               vendor=$(sed -n 's/^Version:.*-\(debian\|ubuntu\)-.*/\1/p' \
                 "${dist}/Packages" | head -1)
               image="${vendor}:${codename}"
-              echo "::group:: ${channel} on ${image}"
-              docker run --rm --network host -e DEBIAN_FRONTEND=noninteractive "${image}" sh -c "
-                set -eux
-                apt-get update
-                apt-get install -y --no-install-recommends curl ca-certificates
-                curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
-                apt-get install -y liquidsoap liquidsoap-minimal
-                liquidsoap --version"
-              echo "::endgroup::"
+              # One container per package: liquidsoap and liquidsoap-minimal
+              # provide and conflict with liquidsoap-snapshot, so they are
+              # alternatives and cannot be installed together.
+              for package in liquidsoap liquidsoap-minimal; do
+                echo "::group:: ${channel} ${package} on ${image}"
+                docker run --rm --network host -e DEBIAN_FRONTEND=noninteractive "${image}" sh -c "
+                  set -eux
+                  apt-get update
+                  apt-get install -y --no-install-recommends curl ca-certificates
+                  curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
+                  apt-get install -y ${package}
+                  ${package} --version"
+                echo "::endgroup::"
+              done
             done
-            echo "::group:: ${channel} on alpine"
             # No --allow-untrusted: an unsigned or mis-signed package has to fail
             # here, which is the whole point of the stable abuild key.
-            docker run --rm --network host alpine:3 sh -c "
-              set -eux
-              apk add --no-cache curl
-              curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
-              apk add liquidsoap liquidsoap-minimal
-              liquidsoap --version"
-            echo "::endgroup::"
+            for package in liquidsoap liquidsoap-minimal; do
+              echo "::group:: ${channel} ${package} on alpine"
+              docker run --rm --network host alpine:3 sh -c "
+                set -eux
+                apk add --no-cache curl
+                curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
+                apk add ${package}
+                ${package} --version"
+              echo "::endgroup::"
+            done
           done
       - name: Build the site
         env:
