@@ -86,9 +86,12 @@ jobs:
               vendor=$(sed -n 's/^Version:.*-\(debian\|ubuntu\)-.*/\1/p' \
                 "${dist}/Packages" | head -1)
               image="${vendor}:${codename}"
-              # One container per package: liquidsoap and liquidsoap-minimal
-              # provide and conflict with liquidsoap-snapshot, so they are
-              # alternatives and cannot be installed together.
+              # Downloaded rather than installed: apt-get update verifies
+              # InRelease, and the download verifies the index checksum after
+              # following the redirect, which is everything the repository is
+              # responsible for. Installing would additionally need whatever
+              # ffmpeg the packages were built against, which for 2.4.x lives in
+              # deb-multimedia and is the user's business, not the repository's.
               for package in liquidsoap liquidsoap-minimal; do
                 echo "::group:: ${channel} ${package} on ${image}"
                 docker run --rm --network host -e DEBIAN_FRONTEND=noninteractive "${image}" sh -c "
@@ -96,13 +99,15 @@ jobs:
                   apt-get update
                   apt-get install -y --no-install-recommends curl ca-certificates
                   curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
-                  apt-get install -y ${package}
-                  ${package} --version"
+                  apt-get download ${package}
+                  dpkg-deb -f ${package}_*.deb Package Version"
                 echo "::endgroup::"
               done
             done
-            # No --allow-untrusted: an unsigned or mis-signed package has to fail
-            # here, which is the whole point of the stable abuild key.
+            # Alpine packages carry their dependencies in the alpine repositories,
+            # so these install for real. No --allow-untrusted: an unsigned or
+            # mis-signed package has to fail here, which is the whole point of the
+            # stable abuild key.
             for package in liquidsoap liquidsoap-minimal; do
               echo "::group:: ${channel} ${package} on alpine"
               docker run --rm --network host alpine:3 sh -c "
@@ -137,5 +142,5 @@ jobs:
             apt-get update
             apt-get install -y --no-install-recommends curl ca-certificates
             curl -fsSL https://repo.liquidsoap.info/setup.sh | sh -s -- --channel ${channel}
-            apt-get install -y liquidsoap
-            liquidsoap --version"
+            apt-get download liquidsoap
+            dpkg-deb -f liquidsoap_*.deb Package Version"

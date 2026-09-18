@@ -99,6 +99,18 @@ select_packages() {
   [ -s "${WORK}/debs" ] && [ -s "${WORK}/apks" ]
 }
 
+# Listed from what was built, so the page cannot name a distribution or an
+# architecture a channel does not carry.
+dir_names() {
+  find "$1" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' |
+    sort | paste -sd, - | sed 's/,/, /g'
+}
+
+deb_arches() {
+  grep -h '^Architecture: ' "${SITE}/$1"/deb/*/Packages |
+    sed 's/^Architecture: //' | sort -u | paste -sd, - | sed 's/,/, /g'
+}
+
 index_deb_dir() {
   cd "$1"
   # Scanned from pool/, so Filename is the path _redirects matches on.
