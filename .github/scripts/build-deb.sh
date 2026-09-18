@@ -19,8 +19,13 @@ export OCAMLPATH
 LIQ_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
 LIQ_TAG=$(echo "${DOCKER_TAG}" | sed -e 's#_#-#g')
 
+# Published builds all carry the same package name, or apt sees a new package
+# instead of an upgrade. What distinguishes a build moves into the version: the
+# stamp orders rolling builds, and `~` keeps them below the release they lead up
+# to, so the final 2.4.6 supersedes every 2.4.6 rolling build.
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
-  LIQ_PACKAGE="liquidsoap-${COMMIT_SHORT}"
+  LIQ_PACKAGE="liquidsoap"
+  LIQ_VERSION="${LIQ_VERSION}~${BUILD_STAMP}.${COMMIT_SHORT}"
 elif [ -n "${IS_RELEASE}" ]; then
   LIQ_PACKAGE="liquidsoap"
 else

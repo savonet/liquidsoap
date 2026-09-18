@@ -48,6 +48,11 @@ BUILD_INCLUDE='[{"platform": "amd64", "runs-on": "depot-ubuntu-24.04-4", "alpine
 
 SHA=$(git rev-parse --short HEAD)
 
+# One stamp for the whole build: taken from the commit rather than the clock, so
+# every job of a build -- both architectures, every distribution -- labels the
+# same commit with the same version. Rolling versions are ordered by it.
+BUILD_STAMP=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d%H%M%S)
+
 if [ "${IS_FORK}" != "true" ] && [ "${IS_RELEASE}" != "true" ] && [ "${IS_ROLLING_RELEASE}" != "true" ]; then
   echo "Save tests traces"
   SAVE_TRACES=true
@@ -81,6 +86,7 @@ OCAML_DOCKER_RELEASE_VERSION="4.14.2"
   echo "docker_release=${DOCKER_RELEASE}"
   echo "is_rolling_release=${IS_ROLLING_RELEASE}"
   echo "sha=${SHA}"
+  echo "build_stamp=${BUILD_STAMP}"
   echo "s3-artifact-basepath=s3://liquidsoap-artifacts/${GITHUB_WORKFLOW}/${GITHUB_RUN_NUMBER}"
   echo "is_fork=${IS_FORK}"
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"

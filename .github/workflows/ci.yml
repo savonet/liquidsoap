@@ -31,6 +31,7 @@ jobs:
       branch: ${{ steps.build_details.outputs.branch }}
       release_tag: ${{ steps.build_details.outputs.release_tag }}
       sha: ${{ steps.build_details.outputs.sha }}
+      build_stamp: ${{ steps.build_details.outputs.build_stamp }}
       is_release: ${{ steps.build_details.outputs.is_release }}
       is_rolling_release: ${{ steps.build_details.outputs.is_rolling_release }}
       is_fork: ${{ steps.build_details.outputs.is_fork }}
@@ -100,6 +101,9 @@ jobs:
       build_include: ${{ needs.build_details.outputs.build_include }}
       ocaml_version: ${{ needs.build_details.outputs.ocaml_version }}
       minimal_exclude_deps: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+      build_stamp: ${{ needs.build_details.outputs.build_stamp }}
+    secrets:
+      REPO_ABUILD_KEY: ${{ secrets.REPO_ABUILD_KEY }}
 
   build_win32:
     uses: ./.github/workflows/build-win32.yml
