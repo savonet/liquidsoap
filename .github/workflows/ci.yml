@@ -33,6 +33,7 @@ jobs:
       branch: ${{ steps.build_details.outputs.branch }}
       release_tag: ${{ steps.build_details.outputs.release_tag }}
       sha: ${{ steps.build_details.outputs.sha }}
+      build_stamp: ${{ steps.build_details.outputs.build_stamp }}
       is_release: ${{ steps.build_details.outputs.is_release }}
       is_rolling_release: ${{ steps.build_details.outputs.is_rolling_release }}
       is_fork: ${{ steps.build_details.outputs.is_fork }}
@@ -101,6 +102,9 @@ jobs:
       build_include: ${{ needs.build_details.outputs.build_include }}
       ocaml_version: ${{ needs.build_details.outputs.ocaml_version }}
       minimal_exclude_deps: ${{ needs.build_details.outputs.minimal_exclude_deps }}
+      build_stamp: ${{ needs.build_details.outputs.build_stamp }}
+    secrets:
+      REPO_ABUILD_KEY: ${{ secrets.REPO_ABUILD_KEY }}
 
   build_win32:
     uses: ./.github/workflows/build-win32.yml
@@ -151,6 +155,19 @@ jobs:
       is_rolling_release: ${{ needs.build_details.outputs.is_rolling_release }}
     secrets:
       LIQUIDSOAP_RELEASE_ASSETS_TOKEN: ${{ secrets.LIQUIDSOAP_RELEASE_ASSETS_TOKEN }}
+
+  # Rolling releases only: a published release is a draft until someone releases
+  # it, and its assets are not downloadable while it is. Run the workflow by hand
+  # once a release is out, or let the next rolling build pick it up.
+  update_repo:
+    uses: ./.github/workflows/repo.yml
+    needs: [build_details, update_release]
+    if: github.repository_owner == 'savonet' && needs.build_details.outputs.is_rolling_release == 'true'
+    secrets:
+      REPO_GPG_KEY: ${{ secrets.REPO_GPG_KEY }}
+      REPO_ABUILD_KEY: ${{ secrets.REPO_ABUILD_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   build_docker:
     uses: ./.github/workflows/docker.yml

@@ -34,14 +34,19 @@ fetch() {
 if [ -z "${CHANNEL}" ]; then
   fetch "${BASE}/channels.txt" /tmp/liquidsoap-channels
 
-  if [ -r /dev/tty ]; then
+  # Opened rather than tested: /dev/tty is there in a container with no terminal
+  # and only fails when something tries to use it. The subshell keeps that
+  # failure from taking the script with it.
+  if (exec 3<> /dev/tty) 2> /dev/null; then
+    exec 3<> /dev/tty
     n=1
     while IFS="$(printf '\t')" read -r channel description; do
-      printf '  %d) %-26s %s\n' "${n}" "${channel}" "${description}" > /dev/tty
+      printf '  %d) %-26s %s\n' "${n}" "${channel}" "${description}" >&3
       n=$((n + 1))
     done < /tmp/liquidsoap-channels
-    printf 'Which release? [1] ' > /dev/tty
-    read -r answer < /dev/tty
+    printf 'Which release? [1] ' >&3
+    read -r answer <&3
+    exec 3>&-
   else
     answer=1
   fi

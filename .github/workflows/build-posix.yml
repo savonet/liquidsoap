@@ -149,6 +149,9 @@ jobs:
             printf '%s' "${REPO_ABUILD_KEY}" > /home/opam/.abuild/liquidsoap.rsa
             openssl rsa -in /home/opam/.abuild/liquidsoap.rsa -pubout \
               > /home/opam/.abuild/liquidsoap.rsa.pub
+            # An empty public key leaves abuild signing with a key no client
+            # will match, and nothing else here would notice.
+            test -s /home/opam/.abuild/liquidsoap.rsa.pub
             echo 'PACKAGER_PRIVKEY="/home/opam/.abuild/liquidsoap.rsa"' \
               > /home/opam/.abuild/abuild.conf
             chmod 600 /home/opam/.abuild/liquidsoap.rsa

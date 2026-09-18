@@ -1,0 +1,134 @@
+name: Package repository
+
+# Publishes the apt and apk repositories for every channel in
+# .github/release-matrix.json. Each run rebuilds the whole site from the
+# releases, so running it twice is running it once, and a channel whose own
+# branch has not built in a while is republished anyway.
+#
+# The packages are not hosted here: _redirects sends clients to the release
+# assets they are downloaded from today, which a static host cannot do on its own:
+# GitHub Pages has no redirects, so this deploys to Cloudflare Pages instead.
+#
+# Needs REPO_GPG_KEY, REPO_ABUILD_KEY and a Pages project -- see
+# .github/scripts/setup-repo.sh.
+
+on:
+  workflow_call:
+    secrets:
+      REPO_GPG_KEY:
+        required: true
+      REPO_ABUILD_KEY:
+        required: true
+      CLOUDFLARE_API_TOKEN:
+        required: true
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
+  workflow_dispatch:
+
+# Serialized and never cancelled: a queued run supersedes its predecessor's
+# output anyway, and cancelling one mid-deploy is the only way to leave the site
+# half-written.
+concurrency:
+  group: repo
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install repository tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends dpkg-dev apt-utils gnupg
+      - name: Import the signing keys
+        env:
+          REPO_GPG_KEY: ${{ secrets.REPO_GPG_KEY }}
+          REPO_ABUILD_KEY: ${{ secrets.REPO_ABUILD_KEY }}
+        run: |
+          printf '%s' "${REPO_GPG_KEY}" | gpg --batch --import
+          # abuild-sign records the key's basename in the index, and clients look
+          # for that name under /etc/apk/keys.
+          install -m 600 /dev/null "${RUNNER_TEMP}/liquidsoap.rsa"
+          printf '%s' "${REPO_ABUILD_KEY}" > "${RUNNER_TEMP}/liquidsoap.rsa"
+      - name: Verify a client can install from it
+        # The one check that could say the opposite: a repository publishes
+        # perfectly well and still fails at install time over a bad index, an
+        # unreadable key or a redirect that points nowhere, and nothing else here
+        # would notice. Built against local URLs and thrown away, so what deploys
+        # below is generated fresh against the real ones.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ABUILD_KEY: ${{ runner.temp }}/liquidsoap.rsa
+          DOWNLOAD_DIR: ${{ runner.temp }}/packages
+          REPO_BASE_URL: http://127.0.0.1:8000
+          PACKAGE_BASE_URL: http://127.0.0.1:8001
+        run: |
+          ./.github/scripts/build-repo.sh check
+
+          python3 .github/scripts/serve-redirects.py check 8000 &
+          site_server=$!
+          python3 -m http.server 8001 --bind 127.0.0.1 --directory "${DOWNLOAD_DIR}" &
+          package_server=$!
+          trap 'kill ${site_server} ${package_server}' EXIT
+          sleep 2
+
+          # Driven from the directories the build produced, so a distribution
+          # added to the build matrix is covered here with no edit, and one whose
+          # packages are not published yet is not asked for.
+          for channel in check/*/; do
+            channel=$(basename "${channel}")
+            [ -d "check/${channel}/deb" ] || continue
+            for dist in check/"${channel}"/deb/*/; do
+              codename=$(basename "${dist}")
+              vendor=$(sed -n 's/^Version:.*-\(debian\|ubuntu\)-.*/\1/p' \
+                "${dist}/Packages" | head -1)
+              image="${vendor}:${codename}"
+              echo "::group:: ${channel} on ${image}"
+              docker run --rm --network host -e DEBIAN_FRONTEND=noninteractive "${image}" sh -c "
+                set -eux
+                apt-get update
+                apt-get install -y --no-install-recommends curl ca-certificates
+                curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
+                apt-get install -y liquidsoap liquidsoap-minimal
+                liquidsoap --version"
+              echo "::endgroup::"
+            done
+            echo "::group:: ${channel} on alpine"
+            # No --allow-untrusted: an unsigned or mis-signed package has to fail
+            # here, which is the whole point of the stable abuild key.
+            docker run --rm --network host alpine:3 sh -c "
+              set -eux
+              apk add --no-cache curl
+              curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
+              apk add liquidsoap liquidsoap-minimal
+              liquidsoap --version"
+            echo "::endgroup::"
+          done
+      - name: Build the site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ABUILD_KEY: ${{ runner.temp }}/liquidsoap.rsa
+          DOWNLOAD_DIR: ${{ runner.temp }}/packages
+        run: ./.github/scripts/build-repo.sh site
+      - name: Deploy
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=liquidsoap-repo --branch=main
+      - name: Install from the deployed site
+        # Cloudflare's own redirect engine is what serves the packages, and the
+        # verification above only approximates it. One real install says whether
+        # what was deployed works.
+        run: |
+          channel=$(head -1 site/channels.txt | cut -f1)
+          docker run --rm -e DEBIAN_FRONTEND=noninteractive debian:trixie sh -c "
+            set -eux
+            apt-get update
+            apt-get install -y --no-install-recommends curl ca-certificates
+            curl -fsSL https://repo.liquidsoap.info/setup.sh | sh -s -- --channel ${channel}
+            apt-get install -y liquidsoap
+            liquidsoap --version"
