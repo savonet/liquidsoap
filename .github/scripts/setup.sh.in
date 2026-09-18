@@ -1,0 +1,82 @@
+#!/bin/sh
+
+# Configures the Liquidsoap package repository. See @BASE@ for how to run it.
+#
+# The script asks which release to install. To pick one up front, or to run it
+# somewhere without a terminal, pass --channel.
+
+set -eu
+
+BASE="@BASE@"
+CHANNEL="${LIQUIDSOAP_CHANNEL:-}"
+
+if [ "${1:-}" = "--channel" ]; then
+  CHANNEL="${2:-}"
+  if [ -z "${CHANNEL}" ]; then
+    echo "--channel needs a value; see ${BASE}/channels.txt" >&2
+    exit 1
+  fi
+fi
+
+command -v curl > /dev/null || {
+  echo "curl is required" >&2
+  exit 1
+}
+
+fetch() {
+  curl -fsSL "$1" -o "$2" && return 0
+  echo "nothing published at $1" >&2
+  exit 1
+}
+
+# Piped to a shell, so stdin is the script itself: the menu has to talk to the
+# terminal directly, and has to have an answer when there is no terminal.
+if [ -z "${CHANNEL}" ]; then
+  fetch "${BASE}/channels.txt" /tmp/liquidsoap-channels
+
+  if [ -r /dev/tty ]; then
+    n=1
+    while IFS="$(printf '\t')" read -r channel description; do
+      printf '  %d) %-26s %s\n' "${n}" "${channel}" "${description}" > /dev/tty
+      n=$((n + 1))
+    done < /tmp/liquidsoap-channels
+    printf 'Which release? [1] ' > /dev/tty
+    read -r answer < /dev/tty
+  else
+    answer=1
+  fi
+
+  CHANNEL=$(sed -n "${answer:-1}p" /tmp/liquidsoap-channels | cut -f1)
+  if [ -z "${CHANNEL}" ]; then
+    echo "no such choice; see ${BASE}/channels.txt" >&2
+    exit 1
+  fi
+  echo "Using ${CHANNEL}."
+fi
+
+# shellcheck disable=SC1091 # provided by the distribution
+. /etc/os-release
+
+if [ -d /etc/apt/sources.list.d ]; then
+  if [ -z "${VERSION_CODENAME:-}" ]; then
+    echo "cannot tell which release this is: /etc/os-release has no VERSION_CODENAME" >&2
+    exit 1
+  fi
+  install -d /etc/apt/keyrings
+  fetch "${BASE}/liquidsoap.asc" /etc/apt/keyrings/liquidsoap.asc
+  fetch "${BASE}/${CHANNEL}/deb/${VERSION_CODENAME}/liquidsoap.sources" \
+    /etc/apt/sources.list.d/liquidsoap.sources
+  apt-get update
+  echo "Done. Install with: apt-get install liquidsoap"
+elif [ -d /etc/apk ]; then
+  fetch "${BASE}/liquidsoap.rsa.pub" /etc/apk/keys/liquidsoap.rsa.pub
+  # Rewritten rather than appended, so re-running the script switches channel
+  # instead of leaving two of them for apk to choose between.
+  sed -i "\\#^${BASE}/#d" /etc/apk/repositories
+  echo "${BASE}/${CHANNEL}/alpine" >> /etc/apk/repositories
+  apk update
+  echo "Done. Install with: apk add liquidsoap"
+else
+  echo "no apt and no apk here: see https://liquidsoap.info/doc-dev/install.html" >&2
+  exit 1
+fi

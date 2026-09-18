@@ -5,19 +5,35 @@ set -e
 cd /tmp/liquidsoap
 
 APK_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
-COMMIT_SHORT=$(echo "${GITHUB_SHA}" | cut -c-7)
 
 export LIQUIDSOAP_BUILD_TARGET=posix
 APKDEST="/tmp/apkout"
 
+# apk derives a package's URL from its name and version alone, so the name has to
+# be the same across builds and architectures for the repository to work. What
+# used to distinguish it moves to the asset file name, which apk never sees, and
+# to the version. `_rc` sorts below the plain release, so 2.4.6 supersedes every
+# 2.4.6 rolling build. Alpine versions admit no commit sha; `liquidsoap
+# --build-config` names the commit.
+APK_SUFFIX="${ALPINE_TAG}-${ALPINE_ARCH}"
+
 if [ -n "${IS_ROLLING_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${COMMIT_SHORT}-${ALPINE_TAG}-${ALPINE_ARCH}"
+  APK_PACKAGE="liquidsoap"
+  APK_VERSION="${APK_VERSION}_rc${BUILD_STAMP}"
 elif [ -n "${IS_RELEASE}" ]; then
-  APK_PACKAGE="liquidsoap-${ALPINE_TAG}-${ALPINE_ARCH}"
+  APK_PACKAGE="liquidsoap"
 else
   ALPINE_BRANCH=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
-  APK_PACKAGE="liquidsoap-${ALPINE_BRANCH}-${ALPINE_TAG}-${ALPINE_ARCH}"
+  APK_PACKAGE="liquidsoap-${ALPINE_BRANCH}"
 fi
+
+# build-repo.sh reads the canonical name back out of .PKGINFO and redirects it
+# here.
+collect_apk() {
+  find "$APKDEST" -name "*.apk" | while read -r apk; do
+    mv "$apk" "${LIQ_TMP_DIR}/$(basename "$apk" .apk)-${APK_SUFFIX}.apk"
+  done
+}
 
 echo "::group:: build ${APK_PACKAGE}.."
 
@@ -33,7 +49,7 @@ cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post
 mkdir -p "$APKDEST"
 abuild -P "$APKDEST"
 
-find "$APKDEST" -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
+collect_apk
 
 echo "::endgroup::"
 
@@ -41,7 +57,7 @@ if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}.."
 
   eval "$(opam config env)"
-  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.config"
+  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
 
   echo "::endgroup::"
 fi
@@ -72,19 +88,19 @@ cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-mini
 mkdir -p "$APKDEST"
 abuild -P "$APKDEST"
 
-find "$APKDEST" -name "*.apk" -exec mv {} "${LIQ_TMP_DIR}" \;
+collect_apk
 
 echo "::endgroup::"
 
 if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
-  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.config"
+  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
 fi
 
 echo "::endgroup::"
 
 {
-  echo "basename=${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}.apk"
-  echo "basename-minimal=${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}.apk"
+  echo "basename=${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.apk"
+  echo "basename-minimal=${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.apk"
 } >> "${GITHUB_OUTPUT}"
