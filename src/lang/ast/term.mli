@@ -67,6 +67,9 @@ val fresh : handler:Type.Fresh.mapper -> t -> t
 (** The direct subterms, including method values and default arguments. *)
 val children : t -> t list
 
+(** Rebuilds a term with [f] applied to each of {!children}. *)
+val map_children : (t -> t) -> t -> t
+
 exception Unbound of Pos.Option.t * string
 exception Ignored of t
 exception No_label of t * string * bool * t

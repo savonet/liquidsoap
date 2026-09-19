@@ -1265,6 +1265,24 @@
   (diff expected_analysis/parse_error.expected analysis_parse_error.actual)))
 
 (rule
+ (target analysis_partial.actual)
+ (deps
+  (:case cases_analysis/partial.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/partial.expected analysis_partial.actual)))
+
+(rule
  (target analysis_scope.actual)
  (deps
   (:case cases_analysis/scope.liq)

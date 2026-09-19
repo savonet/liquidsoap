@@ -45,6 +45,18 @@ let load_env ~version dump = Jsoo_safe_env.(restore (of_string ~version dump))
 (* The header that [Runtime.throw] prints opens the box [message] closes. *)
 let render message = String.trim (Format.asprintf "@[%t" message)
 
+(* Each type error is replaced with the universal placeholder and the script
+   checked again, so that the code after it is typed too. Each retry adds a new
+   position, so this ends. *)
+let rec with_placeholders ~positions tm =
+  match tm.Term.t.Type.pos with
+    | Some pos
+      when List.mem pos positions && not (Term.has_flag tm Flags.implicit) ->
+        Term.make ~pos (`App (Term.make ~pos (`Var Reserved.any), []))
+    | _ -> Term.map_children (with_placeholders ~positions) tm
+
+let in_file ~file pos = (Pos.unpack pos).Pos.fname = file
+
 let check ?(file = "") ~env source =
   let diagnostics = ref [] in
   let lexbuf = Sedlexing.Utf8.from_string source in
@@ -59,26 +71,58 @@ let check ?(file = "") ~env source =
           if severity = `Error then raise Stop
       | None -> Printexc.raise_with_backtrace exn bt
   in
-  let term =
+  let guard f =
     try
-      let parsed_term =
-        let fname = if file = "" then None else Some file in
-        Liquidsoap_lang_reducer.Term_reducer.(mk_expr ?fname program lexbuf)
-      in
-      let term =
-        Liquidsoap_lang_reducer.Term_reducer.to_term ~throw:record parsed_term
-      in
-      Typechecking.check ~env ~check_top_level_override:true ~throw:record term;
-      Term.check_unused ~throw:record ~lib:false term;
-      Some term
+      f ();
+      true
     with
-      | Stop -> None
+      | Stop -> false
       | exn -> (
           let bt = Printexc.get_raw_backtrace () in
           try
             record ~bt exn;
-            None
-          with Stop -> None)
+            true
+          with Stop -> false)
+  in
+  (* The typechecker binds the types of the terms it checks, so each attempt
+     checks its own copy. *)
+  let rec typecheck ~reduced ~positions =
+    let handler = Type.Fresh.init ~preserve_positions:true () in
+    let term = with_placeholders ~positions (Term.fresh ~handler reduced) in
+    let before = !diagnostics in
+    let typed =
+      guard (fun () ->
+          Typechecking.check ~env ~check_top_level_override:true ~throw:record
+            term)
+    in
+    match !diagnostics with
+      | ({ severity = `Error; pos = Some pos } as error) :: _
+        when (not typed) && in_file ~file pos && not (List.mem pos positions) ->
+          diagnostics := error :: before;
+          typecheck ~reduced ~positions:(pos :: positions)
+      | { pos = Some pos } :: _ when (not typed) && List.mem pos positions ->
+          diagnostics := before;
+          term
+      | _ ->
+          (* A placeholder hides the uses of the names in the code it replaces. *)
+          if typed && positions = [] then
+            ignore
+              (guard (fun () -> Term.check_unused ~throw:record ~lib:false term));
+          term
+  in
+  let reduced = ref None in
+  ignore
+    (guard (fun () ->
+         let fname = if file = "" then None else Some file in
+         let parsed_term =
+           Liquidsoap_lang_reducer.Term_reducer.(mk_expr ?fname program lexbuf)
+         in
+         reduced :=
+           Some
+             (Liquidsoap_lang_reducer.Term_reducer.to_term ~throw:record
+                parsed_term)));
+  let term =
+    Option.map (fun reduced -> typecheck ~reduced ~positions:[]) !reduced
   in
   { diagnostics = List.rev !diagnostics; term; file }
 
