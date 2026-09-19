@@ -10,6 +10,14 @@ let unavailable name =
    function and fail in unrelated ways. *)
 let has_unavailable_value t = Type.is_fun t || fst (Type.split_meths t) <> []
 
+(* Methods that cannot be stubbed are removed from the type as well, so that
+   using one is a type error rather than a failed lookup at runtime. *)
+let rec unavailable_type t =
+  Type.map_meths
+    (Type.filter_meths t (fun { Type.scheme = _, t } -> has_unavailable_value t))
+    (fun ({ Type.scheme = vars, t } as meth) ->
+      { meth with scheme = (vars, unavailable_type t) })
+
 (* Arguments follow the type's labels since application looks each passed
    argument up by label before calling the function. *)
 let rec unavailable_value name t =
@@ -45,10 +53,11 @@ let load_full_stdlib_types () =
   (* Names the browser implements keep their own types: stripped custom types
      do not unify with the ones its typechecker creates. *)
   List.iter
-    (fun (name, ((_, t) as scheme)) ->
-      if (not (List.mem_assoc name values)) && has_unavailable_value t then
+    (fun (name, (vars, t)) ->
+      if (not (List.mem_assoc name values)) && has_unavailable_value t then (
+        let t = unavailable_type t in
         Environment.add_builtin ~register:false [name]
-          (scheme, unavailable_value name t))
+          ((vars, t), unavailable_value name t)))
     Jsoo_safe_env.(
       restore
         (of_string ~version:Liquidsoap_lang_data.Build_config.version dump))
