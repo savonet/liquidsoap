@@ -1,9 +1,56 @@
 open Js_of_ocaml
 open Liquidsoap_lang
 
+let unavailable name =
+  Runtime_error.raise ~pos:[]
+    ~message:(Printf.sprintf "%s is not available in the browser." name)
+    "unavailable"
+
+(* Arguments follow the type's labels since application looks each passed
+   argument up by label before calling the function. *)
+let rec unavailable_value name t =
+  let meths, base = Type.split_meths t in
+  let methods =
+    List.fold_left
+      (fun methods { Type.meth; scheme = _, t } ->
+        Methods.add meth (unavailable_value (name ^ "." ^ meth) t) methods)
+      Methods.empty meths
+  in
+  let ffi_args =
+    match (Type.deref base).descr with
+      | Type.Arrow (args, _) ->
+          List.map
+            (fun (optional, label, _) ->
+              (label, label, if optional then Some (Value.make `Null) else None))
+            args
+      | _ -> []
+  in
+  Value.make ~methods
+    (`FFI { Value.ffi_args; ffi_fn = (fun _ -> unavailable name) })
+
+let load_full_stdlib_types () =
+  let ic = open_in_bin "/static/stdlib.types" in
+  let dump =
+    Fun.protect
+      ~finally:(fun () -> close_in ic)
+      (fun () -> really_input_string ic (in_channel_length ic))
+  in
+  let values = Environment.default_environment () in
+  List.iter
+    (fun (name, ((_, t) as scheme)) ->
+      let value =
+        match List.assoc_opt name values with
+          | Some value -> value
+          | None -> unavailable_value name t
+      in
+      Environment.add_builtin ~override:true ~register:false [name]
+        (scheme, value))
+    Jsoo_safe_env.(restore (of_string dump))
+
 let () =
   (Hooks.liq_libs_dir := fun () -> "/static");
-  Runtime.load_libs ~stdlib:"stdlib_js.liq" ()
+  Runtime.load_libs ~stdlib:"stdlib_js.liq" ();
+  load_full_stdlib_types ()
 
 let execute ~throw expr =
   (try

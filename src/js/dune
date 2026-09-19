@@ -89,11 +89,24 @@
  (action
   (write-file %{target} "console.log(\"no js_of_ocaml available!\")")))
 
+; The full standard library's types, produced by the native build, so that the
+; browser typechecks scripts using operators it cannot run.
+
+(rule
+ (target stdlib.types)
+ (deps
+  ../bin/liquidsoap.exe
+  (:stdlib ../libs/stdlib.liq)
+  (source_tree ../libs))
+ (action
+  (run ../bin/liquidsoap.exe --stdlib %{stdlib} --cache-js-stdlib %{target})))
+
 (rule
  (target filesystem.js)
  (enabled_if %{bin-available:js_of_ocaml})
  (deps
   ./stdlib_js.liq
+  ./stdlib.types
   (glob_files ../libs/*.liq))
  (action
   (run js_of_ocaml build-fs -I . -I ../libs -o %{target} %{deps})))
