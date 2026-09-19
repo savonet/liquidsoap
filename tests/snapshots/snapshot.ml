@@ -199,8 +199,12 @@ module Analysis = Liquidsoap_tooling.Analysis
 let queries source =
   List.filter_map
     (fun line ->
-      Scanf.sscanf_opt line "#? %s %d:%d" (fun query line column ->
-          (query, line, column)))
+      match
+        Scanf.sscanf_opt line "#? %s %d:%d" (fun query line column ->
+            (query, Some (line, column)))
+      with
+        | Some query -> Some query
+        | None -> Scanf.sscanf_opt line "#? %s%!" (fun query -> (query, None)))
     (String.split_on_char '\n' source)
 
 (* The type printer leaves a space before its line breaks, which the repository's
@@ -215,26 +219,33 @@ let print_trimmed text =
       String.sub line 0 !n)
   |> String.concat "\n" |> print_endline
 
-(* Scopes are shown without the standard library's names, which every script
-   has in scope. *)
-let print_query ~env result (query, line, column) =
-  section (Printf.sprintf "%s %d:%d" query line column);
-  match query with
-    | "type" ->
-        print_trimmed
-          (Option.value ~default:"(none)"
-             (Analysis.type_at result ~line ~column))
-    | "scope" ->
-        Analysis.scope_at ~env result ~line ~column
-        |> List.filter (fun name -> not (List.mem_assoc name env))
-        |> String.concat ", " |> print_endline
-    | "locals" ->
-        Analysis.locals_at result ~line ~column
-        |> String.concat ", " |> print_endline
-    | "methods" ->
-        Analysis.methods_at result ~line ~column
-        |> List.map fst |> String.concat ", " |> print_endline
-    | query -> failwith ("Unknown query: " ^ query)
+(* Scopes are shown without the standard library's names that a script can
+   write, which every script has in scope. *)
+let print_query ~env result = function
+  | "null_methods", None ->
+      section "null_methods";
+      Analysis.null_methods ~env |> List.map fst |> String.concat ", "
+      |> print_endline
+  | query, None -> failwith ("Query needs a position: " ^ query)
+  | query, Some (line, column) -> (
+      section (Printf.sprintf "%s %d:%d" query line column);
+      match query with
+        | "type" ->
+            print_trimmed
+              (Option.value ~default:"(none)"
+                 (Analysis.type_at result ~line ~column))
+        | "scope" ->
+            Analysis.scope_at ~env result ~line ~column
+            |> List.filter (fun name ->
+                not (List.mem_assoc name env && Lexer.is_var name))
+            |> String.concat ", " |> print_endline
+        | "locals" ->
+            Analysis.locals_at result ~line ~column
+            |> String.concat ", " |> print_endline
+        | "methods" ->
+            Analysis.methods_at result ~line ~column
+            |> List.map fst |> String.concat ", " |> print_endline
+        | query -> failwith ("Unknown query: " ^ query))
 
 let run_analysis_file ~env file =
   let source = read_source file in

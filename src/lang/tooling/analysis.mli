@@ -50,9 +50,13 @@ val type_at : result -> line:int -> column:int -> string option
     functions. They shadow the environment's names of the same spelling. *)
 val locals_at : result -> line:int -> column:int -> string list
 
-(** The names in scope at a position: the environment's, and {!locals_at}. *)
+(** The names a script can write that are in scope at a position: the
+    environment's, and {!locals_at}. *)
 val scope_at : env:env -> result -> line:int -> column:int -> string list
 
 (** The methods of the innermost subterm's type at a position, with their types.
 *)
 val methods_at : result -> line:int -> column:int -> (string * string) list
+
+(** The methods of [null.m], which no script can shadow. *)
+val null_methods : env:env -> (string * string) list

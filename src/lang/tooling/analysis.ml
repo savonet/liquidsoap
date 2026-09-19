@@ -154,12 +154,21 @@ let locals_at { term } ~line ~column =
     | None -> []
 
 let scope_at ~env result ~line ~column =
-  List.sort_uniq compare (locals_at result ~line ~column @ List.map fst env)
+  List.sort_uniq compare
+    (locals_at result ~line ~column
+    @ List.filter Lexer.is_var (List.map fst env))
+
+let methods_of typ =
+  List.map
+    (fun { Type.meth; scheme } -> (meth, Repr.string_of_scheme scheme))
+    (fst (Type.split_meths typ))
 
 let methods_at { term } ~line ~column =
   match Option.bind term (innermost ~line ~column) with
     | None -> []
-    | Some tm ->
-        List.map
-          (fun { Type.meth; scheme } -> (meth, Repr.string_of_scheme scheme))
-          (fst (Type.split_meths tm.Term.t))
+    | Some tm -> methods_of tm.Term.t
+
+let null_methods ~env =
+  match List.assoc_opt Reserved.null env with
+    | Some (_, typ) -> methods_of typ
+    | None -> []

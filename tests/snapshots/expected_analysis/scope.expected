@@ -10,6 +10,8 @@ ignore(s)
 #? scope 3:2
 #? scope 7:0
 #? type 3:2
+
+#? null_methods
 --- diagnostics ---
 --- scope 3:2 ---
 gain, local
@@ -17,3 +19,5 @@ gain, local
 f, s
 --- type 3:2 ---
 int
+--- null_methods ---
+find, map, to_list, get, defined, default, case
