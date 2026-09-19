@@ -255,6 +255,20 @@ let options =
        ( ["--cache-stdlib"],
          Arg.Unit (fun () -> with_toplevel (fun () -> ())),
          "Generate the standard library cache." );
+       ( ["--cache-js-stdlib"],
+         Arg.String
+           (fun file ->
+             with_toplevel (fun () ->
+                 let env = Environment.default_typing_environment () in
+                 let dump =
+                   Liquidsoap_lang_types.Jsoo_safe_env.(to_string (strip env))
+                 in
+                 Out_channel.with_open_bin file (fun oc ->
+                     Out_channel.output_string oc dump);
+                 Printf.printf "Wrote %d typing environment entries to %s.\n"
+                   (List.length env) file)),
+         "Write the standard library typing environment, without closures, for \
+          the javascript runtime." );
        ( ["--cache-only"],
          Arg.Unit
            (fun () ->

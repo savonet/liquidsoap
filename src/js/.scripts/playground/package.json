@@ -2,7 +2,8 @@
   "name": "liquidsoap-playground-bundle",
   "private": true,
   "overrides": {
-    "@codemirror/state": "$@codemirror/state"
+    "@codemirror/state": "$@codemirror/state",
+    "liquidsoap-prettier": "1.8.6"
   },
   "dependencies": {
     "@codemirror/state": "^6.7.1",

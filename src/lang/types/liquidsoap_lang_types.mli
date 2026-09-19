@@ -16,3 +16,6 @@ module Repr = Repr
 
 (** Unification, subtyping, generalization and instantiation. *)
 module Typing = Typing
+
+(** Typing environments that js_of_ocaml can unmarshal. *)
+module Jsoo_safe_env = Jsoo_safe_env
