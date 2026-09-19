@@ -91,7 +91,9 @@ class virtual active_source ~name ~fallible ~autostart () =
 
     initializer
       self#on_wake_up (fun () -> if autostart then base#transition_to `Started);
-      self#on_sleep (fun () -> base#transition_to `Stopped)
+      (* A sleeping source gets no further streaming cycle, so a queued
+         transition would never run. *)
+      self#on_sleep (fun () -> base#execute_transition `Stopped)
 
     method fallible = fallible
     method private started = state = `Started
@@ -143,6 +145,33 @@ let callbacks ~label =
         register = (fun ~params:_ s f -> s#register_on_stop (fun () -> f []));
       };
     ]
+
+let output_callbacks () =
+  callbacks ~label:"output"
+  @ Lang_source.
+      [
+        {
+          name = "on_output";
+          params =
+            [
+              {
+                name = "before";
+                typ = Lang.bool_t;
+                default = Some (Lang.bool true);
+              };
+            ];
+          descr =
+            "on output. Unlike `on_frame`, this brackets the whole output \
+             cycle, encoding and sending included.";
+          register_deprecated_argument = false;
+          arg_t = [];
+          register =
+            (fun ~params:p s f ->
+              let before = Lang.to_bool (List.assoc "before" p) in
+              s#register_on_output (fun ~before:b () ->
+                  if b = before then ignore (f [])));
+        };
+      ]
 
 let meth :
     unit ->

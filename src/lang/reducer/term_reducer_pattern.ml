@@ -37,7 +37,10 @@ let pat_var_name =
     Printf.sprintf "_%d_pat" !idx
 
 let rec pattern_reducer (pat : Parsed_term.pattern) =
-  let mk = mk ~pos:pat.pat_pos in
+  (* Only the [let]s are the script's: they bind its names. Everything else
+     here reads the destructured value apart. *)
+  let mk_let = mk ~pos:pat.pat_pos in
+  let mk = mk_implicit ~pos:pat.pat_pos in
   match pat.pat_entry with
     | `PVar _ as pat ->
         fun ?doc ?(replace = false) ~body def ->
@@ -56,7 +59,7 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                   | _ ->
                       let var = pat_var_name () in
                       let mk_term = pattern_reducer pat in
-                      let body = mk (mk_term ~body (mk (`Var var))) in
+                      let body = mk_let (mk_term ~body (mk (`Var var))) in
                       (var :: vars, body))
               ([], body) l
           in
@@ -160,7 +163,7 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                   let mk_term =
                     pattern_reducer { pat_pos = pos; pat_entry = `PVar [var] }
                   in
-                  mk (mk_term ~body def)
+                  mk_let (mk_term ~body def)
           in
           let body =
             let if_op = mk (`Var "if") in
@@ -187,7 +190,7 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
               mk (`App (register, [("", mk (`String "not_found"))]))
             in
             let _then =
-              mk_fun ~pos:pat.pat_pos []
+              mk_implicit_fun ~pos:pat.pat_pos []
                 (mk
                    (`App
                       ( raise,
@@ -207,7 +210,8 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                      [
                        ("", condition);
                        ("then", _then);
-                       ("else", mk_fun ~pos:pat.pat_pos [] (mk (`Tuple [])));
+                       ( "else",
+                         mk_implicit_fun ~pos:pat.pat_pos [] (mk (`Tuple [])) );
                      ] ))
             in
             mk (`Seq (check_len, body))
@@ -244,15 +248,15 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
                       let mk_term =
                         pattern_reducer { pat with pat_entry = `PVar [name] }
                       in
-                      mk (mk_term ~body (invoke None))
+                      mk_let (mk_term ~body (invoke None))
                   | `Nullable ->
                       let mk_term =
                         pattern_reducer { pat with pat_entry = `PVar [name] }
                       in
-                      mk (mk_term ~body (invoke (Some (mk `Null))))
+                      mk_let (mk_term ~body (invoke (Some (mk `Null))))
                   | `Pattern pat ->
                       let mk_term = pattern_reducer pat in
-                      mk (mk_term ~body (invoke None)))
+                      mk_let (mk_term ~body (invoke None)))
               body (List.rev meths)
           in
           let body =
@@ -261,7 +265,7 @@ let rec pattern_reducer (pat : Parsed_term.pattern) =
               | Some pat ->
                   let mk_term = pattern_reducer pat in
                   let body_var = mk (`Var base_var_name) in
-                  mk
+                  mk_let
                     (mk_term ~body
                        (mk
                           (`Hide

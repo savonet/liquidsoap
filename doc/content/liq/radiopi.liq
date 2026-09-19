@@ -4,8 +4,6 @@
 log.file := true
 log.file.path := "/var/log/liquidsoap/pi.log"
 log.stdout := false
-init.daemon := true
-init.daemon.pidfile.path := "/var/run/liquidsoap/pi.pid"
 
 # Enable telnet server
 settings.server.telnet.set(true)
@@ -15,12 +13,6 @@ settings.harbor.bind_addrs.set(["0.0.0.0"])
 
 # Verbose logs
 log.level.set(4)
-
-# We use the scheduler intensively,
-# therefore we create many queues.
-settings.scheduler.generic_queues.set(5)
-settings.scheduler.fast_queues.set(3)
-settings.scheduler.non_blocking_queues.set(3)
 
 # === Settings ===
 

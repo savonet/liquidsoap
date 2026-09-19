@@ -17,7 +17,12 @@
    With [--canonical], it instead dumps [Parsed_json.parse_string]: the flat,
    keyword-anchored JSON that liquidsoap-prettier consumes, positions included.
    That is a separate contract from the [parsed] section above — it is spec'd in
-   [parsed_json.mli] — and positions are exactly what it turns on. *)
+   [parsed_json.mli] — and positions are exactly what it turns on.
+
+   With [--analysis ENV], it runs [Liquidsoap_tooling.Analysis] against the full
+   standard library's typing environment [ENV] and dumps the diagnostics, then
+   answers the queries written in the script as
+   [#? type|scope|locals|methods L:C]. *)
 
 open Liquidsoap_lang
 
@@ -189,8 +194,69 @@ let run_file file =
          stage "value" (fun () ->
              print_endline (Value.to_string (Evaluation.eval term)))))
 
+module Analysis = Liquidsoap_tooling.Analysis
+
+let queries source =
+  List.filter_map
+    (fun line ->
+      Scanf.sscanf_opt line "#? %s %d:%d" (fun query line column ->
+          (query, line, column)))
+    (String.split_on_char '\n' source)
+
+(* The type printer leaves a space before its line breaks, which the repository's
+   whitespace checks would strip from the expected files. *)
+let print_trimmed text =
+  String.split_on_char '\n' text
+  |> List.map (fun line ->
+      let n = ref (String.length line) in
+      while !n > 0 && line.[!n - 1] = ' ' do
+        decr n
+      done;
+      String.sub line 0 !n)
+  |> String.concat "\n" |> print_endline
+
+(* Scopes are shown without the standard library's names, which every script
+   has in scope. *)
+let print_query ~env result (query, line, column) =
+  section (Printf.sprintf "%s %d:%d" query line column);
+  match query with
+    | "type" ->
+        print_trimmed
+          (Option.value ~default:"(none)"
+             (Analysis.type_at result ~line ~column))
+    | "scope" ->
+        Analysis.scope_at ~env result ~line ~column
+        |> List.filter (fun name -> not (List.mem_assoc name env))
+        |> String.concat ", " |> print_endline
+    | "locals" ->
+        Analysis.locals_at result ~line ~column
+        |> String.concat ", " |> print_endline
+    | "methods" ->
+        Analysis.methods_at result ~line ~column
+        |> List.map fst |> String.concat ", " |> print_endline
+    | query -> failwith ("Unknown query: " ^ query)
+
+let run_analysis_file ~env file =
+  let source = read_source file in
+  echo_source file source;
+  let result = Analysis.check ~env source in
+  section "diagnostics";
+  List.iter
+    (fun { Analysis.severity; code; pos; message } ->
+      Printf.printf "%s %d %s:\n"
+        (match severity with `Error -> "Error" | `Warning -> "Warning")
+        code (Pos.Option.to_string pos);
+      print_trimmed message)
+    result.diagnostics;
+  List.iter (print_query ~env result) (queries source)
+
 let () =
   match List.tl (Array.to_list Sys.argv) with
+    | "--analysis" :: env :: files ->
+        let env =
+          Analysis.load_env ~version:Build_config.version (read_source env)
+        in
+        List.iter (run_analysis_file ~env) (List.sort compare files)
     | "--canonical" :: files ->
         List.iter run_canonical_file (List.sort compare files)
     | files -> List.iter run_file (List.sort compare files)

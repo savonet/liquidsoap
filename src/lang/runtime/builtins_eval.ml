@@ -35,3 +35,32 @@ let _ =
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         raise ~bt exn)
+
+let _ =
+  let a = Lang.univ_t () in
+  Lang.add_builtin "atomic" ~category:`Programming
+    ~descr:
+      "Run a function without letting any other atomic section run at the same \
+       time, and return its value. Use it to group changes that must not be \
+       observed half-done, such as writing several references together. Only \
+       other atomic sections are held back: code that does not call `atomic` \
+       is free to run alongside. Sections are indivisible, not transactional: \
+       if the function raises, the changes it already made stand. Never wait \
+       on another thread inside a section, and do not call source methods \
+       there."
+    [
+      ( "fast",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Whether the function is supposed to return quickly or not. When \
+           `true`, threads waiting for the section spin instead of going to \
+           sleep, which is cheaper for a short section and wasteful for a long \
+           one." );
+      ("", Lang.fun_t [] a, None, Some "Function to run.");
+    ]
+    a
+    (fun p ->
+      let fast = Lang.to_bool (List.assoc "fast" p) in
+      let f = List.assoc "" p in
+      Atomic_section.run ~fast (fun () -> Lang.apply ~pos:(Lang.pos p) f []))

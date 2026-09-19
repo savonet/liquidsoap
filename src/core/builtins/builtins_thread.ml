@@ -44,16 +44,18 @@ let _ =
         Lang.bool_t,
         Some (Lang.bool true),
         Some
-          "Whether the thread is supposed to return quickly or not. Typically, \
-           blocking tasks (e.g. fetching data over the internet) should not be \
-           considered to be fast. When set to `false` its priority will be \
-           lowered below that of request resolutions and fast timeouts. This \
-           is only effective if you set a dedicated queue for fast tasks, see \
-           the \"scheduler\" settings for more details." );
+          "Kept for compatibility: every task runs on a thread of the \
+           scheduler, whether it returns quickly or not." );
       ( "delay",
         Lang.float_t,
         Some (Lang.float 0.),
         Some "Delay (in sec.) after which the thread should be launched." );
+      ( "domain",
+        Lang.nullable_t Lang.int_t,
+        Some Lang.null,
+        Some
+          "Domain to run on, as reported by `runtime.domain()`. Every rerun \
+           stays there. Only meaningful once the scheduler is started." );
       ( "on_error",
         Lang.nullable_t (Lang.fun_t [(false, "", Lang.error_t)] Lang.float_t),
         Some Lang.null,
@@ -73,9 +75,9 @@ let _ =
     (fun p ->
       let delay = Lang.to_float (List.assoc "delay" p) in
       let f = List.assoc "" p in
-      let priority =
-        if Lang.to_bool (List.assoc "fast" p) then `Maybe_blocking
-        else `Blocking
+      let priority = `Threaded in
+      let domain =
+        Option.map Lang.to_int (Lang.to_option (List.assoc "domain" p))
       in
       let on_error = Lang.to_option (List.assoc "on_error" p) in
       let on_error =
@@ -108,7 +110,15 @@ let _ =
         }
       in
       Lifecycle.after_start ~name:"thread start" (fun () ->
-          Duppy.Task.add Tutils.scheduler (task delay));
+          try Duppy.Task.add ?domain Tutils.scheduler (task delay)
+          with Duppy.Unknown_domain d ->
+            Lang.raise_error ~pos:(Lang.pos p)
+              ~message:
+                (Printf.sprintf
+                   "No scheduler worker runs on domain %d. Use a value from \
+                    runtime.domain() taken inside a task."
+                   d)
+              "invalid");
       Lang.unit)
 
 let _ =

@@ -20,7 +20,6 @@
 
   *****************************************************************************)
 
-module Monad = Duppy.Monad
 module Http = Liq_http
 
 (** {1 Settings}
@@ -39,8 +38,6 @@ val conf_map_song_metadata : bool Dtools.Conf.t
 val conf_timeout : float Dtools.Conf.t
 val conf_accept_timeout : float Dtools.Conf.t
 
-module type Monad_t = module type of Monad with module Io := Monad.Io
-
 module type Transport_t = sig
   type socket = Http.socket
 
@@ -49,17 +46,7 @@ module type Transport_t = sig
   val write : socket -> bytes -> int -> int -> int
   val close : socket -> unit
 
-  module Duppy : sig
-    module Io : Duppy.Io_t with type socket = socket
-
-    module Monad : sig
-      module Io :
-        Duppy.Monad.Monad_io_t with type socket = socket and module Io = Io
-
-      include Monad_t
-    end
-  end
-
+  module Io : Duppy.Io_t with type socket = socket
   module Websocket : Websocket.Websocket_t with type socket = socket
 end
 
@@ -93,6 +80,10 @@ module type T = sig
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
   type reply = Close of (unit -> string) | Relay of string | Custom
 
+  (** How a handler finishes: raised rather than returned, so it can happen from
+      anywhere in the exchange. *)
+  exception Reply of reply
+
   type http_handler =
     protocol:string ->
     meth:http_verb ->
@@ -101,14 +92,17 @@ module type T = sig
     query:(string * string) list ->
     socket:socket ->
     string ->
-    (reply, reply) Duppy.Monad.t
+    reply
 
   val verb_of_string : string -> http_verb
   val string_of_verb : http_verb -> string
+
+  (** These do not return: they raise {!Reply}. *)
   val mk_simple : string -> unit -> string
-  val simple_reply : string -> ('a, reply) Duppy.Monad.t
-  val reply : (unit -> string) -> ('a, reply) Duppy.Monad.t
-  val custom : unit -> ('a, reply) Duppy.Monad.t
+
+  val simple_reply : string -> 'a
+  val reply : (unit -> string) -> 'a
+  val custom : unit -> 'a
 
   val add_http_handler :
     pos:Liquidsoap_lang_prelude.Pos.t list ->
@@ -157,9 +151,9 @@ module type T = sig
     login:string * (login_args -> bool) ->
     socket ->
     (string * string) list ->
-    (unit, reply) Duppy.Monad.t
+    unit
 
-  val relayed : string -> ('a, reply) Duppy.Monad.t
+  val relayed : string -> 'a
 
   val add_source :
     pos:Liquidsoap_lang_prelude.Pos.t list ->

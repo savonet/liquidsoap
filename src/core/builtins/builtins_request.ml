@@ -305,7 +305,7 @@ let _ =
 let _ =
   Lang.add_builtin ~base:request "status" ~category:`Liquidsoap
     ~descr:
-      "Current status of a request. Can be idle, resolving, ready, playing or \
+      "Current status of a request. Can be idle, resolving, ready, failed or \
        destroyed."
     [("", Request.Value.t, None, None)]
     Lang.string_t

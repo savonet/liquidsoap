@@ -3,6 +3,9 @@
 * TODO: rename ffmpeg-av into ffmpeg-avformat
 * `Av.seek` drops the frames its decoders had buffered, which used to be
   returned after the seek carrying their pre-seek timestamps.
+* Fix a crash reading or closing an input whose demuxer adds streams while
+  packets are read, e.g. MPEG-PS: the stream contexts and per-stream decoders
+  were sized for the streams known when the input was opened.
 * Add version API
 * `mk_audio_opts` and `mk_video_opts` keep the options they derive (channel
   layout, sample format, time base, ...) to themselves, so that

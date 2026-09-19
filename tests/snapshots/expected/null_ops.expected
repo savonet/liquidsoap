@@ -18,7 +18,7 @@ x = null
     "value": [
       {
       "type": "invoke",
-      "invoked": { "type": "var", "value": "_null" },
+      "invoked": { "type": "var", "value": "null" },
       "optional": false,
       "meth": {
         "type": "app",

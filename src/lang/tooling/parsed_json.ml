@@ -241,8 +241,13 @@ let json_of_if ~to_json ~json_of_block
       match if_else_block with None -> `Null | Some b -> json_of_block b );
   ]
 
+(* Formatting must print what the script wrote, not what the preprocessor read
+   it as. *)
+let source_name name = if name = Preprocessor.null_module then "null" else name
+
 let rec base_json_of_pat = function
   | `PVar l ->
+      let l = match l with v :: l -> source_name v :: l | [] -> [] in
       ast_node ~typ:"pvar" [("value", `Tuple (List.map (fun v -> `String v) l))]
   | `PTuple l ->
       ast_node ~typ:"ptuple" [("value", `Tuple (List.map json_of_pat l))]
@@ -584,7 +589,7 @@ let rec to_ast_json ~to_json = function
   | `At (t, t') ->
       ast_node ~typ:"infix"
         [("left", to_json t); ("op", `String "@"); ("right", to_json t')]
-  | `Var s -> ast_node ~typ:"var" [("value", `String s)]
+  | `Var s -> ast_node ~typ:"var" [("value", `String (source_name s))]
   | `Seq (t, t') ->
       ast_node ~typ:"seq" [("left", to_json t); ("right", to_json t')]
   | `App (t, args) ->

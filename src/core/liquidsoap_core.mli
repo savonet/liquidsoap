@@ -172,6 +172,7 @@ module Charset = Charset
 module Utils = Utils
 module Extralib = Extralib
 module Strings = Strings
+module ByteRing = ByteRing
 module StringView = StringView
 module Queues = Queues
 module Mutex_utils = Mutex_utils

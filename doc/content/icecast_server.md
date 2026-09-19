@@ -20,6 +20,9 @@ This starts a server on port 8000 with the default password "hackme".
 
 - `port`: Port to listen on (default: 8000)
 - `password`: Source password for authentication (default: "hackme")
+
+Parameters passed explicitly take precedence over the values of a configuration file.
+
 - `config`: Optional path to an icecast XML configuration file
 - `dedicated_encoder`: Allocate one encoder per listener (see [below](#dedicated_encoder))
 - `serve`: Enable or disable the built-in status page (default: `true`, see [below](#status-page))
@@ -29,6 +32,11 @@ This starts a server on port 8000 with the default password "hackme".
 - `x_forwarded_for_proxy_ips`: List of known reverse-proxy IPs for real-IP extraction (see [below](#reverse-proxy-and-x-forwarded-for))
 - `x_forwarded_for`: Advanced callback to fully override real-IP extraction logic (see [below](#reverse-proxy-and-x-forwarded-for))
 - `format_options`: Optional callback `(string) -> [(string * string)]` that returns muxer options for a given container format name. When `null`, falls back to `settings.icecast.server.default_muxer_options` (see [below](#live-streaming-muxer-options))
+- `ip_hash`: Function applied to every listener IP before it is exposed anywhere (see [below](#listener-privacy))
+- `access_log`: Path of an icecast-style access log, `-` for standard error (see [below](#access-and-playlist-logs))
+- `playlist_log`: Path of an icecast-style playlist log, `-` for standard error
+- `admin_user`: User name for the admin listener page (default: `"admin"`)
+- `admin_password`: Password for the admin listener page, which is disabled without one (see [below](#admin-listener-page))
 
 ### Return Value
 
@@ -37,9 +45,102 @@ The `icecast.server` function returns a record with the following methods:
 - `mounts()`: Returns a list of currently active mount points
 - `get_source(mount)`: Returns the source for a given mount point
 - `get_config(mount)`: Returns the current `{format, streams}` record for a mount, or `null` if the mount is not active
-- `stats()`: Returns the current mount stats list (same data as the JSON status endpoint)
-- `on_connect(handler)`: Register a handler called when a source connects
-- `on_disconnect(handler)`: Register a handler called when a source disconnects
+- `stats()`: Returns the current mount stats list (see [below](#custom-json-renderer) for its fields)
+- `on_source_connect(handler)`: Register a handler called when a source connects
+- `on_source_disconnect(handler)`: Register a handler called when a source disconnects
+- `on_listener_connect(handler)`: Register a handler called when a listener connects (see [below](#listener-callbacks))
+- `on_listener_disconnect(handler)`: Register a handler called when a listener disconnects
+- `on_metadata(handler)`: Register a handler called when a mount's metadata changes
+
+Every `on_*` method takes an optional `synchronous` argument, `false` by default, in which case the handler runs in its own thread.
+
+## Listener Callbacks
+
+Knowing who listens, for how long, and what they were listening to is what most station tooling is built on: listener statistics, royalty reports, dashboards or a Prometheus exporter. `icecast.server` reports every listener session through callbacks, so you can feed that data wherever you need it:
+
+```{.liquidsoap include="icecast-server-listener-callbacks.liq"}
+
+```
+
+Listener handlers receive a record with the following fields:
+
+| Field          | Type      | Description                                                                     |
+| -------------- | --------- | ------------------------------------------------------------------------------- |
+| `id`           | `int`     | Connection identifier, unique per mount output                                  |
+| `mount`        | `string`  | Mount the listener is connected to                                              |
+| `ip`           | `string`  | Listener address after X-Forwarded-For resolution, hashed by default            |
+| `user_agent`   | `string?` | `User-Agent` request header                                                     |
+| `referer`      | `string?` | `Referer` request header                                                        |
+| `uri`          | `string`  | Requested path                                                                  |
+| `protocol`     | `string`  | HTTP protocol version, e.g. `"1.1"`                                             |
+| `connected_at` | `float`   | Connection time, in seconds since the epoch                                     |
+| `duration`     | `float`   | Seconds connected: `0.` on connect, the session length on disconnect            |
+| `bytes_sent`   | `int`     | Bytes sent, HTTP response headers included: `0` on connect, total on disconnect |
+
+Raw request headers are not passed on: they can carry the listener's address, for instance in `X-Forwarded-For`.
+
+Synchronous disconnect handlers are called exactly once per listener, and always after its synchronous connect handlers. Asynchronous handlers each run in their own thread, so that order is not guaranteed for them.
+
+`on_metadata` handlers receive a record with the `mount`, its new `metadata` and the current number of `listeners`.
+
+## Access and Playlist Logs
+
+Many log analyzers and statistics tools read the access log written by icecast. `icecast.server` can write the same log, so these tools keep working when liquidsoap takes over serving listeners:
+
+```{.liquidsoap include="icecast-server-access-log.liq"}
+
+```
+
+When an icecast configuration file is used, the logs follow its `<logging>` section instead, see the [configuration reference](#logging).
+
+### Access log
+
+One line is written when a listener disconnects, in icecast's variant of the combined log format, with the session length in seconds appended:
+
+```
+8c2f0e7a1d4b9f36 - - [14/Sep/2026:21:40:58 +0200] "GET /live HTTP/1.1" 200 1843200 "-" "VLC/3.0.20 LibVLC/3.0.20" 115
+```
+
+The fields are the listener IP (hashed by default), identity and user (always `-`), disconnection time, request, status code, bytes sent including the HTTP response headers, referer, user agent and duration. As in icecast, control characters, spaces, `!`, `"`, `` ` `` and `\` are written as `\xHH` escapes, except that spaces are kept in the referer and user agent. Bytes above `0x7f` are written as-is, so UTF-8 text stays readable.
+
+Some tools validate the first field as an IP address and reject hashed values. For instance, [GoAccess](https://goaccess.io/) needs `--no-ip-validation`. You can also [log plain IPs](#listener-privacy).
+
+Unlike icecast, only listener sessions are logged: source client connections and requests to the status pages are not.
+
+### Playlist log
+
+One line is written each time a mount's metadata changes:
+
+```
+14/Sep/2026:21:40:58 +0200|/live|12|Artist - Title
+```
+
+The fields are the time, mount, number of listeners and the `artist - title` text. Icecast writes the text as-is. Liquidsoap turns `|` characters and line breaks into spaces, so that each update stays on one parseable line.
+
+### Rotation
+
+Log files are reopened for every line, so external tools like `logrotate` can move them at any time without signalling liquidsoap. Liquidsoap also rotates them the way icecast does: once a file grows past `<logsize>`, it is renamed to `<file>.old`, or to `<file>.YYYYmmdd_HHMMSS` when `<logarchive>` is set. Without `<logsize>`, the limit is 1GB.
+
+## Listener Privacy
+
+A listener's IP address is personal data. By default, `icecast.server` replaces it with a hash everywhere it is exposed: callbacks, `stats()`, the admin page and the logs. The hash is a 16-character MD5 digest of the address. It is the same on every run, so a listener can be followed across connections and restarts, for instance to count unique listeners.
+
+This is a surface-level protection: it keeps addresses out of logs and dashboards. The key used by the default hash is public, so anyone can hash a guessed address and compare. If this matters to you, pass your own function with the `ip_hash` parameter, for instance with a secret key:
+
+```{.liquidsoap include="icecast-server-ip-hash.liq"}
+
+```
+
+If you need the actual addresses and are allowed to keep them, you have to opt in explicitly:
+
+```{.liquidsoap include="icecast-server-plain-ips.liq"}
+
+```
+
+Keep in mind that some data still contains raw addresses:
+
+- Liquidsoap's own log mentions each listener's `ip:port` at level 4 (info) and above.
+- The `x_forwarded_for` callback sees the raw address and headers, since it runs before hashing.
 
 ## `dedicated_encoder`
 
@@ -111,6 +212,15 @@ Use `serve_auth` to gate both endpoints behind a check. The callback receives th
 
 Any request that fails the check receives a `401 Unauthorized` response with a `WWW-Authenticate` header.
 
+### Admin Listener Page
+
+The public status page only shows listener counts. For operators, `icecast.server` also serves a listener page protected by HTTP Basic authentication:
+
+- `/admin/listeners` — an HTML page listing each mount's listeners, with their (hashed) IP, user agent, connection time and bytes sent, plus the mount's peak listeners, connection count and total listening time
+- `/admin/listeners.json` — the same data as JSON
+
+The page is enabled by setting an admin password, either with the `admin_password` parameter or with `<admin-password>` in the configuration file. The user name defaults to `admin`. Without a password, the page is not registered at all. Like the status page, it is disabled by `serve=false`.
+
 ### Custom JSON Renderer
 
 Use `serve_json` to replace the built-in `/status.json` output. The callback receives the stats list and must return a JSON string. The example below also disables the HTML page by returning a plain not-found response from `serve_html`:
@@ -119,7 +229,17 @@ Use `serve_json` to replace the built-in `/status.json` output. The callback rec
 
 ```
 
-The stats list passed to both `serve_json` and `serve_html` is a list of `(mount, stats)` pairs where each `stats` record contains: `name`, `content_type`, `mime_type`, `started`, `listeners`, `peak_listeners`, and `current_metadata`.
+The stats list passed to both `serve_json` and `serve_html` is a list of `(mount, stats)` pairs where each `stats` record contains:
+
+- `name`, `content_type`, `mime_type`: information about the mount's stream
+- `started`: when the current source connected
+- `listeners`: the connected listeners, as [listener records](#listener-callbacks)
+- `peak_listeners`: the largest number of simultaneous listeners
+- `connections`: the number of listener connections so far
+- `listening_time`, `bytes_sent`: totals over finished listener sessions
+- `current_metadata`: the mount's latest metadata
+
+Listener records contain hashed IPs unless `ip_hash` says otherwise. Keep that in mind before publishing them from a custom renderer.
 
 ## Live Streaming Muxer Options
 
@@ -245,9 +365,11 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 
 ### authentication
 
-| Option            | Status    | Notes                              |
-| ----------------- | --------- | ---------------------------------- |
-| `source-password` | Supported | Global password for source clients |
+| Option            | Status    | Notes                                     |
+| ----------------- | --------- | ----------------------------------------- |
+| `source-password` | Supported | Global password for source clients        |
+| `admin-user`      | Supported | User name for the admin listener page     |
+| `admin-password`  | Supported | Password enabling the admin listener page |
 
 ### limits
 
@@ -267,8 +389,8 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 | Option                                | Status          | Notes                                                                                     |
 | ------------------------------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | `basedir`                             | Not implemented |                                                                                           |
-| `logdir`                              | Supported       | Enables log file and sets path to `#{logdir}/<script>.log`                                |
-| `pidfile`                             | Supported       | Enables pidfile and sets path to the value                                                |
+| `logdir`                              | Supported       | Directory of the log files set in `<logging>`                                             |
+| `pidfile`                             | Not supported   |                                                                                           |
 | `tls-certificate` / `ssl-certificate` | Supported       | Path to TLS certificate file (required when TLS is enabled). May include the private key. |
 | `tls-key`                             | Supported       | Path to separate TLS private key file (icecast 2.5 only)                                  |
 | `webroot`                             | Not implemented | No built-in web interface                                                                 |
@@ -277,6 +399,22 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 | `deny-ip`                             | Not implemented | Use a reverse proxy (nginx) or firewall instead                                           |
 | `ssl-allowed-ciphers`                 | Not implemented | TLS cipher configuration not exposed                                                      |
 | `alias`                               | Not implemented | URL aliasing not supported                                                                |
+
+### logging
+
+Log files are created in `<paths><logdir>`. Without a `logdir`, only the `-` value (console output) takes effect.
+
+| Option          | Status          | Notes                                                                                            |
+| --------------- | --------------- | ------------------------------------------------------------------------------------------------ |
+| `accesslog`     | Supported       | Access log file, `access.log` by default. `-` writes to standard error. See [above](#access-log) |
+| `errorlog`      | Supported       | Liquidsoap's own log file, `error.log` by default. `-` logs to the console only                  |
+| `playlistlog`   | Supported       | Playlist log file, disabled by default. See [above](#playlist-log)                               |
+| `loglevel`      | Supported       | `1`/`error` to `4`/`debug`, mapped to liquidsoap log levels 2 to 5                               |
+| `logsize`       | Supported       | Size in KiB past which access and playlist logs are rotated, 1GB by default                      |
+| `logarchive`    | Supported       | When `1`, rotated logs keep a timestamped name instead of replacing `<file>.old`                 |
+| `memorybacklog` | Not implemented | Icecast's in-memory log view is not available                                                    |
+
+The `accesslog` and `playlistlog` settings are overridden by the `access_log` and `playlist_log` parameters.
 
 ### http-headers
 
@@ -336,7 +474,6 @@ The following icecast configuration sections are not supported and will be ignor
 - `fileserve` - Static file serving (use liquidsoap's harbor HTTP handlers)
 - `relay` - Stream relaying (use liquidsoap's `input.http` instead)
 - `directory` - Directory listings (YP)
-- `logging` - Use liquidsoap's logging settings
 - `security` - Use liquidsoap's security settings
 
 ## Complete Example

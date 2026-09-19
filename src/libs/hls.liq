@@ -246,7 +246,7 @@ end
 # @param ~headers Default response headers.
 # @param ~port Port for incoming harbor (http) connections.
 # @param ~path Base path for hls URIs.
-# @param ~transport Http transport. Use `http.transport.ssl` or `http.transport.secure_transport`, when available, to enable HTTPS output
+# @param ~transport Http transport. Use `http.transport.ssl`, when available, to enable HTTPS output
 # @param ~tmpdir Directory for generated files.
 # @param formats List of specifications for each stream: (name, format).
 def replaces output.harbor.hls(

@@ -30,7 +30,8 @@ let report_annotations ~throw ~pos annotations =
     (function
       | `Deprecated s ->
           let bt = Printexc.get_callstack 0 in
-          throw ~bt (Term.Deprecated (s, Pos.of_lexing_pos pos)))
+          throw ~bt (Term.Deprecated (s, Pos.of_lexing_pos pos))
+      | `Implicit -> ())
     annotations
 
 let parse_error ~pos msg = raise (Term.Parse_error (pos, msg))
@@ -40,8 +41,16 @@ let mk_ty ?pos = Type.make ?pos:(Option.map Pos.of_lexing_pos pos)
 let mk_var ?pos = Type.var ?pos:(Option.map Pos.of_lexing_pos pos)
 let mk_parsed = Parsed_term.make
 
-let mk_fun ~pos arguments body =
-  mk ~pos (`Fun Term.{ free_vars = None; name = None; arguments; body })
+(* Constructors for what the reducer invents rather than translates, see
+   [Flags.implicit]. *)
+let implicit = Flags.(add empty implicit)
+let mk_implicit ?pos = mk ?pos ~flags:implicit
+let mk_parsed_implicit = Parsed_term.make ~annotations:[`Implicit]
+
+let mk_fun ?(flags = Flags.empty) ~pos arguments body =
+  mk ~pos ~flags (`Fun Term.{ free_vars = None; name = None; arguments; body })
+
+let mk_implicit_fun = mk_fun ~flags:implicit
 
 let mk_source_ty ?pos name args =
   let fn = !Hooks.mk_source_ty in

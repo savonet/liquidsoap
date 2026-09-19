@@ -214,7 +214,7 @@ let print f t =
   let rec print ~par vars : t -> DS.t = function
     | `Constr (name, [(_, (`Meth _ as record_type))])
       when name = "source" || name = "format" ->
-        Format.open_box (1 + String.length name);
+        Format.pp_open_box f (1 + String.length name);
         Format.fprintf f "%s(" name;
         let rec extract fields = function
           | `Meth ({ R.name = field }, base_type)
@@ -248,7 +248,7 @@ let print f t =
             (true, vars) fields
         in
         Format.fprintf f ")";
-        Format.close_box ();
+        Format.pp_close_box f ();
         vars
     (* The source constructor with no content parameter is [source(_)]: print it
        the way it is written. *)
@@ -262,11 +262,11 @@ let print f t =
         Format.fprintf f "none";
         vars
     | `Constr (name, params) ->
-        Format.open_box (1 + String.length name);
+        Format.pp_open_box f (1 + String.length name);
         Format.fprintf f "%s(" name;
         let vars = print_list vars params in
         Format.fprintf f ")";
-        Format.close_box ();
+        Format.pp_close_box f ();
         vars
     | `Tuple [] ->
         Format.fprintf f "unit";
@@ -480,10 +480,14 @@ let print f t =
   end;
   Format.fprintf f "@]"
 
+(* Its own buffer rather than [Format.str_formatter], which is per-domain and
+   shared by whatever else on that domain formats a value. *)
 let to_string t =
-  print Format.str_formatter t;
-  Format.fprintf Format.str_formatter "@?";
-  Format.flush_str_formatter ()
+  let buf = Buffer.create 64 in
+  let f = Format.formatter_of_buffer buf in
+  print f t;
+  Format.pp_print_flush f ();
+  Buffer.contents buf
 
 let print_type f t = print f (make t)
 

@@ -1,0 +1,8 @@
+=== unused_variable.liq ===
+def f() =
+  x = 1
+  ()
+end
+--- diagnostics ---
+Warning 4 at line 2, char 2-7:
+Unused variable x

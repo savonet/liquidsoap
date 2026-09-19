@@ -27,3 +27,12 @@ type state
 val mk_state : unit -> state
 val mutable_lock : state:state -> ('a -> 'b) -> 'a -> 'b
 val atomic_lock : state:state -> ('a -> 'b) -> 'a -> 'b
+
+(** A lock the thread already holding it may take again, as a no-op. [fast]
+    picks {!atomic_lock}, where waiters spin, over {!mutable_lock}, where they
+    sleep. *)
+
+type reentrant
+
+val mk_reentrant : unit -> reentrant
+val reentrant_lock : fast:bool -> state:reentrant -> ('a -> 'b) -> 'a -> 'b

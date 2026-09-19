@@ -26,7 +26,7 @@ module Custom = Term.Custom
 
 type comment = [ `Before of string list | `After of string list ]
 type pos = Term.parsed_pos
-type term_annotation = [ `Deprecated of string ]
+type term_annotation = [ `Deprecated of string | `Implicit ]
 
 type string_param =
   [ `Verbatim of string | `String of (pos[@hash.ignore]) * (char * string) ]

@@ -1048,6 +1048,25 @@
   (diff expected/type_constructors.expected type_constructors.actual)))
 
 (rule
+ (target unary_minus_after_operator.actual)
+ (deps
+  (:case cases/unary_minus_after_operator.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected/unary_minus_after_operator.expected
+   unary_minus_after_operator.actual)))
+
+(rule
  (target while_loop.actual)
  (deps
   (:case cases/while_loop.liq)
@@ -1118,6 +1137,23 @@
   (diff expected_canonical/comments.expected canonical_comments.actual)))
 
 (rule
+ (target canonical_null_module.actual)
+ (deps
+  (:case cases_canonical/null_module.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --canonical %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_canonical/null_module.expected canonical_null_module.actual)))
+
+(rule
  (target canonical_try_blocks.actual)
  (deps
   (:case cases_canonical/try_blocks.liq)
@@ -1133,3 +1169,189 @@
  (package liquidsoap)
  (action
   (diff expected_canonical/try_blocks.expected canonical_try_blocks.actual)))
+
+(rule
+ (target analysis_core_operator.actual)
+ (deps
+  (:case cases_analysis/core_operator.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/core_operator.expected
+   analysis_core_operator.actual)))
+
+(rule
+ (target analysis_include.actual)
+ (deps
+  (:case cases_analysis/include.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/include.expected analysis_include.actual)))
+
+(rule
+ (target analysis_later_definition.actual)
+ (deps
+  (:case cases_analysis/later_definition.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/later_definition.expected
+   analysis_later_definition.actual)))
+
+(rule
+ (target analysis_locals.actual)
+ (deps
+  (:case cases_analysis/locals.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/locals.expected analysis_locals.actual)))
+
+(rule
+ (target analysis_parse_error.actual)
+ (deps
+  (:case cases_analysis/parse_error.invalid-liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/parse_error.expected analysis_parse_error.actual)))
+
+(rule
+ (target analysis_scope.actual)
+ (deps
+  (:case cases_analysis/scope.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/scope.expected analysis_scope.actual)))
+
+(rule
+ (target analysis_shadowing.actual)
+ (deps
+  (:case cases_analysis/shadowing.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/shadowing.expected analysis_shadowing.actual)))
+
+(rule
+ (target analysis_synthetic.actual)
+ (deps
+  (:case cases_analysis/synthetic.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/synthetic.expected analysis_synthetic.actual)))
+
+(rule
+ (target analysis_type_error.actual)
+ (deps
+  (:case cases_analysis/type_error.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/type_error.expected analysis_type_error.actual)))
+
+(rule
+ (target analysis_unused_variable.actual)
+ (deps
+  (:case cases_analysis/unused_variable.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/unused_variable.expected
+   analysis_unused_variable.actual)))

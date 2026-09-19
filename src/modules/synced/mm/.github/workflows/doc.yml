@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@e89b2ded52a6e13f50162220cf5fe47290162032 # v3
+        uses: ocaml/setup-ocaml@93303b622b2522e4411e295f9e77411a24912ac7 # v3
         with:
           ocaml-compiler: 5.3
       - name: Pin locally
@@ -39,4 +39,4 @@ jobs:
     steps:
       - name: Deploy website
         id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

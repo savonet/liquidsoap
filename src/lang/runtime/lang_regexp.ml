@@ -29,7 +29,7 @@ type regexp = {
   regexp : Re.re;
 }
 
-let all_regexp_flags = [`i; `g; `m]
+let all_regexp_flags = [`i; `g; `s; `m]
 
 let string_of_regexp_flag = function
   | `i -> "i"

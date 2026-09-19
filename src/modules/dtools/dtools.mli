@@ -221,15 +221,8 @@ module Init : sig
   exception StopError of exn
 
   val conf : Conf.ut
-  val conf_daemon : bool Conf.t
-  val conf_daemon_pidfile : bool Conf.t
-  val conf_daemon_pidfile_path : string Conf.t
-  val conf_daemon_pidfile_perms : int Conf.t
   val conf_trace : bool Conf.t
   val conf_catch_exn : bool Conf.t
-
-  (** A set of command line options to be used with the Arg module. *)
-  val args : (string list * Arg.spec * string) list
 end
 
 module Log : sig

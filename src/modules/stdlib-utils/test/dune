@@ -1,0 +1,13 @@
+(executables
+ (names test_pollset pollcost)
+ (libraries stdlib_utils unix threads.posix))
+
+(rule
+ (alias citest)
+ (action
+  (run ./test_pollset.exe)))
+
+(rule
+ (alias bench)
+ (action
+  (run ./pollcost.exe)))

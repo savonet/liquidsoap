@@ -1,9 +1,10 @@
-(executable
- (name http)
- (modules http)
- (libraries duppy))
+(executables
+ (names http telnet)
+ (libraries duppy re unix threads.posix))
 
-(executable
- (name telnet)
- (modules telnet)
- (libraries duppy))
+; Nothing else builds the examples, so this is what keeps them compiling.
+
+(rule
+ (alias citest)
+ (deps ./http.exe ./telnet.exe)
+ (action (progn)))

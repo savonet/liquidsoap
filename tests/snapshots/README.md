@@ -39,8 +39,19 @@ block spans and comment offsets are precisely what prettier depends on — so a
 parser change can leave `expected/` untouched and still break the formatter.
 Keep these cases few and focused on block structure; the output is verbose.
 
-Both suites share `snapshot.exe` (`--canonical` selects the second) and the same
-two `--auto-promote` commands.
+## The analysis suite
+
+`cases_analysis/` → `expected_analysis/` covers `Liquidsoap_tooling.Analysis`, which editor tooling uses to typecheck a script without running it. Unlike the other suites, it runs against the full standard library: `analysis_stdlib.types` is written by the native `liquidsoap --cache-js-stdlib`, so this suite needs the streaming core built.
+
+Each snapshot shows the diagnostics, then answers the queries written in the case as comments:
+
+```liquidsoap
+#? type 3:2      # the type at line 3, byte column 2, as shown on hover
+#? scope 3:2     # the names in scope there, minus the standard library's
+#? methods 3:2   # the methods of the type there, as offered after a `.`
+```
+
+All suites share `snapshot.exe` (`--canonical` and `--analysis` select the other two) and the same two `--auto-promote` commands.
 
 ## File extensions in `cases/`
 

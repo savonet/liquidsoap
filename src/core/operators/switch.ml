@@ -300,7 +300,21 @@ class switch ~all_predicates children =
           | `After_position _ | `Force -> false
           | `Ok -> s.effective_source#is_ready)
 
+    (* The predicates are read as one snapshot, so a script writing several of
+       them inside an atomic section is never observed part way through. *)
+    method private snapshot_predicates =
+      Atomic_section.run (fun () ->
+          List.iter
+            (fun c ->
+              if c.effective_predicate = None then
+                c.effective_predicate <-
+                  Some (Lang.to_bool (Lang.apply c.predicate []));
+              if c.effective_track_sensitive = None then
+                c.effective_track_sensitive <- Some (c.track_sensitive ()))
+            children)
+
     method get_source ~reselect () =
+      self#snapshot_predicates;
       match self#selected with
         | Some s
           when (not resuming) && self#still_wanted s.child

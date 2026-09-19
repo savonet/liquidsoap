@@ -1,9 +1,71 @@
 open Js_of_ocaml
 open Liquidsoap_lang
 
+let unavailable name =
+  Runtime_error.raise ~pos:[]
+    ~message:(Printf.sprintf "%s is not available in the browser." name)
+    "unavailable"
+
+(* A plain value such as a list cannot be stubbed: code using it would get a
+   function and fail in unrelated ways. *)
+let has_unavailable_value t = Type.is_fun t || fst (Type.split_meths t) <> []
+
+(* Methods that cannot be stubbed are removed from the type as well, so that
+   using one is a type error rather than a failed lookup at runtime. *)
+let rec unavailable_type t =
+  Type.map_meths
+    (Type.filter_meths t (fun { Type.scheme = _, t } -> has_unavailable_value t))
+    (fun ({ Type.scheme = vars, t } as meth) ->
+      { meth with scheme = (vars, unavailable_type t) })
+
+(* Arguments follow the type's labels since application looks each passed
+   argument up by label before calling the function. *)
+let rec unavailable_value name t =
+  let meths, base = Type.split_meths t in
+  let methods =
+    List.fold_left
+      (fun methods { Type.meth; scheme = _, t } ->
+        if has_unavailable_value t then
+          Methods.add meth (unavailable_value (name ^ "." ^ meth) t) methods
+        else methods)
+      Methods.empty meths
+  in
+  let ffi_args =
+    match (Type.deref base).descr with
+      | Type.Arrow (args, _) ->
+          List.map
+            (fun (optional, label, _) ->
+              (label, label, if optional then Some (Value.make `Null) else None))
+            args
+      | _ -> []
+  in
+  Value.make ~methods
+    (`FFI { Value.ffi_args; ffi_fn = (fun _ -> unavailable name) })
+
+let load_full_stdlib_types () =
+  let ic = open_in_bin "/static/stdlib.types" in
+  let dump =
+    Fun.protect
+      ~finally:(fun () -> close_in ic)
+      (fun () -> really_input_string ic (in_channel_length ic))
+  in
+  let values = Environment.default_environment () in
+  (* Names the browser implements keep their own types: stripped custom types
+     do not unify with the ones its typechecker creates. *)
+  List.iter
+    (fun (name, (vars, t)) ->
+      if (not (List.mem_assoc name values)) && has_unavailable_value t then (
+        let t = unavailable_type t in
+        Environment.add_builtin ~register:false [name]
+          ((vars, t), unavailable_value name t)))
+    Jsoo_safe_env.(
+      restore
+        (of_string ~version:Liquidsoap_lang_data.Build_config.version dump))
+
 let () =
   (Hooks.liq_libs_dir := fun () -> "/static");
-  Runtime.load_libs ~stdlib:"stdlib_js.liq" ()
+  Runtime.load_libs ~stdlib:"stdlib_js.liq" ();
+  load_full_stdlib_types ()
 
 let execute ~throw expr =
   (try
@@ -43,16 +105,24 @@ let formatLiqCode (s : Js.js_string Js.t) (cb : Js.js_string Js.t -> unit) :
     (Js.Unsafe.js_expr "formatLiqCode")
     [| Js.Unsafe.inject s; Js.Unsafe.inject cb |]
 
+(* The playground's prettier parser takes the AST as JSON, with the comments
+   inside it. *)
+let prettier_json ~comments expr =
+  match
+    Liquidsoap_tooling.Parsed_json.parse_string ~formatter:Format.str_formatter
+      expr
+  with
+    | `Assoc [("ast", `Assoc ast); ("comments", all_comments)] ->
+        let comments = if comments then all_comments else `Tuple [] in
+        Js.string
+          (Liquidsoap_lang_data.Json.to_string
+             (`Assoc (ast @ [("comments", comments)])))
+    | _ -> assert false
+
 let on_format =
   Dom_html.handler (fun _ ->
       let expr = Js.to_string (getLiqCode ()) in
-      (try
-         let json =
-           Liquidsoap_tooling.Parsed_json.parse_string
-             ~formatter:Format.str_formatter expr
-         in
-         let json = Liquidsoap_lang_data.Json.to_string json in
-         formatLiqCode (Js.string json) setLiqCode
+      (try formatLiqCode (prettier_json ~comments:true expr) setLiqCode
        with _ -> setOutput (Format.flush_str_formatter ()));
       Js._true)
 
@@ -65,11 +135,10 @@ let on_execute =
       in
       let tokenizer = Preprocessor.mk_tokenizer lexbuf in
       let parsed_term = Runtime.program tokenizer in
-      let json = Liquidsoap_tooling.Parsed_json.to_json parsed_term in
-      let json = Liquidsoap_lang_data.Json.to_string json in
+      let json = prettier_json ~comments:false expr in
       let term = Term_reducer.to_term ~throw parsed_term in
       let result = execute ~throw term in
-      formatLiqCode (Js.string json) (fun formatted ->
+      formatLiqCode json (fun formatted ->
           setOutput
             (Printf.sprintf "%s\n%s\n"
                (String.trim (Js.to_bytestring formatted))

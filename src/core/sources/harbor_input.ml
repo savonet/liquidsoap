@@ -325,9 +325,8 @@ let proto ?(buffer_default = 12.) mountpoint_t =
       Lang.http_transport_base_t,
       Some (Lang.base_http_transport Http.unix_transport),
       Some
-        "Http transport. Use `http.transport.ssl` or \
-         `http.transport.secure_transport`, when available, to enable HTTPS \
-         output" );
+        "Http transport. Use `http.transport.ssl`, when available, to enable \
+         HTTPS output" );
     ( "icy",
       Lang.bool_t,
       Some (Lang.bool false),

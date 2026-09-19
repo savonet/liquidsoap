@@ -1,7 +1,4 @@
 (library
  (name duppy)
  (libraries unix threads.posix re stdlib_utils)
- (foreign_stubs
-  (language c)
-  (names duppy_stubs))
  (synopsis "OCaml advanced scheduler"))

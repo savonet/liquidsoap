@@ -22,6 +22,7 @@
 
 (* See liquidsoap_core_utils.mli. *)
 
+module Atomic_section = Atomic_section
 module Charset = Charset
 module Charset_base = Charset_base
 module Concurrent_hashtbl = Concurrent_hashtbl
@@ -47,6 +48,7 @@ module Sha1 = Sha1
 module Startup = Startup
 module StringView = StringView
 module Strings = Strings
+module ByteRing = ByteRing
 module Tutils = Tutils
 module Unifier = Unifier
 module Utils = Utils

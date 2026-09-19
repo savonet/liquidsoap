@@ -27,8 +27,8 @@ end
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
 def server.insert_metadata(s) =
-  def insert(s) =
-    let (meta, _) = string.annotate.parse("#{s}:")
+  def insert(arg) =
+    let (meta, _) = string.annotate.parse("#{arg}:")
     if
       meta != []
     then
@@ -53,7 +53,7 @@ end
 # @category Internet
 # @flag extra
 # @param ~port Port of the server.
-# @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
+# @param ~transport Http transport. Use `http.transport.ssl`, when available, to enable HTTPS output
 # @param ~uri URI of the server.
 def server.harbor(~transport=http.transport.unix, ~port=8000, ~uri="/telnet") =
   def webpage(_, response) =

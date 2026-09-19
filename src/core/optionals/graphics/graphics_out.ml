@@ -65,7 +65,7 @@ let _ =
   Lang.add_operator ~base:Modules.output "graphics"
     (Output.proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
-    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~callbacks:(Start_stop.output_callbacks ())
     ~descr:"Display video stream using the Graphics library."
     (fun p ->
       let autostart = Lang.to_bool (List.assoc "start" p) in

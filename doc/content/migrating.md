@@ -35,7 +35,7 @@ The `video.canvas` API (for positioning video elements) is unaffected by this ch
 
 Video dimensions (`video.frame.width`/`height`) are now automatically detected from the first decoded video file. This means you no longer need to manually set dimensions in most cases.
 
-To disable this behavior, either set `settings.video.detect_dimensions` to `false` or explicitly set the video dimensions yourself.
+To disable this behavior, either set `settings.frame.video.detect_dimensions` to `false` or explicitly set the video dimensions yourself.
 
 ### Implicit integer to float casting
 
@@ -94,6 +94,18 @@ The `burst` parameter is now nullable. Pass `null` to disable the initial burst:
 
 ```liquidsoap
 output.harbor(mount="stream", burst=null, ...)
+```
+
+### `output.harbor` listener callbacks
+
+`on_connect` and `on_disconnect` on `output.harbor` now receive the same listener record, which has new `id`, `connected_at`, `duration` and `bytes_sent` fields. The `ip` field no longer includes the client port: use `id` to tell apart connections from the same address.
+
+```liquidsoap
+# Old
+o.on_disconnect(fun (ip) -> log("#{ip} disconnected"))
+
+# New
+o.on_disconnect(fun (listener) -> log("#{listener.ip} disconnected"))
 ```
 
 ### Crossfade simplification
@@ -304,6 +316,38 @@ announce.release()
 ```
 
 Nothing to change in existing scripts: the value is still `unit` underneath and can be ignored. It matters if you register callbacks repeatedly on long-lived sources, typically when handling dynamic sources — see [source callbacks](./callbacks.md).
+
+### Scheduled work runs concurrently
+
+Request resolutions, harbor clients, `thread.run` handlers and asynchronous source callbacks used to run on a handful of queue threads, one at a time each. They now run on several cores at once, and in parallel with the streaming loop.
+
+Most scripts need no change. A script that reads and writes shared state from several handlers can now observe it half-done: a reader sees one of two references updated and not the other, or two handlers both see a flag unset and both do the work.
+
+Group such writes with `atomic`. The reads need grouping too: `atomic` only holds back other atomic sections, so a reader outside one still sees the writes land one at a time.
+
+```{.liquidsoap include="atomic-now-playing.liq"}
+
+```
+
+A single reference holding a record needs none of this, since the update and the read are each one operation. Prefer it when the values can live together.
+
+For a check-and-set, `r.exchange(v)` writes and returns the previous value in one step:
+
+```{.liquidsoap include="atomic-once.liq"}
+
+```
+
+See [sharing state between tasks](./scheduling.md#sharing-state-between-tasks) for the rules a section must follow.
+
+`settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and `settings.scheduler.non_blocking_queues` are deprecated: the scheduler sizes itself from the number of cores. Setting them logs a warning. `settings.scheduler.blocking_tasks` caps how many slow tasks run at once.
+
+If concurrent execution breaks a script and it cannot be fixed right away, `settings.scheduler.legacy := true` brings back the previous behavior, threads and queues included. It is a fail-safe and will be removed in a later version.
+
+### Daemon mode removed
+
+The `-d`/`--daemon` option and the `settings.init.daemon` settings are gone, pidfile writing included. Detaching from the terminal required forking, which is not safe now that liquidsoap runs on several cores.
+
+Run liquidsoap in the foreground under a service manager instead — `systemd` on Linux, `launchd` on macOS. Both keep track of the process, restart it, and capture its output, so a pidfile is not needed. A script still setting `init.daemon`, `init.daemon.pidfile` or `init.daemon.change_user` no longer typechecks (`this value has no method daemon`); drop those lines, and let the service manager set user and group.
 
 ## From 2.3.x to 2.4.x
 

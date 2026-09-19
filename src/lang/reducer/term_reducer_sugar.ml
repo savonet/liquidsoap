@@ -83,8 +83,8 @@ let during ~pos d =
   (t, t + d, p)
 
 let mk_time_pred ~pos (a, b, c) =
-  let args = List.map (fun x -> ("", mk ~pos (`Int x))) [a; b; c] in
-  `App (mk ~pos (`Var "time_in_mod"), args)
+  let args = List.map (fun x -> ("", mk_implicit ~pos (`Int x))) [a; b; c] in
+  `App (mk_implicit ~pos (`Var "time_in_mod"), args)
 
 (** When doing chained calls, we want to update all nested defaults so that, e.g.
     in:
@@ -106,11 +106,11 @@ let mk_app_invoke_default ~pos ~args body =
         })
       args
   in
-  mk_fun ~pos app_args body
+  mk_implicit_fun ~pos app_args body
 
 let mk_any ~pos () =
-  let op = mk ~pos (`Var "💣") in
-  mk ~pos (`App (op, []))
+  let op = mk_implicit ~pos (`Var "💣") in
+  mk_implicit ~pos (`App (op, []))
 
 let rec mk_invoke_default ~pos ~optional ~name value
     { invoked; meth; invoke_default } =
@@ -121,7 +121,9 @@ let rec mk_invoke_default ~pos ~optional ~name value
   in
   let tm = mk_any ~pos () in
   let value =
-    mk ~t ~methods:(Methods.add name value Term.Methods.empty) tm.Term.term
+    mk ~t ~flags:implicit
+      ~methods:(Methods.add name value Term.Methods.empty)
+      tm.Term.term
   in
   ( value,
     update_invoke_default ~pos ~optional:(invoke_default <> None) invoked meth
@@ -170,7 +172,9 @@ let mk_invoke ?(default : Parsed_term.t option) ~pos ~env ~to_term expr v =
   let expr = to_term ~env expr in
   let default = Option.map (to_term ~env) default in
   let optional, value =
-    match default with Some v -> (true, v) | None -> (false, mk ~pos `Null)
+    match default with
+      | Some v -> (true, v)
+      | None -> (false, mk_implicit ~pos `Null)
   in
   match v with
     | `String meth ->
@@ -201,12 +205,12 @@ let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
     | `Invoke { invoked; meth = `String m } ->
         mk_invoke ~pos ~env ~default ~to_term invoked (`String m)
     | _ ->
-        let null = mk ~pos (`Var "_null") in
+        let null = mk_implicit ~pos (`Var "_null") in
         let op =
-          mk ~pos
+          mk_implicit ~pos
             (`Invoke { invoked = null; invoke_default = None; meth = "default" })
         in
-        let handler = mk_fun ~pos [] (to_term ~env default) in
+        let handler = mk_implicit_fun ~pos [] (to_term ~env default) in
         `App (op, [("", to_term ~env computed); ("", handler)])
 
 let get_reducer ~pos ~env ~to_term = function
@@ -236,7 +240,7 @@ let if_reducer ~pos ~env ~to_term ~to_block = function
   | `If { if_condition; if_then_block; if_elsif; if_else_block; _ } ->
       let if_else =
         match if_else_block with
-          | None -> mk ~pos (`Tuple [])
+          | None -> mk_implicit ~pos (`Tuple [])
           | Some b -> to_block ~env b
       in
       let branches =
@@ -249,14 +253,14 @@ let if_reducer ~pos ~env ~to_term ~to_block = function
       let term =
         List.fold_left
           (fun if_else (condition, _then) ->
-            let op = mk ~pos (`Var "if") in
-            mk ~pos
+            let op = mk_implicit ~pos (`Var "if") in
+            mk_implicit ~pos
               (`App
                  ( op,
                    [
                      ("", to_term ~env condition);
-                     ("then", mk_fun ~pos [] (to_block ~env _then));
-                     ("else", mk_fun ~pos [] if_else);
+                     ("then", mk_implicit_fun ~pos [] (to_block ~env _then));
+                     ("else", mk_implicit_fun ~pos [] if_else);
                    ] )))
           if_else (List.rev branches)
       in
@@ -264,15 +268,17 @@ let if_reducer ~pos ~env ~to_term ~to_block = function
 
 let while_reducer ~pos ~env ~to_term ~to_block = function
   | `While { while_condition; while_do_block } ->
-      let op = mk ~pos (`Var "while") in
-      let while_condition = mk_fun ~pos [] (to_term ~env while_condition) in
-      let while_loop = mk_fun ~pos [] (to_block ~env while_do_block) in
+      let op = mk_implicit ~pos (`Var "while") in
+      let while_condition =
+        mk_implicit_fun ~pos [] (to_term ~env while_condition)
+      in
+      let while_loop = mk_implicit_fun ~pos [] (to_block ~env while_do_block) in
       `App (op, [("", while_condition); ("", while_loop)])
 
 let base_for_reducer ~pos for_variable for_iterator for_loop =
-  let for_op = mk ~pos (`Var "for") in
+  let for_op = mk_implicit ~pos (`Var "for") in
   let for_loop =
-    mk_fun ~pos
+    mk_implicit_fun ~pos
       [
         {
           label = "";
@@ -295,13 +301,13 @@ let iterable_for_reducer ~pos ~env ~to_term ~to_block = function
 
 let for_reducer ~pos ~env ~to_term ~to_block = function
   | `For { for_variable; for_from; for_to; for_do_block } ->
-      let to_op = mk ~pos (`Var "iterator") in
+      let to_op = mk_implicit ~pos (`Var "iterator") in
       let to_op =
-        mk ~pos
+        mk_implicit ~pos
           (`Invoke { invoked = to_op; invoke_default = None; meth = "int" })
       in
       let for_condition =
-        mk ~pos
+        mk_implicit ~pos
           (`App (to_op, [("", to_term ~env for_from); ("", to_term ~env for_to)]))
       in
       base_for_reducer ~pos for_variable for_condition
@@ -317,8 +323,8 @@ let bool_op_reducer ~pos ~env ~to_term = function
       List.fold_left
         (fun tm tm' ->
           let op = mk ~pos (`Var op) in
-          let tm = mk_fun ~pos [] (mk ~pos tm) in
-          let tm' = mk_fun ~pos [] (to_term ~env tm') in
+          let tm = mk_implicit_fun ~pos [] (mk ~pos tm) in
+          let tm' = mk_implicit_fun ~pos [] (to_term ~env tm') in
           `App (op, [("", tm); ("", tm')]))
         (to_term ~env tm).term terms
   | `BoolOp (_, []) -> assert false
@@ -343,8 +349,8 @@ let not_reducer ~pos ~env ~to_term = function
       let op = mk ~pos (`Var "not") in
       `App (op, [("", to_term ~env tm)])
 
-let append_term ~pos a b =
-  let op = mk ~pos (`Var "_::_") in
+let append_term ?(flags = Flags.empty) ~pos a b =
+  let op = mk ~pos ~flags (`Var "_::_") in
   `App (op, [("", a); ("", b)])
 
 let append_reducer ~pos ~env ~to_term = function
@@ -356,15 +362,20 @@ let rec list_reducer ~pos ?(cur = `List []) ~env ~to_term l =
     | `Term v :: rem, `List cur ->
         list_reducer ~cur:(`List (to_term ~env v :: cur)) ~pos ~env ~to_term rem
     | `Term v :: rem, cur ->
-        let cur = append_term ~pos (to_term ~env v) (mk ~pos cur) in
+        let cur =
+          append_term ~flags:implicit ~pos (to_term ~env v)
+            (mk_implicit ~pos cur)
+        in
         list_reducer ~pos ~cur ~env ~to_term rem
     | `Ellipsis v :: rem, cur ->
-        let list = mk ~pos (`Var "list") in
+        let list = mk_implicit ~pos (`Var "list") in
         let op =
-          mk ~pos
+          mk_implicit ~pos
             (`Invoke { invoked = list; invoke_default = None; meth = "append" })
         in
-        let cur = `App (op, [("", to_term ~env v); ("", mk ~pos cur)]) in
+        let cur =
+          `App (op, [("", to_term ~env v); ("", mk_implicit ~pos cur)])
+        in
         list_reducer ~pos ~cur ~env ~to_term rem
 
 let assoc_reducer ~pos ~env ~to_term = function
@@ -375,16 +386,16 @@ let assoc_reducer ~pos ~env ~to_term = function
 let regexp_reducer ~pos ~env:_ ~to_term:_ = function
   | `Regexp (regexp, flags) ->
       let regexp = render_string ~pos ~sep:'/' regexp in
-      let regexp = mk ~pos (`String regexp) in
+      let regexp = mk_implicit ~pos (`String regexp) in
       let flags = List.map Char.escaped flags in
-      let flags = List.map (fun s -> mk ~pos (`String s)) flags in
-      let flags = mk ~pos (`List flags) in
-      let op = mk ~pos (`Var "regexp") in
+      let flags = List.map (fun s -> mk_implicit ~pos (`String s)) flags in
+      let flags = mk_implicit ~pos (`List flags) in
+      let op = mk_implicit ~pos (`Var "regexp") in
       `App (op, [("", regexp); ("flags", flags)])
 
 let try_reducer ~pos ~env ~to_term ~to_block = function
   | `Try { try_body_block; try_handler; try_finally_block } ->
-      let try_body = mk_fun ~pos [] (to_block ~env try_body_block) in
+      let try_body = mk_implicit_fun ~pos [] (to_block ~env try_body_block) in
       let try_variable =
         match try_handler with Some h -> h.try_handler_variable | None -> "_"
       in
@@ -401,26 +412,26 @@ let try_reducer ~pos ~env ~to_term ~to_block = function
       in
       let finally_pos, finally =
         match try_finally_block with
-          | None -> (pos, mk ~pos (`Tuple []))
+          | None -> (pos, mk_implicit ~pos (`Tuple []))
           | Some b -> (b.block_pos, to_block ~env b)
       in
-      let finally = mk_fun ~pos:finally_pos [] finally in
+      let finally = mk_implicit_fun ~pos:finally_pos [] finally in
       let handler_pos, handler =
         match try_handler with
-          | None -> (pos, mk ~pos (`Tuple []))
+          | None -> (pos, mk_implicit ~pos (`Tuple []))
           | Some h ->
               (h.try_handler_block.block_pos, to_block ~env h.try_handler_block)
       in
-      let handler = mk_fun ~pos:handler_pos err_arg handler in
-      let error_module = mk ~pos (`Var "error") in
+      let handler = mk_implicit_fun ~pos:handler_pos err_arg handler in
+      let error_module = mk_implicit ~pos (`Var "error") in
       let try_errors_list =
         match try_handler with
-          | None -> mk ~pos `Null
-          | Some { try_handler_errors_list = None; _ } -> mk ~pos `Null
+          | None -> mk_implicit ~pos `Null
+          | Some { try_handler_errors_list = None; _ } -> mk_implicit ~pos `Null
           | Some { try_handler_errors_list = Some tm; _ } -> to_term ~env tm
       in
       let op =
-        mk ~pos
+        mk_implicit ~pos
           (`Invoke
              { invoked = error_module; invoke_default = None; meth = "catch" })
       in

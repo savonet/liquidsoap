@@ -636,7 +636,7 @@ content_type = file.mime
 # Serve a static path.
 # @category Internet
 # @param ~port Port for incoming harbor (http) connections.
-# @param ~transport Http transport. Use `http.transport.ssl` or http.transport.secure_transport`, when available, to enable HTTPS output
+# @param ~transport Http transport. Use `http.transport.ssl`, when available, to enable HTTPS output
 # @param ~path Base path.
 # @param ~headers Default response headers.
 # @param ~browse List files in directories.

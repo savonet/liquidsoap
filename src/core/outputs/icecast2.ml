@@ -238,9 +238,8 @@ let proto frame_t =
         Lang.http_transport_base_t,
         Some (Lang.base_http_transport Http.unix_transport),
         Some
-          "Http transport. Use `http.transport.ssl` or \
-           `http.transport.secure_transport`, when available, to enable HTTPS \
-           output" );
+          "Http transport. Use `http.transport.ssl`, when available, to enable \
+           HTTPS output" );
       ( "connection_timeout",
         Lang.float_t,
         Some (Lang.float 5.),
@@ -692,7 +691,7 @@ let _ =
     ~descr:"Encode and output the stream to an icecast2 or shoutcast server."
     ~meth:(Start_stop.meth ())
     ~callbacks:
-      (Start_stop.callbacks ~label:"output"
+      (Start_stop.output_callbacks ()
       @ [
           {
             Lang_source.name = "on_connect";

@@ -32,6 +32,20 @@
   (run %{run_test} argsof.liq liquidsoap %{test_liq} argsof.liq)))
 
 (rule
+ (alias test_atomic)
+ (package liquidsoap)
+ (deps
+  atomic.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} atomic.liq liquidsoap %{test_liq} atomic.liq)))
+
+(rule
  (alias test_bool)
  (package liquidsoap)
  (deps
@@ -259,6 +273,44 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} getter.liq liquidsoap %{test_liq} getter.liq)))
+
+(rule
+ (alias test_icecast_server_config)
+ (package liquidsoap)
+ (deps
+  icecast_server_config.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_config.liq
+   liquidsoap
+   %{test_liq}
+   icecast_server_config.liq)))
+
+(rule
+ (alias test_icecast_server_tables)
+ (package liquidsoap)
+ (deps
+  icecast_server_tables.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_tables.liq
+   liquidsoap
+   %{test_liq}
+   icecast_server_tables.liq)))
 
 (rule
  (alias test_implicit_float_casting)
@@ -593,6 +645,25 @@
   (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
 
 (rule
+ (alias test_settings_default)
+ (package liquidsoap)
+ (deps
+  settings_default.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  (:test_liq ../test.liq)
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   settings_default.liq
+   liquidsoap
+   %{test_liq}
+   settings_default.liq)))
+
+(rule
  (alias test_socket)
  (package liquidsoap)
  (deps
@@ -784,6 +855,7 @@
  (deps
   (alias test_abstract_source)
   (alias test_argsof)
+  (alias test_atomic)
   (alias test_bool)
   (alias test_comments)
   (alias test_conversions)
@@ -800,6 +872,8 @@
   (alias test_file_protocol)
   (alias test_functions)
   (alias test_getter)
+  (alias test_icecast_server_config)
+  (alias test_icecast_server_tables)
   (alias test_implicit_float_casting)
   (alias test_interactive)
   (alias test_json)
@@ -823,6 +897,7 @@
   (alias test_ref)
   (alias test_regexp)
   (alias test_replaygain)
+  (alias test_settings_default)
   (alias test_socket)
   (alias test_source_content)
   (alias test_sqlite)

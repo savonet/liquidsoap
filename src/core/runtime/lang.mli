@@ -279,7 +279,15 @@ val product : value -> value -> value
 val tuple : value list -> value
 val meth : value -> (string * value) list -> value
 val record : (string * value) list -> value
-val reference : (unit -> value) -> (value -> unit) -> value
+
+(** Build a reference from a getter and a setter.
+
+    Pass [exchange] whenever the underlying state can do it in one step: without
+    it every operation runs as an atomic section, which excludes other sections
+    and nothing else. *)
+val reference :
+  ?exchange:(value -> value) -> (unit -> value) -> (value -> unit) -> value
+
 val http_transport : Liq_http.transport -> value
 val base_http_transport : Liq_http.transport -> value
 

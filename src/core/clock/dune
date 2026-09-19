@@ -27,5 +27,6 @@
   liquidsoap-lang.data
   liquidsoap-lang.prelude
   liquidsoap_core_utils
+  duppy
   threads.posix
   liquidsoap_core_stream))

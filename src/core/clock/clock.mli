@@ -46,6 +46,12 @@ type main_conflict = {
 
 exception Main_conflict of main_conflict
 
+type animator_conflict = { pos : Pos.Option.t; clock : string }
+
+(** Raised when a source that needs a thread-animated clock reaches a clock that
+    has already started as a scheduler task. *)
+exception Animator_conflict of animator_conflict
+
 (** A clock handle. Two handles can dereference to the same underlying clock
     after unification. *)
 type t
@@ -214,6 +220,13 @@ val unify : pos:Liquidsoap_lang_prelude.Pos.Option.t -> t -> t -> unit
 
 val register_sub_clock : t -> t -> unit
 val deregister_sub_clock : t -> t -> unit
+
+(** Animate the clock with a thread of its own rather than a scheduler task. For
+    a source whose sync rests by blocking in a foreign call, which a task cannot
+    do without holding a scheduler domain for the whole rest. The animator is
+    picked when the clock starts, so this belongs in the source's initializer:
+    it raises {!Animator_conflict} on a clock that already started. *)
+val force_thread : t -> unit
 
 (** Attach a source to the clock. The source is placed in the pending
     activations and activated when the clock starts or at the beginning of its

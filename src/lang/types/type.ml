@@ -32,7 +32,13 @@ let string_of_scheme = Repr.string_of_scheme
 let reference ?pos a =
   let get = make ?pos (Arrow ([], a)) in
   let set = make ?pos (Arrow ([(false, "", a)], make ?pos unit)) in
-  meth ?pos "set" ([], set) ~doc:"Set the value of the reference." get
+  let exchange = make ?pos (Arrow ([(false, "", a)], a)) in
+  meth ?pos "set" ([], set) ~doc:"Set the value of the reference."
+    (meth ?pos "exchange" ([], exchange)
+       ~doc:
+         "Set the value of the reference and return the value it replaced, as \
+          one indivisible step."
+       get)
 
 let record_constr =
   {

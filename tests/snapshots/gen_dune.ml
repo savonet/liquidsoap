@@ -12,8 +12,8 @@ let is_case f =
     | _ -> false
 
 (* [flag] is passed to snapshot.exe ahead of the case; [prefix] keeps the
-   generated target names of the two suites apart. *)
-let emit_rules ~cases_dir ~expected_dir ~prefix ~flag case =
+   generated target names of the suites apart. *)
+let emit_rules ?(extra_deps = "") ~cases_dir ~expected_dir ~prefix ~flag case =
   let target = prefix ^ Filename.remove_extension case in
   Printf.printf
     {|
@@ -21,7 +21,7 @@ let emit_rules ~cases_dir ~expected_dir ~prefix ~flag case =
  (target %s.actual)
  (deps
   (:case %s/%s)
-  (glob_files cases/*.liq-inc)
+  (glob_files cases/*.liq-inc)%s
   (:snapshot snapshot.exe))
  (action
   (with-stdout-to %%{target} (run %%{snapshot} %s%%{case}))))
@@ -32,17 +32,20 @@ let emit_rules ~cases_dir ~expected_dir ~prefix ~flag case =
  (action
   (diff %s/%s.expected %s.actual)))
 |}
-    target cases_dir case flag expected_dir
+    target cases_dir case extra_deps flag expected_dir
     (Filename.remove_extension case)
     target
 
 let () =
   let location = Sys.getcwd () in
-  let suite ~cases_dir ~expected_dir ~prefix ~flag =
+  let suite ?extra_deps ~cases_dir ~expected_dir ~prefix ~flag () =
     List.iter
-      (emit_rules ~cases_dir ~expected_dir ~prefix ~flag)
+      (emit_rules ?extra_deps ~cases_dir ~expected_dir ~prefix ~flag)
       (List.filter is_case (Build_tools.read_files ~location cases_dir))
   in
-  suite ~cases_dir:"cases" ~expected_dir:"expected" ~prefix:"" ~flag:"";
+  suite ~cases_dir:"cases" ~expected_dir:"expected" ~prefix:"" ~flag:"" ();
   suite ~cases_dir:"cases_canonical" ~expected_dir:"expected_canonical"
-    ~prefix:"canonical_" ~flag:"--canonical "
+    ~prefix:"canonical_" ~flag:"--canonical " ();
+  suite ~extra_deps:"\n  (:env analysis_stdlib.types)"
+    ~cases_dir:"cases_analysis" ~expected_dir:"expected_analysis"
+    ~prefix:"analysis_" ~flag:"--analysis %{env} " ()

@@ -70,11 +70,15 @@ and value_of_typed_xml ~ty xml =
           match xml_text_content xml with
             | Some s -> Lang.meth (Lang.bool (bool_of_string s)) meths
             | None -> raise Not_found)
-      | _, Type.Tuple [_name_ty; _props_ty] when typ_meths = [] ->
-          let name = xml_element_name xml in
-          let props_meths, _ = Type.split_meths _props_ty in
-          let props = parse_xml_props ~typ_meths:props_meths xml in
-          Lang.tuple [Lang.string name; props]
+      | _, Type.Tuple [_name_ty; _props_ty] when typ_meths = [] -> (
+          match (Type.deref _props_ty).Type.descr with
+            (* A type variable for the props keeps the whole subtree. *)
+            | Type.Var _ -> parse_untyped_xml xml
+            | _ ->
+                let name = xml_element_name xml in
+                let props_meths, _ = Type.split_meths _props_ty in
+                let props = parse_xml_props ~typ_meths:props_meths xml in
+                Lang.tuple [Lang.string name; props])
       | _, Type.Tuple [] when typ_meths <> [] -> (
           (* Check if the element name matches a method in the expected type.
              If so, wrap the content in that method. *)
@@ -105,7 +109,7 @@ and value_of_typed_xml ~ty xml =
                children)
       | _, Type.Var _ -> parse_untyped_xml xml
       | _ -> raise Not_found
-  with _ when nullable -> Lang.null
+  with Not_found when nullable -> Lang.null
 
 and parse_xml_record ~typ_meths xml =
   let params = xml_params xml in
@@ -333,6 +337,7 @@ let params_of_optional_params = function
   | Some params -> params_of_xml_params params
 
 let rec xml_of_value = function
+  | Value.String { value = s } -> Xml.PCData s
   | Value.Tuple
       {
         value =
@@ -354,14 +359,21 @@ let rec xml_of_value = function
 
 and xml_of_node ?xml_text ~name meths =
   let xml_text =
-    match xml_text with
-      | Some s -> Some s
-      | None -> Option.map Lang.to_string (List.assoc_opt "xml_text" meths)
+    match (xml_text, List.assoc_opt "xml_text" meths) with
+      | Some s, _ -> Some s
+      | None, (None | Some (Value.Null _)) -> None
+      | None, Some v -> Some (Lang.to_string v)
   in
   let xml_children =
-    Option.map Lang.to_list (List.assoc_opt "xml_children" meths)
+    match Option.map Lang.to_list (List.assoc_opt "xml_children" meths) with
+      | Some [] -> None
+      | v -> v
   in
-  let xml_params = List.assoc_opt "xml_params" meths in
+  let xml_params =
+    match List.assoc_opt "xml_params" meths with
+      | Some (Value.List { value = [] }) -> None
+      | v -> v
+  in
   let meths =
     List.filter
       (fun (k, _) ->
@@ -372,7 +384,7 @@ and xml_of_node ?xml_text ~name meths =
     | "xml_text", None, None, Some s, [] -> Xml.PCData s
     | name, xml_params, None, Some s, [] ->
         Xml.Element (name, params_of_optional_params xml_params, [Xml.PCData s])
-    | name, xml_params, Some nodes, None, [] ->
+    | name, xml_params, Some nodes, _, [] ->
         Xml.Element
           ( name,
             params_of_optional_params xml_params,

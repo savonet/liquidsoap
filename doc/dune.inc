@@ -116,6 +116,48 @@
    content/liq/archive-cleaner.liq)))
 
 (rule
+ (alias test-doc-atomic-now-playing)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/atomic-now-playing.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/atomic-now-playing.liq)))
+
+(rule
+ (alias test-doc-atomic-once)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/atomic-once.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/atomic-once.liq)))
+
+(rule
+ (alias test-doc-atomic-record)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/atomic-record.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/atomic-record.liq)))
+
+(rule
  (alias test-doc-basic-radio)
  (package liquidsoap)
  (deps
@@ -1112,6 +1154,20 @@
    content/liq/http-input.liq)))
 
 (rule
+ (alias test-doc-icecast-server-access-log)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-access-log.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-access-log.liq)))
+
+(rule
  (alias test-doc-icecast-server-basic)
  (package liquidsoap)
  (deps
@@ -1166,6 +1222,48 @@
    --check
    --no-fallible-check
    content/liq/icecast-server-dedicated-encoder.liq)))
+
+(rule
+ (alias test-doc-icecast-server-ip-hash)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-ip-hash.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-ip-hash.liq)))
+
+(rule
+ (alias test-doc-icecast-server-listener-callbacks)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-listener-callbacks.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-listener-callbacks.liq)))
+
+(rule
+ (alias test-doc-icecast-server-plain-ips)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-plain-ips.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-plain-ips.liq)))
 
 (rule
  (alias test-doc-icecast-server-serve-auth)
@@ -2180,6 +2278,9 @@
  (deps
   (alias test-doc-append-silence)
   (alias test-doc-archive-cleaner)
+  (alias test-doc-atomic-now-playing)
+  (alias test-doc-atomic-once)
+  (alias test-doc-atomic-record)
   (alias test-doc-basic-radio)
   (alias test-doc-beets-amplify)
   (alias test-doc-beets-protocol)
@@ -2252,10 +2353,14 @@
   (alias test-doc-harbor.http.response)
   (alias test-doc-hls-metadata)
   (alias test-doc-http-input)
+  (alias test-doc-icecast-server-access-log)
   (alias test-doc-icecast-server-basic)
   (alias test-doc-icecast-server-complete)
   (alias test-doc-icecast-server-config)
   (alias test-doc-icecast-server-dedicated-encoder)
+  (alias test-doc-icecast-server-ip-hash)
+  (alias test-doc-icecast-server-listener-callbacks)
+  (alias test-doc-icecast-server-plain-ips)
   (alias test-doc-icecast-server-serve-auth)
   (alias test-doc-icecast-server-serve-json)
   (alias test-doc-icy-update)

@@ -109,6 +109,37 @@ Examples:
 
 The implementation also supports the following shorthands: `@annually`, `@yearly`, `@daily`, `@hourly`, `@monthly` and `@weekly`.
 
+## Sharing state between tasks
+
+Tasks run at the same time, on several cores, and alongside the stream itself. A reference is safe to share between them: every single read or write is indivisible. What is not indivisible is a group of them, and that is where a script that worked on one core starts to misbehave.
+
+Take a "now playing" line kept in two references. A metadata callback writes the title, then the artist. A task that reads both can run between those two writes and print the new title with the previous artist.
+
+The simplest fix is to not have two references: keep one holding a record, so the update and the read are each a single operation.
+
+```{.liquidsoap include="atomic-record.liq"}
+
+```
+
+When the values do have to live apart, group the writes with `atomic`, and group the reads the same way. `atomic` only holds back other atomic sections: a reader that does not use it still sees the writes one at a time.
+
+```{.liquidsoap include="atomic-now-playing.liq"}
+
+```
+
+The other common case is something that must happen once, say connecting to a service the first time any task needs it. Reading a flag and then setting it is two operations, so two tasks can both find it unset. `exchange` sets a reference and returns what it replaced as one step. If the others must find the work done rather than merely claimed, put the work itself inside the section.
+
+```{.liquidsoap include="atomic-once.liq"}
+
+```
+
+A few rules keep sections cheap and safe:
+
+- A section is indivisible, not transactional. If the function raises, the changes it already made stand.
+- Keep sections short and never wait on another task inside one: the task you wait for may be waiting to enter a section.
+- Do not call source methods inside a section.
+- `atomic(fast=true, f)` makes waiting tasks spin instead of sleeping. Use it for a section that only touches a few references. It is wasteful for anything longer.
+
 ## Advanced: `thread.run.recurrent`
 
 For more complex scheduling needs, advanced users may use `thread.run.recurrent`. It allows full control over how a task is rescheduled after each execution, making it possible to implement dynamic or irregular schedules.

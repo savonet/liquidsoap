@@ -76,12 +76,13 @@ let conf_scaling_algorithm =
 let conf_scaling_threads =
   Dtools.Conf.int
     ~p:(conf_ffmpeg#plug "scaling_threads")
-    "Scaling threads" ~d:0
+    "Scaling threads" ~d:1
     ~comments:
       [
-        "Number of threads a video frame is scaled over. `0`, the default,";
-        "uses one per core. Scaling is a small part of what a video stream";
-        "costs, so the extra cores buy little once the codecs are using them.";
+        "Number of threads a video frame is scaled over. `1`, the default,";
+        "scales on the calling thread. Splitting a frame costs a fan-out and";
+        "a join on every frame, which a stream held to real time pays over";
+        "and over and rarely earns back. `0` uses one thread per core.";
       ]
 
 let () =

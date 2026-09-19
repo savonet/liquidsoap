@@ -3,6 +3,11 @@
 ## New:
 
 - Added `getter(t)` type annotation syntax for getter types (#5078).
+- Added `atomic(f)`, which runs `f` without letting any other atomic section run at the same time. Script code now runs on several cores at once, so a group of changes that must not be observed half-done — writing several references together, or checking a flag and setting it — needs to say so.
+- Added `r.exchange(v)`, which sets a reference and returns the value it replaced in one
+  indivisible step. Now that script code runs on several cores at once, a flag guarding
+  work that must happen only once cannot be read and set separately: two threads both see
+  it unset and both do the work.
 - Added `source.content` operator returning an associative list of frame field names to their content format, `track.format` returning the content format of a single track, and `format.description` returning a typed record description of a content format.
 - Renamed the internal video content type from `canvas` to `yuv420p`, which better reflects the
   actual content; the content itself is still organized as a canvas of `yuv420p` layers. Type
@@ -17,7 +22,9 @@
 - Added support for XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`,
   `file.nfo.metadata`) (#4910).
 - Added Icecast-compatible streaming server (`icecast.server`) with support for source
-  authentication, mount points, relay, and per-listener encoding (#4915).
+  authentication, mount points, relay, and per-listener encoding (#4915). It writes icecast's
+  access and playlist logs, reports listener sessions through callbacks, serves an admin listener
+  page, and hashes listener IPs by default (#5408).
 - Added dedicated encoder mode to `output.harbor`: mount points can now be served with
   a single shared encoder instead of per-listener encoding (#5003).
 - Rewrote JACK I/O using native OCaml bindings, removing the dependency on the `bjack`
@@ -41,10 +48,40 @@
   one is expected, so sources of different content can be held together, for instance in a list,
   without unifying their content types, while nothing can be assumed about what a `source(_)`
   streams.
+- Added `domain` to `thread.run`, pinning the function and every rerun to the
+  scheduler worker on that domain. An object is only collected by a GC on the
+  domain that allocated it, which makes this the way to ask for one.
 
 ## Changed:
 
 - Liquidsoap now requires OCaml 5.5 to build.
+- `output.harbor`'s `on_connect` and `on_disconnect` callbacks now receive a listener record with
+  its session duration and bytes sent, and a new `listeners` method lists connected listeners. The
+  `ip` field no longer includes the client port (#5408).
+- Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
+  taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
+  Heavy work in a callback or a request resolution no longer stalls playback either.
+- Added `settings.scheduler.legacy`, a fail-safe for a script that concurrent execution breaks: tasks run on
+  threads, one at a time, as they did before. It will be removed in a later version once the concurrent
+  scheduler has settled.
+- Deprecated `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
+  `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
+  nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
+  warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
+  resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to one per
+  domain and never fewer than 8, so a machine with few cores keeps room to run several at once. Raising it pays off
+  when those tasks truly wait. A task that uses a core instead of waiting on one, such as probing a
+  file for its decoder, only takes cores the streaming threads need.
+- Clocks run as scheduler tasks rather than each on a thread of its own. A clock that is ahead
+  of real time parks and is resumed by the scheduler's timer, so a machine running many outputs
+  has as many busy threads as cores instead of one per clock competing for them. A clock
+  catching up yields its domain to the others after each burst of frames. Ticks run directly on
+  a scheduler domain, one at a time, ahead of request resolution.
+  A clock driving JACK input or output keeps a thread of its own, since it rests by waiting on the
+  JACK server. `settings.clock.task := false` restores a thread per clock everywhere.
+- When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
+  long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
+
 - Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
   annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
   reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand
@@ -99,12 +136,22 @@
   bottlenecks on one core: an `%ffmpeg` output using `libx265` and a 4K input is about 2.5
   times faster. Pass `threads=1` to an `%ffmpeg` encoder to get the previous behavior back
   (#5014).
-- Video scaling is now split over one thread per core, as `ffmpeg` does through its filter
-  graphs. `settings.ffmpeg.scaling_threads` sets the count, `1` restoring the single-threaded
-  scaling of previous versions (#5014).
+- Video scaling can be split across cores through `settings.ffmpeg.scaling_threads`, as
+  `ffmpeg` does through its filter graphs. It defaults to `1`, scaling on the calling thread:
+  splitting a frame costs a fan-out and a join every frame, which a stream held to real time
+  pays continuously and, on our measurements, does not earn back. `0` uses one thread per
+  core (#5014).
+- Removed daemon mode: the `-d`/`--daemon` command-line option, the `settings.init.daemon`
+  settings and the pidfile they wrote. Detaching from the terminal meant forking, which is
+  unsafe now that liquidsoap runs on several cores. Use a service manager such as `systemd`
+  or `launchd` to run liquidsoap in the background; both handle pidfiles, log redirection and
+  privilege dropping.
 
 ## Fixed:
 
+- Active inputs such as `input.ffmpeg` replaced through `source.dynamic` are now stopped and
+  released. They used to keep their connection, decoder and threads alive for the lifetime of
+  the script (#5389).
 - A transition that drops the incoming source no longer drops that track's announcement with
   it. `cross` had already consumed the metadata into the buffer it hands the transition, so
   the track played on, audible and unannounced, once the transition was over. It is now
@@ -125,6 +172,12 @@
 
 - `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
   read the local time, which in practice meant always.
+- Rendering a type no longer goes through `Format.str_formatter`, which is per-domain and shared with whatever else
+  formats a value there: a type printed from a scheduler task came out empty.
+- Log entries written during shutdown are no longer dropped: the logging thread returned without a final flush.
+- Error messages naming a type no longer come out with the type missing, which could happen when the error was
+  raised from a callback or a `thread.run` handler.
+- The last lines of the log are no longer lost on shutdown.
 
 - Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
   `on_leave` and transition functions are now released when the selection or the crossing

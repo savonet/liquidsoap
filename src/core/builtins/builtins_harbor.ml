@@ -45,9 +45,8 @@ let register_args =
       Lang.http_transport_t,
       Some (Lang.http_transport Http.unix_transport),
       Some
-        "Http transport. Use `http.transport.ssl` or \
-         `http.transport.secure_transport`, when available, to enable HTTPS \
-         output" );
+        "Http transport. Use `http.transport.ssl`, when available, to enable \
+         HTTPS output" );
     ( "method",
       Lang.string_t,
       Some (Lang.string "GET"),

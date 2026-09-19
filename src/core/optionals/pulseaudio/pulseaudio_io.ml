@@ -279,7 +279,7 @@ let _ =
   Lang.add_operator ~base:Modules.output "pulseaudio"
     (Output.proto @ proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output ~meth:(Start_stop.meth ())
-    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~callbacks:(Start_stop.output_callbacks ())
     ~self_sync_description:
       "This output uses the PulseAudio clock as synchronization source when \
        `self_sync=true` and the stream is open. Otherwise, the synchronization \

@@ -31,6 +31,9 @@ npx esbuild node_modules/liquidsoap-playground/index.js \
   --external:node:path \
   --external:node:fs \
   --external:node:url \
+  --external:node:tty \
+  --external:node:child_process \
+  --external:node:os \
   --minify \
   --outfile=playground.bundle.js
 

@@ -23,7 +23,7 @@
    (depends
     (ocaml (>= 5.5))
     base-bytes
-    (mm (>= 0.8.6))
+    (mm (>= 0.8.7))
     (re (and (>= 1.11.0) (< 1.14.0)))
     curl
     (camomile-embedded (>= 2.1.0))

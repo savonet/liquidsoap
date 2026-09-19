@@ -49,7 +49,8 @@
  (alias gendune)
  (deps
   (source_tree cases)
-  (source_tree cases_canonical))
+  (source_tree cases_canonical)
+  (source_tree cases_analysis))
  (target dune.inc.gen)
  (action
   (progn
@@ -62,3 +63,21 @@
  (alias gendune)
  (action
   (diff dune.inc dune.inc.gen.formatted)))
+
+; The full standard library's typing environment, for the analysis suite.
+
+(rule
+ (targets analysis_stdlib.types analysis_stdlib.log)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs))
+ (action
+  (with-stdout-to
+   analysis_stdlib.log
+   (run
+    ../../src/bin/liquidsoap.exe
+    --stdlib
+    %{stdlib}
+    --cache-js-stdlib
+    analysis_stdlib.types))))

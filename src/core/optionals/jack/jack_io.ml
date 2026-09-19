@@ -370,6 +370,7 @@ class virtual base ~server () =
     method virtual log : Log.t
     method virtual audio_channels : int
     method virtual id : string
+    method virtual clock : Clock.t
     method virtual on_wake_up : (unit -> unit) -> unit
     method virtual on_sleep : (unit -> unit) -> unit
     method virtual private is_input : bool
@@ -405,6 +406,9 @@ class virtual base ~server () =
       ( `Dynamic,
         match _jack_client with None -> None | Some _ -> Some sync_source )
 
+    (* Resting means [ServerState.wait_until], which blocks until the JACK
+       server's process callback fires. *)
+    initializer Clock.force_thread self#clock
     method private samples_per_second = samples_per_second
     method private jack_stopped = ServerState.get_stopped server_state
 
@@ -638,7 +642,7 @@ let _ =
     (Output.proto @ jack_proto @ [("", Lang.source_t frame_t, None, None)])
     ~return_t:frame_t ~category:`Output
     ~meth:(Start_stop.meth () @ [ports_meth])
-    ~callbacks:(Start_stop.callbacks ~label:"output")
+    ~callbacks:(Start_stop.output_callbacks ())
     ~descr:"Output stream to JACK."
     (fun p ->
       let source = List.assoc "" p in

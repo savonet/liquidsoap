@@ -41,7 +41,7 @@ let conf_duration =
     ~comments:
       [
         "Set frame duration, in seconds.";
-        "This setting control the latency of the streaming system. When set to";
+        "This setting controls the latency of the streaming system. When set to";
         "a smaller value, latency is reduced at the expense of more data";
         "consumption. When set to a larger value, CPU and memory usage should";
         "go down but latency should increase.";

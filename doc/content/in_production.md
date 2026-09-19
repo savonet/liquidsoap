@@ -8,8 +8,7 @@ when running a stable radio.
 Your production `.liq` files should go in `/etc/liquidsoap`.
 You'll then start/stop them using the init script, _e.g._
 `/etc/init.d/liquidsoap start`.
-Your scripts don't need to have the `#!` line,
-and liquidsoap will automatically be ran on daemon mode (`-d` option) for them.
+Your scripts don't need to have the `#!` line.
 
 You should not override the `log.file.path` setting because a
 logrotate configuration is also installed so that log files

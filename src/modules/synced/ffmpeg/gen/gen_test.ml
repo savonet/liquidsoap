@@ -15,6 +15,7 @@ let () =
         "test_subtitle_read";
         "test_unhandled_packet";
         "test_seek";
+        "test_input_streams_grow";
         "test_codec";
         "test_options";
         "test_swscale";
@@ -57,6 +58,7 @@ let () =
   (:subtitle_read test_subtitle_read.exe)
   (:unhandled_packet test_unhandled_packet.exe)
   (:seek test_seek.exe)
+  (:input_streams_grow test_input_streams_grow.exe)
   (:subtitle_remux ../examples/subtitle_remux.exe)
   (:normalize normalize_line_endings.exe)
   (:srt fixtures/sample.srt))
@@ -132,6 +134,51 @@ let () =
     2
     test_seek.mkv)
    (run %{runner} "seek" %{seek} test_seek.mkv)
+   ; The MPEG-PS demuxer only finds these streams once reading reaches them:
+   ; they start after the probe and end before the tail read for the duration.
+   (run
+    ffmpeg
+    -y
+    -f
+    lavfi
+    -i
+    "sine=f=440:d=12:r=48000"
+    -itsoffset
+    6
+    -f
+    lavfi
+    -i
+    "sine=f=880:d=2:r=16000"
+    -map
+    0:a
+    -map
+    1:a
+    -map
+    1:a
+    -map
+    1:a
+    -map
+    1:a
+    -c:a
+    mp2
+    -ac
+    1
+    -b:a
+    32k
+    -c:a:0
+    pcm_s16be
+    -ac:a:0
+    2
+    -muxrate
+    20000000
+    -f
+    mpeg
+    test_input_streams_grow.mpg)
+   (run
+    %{runner}
+    "input_streams_grow"
+    %{input_streams_grow}
+    test_input_streams_grow.mpg)
    (run %{subtitle_remux} test_with_subs.mkv raw_remuxed_subs.srt subrip)
    (run %{normalize} raw_remuxed_subs.srt remuxed_subs.srt)
    (run diff fixtures/sample.srt remuxed_subs.srt))))
