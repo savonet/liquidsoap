@@ -1174,6 +1174,24 @@
    analysis_core_operator.actual)))
 
 (rule
+ (target analysis_include.actual)
+ (deps
+  (:case cases_analysis/include.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/include.expected analysis_include.actual)))
+
+(rule
  (target analysis_parse_error.actual)
  (deps
   (:case cases_analysis/parse_error.invalid-liq)
