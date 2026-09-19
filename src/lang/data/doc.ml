@@ -354,23 +354,24 @@ module Value = struct
     !db |> Map.to_seq
     |> Seq.map (fun (l, f) ->
         let f = Lazy.Mutexed.force f in
+        (* A list, since unlabeled arguments all have the same empty label. *)
         let arguments =
-          List.map
-            (fun (l, a) ->
-              ( Option.value ~default:"" l,
-                `Assoc
-                  [
-                    ("type", `String a.arg_type);
-                    ( "default",
-                      Option.fold ~none:`Null
-                        ~some:(fun d -> `String d)
-                        a.arg_default );
-                    ( "description",
-                      `String (Option.value ~default:"" a.arg_description) );
-                  ] ))
-            f.arguments
+          `Tuple
+            (List.map
+               (fun (l, a) ->
+                 `Assoc
+                   [
+                     ("label", `String (Option.value ~default:"" l));
+                     ("type", `String a.arg_type);
+                     ( "default",
+                       Option.fold ~none:`Null
+                         ~some:(fun d -> `String d)
+                         a.arg_default );
+                     ( "description",
+                       `String (Option.value ~default:"" a.arg_description) );
+                   ])
+               f.arguments)
         in
-        let arguments = `Assoc arguments in
         let meth_to_json m =
           `Assoc
             (List.map
