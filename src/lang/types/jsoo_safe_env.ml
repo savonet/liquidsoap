@@ -160,5 +160,15 @@ let restore { env; constraints; unbounded_levels; next_var_name; next_var_id } =
   bump_counter Type_base.var_id_atom next_var_id;
   env
 
-let to_string (dump : t) = Marshal.to_string dump []
-let of_string s : t = Marshal.from_string s 0
+(* Marshal is untyped, so a dump from another liquidsoap version is rejected
+   from its header, before anything is unmarshaled. *)
+let to_string ~version (dump : t) = version ^ "\n" ^ Marshal.to_string dump []
+
+let of_string ~version s : t =
+  match String.index_opt s '\n' with
+    | Some header_end when String.sub s 0 header_end = version ->
+        Marshal.from_string s (header_end + 1)
+    | _ ->
+        failwith
+          (Printf.sprintf
+             "This typing environment was not written by liquidsoap %s." version)
