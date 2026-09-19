@@ -90,16 +90,24 @@ let formatLiqCode (s : Js.js_string Js.t) (cb : Js.js_string Js.t -> unit) :
     (Js.Unsafe.js_expr "formatLiqCode")
     [| Js.Unsafe.inject s; Js.Unsafe.inject cb |]
 
+(* The playground's prettier parser takes the AST as JSON, with the comments
+   inside it. *)
+let prettier_json ~comments expr =
+  match
+    Liquidsoap_tooling.Parsed_json.parse_string ~formatter:Format.str_formatter
+      expr
+  with
+    | `Assoc [("ast", `Assoc ast); ("comments", all_comments)] ->
+        let comments = if comments then all_comments else `Tuple [] in
+        Js.string
+          (Liquidsoap_lang_data.Json.to_string
+             (`Assoc (ast @ [("comments", comments)])))
+    | _ -> assert false
+
 let on_format =
   Dom_html.handler (fun _ ->
       let expr = Js.to_string (getLiqCode ()) in
-      (try
-         let json =
-           Liquidsoap_tooling.Parsed_json.parse_string
-             ~formatter:Format.str_formatter expr
-         in
-         let json = Liquidsoap_lang_data.Json.to_string json in
-         formatLiqCode (Js.string json) setLiqCode
+      (try formatLiqCode (prettier_json ~comments:true expr) setLiqCode
        with _ -> setOutput (Format.flush_str_formatter ()));
       Js._true)
 
@@ -112,11 +120,10 @@ let on_execute =
       in
       let tokenizer = Preprocessor.mk_tokenizer lexbuf in
       let parsed_term = Runtime.program tokenizer in
-      let json = Liquidsoap_tooling.Parsed_json.to_json parsed_term in
-      let json = Liquidsoap_lang_data.Json.to_string json in
+      let json = prettier_json ~comments:false expr in
       let term = Term_reducer.to_term ~throw parsed_term in
       let result = execute ~throw term in
-      formatLiqCode (Js.string json) (fun formatted ->
+      formatLiqCode json (fun formatted ->
           setOutput
             (Printf.sprintf "%s\n%s\n"
                (String.trim (Js.to_bytestring formatted))
