@@ -7,7 +7,7 @@ If enabled, Liquidsoap supports LADSPA plugins. In this case,
 installed plugins are detected at run-time and are all available in Liquidsoap under a name
 of the form: `ladspa.plugin`, for instance `ladspa.karaoke`, `ladspa.flanger` etc..
 
-The full list of those operators can be found using `liquidsoap --list-plugins`.
+The full list of those operators can be found using `liquidsoap --list-functions | grep '^ladspa.'`.
 Also, as usual, `liquidsoap -h ladspa.plugin` returns a detailed description of each LADSPA's operators.
 For instance:
 
