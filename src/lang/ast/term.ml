@@ -351,6 +351,51 @@ let children tm =
   in
   ast_children @ List.map snd (Methods.bindings tm.methods)
 
+let rec map_encoder_children f (lbl, params) =
+  ( lbl,
+    List.map
+      (function
+        | `Anonymous s -> `Anonymous s
+        | `Labelled (l, tm) -> `Labelled (l, f tm)
+        | `Encoder encoder -> `Encoder (map_encoder_children f encoder))
+      params )
+
+let map_children f tm =
+  let term =
+    match tm.term with
+      | ( `Custom _ | `Null | `Var _ | `Int _ | `Float _ | `String _ | `Bool _
+        | `Cache_env _ ) as term ->
+          term
+      | `Tuple l -> `Tuple (List.map f l)
+      | `List l -> `List (List.map f l)
+      | `Cast c -> `Cast { c with cast = f c.cast }
+      | `Open (a, b) -> `Open (f a, f b)
+      | `Seq (a, b) -> `Seq (f a, f b)
+      | `Let l -> `Let { l with def = f l.def; body = f l.body }
+      | `App (fn, args) ->
+          `App (f fn, List.map (fun (lbl, arg) -> (lbl, f arg)) args)
+      | `Invoke i ->
+          `Invoke
+            {
+              i with
+              invoked = f i.invoked;
+              invoke_default = Option.map f i.invoke_default;
+            }
+      | `Hide (t, l) -> `Hide (f t, l)
+      | `Encoder encoder -> `Encoder (map_encoder_children f encoder)
+      | `Fun fn ->
+          `Fun
+            {
+              fn with
+              arguments =
+                List.map
+                  (fun arg -> { arg with default = Option.map f arg.default })
+                  fn.arguments;
+              body = f fn.body;
+            }
+  in
+  { tm with term; methods = Methods.map f tm.methods }
+
 exception Unused_variable of (string * Pos.t)
 exception Deprecated of (string * Pos.t)
 
