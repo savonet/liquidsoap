@@ -1192,6 +1192,44 @@
   (diff expected_analysis/include.expected analysis_include.actual)))
 
 (rule
+ (target analysis_later_definition.actual)
+ (deps
+  (:case cases_analysis/later_definition.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/later_definition.expected
+   analysis_later_definition.actual)))
+
+(rule
+ (target analysis_locals.actual)
+ (deps
+  (:case cases_analysis/locals.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/locals.expected analysis_locals.actual)))
+
+(rule
  (target analysis_parse_error.actual)
  (deps
   (:case cases_analysis/parse_error.invalid-liq)
@@ -1244,6 +1282,24 @@
  (package liquidsoap)
  (action
   (diff expected_analysis/shadowing.expected analysis_shadowing.actual)))
+
+(rule
+ (target analysis_synthetic.actual)
+ (deps
+  (:case cases_analysis/synthetic.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/synthetic.expected analysis_synthetic.actual)))
 
 (rule
  (target analysis_type_error.actual)

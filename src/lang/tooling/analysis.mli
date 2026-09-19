@@ -46,8 +46,11 @@ val check : env:env -> string -> result
 *)
 val type_at : result -> line:int -> column:int -> string option
 
-(** The names in scope at a position: the environment's, and those bound by
-    enclosing definitions and functions. *)
+(** The names the script binds around a position, in enclosing definitions and
+    functions. They shadow the environment's names of the same spelling. *)
+val locals_at : result -> line:int -> column:int -> string list
+
+(** The names in scope at a position: the environment's, and {!locals_at}. *)
 val scope_at : env:env -> result -> line:int -> column:int -> string list
 
 (** The methods of the innermost subterm's type at a position, with their types.

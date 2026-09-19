@@ -115,27 +115,25 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `Regexp _ as ast -> regexp_reducer ~pos ~env ~to_term ast
     | `Try _ as ast -> try_reducer ~pos ~env ~to_term ~to_block ast
     | `String_interpolation (sep, l) ->
+        let mk = mk_parsed_implicit ~pos in
         let l =
           List.map
             (function
-              | `String s -> `Term (mk_parsed ~pos (`String (sep, s)))
+              | `String s -> `Term (mk (`String (sep, s)))
               | `Term tm ->
-                  `Term
-                    (mk_parsed ~pos
-                       (`App (mk_parsed ~pos (`Var "string"), [`Term ("", tm)]))))
+                  `Term (mk (`App (mk (`Var "string"), [`Term ("", tm)]))))
             l
         in
         let op =
-          mk_parsed ~pos
+          mk
             (`Invoke
                {
-                 invoked = mk_parsed ~pos (`Var "string");
+                 invoked = mk (`Var "string");
                  meth = `String "concat";
                  optional = false;
                })
         in
-        to_ast ~env ~pos ~comments
-          (`App (op, [`Term ("", mk_parsed ~pos (`List l))]))
+        to_ast ~env ~pos ~comments (`App (op, [`Term ("", mk (`List l))]))
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
     | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
     | `Time t -> mk_time_pred ~pos (during ~pos t)
@@ -183,7 +181,7 @@ and to_func ~pos ~env ~to_term ~throw ?name arguments body =
 and to_block ~throw ~env ({ block_body; block_pos } : Parsed_term.block) :
     Term.t =
   let rec fold ~env = function
-    | [] -> mk ~pos:block_pos (`Tuple [])
+    | [] -> mk ~pos:block_pos ~flags:Flags.(add empty implicit) (`Tuple [])
     (* A static conditional in statement position splices the statements of the
        branch it selects, so a binding made under `%ifdef` scopes over the rest
        of the block. In expression position it is a value: see `to_ast`. *)
@@ -262,6 +260,10 @@ and to_term ~throw ~env (tm : Parsed_term.t) : Term.t =
                    && String.(lowercase_ascii (sub i 0 2)) = "0o" ->
                 Flags.(add empty octal_int)
             | _ -> Flags.empty
+        in
+        let flags =
+          if List.mem `Implicit tm.annotations then Flags.(add flags implicit)
+          else flags
         in
         let term = to_ast ~throw ~env ~pos:tm.pos ~comments:tm.comments term in
         { t = mk_var ~pos:tm.pos (); term; methods = Methods.empty; flags }

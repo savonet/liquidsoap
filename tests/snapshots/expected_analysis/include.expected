@@ -15,6 +15,6 @@ Unused variable from_include
 --- type 4:4 ---
 (string) -> unit
 --- type 4:24 ---
-'A?
+(none)
 --- scope 4:4 ---
 also_from_include, from_include, x

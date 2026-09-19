@@ -21,7 +21,8 @@
 
    With [--analysis ENV], it runs [Liquidsoap_tooling.Analysis] against the full
    standard library's typing environment [ENV] and dumps the diagnostics, then
-   answers the queries written in the script as [#? type|scope|methods L:C]. *)
+   answers the queries written in the script as
+   [#? type|scope|locals|methods L:C]. *)
 
 open Liquidsoap_lang
 
@@ -226,6 +227,9 @@ let print_query ~env result (query, line, column) =
     | "scope" ->
         Analysis.scope_at ~env result ~line ~column
         |> List.filter (fun name -> not (List.mem_assoc name env))
+        |> String.concat ", " |> print_endline
+    | "locals" ->
+        Analysis.locals_at result ~line ~column
         |> String.concat ", " |> print_endline
     | "methods" ->
         Analysis.methods_at result ~line ~column
