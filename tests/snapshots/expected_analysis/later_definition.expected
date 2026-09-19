@@ -10,7 +10,7 @@ ignore(x)
 #? locals 1:4
 #? locals 7:7
 --- diagnostics ---
-Warning 6 at line 3 char 0 - line 5 char 3:
+Warning 6 at cases_analysis/later_definition.liq, line 3 char 0 - line 5 char 3:
 Top-level variable sine is overridden!
 --- locals 1:4 ---
 

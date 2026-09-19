@@ -1,5 +1,5 @@
 === include.liq ===
-%include "cases/included.liq-inc"
+%include "../cases/included.liq-inc"
 
 x = "main"
 ignore(x ^ "!")
@@ -8,9 +8,9 @@ ignore(x ^ "!")
 #? type 4:24
 #? scope 4:4
 --- diagnostics ---
-Warning 4 at cases/included.liq-inc, line 4, char 0-25:
+Warning 4 at cases_analysis/../cases/included.liq-inc, line 4, char 0-25:
 Unused variable also_from_include
-Warning 4 at cases/included.liq-inc, line 3, char 0-16:
+Warning 4 at cases_analysis/../cases/included.liq-inc, line 3, char 0-16:
 Unused variable from_include
 --- type 4:4 ---
 (string) -> unit

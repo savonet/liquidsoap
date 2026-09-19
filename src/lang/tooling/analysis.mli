@@ -35,12 +35,14 @@ type env = (string * Liquidsoap_lang_types.Type.scheme) list
 type result = {
   diagnostics : diagnostic list;
   term : Term.t option;  (** The typed script, when it typechecked. *)
+  file : string;  (** The script's name, which its own positions carry. *)
 }
 
 (** Raises [Failure] unless [dump] was written by liquidsoap [version]. *)
 val load_env : version:string -> string -> env
 
-val check : env:env -> string -> result
+(** [file] names the script, so that [%include] resolves next to it. *)
+val check : ?file:string -> env:env -> string -> result
 
 (** The type of the innermost subterm at a 1-based [line] and a byte [column].
 *)

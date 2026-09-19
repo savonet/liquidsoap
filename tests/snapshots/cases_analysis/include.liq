@@ -1,4 +1,4 @@
-%include "cases/included.liq-inc"
+%include "../cases/included.liq-inc"
 
 x = "main"
 ignore(x ^ "!")

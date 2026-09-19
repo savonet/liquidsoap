@@ -1,8 +1,8 @@
 === type_error.liq ===
 x = 1 + "a"
 --- diagnostics ---
-Error 5 at line 1, char 8-11:
+Error 5 at cases_analysis/type_error.liq, line 1, char 8-11:
 this value has type
   string
 but it should be a subtype of
-  int (inferred at line 1, char 4)
+  int (inferred at cases_analysis/type_error.liq, line 1, char 4)
