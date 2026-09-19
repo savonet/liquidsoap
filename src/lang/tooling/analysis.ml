@@ -56,7 +56,9 @@ let check ~env source =
   in
   let term =
     try
-      let parsed_term = Runtime.program (Preprocessor.mk_tokenizer lexbuf) in
+      let parsed_term =
+        Liquidsoap_lang_reducer.Term_reducer.(mk_expr program lexbuf)
+      in
       let term =
         Liquidsoap_lang_reducer.Term_reducer.to_term ~throw:record parsed_term
       in
@@ -74,9 +76,13 @@ let check ~env source =
   in
   { diagnostics = List.rev !diagnostics; term }
 
+(* Code spliced in by [%include] is positioned in its own file, while the
+   analysed buffer has no file name. *)
 let contains pos ~line ~column =
-  let { Pos.lstart; cstart; lstop; cstop } = Pos.unpack pos in
-  (lstart, cstart) <= (line, column) && (line, column) <= (lstop, cstop)
+  let { Pos.fname; lstart; cstart; lstop; cstop } = Pos.unpack pos in
+  fname = ""
+  && (lstart, cstart) <= (line, column)
+  && (line, column) <= (lstop, cstop)
 
 let span pos =
   let { Pos.lstart; cstart; lstop; cstop } = Pos.unpack pos in
