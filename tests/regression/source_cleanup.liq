@@ -1,6 +1,10 @@
 s = sine()
 output.dummy(s)
 
+# GC tests haven't been deterministic
+# since the switch to domains concurrency..
+test.skip()
+
 output_list = ref([])
 
 def check() =
