@@ -349,14 +349,20 @@ let () =
       I.YUV420.scale img img2;
       write "scale.bmp" (I.YUV420.to_BMP img2));
   test "font" (fun () ->
-      let img = I.Bitmap.Font.render ~size:30 "Hello, world!\nHow are you?" in
+      let img =
+        I.Bitmap.Font.render ~font:(I.Bitmap.Font.native ()) ~size:30
+          "Hello, world!\nHow are you?"
+      in
       write "hello-world.bmp" (I.YUV420.to_BMP (I.YUV420.of_bitmap img)));
   time "sliding font" (fun () ->
       let width = 1280 in
       let height = 720 in
       let fps = 24 in
       let duration = 10 in
-      let txt = I.Bitmap.Font.render ~size:30 "Hello, world!\nHow are you?" in
+      let txt =
+        I.Bitmap.Font.render ~font:(I.Bitmap.Font.native ()) ~size:30
+          "Hello, world!\nHow are you?"
+      in
       let txt = I.YUV420.of_bitmap txt in
       let fname = "out/hello-world.avi" in
       let oc = open_out fname in
@@ -369,7 +375,8 @@ let () =
         output_string oc (Video.AVI.Writer.Chunk.video_yuv420 img)
       done;
       close_out oc);
-  test "empty text" (fun () -> ignore (I.Bitmap.Font.render ~size:20 ""));
+  test "empty text" (fun () ->
+      ignore (I.Bitmap.Font.render ~font:(I.Bitmap.Font.native ()) ~size:20 ""));
   time "increasing saw" (fun () ->
       let width = 640 in
       let height = 360 in
@@ -394,7 +401,8 @@ let () =
       while !t <= duration do
         let f = fmin +. (2. ** (!t /. a)) in
         let txt =
-          I.Bitmap.Font.render ~size:fontsize (Printf.sprintf "%.2f Hz" f)
+          I.Bitmap.Font.render ~font:(I.Bitmap.Font.native ()) ~size:fontsize
+            (Printf.sprintf "%.2f Hz" f)
         in
         let txt = I.YUV420.of_bitmap txt in
         let img = I.YUV420.create width height in
