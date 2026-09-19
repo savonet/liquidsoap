@@ -10,7 +10,7 @@ on:
 
 jobs:
   build_details:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       sha: ${{ steps.build_details.outputs.sha }}
       build_platform: ${{ steps.build_details.outputs.build_platform }}
