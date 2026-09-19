@@ -34,7 +34,9 @@ type env = (string * Liquidsoap_lang_types.Type.scheme) list
 
 type result = {
   diagnostics : diagnostic list;
-  term : Term.t option;  (** The typed script, when it typechecked. *)
+  term : Term.t option;
+      (** The typed script, when it parsed. Each type error in it is replaced
+          with a placeholder that typechecks as any type. *)
   file : string;  (** The script's name, which its own positions carry. *)
 }
 
