@@ -218,6 +218,56 @@ let methods_at { term; file } ~line ~column =
     | None -> []
     | Some tm -> methods_of tm.Term.t
 
+let pattern_names = function
+  | `PVar [name] -> [name]
+  | `PTuple names -> names
+  | `PVar _ -> []
+
+let bind names pos scope = List.map (fun name -> (name, pos)) names @ scope
+
+(* [scope] maps the names bound around [tm] to where they are bound. *)
+let rec binding_of ~var ~scope tm =
+  if tm == var then (
+    match tm.Term.term with
+      | `Var name -> Option.join (List.assoc_opt name scope)
+      | _ -> None)
+  else (
+    let pos = tm.Term.t.Type.pos in
+    let scoped =
+      match tm.Term.term with
+        | `Let { Term.pat; def; body } ->
+            [(def, scope); (body, bind (pattern_names pat) pos scope)]
+        | `Fun { Term.name; arguments; body } ->
+            let scope = bind (Option.to_list name) pos scope in
+            let arguments_scope =
+              List.fold_left
+                (fun scope { Term.label; as_variable; pos } ->
+                  bind [Option.value as_variable ~default:label] pos scope)
+                scope arguments
+            in
+            List.filter_map
+              (fun { Term.default } ->
+                Option.map (fun default -> (default, scope)) default)
+              arguments
+            @ [(body, arguments_scope)]
+        | _ ->
+            List.map
+              (fun child -> (child, scope))
+              (Term.children { tm with Term.methods = Methods.empty })
+    in
+    let methods =
+      List.map (fun (_, meth) -> (meth, scope)) (Methods.bindings tm.methods)
+    in
+    List.find_map
+      (fun (child, scope) -> binding_of ~var ~scope child)
+      (scoped @ methods))
+
+let definition_at { term; file } ~line ~column =
+  Option.bind term (fun term ->
+      match innermost ~file ~line ~column term with
+        | Some ({ Term.term = `Var _ } as var) -> binding_of ~var ~scope:[] term
+        | _ -> None)
+
 let null_methods ~env =
   match List.assoc_opt Reserved.null env with
     | Some (_, typ) -> methods_of typ

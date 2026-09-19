@@ -62,5 +62,9 @@ val scope_at : env:env -> result -> line:int -> column:int -> string list
 *)
 val methods_at : result -> line:int -> column:int -> (string * string) list
 
+(** Where the variable at a position is bound in the script: by a definition, or
+    as a function's argument. [None] for the environment's names. *)
+val definition_at : result -> line:int -> column:int -> Pos.t option
+
 (** The methods of [null.m], which no script can shadow. *)
 val null_methods : env:env -> (string * string) list

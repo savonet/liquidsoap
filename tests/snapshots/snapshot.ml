@@ -22,7 +22,7 @@
    With [--analysis ENV], it runs [Liquidsoap_tooling.Analysis] against the full
    standard library's typing environment [ENV] and dumps the diagnostics, then
    answers the queries written in the script as
-   [#? type|scope|locals|methods L:C]. *)
+   [#? type|scope|locals|methods|definition L:C]. *)
 
 open Liquidsoap_lang
 
@@ -242,6 +242,11 @@ let print_query ~env result = function
         | "locals" ->
             Analysis.locals_at result ~line ~column
             |> String.concat ", " |> print_endline
+        | "definition" ->
+            print_endline
+              (match Analysis.definition_at result ~line ~column with
+                | Some pos -> Pos.to_string pos
+                | None -> "(none)")
         | "methods" ->
             Analysis.methods_at result ~line ~column
             |> List.map fst |> String.concat ", " |> print_endline
