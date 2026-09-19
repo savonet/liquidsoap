@@ -64,6 +64,9 @@ val free_fun_vars : (t, Type.t) func -> Vars.t
 val can_ignore : Type.t -> bool
 val fresh : handler:Type.Fresh.mapper -> t -> t
 
+(** The direct subterms, including method values and default arguments. *)
+val children : t -> t list
+
 exception Unbound of Pos.Option.t * string
 exception Ignored of t
 exception No_label of t * string * bool * t
