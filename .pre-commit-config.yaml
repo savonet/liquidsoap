@@ -29,6 +29,8 @@ repos:
     rev: f1f288ad551c8b4c01d1943c7b55854ad77ba9b5
     hooks:
       - id: liquidsoap-prettier
+        # Snapshot inputs: their exact text is what the snapshots cover.
+        exclude: ^tests/snapshots/cases
       - id: prettier
         # Parser test fixture: prettier would normalize away the syntax it covers.
         exclude: ^src/modules/synced/miniyaml/test/test\.yaml$
