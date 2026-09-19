@@ -193,8 +193,8 @@ let query_parser ~db query =
 
 let _ =
   let return_t = Type.var ~constraints:[insert_record_constr] () in
-  Lang.add_builtin "_0_sqlite_row_parser" ~category:`String ~flags:[`Hidden]
-    ~descr:"Internal sql row parser"
+  Lang.add_builtin Liquidsoap_lang_prelude.Reserved.sqlite_row_parser
+    ~category:`String ~flags:[`Hidden] ~descr:"Internal sql row parser"
     [
       ("type", Value.RuntimeType.t, None, Some "Runtime type");
       ("", SqliteRow.t, None, None);

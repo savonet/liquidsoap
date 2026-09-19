@@ -109,7 +109,7 @@ let mk_app_invoke_default ~pos ~args body =
   mk_implicit_fun ~pos app_args body
 
 let mk_any ~pos () =
-  let op = mk_implicit ~pos (`Var "💣") in
+  let op = mk_implicit ~pos (`Var Reserved.any) in
   mk_implicit ~pos (`App (op, []))
 
 let rec mk_invoke_default ~pos ~optional ~name value
@@ -205,7 +205,7 @@ let mk_coalesce ~pos ~(default : Parsed_term.t) ~env ~to_term
     | `Invoke { invoked; meth = `String m } ->
         mk_invoke ~pos ~env ~default ~to_term invoked (`String m)
     | _ ->
-        let null = mk_implicit ~pos (`Var "_null") in
+        let null = mk_implicit ~pos (`Var Reserved.null) in
         let op =
           mk_implicit ~pos
             (`Invoke { invoked = null; invoke_default = None; meth = "default" })

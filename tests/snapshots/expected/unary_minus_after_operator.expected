@@ -152,7 +152,7 @@ y = 2
 n = null
 a = if(b, then=fun () -> ~-(y), else={0})
 c = if(b, then=fun () -> ~-(y), else={0})
-d = _null.default(n, fun () -> ~-(y))
+d = _0_null.default(n, fun () -> ~-(y))
 e = fun (z) -> ~-(z)
 f = if(b, then=fun () -> ~-(1), else=fun () -> ~-(2))
 ()

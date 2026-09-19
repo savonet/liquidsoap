@@ -22,9 +22,6 @@
 
 type tokenizer = unit -> Parser.token * Term.parsed_pos
 
-(* The module that `null.m` and `null(x)` are read as. *)
-let null_module = "_null"
-
 (* A string literal is read one chunk at a time, and an interpolation is read
    as ordinary tokens, so that `"#{ r.{a = 1}.a }"` and `"#{ m["k"] }"` mean
    what they look like: the `}` that closes an interpolation is found by
@@ -105,7 +102,7 @@ let mk_tokenizer ?(fname = "") lexbuf =
             | Parser.NULLDOT ->
                 let pos = positions () in
                 Queue.add (Parser.DOT, pos) pending;
-                (Parser.VAR null_module, pos)
+                (Parser.VAR Reserved.null, pos)
             | Parser.LCUR when !open_strings <> [] ->
                 let frame = List.hd !open_strings in
                 frame.depth <- frame.depth + 1;
@@ -182,7 +179,7 @@ let strip_newlines tokenizer =
             | x -> x)
       | Some ((Parser.VAR var, _) as v) -> inject_varlpar var v
       | Some ((Parser.UNDERSCORE, _) as v) -> inject_varlpar "_" v
-      | Some ((Parser.NULL, _) as v) -> inject_varlpar null_module v
+      | Some ((Parser.NULL, _) as v) -> inject_varlpar Reserved.null v
       | Some x ->
           state := None;
           x

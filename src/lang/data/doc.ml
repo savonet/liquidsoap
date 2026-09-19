@@ -199,7 +199,10 @@ module Value = struct
 
   let add (name : string) (doc : t Lazy.Mutexed.t) =
     let name =
-      Re.replace ~all:true ~f:(fun _ -> "null") (Re.Pcre.regexp "^_null") name
+      Re.replace ~all:true
+        ~f:(fun _ -> "null")
+        (Re.Pcre.regexp ("^" ^ Reserved.null))
+        name
     in
     db := Map.add name doc !db
 

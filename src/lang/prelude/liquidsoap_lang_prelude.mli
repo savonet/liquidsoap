@@ -14,3 +14,6 @@ module Lang_string = Lang_string
 
 (** The hash used to key the on-disk caches. *)
 module Term_hash = Term_hash
+
+(** Names the language binds for its own use, out of scripts' reach. *)
+module Reserved = Reserved

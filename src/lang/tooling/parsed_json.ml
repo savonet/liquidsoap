@@ -243,7 +243,7 @@ let json_of_if ~to_json ~json_of_block
 
 (* Formatting must print what the script wrote, not what the preprocessor read
    it as. *)
-let source_name name = if name = Preprocessor.null_module then "null" else name
+let source_name name = if name = Reserved.null then "null" else name
 
 let rec base_json_of_pat = function
   | `PVar l ->

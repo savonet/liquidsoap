@@ -45,10 +45,10 @@ x = null
   ]
 }
 --- hash ---
-a498f3fdb792cd666f14af766e27ac40
+a49f0f438bab10c530164d6559b1a96e
 --- term ---
 x = null
-(_null.defined(x), _null.default(x, {1}))
+(_0_null.defined(x), _0_null.default(x, {1}))
 --- type ---
 At cases/null_ops.liq, line 2, char 1-6:
 (null.defined(x), x ?? 1)
