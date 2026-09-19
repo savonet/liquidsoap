@@ -110,6 +110,13 @@ let var_lit =
     | Star '_', var_char, Star (var_char | decimal_digit | '_' | '\'') )]
 
 let var = [%sedlex.regexp? var_lit | so]
+
+(** Whether a script can write [name] as a variable. The names in [Reserved] are
+    those it cannot. *)
+let is_var name =
+  let lexbuf = Sedlexing.Utf8.from_string name in
+  match%sedlex lexbuf with var, eof -> true | _ -> false
+
 let encoder = [%sedlex.regexp? '%', Plus (var_char | decimal_digit | '.' | '_')]
 
 let time =

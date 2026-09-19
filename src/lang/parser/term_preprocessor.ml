@@ -32,8 +32,10 @@ exception Includer_error of (exn * Sedlexing.lexbuf * Printexc.raw_backtrace)
 let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
 
 (* Every program starts with a `liquidsoap.script.path` binding, so that it
-   scopes over the whole script. *)
-let let_script_path ~filename ({ Parsed_term.pos; _ } as block) =
+   scopes over the whole script. It sits at the empty end of the script, since
+   spanning the whole script would place it under every position in it. *)
+let let_script_path ~filename ({ Parsed_term.pos = _, stop; _ } as block) =
+  let pos = (stop, stop) in
   let binding =
     Parser_helper.mk_stmt ~pos
       (`Binding

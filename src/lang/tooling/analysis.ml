@@ -93,7 +93,10 @@ let span pos =
 let rec containing ~line ~column tm =
   let here =
     match tm.Term.t.Type.pos with
-      | Some pos when contains pos ~line ~column -> [(span pos, tm)]
+      | Some pos
+        when contains pos ~line ~column && not (Term.has_flag tm Flags.implicit)
+        ->
+          [(span pos, tm)]
       | _ -> []
   in
   here @ List.concat_map (containing ~line ~column) (Term.children tm)
@@ -141,14 +144,17 @@ let rec local_names ~line ~column tm =
   in
   bound @ List.concat_map (local_names ~line ~column) (Term.children tm)
 
-let scope_at ~env { term } ~line ~column =
-  let locals =
-    match term with Some term -> local_names ~line ~column term | None -> []
-  in
-  List.sort_uniq compare
-    (List.filter
-       (fun name -> name <> "" && name <> "_")
-       (locals @ List.map fst env))
+let locals_at { term } ~line ~column =
+  match term with
+    | Some term ->
+        List.sort_uniq compare
+          (List.filter
+             (fun name -> name <> "" && name <> "_" && Lexer.is_var name)
+             (local_names ~line ~column term))
+    | None -> []
+
+let scope_at ~env result ~line ~column =
+  List.sort_uniq compare (locals_at result ~line ~column @ List.map fst env)
 
 let methods_at { term } ~line ~column =
   match Option.bind term (innermost ~line ~column) with

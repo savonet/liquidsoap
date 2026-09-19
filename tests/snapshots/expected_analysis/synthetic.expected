@@ -1,0 +1,32 @@
+=== synthetic.liq ===
+let (a, b) = (1, "x")
+let {c, d} = {c = 1, d = 2}
+s = "v=#{a}"
+for i = 1 to 3 do
+  print(i)
+  print(a)
+
+end
+y = a + c
+
+#? locals 9:4
+#? type 4:1
+#? type 3:5
+#? type 9:6
+--- diagnostics ---
+Warning 4 at line 9, char 0-9:
+Unused variable y
+Warning 4 at line 3, char 0-12:
+Unused variable s
+Warning 4 at line 2, char 4-10:
+Unused variable d
+Warning 4 at line 1, char 0-21:
+Unused variable b
+--- locals 9:4 ---
+a, b, c, d, s
+--- type 4:1 ---
+unit
+--- type 3:5 ---
+string
+--- type 9:6 ---
+(int, int) -> int
