@@ -45,7 +45,9 @@ let load_full_stdlib_types () =
       in
       Environment.add_builtin ~override:true ~register:false [name]
         (scheme, value))
-    Jsoo_safe_env.(restore (of_string dump))
+    Jsoo_safe_env.(
+      restore
+        (of_string ~version:Liquidsoap_lang_data.Build_config.version dump))
 
 let () =
   (Hooks.liq_libs_dir := fun () -> "/static");

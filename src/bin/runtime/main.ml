@@ -261,7 +261,10 @@ let options =
              with_toplevel (fun () ->
                  let env = Environment.default_typing_environment () in
                  let dump =
-                   Liquidsoap_lang_types.Jsoo_safe_env.(to_string (strip env))
+                   Liquidsoap_lang_types.Jsoo_safe_env.(
+                     to_string
+                       ~version:Liquidsoap_lang_data.Build_config.version
+                       (strip env))
                  in
                  Out_channel.with_open_bin file (fun oc ->
                      Out_channel.output_string oc dump);

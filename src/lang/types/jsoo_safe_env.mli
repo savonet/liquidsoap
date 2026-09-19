@@ -30,6 +30,7 @@ val strip : (string * Type.scheme) list -> t
 val restore : t -> (string * Type.scheme) list
 
 (** Raises [Invalid_argument] if a closure is left. *)
-val to_string : t -> string
+val to_string : version:string -> t -> string
 
-val of_string : string -> t
+(** Raises [Failure] unless the dump was written by [version]. *)
+val of_string : version:string -> string -> t
