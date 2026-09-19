@@ -6,6 +6,10 @@ let unavailable name =
     ~message:(Printf.sprintf "%s is not available in the browser." name)
     "unavailable"
 
+(* A plain value such as a list cannot be stubbed: code using it would get a
+   function and fail in unrelated ways. *)
+let has_unavailable_value t = Type.is_fun t || fst (Type.split_meths t) <> []
+
 (* Arguments follow the type's labels since application looks each passed
    argument up by label before calling the function. *)
 let rec unavailable_value name t =
@@ -13,7 +17,9 @@ let rec unavailable_value name t =
   let methods =
     List.fold_left
       (fun methods { Type.meth; scheme = _, t } ->
-        Methods.add meth (unavailable_value (name ^ "." ^ meth) t) methods)
+        if has_unavailable_value t then
+          Methods.add meth (unavailable_value (name ^ "." ^ meth) t) methods
+        else methods)
       Methods.empty meths
   in
   let ffi_args =
@@ -36,15 +42,13 @@ let load_full_stdlib_types () =
       (fun () -> really_input_string ic (in_channel_length ic))
   in
   let values = Environment.default_environment () in
+  (* Names the browser implements keep their own types: stripped custom types
+     do not unify with the ones its typechecker creates. *)
   List.iter
     (fun (name, ((_, t) as scheme)) ->
-      let value =
-        match List.assoc_opt name values with
-          | Some value -> value
-          | None -> unavailable_value name t
-      in
-      Environment.add_builtin ~override:true ~register:false [name]
-        (scheme, value))
+      if (not (List.mem_assoc name values)) && has_unavailable_value t then
+        Environment.add_builtin ~register:false [name]
+          (scheme, unavailable_value name t))
     Jsoo_safe_env.(
       restore
         (of_string ~version:Liquidsoap_lang_data.Build_config.version dump))

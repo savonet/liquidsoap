@@ -94,6 +94,7 @@
 
 (rule
  (target stdlib.types)
+ (enabled_if %{bin-available:js_of_ocaml})
  (deps
   ../bin/liquidsoap.exe
   (:stdlib ../libs/stdlib.liq)
