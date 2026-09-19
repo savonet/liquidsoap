@@ -63,6 +63,23 @@ val libs :
 (** Load the external libraries. *)
 val load_libs : stdlib:string -> unit -> unit
 
+(** A language error or warning. [message] prints what follows the header, and
+    closes the box the header opens. *)
+type diagnostic = {
+  severity : [ `Warning of string | `Error ];
+      (** A warning carries the text raised in strict mode. *)
+  code : int;
+  pos : Pos.t option;
+  message : Format.formatter -> unit;
+}
+
+(** [None] for exceptions that are not language errors. *)
+val describe :
+  lexbuf:Sedlexing.lexbuf option ->
+  bt:Printexc.raw_backtrace ->
+  exn ->
+  diagnostic option
+
 (* Wrapper for format language errors. Re-raises [Error]
    after printing language errors. *)
 val throw :
