@@ -250,7 +250,7 @@ let print_query ~env result = function
 let run_analysis_file ~env file =
   let source = read_source file in
   echo_source file source;
-  let result = Analysis.check ~env source in
+  let result = Analysis.check ~file ~env source in
   section "diagnostics";
   List.iter
     (fun { Analysis.severity; code; pos; message } ->

@@ -19,11 +19,11 @@ ignore(n)
 #? locals 6:4
 #? locals 8:4
 --- diagnostics ---
-Warning 6 at line 1, char 6-10:
+Warning 6 at cases_analysis/locals.liq, line 1, char 6-10:
 Top-level variable sine is overridden!
-Warning 6 at line 5, char 0-32:
+Warning 6 at cases_analysis/locals.liq, line 5, char 0-32:
 Top-level variable string is overridden!
-Warning 6 at line 10 char 0 - line 12 char 3:
+Warning 6 at cases_analysis/locals.liq, line 10 char 0 - line 12 char 3:
 Top-level variable sine is overridden!
 --- locals 2:2 ---
 sine

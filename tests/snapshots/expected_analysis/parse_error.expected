@@ -1,5 +1,5 @@
 === parse_error.invalid-liq ===
 x = 1 +
 --- diagnostics ---
-Error 2 at line 2, char 0-0:
+Error 2 at cases_analysis/parse_error.invalid-liq, line 2, char 0-0:
 Parse error

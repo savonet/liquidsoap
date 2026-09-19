@@ -14,13 +14,13 @@ y = a + c
 #? type 3:5
 #? type 9:6
 --- diagnostics ---
-Warning 4 at line 9, char 0-9:
+Warning 4 at cases_analysis/synthetic.liq, line 9, char 0-9:
 Unused variable y
-Warning 4 at line 3, char 0-12:
+Warning 4 at cases_analysis/synthetic.liq, line 3, char 0-12:
 Unused variable s
-Warning 4 at line 2, char 4-10:
+Warning 4 at cases_analysis/synthetic.liq, line 2, char 4-10:
 Unused variable d
-Warning 4 at line 1, char 0-21:
+Warning 4 at cases_analysis/synthetic.liq, line 1, char 0-21:
 Unused variable b
 --- locals 9:4 ---
 a, b, c, d, s

@@ -31,7 +31,12 @@ type diagnostic = {
 }
 
 type env = (string * Type.scheme) list
-type result = { diagnostics : diagnostic list; term : Term.t option }
+
+type result = {
+  diagnostics : diagnostic list;
+  term : Term.t option;
+  file : string;
+}
 
 exception Stop
 
@@ -40,7 +45,7 @@ let load_env ~version dump = Jsoo_safe_env.(restore (of_string ~version dump))
 (* The header that [Runtime.throw] prints opens the box [message] closes. *)
 let render message = String.trim (Format.asprintf "@[%t" message)
 
-let check ~env source =
+let check ?(file = "") ~env source =
   let diagnostics = ref [] in
   let lexbuf = Sedlexing.Utf8.from_string source in
   let record ~bt exn =
@@ -57,7 +62,8 @@ let check ~env source =
   let term =
     try
       let parsed_term =
-        Liquidsoap_lang_reducer.Term_reducer.(mk_expr program lexbuf)
+        let fname = if file = "" then None else Some file in
+        Liquidsoap_lang_reducer.Term_reducer.(mk_expr ?fname program lexbuf)
       in
       let term =
         Liquidsoap_lang_reducer.Term_reducer.to_term ~throw:record parsed_term
@@ -74,13 +80,12 @@ let check ~env source =
             None
           with Stop -> None)
   in
-  { diagnostics = List.rev !diagnostics; term }
+  { diagnostics = List.rev !diagnostics; term; file }
 
-(* Code spliced in by [%include] is positioned in its own file, while the
-   analysed buffer has no file name. *)
-let contains pos ~line ~column =
+(* Code spliced in by [%include] is positioned in its own file. *)
+let contains pos ~file ~line ~column =
   let { Pos.fname; lstart; cstart; lstop; cstop } = Pos.unpack pos in
-  fname = ""
+  fname = file
   && (lstart, cstart) <= (line, column)
   && (line, column) <= (lstop, cstop)
 
@@ -90,21 +95,21 @@ let span pos =
 
 (* A [let]'s position covers only its binding, not the statements after it, so
    no subtree can be skipped from its root's position. *)
-let rec containing ~line ~column tm =
+let rec containing ~file ~line ~column tm =
   let here =
     match tm.Term.t.Type.pos with
       | Some pos
-        when contains pos ~line ~column && not (Term.has_flag tm Flags.implicit)
-        ->
+        when contains pos ~file ~line ~column
+             && not (Term.has_flag tm Flags.implicit) ->
           [(span pos, tm)]
       | _ -> []
   in
-  here @ List.concat_map (containing ~line ~column) (Term.children tm)
+  here @ List.concat_map (containing ~file ~line ~column) (Term.children tm)
 
 (* The smallest enclosing span, since an operator's variable spans its whole
    application. On a binding, a [let] stands for its definition, as its own
    type is its body's. *)
-let innermost ~line ~column tm =
+let innermost ~file ~line ~column tm =
   let smallest =
     List.fold_left
       (fun best ((size, _) as candidate) ->
@@ -112,45 +117,46 @@ let innermost ~line ~column tm =
           | Some (best_size, _) when best_size < size -> best
           | _ -> Some candidate)
       None
-      (containing ~line ~column tm)
+      (containing ~file ~line ~column tm)
   in
   Option.map
     (fun (_, tm) ->
       match tm.Term.term with `Let { Term.def } -> def | _ -> tm)
     smallest
 
-let type_at { term } ~line ~column =
+let type_at { term; file } ~line ~column =
   Option.bind term (fun term ->
       Option.map
         (fun tm -> Repr.string_of_type tm.Term.t)
-        (innermost ~line ~column term))
+        (innermost ~file ~line ~column term))
 
-let covers ~line ~column tm = innermost ~line ~column tm <> None
+let covers ~file ~line ~column tm = innermost ~file ~line ~column tm <> None
 
-let rec local_names ~line ~column tm =
+let rec local_names ~file ~line ~column tm =
   let bound =
     match tm.Term.term with
-      | `Let { Term.pat = `PVar [name]; body } when covers ~line ~column body ->
+      | `Let { Term.pat = `PVar [name]; body }
+        when covers ~file ~line ~column body ->
           [name]
-      | `Let { Term.pat = `PTuple names; body } when covers ~line ~column body
-        ->
+      | `Let { Term.pat = `PTuple names; body }
+        when covers ~file ~line ~column body ->
           names
-      | `Fun { Term.arguments; body } when covers ~line ~column body ->
+      | `Fun { Term.arguments; body } when covers ~file ~line ~column body ->
           List.map
             (fun { Term.label; as_variable } ->
               Option.value as_variable ~default:label)
             arguments
       | _ -> []
   in
-  bound @ List.concat_map (local_names ~line ~column) (Term.children tm)
+  bound @ List.concat_map (local_names ~file ~line ~column) (Term.children tm)
 
-let locals_at { term } ~line ~column =
+let locals_at { term; file } ~line ~column =
   match term with
     | Some term ->
         List.sort_uniq compare
           (List.filter
              (fun name -> name <> "" && name <> "_" && Lexer.is_var name)
-             (local_names ~line ~column term))
+             (local_names ~file ~line ~column term))
     | None -> []
 
 let scope_at ~env result ~line ~column =
@@ -163,8 +169,8 @@ let methods_of typ =
     (fun { Type.meth; scheme } -> (meth, Repr.string_of_scheme scheme))
     (fst (Type.split_meths typ))
 
-let methods_at { term } ~line ~column =
-  match Option.bind term (innermost ~line ~column) with
+let methods_at { term; file } ~line ~column =
+  match Option.bind term (innermost ~file ~line ~column) with
     | None -> []
     | Some tm -> methods_of tm.Term.t
 

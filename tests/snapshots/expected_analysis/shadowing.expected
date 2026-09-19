@@ -7,9 +7,9 @@ x = sine() + 1
 
 #? type 5:4
 --- diagnostics ---
-Warning 6 at line 1 char 0 - line 3 char 3:
+Warning 6 at cases_analysis/shadowing.liq, line 1 char 0 - line 3 char 3:
 Top-level variable sine is overridden!
-Warning 4 at line 5, char 0-14:
+Warning 4 at cases_analysis/shadowing.liq, line 5, char 0-14:
 Unused variable x
 --- type 5:4 ---
 () -> int
