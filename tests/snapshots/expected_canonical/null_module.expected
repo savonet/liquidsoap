@@ -1,0 +1,388 @@
+=== null_module.liq ===
+# The preprocessor reads `null.m` and `null(x)` through a module; formatting
+# must print `null` back.
+def null.twice(x) =
+  null.get(x) * 2
+end
+y = null(1)
+z = null.twice(y)
+--- canonical ---
+{
+  "ast": {
+    "type": "program",
+    "position": [
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 0
+    },
+      {
+      "fname": "",
+      "lnum": 1,
+      "bol": 0,
+      "cnum": 175
+    }
+    ],
+    "body": [
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 3,
+        "bol": 103,
+        "cnum": 103
+      },
+        {
+        "fname": "",
+        "lnum": 5,
+        "bol": 141,
+        "cnum": 144
+      }
+      ],
+      "type": "def",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "null", "twice" ] },
+      "arglist": [
+        {
+        "type": "term",
+        "value": {
+          "type": "fun_arg",
+          "label": "",
+          "as_variable": { "type": "pvar", "value": [ "x" ] },
+          "typ": null,
+          "default": null
+        }
+      }
+      ],
+      "cast": null,
+      "body": [
+        {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 4,
+          "bol": 123,
+          "cnum": 125
+        },
+          {
+          "fname": "",
+          "lnum": 4,
+          "bol": 123,
+          "cnum": 140
+        }
+        ],
+        "type": "infix",
+        "left": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 4,
+            "bol": 123,
+            "cnum": 125
+          },
+            {
+            "fname": "",
+            "lnum": 4,
+            "bol": 123,
+            "cnum": 136
+          }
+          ],
+          "type": "invoke",
+          "invoked": {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 4,
+              "bol": 123,
+              "cnum": 125
+            },
+              {
+              "fname": "",
+              "lnum": 4,
+              "bol": 123,
+              "cnum": 130
+            }
+            ],
+            "type": "var",
+            "value": "null"
+          },
+          "optional": false,
+          "meth": {
+            "type": "app",
+            "op": { "type": "var", "value": "get" },
+            "args": [
+              {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 4,
+                "bol": 123,
+                "cnum": 134
+              },
+                {
+                "fname": "",
+                "lnum": 4,
+                "bol": 123,
+                "cnum": 135
+              }
+              ],
+              "type": "term",
+              "value": {
+                "type": "app_arg",
+                "label": "",
+                "value": {
+                  "position": [
+                    {
+                    "fname": "",
+                    "lnum": 4,
+                    "bol": 123,
+                    "cnum": 134
+                  },
+                    {
+                    "fname": "",
+                    "lnum": 4,
+                    "bol": 123,
+                    "cnum": 135
+                  }
+                  ],
+                  "type": "var",
+                  "value": "x"
+                }
+              }
+            }
+            ]
+          }
+        },
+        "op": "*",
+        "right": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 4,
+            "bol": 123,
+            "cnum": 139
+          },
+            {
+            "fname": "",
+            "lnum": 4,
+            "bol": 123,
+            "cnum": 140
+          }
+          ],
+          "type": "ground",
+          "value": "2"
+        }
+      }
+      ]
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 6,
+        "bol": 145,
+        "cnum": 145
+      },
+        {
+        "fname": "",
+        "lnum": 6,
+        "bol": 145,
+        "cnum": 156
+      }
+      ],
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "y" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 6,
+          "bol": 145,
+          "cnum": 149
+        },
+          {
+          "fname": "",
+          "lnum": 6,
+          "bol": 145,
+          "cnum": 156
+        }
+        ],
+        "type": "app",
+        "op": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 145,
+            "cnum": 149
+          },
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 145,
+            "cnum": 154
+          }
+          ],
+          "type": "var",
+          "value": "null"
+        },
+        "args": [
+          {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 145,
+            "cnum": 154
+          },
+            {
+            "fname": "",
+            "lnum": 6,
+            "bol": 145,
+            "cnum": 155
+          }
+          ],
+          "type": "term",
+          "value": {
+            "type": "app_arg",
+            "label": "",
+            "value": {
+              "position": [
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 145,
+                "cnum": 154
+              },
+                {
+                "fname": "",
+                "lnum": 6,
+                "bol": 145,
+                "cnum": 155
+              }
+              ],
+              "type": "ground",
+              "value": "1"
+            }
+          }
+        }
+        ]
+      }
+    },
+      {
+      "position": [
+        {
+        "fname": "",
+        "lnum": 7,
+        "bol": 157,
+        "cnum": 157
+      },
+        {
+        "fname": "",
+        "lnum": 7,
+        "bol": 157,
+        "cnum": 174
+      }
+      ],
+      "type": "binding",
+      "decoration": null,
+      "pat": { "type": "pvar", "value": [ "z" ] },
+      "arglist": null,
+      "cast": null,
+      "definition": {
+        "position": [
+          {
+          "fname": "",
+          "lnum": 7,
+          "bol": 157,
+          "cnum": 161
+        },
+          {
+          "fname": "",
+          "lnum": 7,
+          "bol": 157,
+          "cnum": 174
+        }
+        ],
+        "type": "invoke",
+        "invoked": {
+          "position": [
+            {
+            "fname": "",
+            "lnum": 7,
+            "bol": 157,
+            "cnum": 161
+          },
+            {
+            "fname": "",
+            "lnum": 7,
+            "bol": 157,
+            "cnum": 166
+          }
+          ],
+          "type": "var",
+          "value": "null"
+        },
+        "optional": false,
+        "meth": {
+          "type": "app",
+          "op": { "type": "var", "value": "twice" },
+          "args": [
+            {
+            "position": [
+              {
+              "fname": "",
+              "lnum": 7,
+              "bol": 157,
+              "cnum": 172
+            },
+              {
+              "fname": "",
+              "lnum": 7,
+              "bol": 157,
+              "cnum": 173
+            }
+            ],
+            "type": "term",
+            "value": {
+              "type": "app_arg",
+              "label": "",
+              "value": {
+                "position": [
+                  {
+                  "fname": "",
+                  "lnum": 7,
+                  "bol": 157,
+                  "cnum": 172
+                },
+                  {
+                  "fname": "",
+                  "lnum": 7,
+                  "bol": 157,
+                  "cnum": 173
+                }
+                ],
+                "type": "var",
+                "value": "y"
+              }
+            }
+          }
+          ]
+        }
+      }
+    }
+    ]
+  },
+  "comments": [
+    {
+    "start": 0,
+    "end": 102,
+    "lnum": 1,
+    "value": "# The preprocessor reads `null.m` and `null(x)` through a module; formatting\n# must print `null` back."
+  }
+  ]
+}

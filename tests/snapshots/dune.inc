@@ -1137,6 +1137,23 @@
   (diff expected_canonical/comments.expected canonical_comments.actual)))
 
 (rule
+ (target canonical_null_module.actual)
+ (deps
+  (:case cases_canonical/null_module.liq)
+  (glob_files cases/*.liq-inc)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --canonical %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_canonical/null_module.expected canonical_null_module.actual)))
+
+(rule
  (target canonical_try_blocks.actual)
  (deps
   (:case cases_canonical/try_blocks.liq)
