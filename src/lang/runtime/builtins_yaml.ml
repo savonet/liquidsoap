@@ -20,7 +20,7 @@ let yaml_parser s =
     | Error msg -> failwith msg
 
 let _ =
-  Lang.add_builtin "_0_yaml_parser" ~category:`String ~flags:[`Hidden]
+  Lang.add_builtin Reserved.yaml_parser ~category:`String ~flags:[`Hidden]
     ~descr:"Internal yaml parser"
     [
       ("type", Value.RuntimeType.t, None, Some "Runtime type");

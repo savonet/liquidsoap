@@ -287,10 +287,17 @@ let () =
       ("native_c_libraries", Build_config.native_c_libraries);
     ]
 
-let _ =
-  Lang.add_builtin ~category:`Programming
-    ~descr:"Return any value with a fresh universal type for testing purposes."
-    ~flags:[`Hidden] "💣"
-    [("", Lang.univ_t (), Some Lang.null, None)]
-    (Lang.univ_t ())
-    (fun p -> List.assoc "" p)
+(* The reducer uses the reserved name, which scripts cannot redefine. *)
+let () =
+  List.iter
+    (fun name ->
+      ignore
+        (Lang.add_builtin ~category:`Programming
+           ~descr:
+             "Return any value with a fresh universal type for testing \
+              purposes."
+           ~flags:[`Hidden] name
+           [("", Lang.univ_t (), Some Lang.null, None)]
+           (Lang.univ_t ())
+           (fun p -> List.assoc "" p)))
+    ["💣"; Reserved.any]

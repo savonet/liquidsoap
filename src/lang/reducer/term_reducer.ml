@@ -161,7 +161,7 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
     | `Seq (t, t') -> `Seq (to_term ~env t, to_term ~env t')
     | `App (t, args) ->
         (match (t, args) with
-          | { term = `Var "_null"; pos }, [] ->
+          | { term = `Var null; pos }, [] when null = Reserved.null ->
               let bt = Printexc.get_callstack 0 in
               throw ~bt (Term.Deprecated ("use `null`", Pos.of_lexing_pos pos))
           | _ -> ());
@@ -277,4 +277,4 @@ let to_term ~throw tm = to_term ~throw ~env:[] tm
 (* `let eval` desugars to a call to `_0_eval`, which parses a string at run time
    and so needs the standard library to still be around. Asking the term rather
    than remembering that we reduced one keeps this a property of the script. *)
-let needs_toplevel term = Vars.mem "_0_eval" (Term.free_vars term)
+let needs_toplevel term = Vars.mem Reserved.eval (Term.free_vars term)

@@ -34,7 +34,7 @@ let pat_var_name =
   let idx = ref 1 in
   fun () ->
     incr idx;
-    Printf.sprintf "_%d_pat" !idx
+    Reserved.pattern_var !idx
 
 let rec pattern_reducer (pat : Parsed_term.pattern) =
   (* Only the [let]s are the script's: they bind its names. Everything else

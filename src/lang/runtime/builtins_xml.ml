@@ -284,7 +284,7 @@ and parse_untyped_xml xml =
         Lang.meth (Lang.tuple [Lang.string name; props]) [(name, props)]
 
 let _ =
-  Lang.add_builtin "_0_xml_parser" ~category:`String ~flags:[`Hidden]
+  Lang.add_builtin Reserved.xml_parser ~category:`String ~flags:[`Hidden]
     ~descr:"Internal xml parser"
     [
       ("type", Value.RuntimeType.t, None, Some "Runtime type");

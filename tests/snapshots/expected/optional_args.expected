@@ -93,7 +93,7 @@ f(y=5, 1)
 --- hash ---
 bf9ef2a267979a563166d50a6e8ff228
 --- term ---
-f = fun (~x=null, ~y=2, z) -> +(+(_null.default(x, {0}), y), z)
+f = fun (~x=null, ~y=2, z) -> +(+(_0_null.default(x, {0}), y), z)
 f(y=5, 1)
 --- type ---
 int

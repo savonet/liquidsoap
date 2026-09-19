@@ -24,7 +24,7 @@ x ?? 3
 000977c6d3776c748a31878f6d4b9d9c
 --- term ---
 x = null
-_null.default(x, {3})
+_0_null.default(x, {3})
 --- type ---
 int
 --- value ---
