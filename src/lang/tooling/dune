@@ -25,4 +25,6 @@
   liquidsoap-lang.data
   liquidsoap-lang.parser
   liquidsoap-lang.prelude
+  liquidsoap-lang.reducer
+  liquidsoap-lang.types
   liquidsoap_lang))

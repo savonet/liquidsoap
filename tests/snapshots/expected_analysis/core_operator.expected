@@ -1,0 +1,150 @@
+=== core_operator.liq ===
+s = sine()
+output.dummy(s)
+
+#? type 1:4
+#? methods 1:0
+--- diagnostics ---
+--- type 1:4 ---
+((?id : string?, ?amplitude : {float}, ?duration : float?, ?{float}) ->
+ source(audio='A)
+ .{
+   buffered : () -> [string * float],
+   callbacks_count : () -> [string * int],
+   clear_last_metadata : () -> unit,
+   clock : clock,
+   composition_type : (() -> string)
+   .{exchange : (string) -> string, set : (string) -> unit
+   },
+   duration : () -> float,
+   elapsed : () -> float,
+   fallible : bool,
+   generate_frame : () -> unit,
+   id : () -> string,
+   insert_metadata : (?override : bool, ?new_track : bool, [string * string]) ->
+                     unit,
+   is_active : () -> bool,
+   is_ready : () -> bool,
+   is_up : () -> bool,
+   last_metadata : () -> [string * string]?,
+   log :
+   {level : (() -> int).{exchange : (int) -> int, set : (int) -> unit}
+   },
+   on_collect : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
+   on_frame : (?before : bool, synchronous : bool, (() -> unit)) ->
+              {release : () -> unit},
+   on_frame_checksum : (?before : ((string?) -> unit)?, synchronous : bool,
+                        ((cache : string?, string) -> unit)) ->
+                       {release : () -> unit},
+   on_leave : ({source : source(audio='A), track_sensitive : bool}) -> unit,
+   on_metadata : (synchronous : bool, (([string * string]) -> unit)) ->
+                 {release : () -> unit},
+   on_position : (position : {float}, ?remaining : bool,
+                  ?allow_partial : bool, synchronous : bool,
+                  ((float, [string * string]) -> unit)) ->
+                 {release : () -> unit},
+   on_select : (
+                {
+                  ending : source(audio='A)?,
+                  replay_metadata : bool,
+                  starting : source(audio='A)
+                }) -> source(audio='A),
+   on_shutdown : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
+   on_track : (synchronous : bool, (([string * string]) -> unit)) ->
+              {release : () -> unit},
+   on_wake_up : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
+   register_command : (?usage : string?, description : string, string,
+                       ((string) -> string)) -> unit,
+   remaining : () -> float,
+   replay_metadata : {bool},
+   reset_last_metadata_on_track : (() -> bool)
+   .{exchange : (bool) -> bool, set : (bool) -> unit
+   },
+   seek : (float) -> float,
+   self_sync : () -> bool,
+   self_sync_description : () -> string,
+   single : bool,
+   skip : () -> unit,
+   time : () -> float,
+   track_sensitive : {bool}})
+.{
+  detect : 'a.'b.(?id : string?, ?bands : int, ?debug : {bool},
+                  ?duration : {float}, ?smoothing : {float},
+                  ?threshold : {float}, [float], source(audio=kind, 'b),
+                  ((float) -> unit)) -> source(audio=kind, 'b)
+                 .{
+                   buffered : () -> [string * float],
+                   callbacks_count : () -> [string * int],
+                   clear_last_metadata : () -> unit,
+                   clock : clock,
+                   composition_type : (() -> string)
+                   .{exchange : (string) -> string, set : (string) -> unit
+                   },
+                   duration : () -> float,
+                   elapsed : () -> float,
+                   fallible : bool,
+                   generate_frame : () -> unit,
+                   id : () -> string,
+                   insert_metadata : (?override : bool, ?new_track : bool,
+                                      [string * string]) -> unit,
+                   is_active : () -> bool,
+                   is_ready : () -> bool,
+                   is_up : () -> bool,
+                   last_metadata : () -> [string * string]?,
+                   log :
+                   {
+                     level : (() -> int)
+                     .{exchange : (int) -> int, set : (int) -> unit
+                     }
+                   },
+                   on_collect : (synchronous : bool, (() -> unit)) ->
+                                {release : () -> unit},
+                   on_frame : (?before : bool, synchronous : bool,
+                               (() -> unit)) -> {release : () -> unit},
+                   on_frame_checksum : (?before : ((string?) -> unit)?,
+                                        synchronous : bool,
+                                        ((cache : string?, string) -> unit)) ->
+                                       {release : () -> unit},
+                   on_leave : (
+                               {
+                                 source : source(audio=kind, 'b),
+                                 track_sensitive : bool
+                               }) -> unit,
+                   on_metadata : (synchronous : bool,
+                                  (([string * string]) -> unit)) ->
+                                 {release : () -> unit},
+                   on_position : (position : {float}, ?remaining : bool,
+                                  ?allow_partial : bool, synchronous : bool,
+                                  ((float, [string * string]) -> unit)) ->
+                                 {release : () -> unit},
+                   on_select : (
+                                {
+                                  ending : source(audio=kind, 'b)?,
+                                  replay_metadata : bool,
+                                  starting : source(audio=kind, 'b)
+                                }) -> source(audio=kind, 'b),
+                   on_shutdown : (synchronous : bool, (() -> unit)) ->
+                                 {release : () -> unit},
+                   on_track : (synchronous : bool,
+                               (([string * string]) -> unit)) ->
+                              {release : () -> unit},
+                   on_wake_up : (synchronous : bool, (() -> unit)) ->
+                                {release : () -> unit},
+                   register_command : (?usage : string?,
+                                       description : string, string,
+                                       ((string) -> string)) -> unit,
+                   remaining : () -> float,
+                   replay_metadata : {bool},
+                   reset_last_metadata_on_track : (() -> bool)
+                   .{exchange : (bool) -> bool, set : (bool) -> unit
+                   },
+                   seek : (float) -> float,
+                   self_sync : () -> bool,
+                   self_sync_description : () -> string,
+                   single : bool,
+                   skip : () -> unit,
+                   time : () -> float,
+                   track_sensitive : {bool}}
+}
+--- methods 1:0 ---
+composition_type, on_select, on_leave, replay_metadata, single, track_sensitive, on_position, on_frame_checksum, on_frame, on_track, on_collect, on_shutdown, on_wake_up, on_metadata, time, clock, fallible, skip, seek, is_active, is_up, log, self_sync_description, self_sync, duration, elapsed, remaining, register_command, clear_last_metadata, last_metadata, buffered, reset_last_metadata_on_track, insert_metadata, generate_frame, is_ready, callbacks_count, id
