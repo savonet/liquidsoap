@@ -323,8 +323,35 @@ exception Missing_arguments of Pos.Option.t * (string * Type.t) list
     variable arguments. This cannot be done at parse-time (as for the
     computation of the free variables of functions) because we need types, as
     well as the ability to distinguish toplevel and inner let-in terms. *)
-exception Unused_variable of (string * Pos.t)
+let rec encoder_children (_, params) =
+  List.concat_map
+    (function
+      | `Anonymous _ -> []
+      | `Labelled (_, tm) -> [tm]
+      | `Encoder encoder -> encoder_children encoder)
+    params
 
+let children tm =
+  let ast_children =
+    match tm.term with
+      | `Custom _ | `Null | `Var _ | `Int _ | `Float _ | `String _ | `Bool _
+      | `Cache_env _ ->
+          []
+      | `Tuple l | `List l -> l
+      | `Cast { cast } -> [cast]
+      | `Open (a, b) | `Seq (a, b) -> [a; b]
+      | `Let { def; body } -> [def; body]
+      | `App (f, args) -> f :: List.map snd args
+      | `Invoke { invoked; invoke_default } ->
+          invoked :: Option.to_list invoke_default
+      | `Hide (tm, _) -> [tm]
+      | `Encoder encoder -> encoder_children encoder
+      | `Fun { arguments; body } ->
+          List.filter_map (fun { default } -> default) arguments @ [body]
+  in
+  ast_children @ List.map snd (Methods.bindings tm.methods)
+
+exception Unused_variable of (string * Pos.t)
 exception Deprecated of (string * Pos.t)
 
 let check_unused ~throw ~lib tm =
