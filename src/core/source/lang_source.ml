@@ -901,11 +901,7 @@ let setup_composition ~category src =
 let register_composition_module ~base () =
   let composition = add_module ~base "composition" in
   let frame_t = Type.var () in
-  let source_frame_t =
-    Type.make
-      (Type.Constr
-         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
-  in
+  let source_frame_t = Core_lang.source_t frame_t in
   let on_leave_t =
     fun_t
       [

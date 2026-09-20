@@ -44,7 +44,6 @@ module L = struct
 end
 
 let raise_error = Encoder_types.raise_error
-let channels_of_params = Encoder_types.channels_of_params
 
 let raise_generic_error = function
   | `Anonymous s -> raise_error ~pos:None ("Unknown encoder parameter: " ^ s)

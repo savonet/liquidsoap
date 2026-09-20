@@ -32,7 +32,6 @@
   liquidsoap-lang.data
   liquidsoap-lang.parser
   liquidsoap-lang.prelude
-  liquidsoap-lang.tooling
   liquidsoap-lang.types
   liquidsoap-lang.values
   liquidsoap_core_encoder_types

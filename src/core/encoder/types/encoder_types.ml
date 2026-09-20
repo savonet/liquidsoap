@@ -108,11 +108,10 @@ let type_of_encoder ~pos ((name, params) : Term.encoder) =
         format_t ?pos (Frame_type.make Liquidsoap_lang.Lang.unit_t fields)
 
 let () = Hooks.implement Hooks.type_of_encoder type_of_encoder
-let audio_of_params p = pcm_audio_type_of_encoder p
 
 let () =
   List.iter
-    (fun name -> register name audio_of_params)
+    (fun name -> register name pcm_audio_type_of_encoder)
     [
       "fdkaac";
       "flac";
