@@ -69,6 +69,8 @@ module Specs = struct
      container: there is nothing meaningful to build out of a `k=v` string, so
      `ffmpeg.copy` cannot be given parameters in a type annotation. *)
   let parse_param _ _ = None
+  let serialize_params _ = ""
+  let parse_params = function "" -> Some None | _ -> None
   let internal_content_type = None
   let string_of_kind = function `Copy -> "ffmpeg.copy"
   let kind_of_string = function "ffmpeg.copy" -> Some `Copy | _ -> None

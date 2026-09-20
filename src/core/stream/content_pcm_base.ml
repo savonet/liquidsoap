@@ -50,6 +50,8 @@ let copy ~fmt =
 
 let param_of_channels = Content_audio.Specs.param_of_channels
 let parse_param = Content_audio.Specs.parse_param
+let serialize_params = Content_audio.Specs.serialize_params
+let parse_params = Content_audio.Specs.parse_params
 let params d = param_of_channels (Array.length d)
 
 let default_params _ =

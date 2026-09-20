@@ -106,6 +106,35 @@ module Specs = struct
         ("alpha", Option.map string_of_bool (Unifier.deref alpha));
       ]
 
+  let serialize_params { width; height; alpha } =
+    let field to_string = function Some v -> to_string v | None -> "" in
+    String.concat ","
+      [
+        field (fun w -> string_of_int !!w) width;
+        field (fun h -> string_of_int !!h) height;
+        field string_of_bool (Unifier.deref alpha);
+      ]
+
+  let parse_params s =
+    let dimension = function
+      | "" -> Some None
+      | s ->
+          Option.map
+            (fun v -> Some (Lazy.Mutexed.from_val v))
+            (int_of_string_opt s)
+    in
+    let alpha = function
+      | "" -> Some None
+      | s -> Option.map Option.some (bool_of_string_opt s)
+    in
+    match String.split_on_char ',' s with
+      | [width; height; a] -> (
+          match (dimension width, dimension height, alpha a) with
+            | Some width, Some height, Some alpha ->
+                Some { width; height; alpha = Unifier.make alpha }
+            | _ -> None)
+      | _ -> None
+
   let make ?(length = 0) params =
     let default_width, default_height = video_dimensions () in
     let width = !!(Option.value ~default:default_width params.width) in

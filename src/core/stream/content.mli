@@ -60,6 +60,12 @@ module type ContentSpecs = sig
   (* [parse_param "label" "value"] *)
   val parse_param : string -> string -> params option
 
+  (** How parameters cross a dump, encoded as each content sees fit.
+      [parse_params] answers [None] for anything it did not write. *)
+  val serialize_params : params -> string
+
+  val parse_params : string -> params option
+
   (** Kind *)
 
   val kind : kind
@@ -125,6 +131,12 @@ val merge : format -> format -> unit
 (* [compatible src dst] *)
 val compatible : format -> format -> bool
 val string_of_format : format -> string
+
+(** A format as it crosses a dump: its kind, and what its content encodes of its
+    parameters. [parse_format] answers [None] for anything else. *)
+val serialize_format : format -> string
+
+val parse_format : string -> format option
 
 (* [parse_param kind "label" "value"] *)
 val parse_param : kind -> string -> string -> format

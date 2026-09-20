@@ -57,6 +57,10 @@ module Specs = struct
 
   let length d = main_of_midi (MIDI.Multitrack.duration d)
   let kind_of_string = function "midi" -> Some `Midi | _ -> None
+  let serialize_params { channels } = string_of_int channels
+
+  let parse_params s =
+    Option.map (fun channels -> { channels }) (int_of_string_opt s)
 
   let parse_param label value =
     match (label, value) with

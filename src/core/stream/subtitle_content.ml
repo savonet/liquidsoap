@@ -44,6 +44,8 @@ module Specs = struct
   let compatible () () = true
   let default_params _ = ()
   let parse_param _ _ = None
+  let serialize_params () = ""
+  let parse_params = function "" -> Some () | _ -> None
   let merge () () = ()
   let make ?(length = 0) _ = { length; data = [] }
   let length { length } = length

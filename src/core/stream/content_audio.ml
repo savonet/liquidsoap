@@ -80,6 +80,8 @@ module Specs = struct
           Some { channel_layout = Lazy.Mutexed.from_val `Five_point_one }
       | _ -> None
 
+  let serialize_params = string_of_params
+  let parse_params s = parse_param "" s
   let params d = param_of_channels (Array.length d)
   let kind = `Pcm
 

@@ -75,6 +75,10 @@ module AudioSpecs = struct
   let default_params _ =
     { channel_layout = None; sample_format = None; sample_rate = None }
 
+  (* A dump carries the stream type, never the codec parameters behind it. *)
+  let serialize_params _ = ""
+  let parse_params = function "" -> Some (default_params `Raw) | _ -> None
+
   let string_of_params { channel_layout; sample_format; sample_rate } =
     Content.print_optional
       [
@@ -202,6 +206,9 @@ module VideoSpecs = struct
 
   let default_params _ =
     { width = None; height = None; pixel_format = None; pixel_aspect = None }
+
+  let serialize_params _ = ""
+  let parse_params = function "" -> Some (default_params `Raw) | _ -> None
 
   let string_of_params { width; height; pixel_format; pixel_aspect } =
     Content.print_optional

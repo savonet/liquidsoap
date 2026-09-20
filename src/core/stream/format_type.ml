@@ -54,10 +54,8 @@ module FormatSpecs = struct
     Content_base.(merge (duplicate f) (duplicate f'));
     f
 
-  let serialize = Content_base.string_of_format
-
-  (* Reading a content type back is the contents' own business. *)
-  let parse _ = None
+  let serialize = Content_base.serialize_format
+  let parse = Content_base.parse_format
 end
 
 module FormatType = struct
@@ -105,8 +103,25 @@ module KindSpecs = struct
     assert (k = k');
     (k, sup t t')
 
-  let serialize = string_of_kind
-  let parse _ = None
+  (* A kind carries the format it was resolved to, or, while it still holds a
+     type, its own name. *)
+  let serialize (k, ty) =
+    match (Type.deref ty).Type.descr with
+      | Type.(Custom ({ custom_name = "format"; _ } as c)) ->
+          "f" ^ Content_base.serialize_format (FormatType.payload c)
+      | _ -> "k" ^ Content_base.string_of_kind k
+
+  let parse s =
+    match (s.[0], String.sub s 1 (String.length s - 1)) with
+      | 'f', format ->
+          Option.map
+            (fun f -> (Content_base.kind f, Type.make (format_descr f)))
+            (Content_base.parse_format format)
+      | 'k', kind -> (
+          match Content_base.kind_of_string kind with
+            | kind -> Some (kind, Type.var ())
+            | exception _ -> None)
+      | _ | (exception _) -> None
 end
 
 module KindType = Type_custom.Make (KindSpecs)

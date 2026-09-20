@@ -77,6 +77,8 @@ module type ContentSpecs = sig
   val compatible : params -> params -> bool
   val string_of_params : params -> string
   val parse_param : string -> string -> params option
+  val serialize_params : params -> string
+  val parse_params : string -> params option
   val kind : kind
   val default_params : kind -> params
   val string_of_kind : kind -> string
@@ -107,11 +109,14 @@ type kind_handler = {
   string_of_kind : unit -> string;
 }
 
+(* How many contents can register, which every dispatch table is sized by. *)
+let max_contents = 16
+
 let dummy_kind_handler_fn (_ : Contents.kind_content) : kind_handler =
   raise Invalid
 
 let kind_handler_fns : (Contents.kind_content -> kind_handler) array =
-  Array.make 16 dummy_kind_handler_fn
+  Array.make max_contents dummy_kind_handler_fn
 
 let[@inline] get_kind_handler { Contents.id; content } =
   (Array.unsafe_get kind_handler_fns id) content
@@ -137,6 +142,7 @@ type format_handler = {
   merge : format -> unit;
   compatible : format -> bool;
   duplicate : unit -> format;
+  serialize : unit -> string;
 }
 
 let dummy_format_handler_fn (_ : Contents.format_content Unifier.t) :
@@ -145,13 +151,16 @@ let dummy_format_handler_fn (_ : Contents.format_content Unifier.t) :
 
 let format_handler_fns :
     (Contents.format_content Unifier.t -> format_handler) array =
-  Array.make 16 dummy_format_handler_fn
+  Array.make max_contents dummy_format_handler_fn
 
 let[@inline] get_format_handler { Contents.id; content } =
   (Array.unsafe_get format_handler_fns id) content
 
 let format_param_parsers : (string -> string -> Contents.format option) array =
-  Array.make 16 (fun _ _ -> None)
+  Array.make max_contents (fun _ _ -> None)
+
+let format_parsers : (string -> Contents.format option) array =
+  Array.make max_contents (fun _ -> None)
 
 let parse_param { Contents.id } label value =
   match (Array.unsafe_get format_param_parsers id) label value with
@@ -181,7 +190,7 @@ let dummy_handler =
     append = (fun _ _ -> raise Invalid);
   }
 
-let data_handlers = Array.make 16 dummy_handler
+let data_handlers = Array.make max_contents dummy_handler
 
 let register_data_handler t h =
   if Array.length data_handlers - 1 < t then
@@ -218,6 +227,23 @@ let merge p p' =
 let duplicate p = (get_format_handler p).duplicate ()
 let compatible p p' = (get_format_handler p).compatible p'
 let string_of_kind k = (get_kind_handler k).string_of_kind ()
+
+(* A format crosses a dump as its kind and whatever that content encodes of
+   its parameters. *)
+let serialize_format f =
+  Printf.sprintf "%s:%s"
+    (string_of_kind (kind f))
+    ((get_format_handler f).serialize ())
+
+let parse_format s =
+  match String.index_opt s ':' with
+    | None -> None
+    | Some i -> (
+        let params = String.sub s (i + 1) (String.length s - i - 1) in
+        match kind_of_string (String.sub s 0 i) with
+          | exception _ -> None
+          | { Contents.id } -> (Array.unsafe_get format_parsers id) params)
+
 let content_names = ref []
 
 type content_lang_spec = {
@@ -491,6 +517,7 @@ module MkContentBase (C : ContentSpecs) :
               content = Unifier.(make (deref p));
             });
         compatible = (fun p' -> compatible p p');
+        serialize = (fun () -> C.serialize_params (deref p));
         string_of_format =
           (fun () ->
             let kind = C.string_of_kind C.kind in
@@ -505,6 +532,8 @@ module MkContentBase (C : ContentSpecs) :
     Array.unsafe_set format_handler_fns _type format_fn;
     Array.unsafe_set format_param_parsers _type (fun label value ->
         Option.map lift_params (C.parse_param label value));
+    Array.unsafe_set format_parsers _type (fun params ->
+        Option.map lift_params (C.parse_params params));
     Queue.push kind_of_string kind_parsers;
     let data_handler =
       {
