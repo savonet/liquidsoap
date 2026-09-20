@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for https://github.com/savonet/liquidsoap/issues/5259
 # A transient HLS filesystem error must not terminate the process.
 

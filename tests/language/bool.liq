@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # Test strictness and evaluation order
   l = ref(false)

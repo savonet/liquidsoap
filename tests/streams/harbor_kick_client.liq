@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Test that a second harbor client can
 # disconnect existing one if needed.
 def fn() =

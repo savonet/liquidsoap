@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 port = 8002
 settings.srt.prefer_address := "ipv4"
 

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # For some reason, ffmpeg uses weird frame rates when creating the samples below.
 settings.ffmpeg.content.copy.relaxed_compatibility_check := true
 

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 enable_replaygain_metadata()
 s = single("../media/@wav[stereo].wav")
 s = replaygain(s)

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # `source.collect_callback_releases` takes sources of unknown content, so

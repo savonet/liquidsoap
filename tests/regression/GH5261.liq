@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for https://github.com/savonet/liquidsoap/issues/5261
 # HLS output, temporary and persistence directories must be writable during
 # initialization.

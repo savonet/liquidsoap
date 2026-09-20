@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   def f(~(foo:int), ~(bar:string)="123", (x:source), (y:int)=123) =
     ()

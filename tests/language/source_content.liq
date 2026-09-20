@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # Test source.content on an audio-only source
   audio_content = source.content(sine())

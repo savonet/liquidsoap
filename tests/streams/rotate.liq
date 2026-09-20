@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def mksource(id="", url) =
   metadata.map(
     insert_missing=true,

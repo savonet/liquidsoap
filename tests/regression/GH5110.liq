@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for https://github.com/savonet/liquidsoap/issues/5110
 # Crash when multiple AAC encoders share the same source (as in AzuraCast
 # "Share Encoders Between Streams").

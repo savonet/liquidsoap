@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # We want:
 # Track selection 1 -> s1 ready, s2 not ready, s3 ready -> switch to s3, s2 gets ready
 # Track selection 2 -> s1 ready, s2 ready, s3 ready -> switch to s1

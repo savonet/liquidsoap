@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Basic request tests
 settings.log.level.set(4)
 test.check(

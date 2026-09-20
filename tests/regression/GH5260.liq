@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for https://github.com/savonet/liquidsoap/issues/5260
 # An error raised while shutting down a failed output must not kill the clock
 # thread: the clock keeps animating its remaining sources.

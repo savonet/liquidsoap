@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Some tests related to recursion and polymorphism.
 def f() =
   def id(x) =

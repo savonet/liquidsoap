@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 port = 8001
 settings.srt.prefer_address := "ipv4"

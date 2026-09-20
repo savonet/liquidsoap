@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 # A one-shot guard: a thread that finds the work already claimed must also find
 # it finished. Claiming the flag indivisibly is not enough on its own, which is

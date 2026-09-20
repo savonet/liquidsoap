@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 4
 
 expected_checksum = "6ccbccf00fb31c68bfe457b5eab01a6b"

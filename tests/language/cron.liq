@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   let json.parse (test_cases :
     [

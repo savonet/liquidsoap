@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A listener joining a running mount receives the burst on top of the live
 # stream: in one second it gets well over the 16 KB/s of 128 kbps mp3.
 def f() =

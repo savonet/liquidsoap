@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A switch must re-evaluate its selection when it resumes after not being
 # streamed: `jingles` becomes available while `programs` is on the air, so
 # `autodj` has to hand over to it as soon as it plays again.

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s =
   if
     file.which(null.get(settings.protocol.gtts.path())) == null

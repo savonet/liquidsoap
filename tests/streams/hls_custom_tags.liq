@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = sine()
 s = mksafe(s)
 tmp_dir = file.temp_dir("tmp")

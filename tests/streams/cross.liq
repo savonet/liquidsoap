@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 video.frame.rate.set(24)
 a = sine(duration=5., 440.)
 a =

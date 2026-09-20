@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   test.equal(float.is_nan(nan), true)
   test.equal(float.is_nan(1.), false)

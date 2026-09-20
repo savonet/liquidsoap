@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   config = null
   port = 123

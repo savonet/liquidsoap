@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 let {audio = a} = source.tracks(sine())
 
 track_l = track.audio.amplify(2., track.audio.stereo.pan(-1., a))

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 4
 settings.icecast.prefer_address := "ipv4"
 

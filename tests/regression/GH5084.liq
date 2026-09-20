@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for https://github.com/savonet/liquidsoap/issues/5084
 # HLS ID3 stream should contain metadata, not just the empty 10-byte ID3 header
 

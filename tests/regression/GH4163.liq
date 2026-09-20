@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 first_blank =
   metadata.map(
     insert_missing=true,

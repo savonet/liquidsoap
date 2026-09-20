@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 append_cuefile = file.temp("append", ".cue")
 create_cuefile = file.temp("create", ".cue")

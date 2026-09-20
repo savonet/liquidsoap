@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   lufs_integrated = ref(0.)
   true_peak = ref(neg_infinity)

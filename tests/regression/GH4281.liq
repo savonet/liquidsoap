@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 d = sequence([sine(duration=3.), sine(duration=3.)])
 d =
   metadata.map(

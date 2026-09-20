@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 port = 3464
 
 def fn() =

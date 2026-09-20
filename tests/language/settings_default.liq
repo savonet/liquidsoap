@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   test.equal(settings.harbor.timeout.get_default(), 120.)
   test.equal(settings.harbor.timeout(), 120.)

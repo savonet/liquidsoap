@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   r = request.create("annotate:initial_uri=bogus:#{argv(0)}")
   if not request.resolve(r) then test.fail() end

@@ -133,14 +133,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg copy+concat"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_copy_concat.liq)))
 
 (rule
@@ -152,14 +151,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg raw implicit conversion"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_raw_implicit_conversion.liq)))
 
 (rule
@@ -171,14 +169,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg complex filter"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_complex_filter.liq)))
 
 (rule
@@ -241,14 +238,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg copy subtitle"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_copy_subtitle.liq
    --
    video-with-subtitle.mkv)))
@@ -263,7 +259,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (progn
@@ -271,7 +267,6 @@
     %{run_test}
     "FFmpeg distributed HLS setup"
     liquidsoap
-    %{test_liq}
     test_ffmpeg_distributed_hls_setup.liq
     --
     long-video.mp4)
@@ -287,14 +282,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg distributed HLS encoding"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_distributed_hls.liq
    --
    long-video.mp4)))
@@ -308,14 +302,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg HLS MP4 encoding"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_hls_mp4.liq
    --
    long-video.mp4)))
@@ -329,14 +322,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg HLS MP4 encoding"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_hls_copy_mp4.liq
    --
    long-video.mp4)))
@@ -352,14 +344,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg transparency filter"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_transparency_filter.liq)))
 
 (rule
@@ -373,14 +364,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg filter with changing video rate"
    liquidsoap
-   %{test_liq}
    ./test_ffmpeg_filter_changing_rate.liq
    --
    ./@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4
@@ -395,14 +385,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Integrated LUFS computation"
    liquidsoap
-   %{test_liq}
    test_lufs_integrated.liq)))
 
 (rule
@@ -430,14 +419,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg filter with array arguments"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_filter_array_args.liq
    --
    test-audio.wav)))
@@ -468,14 +456,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Image decoder with fixed duration"
    liquidsoap
-   %{test_liq}
    test_image_decoder_duration.liq)))
 
 ; Fetch DVD bitmap subtitle test file from FFmpeg FATE samples
@@ -501,14 +488,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Bitmap subtitle to video conversion"
    liquidsoap
-   %{test_liq}
    test_bitmap_subtitle_to_video.liq
    --
    fate-suite-filter-242_4.mkv)))
@@ -557,14 +543,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Custom text_to_ass function"
    liquidsoap
-   %{test_liq}
    test_subtitle_text_to_ass.liq)))
 
 (rule
@@ -587,14 +572,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg VP9 alpha transparency encoding"
    liquidsoap
-   %{test_liq}
    test_ffmpeg_vp9_alpha.liq
    --
    alarm-clock-alpha.webm)))

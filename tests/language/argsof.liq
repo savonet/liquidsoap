@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Test argsof directive.
 def f() =
   # file.extension: (?dir_sep : string, ?leading_dot : bool, string) -> string

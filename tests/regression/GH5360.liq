@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for metadata.deduplicate comparing across track marks.
 #
 # The operator removes a metadata that repeats the one before it, so that a

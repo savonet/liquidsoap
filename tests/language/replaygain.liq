@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 def test_metadata_replaygain() =
   test.equal(metadata.replaygain([("r128_track_gain", "0")]), 0.)

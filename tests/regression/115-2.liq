@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 sa = sine()
 sb_on = ref(false)
 sb = switch([({!sb_on}, once(sine(220., duration=2.)))])

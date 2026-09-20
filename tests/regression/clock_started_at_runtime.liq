@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # A source built after startup gets its clock started. The script runs no other

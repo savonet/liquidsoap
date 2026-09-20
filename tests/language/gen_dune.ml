@@ -29,9 +29,9 @@ let () =
   (package liquidsoap)
   (source_tree ../../src/libs)
   crontab_test_cases.json
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
- (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
+ (action (run %%{run_test} %s liquidsoap %s)))
   |}
         (test_name test) test test test)
     tests

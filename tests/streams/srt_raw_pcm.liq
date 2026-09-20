@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 4
 settings.srt.prefer_address := "ipv4"
 

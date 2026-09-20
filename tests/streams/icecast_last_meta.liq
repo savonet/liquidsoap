@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 port = 6723
 settings.icecast.prefer_address := "ipv4"
 

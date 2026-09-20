@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # One legacy queue runs its tasks one after the other, so no two handlers may
 # overlap. The domain pool would run all of them at once.
 settings.scheduler.legacy := true

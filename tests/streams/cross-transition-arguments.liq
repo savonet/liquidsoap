@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # `cross` no longer replays the outgoing track's metadata into the transition, so
 # the transition's argument is the only way that metadata reaches user code.
 # `crossfade` reads it there for `initial_fade_out_metadata`, so an override on

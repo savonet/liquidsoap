@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Script code runs on scheduler tasks, and registering a callback there goes
 # through an effect whose handler does not cross the thread it is dispatched to.
 s = sine()

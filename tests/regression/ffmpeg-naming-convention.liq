@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 4
 
 def f() =

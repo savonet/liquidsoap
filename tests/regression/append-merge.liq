@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 music = chop(every=1., metadata=[("source", "s1")], sine(amplitude=0.1, 440.))
 
 def next(_) =

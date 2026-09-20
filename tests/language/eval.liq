@@ -1,4 +1,7 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
+
 count = ref(1)
 fail = ref(false)
 

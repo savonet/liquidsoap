@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 # Test none/never annotations in sources, see #3222.
 s = (single("file1.png") : source(audio=none, ...))

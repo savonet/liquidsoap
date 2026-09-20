@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # Record fields are evaluated when the record is built, whether or not they
   # are ever invoked, and whether or not the record is bound to a name first.

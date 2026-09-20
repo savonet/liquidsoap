@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Simpler version of GH3239 to work on a specific issue with
 # source,dynamic
 

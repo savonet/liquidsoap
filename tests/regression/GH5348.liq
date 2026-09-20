@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A switch inside a passive child clock used to re-evaluate its selection on
 # every frame: such a clock is ticked by its parent even on cycles where its
 # consumer pulls nothing, which the switch mistook for resuming after having

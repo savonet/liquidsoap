@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   def a(_, res) =
     try

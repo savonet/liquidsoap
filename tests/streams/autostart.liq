@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 test_no_autostart = ref(true)
 test_autostart = ref(false)
 

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # Test basic syntax
   ignore(r/bla/gims)

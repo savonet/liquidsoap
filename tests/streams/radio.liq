@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Basic radio test
 mic = sine()
 bed = mksafe(playlist("playlist"))

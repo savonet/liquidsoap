@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A transition is free to drop the incoming source. `cross` has already
 # consumed that track's metadata into the buffer it hands the transition, so
 # dropping the source dropped the announcement with it, while the rest of the

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A zero-duration fade with a pending delay must not divide by zero.
 s = sine()
 

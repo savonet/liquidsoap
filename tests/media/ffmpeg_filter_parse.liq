@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 settings.decoder.decoders.set(["ffmpeg"])
 

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 test.skip()
 
 def f() =

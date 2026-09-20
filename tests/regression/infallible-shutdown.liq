@@ -1,4 +1,6 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 # Make sure infallible output can shutdown properly.
 output.dummy(blank())

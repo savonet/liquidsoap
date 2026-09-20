@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 call_counts = ref([])
 
 def test_decoder(~metadata:_, filename) =

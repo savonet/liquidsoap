@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   skip_occured = ref(false)
 

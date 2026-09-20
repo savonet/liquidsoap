@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 def test_file_replaygain() =
   g = file.replaygain("replaygain_track_gain.mp3")

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 profile = (environment.get("LIQ_PROFILE") != "")
 
 def time(name, f) =

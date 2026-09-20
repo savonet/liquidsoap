@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   tmp = file.temp("foo", "bla")
   on_cleanup({file.remove(tmp)})

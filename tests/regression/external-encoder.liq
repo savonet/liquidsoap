@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 tmp = file.temp("foo", "flv")
 on_cleanup({file.remove(tmp)})
 encoder = %external(process = "cat")

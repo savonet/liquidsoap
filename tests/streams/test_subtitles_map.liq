@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 settings.decoder.decoders := ["srt"]
 
 s = single("../media/test-subtitle.srt")

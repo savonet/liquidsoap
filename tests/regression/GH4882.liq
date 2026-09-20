@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 stereotool_lib =
   if
     file.exists("./libStereoTool_64.dylib")

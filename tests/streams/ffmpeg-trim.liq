@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   is_done = ref(false)
 

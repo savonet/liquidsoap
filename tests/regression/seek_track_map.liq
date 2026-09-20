@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # This is a regression test for GH3252
 s = single("../streams/file1.mp3")
 

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def rlog(_) =
   ()
 end

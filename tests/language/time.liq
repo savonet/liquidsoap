@@ -1,4 +1,7 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
+
 def check_value(v, v') =
   if
     v != v'

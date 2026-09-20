@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A raw ICY client checks that metadata blocks land exactly every metaint
 # bytes of stream data: a full block at the first boundary, an empty one at
 # the next since the title did not change.

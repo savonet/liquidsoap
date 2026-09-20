@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A delay_line buffers on every clock tick but is only drained when pulled. Left
 # unselected in a switch, it used to grow without bound.
 enabled = ref(true)

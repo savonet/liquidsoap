@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(5)
 
 # Test that the per-source on_select callback is called when switching to a

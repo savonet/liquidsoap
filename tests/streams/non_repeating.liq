@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(3)
 first = ref("")
 

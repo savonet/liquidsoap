@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # Chained handoffs must not drop an `on_leave`. `a` is preempted by `b`, then

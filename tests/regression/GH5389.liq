@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # An active input replaced through source.dynamic must be stopped and become
 # collectable.
 

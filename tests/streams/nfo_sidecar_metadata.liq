@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   test.equal(file.nfo.metadata("./does-not-exist.nfo"), [])
 

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(5)
 
 # Test that per-source single=true forbids selecting the same source for two

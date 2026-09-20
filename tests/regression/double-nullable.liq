@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test: ?? with two nullable values should not create double nullable type
 a = {x = (null : string?)}
 b = {x = (null : string?)}

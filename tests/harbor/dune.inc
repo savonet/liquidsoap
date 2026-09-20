@@ -6,15 +6,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   harbor_output_auth.liq
-   liquidsoap
-   %{test_liq}
-   harbor_output_auth.liq)))
+  (run %{run_test} harbor_output_auth.liq liquidsoap harbor_output_auth.liq)))
 
 (rule
  (alias test_harbor_output_burst)
@@ -24,14 +19,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    harbor_output_burst.liq
    liquidsoap
-   %{test_liq}
    harbor_output_burst.liq)))
 
 (rule
@@ -42,14 +36,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    harbor_output_burst_null.liq
    liquidsoap
-   %{test_liq}
    harbor_output_burst_null.liq)))
 
 (rule
@@ -60,14 +53,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    harbor_output_dedicated_encoder.liq
    liquidsoap
-   %{test_liq}
    harbor_output_dedicated_encoder.liq)))
 
 (rule
@@ -78,14 +70,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    harbor_output_icy_metaint.liq
    liquidsoap
-   %{test_liq}
    harbor_output_icy_metaint.liq)))
 
 (rule
@@ -96,14 +87,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    harbor_output_listener_lifecycle.liq
    liquidsoap
-   %{test_liq}
    harbor_output_listener_lifecycle.liq)))
 
 (rule
@@ -114,14 +104,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    harbor_output_many_listeners.liq
    liquidsoap
-   %{test_liq}
    harbor_output_many_listeners.liq)))
 
 (rule
@@ -132,14 +121,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    harbor_output_on_connect_disconnect.liq
    liquidsoap
-   %{test_liq}
    harbor_output_on_connect_disconnect.liq)))
 
 (rule
@@ -150,10 +138,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} http.liq liquidsoap %{test_liq} http.liq)))
+  (run %{run_test} http.liq liquidsoap http.liq)))
 
 (rule
  (alias test_http2)
@@ -163,10 +151,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} http2.liq liquidsoap %{test_liq} http2.liq)))
+  (run %{run_test} http2.liq liquidsoap http2.liq)))
 
 (rule
  (alias test_http3)
@@ -176,10 +164,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} http3.liq liquidsoap %{test_liq} http3.liq)))
+  (run %{run_test} http3.liq liquidsoap http3.liq)))
 
 (rule
  (alias test_icecast_server_logs)
@@ -189,14 +177,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    icecast_server_logs.liq
    liquidsoap
-   %{test_liq}
    icecast_server_logs.liq)))
 
 (rule
@@ -207,10 +194,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} post.liq liquidsoap %{test_liq} post.liq)))
+  (run %{run_test} post.liq liquidsoap post.liq)))
 
 (rule
  (alias test_put)
@@ -220,10 +207,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} put.liq liquidsoap %{test_liq} put.liq)))
+  (run %{run_test} put.liq liquidsoap put.liq)))
 
 (alias
  (name citest)

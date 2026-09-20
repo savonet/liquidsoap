@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # Callbacks a script registers do not pile up on the sources they are

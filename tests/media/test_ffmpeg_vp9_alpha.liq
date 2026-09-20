@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 settings.decoder.ffmpeg.codecs.vp9.set("libvpx-vp9")

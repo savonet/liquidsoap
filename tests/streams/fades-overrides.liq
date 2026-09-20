@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 success = ref(false)
 
 a = sine(duration=5., 440.)

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = sine()
 close_count = ref(0)
 tmp_dir = file.temp_dir("tmp")

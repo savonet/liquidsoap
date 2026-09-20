@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   lufs_integrated = ref(0.)
 

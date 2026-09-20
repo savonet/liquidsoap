@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(5)
 
 # Regression test for stale metadata replay when a file source is re-selected

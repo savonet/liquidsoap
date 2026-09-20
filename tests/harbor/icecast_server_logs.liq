@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A source streams to icecast.server and a listener tunes in: the admin page
 # lists the listener under a hashed IP, a metadata update reaches the playlist
 # log, and the listener's session ends up in the access log once the source

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 output_dir = file.temp_dir("liq", "hls")
 
 def cleanup() =

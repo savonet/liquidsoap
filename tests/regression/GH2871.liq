@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   s = metronome()
   s = bpm(s)

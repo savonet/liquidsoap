@@ -2,7 +2,7 @@
 %include "included.liq-inc"
 
 before = 0
-(before, from_include, also_from_include)
+(before, from_include, also_from_include, liquidsoap.script.path)
 --- parsed ---
 {
   "type": "block",
@@ -32,6 +32,14 @@ before = 0
     "definition": { "type": "ground", "value": "2" }
   },
     {
+    "type": "let",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "liquidsoap", "script", "path" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": { "type": "string", "value": "\"cases/pp_include.liq\"" }
+  },
+    {
     "type": "binding",
     "decoration": null,
     "pat": { "type": "pvar", "value": [ "before" ] },
@@ -53,22 +61,34 @@ before = 0
       {
       "type": "var",
       "value": "also_from_include"
+    },
+      {
+      "type": "invoke",
+      "invoked": {
+        "type": "invoke",
+        "invoked": { "type": "var", "value": "liquidsoap" },
+        "optional": false,
+        "meth": { "type": "var", "value": "script" }
+      },
+      "optional": false,
+      "meth": { "type": "var", "value": "path" }
     }
     ]
   }
   ]
 }
 --- hash ---
-cb5449a59bfa50872c40ab85b328440d
+1983d711d48a9eb9af754f59be5b979b
 --- term ---
 let liquidsoap.script.path = "cases/included.liq-inc"
 from_include = 1
 also_from_include = 2
+let liquidsoap.script.path = "cases/pp_include.liq"
 before = 0
-(before, from_include, also_from_include)
+(before, from_include, also_from_include, liquidsoap.script.path)
 --- doc ---
 from_include: Pulled in by pp_include.liq. Both bindings scope over the code that follows the `%include`, because the included statements are spliced into that block.
 --- type ---
-int * int * int
+int * int * int * string
 --- value ---
-(0, 1, 2)
+(0, 1, 2, "cases/pp_include.liq")

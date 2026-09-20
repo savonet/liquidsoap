@@ -267,7 +267,7 @@ def test.ffprobe(~count_packets=false, filename) =
     count_packets
       ? "-count_packets "
       : ""
-  json =
+  streams =
     process.read(
       "ffprobe -v quiet -print_format json -show_streams #{count_packets_flag}#{
         process.quote(filename)
@@ -276,7 +276,7 @@ def test.ffprobe(~count_packets=false, filename) =
   log(
     label="test.ffprobe",
     level=3,
-    "Processed #{filename}: #{json}"
+    "Processed #{filename}: #{streams}"
   )
-  json
+  streams
 end

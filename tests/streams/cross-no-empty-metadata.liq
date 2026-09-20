@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # `cross` replayed the incoming track's metadata at the start of the transition.
 # That metadata is already inside the buffered data the replay writes into, so
 # the replay only ever fired when there was none to replay, announcing an empty

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   cue_file =
     'REM GENRE Electronica

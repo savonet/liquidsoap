@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 radio = single("../media/@wav[stereo].wav")
 
 append = request.queue()

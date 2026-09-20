@@ -533,14 +533,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%fdkaac(aot=\"mpeg4_aac_lc\",channels=1)")))
@@ -555,17 +554,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%fdkaac(channels=2)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%fdkaac(channels=2)")))
 
 (rule
  (alias shine[channels=1].mp3)
@@ -577,17 +569,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%shine(channels=1)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%shine(channels=1)")))
 
 (rule
  (alias shine[channels=2].mp3)
@@ -599,17 +584,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%shine(channels=2)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%shine(channels=2)")))
 
 (rule
  (alias flac[stereo].flac)
@@ -621,17 +599,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%flac(stereo)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%flac(stereo)")))
 
 (rule
  (alias flac[mono].flac)
@@ -643,17 +614,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%flac(mono)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%flac(mono)")))
 
 (rule
  (alias wav[stereo].wav)
@@ -665,17 +629,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%wav(stereo)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%wav(stereo)")))
 
 (rule
  (alias wav[mono].wav)
@@ -687,17 +644,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%wav(mono)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%wav(mono)")))
 
 (rule
  (alias mp3[mono].mp3)
@@ -709,17 +659,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%mp3(mono)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%mp3(mono)")))
 
 (rule
  (alias mp3[stereo].mp3)
@@ -731,17 +674,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%mp3(stereo)")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%mp3(stereo)")))
 
 (rule
  (alias ogg[@vorbis[mono]].ogg)
@@ -753,17 +689,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%ogg(%vorbis(mono))")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%ogg(%vorbis(mono))")))
 
 (rule
  (alias ogg[@vorbis[stereo]].ogg)
@@ -775,14 +704,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ogg(%vorbis(stereo))")))
@@ -797,17 +725,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%ogg(%flac(mono))")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%ogg(%flac(mono))")))
 
 (rule
  (alias ogg[@flac[stereo]].ogg)
@@ -819,17 +740,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%ogg(%flac(stereo))")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%ogg(%flac(stereo))")))
 
 (rule
  (alias ogg[@opus[mono]].ogg)
@@ -841,17 +755,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%ogg(%opus(mono))")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%ogg(%opus(mono))")))
 
 (rule
  (alias ogg[@opus[stereo]].ogg)
@@ -863,17 +770,10 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   %{encoder}
-   liquidsoap
-   %{test_liq}
-   %{encoder}
-   --
-   "%ogg(%opus(stereo))")))
+  (run %{run_test} %{encoder} liquidsoap %{encoder} -- "%ogg(%opus(stereo))")))
 
 (rule
  (alias ffmpeg[format='mp4',@audio[codec='aac',samplerate='48k']].mp4)
@@ -886,14 +786,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",samplerate=\"48k\"))")))
@@ -908,14 +807,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"))")))
@@ -930,14 +828,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(pcm_s16,codec=\"aac\"))")))
@@ -952,14 +849,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(pcm_f32,codec=\"aac\"))")))
@@ -977,14 +873,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=1),%video(codec=\"libx264\"))")))
@@ -1002,14 +897,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%video(codec=\"libx264\"))")))
@@ -1027,14 +921,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%video(codec=\"libx264\",r=12))")))
@@ -1049,14 +942,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%video(codec=\"libx264\"))")))
@@ -1074,14 +966,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\",channels=2),%audio_2(codec=\"aac\",channels=1),%video(codec=\"libx264\"),%video_2(codec=\"libx264\"))")))
@@ -1099,14 +990,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%subtitles(codec=\"subrip\"))")))
@@ -1124,14 +1014,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%subtitles(codec=\"ass\"))")))
@@ -1149,14 +1038,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"matroska\",%video(codec=\"libx264\"),%subtitles(codec=\"subrip\"))")))
@@ -1174,14 +1062,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"matroska\",%video(codec=\"libx264\",b=\"500k\"),%subtitles(codec=\"ass\"))")))
@@ -1199,14 +1086,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"webm\",%video(codec=\"libvpx\"),%subtitles(codec=\"webvtt\"))")))
@@ -1224,14 +1110,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\"),%video(codec=\"libx264\"),%subtitles(codec=\"subrip\"))")))
@@ -1249,14 +1134,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"matroska\",%audio(codec=\"aac\",b=\"128k\"),%video(codec=\"libx264\"),%subtitles(codec=\"ass\"))")))
@@ -1274,14 +1158,13 @@
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    %{encoder}
    liquidsoap
-   %{test_liq}
    %{encoder}
    --
    "%ffmpeg(format=\"mp4\",%audio(codec=\"aac\"),%video(codec=\"libx264\"),%subtitles(codec=\"mov_text\"))")))
@@ -1327,14 +1210,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Mono decoding test for @mp3[stereo].mp3"
    liquidsoap
-   %{test_liq}
    mono.liq
    --
    "@mp3[stereo].mp3")))
@@ -1380,14 +1262,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Stereo decoding test for @mp3[stereo].mp3"
    liquidsoap
-   %{test_liq}
    stereo.liq
    --
    "@mp3[stereo].mp3")))
@@ -1433,14 +1314,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg audio decoder test for @mp3[stereo].mp3"
    liquidsoap
-   %{test_liq}
    ffmpeg_audio_decoder.liq
    --
    "@mp3[stereo].mp3")))
@@ -1486,14 +1366,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Mono decoding test for @flac[mono].flac"
    liquidsoap
-   %{test_liq}
    mono.liq
    --
    "@flac[mono].flac")))
@@ -1539,14 +1418,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Stereo decoding test for @flac[mono].flac"
    liquidsoap
-   %{test_liq}
    stereo.liq
    --
    "@flac[mono].flac")))
@@ -1592,14 +1470,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg audio decoder test for @flac[mono].flac"
    liquidsoap
-   %{test_liq}
    ffmpeg_audio_decoder.liq
    --
    "@flac[mono].flac")))
@@ -1645,14 +1522,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg video decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_video_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -1698,14 +1574,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg video size test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    video_size.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -1751,14 +1626,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg add text filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_add_text.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -1804,14 +1678,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -1857,14 +1730,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg copy+encode decode test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_copy_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -1910,14 +1782,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -1963,14 +1834,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg filter parse test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_filter_parse.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -2016,14 +1886,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg bitstream filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_bitstream_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -2069,14 +1938,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg raw decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_raw_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -2122,14 +1990,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg raw+encode decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_raw_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -2175,14 +2042,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg raw+copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_raw_and_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=2],@video[codec='libx264']].mp4")))
@@ -2228,14 +2094,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg add text filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_add_text.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2281,14 +2146,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2334,14 +2198,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg copy+encode decode test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_copy_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2387,14 +2250,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2440,14 +2302,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg filter parse test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_filter_parse.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2493,14 +2354,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg bitstream filter test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_bitstream_filter.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2546,14 +2406,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg raw decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_raw_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2599,14 +2458,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg raw+encode decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_raw_and_encode_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2652,14 +2510,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "FFmpeg raw+copy decoder test for @ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4"
    liquidsoap
-   %{test_liq}
    ffmpeg_raw_and_copy_decoder.liq
    --
    "@ffmpeg[format='mp4',@audio[codec='aac',channels=1],@video[codec='libx264']].mp4")))
@@ -2705,17 +2562,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   "multitrack.liq"
-   liquidsoap
-   %{test_liq}
-   multitrack.liq
-   --
-   "")))
+  (run %{run_test} "multitrack.liq" liquidsoap multitrack.liq -- "")))
 
 (rule
  (alias test_ffmpeg_inline_encode_decode)
@@ -2758,14 +2608,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "ffmpeg_inline_encode_decode.liq"
    liquidsoap
-   %{test_liq}
    ffmpeg_inline_encode_decode.liq
    --
    "")))
@@ -2811,14 +2660,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "ffmpeg_inline_encode_decode_audio.liq"
    liquidsoap
-   %{test_liq}
    ffmpeg_inline_encode_decode_audio.liq
    --
    "")))
@@ -2864,14 +2712,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "ffmpeg_inline_encode_decode_video.liq"
    liquidsoap
-   %{test_liq}
    ffmpeg_inline_encode_decode_video.liq
    --
    "")))
@@ -2917,17 +2764,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   "ffmpeg_raw_hls.liq"
-   liquidsoap
-   %{test_liq}
-   ffmpeg_raw_hls.liq
-   --
-   "")))
+  (run %{run_test} "ffmpeg_raw_hls.liq" liquidsoap ffmpeg_raw_hls.liq -- "")))
 
 (rule
  (alias test_pcm_s16_decode)
@@ -2970,17 +2810,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   "pcm_s16_decode.liq"
-   liquidsoap
-   %{test_liq}
-   pcm_s16_decode.liq
-   --
-   "")))
+  (run %{run_test} "pcm_s16_decode.liq" liquidsoap pcm_s16_decode.liq -- "")))
 
 (rule
  (alias test_pcm_f32_decode)
@@ -3023,17 +2856,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   "pcm_f32_decode.liq"
-   liquidsoap
-   %{test_liq}
-   pcm_f32_decode.liq
-   --
-   "")))
+  (run %{run_test} "pcm_f32_decode.liq" liquidsoap pcm_f32_decode.liq -- "")))
 
 (rule
  (alias test_subtitle_concat)
@@ -3077,14 +2903,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "subtitle_concat.liq"
    liquidsoap
-   %{test_liq}
    subtitle_concat.liq
    --
    "")))
@@ -3131,14 +2956,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "subtitle_concat_copy.liq"
    liquidsoap
-   %{test_liq}
    subtitle_concat_copy.liq
    --
    "")))
@@ -3185,17 +3009,10 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   "subtitle_multi.liq"
-   liquidsoap
-   %{test_liq}
-   subtitle_multi.liq
-   --
-   "")))
+  (run %{run_test} "subtitle_multi.liq" liquidsoap subtitle_multi.liq -- "")))
 
 (rule
  (alias test_subtitle_copy_encode)
@@ -3239,14 +3056,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "subtitle_copy_encode.liq"
    liquidsoap
-   %{test_liq}
    subtitle_copy_encode.liq
    --
    "")))
@@ -3293,14 +3109,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "subtitle_reencode.liq"
    liquidsoap
-   %{test_liq}
    subtitle_reencode.liq
    --
    "")))

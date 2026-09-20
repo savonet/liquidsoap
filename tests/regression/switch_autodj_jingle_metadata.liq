@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for stale jingle metadata in a delayed-jingle autodj.
 #
 # With `jingles = delay(d, playlist(...))` and `autodj = fallback([jingles,

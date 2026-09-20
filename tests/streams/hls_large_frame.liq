@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 frame.duration := 0.1
 
 tmp_dir = file.temp_dir("tmp")

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 n = 8
 starts = list.init(n, fun (_) -> ref(0.))
 ends = list.init(n, fun (_) -> ref(0.))

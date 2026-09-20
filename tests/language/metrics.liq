@@ -1,4 +1,7 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
+
 def f() =
   n = liquidsoap.functions.count()
   print(

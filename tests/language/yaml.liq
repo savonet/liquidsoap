@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   j = json.object()
   j.add("foo", 1)

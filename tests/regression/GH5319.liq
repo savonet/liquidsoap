@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # See: https://github.com/savonet/liquidsoap/issues/5319
 # Segments used to be anchored on the previous split position instead of the
 # `segment_duration` grid, so their boundaries drifted backwards. The drift

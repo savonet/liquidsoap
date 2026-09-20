@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Two listeners connect simultaneously to a dedicated_encoder=true output.
 # Verifies that each gets its own encoder and on_connect fires for both.
 def f() =

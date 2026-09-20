@@ -1,4 +1,7 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
+
 def f() =
   # Correctly parse urls with empty arguments.
   # https://github.com/savonet/liquidsoap/issues/123

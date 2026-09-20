@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # `on_leave` must fire on every handoff, and its `track_sensitive` argument must

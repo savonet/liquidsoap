@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s1 = sine(440.)
 
 audio = source.tracks(s1).audio

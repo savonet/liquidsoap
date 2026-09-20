@@ -226,7 +226,7 @@
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
@@ -235,7 +235,6 @@
    liquidsoap
    --stdlib
    %{stdlib}
-   %{test_liq}
    ./test_crossfade-plot.liq)))
 
 (rule
@@ -272,7 +271,7 @@
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
@@ -281,7 +280,6 @@
    liquidsoap
    --stdlib
    %{stdlib}
-   %{test_liq}
    ./test_autocue-plot.liq)))
 
 (rule
@@ -340,7 +338,7 @@
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
@@ -349,7 +347,6 @@
    liquidsoap
    --stdlib
    %{stdlib}
-   %{test_liq}
    ./test_icecast_ssl.liq)))
 
 (rule
@@ -363,7 +360,7 @@
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
@@ -372,7 +369,6 @@
    liquidsoap
    --stdlib
    %{stdlib}
-   %{test_liq}
    ./test_icecast_tls.liq)))
 
 (rule
@@ -386,7 +382,7 @@
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
@@ -395,7 +391,6 @@
    liquidsoap
    --stdlib
    %{stdlib}
-   %{test_liq}
    ./test_icecast_ssl_tls.liq)))
 
 (rule
@@ -409,7 +404,7 @@
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
@@ -418,7 +413,6 @@
    liquidsoap
    --stdlib
    %{stdlib}
-   %{test_liq}
    ./test_icecast_tls_ssl.liq)))
 
 (rule
@@ -575,14 +569,13 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    "Video size auto-detection"
    liquidsoap
-   %{test_liq}
    test_video_size_autodetect.liq)))
 
 (alias

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Test huge playlists, see #2162
 log.level.set(5)
 uname_s =

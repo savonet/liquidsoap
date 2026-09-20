@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression for https://github.com/savonet/liquidsoap/discussions/5148
 #
 

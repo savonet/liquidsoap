@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 daytime = time.predicate("9h-21h")
 
 def f() =

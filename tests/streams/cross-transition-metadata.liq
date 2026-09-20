@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # `cross` used to replay the outgoing track's metadata into the transition, so a
 # transition keeping the outgoing source announced that track a second time. With
 # an `add`-shaped transition both replays landed at the same frame position and

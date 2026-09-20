@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s =
   playlist(
     cue_in_metadata=null,

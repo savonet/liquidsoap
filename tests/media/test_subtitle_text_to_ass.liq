@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # Test custom text_to_ass function for subtitle encoding

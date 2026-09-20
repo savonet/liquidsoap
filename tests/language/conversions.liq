@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def fn() =
   test.equal(int_of_string("0xff"), 255)
   test.raises(fun () -> int_of_string("ff"))

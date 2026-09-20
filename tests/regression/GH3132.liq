@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 last_source = sine()
 last_source =
   metadata.map(insert_missing=true, fun (_) -> [("last", "true")], last_source)

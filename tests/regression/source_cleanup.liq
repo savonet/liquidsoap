@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = sine()
 output.dummy(s)
 
