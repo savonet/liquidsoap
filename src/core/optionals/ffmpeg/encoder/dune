@@ -12,6 +12,7 @@
   ffmpeg-swscale
   liquidsoap-lang
   liquidsoap_core
+  liquidsoap_core_encoder_types
   liquidsoap_ffmpeg_base
   metadata
   mm

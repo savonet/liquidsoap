@@ -22,8 +22,6 @@
 
 open Value
 
-let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
-
 let make params =
   let defaults =
     {
@@ -128,4 +126,4 @@ let make params =
 
 let () =
   let make p = Encoder.Ogg { Ogg_format.audio = Some (make p); video = None } in
-  Lang_encoder.register "opus" type_of_encoder make
+  Lang_encoder.register "opus" make

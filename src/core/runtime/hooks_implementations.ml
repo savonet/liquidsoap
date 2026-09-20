@@ -150,7 +150,6 @@ let register () =
   Dtools.Log.conf_file#on_change on_change;
   Option.iter on_change Dtools.Log.conf_file#get_d;
   Hooks.implement Hooks.make_log (fun name -> (Log.make name :> Hooks.log));
-  Hooks.implement Hooks.type_of_encoder Lang_encoder.type_of_encoder;
   Hooks.implement Hooks.make_encoder Lang_encoder.make_encoder;
   Hooks.implement Hooks.eval_check eval_check;
   Hooks.implement Hooks.has_encoder (fun fmt ->

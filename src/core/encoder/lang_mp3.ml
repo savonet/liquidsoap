@@ -22,8 +22,6 @@
 
 open Value
 
-let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
-
 let allowed_bitrates =
   [
     8; 16; 24; 32; 40; 48; 56; 64; 80; 96; 112; 128; 144; 160; 192; 224; 256; 320;
@@ -253,7 +251,7 @@ let make_vbr p =
     p
 
 let () =
-  Lang_encoder.register "mp3" type_of_encoder make_cbr;
-  Lang_encoder.register "mp3.cbr" type_of_encoder make_cbr;
-  Lang_encoder.register "mp3.abr" type_of_encoder make_abr;
-  Lang_encoder.register "mp3.vbr" type_of_encoder make_vbr
+  Lang_encoder.register "mp3" make_cbr;
+  Lang_encoder.register "mp3.cbr" make_cbr;
+  Lang_encoder.register "mp3.abr" make_abr;
+  Lang_encoder.register "mp3.vbr" make_vbr

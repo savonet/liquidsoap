@@ -22,8 +22,6 @@
 
 open Value
 
-let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
-
 let make params =
   let valid_samplerates =
     [
@@ -129,4 +127,4 @@ let make params =
       failwith "HE-AAC v2 is only available with 2 channels.";
   Encoder.FdkAacEnc fdkaac
 
-let () = Lang_encoder.register "fdkaac" type_of_encoder make
+let () = Lang_encoder.register "fdkaac" make

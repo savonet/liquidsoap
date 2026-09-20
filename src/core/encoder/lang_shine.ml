@@ -22,8 +22,6 @@
 
 open Value
 
-let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
-
 let make params =
   let defaults =
     {
@@ -61,5 +59,5 @@ let make params =
   Encoder.Shine shine
 
 let () =
-  Lang_encoder.register "shine" type_of_encoder make;
-  Lang_encoder.register "mp3.fxp" type_of_encoder make
+  Lang_encoder.register "shine" make;
+  Lang_encoder.register "mp3.fxp" make

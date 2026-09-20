@@ -12,6 +12,7 @@
   ffmpeg-swresample
   ffmpeg-swscale
   liquidsoap-lang
+  liquidsoap_core_encoder_types
   liquidsoap_core
   mm
   mm.audio

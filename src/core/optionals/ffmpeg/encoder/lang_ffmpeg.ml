@@ -617,4 +617,6 @@ let make params =
   in
   Encoder.Ffmpeg (ffmpeg_gen params)
 
-let () = Lang_encoder.register "ffmpeg" type_of_encoder make
+let () =
+  Liquidsoap_core_encoder_types.Encoder_types.register "ffmpeg" type_of_encoder;
+  Lang_encoder.register "ffmpeg" make

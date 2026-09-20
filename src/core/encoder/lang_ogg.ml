@@ -20,24 +20,6 @@
 
  *****************************************************************************)
 
-let type_of_encoder p =
-  let audio = ["vorbis"; "vorbis.cbr"; "vorbis.abr"; "opus"; "speex"; "flac"] in
-  let audio =
-    List.find_map
-      (function
-        | `Encoder (e, p) -> if List.mem e audio then Some p else None
-        | _ -> None)
-      p
-  in
-  let channels =
-    match audio with None -> 0 | Some p -> Lang_encoder.channels_of_params p
-  in
-  let video =
-    List.exists (function `Encoder ("theora", _) -> true | _ -> false) p
-  in
-  if not video then Encoder.audio_type ~pcm_kind:Content.Audio.kind channels
-  else Encoder.audio_video_type ~pcm_kind:Content.Audio.kind channels
-
 let make p =
   let ogg_audio e p =
     match e with
@@ -66,4 +48,4 @@ let make p =
   in
   Encoder.Ogg { Ogg_format.audio; video }
 
-let () = Lang_encoder.register "ogg" type_of_encoder make
+let () = Lang_encoder.register "ogg" make

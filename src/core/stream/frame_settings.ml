@@ -278,3 +278,11 @@ let size =
         size)
 
 let duration = delayed (fun () -> float !!size /. float !!main_rate)
+
+(* The formats library asks for these when a script gives a frame no type of
+   its own. *)
+let () =
+  (Liquidsoap_core_formats.Frame_type.default_audio_channels :=
+     fun () -> conf_audio_channels#get);
+  Liquidsoap_core_formats.Frame_type.default_video :=
+    fun () -> conf_video_default#get

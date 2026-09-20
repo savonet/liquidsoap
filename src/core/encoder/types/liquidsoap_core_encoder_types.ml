@@ -20,17 +20,6 @@
 
  *****************************************************************************)
 
-(* See liquidsoap_core_formats.mli. *)
+(* See liquidsoap_core_encoder_types.mli. *)
 
-module Audio_format = Audio_format
-module Audio_layout = Audio_layout
-module Content_base = Content_base
-module Fields = Fields
-module Format_type = Format_type
-module Frame_type = Frame_type
-module Midi_format = Midi_format
-module Pcm_format = Pcm_format
-module Subtitle_format = Subtitle_format
-module Timed_format = Timed_format
-module Unifier = Unifier
-module Video_format = Video_format
+module Encoder_types = Encoder_types

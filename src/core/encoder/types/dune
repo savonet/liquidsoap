@@ -1,0 +1,36 @@
+; What an encoder produces, as a type.
+;
+; %mp3(stereo=false) is format(audio=pcm(mono)) whether or not lame is around
+; to encode anything, so this half of the encoder registry depends on the
+; language and the content formats alone. The other half -- building the
+; encoder itself -- lives in liquidsoap_core_encoder.
+;
+; liquidsoap_core_encoder_types.mli lists what this library exports.
+
+(library
+ (name liquidsoap_core_encoder_types)
+ (public_name liquidsoap.encoder_types)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang
+   -open
+   Liquidsoap_core_formats))
+ (libraries
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  liquidsoap_core_formats))

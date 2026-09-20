@@ -22,8 +22,6 @@
 
 open Value
 
-let type_of_encoder _ = Encoder.video_type ()
-
 let make params =
   let video_width, video_height = Frame.video_dimensions () in
   let defaults =
@@ -136,4 +134,4 @@ let make params =
 
 let () =
   let make p = Encoder.Ogg { Ogg_format.audio = None; video = Some (make p) } in
-  Lang_encoder.register "theora" type_of_encoder make
+  Lang_encoder.register "theora" make

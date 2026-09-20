@@ -22,8 +22,6 @@
 
 open Value
 
-let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
-
 let make_cbr params =
   let defaults =
     {
@@ -152,6 +150,6 @@ let () =
   let make_cbr p =
     Encoder.Ogg { Ogg_format.audio = Some (make_cbr p); video = None }
   in
-  Lang_encoder.register "vorbis" type_of_encoder make;
-  Lang_encoder.register "vorbis.abr" type_of_encoder make_abr;
-  Lang_encoder.register "vorbis.cbr" type_of_encoder make_cbr
+  Lang_encoder.register "vorbis" make;
+  Lang_encoder.register "vorbis.abr" make_abr;
+  Lang_encoder.register "vorbis.cbr" make_cbr

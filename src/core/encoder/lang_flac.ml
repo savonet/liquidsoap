@@ -22,7 +22,6 @@
 
 open Value
 
-let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
 let accepted_bits_per_sample = [8; 16; 24; 32]
 
 let flac_gen params =
@@ -66,4 +65,4 @@ let flac_gen params =
 
 let make_ogg params = Ogg_format.Flac (flac_gen params)
 let make params = Encoder.Flac (flac_gen params)
-let () = Lang_encoder.register "flac" type_of_encoder make
+let () = Lang_encoder.register "flac" make

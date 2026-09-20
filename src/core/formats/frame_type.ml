@@ -21,9 +21,9 @@
  *****************************************************************************)
 
 let make ?pos base_type fields =
-  Frame.Fields.fold
+  Fields.fold
     (fun field field_type typ ->
-      let field = Frame.Fields.string_of_field field in
+      let field = Fields.string_of_field field in
       let meth =
         {
           Type.meth = field;
@@ -42,7 +42,7 @@ let internal_tracks ?pos () =
 let pcm_audio ?pos () = Type.var ?pos ~constraints:[Format_type.pcm_audio] ()
 
 let set_field frame_type field field_type =
-  let field = Frame.Fields.string_of_field field in
+  let field = Fields.string_of_field field in
   let meth =
     {
       Type.meth = field;
@@ -56,10 +56,10 @@ let set_field frame_type field field_type =
 
 let get_fields frame_type =
   let fields, _ = Type.split_meths frame_type in
-  List.map (fun Type.{ meth } -> Frame.Fields.register meth) fields
+  List.map (fun Type.{ meth } -> Fields.register meth) fields
 
 let get_field frame_type field =
-  let field = Frame.Fields.string_of_field field in
+  let field = Fields.string_of_field field in
   let fields, _ = Type.split_meths frame_type in
   match
     List.find_map
@@ -70,6 +70,11 @@ let get_field frame_type field =
     | Some v -> v
     | None -> raise Not_found
 
+(* What a frame gets when a script says nothing, which core reads from the
+   settings. *)
+let default_audio_channels = ref (fun () -> 0)
+let default_video = ref (fun () -> false)
+
 let content_type frame_type =
   let meths, base_type = Type.split_meths frame_type in
   let frame_type =
@@ -77,20 +82,16 @@ let content_type frame_type =
       (* If type is empty we add default formats. *)
       | [], Type.Var _ ->
           let audio =
-            if Frame_settings.conf_audio_channels#get > 0 then
+            if !default_audio_channels () > 0 then
               Some
-                (Format_type.audio_n ~pcm_kind:Content_audio.kind
-                   Frame_settings.conf_audio_channels#get)
+                (Format_type.audio_n ~pcm_kind:Audio_format.kind
+                   (!default_audio_channels ()))
             else None
           in
           let video =
-            if Frame_settings.conf_video_default#get then
-              Some (Format_type.video ())
-            else None
+            if !default_video () then Some (Format_type.video ()) else None
           in
-          let default_t =
-            make (Type.var ()) (Frame.Fields.make ?audio ?video ())
-          in
+          let default_t = make (Type.var ()) (Fields.make ?audio ?video ()) in
           Typing.(frame_type <: default_t);
           default_t
       | _ ->
@@ -102,7 +103,7 @@ let content_type frame_type =
                (function
                  | { Type.meth = "audio"; scheme = [], ty } ->
                      Typing.(
-                       ty <: Format_type.audio ~pcm_kind:Content_audio.kind ())
+                       ty <: Format_type.audio ~pcm_kind:Audio_format.kind ())
                  | { Type.meth = "video"; scheme = [], ty } ->
                      Typing.(ty <: Format_type.video ())
                  | _ -> ())
@@ -119,13 +120,13 @@ let content_type frame_type =
         try
           let format = Format_type.content_type ty in
           let format_type = Type.make (Format_type.descr (`Format format)) in
-          ( Frame.Fields.add (Frame.Fields.register field) format content_type,
+          ( Fields.add (Fields.register field) format content_type,
             Type.make
               (Type.Meth
                  ( { meth with Type.scheme = ([], format_type) },
                    resolved_frame_type )) )
         with Format_type.Never_type -> (content_type, resolved_frame_type))
-      (Frame.Fields.empty, Type.make Type.unit)
+      (Fields.empty, Type.make Type.unit)
       meths
   in
   Typing.(frame_type <: resolved_frame_type);
