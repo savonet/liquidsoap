@@ -111,22 +111,8 @@ module Metadata = Metadata_base
 
 type metadata = Metadata_base.t
 
-let audio_format ~pcm_kind params =
-  let lift_params =
-    match pcm_kind with
-      | _ when Content_audio.is_kind pcm_kind -> Content_audio.lift_params
-      | _ when Content_pcm_s16.is_kind pcm_kind -> Content_pcm_s16.lift_params
-      | _ when Content_pcm_f32.is_kind pcm_kind -> Content_pcm_f32.lift_params
-      | _ -> raise Content_base.Invalid
-  in
-  lift_params params
-
-let format_of_channels ~pcm_kind n =
-  audio_format ~pcm_kind
-    {
-      Content_audio.Specs.channel_layout =
-        Lazy.Mutexed.from_val (Audio_layout.layout_of_channels n);
-    }
+let audio_format = Pcm_format.audio_format
+let format_of_channels = Pcm_format.format_of_channels
 
 let add_timed_content ?length content =
   Fields.add Fields.track_marks

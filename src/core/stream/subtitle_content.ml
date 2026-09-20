@@ -30,23 +30,11 @@ type subtitle = {
 
 let compare (x : int) (y : int) = x - y [@@inline always]
 
-module Specs = struct
-  type kind = [ `Subtitle ]
+module Data = struct
   type params = unit
   type 'a content = { length : int; mutable data : (int * 'a) list }
   type data = subtitle content
 
-  let name = "subtitle"
-  let kind = `Subtitle
-  let string_of_kind _ = "subtitles"
-  let kind_of_string = function "subtitles" -> Some `Subtitle | _ -> None
-  let string_of_params () = ""
-  let compatible () () = true
-  let default_params _ = ()
-  let parse_param _ _ = None
-  let serialize_params () = ""
-  let parse_params = function "" -> Some () | _ -> None
-  let merge () () = ()
   let make ?(length = 0) _ = { length; data = [] }
   let length { length } = length
 
@@ -75,8 +63,6 @@ module Specs = struct
 
   let copy d = { d with data = List.map (fun (pos, x) -> (pos, x)) d.data }
   let params _ = ()
-  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
-  let params_to_value () = Liquidsoap_lang.Lang_core.string ""
 
   let checksum d =
     let entries =
@@ -91,9 +77,8 @@ module Specs = struct
     Digest.string (String.concat "|" entries) |> Digest.to_hex
 end
 
-include Content_base.MkContentBase (Specs)
-
-let format = lift_params ()
+include Content_base.MkDataBase (Subtitle_format.Format) (Data)
+include Subtitle_format
 
 let lift_data ?length s =
   let length =
@@ -103,14 +88,14 @@ let lift_data ?length s =
           (* Default to max position + 1 to ensure content covers all positions *)
           List.fold_left (fun l (p, _) -> max l (p + 1)) 0 s
   in
-  lift_data { Specs.length; data = s }
+  lift_data { Data.length; data = s }
 
 let set_data d s =
   let d = get_data d in
-  d.Specs.data <- s
+  d.Data.data <- s
 
 let get_data d =
-  let { Specs.length; data } = get_data d in
+  let { Data.length; data } = get_data d in
   List.filter
     (fun (p, _) -> 0 <= p && p < length)
     (List.stable_sort (fun (p, _) (p', _) -> compare p p') data)

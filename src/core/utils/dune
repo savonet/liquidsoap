@@ -74,6 +74,7 @@
   duppy
   liquidsoap-lang
   liquidsoap-lang.ast
+  liquidsoap_core_formats
   liquidsoap-lang.cache
   liquidsoap-lang.console
   liquidsoap-lang.data

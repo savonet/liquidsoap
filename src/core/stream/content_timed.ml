@@ -25,7 +25,7 @@ let compare (x : int) (y : int) = x - y [@@inline always]
 type length = Finite of int | Infinite
 
 (** Generic content spec for timed list contents. *)
-module Specs = struct
+module Timed = struct
   type params = unit
   type 'a content = { length : length; mutable data : (int * 'a) list }
 
@@ -93,27 +93,12 @@ module Specs = struct
   let params _ = ()
 end
 
-module Metadata_specs = struct
-  include Specs
+module Metadata_data = struct
+  include Timed
 
-  type kind = [ `Metadata ]
   type params = unit
   type data = Metadata_base.t content
 
-  let name = "metadata"
-  let internal_content_type = None
-  let kind = `Metadata
-  let string_of_kind _ = "metadata"
-  let kind_of_string = function "metadata" -> Some `Metadata | _ -> None
-  let string_of_params () = ""
-  let compatible _ _ = true
-  let default_params _ = ()
-  let parse_param _ _ = Some ()
-  let serialize_params () = ""
-  let parse_params = function "" -> Some () | _ -> None
-  let merge _ _ = ()
-  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
-  let params_to_value () = Liquidsoap_lang.Lang_core.string ""
   let copy = copy ~copy:(fun x -> x)
 
   let checksum d =
@@ -126,49 +111,34 @@ module Metadata_specs = struct
 end
 
 module Metadata = struct
-  include Content_base.MkContentBase (Metadata_specs)
-
-  let format = lift_params ()
+  include Content_base.MkDataBase (Timed_format.Metadata.Format) (Metadata_data)
+  include Timed_format.Metadata
 
   let lift_data m =
     lift_data
       {
-        Specs.length = Finite (List.fold_left (fun l (p, _) -> Int.max l p) 0 m);
+        Timed.length = Finite (List.fold_left (fun l (p, _) -> Int.max l p) 0 m);
         data = m;
       }
 
   let set_data d m =
     let d = get_data d in
-    d.Specs.data <- m
+    d.Timed.data <- m
 
   let get_data d =
-    let { Specs.length; data } = get_data d in
+    let { Timed.length; data } = get_data d in
     let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
       (fun (p, _) -> 0 <= p && p < length)
       (List.stable_sort (fun (p, _) (p', _) -> Int.compare p p') data)
 end
 
-module Track_marks_specs = struct
-  include Specs
+module Track_marks_data = struct
+  include Timed
 
-  type kind = [ `Track_marks ]
+  type params = unit
   type data = unit content
 
-  let name = "track_marks"
-  let internal_content_type = None
-  let kind = `Track_marks
-  let string_of_kind _ = "track_marks"
-  let kind_of_string = function "track_marks" -> Some `Track_marks | _ -> None
-  let string_of_params () = ""
-  let compatible _ _ = true
-  let default_params _ = ()
-  let parse_param _ _ = Some ()
-  let serialize_params () = ""
-  let parse_params = function "" -> Some () | _ -> None
-  let merge _ _ = ()
-  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
-  let params_to_value () = Liquidsoap_lang.Lang_core.string ""
   let copy = copy ~copy:(fun () -> ())
 
   let checksum d =
@@ -177,23 +147,24 @@ module Track_marks_specs = struct
 end
 
 module Track_marks = struct
-  include Content_base.MkContentBase (Track_marks_specs)
+  include
+    Content_base.MkDataBase (Timed_format.Track_marks.Format) (Track_marks_data)
 
-  let format = lift_params ()
+  include Timed_format.Track_marks
 
   let lift_data p =
     lift_data
       {
-        Specs.length = Finite (List.fold_left (fun l p -> Int.max l p) 0 p);
+        Timed.length = Finite (List.fold_left (fun l p -> Int.max l p) 0 p);
         data = List.map (fun p -> (p, ())) p;
       }
 
   let set_data d b =
     let d = get_data d in
-    d.Specs.data <- List.map (fun pos -> (pos, ())) b
+    d.Timed.data <- List.map (fun pos -> (pos, ())) b
 
   let get_data d =
-    let { Specs.length; data } = get_data d in
+    let { Timed.length; data } = get_data d in
     let length = match length with Infinite -> max_int | Finite len -> len in
     List.filter
       (fun p -> 0 <= p && p < length)

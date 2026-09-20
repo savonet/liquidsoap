@@ -23,17 +23,17 @@
 (** Frames and the content they carry. *)
 
 module AFrame = AFrame
-module Audio_layout = Audio_layout
+module Audio_layout = Liquidsoap_core_formats.Audio_layout
 module Content = Content
+module Content_base = Liquidsoap_core_formats.Content_base
 module Content_audio = Content_audio
-module Content_base = Content_base
 module Content_midi = Content_midi
 module Content_pcm_base = Content_pcm_base
 module Content_pcm_f32 = Content_pcm_f32
 module Content_pcm_s16 = Content_pcm_s16
 module Content_timed = Content_timed
 module Content_video = Content_video
-module Format_type = Format_type
+module Format_type = Liquidsoap_core_formats.Format_type
 module Frame = Frame
 module Frame_base = Frame_base
 module Frame_settings = Frame_settings

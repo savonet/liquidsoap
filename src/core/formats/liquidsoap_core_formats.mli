@@ -20,35 +20,17 @@
 
  *****************************************************************************)
 
-(** Leaf utilities. *)
+(** What a content type is, and how it is described to the language. Depends on
+    the language alone: no frames, no mm buffers, no settings, so that a process
+    which only typechecks scripts can link it. *)
 
-module Atomic_section = Atomic_section
-module Charset = Charset
-module Charset_base = Charset_base
-module Concurrent_hashtbl = Concurrent_hashtbl
-module Configure = Configure
-module Doc = Doc
-module Extra_args = Extra_args
-module Extralib = Extralib
-module Lang_string = Lang_string
-module Lifecycle = Lifecycle
-module Liq_http = Liq_http
-module Liq_time = Liq_time
-module Liquidsoap_paths = Liquidsoap_paths
-module Log = Log
-module Mutex_utils = Mutex_utils
-module Plug = Plug
-module Pool = Pool
-module Process_handler = Process_handler
-module Queues = Queues
-module Sandbox = Sandbox
-module Script_callback = Script_callback
-module Server = Server
-module Sha1 = Sha1
-module Startup = Startup
-module StringView = StringView
-module Strings = Strings
-module ByteRing = ByteRing
-module Tutils = Tutils
-module Unifier = Liquidsoap_core_formats.Unifier
-module Utils = Utils
+module Audio_format = Audio_format
+module Audio_layout = Audio_layout
+module Content_base = Content_base
+module Format_type = Format_type
+module Midi_format = Midi_format
+module Pcm_format = Pcm_format
+module Subtitle_format = Subtitle_format
+module Timed_format = Timed_format
+module Unifier = Unifier
+module Video_format = Video_format

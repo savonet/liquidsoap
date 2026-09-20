@@ -20,24 +20,33 @@
 
  *****************************************************************************)
 
+(* [a, b or c], for the description of a constraint. *)
+let concat_with_last ~last sep l =
+  match List.rev l with
+    | [] -> ""
+    | [x] -> x
+    | [x; y] -> Printf.sprintf "%s %s %s" y last x
+    | x :: l ->
+        Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x
+
 type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
 
 (* By convention, all format for pcm kind are from Content_audio to
    allow shared parameters between the different pcm implementations. *)
 let normalize_format f =
   match f with
-    | _ when Content_pcm_s16.is_format f ->
-        Content_audio.lift_params (Content_pcm_s16.get_params f)
-    | _ when Content_pcm_f32.is_format f ->
-        Content_audio.lift_params (Content_pcm_f32.get_params f)
+    | _ when Pcm_format.S16.is_format f ->
+        Audio_format.lift_params (Pcm_format.S16.get_params f)
+    | _ when Pcm_format.F32.is_format f ->
+        Audio_format.lift_params (Pcm_format.F32.get_params f)
     | _ -> f
 
 let denormalize_format k f =
   match k with
-    | _ when Content_pcm_s16.is_kind k ->
-        Content_pcm_s16.lift_params (Content_audio.get_params f)
-    | _ when Content_pcm_f32.is_kind k ->
-        Content_pcm_f32.lift_params (Content_audio.get_params f)
+    | _ when Pcm_format.S16.is_kind k ->
+        Pcm_format.S16.lift_params (Audio_format.get_params f)
+    | _ when Pcm_format.F32.is_kind k ->
+        Pcm_format.F32.lift_params (Audio_format.get_params f)
     | _ -> f
 
 module FormatSpecs = struct
@@ -159,19 +168,19 @@ end
 
 let pcm_modules =
   [
-    (module Content_audio : Content);
-    (module Content_pcm_s16 : Content);
-    (module Content_pcm_f32 : Content);
+    (module Audio_format : Content);
+    (module Pcm_format.S16 : Content);
+    (module Pcm_format.F32 : Content);
   ]
 
 module Content_metadata = struct
-  include Content_timed.Metadata
+  include Timed_format.Metadata
 
   let kind = Content_base.kind format
 end
 
 module Content_track_marks = struct
-  include Content_timed.Track_marks
+  include Timed_format.Track_marks
 
   let kind = Content_base.kind format
 end
@@ -179,7 +188,7 @@ end
 let internal_modules =
   pcm_modules
   @ [
-      (module Content_video : Content);
+      (module Video_format : Content);
       (module Content_metadata : Content);
       (module Content_track_marks : Content);
     ]
@@ -200,8 +209,7 @@ let check_track ?univ_descr ~name modules =
   Type.constr ?univ_descr ~name
     ~descr:
       (Printf.sprintf "a track of type: %s"
-         (Utils.concat_with_last ~last:"or" ", "
-            (List.map string_of_kind modules)))
+         (concat_with_last ~last:"or" ", " (List.map string_of_kind modules)))
     (fun ~subtype:_ ~satisfies b ->
       let b = Type.demeth b in
       match b.Type.descr with
@@ -280,18 +288,18 @@ let muxed_tracks =
 
 let content_type ty = content_type ty
 
-let audio ?(pcm_kind = Content_audio.kind) () =
+let audio ?(pcm_kind = Audio_format.kind) () =
   Type.make (descr (`Kind pcm_kind))
 
 let () =
-  Type.register_type (Content_base.string_of_kind Content_audio.kind) (fun () ->
-      Type.make (Type.Custom (kind_handler (Content_audio.kind, Type.var ()))))
+  Type.register_type (Content_base.string_of_kind Audio_format.kind) (fun () ->
+      Type.make (Type.Custom (kind_handler (Audio_format.kind, Type.var ()))))
 
-let audio_n ?(pcm_kind = Content_audio.kind) n =
+let audio_n ?(pcm_kind = Audio_format.kind) n =
   Type.make
     (descr
        (`Format
-          (Frame_base.audio_format ~pcm_kind
+          (Pcm_format.audio_format ~pcm_kind
              {
                channel_layout =
                  Lazy.Mutexed.from_val (Audio_layout.layout_of_channels n);
@@ -299,30 +307,30 @@ let audio_n ?(pcm_kind = Content_audio.kind) n =
 
 let audio_mono ?pcm_kind () = audio_n ?pcm_kind 1
 let audio_stereo ?pcm_kind () = audio_n ?pcm_kind 2
-let video () = Type.make (descr (`Kind Content_video.kind))
+let video () = Type.make (descr (`Kind Video_format.kind))
 
 let () =
-  Type.register_type (Content_base.string_of_kind Content_video.kind) (fun () ->
-      Type.make (Type.Custom (kind_handler (Content_video.kind, Type.var ()))))
+  Type.register_type (Content_base.string_of_kind Video_format.kind) (fun () ->
+      Type.make (Type.Custom (kind_handler (Video_format.kind, Type.var ()))))
 
-let subtitle () = Type.make (descr (`Format Subtitle_content.format))
-let midi () = Type.make (descr (`Kind Content_midi.kind))
+let subtitle () = Type.make (descr (`Format Subtitle_format.format))
+let midi () = Type.make (descr (`Kind Midi_format.kind))
 
 let () =
-  Type.register_type (Content_base.string_of_kind Content_midi.kind) (fun () ->
-      Type.make (Type.Custom (kind_handler (Content_midi.kind, Type.var ()))))
+  Type.register_type (Content_base.string_of_kind Midi_format.kind) (fun () ->
+      Type.make (Type.Custom (kind_handler (Midi_format.kind, Type.var ()))))
 
 let midi_n n =
-  Type.make (descr (`Format Content_midi.(lift_params { channels = n })))
+  Type.make (descr (`Format Midi_format.(lift_params { channels = n })))
 
-let track_marks = Type.make (descr (`Format Content_timed.Track_marks.format))
+let track_marks = Type.make (descr (`Format Timed_format.Track_marks.format))
 
 let () =
   Type.register_type "track_marks" (fun () ->
-      Type.make (descr (`Format Content_timed.Track_marks.format)))
+      Type.make (descr (`Format Timed_format.Track_marks.format)))
 
-let metadata = Type.make (descr (`Format Content_timed.Metadata.format))
+let metadata = Type.make (descr (`Format Timed_format.Metadata.format))
 
 let () =
   Type.register_type "metadata" (fun () ->
-      Type.make (descr (`Format Content_timed.Track_marks.format)))
+      Type.make (descr (`Format Timed_format.Track_marks.format)))

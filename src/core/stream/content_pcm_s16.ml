@@ -22,23 +22,17 @@
 
 open Content_base
 
-module Specs = struct
-  include Content_pcm_base
-
-  type kind = [ `Pcm_s16 ]
-
-  let kind = `Pcm_s16
-  let kind_of_string = function "pcm_s16" -> Some `Pcm_s16 | _ -> None
+module Data = struct
+  type params = Pcm_format.Shared.params
 
   type data =
     (int, Bigarray.int16_signed_elt, Bigarray.c_layout) Bigarray.Array1.t array
 
-  let name = "pcm_s16"
-  let string_of_kind = function `Pcm_s16 -> "pcm_s16"
-  let copy = copy ~fmt:Bigarray.int16_signed
-  let make = make ~fmt:Bigarray.int16_signed
-  let content_lang_typ = Content_audio.Specs.content_lang_typ
-  let params_to_value = Content_audio.Specs.params_to_value
+  let params = Content_pcm_base.params
+  let length = Content_pcm_base.length
+  let blit = Content_pcm_base.blit
+  let copy = Content_pcm_base.copy ~fmt:Bigarray.int16_signed
+  let make = Content_pcm_base.make ~fmt:Bigarray.int16_signed
 
   let checksum d =
     let len =
@@ -56,9 +50,9 @@ module Specs = struct
     Digest.bytes buf |> Digest.to_hex
 end
 
-include MkContentBase (Specs)
+include MkDataBase (Pcm_format.S16.Format) (Data)
+include Pcm_format.S16
 
-let kind = lift_kind `Pcm_s16
 let clear = Content_pcm_base.clear_content ~v:0
 let from_audio c = Mm.Audio.to_int16_ba c 0 (Mm.Audio.length c)
 let to_audio = Mm.Audio.of_int16_ba

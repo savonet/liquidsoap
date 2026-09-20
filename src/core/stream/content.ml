@@ -141,6 +141,24 @@ module Midi = struct
   type midi_params = Content_midi.Specs.params = { channels : int }
 end
 
+(* A plug rather than a list so that reading it before every content module
+   has registered raises instead of quietly returning a prefix. Deriving the
+   type of format.description from it is exactly the kind of thing that used to
+   depend on link order. *)
+let content_lang_specs : Content_base.content_lang_spec Plug.t =
+  Plug.create ~doc:"Language description of content formats." "content formats"
+
+let register_content_lang ({ Content_base.format_name; method_name } as spec) =
+  Plug.register content_lang_specs format_name
+    ~doc:
+      (Printf.sprintf "Described by the `%s` method of `format.description`."
+         method_name)
+    spec
+
+let () =
+  Queue.iter register_content_lang Content_base.content_lang_specs;
+  Content_base.on_content_lang := register_content_lang
+
 let value_of_format fmt =
   let name = fmt.Contents.name in
   Option.map

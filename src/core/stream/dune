@@ -24,6 +24,8 @@
    -open
    Liquidsoap_lang
    -open
+   Liquidsoap_core_formats
+   -open
    Liquidsoap_core_utils))
  (libraries
   dtools
@@ -33,6 +35,7 @@
   liquidsoap-lang.prelude
   liquidsoap-lang.types
   liquidsoap-lang.values
+  liquidsoap_core_formats
   liquidsoap_core_utils
   metadata
   mm

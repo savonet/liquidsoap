@@ -61,18 +61,13 @@ let print_optional l =
 exception Invalid
 exception Incompatible_format of Contents.format * Contents.format
 
-module type ContentSpecs = sig
+(** What a content type is, as far as the language is concerned: its kind, its
+    parameters and how they are named, parsed and printed. *)
+module type FormatSpecs = sig
   type kind
   type params
-  type data
 
   val name : string
-  val make : ?length:int -> params -> data
-  val length : data -> int
-  val blit : data -> int -> data -> int -> int -> unit
-  val copy : data -> data
-  val checksum : data -> string
-  val params : data -> params
   val merge : params -> params -> params
   val compatible : params -> params -> bool
   val string_of_params : params -> string
@@ -85,6 +80,37 @@ module type ContentSpecs = sig
   val kind_of_string : string -> kind option
   val content_lang_typ : Type.t
   val params_to_value : params -> Value.t
+end
+
+(** The buffers a content type holds, which only a process that streams needs.
+*)
+module type DataSpecs = sig
+  type params
+  type data
+
+  val make : ?length:int -> params -> data
+  val length : data -> int
+  val blit : data -> int -> data -> int -> int -> unit
+  val copy : data -> data
+  val checksum : data -> string
+  val params : data -> params
+end
+
+module type ContentSpecs = sig
+  include FormatSpecs
+  include DataSpecs with type params := params
+end
+
+module type Format = sig
+  include FormatSpecs
+
+  val _type : int
+  val is_format : Contents.format -> bool
+  val lift_params : params -> Contents.format
+  val get_params : Contents.format -> params
+  val is_kind : Contents.kind -> bool
+  val lift_kind : kind -> Contents.kind
+  val get_kind : Contents.kind -> kind
 end
 
 module type Content = sig
@@ -137,7 +163,6 @@ type format = Contents.format
 
 type format_handler = {
   kind : unit -> kind;
-  make : int option -> data;
   string_of_format : unit -> string;
   merge : format -> unit;
   compatible : format -> bool;
@@ -161,6 +186,11 @@ let format_param_parsers : (string -> string -> Contents.format option) array =
 
 let format_parsers : (string -> Contents.format option) array =
   Array.make max_contents (fun _ -> None)
+
+(* Making data is the one thing a format cannot do on its own: it is what the
+   buffers of that content know, and a process that only typechecks has none. *)
+let format_make_fns : (Contents.format -> int option -> Contents.data) array =
+  Array.make max_contents (fun _ _ -> raise Invalid)
 
 let parse_param { Contents.id } label value =
   match (Array.unsafe_get format_param_parsers id) label value with
@@ -198,7 +228,7 @@ let register_data_handler t h =
   Array.unsafe_set data_handlers t h
 
 let[@inline] get_data_handler (t, _) = Array.unsafe_get data_handlers t
-let make ?length k = (get_format_handler k).make length
+let make ?length k = (Array.unsafe_get format_make_fns k.Contents.id) k length
 let sub d = (get_data_handler d).sub d
 let truncate d = (get_data_handler d).truncate d
 let is_empty c = (get_data_handler c).is_empty c
@@ -253,38 +283,133 @@ type content_lang_spec = {
   format_to_value : Contents.format -> Value.t;
 }
 
-(* A plug rather than a list ref so that reading it before every content module
-   has registered raises instead of quietly returning a prefix. Deriving the
-   type of format.description from it is exactly the kind of thing that used to
-   depend on link order. *)
-let content_lang_specs : content_lang_spec Plug.t =
-  Plug.create ~doc:"Language description of content formats." "content formats"
+let content_lang_specs : content_lang_spec Queue.t = Queue.create ()
+
+(* Whoever wants to police how complete this list is says so here; a content
+   registering after that is handed over directly. *)
+let on_content_lang = ref (fun (_ : content_lang_spec) -> ())
 
 let register_content_lang format_name lang_name content_typ format_to_value =
   let method_name =
     String.map (fun c -> if c = '.' then '_' else c) lang_name
   in
-  Plug.register content_lang_specs format_name
-    ~doc:
-      (Printf.sprintf "Described by the `%s` method of `format.description`."
-         method_name)
-    { format_name; method_name; content_typ; format_to_value }
+  let spec = { format_name; method_name; content_typ; format_to_value } in
+  Queue.add spec content_lang_specs;
+  !on_content_lang spec
 
-module MkContentBase (C : ContentSpecs) :
-  Content
-    with type kind = C.kind
-     and type params = C.params
-     and type data = C.data = struct
-  include C
+module MkFormatBase (F : FormatSpecs) :
+  Format with type kind = F.kind and type params = F.params = struct
+  include F
 
   let () =
-    if List.mem C.name !content_names then
+    if List.mem F.name !content_names then
       failwith "content name already registered!";
-    content_names := C.name :: !content_names
-
-  type chunked_data = (C.params, C.data) chunks
+    content_names := F.name :: !content_names
 
   let _type = Contents.register_type ()
+
+  let deref : Contents.format_content Unifier.t -> params =
+   fun p -> Obj.magic (Unifier.deref p)
+
+  let to_format_content : params -> Contents.format_content = Obj.magic
+  let to_kind_content : kind -> Contents.kind_content = Obj.magic
+  let to_kind : Contents.kind_content -> kind = Obj.magic
+
+  let merge p p' =
+    let p' =
+      match p' with
+        | { Contents.id; content } when id = _type -> content
+        | _ -> raise Invalid
+    in
+    let m = F.merge (deref p) (deref p') in
+    Unifier.set p' (to_format_content m);
+    Unifier.(p <-- p')
+
+  let compatible p p' =
+    match p' with
+      | { Contents.id; content } when id = _type ->
+          F.compatible (deref p) (deref content)
+      | _ -> false
+
+  let[@inline] is_kind { Contents.id; _ } = id = _type
+
+  let lift_kind k : Contents.kind =
+    { Contents.id = _type; name = F.name; content = to_kind_content k }
+
+  let get_kind { Contents.id; content } =
+    if id = _type then to_kind content else raise Invalid
+
+  let[@inline] is_format { Contents.id; _ } = id = _type
+
+  let lift_params p : Contents.format =
+    {
+      Contents.id = _type;
+      name = F.name;
+      content = Unifier.make (to_format_content p);
+    }
+
+  let get_params { Contents.id; content } =
+    if id = _type then deref content else raise Invalid
+
+  let kind_of_string s = Option.map lift_kind (F.kind_of_string s)
+
+  let () =
+    let kind_fn (k : Contents.kind_content) : kind_handler =
+      let k = to_kind k in
+      {
+        default_format = (fun () -> lift_params (F.default_params k));
+        string_of_kind = (fun () -> F.string_of_kind k);
+      }
+    in
+    if Array.length kind_handler_fns <= _type then
+      failwith "Please increase kind handler array length!";
+    Array.unsafe_set kind_handler_fns _type kind_fn;
+    let format_fn (p : Contents.format_content Unifier.t) : format_handler =
+      {
+        kind = (fun () -> lift_kind F.kind);
+        merge = (fun p' -> merge p p');
+        duplicate =
+          (fun () ->
+            {
+              Contents.id = _type;
+              name = F.name;
+              content = Unifier.(make (deref p));
+            });
+        compatible = (fun p' -> compatible p p');
+        serialize = (fun () -> F.serialize_params (deref p));
+        string_of_format =
+          (fun () ->
+            let kind = F.string_of_kind F.kind in
+            let params = F.string_of_params (deref p) in
+            match params with
+              | "" -> kind
+              | _ -> Printf.sprintf "%s(%s)" kind params);
+      }
+    in
+    if Array.length format_handler_fns <= _type then
+      failwith "Please increase format handler array length!";
+    Array.unsafe_set format_handler_fns _type format_fn;
+    Array.unsafe_set format_param_parsers _type (fun label value ->
+        Option.map lift_params (F.parse_param label value));
+    Array.unsafe_set format_parsers _type (fun params ->
+        Option.map lift_params (F.parse_params params));
+    Queue.push kind_of_string kind_parsers
+
+  include F
+
+  let () =
+    register_content_lang F.name F.name F.content_lang_typ (fun fmt ->
+        F.params_to_value (get_params fmt))
+end
+
+module MkDataBase (F : Format) (D : DataSpecs with type params = F.params) :
+  Content
+    with type kind = F.kind
+     and type params = F.params
+     and type data = D.data = struct
+  include F
+
+  type chunked_data = (F.params, D.data) chunks
 
   let[@inline] of_content : Contents.data -> chunked_data = function
     | t, d when t = _type -> Obj.magic d
@@ -412,11 +537,11 @@ module MkContentBase (C : ContentSpecs) :
       | [] -> ()
       | { data; offset; length } :: rest ->
           (* When length = max_int (infinite sentinel), cap to actual data
-             capacity to avoid integer overflow in C.blit arithmetic. *)
+             capacity to avoid integer overflow in D.blit arithmetic. *)
           let blit_len =
-            if length = max_int then C.length data - offset else length
+            if length = max_int then D.length data - offset else length
           in
-          if blit_len > 0 then C.blit data offset buf pos blit_len;
+          if blit_len > 0 then D.blit data offset buf pos blit_len;
           blit buf (pos + blit_len) rest
     in
     fun ~copy d ->
@@ -426,10 +551,10 @@ module MkContentBase (C : ContentSpecs) :
             { d with chunks = [] }
         | _, [{ offset = 0; length; _ }] when length = max_int && not copy -> d
         | _, [{ offset = 0; length; data }]
-          when length = C.length data && not copy ->
+          when length = D.length data && not copy ->
             d
         | length, _ ->
-            let buf = C.make ~length d.params in
+            let buf = D.make ~length d.params in
             blit buf 0 d.chunks;
             if copy then
               { d with chunks = [{ offset = 0; length; data = buf }] }
@@ -440,101 +565,18 @@ module MkContentBase (C : ContentSpecs) :
   let copy = consolidate_chunks ~copy:true
 
   let make ?length params =
-    let data = C.make ?length params in
+    let data = D.make ?length params in
     let stored_length =
-      match length with Some l -> l | None -> C.length data
+      match length with Some l -> l | None -> D.length data
     in
     let chunk = { data; offset = 0; length = stored_length } in
     { params; chunks = [chunk]; total_length = stored_length }
 
-  let deref : Contents.format_content Unifier.t -> params =
-   fun p -> Obj.magic (Unifier.deref p)
-
-  let to_format_content : params -> Contents.format_content = Obj.magic
-  let to_kind_content : kind -> Contents.kind_content = Obj.magic
-  let to_kind : Contents.kind_content -> kind = Obj.magic
-
-  let merge p p' =
-    let p' =
-      match p' with
-        | { Contents.id; content } when id = _type -> content
-        | _ -> raise Invalid
-    in
-    let m = C.merge (deref p) (deref p') in
-    Unifier.set p' (to_format_content m);
-    Unifier.(p <-- p')
-
-  let compatible p p' =
-    match p' with
-      | { Contents.id; content } when id = _type ->
-          C.compatible (deref p) (deref content)
-      | _ -> false
-
-  let[@inline] is_kind { Contents.id; _ } = id = _type
-
-  let lift_kind k : Contents.kind =
-    { Contents.id = _type; name = C.name; content = to_kind_content k }
-
-  let get_kind { Contents.id; content } =
-    if id = _type then to_kind content else raise Invalid
-
-  let[@inline] is_format { Contents.id; _ } = id = _type
-
-  let lift_params p : Contents.format =
-    {
-      Contents.id = _type;
-      name = C.name;
-      content = Unifier.make (to_format_content p);
-    }
-
-  let get_params { Contents.id; content } =
-    if id = _type then deref content else raise Invalid
-
   let[@inline] is_data = function t, _ -> t = _type
-  let kind_of_string s = Option.map lift_kind (C.kind_of_string s)
 
   let () =
-    let kind_fn (k : Contents.kind_content) : kind_handler =
-      let k = to_kind k in
-      {
-        default_format = (fun () -> lift_params (C.default_params k));
-        string_of_kind = (fun () -> C.string_of_kind k);
-      }
-    in
-    if Array.length kind_handler_fns <= _type then
-      failwith "Please increase kind handler array length!";
-    Array.unsafe_set kind_handler_fns _type kind_fn;
-    let format_fn (p : Contents.format_content Unifier.t) : format_handler =
-      {
-        kind = (fun () -> lift_kind C.kind);
-        make = (fun length -> to_content (make ?length (deref p)));
-        merge = (fun p' -> merge p p');
-        duplicate =
-          (fun () ->
-            {
-              Contents.id = _type;
-              name = C.name;
-              content = Unifier.(make (deref p));
-            });
-        compatible = (fun p' -> compatible p p');
-        serialize = (fun () -> C.serialize_params (deref p));
-        string_of_format =
-          (fun () ->
-            let kind = C.string_of_kind C.kind in
-            let params = C.string_of_params (deref p) in
-            match params with
-              | "" -> kind
-              | _ -> Printf.sprintf "%s(%s)" kind params);
-      }
-    in
-    if Array.length format_handler_fns <= _type then
-      failwith "Please increase format handler array length!";
-    Array.unsafe_set format_handler_fns _type format_fn;
-    Array.unsafe_set format_param_parsers _type (fun label value ->
-        Option.map lift_params (C.parse_param label value));
-    Array.unsafe_set format_parsers _type (fun params ->
-        Option.map lift_params (C.parse_params params));
-    Queue.push kind_of_string kind_parsers;
+    Array.unsafe_set format_make_fns _type (fun fmt length ->
+        to_content (make ?length (get_params fmt)));
     let data_handler =
       {
         sub = (fun d ofs len -> to_content (sub (of_content d) ofs len));
@@ -548,10 +590,10 @@ module MkContentBase (C : ContentSpecs) :
               List.map
                 (fun { data; offset; length } ->
                   let length =
-                    if length = max_int then Int.max 0 (C.length data - offset)
+                    if length = max_int then Int.max 0 (D.length data - offset)
                     else length
                   in
-                  Printf.sprintf "%d:%d:%s" offset length (C.checksum data))
+                  Printf.sprintf "%d:%d:%s" offset length (D.checksum data))
                 d.chunks
             in
             Digest.string (String.concat "|" checksums) |> Digest.to_hex);
@@ -567,13 +609,13 @@ module MkContentBase (C : ContentSpecs) :
       match length with
         | Some l -> l
         | None ->
-            let l = C.length d in
+            let l = D.length d in
             if l = max_int then max_int else l - offset
     in
     let chunk = { offset; length; data = d } in
     to_content
       {
-        params = C.params d;
+        params = D.params d;
         chunks = [chunk];
         total_length = chunk_length chunk;
       }
@@ -581,13 +623,16 @@ module MkContentBase (C : ContentSpecs) :
   let get_data d =
     let d = of_content d in
     match (consolidate_chunks ~copy:false d).chunks with
-      | [] -> C.make ~length:0 d.params
+      | [] -> D.make ~length:0 d.params
       | [{ data }] -> data
       | _ -> raise Invalid
 
-  include C
-
-  let () =
-    register_content_lang C.name C.name C.content_lang_typ (fun fmt ->
-        C.params_to_value (get_params fmt))
+  include D
 end
+
+module MkContentBase (C : ContentSpecs) :
+  Content
+    with type kind = C.kind
+     and type params = C.params
+     and type data = C.data =
+  MkDataBase (MkFormatBase (C)) (C)

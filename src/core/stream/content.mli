@@ -32,74 +32,11 @@ exception Invalid
 (* Raised when calling [merge] below. *)
 exception Incompatible_format of Contents.format * Contents.format
 
-module type ContentSpecs = sig
-  type kind
-  type params
-  type data
-
-  val name : string
-
-  (** Data *)
-
-  (* Length is in main ticks. *)
-  val make : ?length:int -> params -> data
-  val length : data -> int
-  val blit : data -> int -> data -> int -> int -> unit
-  val copy : data -> data
-  val checksum : data -> string
-
-  (** Params *)
-
-  val params : data -> params
-  val merge : params -> params -> params
-
-  (* [compatible src dst] *)
-  val compatible : params -> params -> bool
-  val string_of_params : params -> string
-
-  (* [parse_param "label" "value"] *)
-  val parse_param : string -> string -> params option
-
-  (** How parameters cross a dump, encoded as each content sees fit.
-      [parse_params] answers [None] for anything it did not write. *)
-  val serialize_params : params -> string
-
-  val parse_params : string -> params option
-
-  (** Kind *)
-
-  val kind : kind
-  val default_params : kind -> params
-  val string_of_kind : kind -> string
-  val kind_of_string : string -> kind option
-
-  (** Lang description *)
-
-  val content_lang_typ : Type.t
-  val params_to_value : params -> Value.t
-end
-
-module type Content = sig
-  include ContentSpecs
-
-  (** Data *)
-
-  val is_data : Contents.data -> bool
-  val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
-  val get_data : Contents.data -> data
-
-  (** Format *)
-
-  val is_format : Contents.format -> bool
-  val lift_params : params -> Contents.format
-  val get_params : Contents.format -> params
-
-  (** Kind *)
-
-  val is_kind : Contents.kind -> bool
-  val lift_kind : kind -> Contents.kind
-  val get_kind : Contents.kind -> kind
-end
+module type FormatSpecs = Content_base.FormatSpecs
+module type DataSpecs = Content_base.DataSpecs
+module type ContentSpecs = Content_base.ContentSpecs
+module type Format = Content_base.Format
+module type Content = Content_base.Content
 
 module MkContent (C : ContentSpecs) :
   Content

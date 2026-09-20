@@ -23,82 +23,37 @@
 open Mm
 open Content_base
 
-module Specs = struct
+(* The settings are core's, and this is where the two meet. *)
+let () =
+  Audio_format.default_channels :=
+    fun () -> Lazy.Mutexed.force Frame_settings.audio_channels
+
+module Data = struct
   open Frame_settings
 
-  type kind = [ `Pcm ]
-
-  type params = {
-    channel_layout : [ `Mono | `Stereo | `Five_point_one ] Lazy.Mutexed.t;
-  }
-
+  type params = Audio_format.Specs.params
   type data = Audio.Mono.buffer array
-
-  let name = "pcm"
-  let string_of_kind = function `Pcm -> "pcm"
-
-  let string_of_params { channel_layout } =
-    match !!channel_layout with
-      | `Mono -> "mono"
-      | `Stereo -> "stereo"
-      | `Five_point_one -> "5.1"
-
-  let merge p p' =
-    assert (!!(p.channel_layout) = !!(p'.channel_layout));
-    p
-
-  let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
 
   let blit src src_pos dst dst_pos len =
     (* For some reason we're not getting a proper stack trace from
        this unless we re-raise. *)
     try
       let ( ! ) = audio_of_main in
-      Audio.blit src !src_pos dst !dst_pos !len
+      Array.iter2
+        (fun src dst -> Audio.Mono.blit src !src_pos dst !dst_pos !len)
+        src dst
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       Printexc.raise_with_backtrace exn bt
 
   let copy d = Audio.copy d 0 (Audio.length d)
+  let params d = Audio_format.Specs.param_of_channels (Array.length d)
 
-  let param_of_channels = function
-    | 1 -> { channel_layout = Lazy.Mutexed.from_val `Mono }
-    | 2 -> { channel_layout = Lazy.Mutexed.from_val `Stereo }
-    | 6 -> { channel_layout = Lazy.Mutexed.from_val `Five_point_one }
-    | _ -> raise Invalid
-
-  let channels_of_param = function
-    | `Mono -> 1
-    | `Stereo -> 2
-    | `Five_point_one -> 6
-
-  let parse_param label value =
-    match (label, value) with
-      | "", "mono" -> Some { channel_layout = Lazy.Mutexed.from_val `Mono }
-      | "", "stereo" -> Some { channel_layout = Lazy.Mutexed.from_val `Stereo }
-      | "", "5.1" ->
-          Some { channel_layout = Lazy.Mutexed.from_val `Five_point_one }
-      | _ -> None
-
-  let serialize_params = string_of_params
-  let parse_params s = parse_param "" s
-  let params d = param_of_channels (Array.length d)
-  let kind = `Pcm
-
-  let default_params _ =
-    param_of_channels (Lazy.Mutexed.force Frame_settings.audio_channels)
-
-  let make ?(length = 0) { channel_layout } =
-    let channels =
-      match !!channel_layout with
-        | `Mono -> 1
-        | `Stereo -> 2
-        | `Five_point_one -> 6
-    in
+  let make ?(length = 0) { Audio_format.Specs.channel_layout } =
+    let channels = Audio_format.Specs.channels_of_param !!channel_layout in
     Array.init channels (fun _ -> Audio.Mono.create (audio_of_main length))
 
   let length d = main_of_audio (Audio.length d)
-  let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
 
   let checksum d =
     let len =
@@ -115,35 +70,7 @@ module Specs = struct
         done)
       d;
     Digest.bytes buf |> Digest.to_hex
-
-  let content_lang_typ =
-    let open Liquidsoap_lang in
-    Lang_core.record_t
-      [
-        ("channels", Type.make Type.Int);
-        ("channel_layout", Type.make Type.String);
-      ]
-
-  let params_to_value ({ channel_layout } as p) =
-    let open Liquidsoap_lang in
-    let channels = channels_of_param (Lazy.Mutexed.force channel_layout) in
-    let layout = string_of_params p in
-    Lang_core.record
-      [
-        ("channels", Lang_core.mk (`Int channels));
-        ("channel_layout", Lang_core.mk (`String layout));
-      ]
 end
 
-include MkContentBase (Specs)
-
-let kind = lift_kind `Pcm
-
-let format_of_channels = function
-  | 1 -> lift_params { channel_layout = Lazy.Mutexed.from_val `Mono }
-  | 2 -> lift_params { channel_layout = Lazy.Mutexed.from_val `Stereo }
-  | 6 -> lift_params { channel_layout = Lazy.Mutexed.from_val `Five_point_one }
-  | _ -> raise Invalid
-
-let channels_of_format p =
-  Specs.(channels_of_param (Lazy.Mutexed.force (get_params p).channel_layout))
+include MkDataBase (Audio_format.Format) (Data)
+include Audio_format

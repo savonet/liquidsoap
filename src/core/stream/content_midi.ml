@@ -23,49 +23,28 @@
 open Mm
 open Content_base
 
-module Specs = struct
+(* The settings are core's, and this is where the two meet. *)
+let () =
+  Midi_format.default_channels :=
+    fun () -> Lazy.Mutexed.force Frame_settings.midi_channels
+
+module Data = struct
   open Frame_settings
 
-  type kind = [ `Midi ]
-  type params = { channels : int }
+  type params = Midi_format.Specs.params
   type data = MIDI.Multitrack.t
-
-  let name = "midi"
-  let internal_content_type = Some `Midi
-  let string_of_kind = function `Midi -> "midi"
-  let string_of_params { channels } = Printf.sprintf "channels=%d" channels
-
-  let merge p p' =
-    assert (p.channels = p'.channels);
-    p
-
-  let compatible p p' = p.channels = p'.channels
 
   let blit src src_pos dst dst_pos len =
     let ( ! ) = midi_of_main in
     Array.iter2 (fun m m' -> MIDI.blit m !src_pos m' !dst_pos !len) src dst
 
   let copy m = Array.map MIDI.copy m
-  let params m = { channels = MIDI.Multitrack.channels m }
-  let kind = `Midi
+  let params m = { Midi_format.Specs.channels = MIDI.Multitrack.channels m }
 
-  let default_params _ =
-    { channels = Lazy.Mutexed.force Frame_settings.midi_channels }
-
-  let make ?(length = 0) { channels } =
+  let make ?(length = 0) { Midi_format.Specs.channels } =
     MIDI.Multitrack.create channels (midi_of_main length)
 
   let length d = main_of_midi (MIDI.Multitrack.duration d)
-  let kind_of_string = function "midi" -> Some `Midi | _ -> None
-  let serialize_params { channels } = string_of_int channels
-
-  let parse_params s =
-    Option.map (fun channels -> { channels }) (int_of_string_opt s)
-
-  let parse_param label value =
-    match (label, value) with
-      | "channels", c -> Some { channels = int_of_string c }
-      | _ | (exception _) -> None
 
   let checksum d =
     (* Hash MIDI data: number of channels and events per channel *)
@@ -89,16 +68,7 @@ module Specs = struct
       (Printf.sprintf "%d:%d:%s" channels duration
          (String.concat "|" channel_info))
     |> Digest.to_hex
-
-  let content_lang_typ =
-    let open Liquidsoap_lang in
-    Lang_core.record_t [("channels", Type.make Type.Int)]
-
-  let params_to_value { channels } =
-    let open Liquidsoap_lang in
-    Lang_core.record [("channels", Lang_core.mk (`Int channels))]
 end
 
-include MkContentBase (Specs)
-
-let kind = lift_kind `Midi
+include MkDataBase (Midi_format.Format) (Data)
+include Midi_format
