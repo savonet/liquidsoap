@@ -26,8 +26,19 @@
     only the language's own constraints survive {!restore}. *)
 type t
 
-val strip : (string * Type.scheme) list -> t
-val restore : t -> (string * Type.scheme) list
+(** What a dump carries besides the environment: the types of what the language
+    leaves to whoever links it, for a reader that has none. *)
+type core_types = { source_methods : Type.t option; clock : Type.t option }
+
+val no_core_types : core_types
+
+type restored = {
+  restored_env : (string * Type.scheme) list;
+  restored_core_types : core_types;
+}
+
+val strip : ?core_types:core_types -> (string * Type.scheme) list -> t
+val restore : t -> restored
 
 (** The dump format's version: a reader accepts the dumps written with the same
     one, whichever liquidsoap wrote them. *)

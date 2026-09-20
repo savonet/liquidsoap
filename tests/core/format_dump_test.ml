@@ -37,7 +37,7 @@ let () =
 let () = print_newline ()
 
 let dump env =
-  Liquidsoap_lang_types.Jsoo_safe_env.restore
+  Liquidsoap_lang_types.Jsoo_safe_env.(fun t -> (restore t).restored_env)
     (Liquidsoap_lang_types.Jsoo_safe_env.strip env)
 
 let scheme descr = ([], Type.make descr)

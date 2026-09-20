@@ -30,8 +30,20 @@ type dumped_constraint = {
   constraint_univ_descr : string option;
 }
 
+(** What a dump carries besides the environment: the types of what the language
+    leaves to whoever links it, for a reader that has none. *)
+type core_types = { source_methods : Type.t option; clock : Type.t option }
+
+let no_core_types = { source_methods = None; clock = None }
+
+type restored = {
+  restored_env : (string * scheme) list;
+  restored_core_types : core_types;
+}
+
 type t = {
   env : (string * scheme) list;
+  core_types : core_types;
   constraints : (var * dumped_constraint list) list;
       (** Variable records are physically shared with [env]. *)
   unbounded_levels : var list;
@@ -179,7 +191,7 @@ and strip_descr stripper descr =
 and strip_scheme stripper (vars, t) =
   (List.map (strip_var stripper) vars, strip_type stripper t)
 
-let strip env =
+let strip ?(core_types = no_core_types) env =
   let stripper =
     {
       types = Physical.create 65536;
@@ -196,8 +208,16 @@ let strip env =
   let env =
     List.map (fun (name, scheme) -> (name, strip_scheme stripper scheme)) env
   in
+  let core_types =
+    {
+      source_methods =
+        Option.map (strip_type stripper) core_types.source_methods;
+      clock = Option.map (strip_type stripper) core_types.clock;
+    }
+  in
   {
     env;
+    core_types;
     constraints = stripper.stripped_constraints;
     unbounded_levels = stripper.unbounded_levels;
     next_var_name = stripper.next_var_name;
@@ -239,7 +259,7 @@ let opaque_custom_handler name =
 (* Whoever implements the name rebuilds the payload from its printed form;
    anything else stays opaque. A payload is rebuilt once, so types that shared
    one still do. Types share subterms, so each is visited once. *)
-let restore_customs env =
+let restore_customs types =
   let visited = Physical.create 1024 in
   let restored = Hashtbl.create 16 in
   let handler_of name payload_id payload types =
@@ -289,10 +309,20 @@ let restore_customs env =
         | Var { contents = Link (_, t) } -> walk t
         | Var { contents = Free _ } | String | Int | Float | Bool | Never -> ())
   in
-  List.iter (fun (_, (_, t)) -> walk t) env
+  List.iter walk types
 
-let restore { env; constraints; unbounded_levels; next_var_name; next_var_id } =
-  restore_customs env;
+let restore
+    {
+      env;
+      core_types;
+      constraints;
+      unbounded_levels;
+      next_var_name;
+      next_var_id;
+    } =
+  restore_customs
+    (List.map (fun (_, (_, t)) -> t) env
+    @ List.filter_map Fun.id [core_types.source_methods; core_types.clock]);
   List.iter (fun (var : var) -> var.level <- max_int) unbounded_levels;
   List.iter
     (fun ((var : var), constraints) ->
@@ -301,7 +331,7 @@ let restore { env; constraints; unbounded_levels; next_var_name; next_var_id } =
     constraints;
   bump_counter Type_base.var_name_atom next_var_name;
   bump_counter Type_base.var_id_atom next_var_id;
-  env
+  { restored_env = env; restored_core_types = core_types }
 
 (* What a reader must agree with is the marshaled shape: this module's [t] and
    the type representation it holds. Bump on any change to either, which

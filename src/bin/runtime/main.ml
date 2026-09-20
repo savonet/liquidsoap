@@ -259,21 +259,22 @@ let options =
          Arg.String
            (fun file ->
              with_toplevel (fun () ->
-                 (* The types of the core, for the tools that link the
-                    language alone: a source with its methods, and a clock. *)
-                 let env =
-                   ( Liquidsoap_lang_prelude.Reserved.source_ty,
-                     ([], Lang_source.source_t ~methods:true (Lang.univ_t ()))
-                   )
-                   :: ( Liquidsoap_lang_prelude.Reserved.clock_ty,
-                        ([], Lang_clock.ClockValue.base_t) )
-                   :: Environment.default_typing_environment ()
+                 (* What the tools linking the language alone cannot compute:
+                    the type of a source with its methods, and of a clock. *)
+                 let core_types =
+                   {
+                     Liquidsoap_lang_types.Jsoo_safe_env.source_methods =
+                       Some
+                         (Lang_source.source_t ~methods:true (Lang.univ_t ()));
+                     clock = Some Lang_clock.ClockValue.base_t;
+                   }
                  in
+                 let env = Environment.default_typing_environment () in
                  let dump =
                    Liquidsoap_lang_types.Jsoo_safe_env.(
                      to_string
                        ~version:Liquidsoap_lang_data.Build_config.version
-                       (strip env))
+                       (strip ~core_types env))
                  in
                  Out_channel.with_open_bin file (fun oc ->
                      Out_channel.output_string oc dump);

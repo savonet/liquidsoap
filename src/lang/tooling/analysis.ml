@@ -40,7 +40,14 @@ type result = {
 
 exception Stop
 
-let load_env dump = Jsoo_safe_env.(restore (of_string dump))
+(* What the dump carried of liquidsoap's own types stands in for the hooks a
+   process that only typechecks cannot implement. *)
+let load_env dump =
+  let { Jsoo_safe_env.restored_env; restored_core_types } =
+    Jsoo_safe_env.(restore (of_string dump))
+  in
+  Hooks_stubs.install ~core_types:restored_core_types ();
+  restored_env
 
 (* The header that [Runtime.throw] prints opens the box [message] closes. *)
 let render message = String.trim (Format.asprintf "@[%t" message)

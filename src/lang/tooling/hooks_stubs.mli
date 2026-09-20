@@ -20,11 +20,10 @@
 
  *****************************************************************************)
 
-(** Implementations of the hooks that liquidsoap's core fills in, for the tools
-    that link the language alone. Without them, typechecking a script that uses
-    an encoder, or annotates a source or a clock, fails. *)
+(** Stand-ins for the hooks liquidsoap's core fills in, for the tools that link
+    the language alone: what they cannot compute, a dump carries. A process that
+    implements one of them keeps its own. *)
 
-(** [env] is the typing environment the analysis checks against, which carries
-    the types of a source and of a clock. *)
+(** [core_types] is what the dump carried of liquidsoap's own types. *)
 val install :
-  env:(string * Liquidsoap_lang_types.Type.scheme) list -> unit -> unit
+  core_types:Liquidsoap_lang_types.Jsoo_safe_env.core_types -> unit -> unit

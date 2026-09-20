@@ -67,6 +67,14 @@ let eval_check ~env:_ ~tm v =
             try Typing.(source#frame_type <: frame_t)
             with _ when is_nullable tm.Term.t -> ())))
 
+(* A clock is a custom type and a source's methods are a table of values, so
+   neither can be built where liquidsoap's core is not linked -- unlike the
+   types in liquidsoap.core_lang, which are computed from the language and the
+   content formats alone.
+
+   A dump carries both as types instead, and a reader installs them as
+   stand-ins: a clock read back that way has no operations of its own, which
+   is enough to name one in an annotation. *)
 let () =
   Hooks.implement Hooks.mk_clock_ty (fun ?pos () ->
       Type.make
