@@ -72,7 +72,7 @@ let get_field frame_type field =
 
 (* What a frame gets when a script says nothing, which core reads from the
    settings. *)
-let default_audio_channels = ref (fun () -> 0)
+let default_audio_channels = ref (fun () -> Audio_format.default_channels)
 let default_video = ref (fun () -> false)
 
 let content_type frame_type =

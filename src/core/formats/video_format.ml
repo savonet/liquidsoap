@@ -24,10 +24,14 @@ open Content_base
 
 let ( !! ) = Lazy.Mutexed.force
 
-(* The frame's dimensions, which core reads from the settings. A process that
-   only typechecks scripts has none. *)
-let default_dimensions =
-  ref (fun () -> (Lazy.Mutexed.from_val 0, Lazy.Mutexed.from_val 0))
+(* The frame's dimensions: what the settings default to, and what a process
+   that has no settings answers. *)
+let default_width = 1280
+let default_height = 720
+
+let dimensions =
+  ref (fun () ->
+      (Lazy.Mutexed.from_val default_width, Lazy.Mutexed.from_val default_height))
 
 module Specs = struct
   type kind = [ `Canvas ]
@@ -161,7 +165,7 @@ module Specs = struct
 
   let params_to_value { width; height; alpha } =
     let open Liquidsoap_lang in
-    let default_width, default_height = !default_dimensions () in
+    let default_width, default_height = !dimensions () in
     let width =
       Lazy.Mutexed.force (Option.value ~default:default_width width)
     in

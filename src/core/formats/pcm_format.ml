@@ -36,7 +36,7 @@ module Shared = struct
   let param_of_channels = Audio_format.Specs.param_of_channels
   let content_lang_typ = Audio_format.Specs.content_lang_typ
   let params_to_value = Audio_format.Specs.params_to_value
-  let default_params _ = param_of_channels (!Audio_format.default_channels ())
+  let default_params _ = param_of_channels (!Audio_format.channels ())
 end
 
 module S16 = struct

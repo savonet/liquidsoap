@@ -25,7 +25,7 @@ open Content_base
 
 (* The settings are core's, and this is where the two meet. *)
 let () =
-  Audio_format.default_channels :=
+  Audio_format.channels :=
     fun () -> Lazy.Mutexed.force Frame_settings.audio_channels
 
 module Data = struct

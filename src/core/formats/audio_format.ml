@@ -24,9 +24,10 @@ open Content_base
 
 let ( !! ) = Lazy.Mutexed.force
 
-(* How many channels a format with no layout of its own gets. Core reads it
-   from the settings; a process that only typechecks scripts has none. *)
-let default_channels = ref (fun () -> 2)
+(* How many channels a format with no layout of its own gets: what the setting
+   defaults to, and what a process that has no settings answers. *)
+let default_channels = 2
+let channels = ref (fun () -> default_channels)
 
 module Specs = struct
   type kind = [ `Pcm ]
@@ -72,7 +73,7 @@ module Specs = struct
   let serialize_params = string_of_params
   let parse_params s = parse_param "" s
   let kind = `Pcm
-  let default_params _ = param_of_channels (!default_channels ())
+  let default_params _ = param_of_channels (!channels ())
   let kind_of_string = function "audio" | "pcm" -> Some `Pcm | _ -> None
 
   let content_lang_typ =

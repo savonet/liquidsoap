@@ -25,7 +25,7 @@ open Content_base
 
 (* The settings are core's, and this is where the two meet. *)
 let () =
-  Midi_format.default_channels :=
+  Midi_format.channels :=
     fun () -> Lazy.Mutexed.force Frame_settings.midi_channels
 
 module Data = struct

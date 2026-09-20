@@ -76,7 +76,7 @@ module Base = struct
 end
 
 (* The settings are core's, and this is where the two meet. *)
-let () = Video_format.default_dimensions := Frame_settings.video_dimensions
+let () = Video_format.dimensions := Frame_settings.video_dimensions
 
 module Data = struct
   open Frame_settings

@@ -22,9 +22,10 @@
 
 open Content_base
 
-(* Core reads this from the settings; a process that only typechecks scripts
-   has none. *)
-let default_channels = ref (fun () -> 16)
+(* What the setting defaults to, and what a process that has no settings
+   answers. *)
+let default_channels = 0
+let channels = ref (fun () -> default_channels)
 
 module Specs = struct
   type kind = [ `Midi ]
@@ -50,7 +51,7 @@ module Specs = struct
     p
 
   let compatible p p' = p.channels = p'.channels
-  let default_params _ = { channels = !default_channels () }
+  let default_params _ = { channels = !channels () }
 
   let content_lang_typ =
     let open Liquidsoap_lang in
