@@ -60,6 +60,13 @@ let contains needle haystack =
 
 let static_string = function Term.{ term = `String s } -> Some s | _ -> None
 
+(* A layout is named, or written as the number of channels it stands for:
+   [channel_layout=5.1] is the same as [channel_layout="5.1"]. *)
+let layout_name = function
+  | Term.{ term = `String layout } -> Some layout
+  | Term.{ term = `Float layout } -> Some (Printf.sprintf "%.1f" layout)
+  | _ -> None
+
 let has_content name args =
   List.exists (fun (label, v) -> label = "" && static_string v = Some name) args
 
@@ -80,7 +87,7 @@ let media_type name args =
       | _ -> None)
 
 let channels args =
-  match Option.bind (List.assoc_opt "channel_layout" args) static_string with
+  match Option.bind (List.assoc_opt "channel_layout" args) layout_name with
     | Some layout when channels_of_layout layout <> None ->
         Option.get (channels_of_layout layout)
     | _ -> (
