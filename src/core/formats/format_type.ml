@@ -333,4 +333,4 @@ let metadata = Type.make (descr (`Format Timed_format.Metadata.format))
 
 let () =
   Type.register_type "metadata" (fun () ->
-      Type.make (descr (`Format Timed_format.Track_marks.format)))
+      Type.make (descr (`Format Timed_format.Metadata.format)))
