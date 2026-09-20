@@ -23,3 +23,4 @@
 (* See liquidsoap_ffmpeg_formats.mli. *)
 
 module Ffmpeg_content_type = Ffmpeg_content_type
+module Ffmpeg_encoder_type = Ffmpeg_encoder_type

@@ -1,0 +1,9 @@
+=== ffmpeg_encoder.liq ===
+# An ffmpeg encoder's tracks are named by convention, which needs no libav.
+e = %ffmpeg(format="mp4", %audio(codec="aac", channel_layout="5.1"), %video.copy)
+ignore(e)
+
+#? type 2:4
+--- diagnostics ---
+--- type 2:4 ---
+format(audio=pcm(5.1), video=ffmpeg.copy)

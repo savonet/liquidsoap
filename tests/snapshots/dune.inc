@@ -1247,6 +1247,26 @@
   (diff expected_analysis/encoder.expected analysis_encoder.actual)))
 
 (rule
+ (target analysis_ffmpeg_encoder.actual)
+ (deps
+  (:case cases_analysis/ffmpeg_encoder.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/ffmpeg_encoder.expected
+   analysis_ffmpeg_encoder.actual)))
+
+(rule
  (target analysis_ffmpeg_track.actual)
  (deps
   (:case cases_analysis/ffmpeg_track.liq)

@@ -214,68 +214,6 @@ let to_static_string_term = function
 
 let term_pos { Term.t = { Type.pos } } = pos
 
-let type_of_encoder =
-  List.fold_left
-    (fun content_type p ->
-      match p with
-        | `Encoder (name, args) ->
-            let args =
-              List.filter_map
-                (function
-                  | `Anonymous s -> Some ("", Term.make (`String s))
-                  | `Labelled (l, v) -> Some (l, v)
-                  | `Encoder _ -> None)
-                args
-            in
-            let field, mode = parse_encoder_name name in
-            let format =
-              match mode with
-                | `Drop -> Type.var ~constraints:[Format_type.track] ()
-                | `Copy ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (Content.default_format Ffmpeg_copy_content.kind)))
-                | `Raw ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (match
-                               stream_media_type ~to_pos:term_pos
-                                 ~to_static_string:to_static_string_term name
-                                 args
-                             with
-                              | `Audio ->
-                                  Content.default_format
-                                    Ffmpeg_raw_content.Audio.kind
-                              | `Video ->
-                                  Content.default_format
-                                    Ffmpeg_raw_content.Video.kind
-                              | `Subtitle -> Subtitle_content.format)))
-                | `Internal ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (match
-                               stream_media_type ~to_pos:term_pos
-                                 ~to_static_string:to_static_string_term name
-                                 args
-                             with
-                              | `Audio ->
-                                  Frame_base.format_of_channels
-                                    ~pcm_kind:
-                                      (pcm_kind_of_args
-                                         ~to_static_string:to_static_string_term
-                                         args)
-                                    (channels args)
-                              | `Video -> Content.(default_format Video.kind)
-                              | `Subtitle -> Subtitle_content.format)))
-            in
-            let field = Frame.Fields.register field in
-            Frame.Fields.add field format content_type
-        | _ -> content_type)
-    Frame.Fields.empty
-
 (* Looks like this is how ffmpeg CLI does it.
    See: https://github.com/FFmpeg/FFmpeg/blob/4782124b90cf915ede2cebd871be82fc0267a135/fftools/ffmpeg_opt.c#L1567-L1570 *)
 let set_global_quality q opts =
@@ -617,6 +555,28 @@ let make params =
   in
   Encoder.Ffmpeg (ffmpeg_gen params)
 
+(* What the type of a track cannot be read off its name and parameters, libav
+   knows. *)
 let () =
-  Liquidsoap_core_encoder_types.Encoder_types.register "ffmpeg" type_of_encoder;
+  Ffmpeg_encoder_type.implement
+    {
+      Ffmpeg_encoder_type.media_type =
+        (fun codec ->
+          try
+            ignore (Avcodec.Audio.find_encoder_by_name codec);
+            Some `Audio
+          with _ -> (
+            try
+              ignore (Avcodec.Video.find_encoder_by_name codec);
+              Some `Video
+            with _ -> (
+              try
+                ignore (Avcodec.Subtitle.find_encoder_by_name codec);
+                Some `Subtitle
+              with _ -> None)));
+      channels_of_layout =
+        (fun layout ->
+          try Some Avutil.Channel_layout.(get_nb_channels (find layout))
+          with _ -> None);
+    };
   Lang_encoder.register "ffmpeg" make

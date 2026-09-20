@@ -25,3 +25,4 @@
     language and the content formats alone, so it builds without libav. *)
 
 module Ffmpeg_content_type = Ffmpeg_content_type
+module Ffmpeg_encoder_type = Ffmpeg_encoder_type
