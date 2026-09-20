@@ -31,27 +31,29 @@ exception Includer_error of (exn * Sedlexing.lexbuf * Printexc.raw_backtrace)
 
 let program = MenhirLib.Convert.Simplified.traditional2revised Parser.program
 
+let script_path_binding ~filename ~pos =
+  Parser_helper.mk_stmt ~pos
+    (`Binding
+       {
+         Parsed_term.kind = `Let;
+         decoration = `None;
+         pat =
+           { pat_pos = pos; pat_entry = `PVar ["liquidsoap"; "script"; "path"] };
+         arglist = None;
+         cast = None;
+         def = Parser_helper.mk ~pos filename;
+       })
+
+let script_path_value = function
+  | Some fname -> `String ('"', Lang_string.escape_utf8_string fname)
+  | None -> `Null
+
 (* Every program starts with a `liquidsoap.script.path` binding, so that it
    scopes over the whole script. It sits at the empty end of the script, since
    spanning the whole script would place it under every position in it. *)
 let let_script_path ~filename ({ Parsed_term.pos = _, stop; _ } as block) =
   let pos = (stop, stop) in
-  let binding =
-    Parser_helper.mk_stmt ~pos
-      (`Binding
-         {
-           Parsed_term.kind = `Let;
-           decoration = `None;
-           pat =
-             {
-               pat_pos = pos;
-               pat_entry = `PVar ["liquidsoap"; "script"; "path"];
-             };
-           arglist = None;
-           cast = None;
-           def = Parser_helper.mk ~pos filename;
-         })
-  in
+  let binding = script_path_binding ~filename ~pos in
   match block.Parsed_term.term with
     | `Block b ->
         {
@@ -69,11 +71,7 @@ let mk_expr ?fname processor lexbuf =
   match fname with
     (* This happens with the interactive top-level. *)
     | None when processor != program -> parsed_term
-    | None -> let_script_path ~filename:`Null parsed_term
-    | Some fname ->
-        let_script_path
-          ~filename:(`String ('"', Lang_string.escape_utf8_string fname))
-          parsed_term
+    | fname -> let_script_path ~filename:(script_path_value fname) parsed_term
 
 (* An `%include_extra` naming a file that is not installed. The include then
    contributes no statements, which is how the minimal distributions build. *)
@@ -136,12 +134,36 @@ let rec expand_term tm =
 and expand_block b =
   {
     b with
-    Parsed_term.block_body = List.concat_map expand_statement b.block_body;
+    Parsed_term.block_body =
+      expand_statements ~restore_script_path:false b.Parsed_term.block_body;
   }
 
-and expand_statement stmt =
+(* The last statement of a block is its value, hence the one that must not be
+   followed by anything. *)
+and expand_statements ~restore_script_path = function
+  | [] -> []
+  | [stmt] -> expand_statement ~restore_script_path stmt
+  | stmt :: stmts ->
+      expand_statement ~restore_script_path:true stmt
+      @ expand_statements ~restore_script_path stmts
+
+and expand_statement ~restore_script_path stmt =
   match stmt.Parsed_term.stmt with
     | `Include _ as ast ->
-        List.concat_map expand_statement
-          (included_statements ~pos:stmt.Parsed_term.stmt_pos ast)
+        let pos = stmt.Parsed_term.stmt_pos in
+        let included =
+          expand_statements ~restore_script_path (included_statements ~pos ast)
+        in
+        (* The included file binds its own `liquidsoap.script.path`, which the
+           splice would otherwise leave in scope for the rest of the including
+           file. An absent `%include_extra` splices nothing and shadows
+           nothing. *)
+        if restore_script_path && included <> [] then (
+          let stop = snd pos in
+          let fname = (fst pos).Lexing.pos_fname in
+          let filename =
+            script_path_value (if fname = "" then None else Some fname)
+          in
+          included @ [script_path_binding ~filename ~pos:(stop, stop)])
+        else included
     | _ -> [Parsed_term.map_statement ~block:expand_block expand_term stmt]
