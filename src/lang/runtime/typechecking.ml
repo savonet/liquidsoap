@@ -202,7 +202,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
           in
           check_enc f;
           let t =
-            try !Hooks.type_of_encoder ~pos f
+            try Hooks.get Hooks.type_of_encoder ~pos f
             with Not_found ->
               let bt = Printexc.get_raw_backtrace () in
               Printexc.raise_with_backtrace

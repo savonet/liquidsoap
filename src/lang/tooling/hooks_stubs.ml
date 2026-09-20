@@ -27,7 +27,10 @@ open Liquidsoap_lang_values
    language, and a script names them in its type annotations. The typing
    environment carries the types of a source and of a clock, written by a
    liquidsoap that has them; an encoder's own type is left unknown, while its
-   parameters are still checked. *)
+   parameters are still checked.
+
+   These stand in for whoever is not linked here: a process that does link the
+   formats library computes an encoder's type itself, and keeps it. *)
 
 let copy t = Type.Fresh.(make (init ~preserve_positions:true ()) t)
 let find env name = Option.map (fun (_, t) -> t) (List.assoc_opt name env)
@@ -39,10 +42,9 @@ let type_of env name ?pos () =
 
 let install ~env () =
   let source_ty = type_of env Reserved.source_ty in
-  (Hooks.type_of_encoder := fun ~pos _ -> Type.var ?pos ());
-  (Hooks.mk_source_ty :=
-     fun ?pos _ _ -> source_ty ?pos:(Option.map Pos.of_lexing_pos pos) ());
-  (Hooks.mk_clock_ty :=
-     fun ?pos () ->
-       type_of env Reserved.clock_ty ?pos:(Option.map Pos.of_lexing_pos pos) ());
-  Hooks.source_methods_t := fun () -> source_ty ()
+  Hooks.fallback Hooks.type_of_encoder (fun ~pos _ -> Type.var ?pos ());
+  Hooks.fallback Hooks.mk_source_ty (fun ?pos _ _ ->
+      source_ty ?pos:(Option.map Pos.of_lexing_pos pos) ());
+  Hooks.fallback Hooks.mk_clock_ty (fun ?pos () ->
+      type_of env Reserved.clock_ty ?pos:(Option.map Pos.of_lexing_pos pos) ());
+  Hooks.fallback Hooks.source_methods_t (fun () -> source_ty ())

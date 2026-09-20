@@ -53,9 +53,9 @@ let mk_fun ?(flags = Flags.empty) ~pos arguments body =
 let mk_implicit_fun = mk_fun ~flags:implicit
 
 let mk_source_ty ?pos name args =
-  let fn = !Hooks.mk_source_ty in
+  let fn = Hooks.get Hooks.mk_source_ty in
   fn ?pos name args
 
 let mk_clock_ty ?pos () =
-  let fn = !Hooks.mk_clock_ty in
+  let fn = Hooks.get Hooks.mk_clock_ty in
   fn ?pos ()

@@ -83,7 +83,7 @@ let includer_reducer ~pos = function
         let fname =
           match inc_type with
             | `Lib -> (
-                try Filename.concat (!Hooks.liq_libs_dir ()) inc_name
+                try Filename.concat (Hooks.get Hooks.liq_libs_dir ()) inc_name
                 with Not_found ->
                   raise
                     (Term.Parse_error

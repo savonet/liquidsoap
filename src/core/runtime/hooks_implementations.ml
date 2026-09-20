@@ -110,11 +110,10 @@ let mk_field_t ?pos kind params =
         )
 
 let () =
-  Hooks.mk_clock_ty :=
-    fun ?pos () ->
+  Hooks.implement Hooks.mk_clock_ty (fun ?pos () ->
       Type.make
         ?pos:(Option.map Liquidsoap_lang_prelude.Pos.of_lexing_pos pos)
-        Lang_clock.ClockValue.base_t.Type.descr
+        Lang_clock.ClockValue.base_t.Type.descr)
 
 let mk_source_ty ?pos name annotation =
   if name <> "source" then (
@@ -142,7 +141,7 @@ let mk_source_ty ?pos name annotation =
               Lang_source.source_t ?pos (Frame_type.make base fields))
 
 let register () =
-  Hooks.liq_libs_dir := Configure.liq_libs_dir;
+  Hooks.implement Hooks.liq_libs_dir Configure.liq_libs_dir;
   let on_change v =
     Hooks.log_path :=
       if v then (try Some Dtools.Log.conf_file_path#get with _ -> None)
@@ -150,19 +149,18 @@ let register () =
   in
   Dtools.Log.conf_file#on_change on_change;
   Option.iter on_change Dtools.Log.conf_file#get_d;
-  (Hooks.make_log := fun name -> (Log.make name :> Hooks.log));
-  Hooks.type_of_encoder := Lang_encoder.type_of_encoder;
-  Hooks.make_encoder := Lang_encoder.make_encoder;
-  Hooks.eval_check := eval_check;
-  (Hooks.has_encoder :=
-     fun fmt ->
-       try
-         let (_ : Encoder.factory) =
-           Encoder.get_factory (Lang_encoder.V.of_value fmt)
-         in
-         true
-       with _ -> false);
-  Hooks.mk_source_ty := mk_source_ty;
+  Hooks.implement Hooks.make_log (fun name -> (Log.make name :> Hooks.log));
+  Hooks.implement Hooks.type_of_encoder Lang_encoder.type_of_encoder;
+  Hooks.implement Hooks.make_encoder Lang_encoder.make_encoder;
+  Hooks.implement Hooks.eval_check eval_check;
+  Hooks.implement Hooks.has_encoder (fun fmt ->
+      try
+        let (_ : Encoder.factory) =
+          Encoder.get_factory (Lang_encoder.V.of_value fmt)
+        in
+        true
+      with _ -> false);
+  Hooks.implement Hooks.mk_source_ty mk_source_ty;
   Hooks.getpwnam := Unix.getpwnam;
-  Hooks.source_methods_t :=
-    fun () -> Lang_source.source_t ~methods:true (Lang.univ_t ())
+  Hooks.implement Hooks.source_methods_t (fun () ->
+      Lang_source.source_t ~methods:true (Lang.univ_t ()))
