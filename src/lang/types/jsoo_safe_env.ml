@@ -43,8 +43,19 @@ module Physical = Hashtbl.Make (struct
   let hash = Hashtbl.hash
 end)
 
+(* Payloads are hashed structurally and compared physically, as types are: an
+   address would not survive the collections a strip triggers. *)
+module Payloads = Hashtbl.Make (struct
+  type t = Type.custom
+
+  let equal = ( == )
+  let hash = Hashtbl.hash
+end)
+
 type stripper = {
   types : Type.t Physical.t;
+  payloads : int Payloads.t;
+  mutable next_payload : int;
   var_maps : (int, var) Hashtbl.t;
   link_maps : (int, var_t) Hashtbl.t;
   mutable stripped_constraints : (var * string list) list;
@@ -52,6 +63,16 @@ type stripper = {
   mutable next_var_name : int;
   mutable next_var_id : int;
 }
+
+(* What tells the reader which dumped types carried the same payload. *)
+let payload_id stripper typ =
+  match Payloads.find_opt stripper.payloads typ with
+    | Some id -> id
+    | None ->
+        let id = stripper.next_payload in
+        stripper.next_payload <- id + 1;
+        Payloads.replace stripper.payloads typ id;
+        id
 
 let strip_var stripper (v : var) =
   match Hashtbl.find_opt stripper.var_maps v.name with
@@ -88,8 +109,20 @@ and strip_descr stripper descr =
   let map = strip_type stripper in
   match descr with
     | (String | Int | Float | Bool | Never) as descr -> descr
-    | Custom { custom_name } ->
-        Constr { constructor = custom_name; params = [] }
+    (* The dispatch table is what cannot be written; a name and a printed
+       payload are enough for a reader that implements the type. *)
+    | Custom ({ handler_state = Resolved handler } as c) ->
+        Custom
+          {
+            c with
+            handler_state =
+              Dumped
+                {
+                  payload_id = payload_id stripper handler.typ;
+                  payload = handler.serialize handler.typ;
+                };
+          }
+    | Custom _ as descr -> descr
     | Constr { constructor; params } ->
         Constr
           { constructor; params = List.map (fun (v, t) -> (v, map t)) params }
@@ -124,6 +157,8 @@ let strip env =
   let stripper =
     {
       types = Physical.create 65536;
+      payloads = Payloads.create 64;
+      next_payload = 0;
       var_maps = Hashtbl.create 65536;
       link_maps = Hashtbl.create 65536;
       stripped_constraints = [];
@@ -146,7 +181,65 @@ let strip env =
 let language_constraints = [record_constr; num_constr; ord_constr]
 let bump_counter atom next = if Atomic.get atom < next then Atomic.set atom next
 
+(** What is left of a custom type in a process that does not implement it: a
+    name, which only matches itself. Reading a dump is the one place that has to
+    settle for it. *)
+let opaque_custom_handler name =
+  {
+    (* Every one of these ignores it. *)
+    Type.typ = Obj.magic ();
+    serialize = (fun _ -> "");
+    copy_with = (fun _ typ -> typ);
+    occur_check = (fun _ _ -> ());
+    filter_vars = (fun _ vars _ -> vars);
+    repr = (fun _ _ _ -> `Constr (name, []));
+    subtype = (fun _ _ _ -> ());
+    sup = (fun _ typ _ -> typ);
+  }
+
+(* Whoever implements the name rebuilds the payload from its printed form;
+   anything else stays opaque. A payload is rebuilt once, so types that shared
+   one still do. Types share subterms, so each is visited once. *)
+let restore_customs env =
+  let visited = Physical.create 1024 in
+  let restored = Hashtbl.create 16 in
+  let handler_of name payload_id payload =
+    match Hashtbl.find_opt restored (name, payload_id) with
+      | Some handler -> handler
+      | None ->
+          let handler =
+            match Type_custom.of_dump name payload with
+              | Some handler -> handler
+              | None -> opaque_custom_handler name
+          in
+          Hashtbl.replace restored (name, payload_id) handler;
+          handler
+  in
+  let rec walk t =
+    if not (Physical.mem visited t) then (
+      Physical.add visited t t;
+      match t.Type.descr with
+        | Custom ({ handler_state = Dumped { payload_id; payload } } as c) ->
+            c.handler_state <-
+              Resolved (handler_of c.custom_name payload_id payload)
+        | Custom _ -> ()
+        | Constr { params } -> List.iter (fun (_, t) -> walk t) params
+        | Getter t | Nullable t -> walk t
+        | List { t } -> walk t
+        | Tuple l -> List.iter walk l
+        | Meth ({ scheme = _, t }, t') ->
+            walk t;
+            walk t'
+        | Arrow (args, t) ->
+            List.iter (fun (_, _, t) -> walk t) args;
+            walk t
+        | Var { contents = Link (_, t) } -> walk t
+        | Var { contents = Free _ } | String | Int | Float | Bool | Never -> ())
+  in
+  List.iter (fun (_, (_, t)) -> walk t) env
+
 let restore { env; constraints; unbounded_levels; next_var_name; next_var_id } =
+  restore_customs env;
   List.iter (fun (var : var) -> var.level <- max_int) unbounded_levels;
   List.iter
     (fun ((var : var), descrs) ->

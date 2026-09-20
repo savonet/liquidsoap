@@ -54,7 +54,10 @@ module FormatSpecs = struct
     Content_base.(merge (duplicate f) (duplicate f'));
     f
 
-  let to_string _ = assert false
+  let serialize = Content_base.string_of_format
+
+  (* Reading a content type back is the contents' own business. *)
+  let parse _ = None
 end
 
 module FormatType = struct
@@ -68,9 +71,9 @@ let format_descr f = Type.Custom (format_handler f)
 
 let string_of_kind (k, ty) =
   match (Type.deref ty).Type.descr with
-    | Type.(Custom { custom_name = "format"; typ }) ->
+    | Type.(Custom ({ custom_name = "format"; _ } as c)) ->
         Content_base.string_of_format
-          (denormalize_format k (FormatType.to_content typ))
+          (denormalize_format k (FormatType.payload c))
     | _ ->
         Printf.sprintf "%s(%s)"
           (Content_base.string_of_kind k)
@@ -78,10 +81,10 @@ let string_of_kind (k, ty) =
 
 let repr_of_kind repr l (k, ty) =
   match (Type.deref ty).Type.descr with
-    | Type.(Custom { custom_name = "format"; typ }) ->
+    | Type.(Custom ({ custom_name = "format"; _ } as c)) ->
         `Constr
           ( Content_base.string_of_format
-              (denormalize_format k (FormatType.to_content typ)),
+              (denormalize_format k (FormatType.payload c)),
             [] )
     | _ -> `Constr (Content_base.string_of_kind k, [(`Covariant, repr l ty)])
 
@@ -102,7 +105,8 @@ module KindSpecs = struct
     assert (k = k');
     (k, sup t t')
 
-  let to_string = string_of_kind
+  let serialize = string_of_kind
+  let parse _ = None
 end
 
 module KindType = Type_custom.Make (KindSpecs)
@@ -124,11 +128,11 @@ exception Never_type
 let rec content_type ?kind ty =
   match ((Type.demeth ty).Type.descr, kind) with
     | Type.Never, None -> raise Never_type
-    | Type.Custom { Type.custom_name = "kind"; typ }, None ->
-        let kind, ty = KindType.to_content typ in
+    | Type.Custom ({ Type.custom_name = "kind"; _ } as c), None ->
+        let kind, ty = KindType.payload c in
         content_type ~kind ty
-    | Type.Custom { Type.custom_name = "format"; typ }, Some k ->
-        let f = FormatType.to_content typ in
+    | Type.Custom ({ Type.custom_name = "format"; _ } as c), Some k ->
+        let f = FormatType.payload c in
         denormalize_format k f
     | Type.Var _, Some kind -> Content_base.default_format kind
     | Type.Var _, None ->
@@ -203,12 +207,12 @@ let check_track ?univ_descr modules =
         match b.Type.descr with
           | Type.Var _ -> satisfies b
           | Type.Never -> ()
-          | Type.Custom { Type.custom_name = "kind"; typ } ->
-              let k, _ = KindType.to_content typ in
+          | Type.Custom ({ Type.custom_name = "kind"; _ } as c) ->
+              let k, _ = KindType.payload c in
               if not (List.exists (is_kind k) modules) then
                 raise Type.Unsatisfied_constraint
-          | Type.Custom { Type.custom_name = "format"; typ } ->
-              let f = FormatType.to_content typ in
+          | Type.Custom ({ Type.custom_name = "format"; _ } as c) ->
+              let f = FormatType.payload c in
               if not (List.exists (is_kind (Content_base.kind f)) modules) then
                 raise Type.Unsatisfied_constraint
           | _ -> raise Type.Unsatisfied_constraint);
@@ -232,12 +236,12 @@ let internal_tracks =
           (fun { Type.scheme = _, typ } ->
             match (Type.demeth typ).Type.descr with
               | Type.Never -> ()
-              | Type.Custom { Type.custom_name = "kind"; typ } ->
-                  let k, _ = KindType.to_content typ in
+              | Type.Custom ({ Type.custom_name = "kind"; _ } as c) ->
+                  let k, _ = KindType.payload c in
                   if not (List.exists (is_kind k) internal_modules) then
                     raise Type.Unsatisfied_constraint
-              | Type.Custom { Type.custom_name = "format"; typ } ->
-                  let f = FormatType.to_content typ in
+              | Type.Custom ({ Type.custom_name = "format"; _ } as c) ->
+                  let f = FormatType.payload c in
                   if not (List.exists (is_format f) internal_modules) then
                     raise Type.Unsatisfied_constraint
               | Type.Var { contents = Free v } ->

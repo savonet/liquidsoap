@@ -37,25 +37,37 @@ module type Specs = sig
   val repr : (var list -> t -> Repr.t) -> var list -> content -> Repr.t
   val subtype : (t -> t -> unit) -> content -> content -> unit
   val sup : (t -> t -> t) -> content -> content -> content
-  val to_string : content -> string
+
+  (** How a payload survives a dump, which carries strings and no more. [parse]
+      answers [None] for a printed form it cannot rebuild. *)
+  val serialize : content -> string
+
+  val parse : string -> content option
 end
 
 module type Implementation = sig
   type content
 
-  val handler : content -> Type_base.custom_handler
+  val handler : content -> Type_base.custom_instance
   val to_content : custom -> content
+
+  (** What a custom type of this one's name carries here. *)
+  val payload : Type_base.custom_instance -> content
 end
 
 let registered_custom_type_names = ref []
 
+(* How to rebuild each custom type implemented here from what a dump wrote. *)
+let parsers : (string, string -> Type_base.custom_handler option) Hashtbl.t =
+  Hashtbl.create 16
+
+let of_dump name payload =
+  match Hashtbl.find_opt parsers name with
+    | Some parse -> parse payload
+    | None -> None
+
 module Make (S : Specs) = struct
   type content = S.content
-
-  let () =
-    if List.mem S.name !registered_custom_type_names then
-      failwith ("Custom type already registered: " ^ S.name);
-    registered_custom_type_names := S.name :: !registered_custom_type_names
 
   (* See [Type_base.custom]: erasure has to stay [Obj.magic] so that custom
      types remain marshalable for the typechecking cache. Only [handler] below
@@ -69,18 +81,23 @@ module Make (S : Specs) = struct
   let repr fn vars v = S.repr fn vars (to_content v)
   let subtype fn v v' = S.subtype fn (to_content v) (to_content v')
   let sup fn v v' = to_custom (S.sup fn (to_content v) (to_content v'))
-  let to_string v = S.to_string (to_content v)
+
+  let () =
+    if List.mem S.name !registered_custom_type_names then
+      failwith ("Custom type already registered: " ^ S.name);
+    registered_custom_type_names := S.name :: !registered_custom_type_names
+
+  let serialize v = S.serialize (to_content v)
+
+  let dispatch typ =
+    { typ; serialize; copy_with; occur_check; filter_vars; repr; subtype; sup }
+
+  let () =
+    Hashtbl.replace parsers S.name (fun payload ->
+        Option.map (fun v -> dispatch (to_custom v)) (S.parse payload))
+
+  let payload c = to_content (Type_base.custom_handler c).typ
 
   let handler v =
-    {
-      typ = to_custom v;
-      custom_name = S.name;
-      copy_with;
-      occur_check;
-      filter_vars;
-      repr;
-      subtype;
-      sup;
-      to_string;
-    }
+    { custom_name = S.name; handler_state = Resolved (dispatch (to_custom v)) }
 end

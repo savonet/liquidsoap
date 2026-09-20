@@ -528,7 +528,10 @@ module MkCustom (Def : CustomDef) = struct
       c
 
     let repr _ _ _ = `Constr (name, [])
-    let to_string _ = name
+
+    (* Nothing to carry, so nothing to lose in a dump. *)
+    let serialize _ = ""
+    let parse _ = Some ()
   end)
 
   let descr = Type.Custom (T.handler ())

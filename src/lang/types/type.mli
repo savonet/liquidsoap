@@ -34,15 +34,27 @@ type custom = Type_base.custom
 
 type custom_handler = Type_base.custom_handler = {
   typ : custom;
-  custom_name : string;
+  serialize : custom -> string;
   copy_with : (t -> t) -> custom -> custom;
   occur_check : (t -> unit) -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
   repr : (var list -> t -> constr R.t) -> var list -> custom -> constr R.t;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
-  to_string : custom -> string;
 }
+
+type custom_handler_state = Type_base.custom_handler_state =
+  | Resolved of custom_handler
+  | Dumped of { payload_id : int; payload : string }
+
+type custom_instance = Type_base.custom_instance = {
+  custom_name : string;
+  mutable handler_state : custom_handler_state;
+}
+
+(** What a custom type carries here. Raises [Failure] for one that a dump
+    brought in, which carries nothing. *)
+val custom_handler : custom_instance -> custom_handler
 
 type invar = Type_base.invar = Free of var | Link of variance * t
 type var_t = Type_base.var_t = { id : int; mutable contents : invar }
@@ -53,7 +65,7 @@ type descr = Type_base.descr =
   | Float
   | Bool
   | Never
-  | Custom of custom_handler
+  | Custom of custom_instance
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
   | List of repr_t

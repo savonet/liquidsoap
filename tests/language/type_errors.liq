@@ -64,6 +64,12 @@ def f() =
   incorrect('(1,1)==(1,"1")')
   incorrect('(1,1)==("1",1)')
   incorrect('1==request.create("")')
+
+  # Two custom types share the representation of their payload, and nothing
+  # else, so a clock is not a request.
+  incorrect(
+    'def f((r : request)) = ignore(r) end f(sine().clock)'
+  )
   incorrect('fun(x)->x(snd(x))')
   correct(
     '{a = 5, b = 3} == {a = 6}'

@@ -30,7 +30,7 @@ val track : Type.constr
 val muxed_tracks : Type.constr
 val internal_tracks : Type.constr
 val content_type : Type.t -> Content_base.format
-val kind_handler : Content_base.kind * Type.t -> Type.custom_handler
+val kind_handler : Content_base.kind * Type.t -> Type.custom_instance
 
 (** Some common types *)
 val audio : ?pcm_kind:Content_base.kind -> unit -> Type.t
