@@ -1,0 +1,22 @@
+(executable
+ (name abi_digest)
+ (modules abi_digest)
+ (libraries liquidsoap-lang.types))
+
+(rule
+ (target digest.actual)
+ (deps
+  (:sources
+   ../../src/lang/types/type_base.ml
+   ../../src/lang/types/jsoo_safe_env.ml)
+  (:digest abi_digest.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{digest} %{sources}))))
+
+(rule
+ (aliases citest runtest)
+ (package liquidsoap)
+ (action
+  (diff digest.expected digest.actual)))

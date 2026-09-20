@@ -29,8 +29,15 @@ type t
 val strip : (string * Type.scheme) list -> t
 val restore : t -> (string * Type.scheme) list
 
-(** Raises [Invalid_argument] if a closure is left. *)
+(** The dump format's version: a reader accepts the dumps written with the same
+    one, whichever liquidsoap wrote them. *)
+val abi_version : int
+
+(** Raises [Invalid_argument] if a closure is left. [version] is the liquidsoap
+    that wrote the dump, which {!written_by} reads back. *)
 val to_string : version:string -> t -> string
 
-(** Raises [Failure] unless the dump was written by [version]. *)
-val of_string : version:string -> string -> t
+(** Raises [Failure] unless the dump was written in this {!abi_version}. *)
+val of_string : string -> t
+
+val written_by : string -> string option

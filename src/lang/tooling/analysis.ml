@@ -40,7 +40,7 @@ type result = {
 
 exception Stop
 
-let load_env ~version dump = Jsoo_safe_env.(restore (of_string ~version dump))
+let load_env dump = Jsoo_safe_env.(restore (of_string dump))
 
 (* The header that [Runtime.throw] prints opens the box [message] closes. *)
 let render message = String.trim (Format.asprintf "@[%t" message)
