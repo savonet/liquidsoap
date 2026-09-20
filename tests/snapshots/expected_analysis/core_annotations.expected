@@ -1,0 +1,77 @@
+=== core_annotations.liq ===
+# Sources, clocks and encoders come from the core, which the analysis does not
+# link: their types come from the typing environment.
+def f((s : source)) =
+  s.skip()
+end
+c = (sine().clock : clock)
+o = output.file(%mp3, "/tmp/out.mp3", sine())
+ignore((f, c, o))
+
+#? methods 4:2
+#? type 4:2
+#? type 6:0
+--- diagnostics ---
+--- methods 4:2 ---
+on_select, on_leave, replay_metadata, single, track_sensitive, on_position, on_frame_checksum, on_frame, on_track, on_collect, on_shutdown, on_wake_up, on_metadata, time, clock, fallible, skip, seek, is_active, is_up, log, self_sync_description, self_sync, duration, elapsed, remaining, register_command, clear_last_metadata, last_metadata, buffered, reset_last_metadata_on_track, insert_metadata, generate_frame, is_ready, callbacks_count, id
+--- type 4:2 ---
+source('A)
+.{
+  buffered : () -> [string * float],
+  callbacks_count : () -> [string * int],
+  clear_last_metadata : () -> unit,
+  clock : clock,
+  duration : () -> float,
+  elapsed : () -> float,
+  fallible : bool,
+  generate_frame : () -> unit,
+  id : () -> string,
+  insert_metadata : (?override : bool, ?new_track : bool, [string * string]) ->
+                    unit,
+  is_active : () -> bool,
+  is_ready : () -> bool,
+  is_up : () -> bool,
+  last_metadata : () -> [string * string]?,
+  log :
+  {level : (() -> int).{exchange : (int) -> int, set : (int) -> unit}
+  },
+  on_collect : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
+  on_frame : (?before : bool, synchronous : bool, (() -> unit)) ->
+             {release : () -> unit},
+  on_frame_checksum : (?before : ((string?) -> unit)?, synchronous : bool,
+                       ((cache : string?, string) -> unit)) ->
+                      {release : () -> unit},
+  on_leave : ({source : source('A), track_sensitive : bool}) -> unit,
+  on_metadata : (synchronous : bool, (([string * string]) -> unit)) ->
+                {release : () -> unit},
+  on_position : (position : {float}, ?remaining : bool,
+                 ?allow_partial : bool, synchronous : bool,
+                 ((float, [string * string]) -> unit)) ->
+                {release : () -> unit},
+  on_select : (
+               {
+                 ending : source('A)?,
+                 replay_metadata : bool,
+                 starting : source('A)
+               }) -> source('A),
+  on_shutdown : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
+  on_track : (synchronous : bool, (([string * string]) -> unit)) ->
+             {release : () -> unit},
+  on_wake_up : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
+  register_command : (?usage : string?, description : string, string,
+                      ((string) -> string)) -> unit,
+  remaining : () -> float,
+  replay_metadata : {bool},
+  reset_last_metadata_on_track : (() -> bool)
+  .{exchange : (bool) -> bool, set : (bool) -> unit
+  },
+  seek : (float) -> float,
+  self_sync : () -> bool,
+  self_sync_description : () -> string,
+  single : bool,
+  skip : () -> unit,
+  time : () -> float,
+  track_sensitive : {bool}
+}
+--- type 6:0 ---
+clock

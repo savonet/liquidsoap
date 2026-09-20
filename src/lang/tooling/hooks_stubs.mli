@@ -20,14 +20,11 @@
 
  *****************************************************************************)
 
-let null = "_0_null"
-let any = "_0_any"
-let eval = "_0_eval"
-let json_parser = "_0_json_parser"
-let xml_parser = "_0_xml_parser"
-let yaml_parser = "_0_yaml_parser"
-let sqlite_row_parser = "_0_sqlite_row_parser"
-let source_ty = "_0_source"
-let clock_ty = "_0_clock"
-let pattern_var = Printf.sprintf "_%d_pat"
-let annotation_var = Printf.sprintf "_0_ann_%d"
+(** Implementations of the hooks that liquidsoap's core fills in, for the tools
+    that link the language alone. Without them, typechecking a script that uses
+    an encoder, or annotates a source or a clock, fails. *)
+
+(** [env] is the typing environment the analysis checks against, which carries
+    the types of a source and of a clock. *)
+val install :
+  env:(string * Liquidsoap_lang_types.Type.scheme) list -> unit -> unit

@@ -27,4 +27,5 @@
   liquidsoap-lang.prelude
   liquidsoap-lang.reducer
   liquidsoap-lang.types
+  liquidsoap-lang.values
   liquidsoap_lang))

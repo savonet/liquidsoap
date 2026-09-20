@@ -40,6 +40,13 @@ val xml_parser : string
 val yaml_parser : string
 val sqlite_row_parser : string
 
+(** The types liquidsoap's core defines and a script writes in its annotations,
+    which the typing environment carries under these names so that the tools
+    linking the language alone can read them back. *)
+val source_ty : string
+
+val clock_ty : string
+
 (** Variables the reducer introduces to destructure a value, and to name the
     pattern arguments of [%argsof]. *)
 val pattern_var : int -> string

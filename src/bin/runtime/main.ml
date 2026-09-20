@@ -259,7 +259,16 @@ let options =
          Arg.String
            (fun file ->
              with_toplevel (fun () ->
-                 let env = Environment.default_typing_environment () in
+                 (* The types of the core, for the tools that link the
+                    language alone: a source with its methods, and a clock. *)
+                 let env =
+                   ( Liquidsoap_lang_prelude.Reserved.source_ty,
+                     ([], Lang_source.source_t ~methods:true (Lang.univ_t ()))
+                   )
+                   :: ( Liquidsoap_lang_prelude.Reserved.clock_ty,
+                        ([], Lang_clock.ClockValue.base_t) )
+                   :: Environment.default_typing_environment ()
+                 in
                  let dump =
                    Liquidsoap_lang_types.Jsoo_safe_env.(
                      to_string
