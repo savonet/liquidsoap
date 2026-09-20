@@ -25,6 +25,8 @@
    -open
    Liquidsoap_core_utils
    -open
+   Liquidsoap_core_lang
+   -open
    Liquidsoap_core_stream
    -open
    Liquidsoap_core_media
@@ -43,6 +45,7 @@
   liquidsoap-lang.values
   liquidsoap_core_encoder
   liquidsoap_core_media
+  liquidsoap_core_lang
   liquidsoap_core_stream
   liquidsoap_core_utils
   metadata

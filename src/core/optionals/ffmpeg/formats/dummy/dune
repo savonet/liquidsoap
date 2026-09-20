@@ -7,6 +7,8 @@
 (library
  (name liquidsoap_ffmpeg_formats_dummy)
  (public_name liquidsoap.ffmpeg_formats_dummy)
+ ; Linking it is what registers the kinds, so its initialisers must run.
+ (library_flags (-linkall))
  (flags
   (:standard
    -open

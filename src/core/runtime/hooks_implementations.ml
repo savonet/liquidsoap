@@ -67,78 +67,11 @@ let eval_check ~env:_ ~tm v =
             try Typing.(source#frame_type <: frame_t)
             with _ when is_nullable tm.Term.t -> ())))
 
-let render_string = function
-  | `Verbatim s -> s
-  | `String (pos, (sep, s)) -> String_literal.render ~pos ~sep s
-
-let mk_field_t ?pos kind params =
-  let err_pos =
-    Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos
-  in
-  let pos = Option.map Pos.of_lexing_pos pos in
-  match kind with
-    | "any" -> Type.var ?pos ()
-    | "none" | "never" -> Type.make ?pos Type.Never
-    | _ -> (
-        try
-          let k = Content.kind_of_string kind in
-          match params with
-            | [] -> Type.make ?pos (Format_type.descr (`Kind k))
-            | [("", `Verbatim "any")] -> Type.var ?pos ()
-            | [("", `Verbatim "internal")] ->
-                Type.var ?pos ~constraints:[Format_type.internal_tracks] ()
-            | param :: params ->
-                let mk_format (label, value) =
-                  let value = render_string value in
-                  Content.parse_param k label value
-                in
-                let f = mk_format param in
-                List.iter
-                  (fun param -> Content.merge f (mk_format param))
-                  params;
-                assert (k = Content.kind f);
-                Type.make ?pos (Format_type.descr (`Format f))
-        with _ ->
-          let params =
-            params
-            |> List.map (fun (l, v) -> l ^ "=" ^ render_string v)
-            |> String.concat ","
-          in
-          let t = kind ^ "(" ^ params ^ ")" in
-          raise
-            (Term.Parse_error (err_pos, "Unknown type constructor: " ^ t ^ "."))
-        )
-
 let () =
   Hooks.implement Hooks.mk_clock_ty (fun ?pos () ->
       Type.make
         ?pos:(Option.map Liquidsoap_lang_prelude.Pos.of_lexing_pos pos)
         Lang_clock.ClockValue.base_t.Type.descr)
-
-let mk_source_ty ?pos name annotation =
-  if name <> "source" then (
-    let pos = Option.value ~default:(Lexing.dummy_pos, Lexing.dummy_pos) pos in
-    raise (Term.Parse_error (pos, "Unknown type constructor: " ^ name ^ ".")));
-
-  match annotation with
-    | `Abstract -> Lang_source.abstract_source_t ?pos ()
-    | `Tracks { Parsed_term.extensible; tracks } -> (
-        match tracks with
-          | [] -> Lang_source.source_t ?pos (Lang.univ_t ())
-          | tracks ->
-              let fields =
-                List.fold_left
-                  (fun fields
-                       { Parsed_term.track_name; track_type; track_params } ->
-                    Frame.Fields.add
-                      (Frame.Fields.field_of_string track_name)
-                      (mk_field_t ?pos track_type track_params)
-                      fields)
-                  Frame.Fields.empty tracks
-              in
-              let base = if extensible then Lang.univ_t () else Lang.unit_t in
-
-              Lang_source.source_t ?pos (Frame_type.make base fields))
 
 let register () =
   Hooks.implement Hooks.liq_libs_dir Configure.liq_libs_dir;
@@ -159,7 +92,6 @@ let register () =
         in
         true
       with _ -> false);
-  Hooks.implement Hooks.mk_source_ty mk_source_ty;
   Hooks.getpwnam := Unix.getpwnam;
   Hooks.implement Hooks.source_methods_t (fun () ->
       Lang_source.source_t ~methods:true (Lang.univ_t ()))

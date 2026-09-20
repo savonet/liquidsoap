@@ -1431,6 +1431,26 @@
   (diff expected_analysis/shadowing.expected analysis_shadowing.actual)))
 
 (rule
+ (target analysis_source_annotation.actual)
+ (deps
+  (:case cases_analysis/source_annotation.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/source_annotation.expected
+   analysis_source_annotation.actual)))
+
+(rule
  (target analysis_synthetic.actual)
  (deps
   (:case cases_analysis/synthetic.liq)
