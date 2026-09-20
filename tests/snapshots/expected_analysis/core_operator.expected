@@ -70,8 +70,8 @@ output.dummy(s)
 .{
   detect : 'a.'b.(?id : string?, ?bands : int, ?debug : {bool},
                   ?duration : {float}, ?smoothing : {float},
-                  ?threshold : {float}, [float], source(audio=kind, 'b),
-                  ((float) -> unit)) -> source(audio=kind, 'b)
+                  ?threshold : {float}, [float], source(audio=pcm('a), 'b),
+                  ((float) -> unit)) -> source(audio=pcm('a), 'b)
                  .{
                    buffered : () -> [string * float],
                    callbacks_count : () -> [string * int],
@@ -107,7 +107,7 @@ output.dummy(s)
                                        {release : () -> unit},
                    on_leave : (
                                {
-                                 source : source(audio=kind, 'b),
+                                 source : source(audio=pcm('a), 'b),
                                  track_sensitive : bool
                                }) -> unit,
                    on_metadata : (synchronous : bool,
@@ -119,10 +119,10 @@ output.dummy(s)
                                  {release : () -> unit},
                    on_select : (
                                 {
-                                  ending : source(audio=kind, 'b)?,
+                                  ending : source(audio=pcm('a), 'b)?,
                                   replay_metadata : bool,
-                                  starting : source(audio=kind, 'b)
-                                }) -> source(audio=kind, 'b),
+                                  starting : source(audio=pcm('a), 'b)
+                                }) -> source(audio=pcm('a), 'b),
                    on_shutdown : (synchronous : bool, (() -> unit)) ->
                                  {release : () -> unit},
                    on_track : (synchronous : bool,

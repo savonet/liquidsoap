@@ -9,6 +9,7 @@
 
 (library
  (name liquidsoap_core_formats)
+ (public_name liquidsoap.formats)
  (flags
   (:standard
    -open
