@@ -38,6 +38,15 @@ module type ContentSpecs = Content_base.ContentSpecs
 module type Format = Content_base.Format
 module type Content = Content_base.Content
 
+module MkFormatBase (F : FormatSpecs) :
+  Format with type kind = F.kind and type params = F.params
+
+module MkDataBase (F : Format) (D : DataSpecs with type params = F.params) :
+  Content
+    with type kind = F.kind
+     and type params = F.params
+     and type data = D.data
+
 module MkContent (C : ContentSpecs) :
   Content
     with type kind = C.kind

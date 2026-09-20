@@ -78,6 +78,7 @@
   liquidsoap-lang.types
   liquidsoap-lang.values
   liquidsoap_core_encoder_types
+  liquidsoap_ffmpeg_formats_dummy
   liquidsoap_core_formats
   liquidsoap_lang
   liquidsoap_tooling

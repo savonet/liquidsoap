@@ -22,18 +22,8 @@
 
 open Avutil
 
-module BaseSpecs = struct
-  type kind = [ `Raw ]
-
-  let kind = `Raw
-  let internal_content_type = None
-end
-
 module AudioSpecs = struct
-  include BaseSpecs
-
-  let string_of_kind = function `Raw -> "ffmpeg.audio.raw"
-  let kind_of_string = function "ffmpeg.audio.raw" -> Some `Raw | _ -> None
+  let implementation = "libav"
 
   type params = {
     channel_layout : Channel_layout.t option;
@@ -41,22 +31,7 @@ module AudioSpecs = struct
     sample_rate : int option;
   }
 
-  type data = (params, audio frame) Ffmpeg_content_base.content
-
-  (* No frame copy for now. *)
-  let blit (src : data) src_pos (dst : data) dst_pos len =
-    Ffmpeg_content_base.blit ~copy:(fun x -> x) src src_pos dst dst_pos len
-
-  let copy (src : data) : data = Ffmpeg_content_base.copy ~copy:(fun x -> x) src
-  let length = Ffmpeg_content_base.length
-  let params = Ffmpeg_content_base.params
-  let make ?length:_ params : data = Ffmpeg_content_base.make params
-
-  let checksum (d : data) =
-    Ffmpeg_content_base.checksum
-      ~checksum_of_item:Ffmpeg_frame_checksum.checksum_of_audio_frame d
-
-  let name = "ffmpeg.raw.audio"
+  type t = params
 
   let frame_params frame =
     {
@@ -72,14 +47,10 @@ module AudioSpecs = struct
       sample_rate = Some (Avcodec.Audio.get_sample_rate p);
     }
 
-  let default_params _ =
+  let default =
     { channel_layout = None; sample_format = None; sample_rate = None }
 
-  (* A dump carries the stream type, never the codec parameters behind it. *)
-  let serialize_params _ = ""
-  let parse_params = function "" -> Some (default_params `Raw) | _ -> None
-
-  let string_of_params { channel_layout; sample_format; sample_rate } =
+  let to_string { channel_layout; sample_format; sample_rate } =
     Content.print_optional
       [
         ( "channel_layout",
@@ -92,8 +63,8 @@ module AudioSpecs = struct
         ("sample_rate", Option.map string_of_int sample_rate);
       ]
 
-  let parse_param label value =
-    let none = default_params `Raw in
+  let parse label value =
+    let none = default in
     match label with
       | "channel_layout" ->
           Some
@@ -107,6 +78,19 @@ module AudioSpecs = struct
       | "sample_rate" ->
           Some { none with sample_rate = Some (int_of_string value) }
       | _ -> None
+
+  let merge p p' =
+    {
+      channel_layout =
+        Content.merge_param ~compare:Avutil.Channel_layout.compare
+          ~name:"channel_layout"
+          (p.channel_layout, p'.channel_layout);
+      sample_format =
+        Content.merge_param ~name:"sample_format"
+          (p.sample_format, p'.sample_format);
+      sample_rate =
+        Content.merge_param ~name:"sample_rate" (p.sample_rate, p'.sample_rate);
+    }
 
   let compatible src dst =
     match src with
@@ -134,44 +118,21 @@ module AudioSpecs = struct
             (src.channel_layout, dst.channel_layout)
           && c (src.sample_format, dst.sample_format)
           && c (src.sample_rate, dst.sample_rate)
-
-  let merge p p' =
-    {
-      channel_layout =
-        Content.merge_param ~compare:Avutil.Channel_layout.compare
-          ~name:"channel_layout"
-          (p.channel_layout, p'.channel_layout);
-      sample_format =
-        Content.merge_param ~name:"sample_format"
-          (p.sample_format, p'.sample_format);
-      sample_rate =
-        Content.merge_param ~name:"sample_rate" (p.sample_rate, p'.sample_rate);
-    }
-
-  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
-  let params_to_value p = Liquidsoap_lang.Lang_core.string (string_of_params p)
 end
 
-module Audio = struct
-  include Content.MkContent (AudioSpecs)
+module Audio_names = struct
+  type kind = [ `Raw ]
 
-  let kind = lift_kind `Raw
+  let kind = `Raw
+  let name = "ffmpeg.raw.audio"
+  let kind_name = "ffmpeg.audio.raw"
 end
 
-module VideoSpecs = struct
-  include BaseSpecs
+module Audio_format = Ffmpeg_content_type.Make (AudioSpecs) (Audio_names)
 
-  let string_of_kind = function `Raw -> "ffmpeg.video.raw"
-  let kind_of_string = function "ffmpeg.video.raw" -> Some `Raw | _ -> None
-
-  type params = {
-    width : int option;
-    height : int option;
-    pixel_format : Avutil.Pixel_format.t option;
-    pixel_aspect : Avutil.rational option;
-  }
-
-  type data = (params, video frame) Ffmpeg_content_base.content
+module Audio_data = struct
+  type params = AudioSpecs.t
+  type data = (params, audio frame) Ffmpeg_content_base.content
 
   (* No frame copy for now. *)
   let blit (src : data) src_pos (dst : data) dst_pos len =
@@ -184,9 +145,25 @@ module VideoSpecs = struct
 
   let checksum (d : data) =
     Ffmpeg_content_base.checksum
-      ~checksum_of_item:Ffmpeg_frame_checksum.checksum_of_video_frame d
+      ~checksum_of_item:Ffmpeg_frame_checksum.checksum_of_audio_frame d
+end
 
-  let name = "ffmpeg.raw.video"
+module Audio = struct
+  include Content.MkDataBase (Audio_format.Format) (Audio_data)
+  include Audio_format
+end
+
+module VideoSpecs = struct
+  let implementation = "libav"
+
+  type params = {
+    width : int option;
+    height : int option;
+    pixel_format : Avutil.Pixel_format.t option;
+    pixel_aspect : Avutil.rational option;
+  }
+
+  type t = params
 
   let frame_params frame =
     {
@@ -204,13 +181,10 @@ module VideoSpecs = struct
       pixel_aspect = Avcodec.Video.get_pixel_aspect p;
     }
 
-  let default_params _ =
+  let default =
     { width = None; height = None; pixel_format = None; pixel_aspect = None }
 
-  let serialize_params _ = ""
-  let parse_params = function "" -> Some (default_params `Raw) | _ -> None
-
-  let string_of_params { width; height; pixel_format; pixel_aspect } =
+  let to_string { width; height; pixel_format; pixel_aspect } =
     Content.print_optional
       [
         ("width", Option.map string_of_int width);
@@ -228,8 +202,8 @@ module VideoSpecs = struct
             pixel_aspect );
       ]
 
-  let parse_param label value =
-    let none = default_params `Raw in
+  let parse label value =
+    let none = default in
     match label with
       | "width" -> Some { none with width = Some (int_of_string value) }
       | "height" -> Some { none with height = Some (int_of_string value) }
@@ -254,13 +228,6 @@ module VideoSpecs = struct
           Some { none with pixel_aspect }
       | _ -> None
 
-  let compatible p p' =
-    let c = function None, _ | _, None -> true | Some p, Some p' -> p = p' in
-    c (p.width, p'.width)
-    && c (p.height, p'.height)
-    && c (p.pixel_format, p'.pixel_format)
-    && c (p.pixel_aspect, p'.pixel_aspect)
-
   let merge p p' =
     {
       width = Content.merge_param ~name:"width" (p.width, p'.width);
@@ -273,12 +240,43 @@ module VideoSpecs = struct
           (p.pixel_aspect, p'.pixel_aspect);
     }
 
-  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
-  let params_to_value p = Liquidsoap_lang.Lang_core.string (string_of_params p)
+  let compatible p p' =
+    let c = function None, _ | _, None -> true | Some p, Some p' -> p = p' in
+    c (p.width, p'.width)
+    && c (p.height, p'.height)
+    && c (p.pixel_format, p'.pixel_format)
+    && c (p.pixel_aspect, p'.pixel_aspect)
+end
+
+module Video_names = struct
+  type kind = [ `Raw ]
+
+  let kind = `Raw
+  let name = "ffmpeg.raw.video"
+  let kind_name = "ffmpeg.video.raw"
+end
+
+module Video_format = Ffmpeg_content_type.Make (VideoSpecs) (Video_names)
+
+module Video_data = struct
+  type params = VideoSpecs.t
+  type data = (params, video frame) Ffmpeg_content_base.content
+
+  (* No frame copy for now. *)
+  let blit (src : data) src_pos (dst : data) dst_pos len =
+    Ffmpeg_content_base.blit ~copy:(fun x -> x) src src_pos dst dst_pos len
+
+  let copy (src : data) : data = Ffmpeg_content_base.copy ~copy:(fun x -> x) src
+  let length = Ffmpeg_content_base.length
+  let params = Ffmpeg_content_base.params
+  let make ?length:_ params : data = Ffmpeg_content_base.make params
+
+  let checksum (d : data) =
+    Ffmpeg_content_base.checksum
+      ~checksum_of_item:Ffmpeg_frame_checksum.checksum_of_video_frame d
 end
 
 module Video = struct
-  include Content.MkContent (VideoSpecs)
-
-  let kind = lift_kind `Raw
+  include Content.MkDataBase (Video_format.Format) (Video_data)
+  include Video_format
 end
