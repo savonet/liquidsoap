@@ -82,7 +82,14 @@ let includer_reducer ~pos = function
       try
         let fname =
           match inc_type with
-            | `Lib -> Filename.concat (!Hooks.liq_libs_dir ()) inc_name
+            | `Lib -> (
+                try Filename.concat (!Hooks.liq_libs_dir ()) inc_name
+                with Not_found ->
+                  raise
+                    (Term.Parse_error
+                       ( inc_pos,
+                         "Cannot include " ^ inc_name
+                         ^ ": the standard library's directory is unknown." )))
             | v -> (
                 try
                   let current_dir =
