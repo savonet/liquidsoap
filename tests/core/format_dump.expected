@@ -14,3 +14,4 @@ ffmpeg.video.raw         ffmpeg.video.raw:    ffmpeg.video.raw
 format:   pcm(mono)
 shared:   true
 kind:     pcm('A)
+inner:    (pcm('A), 'A) -> int

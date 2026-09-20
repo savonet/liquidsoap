@@ -45,7 +45,7 @@ type custom_handler = Type_base.custom_handler = {
 
 type custom_handler_state = Type_base.custom_handler_state =
   | Resolved of custom_handler
-  | Dumped of { payload_id : int; payload : string }
+  | Dumped of { payload_id : int; payload : string; types : t list }
 
 type custom_instance = Type_base.custom_instance = {
   custom_name : string;

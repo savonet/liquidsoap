@@ -59,3 +59,19 @@ let () =
   match dump [("x", scheme descr)] with
     | [("x", (_, x))] -> Printf.printf "kind:     %s\n" (Type.to_string x)
     | _ -> print_endline "kind:     <unexpected environment>"
+
+(* A payload's own types belong to the graph around it: the variable inside
+   [pcm('a)] is the one the second argument names. *)
+let () =
+  let inner = Type.var () in
+  let kind =
+    Type.make
+      (Type.Custom (Format_type.kind_handler (Content.Audio.kind, inner)))
+  in
+  let arrow =
+    Type.make
+      (Type.Arrow ([(false, "", kind); (false, "", inner)], Type.make Type.Int))
+  in
+  match dump [("f", ([], arrow))] with
+    | [("f", (_, t))] -> Printf.printf "inner:    %s\n" (Type.to_string t)
+    | _ -> print_endline "inner:    <unexpected environment>"

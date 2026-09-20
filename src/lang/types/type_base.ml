@@ -139,12 +139,12 @@ and custom_handler = {
   sup : (t -> t -> t) -> custom -> custom -> custom;
 }
 
-(** A custom type read back from a dump arrives [Dumped]: a dump carries its
-    name, its payload's printed form and which payload it was, since types that
-    shared one on the way out have to share one again. *)
+(** A custom type read back from a dump arrives [Dumped]: its payload's
+    serialized form, the types that payload holds, and which payload it was,
+    since types that shared one on the way out have to share one again. *)
 and custom_handler_state =
   | Resolved of custom_handler
-  | Dumped of { payload_id : int; payload : string }
+  | Dumped of { payload_id : int; payload : string; types : t list }
 
 and custom_instance = {
   custom_name : string;

@@ -103,25 +103,12 @@ module KindSpecs = struct
     assert (k = k');
     (k, sup t t')
 
-  (* A kind carries the format it was resolved to, or, while it still holds a
-     type, its own name. *)
-  let serialize (k, ty) =
-    match (Type.deref ty).Type.descr with
-      | Type.(Custom ({ custom_name = "format"; _ } as c)) ->
-          "f" ^ Content_base.serialize_format (FormatType.payload c)
-      | _ -> "k" ^ Content_base.string_of_kind k
+  let serialize (k, _) = Content_base.string_of_kind k
 
   let parse s =
-    match (s.[0], String.sub s 1 (String.length s - 1)) with
-      | 'f', format ->
-          Option.map
-            (fun f -> (Content_base.kind f, Type.make (format_descr f)))
-            (Content_base.parse_format format)
-      | 'k', kind -> (
-          match Content_base.kind_of_string kind with
-            | kind -> Some (kind, Type.var ())
-            | exception _ -> None)
-      | _ | (exception _) -> None
+    match Content_base.kind_of_string s with
+      | kind -> Some (kind, Type.var ())
+      | exception _ -> None
 end
 
 module KindType = Type_custom.Make (KindSpecs)

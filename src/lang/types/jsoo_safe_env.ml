@@ -109,9 +109,21 @@ and strip_descr stripper descr =
   let map = strip_type stripper in
   match descr with
     | (String | Int | Float | Bool | Never) as descr -> descr
-    (* The dispatch table is what cannot be written; a name and a printed
-       payload are enough for a reader that implements the type. *)
+    (* The dispatch table is what cannot be written, while a payload's own
+       types belong to the graph around it and are stripped with it.
+
+       Nothing outside a custom type ever names them: the variable in
+       [pcm('a)] is named by [format('a)] and by nothing else, so listing them
+       in the order [copy_with] walks them is enough to put them back. *)
     | Custom ({ handler_state = Resolved handler } as c) ->
+        let types = ref [] in
+        ignore
+          (handler.copy_with
+             (fun t ->
+               let t = map t in
+               types := t :: !types;
+               t)
+             handler.typ);
         Custom
           {
             c with
@@ -120,6 +132,7 @@ and strip_descr stripper descr =
                 {
                   payload_id = payload_id stripper handler.typ;
                   payload = handler.serialize handler.typ;
+                  types = List.rev !types;
                 };
           }
     | Custom _ as descr -> descr
@@ -203,13 +216,25 @@ let opaque_custom_handler name =
 let restore_customs env =
   let visited = Physical.create 1024 in
   let restored = Hashtbl.create 16 in
-  let handler_of name payload_id payload =
+  let handler_of name payload_id payload types =
     match Hashtbl.find_opt restored (name, payload_id) with
       | Some handler -> handler
       | None ->
           let handler =
             match Type_custom.of_dump name payload with
-              | Some handler -> handler
+              | Some handler ->
+                  let types = ref types in
+                  let next _ =
+                    match !types with
+                      | t :: rest ->
+                          types := rest;
+                          t
+                      | [] -> raise Not_found
+                  in
+                  {
+                    handler with
+                    Type.typ = handler.Type.copy_with next handler.Type.typ;
+                  }
               | None -> opaque_custom_handler name
           in
           Hashtbl.replace restored (name, payload_id) handler;
@@ -219,9 +244,11 @@ let restore_customs env =
     if not (Physical.mem visited t) then (
       Physical.add visited t t;
       match t.Type.descr with
-        | Custom ({ handler_state = Dumped { payload_id; payload } } as c) ->
+        | Custom
+            ({ handler_state = Dumped { payload_id; payload; types } } as c) ->
+            List.iter walk types;
             c.handler_state <-
-              Resolved (handler_of c.custom_name payload_id payload)
+              Resolved (handler_of c.custom_name payload_id payload types)
         | Custom _ -> ()
         | Constr { params } -> List.iter (fun (_, t) -> walk t) params
         | Getter t | Nullable t -> walk t
