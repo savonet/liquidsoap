@@ -160,15 +160,32 @@ let restore { env; constraints; unbounded_levels; next_var_name; next_var_id } =
   bump_counter Type_base.var_id_atom next_var_id;
   env
 
-(* Marshal is untyped, so a dump from another liquidsoap version is rejected
-   from its header, before anything is unmarshaled. *)
-let to_string ~version (dump : t) = version ^ "\n" ^ Marshal.to_string dump []
+(* What a reader must agree with is the marshaled shape: this module's [t] and
+   the type representation it holds. Bump on any change to either, which
+   [tests/abi] asks for. *)
+let abi_version = 1
 
-let of_string ~version s : t =
+let header s =
   match String.index_opt s '\n' with
-    | Some header_end when String.sub s 0 header_end = version ->
+    | Some header_end -> (
+        match String.split_on_char ' ' (String.sub s 0 header_end) with
+          | [abi; version] -> Some (int_of_string_opt abi, version, header_end)
+          | _ -> None)
+    | None -> None
+
+(* Marshal is untyped, so a dump of another shape is rejected from its header,
+   before anything is unmarshaled. *)
+let to_string ~version (dump : t) =
+  Printf.sprintf "%d %s\n%s" abi_version version (Marshal.to_string dump [])
+
+let of_string s : t =
+  match header s with
+    | Some (Some abi, _, header_end) when abi = abi_version ->
         Marshal.from_string s (header_end + 1)
     | _ ->
         failwith
           (Printf.sprintf
-             "This typing environment was not written by liquidsoap %s." version)
+             "This typing environment was not written in format %d." abi_version)
+
+let written_by s =
+  match header s with Some (_, version, _) -> Some version | None -> None

@@ -58,9 +58,7 @@ let load_full_stdlib_types () =
         let t = unavailable_type t in
         Environment.add_builtin ~register:false [name]
           ((vars, t), unavailable_value name t)))
-    Jsoo_safe_env.(
-      restore
-        (of_string ~version:Liquidsoap_lang_data.Build_config.version dump))
+    Jsoo_safe_env.(restore (of_string dump))
 
 let () =
   (Hooks.liq_libs_dir := fun () -> "/static");

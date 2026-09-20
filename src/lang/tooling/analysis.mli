@@ -40,8 +40,9 @@ type result = {
   file : string;  (** The script's name, which its own positions carry. *)
 }
 
-(** Raises [Failure] unless [dump] was written by liquidsoap [version]. *)
-val load_env : version:string -> string -> env
+(** Raises [Failure] unless [dump] was written in the current
+    {!Liquidsoap_lang_types.Jsoo_safe_env.abi_version}. *)
+val load_env : string -> env
 
 (** [file] names the script, so that [%include] resolves next to it. *)
 val check : ?file:string -> env:env -> string -> result

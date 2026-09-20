@@ -269,9 +269,7 @@ let run_analysis_file ~env file =
 let () =
   match List.tl (Array.to_list Sys.argv) with
     | "--analysis" :: env :: files ->
-        let env =
-          Analysis.load_env ~version:Build_config.version (read_source env)
-        in
+        let env = Analysis.load_env (read_source env) in
         List.iter (run_analysis_file ~env) (List.sort compare files)
     | "--canonical" :: files ->
         List.iter run_canonical_file (List.sort compare files)
