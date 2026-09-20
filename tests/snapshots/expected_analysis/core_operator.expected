@@ -7,7 +7,7 @@ output.dummy(s)
 --- diagnostics ---
 --- type 1:4 ---
 ((?id : string?, ?amplitude : {float}, ?duration : float?, ?{float}) ->
- source(audio='A)
+ source(audio=pcm*)
  .{
    buffered : () -> [string * float],
    callbacks_count : () -> [string * int],
@@ -36,7 +36,7 @@ output.dummy(s)
    on_frame_checksum : (?before : ((string?) -> unit)?, synchronous : bool,
                         ((cache : string?, string) -> unit)) ->
                        {release : () -> unit},
-   on_leave : ({source : source(audio='A), track_sensitive : bool}) -> unit,
+   on_leave : ({source : source(audio=pcm*), track_sensitive : bool}) -> unit,
    on_metadata : (synchronous : bool, (([string * string]) -> unit)) ->
                  {release : () -> unit},
    on_position : (position : {float}, ?remaining : bool,
@@ -45,10 +45,10 @@ output.dummy(s)
                  {release : () -> unit},
    on_select : (
                 {
-                  ending : source(audio='A)?,
+                  ending : source(audio=pcm*)?,
                   replay_metadata : bool,
-                  starting : source(audio='A)
-                }) -> source(audio='A),
+                  starting : source(audio=pcm*)
+                }) -> source(audio=pcm*),
    on_shutdown : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
    on_track : (synchronous : bool, (([string * string]) -> unit)) ->
               {release : () -> unit},

@@ -196,102 +196,87 @@ let is_format f m =
   let module Content = (val m : Content) in
   Content.is_format f
 
-let check_track ?univ_descr modules =
-  {
-    Type.constr_descr =
-      Printf.sprintf "a track of type: %s"
-        (Utils.concat_with_last ~last:"or" ", "
-           (List.map string_of_kind modules));
-    univ_descr;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let b = Type.demeth b in
-        match b.Type.descr with
-          | Type.Var _ -> satisfies b
-          | Type.Never -> ()
-          | Type.Custom ({ Type.custom_name = "kind"; _ } as c) ->
-              let k, _ = KindType.payload c in
-              if not (List.exists (is_kind k) modules) then
-                raise Type.Unsatisfied_constraint
-          | Type.Custom ({ Type.custom_name = "format"; _ } as c) ->
-              let f = FormatType.payload c in
-              if not (List.exists (is_kind (Content_base.kind f)) modules) then
-                raise Type.Unsatisfied_constraint
-          | _ -> raise Type.Unsatisfied_constraint);
-  }
+let check_track ?univ_descr ~name modules =
+  Type.constr ?univ_descr ~name
+    ~descr:
+      (Printf.sprintf "a track of type: %s"
+         (Utils.concat_with_last ~last:"or" ", "
+            (List.map string_of_kind modules)))
+    (fun ~subtype:_ ~satisfies b ->
+      let b = Type.demeth b in
+      match b.Type.descr with
+        | Type.Var _ -> satisfies b
+        | Type.Never -> ()
+        | Type.Custom ({ Type.custom_name = "kind"; _ } as c) ->
+            let k, _ = KindType.payload c in
+            if not (List.exists (is_kind k) modules) then
+              raise Type.Unsatisfied_constraint
+        | Type.Custom ({ Type.custom_name = "format"; _ } as c) ->
+            let f = FormatType.payload c in
+            if not (List.exists (is_kind (Content_base.kind f)) modules) then
+              raise Type.Unsatisfied_constraint
+        | _ -> raise Type.Unsatisfied_constraint)
 
-let pcm_audio = check_track ~univ_descr:"pcm*" pcm_modules
-let internal_track = check_track internal_modules
+let pcm_audio = check_track ~univ_descr:"pcm*" ~name:"pcm_audio" pcm_modules
+let internal_track = check_track ~name:"internal_track" internal_modules
 
 let internal_tracks =
-  {
-    Type.constr_descr = "a set of internal tracks";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let meths, base_type = Type.split_meths b in
-        (match base_type.Type.descr with
-          | Type.Var _ -> satisfies base_type
-          | Type.Tuple [] -> ()
-          | _ -> raise Type.Unsatisfied_constraint);
-        List.iter
-          (fun { Type.scheme = _, typ } ->
-            match (Type.demeth typ).Type.descr with
-              | Type.Never -> ()
-              | Type.Custom ({ Type.custom_name = "kind"; _ } as c) ->
-                  let k, _ = KindType.payload c in
-                  if not (List.exists (is_kind k) internal_modules) then
-                    raise Type.Unsatisfied_constraint
-              | Type.Custom ({ Type.custom_name = "format"; _ } as c) ->
-                  let f = FormatType.payload c in
-                  if not (List.exists (is_format f) internal_modules) then
-                    raise Type.Unsatisfied_constraint
-              | Type.Var { contents = Free v } ->
-                  v.constraints <-
-                    Type.Constraints.add internal_track v.constraints
-              | _ -> raise Type.Unsatisfied_constraint)
-          meths);
-  }
+  Type.constr ~name:"internal_tracks" ~descr:"a set of internal tracks"
+    (fun ~subtype:_ ~satisfies b ->
+      let meths, base_type = Type.split_meths b in
+      (match base_type.Type.descr with
+        | Type.Var _ -> satisfies base_type
+        | Type.Tuple [] -> ()
+        | _ -> raise Type.Unsatisfied_constraint);
+      List.iter
+        (fun { Type.scheme = _, typ } ->
+          match (Type.demeth typ).Type.descr with
+            | Type.Never -> ()
+            | Type.Custom ({ Type.custom_name = "kind"; _ } as c) ->
+                let k, _ = KindType.payload c in
+                if not (List.exists (is_kind k) internal_modules) then
+                  raise Type.Unsatisfied_constraint
+            | Type.Custom ({ Type.custom_name = "format"; _ } as c) ->
+                let f = FormatType.payload c in
+                if not (List.exists (is_format f) internal_modules) then
+                  raise Type.Unsatisfied_constraint
+            | Type.Var { contents = Free v } ->
+                v.constraints <-
+                  Type.Constraints.add internal_track v.constraints
+            | _ -> raise Type.Unsatisfied_constraint)
+        meths)
 
 let track =
-  {
-    Type.constr_descr = "a track";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let b = Type.demeth b in
-        match b.Type.descr with
-          | Type.Var _ -> satisfies b
-          | Type.Never
-          | Type.Custom { Type.custom_name = "kind" }
-          | Type.Custom { Type.custom_name = "format" } ->
-              ()
-          | _ -> raise Type.Unsatisfied_constraint);
-  }
+  Type.constr ~name:"track" ~descr:"a track" (fun ~subtype:_ ~satisfies b ->
+      let b = Type.demeth b in
+      match b.Type.descr with
+        | Type.Var _ -> satisfies b
+        | Type.Never
+        | Type.Custom { Type.custom_name = "kind" }
+        | Type.Custom { Type.custom_name = "format" } ->
+            ()
+        | _ -> raise Type.Unsatisfied_constraint)
 
 let muxed_tracks =
-  {
-    Type.constr_descr = "a set of tracks to be muxed into a source";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let meths, base_type = Type.split_meths b in
-        (match (Type.demeth base_type).Type.descr with
-          | Type.Var _ -> satisfies base_type
-          | Type.Tuple [] -> ()
-          | _ -> raise Type.Unsatisfied_constraint);
-        List.iter
-          (fun { Type.scheme = _, typ } ->
-            match (Type.demeth typ).Type.descr with
-              | Type.Never -> ()
-              | Type.Custom { Type.custom_name = "kind" }
-              | Type.Custom { Type.custom_name = "format" } ->
-                  ()
-              | Type.Var { contents = Free v } ->
-                  v.constraints <- Type.Constraints.add track v.constraints
-              | _ -> raise Type.Unsatisfied_constraint)
-          meths);
-  }
+  Type.constr ~name:"muxed_tracks"
+    ~descr:"a set of tracks to be muxed into a source"
+    (fun ~subtype:_ ~satisfies b ->
+      let meths, base_type = Type.split_meths b in
+      (match (Type.demeth base_type).Type.descr with
+        | Type.Var _ -> satisfies base_type
+        | Type.Tuple [] -> ()
+        | _ -> raise Type.Unsatisfied_constraint);
+      List.iter
+        (fun { Type.scheme = _, typ } ->
+          match (Type.demeth typ).Type.descr with
+            | Type.Never -> ()
+            | Type.Custom { Type.custom_name = "kind" }
+            | Type.Custom { Type.custom_name = "format" } ->
+                ()
+            | Type.Var { contents = Free v } ->
+                v.constraints <- Type.Constraints.add track v.constraints
+            | _ -> raise Type.Unsatisfied_constraint)
+        meths)
 
 let content_type ty = content_type ty
 

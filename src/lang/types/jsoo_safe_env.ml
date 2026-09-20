@@ -22,9 +22,17 @@
 
 open Type
 
+(** A constraint as a dump carries it: the name it was registered under, and
+    what a reader that does not have it needs in order to print it. *)
+type dumped_constraint = {
+  constraint_name : string;
+  constraint_descr : string;
+  constraint_univ_descr : string option;
+}
+
 type t = {
   env : (string * scheme) list;
-  constraints : (var * string list) list;
+  constraints : (var * dumped_constraint list) list;
       (** Variable records are physically shared with [env]. *)
   unbounded_levels : var list;
       (** Variables at level [max_int], which does not fit in 31 bits. *)
@@ -58,7 +66,7 @@ type stripper = {
   mutable next_payload : int;
   var_maps : (int, var) Hashtbl.t;
   link_maps : (int, var_t) Hashtbl.t;
-  mutable stripped_constraints : (var * string list) list;
+  mutable stripped_constraints : (var * dumped_constraint list) list;
   mutable unbounded_levels : var list;
   mutable next_var_name : int;
   mutable next_var_id : int;
@@ -84,14 +92,19 @@ let strip_var stripper (v : var) =
         let stripped = { name; level; constraints = Constraints.of_list [] } in
         if v.level = max_int then
           stripper.unbounded_levels <- stripped :: stripper.unbounded_levels;
-        let descrs =
+        let constraints =
           List.map
-            (fun c -> c.constr_descr)
+            (fun c ->
+              {
+                constraint_name = c.constr_name;
+                constraint_descr = c.constr_descr;
+                constraint_univ_descr = c.univ_descr;
+              })
             (Constraints.elements v.constraints)
         in
-        if descrs <> [] then
+        if constraints <> [] then
           stripper.stripped_constraints <-
-            (stripped, descrs) :: stripper.stripped_constraints;
+            (stripped, constraints) :: stripper.stripped_constraints;
         Hashtbl.replace stripper.var_maps v.name stripped;
         stripped
 
@@ -191,7 +204,20 @@ let strip env =
     next_var_id = stripper.next_var_id;
   }
 
-let language_constraints = [record_constr; num_constr; ord_constr]
+(* A constraint this process does not have still has to print, and a reader
+   cannot tell what it would have rejected. *)
+let dumped_constraint
+    { constraint_name; constraint_descr; constraint_univ_descr } =
+  match Type.registered_constraint constraint_name with
+    | Some c -> c
+    | None ->
+        {
+          Type_base.constr_name = constraint_name;
+          constr_descr = constraint_descr;
+          univ_descr = constraint_univ_descr;
+          satisfied = (fun ~subtype:_ ~satisfies:_ _ -> ());
+        }
+
 let bump_counter atom next = if Atomic.get atom < next then Atomic.set atom next
 
 (** What is left of a custom type in a process that does not implement it: a
@@ -269,12 +295,9 @@ let restore { env; constraints; unbounded_levels; next_var_name; next_var_id } =
   restore_customs env;
   List.iter (fun (var : var) -> var.level <- max_int) unbounded_levels;
   List.iter
-    (fun ((var : var), descrs) ->
+    (fun ((var : var), constraints) ->
       var.constraints <-
-        Constraints.of_list
-          (List.filter
-             (fun c -> List.mem c.constr_descr descrs)
-             language_constraints))
+        Constraints.of_list (List.map dumped_constraint constraints))
     constraints;
   bump_counter Type_base.var_name_atom next_var_name;
   bump_counter Type_base.var_id_atom next_var_id;

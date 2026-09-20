@@ -15,3 +15,5 @@ format:   pcm(mono)
 shared:   true
 kind:     pcm('A)
 inner:    (pcm('A), 'A) -> int
+constr:   something that is a track
+resolved: true

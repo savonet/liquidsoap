@@ -92,6 +92,7 @@ type meth_doc = {
 type t = { pos : Pos.Option.t; descr : descr }
 
 and constr = {
+  constr_name : string;  (** What a dump names it by, wherever it is read. *)
   constr_descr : string;
   univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
@@ -187,6 +188,17 @@ module DS = Set.Make (struct
       | x -> x
 end)
 
+(* A constraint is a closure, so a dump names it and a reader looks the name
+   up here. Building one is what records it, since one that no process
+   declared could not be read back. *)
+let registered_constraints : (string, constr) Hashtbl.t = Hashtbl.create 16
+
+let constr ?univ_descr ~name ~descr satisfied =
+  let c = { constr_name = name; constr_descr = descr; univ_descr; satisfied } in
+  Hashtbl.replace registered_constraints name c;
+  c
+
+let registered_constraint = Hashtbl.find_opt registered_constraints
 let string_of_constr c = c.constr_descr
 
 exception Unsatisfied_constraint

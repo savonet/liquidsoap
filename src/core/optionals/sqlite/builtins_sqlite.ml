@@ -29,39 +29,32 @@ let escape s = "'" ^ String.concat "''" (String.split_on_char '\'' s) ^ "'"
 
 let insert_value_constr =
   let open Type in
-  {
-    constr_descr = "int, float, string or null.";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let rec check typ =
-          match (deref typ).descr with
-            | Var _ -> satisfies typ
-            | Nullable typ -> check typ
-            | Float | Int | String -> ()
-            | _ -> raise Unsatisfied_constraint
-        in
-        check b);
-  }
+  constr ~name:"sqlite_insert_value" ~descr:"int, float, string or null."
+    (fun ~subtype:_ ~satisfies b ->
+      let rec check typ =
+        match (deref typ).descr with
+          | Var _ -> satisfies typ
+          | Nullable typ -> check typ
+          | Float | Int | String -> ()
+          | _ -> raise Unsatisfied_constraint
+      in
+      check b)
 
 let insert_record_constr =
   let open Type in
-  {
-    constr_descr = "a record with int, float, string or null methods.";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype ~satisfies b ->
-        let m, b = split_meths b in
-        match b.descr with
-          | Var _ -> satisfies b
-          | Tuple [] when m = [] -> raise Unsatisfied_constraint
-          | Tuple [] ->
-              List.iter
-                (fun { scheme = _, typ } ->
-                  subtype typ (var ~constraints:[insert_value_constr] ()))
-                m
-          | _ -> raise Unsatisfied_constraint);
-  }
+  constr ~name:"sqlite_insert_record"
+    ~descr:"a record with int, float, string or null methods."
+    (fun ~subtype ~satisfies b ->
+      let m, b = split_meths b in
+      match b.descr with
+        | Var _ -> satisfies b
+        | Tuple [] when m = [] -> raise Unsatisfied_constraint
+        | Tuple [] ->
+            List.iter
+              (fun { scheme = _, typ } ->
+                subtype typ (var ~constraints:[insert_value_constr] ()))
+              m
+        | _ -> raise Unsatisfied_constraint)
 
 type row = { row : Sqlite3.row; headers : Sqlite3.headers }
 

@@ -75,3 +75,21 @@ let () =
   match dump [("f", ([], arrow))] with
     | [("f", (_, t))] -> Printf.printf "inner:    %s\n" (Type.to_string t)
     | _ -> print_endline "inner:    <unexpected environment>"
+
+(* A dump names a constraint, so a reader resolves it to the one it has. *)
+let () =
+  let var = Type.var ~constraints:[Format_type.track] () in
+  let constraints t =
+    match (Type.deref t).Type.descr with
+      | Type.Var { contents = Type.Free v } ->
+          Type.Constraints.elements v.Type.constraints
+      | _ -> []
+  in
+  match dump [("x", ([], var))] with
+    | [("x", scheme)] ->
+        Printf.printf "constr:   %s\n" (Type.string_of_scheme scheme);
+        Printf.printf "resolved: %b\n"
+          (List.exists
+             (fun c -> c == Format_type.track)
+             (constraints (snd scheme)))
+    | _ -> print_endline "constr:   <unexpected environment>"

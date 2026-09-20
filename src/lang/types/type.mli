@@ -75,7 +75,8 @@ type descr = Type_base.descr =
   | Arrow of t argument list * t  (** a function *)
   | Var of var_t  (** a type variable *)
 
-type constr = Type_base.constr = {
+type constr = Type_base.constr = private {
+  constr_name : string;
   constr_descr : string;
   univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
@@ -111,6 +112,17 @@ type meth = Type_base.meth = {
 
 type repr_t = Type_base.repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
+(** Builds a constraint and records it under [name], which is how a dump carries
+    it: a reader resolves that name to its own constraint, or, having none, to
+    one that prints the same and accepts everything. *)
+val constr :
+  ?univ_descr:string ->
+  name:string ->
+  descr:string ->
+  (subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit) ->
+  constr
+
+val registered_constraint : string -> constr option
 val string_of_constr : constr -> string
 val record_constr : constr
 val num_constr : constr
