@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # `source(_)` is a source whose content is unknown. Any source can be used where

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 tmp_dir = file.temp_dir("tmp")
 on_cleanup({file.rmdir(tmp_dir)})
 

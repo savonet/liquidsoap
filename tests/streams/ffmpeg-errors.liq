@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   def on_error(e) =
     e = error.methods(e)

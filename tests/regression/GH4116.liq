@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # theora encoder/decoder is deprecated
 test.skip()
 

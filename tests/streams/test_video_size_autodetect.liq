@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Test that video dimensions are auto-detected from the first decoded file
 
 s = once(single("nola_test_size.mp4"))

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 #<------#
 This is
 a multiline comment

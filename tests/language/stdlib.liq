@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   test.equal(environment.get("BLAXXX"), "")
   test.equal(file.is_directory("/"), true)

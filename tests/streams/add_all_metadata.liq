@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # Test that add() relays metadata from all sources, not just the first one.

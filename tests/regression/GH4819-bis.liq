@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 4
 log.file.path := "/tmp/bla.log"
 log.stdout := true

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Scenario:
 #  Let foo start using q, then stop it, skip in q.
 #  When foo restarts it doesn't know that q isn't ready anymore,

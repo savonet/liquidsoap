@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(5)
 
 selected = ref([])

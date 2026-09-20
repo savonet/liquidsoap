@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # The transition returned by a crossfade is add-shaped and carries no track
 # mark, so `cross` has to announce the new track itself. Check that each
 # crossing fires `on_track` exactly once, with the incoming track's metadata.

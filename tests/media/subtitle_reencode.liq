@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # First, create an MKV file with subtitles

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 5
 
 # Races with domain-affine collection: the retry loop below never terminates, so

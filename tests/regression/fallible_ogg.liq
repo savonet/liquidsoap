@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 port = 9301
 
 s = playlist("../media")

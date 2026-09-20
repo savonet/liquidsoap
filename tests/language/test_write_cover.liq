@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 settings.init.force_start := true
 
 target = argv(1)

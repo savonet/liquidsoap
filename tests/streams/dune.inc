@@ -24,10 +24,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} 195.liq liquidsoap %{test_liq} 195.liq)))
+  (run %{run_test} 195.liq liquidsoap 195.liq)))
 
 (rule
  (alias test_add_all_metadata)
@@ -55,15 +55,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   add_all_metadata.liq
-   liquidsoap
-   %{test_liq}
-   add_all_metadata.liq)))
+  (run %{run_test} add_all_metadata.liq liquidsoap add_all_metadata.liq)))
 
 (rule
  (alias test_autostart)
@@ -91,10 +86,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} autostart.liq liquidsoap %{test_liq} autostart.liq)))
+  (run %{run_test} autostart.liq liquidsoap autostart.liq)))
 
 (rule
  (alias test_cross-no-empty-metadata)
@@ -122,14 +117,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    cross-no-empty-metadata.liq
    liquidsoap
-   %{test_liq}
    cross-no-empty-metadata.liq)))
 
 (rule
@@ -158,15 +152,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   cross-override.liq
-   liquidsoap
-   %{test_liq}
-   cross-override.liq)))
+  (run %{run_test} cross-override.liq liquidsoap cross-override.liq)))
 
 (rule
  (alias test_cross-persist-override)
@@ -194,14 +183,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    cross-persist-override.liq
    liquidsoap
-   %{test_liq}
    cross-persist-override.liq)))
 
 (rule
@@ -230,14 +218,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    cross-sequence-transition.liq
    liquidsoap
-   %{test_liq}
    cross-sequence-transition.liq)))
 
 (rule
@@ -266,14 +253,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    cross-transition-arguments.liq
    liquidsoap
-   %{test_liq}
    cross-transition-arguments.liq)))
 
 (rule
@@ -302,14 +288,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    cross-transition-drops-incoming.liq
    liquidsoap
-   %{test_liq}
    cross-transition-drops-incoming.liq)))
 
 (rule
@@ -338,14 +323,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    cross-transition-metadata.liq
    liquidsoap
-   %{test_liq}
    cross-transition-metadata.liq)))
 
 (rule
@@ -374,10 +358,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} cross.liq liquidsoap %{test_liq} cross.liq)))
+  (run %{run_test} cross.liq liquidsoap cross.liq)))
 
 (rule
  (alias test_cross_on_track)
@@ -405,15 +389,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   cross_on_track.liq
-   liquidsoap
-   %{test_liq}
-   cross_on_track.liq)))
+  (run %{run_test} cross_on_track.liq liquidsoap cross_on_track.liq)))
 
 (rule
  (alias test_crossfade)
@@ -441,10 +420,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} crossfade.liq liquidsoap %{test_liq} crossfade.liq)))
+  (run %{run_test} crossfade.liq liquidsoap crossfade.liq)))
 
 (rule
  (alias test_crossfade2)
@@ -472,10 +451,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} crossfade2.liq liquidsoap %{test_liq} crossfade2.liq)))
+  (run %{run_test} crossfade2.liq liquidsoap crossfade2.liq)))
 
 (rule
  (alias test_ctype1)
@@ -503,10 +482,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} ctype1.liq liquidsoap %{test_liq} ctype1.liq)))
+  (run %{run_test} ctype1.liq liquidsoap ctype1.liq)))
 
 (rule
  (alias test_ctype2)
@@ -534,10 +513,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} ctype2.liq liquidsoap %{test_liq} ctype2.liq)))
+  (run %{run_test} ctype2.liq liquidsoap ctype2.liq)))
 
 (rule
  (alias test_cue-cut)
@@ -565,10 +544,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} cue-cut.liq liquidsoap %{test_liq} cue-cut.liq)))
+  (run %{run_test} cue-cut.liq liquidsoap cue-cut.liq)))
 
 (rule
  (alias test_dtmf)
@@ -596,10 +575,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} dtmf.liq liquidsoap %{test_liq} dtmf.liq)))
+  (run %{run_test} dtmf.liq liquidsoap dtmf.liq)))
 
 (rule
  (alias test_dtmf_pcm_s16)
@@ -627,10 +606,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} dtmf_pcm_s16.liq liquidsoap %{test_liq} dtmf_pcm_s16.liq)))
+  (run %{run_test} dtmf_pcm_s16.liq liquidsoap dtmf_pcm_s16.liq)))
 
 (rule
  (alias test_fades-overrides)
@@ -658,15 +637,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   fades-overrides.liq
-   liquidsoap
-   %{test_liq}
-   fades-overrides.liq)))
+  (run %{run_test} fades-overrides.liq liquidsoap fades-overrides.liq)))
 
 (rule
  (alias test_fades-persistent-override)
@@ -694,14 +668,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    fades-persistent-override.liq
    liquidsoap
-   %{test_liq}
    fades-persistent-override.liq)))
 
 (rule
@@ -730,15 +703,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   ffmpeg-errors.liq
-   liquidsoap
-   %{test_liq}
-   ffmpeg-errors.liq)))
+  (run %{run_test} ffmpeg-errors.liq liquidsoap ffmpeg-errors.liq)))
 
 (rule
  (alias test_ffmpeg-trim)
@@ -766,10 +734,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} ffmpeg-trim.liq liquidsoap %{test_liq} ffmpeg-trim.liq)))
+  (run %{run_test} ffmpeg-trim.liq liquidsoap ffmpeg-trim.liq)))
 
 (rule
  (alias test_file_output)
@@ -797,10 +765,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} file_output.liq liquidsoap %{test_liq} file_output.liq)))
+  (run %{run_test} file_output.liq liquidsoap file_output.liq)))
 
 (rule
  (alias test_harbor_kick_client)
@@ -828,15 +796,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   harbor_kick_client.liq
-   liquidsoap
-   %{test_liq}
-   harbor_kick_client.liq)))
+  (run %{run_test} harbor_kick_client.liq liquidsoap harbor_kick_client.liq)))
 
 (rule
  (alias test_harbor_metadata)
@@ -864,15 +827,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   harbor_metadata.liq
-   liquidsoap
-   %{test_liq}
-   harbor_metadata.liq)))
+  (run %{run_test} harbor_metadata.liq liquidsoap harbor_metadata.liq)))
 
 (rule
  (alias test_harbor_metadata_2)
@@ -900,15 +858,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   harbor_metadata_2.liq
-   liquidsoap
-   %{test_liq}
-   harbor_metadata_2.liq)))
+  (run %{run_test} harbor_metadata_2.liq liquidsoap harbor_metadata_2.liq)))
 
 (rule
  (alias test_harbor_metadata_3)
@@ -936,15 +889,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   harbor_metadata_3.liq
-   liquidsoap
-   %{test_liq}
-   harbor_metadata_3.liq)))
+  (run %{run_test} harbor_metadata_3.liq liquidsoap harbor_metadata_3.liq)))
 
 (rule
  (alias test_hls_custom_tags)
@@ -972,15 +920,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   hls_custom_tags.liq
-   liquidsoap
-   %{test_liq}
-   hls_custom_tags.liq)))
+  (run %{run_test} hls_custom_tags.liq liquidsoap hls_custom_tags.liq)))
 
 (rule
  (alias test_hls_discontinuity)
@@ -1008,15 +951,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   hls_discontinuity.liq
-   liquidsoap
-   %{test_liq}
-   hls_discontinuity.liq)))
+  (run %{run_test} hls_discontinuity.liq liquidsoap hls_discontinuity.liq)))
 
 (rule
  (alias test_hls_global_headers)
@@ -1044,15 +982,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   hls_global_headers.liq
-   liquidsoap
-   %{test_liq}
-   hls_global_headers.liq)))
+  (run %{run_test} hls_global_headers.liq liquidsoap hls_global_headers.liq)))
 
 (rule
  (alias test_hls_id3v2)
@@ -1080,10 +1013,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} hls_id3v2.liq liquidsoap %{test_liq} hls_id3v2.liq)))
+  (run %{run_test} hls_id3v2.liq liquidsoap hls_id3v2.liq)))
 
 (rule
  (alias test_hls_large_frame)
@@ -1111,15 +1044,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   hls_large_frame.liq
-   liquidsoap
-   %{test_liq}
-   hls_large_frame.liq)))
+  (run %{run_test} hls_large_frame.liq liquidsoap hls_large_frame.liq)))
 
 (rule
  (alias test_hls_main_playlist)
@@ -1147,15 +1075,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   hls_main_playlist.liq
-   liquidsoap
-   %{test_liq}
-   hls_main_playlist.liq)))
+  (run %{run_test} hls_main_playlist.liq liquidsoap hls_main_playlist.liq)))
 
 (rule
  (alias test_huge-playlist)
@@ -1183,15 +1106,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   huge-playlist.liq
-   liquidsoap
-   %{test_liq}
-   huge-playlist.liq)))
+  (run %{run_test} huge-playlist.liq liquidsoap huge-playlist.liq)))
 
 (rule
  (alias test_icecast_last_meta)
@@ -1219,15 +1137,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   icecast_last_meta.liq
-   liquidsoap
-   %{test_liq}
-   icecast_last_meta.liq)))
+  (run %{run_test} icecast_last_meta.liq liquidsoap icecast_last_meta.liq)))
 
 (rule
  (alias test_icecast_no_restart)
@@ -1255,15 +1168,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   icecast_no_restart.liq
-   liquidsoap
-   %{test_liq}
-   icecast_no_restart.liq)))
+  (run %{run_test} icecast_no_restart.liq liquidsoap icecast_no_restart.liq)))
 
 (rule
  (alias test_image)
@@ -1291,10 +1199,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} image.liq liquidsoap %{test_liq} image.liq)))
+  (run %{run_test} image.liq liquidsoap image.liq)))
 
 (rule
  (alias test_many-playlists)
@@ -1322,15 +1230,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   many-playlists.liq
-   liquidsoap
-   %{test_liq}
-   many-playlists.liq)))
+  (run %{run_test} many-playlists.liq liquidsoap many-playlists.liq)))
 
 (rule
  (alias test_merge_metadata)
@@ -1358,15 +1261,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   merge_metadata.liq
-   liquidsoap
-   %{test_liq}
-   merge_metadata.liq)))
+  (run %{run_test} merge_metadata.liq liquidsoap merge_metadata.liq)))
 
 (rule
  (alias test_metadata-override)
@@ -1394,15 +1292,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   metadata-override.liq
-   liquidsoap
-   %{test_liq}
-   metadata-override.liq)))
+  (run %{run_test} metadata-override.liq liquidsoap metadata-override.liq)))
 
 (rule
  (alias test_never)
@@ -1430,10 +1323,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} never.liq liquidsoap %{test_liq} never.liq)))
+  (run %{run_test} never.liq liquidsoap never.liq)))
 
 (rule
  (alias test_nfo_sidecar_metadata)
@@ -1461,14 +1354,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    nfo_sidecar_metadata.liq
    liquidsoap
-   %{test_liq}
    nfo_sidecar_metadata.liq)))
 
 (rule
@@ -1497,10 +1389,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} no-cue-cut.liq liquidsoap %{test_liq} no-cue-cut.liq)))
+  (run %{run_test} no-cue-cut.liq liquidsoap no-cue-cut.liq)))
 
 (rule
  (alias test_non_repeating)
@@ -1528,15 +1420,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   non_repeating.liq
-   liquidsoap
-   %{test_liq}
-   non_repeating.liq)))
+  (run %{run_test} non_repeating.liq liquidsoap non_repeating.liq)))
 
 (rule
  (alias test_on_end)
@@ -1564,10 +1451,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} on_end.liq liquidsoap %{test_liq} on_end.liq)))
+  (run %{run_test} on_end.liq liquidsoap on_end.liq)))
 
 (rule
  (alias test_on_end_partial)
@@ -1595,15 +1482,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   on_end_partial.liq
-   liquidsoap
-   %{test_liq}
-   on_end_partial.liq)))
+  (run %{run_test} on_end_partial.liq liquidsoap on_end_partial.liq)))
 
 (rule
  (alias test_on_frame)
@@ -1631,10 +1513,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} on_frame.liq liquidsoap %{test_liq} on_frame.liq)))
+  (run %{run_test} on_frame.liq liquidsoap on_frame.liq)))
 
 (rule
  (alias test_on_metadata)
@@ -1662,10 +1544,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} on_metadata.liq liquidsoap %{test_liq} on_metadata.liq)))
+  (run %{run_test} on_metadata.liq liquidsoap on_metadata.liq)))
 
 (rule
  (alias test_on_offset)
@@ -1693,10 +1575,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} on_offset.liq liquidsoap %{test_liq} on_offset.liq)))
+  (run %{run_test} on_offset.liq liquidsoap on_offset.liq)))
 
 (rule
  (alias test_on_offset_partial)
@@ -1724,15 +1606,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   on_offset_partial.liq
-   liquidsoap
-   %{test_liq}
-   on_offset_partial.liq)))
+  (run %{run_test} on_offset_partial.liq liquidsoap on_offset_partial.liq)))
 
 (rule
  (alias test_on_track)
@@ -1760,10 +1637,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} on_track.liq liquidsoap %{test_liq} on_track.liq)))
+  (run %{run_test} on_track.liq liquidsoap on_track.liq)))
 
 (rule
  (alias test_playlist-watch)
@@ -1791,15 +1668,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   playlist-watch.liq
-   liquidsoap
-   %{test_liq}
-   playlist-watch.liq)))
+  (run %{run_test} playlist-watch.liq liquidsoap playlist-watch.liq)))
 
 (rule
  (alias test_radio)
@@ -1827,10 +1699,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} radio.liq liquidsoap %{test_liq} radio.liq)))
+  (run %{run_test} radio.liq liquidsoap radio.liq)))
 
 (rule
  (alias test_radio2)
@@ -1858,10 +1730,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} radio2.liq liquidsoap %{test_liq} radio2.liq)))
+  (run %{run_test} radio2.liq liquidsoap radio2.liq)))
 
 (rule
  (alias test_random)
@@ -1889,10 +1761,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} random.liq liquidsoap %{test_liq} random.liq)))
+  (run %{run_test} random.liq liquidsoap random.liq)))
 
 (rule
  (alias test_replaygain)
@@ -1920,10 +1792,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} replaygain.liq liquidsoap %{test_liq} replaygain.liq)))
+  (run %{run_test} replaygain.liq liquidsoap replaygain.liq)))
 
 (rule
  (alias test_request)
@@ -1951,10 +1823,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} request.liq liquidsoap %{test_liq} request.liq)))
+  (run %{run_test} request.liq liquidsoap request.liq)))
 
 (rule
  (alias test_rotate)
@@ -1982,10 +1854,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} rotate.liq liquidsoap %{test_liq} rotate.liq)))
+  (run %{run_test} rotate.liq liquidsoap rotate.liq)))
 
 (rule
  (alias test_say)
@@ -2013,10 +1885,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} say.liq liquidsoap %{test_liq} say.liq)))
+  (run %{run_test} say.liq liquidsoap say.liq)))
 
 (rule
  (alias test_sharing)
@@ -2044,10 +1916,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} sharing.liq liquidsoap %{test_liq} sharing.liq)))
+  (run %{run_test} sharing.liq liquidsoap sharing.liq)))
 
 (rule
  (alias test_sine.detect.full_conv)
@@ -2075,14 +1947,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    sine.detect.full_conv.liq
    liquidsoap
-   %{test_liq}
    sine.detect.full_conv.liq)))
 
 (rule
@@ -2111,10 +1982,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} sine.detect.liq liquidsoap %{test_liq} sine.detect.liq)))
+  (run %{run_test} sine.detect.liq liquidsoap sine.detect.liq)))
 
 (rule
  (alias test_sine.detect.pcm_f32)
@@ -2142,14 +2013,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    sine.detect.pcm_f32.liq
    liquidsoap
-   %{test_liq}
    sine.detect.pcm_f32.liq)))
 
 (rule
@@ -2178,14 +2048,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    sine.detect.pcm_s16.liq
    liquidsoap
-   %{test_liq}
    sine.detect.pcm_s16.liq)))
 
 (rule
@@ -2214,15 +2083,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   soundtouch-tracks.liq
-   liquidsoap
-   %{test_liq}
-   soundtouch-tracks.liq)))
+  (run %{run_test} soundtouch-tracks.liq liquidsoap soundtouch-tracks.liq)))
 
 (rule
  (alias test_source-cue)
@@ -2250,10 +2114,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} source-cue.liq liquidsoap %{test_liq} source-cue.liq)))
+  (run %{run_test} source-cue.liq liquidsoap source-cue.liq)))
 
 (rule
  (alias test_srt_listen_callback)
@@ -2281,14 +2145,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    srt_listen_callback.liq
    liquidsoap
-   %{test_liq}
    srt_listen_callback.liq)))
 
 (rule
@@ -2317,14 +2180,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    srt_multiple_outputs.liq
    liquidsoap
-   %{test_liq}
    srt_multiple_outputs.liq)))
 
 (rule
@@ -2353,15 +2215,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   srt_passphrase.liq
-   liquidsoap
-   %{test_liq}
-   srt_passphrase.liq)))
+  (run %{run_test} srt_passphrase.liq liquidsoap srt_passphrase.liq)))
 
 (rule
  (alias test_srt_raw_pcm)
@@ -2389,10 +2246,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} srt_raw_pcm.liq liquidsoap %{test_liq} srt_raw_pcm.liq)))
+  (run %{run_test} srt_raw_pcm.liq liquidsoap srt_raw_pcm.liq)))
 
 (rule
  (alias test_stretch-clock-propagation)
@@ -2420,14 +2277,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    stretch-clock-propagation.liq
    liquidsoap
-   %{test_liq}
    stretch-clock-propagation.liq)))
 
 (rule
@@ -2456,14 +2312,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    test_ffmpeg_on_subitles.liq
    liquidsoap
-   %{test_liq}
    test_ffmpeg_on_subitles.liq)))
 
 (rule
@@ -2492,15 +2347,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   test_on_subtitle.liq
-   liquidsoap
-   %{test_liq}
-   test_on_subtitle.liq)))
+  (run %{run_test} test_on_subtitle.liq liquidsoap test_on_subtitle.liq)))
 
 (rule
  (alias test_test_subtitles_insert)
@@ -2528,14 +2378,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    test_subtitles_insert.liq
    liquidsoap
-   %{test_liq}
    test_subtitles_insert.liq)))
 
 (rule
@@ -2564,15 +2413,10 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   test_subtitles_map.liq
-   liquidsoap
-   %{test_liq}
-   test_subtitles_map.liq)))
+  (run %{run_test} test_subtitles_map.liq liquidsoap test_subtitles_map.liq)))
 
 (rule
  (alias test_test_subtitles_track_insert)
@@ -2600,14 +2444,13 @@
   ../media/test-subtitle.srt
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    test_subtitles_track_insert.liq
    liquidsoap
-   %{test_liq}
    test_subtitles_track_insert.liq)))
 
 (alias

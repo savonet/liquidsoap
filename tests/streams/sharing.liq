@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 # Test whether modifying one source does not affect a copy of it. See #2170.
 s = sine()

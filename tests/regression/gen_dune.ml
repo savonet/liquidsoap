@@ -67,9 +67,9 @@ let () =
   ./theora-test.mp4%s
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
- (action (run %%{run_test} %s liquidsoap %%{test_liq} %s)))
+ (action (run %%{run_test} %s liquidsoap %s)))
   |}
         alias targets_stanza test extra_deps target test)
     tests

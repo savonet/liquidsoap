@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   s = http.get('http://ifconfig.me/all.json', http_version="1.1")
   test.equal(s.status_message, "OK")

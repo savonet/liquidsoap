@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for https://github.com/savonet/liquidsoap/issues/3944
 # A filter graph must survive its input running dry. `buffer` is unavailable
 # while it fills, and a filter with a lookahead, `loudnorm` here, cannot fill a

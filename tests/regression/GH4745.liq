@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Make sure that fetch method always call fetch function
 # even when `prefetch=0`.
 def f() =

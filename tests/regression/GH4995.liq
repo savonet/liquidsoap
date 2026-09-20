@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for GH#4995: playlist should not reload when re-used by source.dynamic
 
 log.level.set(5)

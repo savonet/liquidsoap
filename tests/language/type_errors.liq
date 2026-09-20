@@ -1,4 +1,7 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
+
 def section(name) =
   print(
     "\n*** #{name} ***\n\n"

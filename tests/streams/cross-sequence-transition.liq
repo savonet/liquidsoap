@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A transition returning `sequence([before, after])` only pulls the incoming
 # source once the outgoing one is done. `b` sets a cross duration of a single
 # frame and its duration leaves a partial frame, so both sources end up in the

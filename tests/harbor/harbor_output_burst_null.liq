@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Verify that burst=null (no burst buffer) still allows listeners to connect.
 def f() =
   o = output.harbor(%mp3, mount="test", port=3472, burst=null, sine())

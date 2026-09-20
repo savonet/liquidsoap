@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq performance.liq
+#!../../liquidsoap
+
+%include "test_performance.liq"
 
 def erathostenes(n) =
   l = list.init(n - 2, fun (i) -> i + 2)

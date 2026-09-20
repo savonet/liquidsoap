@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # <http-headers>: CORS defaults, explicit values, unknown CORS, plain headers
   headers =

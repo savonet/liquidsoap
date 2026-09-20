@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 uname_s =
   string.trim(
     process.run(

@@ -25,10 +25,11 @@
   (:erathostenes ./test_erathostenes.liq)
   (:performance test_performance.liq)
   (:memory test_memory.liq)
-  (:test_liq ../test.liq))
+  ../test.liq)
  (action
   (progn
-   (run %{liquidsoap} %{test_liq} %{performance} %{small_record})
-   (run %{liquidsoap} %{test_liq} %{performance} %{big_record})
-   (run %{liquidsoap} %{test_liq} %{performance} %{erathostenes})
-   (run %{liquidsoap} %{test_liq} %{performance} %{memory}))))
+   (run %{liquidsoap} %{small_record})
+   ; big-record.liq is generated, so it cannot include the helpers itself.
+   (run %{liquidsoap} %{performance} %{big_record})
+   (run %{liquidsoap} %{erathostenes})
+   (run %{liquidsoap} %{memory}))))

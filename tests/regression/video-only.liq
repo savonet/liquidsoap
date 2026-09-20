@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 a = sine()
 v = blank()
 s = source(source.tracks(a).{video = source.tracks(v).video})

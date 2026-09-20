@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Seeking used to leave the ffmpeg decoder without the packets preceding the
 # seek point, and mp3 stays silent until its bit reservoir has caught up: the
 # first ~150ms after a seek were blank, which is what made a CUE playlist click

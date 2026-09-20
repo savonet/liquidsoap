@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = blank(duration=1.)
 s.on_track(synchronous=true, fun (_) -> test.pass())
 r = ref(false)

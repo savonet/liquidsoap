@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Basic radio test
 day = playlist("playlist")
 night = playlist("playlist")

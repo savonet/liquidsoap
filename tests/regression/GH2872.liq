@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   track_count = ref(0)
   s =

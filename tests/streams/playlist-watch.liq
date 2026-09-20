@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Test file watcher logic in playlist.
 log.level.set(5)
 

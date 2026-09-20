@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 def f() =
   test.equal(1::2::[3, 4], [1, 2, 3, 4])

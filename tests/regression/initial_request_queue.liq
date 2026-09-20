@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   r = request.create("../media/@wav[stereo].wav")
   s = request.queue(queue=[r])

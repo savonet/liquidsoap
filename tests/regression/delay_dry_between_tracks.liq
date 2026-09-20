@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test: a delayed source that runs dry between tracks.
 #
 # `request.queue` reports the end of a track by simply running out of data: it

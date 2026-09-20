@@ -1,4 +1,6 @@
-#!/usr/bin/env -S ../../liquidsoap ../test.liq performance.liq
+#!/usr/bin/env -S ../../liquidsoap
+
+%include "test_performance.liq"
 
 m = runtime.memory().process_managed_memory
 print(

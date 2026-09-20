@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Verify that the auth function receives credentials and can accept connections.
 def f() =
   def auth(info) =

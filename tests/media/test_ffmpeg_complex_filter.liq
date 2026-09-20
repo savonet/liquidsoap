@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def filter(s, s') =
   def mkfilter_multi(graph) =
     s = ffmpeg.filter.audio.input(graph, pass_metadata=true, s)

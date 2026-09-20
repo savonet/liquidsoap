@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for #2437.
 #
 # Failing to open the file leaves the output in its `Idle` state, so the delay

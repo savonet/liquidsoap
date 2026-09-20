@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test: delay(d, s) must let s advance through successive tracks and
 # preserve each track's metadata.
 #

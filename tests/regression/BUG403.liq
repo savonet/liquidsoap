@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # This is the test for bug #403 from our old trac.
 #
 # Make a switch() declare itself ready and arrange to use it for the next

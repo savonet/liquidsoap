@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 keys = "1234567890*#ABCD"
 last_key = ref("")

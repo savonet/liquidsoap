@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 4
 
 output_dir = file.temp_dir("liq", "hls")

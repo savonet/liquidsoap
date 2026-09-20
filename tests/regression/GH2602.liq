@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   s =
     input.external.rawaudio(

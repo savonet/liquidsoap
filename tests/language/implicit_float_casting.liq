@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 def t(x, y) =
   # Convert both to float for comparison (handles int/float mix)

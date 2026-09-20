@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   def five_point_one(s) =
     if false then output.file(%ffmpeg(%audio(channel_layout = 5.1)), "", s) end

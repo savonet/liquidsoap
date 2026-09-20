@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 let {video = v} = source.tracks(video.testsrc.ffmpeg(duration=16.))

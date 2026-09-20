@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 # A switch with an infallible, always-eligible child claims to be infallible.

@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 def test_db_lin() =
   x = 5.

@@ -1,4 +1,7 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
+
 def f() =
   test.equal(string.length(""), 0)
   test.equal(string.length("abc"), 3)

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Stretch (as well as soundtouch) uses the Child_support clock control
 # mechanism. We want to make sure that it properly propagates end-of-tracks
 # to its underlying outputs/sources.

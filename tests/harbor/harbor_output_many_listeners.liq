@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Twelve listeners spread over three writer tasks all connect, and all are
 # disconnected when the output stops.
 def f() =

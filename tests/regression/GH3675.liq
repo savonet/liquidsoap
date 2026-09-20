@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = sine()
 
 reopen_count = ref(0)

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   r = request.queue()
   o = output.dummy(fallible=true, r)

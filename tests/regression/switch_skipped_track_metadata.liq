@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for the metadata of a skipped track surviving in a nested
 # switch.
 #

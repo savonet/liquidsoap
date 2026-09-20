@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 port = 4629
 
 s = input.harbor(port=port, "bla")

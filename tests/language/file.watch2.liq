@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 success = ref(false)
 fname = file.temp("liq", "test")
 

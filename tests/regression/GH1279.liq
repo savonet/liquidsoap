@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 selected = ref([])
 s1 = blank(duration=0.04)
 

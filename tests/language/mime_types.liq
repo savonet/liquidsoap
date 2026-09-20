@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # Basic lookups
   test.equal(file.mime.extension("audio/mpeg"), ".mp3")

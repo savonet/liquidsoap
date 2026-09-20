@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
 %ifdef sine
   x = 0

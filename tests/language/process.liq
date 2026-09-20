@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 first = ref(true)
 thread.run.recurrent(
   {

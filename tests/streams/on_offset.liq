@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   s = single("./file1.mp3")
   s.on_position(

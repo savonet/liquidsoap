@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level := 5
 port = 8125
 

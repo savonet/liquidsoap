@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = playlist(prefix="annotate:liq_cue_in=1.,liq_cue_out=3.:", "playlist")
 
 is_first = ref(true)

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for a synchronous callback reading the source's own frame.
 #
 # Synchronous callbacks run in the middle of the source's frame generation, so

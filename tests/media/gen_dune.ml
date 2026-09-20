@@ -113,10 +113,10 @@ let mk_encoded_file format =
   ../../src/bin/liquidsoap.exe
   (source_tree ../../src/libs)
   test-subtitle.srt
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-   (run %%{run_test} %%{encoder} liquidsoap %%{test_liq} %%{encoder} -- %S)))
+   (run %%{run_test} %%{encoder} liquidsoap %%{encoder} -- %S)))
 
 |}
     alias filename (encoder_script format) (encoder_format format)
@@ -155,10 +155,10 @@ let file_test ?(deps = []) ~label ~test fname =
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %%{run_test} %S liquidsoap %%{test_liq} %s -- %S)))
+  (run %%{run_test} %S liquidsoap %s -- %S)))
 
 |}
     (mediatest "%s" (Filename.remove_extension test))

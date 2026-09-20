@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def t(file, expected) =
   id = playlist.id(default="foo", file)
   if

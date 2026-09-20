@@ -70,7 +70,7 @@
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (:stdlib ../../src/libs/stdlib.liq)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} test_cover.liq liquidsoap %{test_liq} test_cover.liq)))
+  (run %{run_test} test_cover.liq liquidsoap test_cover.liq)))

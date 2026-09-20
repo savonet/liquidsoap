@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(4)
 
 def f(m) =

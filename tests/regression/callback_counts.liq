@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Callbacks a script registers are counted on the source itself, so a function
 # registering on a source it is handed and never releasing what it registered
 # shows up as a count that grows. `cross` runs its transition on every crossing

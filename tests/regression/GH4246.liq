@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 enable_replaygain_metadata()
 enable_autocue_metadata()
 

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 tmp = file.temp("foo", "mp3")
 on_cleanup({file.remove(tmp)})
 s = sine()

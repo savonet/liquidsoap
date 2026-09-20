@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for #3343.
 #
 # An inotify watch follows the inode, so watching the file itself stopped

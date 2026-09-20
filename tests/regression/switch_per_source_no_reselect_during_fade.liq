@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(5)
 
 # Test: fade-out transition does not cause premature re-selection.

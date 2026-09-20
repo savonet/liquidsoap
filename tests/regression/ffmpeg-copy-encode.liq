@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Make sure tracks are saved in the same order.
 def f() =
   s =

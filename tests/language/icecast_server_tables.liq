@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # mount_table: fallback wiring between mounts
   t = icecast.server.mount_table()

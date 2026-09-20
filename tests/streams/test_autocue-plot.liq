@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 base_dir = path.dirname(argv(0))
 
 tests =

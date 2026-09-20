@@ -1,4 +1,6 @@
-#!../../liquidsoap ../test.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 # Test getters, see #1181
 def f(~x) =

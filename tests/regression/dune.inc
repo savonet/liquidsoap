@@ -11,10 +11,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} 115-1 liquidsoap %{test_liq} 115-1.liq)))
+  (run %{run_test} 115-1 liquidsoap 115-1.liq)))
 
 (rule
  (alias test_115-2)
@@ -29,10 +29,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} 115-2 liquidsoap %{test_liq} 115-2.liq)))
+  (run %{run_test} 115-2 liquidsoap 115-2.liq)))
 
 (rule
  (alias test_3553)
@@ -47,10 +47,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} 3553 liquidsoap %{test_liq} 3553.liq)))
+  (run %{run_test} 3553 liquidsoap 3553.liq)))
 
 (rule
  (alias test_AC5109)
@@ -65,10 +65,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} AC5109 liquidsoap %{test_liq} AC5109.liq)))
+  (run %{run_test} AC5109 liquidsoap AC5109.liq)))
 
 (rule
  (alias test_BUG403)
@@ -83,10 +83,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} BUG403 liquidsoap %{test_liq} BUG403.liq)))
+  (run %{run_test} BUG403 liquidsoap BUG403.liq)))
 
 (rule
  (alias test_GH-action-919422659)
@@ -101,15 +101,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   GH-action-919422659
-   liquidsoap
-   %{test_liq}
-   GH-action-919422659.liq)))
+  (run %{run_test} GH-action-919422659 liquidsoap GH-action-919422659.liq)))
 
 (rule
  (alias test_GH1129)
@@ -124,10 +119,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH1129 liquidsoap %{test_liq} GH1129.liq)))
+  (run %{run_test} GH1129 liquidsoap GH1129.liq)))
 
 (rule
  (alias test_GH1146)
@@ -142,10 +137,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH1146 liquidsoap %{test_liq} GH1146.liq)))
+  (run %{run_test} GH1146 liquidsoap GH1146.liq)))
 
 (rule
  (alias test_GH1151)
@@ -160,10 +155,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH1151 liquidsoap %{test_liq} GH1151.liq)))
+  (run %{run_test} GH1151 liquidsoap GH1151.liq)))
 
 (rule
  (alias test_GH1159)
@@ -178,10 +173,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH1159 liquidsoap %{test_liq} GH1159.liq)))
+  (run %{run_test} GH1159 liquidsoap GH1159.liq)))
 
 (rule
  (alias test_GH1279)
@@ -196,10 +191,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH1279 liquidsoap %{test_liq} GH1279.liq)))
+  (run %{run_test} GH1279 liquidsoap GH1279.liq)))
 
 (rule
  (alias test_GH1327)
@@ -214,10 +209,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH1327 liquidsoap %{test_liq} GH1327.liq)))
+  (run %{run_test} GH1327 liquidsoap GH1327.liq)))
 
 (rule
  (alias test_GH2585)
@@ -232,10 +227,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2585 liquidsoap %{test_liq} GH2585.liq)))
+  (run %{run_test} GH2585 liquidsoap GH2585.liq)))
 
 (rule
  (alias test_GH2602)
@@ -250,10 +245,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2602 liquidsoap %{test_liq} GH2602.liq)))
+  (run %{run_test} GH2602 liquidsoap GH2602.liq)))
 
 (rule
  (alias test_GH2756-2)
@@ -268,10 +263,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2756-2 liquidsoap %{test_liq} GH2756-2.liq)))
+  (run %{run_test} GH2756-2 liquidsoap GH2756-2.liq)))
 
 (rule
  (alias test_GH2756)
@@ -286,10 +281,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2756 liquidsoap %{test_liq} GH2756.liq)))
+  (run %{run_test} GH2756 liquidsoap GH2756.liq)))
 
 (rule
  (alias test_GH2758)
@@ -304,10 +299,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2758 liquidsoap %{test_liq} GH2758.liq)))
+  (run %{run_test} GH2758 liquidsoap GH2758.liq)))
 
 (rule
  (alias test_GH2842)
@@ -322,10 +317,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2842 liquidsoap %{test_liq} GH2842.liq)))
+  (run %{run_test} GH2842 liquidsoap GH2842.liq)))
 
 (rule
  (alias test_GH2850)
@@ -340,10 +335,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2850 liquidsoap %{test_liq} GH2850.liq)))
+  (run %{run_test} GH2850 liquidsoap GH2850.liq)))
 
 (rule
  (alias test_GH2867)
@@ -358,10 +353,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2867 liquidsoap %{test_liq} GH2867.liq)))
+  (run %{run_test} GH2867 liquidsoap GH2867.liq)))
 
 (rule
  (alias test_GH2871)
@@ -376,10 +371,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2871 liquidsoap %{test_liq} GH2871.liq)))
+  (run %{run_test} GH2871 liquidsoap GH2871.liq)))
 
 (rule
  (alias test_GH2872)
@@ -394,10 +389,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2872 liquidsoap %{test_liq} GH2872.liq)))
+  (run %{run_test} GH2872 liquidsoap GH2872.liq)))
 
 (rule
  (alias test_GH2897)
@@ -412,10 +407,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2897 liquidsoap %{test_liq} GH2897.liq)))
+  (run %{run_test} GH2897 liquidsoap GH2897.liq)))
 
 (rule
  (alias test_GH2902)
@@ -430,10 +425,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2902 liquidsoap %{test_liq} GH2902.liq)))
+  (run %{run_test} GH2902 liquidsoap GH2902.liq)))
 
 (rule
  (alias test_GH2926)
@@ -448,10 +443,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH2926 liquidsoap %{test_liq} GH2926.liq)))
+  (run %{run_test} GH2926 liquidsoap GH2926.liq)))
 
 (rule
  (alias test_GH3093)
@@ -466,10 +461,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3093 liquidsoap %{test_liq} GH3093.liq)))
+  (run %{run_test} GH3093 liquidsoap GH3093.liq)))
 
 (rule
  (alias test_GH3132)
@@ -484,10 +479,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3132 liquidsoap %{test_liq} GH3132.liq)))
+  (run %{run_test} GH3132 liquidsoap GH3132.liq)))
 
 (rule
  (alias test_GH3134)
@@ -502,10 +497,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3134 liquidsoap %{test_liq} GH3134.liq)))
+  (run %{run_test} GH3134 liquidsoap GH3134.liq)))
 
 (rule
  (alias test_GH3224)
@@ -520,10 +515,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3224 liquidsoap %{test_liq} GH3224.liq)))
+  (run %{run_test} GH3224 liquidsoap GH3224.liq)))
 
 (rule
  (alias test_GH3239-2)
@@ -538,10 +533,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3239-2 liquidsoap %{test_liq} GH3239-2.liq)))
+  (run %{run_test} GH3239-2 liquidsoap GH3239-2.liq)))
 
 (rule
  (alias test_GH3239-bis)
@@ -556,10 +551,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3239-bis liquidsoap %{test_liq} GH3239-bis.liq)))
+  (run %{run_test} GH3239-bis liquidsoap GH3239-bis.liq)))
 
 (rule
  (alias test_GH3239)
@@ -574,10 +569,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3239 liquidsoap %{test_liq} GH3239.liq)))
+  (run %{run_test} GH3239 liquidsoap GH3239.liq)))
 
 (rule
  (alias test_GH3276)
@@ -592,10 +587,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3276 liquidsoap %{test_liq} GH3276.liq)))
+  (run %{run_test} GH3276 liquidsoap GH3276.liq)))
 
 (rule
  (alias test_GH3303)
@@ -610,10 +605,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3303 liquidsoap %{test_liq} GH3303.liq)))
+  (run %{run_test} GH3303 liquidsoap GH3303.liq)))
 
 (rule
  (alias test_GH3316)
@@ -628,10 +623,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3316 liquidsoap %{test_liq} GH3316.liq)))
+  (run %{run_test} GH3316 liquidsoap GH3316.liq)))
 
 (rule
  (alias test_GH3645)
@@ -646,10 +641,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3645 liquidsoap %{test_liq} GH3645.liq)))
+  (run %{run_test} GH3645 liquidsoap GH3645.liq)))
 
 (rule
  (alias test_GH3675)
@@ -664,10 +659,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3675 liquidsoap %{test_liq} GH3675.liq)))
+  (run %{run_test} GH3675 liquidsoap GH3675.liq)))
 
 (rule
  (alias test_GH3813)
@@ -682,10 +677,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3813 liquidsoap %{test_liq} GH3813.liq)))
+  (run %{run_test} GH3813 liquidsoap GH3813.liq)))
 
 (rule
  (alias test_GH3840)
@@ -700,10 +695,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3840 liquidsoap %{test_liq} GH3840.liq)))
+  (run %{run_test} GH3840 liquidsoap GH3840.liq)))
 
 (rule
  (alias test_GH3881)
@@ -718,10 +713,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3881 liquidsoap %{test_liq} GH3881.liq)))
+  (run %{run_test} GH3881 liquidsoap GH3881.liq)))
 
 (rule
  (alias test_GH3944)
@@ -736,10 +731,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3944 liquidsoap %{test_liq} GH3944.liq)))
+  (run %{run_test} GH3944 liquidsoap GH3944.liq)))
 
 (rule
  (alias test_GH3960)
@@ -754,10 +749,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH3960 liquidsoap %{test_liq} GH3960.liq)))
+  (run %{run_test} GH3960 liquidsoap GH3960.liq)))
 
 (rule
  (alias test_GH4071)
@@ -772,10 +767,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4071 liquidsoap %{test_liq} GH4071.liq)))
+  (run %{run_test} GH4071 liquidsoap GH4071.liq)))
 
 (rule
  (alias test_GH4090)
@@ -790,10 +785,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4090 liquidsoap %{test_liq} GH4090.liq)))
+  (run %{run_test} GH4090 liquidsoap GH4090.liq)))
 
 (rule
  (alias test_GH4116)
@@ -808,10 +803,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4116 liquidsoap %{test_liq} GH4116.liq)))
+  (run %{run_test} GH4116 liquidsoap GH4116.liq)))
 
 (rule
  (alias test_GH4124)
@@ -826,10 +821,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4124 liquidsoap %{test_liq} GH4124.liq)))
+  (run %{run_test} GH4124 liquidsoap GH4124.liq)))
 
 (rule
  (alias test_GH4140)
@@ -844,10 +839,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4140 liquidsoap %{test_liq} GH4140.liq)))
+  (run %{run_test} GH4140 liquidsoap GH4140.liq)))
 
 (rule
  (alias test_GH4144)
@@ -862,10 +857,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4144 liquidsoap %{test_liq} GH4144.liq)))
+  (run %{run_test} GH4144 liquidsoap GH4144.liq)))
 
 (rule
  (alias test_GH4159)
@@ -880,10 +875,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4159 liquidsoap %{test_liq} GH4159.liq)))
+  (run %{run_test} GH4159 liquidsoap GH4159.liq)))
 
 (rule
  (alias test_GH4163)
@@ -898,10 +893,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4163 liquidsoap %{test_liq} GH4163.liq)))
+  (run %{run_test} GH4163 liquidsoap GH4163.liq)))
 
 (rule
  (alias test_GH4246)
@@ -916,10 +911,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4246 liquidsoap %{test_liq} GH4246.liq)))
+  (run %{run_test} GH4246 liquidsoap GH4246.liq)))
 
 (rule
  (alias test_GH4281-2)
@@ -934,10 +929,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4281-2 liquidsoap %{test_liq} GH4281-2.liq)))
+  (run %{run_test} GH4281-2 liquidsoap GH4281-2.liq)))
 
 (rule
  (alias test_GH4281)
@@ -952,10 +947,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4281 liquidsoap %{test_liq} GH4281.liq)))
+  (run %{run_test} GH4281 liquidsoap GH4281.liq)))
 
 (rule
  (alias test_GH4395)
@@ -970,10 +965,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4395 liquidsoap %{test_liq} GH4395.liq)))
+  (run %{run_test} GH4395 liquidsoap GH4395.liq)))
 
 (rule
  (alias test_GH4499)
@@ -988,10 +983,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4499 liquidsoap %{test_liq} GH4499.liq)))
+  (run %{run_test} GH4499 liquidsoap GH4499.liq)))
 
 (rule
  (alias test_GH4629)
@@ -1006,10 +1001,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4629 liquidsoap %{test_liq} GH4629.liq)))
+  (run %{run_test} GH4629 liquidsoap GH4629.liq)))
 
 (rule
  (alias test_GH4711)
@@ -1024,10 +1019,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4711 liquidsoap %{test_liq} GH4711.liq)))
+  (run %{run_test} GH4711 liquidsoap GH4711.liq)))
 
 (rule
  (alias test_GH4745)
@@ -1042,10 +1037,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4745 liquidsoap %{test_liq} GH4745.liq)))
+  (run %{run_test} GH4745 liquidsoap GH4745.liq)))
 
 (rule
  (alias test_GH4748)
@@ -1060,10 +1055,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4748 liquidsoap %{test_liq} GH4748.liq)))
+  (run %{run_test} GH4748 liquidsoap GH4748.liq)))
 
 (rule
  (alias test_GH4819-bis)
@@ -1078,10 +1073,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4819-bis liquidsoap %{test_liq} GH4819-bis.liq)))
+  (run %{run_test} GH4819-bis liquidsoap GH4819-bis.liq)))
 
 (rule
  (alias test_GH4819)
@@ -1096,10 +1091,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4819 liquidsoap %{test_liq} GH4819.liq)))
+  (run %{run_test} GH4819 liquidsoap GH4819.liq)))
 
 (rule
  (alias test_GH4828)
@@ -1114,10 +1109,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4828 liquidsoap %{test_liq} GH4828.liq)))
+  (run %{run_test} GH4828 liquidsoap GH4828.liq)))
 
 (rule
  (alias test_GH4840)
@@ -1132,10 +1127,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4840 liquidsoap %{test_liq} GH4840.liq)))
+  (run %{run_test} GH4840 liquidsoap GH4840.liq)))
 
 (rule
  (alias test_GH4882)
@@ -1152,10 +1147,10 @@
   (glob_files ./*.so)
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4882 liquidsoap %{test_liq} GH4882.liq)))
+  (run %{run_test} GH4882 liquidsoap GH4882.liq)))
 
 (rule
  (alias test_GH4922)
@@ -1170,10 +1165,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4922 liquidsoap %{test_liq} GH4922.liq)))
+  (run %{run_test} GH4922 liquidsoap GH4922.liq)))
 
 (rule
  (alias test_GH4995)
@@ -1191,10 +1186,10 @@
   ../streams/file3.mp3
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH4995 liquidsoap %{test_liq} GH4995.liq)))
+  (run %{run_test} GH4995 liquidsoap GH4995.liq)))
 
 (rule
  (alias test_GH5019)
@@ -1210,10 +1205,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5019 liquidsoap %{test_liq} GH5019.liq)))
+  (run %{run_test} GH5019 liquidsoap GH5019.liq)))
 
 (rule
  (alias test_GH5084)
@@ -1228,10 +1223,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5084 liquidsoap %{test_liq} GH5084.liq)))
+  (run %{run_test} GH5084 liquidsoap GH5084.liq)))
 
 (rule
  (alias test_GH5110)
@@ -1246,10 +1241,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5110 liquidsoap %{test_liq} GH5110.liq)))
+  (run %{run_test} GH5110 liquidsoap GH5110.liq)))
 
 (rule
  (alias test_GH5148)
@@ -1264,10 +1259,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5148 liquidsoap %{test_liq} GH5148.liq)))
+  (run %{run_test} GH5148 liquidsoap GH5148.liq)))
 
 (rule
  (alias test_GH5259)
@@ -1282,10 +1277,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5259 liquidsoap %{test_liq} GH5259.liq)))
+  (run %{run_test} GH5259 liquidsoap GH5259.liq)))
 
 (rule
  (alias test_GH5260)
@@ -1300,10 +1295,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5260 liquidsoap %{test_liq} GH5260.liq)))
+  (run %{run_test} GH5260 liquidsoap GH5260.liq)))
 
 (rule
  (alias test_GH5261)
@@ -1318,10 +1313,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5261 liquidsoap %{test_liq} GH5261.liq)))
+  (run %{run_test} GH5261 liquidsoap GH5261.liq)))
 
 (rule
  (alias test_GH5287)
@@ -1336,10 +1331,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5287 liquidsoap %{test_liq} GH5287.liq)))
+  (run %{run_test} GH5287 liquidsoap GH5287.liq)))
 
 (rule
  (alias test_GH5319)
@@ -1354,10 +1349,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5319 liquidsoap %{test_liq} GH5319.liq)))
+  (run %{run_test} GH5319 liquidsoap GH5319.liq)))
 
 (rule
  (alias test_GH5348)
@@ -1372,10 +1367,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5348 liquidsoap %{test_liq} GH5348.liq)))
+  (run %{run_test} GH5348 liquidsoap GH5348.liq)))
 
 (rule
  (alias test_GH5360)
@@ -1390,10 +1385,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5360 liquidsoap %{test_liq} GH5360.liq)))
+  (run %{run_test} GH5360 liquidsoap GH5360.liq)))
 
 (rule
  (alias test_GH5361)
@@ -1408,10 +1403,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5361 liquidsoap %{test_liq} GH5361.liq)))
+  (run %{run_test} GH5361 liquidsoap GH5361.liq)))
 
 (rule
  (alias test_GH5389)
@@ -1426,10 +1421,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5389 liquidsoap %{test_liq} GH5389.liq)))
+  (run %{run_test} GH5389 liquidsoap GH5389.liq)))
 
 (rule
  (alias test_GH5398)
@@ -1444,10 +1439,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} GH5398 liquidsoap %{test_liq} GH5398.liq)))
+  (run %{run_test} GH5398 liquidsoap GH5398.liq)))
 
 (rule
  (alias test_LS268)
@@ -1462,10 +1457,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} LS268 liquidsoap %{test_liq} LS268.liq)))
+  (run %{run_test} LS268 liquidsoap LS268.liq)))
 
 (rule
  (alias test_LS354-1)
@@ -1480,10 +1475,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} LS354-1 liquidsoap %{test_liq} LS354-1.liq)))
+  (run %{run_test} LS354-1 liquidsoap LS354-1.liq)))
 
 (rule
  (alias test_LS354-2)
@@ -1498,10 +1493,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} LS354-2 liquidsoap %{test_liq} LS354-2.liq)))
+  (run %{run_test} LS354-2 liquidsoap LS354-2.liq)))
 
 (rule
  (alias test_LS460)
@@ -1516,10 +1511,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} LS460 liquidsoap %{test_liq} LS460.liq)))
+  (run %{run_test} LS460 liquidsoap LS460.liq)))
 
 (rule
  (alias test_LS503)
@@ -1534,10 +1529,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} LS503 liquidsoap %{test_liq} LS503.liq)))
+  (run %{run_test} LS503 liquidsoap LS503.liq)))
 
 (rule
  (alias test_append-merge)
@@ -1552,10 +1547,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} append-merge liquidsoap %{test_liq} append-merge.liq)))
+  (run %{run_test} append-merge liquidsoap append-merge.liq)))
 
 (rule
  (alias test_append-merge2)
@@ -1570,10 +1565,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} append-merge2 liquidsoap %{test_liq} append-merge2.liq)))
+  (run %{run_test} append-merge2 liquidsoap append-merge2.liq)))
 
 (rule
  (alias test_append)
@@ -1588,10 +1583,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} append liquidsoap %{test_liq} append.liq)))
+  (run %{run_test} append liquidsoap append.liq)))
 
 (rule
  (alias test_callback_counts)
@@ -1606,15 +1601,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   callback_counts
-   liquidsoap
-   %{test_liq}
-   callback_counts.liq)))
+  (run %{run_test} callback_counts liquidsoap callback_counts.liq)))
 
 (rule
  (alias test_callback_from_task)
@@ -1629,15 +1619,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   callback_from_task
-   liquidsoap
-   %{test_liq}
-   callback_from_task.liq)))
+  (run %{run_test} callback_from_task liquidsoap callback_from_task.liq)))
 
 (rule
  (alias test_callback_release)
@@ -1652,15 +1637,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   callback_release
-   liquidsoap
-   %{test_liq}
-   callback_release.liq)))
+  (run %{run_test} callback_release liquidsoap callback_release.liq)))
 
 (rule
  (alias test_callback_release_mixed_content)
@@ -1675,14 +1655,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    callback_release_mixed_content
    liquidsoap
-   %{test_liq}
    callback_release_mixed_content.liq)))
 
 (rule
@@ -1698,10 +1677,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} cleanup liquidsoap %{test_liq} cleanup.liq)))
+  (run %{run_test} cleanup liquidsoap cleanup.liq)))
 
 (rule
  (alias test_clock_started_at_runtime)
@@ -1716,14 +1695,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    clock_started_at_runtime
    liquidsoap
-   %{test_liq}
    clock_started_at_runtime.liq)))
 
 (rule
@@ -1739,10 +1717,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} default_format liquidsoap %{test_liq} default_format.liq)))
+  (run %{run_test} default_format liquidsoap default_format.liq)))
 
 (rule
  (alias test_delay_dry_between_tracks)
@@ -1760,14 +1738,13 @@
   delay_music.mp3
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    delay_dry_between_tracks
    liquidsoap
-   %{test_liq}
    delay_dry_between_tracks.liq)))
 
 (rule
@@ -1783,10 +1760,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} delay_gap liquidsoap %{test_liq} delay_gap.liq)))
+  (run %{run_test} delay_gap liquidsoap delay_gap.liq)))
 
 (rule
  (alias test_delay_track_advance)
@@ -1801,15 +1778,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   delay_track_advance
-   liquidsoap
-   %{test_liq}
-   delay_track_advance.liq)))
+  (run %{run_test} delay_track_advance liquidsoap delay_track_advance.liq)))
 
 (rule
  (alias test_double-nullable)
@@ -1824,15 +1796,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   double-nullable
-   liquidsoap
-   %{test_liq}
-   double-nullable.liq)))
+  (run %{run_test} double-nullable liquidsoap double-nullable.liq)))
 
 (rule
  (alias test_eval-check-demeth)
@@ -1847,15 +1814,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   eval-check-demeth
-   liquidsoap
-   %{test_liq}
-   eval-check-demeth.liq)))
+  (run %{run_test} eval-check-demeth liquidsoap eval-check-demeth.liq)))
 
 (rule
  (alias test_external-encoder)
@@ -1870,15 +1832,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   external-encoder
-   liquidsoap
-   %{test_liq}
-   external-encoder.liq)))
+  (run %{run_test} external-encoder liquidsoap external-encoder.liq)))
 
 (rule
  (alias test_fade-zero-duration-delay)
@@ -1893,14 +1850,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    fade-zero-duration-delay
    liquidsoap
-   %{test_liq}
    fade-zero-duration-delay.liq)))
 
 (rule
@@ -1916,10 +1872,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} fallible_ogg liquidsoap %{test_liq} fallible_ogg.liq)))
+  (run %{run_test} fallible_ogg liquidsoap fallible_ogg.liq)))
 
 (rule
  (alias test_ffmpeg-copy-encode)
@@ -1934,15 +1890,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   ffmpeg-copy-encode
-   liquidsoap
-   %{test_liq}
-   ffmpeg-copy-encode.liq)))
+  (run %{run_test} ffmpeg-copy-encode liquidsoap ffmpeg-copy-encode.liq)))
 
 (rule
  (alias test_ffmpeg-copy-input-http)
@@ -1957,14 +1908,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    ffmpeg-copy-input-http
    liquidsoap
-   %{test_liq}
    ffmpeg-copy-input-http.liq)))
 
 (rule
@@ -1980,14 +1930,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    ffmpeg-naming-convention
    liquidsoap
-   %{test_liq}
    ffmpeg-naming-convention.liq)))
 
 (rule
@@ -2003,15 +1952,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   ffmpeg_seek_preroll
-   liquidsoap
-   %{test_liq}
-   ffmpeg_seek_preroll.liq)))
+  (run %{run_test} ffmpeg_seek_preroll liquidsoap ffmpeg_seek_preroll.liq)))
 
 (rule
  (alias test_harbor_source_relay)
@@ -2026,15 +1970,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   harbor_source_relay
-   liquidsoap
-   %{test_liq}
-   harbor_source_relay.liq)))
+  (run %{run_test} harbor_source_relay liquidsoap harbor_source_relay.liq)))
 
 (rule
  (alias test_infallible-shutdown)
@@ -2049,15 +1988,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   infallible-shutdown
-   liquidsoap
-   %{test_liq}
-   infallible-shutdown.liq)))
+  (run %{run_test} infallible-shutdown liquidsoap infallible-shutdown.liq)))
 
 (rule
  (alias test_init-error)
@@ -2072,10 +2006,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} init-error liquidsoap %{test_liq} init-error.liq)))
+  (run %{run_test} init-error liquidsoap init-error.liq)))
 
 (rule
  (alias test_initial_request_queue)
@@ -2090,14 +2024,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    initial_request_queue
    liquidsoap
-   %{test_liq}
    initial_request_queue.liq)))
 
 (rule
@@ -2113,10 +2046,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} input_rtmp liquidsoap %{test_liq} input_rtmp.liq)))
+  (run %{run_test} input_rtmp liquidsoap input_rtmp.liq)))
 
 (rule
  (alias test_metadata-resolvers-metadata)
@@ -2131,14 +2064,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    metadata-resolvers-metadata
    liquidsoap
-   %{test_liq}
    metadata-resolvers-metadata.liq)))
 
 (rule
@@ -2154,10 +2086,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} metadata_cache liquidsoap %{test_liq} metadata_cache.liq)))
+  (run %{run_test} metadata_cache liquidsoap metadata_cache.liq)))
 
 (rule
  (alias test_output_on_metadata)
@@ -2172,15 +2104,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   output_on_metadata
-   liquidsoap
-   %{test_liq}
-   output_on_metadata.liq)))
+  (run %{run_test} output_on_metadata liquidsoap output_on_metadata.liq)))
 
 (rule
  (alias test_output_on_track)
@@ -2195,15 +2122,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   output_on_track
-   liquidsoap
-   %{test_liq}
-   output_on_track.liq)))
+  (run %{run_test} output_on_track liquidsoap output_on_track.liq)))
 
 (rule
  (alias test_output_reopen_on_error_delay)
@@ -2218,14 +2140,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    output_reopen_on_error_delay
    liquidsoap
-   %{test_liq}
    output_reopen_on_error_delay.liq)))
 
 (rule
@@ -2241,10 +2162,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} playlist-id liquidsoap %{test_liq} playlist-id.liq)))
+  (run %{run_test} playlist-id liquidsoap playlist-id.liq)))
 
 (rule
  (alias test_replaygain)
@@ -2259,10 +2180,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} replaygain liquidsoap %{test_liq} replaygain.liq)))
+  (run %{run_test} replaygain liquidsoap replaygain.liq)))
 
 (rule
  (alias test_scheduler_legacy)
@@ -2277,15 +2198,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   scheduler_legacy
-   liquidsoap
-   %{test_liq}
-   scheduler_legacy.liq)))
+  (run %{run_test} scheduler_legacy liquidsoap scheduler_legacy.liq)))
 
 (rule
  (alias test_scheduler_parallel)
@@ -2300,15 +2216,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   scheduler_parallel
-   liquidsoap
-   %{test_liq}
-   scheduler_parallel.liq)))
+  (run %{run_test} scheduler_parallel liquidsoap scheduler_parallel.liq)))
 
 (rule
  (alias test_seek_track_map)
@@ -2323,10 +2234,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} seek_track_map liquidsoap %{test_liq} seek_track_map.liq)))
+  (run %{run_test} seek_track_map liquidsoap seek_track_map.liq)))
 
 (rule
  (alias test_server.insert_metadata)
@@ -2341,14 +2252,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    server.insert_metadata
    liquidsoap
-   %{test_liq}
    server.insert_metadata.liq)))
 
 (rule
@@ -2364,10 +2274,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} shoutcast-args liquidsoap %{test_liq} shoutcast-args.liq)))
+  (run %{run_test} shoutcast-args liquidsoap shoutcast-args.liq)))
 
 (rule
  (alias test_source_cleanup)
@@ -2382,10 +2292,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} source_cleanup liquidsoap %{test_liq} source_cleanup.liq)))
+  (run %{run_test} source_cleanup liquidsoap source_cleanup.liq)))
 
 (rule
  (alias test_source_dynamic)
@@ -2400,10 +2310,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} source_dynamic liquidsoap %{test_liq} source_dynamic.liq)))
+  (run %{run_test} source_dynamic liquidsoap source_dynamic.liq)))
 
 (rule
  (alias test_switch_autodj_jingle_metadata)
@@ -2422,14 +2332,13 @@
   autodj_jingles.m3u
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_autodj_jingle_metadata
    liquidsoap
-   %{test_liq}
    switch_autodj_jingle_metadata.liq)))
 
 (rule
@@ -2445,14 +2354,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_infallible_across_transition
    liquidsoap
-   %{test_liq}
    switch_infallible_across_transition.liq)))
 
 (rule
@@ -2468,14 +2376,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_on_leave_chained
    liquidsoap
-   %{test_liq}
    switch_on_leave_chained.liq)))
 
 (rule
@@ -2491,14 +2398,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_on_leave_track_boundary
    liquidsoap
-   %{test_liq}
    switch_on_leave_track_boundary.liq)))
 
 (rule
@@ -2514,14 +2420,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_per_source_no_reselect_during_fade
    liquidsoap
-   %{test_liq}
    switch_per_source_no_reselect_during_fade.liq)))
 
 (rule
@@ -2537,14 +2442,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_per_source_on_leave
    liquidsoap
-   %{test_liq}
    switch_per_source_on_leave.liq)))
 
 (rule
@@ -2560,14 +2464,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_per_source_on_select
    liquidsoap
-   %{test_liq}
    switch_per_source_on_select.liq)))
 
 (rule
@@ -2583,14 +2486,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_per_source_replay_metadata
    liquidsoap
-   %{test_liq}
    switch_per_source_replay_metadata.liq)))
 
 (rule
@@ -2606,14 +2508,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_per_source_single
    liquidsoap
-   %{test_liq}
    switch_per_source_single.liq)))
 
 (rule
@@ -2629,14 +2530,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_reselect_after_idle
    liquidsoap
-   %{test_liq}
    switch_reselect_after_idle.liq)))
 
 (rule
@@ -2654,14 +2554,13 @@
   skipped_track_program.mp3
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    switch_skipped_track_metadata
    liquidsoap
-   %{test_liq}
    switch_skipped_track_metadata.liq)))
 
 (rule
@@ -2677,15 +2576,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   track_sensitive
-   liquidsoap
-   %{test_liq}
-   track_sensitive.liq)))
+  (run %{run_test} track_sensitive liquidsoap track_sensitive.liq)))
 
 (rule
  (alias test_type_printing_from_task)
@@ -2700,14 +2594,13 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
   (run
    %{run_test}
    type_printing_from_task
    liquidsoap
-   %{test_liq}
    type_printing_from_task.liq)))
 
 (rule
@@ -2723,15 +2616,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run
-   %{run_test}
-   unified-pcm-types
-   liquidsoap
-   %{test_liq}
-   unified-pcm-types.liq)))
+  (run %{run_test} unified-pcm-types liquidsoap unified-pcm-types.liq)))
 
 (rule
  (alias test_video-only)
@@ -2746,10 +2634,10 @@
   ./theora-test.mp4
   (package liquidsoap)
   (source_tree ../../src/libs)
-  (:test_liq ../test.liq)
+  ../test.liq
   (:run_test ../run_test.exe))
  (action
-  (run %{run_test} video-only liquidsoap %{test_liq} video-only.liq)))
+  (run %{run_test} video-only liquidsoap video-only.liq)))
 
 (alias
  (name citest)

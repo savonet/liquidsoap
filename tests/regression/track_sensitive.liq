@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = sine()
 
 is_ready = ref(true)

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def predicate.to_list(n, p) =
   list.init(n, fun (_) -> p())
 end

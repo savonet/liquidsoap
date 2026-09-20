@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # A source connecting to harbor is handed the socket, which the handler signals
 # the same way it signals an error page. Connecting is not enough to prove that
 # worked: the stream has to arrive and decode.

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   s =
     '<bla param="1" bla="true">

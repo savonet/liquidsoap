@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Type parameters below are shared between pcm_s16 source and the decoded
 # source. We want to make sure that this works at runtime.
 def f() =

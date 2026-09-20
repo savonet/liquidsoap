@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def c(x, y) =
   if
     x != y

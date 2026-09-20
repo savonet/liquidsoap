@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s1 = source.fail(id="fail")
 
 s2 = blank(id="blank", duration=1.)

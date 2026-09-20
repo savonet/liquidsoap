@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def metadata_test(_) =
   data = {test = {test = "好吗"}}
   try

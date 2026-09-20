@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   let {uri, timeout, cmd, extname} =
     protocol.process.parse(

@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   test.equal(socket.internet_address.ipv6.any.is_ipv6, true)
   test.equal(socket.internet_address.ipv6.loopback.to_string(), "::1")

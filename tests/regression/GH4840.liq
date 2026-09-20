@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = sine()
 port = 3467
 

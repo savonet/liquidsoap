@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Rendering a type reaches for a formatter, and a task does not necessarily run
 # where the last one did.
 def f() =

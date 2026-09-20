@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 out_file = file.temp(cleanup=true, "output", ".mp4")
 
 audio = once(single("../media/@shine[channels=2].mp3"))

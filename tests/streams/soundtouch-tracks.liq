@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Ensure that soundtouch preserves tracks, see #2467.
 
 n = ref(0)

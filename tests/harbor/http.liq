@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   # Default response
   def handler(req, _) =

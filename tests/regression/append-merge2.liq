@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 music = chop(every=1., metadata=[("title", "music")], sine(amplitude=0.1, 440.))
 
 jingles =

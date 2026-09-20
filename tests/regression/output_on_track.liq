@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = single("../media/@mp3[stereo].mp3")
 
 o = output.dummy(fallible=true, s)

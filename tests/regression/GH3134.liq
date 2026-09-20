@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   retry_delay_called_count = ref(0)
 

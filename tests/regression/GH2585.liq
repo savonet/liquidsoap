@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 settings.log.level.set(4)
 
 output.dummy(fallible=true, sine())

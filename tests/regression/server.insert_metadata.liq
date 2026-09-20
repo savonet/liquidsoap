@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = server.insert_metadata(sine(id="src"))
 
 s.on_metadata(

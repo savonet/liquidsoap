@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 log.level.set(5)
 settings.frame.audio.samplerate.set(48000)
 settings.audio.converter.samplerate.converters.set(["native"])

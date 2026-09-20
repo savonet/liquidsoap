@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 t = track.subtitles.insert()
 
 thread.run(

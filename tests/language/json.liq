@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # We test some ground values for json import/export.
 def test_parse_error(name, f, msg) =
   error_caught = ref(false)

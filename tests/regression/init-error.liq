@@ -1,4 +1,6 @@
-#!../../src/liquidsoap ../../libs/stdlib.liq ../../libs/deprecations.liq
+#!../../liquidsoap
+
+%include "../test.liq"
 
 # Make sure that we properly shutdown on init error
 log.level.set(5)

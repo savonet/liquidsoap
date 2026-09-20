@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 success = ref(true)
 
 file = "interactive.json"

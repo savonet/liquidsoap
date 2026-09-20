@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 a = ()
 
 # My function

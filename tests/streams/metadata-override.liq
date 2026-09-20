@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def filter_meta(meta) =
   [("title", meta["title"])]
 end

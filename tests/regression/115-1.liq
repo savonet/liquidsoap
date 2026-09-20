@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s =
   add(
     normalize=true,

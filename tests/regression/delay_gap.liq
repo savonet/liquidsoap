@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test: delay(d, s) must keep s unavailable for d seconds between
 # tracks, i.e. the gap must actually be applied. We chop a sine into short
 # tracks and require consecutive track boundaries to be at least half the delay

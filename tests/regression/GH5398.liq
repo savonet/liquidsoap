@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Regression test for https://github.com/savonet/liquidsoap/issues/5398
 # Last.fm rejects Audioscrobbler requests sent to the former HTTP default.
 

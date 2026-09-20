@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 def f() =
   count = ref(0)
 

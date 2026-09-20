@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 s = single("annotate:duration=0.2:test-image.png")
 
 track_count = ref(0)

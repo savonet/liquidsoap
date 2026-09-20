@@ -1,3 +1,5 @@
+%include "../test.liq"
+
 # Listeners keep reconnecting while the output is repeatedly stopped and
 # started: every connect must be matched by exactly one disconnect, and no
 # listener may be left behind.
