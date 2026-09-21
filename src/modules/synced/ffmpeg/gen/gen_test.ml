@@ -15,6 +15,7 @@ let () =
         "test_subtitle_read";
         "test_unhandled_packet";
         "test_seek";
+        "test_drain";
         "test_input_streams_grow";
         "test_codec";
         "test_options";
@@ -58,6 +59,7 @@ let () =
   (:subtitle_read test_subtitle_read.exe)
   (:unhandled_packet test_unhandled_packet.exe)
   (:seek test_seek.exe)
+  (:drain test_drain.exe)
   (:input_streams_grow test_input_streams_grow.exe)
   (:subtitle_remux ../examples/subtitle_remux.exe)
   (:normalize normalize_line_endings.exe)
@@ -134,6 +136,18 @@ let () =
     2
     test_seek.mkv)
    (run %{runner} "seek" %{seek} test_seek.mkv)
+   (run %{runner} "drain_video" %{drain} test_seek.mkv 625 reseek)
+   (run
+    ffmpeg
+    -y
+    -f
+    lavfi
+    -i
+    "color=c=blue:s=144x144"
+    -frames:v
+    1
+    test_drain.png)
+   (run %{runner} "drain_image" %{drain} test_drain.png 1)
    ; The MPEG-PS demuxer only finds these streams once reading reaches them:
    ; they start after the probe and end before the tail read for the duration.
    (run

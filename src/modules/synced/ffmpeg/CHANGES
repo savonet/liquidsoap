@@ -3,6 +3,8 @@
 * TODO: rename ffmpeg-av into ffmpeg-avformat
 * `Av.seek` drops the frames its decoders had buffered, which used to be
   returned after the seek carrying their pre-seek timestamps.
+* `Av.read_input` returns the frames its decoders still hold at end of input:
+  a single-frame image yielded no frame at all, and a video lost its tail.
 * Fix a crash reading or closing an input whose demuxer adds streams while
   packets are read, e.g. MPEG-PS: the stream contexts and per-stream decoders
   were sized for the streams known when the input was opened.
