@@ -43,7 +43,6 @@
     camlimages
     ctypes-foreign
     dssi
-    faad
     fdkaac
     ffmpeg
     flac

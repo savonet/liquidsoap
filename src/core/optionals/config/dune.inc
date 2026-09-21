@@ -73,20 +73,6 @@
    (echo "let enabled = false\nlet detected = \"no (requires dssi)\"\n"))))
 
 (rule
- (target faad_option.enabled.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (echo "let enabled = true\nlet detected = \"yes\"\n"))))
-
-(rule
- (target faad_option.disabled.ml)
- (action
-  (with-stdout-to
-   %{target}
-   (echo "let enabled = false\nlet detected = \"no (requires faad)\"\n"))))
-
-(rule
  (target fdkaac_option.enabled.ml)
  (action
   (with-stdout-to
@@ -668,7 +654,6 @@
     (echo "  (\"jack\", Jack_option.enabled);\n")
     (echo "  (\"camlimages\", Camlimages_option.enabled);\n")
     (echo "  (\"dssi\", Dssi_option.enabled);\n")
-    (echo "  (\"faad\", Faad_option.enabled);\n")
     (echo "  (\"fdkaac\", Fdkaac_option.enabled);\n")
     (echo "  (\"ffmpeg\", Ffmpeg_option.enabled);\n")
     (echo "  (\"flac\", Flac_option.enabled);\n")
@@ -742,11 +727,6 @@
    from
    (liquidsoap_dssi -> dssi_option.enabled.ml)
    (-> dssi_option.disabled.ml))
-  (select
-   faad_option.ml
-   from
-   (liquidsoap_faad -> faad_option.enabled.ml)
-   (-> faad_option.disabled.ml))
   (select
    fdkaac_option.ml
    from

@@ -28,7 +28,6 @@ let deps =
     dep "jack" "liquidsoap_jack" ~build_config:"jack";
     dep "camlimages" "liquidsoap_camlimages" ~build_config:"camlimages";
     dep "dssi" "liquidsoap_dssi" ~build_config:"dssi";
-    dep "faad" "liquidsoap_faad" ~build_config:"faad";
     dep "fdkaac" "liquidsoap_fdkaac" ~build_config:"fdkaac";
     dep "ffmpeg" "liquidsoap_ffmpeg" ~build_config:"ffmpeg";
     dep "flac" "liquidsoap_flac" ~build_config:"flac";
