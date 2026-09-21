@@ -91,7 +91,7 @@ uint64_t mp4ff_read_int64(mp4ff_t *f) {
   mp4ff_read_data(f, data, 8);
 
   for (i = 0; i < 8; i++) {
-    result |= ((uint64_t)data[i]) << ((7 - i) * 8);
+    result |= ((uint64_t)(uint8_t)data[i]) << ((7 - i) * 8);
   }
 
   return result;

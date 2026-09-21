@@ -149,6 +149,9 @@
 
 ## Fixed:
 
+- Reading metadata from an MP4/M4A file whose `mdat` uses the 64-bit extended box size no
+  longer loops forever. The size was accumulated from a signed buffer, so any byte above
+  `0x7F` sign-extended and could wrap the next seek back to an already visited offset.
 - Active inputs such as `input.ffmpeg` replaced through `source.dynamic` are now stopped and
   released. They used to keep their connection, decoder and threads alive for the lifetime of
   the script (#5389).
