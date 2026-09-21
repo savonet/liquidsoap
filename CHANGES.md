@@ -64,6 +64,7 @@
 - Added `settings.scheduler.legacy`, a fail-safe for a script that concurrent execution breaks: tasks run on
   threads, one at a time, as they did before. It will be removed in a later version once the concurrent
   scheduler has settled.
+- Removed optional `faad` decoder, superseded by `ffmpeg` (#5444)
 - Deprecated `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
   `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
   nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
