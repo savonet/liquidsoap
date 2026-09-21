@@ -7,7 +7,9 @@
  (target digest.actual)
  (deps
   (:sources
+   ../../src/lang/prelude/pos.ml
    ../../src/lang/types/type_base.ml
+   ../../src/lang/types/type_constraints.ml
    ../../src/lang/types/jsoo_safe_env.ml)
   (:digest abi_digest.exe))
  (action
