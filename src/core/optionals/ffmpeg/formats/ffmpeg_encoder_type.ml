@@ -58,7 +58,7 @@ let contains needle haystack =
   in
   search 0
 
-let static_string = function Term.{ term = `String s } -> Some s | _ -> None
+let term_string = function Term.{ term = `String s } -> Some s | _ -> None
 
 (* A layout is named, or written as the number of channels it stands for:
    [channel_layout=5.1] is the same as [channel_layout="5.1"]. *)
@@ -67,12 +67,13 @@ let layout_name = function
   | Term.{ term = `Float layout } -> Some (Printf.sprintf "%.1f" layout)
   | _ -> None
 
-let has_content name args =
+let has_content ~static_string name args =
   List.exists (fun (label, v) -> label = "" && static_string v = Some name) args
 
 (* The conventions a track's media type can be read from: the name, a bare
    argument, or, where libav is linked, the codec itself. *)
-let media_type name args =
+let media_type ~static_string name args =
+  let has_content = has_content ~static_string in
   if has_content "audio_content" args then Some `Audio
   else if has_content "video_content" args then Some `Video
   else if has_content "subtitle_content" args then Some `Subtitle
@@ -95,7 +96,7 @@ let channels args =
           | Some Term.{ term = `Int n }, _ | _, Some Term.{ term = `Int n } -> n
           | _ -> 2)
 
-let pcm_kind args =
+let pcm_kind ~static_string args =
   List.fold_left
     (fun kind -> function
       | "", v -> (
@@ -123,7 +124,7 @@ let format_of_track mode name args =
     | `Drop -> unknown_track ()
     | `Copy -> Type.make (Format_type.descr (`Format (kind "ffmpeg.copy")))
     | (`Raw | `Internal) as mode -> (
-        match (media_type name args, mode) with
+        match (media_type ~static_string:term_string name args, mode) with
           | None, _ -> unknown_track ()
           | Some `Audio, `Raw ->
               Type.make (Format_type.descr (`Format (kind "ffmpeg.audio.raw")))
@@ -133,7 +134,8 @@ let format_of_track mode name args =
               Type.make
                 (Format_type.descr
                    (`Format
-                      (Pcm_format.format_of_channels ~pcm_kind:(pcm_kind args)
+                      (Pcm_format.format_of_channels
+                         ~pcm_kind:(pcm_kind ~static_string:term_string args)
                          (channels args))))
           | Some `Video, `Internal ->
               Type.make
