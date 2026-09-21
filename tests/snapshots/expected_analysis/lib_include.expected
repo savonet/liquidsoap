@@ -1,0 +1,11 @@
+=== lib_include.liq ===
+%include <stdlib.liq>
+x = 1
+print(x)
+
+#? type 2:0
+--- diagnostics ---
+Error 3 at cases_analysis/lib_include.liq, line 1, char 0-21:
+Cannot include stdlib.liq: the standard library's directory is unknown.
+--- type 2:0 ---
+(none)

@@ -1,0 +1,12 @@
+; Everything a process that cannot stream needs, under one name.
+;
+; liquidsoap.core_lang computes types; the ffmpeg stand-in supplies content
+; types for a process with no libav. Linking this is all the playground and
+; the language server's analysis have to do.
+
+(library
+ (name liquidsoap_core_lang_dummy)
+ (public_name liquidsoap.core_lang_dummy)
+ (modules)
+ (library_flags (-linkall))
+ (libraries liquidsoap_core_lang liquidsoap_ffmpeg_formats_dummy))

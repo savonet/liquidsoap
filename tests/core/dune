@@ -85,6 +85,36 @@
     big-list-of-naughty-strings))))
 
 (executable
+ (name format_dump_test)
+ (modules format_dump_test)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  liquidsoap_core
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  threads.posix
+  unix))
+
+(rule
+ (alias format_dump_test)
+ (package liquidsoap)
+ (action
+  (with-stdout-to
+   format_dump.actual
+   (run ./format_dump_test.exe))))
+
+(rule
+ (alias format_dump_test)
+ (package liquidsoap)
+ (action
+  (diff format_dump.expected format_dump.actual)))
+
+(executable
  (name ffmpeg_stream_description_test)
  (modules ffmpeg_stream_description_test)
  (flags

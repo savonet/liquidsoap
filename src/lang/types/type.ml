@@ -41,52 +41,37 @@ let reference ?pos a =
        get)
 
 let record_constr =
-  {
-    constr_descr = "a record type";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let m, b = split_meths b in
-        match b.descr with
-          | Var _ -> satisfies b
-          | Tuple [] when m = [] -> raise Unsatisfied_constraint
-          | Tuple [] -> ()
-          | _ -> raise Unsatisfied_constraint);
-  }
+  constr ~name:"record" ~descr:"a record type" (fun ~subtype:_ ~satisfies b ->
+      let m, b = split_meths b in
+      match b.descr with
+        | Var _ -> satisfies b
+        | Tuple [] when m = [] -> raise Unsatisfied_constraint
+        | Tuple [] -> ()
+        | _ -> raise Unsatisfied_constraint)
 
 let num_constr =
-  {
-    constr_descr = "a number type";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let b = demeth b in
-        match b.descr with
-          | Var _ -> satisfies b
-          | Never | Int | Float -> ()
-          | _ -> raise Unsatisfied_constraint);
-  }
+  constr ~name:"num" ~descr:"a number type" (fun ~subtype:_ ~satisfies b ->
+      let b = demeth b in
+      match b.descr with
+        | Var _ -> satisfies b
+        | Never | Int | Float -> ()
+        | _ -> raise Unsatisfied_constraint)
 
 let ord_constr =
-  {
-    constr_descr = "an orderable type";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype:_ ~satisfies b ->
-        let m, b = split_meths b in
-        match b.descr with
-          | Var _ -> satisfies b
-          | Custom _ | Int | Float | String | Bool | Never -> ()
-          | Constr c -> List.iter (fun (_, t) -> satisfies t) c.params
-          | Tuple [] ->
-              (* For records, we want to ensure that all fields are ordered. *)
-              List.iter
-                (fun { scheme = v, a } ->
-                  if v <> [] then raise Unsatisfied_constraint;
-                  satisfies a)
-                m
-          | Tuple l -> List.iter satisfies l
-          | List { t = b } -> satisfies b
-          | Nullable b -> satisfies b
-          | _ -> raise Unsatisfied_constraint);
-  }
+  constr ~name:"ord" ~descr:"an orderable type" (fun ~subtype:_ ~satisfies b ->
+      let m, b = split_meths b in
+      match b.descr with
+        | Var _ -> satisfies b
+        | Custom _ | Int | Float | String | Bool | Never -> ()
+        | Constr c -> List.iter (fun (_, t) -> satisfies t) c.params
+        | Tuple [] ->
+            (* For records, we want to ensure that all fields are ordered. *)
+            List.iter
+              (fun { scheme = v, a } ->
+                if v <> [] then raise Unsatisfied_constraint;
+                satisfies a)
+              m
+        | Tuple l -> List.iter satisfies l
+        | List { t = b } -> satisfies b
+        | Nullable b -> satisfies b
+        | _ -> raise Unsatisfied_constraint)

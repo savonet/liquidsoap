@@ -58,22 +58,18 @@ type codec_params =
 type content = (codec_params option, packet) Ffmpeg_content_base.content
 
 module Specs = struct
-  type kind = [ `Copy ]
-  type params = codec_params option
-  type nonrec data = content
+  let implementation = "libav"
 
-  let name = "ffmpeg.copy"
-  let kind = `Copy
+  type t = codec_params option
+  type params = t
 
-  (* Unlike raw content, copy params wrap an `Avcodec.params` obtained from a
-     container: there is nothing meaningful to build out of a `k=v` string, so
-     `ffmpeg.copy` cannot be given parameters in a type annotation. *)
-  let parse_param _ _ = None
-  let internal_content_type = None
-  let string_of_kind = function `Copy -> "ffmpeg.copy"
-  let kind_of_string = function "ffmpeg.copy" -> Some `Copy | _ -> None
+  let default : t = None
 
-  let string_of_params p =
+  (* Copy params wrap an Avcodec.params obtained from a container: there is
+     nothing to build out of a k=v string. *)
+  let parse _ _ = None
+
+  let to_string p =
     String.concat ","
       (List.map
          (fun (k, v) -> Printf.sprintf "%s=%s" k v)
@@ -178,6 +174,21 @@ module Specs = struct
       | None, p | p, None -> p
       | p, p' when compatible p p' -> p
       | _ -> failwith "Incompatible format!"
+end
+
+module Names = struct
+  type kind = [ `Copy ]
+
+  let kind = `Copy
+  let name = "ffmpeg.copy"
+  let kind_name = "ffmpeg.copy"
+end
+
+module Format = Ffmpeg_content_type.Make (Specs) (Names)
+
+module Data = struct
+  type params = Specs.t
+  type nonrec data = content
 
   let length = Ffmpeg_content_base.length
   let params = Ffmpeg_content_base.params
@@ -191,7 +202,6 @@ module Specs = struct
     Ffmpeg_content_base.blit ~copy:copy_packet src src_pos dst dst_pos len
 
   let copy (src : data) : data = Ffmpeg_content_base.copy ~copy:copy_packet src
-  let default_params _ = None
   let make ?length:_ params : data = Ffmpeg_content_base.make params
 
   let checksum_of_packet packet =
@@ -205,11 +215,12 @@ module Specs = struct
 
   let checksum (d : data) =
     Ffmpeg_content_base.checksum ~checksum_of_item:checksum_of_packet d
-
-  let content_lang_typ = Liquidsoap_lang.Lang_core.string_t
-  let params_to_value p = Liquidsoap_lang.Lang_core.string (string_of_params p)
 end
 
-include Content.MkContent (Specs)
+include Content.MkDataBase (Format.Format) (Data)
 
-let kind = lift_kind `Copy
+let kind = Format.kind
+let lift_params = Format.lift_params
+let get_params = Format.get_params
+let is_format = Format.is_format
+let is_kind = Format.is_kind

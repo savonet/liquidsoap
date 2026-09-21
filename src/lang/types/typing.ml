@@ -59,7 +59,9 @@ let filter_vars f t =
     let t = deref t in
     match t.descr with
       | Int | Float | String | Bool | Never -> l
-      | Custom c -> c.filter_vars aux l c.typ
+      | Custom c ->
+          let handler = custom_handler c in
+          handler.filter_vars aux l handler.typ
       | Getter t -> aux l t
       | List { t } | Nullable t -> aux l t
       | Tuple aa -> List.fold_left aux l aa
@@ -123,7 +125,9 @@ let occur_check (a : var) =
     | { descr = Arrow (p, t) } ->
         List.iter (fun (_, _, t) -> occur_check t) p;
         occur_check t
-    | { descr = Custom c } -> c.occur_check occur_check c.typ
+    | { descr = Custom c } ->
+        let handler = custom_handler c in
+        handler.occur_check occur_check handler.typ
     | { descr = Var { contents = Free x } } as b ->
         if Type.Var.eq a x then raise (Occur_check (a, b));
         x.level <- min a.level x.level
@@ -204,8 +208,21 @@ let rec sup ~pos a b =
       | Tuple l, Tuple m ->
           if List.length l <> List.length m then raise Incompatible;
           mk (Tuple (List.map2 sup l m))
-      | Custom c, Custom c' -> (
-          try mk (Custom { c with typ = c.sup sup c.typ c'.typ })
+      | Custom c, Custom c' when c.custom_name = c'.custom_name -> (
+          try
+            let handler = custom_handler c in
+            let handler' = custom_handler c' in
+            mk
+              (Custom
+                 {
+                   c with
+                   handler_state =
+                     Resolved
+                       {
+                         handler with
+                         typ = handler.sup sup handler.typ handler'.typ;
+                       };
+                 })
           with _ -> raise Incompatible)
       | Meth (m, a), _ -> meth_sup m a b
       | _, Meth (m, b) -> meth_sup m b a
@@ -523,8 +540,11 @@ and ( <: ) a b =
               (Error
                  ( `Arrow (l2 @ [ellipsis], `Ellipsis),
                    `Arrow ([ellipsis], `Ellipsis) )))
-      | Custom c, Custom c' -> (
-          try c.subtype ( <: ) c.typ c'.typ
+      (* Two custom types of different names share nothing but the payload's
+         representation, which is erased. *)
+      | Custom c, Custom c' when c.custom_name = c'.custom_name -> (
+          let handler = custom_handler c in
+          try handler.subtype ( <: ) handler.typ (custom_handler c').typ
           with _ -> raise (Error (Repr.make a, Repr.make b)))
       | Getter t1, Getter t2 -> (
           try t1 <: t2

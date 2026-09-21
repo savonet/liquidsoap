@@ -181,7 +181,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
             p
         in
         let p = eval_param p in
-        !Hooks.make_encoder ~pos (e, p)
+        Hooks.get Hooks.make_encoder ~pos (e, p)
     | `List l -> mk (`List (List.map (eval ~eval_check env) l))
     | `Tuple l -> mk (`Tuple (List.map (fun a -> eval ~eval_check env a) l))
     | `Null -> mk `Null
@@ -343,7 +343,7 @@ and eval ~eval_check env tm =
   v
 
 let apply ?pos t p =
-  let eval_check = !Hooks.eval_check in
+  let eval_check = Hooks.get Hooks.eval_check in
   apply ?pos ~eval_check t p
 
 let eval ?env tm =
@@ -353,7 +353,7 @@ let eval ?env tm =
       | None -> Environment.default_environment ()
   in
   let env = List.map (fun (x, v) -> (x, v)) env in
-  let eval_check = !Hooks.eval_check in
+  let eval_check = Hooks.get Hooks.eval_check in
   eval ~eval_check env tm
 
 (** Add toplevel definitions to [builtins] so they can be looked during the

@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-let log = Lazy.Mutexed.from_fun (fun () -> !Hooks.make_log ["math"])
+let log = Lazy.Mutexed.from_fun (fun () -> Hooks.get Hooks.make_log ["math"])
 
 let () =
   let add op name descr =

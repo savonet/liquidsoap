@@ -1171,6 +1171,26 @@
   (diff expected_canonical/try_blocks.expected canonical_try_blocks.actual)))
 
 (rule
+ (target analysis_core_annotations.actual)
+ (deps
+  (:case cases_analysis/core_annotations.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/core_annotations.expected
+   analysis_core_annotations.actual)))
+
+(rule
  (target analysis_core_operator.actual)
  (deps
   (:case cases_analysis/core_operator.liq)
@@ -1209,6 +1229,62 @@
   (diff expected_analysis/definition.expected analysis_definition.actual)))
 
 (rule
+ (target analysis_encoder.actual)
+ (deps
+  (:case cases_analysis/encoder.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/encoder.expected analysis_encoder.actual)))
+
+(rule
+ (target analysis_ffmpeg_encoder.actual)
+ (deps
+  (:case cases_analysis/ffmpeg_encoder.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/ffmpeg_encoder.expected
+   analysis_ffmpeg_encoder.actual)))
+
+(rule
+ (target analysis_ffmpeg_track.actual)
+ (deps
+  (:case cases_analysis/ffmpeg_track.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/ffmpeg_track.expected analysis_ffmpeg_track.actual)))
+
+(rule
  (target analysis_include.actual)
  (deps
   (:case cases_analysis/include.liq)
@@ -1245,6 +1321,24 @@
   (diff
    expected_analysis/later_definition.expected
    analysis_later_definition.actual)))
+
+(rule
+ (target analysis_lib_include.actual)
+ (deps
+  (:case cases_analysis/lib_include.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff expected_analysis/lib_include.expected analysis_lib_include.actual)))
 
 (rule
  (target analysis_locals.actual)
@@ -1335,6 +1429,26 @@
  (package liquidsoap)
  (action
   (diff expected_analysis/shadowing.expected analysis_shadowing.actual)))
+
+(rule
+ (target analysis_source_annotation.actual)
+ (deps
+  (:case cases_analysis/source_annotation.liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/source_annotation.expected
+   analysis_source_annotation.actual)))
 
 (rule
  (target analysis_synthetic.actual)

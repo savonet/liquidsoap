@@ -52,7 +52,9 @@ let function_app_value_restriction fn =
     let t = Type.deref t in
     match t.descr with
       | Int | Float | String | Bool | Never -> l
-      | Custom c -> c.filter_vars filter_app_vars l c.typ
+      | Custom c ->
+          let handler = Type.custom_handler c in
+          handler.filter_vars filter_app_vars l handler.typ
       | Getter t -> filter_app_vars l t
       | List { t } | Nullable t -> filter_app_vars l t
       | Tuple aa -> List.fold_left filter_app_vars l aa
@@ -200,7 +202,7 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
           in
           check_enc f;
           let t =
-            try !Hooks.type_of_encoder ~pos f
+            try Hooks.get Hooks.type_of_encoder ~pos f
             with Not_found ->
               let bt = Printexc.get_raw_backtrace () in
               Printexc.raise_with_backtrace

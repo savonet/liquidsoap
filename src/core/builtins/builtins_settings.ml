@@ -27,18 +27,14 @@ let settings = ref Lang.null
 let dtools_constr =
   let open Liquidsoap_lang in
   let open Type in
-  {
-    constr_descr = "unit, bool, int, float, string or [string]";
-    univ_descr = None;
-    satisfied =
-      (fun ~subtype ~satisfies:_ b ->
-        let b = demeth b in
-        match b.descr with
-          | Bool | Int | Float | String -> ()
-          | Tuple [] -> ()
-          | List { t = b } -> subtype b (make String)
-          | _ -> raise Unsatisfied_constraint);
-  }
+  constr ~name:"dtools" ~descr:"unit, bool, int, float, string or [string]"
+    (fun ~subtype ~satisfies:_ b ->
+      let b = demeth b in
+      match b.descr with
+        | Bool | Int | Float | String -> ()
+        | Tuple [] -> ()
+        | List { t = b } -> subtype b (make String)
+        | _ -> raise Unsatisfied_constraint)
 
 (* Return a lazy variable, to be executed when all dependent
    OCaml modules have been linked. *)

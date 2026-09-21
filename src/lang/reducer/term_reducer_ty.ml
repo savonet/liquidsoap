@@ -38,7 +38,7 @@ let mk_named_ty ?pos = function
   | "clock" -> mk_clock_ty ?pos ()
   | "source" ->
       mk_source_ty ?pos "source" (`Tracks { extensible = true; tracks = [] })
-  | "source_methods" -> !Hooks.source_methods_t ()
+  | "source_methods" -> Hooks.get Hooks.source_methods_t ()
   | name -> (
       match Type.find_opt_typ name with
         | Some c -> c ()

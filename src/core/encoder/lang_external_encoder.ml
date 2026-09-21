@@ -22,21 +22,6 @@
 
 open Value
 
-let type_of_encoder p =
-  let channels = Lang_encoder.channels_of_params p in
-  match
-    List.find_map (function `Labelled ("video", p) -> Some p | _ -> None) p
-  with
-    | Some { Term.term = `Bool true } ->
-        Encoder.audio_video_type ~pcm_kind:Content.Audio.kind channels
-    | Some ({ t = { Type.pos } } as tm) ->
-        Lang_encoder.raise_error ~pos
-          (Printf.sprintf
-             "Invalid value %s for value mode. Only `true` or `false is \
-              allowed."
-             (Term.to_string tm))
-    | _ -> Encoder.audio_type ~pcm_kind:Content.Audio.kind channels
-
 let make params =
   let defaults =
     {
@@ -119,4 +104,4 @@ let make params =
     raise External_encoder_format.No_process;
   Encoder.External ext
 
-let () = Lang_encoder.register "external" type_of_encoder make
+let () = Lang_encoder.register "external" make

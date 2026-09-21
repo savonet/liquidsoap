@@ -50,5 +50,5 @@ module StringView = StringView
 module Strings = Strings
 module ByteRing = ByteRing
 module Tutils = Tutils
-module Unifier = Unifier
+module Unifier = Liquidsoap_core_formats.Unifier
 module Utils = Utils

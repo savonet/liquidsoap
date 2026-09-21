@@ -1,0 +1,22 @@
+pcm(mono)                pcm:mono             pcm(mono)
+pcm(stereo)              pcm:stereo           pcm(stereo)
+pcm(5.1)                 pcm:5.1              pcm(5.1)
+pcm_s16(stereo)          pcm_s16:stereo       pcm_s16(stereo)
+pcm_f32(stereo)          pcm_f32:stereo       pcm_f32(stereo)
+yuv420p                  yuv420p:,,           yuv420p
+midi(channels=0)         midi:0               midi(channels=0)
+metadata                 metadata:            metadata
+track_marks              track_marks:         track_marks
+ffmpeg.copy              ffmpeg.copy:         ffmpeg.copy
+ffmpeg.audio.raw         ffmpeg.audio.raw:    ffmpeg.audio.raw
+ffmpeg.video.raw         ffmpeg.video.raw:    ffmpeg.video.raw
+
+format:   pcm(mono)
+shared:   true
+kind:     pcm('A)
+inner:    (pcm('A), 'A) -> int
+constr:   something that is a track
+resolved: true
+
+This typing environment has no header to read. This liquidsoap reads format 1.
+This typing environment was written in format 99, by 2.5.0 (custom build). This liquidsoap reads format 1.

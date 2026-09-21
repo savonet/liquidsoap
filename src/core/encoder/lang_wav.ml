@@ -22,8 +22,6 @@
 
 open Value
 
-let type_of_encoder = Lang_encoder.pcm_audio_type_of_encoder
-
 let make params =
   let defaults =
     {
@@ -64,4 +62,4 @@ let make params =
   in
   Encoder.WAV wav
 
-let () = Lang_encoder.register "wav" type_of_encoder make
+let () = Lang_encoder.register "wav" make

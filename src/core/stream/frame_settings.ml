@@ -56,7 +56,9 @@ let conf_audio_samplerate =
   Conf.int ~p:(conf_audio#plug "samplerate") ~d:44100 "Samplerate"
 
 let conf_audio_channels =
-  Conf.int ~p:(conf_audio#plug "channels") ~d:2 "Default number of channels"
+  Conf.int
+    ~p:(conf_audio#plug "channels")
+    ~d:Audio_format.default_channels "Default number of channels"
 
 let conf_audio_size =
   Conf.int ~p:(conf_audio#plug "size")
@@ -85,10 +87,12 @@ let conf_video_framerate =
   Conf.int ~p:(conf_video#plug "framerate") ~d:25 "Frame rate"
 
 let conf_video_width =
-  Conf.int ~p:(conf_video#plug "width") ~d:1280 "Image width"
+  Conf.int ~p:(conf_video#plug "width") ~d:Video_format.default_width
+    "Image width"
 
 let conf_video_height =
-  Conf.int ~p:(conf_video#plug "height") ~d:720 "Image height"
+  Conf.int ~p:(conf_video#plug "height") ~d:Video_format.default_height
+    "Image height"
 
 let conf_video_detect_dimensions =
   Conf.bool
@@ -108,7 +112,9 @@ let conf_video_detect_dimensions =
 let conf_midi = Conf.void ~p:(conf#plug "midi") "MIDI parameters"
 
 let conf_midi_channels =
-  Conf.int ~p:(conf_midi#plug "channels") ~d:0 "Default number of channels"
+  Conf.int
+    ~p:(conf_midi#plug "channels")
+    ~d:Midi_format.default_channels "Default number of channels"
 
 (** Format parameters *)
 
@@ -278,3 +284,11 @@ let size =
         size)
 
 let duration = delayed (fun () -> float !!size /. float !!main_rate)
+
+(* The formats library asks for these when a script gives a frame no type of
+   its own. *)
+let () =
+  (Liquidsoap_core_formats.Frame_type.default_audio_channels :=
+     fun () -> conf_audio_channels#get);
+  Liquidsoap_core_formats.Frame_type.default_video :=
+    fun () -> conf_video_default#get

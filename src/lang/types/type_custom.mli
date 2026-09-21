@@ -37,14 +37,26 @@ module type Specs = sig
   val repr : (var list -> t -> Repr.t) -> var list -> content -> Repr.t
   val subtype : (t -> t -> unit) -> content -> content -> unit
   val sup : (t -> t -> t) -> content -> content -> content
-  val to_string : content -> string
+
+  (** How a payload survives a dump, which carries strings and no more. [parse]
+      answers [None] for a printed form it cannot rebuild. *)
+  val serialize : content -> string
+
+  val parse : string -> content option
 end
+
+(** What a dumped custom type is here: its name and the printed form of its
+    payload, rebuilt by whoever implements that name. *)
+val of_dump : string -> string -> Type_base.custom_handler option
 
 module type Implementation = sig
   type content
 
-  val handler : content -> Type_base.custom_handler
+  val handler : content -> Type_base.custom_instance
   val to_content : custom -> content
+
+  (** What a custom type of this one's name carries here. *)
+  val payload : Type_base.custom_instance -> content
 end
 
 module Make (S : Specs) : Implementation with type content = S.content

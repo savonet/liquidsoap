@@ -20,27 +20,17 @@
 
  *****************************************************************************)
 
-type descr = [ `Format of Content_base.format | `Kind of Content_base.kind ]
+(* See liquidsoap_core_formats.mli. *)
 
-exception Never_type
-
-val descr : descr -> Type.descr
-val pcm_audio : Type.constr
-val track : Type.constr
-val muxed_tracks : Type.constr
-val internal_tracks : Type.constr
-val content_type : Type.t -> Content_base.format
-val kind_handler : Content_base.kind * Type.t -> Type.custom_handler
-
-(** Some common types *)
-val audio : ?pcm_kind:Content_base.kind -> unit -> Type.t
-
-val audio_mono : ?pcm_kind:Content_base.kind -> unit -> Type.t
-val audio_stereo : ?pcm_kind:Content_base.kind -> unit -> Type.t
-val audio_n : ?pcm_kind:Content_base.kind -> int -> Type.t
-val video : unit -> Type.t
-val subtitle : unit -> Type.t
-val midi : unit -> Type.t
-val midi_n : int -> Type.t
-val track_marks : Type.t
-val metadata : Type.t
+module Audio_format = Audio_format
+module Audio_layout = Audio_layout
+module Content_base = Content_base
+module Fields = Fields
+module Format_type = Format_type
+module Frame_type = Frame_type
+module Midi_format = Midi_format
+module Pcm_format = Pcm_format
+module Subtitle_format = Subtitle_format
+module Timed_format = Timed_format
+module Unifier = Unifier
+module Video_format = Video_format

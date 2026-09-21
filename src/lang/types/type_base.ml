@@ -92,6 +92,7 @@ type meth_doc = {
 type t = { pos : Pos.Option.t; descr : descr }
 
 and constr = {
+  constr_name : string;  (** What a dump names it by, wherever it is read. *)
   constr_descr : string;
   univ_descr : string option;
   satisfied : subtype:(t -> t -> unit) -> satisfies:(t -> unit) -> t -> unit;
@@ -125,16 +126,30 @@ and meth = {
 
 and repr_t = { t : t; json_repr : [ `Tuple | `Object ] }
 
+(** What a custom type carries, and what can be done with it. None of it can be
+    written out: the payload is the process's own, the rest are closures, which
+    is what [serialize] is for. *)
 and custom_handler = {
   typ : custom;
-  custom_name : string;
+  serialize : custom -> string;
   copy_with : (t -> t) -> custom -> custom;
   occur_check : (t -> unit) -> custom -> unit;
   filter_vars : (var list -> t -> var list) -> var list -> custom -> var list;
   repr : (var list -> t -> constr R.t) -> var list -> custom -> constr R.t;
   subtype : (t -> t -> unit) -> custom -> custom -> unit;
   sup : (t -> t -> t) -> custom -> custom -> custom;
-  to_string : custom -> string;
+}
+
+(** A custom type read back from a dump arrives [Dumped]: its payload's
+    serialized form, the types that payload holds, and which payload it was,
+    since types that shared one on the way out have to share one again. *)
+and custom_handler_state =
+  | Resolved of custom_handler
+  | Dumped of { payload_id : int; payload : string; types : t list }
+
+and custom_instance = {
+  custom_name : string;
+  mutable handler_state : custom_handler_state;
 }
 
 and var_t = { id : int; mutable contents : invar }
@@ -145,7 +160,7 @@ and descr =
   | Float
   | Bool
   | Never
-  | Custom of custom_handler
+  | Custom of custom_instance
   | Constr of constructed
   | Getter of t  (** a getter: something that is either a t or () -> t *)
   | List of repr_t
@@ -173,6 +188,17 @@ module DS = Set.Make (struct
       | x -> x
 end)
 
+(* A constraint is a closure, so a dump names it and a reader looks the name
+   up here. Building one is what records it, since one that no process
+   declared could not be read back. *)
+let registered_constraints : (string, constr) Hashtbl.t = Hashtbl.create 16
+
+let constr ?univ_descr ~name ~descr satisfied =
+  let c = { constr_name = name; constr_descr = descr; univ_descr; satisfied } in
+  Hashtbl.replace registered_constraints name c;
+  c
+
+let registered_constraint = Hashtbl.find_opt registered_constraints
 let string_of_constr c = c.constr_descr
 
 exception Unsatisfied_constraint
@@ -196,6 +222,16 @@ module Vars = struct
 
   let add_list l v = add_seq (List.to_seq l) v
 end
+
+(* A dumped custom type is resolved when the dump is read, by whoever knows how
+   to parse its payload; one that got this far belongs to nobody here. *)
+let[@inline always] custom_handler c =
+  match c.handler_state with
+    | Resolved handler -> handler
+    | Dumped _ ->
+        failwith
+          (Printf.sprintf "Custom type %s has no implementation here!"
+             c.custom_name)
 
 let var_id_atom = Atomic.make (-1)
 let var_id () = Atomic.fetch_and_add var_id_atom 1
@@ -351,7 +387,15 @@ module Fresh = struct
       | String -> String
       | Bool -> Bool
       | Never -> Never
-      | Custom c -> Custom { c with typ = c.copy_with map c.typ }
+      | Custom c ->
+          let handler = custom_handler c in
+          Custom
+            {
+              c with
+              handler_state =
+                Resolved
+                  { handler with typ = handler.copy_with map handler.typ };
+            }
       | Constr { constructor; params } ->
           Constr
             { constructor; params = List.map (fun (v, t) -> (v, map t)) params }

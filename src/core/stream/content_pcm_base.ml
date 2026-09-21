@@ -22,11 +22,7 @@
 
 open Frame_settings
 
-type params = Content_audio.Specs.params
-
-let string_of_params = Content_audio.Specs.string_of_params
-let merge = Content_audio.Specs.merge
-let compatible = Content_audio.Specs.compatible
+type params = Audio_format.Specs.params
 
 let blit src src_pos dst dst_pos len =
   let ( ! ) = audio_of_main in
@@ -48,19 +44,11 @@ let copy ~fmt =
       Bigarray.Array1.blit c c';
       c)
 
-let param_of_channels = Content_audio.Specs.param_of_channels
-let parse_param = Content_audio.Specs.parse_param
-let params d = param_of_channels (Array.length d)
+let params d = Audio_format.Specs.param_of_channels (Array.length d)
 
-let default_params _ =
-  param_of_channels (Lazy.Mutexed.force Frame_settings.audio_channels)
-
-let make ~fmt ?(length = 0) { Content_audio.Specs.channel_layout } =
+let make ~fmt ?(length = 0) { Audio_format.Specs.channel_layout } =
   let channels =
-    match !!channel_layout with
-      | `Mono -> 1
-      | `Stereo -> 2
-      | `Five_point_one -> 6
+    Audio_format.Specs.channels_of_param (Lazy.Mutexed.force channel_layout)
   in
   Array.init channels (fun _ ->
       Bigarray.Array1.create fmt Bigarray.c_layout (audio_of_main length))
@@ -72,6 +60,4 @@ let length = function
 let clear_content ~v b ofs len =
   Array.iter (fun c -> Bigarray.Array1.fill (Bigarray.Array1.sub c ofs len) v) b
 
-let channels_of_format ~get_params p =
-  Content_audio.Specs.(
-    channels_of_param (Lazy.Mutexed.force (get_params p).channel_layout))
+let channels_of_format = Pcm_format.channels_of_format

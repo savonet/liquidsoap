@@ -58,7 +58,7 @@ let prepare ~stdlib ~cache ~error_on_no_stdlib ~deprecated parsed_term =
     match stdlib with
       | Some stdlib -> stdlib
       | None ->
-          let dir = !Hooks.liq_libs_dir () in
+          let dir = Hooks.get Hooks.liq_libs_dir () in
           Filename.concat dir "stdlib.liq"
   in
   let libs = Runtime.libs ~stdlib ~error_on_no_stdlib ~deprecated () in

@@ -167,7 +167,7 @@ let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                           data;
                         }
                       in
-                      let content : Ffmpeg_raw_content.AudioSpecs.data =
+                      let content : Ffmpeg_raw_content.Audio.data =
                         { params; chunks = [d] }
                       in
                       Generator.put generator field
@@ -382,7 +382,7 @@ let encode_video_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
                     let d : Avutil.video Avutil.frame Ffmpeg_content_base.data =
                       { length; stream_idx = source_idx.idx; time_base; data }
                     in
-                    let content : Ffmpeg_raw_content.VideoSpecs.data =
+                    let content : Ffmpeg_raw_content.Video.data =
                       { params; chunks = [d] }
                     in
                     Generator.put generator field

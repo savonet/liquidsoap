@@ -24,69 +24,7 @@
 
 (** {2 Frame definitions} *)
 
-let field_idx = Atomic.make 0
-
-module FieldNames = Hashtbl.Make (struct
-  type t = int
-
-  let equal (x : int) (y : int) = x = y [@@inline always]
-  let hash (x : int) = x [@@inline always]
-end)
-
-module Fields = struct
-  include Liquidsoap_lang_data.Methods
-
-  type field = int
-  type nonrec 'a t = (field, 'a) t
-
-  let field_names = FieldNames.create 0
-  let name_fields = Hashtbl.create 0
-  let string_of_field = FieldNames.find field_names
-  let field_of_string = Hashtbl.find name_fields
-
-  let register name =
-    try field_of_string name
-    with Not_found ->
-      let field = Atomic.fetch_and_add field_idx 1 in
-      FieldNames.replace field_names field name;
-      Hashtbl.replace name_fields name field;
-      field
-
-  let metadata = register "metadata"
-  let track_marks = register "track_marks"
-  let audio = register "audio"
-  let video = register "video"
-  let data = register "data"
-  let midi = register "midi"
-  let subtitles = register "subtitles"
-
-  let audio_n = function
-    | 0 -> audio
-    | n -> register (Printf.sprintf "audio_%d" (n + 1))
-
-  let video_n = function
-    | 0 -> video
-    | n -> register (Printf.sprintf "video_%d" (n + 1))
-
-  let data_n = function
-    | 0 -> data
-    | n -> register (Printf.sprintf "data_%d" (n + 1))
-
-  let subtitles_n = function
-    | 0 -> subtitles
-    | n -> register (Printf.sprintf "subtitles_%d" (n + 1))
-
-  let make =
-    let audio_f = audio in
-    let video_f = video in
-    let midi_f = midi in
-    fun ?audio ?video ?midi () ->
-      List.fold_left
-        (fun fields -> function
-          | _, None -> fields | field, Some v -> add field v fields)
-        empty
-        [(audio_f, audio); (video_f, video); (midi_f, midi)]
-end
+module Fields = Fields
 
 type field = Fields.field
 
@@ -111,22 +49,8 @@ module Metadata = Metadata_base
 
 type metadata = Metadata_base.t
 
-let audio_format ~pcm_kind params =
-  let lift_params =
-    match pcm_kind with
-      | _ when Content_audio.is_kind pcm_kind -> Content_audio.lift_params
-      | _ when Content_pcm_s16.is_kind pcm_kind -> Content_pcm_s16.lift_params
-      | _ when Content_pcm_f32.is_kind pcm_kind -> Content_pcm_f32.lift_params
-      | _ -> raise Content_base.Invalid
-  in
-  lift_params params
-
-let format_of_channels ~pcm_kind n =
-  audio_format ~pcm_kind
-    {
-      Content_audio.Specs.channel_layout =
-        Lazy.Mutexed.from_val (Audio_layout.layout_of_channels n);
-    }
+let audio_format = Pcm_format.audio_format
+let format_of_channels = Pcm_format.format_of_channels
 
 let add_timed_content ?length content =
   Fields.add Fields.track_marks

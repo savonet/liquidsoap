@@ -169,7 +169,9 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | String -> `Constr ("string", [])
         | Bool -> `Constr ("bool", [])
         | Never -> `Constr ("never", [])
-        | Custom c -> c.repr repr g c.typ
+        | Custom c ->
+            let handler = custom_handler c in
+            handler.repr repr g handler.typ
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)

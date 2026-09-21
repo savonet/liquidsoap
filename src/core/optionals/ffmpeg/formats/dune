@@ -1,0 +1,40 @@
+; FFmpeg's content types, without libav.
+;
+; The parameters of an ffmpeg stream are whatever the process knows of them:
+; what libav read off a codec, or their names. This library owns everything
+; else -- the kinds, their names, how a dump carries them -- so that a process
+; which only typechecks scripts can still name an ffmpeg track.
+;
+; Not (optional): a machine with no ffmpeg bindings still has scripts to
+; typecheck.
+
+(library
+ (name liquidsoap_ffmpeg_formats)
+ (public_name liquidsoap.ffmpeg_formats)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang
+   -open
+   Liquidsoap_core_formats
+   -open
+   Liquidsoap_core_encoder_types))
+ (libraries
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  liquidsoap_core_encoder_types
+  liquidsoap_core_formats))

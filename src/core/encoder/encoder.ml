@@ -34,25 +34,10 @@ type format =
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
 
-let audio_type ~pcm_kind n =
-  Frame.Fields.make
-    ~audio:
-      (Type.make
-         (Format_type.descr
-            (`Format (Frame_base.format_of_channels ~pcm_kind n))))
-    ()
-
-let video_format () = Content.(default_format Video.kind)
-
-let audio_video_type ~pcm_kind n =
-  Frame.Fields.add Frame.Fields.video
-    (Type.make (Format_type.descr (`Format (video_format ()))))
-    (audio_type ~pcm_kind n)
-
-let video_type () =
-  Frame.Fields.make
-    ~video:(Type.make (Format_type.descr (`Format (video_format ()))))
-    ()
+let audio_type = Encoder_types.audio_type
+let video_format = Encoder_types.video_format
+let audio_video_type = Encoder_types.audio_video_type
+let video_type = Encoder_types.video_type
 
 let type_of_format f =
   let audio_type = audio_type ~pcm_kind:Content_audio.kind in

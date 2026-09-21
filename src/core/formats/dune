@@ -1,0 +1,30 @@
+; Content kinds and formats, and the liquidsoap types describing them.
+;
+; Everything here is mm-free and settings-free: the language server and the
+; browser build link this library to compute the same content types the binary
+; does. Adding a dependency on another core library defeats that.
+;
+; liquidsoap_core_formats.mli lists what this library exports. A module that is
+; not in it is private to this directory.
+
+(library
+ (name liquidsoap_core_formats)
+ (public_name liquidsoap.formats)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_lang))
+ (libraries
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values))

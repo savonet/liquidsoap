@@ -901,11 +901,7 @@ let setup_composition ~category src =
 let register_composition_module ~base () =
   let composition = add_module ~base "composition" in
   let frame_t = Type.var () in
-  let source_frame_t =
-    Type.make
-      (Type.Constr
-         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
-  in
+  let source_frame_t = Core_lang.source_t frame_t in
   let on_leave_t =
     fun_t
       [
@@ -975,17 +971,14 @@ let _source_method_t t l =
 
 let source_methods_t t = _source_method_t t source_methods
 
+(* The type has to be invariant because we don't want the sup mechanism to be
+   used here, see #2806. *)
 let source_t ?(pos : Term.parsed_pos option) ?(methods = false) frame_t =
-  let t =
-    make_t ?pos
-      (Type.Constr
-         (* The type has to be invariant because we don't want the sup mechanism to be used here, see #2806. *)
-         { Type.constructor = "source"; params = [(`Invariant, frame_t)] })
-  in
+  let t = Core_lang.source_t ?pos:(Option.map Pos.of_lexing_pos pos) frame_t in
   if methods then source_methods_t t else t
 
 let abstract_source_t ?(pos : Term.parsed_pos option) () =
-  make_t ?pos (Type.Constr { Type.constructor = "source"; params = [] })
+  Core_lang.abstract_source_t ?pos:(Option.map Pos.of_lexing_pos pos) ()
 
 let of_source_t t =
   match (Type.demeth t).Type.descr with

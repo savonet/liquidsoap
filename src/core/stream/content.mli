@@ -32,74 +32,20 @@ exception Invalid
 (* Raised when calling [merge] below. *)
 exception Incompatible_format of Contents.format * Contents.format
 
-module type ContentSpecs = sig
-  type kind
-  type params
-  type data
+module type FormatSpecs = Content_base.FormatSpecs
+module type DataSpecs = Content_base.DataSpecs
+module type ContentSpecs = Content_base.ContentSpecs
+module type Format = Content_base.Format
+module type Content = Content_base.Content
 
-  val name : string
+module MkFormatBase (F : FormatSpecs) :
+  Format with type kind = F.kind and type params = F.params
 
-  (** Data *)
-
-  (* Length is in main ticks. *)
-  val make : ?length:int -> params -> data
-  val length : data -> int
-  val blit : data -> int -> data -> int -> int -> unit
-  val copy : data -> data
-  val checksum : data -> string
-
-  (** Params *)
-
-  val params : data -> params
-  val merge : params -> params -> params
-
-  (* [compatible src dst] *)
-  val compatible : params -> params -> bool
-  val string_of_params : params -> string
-
-  (* [parse_param "label" "value"] *)
-  val parse_param : string -> string -> params option
-
-  (** Kind *)
-
-  val kind : kind
-  val default_params : kind -> params
-  val string_of_kind : kind -> string
-  val kind_of_string : string -> kind option
-
-  (** Lang description *)
-
-  val content_lang_typ : Type.t
-  val params_to_value : params -> Value.t
-end
-
-module type Content = sig
-  include ContentSpecs
-
-  (** Data *)
-
-  val is_data : Contents.data -> bool
-  val lift_data : ?offset:int -> ?length:int -> data -> Contents.data
-  val get_data : Contents.data -> data
-
-  (** Format *)
-
-  val is_format : Contents.format -> bool
-  val lift_params : params -> Contents.format
-  val get_params : Contents.format -> params
-
-  (** Kind *)
-
-  val is_kind : Contents.kind -> bool
-  val lift_kind : kind -> Contents.kind
-  val get_kind : Contents.kind -> kind
-end
-
-module MkContent (C : ContentSpecs) :
+module MkDataBase (F : Format) (D : DataSpecs with type params = F.params) :
   Content
-    with type kind = C.kind
-     and type params = C.params
-     and type data = C.data
+    with type kind = F.kind
+     and type params = F.params
+     and type data = D.data
 
 type format = Contents.format
 type kind = Contents.kind
@@ -125,6 +71,12 @@ val merge : format -> format -> unit
 (* [compatible src dst] *)
 val compatible : format -> format -> bool
 val string_of_format : format -> string
+
+(** A format as it crosses a dump: its kind, and what its content encodes of its
+    parameters. [parse_format] answers [None] for anything else. *)
+val serialize_format : format -> string
+
+val parse_format : string -> format option
 
 (* [parse_param kind "label" "value"] *)
 val parse_param : kind -> string -> string -> format

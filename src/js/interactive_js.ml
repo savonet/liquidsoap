@@ -58,10 +58,10 @@ let load_full_stdlib_types () =
         let t = unavailable_type t in
         Environment.add_builtin ~register:false [name]
           ((vars, t), unavailable_value name t)))
-    Jsoo_safe_env.(restore (of_string dump))
+    Jsoo_safe_env.(restore (of_string dump)).Jsoo_safe_env.restored_env
 
 let () =
-  (Hooks.liq_libs_dir := fun () -> "/static");
+  Hooks.implement Hooks.liq_libs_dir (fun () -> "/static");
   Runtime.load_libs ~stdlib:"stdlib_js.liq" ();
   load_full_stdlib_types ()
 

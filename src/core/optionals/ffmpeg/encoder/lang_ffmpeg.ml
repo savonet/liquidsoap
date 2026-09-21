@@ -28,39 +28,6 @@ type encoder_params = decode_type * content_type * (string * Value.t) list
 type mode = [ `Drop | `Copy of Value.t option | `Encode of encoder_params ]
 type parsed_encoder = Frame.field * mode
 
-let channels_of_channel_layout args =
-  match List.assoc "channel_layout" args with
-    (* 5.1 as float. *)
-    | { Term.term = `Float layout } ->
-        let layout = Printf.sprintf "%.1f" layout in
-        Avutil.Channel_layout.(get_nb_channels (find layout))
-    | { Term.term = `String layout } ->
-        Avutil.Channel_layout.(get_nb_channels (find layout))
-    | { t = { Type.pos } } as tm ->
-        Lang_encoder.raise_error ~pos
-          (Printf.sprintf
-             "Invalid value %s for channel_layout parameter. Only static \
-              numbers are allowed."
-             (Term.to_string tm))
-
-let channels args =
-  try channels_of_channel_layout args
-  with _ -> (
-    try
-      let name, channels =
-        try ("channels", List.assoc "channels" args)
-        with Not_found -> ("ac", List.assoc "ac" args)
-      in
-      match channels with
-        | { Term.term = `Int n } -> n
-        | { t = { Type.pos } } as tm ->
-            Lang_encoder.raise_error ~pos
-              (Printf.sprintf
-                 "Invalid value %s for %s parameter. Only static numbers are \
-                  allowed."
-                 name (Term.to_string tm))
-    with Not_found -> 2)
-
 let parse_int str =
   try
     let f = Avutil.expr_parse_and_eval str in
@@ -97,64 +64,20 @@ let to_copy_opt t =
         Lang_encoder.raise_error ~pos:(Value.pos t)
           ("Invalid value for copy encoder parameter: " ^ Value.to_string t)
 
-(* The pcm kind is named by a bare argument, e.g. `%audio(pcm_s16)`. Shared by
-   the type-level and value-level passes over the same arguments. *)
-let pcm_kind_of_args ~to_static_string args =
-  List.fold_left
-    (fun kind -> function
-      | "", v -> (
-          match to_static_string v with
-            | Some "pcm" -> Content_audio.kind
-            | Some "pcm_s16" -> Content_pcm_s16.kind
-            | Some "pcm_f32" -> Content_pcm_f32.kind
-            | _ -> kind)
-      | _ -> kind)
-    Content_audio.kind args
-
-let has_content ~to_static_string name p =
-  List.exists (fun (lbl, v) -> lbl = "" && to_static_string v = Some name) p
-
-(* The following conventions are used to
-   infer media type from an encoder:
-   - encoder has "audio", "video" or "subtitle" in its name,
-     e.g. dolby_audio, video_1, subtitle_2 etc.
-   - encoder has "audio_content", "video_content" or "subtitle_content" in its arguments:
-     %track(audio_content, ...) or %track(video_content, ...) or %track(subtitle_content, ...)
-   - encoder has a static codec string, e.g.
-     %track(codec="libmp3lame") *)
+(* What a track's media type cannot be read from is an error here, where a
+   script is run rather than typechecked. *)
 let stream_media_type ~to_pos ~to_static_string name args =
-  let raise pos =
-    Lang_encoder.raise_error ~pos
-      {|Unable to find a track media content type. Please use one of the available convention:
+  match
+    Ffmpeg_encoder_type.media_type ~static_string:to_static_string name args
+  with
+    | Some media_type -> media_type
+    | None ->
+        Lang_encoder.raise_error
+          ~pos:(Option.bind (List.assoc_opt "codec" args) to_pos)
+          {|Unable to find a track media content type. Please use one of the available convention:
 - Use `"audio"`, `"video"` or `"subtitle"` in the track name, e.g. `%dolby_audio`
 - Add `audio_content`, `video_content` or `subtitle_content` to the track parameters, e.g. `%track(audio_content)`
 - Use a static codec string, e.g. `%track(codec="libmp3lame")`|}
-  in
-  match (name, args) with
-    | _ when has_content ~to_static_string "audio_content" args -> `Audio
-    | _ when has_content ~to_static_string "video_content" args -> `Video
-    | _ when has_content ~to_static_string "subtitle_content" args -> `Subtitle
-    | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "subtitle") name -> `Subtitle
-    | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "audio") name -> `Audio
-    | _ when Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "video") name -> `Video
-    | _ -> (
-        match List.assoc_opt "codec" args with
-          | Some t -> (
-              let codec = to_static_string t in
-              try
-                ignore (Avcodec.Audio.find_encoder_by_name (Option.get codec));
-                `Audio
-              with _ -> (
-                try
-                  ignore (Avcodec.Video.find_encoder_by_name (Option.get codec));
-                  `Video
-                with _ -> (
-                  try
-                    ignore
-                      (Avcodec.Subtitle.find_encoder_by_name (Option.get codec));
-                    `Subtitle
-                  with _ -> raise (to_pos t))))
-          | None -> raise None)
 
 let copy_param = function
   | [] -> None
@@ -187,7 +110,7 @@ let to_static_string_value = function
   | _ -> None
 
 let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
-  let field, mode = parse_encoder_name name in
+  let field, mode = Ffmpeg_encoder_type.parse_encoder_name name in
   let mode =
     match mode with
       | `Drop -> `Drop
@@ -207,74 +130,6 @@ let parse_encoder_params ~to_pos (name, p) : parsed_encoder =
   in
   let field = Frame.Fields.register field in
   (field, mode)
-
-let to_static_string_term = function
-  | Term.{ term = `String s } -> Some s
-  | _ -> None
-
-let term_pos { Term.t = { Type.pos } } = pos
-
-let type_of_encoder =
-  List.fold_left
-    (fun content_type p ->
-      match p with
-        | `Encoder (name, args) ->
-            let args =
-              List.filter_map
-                (function
-                  | `Anonymous s -> Some ("", Term.make (`String s))
-                  | `Labelled (l, v) -> Some (l, v)
-                  | `Encoder _ -> None)
-                args
-            in
-            let field, mode = parse_encoder_name name in
-            let format =
-              match mode with
-                | `Drop -> Type.var ~constraints:[Format_type.track] ()
-                | `Copy ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (Content.default_format Ffmpeg_copy_content.kind)))
-                | `Raw ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (match
-                               stream_media_type ~to_pos:term_pos
-                                 ~to_static_string:to_static_string_term name
-                                 args
-                             with
-                              | `Audio ->
-                                  Content.default_format
-                                    Ffmpeg_raw_content.Audio.kind
-                              | `Video ->
-                                  Content.default_format
-                                    Ffmpeg_raw_content.Video.kind
-                              | `Subtitle -> Subtitle_content.format)))
-                | `Internal ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (match
-                               stream_media_type ~to_pos:term_pos
-                                 ~to_static_string:to_static_string_term name
-                                 args
-                             with
-                              | `Audio ->
-                                  Frame_base.format_of_channels
-                                    ~pcm_kind:
-                                      (pcm_kind_of_args
-                                         ~to_static_string:to_static_string_term
-                                         args)
-                                    (channels args)
-                              | `Video -> Content.(default_format Video.kind)
-                              | `Subtitle -> Subtitle_content.format)))
-            in
-            let field = Frame.Fields.register field in
-            Frame.Fields.add field format content_type
-        | _ -> content_type)
-    Frame.Fields.empty
 
 (* Looks like this is how ffmpeg CLI does it.
    See: https://github.com/FFmpeg/FFmpeg/blob/4782124b90cf915ede2cebd871be82fc0267a135/fftools/ffmpeg_opt.c#L1567-L1570 *)
@@ -512,7 +367,8 @@ let ffmpeg_gen params =
               {
                 default_audio with
                 Ffmpeg_format.pcm_kind =
-                  pcm_kind_of_args ~to_static_string:to_static_string_value args;
+                  Ffmpeg_encoder_type.pcm_kind
+                    ~static_string:to_static_string_value args;
               }
               args
           in
@@ -617,4 +473,28 @@ let make params =
   in
   Encoder.Ffmpeg (ffmpeg_gen params)
 
-let () = Lang_encoder.register "ffmpeg" type_of_encoder make
+(* What the type of a track cannot be read off its name and parameters, libav
+   knows. *)
+let () =
+  Ffmpeg_encoder_type.implement
+    {
+      Ffmpeg_encoder_type.media_type =
+        (fun codec ->
+          try
+            ignore (Avcodec.Audio.find_encoder_by_name codec);
+            Some `Audio
+          with _ -> (
+            try
+              ignore (Avcodec.Video.find_encoder_by_name codec);
+              Some `Video
+            with _ -> (
+              try
+                ignore (Avcodec.Subtitle.find_encoder_by_name codec);
+                Some `Subtitle
+              with _ -> None)));
+      channels_of_layout =
+        (fun layout ->
+          try Some Avutil.Channel_layout.(get_nb_channels (find layout))
+          with _ -> None);
+    };
+  Lang_encoder.register "ffmpeg" make

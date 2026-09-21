@@ -38,10 +38,9 @@ type data = (params option, packet) Ffmpeg_content_base.content
 let time_base = { Avutil.num = 1; den = 1000 }
 
 (* Dummy Specs module *)
-module DummySpecs = struct
+module DummyFormat = struct
   type kind = [ `Dummy ]
   type nonrec params = params option
-  type nonrec data = data
 
   let name = "ffmpeg.dummy"
   let kind = `Dummy
@@ -75,6 +74,8 @@ module DummySpecs = struct
 
   let copy src = Ffmpeg_content_base.copy ~copy:copy_packet src
   let default_params _ = None
+  let serialize_params _ = ""
+  let parse_params = function "" -> Some None | _ -> None
   let make ?length:_ params : data = Ffmpeg_content_base.make params
 
   let checksum (d : data) =
@@ -94,8 +95,24 @@ module DummySpecs = struct
     Digest.string (String.concat "||" chunk_checksums) |> Digest.to_hex
 end
 
-(* Apply the Content functor *)
-module DummyContent = Content.MkContent (DummySpecs)
+module DummyData = struct
+  type nonrec params = params option
+  type nonrec data = data
+
+  let length = Ffmpeg_content_base.length
+  let params = Ffmpeg_content_base.params
+  let copy_packet x = x
+
+  let blit src src_pos dst dst_pos len =
+    Ffmpeg_content_base.blit ~copy:copy_packet src src_pos dst dst_pos len
+
+  let copy src = Ffmpeg_content_base.copy ~copy:copy_packet src
+  let make ?length:_ params : data = Ffmpeg_content_base.make params
+  let checksum = DummyFormat.checksum
+end
+
+module DummyContent =
+  Content.MkDataBase (Content.MkFormatBase (DummyFormat)) (DummyData)
 
 (* Helper to create data with packets at specific positions *)
 let mk_data ?(stream_idx = 1L) ?(time_base = time_base) ~length data =
@@ -576,7 +593,7 @@ let () =
   let chunk4 = mk_data ~stream_idx:2L ~length:25 [(20, 22)] in
   let src = mk_content None [chunk1; chunk2; chunk3; chunk4] in
   let dst = mk_content None [] in
-  DummySpecs.blit src 0 dst 0 100;
+  DummyData.blit src 0 dst 0 100;
   (* After blit, should have 2 chunks: one for stream_idx=1, one for stream_idx=2 *)
   assert (List.length dst.chunks = 2);
   let c1 = List.nth dst.chunks 0 in
@@ -598,7 +615,7 @@ let () =
   let chunk3 = mk_data ~stream_idx:1L ~length:30 [(5, 12)] in
   let src = mk_content None [chunk1; chunk2; chunk3] in
   let dst = mk_content None [] in
-  DummySpecs.blit src 0 dst 0 100;
+  DummyData.blit src 0 dst 0 100;
   (* After blit, should have 3 chunks (not collapsed because not adjacent) *)
   assert (List.length dst.chunks = 3);
   assert ((List.nth dst.chunks 0).stream_idx = 1L);
@@ -618,7 +635,7 @@ let () =
   let src = mk_content None [chunk1; chunk2] in
   let dst = mk_content None [] in
   (* Blit from position 30 to 80 (length 50) *)
-  DummySpecs.blit src 30 dst 0 50;
+  DummyData.blit src 30 dst 0 50;
   assert (List.length dst.chunks = 1);
   let c = List.hd dst.chunks in
   assert (c.stream_idx = 1L);
@@ -636,13 +653,13 @@ let () =
   let src2 = mk_content None [mk_data ~stream_idx:1L ~length:100 [(20, 12)]] in
   let dst = mk_content None [] in
   (* First blit: src1[80:100] -> dst[0:20] *)
-  DummySpecs.blit src1 80 dst 0 20;
+  DummyData.blit src1 80 dst 0 20;
   (* After first blit: one chunk at position 0, length 20, no data (pos 10 is outside [80,100)) *)
   assert (List.length dst.chunks = 1);
   assert ((List.hd dst.chunks).length = 20);
   assert ((List.hd dst.chunks).data = []);
   (* Second blit: src2[0:80] -> dst[20:100] *)
-  DummySpecs.blit src2 0 dst 20 80;
+  DummyData.blit src2 0 dst 20 80;
   (* After second blit: should have ONE collapsed chunk since both have stream_idx=1 *)
   assert (List.length dst.chunks = 1);
   let c = List.hd dst.chunks in
@@ -656,8 +673,8 @@ let () =
   let src1 = mk_content None [mk_data ~stream_idx:1L ~length:100 [(10, 11)]] in
   let src2 = mk_content None [mk_data ~stream_idx:2L ~length:100 [(20, 12)]] in
   let dst = mk_content None [] in
-  DummySpecs.blit src1 80 dst 0 20;
-  DummySpecs.blit src2 0 dst 20 80;
+  DummyData.blit src1 80 dst 0 20;
+  DummyData.blit src2 0 dst 20 80;
   (* Should have TWO chunks since stream_idx differs *)
   assert (List.length dst.chunks = 2);
   assert ((List.nth dst.chunks 0).stream_idx = 1L);

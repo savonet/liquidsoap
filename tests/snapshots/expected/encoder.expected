@@ -27,6 +27,8 @@
 --- term ---
 %mp3(bitrate=128, stereo)
 --- type ---
+format(audio=pcm(stereo))
+--- value ---
 At cases/encoder.liq, line 2, char 0-0:
 
 Error 9: Failure: Encoders are not implemented!

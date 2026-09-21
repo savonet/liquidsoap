@@ -1,0 +1,13 @@
+=== source_annotation.liq ===
+# What a track holds is checked here, and shown.
+def f(s) =
+  ignore((s : source(audio=pcm(mono))))
+  ignore((s : source(audio=pcm(stereo))))
+end
+ignore(f)
+--- diagnostics ---
+Error 5 at cases_analysis/source_annotation.liq, line 4, char 10:
+this value has type
+  source(audio=pcm(mono), _) (inferred at cases_analysis/source_annotation.liq, line 3, char 9-38)
+but it should be a subtype of the type of the value at cases_analysis/source_annotation.liq, line 4, char 9-40
+  source(audio=pcm(stereo), _)

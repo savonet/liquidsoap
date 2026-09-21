@@ -26,18 +26,28 @@
     only the language's own constraints survive {!restore}. *)
 type t
 
-val strip : (string * Type.scheme) list -> t
-val restore : t -> (string * Type.scheme) list
+(** What a dump carries besides the environment: the types of what the language
+    leaves to whoever links it, for a reader that has none. *)
+type core_types = { source_methods : Type.t option; clock : Type.t option }
+
+val no_core_types : core_types
+
+type restored = {
+  restored_env : (string * Type.scheme) list;
+  restored_core_types : core_types;
+}
+
+val strip : ?core_types:core_types -> (string * Type.scheme) list -> t
+val restore : t -> restored
 
 (** The dump format's version: a reader accepts the dumps written with the same
     one, whichever liquidsoap wrote them. *)
 val abi_version : int
 
 (** Raises [Invalid_argument] if a closure is left. [version] is the liquidsoap
-    that wrote the dump, which {!written_by} reads back. *)
+    that wrote the dump, which a reader that cannot read it names. *)
 val to_string : version:string -> t -> string
 
-(** Raises [Failure] unless the dump was written in this {!abi_version}. *)
+(** Raises [Failure] unless the dump was written in this {!abi_version}, saying
+    what wrote the one it was given. *)
 val of_string : string -> t
-
-val written_by : string -> string option
