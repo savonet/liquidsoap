@@ -164,9 +164,12 @@ let () =
             | _ -> (audio, video))
           (true, true) p
       with
-        | true, true -> audio_video_type ~pcm_kind:Audio_format.kind 2
+        | true, true ->
+            audio_video_type ~pcm_kind:Audio_format.kind
+              (!Audio_format.channels ())
         | false, true -> video_type ()
-        | true, false -> audio_type ~pcm_kind:Audio_format.kind 2
+        | true, false ->
+            audio_type ~pcm_kind:Audio_format.kind (!Audio_format.channels ())
         | _ -> raise_error ~pos:None "Invalid %%ndi encoder parameter!")
 
 let () =
@@ -187,5 +190,7 @@ let () =
       let video =
         List.exists (function `Encoder ("theora", _) -> true | _ -> false) p
       in
-      if not video then audio_type ~pcm_kind:Audio_format.kind channels
-      else audio_video_type ~pcm_kind:Audio_format.kind channels)
+      match (channels, video) with
+        | 0, true -> video_type ()
+        | _, true -> audio_video_type ~pcm_kind:Audio_format.kind channels
+        | _, false -> audio_type ~pcm_kind:Audio_format.kind channels)

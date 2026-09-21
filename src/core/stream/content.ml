@@ -22,18 +22,6 @@
 
 open Mm
 include Content_base
-
-module MkContent (C : ContentSpecs) = struct
-  include MkContentBase (C)
-
-  let () =
-    Type.register_type (C.string_of_kind C.kind) (fun () ->
-        Type.make
-          (Type.Custom
-             (Format_type.kind_handler
-                (lift_kind C.kind, Liquidsoap_lang.Lang.univ_t ()))))
-end
-
 include Content_timed
 
 module Audio = struct

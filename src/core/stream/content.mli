@@ -47,12 +47,6 @@ module MkDataBase (F : Format) (D : DataSpecs with type params = F.params) :
      and type params = F.params
      and type data = D.data
 
-module MkContent (C : ContentSpecs) :
-  Content
-    with type kind = C.kind
-     and type params = C.params
-     and type data = C.data
-
 type format = Contents.format
 type kind = Contents.kind
 type data = Contents.data
