@@ -130,7 +130,9 @@ We generally try to support the latest LTS release of each OS as well as their m
 
 ### Supported FFmpeg versions
 
-We support the last two major releases of FFmpeg. Currently, this means versions `7` and `8`.
+We intend to support only the last two major releases of FFmpeg. Currently, this means versions `8` and `9`.
+
+As of now, FFmpeg `5.1` and above also work. We reserve the right to drop support for anything older than the last two major releases at any time.
 
 ## Tooling
 

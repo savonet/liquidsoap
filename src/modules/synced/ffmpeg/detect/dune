@@ -47,7 +47,7 @@
    %{context_name}
    avutil
    "libavutil libavcodec"
-   "libavutil >= 57.28.100, libavcodec >= 59.24.100"
+   "libavutil >= 57.24.100, libavcodec >= 59.24.100"
    -Wall
    -Wextra
    -Werror=unused-variable
@@ -87,7 +87,7 @@
    %{context_name}
    av
    "libavutil libavformat"
-   "libavutil >= 57.24.100, libavformat >= 57.83.100"
+   "libavutil >= 57.24.100, libavformat >= 59.19.100"
    -Wall
    -Wextra
    -Werror=unused-variable
@@ -131,7 +131,7 @@
    %{context_name}
    avdevice
    libavdevice
-   "libavdevice >= 57.10.100"
+   "libavdevice >= 59.5.100"
    -Wall
    -Wextra
    -Werror=unused-variable
@@ -153,7 +153,7 @@
    %{context_name}
    swscale
    libswscale
-   "libswscale >= 4.8.100"
+   "libswscale >= 6.5.100"
    -Wall
    -Wextra
    -Werror=unused-variable
@@ -175,7 +175,7 @@
    %{context_name}
    swresample
    libswresample
-   "libswresample >= 2.9.100"
+   "libswresample >= 4.5.100"
    -Wall
    -Wextra
    -Werror=unused-variable

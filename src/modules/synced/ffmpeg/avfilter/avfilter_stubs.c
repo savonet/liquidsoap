@@ -614,6 +614,7 @@ CAMLprim value ocaml_avfilter_get_array_separator(value _filter_name,
     CAMLreturn(Val_int(option->default_val.arr->sep));
 #else
   (void)option;
+  (void)caml__frame;
 #endif
   caml_failwith("Invalid filter!");
 }

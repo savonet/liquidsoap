@@ -1290,10 +1290,10 @@ CAMLprim value ocaml_avcodec_get_supported_color_spaces(value _codec) {
   CAMLlocal2(list, cons);
   int i;
   List_init(list);
-  const AVCodec *codec = AvCodec_val(_codec);
   const enum AVColorSpace *color_spaces = NULL;
 
 #if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(61, 13, 100)
+  const AVCodec *codec = AvCodec_val(_codec);
   int err;
 
   err = avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_COLOR_SPACE,
@@ -1318,10 +1318,10 @@ CAMLprim value ocaml_avcodec_get_supported_color_ranges(value _codec) {
   CAMLlocal2(list, cons);
   int i;
   List_init(list);
-  const AVCodec *codec = AvCodec_val(_codec);
   const enum AVColorRange *color_ranges = NULL;
 
 #if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(61, 13, 100)
+  const AVCodec *codec = AvCodec_val(_codec);
   int err;
 
   err = avcodec_get_supported_config(NULL, codec, AV_CODEC_CONFIG_COLOR_RANGE,
