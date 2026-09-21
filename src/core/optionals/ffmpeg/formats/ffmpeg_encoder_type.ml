@@ -87,13 +87,24 @@ let media_type ~static_string name args =
       | Some { media_type }, Some codec -> media_type codec
       | _ -> None)
 
+(* A track is typed before anything is evaluated, so a channel count that is
+   not written in the script has no value to read. *)
+let static_channels name = function
+  | Term.{ term = `Int n } -> n
+  | Term.{ t = { Type.pos } } as tm ->
+      Encoder_types.raise_error ~pos
+        (Printf.sprintf
+           "Invalid value %s for %s parameter. Only static numbers are allowed."
+           (Term.to_string tm) name)
+
 let channels args =
   match Option.bind (List.assoc_opt "channel_layout" args) layout_name with
     | Some layout when channels_of_layout layout <> None ->
         Option.get (channels_of_layout layout)
     | _ -> (
         match (List.assoc_opt "channels" args, List.assoc_opt "ac" args) with
-          | Some Term.{ term = `Int n }, _ | _, Some Term.{ term = `Int n } -> n
+          | Some tm, _ -> static_channels "channels" tm
+          | _, Some tm -> static_channels "ac" tm
           | _ -> 2)
 
 let pcm_kind ~static_string args =
