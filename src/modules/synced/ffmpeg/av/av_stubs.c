@@ -1188,6 +1188,58 @@ static int decode_media_packet(av_t *av, stream_t *stream, AVPacket *packet) {
   return ret;
 }
 
+/* Returns the next selected stream with a drained frame in av->frame, NULL
+   once every decoder is empty. */
+static stream_t *drain_decoders(av_t *av, value _frame) {
+  stream_t **streams = allocate_input_context(av);
+
+  for (mlsize_t i = 0; i < Wosize_val(_frame); i++) {
+    int index = Int_val(Field(_frame, i));
+    stream_t *stream;
+    int ret;
+
+    if (index < 0 || (unsigned int)index >= av->nb_allocated_streams)
+      continue;
+
+    stream = streams[index];
+
+    if (!stream || !stream->codec_context ||
+        stream->codec_context->codec_type == AVMEDIA_TYPE_SUBTITLE)
+      continue;
+
+    caml_release_runtime_system();
+    // Returns AVERROR_EOF once draining has started.
+    avcodec_send_packet(stream->codec_context, NULL);
+    ret = avcodec_receive_frame(stream->codec_context, av->frame);
+    caml_acquire_runtime_system();
+
+    if (ret == 0)
+      return stream;
+
+    if (ret != AVERROR_EOF && ret != AVERROR(EAGAIN))
+      ocaml_avutil_raise_error(ret);
+  }
+
+  return NULL;
+}
+
+static int media_frame_kind(stream_t *stream) {
+  if (stream->codec_context->codec_type == AVMEDIA_TYPE_AUDIO)
+    return PVV_Audio_frame;
+
+  return PVV_Video_frame;
+}
+
+static void take_decoded_frame(av_t *av, value *frame_value) {
+  AVFrame *frame = av_frame_clone(av->frame);
+  av_frame_unref(av->frame);
+
+  if (!frame)
+    caml_raise_out_of_memory();
+
+  value_of_frame(frame_value, frame);
+}
+
 static int decode_subtitle_packet(av_t *av, stream_t *stream,
                                   AVPacket *packet) {
   AVCodecContext *dec = stream->codec_context;
@@ -1271,7 +1323,6 @@ CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
   CAMLparam4(_unhandled_packet, _packet, _frame, _av);
   CAMLlocal4(ans, decoded_content, frame_value, packet_value);
   av_t *av = Av_val(_av);
-  AVFrame *frame;
   AVSubtitle *subtitle;
   AVPacket *packet;
   mlsize_t i;
@@ -1288,6 +1339,17 @@ CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
 
       if (ret == AVERROR(EAGAIN))
         continue;
+
+      if (ret == AVERROR_EOF) {
+        stream = drain_decoders(av, _frame);
+
+        if (stream) {
+          take_decoded_frame(av, &frame_value);
+          STORE_DECODED_CONTENT(ans, decoded_content, Val_int(stream->index),
+                                media_frame_kind(stream), frame_value);
+          CAMLreturn(ans);
+        }
+      }
 
       if (ret < 0)
         ocaml_avutil_raise_error(ret);
@@ -1374,18 +1436,8 @@ CAMLprim value ocaml_av_read_input(value _unhandled_packet, value _packet,
       if (ret < 0)
         ocaml_avutil_raise_error(ret);
 
-      frame = av_frame_clone(av->frame);
-      av_frame_unref(av->frame);
-
-      if (!frame)
-        caml_raise_out_of_memory();
-
-      if (stream->codec_context->codec_type == AVMEDIA_TYPE_AUDIO)
-        kind = PVV_Audio_frame;
-      else
-        kind = PVV_Video_frame;
-
-      value_of_frame(&frame_value, frame);
+      kind = media_frame_kind(stream);
+      take_decoded_frame(av, &frame_value);
     }
 
     STORE_DECODED_CONTENT(ans, decoded_content, Val_int(stream->index), kind,
