@@ -338,12 +338,41 @@ let restore
    [tests/abi] asks for. *)
 let abi_version = 1
 
+(* The version is whatever the writer called itself, spaces and all, so the
+   header is split at its first one and no further. *)
 let header s =
   match String.index_opt s '\n' with
     | Some header_end -> (
-        match String.split_on_char ' ' (String.sub s 0 header_end) with
-          | [abi; version] -> Some (int_of_string_opt abi, version, header_end)
-          | _ -> None)
+        let header = String.sub s 0 header_end in
+        match String.index_opt header ' ' with
+          | Some abi_end ->
+              Some
+                ( int_of_string_opt (String.sub header 0 abi_end),
+                  String.sub header (abi_end + 1)
+                    (String.length header - abi_end - 1),
+                  header_end )
+          | None -> None)
+    | None -> None
+
+(* What a reader must agree with is the marshaled shape: this module's [t] and
+   the type representation it holds. Bump on any change to either, which
+   [tests/abi] asks for. *)
+let abi_version = 1
+
+(* The version is whatever the writer called itself, spaces and all, so the
+   header is split at its first one and no further. *)
+let header s =
+  match String.index_opt s '\n' with
+    | Some header_end -> (
+        let header = String.sub s 0 header_end in
+        match String.index_opt header ' ' with
+          | Some abi_end ->
+              Some
+                ( int_of_string_opt (String.sub header 0 abi_end),
+                  String.sub header (abi_end + 1)
+                    (String.length header - abi_end - 1),
+                  header_end )
+          | None -> None)
     | None -> None
 
 (* Marshal is untyped, so a dump of another shape is rejected from its header,
@@ -357,8 +386,11 @@ let of_string s : t =
         Marshal.from_string s (header_end + 1)
     | _ ->
         failwith
-          (Printf.sprintf
-             "This typing environment was not written in format %d." abi_version)
-
-let written_by s =
-  match header s with Some (_, version, _) -> Some version | None -> None
+          (Printf.sprintf "%s This liquidsoap reads format %d."
+             (match header s with
+               | Some (Some abi, version, _) ->
+                   Printf.sprintf
+                     "This typing environment was written in format %d, by %s."
+                     abi version
+               | _ -> "This typing environment has no header to read.")
+             abi_version)

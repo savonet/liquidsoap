@@ -45,10 +45,9 @@ val restore : t -> restored
 val abi_version : int
 
 (** Raises [Invalid_argument] if a closure is left. [version] is the liquidsoap
-    that wrote the dump, which {!written_by} reads back. *)
+    that wrote the dump, which a reader that cannot read it names. *)
 val to_string : version:string -> t -> string
 
-(** Raises [Failure] unless the dump was written in this {!abi_version}. *)
+(** Raises [Failure] unless the dump was written in this {!abi_version}, saying
+    what wrote the one it was given. *)
 val of_string : string -> t
-
-val written_by : string -> string option

@@ -93,3 +93,14 @@ let () =
              (fun c -> c == Format_type.track)
              (constraints (snd scheme)))
     | _ -> print_endline "constr:   <unexpected environment>"
+
+(* A dump this liquidsoap cannot read says what wrote the one it was given,
+   including a version with a space in it. *)
+let () =
+  print_newline ();
+  List.iter
+    (fun dump ->
+      match Liquidsoap_lang_types.Jsoo_safe_env.of_string dump with
+        | _ -> print_endline "read"
+        | exception Failure message -> print_endline message)
+    ["garbage"; "99 2.5.0 (custom build)\nrest"]

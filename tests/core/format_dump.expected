@@ -17,3 +17,6 @@ kind:     pcm('A)
 inner:    (pcm('A), 'A) -> int
 constr:   something that is a track
 resolved: true
+
+This typing environment has no header to read. This liquidsoap reads format 1.
+This typing environment was written in format 99, by 2.5.0 (custom build). This liquidsoap reads format 1.
