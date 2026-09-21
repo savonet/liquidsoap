@@ -51,16 +51,12 @@ module Specs = struct
 
   let compatible p p' = !!(p.channel_layout) = !!(p'.channel_layout)
 
-  let param_of_channels = function
-    | 1 -> { channel_layout = Lazy.Mutexed.from_val `Mono }
-    | 2 -> { channel_layout = Lazy.Mutexed.from_val `Stereo }
-    | 6 -> { channel_layout = Lazy.Mutexed.from_val `Five_point_one }
-    | _ -> raise Invalid
+  let param_of_channels channels =
+    match Audio_layout.layout_of_channels channels with
+      | layout -> { channel_layout = Lazy.Mutexed.from_val layout }
+      | exception Audio_layout.Unsupported -> raise Invalid
 
-  let channels_of_param = function
-    | `Mono -> 1
-    | `Stereo -> 2
-    | `Five_point_one -> 6
+  let channels_of_param = Audio_layout.channels_of_layout
 
   let parse_param label value =
     match (label, value) with
