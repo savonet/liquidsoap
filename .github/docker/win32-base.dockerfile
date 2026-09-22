@@ -62,7 +62,6 @@ RUN cd "${MXE_DIR}" && make ogg
 RUN cd "${MXE_DIR}" && make flac
 RUN cd "${MXE_DIR}" && make vorbis
 RUN cd "${MXE_DIR}" && make opus
-RUN cd "${MXE_DIR}" && make faad2
 RUN cd "${MXE_DIR}" && make lame
 RUN cd "${MXE_DIR}" && make libmad
 RUN cd "${MXE_DIR}" && make fdk-aac

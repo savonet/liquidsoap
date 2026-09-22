@@ -49,7 +49,6 @@ let build_config =
 
  * Supported input formats
    - MP3               : %{Mad_option.detected}
-   - AAC               : %{Faad_option.detected}
    - Ffmpeg            : %{Ffmpeg_option.detected}
    - Flac (native)     : %{Flac_option.detected}
    - Flac (ogg)        : %{Ogg_flac_option.detected}
@@ -73,7 +72,6 @@ let build_config =
    - WAV/AIFF          : yes (native)
 
  * Tags
-   - AAC               : %{Faad_option.detected}
    - FFmpeg            : %{Ffmpeg_option.detected}
    - FLAC (native)     : %{Flac_option.detected}
    - Flac (ogg)        : %{Ogg_flac_option.detected}

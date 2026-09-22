@@ -1,7 +1,0 @@
-*~
-_build
-*.byte
-*.native
-_tests
-.merlin
-*.install
