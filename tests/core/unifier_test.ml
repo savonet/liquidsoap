@@ -46,3 +46,41 @@ let () =
   assert (Unifier.deref head = n);
   (* Retention must not scale with the number of unifications. *)
   assert (retained < n)
+
+(* Domains unifying and dereferencing overlapping trees used to be able to
+   close a cycle, after which [deref] spun forever. *)
+let () =
+  let domains = 4 in
+  let rounds = 2_000 in
+  let nodes = 32 in
+  let finished = Atomic.make 0 in
+  let _watchdog =
+    Domain.spawn (fun () ->
+        let deadline = Unix.gettimeofday () +. 60. in
+        while Atomic.get finished < domains do
+          if Unix.gettimeofday () > deadline then (
+            prerr_endline "unifier_test: concurrent unify/deref hung";
+            Unix._exit 1);
+          Unix.sleepf 0.1
+        done)
+  in
+  let batches =
+    Array.init rounds (fun _ -> Array.init nodes (fun i -> Unifier.make i))
+  in
+  let workers =
+    List.init domains (fun d ->
+        Domain.spawn (fun () ->
+            let rng = Random.State.make [| d |] in
+            Array.iter
+              (fun all ->
+                for _ = 1 to nodes do
+                  let a = all.(Random.State.int rng nodes) in
+                  let b = all.(Random.State.int rng nodes) in
+                  Unifier.(a <-- b);
+                  Unifier.set a d;
+                  Array.iter (fun x -> ignore (Unifier.deref x)) all
+                done)
+              batches;
+            Atomic.incr finished))
+  in
+  List.iter Domain.join workers
