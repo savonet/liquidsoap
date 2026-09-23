@@ -3,7 +3,7 @@
   "private": true,
   "overrides": {
     "@codemirror/state": "$@codemirror/state",
-    "liquidsoap-prettier": "1.8.6"
+    "liquidsoap-prettier": "1.9.0"
   },
   "dependencies": {
     "@codemirror/state": "^6.7.1",
