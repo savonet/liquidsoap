@@ -531,7 +531,7 @@ swresample_set_context(swr_t *swr, AVChannelLayout *in_channel_layout,
     caml_raise_out_of_memory();
 
   SwrContext *ctx = swr->context;
-  int ret;
+  int ret = 0;
 
   if (in_channel_layout) {
     ret = av_opt_set_chlayout(ctx, "in_chlayout", in_channel_layout, 0);
