@@ -762,11 +762,11 @@ CAMLprim value ocaml_avutil_pixelformat_descriptor(value pixel) {
   for (i = 3; i >= 0; i--) {
     comp_desc = pixdesc->comp[i];
     tmp2 = caml_alloc_tuple(5);
-    Store_field(tmp2, 0, comp_desc.plane);
-    Store_field(tmp2, 1, comp_desc.step);
-    Store_field(tmp2, 2, comp_desc.offset);
-    Store_field(tmp2, 3, comp_desc.shift);
-    Store_field(tmp2, 4, comp_desc.depth);
+    Store_field(tmp2, 0, Val_int(comp_desc.plane));
+    Store_field(tmp2, 1, Val_int(comp_desc.step));
+    Store_field(tmp2, 2, Val_int(comp_desc.offset));
+    Store_field(tmp2, 3, Val_int(comp_desc.shift));
+    Store_field(tmp2, 4, Val_int(comp_desc.depth));
 
     tmp1 = caml_alloc(2, 0);
     Store_field(tmp1, 0, tmp2);
