@@ -1295,7 +1295,7 @@ CAMLprim value ocaml_avutil_video_get_frame_bigarray_planes(
 
 /***** AVSubtitle *****/
 
-void static finalize_subtitle(value v) {
+static void finalize_subtitle(value v) {
   struct AVSubtitle *subtitle = Subtitle_val(v);
   avsubtitle_free(subtitle);
   av_free(subtitle);

@@ -126,7 +126,7 @@ value Val_ChromaLocation(enum AVChromaLocation cl);
 
 /**** Pixel format ****/
 
-int PixelFormat_val(value);
+enum AVPixelFormat PixelFormat_val(value);
 
 value Val_PixelFormat(enum AVPixelFormat pf);
 
