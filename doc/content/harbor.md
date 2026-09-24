@@ -91,6 +91,30 @@ The `key` argument can be omitted when the certificate file also contains the
 private key. The same transport is accepted by `output.harbor` and
 `harbor.http.register`.
 
+#### Renewing certificates
+
+Certificates expire: a Let's Encrypt certificate lasts 90 days and is renewed
+on disk well before that. The certificate and key are read when the first port
+using the transport opens, so a renewed file goes unnoticed until you tell the
+transport. Its `reload()` method reads them again and applies them to every
+port using it, without dropping any connection: clients already connected keep
+the certificate they started with, new ones get the renewed one.
+
+```{.liquidsoap include="harbor-tls-reload.liq"}
+
+```
+
+If the files cannot be loaded, `reload()` raises an error and the previous
+certificate stays in use. `certificate` and `key` also accept getters, so a
+reload can switch to different paths:
+
+```{.liquidsoap include="harbor-tls-getter.liq"}
+
+```
+
+The same applies to `http.transport.tls`, whose `client_certificate` argument is
+read again on `reload()` as well.
+
 For a free, valid certificate, see [Let's Encrypt](https://letsencrypt.org/).
 For local testing, a self-signed certificate can be generated with:
 

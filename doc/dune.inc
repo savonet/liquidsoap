@@ -1084,6 +1084,34 @@
    content/liq/harbor-simple.liq)))
 
 (rule
+ (alias test-doc-harbor-tls-getter)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/harbor-tls-getter.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/harbor-tls-getter.liq)))
+
+(rule
+ (alias test-doc-harbor-tls-reload)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/harbor-tls-reload.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/harbor-tls-reload.liq)))
+
+(rule
  (alias test-doc-harbor-usage)
  (package liquidsoap)
  (deps
@@ -2348,6 +2376,8 @@
   (alias test-doc-harbor-metadata)
   (alias test-doc-harbor-redirect)
   (alias test-doc-harbor-simple)
+  (alias test-doc-harbor-tls-getter)
+  (alias test-doc-harbor-tls-reload)
   (alias test-doc-harbor-usage)
   (alias test-doc-harbor.http.register)
   (alias test-doc-harbor.http.response)

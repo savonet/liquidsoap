@@ -262,6 +262,9 @@ val http_transport_t : t
 (** Same with no methods. *)
 val http_transport_base_t : t
 
+(** Http transport with a [reload] method re-reading its certificates. *)
+val reloadable_http_transport_t : t
+
 val unit : value
 val int : int -> value
 val octal_int : int -> value
@@ -290,6 +293,9 @@ val reference :
 
 val http_transport : Liq_http.transport -> value
 val base_http_transport : Liq_http.transport -> value
+
+val reloadable_http_transport :
+  reload:(unit -> unit) -> Liq_http.transport -> value
 
 (** Build a function from an OCaml function. Items in the prototype indicate the
     label and optional values. Second string value is used when renaming

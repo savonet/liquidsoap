@@ -51,6 +51,9 @@
 - Added `domain` to `thread.run`, pinning the function and every rerun to the
   scheduler worker on that domain. An object is only collected by a GC on the
   domain that allocated it, which makes this the way to ask for one.
+- Added `reload()` to `http.transport.tls` and `http.transport.ssl`, which reads the
+  certificate and key again so a renewed certificate applies without a restart or
+  dropping connections. Their certificate and key arguments now also accept getters (#5418).
 
 ## Changed:
 

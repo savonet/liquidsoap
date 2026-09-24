@@ -214,6 +214,27 @@
    "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost")))
 
 (rule
+ (alias citest)
+ (targets ssl2.cert ssl2.key)
+ (action
+  (run
+   openssl
+   req
+   -x509
+   -newkey
+   rsa:4096
+   -keyout
+   ssl2.key
+   -out
+   ssl2.cert
+   -sha256
+   -days
+   3650
+   -nodes
+   -subj
+   "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=localhost")))
+
+(rule
  (alias test_crossfade-plot)
  (package liquidsoap)
  (targets
@@ -416,6 +437,54 @@
    ./test_icecast_tls_ssl.liq)))
 
 (rule
+ (alias test_harbor_tls_reload)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./test_harbor_tls_reload.liq
+  ./ssl.cert
+  ./ssl.key
+  ./ssl2.cert
+  ./ssl2.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Harbor TLS certificate reload"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   ./test_harbor_tls_reload.liq)))
+
+(rule
+ (alias test_harbor_ssl_reload)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  ./test_harbor_ssl_reload.liq
+  ./ssl.cert
+  ./ssl.key
+  ./ssl2.cert
+  ./ssl2.key
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "Harbor SSL certificate reload"
+   liquidsoap
+   --stdlib
+   %{stdlib}
+   ./test_harbor_ssl_reload.liq)))
+
+(rule
  (alias citest)
  (target replaygain_track_gain.mp3)
  (action
@@ -585,6 +654,8 @@
   (alias test_icecast_tls)
   (alias test_icecast_ssl_tls)
   (alias test_icecast_tls_ssl)
+  (alias test_harbor_tls_reload)
+  (alias test_harbor_ssl_reload)
   (alias test_crossfade-plot)
   (alias test_autocue-plot)
   (alias test_video_size_autodetect)))

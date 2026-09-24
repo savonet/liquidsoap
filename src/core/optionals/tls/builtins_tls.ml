@@ -203,41 +203,39 @@ let tls_socket ~pos ~session transport =
   Gc.finalise finalise s;
   s
 
-let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
-    transport =
-  let server =
-    try
-      let certificate_path = certificate () in
-      let key_path = Option.value ~default:certificate_path (key ()) in
-      let certificate = Utils.read_all certificate_path in
-      let certificates =
-        Result.get_ok (X509.Certificate.decode_pem_multiple certificate)
-      in
-      let key =
-        Result.get_ok (X509.Private_key.decode_pem (Utils.read_all key_path))
-      in
-      let authenticator =
-        match client_certificate () with
-          | None -> None
-          | Some cert ->
-              Some
-                (X509.Authenticator.chain_of_trust
-                   ~time:(fun () -> Some (Ptime_clock.now ()))
-                   (Result.get_ok
-                      (X509.Certificate.decode_pem_multiple
-                         (Utils.read_all cert))))
-      in
-      match
-        Tls.Config.server
-          ~certificates:(`Single (certificates, key))
-          ?authenticator ()
-      with
-        | Ok server -> server
-        | Error (`Msg message) -> Runtime_error.raise ~pos:[] ~message "tls"
-    with exn ->
-      let bt = Printexc.get_raw_backtrace () in
-      Lang.raise_as_runtime ~bt ~kind:"tls" exn
-  in
+let server_config ~certificate ~key ~client_certificate () =
+  try
+    let certificate_path = certificate () in
+    let key_path = Option.value ~default:certificate_path (key ()) in
+    let certificate = Utils.read_all certificate_path in
+    let certificates =
+      Result.get_ok (X509.Certificate.decode_pem_multiple certificate)
+    in
+    let key =
+      Result.get_ok (X509.Private_key.decode_pem (Utils.read_all key_path))
+    in
+    let authenticator =
+      match client_certificate () with
+        | None -> None
+        | Some cert ->
+            Some
+              (X509.Authenticator.chain_of_trust
+                 ~time:(fun () -> Some (Ptime_clock.now ()))
+                 (Result.get_ok
+                    (X509.Certificate.decode_pem_multiple (Utils.read_all cert))))
+    in
+    match
+      Tls.Config.server
+        ~certificates:(`Single (certificates, key))
+        ?authenticator ()
+    with
+      | Ok server -> server
+      | Error (`Msg message) -> Runtime_error.raise ~pos:[] ~message "tls"
+  with exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    Lang.raise_as_runtime ~bt ~kind:"tls" exn
+
+let server ~read_timeout ~write_timeout ~config transport =
   object
     method transport = transport
 
@@ -245,7 +243,7 @@ let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
       let fd, caller = Http.accept ~timeout sock in
       try
         Http.set_socket_default ~read_timeout:timeout ~write_timeout:timeout fd;
-        let session = Liq_tls.init_server ~timeout ~server fd in
+        let session = Liq_tls.init_server ~timeout ~server:(config ()) fd in
         Http.set_socket_default ~read_timeout ~write_timeout fd;
         (tls_socket ~pos:[] ~session transport, caller)
       with exn ->
@@ -254,8 +252,27 @@ let server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
         Printexc.raise_with_backtrace exn bt
   end
 
-let transport ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
-    ~client_key () =
+(* A config is built for the first server and shared by every port opened
+   with the transport, so a reload reaches all of them. *)
+let server_config_state ~certificate ~key ~client_certificate () =
+  let build_config = server_config ~certificate ~key ~client_certificate in
+  let config = Atomic.make None in
+  let current_config () =
+    match Atomic.get config with
+      | Some config -> config
+      | None ->
+          ignore (Atomic.compare_and_set config None (Some (build_config ())));
+          Option.get (Atomic.get config)
+  in
+  let reload () =
+    match Atomic.get config with
+      | None -> ()
+      | Some _ -> Atomic.set config (Some (build_config ()))
+  in
+  (current_config, reload)
+
+let transport ~read_timeout ~write_timeout ~server_config ~certificate
+    ~client_certificate ~client_key () =
   object (self)
     method name = "tls"
     method protocol = "https"
@@ -307,8 +324,8 @@ let transport ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
       tls_socket ~pos:[] ~session self
 
     method server =
-      server ~read_timeout ~write_timeout ~certificate ~key ~client_certificate
-        self
+      ignore (server_config ());
+      server ~read_timeout ~write_timeout ~config:server_config self
   end
 
 let _ =
@@ -324,35 +341,38 @@ let _ =
         Some Lang.null,
         Some "Write timeout. Defaults to harbor's timeout if `null`." );
       ( "certificate",
-        Lang.nullable_t Lang.string_t,
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
         Some
           "Path to certificate file. Required in server mode, e.g. \
            `input.harbor`, etc. If passed in client mode, certificate is added \
-           to the list of valid certificates." );
+           to the list of valid certificates. In server mode, read when the \
+           first port opens and on `reload()`." );
       ( "key",
-        Lang.nullable_t Lang.string_t,
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
         Some
           "Path to certificate private key. Required in server mode, e.g. \
            `input.harbor`, etc., unless the certificate file also contains the \
-           private key. Unused in client mode." );
+           private key. Read when the first port opens and on `reload()`. \
+           Unused in client mode." );
       ( "client_certificate",
-        Lang.nullable_t Lang.string_t,
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
         Some
           "Path to client certificate file. If passed in server mode, clients \
            will be required to present a certificate from this file. If passed \
            in client mode, the first certificate in this file will be \
-           presented to the server." );
+           presented to the server. In server mode, read when the first port \
+           opens and on `reload()`." );
       ( "client_key",
-        Lang.nullable_t Lang.string_t,
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
         Some
           "Path to client certificate private key. Required in client mode if \
            a client certificate is passed. Unused in server mode." );
     ]
-    Lang.http_transport_t
+    Lang.reloadable_http_transport_t
     (fun p ->
       let read_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
@@ -366,15 +386,19 @@ let _ =
       let write_timeout =
         Option.value ~default:Harbor.conf_timeout#get write_timeout
       in
+      let path name =
+        Lang.to_valued_option Lang.to_string
+          (Lang.to_getter (List.assoc name p) ())
+      in
       let find name () =
-        match Lang.to_valued_option Lang.to_string (List.assoc name p) with
+        match path name with
           | None ->
               Runtime_error.raise ~pos:(Lang.pos p)
                 ("Cannot find " ^ name ^ "file!")
           | Some path -> Utils.check_readable ~pos:(Lang.pos p) path
       in
       let find_opt name () =
-        match Lang.to_valued_option Lang.to_string (List.assoc name p) with
+        match path name with
           | None -> None
           | Some path -> Some (Utils.check_readable ~pos:(Lang.pos p) path)
       in
@@ -382,6 +406,11 @@ let _ =
       let key = find_opt "key" in
       let client_certificate = find_opt "client_certificate" in
       let client_key = find "client_key" in
-      Lang.http_transport
-        (transport ~read_timeout ~write_timeout ~certificate ~key
-           ~client_certificate ~client_key ()))
+      let server_config, reload =
+        server_config_state ~certificate ~key ~client_certificate ()
+      in
+      let transport =
+        transport ~read_timeout ~write_timeout ~server_config ~certificate
+          ~client_certificate ~client_key ()
+      in
+      Lang.reloadable_http_transport ~reload transport)

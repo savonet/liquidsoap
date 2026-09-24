@@ -72,3 +72,22 @@ let http_transport_base_t = HttpTransport.base_t
 let to_http_transport = HttpTransport.of_value
 let http_transport = HttpTransport.to_value
 let base_http_transport = HttpTransport.to_base_value ?pos:None
+
+let reloadable_http_transport_t =
+  method_t http_transport_t
+    [
+      ( "reload",
+        ([], fun_t [] unit_t),
+        "Read the certificate and key again and use them for new connections. \
+         Open connections keep the previous ones. Raises and keeps the \
+         previous ones if they cannot be loaded." );
+    ]
+
+let reloadable_http_transport ~reload transport =
+  meth (http_transport transport)
+    [
+      ( "reload",
+        val_fun [] (fun _ ->
+            reload ();
+            unit) );
+    ]

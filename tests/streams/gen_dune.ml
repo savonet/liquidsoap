@@ -12,6 +12,8 @@ let static_tests =
     "test_icecast_tls.liq";
     "test_icecast_tls_ssl.liq";
     "test_icecast_ssl_tls.liq";
+    "test_harbor_tls_reload.liq";
+    "test_harbor_ssl_reload.liq";
     "test_crossfade-plot.liq";
     "test_autocue-plot.liq";
     "test_video_size_autodetect.liq";
