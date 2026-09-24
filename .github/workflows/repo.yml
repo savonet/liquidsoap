@@ -140,6 +140,14 @@ jobs:
         # what was deployed works.
         run: |
           channel=$(head -1 site/channels.txt | cut -f1)
+          # The domain serves the previous index for a while after a deploy, and
+          # a rolling release has already deleted the packages it lists.
+          index="${channel}/deb/trixie/InRelease"
+          for attempt in $(seq 30); do
+            curl -fsS "https://repo.liquidsoap.info/${index}" | cmp -s - "site/${index}" && break
+            [ "${attempt}" -lt 30 ] || { echo "The deployed index never went live"; exit 1; }
+            sleep 10
+          done
           docker run --rm -e DEBIAN_FRONTEND=noninteractive debian:trixie sh -c "
             set -eux
             apt-get update
