@@ -252,25 +252,6 @@ let server ~read_timeout ~write_timeout ~config transport =
         Printexc.raise_with_backtrace exn bt
   end
 
-(* A config is built for the first server and shared by every port opened
-   with the transport, so a reload reaches all of them. *)
-let server_config_state ~certificate ~key ~client_certificate () =
-  let build_config = server_config ~certificate ~key ~client_certificate in
-  let config = Atomic.make None in
-  let current_config () =
-    match Atomic.get config with
-      | Some config -> config
-      | None ->
-          ignore (Atomic.compare_and_set config None (Some (build_config ())));
-          Option.get (Atomic.get config)
-  in
-  let reload () =
-    match Atomic.get config with
-      | None -> ()
-      | Some _ -> Atomic.set config (Some (build_config ()))
-  in
-  (current_config, reload)
-
 let transport ~read_timeout ~write_timeout ~server_config ~certificate
     ~client_certificate ~client_key () =
   object (self)
@@ -340,6 +321,7 @@ let _ =
         Lang.nullable_t Lang.float_t,
         Some Lang.null,
         Some "Write timeout. Defaults to harbor's timeout if `null`." );
+      Lang.reload_on_arg;
       ( "certificate",
         Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
@@ -407,7 +389,8 @@ let _ =
       let client_certificate = find_opt "client_certificate" in
       let client_key = find "client_key" in
       let server_config, reload =
-        server_config_state ~certificate ~key ~client_certificate ()
+        Lang.reloadable_server_config ~reload_on:(List.assoc "reload_on" p)
+          (server_config ~certificate ~key ~client_certificate)
       in
       let transport =
         transport ~read_timeout ~write_timeout ~server_config ~certificate

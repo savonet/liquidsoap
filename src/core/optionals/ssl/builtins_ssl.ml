@@ -117,28 +117,6 @@ let server_context ~min_protocol ~max_protocol ~password ~certificate ~key () =
     let bt = Printexc.get_raw_backtrace () in
     Lang.raise_as_runtime ~bt ~kind:"ssl" exn
 
-(* A context is built for the first server and shared by every port opened
-   with the transport, so a reload reaches all of them. *)
-let server_context_state ~min_protocol ~max_protocol ~password ~certificate ~key
-    () =
-  let build_context =
-    server_context ~min_protocol ~max_protocol ~password ~certificate ~key
-  in
-  let context = Atomic.make None in
-  let current_context () =
-    match Atomic.get context with
-      | Some context -> context
-      | None ->
-          ignore (Atomic.compare_and_set context None (Some (build_context ())));
-          Option.get (Atomic.get context)
-  in
-  let reload () =
-    match Atomic.get context with
-      | None -> ()
-      | Some _ -> Atomic.set context (Some (build_context ()))
-  in
-  (current_context, reload)
-
 let server ~read_timeout ~write_timeout ~context transport =
   object
     method transport = transport
@@ -284,6 +262,7 @@ let _ =
            and server is negotiated when initiating communication between \
            minimal and maximal protocol version. Defaults to highest protocol \
            supported if not set." );
+      Lang.reload_on_arg;
       ( "certificate",
         Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
@@ -342,8 +321,9 @@ let _ =
           | Some path -> Some (Utils.check_readable ~pos:(Lang.pos p) path)
       in
       let server_context, reload =
-        server_context_state ~min_protocol ~max_protocol ~password ~certificate
-          ~key ()
+        Lang.reloadable_server_config ~reload_on:(List.assoc "reload_on" p)
+          (server_context ~min_protocol ~max_protocol ~password ~certificate
+             ~key)
       in
       let transport =
         transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
