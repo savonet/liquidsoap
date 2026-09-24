@@ -134,6 +134,38 @@ let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
         Printexc.raise_with_backtrace exn bt
   end
 
+(* OpenSSL reports success loading its default verify paths even when no CA
+   store exists there, so an empty store only surfaces as error 20. *)
+let verify_error_hint = function
+  | 2 (* X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT *) ->
+      ". A trusted certificate's issuer is missing: the transport's \
+       certificate argument should be a root certificate, not an intermediate \
+       one such as a Let's Encrypt chain.pem."
+  | 9 (* X509_V_ERR_CERT_NOT_YET_VALID *) ->
+      ". Check that the system clock is correct."
+  | 10 (* X509_V_ERR_CERT_HAS_EXPIRED *) ->
+      ". The server's certificate must be renewed, unless the system clock is \
+       wrong."
+  | 18 (* X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT *) ->
+      ". To trust a self-signed server certificate, pass it with the \
+       transport's certificate argument."
+  | 19 (* X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN *) ->
+      ". The server's root certificate is not trusted: pass it with the \
+       transport's certificate argument."
+  | 20 (* X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY *) ->
+      ". No trusted root was found: check that a CA store is installed, set \
+       SSL_CERT_FILE to point to one or pass the server's root certificate \
+       with the transport's certificate argument. This also happens when the \
+       server does not send its intermediate certificates, e.g. when using a \
+       Let's Encrypt cert.pem instead of fullchain.pem."
+  | 21 (* X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE *) ->
+      ". The server should send its full certificate chain, e.g. a Let's \
+       Encrypt fullchain.pem instead of cert.pem."
+  | 22 (* X509_V_ERR_CERT_CHAIN_TOO_LONG *) ->
+      ". The server's certificate chain exceeds the maximum verification depth \
+       of 3."
+  | _ -> ""
+
 let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
     ~certificate ~key () =
   object (self)
@@ -169,8 +201,9 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
           if err <> 0 then
             Runtime_error.raise ~pos:[]
               ~message:
-                (Printf.sprintf "SSL verification error: %s"
-                   (Ssl.get_verify_error_string err))
+                (Printf.sprintf "SSL verification error: %s%s"
+                   (Ssl.get_verify_error_string err)
+                   (verify_error_hint err))
               "ssl";
           ssl_socket ~pos:[] self socket
         with exn ->
