@@ -58,5 +58,3 @@ def runtime.cpu.usage_getter() =
   f
 end
 %endif
-
-runtime.gc.set(runtime.gc.get().{space_overhead = 80})
