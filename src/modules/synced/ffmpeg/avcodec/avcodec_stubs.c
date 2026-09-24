@@ -290,8 +290,7 @@ CAMLprim value ocaml_avcodec_packet_dup(value _packet) {
 
   av_packet_ref(packet, Packet_val(_packet));
 
-  ret = caml_alloc_custom(&packet_ops, sizeof(AVPacket *), 0, 1);
-  Packet_val(ret) = packet;
+  value_of_ffmpeg_packet(&ret, packet);
 
   CAMLreturn(ret);
 }
