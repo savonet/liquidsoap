@@ -452,23 +452,23 @@ let icecast.server.config.logging.empty =
     logarchive = false
   }
 
-# Log level of liquidsoap for an icecast `<loglevel>`, given as a number (1 error to 4 debug) or a name.
+# Icecast log level of a `<loglevel>`, given as a number (1 error to 4 debug) or a name.
 # @flag hidden
 def icecast.server.config.logging.level(loglevel) =
   levels =
     [
-      ("1", 2),
-      ("error", 2),
-      ("eror", 2),
-      ("2", 3),
-      ("warning", 3),
-      ("warn", 3),
-      ("3", 4),
-      ("information", 4),
-      ("info", 4),
-      ("4", 5),
-      ("debug", 5),
-      ("dbug", 5)
+      ("1", 1),
+      ("error", 1),
+      ("eror", 1),
+      ("2", 2),
+      ("warning", 2),
+      ("warn", 2),
+      ("3", 3),
+      ("information", 3),
+      ("info", 3),
+      ("4", 4),
+      ("debug", 4),
+      ("dbug", 4)
     ]
   level = list.assoc.nullable(string.case(lower=true, loglevel), levels)
   if
@@ -1032,28 +1032,82 @@ def icecast.server.playlist_log_line(~now, update) =
   end
 end
 
-# Line writer for an icecast log file. Past `size_limit` bytes the file is renamed to `<path>.old`, or to a timestamped name when `archive` is set. The file is reopened for every line, so external log rotation needs no signal. `-` writes to standard error.
+# Line writer for an icecast log file. `target` gives the current path (null disables the log, `-` is standard error), size limit in bytes and archive flag. The file is kept open and reopened when its path changes, and on `SIGHUP` (icecast's logrotate hook) or `SIGUSR1` (liquidsoap's). Past the size limit it is renamed to `<path>.old`, or to a timestamped name when `archive` is set.
 # @flag hidden
-def icecast.server.log_writer(~size_limit, ~archive, path) =
-  to_stderr = path == "-"
-  path = to_stderr ? "/dev/stderr" : path
+def icecast.server.log_writer(target) =
+  current = ref(null)
 
-  def rotate() =
+  def close_log() =
     if
-      not to_stderr and file.exists(path) and file.size(path) > size_limit
+      null.defined(current())
     then
-      suffix = archive ? time.string("%Y%m%d_%H%M%S") : "old"
-      file.move(force=true, path, "#{path}.#{suffix}")
+      let {socket} = null.get(current())
+      socket.close()
+      current := null
     end
   end
+
+  def open_log(path) =
+    to_stderr = path == "-"
+    file_path = to_stderr ? "/dev/stderr" : path
+    current :=
+      {
+        path = path,
+        to_stderr = to_stderr,
+        file_path = file_path,
+        socket = file.open(write=true, append=true, file_path),
+        size = ref(if to_stderr then 0 else file.size(file_path) end)
+      }
+  end
+
+  def rotate_log(~archive, entry) =
+    close_log()
+    suffix = archive ? time.string("%Y%m%d_%H%M%S") : "old"
+    file.move(force=true, entry.file_path, "#{entry.file_path}.#{suffix}")
+    open_log(entry.path)
+  end
+
+  def write(line) =
+    let {path, size_limit, archive} = target()
+    if
+      not null.defined(path)
+    then
+      close_log()
+    else
+      path = null.get(path)
+      if
+        not null.defined(current()) or null.get(current()).path != path
+      then
+        close_log()
+        open_log(path)
+      end
+      entry = null.get(current())
+      if
+        not entry.to_stderr and entry.size() > size_limit
+      then
+        rotate_log(archive=archive, entry)
+      end
+      entry = null.get(current())
+      data = "#{line}\n"
+      entry.socket.write(data)
+      entry.size := entry.size() + string.length(data)
+    end
+  end
+
+  on_signal("hup", fun () -> atomic(close_log))
+  on_signal("usr1", fun () -> atomic(close_log))
 
   fun (line) ->
     # ponytail: one global atomic section for all logs, per-file locks if log volume ever matters.
     atomic(
       fun () ->
-        begin
-          rotate()
-          file.write(append=true, data="#{line}\n", path)
+        try
+          write(line)
+        catch err do
+          log.severe(
+            label="icecast.server",
+            "Could not write log line: #{err.message}"
+          )
         end
     )
 end
@@ -1181,7 +1235,7 @@ end
 # Source authorization for `icecast.server`. Listener requests are always accepted. `is_taken` says whether a mount currently has a source, `active_sources` counts them.
 # @flag hidden
 def icecast.server.authorize(
-  ~label,
+  ~log_event,
   ~password,
   ~max_sources,
   ~mount_config,
@@ -1199,17 +1253,21 @@ def icecast.server.authorize(
   elsif
     r/^\/admin(\/|\.cgi|$)/.test(uri)
   then
-    log.important(
-      label=label,
-      "Rejecting source connection to reserved admin mountpoint #{uri}"
+    log_event(
+      level=2,
+      "connection-handle/_handle_source_request",
+      "Rejecting source connection to reserved admin mountpoint #{
+        icecast.server.log_escape(uri)
+      }"
     )
     false
   elsif
     is_taken(uri)
   then
-    log.important(
-      label=label,
-      "Mountpoint #{uri} already in use, rejecting"
+    log_event(
+      level=2,
+      "connection-handle/_handle_source_request",
+      "Mountpoint #{icecast.server.log_escape(uri)} in use"
     )
     error.raise(
       error.icecast.server.mount_taken,
@@ -1227,10 +1285,11 @@ def icecast.server.authorize(
     elsif
       null.defined(max_sources) and active_sources() >= null.get(max_sources)
     then
-      log.important(
-        label=label,
-        "Maximum number of sources (#{null.get(max_sources)}) reached, rejecting \
-         connection"
+      log_event(
+        level=2,
+        "connection-handle/_handle_source_request",
+        "Rejecting source at #{icecast.server.log_escape(uri)}: too many sources \
+         connected (#{null.get(max_sources)})"
       )
       false
     else
@@ -1319,7 +1378,8 @@ def icecast.server.source_manager(
   ~ip_hash,
   ~global_headers,
   ~default_mount,
-  ~mount_configs
+  ~mount_configs,
+  ~log_event
 ) =
   # TODO: max_clients not yet implemented
   ignore(max_clients)
@@ -1468,9 +1528,12 @@ def icecast.server.source_manager(
         on_source_disconnect = s.on_disconnect
         config = mount_config(mount)
 
-        log.important(
-          label=name,
-          "New source connected on mount #{mount}"
+        log_event(
+          level=3,
+          "connection-handle/_handle_source_request",
+          "Source logging in at mountpoint \"#{
+            icecast.server.log_escape(mount)
+          }\""
         )
 
         entry =
@@ -1508,16 +1571,20 @@ def icecast.server.source_manager(
           synchronous=true,
           fun () ->
             begin
-              log.important(
-                label=name,
-                "Source disconnected from mount #{mount}"
+              log_event(
+                level=3,
+                "source/source_main",
+                "Source at \"#{icecast.server.log_escape(mount)}\" exiting"
               )
               list.iter(
                 fun ((orphan, e)) ->
                   begin
-                    log.info(
-                      label=name,
-                      "Shutting down output for mount #{orphan}"
+                    log_event(
+                      level=4,
+                      "source/source_shutdown",
+                      "Shutting down output for mount #{
+                        icecast.server.log_escape(orphan)
+                      }"
                     )
                     e.data.output.shutdown()
                   end,
@@ -1535,7 +1602,7 @@ def icecast.server.source_manager(
 
   def auth(args) =
     icecast.server.authorize(
-      label=name,
+      log_event=log_event,
       password=password,
       max_sources=max_sources,
       mount_config=mount_config,
@@ -2000,18 +2067,46 @@ def replaces icecast.server(
   max_sources = parsed.max_sources
   logging = parsed.logging
 
-  errorlog_path = effective.error_log
-  if
-    null.defined(errorlog_path) and null.get(errorlog_path) != "-"
-  then
-    settings.log.file := true
-    settings.log.file.path := null.get(errorlog_path)
+  def log_writer(path) =
+    icecast.server.log_writer(
+      fun () ->
+        {
+          path = path,
+          size_limit =
+            null.map(fun (kib) -> 1024 * kib, logging.logsize) ?? 1000000000,
+          archive = logging.logarchive
+        }
+    )
   end
-  if null.defined(errorlog_path) then settings.log.stdout := true end
-  if
-    null.defined(logging.loglevel)
-  then
-    settings.log.level := null.get(logging.loglevel)
+
+  write_error_log = log_writer(effective.error_log)
+
+  # Written to liquidsoap's log and, up to `<loglevel>`, to the error log in icecast's format: local time, level, `category/function` and message.
+  def log_event(~level, category, message) =
+    if
+      level == 1
+    then
+      log.severe(label=name, message)
+    elsif
+      level == 4
+    then
+      log.info(label=name, message)
+    else
+      log.important(label=name, message)
+    end
+    if
+      level <= (logging.loglevel ?? 3)
+    then
+      level_name =
+        list.nth(default="DBUG", ["EROR", "WARN", "INFO", "DBUG"], level - 1)
+      write_error_log(
+        "#{
+          time.string(
+            "[%Y-%m-%d  %H:%M:%S]"
+          )
+        } #{level_name} #{category} #{message}"
+      )
+    end
   end
 
   if
@@ -2033,8 +2128,9 @@ def replaces icecast.server(
         )
       end
       let (tls_name, tls_factory) = settings.icecast.server.tls_transport()
-      log.important(
-        label=name,
+      log_event(
+        level=3,
+        "main/main",
         "Using TLS transport: #{tls_name}"
       )
       tls_factory(null.get(parsed.tls_certificate), parsed.tls_key)
@@ -2042,36 +2138,27 @@ def replaces icecast.server(
       http.transport.unix
     end
 
-  log.important(
-    label=name,
-    "Initializing icecast emulation server on port #{port}"
+  log_event(
+    level=3,
+    "main/main",
+    "Icecast emulation server starting on port #{port}"
   )
   if
     null.defined(max_sources)
   then
-    log.important(
-      label=name,
+    log_event(
+      level=3,
+      "main/main",
       "Maximum sources: #{null.get(max_sources)}"
     )
   end
   if
     parsed.mounts != []
   then
-    log.important(
-      label=name,
+    log_event(
+      level=3,
+      "main/main",
       "Loaded #{list.length(parsed.mounts)} mount configuration(s)"
-    )
-  end
-
-  access_log = effective.access_log
-  playlist_log = effective.playlist_log
-
-  def log_writer(path) =
-    icecast.server.log_writer(
-      size_limit=null.map(fun (kib) -> 1024 * kib, logging.logsize)
-        ?? 1000000000,
-      archive=logging.logarchive,
-      path
     )
   end
 
@@ -2104,41 +2191,26 @@ def replaces icecast.server(
       ip_hash=ip_hash,
       global_headers=parsed.http_headers,
       default_mount=parsed.default_mount,
-      mount_configs=parsed.mounts
+      mount_configs=parsed.mounts,
+      log_event=log_event
     )
 
-  if
-    null.defined(access_log)
-  then
-    log.important(
-      label=name,
-      "Writing access log to #{null.get(access_log)}"
-    )
-    write_access_log = log_writer(null.get(access_log))
-    manager.on_listener_disconnect(
-      synchronous=true,
-      fun (listener) ->
-        write_access_log(icecast.server.access_log_line(now=time(), listener))
-    )
-  end
+  write_access_log = log_writer(effective.access_log)
+  manager.on_listener_disconnect(
+    synchronous=true,
+    fun (listener) ->
+      write_access_log(icecast.server.access_log_line(now=time(), listener))
+  )
 
-  if
-    null.defined(playlist_log)
-  then
-    log.important(
-      label=name,
-      "Writing playlist log to #{null.get(playlist_log)}"
-    )
-    write_playlist_log = log_writer(null.get(playlist_log))
-    manager.on_metadata(
-      synchronous=true,
-      fun (update) ->
-        begin
-          line = icecast.server.playlist_log_line(now=time(), update)
-          if null.defined(line) then write_playlist_log(null.get(line)) end
-        end
-    )
-  end
+  write_playlist_log = log_writer(effective.playlist_log)
+  manager.on_metadata(
+    synchronous=true,
+    fun (update) ->
+      begin
+        line = icecast.server.playlist_log_line(now=time(), update)
+        if null.defined(line) then write_playlist_log(null.get(line)) end
+      end
+  )
 
   input.harbor.dynamic(
     "/:mount",
@@ -2205,8 +2277,9 @@ def replaces icecast.server(
         manager.stats
       )
     else
-      log.important(
-        label=name,
+      log_event(
+        level=3,
+        "main/main",
         "Admin listener page disabled: no admin password configured"
       )
     end

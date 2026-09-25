@@ -2,12 +2,20 @@
 
 # A source streams to icecast.server and a listener tunes in: the admin page
 # lists the listener under a hashed IP, a metadata update reaches the playlist
-# log, and the listener's session ends up in the access log once the source
-# leaves.
+# log, the listener's session ends up in the access log once the source leaves,
+# and the source's connection is in the error log.
 def f() =
   dir = file.temp_dir("icecast", "logs")
   access_log = path.concat(dir, "access.log")
   playlist_log = path.concat(dir, "playlist.log")
+  error_log = path.concat(dir, "error.log")
+  config = path.concat(dir, "icecast.xml")
+  file.write(
+    data="<icecast><paths><logdir>#{
+      dir
+    }</logdir></paths><logging><errorlog>error.log</errorlog></logging></icecast>",
+    config
+  )
 
   server =
     icecast.server(
@@ -15,7 +23,8 @@ def f() =
       password="hackme",
       access_log=access_log,
       playlist_log=playlist_log,
-      admin_password="apw"
+      admin_password="apw",
+      config=config
     )
 
   s = sine()
@@ -76,6 +85,12 @@ def f() =
     )
     test.equal(
       r/\|\/live\|\d+\|hello\n/.test(file.contents(playlist_log)),
+      true
+    )
+    test.equal(
+      r/^\[\d{4}-\d{2}-\d{2}  \d{2}:\d{2}:\d{2}\] INFO connection-handle\/_handle_source_request Source logging in at mountpoint "\/live"$/m.test(
+        file.contents(error_log)
+      ),
       true
     )
     test.pass()
