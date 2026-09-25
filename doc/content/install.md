@@ -58,6 +58,38 @@ or `apk upgrade`, and the final release supersedes the rolling builds that led u
 Both the `liquidsoap` and `liquidsoap-minimal` packages are available from every channel. Re-running the
 script switches channel.
 
+### Manual configuration
+
+If you would rather not pipe a script into a root shell, or manage your system's configuration with other
+tools, here is what the script sets up. Replace `CHANNEL` with a channel name listed at
+https://repo.liquidsoap.info/channels.txt, for instance `rolling-release-v2.5.x`.
+
+On Debian and Ubuntu, install the signing key:
+
+```shell
+sudo install -d /etc/apt/keyrings
+sudo curl -fsSL https://repo.liquidsoap.info/liquidsoap.asc -o /etc/apt/keyrings/liquidsoap.asc
+```
+
+and write `/etc/apt/sources.list.d/liquidsoap.sources`, with `CODENAME` being the `VERSION_CODENAME` from
+`/etc/os-release` (`trixie`, `noble`, ...):
+
+```
+Types: deb
+URIs: https://repo.liquidsoap.info/CHANNEL/deb/CODENAME
+Suites: ./
+Signed-By: /etc/apt/keyrings/liquidsoap.asc
+```
+
+On Alpine, install the signing key and add the repository:
+
+```shell
+curl -fsSL https://repo.liquidsoap.info/liquidsoap.rsa.pub -o /etc/apk/keys/liquidsoap.rsa.pub
+echo https://repo.liquidsoap.info/CHANNEL/alpine >> /etc/apk/repositories
+```
+
+Then run `apt-get update` or `apk update` as usual.
+
 Each channel covers the same distributions and architectures as our release assets: the current Debian stable
 and testing, the current Ubuntu LTS and latest release, and Alpine edge. Debian and Ubuntu packages are built
 for `amd64` and `arm64`, Alpine packages for `x86_64` and `aarch64`. https://repo.liquidsoap.info lists what

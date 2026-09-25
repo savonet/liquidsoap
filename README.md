@@ -46,6 +46,22 @@ curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh
 
 It asks which release to follow, after which `apt-get install liquidsoap` or `apk add liquidsoap` works as usual, and upgrades arrive with the rest of the system.
 
+To configure the repository by hand instead, pick a channel from https://repo.liquidsoap.info/channels.txt (e.g. `rolling-release-v2.5.x`). On Debian and Ubuntu, save https://repo.liquidsoap.info/liquidsoap.asc as `/etc/apt/keyrings/liquidsoap.asc` and write `/etc/apt/sources.list.d/liquidsoap.sources`, with `CODENAME` being the `VERSION_CODENAME` from `/etc/os-release`:
+
+```
+Types: deb
+URIs: https://repo.liquidsoap.info/CHANNEL/deb/CODENAME
+Suites: ./
+Signed-By: /etc/apt/keyrings/liquidsoap.asc
+```
+
+On Alpine:
+
+```shell
+curl -fsSL https://repo.liquidsoap.info/liquidsoap.rsa.pub -o /etc/apk/keys/liquidsoap.rsa.pub
+echo https://repo.liquidsoap.info/CHANNEL/alpine >> /etc/apk/repositories
+```
+
 Each channel covers the same distributions and architectures as our release assets: the current Debian stable and testing, the current Ubuntu LTS and latest release, and Alpine edge, on `amd64`/`arm64` for Debian and Ubuntu and `x86_64`/`aarch64` for Alpine. See [supported OSes](#supported-oses-for-pre-built-binary-assets) for the current releases, and https://repo.liquidsoap.info for what each channel actually carries.
 
 ### Developer build
