@@ -216,6 +216,11 @@ module type Transport_t = sig
   type t
 
   val sock : t -> Unix.file_descr
+
+  (** Whether [read] can return data without [sock] being readable, e.g. bytes a
+      TLS layer already decrypted. *)
+  val pending : t -> bool
+
   val read : t -> Bytes.t -> int -> int -> int
   val write : t -> Bytes.t -> int -> int -> int
 end

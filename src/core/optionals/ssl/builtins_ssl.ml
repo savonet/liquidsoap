@@ -53,8 +53,24 @@ let write_wrapper ssl buf ofs len =
   with Ssl.Write_error (Ssl.Error_want_read | Ssl.Error_want_write) ->
     raise (Unix.Unix_error (Unix.EAGAIN, "write", ""))
 
+(* An [Ssl.read] returns at most one record, whose plaintext fits in
+   [record_len], so reading whole records keeps OpenSSL from holding data the
+   file descriptor does not signal. *)
+let record_len = 16384
+
 let ssl_socket ~pos transport ssl =
   let closed = Atomic.make false in
+  let read_pending = Buffer.create record_len in
+  let record = Bytes.create record_len in
+  let read buf ofs len =
+    if Buffer.length read_pending = 0 then (
+      let n = read_wrapper ssl record 0 record_len in
+      Buffer.add_subbytes read_pending record 0 n);
+    let n = min len (Buffer.length read_pending) in
+    Buffer.blit read_pending 0 buf ofs n;
+    Utils.buffer_drop read_pending n;
+    n
+  in
   let finalise s =
     if not (Atomic.get closed) then (
       let pos =
@@ -70,21 +86,20 @@ let ssl_socket ~pos transport ssl =
       try s#close with _ -> ())
   in
   let s =
-    object
+    object (self)
       method typ = "ssl"
       method transport = transport
       method file_descr = Ssl.file_descr_of_socket ssl
+      method pending = Buffer.length read_pending > 0
 
       method wait_for ?log event timeout =
-        let event =
-          match event with
-            | `Read -> `Read (Ssl.file_descr_of_socket ssl)
-            | `Write -> `Write (Ssl.file_descr_of_socket ssl)
-            | `Both -> `Both (Ssl.file_descr_of_socket ssl)
-        in
-        Tutils.wait_for ?log event timeout
+        match event with
+          | (`Read | `Both) when self#pending -> ()
+          | `Read -> Tutils.wait_for ?log (`Read self#file_descr) timeout
+          | `Write -> Tutils.wait_for ?log (`Write self#file_descr) timeout
+          | `Both -> Tutils.wait_for ?log (`Both self#file_descr) timeout
 
-      method read = read_wrapper ssl
+      method read = read
       method write = write_wrapper ssl
       method closed = Atomic.get closed
 

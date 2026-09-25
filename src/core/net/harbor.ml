@@ -119,6 +119,7 @@ module Http_transport = struct
     type t = Http.socket
 
     let sock socket = socket#file_descr
+    let pending socket = socket#pending
     let read = read
     let write = write
   end
@@ -610,6 +611,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       method typ = socket#typ
       method transport = socket#transport
       method file_descr = socket#file_descr
+      method pending = Atomic.get rem_ofs < rem_len || socket#pending
       method write = socket#write
       method close = socket#close
       method closed = socket#closed

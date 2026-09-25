@@ -857,6 +857,7 @@ module type Transport_t = sig
   type t
 
   val sock : t -> Unix.file_descr
+  val pending : t -> bool
   val read : t -> Bytes.t -> int -> int -> int
   val write : t -> Bytes.t -> int -> int -> int
 end
@@ -865,6 +866,7 @@ module Unix_transport : Transport_t with type t = Unix.file_descr = struct
   type t = Unix.file_descr
 
   let sock s = s
+  let pending _ = false
   let read = Unix_utils.read
   let write = Unix_utils.write
 end
@@ -981,8 +983,9 @@ struct
             h.data <- rem;
             s
         | None ->
-            let fired = await ~priority h.scheduler events in
-            if timed_out fired then fail Timeout;
+            if not (Transport.pending h.socket) then (
+              let fired = await ~priority h.scheduler events in
+              if timed_out fired then fail Timeout);
             let n =
               try Transport.read h.socket buf 0 length with
                 | Unix.Unix_error (x, y, z) ->
