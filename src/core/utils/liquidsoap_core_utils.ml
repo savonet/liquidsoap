@@ -50,6 +50,7 @@ module Startup = Startup
 module StringView = StringView
 module Strings = Strings
 module ByteRing = ByteRing
+module Signal_callbacks = Signal_callbacks
 module Tutils = Tutils
 module Unifier = Liquidsoap_core_formats.Unifier
 module Utils = Utils

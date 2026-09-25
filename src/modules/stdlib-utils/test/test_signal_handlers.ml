@@ -20,37 +20,22 @@
 
  *****************************************************************************)
 
-(** Leaf utilities. *)
-
-module Atomic_section = Atomic_section
-module Charset = Charset
-module Charset_base = Charset_base
-module Concurrent_hashtbl = Concurrent_hashtbl
-module Configure = Configure
-module Doc = Doc
-module Extra_args = Extra_args
-module Extralib = Extralib
-module Lang_string = Lang_string
-module Lifecycle = Lifecycle
-module Liq_http = Liq_http
-module Liq_time = Liq_time
-module Reloadable_transport = Reloadable_transport
-module Liquidsoap_paths = Liquidsoap_paths
-module Log = Log
-module Mutex_utils = Mutex_utils
-module Plug = Plug
-module Pool = Pool
-module Process_handler = Process_handler
-module Queues = Queues
-module Sandbox = Sandbox
-module Script_callback = Script_callback
-module Server = Server
-module Sha1 = Sha1
-module Startup = Startup
-module StringView = StringView
-module Strings = Strings
-module ByteRing = ByteRing
-module Signal_callbacks = Signal_callbacks
-module Tutils = Tutils
-module Unifier = Liquidsoap_core_formats.Unifier
-module Utils = Utils
+(* A failing handler does not keep later ones from running, a removed one does
+   not run, and handlers run in registration order. *)
+let () =
+  let calls = ref [] in
+  let record name _ = calls := name :: !calls in
+  let (_ : unit -> unit) =
+    Signal_handlers.add Sys.sigusr2 (fun _ -> failwith "handler failed")
+  in
+  let (_ : unit -> unit) = Signal_handlers.add Sys.sigusr2 (record "first") in
+  let remove = Signal_handlers.add Sys.sigusr2 (record "removed") in
+  let (_ : unit -> unit) = Signal_handlers.add Sys.sigusr2 (record "last") in
+  remove ();
+  Unix.kill (Unix.getpid ()) Sys.sigusr2;
+  let deadline = Unix.gettimeofday () +. 5. in
+  while List.length !calls < 2 && Unix.gettimeofday () < deadline do
+    Unix.sleepf 0.01
+  done;
+  assert (List.rev !calls = ["first"; "last"]);
+  print_endline "Signal handlers: ok"

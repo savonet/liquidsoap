@@ -473,6 +473,20 @@
   (run %{run_test} number.liq liquidsoap number.liq)))
 
 (rule
+ (alias test_on_signal)
+ (package liquidsoap)
+ (deps
+  on_signal.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} on_signal.liq liquidsoap on_signal.liq)))
+
+(rule
  (alias test_osc)
  (package liquidsoap)
  (deps
@@ -862,6 +876,7 @@
   (alias test_mime_types)
   (alias test_null)
   (alias test_number)
+  (alias test_on_signal)
   (alias test_osc)
   (alias test_pattern)
   (alias test_pp)

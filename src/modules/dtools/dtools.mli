@@ -264,6 +264,9 @@ module Log : sig
   (** An atom that stops the logging. *)
   val stop : Init.t
 
+  (** Reopen the log file, e.g. after logrotate moved it. *)
+  val reopen : unit -> unit
+
   (** Force flush all pending log entries. *)
   val flush : unit -> unit
 

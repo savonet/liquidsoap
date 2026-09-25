@@ -164,6 +164,7 @@ module Liquidsoap_paths = Liquidsoap_paths
 module Startup = Startup
 module Lifecycle = Lifecycle
 module Log = Log
+module Signal_callbacks = Signal_callbacks
 module Tutils = Tutils
 module Process_handler = Process_handler
 module Sandbox = Sandbox

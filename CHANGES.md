@@ -25,6 +25,8 @@
   authentication, mount points, relay, and per-listener encoding (#4915). It writes icecast's
   access and playlist logs, reports listener sessions through callbacks, serves an admin listener
   page, and hashes listener IPs by default (#5408).
+- Added `on_signal`, which runs a function when the process receives a signal such as
+  `SIGHUP` or `SIGUSR2`, and returns a `release` method (#5418).
 - Added dedicated encoder mode to `output.harbor`: mount points can now be served with
   a single shared encoder instead of per-listener encoding (#5003).
 - Rewrote JACK I/O using native OCaml bindings, removing the dependency on the `bjack`
