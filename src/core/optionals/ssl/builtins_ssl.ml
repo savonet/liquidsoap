@@ -99,20 +99,25 @@ let ssl_socket ~pos transport ssl =
   Gc.finalise finalise s;
   s
 
-let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
-    ~certificate ~key transport =
-  let context =
-    Ssl.create_context (Ssl.SSLv23 [@alert "-deprecated"]) Ssl.Server_context
-  in
-  Option.iter (Ssl.set_min_protocol_version context) min_protocol;
-  Option.iter (Ssl.set_max_protocol_version context) max_protocol;
-  Option.iter
-    (fun password -> Ssl.set_password_callback context (fun _ -> password))
-    password;
-  let cert_path = certificate () in
-  let key_path = Option.value ~default:cert_path (key ()) in
-  Ssl.use_certificate context cert_path key_path;
+let server_context ~min_protocol ~max_protocol ~password ~certificate ~key () =
+  try
+    let context =
+      Ssl.create_context (Ssl.SSLv23 [@alert "-deprecated"]) Ssl.Server_context
+    in
+    Option.iter (Ssl.set_min_protocol_version context) min_protocol;
+    Option.iter (Ssl.set_max_protocol_version context) max_protocol;
+    Option.iter
+      (fun password -> Ssl.set_password_callback context (fun _ -> password))
+      password;
+    let cert_path = certificate () in
+    let key_path = Option.value ~default:cert_path (key ()) in
+    Ssl.use_certificate context cert_path key_path;
+    context
+  with exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    Lang.raise_as_runtime ~bt ~kind:"ssl" exn
 
+let server ~read_timeout ~write_timeout ~context transport =
   object
     method transport = transport
 
@@ -124,7 +129,7 @@ let server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
               Http.set_socket_default ~read_timeout:timeout
                 ~write_timeout:timeout s
           | None -> ());
-        let ssl_s = Ssl.embed_socket s context in
+        let ssl_s = Ssl.embed_socket s (context ()) in
         Ssl.accept ssl_s;
         Http.set_socket_default ~read_timeout ~write_timeout s;
         (ssl_socket ~pos:[] transport ssl_s, caller)
@@ -166,8 +171,8 @@ let verify_error_hint = function
        of 3."
   | _ -> ""
 
-let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
-    ~certificate ~key () =
+let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
+    ~server_context ~certificate () =
   object (self)
     method name = "ssl"
     method protocol = "https"
@@ -215,12 +220,13 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
         Lang.raise_as_runtime ~bt ~kind:"ssl" exn
 
     method server =
-      server ~min_protocol ~max_protocol ~read_timeout ~write_timeout ~password
-        ~certificate ~key self
+      ignore (server_context ());
+      server ~read_timeout ~write_timeout ~context:server_context self
   end
 
-let _ =
-  Lang.add_builtin ~base:Modules.http_transport "ssl" ~category:`Internet
+let () =
+  Reloadable_transport.add_builtin ~base:Modules.http_transport
+    ~transport_t:Lang.http_transport_t "ssl"
     ~descr:"Https transport using libssl"
     [
       ( "read_timeout",
@@ -258,21 +264,21 @@ let _ =
            minimal and maximal protocol version. Defaults to highest protocol \
            supported if not set." );
       ( "certificate",
-        Lang.nullable_t Lang.string_t,
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
         Some
           "Path to certificate file. Required in server mode, e.g. \
            `input.harbor`, etc. If passed in client mode, certificate is added \
-           to the list of valid certificates." );
+           to the list of valid certificates. In server mode, read when the \
+           first port opens and on `reload()`." );
       ( "key",
-        Lang.nullable_t Lang.string_t,
+        Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
         Some
           "Path to certificate private key. Required in server mode, e.g. \
            `input.harbor`, etc., unless the certificate file also contains the \
-           private key." );
+           private key. Read when the first port opens and on `reload()`." );
     ]
-    Lang.http_transport_t
     (fun p ->
       let read_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
@@ -297,20 +303,24 @@ let _ =
         Option.map protocol_of_value
           (Lang.to_option (List.assoc "max_protocol" p))
       in
+      let path name =
+        Lang.to_valued_option Lang.to_string
+          (Lang.to_getter (List.assoc name p) ())
+      in
       let certificate () =
-        match
-          Lang.to_valued_option Lang.to_string (List.assoc "certificate" p)
-        with
+        match path "certificate" with
           | None ->
               Runtime_error.raise ~pos:(Lang.pos p)
                 "Cannot find certificate file!"
           | Some path -> Utils.check_readable ~pos:(Lang.pos p) path
       in
       let key () =
-        match Lang.to_valued_option Lang.to_string (List.assoc "key" p) with
+        match path "key" with
           | None -> None
           | Some path -> Some (Utils.check_readable ~pos:(Lang.pos p) path)
       in
-      Lang.http_transport
-        (transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
-           ~password ~certificate ~key ()))
+      ( server_context ~min_protocol ~max_protocol ~password ~certificate ~key,
+        fun server_context ->
+          Lang.http_transport
+            (transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
+               ~server_context ~certificate ()) ))

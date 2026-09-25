@@ -20,36 +20,17 @@
 
  *****************************************************************************)
 
-(* See liquidsoap_core_utils.mli. *)
-
-module Atomic_section = Atomic_section
-module Charset = Charset
-module Charset_base = Charset_base
-module Concurrent_hashtbl = Concurrent_hashtbl
-module Configure = Configure
-module Doc = Doc
-module Extra_args = Extra_args
-module Extralib = Extralib
-module Lang_string = Lang_string
-module Lifecycle = Lifecycle
-module Liq_http = Liq_http
-module Liq_time = Liq_time
-module Reloadable_transport = Reloadable_transport
-module Liquidsoap_paths = Liquidsoap_paths
-module Log = Log
-module Mutex_utils = Mutex_utils
-module Plug = Plug
-module Pool = Pool
-module Process_handler = Process_handler
-module Queues = Queues
-module Sandbox = Sandbox
-module Script_callback = Script_callback
-module Server = Server
-module Sha1 = Sha1
-module Startup = Startup
-module StringView = StringView
-module Strings = Strings
-module ByteRing = ByteRing
-module Tutils = Tutils
-module Unifier = Liquidsoap_core_formats.Unifier
-module Utils = Utils
+(** [add_builtin ~base ~descr ~transport_t name proto make] registers an http
+    transport whose server certificates can be read again. [make] receives the
+    arguments and returns a function building the server config and one making
+    the transport from a getter of the current config. The builtin gets a
+    [reload_on] argument, once a day by default, and a [reload] method. *)
+val add_builtin :
+  base:Lang.module_name ->
+  descr:string ->
+  transport_t:Lang.t ->
+  string ->
+  Lang.proto ->
+  ((string * Lang.value) list ->
+  (unit -> 'config) * ((unit -> 'config) -> Lang.value)) ->
+  unit
