@@ -513,6 +513,7 @@ module Log = struct
   type custom_log = { timestamp : bool; exec : string -> unit }
 
   let log_ch = ref None
+  let reopen_log = ref (fun () -> ())
 
   (* Custom logging methods. *)
   let custom_log : (string, custom_log) Hashtbl.t = Hashtbl.create 0
@@ -680,16 +681,16 @@ module Log = struct
 
   let init () =
     let time = Unix.gettimeofday () in
-    let reopen_log =
-      if conf_file#get then begin
-        let opts =
-          [Open_wronly; Open_creat; Open_nonblock]
-          @ if conf_file_append#get then [Open_append] else [Open_trunc]
-        in
-        let log_file_path = conf_file_path#get in
-        let log_file_perms = conf_file_perms#get in
-        log_ch := Some (open_out_gen opts log_file_perms log_file_path);
-        fun _ ->
+    if conf_file#get then begin
+      let opts =
+        [Open_wronly; Open_creat; Open_nonblock]
+        @ if conf_file_append#get then [Open_append] else [Open_trunc]
+      in
+      let log_file_path = conf_file_path#get in
+      let log_file_perms = conf_file_perms#get in
+      log_ch := Some (open_out_gen opts log_file_perms log_file_path);
+      reopen_log :=
+        fun () ->
           begin match !log_ch with
             | None -> ()
             | Some ch ->
@@ -697,12 +698,7 @@ module Log = struct
                 close_out ch
           end;
           log_ch := Some (open_out_gen opts log_file_perms log_file_path)
-      end
-      else fun _ -> ()
-    in
-    (* Re-open log file on SIGUSR1 -- for logrotate *)
-    if Sys.os_type <> "Win32" then
-      Sys.set_signal Sys.sigusr1 (Sys.Signal_handle reopen_log);
+    end;
     print
       {
         colorize = (fun x -> x);
@@ -711,6 +707,7 @@ module Log = struct
     log_thread := Some (Thread.create log_thread_fn ())
 
   let start = Init.make ~name:"init-log-start" ~before:[Init.start] init
+  let reopen () = !reopen_log ()
 
   let close () =
     let time = Unix.gettimeofday () in

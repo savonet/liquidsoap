@@ -735,8 +735,12 @@ let () =
           | _ -> ()
       in
 
-      if not Sys.win32 then
-        Sys.set_signal Sys.sigterm (Sys.Signal_handle sigterm_handler);
+      if not Sys.win32 then (
+        (* Reopen the log file on SIGUSR1, for logrotate. *)
+        let (_remove : unit -> unit) =
+          Signal_handlers.add Sys.sigusr1 (fun _ -> Dtools.Log.reopen ())
+        in
+        Sys.set_signal Sys.sigterm (Sys.Signal_handle sigterm_handler));
       Sys.set_signal Sys.sigint (Sys.Signal_handle sigterm_handler);
 
       (* TODO: if start fails (e.g. invalid password or mountpoint) it raises
