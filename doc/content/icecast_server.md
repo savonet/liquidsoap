@@ -51,6 +51,7 @@ The `icecast.server` function returns a record with the following methods:
 - `on_listener_connect(handler)`: Register a handler called when a listener connects (see [below](#listener-callbacks))
 - `on_listener_disconnect(handler)`: Register a handler called when a listener disconnects
 - `on_metadata(handler)`: Register a handler called when a mount's metadata changes
+- `reload()`: Read the configuration file again and apply it (see [below](#reloading-the-configuration))
 
 Every `on_*` method takes an optional `synchronous` argument, `false` by default, in which case the handler runs in its own thread.
 
@@ -119,7 +120,7 @@ The fields are the time, mount, number of listeners and the `artist - title` tex
 
 ### Error log
 
-The error log records the server's own events, such as sources logging in and out and rejected source connections. It is a file of its own and does not change liquidsoap's log. Lines follow icecast's format, local time, level, `category/function` and message:
+The error log records the server's own events, such as sources logging in and out, rejected source connections and configuration reloads. It is a file of its own and does not change liquidsoap's log. Lines follow icecast's format, local time, level, `category/function` and message:
 
 ```
 [2026-09-25  15:17:57] INFO connection-handle/_handle_source_request Source logging in at mountpoint "/live"
@@ -360,6 +361,44 @@ This parses the configuration file and extracts supported settings. See the [Con
 </icecast>
 ```
 
+## Reloading the Configuration
+
+A running server usually has sources and listeners connected, and restarting it
+to change a password or a fallback would drop all of them. When the server is
+started with a `config` file, sending it `SIGHUP` reads the file again and
+applies it in place: connected sources and listeners stay connected. With
+systemd, this is what `systemctl reload` does given:
+
+```
+ExecReload=/bin/kill -HUP $MAINPID
+```
+
+The same reload is available from the script through the `reload()` method,
+for instance to follow changes to the file:
+
+```{.liquidsoap include="icecast-server-reload.liq"}
+
+```
+
+Parameters passed explicitly to `icecast.server` keep taking precedence over the
+file. If the file is invalid, `reload()` raises an error, or logs it on
+`SIGHUP`, and the previous configuration stays in use.
+
+Settings apply at different times:
+
+- **Right away**: source authentication (passwords, usernames, `<sources>`), the
+  admin page credentials, the log files and their `<logging>` settings, and the
+  `<fallback-mount>` of live mounts. A mount whose source is gone and whose
+  fallback is removed is shut down, since it has nothing left to send.
+- **On the next connection**: `<on-connect>` and `<on-disconnect>` commands.
+- **When a mount is next created**: HTTP headers, burst size, dump file and
+  client timeout. A running mount keeps the settings it started with.
+- **After a restart only**: port, bind address, TLS on or off and source
+  timeout. A reload that changes one of them logs that it was not applied.
+
+The TLS certificate and key are read again on every reload, and also once a
+day on their own, see [Renewing certificates](harbor.html#renewing-certificates).
+
 ## Configuration Reference
 
 This section provides a comprehensive reference for icecast XML configuration options, indicating which are supported, which are not yet implemented, and which will likely never be supported due to architectural differences.
@@ -398,19 +437,19 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 
 ### paths
 
-| Option                                | Status          | Notes                                                                                     |
-| ------------------------------------- | --------------- | ----------------------------------------------------------------------------------------- |
-| `basedir`                             | Not implemented |                                                                                           |
-| `logdir`                              | Supported       | Directory of the log files set in `<logging>`                                             |
-| `pidfile`                             | Not supported   |                                                                                           |
-| `tls-certificate` / `ssl-certificate` | Supported       | Path to TLS certificate file (required when TLS is enabled). May include the private key. |
-| `tls-key`                             | Supported       | Path to separate TLS private key file (icecast 2.5 only)                                  |
-| `webroot`                             | Not implemented | No built-in web interface                                                                 |
-| `adminroot`                           | Not implemented | No built-in admin interface                                                               |
-| `allow-ip`                            | Not implemented | Use a reverse proxy (nginx) or firewall instead                                           |
-| `deny-ip`                             | Not implemented | Use a reverse proxy (nginx) or firewall instead                                           |
-| `ssl-allowed-ciphers`                 | Not implemented | TLS cipher configuration not exposed                                                      |
-| `alias`                               | Not implemented | URL aliasing not supported                                                                |
+| Option                                | Status          | Notes                                                                                                                          |
+| ------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `basedir`                             | Not implemented |                                                                                                                                |
+| `logdir`                              | Supported       | Directory of the log files set in `<logging>`                                                                                  |
+| `pidfile`                             | Not supported   |                                                                                                                                |
+| `tls-certificate` / `ssl-certificate` | Supported       | Path to TLS certificate file (required when TLS is enabled). May include the private key. Read again on reload and once a day. |
+| `tls-key`                             | Supported       | Path to separate TLS private key file (icecast 2.5 only)                                                                       |
+| `webroot`                             | Not implemented | No built-in web interface                                                                                                      |
+| `adminroot`                           | Not implemented | No built-in admin interface                                                                                                    |
+| `allow-ip`                            | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
+| `deny-ip`                             | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
+| `ssl-allowed-ciphers`                 | Not implemented | TLS cipher configuration not exposed                                                                                           |
+| `alias`                               | Not implemented | URL aliasing not supported                                                                                                     |
 
 ### logging
 
@@ -445,17 +484,17 @@ Mount configurations support both `type="default"` (settings applied to all moun
 
 #### Supported Mount Options
 
-| Option           | Description                                        |
-| ---------------- | -------------------------------------------------- |
-| `mount-name`     | Mount point path (e.g., `/live.mp3`)               |
-| `username`       | Source client username (default: "source")         |
-| `password`       | Mount-specific password (overrides global)         |
-| `dump-file`      | Path to dump the raw stream to a file              |
-| `burst-size`     | Initial burst size for new listeners (bytes)       |
-| `fallback-mount` | Mount to fall back to when this source disconnects |
-| `on-connect`     | Shell command to execute when source connects      |
-| `on-disconnect`  | Shell command to execute when source disconnects   |
-| `http-headers`   | Custom HTTP headers for this mount's responses     |
+| Option           | Description                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| `mount-name`     | Mount point path (e.g., `/live.mp3`)                                                       |
+| `username`       | Source client username (default: "source")                                                 |
+| `password`       | Mount-specific password (overrides global)                                                 |
+| `dump-file`      | Path to dump the raw stream to a file                                                      |
+| `burst-size`     | Initial burst size for new listeners (bytes)                                               |
+| `fallback-mount` | Mount to fall back to when this source disconnects. A reload applies it to live mounts too |
+| `on-connect`     | Shell command to execute when source connects                                              |
+| `on-disconnect`  | Shell command to execute when source disconnects                                           |
+| `http-headers`   | Custom HTTP headers for this mount's responses                                             |
 
 #### Unsupported Mount Options
 

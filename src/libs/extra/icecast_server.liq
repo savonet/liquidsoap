@@ -25,17 +25,18 @@ def icecast.server.no_tls_transport(_certificate, _key) =
      support and rebuild liquidsoap."
   )
   shutdown()
-  http.transport.unix
+  http.transport.unix.{reload = fun () -> ()}
 end
 
-# Preferred TLS transport for `icecast.server`. A pair of `(name, factory)` where `factory` takes a certificate path and an optional private key path and returns an HTTP transport.
+# Preferred TLS transport for `icecast.server`. A pair of `(name, factory)` where `factory` takes getters of a certificate path and of an optional private key path and returns an HTTP transport with a `reload` method.
 # @flag extra
 # @category Source / Input / Active
 let settings.icecast.server.tls_transport =
   settings.make(
     description="Preferred TLS transport for icecast.server. A pair of (name, \
-     factory) where factory takes a certificate path and an optional private key \
-     path and returns an http transport.",
+     factory) where factory takes getters of a certificate path and of an \
+     optional private key path and returns an http transport with a reload \
+     method.",
     ("none", icecast.server.no_tls_transport)
   )
 
@@ -822,7 +823,7 @@ def icecast.server.log_config(
   )
 end
 
-# Table of live mounts and the fallback links between them. An entry holds the mount's current source, the source it falls back to, and caller data built once when the entry is created (the output, stats).
+# Table of live mounts and the fallback links between them. An entry holds the mount's current source, the mount it falls back to and that mount's source, and caller data built once when the entry is created (the output, stats).
 # @flag hidden
 def icecast.server.mount_table() =
   entries = ref([])
@@ -842,7 +843,11 @@ def icecast.server.mount_table() =
   def dependents((mount:string)) =
     list.filter(
       fun ((_, e)) ->
-        null.defined(e.fallback_mount) and null.get(e.fallback_mount) == mount,
+        begin
+          fallback_mount_ref = (e.fallback_mount : ref(string?))
+          fallback_mount = fallback_mount_ref()
+          null.defined(fallback_mount) and null.get(fallback_mount) == mount
+        end,
       entries()
     )
   end
@@ -870,7 +875,7 @@ def icecast.server.mount_table() =
         {
           source = source_ref,
           fallback = fallback_ref,
-          fallback_mount = fallback_mount,
+          fallback_mount = ref(fallback_mount),
           data = create({source = source_ref, fallback = fallback_ref})
         }
       entries := [(mount, entry), ...entries()]
@@ -879,10 +884,13 @@ def icecast.server.mount_table() =
     get(mount)
   end
 
-  # Detach the source from `mount`. Entries left with neither a source nor a fallback are removed and returned so the caller can shut their output down.
-  def disconnect(mount) =
-    if has(mount) then get(mount).source := null end
-    list.iter(fun ((_, e)) -> e.fallback := null, dependents(mount))
+  # The live source on `mount`, null when there is none or no such mount.
+  def source((mount:string)) =
+    if has(mount) then get(mount).source() else null end
+  end
+
+  # Remove the entries left with neither a source nor a fallback and return them so the caller can shut their output down.
+  def sweep() =
     orphans =
       list.filter(
         fun ((_, e)) ->
@@ -894,9 +902,30 @@ def icecast.server.mount_table() =
     orphans
   end
 
-  # The live source on `mount`, null when there is none or no such mount.
-  def source((mount:string)) =
-    if has(mount) then get(mount).source() else null end
+  # Returns the entries it leaves orphaned, see `sweep`.
+  def disconnect(mount) =
+    if has(mount) then get(mount).source := null end
+    list.iter(fun ((_, e)) -> e.fallback := null, dependents(mount))
+    sweep()
+  end
+
+  # Returns the entries it leaves orphaned, see `sweep`.
+  def set_fallback(mount, (fallback_mount:string?)) =
+    if
+      has(mount)
+    then
+      e = get(mount)
+      e.fallback_mount := fallback_mount
+      e.fallback :=
+        if
+          null.defined(fallback_mount)
+        then
+          source(null.get(fallback_mount))
+        else
+          null
+        end
+    end
+    sweep()
   end
 
   {
@@ -905,7 +934,8 @@ def icecast.server.mount_table() =
     all = all,
     source = source,
     connect = connect,
-    disconnect = disconnect
+    disconnect = disconnect,
+    set_fallback = set_fallback
   }
 end
 
@@ -1112,7 +1142,7 @@ def icecast.server.log_writer(target) =
     )
 end
 
-# Output of an `icecast.server` mount: its source with an optional fallback, served by `output.harbor`.
+# Output of an `icecast.server` mount, served by `output.harbor`.
 # @flag hidden
 def icecast.server.default_prepare(
   {
@@ -1133,7 +1163,6 @@ def icecast.server.default_prepare(
   fun (
     {
       source = s,
-      fallback = f,
       mime_type,
       on_listener_connect,
       on_listener_disconnect,
@@ -1141,21 +1170,6 @@ def icecast.server.default_prepare(
     }
   ) ->
     begin
-      default_source =
-        if
-          null.defined(f)
-        then
-          (
-            fallback(
-              id="#{mount_id}.selector",
-              [(s : source), (null.get(f) : source)]
-            )
-          :
-            source
-          )
-        else
-          s
-        end
       o =
         output.harbor(
           id="#{mount_id}.output",
@@ -1170,7 +1184,7 @@ def icecast.server.default_prepare(
           dedicated_encoder=dedicated_encoder,
           format=mime_type ?? "",
           copy_encoder(format, options=muxer_opts),
-          default_source
+          s
         )
 
       o.on_connect(synchronous=true, on_listener_connect)
@@ -1366,24 +1380,14 @@ def icecast.server.source_manager(
   ~(name:string),
   ~port,
   ~transport,
-  ~password,
-  ~max_sources,
-  ~max_clients,
-  ~client_timeout,
-  ~limits,
+  ~server_config,
   ~dedicated_encoder=false,
   ~x_forwarded_for_proxy_ips=null,
   ~x_forwarded_for=null,
   ~format_options=null,
   ~ip_hash,
-  ~global_headers,
-  ~default_mount,
-  ~mount_configs,
   ~log_event
 ) =
-  # TODO: max_clients not yet implemented
-  ignore(max_clients)
-
   server_clock = clock.create(id=name)
   mounts = icecast.server.mount_table()
   on_source_connect_handlers = ref([])
@@ -1403,9 +1407,10 @@ def icecast.server.source_manager(
   end
 
   def mount_config(mount) =
+    parsed = server_config().parsed
     icecast.server.config.mount.resolve(
-      default=default_mount,
-      mounts=mount_configs,
+      default=parsed.default_mount,
+      mounts=parsed.mounts,
       mount
     )
   end
@@ -1451,6 +1456,7 @@ def icecast.server.source_manager(
       begin
         mount_id = r/^\//.replace(fun (_) -> "", mount)
         listeners = icecast.server.listener_counters()
+        parsed = server_config().parsed
 
         def on_listener_connect(listener) =
           listeners.connect()
@@ -1475,13 +1481,16 @@ def icecast.server.source_manager(
               copy_encoder = copy_encoder,
               format = format,
               mount = mount,
-              headers = [...global_headers, ...config.http_headers],
+              headers = [...parsed.http_headers, ...config.http_headers],
               burst =
                 icecast.server.config.burst_size(
-                  limits=limits,
+                  limits={
+                    burst_on_connect = parsed.burst_on_connect,
+                    burst_size = parsed.burst_size
+                  },
                   config.burst_size
                 ),
-              timeout = client_timeout ?? 30.,
+              timeout = parsed.client_timeout ?? 30.,
               port = port,
               transport = transport,
               dumpfile = config.dump_file,
@@ -1489,18 +1498,25 @@ def icecast.server.source_manager(
               muxer_opts = muxer_options(format)
             }
           )
+
+        # Follows `source_ref`, switched to and from at once and as is: the default file composition waits for track ends, skips tracks and fades, none of which fits a live encoded stream.
+        def follow(name, source_ref) =
+          source.dynamic(id="#{mount_id}.#{name}", source_ref).{
+            track_sensitive = {false},
+            replay_metadata = {false},
+            on_select = fun (switch) -> switch.starting,
+            on_leave = fun (_) -> ()
+          }
+        end
+
         output =
           connector(
             {
-              source = source.dynamic(id="#{mount_id}.source", main),
-              fallback =
-                if
-                  null.defined(config.fallback_mount)
-                then
-                  (source.dynamic(id="#{mount_id}.fallback", backup) : source?)
-                else
-                  null
-                end,
+              source =
+                fallback(
+                  id="#{mount_id}.selector",
+                  [follow("source", main), follow("fallback", backup)]
+                ),
               mime_type = mime_type,
               on_listener_connect = on_listener_connect,
               on_listener_disconnect = on_listener_disconnect,
@@ -1519,6 +1535,23 @@ def icecast.server.source_manager(
           start_time = ref(time())
         }
       end
+  end
+
+  def shutdown_orphans(orphans) =
+    list.iter(
+      fun ((orphan, e)) ->
+        begin
+          log_event(
+            level=4,
+            "source/source_shutdown",
+            "Shutting down output for mount #{
+              icecast.server.log_escape(orphan)
+            }"
+          )
+          e.data.output.shutdown()
+        end,
+      orphans
+    )
   end
 
   def handle_connection(c) =
@@ -1576,20 +1609,7 @@ def icecast.server.source_manager(
                 "source/source_main",
                 "Source at \"#{icecast.server.log_escape(mount)}\" exiting"
               )
-              list.iter(
-                fun ((orphan, e)) ->
-                  begin
-                    log_event(
-                      level=4,
-                      "source/source_shutdown",
-                      "Shutting down output for mount #{
-                        icecast.server.log_escape(orphan)
-                      }"
-                    )
-                    e.data.output.shutdown()
-                  end,
-                mounts.disconnect(mount)
-              )
+              shutdown_orphans(mounts.disconnect(mount))
               run_command(config.on_disconnect_cmd)
               list.iter(
                 fun (h) -> h({mount = mount}),
@@ -1603,8 +1623,8 @@ def icecast.server.source_manager(
   def auth(args) =
     icecast.server.authorize(
       log_event=log_event,
-      password=password,
-      max_sources=max_sources,
+      password=server_config().password,
+      max_sources=server_config().parsed.max_sources,
       mount_config=mount_config,
       is_taken=fun (uri) -> null.defined(mounts.source(uri)),
       active_sources=fun () ->
@@ -1615,6 +1635,17 @@ def icecast.server.source_manager(
           )
         ),
       args
+    )
+  end
+
+  # Live mounts follow their new fallback at once. Their outputs keep the settings they were created with.
+  def reload() =
+    list.iter(
+      fun ((mount, _)) ->
+        shutdown_orphans(
+          mounts.set_fallback(mount, mount_config(mount).fallback_mount)
+        ),
+      mounts.all()
     )
   end
 
@@ -1734,7 +1765,8 @@ def icecast.server.source_manager(
     on_listener_connect = on_listener_connect,
     on_listener_disconnect = on_listener_disconnect,
     on_metadata = on_metadata,
-    stats = stats
+    stats = stats,
+    reload = reload
   }
 end
 
@@ -1915,9 +1947,15 @@ def icecast.server.serve(
   )
 end
 
-# Admin listener page at `/admin/listeners`, with its data at `/admin/listeners.json`. Listener fields are client-controlled, so the page only ever inserts them as text.
+# Admin listener page at `/admin/listeners`, with its data at `/admin/listeners.json`. Listener fields are client-controlled, so the page only ever inserts them as text. Both answer 404 while `password` is null.
 # @flag hidden
-def icecast.server.serve_admin(~port, ~transport, ~user, ~password, stats) =
+def icecast.server.serve_admin(
+  ~port,
+  ~transport,
+  ~(user:getter(string)),
+  ~(password:getter(string?)),
+  stats
+) =
   css =
     "#{
       icecast.server.status_css
@@ -1956,7 +1994,24 @@ def icecast.server.serve_admin(~port, ~transport, ~user, ~password, stats) =
      class='empty'>Loading…</p></main><script>#{js}</script></body></html>"
 
   def auth(request) =
-    icecast.server.basic_auth(user=user, password=password, request)
+    icecast.server.basic_auth(
+      user=getter.get(user),
+      password=getter.get(password) ?? "",
+      request
+    )
+  end
+
+  def when_enabled(handler) =
+    handler = icecast.server.wrap_auth(auth, handler)
+    fun (request, response) ->
+      if
+        null.defined(getter.get(password))
+      then
+        handler(request, response)
+      else
+        response.status_code(404)
+        response.data("")
+      end
   end
 
   def json_handler(_, response) =
@@ -1981,17 +2036,14 @@ def icecast.server.serve_admin(~port, ~transport, ~user, ~password, stats) =
     transport=transport,
     method="GET",
     "/admin/listeners",
-    icecast.server.wrap_auth(
-      auth,
-      fun (_, response) -> response.html(html_page)
-    )
+    when_enabled(fun (_, response) -> response.html(html_page))
   )
   harbor.http.register(
     port=port,
     transport=transport,
     method="GET",
     "/admin/listeners.json",
-    icecast.server.wrap_auth(auth, json_handler)
+    when_enabled(json_handler)
   )
 end
 
@@ -2021,6 +2073,7 @@ end
 # @method on_listener_disconnect Register a handler called when a listener disconnects, with the same record as `on_listener_connect` and final duration and bytes_sent. Synchronous handlers are called exactly once per listener, after its connect handlers.
 # @method on_metadata Register a handler called on metadata updates of a mount. Receives a record with mount, metadata, and listeners (count) fields.
 # @method stats Returns a list of `(mount, stats)` pairs. Each stats record contains: name, content_type, mime_type, started, listeners, peak_listeners, connections, listening_time, bytes_sent and current_metadata.
+# @method reload Read the config file again and apply it without disconnecting sources or listeners. Also called on `SIGHUP` when `config` is set. Raises and keeps the current config if the file is invalid.
 def replaces icecast.server(
   ~name="icecast.server",
   ~port=null,
@@ -2042,44 +2095,53 @@ def replaces icecast.server(
 ) =
   settings.frame.duration.set_default(0.2)
 
-  parsed =
-    if
-      null.defined(config)
-    then
-      icecast.server.config.load(null.get(config))
-    else
-      icecast.server.config.empty
-    end
+  # Explicit parameters keep overriding the file on every reload.
+  def load() =
+    parsed =
+      if
+        null.defined(config)
+      then
+        icecast.server.config.load(null.get(config))
+      else
+        icecast.server.config.empty
+      end
+    {
+      parsed = parsed,
+      effective =
+        icecast.server.config.resolve(
+          port=port,
+          password=password,
+          access_log=access_log,
+          playlist_log=playlist_log,
+          admin_user=admin_user,
+          admin_password=admin_password,
+          from_file=null.defined(config),
+          parsed
+        )
+    }
+  end
 
-  effective =
-    icecast.server.config.resolve(
-      port=port,
-      password=password,
-      access_log=access_log,
-      playlist_log=playlist_log,
-      admin_user=admin_user,
-      admin_password=admin_password,
-      from_file=null.defined(config),
-      parsed
-    )
+  current = ref(load())
+  let {parsed, effective} = current()
   port = effective.port
-  password = effective.password
-  max_sources = parsed.max_sources
-  logging = parsed.logging
 
   def log_writer(path) =
     icecast.server.log_writer(
       fun () ->
-        {
-          path = path,
-          size_limit =
-            null.map(fun (kib) -> 1024 * kib, logging.logsize) ?? 1000000000,
-          archive = logging.logarchive
-        }
+        begin
+          let {parsed, effective} = current()
+          {
+            path = path(effective),
+            size_limit =
+              null.map(fun (kib) -> 1024 * kib, parsed.logging.logsize)
+                ?? 1000000000,
+            archive = parsed.logging.logarchive
+          }
+        end
     )
   end
 
-  write_error_log = log_writer(effective.error_log)
+  write_error_log = log_writer(fun (effective) -> effective.error_log)
 
   # Written to liquidsoap's log and, up to `<loglevel>`, to the error log in icecast's format: local time, level, `category/function` and message.
   def log_event(~level, category, message) =
@@ -2095,7 +2157,7 @@ def replaces icecast.server(
       log.important(label=name, message)
     end
     if
-      level <= (logging.loglevel ?? 3)
+      level <= (current().parsed.logging.loglevel ?? 3)
     then
       level_name =
         list.nth(default="DBUG", ["EROR", "WARN", "INFO", "DBUG"], level - 1)
@@ -2133,9 +2195,12 @@ def replaces icecast.server(
         "main/main",
         "Using TLS transport: #{tls_name}"
       )
-      tls_factory(null.get(parsed.tls_certificate), parsed.tls_key)
+      tls_factory(
+        {current().parsed.tls_certificate},
+        {current().parsed.tls_key}
+      )
     else
-      http.transport.unix
+      http.transport.unix.{reload = fun () -> ()}
     end
 
   log_event(
@@ -2144,12 +2209,12 @@ def replaces icecast.server(
     "Icecast emulation server starting on port #{port}"
   )
   if
-    null.defined(max_sources)
+    null.defined(parsed.max_sources)
   then
     log_event(
       level=3,
       "main/main",
-      "Maximum sources: #{null.get(max_sources)}"
+      "Maximum sources: #{null.get(parsed.max_sources)}"
     )
   end
   if
@@ -2162,47 +2227,44 @@ def replaces icecast.server(
     )
   end
 
-  icecast.server.log_config(
-    name,
-    {
-      port = port,
-      password = password,
-      max_sources = max_sources,
-      global_headers = parsed.http_headers,
-      default_mount = parsed.default_mount,
-      mount_configs = parsed.mounts
-    }
-  )
+  def log_config({parsed, effective}) =
+    icecast.server.log_config(
+      name,
+      {
+        port = port,
+        password = effective.password,
+        max_sources = parsed.max_sources,
+        global_headers = parsed.http_headers,
+        default_mount = parsed.default_mount,
+        mount_configs = parsed.mounts
+      }
+    )
+  end
+  log_config(current())
 
   manager =
     icecast.server.source_manager(
       name=name,
       port=port,
       transport=transport,
-      password=password,
-      max_sources=max_sources,
-      max_clients=parsed.max_clients,
-      client_timeout=parsed.client_timeout,
-      limits=parsed,
+      server_config=fun () ->
+        {password = current().effective.password, parsed = current().parsed},
       dedicated_encoder=dedicated_encoder,
       x_forwarded_for_proxy_ips=x_forwarded_for_proxy_ips,
       x_forwarded_for=x_forwarded_for,
       format_options=format_options,
       ip_hash=ip_hash,
-      global_headers=parsed.http_headers,
-      default_mount=parsed.default_mount,
-      mount_configs=parsed.mounts,
       log_event=log_event
     )
 
-  write_access_log = log_writer(effective.access_log)
+  write_access_log = log_writer(fun (effective) -> effective.access_log)
   manager.on_listener_disconnect(
     synchronous=true,
     fun (listener) ->
       write_access_log(icecast.server.access_log_line(now=time(), listener))
   )
 
-  write_playlist_log = log_writer(effective.playlist_log)
+  write_playlist_log = log_writer(fun (effective) -> effective.playlist_log)
   manager.on_metadata(
     synchronous=true,
     fun (update) ->
@@ -2222,24 +2284,103 @@ def replaces icecast.server(
     on_connect=manager.handle_connection
   )
 
+  def warn_restart_only(old, new) =
+    list.iter(
+      fun ((option, changed)) ->
+        if
+          changed
+        then
+          log_event(
+            level=2,
+            "CONFIG/config_reread_config",
+            "Config option '#{option}' changed, it only applies after a restart"
+          )
+        end,
+      [
+        ("port", old.effective.port != new.effective.port),
+        ("bind-address", old.parsed.bind_address != new.parsed.bind_address),
+        ("tls", old.parsed.tls != new.parsed.tls),
+        (
+          "source-timeout",
+          old.parsed.source_timeout != new.parsed.source_timeout
+        )
+      ]
+    )
+  end
+
+  def reload() =
+    if
+      null.defined(config)
+    then
+      log_event(
+        level=3,
+        "slave/_slave_thread",
+        "Reloading config #{null.get(config)}"
+      )
+      new = load()
+      warn_restart_only(current(), new)
+      current := new
+      manager.reload()
+      log_config(new)
+      try
+        transport.reload()
+      catch err do
+        log_event(
+          level=1,
+          "CONFIG/config_reread_config",
+          "Could not reload the TLS certificate, keeping the previous one: #{
+            err.message
+          }"
+        )
+      end
+    else
+      log_event(
+        level=2,
+        "CONFIG/config_reread_config",
+        "No config file to reload"
+      )
+    end
+  end
+
+  if
+    null.defined(config)
+  then
+    on_signal(
+      "hup",
+      fun () ->
+        try
+          reload()
+        catch err do
+          log_event(
+            level=1,
+            "CONFIG/config_reread_config",
+            "Error parsing config, not replacing existing config: #{
+              err.message
+            }"
+          )
+        end
+    )
+  end
+
   server.register(
     namespace=name,
     description="Show icecast server configuration",
     "config",
     fun (_) ->
       begin
+        let {parsed, effective} = current()
         max_sources_str =
           if
-            null.defined(max_sources)
+            null.defined(parsed.max_sources)
           then
-            string(null.get(max_sources))
+            string(null.get(parsed.max_sources))
           else
             "unlimited"
           end
         lines =
           [
             "Port: #{port}",
-            "Password: #{string.length(password)} characters",
+            "Password: #{string.length(effective.password)} characters",
             "Max sources: #{max_sources_str}",
             "Global HTTP headers: #{list.length(parsed.http_headers)}",
             "Mount configurations: #{list.length(parsed.mounts)}",
@@ -2265,24 +2406,22 @@ def replaces icecast.server(
       manager.stats
     )
 
-    admin_password = effective.admin_password
     if
-      null.defined(admin_password)
+      not null.defined(effective.admin_password)
     then
-      icecast.server.serve_admin(
-        port=port,
-        transport=transport,
-        user=effective.admin_user,
-        password=null.get(admin_password),
-        manager.stats
-      )
-    else
       log_event(
         level=3,
         "main/main",
         "Admin listener page disabled: no admin password configured"
       )
     end
+    icecast.server.serve_admin(
+      port=port,
+      transport=transport,
+      user={current().effective.admin_user},
+      password={current().effective.admin_password},
+      manager.stats
+    )
   end
 
   {
@@ -2294,6 +2433,7 @@ def replaces icecast.server(
     on_listener_connect = manager.on_listener_connect,
     on_listener_disconnect = manager.on_listener_disconnect,
     on_metadata = manager.on_metadata,
-    stats = manager.stats
+    stats = manager.stats,
+    reload = reload
   }
 end
