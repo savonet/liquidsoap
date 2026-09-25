@@ -234,15 +234,15 @@ def f() =
   test.equal(l.accesslog, "a.log")
   test.equal(l.errorlog, "-")
   test.equal(l.playlistlog, "p.log")
-  test.equal(l.loglevel, 5)
+  test.equal(l.loglevel, 4)
   test.equal(l.logsize, 100)
   test.equal(l.logarchive, true)
   l = icecast.server.config.logging.parse("<logging/>")
   test.equal(l.accesslog, null)
   test.equal(l.loglevel, null)
   test.equal(l.logarchive, false)
-  test.equal(icecast.server.config.logging.level("1"), 2)
-  test.equal(icecast.server.config.logging.level("INFO"), 4)
+  test.equal(icecast.server.config.logging.level("1"), 1)
+  test.equal(icecast.server.config.logging.level("INFO"), 3)
   test.equal(icecast.server.config.logging.level("verbose"), null)
 
   # Full document: repeated mounts, default mount split off, sections optional

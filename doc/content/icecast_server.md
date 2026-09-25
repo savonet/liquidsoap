@@ -33,7 +33,7 @@ Parameters passed explicitly take precedence over the values of a configuration 
 - `x_forwarded_for`: Advanced callback to fully override real-IP extraction logic (see [below](#reverse-proxy-and-x-forwarded-for))
 - `format_options`: Optional callback `(string) -> [(string * string)]` that returns muxer options for a given container format name. When `null`, falls back to `settings.icecast.server.default_muxer_options` (see [below](#live-streaming-muxer-options))
 - `ip_hash`: Function applied to every listener IP before it is exposed anywhere (see [below](#listener-privacy))
-- `access_log`: Path of an icecast-style access log, `-` for standard error (see [below](#access-and-playlist-logs))
+- `access_log`: Path of an icecast-style access log, `-` for standard error (see [below](#log-files))
 - `playlist_log`: Path of an icecast-style playlist log, `-` for standard error
 - `admin_user`: User name for the admin listener page (default: `"admin"`)
 - `admin_password`: Password for the admin listener page, which is disabled without one (see [below](#admin-listener-page))
@@ -83,15 +83,15 @@ Synchronous disconnect handlers are called exactly once per listener, and always
 
 `on_metadata` handlers receive a record with the `mount`, its new `metadata` and the current number of `listeners`.
 
-## Access and Playlist Logs
+## Log Files
 
-Many log analyzers and statistics tools read the access log written by icecast. `icecast.server` can write the same log, so these tools keep working when liquidsoap takes over serving listeners:
+Many log analyzers and statistics tools read the logs written by icecast. `icecast.server` writes the same access, playlist and error logs, so these tools keep working when liquidsoap takes over serving listeners:
 
 ```{.liquidsoap include="icecast-server-access-log.liq"}
 
 ```
 
-When an icecast configuration file is used, the logs follow its `<logging>` section instead, see the [configuration reference](#logging).
+When an icecast configuration file is used, the logs follow its `<logging>` section instead, see the [configuration reference](#logging). The error log is only set up there.
 
 ### Access log
 
@@ -117,9 +117,21 @@ One line is written each time a mount's metadata changes:
 
 The fields are the time, mount, number of listeners and the `artist - title` text. Icecast writes the text as-is. Liquidsoap turns `|` characters and line breaks into spaces, so that each update stays on one parseable line.
 
+### Error log
+
+The error log records the server's own events, such as sources logging in and out and rejected source connections. It is a file of its own and does not change liquidsoap's log. Lines follow icecast's format, local time, level, `category/function` and message:
+
+```
+[2026-09-25  15:17:57] INFO connection-handle/_handle_source_request Source logging in at mountpoint "/live"
+```
+
+Levels are `EROR`, `WARN`, `INFO` and `DBUG`, and `<loglevel>` sets the most verbose one written, `INFO` by default. Categories and messages reuse icecast's where there is an equivalent, so existing log parsers keep matching. Every event is also written to liquidsoap's log.
+
 ### Rotation
 
-Log files are reopened for every line, so external tools like `logrotate` can move them at any time without signalling liquidsoap. Liquidsoap also rotates them the way icecast does: once a file grows past `<logsize>`, it is renamed to `<file>.old`, or to `<file>.YYYYmmdd_HHMMSS` when `<logarchive>` is set. Without `<logsize>`, the limit is 1GB.
+Log files are kept open, as in icecast. After an external tool like `logrotate` moves one, send `SIGHUP` or `SIGUSR1` to reopen it at its configured path, for instance with `postrotate kill -HUP <pid>`, which is also what icecast's packages do. `SIGUSR1` reopens liquidsoap's own log file too. `logrotate`'s `copytruncate` option works without any signal.
+
+Liquidsoap also rotates the logs the way icecast does: once a file grows past `<logsize>`, it is renamed to `<file>.old`, or to `<file>.YYYYmmdd_HHMMSS` when `<logarchive>` is set. Without `<logsize>`, the limit is 1GB.
 
 ## Listener Privacy
 
@@ -407,10 +419,10 @@ Log files are created in `<paths><logdir>`. Without a `logdir`, only the `-` val
 | Option          | Status          | Notes                                                                                            |
 | --------------- | --------------- | ------------------------------------------------------------------------------------------------ |
 | `accesslog`     | Supported       | Access log file, `access.log` by default. `-` writes to standard error. See [above](#access-log) |
-| `errorlog`      | Supported       | Liquidsoap's own log file, `error.log` by default. `-` logs to the console only                  |
+| `errorlog`      | Supported       | Error log file, `error.log` by default. `-` writes to standard error. See [above](#error-log)    |
 | `playlistlog`   | Supported       | Playlist log file, disabled by default. See [above](#playlist-log)                               |
-| `loglevel`      | Supported       | `1`/`error` to `4`/`debug`, mapped to liquidsoap log levels 2 to 5                               |
-| `logsize`       | Supported       | Size in KiB past which access and playlist logs are rotated, 1GB by default                      |
+| `loglevel`      | Supported       | Most verbose error log level, `1`/`error` to `4`/`debug`, `3`/`info` by default                  |
+| `logsize`       | Supported       | Size in KiB past which log files are rotated, 1GB by default                                     |
 | `logarchive`    | Supported       | When `1`, rotated logs keep a timestamped name instead of replacing `<file>.old`                 |
 | `memorybacklog` | Not implemented | Icecast's in-memory log view is not available                                                    |
 

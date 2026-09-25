@@ -162,7 +162,8 @@ def f() =
   # log_writer: rotation to .old, or to a timestamped archive
   dir = file.temp_dir("icecast", "logs")
   log_path = path.concat(dir, "access.log")
-  write = icecast.server.log_writer(size_limit=5, archive=false, log_path)
+  target = ref({path = (log_path : string?), size_limit = 5, archive = false})
+  write = icecast.server.log_writer(fun () -> target())
   write(
     "first line"
   )
@@ -172,13 +173,38 @@ def f() =
     file.contents("#{log_path}.old"),
     "first line\n"
   )
-  write = icecast.server.log_writer(size_limit=5, archive=true, log_path)
+  target := {path = (log_path : string?), size_limit = 5, archive = true}
   write("third")
   test.equal(file.contents(log_path), "third\n")
   test.equal(
     list.exists(fun (f) -> r/^access\.log\.\d{8}_\d{6}$/.test(f), file.ls(dir)),
     true
   )
+
+  # The open descriptor follows a moved file until SIGHUP reopens the path
+  target := {path = (log_path : string?), size_limit = 1000, archive = false}
+  moved = path.concat(dir, "moved.log")
+  file.move(force=true, log_path, moved)
+  write("fourth")
+  test.equal(file.contents(moved), "third\nfourth\n")
+  ignore(
+    process.run(
+      "kill -HUP #{process.pid()}"
+    )
+  )
+  thread.delay(1.)
+  write("fifth")
+  test.equal(file.contents(log_path), "fifth\n")
+
+  # A new path applies to the next line, a null one disables the log
+  other = path.concat(dir, "other.log")
+  target := {path = (other : string?), size_limit = 1000, archive = false}
+  write("sixth")
+  test.equal(file.contents(other), "sixth\n")
+  target := {path = (null : string?), size_limit = 1000, archive = false}
+  write("seventh")
+  test.equal(file.contents(other), "sixth\n")
+  test.equal(file.contents(log_path), "fifth\n")
   file.rmdir(dir)
 
   # basic_auth
@@ -301,7 +327,7 @@ def f() =
     uri
   ) =
     icecast.server.authorize(
-      label="test",
+      log_event=fun (~level:_, _, _) -> (),
       password=password,
       max_sources=max_sources,
       mount_config=mount_config,

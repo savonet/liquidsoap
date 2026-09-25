@@ -23,7 +23,7 @@
   `file.nfo.metadata`) (#4910).
 - Added Icecast-compatible streaming server (`icecast.server`) with support for source
   authentication, mount points, relay, and per-listener encoding (#4915). It writes icecast's
-  access and playlist logs, reports listener sessions through callbacks, serves an admin listener
+  access, playlist and error logs, reports listener sessions through callbacks, serves an admin listener
   page, and hashes listener IPs by default (#5408).
 - Added `on_signal`, which runs a function when the process receives a signal such as
   `SIGHUP` or `SIGUSR2`, and returns a `release` method (#5418).
