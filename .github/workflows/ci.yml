@@ -120,6 +120,10 @@ jobs:
     uses: ./.github/workflows/build-asan.yml
     needs: build_details
     if: needs.build_details.outputs.is_fork != 'true'
+    with:
+      is_rolling_release: ${{ needs.build_details.outputs.is_rolling_release }}
+      is_release: ${{ needs.build_details.outputs.is_release }}
+      build_stamp: ${{ needs.build_details.outputs.build_stamp }}
     secrets:
       DEPOT_TOKEN: ${{ secrets.DEPOT_TOKEN }}
 

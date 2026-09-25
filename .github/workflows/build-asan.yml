@@ -14,6 +14,15 @@ on:
         required: false
         default: "5.5.0"
         type: string
+      is_rolling_release:
+        required: false
+        type: string
+      is_release:
+        required: false
+        type: string
+      build_stamp:
+        required: false
+        type: string
     secrets:
       DEPOT_TOKEN:
         required: true
@@ -52,13 +61,20 @@ jobs:
         id: build_deb
         env:
           GITHUB_SHA: ${{ github.sha }}
-          DOCKER_TAG: debian-testing-asan-ocaml${{ inputs.ocaml_version || '5.5.0' }}
           BRANCH: ${{ github.head_ref || github.ref_name }}
+          IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
+          IS_RELEASE: ${{ inputs.is_release }}
+          BUILD_STAMP: ${{ inputs.build_stamp }}
+          PACKAGE_SUFFIX: -asan
           LIQ_TMP_DIR: /tmp/artifacts
           PLATFORM: amd64
           DEB_RELEASE: "1"
           SKIP_MINIMAL: "true"
+        # The codename, not "testing", is what build-repo.sh files the package
+        # under, and it is only known inside the image.
         run: |
+          . /etc/os-release
+          export DOCKER_TAG="debian-${VERSION_CODENAME}-ocaml${OCAML_VERSION}-asan"
           mkdir -p /tmp/artifacts
           chown opam /tmp/artifacts
           chown opam "${GITHUB_OUTPUT}"

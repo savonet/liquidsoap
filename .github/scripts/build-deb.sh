@@ -30,6 +30,7 @@ else
   TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
   LIQ_PACKAGE="liquidsoap-${TAG}"
 fi
+LIQ_PACKAGE="${LIQ_PACKAGE}${PACKAGE_SUFFIX}"
 
 echo "::group:: build ${LIQ_PACKAGE}.."
 

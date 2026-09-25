@@ -58,6 +58,10 @@ or `apk upgrade`, and the final release supersedes the rolling builds that led u
 Both the `liquidsoap` and `liquidsoap-minimal` packages are available from every channel. Re-running the
 script switches channel.
 
+Channels that have one also carry `liquidsoap-asan`, a build with AddressSanitizer enabled, for Debian
+testing on `amd64`. It replaces `liquidsoap` when installed and is meant for tracking down crashes, not for
+production.
+
 ### Manual configuration
 
 The script is [`scripts/setup-repository.sh`](https://github.com/savonet/liquidsoap/blob/main/scripts/setup-repository.sh)

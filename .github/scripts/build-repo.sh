@@ -61,15 +61,14 @@ SITE_ABS=$(cd "${SITE}" && pwd -P)
 # channel's package_ocaml prefix wins, so a new patch release needs no edit here.
 newest_ocaml() {
   # shellcheck disable=SC2012 # names only, and they are ours
-  ls "$1" | sed -n 's/.*-ocaml\([0-9][0-9.]*\)[-.].*/\1/p' |
+  ls "$1" | sed -n '/-asan/d; s/.*-ocaml\([0-9][0-9.]*\)[-.].*/\1/p' |
     awk -v prefix="$2" 'substr($0, 1, length(prefix)) == prefix' | sort -V -u | tail -1
 }
 
-# The release also carries debug symbols and the sanitizer build, neither of which
-# a repository should offer, so the two packages a user installs are named rather
-# than inferred.
+# The release also carries debug symbols, which a repository should not offer, so
+# the packages a user installs are named rather than inferred.
 publishable() {
-  case "$1" in liquidsoap | liquidsoap-minimal) return 0 ;; *) return 1 ;; esac
+  case "$1" in liquidsoap | liquidsoap-minimal | liquidsoap-asan) return 0 ;; *) return 1 ;; esac
 }
 
 # The one place that decides what a channel publishes. A channel built before
@@ -84,8 +83,9 @@ select_packages() {
     [ -e "${deb}" ] || continue
     name=$(dpkg-deb -f "${deb}" Package)
     publishable "${name}" || continue
-    case "$(dpkg-deb -f "${deb}" Version)" in
-      *"-ocaml${ocaml}-"*) printf '%s\n' "${deb}" >> "${WORK}/debs" ;;
+    # There is a single sanitizer build, on whichever OCaml version it uses.
+    case "${name}:$(dpkg-deb -f "${deb}" Version)" in
+      liquidsoap-asan:* | *"-ocaml${ocaml}-"*) printf '%s\n' "${deb}" >> "${WORK}/debs" ;;
     esac
   done
 
