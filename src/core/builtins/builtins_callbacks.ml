@@ -73,54 +73,6 @@ let catchable_signals =
 
 let signal_log = Log.make ["signal"]
 
-let run_signal_callback f =
-  try ignore (Lang.apply f [])
-  with exn ->
-    let bt = Printexc.get_backtrace () in
-    Utils.log_exception ~log:signal_log ~bt
-      (Printf.sprintf "Error in signal callback: %s" (Printexc.to_string exn))
-
-(* Callbacks queued by signal handlers, newest first. A callback released after
-   its signal was received does not run. *)
-let pending_signal_callbacks = Atomic.make []
-
-let rec queue_signal_callback f =
-  let pending = Atomic.get pending_signal_callbacks in
-  if
-    not (Atomic.compare_and_set pending_signal_callbacks pending (f :: pending))
-  then queue_signal_callback f
-
-(* Handlers only queue their callback and write to a never-closed pipe:
-   running liq code, adding a task or waking a [Duppy.Async] takes a lock the
-   interrupted code may hold. *)
-let wake_signal_task =
-  Lazy.Mutexed.from_fun (fun () ->
-      let read_fd, write_fd = Unix.pipe ~cloexec:true () in
-      Unix.set_nonblock read_fd;
-      Unix.set_nonblock write_fd;
-      let buffer = Bytes.create 256 in
-      let rec task () =
-        {
-          Duppy.Task.priority = `Threaded;
-          events = [`Read read_fd];
-          handler =
-            (fun _ ->
-              (try ignore (Unix.read read_fd buffer 0 (Bytes.length buffer))
-               with
-               | Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) ->
-                 ());
-              List.iter
-                (fun run -> run ())
-                (List.rev (Atomic.exchange pending_signal_callbacks []));
-              [task ()]);
-        }
-      in
-      Duppy.Task.add Tutils.scheduler (task ());
-      let byte = Bytes.make 1 '\000' in
-      fun () ->
-        try ignore (Unix.single_write write_fd byte 0 1)
-        with Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _) -> ())
-
 let _ =
   Lang.add_builtin "on_signal" ~category:`System
     [
@@ -171,14 +123,5 @@ let _ =
             signal_log#important "Signals are not supported on Windows.";
             released (fun () -> ())
         | Some signal ->
-            let wake = Lazy.Mutexed.force wake_signal_task in
-            let active = Atomic.make true in
-            let run () = if Atomic.get active then run_signal_callback f in
-            let remove =
-              Signal_handlers.add signal (fun _ ->
-                  queue_signal_callback run;
-                  wake ())
-            in
-            released (fun () ->
-                Atomic.set active false;
-                remove ()))
+            released
+              (Signal_callbacks.add signal (fun () -> ignore (Lang.apply f []))))

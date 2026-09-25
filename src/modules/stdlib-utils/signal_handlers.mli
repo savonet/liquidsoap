@@ -24,6 +24,7 @@
 
 (** [add signal handler] runs [handler] whenever [signal] is received, after the
     handlers added before it. Returns a function removing it. Handlers run in
-    signal context: they must not take locks. Once a handler has been added, the
-    signal no longer has its default action, even after all are removed. *)
+    signal context: they must not take locks, and their exceptions are ignored.
+    Once a handler has been added, the signal no longer has its default action,
+    even after all are removed. *)
 val add : int -> (int -> unit) -> unit -> unit

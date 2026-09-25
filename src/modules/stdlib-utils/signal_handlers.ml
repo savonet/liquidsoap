@@ -27,10 +27,11 @@ type entry = { id : int; handler : int -> unit }
 let handlers : entry list Int_map.t Atomic.t = Atomic.make Int_map.empty
 let next_id = Atomic.make 0
 
-(* Runs in signal context: one atomic read, no lock. *)
+(* Runs in signal context: one atomic read, no lock. A failing handler must not
+   keep the others from running, nor raise in the interrupted code. *)
 let dispatch signal =
   List.iter
-    (fun { handler } -> handler signal)
+    (fun { handler } -> try handler signal with _ -> ())
     (Option.value ~default:[] (Int_map.find_opt signal (Atomic.get handlers)))
 
 let rec update fn =

@@ -20,37 +20,10 @@
 
  *****************************************************************************)
 
-(** Leaf utilities. *)
+(** Signal callbacks run on the scheduler rather than in signal context. *)
 
-module Atomic_section = Atomic_section
-module Charset = Charset
-module Charset_base = Charset_base
-module Concurrent_hashtbl = Concurrent_hashtbl
-module Configure = Configure
-module Doc = Doc
-module Extra_args = Extra_args
-module Extralib = Extralib
-module Lang_string = Lang_string
-module Lifecycle = Lifecycle
-module Liq_http = Liq_http
-module Liq_time = Liq_time
-module Reloadable_transport = Reloadable_transport
-module Liquidsoap_paths = Liquidsoap_paths
-module Log = Log
-module Mutex_utils = Mutex_utils
-module Plug = Plug
-module Pool = Pool
-module Process_handler = Process_handler
-module Queues = Queues
-module Sandbox = Sandbox
-module Script_callback = Script_callback
-module Server = Server
-module Sha1 = Sha1
-module Startup = Startup
-module StringView = StringView
-module Strings = Strings
-module ByteRing = ByteRing
-module Signal_callbacks = Signal_callbacks
-module Tutils = Tutils
-module Unifier = Liquidsoap_core_formats.Unifier
-module Utils = Utils
+(** [add signal fn] runs [fn] on the scheduler after [signal] is received, after
+    the callbacks added before it. Errors are logged. Returns a function
+    removing it: a callback removed after its signal was received but before it
+    ran does not run. *)
+val add : int -> (unit -> unit) -> unit -> unit
