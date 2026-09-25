@@ -1,13 +1,14 @@
 #!/bin/sh
 
-# Configures the Liquidsoap package repository. See @BASE@ for how to run it.
+# Configures the Liquidsoap apt or apk repository. Published as
+# https://repo.liquidsoap.info/setup.sh.
 #
 # The script asks which release to install. To pick one up front, or to run it
 # somewhere without a terminal, pass --channel.
 
 set -eu
 
-BASE="@BASE@"
+BASE="${LIQUIDSOAP_REPO_URL:-https://repo.liquidsoap.info}"
 CHANNEL="${LIQUIDSOAP_CHANNEL:-}"
 
 if [ "${1:-}" = "--channel" ]; then

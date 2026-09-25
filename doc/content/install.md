@@ -47,7 +47,7 @@ You can also name the release up front, which is what you want in a `Dockerfile`
 no terminal to answer the question:
 
 ```shell
-curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh -s -- --channel v2.4.5
+curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh -s -- --channel rolling-release-v2.5.x
 ```
 
 There is one channel per supported version: a stable channel following the latest release of that version,
@@ -60,35 +60,34 @@ script switches channel.
 
 ### Manual configuration
 
-If you would rather not pipe a script into a root shell, or manage your system's configuration with other
-tools, here is what the script sets up. Replace `CHANNEL` with a channel name listed at
-https://repo.liquidsoap.info/channels.txt, for instance `rolling-release-v2.5.x`.
+The script is [`scripts/setup-repository.sh`](https://github.com/savonet/liquidsoap/blob/main/scripts/setup-repository.sh)
+in our repository, if you want to read it before running it. To set things up yourself instead, pick a channel
+from https://repo.liquidsoap.info/channels.txt.
 
-On Debian and Ubuntu, install the signing key:
+On Debian and Ubuntu:
 
 ```shell
+CHANNEL=rolling-release-v2.5.x
+. /etc/os-release
 sudo install -d /etc/apt/keyrings
 sudo curl -fsSL https://repo.liquidsoap.info/liquidsoap.asc -o /etc/apt/keyrings/liquidsoap.asc
-```
-
-and write `/etc/apt/sources.list.d/liquidsoap.sources`, with `CODENAME` being the `VERSION_CODENAME` from
-`/etc/os-release` (`trixie`, `noble`, ...):
-
-```
+sudo tee /etc/apt/sources.list.d/liquidsoap.sources << EOF
 Types: deb
-URIs: https://repo.liquidsoap.info/CHANNEL/deb/CODENAME
+URIs: https://repo.liquidsoap.info/${CHANNEL}/deb/${VERSION_CODENAME}
 Suites: ./
 Signed-By: /etc/apt/keyrings/liquidsoap.asc
+EOF
+sudo apt-get update
 ```
 
-On Alpine, install the signing key and add the repository:
+On Alpine:
 
 ```shell
+CHANNEL=rolling-release-v2.5.x
 curl -fsSL https://repo.liquidsoap.info/liquidsoap.rsa.pub -o /etc/apk/keys/liquidsoap.rsa.pub
-echo https://repo.liquidsoap.info/CHANNEL/alpine >> /etc/apk/repositories
+echo https://repo.liquidsoap.info/${CHANNEL}/alpine >> /etc/apk/repositories
+apk update
 ```
-
-Then run `apt-get update` or `apk update` as usual.
 
 Each channel covers the same distributions and architectures as our release assets: the current Debian stable
 and testing, the current Ubuntu LTS and latest release, and Alpine edge. Debian and Ubuntu packages are built

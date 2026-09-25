@@ -258,7 +258,11 @@ done < <(.github/scripts/release-channels.sh | cut -f1,4)
 
 [ -s "${SITE}/channels.txt" ] || fail "no channel could be built"
 
-sed -e "s#@BASE@#${BASE_URL}#g" .github/scripts/setup.sh.in > "${SITE}/setup.sh"
+# Without it, Pages answers every missing path with index.html and a 200, so
+# setup.sh would install the page as a sources file.
+printf 'Not found\n' > "${SITE}/404.html"
+
+sed -e "s#https://repo.liquidsoap.info#${BASE_URL}#g" scripts/setup-repository.sh > "${SITE}/setup.sh"
 chmod +x "${SITE}/setup.sh"
 
 # Written from the channels that were built rather than by hand, so the page
