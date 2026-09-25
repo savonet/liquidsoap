@@ -33,21 +33,23 @@ let current_day () =
   let time = Unix.localtime (Unix.time ()) in
   (time.Unix.tm_year, time.Unix.tm_yday)
 
+(* Only a successful reload uses up the day, so a failed one is retried on the
+   next connection. *)
 let once_a_day () =
   let last_day = Atomic.make (current_day ()) in
-  fun () ->
-    let day = current_day () in
-    day <> Atomic.exchange last_day day
+  ( (fun () -> current_day () <> Atomic.get last_day),
+    fun () -> Atomic.set last_day (current_day ()) )
 
 let log = Log.make ["http"; "reload"]
 
 (* The config is built for the first server and shared by every port opened
    with the transport, so a reload reaches all of them. *)
 let server_config ~reload_on build =
-  let reload_on =
+  let due, reloaded =
     match Lang.to_option reload_on with
       | None -> once_a_day ()
-      | Some reload_on -> fun () -> Lang.to_bool (Lang.to_getter reload_on ())
+      | Some reload_on ->
+          ((fun () -> Lang.to_bool (Lang.to_getter reload_on ())), fun () -> ())
   in
   let config = Atomic.make None in
   let reload () =
@@ -58,13 +60,15 @@ let server_config ~reload_on build =
   let current () =
     (match Atomic.get config with
       | None -> ignore (Atomic.compare_and_set config None (Some (build ())))
-      | Some _ when reload_on () -> (
-          try reload ()
+      | Some _ -> (
+          try
+            if due () then (
+              reload ();
+              reloaded ())
           with exn ->
             log#severe
               "Could not reload certificate, keeping the previous one: %s"
-              (Printexc.to_string exn))
-      | Some _ -> ());
+              (Printexc.to_string exn)));
     Option.get (Atomic.get config)
   in
   (current, reload)
@@ -79,7 +83,8 @@ let add_builtin ~base ~descr ~transport_t name proto make =
               ([], Lang.fun_t [] Lang.unit_t),
               "Read the certificate and key again and use them for new \
                connections. Open connections keep the previous ones. Raises \
-               and keeps the previous ones if they cannot be loaded." );
+               and keeps the previous ones if they cannot be loaded. Does \
+               nothing until a server port using the transport has opened." );
           ])
        (fun p ->
          let build, transport = make p in

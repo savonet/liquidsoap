@@ -15,6 +15,7 @@ let static_tests =
     "test_harbor_tls_reload.liq";
     "test_harbor_ssl_reload.liq";
     "test_harbor_tls_reload_on.liq";
+    "test_harbor_tls_reload_on_error.liq";
     "test_crossfade-plot.liq";
     "test_autocue-plot.liq";
     "test_video_size_autodetect.liq";
