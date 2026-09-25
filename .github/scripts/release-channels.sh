@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Prints one row per published channel, as tag, kind, branch, description.
+# Prints one row per published channel, as tag, kind, branch, description and
+# the OCaml version its packages are built with, empty for the newest.
 #
 # The one place that knows what a release tag is called. build-details.sh tags a
 # rolling build with it and build-repo.sh looks the release up by it; if the two
@@ -15,9 +16,10 @@ jq -r '
   def published: [.[] | select(.supported != false)];
   (published | .[] | select(.latest_release != null)
     | ["v\(.latest_release)", "release", (.branch // "-"),
-       "Liquidsoap \(.latest_release)"]),
+       "Liquidsoap \(.latest_release)", (.package_ocaml // "")]),
   (published | .[] | select(.branch != null)
     | ["rolling-release-v\(.version)", "rolling", .branch,
-       "Liquidsoap \(.version) rolling release, rebuilt on every commit"])
+       "Liquidsoap \(.version) rolling release, rebuilt on every commit",
+       (.package_ocaml // "")])
   | @tsv
 ' "${MATRIX}"

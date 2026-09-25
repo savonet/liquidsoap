@@ -57,11 +57,12 @@ SITE_ABS=$(cd "${SITE}" && pwd -P)
 : > "${SITE}/channels.txt"
 
 # Branches build several OCaml versions; only one of them can be the liquidsoap
-# package, or the two collide under the same name. The newest wins, so a branch
-# that drops or adds an OCaml version needs no edit here.
+# package, or the two collide under the same name. The newest matching the
+# channel's package_ocaml prefix wins, so a new patch release needs no edit here.
 newest_ocaml() {
   # shellcheck disable=SC2012 # names only, and they are ours
-  ls "$1" | sed -n 's/.*-ocaml\([0-9][0-9.]*\)[-.].*/\1/p' | sort -V -u | tail -1
+  ls "$1" | sed -n 's/.*-ocaml\([0-9][0-9.]*\)[-.].*/\1/p' |
+    awk -v prefix="$2" 'substr($0, 1, length(prefix)) == prefix' | sort -V -u | tail -1
 }
 
 # The release also carries debug symbols and the sanitizer build, neither of which
@@ -221,7 +222,7 @@ build_apk() {
   done
 }
 
-while IFS=$'\t' read -r channel description; do
+while IFS=$'\t' read -r channel description package_ocaml; do
   [ -n "${channel}" ] || continue
 
   if ! gh release view "${channel}" -R "${RELEASE_REPO}" --json isDraft > "${WORK}/release.json" 2> /dev/null; then
@@ -241,7 +242,7 @@ while IFS=$'\t' read -r channel description; do
   gh release download "${channel}" -R "${RELEASE_REPO}" -D "${downloads}" \
     -p '*.deb' -p '*.apk' --clobber
 
-  ocaml=$(newest_ocaml "${downloads}")
+  ocaml=$(newest_ocaml "${downloads}" "${package_ocaml}")
   [ -n "${ocaml}" ] || fail "no ocaml version in ${channel} assets"
   echo "build-repo: ${channel} ships ocaml ${ocaml}"
 
@@ -254,7 +255,7 @@ while IFS=$'\t' read -r channel description; do
   build_apk "${channel}"
 
   printf '%s\t%s\n' "${channel}" "${description}" >> "${SITE}/channels.txt"
-done < <(.github/scripts/release-channels.sh | cut -f1,4)
+done < <(.github/scripts/release-channels.sh | cut -f1,4,5)
 
 [ -s "${SITE}/channels.txt" ] || fail "no channel could be built"
 
