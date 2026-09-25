@@ -184,11 +184,7 @@ let tls_socket ~pos ~session transport =
       method pending = Buffer.length session.Liq_tls.read_pending > 0
 
       method wait_for ?log event timeout =
-        match event with
-          | (`Read | `Both) when self#pending -> ()
-          | `Read -> Tutils.wait_for ?log (`Read self#file_descr) timeout
-          | `Write -> Tutils.wait_for ?log (`Write self#file_descr) timeout
-          | `Both -> Tutils.wait_for ?log (`Both self#file_descr) timeout
+        Http.wait_for ?log ~pending:self#pending self#file_descr event timeout
 
       method read = Liq_tls.read session
       method write = Liq_tls.write session

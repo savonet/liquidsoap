@@ -93,11 +93,7 @@ let ssl_socket ~pos transport ssl =
       method pending = Buffer.length read_pending > 0
 
       method wait_for ?log event timeout =
-        match event with
-          | (`Read | `Both) when self#pending -> ()
-          | `Read -> Tutils.wait_for ?log (`Read self#file_descr) timeout
-          | `Write -> Tutils.wait_for ?log (`Write self#file_descr) timeout
-          | `Both -> Tutils.wait_for ?log (`Both self#file_descr) timeout
+        Http.wait_for ?log ~pending:self#pending self#file_descr event timeout
 
       method read = read
       method write = write_wrapper ssl

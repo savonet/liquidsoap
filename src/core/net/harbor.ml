@@ -607,7 +607,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let rem_len = String.length rem_data in
     let rem_ofs = Atomic.make 0 in
     let socket = h.Io.socket in
-    object
+    object (self)
       method typ = socket#typ
       method transport = socket#transport
       method file_descr = socket#file_descr
@@ -617,9 +617,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       method closed = socket#closed
 
       method wait_for ?log event timeout =
-        match (event, Atomic.get rem_ofs) with
-          | `Read, ofs when ofs < rem_len -> ()
-          | _ -> socket#wait_for ?log event timeout
+        Http.wait_for ?log ~pending:self#pending self#file_descr event timeout
 
       method read buf dst_ofs len =
         if Atomic.get rem_ofs < rem_len then (

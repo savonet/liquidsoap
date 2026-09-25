@@ -33,6 +33,15 @@ and transport =
       socket
   ; server : server >
 
+(** The [wait_for] of a socket whose [pending] flag is [pending]. *)
+val wait_for :
+  ?log:(string -> unit) ->
+  pending:bool ->
+  Unix.file_descr ->
+  event ->
+  float ->
+  unit
+
 (** Base unix connect *)
 val connect :
   ?bind_address:string ->
