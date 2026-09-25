@@ -309,8 +309,9 @@ let transport ~read_timeout ~write_timeout ~server_config ~certificate
       server ~read_timeout ~write_timeout ~config:server_config self
   end
 
-let _ =
-  Lang.add_builtin ~base:Modules.http_transport "tls" ~category:`Internet
+let () =
+  Reloadable_transport.add_builtin ~base:Modules.http_transport
+    ~transport_t:Lang.http_transport_t "tls"
     ~descr:"Https transport using libtls"
     [
       ( "read_timeout",
@@ -321,7 +322,6 @@ let _ =
         Lang.nullable_t Lang.float_t,
         Some Lang.null,
         Some "Write timeout. Defaults to harbor's timeout if `null`." );
-      Lang.reload_on_arg;
       ( "certificate",
         Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
@@ -354,7 +354,6 @@ let _ =
           "Path to client certificate private key. Required in client mode if \
            a client certificate is passed. Unused in server mode." );
     ]
-    Lang.reloadable_http_transport_t
     (fun p ->
       let read_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
@@ -388,12 +387,8 @@ let _ =
       let key = find_opt "key" in
       let client_certificate = find_opt "client_certificate" in
       let client_key = find "client_key" in
-      let server_config, reload =
-        Lang.reloadable_server_config ~reload_on:(List.assoc "reload_on" p)
-          (server_config ~certificate ~key ~client_certificate)
-      in
-      let transport =
-        transport ~read_timeout ~write_timeout ~server_config ~certificate
-          ~client_certificate ~client_key ()
-      in
-      Lang.reloadable_http_transport ~reload transport)
+      ( server_config ~certificate ~key ~client_certificate,
+        fun server_config ->
+          Lang.http_transport
+            (transport ~read_timeout ~write_timeout ~server_config ~certificate
+               ~client_certificate ~client_key ()) ))

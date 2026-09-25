@@ -224,8 +224,9 @@ let transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
       server ~read_timeout ~write_timeout ~context:server_context self
   end
 
-let _ =
-  Lang.add_builtin ~base:Modules.http_transport "ssl" ~category:`Internet
+let () =
+  Reloadable_transport.add_builtin ~base:Modules.http_transport
+    ~transport_t:Lang.http_transport_t "ssl"
     ~descr:"Https transport using libssl"
     [
       ( "read_timeout",
@@ -262,7 +263,6 @@ let _ =
            and server is negotiated when initiating communication between \
            minimal and maximal protocol version. Defaults to highest protocol \
            supported if not set." );
-      Lang.reload_on_arg;
       ( "certificate",
         Lang.getter_t (Lang.nullable_t Lang.string_t),
         Some Lang.null,
@@ -279,7 +279,6 @@ let _ =
            `input.harbor`, etc., unless the certificate file also contains the \
            private key. Read when the first port opens and on `reload()`." );
     ]
-    Lang.reloadable_http_transport_t
     (fun p ->
       let read_timeout =
         Lang.to_valued_option Lang.to_float (List.assoc "read_timeout" p)
@@ -320,13 +319,8 @@ let _ =
           | None -> None
           | Some path -> Some (Utils.check_readable ~pos:(Lang.pos p) path)
       in
-      let server_context, reload =
-        Lang.reloadable_server_config ~reload_on:(List.assoc "reload_on" p)
-          (server_context ~min_protocol ~max_protocol ~password ~certificate
-             ~key)
-      in
-      let transport =
-        transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
-          ~server_context ~certificate ()
-      in
-      Lang.reloadable_http_transport ~reload transport)
+      ( server_context ~min_protocol ~max_protocol ~password ~certificate ~key,
+        fun server_context ->
+          Lang.http_transport
+            (transport ~min_protocol ~max_protocol ~read_timeout ~write_timeout
+               ~server_context ~certificate ()) ))

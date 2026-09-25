@@ -138,6 +138,7 @@ module Harbor = Harbor
 module Harbor_input = Harbor_input
 module Pipe_output = Pipe_output
 module Liq_http = Liq_http
+module Reloadable_transport = Reloadable_transport
 module Liqcurl = Liqcurl
 module Server = Server
 

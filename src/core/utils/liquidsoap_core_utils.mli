@@ -34,6 +34,7 @@ module Lang_string = Lang_string
 module Lifecycle = Lifecycle
 module Liq_http = Liq_http
 module Liq_time = Liq_time
+module Reloadable_transport = Reloadable_transport
 module Liquidsoap_paths = Liquidsoap_paths
 module Log = Log
 module Mutex_utils = Mutex_utils
