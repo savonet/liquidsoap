@@ -45,9 +45,13 @@ let with_connection (transport : Liq_http.transport) f =
       Unix.close listening)
     (fun () -> f socket)
 
-let read_with_wait_for (socket : Liq_http.socket) =
+let read_with_wait_for ?(received = "") (socket : Liq_http.socket) =
   let buf = Bytes.create 1024 in
-  let received = Buffer.create (String.length request) in
+  let received =
+    let buffer = Buffer.create (String.length request) in
+    Buffer.add_string buffer received;
+    buffer
+  in
   while Buffer.length received < String.length request do
     socket#wait_for `Read read_timeout;
     let n = socket#read buf 0 (Bytes.length buf) in
@@ -56,6 +60,38 @@ let read_with_wait_for (socket : Liq_http.socket) =
     Buffer.add_subbytes received buf 0 n
   done;
   Buffer.contents received
+
+let wait_until ~what fired =
+  let deadline = Unix.gettimeofday () +. (2. *. read_timeout) in
+  while not (Atomic.get fired) do
+    if Unix.gettimeofday () > deadline then fail "%s never fired" what;
+    Thread.delay 0.05
+  done
+
+(* [socket.read.wait] is asked once the first read has left the rest of the
+   record buffered. *)
+let read_with_lang_wait (socket : Liq_http.socket) =
+  let buf = Bytes.create 1024 in
+  socket#wait_for `Read read_timeout;
+  let n = socket#read buf 0 (Bytes.length buf) in
+  let fired = Atomic.make false in
+  let wait =
+    Value.invoke
+      (Value.invoke
+         (Liquidsoap_builtins.Builtins_socket.Socket_value.to_value socket)
+         "read")
+      "wait"
+  in
+  ignore
+    (Lang.apply wait
+       [
+         ( "",
+           Lang.val_fun [] (fun _ ->
+               Atomic.set fired true;
+               Lang.unit) );
+       ]);
+  wait_until ~what:"socket.read.wait" fired;
+  read_with_wait_for ~received:(Bytes.sub_string buf 0 n) socket
 
 let read_with_duppy scheduler socket =
   let module Io = Harbor.Http_transport.Io in
@@ -99,7 +135,11 @@ let check ~name transport scheduler =
           (String.length received) (String.length request);
       Printf.printf "%s/%s: read a %d-byte request\n%!" name reader
         (String.length request))
-    [("wait_for", read_with_wait_for); ("duppy", read_with_duppy scheduler)]
+    [
+      ("wait_for", fun socket -> read_with_wait_for socket);
+      ("duppy", read_with_duppy scheduler);
+      ("socket.read.wait", read_with_lang_wait);
+    ]
 
 let () =
   let certificate, key =
@@ -107,6 +147,7 @@ let () =
       | [| _; certificate; key |] -> (certificate, key)
       | _ -> fail "usage: %s <certificate> <key>" Sys.argv.(0)
   in
+  Tutils.start ();
   let scheduler = Duppy.create () in
   Duppy.start ~pool:(`Domains 2) scheduler;
   let ssl =
@@ -134,4 +175,5 @@ let () =
   in
   check ~name:"ssl" ssl scheduler;
   check ~name:"tls" tls scheduler;
-  Duppy.stop scheduler
+  Duppy.stop scheduler;
+  Tutils.shutdown 0

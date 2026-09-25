@@ -207,6 +207,7 @@
 (executable
  (name tls_pending_test)
  (modules tls_pending_test)
+ (optional)
  (flags
   (:standard -open Liquidsoap_core))
  (libraries
@@ -219,6 +220,7 @@
   unix))
 
 (rule
+ (alias tls_pending_test)
  (targets ssl.cert ssl.key)
  (action
   (run
