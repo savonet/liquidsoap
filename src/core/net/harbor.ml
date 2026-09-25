@@ -602,7 +602,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
     http_auth_check ?query ~meth ~uri ~login h.Io.socket headers
 
-  let socket_with_remaining h =
+  (* [buffered] reports bytes a relay reader holds on top of the socket. *)
+  let socket_with_remaining ?(buffered = fun () -> false) h =
     let rem_data = h.Io.data in
     let rem_len = String.length rem_data in
     let rem_ofs = Atomic.make 0 in
@@ -611,7 +612,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       method typ = socket#typ
       method transport = socket#transport
       method file_descr = socket#file_descr
-      method pending = Atomic.get rem_ofs < rem_len || socket#pending
+
+      method pending =
+        buffered () || Atomic.get rem_ofs < rem_len || socket#pending
+
       method write = socket#write
       method close = socket#close
       method closed = socket#closed
@@ -683,9 +687,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         try assoc_uppercase "TRANSFER-ENCODING" headers = "chunked"
         with Not_found -> false
       in
+      let buf = Buffer.create Utils.buflen in
       let read =
         if chunked then (
-          let buf = Buffer.create Utils.buflen in
           let read connection b ofs len =
             if Buffer.length buf < len then (
               let s, len =
@@ -700,7 +704,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Some read)
         else None
       in
-      let socket = socket_with_remaining h in
+      let socket =
+        socket_with_remaining ~buffered:(fun () -> Buffer.length buf > 0) h
+      in
       s.relay { stype; headers; read; groups; uri; socket };
       log#info "Adding source on mountpoint %S with type %S." uri stype;
       log#debug "Relaying %s." (string_of_protocol hprotocol);
@@ -781,9 +787,15 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       Io.write ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
         (Bytes.of_string (Websocket.upgrade headers))
     in
+    let binary_data = Buffer.create Utils.buflen in
+    let socket =
+      socket_with_remaining
+        ~buffered:(fun () -> Buffer.length binary_data > 0)
+        h
+    in
     let stype, huri, user, password =
       Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
-      read_hello h.Io.socket
+      read_hello socket
     in
     log#info "Mime type: %s" stype;
     log#info "Mount point: %s" huri;
@@ -809,7 +821,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         log#info "Authentication failed!";
         simple_reply (websocket_error 1011 "Authentication failed.")
     in
-    let binary_data = Buffer.create Utils.buflen in
     let read_socket socket =
       match websocket_read socket with
         | `Binary buf -> Buffer.add_string binary_data buf
@@ -834,14 +845,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       len
     in
     source.relay
-      {
-        uri = huri;
-        groups;
-        stype;
-        headers;
-        read = Some read;
-        socket = h.Io.socket;
-      };
+      { uri = huri; groups; stype; headers; read = Some read; socket };
     relayed ""
 
   exception Handled of (http_verb * (string * string) list * http_handler)
