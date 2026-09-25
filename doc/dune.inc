@@ -1294,6 +1294,20 @@
    content/liq/icecast-server-plain-ips.liq)))
 
 (rule
+ (alias test-doc-icecast-server-reload)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-reload.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-reload.liq)))
+
+(rule
  (alias test-doc-icecast-server-serve-auth)
  (package liquidsoap)
  (deps
@@ -2391,6 +2405,7 @@
   (alias test-doc-icecast-server-ip-hash)
   (alias test-doc-icecast-server-listener-callbacks)
   (alias test-doc-icecast-server-plain-ips)
+  (alias test-doc-icecast-server-reload)
   (alias test-doc-icecast-server-serve-auth)
   (alias test-doc-icecast-server-serve-json)
   (alias test-doc-icy-update)

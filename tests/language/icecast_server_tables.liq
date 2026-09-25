@@ -63,6 +63,33 @@ def f() =
   test.equal(list.map(fst, t.disconnect("/c")), ["/c"])
   test.equal(list.map(fst, t.disconnect("/unknown")), [])
 
+  # set_fallback: /a moves from /b to /c while live, then loses its fallback
+  ignore(t.connect(mount="/a", fallback_mount="/b", source=a, create("/a")))
+  ignore(t.connect(mount="/b", fallback_mount=null, source=b, create("/b")))
+  ignore(t.connect(mount="/c", fallback_mount=null, source=b2, create("/c")))
+  test.equal(source.id(null.get(t.get("/a").fallback())), "b")
+  test.equal(list.map(fst, t.set_fallback("/a", "/c")), [])
+  test.equal(source.id(null.get(t.get("/a").fallback())), "b2")
+
+  # Disconnecting /b leaves /a on /c
+  test.equal(list.map(fst, t.disconnect("/b")), ["/b"])
+  test.equal(source.id(null.get(t.get("/a").fallback())), "b2")
+  test.equal(list.map(fst, t.disconnect("/a")), [])
+  test.equal(t.has("/a"), true)
+
+  # Without its source, /a is orphaned once its fallback is cleared
+  test.equal(list.map(fst, t.set_fallback("/a", null)), ["/a"])
+  test.equal(t.has("/a"), false)
+  test.equal(list.map(fst, t.disconnect("/c")), ["/c"])
+
+  # A fallback on an absent mount picks up its source when it connects
+  ignore(t.connect(mount="/a", fallback_mount=null, source=a, create("/a")))
+  test.equal(list.map(fst, t.set_fallback("/a", "/d")), [])
+  test.equal(null.defined(t.get("/a").fallback()), false)
+  ignore(t.connect(mount="/d", fallback_mount=null, source=b, create("/d")))
+  test.equal(source.id(null.get(t.get("/a").fallback())), "b")
+  test.equal(list.map(fst, t.set_fallback("/unknown", "/d")), [])
+
   # listener_counters: peak, connections and finished-session totals
   c = icecast.server.listener_counters()
   c.connect()

@@ -170,6 +170,23 @@
   (run %{run_test} http3.liq liquidsoap http3.liq)))
 
 (rule
+ (alias test_icecast_server_fallback)
+ (package liquidsoap)
+ (deps
+  icecast_server_fallback.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_fallback.liq
+   liquidsoap
+   icecast_server_fallback.liq)))
+
+(rule
  (alias test_icecast_server_logs)
  (package liquidsoap)
  (deps
@@ -185,6 +202,23 @@
    icecast_server_logs.liq
    liquidsoap
    icecast_server_logs.liq)))
+
+(rule
+ (alias test_icecast_server_reload)
+ (package liquidsoap)
+ (deps
+  icecast_server_reload.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_reload.liq
+   liquidsoap
+   icecast_server_reload.liq)))
 
 (rule
  (alias test_post)
@@ -226,6 +260,8 @@
   (alias test_http)
   (alias test_http2)
   (alias test_http3)
+  (alias test_icecast_server_fallback)
   (alias test_icecast_server_logs)
+  (alias test_icecast_server_reload)
   (alias test_post)
   (alias test_put)))
