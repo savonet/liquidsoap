@@ -33,21 +33,23 @@ let current_day () =
   let time = Unix.localtime (Unix.time ()) in
   (time.Unix.tm_year, time.Unix.tm_yday)
 
+let log = Log.make ["http"; "reload"]
+
 (* Only a successful reload uses up the day, so a failed one is retried on the
    next connection. *)
-let once_a_day () =
+let once_a_day ~name () =
   let last_day = Atomic.make (current_day ()) in
   ( (fun () -> current_day () <> Atomic.get last_day),
-    fun () -> Atomic.set last_day (current_day ()) )
-
-let log = Log.make ["http"; "reload"]
+    fun () ->
+      Atomic.set last_day (current_day ());
+      log#important "Daily %s certificate reload done." name )
 
 (* The config is built for the first server and shared by every port opened
    with the transport, so a reload reaches all of them. *)
-let server_config ~reload_on build =
+let server_config ~name ~reload_on build =
   let due, reloaded =
     match Lang.to_option reload_on with
-      | None -> once_a_day ()
+      | None -> once_a_day ~name ()
       | Some reload_on ->
           ((fun () -> Lang.to_bool (Lang.to_getter reload_on ())), fun () -> ())
   in
@@ -89,7 +91,7 @@ let add_builtin ~base ~descr ~transport_t name proto make =
        (fun p ->
          let build, transport = make p in
          let server_config, reload =
-           server_config ~reload_on:(List.assoc "reload_on" p) build
+           server_config ~name ~reload_on:(List.assoc "reload_on" p) build
          in
          Lang.meth (transport server_config)
            [
