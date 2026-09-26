@@ -1482,7 +1482,7 @@ let with_new_clocks fn =
     then start_pending ~clocks:(List.rev !created) ()
   in
   Fun.protect ~finally:start (fun () ->
-      Effect.Deep.try_with fn ()
+      Effect_utils.try_with fn ()
         {
           Effect.Deep.effc =
             (fun (type a) (eff : a Effect.t) ->

@@ -400,10 +400,8 @@ let reschedule ?(delay = 0.) ~priority s =
    work of its own. *)
 let run fn =
   let open Effect.Deep in
-  match_with fn ()
+  Effect_utils.try_with fn ()
     {
-      retc = (fun () -> ());
-      exnc = (fun exn -> raise exn);
       effc =
         (fun (type a) (e : a Effect.t) ->
           match e with
