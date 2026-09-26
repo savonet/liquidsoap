@@ -6,6 +6,7 @@ MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=5.5.0
 ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/b62191b568d80253b882b4702a1b2f5272c3d595.tar.gz
+ARG SSL_PATCH_URL=https://github.com/savonet/ocaml-ssl/archive/1dee8c2b325382926d5ce783849776adc0fce809.tar.gz
 
 USER root
 
@@ -46,6 +47,11 @@ RUN find /tmp/liquidsoap/src/modules/synced -maxdepth 1 -mindepth 1 -type d | \
     while read dir; do opam pin add -y --no-action "$dir"; done && \
     cd /tmp/liquidsoap && opam pin add -y --no-action .
 
+# ocaml-ssl stubs read OCaml strings after releasing the runtime lock, so a minor
+# collection in another thread can hand OpenSSL a freed path. Build with an empty
+# SSL_PATCH_URL for the released package.
+RUN test -z "$SSL_PATCH_URL" || opam pin add -y --no-action ssl "$SSL_PATCH_URL"
+
 # Build the package list from .opam files in synced modules
 RUN find /tmp/liquidsoap/src/modules/synced -name '*.opam' ! -name '*.opam.template' | \
     xargs -I{} basename {} .opam | grep -Ev "^(speex|theora|dssi)$" > /tmp/packages
@@ -65,14 +71,16 @@ RUN \
     PACKAGES=`cat /tmp/packages | xargs echo` && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
-    opam pin list --short | grep -v '^ocaml-compiler$' | xargs -r opam pin remove -y && \
+    opam pin list --short | grep -Ev '^(ocaml-compiler|ssl)$' | xargs -r opam pin remove -y && \
     rm -rf /tmp/liquidsoap && \
     opam clean
 
-# The compiler pin has to survive the pin cleanup above, or the patched compiler is
-# silently replaced by the release one.
+# The compiler and ssl pins have to survive the pin cleanup above, or the patched
+# packages are silently replaced by the release ones.
 RUN test -z "$OCAML_PATCH_URL" || \
     (eval $(opam env) && opam pin list --short | grep -qx ocaml-compiler)
+RUN test -z "$SSL_PATCH_URL" || \
+    (eval $(opam env) && opam pin list --short | grep -qx ssl)
 
 USER root
 
