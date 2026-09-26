@@ -386,3 +386,14 @@ let () =
   Thread.join t2;
   assert (Buffer.contents out = input);
   assert (M.is_empty m)
+
+let () =
+  let m = M.of_string "abcde" in
+  let dst = Bytes.make 8 '.' in
+  assert (M.take m dst 0 2 = 2);
+  assert (Bytes.sub_string dst 0 2 = "ab");
+  M.add m "fg";
+  assert (M.take m dst 1 8 = 5);
+  assert (Bytes.sub_string dst 0 6 = "acdefg");
+  assert (M.is_empty m);
+  assert (M.take m dst 0 8 = 0)

@@ -210,6 +210,10 @@ module Mutable : sig
       Exceptions raised by [fn] propagate without consuming anything. *)
   val write : t -> (bytes -> int -> int -> int) -> int
 
+  (** [take m dst ofs len] moves up to [len] bytes from the start of the buffer
+      into [dst] at [ofs] and returns how many it moved. *)
+  val take : t -> bytes -> int -> int -> int
+
   (** Sub-buffer of a buffer. *)
   val sub : t -> int -> int -> t
 

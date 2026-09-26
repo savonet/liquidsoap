@@ -324,6 +324,12 @@ module Mutable = struct
                 };
           written))
 
+  let take m dst dst_ofs len =
+    write m (fun src src_ofs available ->
+        let n = min len available in
+        Bytes.blit src src_ofs dst dst_ofs n;
+        n)
+
   let append m m' =
     mutate m (fun m ->
         let c' = Atomic.get m'.content in

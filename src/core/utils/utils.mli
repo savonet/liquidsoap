@@ -147,8 +147,6 @@ val normalize_parameter_string : string -> string
 (** Parse the 80-bit extended float that AIFF stores its sample rate in. *)
 val float_of_extended_float : string -> float
 
-val buffer_drop : Buffer.t -> int -> unit
-
 (** {1 Media} *)
 
 (** MIME type of an ffmpeg container format name. Note that this is a different

@@ -26,7 +26,7 @@ module Http = Liq_http
 
 module Liq_tls = struct
   type t = {
-    read_pending : Buffer.t;
+    read_pending : Strings.Mutable.t;
     fd : Unix.file_descr;
     buf : bytes;
     mutable state : Tls.Engine.state;
@@ -55,7 +55,7 @@ module Liq_tls = struct
 
   let read_pending h = function
     | None -> ()
-    | Some data -> Buffer.add_string h.read_pending (Cstruct.to_string data)
+    | Some data -> Strings.Mutable.add h.read_pending (Cstruct.to_string data)
 
   let write_response ~timeout h = function
     | None -> ()
@@ -86,7 +86,7 @@ module Liq_tls = struct
 
   let init_base ~timeout ~state fd =
     let buf = Bytes.create buf_len in
-    let read_pending = Buffer.create 4096 in
+    let read_pending = Strings.Mutable.create () in
     let h = { read_pending; fd; buf; state } in
     handshake ~timeout h;
     h
@@ -118,12 +118,8 @@ module Liq_tls = struct
     let write_timeout =
       Option.value ~default:Harbor.conf_timeout#get write_timeout
     in
-    let pending = Buffer.length h.read_pending in
-    if 0 < pending then (
-      let n = min pending len in
-      Buffer.blit h.read_pending 0 b off n;
-      Utils.buffer_drop h.read_pending n;
-      n)
+    if not (Strings.Mutable.is_empty h.read_pending) then
+      Strings.Mutable.take h.read_pending b off len
     else (
       let rec f () =
         match
@@ -138,12 +134,8 @@ module Liq_tls = struct
                 | Some `Eof, None -> 0
                 | _, None -> f ()
                 | _, Some data ->
-                    let data_len = String.length data in
-                    let n = min data_len len in
-                    Bytes.blit_string data 0 b off n;
-                    if n < data_len then
-                      Buffer.add_substring h.read_pending data n (data_len - n);
-                    n)
+                    Strings.Mutable.add h.read_pending data;
+                    Strings.Mutable.take h.read_pending b off len)
           | Error (error, `Response response) ->
               write_all ~timeout:write_timeout h.fd response;
               Runtime_error.raise ~pos:[]
@@ -181,7 +173,9 @@ let tls_socket ~pos ~session transport =
       method typ = "tls"
       method transport = transport
       method file_descr = session.Liq_tls.fd
-      method pending = Buffer.length session.Liq_tls.read_pending > 0
+
+      method pending =
+        not (Strings.Mutable.is_empty session.Liq_tls.read_pending)
 
       method wait_for ?log event timeout =
         Http.wait_for ?log ~pending:self#pending self#file_descr event timeout

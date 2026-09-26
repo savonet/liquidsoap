@@ -687,25 +687,24 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         try assoc_uppercase "TRANSFER-ENCODING" headers = "chunked"
         with Not_found -> false
       in
-      let buf = Buffer.create Utils.buflen in
+      let chunk = Strings.Mutable.create () in
       let read =
         if chunked then (
           let read connection b ofs len =
-            if Buffer.length buf < len then (
+            if Strings.Mutable.is_empty chunk then (
               let s, len =
                 Http.read_chunked ~timeout:conf_timeout#get connection
               in
-              Buffer.add_substring buf s 0 len);
-            let len = min len (Buffer.length buf) in
-            Buffer.blit buf 0 b ofs len;
-            Utils.buffer_drop buf len;
-            len
+              Strings.Mutable.add_substring chunk s 0 len);
+            Strings.Mutable.take chunk b ofs len
           in
           Some read)
         else None
       in
       let socket =
-        socket_with_remaining ~buffered:(fun () -> Buffer.length buf > 0) h
+        socket_with_remaining
+          ~buffered:(fun () -> not (Strings.Mutable.is_empty chunk))
+          h
       in
       s.relay { stype; headers; read; groups; uri; socket };
       log#info "Adding source on mountpoint %S with type %S." uri stype;
@@ -787,10 +786,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       Io.write ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
         (Bytes.of_string (Websocket.upgrade headers))
     in
-    let binary_data = Buffer.create Utils.buflen in
+    let binary_data = Strings.Mutable.create () in
     let socket =
       socket_with_remaining
-        ~buffered:(fun () -> Buffer.length binary_data > 0)
+        ~buffered:(fun () -> not (Strings.Mutable.is_empty binary_data))
         h
     in
     let stype, huri, user, password =
@@ -823,7 +822,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     in
     let read_socket socket =
       match websocket_read socket with
-        | `Binary buf -> Buffer.add_string binary_data buf
+        | `Binary buf -> Strings.Mutable.add binary_data buf
         | `Text s -> (
             match extract_packet s with
               | "metadata", data ->
@@ -838,11 +837,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | _ -> raise Retry
     in
     let read socket buf ofs len =
-      if Buffer.length binary_data = 0 then read_socket socket else ();
-      let len = min (Buffer.length binary_data) len in
-      Buffer.blit binary_data 0 buf ofs len;
-      Utils.buffer_drop binary_data len;
-      len
+      if Strings.Mutable.is_empty binary_data then read_socket socket;
+      Strings.Mutable.take binary_data buf ofs len
     in
     source.relay
       { uri = huri; groups; stype; headers; read = Some read; socket };

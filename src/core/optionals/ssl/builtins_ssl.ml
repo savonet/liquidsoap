@@ -60,16 +60,13 @@ let record_len = 16384
 
 let ssl_socket ~pos transport ssl =
   let closed = Atomic.make false in
-  let read_pending = Buffer.create record_len in
+  let read_pending = Strings.Mutable.create ~size:record_len () in
   let record = Bytes.create record_len in
   let read buf ofs len =
-    if Buffer.length read_pending = 0 then (
+    if Strings.Mutable.is_empty read_pending then (
       let n = read_wrapper ssl record 0 record_len in
-      Buffer.add_subbytes read_pending record 0 n);
-    let n = min len (Buffer.length read_pending) in
-    Buffer.blit read_pending 0 buf ofs n;
-    Utils.buffer_drop read_pending n;
-    n
+      Strings.Mutable.add_subbytes read_pending record 0 n);
+    Strings.Mutable.take read_pending buf ofs len
   in
   let finalise s =
     if not (Atomic.get closed) then (
@@ -90,7 +87,7 @@ let ssl_socket ~pos transport ssl =
       method typ = "ssl"
       method transport = transport
       method file_descr = Ssl.file_descr_of_socket ssl
-      method pending = Buffer.length read_pending > 0
+      method pending = not (Strings.Mutable.is_empty read_pending)
 
       method wait_for ?log event timeout =
         Http.wait_for ?log ~pending:self#pending self#file_descr event timeout
