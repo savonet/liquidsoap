@@ -187,42 +187,43 @@ let add_http_request ~base ~stream_body ~descr ~request name =
             Bytes.unsafe_to_string ret )
       in
       let http_version, status_code, status_message, headers =
-        try
-          let request =
-            match request with
-              | Get -> `Get
-              | Post -> `Post (get_data ())
-              | Put -> `Put (get_data ())
-              | Head -> `Head
-              | Delete -> `Delete
-          in
-          let ans =
-            Liqcurl.http_request ~pos:(Lang.pos p) ~follow_redirect:redirect
-              ~timeout ~headers ~url
-              ~on_body_data:(fun s -> on_body_data (Some s))
-              ~request ?http_version ()
-          in
-          on_body_data None;
-          ans
-        with
-          | Curl.CurlException (Curl.CURLE_ABORTED_BY_CALLBACK, _, _) ->
-              ("1.0", 520, "Operation aborted", [])
-          | Curl.(CurlException (CURLE_OPERATION_TIMEOUTED, _, _)) ->
-              ("1.0", 522, "Connection timed out", [])
-          | Curl.(CurlException (CURLE_COULDNT_CONNECT, _, _))
-          | Curl.(CurlException (CURLE_COULDNT_RESOLVE_HOST, _, _)) ->
-              ("1.0", 523, "Origin is unreachable", [])
-          | Curl.(CurlException (CURLE_GOT_NOTHING, _, _)) ->
-              ("1.0", 523, "Remote server did not return any data", [])
-          | Curl.(CurlException (CURLE_SSL_CONNECT_ERROR, _, _)) ->
-              ("1.0", 525, "SSL handshake failed", [])
-          | Curl.(CurlException (CURLE_SSL_CACERT, _, _)) ->
-              ("1.0", 526, "Invalid SSL certificate", [])
-          | e ->
-              let bt = Printexc.get_raw_backtrace () in
-              Lang.log#severe "Could not perform http request: %s."
-                (Printexc.to_string e);
-              Lang.raise_as_runtime ~bt ~kind:"http" e
+        Lang.protect ~kind:"http" (fun () ->
+            try
+              let request =
+                match request with
+                  | Get -> `Get
+                  | Post -> `Post (get_data ())
+                  | Put -> `Put (get_data ())
+                  | Head -> `Head
+                  | Delete -> `Delete
+              in
+              let ans =
+                Liqcurl.http_request ~pos:(Lang.pos p) ~follow_redirect:redirect
+                  ~timeout ~headers ~url
+                  ~on_body_data:(fun s -> on_body_data (Some s))
+                  ~request ?http_version ()
+              in
+              on_body_data None;
+              ans
+            with
+              | Curl.CurlException (Curl.CURLE_ABORTED_BY_CALLBACK, _, _) ->
+                  ("1.0", 520, "Operation aborted", [])
+              | Curl.(CurlException (CURLE_OPERATION_TIMEOUTED, _, _)) ->
+                  ("1.0", 522, "Connection timed out", [])
+              | Curl.(CurlException (CURLE_COULDNT_CONNECT, _, _))
+              | Curl.(CurlException (CURLE_COULDNT_RESOLVE_HOST, _, _)) ->
+                  ("1.0", 523, "Origin is unreachable", [])
+              | Curl.(CurlException (CURLE_GOT_NOTHING, _, _)) ->
+                  ("1.0", 523, "Remote server did not return any data", [])
+              | Curl.(CurlException (CURLE_SSL_CONNECT_ERROR, _, _)) ->
+                  ("1.0", 525, "SSL handshake failed", [])
+              | Curl.(CurlException (CURLE_SSL_CACERT, _, _)) ->
+                  ("1.0", 526, "Invalid SSL certificate", [])
+              | e ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  Lang.log#severe "Could not perform http request: %s."
+                    (Printexc.to_string e);
+                  Printexc.raise_with_backtrace e bt)
       in
       let http_version = Lang.string http_version in
       let status_code = Lang.int status_code in

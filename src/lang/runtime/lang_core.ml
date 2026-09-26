@@ -438,6 +438,29 @@ let rec assoc label n = function
 
 let raise_error = Runtime_error.raise
 
+let unix_error_message code call param =
+  match (call, param) with
+    | "", "" -> Unix.error_message code
+    | "", param -> Printf.sprintf "%s: %s" param (Unix.error_message code)
+    | call, param ->
+        Printf.sprintf "%s in %s(%s)" (Unix.error_message code) call param
+
+(* Libraries linked later, such as lwt.unix, register their own printer and
+   take precedence: error messages cannot rely on this one. *)
+let () =
+  Printexc.register_printer (function
+    | Unix.Unix_error (code, call, param) ->
+        Some (unix_error_message code call param)
+    | _ -> None)
+
+let error_message = function
+  | Sys_error message | Failure message | Invalid_argument message -> message
+  | Unix.Unix_error (code, call, param) -> unix_error_message code call param
+  | Not_found -> "Not found"
+  | Division_by_zero -> "Division by zero"
+  | End_of_file -> "End of file"
+  | exn -> Printexc.to_string exn
+
 let runtime_error_of_exception ~bt ~kind exn =
   match exn with
     | Runtime_error.Runtime_error error -> error
@@ -464,7 +487,7 @@ let runtime_error_of_exception ~bt ~kind exn =
                   []
                   (List.rev (Array.to_list entries))
         in
-        Runtime_error.make ~pos ~message:(Printexc.to_string exn) kind
+        Runtime_error.make ~pos ~message:(error_message exn) kind
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
@@ -474,6 +497,19 @@ let raise_as_runtime ~bt ~kind exn =
           (Runtime_error.Runtime_error
              (runtime_error_of_exception ~bt ~kind exn))
           bt
+
+(* The script position is added by the caller's application, so OCaml frames
+   stay in the backtrace instead of the error's position. *)
+let raise_builtin_error ~bt ~kind exn =
+  match exn with
+    | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
+    | _ -> Runtime_error.raise ~bt ~pos:[] ~message:(error_message exn) kind
+
+let protect ~kind fn =
+  try fn ()
+  with exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    raise_builtin_error ~bt ~kind exn
 
 let environment () =
   let l = Unix.environment () in

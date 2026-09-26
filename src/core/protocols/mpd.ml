@@ -67,7 +67,7 @@ let connect () =
     let l = Unix_utils.send socket (Bytes.of_string s) 0 len [] in
     assert (l = len)
   in
-  Unix.connect socket sockaddr;
+  Unix_utils.connect socket sockaddr;
   (socket, read, write)
 
 let re_newline = Str.regexp "[\r\n]+"

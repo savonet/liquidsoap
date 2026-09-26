@@ -1,31 +1,5 @@
 module Http = Liq_http
-
-module Filename = struct
-  include Filename
-
-  let rand_digits () =
-    let rand = Random.State.(bits (make_self_init ()) land 0xFFFFFF) in
-    Printf.sprintf "%06x" rand
-
-  let mk_temp_dir ?(mode = 0o700) ?dir prefix suffix =
-    let dir = match dir with Some d -> d | None -> get_temp_dir_name () in
-    let raise_err msg = raise (Sys_error msg) in
-    let rec loop count =
-      if count < 0 then raise_err "mk_temp_dir: too many failing attempts"
-      else (
-        let dir =
-          Printf.sprintf "%s/%s%s%s" dir prefix (rand_digits ()) suffix
-        in
-        try
-          Unix_utils.mkdir dir mode;
-          dir
-        with
-          | Unix.Unix_error (Unix.EEXIST, _, _) -> loop (count - 1)
-          | Unix.Unix_error (e, _, _) ->
-              raise_err ("mk_temp_dir: " ^ Unix.error_message e))
-    in
-    loop 1000
-end
+module File = Stdlib_wrappers.File
 
 let file = Modules.file
 
@@ -160,14 +134,10 @@ let _ =
       let temp_dir =
         Lang.to_valued_option Lang.to_string (List.assoc "directory" p)
       in
-      try
-        Lang.string
-          (Filename.temp_file ?temp_dir
-             (Lang.to_string (Lang.assoc "" 1 p))
-             (Lang.to_string (Lang.assoc "" 2 p)))
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      Lang.string
+        (File.temp_file ?temp_dir
+           (Lang.to_string (Lang.assoc "" 1 p))
+           (Lang.to_string (Lang.assoc "" 2 p))))
 
 let _ =
   Lang.add_builtin ~base:file "temp_dir" ~category:`File
@@ -181,13 +151,9 @@ let _ =
     ]
     Lang.string_t
     (fun p ->
-      try
-        let prefix = Lang.to_string (Lang.assoc "" 1 p) in
-        let suffix = Lang.to_string (Lang.assoc "" 2 p) in
-        Lang.string (Filename.mk_temp_dir prefix suffix)
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      let prefix = Lang.to_string (Lang.assoc "" 1 p) in
+      let suffix = Lang.to_string (Lang.assoc "" 2 p) in
+      Lang.string (File.temp_dir prefix suffix))
 
 let _ =
   Lang.add_builtin ~base:file "exists" ~category:`File
@@ -249,7 +215,7 @@ let _ =
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Lang_string.home_unrelate dir in
       let readdir dir =
-        Array.to_list (Sys.readdir dir)
+        Array.to_list (File.readdir dir)
         |> List.filter (fun s -> Re.Pcre.pmatch ~rex s)
       in
       let files =
@@ -270,7 +236,7 @@ let _ =
                   in
                   let in_dir =
                     (* Cope with permission problems. *)
-                    try readdir df with Sys_error _ -> []
+                    try readdir df with Runtime_error.Runtime_error _ -> []
                   in
                   let acc = aux f acc in_dir in
                   aux subdir acc l)
@@ -345,11 +311,7 @@ let _ =
     Lang.string_t
     (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
-      if Sys.file_exists file then
-        Lang.string (Digest.to_hex (Digest.file file))
-      else (
-        let message = Printf.sprintf "The file %s does not exist." file in
-        Lang.raise_error ~pos:(Lang.pos p) ~message "file"))
+      Lang.string (Digest.to_hex (File.digest file)))
 
 let _ =
   Lang.add_builtin ~base:file "open" ~category:`File
@@ -403,14 +365,10 @@ let _ =
       in
       let file_perms = Lang.to_int (List.assoc "perms" p) in
       let path = Lang_string.home_unrelate (Lang.to_string (List.assoc "" p)) in
-      try
-        Builtins_socket.Socket_value.(
-          to_value
-            (Http.unix_socket ~pos:(Lang.pos p)
-               (Unix.openfile path flags file_perms)))
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      Builtins_socket.Socket_value.(
+        to_value
+          (Http.unix_socket ~pos:(Lang.pos p)
+             (File.openfile path flags file_perms))))
 
 let _ =
   Lang.add_builtin ~base:file "watch" ~category:`File
@@ -556,22 +514,12 @@ let _ =
     Lang.unit_t
     (fun p ->
       let recurse = Lang.to_bool (List.assoc "recursive" p) in
-      let force =
-        if Lang.to_bool (List.assoc "force" p) then FileUtil.Force
-        else FileUtil.Ask (fun _ -> false)
-      in
+      let force = Lang.to_bool (List.assoc "force" p) in
       let preserve = Lang.to_bool (List.assoc "preserve" p) in
       let src = Lang.to_string (Lang.assoc "" 1 p) in
       let dst = Lang.to_string (Lang.assoc "" 2 p) in
-      let error message _ =
-        Runtime_error.raise ~pos:(Lang.pos p) ~message "file"
-      in
-      try
-        FileUtil.cp ~recurse ~force ~preserve ~error [src] dst;
-        Lang.unit
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      File.copy ~recurse ~force ~preserve src dst;
+      Lang.unit)
 
 let _ =
   Lang.add_builtin ~base:file "move" ~category:`File ~descr:"Move a file"
@@ -592,30 +540,12 @@ let _ =
     ]
     Lang.unit_t
     (fun p ->
-      let force =
-        if Lang.to_bool (List.assoc "force" p) then FileUtil.Force
-        else FileUtil.Ask (fun _ -> false)
-      in
+      let force = Lang.to_bool (List.assoc "force" p) in
       let atomic = Lang.to_bool (List.assoc "atomic" p) in
       let src = Lang.to_string (Lang.assoc "" 1 p) in
       let dst = Lang.to_string (Lang.assoc "" 2 p) in
-      let error message _ =
-        Runtime_error.raise ~pos:(Lang.pos p) ~message "file"
-      in
-      try
-        if atomic then Unix.rename src dst
-        else FileUtil.mv ~force ~error src dst;
-        Lang.unit
-      with
-        | Unix.Unix_error (Unix.EXDEV, _, _) ->
-            Runtime_error.raise ~pos:(Lang.pos p)
-              ~message:
-                "Rename failed! Directory for temporary files appears to be on \
-                 a different filesystem"
-              "file.cross_device"
-        | exn ->
-            let bt = Printexc.get_raw_backtrace () in
-            Lang.raise_as_runtime ~bt ~kind:"file" exn)
+      if atomic then File.rename src dst else File.move ~force src dst;
+      Lang.unit)
 
 let () =
   if not Sys.win32 then (

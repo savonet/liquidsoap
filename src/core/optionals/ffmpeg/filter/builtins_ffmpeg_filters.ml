@@ -296,14 +296,11 @@ let apply_filter ~args_parser ~filter ~sources_t p =
               let flags = if fast then [`Fast] else [] in
               let cmd = Lang.to_string (Lang.assoc "" 1 p) in
               let arg = Lang.to_string (Lang.assoc "" 2 p) in
-              if initialized graph then (
-                try
-                  Lang.string
-                    (Avfilter.process_command ~flags ~cmd ~arg
-                       (read graph instance))
-                with exn ->
-                  let bt = Printexc.get_raw_backtrace () in
-                  Lang.raise_as_runtime ~bt ~kind:"ffmpeg.filter" exn)
+              if initialized graph then
+                Lang.protect ~kind:"ffmpeg.filter" (fun () ->
+                    Lang.string
+                      (Avfilter.process_command ~flags ~cmd ~arg
+                         (read graph instance)))
               else Lang.string "graph not started!") );
         ( "output",
           let audio =

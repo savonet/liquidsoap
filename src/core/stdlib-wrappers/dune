@@ -1,0 +1,11 @@
+; OCaml stdlib calls that report failures as script runtime errors.
+;
+; Builtins call these instead of the raw stdlib functions so that a failure
+; reaches scripts with the kind they expect, e.g. `file` or `socket`. Anything
+; left unwrapped is still caught by the evaluator, with a generic kind.
+
+(library
+ (name liquidsoap_stdlib_wrappers)
+ (flags
+  (:standard -open Liquidsoap_lang))
+ (libraries fileutils liquidsoap-lang stdlib_utils unix))

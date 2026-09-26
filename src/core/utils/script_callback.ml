@@ -35,7 +35,7 @@ let notify ~owner release = Effect.perform (Registered { owner; release })
 let collect owners fn =
   let releases = ref [] in
   let result =
-    Effect.Deep.try_with fn ()
+    Effect_utils.try_with fn ()
       {
         Effect.Deep.effc =
           (fun (type a) (eff : a Effect.t) ->
@@ -60,7 +60,7 @@ let collect owners fn =
    [Effect.Unhandled] at the registration site rather than losing the release
    silently, which would keep what it counts alive for good. *)
 let uncollected fn =
-  Effect.Deep.try_with fn ()
+  Effect_utils.try_with fn ()
     {
       Effect.Deep.effc =
         (fun (type a) (eff : a Effect.t) ->

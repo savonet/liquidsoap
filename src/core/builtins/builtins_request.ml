@@ -270,14 +270,12 @@ let _ =
         in
         if Request.resolve ?timeout r = `Resolved then (
           match
-            Request.duration ?resolvers ~metadata:(Request.metadata r)
-              (Option.get (Request.get_filename r))
+            Lang.protect ~kind:"failure" (fun () ->
+                Request.duration ?resolvers ~metadata:(Request.metadata r)
+                  (Option.get (Request.get_filename r)))
           with
             | Some f -> Lang.float f
-            | None -> Lang.null
-            | exception exn ->
-                let bt = Printexc.get_raw_backtrace () in
-                Lang.raise_as_runtime ~bt ~kind:"failure" exn)
+            | None -> Lang.null)
         else Lang.null)
   in
   let base =

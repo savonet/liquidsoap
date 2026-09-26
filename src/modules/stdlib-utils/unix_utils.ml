@@ -51,6 +51,16 @@ let rec accept ?cloexec sock =
   try Unix.accept ?cloexec sock
   with Unix.Unix_error (Unix.EINTR, _, _) -> accept ?cloexec sock
 
+(* An interrupted connect keeps going in the background: calling it again fails
+   with EALREADY, so wait for completion and read its outcome instead. *)
+let connect sock addr =
+  try Unix.connect sock addr
+  with Unix.Unix_error (Unix.EINTR, _, _) -> (
+    ignore (poll [] [sock] [] (-1.));
+    match Unix.getsockopt_error sock with
+      | None -> ()
+      | Some err -> raise (Unix.Unix_error (err, "connect", "")))
+
 let rec recv sock buf ofs len flags =
   try Unix.recv sock buf ofs len flags
   with Unix.Unix_error (Unix.EINTR, _, _) -> recv sock buf ofs len flags

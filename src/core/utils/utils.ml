@@ -163,13 +163,6 @@ let copy ?(mode = [Open_wronly; Open_creat; Open_trunc]) ?(perms = 0o660) src
           in
           f ()))
 
-let unix_translator = function
-  | Unix.Unix_error (code, name, param) ->
-      Some (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) name param)
-  | _ -> None
-
-let () = Printexc.register_printer unix_translator
-
 (* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:

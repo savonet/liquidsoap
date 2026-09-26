@@ -40,6 +40,7 @@ val select :
 val read : Unix.file_descr -> bytes -> int -> int -> int
 val write : Unix.file_descr -> bytes -> int -> int -> int
 val accept : ?cloexec:bool -> Unix.file_descr -> Unix.file_descr * Unix.sockaddr
+val connect : Unix.file_descr -> Unix.sockaddr -> unit
 val recv : Unix.file_descr -> bytes -> int -> int -> Unix.msg_flag list -> int
 
 val recvfrom :
