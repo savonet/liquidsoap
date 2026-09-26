@@ -21,7 +21,7 @@
    (depends
     (ocaml (>= 4.14))
     base-bytes
-    (mm (>= 0.8.6))
+    (mm (and (>= 0.8.6) (< 0.8.7)))
     (re (and (>= 1.11.0) (< 1.14.0)))
     curl
     (camomile (and (>= 2.0.0) (< 2.1.0)))
