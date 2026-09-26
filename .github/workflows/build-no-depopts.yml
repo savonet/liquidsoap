@@ -12,7 +12,7 @@ on:
 
 jobs:
   build_no_depopts:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     container:
       image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.0@sha256:b33103ca76ca91986e3b4476d03131f0ce6523a74858caa0d8b3298ec841bd02
       options: --user opam
