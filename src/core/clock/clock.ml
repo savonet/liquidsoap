@@ -744,20 +744,25 @@ let attach c s =
 
 let _detach clock s =
   Queue.filter_out clock.pending_activations (fun s' -> s == s');
-  let do_detach
-      { outputs; active_sources; passive_sources; sync_source_deregisters } =
-    Queue.filter_out outputs (fun (a, s') ->
-        if s == s' then (
-          s#sleep a;
+  (* Callbacks run outside the queue lock: [s#sleep] detaches children,
+     which re-enters this function on the same queues. *)
+  let take_matching q source_of =
+    let taken = ref [] in
+    Queue.filter_out q (fun el ->
+        if s == source_of el then (
+          taken := el :: !taken;
           true)
         else false);
+    List.rev !taken
+  in
+  let do_detach
+      { outputs; active_sources; passive_sources; sync_source_deregisters } =
+    List.iter (fun (a, _) -> s#sleep a) (take_matching outputs snd);
     WeakQueue.filter_out active_sources (fun s' -> s == s');
     WeakQueue.filter_out passive_sources (fun s' -> s == s');
-    Queue.filter_out sync_source_deregisters (fun (s', deregister) ->
-        if s == s' then (
-          (try deregister () with _ -> ());
-          true)
-        else false)
+    List.iter
+      (fun (_, deregister) -> try deregister () with _ -> ())
+      (take_matching sync_source_deregisters fst)
   in
   match Atomic.get clock.state with
     | `Stopped -> ()
