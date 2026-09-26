@@ -70,15 +70,12 @@ module Socket_value = struct
       "Get " ^ name ^ " option",
       fun s ->
         Lang.val_fun [] (fun _ ->
-            try
-              match socket_opt with
-                | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
-                | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
-                | `String socket_opt ->
-                    Lang.string (Srt.getsockflag s socket_opt)
-            with exn ->
-              let bt = Printexc.get_raw_backtrace () in
-              Lang.raise_as_runtime ~bt ~kind:"srt" exn) )
+            Lang.protect ~kind:"srt" (fun () ->
+                match socket_opt with
+                  | `Int socket_opt -> Lang.int (Srt.getsockflag s socket_opt)
+                  | `Bool socket_opt -> Lang.bool (Srt.getsockflag s socket_opt)
+                  | `String socket_opt ->
+                      Lang.string (Srt.getsockflag s socket_opt))) )
 
   let mk_write_socket_option name socket_opt =
     let t =
@@ -95,18 +92,15 @@ module Socket_value = struct
           [("", "", None)]
           (fun p ->
             let v = List.assoc "" p in
-            try
-              (match socket_opt with
-                | `Int socket_opt ->
-                    Srt.setsockflag s socket_opt (Lang.to_int v)
-                | `Bool socket_opt ->
-                    Srt.setsockflag s socket_opt (Lang.to_bool v)
-                | `String socket_opt ->
-                    Srt.setsockflag s socket_opt (Lang.to_string v));
-              Lang.unit
-            with exn ->
-              let bt = Printexc.get_raw_backtrace () in
-              Lang.raise_as_runtime ~bt ~kind:"srt" exn) )
+            Lang.protect ~kind:"srt" (fun () ->
+                (match socket_opt with
+                  | `Int socket_opt ->
+                      Srt.setsockflag s socket_opt (Lang.to_int v)
+                  | `Bool socket_opt ->
+                      Srt.setsockflag s socket_opt (Lang.to_bool v)
+                  | `String socket_opt ->
+                      Srt.setsockflag s socket_opt (Lang.to_string v));
+                Lang.unit)) )
 
   let socket_options_meths =
     let read_meths =
@@ -331,32 +325,26 @@ module Socket_value = struct
           "Socket status",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                try
-                  Lang.string
-                    (match Srt.getsockstate s with
-                      | `Init -> "initialized"
-                      | `Opened -> "opened"
-                      | `Listening -> "listening"
-                      | `Connecting -> "connecting"
-                      | `Connected -> "connected"
-                      | `Broken -> "broken"
-                      | `Closing -> "closing"
-                      | `Closed -> "closed"
-                      | `Nonexist -> "non_existant")
-                with exn ->
-                  let bt = Printexc.get_raw_backtrace () in
-                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
+                Lang.protect ~kind:"srt" (fun () ->
+                    Lang.string
+                      (match Srt.getsockstate s with
+                        | `Init -> "initialized"
+                        | `Opened -> "opened"
+                        | `Listening -> "listening"
+                        | `Connecting -> "connecting"
+                        | `Connected -> "connected"
+                        | `Broken -> "broken"
+                        | `Closing -> "closing"
+                        | `Closed -> "closed"
+                        | `Nonexist -> "non_existant"))) );
         ( "close",
           ([], Lang.fun_t [] Lang.unit_t),
           "Close socket",
           fun s ->
             Lang.val_fun [] (fun _ ->
-                try
-                  Srt.close s;
-                  Lang.unit
-                with exn ->
-                  let bt = Printexc.get_raw_backtrace () in
-                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
+                Lang.protect ~kind:"srt" (fun () ->
+                    Srt.close s;
+                    Lang.unit)) );
         ( "bstats",
           ([], Lang.fun_t [(true, "clear", Lang.nullable_t Lang.bool_t)] stats_t),
           "Socket bstats",
@@ -367,13 +355,11 @@ module Socket_value = struct
                 let clear =
                   Lang.to_valued_option Lang.to_bool (List.assoc "clear" p)
                 in
-                try
-                  let stats = Srt.Stats.bstats ?clear s in
-                  Lang.record
-                    (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)
-                with exn ->
-                  let bt = Printexc.get_raw_backtrace () in
-                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
+                Lang.protect ~kind:"srt" (fun () ->
+                    let stats = Srt.Stats.bstats ?clear s in
+                    Lang.record
+                      (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)))
+        );
         ( "bistats",
           ( [],
             Lang.fun_t
@@ -397,13 +383,11 @@ module Socket_value = struct
                   Lang.to_valued_option Lang.to_bool
                     (List.assoc "instantaneous" p)
                 in
-                try
-                  let stats = Srt.Stats.bistats ?clear ?instantaneous s in
-                  Lang.record
-                    (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)
-                with exn ->
-                  let bt = Printexc.get_raw_backtrace () in
-                  Lang.raise_as_runtime ~bt ~kind:"srt" exn) );
+                Lang.protect ~kind:"srt" (fun () ->
+                    let stats = Srt.Stats.bistats ?clear ?instantaneous s in
+                    Lang.record
+                      (List.map (fun (n, _, fn) -> (n, fn stats)) stats_specs)))
+        );
       ]
 
   let base_t = t

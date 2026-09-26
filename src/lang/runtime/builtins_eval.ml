@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-let raise ~bt exn = Lang.raise_as_runtime ~bt ~kind:"eval" exn
-
 let _ =
   Lang.add_builtin ~category:`Liquidsoap Reserved.eval
     ~descr:"Parse and evaluate a string." ~flags:[`Hidden]
@@ -31,10 +29,8 @@ let _ =
       let ty = Value.RuntimeType.of_value (List.assoc "type" p) in
       let ty = Type.fresh ty in
       let s = Lang.to_string (List.assoc "" p) in
-      try Lang.eval ~toplevel:false ~stdlib:`Disabled ~ty s
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        raise ~bt exn)
+      Lang.protect ~kind:"eval" (fun () ->
+          Lang.eval ~toplevel:false ~stdlib:`Disabled ~ty s))
 
 let _ =
   let a = Lang.univ_t () in
