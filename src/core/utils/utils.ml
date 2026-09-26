@@ -164,15 +164,6 @@ let copy ?(mode = [Open_wronly; Open_creat; Open_trunc]) ?(perms = 0o660) src
           f ()))
 
 (* Drop the first [len] bytes. *)
-let buffer_drop buffer len =
-  let size = Buffer.length buffer in
-  assert (len <= size);
-  if len = size then Buffer.clear buffer
-  else (
-    let tmp = Buffer.sub buffer len (size - len) in
-    Buffer.clear buffer;
-    Buffer.add_string buffer tmp)
-
 let unix_translator = function
   | Unix.Unix_error (code, name, param) ->
       Some (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) name param)

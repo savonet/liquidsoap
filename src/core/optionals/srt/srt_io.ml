@@ -947,25 +947,20 @@ class virtual input_base ~max ~self_sync ~payload_size ~dump ~autostart format =
           | Some d -> d
           | None -> raise Harbor.Unknown_codec
       in
-      let buf = Buffer.create payload_size in
+      let payload = Strings.Mutable.create ~size:payload_size () in
       let tmp = Bytes.create payload_size in
       let eof_seen = ref false in
       Srt.setsockflag socket Srt.sndsyn true;
       Srt.setsockflag socket Srt.rcvsyn true;
       let read bytes ofs len =
         if self#should_stop then raise Done;
-        if !eof_seen && Buffer.length buf = 0 then raise End_of_file;
-        if (not !eof_seen) && Buffer.length buf < len then (
+        if Strings.Mutable.is_empty payload then (
+          if !eof_seen then raise End_of_file;
           let input = Srt.recvmsg socket tmp payload_size in
           if input = 0 then eof_seen := true;
-          Buffer.add_subbytes buf tmp 0 input;
-          match dump_chan with
-            | Some chan -> output chan tmp 0 input
-            | None -> ());
-        let len = min len (Buffer.length buf) in
-        Buffer.blit buf 0 bytes ofs len;
-        Utils.buffer_drop buf len;
-        len
+          Strings.Mutable.add_subbytes payload tmp 0 input;
+          Option.iter (fun chan -> output chan tmp 0 input) dump_chan);
+        Strings.Mutable.take payload bytes ofs len
       in
       create_decoder { Decoder.read; tell = None; length = None; lseek = None }
 

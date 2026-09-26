@@ -169,23 +169,22 @@ let add_http_request ~base ~stream_body ~descr ~request name =
       in
       let get_data () =
         let data = List.assoc "data" p in
-        let buf = Buffer.create 10 in
+        let chunk = Strings.Mutable.create () in
         let len, refill =
           try
             let data = Lang.to_string data in
-            Buffer.add_string buf data;
+            Strings.Mutable.add chunk data;
             (Some (Int64.of_int (String.length data)), fun () -> ())
           with _ ->
             let fn = Lang.to_getter data in
-            (None, fun () -> Buffer.add_string buf (Lang.to_string (fn ())))
+            (None, fun () -> Strings.Mutable.add chunk (Lang.to_string (fn ())))
         in
         ( len,
           fun len ->
-            if Buffer.length buf = 0 then refill ();
-            let len = min (Buffer.length buf) len in
-            let ret = Buffer.sub buf 0 len in
-            Utils.buffer_drop buf len;
-            ret )
+            if Strings.Mutable.is_empty chunk then refill ();
+            let ret = Bytes.create (min len (Strings.Mutable.length chunk)) in
+            ignore (Strings.Mutable.take chunk ret 0 (Bytes.length ret));
+            Bytes.unsafe_to_string ret )
       in
       let http_version, status_code, status_message, headers =
         try
