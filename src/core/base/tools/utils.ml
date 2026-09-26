@@ -173,13 +173,6 @@ let buffer_drop buffer len =
     Buffer.clear buffer;
     Buffer.add_string buffer tmp)
 
-let unix_translator = function
-  | Unix.Unix_error (code, name, param) ->
-      Some (Printf.sprintf "%s in %s(%s)" (Unix.error_message code) name param)
-  | _ -> None
-
-let () = Printexc.register_printer unix_translator
-
 (* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:

@@ -273,7 +273,7 @@ let _ =
       let dir = Lang.to_string (List.assoc "" p) in
       let dir = Lang_string.home_unrelate dir in
       let readdir dir =
-        Array.to_list (Sys.readdir dir)
+        Array.to_list (Lang.protect ~kind:"file" (fun () -> Sys.readdir dir))
         |> List.filter (fun s -> Re.Pcre.pmatch ~rex s)
       in
       let files =
@@ -294,7 +294,7 @@ let _ =
                   in
                   let in_dir =
                     (* Cope with permission problems. *)
-                    try readdir df with Sys_error _ -> []
+                    try readdir df with Runtime_error.Runtime_error _ -> []
                   in
                   let acc = aux f acc in_dir in
                   aux subdir acc l)
@@ -370,7 +370,9 @@ let _ =
     (fun p ->
       let file = Lang.to_string (List.assoc "" p) in
       if Sys.file_exists file then
-        Lang.string (Digest.to_hex (Digest.file file))
+        Lang.string
+          (Digest.to_hex
+             (Lang.protect ~kind:"file" (fun () -> Digest.file file)))
       else (
         let message = Printf.sprintf "The file %s does not exist." file in
         Lang.raise_error ~pos:(Lang.pos p) ~message "file"))

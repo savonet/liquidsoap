@@ -68,6 +68,9 @@
 - Fixed the type unifier retaining collapsed variables forever, by merging
   unified variables using union by rank (#5342)
 - Fixed Audioscrobbler base url (#5404, @iibaranov-IG)
+- Errors raised by the OCaml code behind a builtin, such as `file.ls` on an
+  unreadable directory, are now runtime errors that `try ... catch` can handle,
+  instead of aborting the script (#5454)
 
 ---
 

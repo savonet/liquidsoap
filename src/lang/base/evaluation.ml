@@ -35,6 +35,24 @@ let remove_first filter =
   in
   aux []
 
+let ocaml_error_kind = function
+  | Sys_error _ | Unix.Unix_error _ -> Some "system"
+  | Failure _ -> Some "failure"
+  | Invalid_argument _ -> Some "invalid"
+  | Not_found -> Some "not_found"
+  | Division_by_zero | End_of_file -> Some "eval"
+  | _ -> None
+
+(** Builtins are thin wrappers around OCaml calls: surface the errors those
+    calls raise as runtime errors so that scripts can catch them. *)
+let catch_ocaml_errors fn =
+  try fn ()
+  with exn -> (
+    let bt = Printexc.get_raw_backtrace () in
+    match ocaml_error_kind exn with
+      | Some kind -> Lang_core.raise_builtin_error ~bt ~kind exn
+      | None -> Printexc.raise_with_backtrace exn bt)
+
 let eval_pat pat v =
   let aux env pat v =
     match (pat, v) with
@@ -105,7 +123,8 @@ and apply ?(pos = []) ~eval_check f l =
             fun pe ->
               let env = Env.adds e pe in
               eval ~eval_check env body )
-      | Value.FFI { ffi_args = p; ffi_fn = f } -> (p, fun pe -> f (List.rev pe))
+      | Value.FFI { ffi_args = p; ffi_fn = f } ->
+          (p, fun pe -> catch_ocaml_errors (fun () -> f (List.rev pe)))
       | _ -> assert false
   in
   (* Record error positions. *)
