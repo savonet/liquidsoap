@@ -180,3 +180,4 @@ module Queues = Queues
 module Mutex_utils = Mutex_utils
 module Unifier = Unifier
 module Extra_args = Extra_args
+module Stdlib_wrappers = Liquidsoap_stdlib_wrappers

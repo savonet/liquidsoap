@@ -287,17 +287,14 @@ module Socket_value = struct
                              ~message:"Timeout while writing to the socket!"
                              "socket")
                  in
-                 try
-                   let rec f pos =
-                     check_timeout ();
-                     let n = socket#write data pos (len - pos) in
-                     if n < len then f (pos + n)
-                   in
-                   f 0;
-                   Lang.unit
-                 with exn ->
-                   let bt = Printexc.get_raw_backtrace () in
-                   Lang.raise_as_runtime ~bt ~kind:"socket" exn)) );
+                 Lang.protect ~kind:"socket" (fun () ->
+                     let rec f pos =
+                       check_timeout ();
+                       let n = socket#write data pos (len - pos) in
+                       if n < len then f (pos + n)
+                     in
+                     f 0;
+                     Lang.unit))) );
       ( "read",
         ( [],
           wait_t ~mode:`Read
@@ -330,13 +327,10 @@ module Socket_value = struct
                              ~message:"Timeout while reading from the socket!"
                              "socket")
                  in
-                 try
-                   check_timeout ();
-                   let n = socket#read buf 0 buflen in
-                   Lang.string (Bytes.sub_string buf 0 n)
-                 with exn ->
-                   let bt = Printexc.get_raw_backtrace () in
-                   Lang.raise_as_runtime ~bt ~kind:"socket" exn)) );
+                 Lang.protect ~kind:"socket" (fun () ->
+                     check_timeout ();
+                     let n = socket#read buf 0 buflen in
+                     Lang.string (Bytes.sub_string buf 0 n)))) );
       ( "closed",
         ([], Lang.fun_t [] Lang.bool_t),
         "`true` if the socket is already closed.",
@@ -346,12 +340,9 @@ module Socket_value = struct
         "Close the socket.",
         fun socket ->
           Lang.val_fun [] (fun _ ->
-              try
-                socket#close;
-                Lang.unit
-              with exn ->
-                let bt = Printexc.get_raw_backtrace () in
-                Lang.raise_as_runtime ~bt ~kind:"socket" exn) );
+              Lang.protect ~kind:"socket" (fun () ->
+                  socket#close;
+                  Lang.unit)) );
     ]
 
   let t =
@@ -379,14 +370,15 @@ module Socket_value = struct
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Unix.bind socket#file_descr
+              Stdlib_wrappers.Socket.bind socket#file_descr
                 (Socket_addr.of_value (List.assoc "" p));
               Lang.unit) );
         ( "listen",
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Unix.listen socket#file_descr (Lang.to_int (List.assoc "" p));
+              Stdlib_wrappers.Socket.listen socket#file_descr
+                (Lang.to_int (List.assoc "" p));
               Lang.unit) );
       ]
 
@@ -423,13 +415,16 @@ module Socket_value = struct
               let timeout =
                 Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
               in
-              let fd, sockaddr = server#accept ?timeout socket#file_descr in
+              let fd, sockaddr =
+                Lang.protect ~kind:"socket" (fun () ->
+                    server#accept ?timeout socket#file_descr)
+              in
               Lang.product (to_value fd) (Socket_addr.to_value sockaddr)) );
         ( "connect",
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Unix.connect socket#file_descr
+              Stdlib_wrappers.Socket.connect socket#file_descr
                 (Socket_addr.of_value (List.assoc "" p));
               Lang.unit) );
       ]
@@ -455,7 +450,7 @@ let _ =
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
       Socket_value.to_unix_value ~pos:(Lang.pos p)
-        (Unix.socket ~cloexec:true domain typ protocol))
+        (Stdlib_wrappers.Socket.socket ~cloexec:true domain typ protocol))
 
 let _ =
   Lang.add_builtin ~base:socket "pair" ~category:`Internet
@@ -474,7 +469,9 @@ let _ =
       let domain = Socket_domain.of_value (List.assoc "domain" p) in
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
-      let s, s' = Unix.socketpair ~cloexec:true domain typ protocol in
+      let s, s' =
+        Stdlib_wrappers.Socket.socketpair ~cloexec:true domain typ protocol
+      in
       let pos = Lang.pos p in
       Lang.product
         (Socket_value.to_unix_value ~pos s)
