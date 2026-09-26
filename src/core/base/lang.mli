@@ -310,8 +310,13 @@ val raise_error :
 val runtime_error_of_exception :
   bt:Printexc.raw_backtrace -> kind:string -> exn -> Runtime_error.runtime_error
 
-(** Re-raise an error as a runtime error. *)
+(** Re-raise an error as a runtime error carrying the OCaml backtrace as its
+    position. Meant for errors raised outside of any script function call. *)
 val raise_as_runtime : bt:Printexc.raw_backtrace -> kind:string -> exn -> 'a
+
+(** Run a builtin's OCaml code, raising its errors as runtime errors of the
+    given kind. *)
+val protect : kind:string -> (unit -> 'a) -> 'a
 
 (** Return the process' environment. *)
 val environment : unit -> (string * string) list

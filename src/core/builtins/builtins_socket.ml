@@ -381,14 +381,16 @@ module Socket_value = struct
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Unix.bind socket#file_descr
-                (Socket_addr.of_value (List.assoc "" p));
+              Lang.protect ~kind:"socket" (fun () ->
+                  Unix.bind socket#file_descr
+                    (Socket_addr.of_value (List.assoc "" p)));
               Lang.unit) );
         ( "listen",
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Unix.listen socket#file_descr (Lang.to_int (List.assoc "" p));
+              Lang.protect ~kind:"socket" (fun () ->
+                  Unix.listen socket#file_descr (Lang.to_int (List.assoc "" p)));
               Lang.unit) );
       ]
 
@@ -425,14 +427,18 @@ module Socket_value = struct
               let timeout =
                 Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
               in
-              let fd, sockaddr = server#accept ?timeout socket#file_descr in
+              let fd, sockaddr =
+                Lang.protect ~kind:"socket" (fun () ->
+                    server#accept ?timeout socket#file_descr)
+              in
               Lang.product (to_value fd) (Socket_addr.to_value sockaddr)) );
         ( "connect",
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Unix.connect socket#file_descr
-                (Socket_addr.of_value (List.assoc "" p));
+              Lang.protect ~kind:"socket" (fun () ->
+                  Unix.connect socket#file_descr
+                    (Socket_addr.of_value (List.assoc "" p)));
               Lang.unit) );
       ]
 end
@@ -457,7 +463,8 @@ let _ =
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
       Socket_value.to_unix_value ~pos:(Lang.pos p)
-        (Unix.socket ~cloexec:true domain typ protocol))
+        (Lang.protect ~kind:"socket" (fun () ->
+             Unix.socket ~cloexec:true domain typ protocol)))
 
 let _ =
   Lang.add_builtin ~base:socket "pair" ~category:`Internet
@@ -476,7 +483,10 @@ let _ =
       let domain = Socket_domain.of_value (List.assoc "domain" p) in
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
-      let s, s' = Unix.socketpair ~cloexec:true domain typ protocol in
+      let s, s' =
+        Lang.protect ~kind:"socket" (fun () ->
+            Unix.socketpair ~cloexec:true domain typ protocol)
+      in
       let pos = Lang.pos p in
       Lang.product
         (Socket_value.to_unix_value ~pos s)
