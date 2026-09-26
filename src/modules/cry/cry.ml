@@ -158,7 +158,7 @@ let connect_sockaddr ?bind_address ?timeout sockaddr =
   let finish () =
     try
       if do_timeout then Unix.set_nonblock socket;
-      Unix.connect socket sockaddr;
+      Unix_utils.connect socket sockaddr;
       if do_timeout then Unix.clear_nonblock socket;
       socket
     with
