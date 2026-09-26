@@ -1,4 +1,5 @@
 ARG BASE_IMAGE=debian:sid
+ARG SSL_PATCH_URL=https://github.com/savonet/ocaml-ssl/archive/1dee8c2b325382926d5ce783849776adc0fce809.tar.gz
 
 # Stage 1: OCaml compiler with AddressSanitizer option
 FROM $BASE_IMAGE AS ocaml
@@ -31,6 +32,8 @@ RUN opam init -y --disable-sandboxing --bare && \
 # Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned
 
+ARG SSL_PATCH_URL
+
 USER root
 
 RUN apt-get update && \
@@ -50,6 +53,11 @@ RUN git clone https://github.com/savonet/liquidsoap.git && \
 RUN find /tmp/liquidsoap/src/modules/synced -maxdepth 1 -mindepth 1 -type d | \
     while read dir; do opam pin add -y --no-action "$dir"; done && \
     cd /tmp/liquidsoap && opam pin add -y --no-action .
+
+# ocaml-ssl stubs read OCaml strings after releasing the runtime lock, so a minor
+# collection in another thread can hand OpenSSL a freed path. Build with an empty
+# SSL_PATCH_URL for the released package.
+RUN test -z "$SSL_PATCH_URL" || opam pin add -y --no-action ssl "$SSL_PATCH_URL"
 
 # Stage 3: Install APT and opam dependencies
 FROM pinned AS build
