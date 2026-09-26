@@ -167,8 +167,7 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
         if Atomic.get shutdown then 0
         else (
           try
-            let fd = Harbor.file_descr_of_socket socket in
-            Tutils.wait_for ~log:(self#log#info "%s") (`Read fd) timeout;
+            socket#wait_for ~log:(self#log#info "%s") `Read timeout;
             relay_read socket buf ofs len
           with
             | Harbor.Retry -> 0

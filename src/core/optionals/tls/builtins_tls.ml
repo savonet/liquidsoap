@@ -177,19 +177,14 @@ let tls_socket ~pos ~session transport =
       try s#close with _ -> ())
   in
   let s =
-    object
+    object (self)
       method typ = "tls"
       method transport = transport
       method file_descr = session.Liq_tls.fd
+      method pending = Buffer.length session.Liq_tls.read_pending > 0
 
       method wait_for ?log event timeout =
-        let event =
-          match event with
-            | `Read -> `Read session.Liq_tls.fd
-            | `Write -> `Write session.Liq_tls.fd
-            | `Both -> `Both session.Liq_tls.fd
-        in
-        Tutils.wait_for ?log event timeout
+        Http.wait_for ?log ~pending:self#pending self#file_descr event timeout
 
       method read = Liq_tls.read session
       method write = Liq_tls.write session

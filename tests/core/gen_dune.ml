@@ -18,6 +18,7 @@ let skip_tests =
     "ffmpeg_get_type_test";
     "ffprobe_process_test";
     "format_dump_test";
+    "tls_pending_test";
   ]
 
 let test_names = ref []

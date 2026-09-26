@@ -7,6 +7,10 @@ type socket =
   ; transport : transport
   ; file_descr : Unix.file_descr
   ; wait_for : ?log:(string -> unit) -> event -> float -> unit
+  ; pending : bool
+        (** Set when [read] can return data without [file_descr] being readable,
+            e.g. bytes a TLS layer already decrypted, in which case
+            [wait_for `Read] returns immediately. *)
   ; write : Bytes.t -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
   ; closed : bool
@@ -28,6 +32,15 @@ and transport =
       int ->
       socket
   ; server : server >
+
+(** The [wait_for] of a socket whose [pending] flag is [pending]. *)
+val wait_for :
+  ?log:(string -> unit) ->
+  pending:bool ->
+  Unix.file_descr ->
+  event ->
+  float ->
+  unit
 
 (** Base unix connect *)
 val connect :

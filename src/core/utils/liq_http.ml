@@ -5,6 +5,7 @@ type socket =
   ; transport : transport
   ; file_descr : Unix.file_descr
   ; wait_for : ?log:(string -> unit) -> event -> float -> unit
+  ; pending : bool
   ; write : Bytes.t -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
   ; closed : bool
@@ -52,6 +53,13 @@ let rec accept ?timeout sock =
     | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) when has_timeout ->
         check_timeout ()
 
+let wait_for ?log ~pending fd (event : event) timeout =
+  match event with
+    | (`Read | `Both) when pending -> ()
+    | `Read -> Tutils.wait_for ?log (`Read fd) timeout
+    | `Write -> Tutils.wait_for ?log (`Write fd) timeout
+    | `Both -> Tutils.wait_for ?log (`Both fd) timeout
+
 let rec unix_socket ~pos fd =
   let s = Cry.unix_socket fd in
   let closed = Atomic.make false in
@@ -76,6 +84,7 @@ let rec unix_socket ~pos fd =
       method file_descr = fd
       method transport = unix_transport ()
       method wait_for = s#wait_for
+      method pending = false
       method write = s#write
       method read = s#read
       method closed = Atomic.get closed

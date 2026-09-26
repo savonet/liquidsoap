@@ -203,3 +203,54 @@
   (:test ffprobe_process_test.exe))
  (action
   (run %{test} %{media})))
+
+(executable
+ (name tls_pending_test)
+ (modules tls_pending_test)
+ (optional)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_ssl
+  liquidsoap_tls
+  duppy
+  threads.posix
+  unix))
+
+(rule
+ (alias tls_pending_test)
+ (targets ssl.cert ssl.key)
+ (action
+  (run
+   openssl
+   req
+   -x509
+   -newkey
+   rsa:2048
+   -keyout
+   ssl.key
+   -out
+   ssl.cert
+   -sha256
+   -days
+   3650
+   -nodes
+   -subj
+   "/CN=localhost")))
+
+(rule
+ (alias tls_pending_test)
+ (package liquidsoap)
+ (deps
+  (:test tls_pending_test.exe)
+  (:certificate ssl.cert)
+  (:key ssl.key))
+ (action
+  (run %{test} %{certificate} %{key})))
+
+(alias
+ (name citest)
+ (deps
+  (alias tls_pending_test)))

@@ -216,14 +216,16 @@ module Socket_value = struct
                     | `Read -> `Read socket#file_descr
                     | `Write -> `Write socket#file_descr
                 in
+                let ready = mode = `Read && socket#pending in
                 let events =
                   match timeout with
+                    | _ when ready -> [`Delay 0.]
                     | None -> [event]
                     | Some t -> [`Delay t; event]
                 in
                 let fn = List.assoc "" p in
                 let fn events =
-                  if not (List.mem event events) then
+                  if not (ready || List.mem event events) then
                     Lang.raise_error ~pos:(Lang.pos p)
                       ~message:"Timeout while writing to the socket!" "socket";
                   ignore (Lang.apply fn []);

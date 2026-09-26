@@ -127,12 +127,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                   try
                     let rec f () =
                       try
-                        let fd = Harbor.file_descr_of_socket socket in
-                        (* Wait for `Read event on socket. *)
-                        Tutils.wait_for ~log:(self#log#info "%s") (`Read fd)
-                          timeout;
-
-                        (* Now read. *)
+                        socket#wait_for ~log:(self#log#info "%s") `Read timeout;
                         relay_read socket buf ofs len
                       with Harbor.Retry -> f ()
                     in
