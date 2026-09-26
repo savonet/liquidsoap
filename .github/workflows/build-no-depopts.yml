@@ -39,6 +39,8 @@ jobs:
           git reset --hard
           git submodule foreach 'git reset --hard'
           git pull
+          # ocaml-mm's default branch carries the API of liquidsoap 2.5.x.
+          git -C ocaml-mm checkout v0.8.6
           cp PACKAGES.minimal PACKAGES
           opam update
           opam pin -yn .
