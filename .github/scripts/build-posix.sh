@@ -22,6 +22,8 @@ git pull
 make clean
 make public
 make update
+# ocaml-mm's default branch carries the API of liquidsoap 2.5.x.
+git -C ocaml-mm checkout v0.8.6
 
 echo "::endgroup::"
 
