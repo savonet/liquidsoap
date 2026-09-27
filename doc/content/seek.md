@@ -1,8 +1,8 @@
 # Seeking in liquidsoap
 
-Starting with Liquidsoap `1.0.0-beta2`, it is now possible to seek within sources!
+Liquidsoap can seek within sources!
 Not all sources support seeking though: currently, they are mostly file-based sources
-such as `request.queue`, `playlist`, `request.dynamic.list` etc..
+such as `request.queue`, `playlist`, `request.dynamic`, etc.
 
 The basic function to seek within a source is `source.seek`. It has the following type:
 
@@ -31,21 +31,7 @@ that implements a server/telnet seek function:
 
 ## Cue points
 
-File-based sources support cue-points to cut the beginning and end of tracks
-The values of cue-in and cue-out points are given in absolute
-position through the source's metadata. For instance, the following
-source will cue-in at 10 seconds and cue-out at 45 seconds on all its tracks:
-
-```liquidsoap
-s = playlist(prefix="annotate:liq_cue_in=\"10.\",liq_cue_out=\"45\":",
-             "/path/to/music")
-```
-
-As in the above example, you may use the `annotate` protocol to pass custom cue
-points along with the files passed to Liquidsoap. This is particularly useful
-in combination with `request.dynamic` as an external script can build-up
-the appropriate URI, including cue-points, based on information from your
-own scheduling back-end.
-
-Alternatively, you may use `metadata.map` to add those metadata. The operator
-`metadata.map` supports seeking and passes it to its underlying source.
+Request-based sources also support cue points, which cut the beginning and end
+of each track. The decoder applies the cue-in point by seeking in the file when
+it opens it, so cue points work with the same sources as `source.seek`. See
+[cue points](./requests.md#cue-points) for how to set them.

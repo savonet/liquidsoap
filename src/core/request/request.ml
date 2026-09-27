@@ -604,12 +604,18 @@ let get_decoder ~ctype r =
                         (Frame.seconds_of_main cue_out);
                     buf))
               in
+              let fseek len =
+                let old_pos = Atomic.get pos in
+                let seeked = decoder.fseek (min len (cue_out - old_pos)) in
+                Atomic.set pos (old_pos + seeked);
+                seeked
+              in
               let remaining () =
                 match (decoder.remaining (), cue_out - Atomic.get pos) with
                   | -1, r -> r
                   | r, r' -> min r r'
               in
-              Some { decoder with fread; remaining })
+              Some { decoder with fread; fseek; remaining })
 
 (** Plugins registration. *)
 

@@ -15,7 +15,7 @@ There are four main APIs available for scheduling:
 
 This page walks you through the first three, with examples to get you started.
 
-If you are looking for a more in-depth example of how to use the scheduler, you can refer to our blog post [Precise scheduling of tracks](https://www.liquidsoap.info/blog/2023-03-25-precise-scheduling-of-tracks/)
+If you are looking for a more in-depth example of how to use the scheduler, you can refer to our blog post [Precise scheduling of tracks](https://www.liquidsoap.info/blog/2023-03-25-precise-scheduling-of-tracks/).
 
 ## `thread.run`: Simple Repeating Tasks
 
@@ -49,7 +49,7 @@ To schedule a task at a specific time, use `thread.when`. It takes a [time predi
 
 ```
 
-This function is ran every time the predicates returns `true`, which should be during the 9th hour of the morning (hours are in 24h format).
+The function runs every time the predicate becomes `true` after having been `false`. Here, this happens at the start of the 9th hour of the morning (hours are in 24h format).
 
 You can refer to the `thread.when` and `predicate.activates` documentation for more details about the implementation.
 
@@ -69,7 +69,7 @@ If you’re used to cron syntax, you can use `cron.add` to schedule tasks using 
 
 This example runs the task every day at 12:00 PM.
 
-If needed, the function returns a unique identifier for the task, which you can use to remove it later:
+If needed, `cron.add` returns a unique identifier for the task, which you can use to remove it later:
 
 ```{.liquidsoap include="cron_id.liq"}
 

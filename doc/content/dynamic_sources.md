@@ -1,15 +1,17 @@
+# Dynamic sources
+
 Liquidsoap supports dynamic creation and destruction of sources
 during the execution of a script. The following gives an example
 of this.
 
 First some outlines:
 
-- This example is meant to create a new source and outputs. It is not easy currently to change a source being streamed
+- This example is meant to create a new source and outputs. It is currently not easy to change a source being streamed.
 - The idea is to create a new output using a telnet/server command.
 - In order for a Liquidsoap script to run without an active source at startup, it is necessary to include `settings.init.force_start := true` at the start of the script.
 
-In this example, we will register a command that dynamically create a new output based on an encoded stream
-and output it to an arbitrary url, as supported by the ffmpeg copy encoder. This script can be used to create
+In this example, we will register a command that dynamically creates a new output based on an encoded stream
+and output it to an arbitrary URL, as supported by the ffmpeg copy encoder. This script can be used to create
 a dynamic restreaming platform.
 
 Here's the code:
@@ -23,9 +25,10 @@ After executing this script, you should see two telnet commands:
 - `restream.start <uri>`
 - `restream.stop <uri>`
 
-which you can use to create/destroy dynamically your sources.
+which you can use to dynamically create and destroy your sources.
 
 Note that `create_stream` reuses `s`, which lives for as long as the script
-does. Any callback it registers on `s` — directly, or through an operator such
-as `fade.in` — stays there once the stream is deleted, and one is added on every
-call. See [source callbacks](./callbacks.md) for how to release them.
+does. A callback that `create_stream` registers on `s`, directly or through an
+operator such as `fade.in`, stays on `s` after the stream is deleted, and each
+call adds a new one. See [source callbacks](./callbacks.md) for how to release
+them.

@@ -71,9 +71,15 @@ let dir dirtype =
       fn ()
     with
       | None ->
+          let env_var =
+            match dirtype with
+              | `User -> "LIQ_CACHE_USER_DIR"
+              | `System -> "LIQ_CACHE_SYSTEM_DIR"
+          in
           Startup.message
             "Could not find default cache directory! You can set it using the \
-             `$LIQ_CACHE_DIR` environment variable.";
+             `$%s` environment variable."
+            env_var;
           None
       | Some _ as v -> v)
   else (

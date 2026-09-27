@@ -2,27 +2,28 @@
 
 ## What is JACK?
 
-[JACK](https://jackaudio.org/) (JACK Audio Connection Kit) is a professional-grade audio server for
-Linux and macOS designed for low-latency inter-application audio routing.
-Applications expose named ports and any port can be connected to any other
-in a patch-bay style — much like physical cables on a studio mixing desk.
+[JACK](https://jackaudio.org/) (JACK Audio Connection Kit) is a low-latency
+audio server for Linux and macOS. Applications running on the same machine
+register named ports with the server, and any output port can be connected to
+any input port, like patch cables on a studio mixing desk.
 
-JACK is useful for:
+You can use JACK to:
 
-- Live performance: route Liquidsoap outputs to a monitoring system or effects rack.
-- Studio setups: send audio to/from a DAW running on the same machine.
-- Testing: inspect or record Liquidsoap's audio output without any hardware.
+- route Liquidsoap's output to a monitoring system or an effects rack during a
+  live performance,
+- send audio to and from a DAW running on the same machine,
+- record or inspect Liquidsoap's output without any audio hardware.
 
-Liquidsoap exposes four JACK-related operators:
+Liquidsoap provides the following JACK operators:
 
-- `input.jack` — receive audio from JACK
-- `output.jack` — send audio to JACK
-- `jack.server.buffer_size()` — query the current JACK buffer size (in samples)
-- `jack.server.sample_rate()` — query the current JACK sample rate (in Hz)
+- `input.jack` receives audio from JACK.
+- `output.jack` sends audio to JACK.
+- `jack.server.buffer_size()` returns the current JACK buffer size, in samples.
+- `jack.server.sample_rate()` returns the current JACK sample rate, in Hz.
 
-Each `input.jack` and `output.jack` instance opens its own JACK client. The
-client name is the `id` parameter (default `"input"` / `"output"`). Ports are
-named `{id}_0`, `{id}_1`, etc., one per audio channel.
+Each `input.jack` and `output.jack` opens its own JACK client, named after the
+source's `id`. Set `id` explicitly to get a stable client name. The ports of a
+client are named `{id}_0`, `{id}_1`, etc., one per audio channel.
 
 ## Latency
 
@@ -36,10 +37,10 @@ buffer_size / sample_rate   (seconds)
 For example, a 256-sample buffer at 44100 Hz gives roughly 5.8 ms of
 hardware latency.
 
-Liquidsoap's clock is driven by JACK's process callback. One JACK period before
-audio is needed, the callback wakes the streaming thread (via a semaphore). The
-streaming thread produces a Liquidsoap frame, writes it into the ringbuffer, and
-goes back to sleep. No busy-waiting, no CPU-timer drift.
+The Liquidsoap clock follows the time reported by the JACK server. When the
+streaming thread is ahead, it sleeps until a JACK process callback reports
+that the target time has been reached. It then produces a Liquidsoap frame,
+writes it into a ringbuffer and goes back to sleep.
 
 Liquidsoap's own frame duration (default ~20 ms, set via
 `settings.frame.duration`) determines how much audio it produces per tick.
@@ -49,67 +50,72 @@ at a time. This works well for most setups.
 
 ## Overruns and underruns
 
-Each channel has a lock-free ringbuffer sitting between Liquidsoap's streaming
-thread and JACK's real-time process thread:
+Each channel has a lock-free ringbuffer between Liquidsoap's streaming thread
+and JACK's real-time process thread. The ringbuffer holds up to
+`settings.jack.max_latency` seconds of audio (0.5 by default).
 
-- **Output underrun**: JACK's callback fires but the ringbuffer has fewer
-  samples than needed. The missing samples are replaced with silence and a
-  warning is logged. Typical cause: Liquidsoap's frame size is too large
-  relative to the JACK buffer size, or a GC pause delayed the streaming thread.
-
-- **Input overrun**: JACK's callback writes new samples but Liquidsoap hasn't
-  consumed the previous ones yet. The excess samples are dropped and a warning
-  is logged. Typical cause: Liquidsoap's streaming thread is running too slowly.
+- _Output underrun_: JACK's callback fires but the ringbuffer has fewer
+  samples than needed. The missing samples are replaced with silence and an
+  `output underrun` message is logged. This happens when the streaming thread
+  is late, for instance because of CPU load or a garbage collector pause.
+- _Input overrun_: JACK's callback writes new samples but the ringbuffer is
+  full because Liquidsoap has not consumed the previous ones yet. The excess
+  samples are dropped and an `input overrun` message is logged. This happens
+  when the streaming thread runs too slowly.
 
 In both cases the remedies are:
 
 1. Increase the JACK buffer size in the JACK server settings.
-2. Ensure the machine has enough CPU headroom.
-3. See the advanced section below for frame-matching.
+2. Make sure the machine has enough CPU headroom.
+3. Align Liquidsoap's frame size with the JACK buffer, as described in the
+   advanced section below.
 
 ## OCaml and real-time audio
 
-OCaml's garbage collector can pause execution at any time. JACK's process
-callback requires strict, deterministic timing. In practice the two coexist
-well because:
+OCaml's garbage collector can pause the streaming thread at any time, while
+JACK's process callback runs on a strict schedule. Liquidsoap handles this
+as follows:
 
-- Audio data is exchanged through lock-free ringbuffers, isolating the GC
-  from the JACK thread.
-- The ringbuffer is pre-filled with silence at startup to absorb transient GC
+- Audio data goes through lock-free ringbuffers, so a garbage collector pause
+  in the streaming thread leaves the JACK thread running.
+- `output.jack` pre-fills its ringbuffer with one frame of silence (plus one
+  JACK buffer when the sizes are not aligned) when it starts, to absorb short
   pauses.
-- Underruns are logged but do not crash the stream.
+- Underruns and overruns are logged and the stream keeps going.
 
-For demanding setups: run `jackd -R` (real-time scheduling priority) and use
-a low-latency kernel.
+For demanding setups, run `jackd -R` (real-time scheduling priority) and use a
+low-latency kernel.
 
 ## Clocks and self-sync
 
-JACK drives its own hardware clock (the process callback fires at precise
-intervals set by the audio interface). `input.jack` and `output.jack` are
-therefore **self-synchronized** sources — they run on the JACK clock, not
-Liquidsoap's internal CPU clock.
+The JACK server paces its process callback with the audio interface's
+hardware clock. `input.jack` and `output.jack` are therefore
+_synchronization sources_ for their clock (see [clocks](./clocks.md)). All the
+JACK operators connected to the same JACK server share one synchronization
+source, so an `input.jack` feeding an `output.jack` works out of the box.
 
-When connecting a JACK source to an output that has its own hardware clock
-(e.g. `output.ao`, which talks directly to ALSA or Core Audio), the two clocks
-must be reconciled. There are two approaches:
+When you connect a JACK source to an output that has its own hardware clock,
+for instance `output.ao`, the clock ends up with two synchronization sources
+and Liquidsoap reports a conflict. There are two ways to resolve it.
 
-**Option 1 — disable self_sync on one side:**
+The first one is to set `self_sync=false` on the other output, so that it
+follows JACK's timing:
 
 ```liquidsoap
 output.ao(self_sync=false, input.jack(id="input"))
 ```
 
-This tells `output.ao` to rely on JACK's clock rather than its own. Simple,
-but only works when one side clearly dominates.
+This is simple, but the two devices still run on different hardware clocks
+and the drift between them eventually causes glitches.
 
-**Option 2 — use `buffer()` to cross clock domains:**
+The second one is to use `buffer()`, which places each side in its own clock:
 
-```{.liquidsoap include="jack-buffer.liq"}
+```{.liquidsoap include="jack-buffer.liq" from="BEGIN" to="END"}
 
 ```
 
-`buffer()` decouples the two clocks by queuing audio between them. It adds a
-small, configurable amount of latency but is the safe general-purpose approach.
+`buffer()` queues audio between the two clocks. It adds a small, configurable
+amount of latency and is the safe general-purpose approach.
 
 ## Examples
 
@@ -123,7 +129,7 @@ playback.
 
 ![JACK patchbay showing three Liquidsoap clients: playlist feeds input, output goes to system playback](jack-patchbay.png)
 
-```{.liquidsoap include="jack-passthrough.liq"}
+```{.liquidsoap include="jack-passthrough.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -131,7 +137,7 @@ playback.
 
 Capture whatever is arriving on the JACK input port to a WAV file:
 
-```{.liquidsoap include="jack-record.liq"}
+```{.liquidsoap include="jack-record.liq" from="BEGIN" to="END"}
 
 ```
 
@@ -140,126 +146,117 @@ Capture whatever is arriving on the JACK input port to a WAV file:
 If you run multiple JACK daemons, select the target with the `server`
 parameter:
 
-```{.liquidsoap include="jack-server.liq"}
-
-```
-
-### Buffer for clock crossing
-
-Use `buffer()` to safely move audio between the JACK clock domain and another:
-
-```{.liquidsoap include="jack-buffer.liq"}
+```{.liquidsoap include="jack-server.liq" from="BEGIN" to="END"}
 
 ```
 
 ## Programmatic port connections
 
-Each `input.jack` and `output.jack` exposes a `ports()` method that returns
-the list of JACK ports registered by that operator. The types are distinct:
-`input.jack` returns `[jack_input_port]` and `output.jack` returns
-`[jack_output_port]`. This distinction is enforced by the type system — you
-cannot accidentally connect two input ports or two output ports together.
+`input.jack` and `output.jack` have a `ports()` method that returns the list
+of JACK ports registered by the operator. `input.jack` returns
+`[jack_input_port]` and `output.jack` returns `[jack_output_port]`. The two
+types are distinct, so the type checker only lets you connect an output port
+to an input port.
 
 Each port value has two methods:
 
-- `name()` — returns the full JACK port name, e.g. `"out:out_0"`.
-- `connect(other)` — connects this port to another port of the opposite
-  direction. On an output port, `connect` takes a `jack_input_port`; on an
-  input port, `connect` takes a `jack_output_port`.
+- `name()` returns the full JACK port name, e.g. `"out:out_0"`.
+- `connect(other)` connects this port to a port of the opposite direction. On
+  an output port, `connect` takes a `jack_input_port`. On an input port,
+  `connect` takes a `jack_output_port`.
 
-For convenience, `input.jack` and `output.jack` both expose a high-level
-`connect` method that wires all their ports to another operator at once:
+`input.jack` and `output.jack` also have a `connect` method that connects all
+their ports to another operator at once:
 
 ```{.liquidsoap include="jack-connect.liq"}
 
 ```
 
-The connection is **deferred**: registering it at script definition time is
-safe because the actual `jack_connect` call is only made once both operators
-have woken up and registered their JACK ports.
+You can call `connect` when the script is defined: Liquidsoap makes the actual
+`jack_connect` call once both operators have woken up and registered their
+JACK ports.
 
 ### Connecting to server capture and playback ports
 
-`jack.server.capture()` and `jack.server.playback()` provide a programmatic
-interface to the physical hardware ports exposed by the JACK server —
-`system:capture_*` and `system:playback_*` respectively. Each returns a record
-with a `connect` method that mirrors the one on `input.jack` and `output.jack`,
-so you can wire everything in one place without touching an external patchbay:
+`jack.server.capture()` and `jack.server.playback()` give access to the
+physical hardware ports of the JACK server, `system:capture_*` and
+`system:playback_*` respectively. Each returns a record with a `connect`
+method that works like the one on `input.jack` and `output.jack`, so you can
+wire everything from your script:
 
 ```{.liquidsoap include="jack-server-ports.liq"}
 
 ```
 
-A few things worth noting:
+A few details:
 
-- **JACK port direction**: `system:capture_*` ports are `JackPortIsOutput` in
-  JACK's own naming — they _output_ audio from the hardware into the graph.
-  `system:playback_*` ports are `JackPortIsInput` — they _input_ audio from the
-  graph into the hardware. `jack.server.capture()` and `jack.server.playback()`
-  handle this automatically; you do not need to think about it.
-- **Deferred connection**: like `output.jack.connect`, the call to
-  `jack.server.playback().connect(o)` is safe to make at script definition time.
-  The actual `jack_connect` call is deferred until the operator has woken up and
-  registered its JACK ports.
-- **Optional `~server` parameter**: both functions accept a `server` parameter
-  for multi-daemon setups, matching the `server` parameter of `input.jack` and
-  `output.jack`.
+- In JACK's own naming, `system:capture_*` ports are output ports: they send
+  audio from the hardware into the graph. `system:playback_*` ports are input
+  ports: they send audio from the graph to the hardware.
+  `jack.server.capture()` connects to an `input.jack` and
+  `jack.server.playback()` connects to an `output.jack`, following this
+  convention.
+- `jack.server.playback().connect(o)` can also be called when the script is
+  defined. The actual `jack_connect` call happens once the operator has woken
+  up and registered its JACK ports.
+- Both functions accept a `server` parameter for multi-daemon setups, like
+  `input.jack` and `output.jack`.
 
-Port counts are handled automatically:
+`connect` matches port counts as follows:
 
 - If one side has a single port, it is connected to every port on the other
-  side (mono broadcast / fan-in).
+  side.
 - If both sides have the same number of ports, they are connected pairwise
-  (channel 0 → channel 0, channel 1 → channel 1, etc.).
+  (channel 0 to channel 0, channel 1 to channel 1, etc.).
 - Any other combination raises `error.invalid` at connection time.
 
 ## Advanced: minimizing latency
 
-> **Note**: This section is for setups specifically tuned for minimum latency.
-> It is _not_ recommended for general use.
+This section is for setups tuned for minimum latency. Keep the default
+settings for general use.
 
 End-to-end latency between Liquidsoap and JACK depends on how well the two
 frame sizes and sample rates align. There are three levels of tuning, in
 increasing order of aggressiveness.
 
-### Step 1 — match sample rates
+### Step 1: match sample rates
 
-Configure Liquidsoap's audio sample rate to match JACK's. Mismatched rates
-force resampling on every buffer, adding CPU overhead and latency:
+Set Liquidsoap's audio sample rate to JACK's. When the rates differ,
+Liquidsoap resamples every buffer, which costs CPU and adds latency:
 
 ```liquidsoap
 settings.frame.audio.samplerate := jack.server.sample_rate()
 ```
 
-### Step 2 — make Liquidsoap's frame a multiple of the JACK buffer
+### Step 2: make Liquidsoap's frame a multiple of the JACK buffer
 
-Liquidsoap produces audio in fixed-size frames (default ~20 ms). Setting the
-frame duration so that the resulting sample count is an exact multiple of the
-JACK buffer size keeps reads and writes aligned to buffer boundaries, avoiding
-timing slop at the edges:
+Liquidsoap produces audio in fixed-size frames (default ~20 ms). Set the
+frame duration so that its sample count is an exact multiple of the JACK
+buffer size. Reads and writes then stay aligned to JACK buffer boundaries, and
+`output.jack` skips the extra JACK buffer of silence padding:
 
 ```liquidsoap
-# Example: 4× the JACK buffer
+# Example: 4 times the JACK buffer
 settings.frame.duration :=
-  4. *. float_of_int(jack.server.buffer_size()) /.
+  4. * float_of_int(jack.server.buffer_size()) /
     float_of_int(jack.server.sample_rate())
 ```
 
-### Step 3 — match exactly one JACK buffer (adventurous users only)
+### Step 3: match exactly one JACK buffer
 
 On a well-configured system (real-time kernel, `jackd -R`, ample CPU
-headroom) you can go further and set Liquidsoap's frame duration equal to
-exactly one JACK buffer. Liquidsoap then produces audio one JACK buffer at a
-time, reducing end-to-end latency to a single buffer length (e.g. ~5 ms at
-44100 Hz with a 256-sample buffer):
+headroom) you can set Liquidsoap's frame duration to exactly one JACK buffer.
+Liquidsoap then produces audio one JACK buffer at a time, which reduces
+end-to-end latency to a single buffer length (e.g. ~5.8 ms at 44100 Hz with a
+256-sample buffer):
 
-```{.liquidsoap include="jack-low-latency.liq"}
+```{.liquidsoap include="jack-low-latency.liq" from="BEGIN" to="END"}
 
 ```
 
 `video.frame.rate := 0` disables the video frame rate constraint so that the
 frame duration is determined solely by the audio calculation above.
 
-On an underpowered or misconfigured machine this will cause frequent
-underruns. Use the default frame size unless you have a specific latency
-target and a stable, well-tuned system.
+On an underpowered or misconfigured machine this setting causes frequent
+underruns. Use it only when you have a specific latency target and a stable,
+well-tuned system.

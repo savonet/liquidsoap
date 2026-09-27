@@ -1,11 +1,11 @@
 # Liquidsoap's scripting language
 
-_The following is adapted from the [Liquidsoap book](./book.md). The reader is avised to check out the whole
-chapter in the book for more details about the liquidsoap language_
+_The following is adapted from the [Liquidsoap book](./book.md). The reader is advised to check out the whole
+chapter in the book for more details about the liquidsoap language._
 
 ## General features
 
-Liquidsoap is a novel language which was designed from scratch to handle media stream. It takes some inspiration
+Liquidsoap is a novel language which was designed from scratch to handle media streams. It takes some inspiration
 from functional languages such as [OCaml](https://ocaml.org/) but features a syntax that is more intuitive to the
 general purpose programmer, similar to Ruby or Javascript.
 
@@ -40,7 +40,7 @@ function which describes the shape we want for the transition) and so on.
 
 The unique feature of Liquidsoap is that it allows the manipulation of _sources_
 which are functions which will generate streams. These streams typically consist
-of stereo audio data, but we do restrict to this: they can contain audio with
+of stereo audio data, but we do not restrict to this: they can contain audio with
 arbitrary number of channels, they can also contain an arbitrary number of video
 channels, and also MIDI channels (there is limited support for sound synthesis).
 
@@ -53,6 +53,10 @@ libraries. You should not be frightened to have a look at the standard library,
 it is often useful to better grasp the language, learn design patterns and
 tricks, and add functionalities. Its location on your system is indicated in the
 variable `configure.libdir` and can be obtained by typing
+
+```
+liquidsoap 'print(configure.libdir)'
+```
 
 ## Basic values
 
@@ -155,8 +159,8 @@ print("a #{ {a = 1}.a } b")
 
 #### Raw strings
 
-When a string should be taken verbatim — without any interpolation or escape
-processing — use the _raw string_ syntax `{|...|}`.:
+When a string should be taken verbatim, with no interpolation and no escape
+processing, use the _raw string_ syntax `{|...|}`:
 
 ```{.liquidsoap include="raw-string.liq"}
 
@@ -176,8 +180,8 @@ the same `id`, which can be empty (as in the basic `{|...|}` form).
 
 #### Escaping strings
 
-Liquidsoap strings follow the most common lexical conventions from `C` and `javascript` and `JSON`, in particular,
-`string.unescape` recognizes the same escape sequences as `C` (except for `UTF-16` characters) and javascript.
+Liquidsoap strings follow the most common lexical conventions from `C`, `JavaScript` and `JSON`. In particular,
+`string.unescape` recognizes the same escape sequences as `C` (except for `UTF-16` characters) and JavaScript.
 
 The following sequences are recognized:
 
@@ -198,10 +202,10 @@ The following sequences are recognized:
 | `\?`            | `\x3F`             | Question mark (used to avoid Digraphs and trigraphs)                                  |
 | `\nnn`          | any                | The byte whose numerical value is given by _nnn_ interpreted as an _octal_ number     |
 | `\xhh`          | any                | The byte whose numerical value is given by _hh_ interpreted as a _hexadecimal_ number |
-| `\uhhhh`        | none               | UTF8-8 code point given by _hhhh_ interpreted as an _hexadecimal_ number              |
+| `\uhhhh`        | none               | UTF-8 code point given by _hhhh_ interpreted as a _hexadecimal_ number                |
 
 This convention has been decided to follow the most common practices. In particular, `\nnn` is an _octal_ escape sequence in most languages
-including C, Ruby, Javascript, Python and more. This differs from OCaml where `\nnn` is considered a _digital_ escape sequence.
+including C, Ruby, JavaScript, Python and more. This differs from OCaml where `\nnn` is considered a _decimal_ escape sequence.
 
 These lexical conventions are used in the default `string.escape` and `string.unescape`.
 
@@ -225,7 +229,7 @@ Regular expressions can be created using the `regexp` operator or the syntactic 
 r = regexp(flags=["g","i"], "foo([\\w])+bar")
 
 # Using the r/../ syntactic sugar:
-r = r/foo([\w])bar/gi
+r = r/foo([\w])+bar/gi
 ```
 
 Using the `r/../` syntactic sugar makes it possible to write regular expressions without having to escape `\` characters,
@@ -240,10 +244,10 @@ Regular expression flags are:
 
 Regular expressions have the following methods:
 
-- `replace(fn, s)`: replace matched substrings of `s` using function `fn`. If the `g` flag is not passed, only the first match is replaced otherwise, all matches are replaced
+- `replace(fn, s)`: replace matched substrings of `s` using function `fn`. If the `g` flag is not passed, only the first match is replaced, otherwise all matches are replaced.
 - `split(s)`: split the given string on all substrings matching the regular expression.
 - `test(s)`: returns `true` if the given string matches the regular expression.
-- `exec(s)`: execute the regular expression and return a of list matches of the form: `[(<match index>, <match>), ..]`. Named matches are also supported and returned as property `groups` of type `[string * string]`:
+- `exec(s)`: execute the regular expression and return a list of matches of the form: `[(<match index>, <match>), ..]`. Named matches are also supported and returned as property `groups` of type `[string * string]`:
 
 ```liquidsoap
 r/(foo)(?<gno>gni)?/g.exec("foogni")
@@ -274,7 +278,7 @@ and return booleans:
 
 - `==`: compares for equality,
 - `!=`: compares for inequality,
-- `<=`: compares for inequality,
+- `<=`: less than or equal to,
 
 and so on (`<`, `>=`, `>`). For instance, the following is a boolean expression:
 
@@ -312,13 +316,15 @@ x = if 1 == 2 then "A" else 5 end
 will result in
 
 ```
-At line 1, char 19-21:
-Error 5: this value has type string
-but it should be a subtype of int
+At line 1, char 28:
+Error 5: this value has type
+  int
+but it should be a subtype of
+  string (inferred at line 1, char 19-22)
 ```
 
-meaning that `"A"` is a string but is expected to be an integer because the
-second branch returns an integer, and the two should be of same nature. The
+meaning that `5` is an integer but is expected to be a string because the
+first branch returns a string, and the two should be of same nature. The
 `else` branch is optional, in which case the `then` branch should be of type
 `unit`:
 
@@ -373,22 +379,20 @@ Time predicates are special boolean values such as `{0h-7h}`. These values are
 `true` or `false` depending on the current time. Some examples of time
 predicates are
 
----
-
-`{11h15-13h}` between 11h15 and 13h
-`{12h}` between 12h00 and 12h59
-`{12h00}` at 12h00
-`{00m}` on the first minute of every hour
-`{00m-09m}` on the first 10 minutes of every hour
-`{2w}` on Tuesday
-`{6w-7w}` on weekends
-
----
+| Predicate     | Meaning                               |
+| ------------- | ------------------------------------- |
+| `{11h15-13h}` | between 11h15 and 13h                 |
+| `{12h}`       | between 12h00 and 12h59               |
+| `{12h00}`     | at 12h00                              |
+| `{00m}`       | on the first minute of every hour     |
+| `{00m-09m}`   | on the first 10 minutes of every hour |
+| `{2w}`        | on Tuesday                            |
+| `{6w-7w}`     | on weekends                           |
 
 Above, `w` stands for weekday: 1 is Monday, 2 is Tuesday, and so on. Sunday is
 both 0 and 7.
 
-Time predicate can also be parsed at runtime, for instance if you want to create
+Time predicates can also be parsed at runtime, for instance if you want to create
 them dynamically. The syntax is:
 
 ```liquidsoap
@@ -437,7 +441,7 @@ let [x, _, z, ...t] = l
 ```
 
 In this example, the value of `x` is `1`, the value of `z` is `7` and the value of `t`
-is [`8, 9]`.
+is `[8, 9]`.
 
 You can also combine lists in a similar way
 
@@ -445,7 +449,7 @@ You can also combine lists in a similar way
 x = [1, ...[2, 3, 4], 5, ...[6, 7]]
 ```
 
-In this example, the value of `x` is `[1, 2, 3, 4, 5, 6 ,7]`
+In this example, the value of `x` is `[1, 2, 3, 4, 5, 6, 7]`.
 
 ### Tuples
 
@@ -463,7 +467,7 @@ is a triple (a tuple with three elements) of type
 int * float * string
 ```
 
-which indicate that the first element is an integer, the second a float and the
+which indicates that the first element is an integer, the second a float and the
 third a string.
 
 Similarly to lists, there is a special syntax in order to access
@@ -534,7 +538,7 @@ is an integer (of type `int`), the type of the reference `r` will be
 ref(int)
 ```
 
-meaning that its a memory cell containing integers. On such a reference, two
+meaning that it's a memory cell containing integers. On such a reference, two
 operations are available.
 
 - One can obtain the value of the reference by applying the reference to `()`,
@@ -584,7 +588,7 @@ In practice, such loops could be used to add a bunch of numbered files
 (e.g. `music1.mp3`, `music2.mp3`, `music3.mp3`, etc.) in a request queue for
 instance.
 
-The `while` loop repeatedly executes a portion of code, as long a condition is
+The `while` loop repeatedly executes a portion of code, as long as a condition is
 satisfied. For instance, the following code doubles the contents of the
 reference `n` as long as its value is below `10`:
 
@@ -612,8 +616,8 @@ between songs.
 ### Basics
 
 A function is a construction which takes a bunch of arguments and produces a
-result. For instance, we can define a function `f` taking two float arguments,
-prints the first and returns the result of adding twice the first to the second:
+result. For instance, we can define a function `f` taking two integer arguments,
+printing the first and returns the result of adding twice the first to the second:
 
 ```liquidsoap
 def f(x, y)
@@ -650,7 +654,7 @@ the evaluation of `2*3+4`, which is `10`.
 
 ### Anonymous functions
 
-For concision in scripts, it is possible define a function without giving it a
+For concision in scripts, it is possible to define a function without giving it a
 name, using the syntax
 
 ```liquidsoap
@@ -679,7 +683,7 @@ fun () -> ...
 ### Labeled arguments
 
 A function can have an arbitrary number of arguments, and when there are many of them it
-becomes difficult to keep track of their order and their order matter! For
+becomes difficult to keep track of their order and their order matters! For
 instance, the following function computes the sample rate given a number of
 samples in a given period of time:
 
@@ -810,7 +814,7 @@ argument of type
 
 This is a function which takes no argument and returns a float (remember that a
 function can take an arbitrary number of arguments, which includes zero arguments). It is
-very close to a float excepting that each time it is called the returned value
+very close to a float except that each time it is called the returned value
 can change: we now have the possibility of having something like a float which
 varies over time. We like to call such a function a _float getter_, since it can
 be seen as some kind of object on which the only operation we can perform is get
@@ -920,7 +924,7 @@ radios, but you can see a few occurrences of it in the standard library.
 Suppose that we want to store and manipulate structured data. For instance, a
 list of songs together with their duration and tempo. One way to store each song
 is as a tuple of type `string * float * float`, but there is a risk of confusion
-between the duration and the length which are both floats, and the situation
+between the duration and the tempo which are both floats, and the situation
 would of course be worse if there were more fields. In order to overcome this,
 one can use a _record_ which is basically the same as a tuple, excepting that
 fields are named. In our case, we can store a song as
@@ -971,7 +975,7 @@ the standard library. We tend to call _module_ a record with only functions, but
 this is really the same as a record. For instance, all the functions related to
 lists are in the `list` module and functions such as `list.hd` are fields of
 this record. For this reason, the `def` construction allows adding
-fields in record. For instance, the definition
+fields in records. For instance, the definition
 
 ```liquidsoap
 def list.last(l)
@@ -984,7 +988,7 @@ computes the last element of a list. Another shorter syntax to perform
 definitions consists in using the `let` keyword which allows assigning a value
 to a field, so that the previous example can be rewritten as
 
-```liquidasoap
+```liquidsoap
 let list.last = fun(l) -> list.nth(l, list.length(l)-1)
 ```
 
@@ -1059,7 +1063,7 @@ This can be achieved in two ways:
 Here's an example:
 
 ```liquidsoap
-# This functions adds 1 to x unless options has a
+# This function adds 1 to x unless options has an
 # add field in which case it adds this value
 def f(x, options) =
   x + (options.add ?? 1)
@@ -1073,14 +1077,14 @@ f : (int, 'a.{add? : int}) -> int = <fun>
 ```
 
 which denotes that the `options` argument can be any value that may or may not have
-a `add` field. However, if this field is present, it must be of type `int`.
+an `add` field. However, if this field is present, it must be of type `int`.
 
 2. Using the `x?.foo` syntax
 
 Given a variable `x`, `x?.foo` returns the field value `foo`, if present, or `null`
 otherwise.
 
-The `?.` syntax can be chained and works with functions, which make it a very convenient
+The `?.` syntax can be chained and works with functions, which makes it a very convenient
 way to drill deep inside nested records:
 
 ```liquidsoap
@@ -1090,9 +1094,9 @@ x?.fn(123, "aabb")?.field
 ## Patterns
 
 As explained earlier, you can use several constructions to extract data from structured values such
-as `let [x, y] = l` and etc. These constructions are called _patterns_.
+as `let [x, y] = l`, etc. These constructions are called _patterns_.
 
-Patterns allows to quickly access values nested deeply inside structured data in a way that remains pretty intuitive when
+Patterns allow you to quickly access values nested deeply inside structured data in a way that remains pretty intuitive when
 reading the code.
 
 Patterns are constructed using _variable placeholders_, which are either a variable name such as: `x`, `foo`, etc. or
@@ -1120,11 +1124,11 @@ Only the first statement is affected; the ones after it can be written either wa
 
 ### Tuple patterns
 
-Tuple patterns are pretty straight forward and consist of any sequence of variable captures:
+Tuple patterns are pretty straightforward and consist of any sequence of variable captures:
 
 ```liquidsoap
 let (x, y, _, z) = (123, "aabbcc", true, 3.14)
-# x = 1, y = "aabbcc", z = 3.14
+# x = 123, y = "aabbcc", z = 3.14
 ```
 
 ### List patterns
@@ -1137,7 +1141,7 @@ You can use any combination of:
 
 - Forward variable names: these capture the first elements of the list.
 - One spread: this captures any remaining element as a list.
-- Backward variable names: these capture the last elements of a the list.
+- Backward variable names: these capture the last elements of the list.
 
 Here are some examples:
 
@@ -1156,7 +1160,7 @@ let [_, x, ...z] = [1, 2, 3, 4]
 
 # Full capture:
 let [x, y, ...z, t, u, v] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-# x = 1, y = 2, z = [3, 4, 5, 6, 7], t = 7, u = 8, v = 9
+# x = 1, y = 2, z = [3, 4, 5, 6], t = 7, u = 8, v = 9
 
 # Backward capture only.
 let [..., t, u, v] = [1, 2, 3, 4, 5]
@@ -1200,11 +1204,11 @@ let {foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
 # If you want to capture foo and destructure it, you need
 # to specify it twice:
 let {foo, foo = [x, y, z], gni} = {foo = [1, 2, 3], gni = "baz"}
-# foo = [x, y, z], x = 1, y = 2, z = 3, gni = "baz"
+# foo = [1, 2, 3], x = 1, y = 2, z = 3, gni = "baz"
 
 # Record entry can be renamed and ignored on capture:
-let {foo=_, gni=gno, gni={gna}, gni={gna=gnu}...rest} = { foo = 123, gni = {gna="bla"} }
-# gno = {gnna="bla"}, gna="bla", gnu="bla", rest = {foo=123}
+let {foo=_, gni=gno, gni={gna}, gni={gna=gnu}, ...rest} = { foo = 123, gni = {gna="bla"} }
+# gno = {gna="bla"}, gna="bla", gnu="bla", rest = {}
 
 # Record capture with optional methods:
 let { foo? } = ()
@@ -1214,9 +1218,9 @@ let { foo? } = { foo = 123 }
 # foo = 123
 ```
 
-## Combining patterns
+### Combining patterns
 
-As seen with record and modules, patterns can be combined at will, for instance, these
+As seen with records and modules, patterns can be combined at will, for instance, these
 are all valid patterns:
 
 ```liquidsoap
@@ -1225,24 +1229,24 @@ let [{foo}, {gni}, ..., {baz}] = l
 let (_.{ bla = [..., z] }, t, _, u) = x
 ```
 
-## Destructuring function arguments
+### Destructuring function arguments
 
-Patterns are also valid in function arguments and can be used to desctructure function arguments before passing
+Patterns are also valid in function arguments and can be used to destructure function arguments before passing
 them to the function's code.
 
-Here are some example:
+Here are some examples:
 
 ```liquidsoap
-# Take a labelled argument x and grab its `gno` method:
+# Take a labeled argument x and grab its `gno` method:
 def f(~x:{gno}) =
   gno + 1
 end
 # Function type: f : (x : 'a.{gno : int}) -> int
 
 # Call it:
-f({gno = 1}) # Returns 2
+f(x={gno = 1}) # Returns 2
 
-# Take an anonymous array and adds the first two elements:
+# Take an unlabeled list and add its two elements:
 def f([a, b]) =
   a + b
 end
@@ -1264,8 +1268,8 @@ f([1]);;
 
 ## Advanced values
 
-In this section, we detail some more advanced values than the ones presented in. You are not expected to be understanding
-those in details for basic uses of Liquidsoap.
+In this section, we detail some more advanced values than the ones presented above. You are not expected to understand
+those in detail for basic uses of Liquidsoap.
 
 ### Errors
 
@@ -1304,7 +1308,7 @@ This will execute the instructions `code`: if an error is raised at some point
 during this, the code `handler` is executed, with `err` being the error. For
 instance, instead of writing
 
-```liquidsaop
+```liquidsoap
 l = []
 x = list.hd(default=0, l)
 ```
@@ -1414,7 +1418,7 @@ catch ... do
 end
 ```
 
-The biggest different is that `finally` is called on all errors, including internal errors that cannot
+The biggest difference is that `finally` is called on all errors, including internal errors that cannot
 be caught by the runtime code.
 
 Errors raised in a `finally` block do override any previously raised errors.
@@ -1430,7 +1434,7 @@ empty:
 
 ```liquidsoap
 def list.hd(l)
-  if l == [] then null else list.hd(l) end
+  if l == [] then null else null(list.hd(l)) end
 end
 ```
 
@@ -1441,11 +1445,12 @@ whose type would be
 ```
 
 since it takes as argument a list whose elements are of type `'a` and returns a
-list whose elements are `'a` or `null`. As it can be observed above, the null
-value is created with `null`.
+value which is either of type `'a` or `null`. As it can be observed above, the null
+value is created with `null`, and `null(x)` turns a value `x` of type `t` into a
+value of type `t?`.
 
 In order to use a nullable value, one typically uses the construction `x ?? d`
-which is the value `x` excepting when it is null, in which case it is the
+which is the value `x` except when it is null, in which case it is the
 default value `d`. For instance, with the above head function:
 
 ```liquidsoap
@@ -1462,7 +1467,7 @@ Some other useful functions include
 
 ### Runtime evaluation of scripting values
 
-Similarly to how JSON is [parsed](./json.md), you can evaluate string into values at runtime
+Similarly to how JSON is [parsed](./json.md), you can evaluate strings into values at runtime
 using the `eval` decorator. As with JSON, too, the recommended way to use it is by adding an
 explicit type annotation:
 
@@ -1510,7 +1515,7 @@ so that passwords are not shown in the main script.
 
 Comments can be added to your code in two ways:
 
-_Multi-line comments_ are comments that can span multiple lines. They are delimitated
+_Multi-line comments_ are comments that can span multiple lines. They are delimited
 by the sequence of characters `#<` at the beginning and `>#` at the end. Anything
 in between those two sequences is considered code comment.
 
@@ -1556,107 +1561,8 @@ end
 
 ## Caching
 
-Type-checking scripts can take a lot of time and consume memory. To optimize things, this step can be cached.
-
-During the first execution, the script is parsed, type checked and evaluated. On second and any following execution, a cache of the script is used, reducing the typechecking phase, sometimes by a `100x` factor!
-
-Here's a log without caching on a M3 macbook pro:
-
-```
-2024/07/03 14:31:41 [startup:3] main script hash computation: 0.03s
-2024/07/03 14:31:41 [startup:3] main script cache retrieval: 0.03s
-2024/07/03 14:31:41 [startup:3] stdlib hash computation: 0.03s
-2024/07/03 14:31:41 [startup:3] stdlib cache retrieval: 0.03s
-2024/07/03 14:31:41 [startup:3] Typechecking stdlib: 3.37s
-2024/07/03 14:31:41 [startup:3] Typechecking main script: 0.00s
-```
-
-And the same log after caching:
-
-```
-2024/07/03 14:32:59 [startup:3] main script hash computation: 0.02s
-2024/07/03 14:32:59 [startup:3] Loading main script from cache!
-2024/07/03 14:32:59 [startup:3] main script cache retrieval: 0.05s
-```
-
-Scripts can be cached ahead of time without executing them, for instance while compiling a docker image, using `--cache-only`. Caching can also be disabled using `--no-cache`.
-
-Caching happens at two different time:
-
-- First the standard library is cached
-- Then the script itself is cached
-
-Caching the standard library makes it possible to run the type-checker faster on new scripts. Here's an example of a log from running a new script with
-a cached standard library:
-
-```
-2024/07/03 14:33:27 [startup:3] main script hash computation: 0.02s
-2024/07/03 14:33:27 [startup:3] main script cache retrieval: 0.02s
-2024/07/03 14:33:27 [startup:3] stdlib hash computation: 0.03s
-2024/07/03 14:33:27 [startup:3] Loading stdlib from cache!
-2024/07/03 14:33:27 [startup:3] stdlib cache retrieval: 0.10s
-2024/07/03 14:33:27 [startup:3] Typechecking main script: 0.00s
-```
-
-Caching can be disabled by setting `LIQ_CACHE` to anything else than `"true"`.
-
-### Cache locations
-
-Cache files can accumulate and also take up disk space so it is important to know where they are located!
-
-There are two type of cache locations:
-
-- System cache for cached files that should be shared with all liquidsoap scripts. This is where the standard library cache is located. This location is a system-wide path on unix system such as `/var/cache/liquidsoap`.
-- User cache for cached files that are specific to the user running liquidsoap scripts. On unix systems, this location is at `$HOME/.cache/liquidsoap`.
-
-On windows, the default cache directory for both type of cache locations is in the same directory as the binary.
-
-At runtime, `liquidsoap.cache(mode=<mode>)` returns the cache directory. `mode` should be one of: `"user"` or `"system"`.
-
-### Cache maintenance
-
-There is a cache maintenance routine which deletes unused cache files after `10` days and keeps the cache to a maximum of `200` files.
-
-You can run the cache maintenance routing by calling `liquidsoap.cache.maintenance(mode=<mode>)` manually. Here, too, `mode` should be one of: `"user"` or `"system"`.
-
-### Cache security
-
-Please be aware that the cache does _not_ encrypt its values. As such, user cache files should be considered sensitive as they may contain password and other runtime secrets
-that are available through your scripts. We recommend to:
-
-- Use environment variables as much as possible when passing secrets
-- Secure your user script and cache files.
-
-The default creation permissions for user cache files is: `0o600` so only the user creating them should be able to read them. You should make sure that your script permissions are also similarly restricted.
-
-### Cache and memory usage
-
-One side-benefit from loading a script from cache is that the entire typechecking process is skipped.
-
-This leads to a significant reduction in initial memory consumption, typically down from about `375MB` to about `80MB`!
-
-Additionally, the OCaml memory compaction algorithm is executed after typechecking your script but before running it.
-This results in additional memory usage reduction with a slight delay in initial startup time.
-
-To maximize your script startup time you should:
-
-- Cache it before running it to skip the initial typececking
-- Set `settings.init.compact_before_start` to `false` to skip the initial memory compaction:
-
-```liquidsoap
-settings.init.compact_before_start := false
-```
-
-### Cache environment variables
-
-The following environment variables control the cache behavior:
-
-- `LIQ_CACHE`: disable the cache when set to anything else than `1` or `true`
-- `LIQ_CACHE_SYSTEM_DIR`: set the cache system directory
-- `LIQ_CACHE_SYSTEM_DIR_PERMS`: set the permission used when creating cache system directory (and its parents when needed). Default: `0o755`
-- `LIQ_CACHE_SYSTEM_FILE_PERMS`: set the permissions used when creating a system cache file. Default: `0o644`
-- `LIQ_CACHE_USER_DIR`: set the cache user directory
-- `LIQ_CACHE_USER_DIR_PERMS`: set the permission used when creating cache user directory (and its parents when needed). Default: `0o700`.
-- `LIQ_CACHE_USER_FILE_PERMS`: set the permissions used when creating a user cache file. Default: `0o600`
-- `LIQ_CACHE_MAX_DAYS`: set the maximum days a cache file can be stored before it is eligible to be deleted during the next cache maintenance pass.
-- `LIQ_CACHE_MAX_FILES`: set the maximum number of files in each cache directory. Older files are removed first.
+Liquidsoap caches the result of typechecking your script and the standard
+library. A cached script starts much faster and uses much less memory. See
+[caching](./script_lifecycle.md#caching) to learn when the cache is used, where
+it lives, and how to fill it ahead of time with `--cache-only`, for instance in
+a Docker image.

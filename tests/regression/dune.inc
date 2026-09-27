@@ -2240,6 +2240,24 @@
   (run %{run_test} scheduler_parallel liquidsoap scheduler_parallel.liq)))
 
 (rule
+ (alias test_seek_cue_out)
+ (package liquidsoap)
+ (deps
+  seek_cue_out.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} seek_cue_out liquidsoap seek_cue_out.liq)))
+
+(rule
  (alias test_seek_track_map)
  (package liquidsoap)
  (deps
@@ -2782,6 +2800,7 @@
   (alias test_replaygain)
   (alias test_scheduler_legacy)
   (alias test_scheduler_parallel)
+  (alias test_seek_cue_out)
   (alias test_seek_track_map)
   (alias test_server.insert_metadata)
   (alias test_shoutcast-args)

@@ -6,4 +6,4 @@ Rolling releases can also be useful for us to quickly detect and report bugs bef
 
 Assets listed in this release will never be modified or deleted. Feel free to use them for packaging or distribution purposes.
 
-For more details about our release process, please checkout https://github.com/savonet/liquidsoap#release-details
+For more details about our release process, please check out https://github.com/savonet/liquidsoap#release-details

@@ -23,7 +23,7 @@ SubRip (.srt) files are natively supported by all builds of liquidsoap:
 let {subtitles} = source.tracks(single("subtitles.srt"))
 ```
 
-For decoding subtitles from media containers, see [FFmpeg Subtitles](./ffmpeg_subtitles.md).
+To decode subtitles from media containers such as `.mkv` files, see [Decoding from media files](#decoding-from-media-files).
 
 ## Subtitle callbacks
 
@@ -57,8 +57,7 @@ s = subtitles.map(fun (sub) ->
   else
     # Modify the text
     {text="[#{sub.format}] #{sub.text}"}
-  end
-end, s)
+  end, s)
 ```
 
 The callback receives the same record as `on_subtitle` and returns:
@@ -70,10 +69,8 @@ The callback receives the same record as `on_subtitle` and returns:
 Only fields that are returned will be updated:
 
 ```liquidsoap
-s = subtitles.map(fun (sub) ->
-  # Only change format, keep text and forced unchanged
-  {format="ass"}
-end, s)
+# Only change format, keep text and forced unchanged
+s = subtitles.map(fun (_) -> {format="ass"}, s)
 ```
 
 ## Inserting subtitles
@@ -128,6 +125,203 @@ subtitles_source = sequence([source({subtitles=s1}), source({subtitles=s2})])
 let {subtitles} = source.tracks(subtitles_source)
 ```
 
-## FFmpeg integration
+## FFmpeg subtitles
 
-For advanced subtitle handling including encoding to various formats, copying encoded subtitles, and decoding from media containers, see [FFmpeg Subtitles](./ffmpeg_subtitles.md).
+With FFmpeg support, you can decode subtitles from media files, encode subtitles into a container, copy encoded subtitle streams and burn bitmap subtitles into the video. See [Enabling ffmpeg support](./ffmpeg.md#enabling-ffmpeg-support) to add FFmpeg to your build.
+
+### Decoding from media files
+
+Subtitles can be decoded from media files using `input.ffmpeg`:
+
+```liquidsoap
+let {video, subtitles} = source.tracks(
+  input.ffmpeg("input.mkv")
+)
+```
+
+Text-based subtitle codecs (SubRip, ASS/SSA, WebVTT, MOV text) are decoded to text. Bitmap-based subtitles (DVD, PGS, DVB) are images: you can copy them or [burn them into the video](#burning-bitmap-subtitles-into-video).
+
+### Encoding subtitles
+
+The `%subtitles` encoder converts subtitle content into encoded subtitle streams. Example:
+
+```liquidsoap
+%ffmpeg(
+  format="matroska",
+  %video(codec="libx264"),
+  %subtitles(codec="subrip")
+)
+```
+
+Supported codecs depend on the container format:
+
+- **Matroska (.mkv)**: `subrip`, `ass`
+- **WebM**: `webvtt`
+- **MP4**: `mov_text`
+
+#### Custom text to ASS conversion
+
+When encoding, text subtitles are converted to ASS format. To customize this conversion:
+
+```liquidsoap
+%ffmpeg(
+  format="matroska",
+  %video(codec="libx264"),
+  %subtitles(
+    codec="ass",
+    text_to_ass=fun (i, text) -> "#{i},0,MyStyle,,0,0,0,,#{text}"
+  )
+)
+```
+
+The `text_to_ass` function takes a read-order index and the subtitle text, and returns an ASS dialogue line without its timestamps. The encoder adds the timestamps. The default function returns `"#{i},0,Default,,0,0,0,,#{text}"`.
+
+### Copying subtitles
+
+The `%subtitles.copy` encoder passes encoded subtitle data through as is. Use it to keep bitmap-based subtitles (DVD, PGS, DVB) as a subtitle track, or to pass text-based subtitles that you do not need to modify.
+
+#### Basic copy
+
+```liquidsoap
+s = input.ffmpeg(self_sync=true, "input.mkv")
+
+let {audio, video, subtitles} = source.tracks(s)
+
+output.file(
+  %ffmpeg(
+    format="matroska",
+    %audio.copy,
+    %video.copy,
+    %subtitles.copy
+  ),
+  "output.mkv",
+  source({audio=audio, video=video, subtitles=subtitles})
+)
+```
+
+#### Copying all streams from a file
+
+To remux a file with all streams intact:
+
+```liquidsoap
+s = input.ffmpeg(self_sync=true, "input.mkv")
+s = once(s)
+
+output.file(
+  fallible=true,
+  %ffmpeg(format="matroska", %audio.copy, %video.copy, %subtitles.copy),
+  "output.mkv",
+  s
+)
+```
+
+#### Copying bitmap subtitles
+
+Bitmap-based subtitle formats (DVD/VOBSUB, PGS/Blu-ray, DVB) are stored as images. To keep them as a subtitle track, copy them:
+
+```liquidsoap
+# DVD subtitles from an MKV file
+s = input.ffmpeg(self_sync=true, "movie_with_dvd_subs.mkv")
+
+let {video, subtitles} = source.tracks(s)
+
+# Copy the bitmap subtitles to a new container
+output.file(
+  %ffmpeg(format="matroska", %video.copy, %subtitles.copy),
+  "output.mkv",
+  source({video=video, subtitles=subtitles})
+)
+```
+
+### Encoding multiple subtitle tracks
+
+To encode several subtitle tracks, such as the ones built in [Multiple subtitle tracks](#multiple-subtitle-tracks), use numbered track names in the encoder:
+
+```liquidsoap
+output.file(
+  %ffmpeg(
+    format="matroska",
+    %video(codec="libx264"),
+    %subtitles(codec="subrip"),
+    %subtitles_2(codec="ass")
+  ),
+  "output.mkv", s
+)
+```
+
+### Mixing copy and encode
+
+`%subtitles.copy` and `%subtitles` encoding can be combined in the same output:
+
+```liquidsoap
+# Encoded subtitle track for copy
+let {video, subtitles = sub_copy} = source.tracks(
+  input.ffmpeg(self_sync=true, "input.mkv")
+)
+
+# Decoded subtitle track for encoding
+let {subtitles = sub_encode} = source.tracks(single("additional.srt"))
+
+s = source({video=video, subtitles=sub_copy, subtitles_2=sub_encode})
+
+output.file(
+  %ffmpeg(
+    format="matroska",
+    %video(codec="libx264"),
+    %subtitles.copy,
+    %subtitles_2(codec="subrip")
+  ),
+  "output.mkv", s
+)
+```
+
+### Re-encoding subtitles
+
+Text-based subtitles from a media file can be decoded and re-encoded to a different format:
+
+```liquidsoap
+let {video, subtitles} = source.tracks(
+  input.ffmpeg("input.mkv")
+)
+
+output.file(
+  %ffmpeg(format="matroska", %video.copy, %subtitles(codec="ass")),
+  "output.mkv",
+  source({video=video, subtitles=subtitles})
+)
+```
+
+### Burning bitmap subtitles into video
+
+Bitmap-based subtitles (DVD, PGS, DVB) can be burned into the video track using `track.video.add`. This draws the subtitle images onto the video frames.
+
+Burn subtitles in when the target format or player does not support the original subtitle format, or when the subtitles must always be visible.
+
+#### Basic example
+
+```liquidsoap
+# Optional: set video dimensions to match the source (DVD is typically 720x480 or 720x576)
+# This is only needed in cases where video frame size auto-detection does not work.
+# settings.frame.video.width := 720
+# settings.frame.video.height := 480
+
+s = single("movie_with_dvd_subs.mkv")
+s = once(s)
+
+let {audio, video, subtitles} = source.tracks(s)
+
+# Overlay subtitles onto video using track.video.add
+# The subtitles track is converted to video and composited on top
+s = source({audio=audio, video=track.video.add([video, subtitles])})
+
+output.file(
+  fallible=true,
+  %ffmpeg(%audio(codec="aac"), %video(codec="libx264")),
+  "output.mp4",
+  s
+)
+```
+
+Here, the `subtitles` track is used as a video track, so the decoder renders each subtitle image as a video frame at its position and display time. `track.video.add` then draws the tracks of its list on top of each other, in order. The output file contains the audio and the video with the subtitles burned in, and no subtitle track.
+
+The video dimensions must match the source for the subtitles to be positioned correctly. Burning subtitles requires re-encoding the video, which uses more CPU than copying it.

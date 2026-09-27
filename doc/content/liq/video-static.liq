@@ -12,7 +12,7 @@ clock.assign_new(sync='none', [source])
 # Encode video and copy audio:
 encoder = %ffmpeg(format = "mp4", %audio.copy, %video(codec = "libx264"))
 
-# Output to a theora file, shutdown on stop
+# Output to an mp4 file, shutdown on stop
 o = output.file(fallible=true, encoder, "/tmp/encoded-video.mp4", source)
 
 o.on_stop(synchronous=true, shutdown)

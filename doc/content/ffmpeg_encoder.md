@@ -100,7 +100,7 @@ The full syntax is as follows:
 
 Where:
 
-- `<format>` is a string value (e.g. `"mpegts"`) as returned by `ffmpeg -formats`, or `none`. When `none` or omitted, the encoder auto-detects the format.
+- `<format>` is a string value (e.g. `"mpegts"`) as returned by `ffmpeg -formats`, or `none`. When `none` or omitted, the encoder guesses the format, for instance from the file extension when using `output.url`.
 - `<codec>` is a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command.
 - `<option_name>` is any syntactically valid variable name or string. Strings are used for option names of the form `foo-bar`.
 - `%audio(...)` sets options for the audio codec. Unused options raise an exception. Any option supported by `ffmpeg` may be passed. Streams encoded with `%audio` use liquidsoap's internal frame format.
@@ -116,15 +116,15 @@ The `%ffmpeg` encoder is the primary encoder for HLS output, as it is the only e
 
 ### File output
 
-Some formats, such as `mp4`, require rewinding the stream to write a header after encoding finishes. For historical reasons, such formats cannot be used with `output.file`. The `output.url` operator addresses this — the encoder controls the output file and can write headers at the end. The `%ffmpeg` encoder supports `output.url`.
+Some formats, such as `mp4`, require rewinding the stream to write a header after encoding finishes. With the `%ffmpeg` encoder, `output.file` and `output.url` let FFmpeg control the output file, so FFmpeg can write headers at the end. These formats can be written to files but cannot be streamed, for instance with `output.icecast`.
 
 ### Copy options
 
 The `%audio.copy` and `%video.copy` encoders have two mutually exclusive options to handle keyframes:
 
-- `%audio.copy(wait_for_keyframe)` and `%video.copy(wait_for_keyframe)`: Wait until at least one keyframe has been passed to start passing
+- `%audio.copy(wait_for_keyframe)` and `%video.copy(wait_for_keyframe)`: wait until at least one keyframe has been passed to start passing
   encoded packets from a new stream.
-- `%audio.copy(ignore_keyframe)` and `%video.copy(ignore_keyframe)`: Ignore all keyframes.
+- `%audio.copy(ignore_keyframe)` and `%video.copy(ignore_keyframe)`: ignore all keyframes.
 
 These options are useful when switching between encoded streams.
 
@@ -164,4 +164,4 @@ enc = %ffmpeg(
 )
 ```
 
-Hardware acceleration support is highly hardware-dependent and not all combinations have been tested. If you encounter issues, feel free to reach out to check whether your use case is supported.
+Hardware acceleration support is highly hardware-dependent and not all combinations have been tested. If you encounter issues, reach out to us to check whether your use case is supported.

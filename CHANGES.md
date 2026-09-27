@@ -73,6 +73,7 @@
   threads, one at a time, as they did before. It will be removed in a later version once the concurrent
   scheduler has settled.
 - Removed optional `faad` decoder, superseded by `ffmpeg` (#5444)
+- The `prometheus.latency` metrics end in `_ratio` instead of `_seconds`: their values are ratios of the frame duration.
 - Deprecated `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
   `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
   nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a

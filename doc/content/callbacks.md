@@ -19,7 +19,7 @@ to last as long as the source.
 ## Synchronous or not
 
 `synchronous` has no default: every registration has to say which of the two
-behaviours it wants.
+behaviors it wants.
 
 With `synchronous=true` the callback runs where the event happened, which for
 stream events — `on_track`, `on_metadata`, `on_frame` — is the streaming thread.
@@ -27,7 +27,7 @@ The stream waits for it. That is what you want when the callback has to take
 effect before the stream moves on, and it means the callback must be quick:
 no HTTP request, no database query, no `thread.pause`, nothing that waits on
 something else. A callback that takes too long makes the streaming loop fall
-behind and produces [catchup errors](./latency_control.md).
+behind and produces [catchup errors](./performance.md#understanding-latency).
 
 With `synchronous=false` the callback is handed to liquidsoap's scheduler and
 runs on one of its generic queues instead. Blocking is fine there, so this is

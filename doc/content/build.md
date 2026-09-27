@@ -1,16 +1,16 @@
 # Building Liquidsoap
 
-## Forewords
+## Foreword
 
-Installing liquidsoap can be a difficult task. The software relies on an up-to date
+Installing liquidsoap can be a difficult task. The software relies on an up-to-date
 OCaml compiler, as well as a bunch of OCaml modules and, for most of them, corresponding
 C library dependencies.
 
-Our recommended way of installing liquidsoap is via [opam](http://opam.ocaml.org/). `opam` can take
+Our recommended way of installing liquidsoap is via [opam](https://opam.ocaml.org/). `opam` can take
 care of installing the correct OCaml compiler, optional and required dependencies as well as system-specific
 package dependencies.
 
-The `opam` method is described in details in the [documentation](install.md).
+The `opam` method is described in detail in the [documentation](./install.md).
 We recommend that any interested user head over to this link to install the software via `opam`.
 
 The remainder of this document describes how to compile liquidsoap locally for developers.
@@ -24,12 +24,12 @@ from source using `dune`, `opam` remains an important tool.
 Generally speaking, compiling from source may require the latest version of the liquidsoap code as well as its
 dependencies. Some of its dependencies are optional and can be ignored at first and some are not.
 
-Keep in mind that, although `opam` is generally aware of required minimal version for dependencies, `dune` is not.
-If a dependency is outdated, `dune` compilation will simply fail, at which point your may have to figure out if
+Keep in mind that, although `opam` is generally aware of required minimal versions for dependencies, `dune` is not.
+If a dependency is outdated, `dune` compilation will simply fail, at which point you may have to figure out if
 you need to update a dependency.
 
-Each branch of liquidsoap is compiled using [github actions](https://github.com/savonet/liquidsoap/actions). When trying
-to build a specific branch, if the CI passes with it then, most likely, you are missing a dependency, or it is not
+Each branch of liquidsoap is compiled using [GitHub Actions](https://github.com/savonet/liquidsoap/actions). When trying
+to build a specific branch, if the CI passes with it, then, most likely, you are missing a dependency, or it is not
 the latest version.
 
 ## `opam` pinning
@@ -73,7 +73,7 @@ opam info liquidsoap-lang
 ```
 
 This should give you a (long!) list of all dependencies. Then, you can query `opam` to see
-what each dependency does. This is particularly useful for optional dependencies on `liquidsoap-core`
+what each dependency does. This is particularly useful for optional dependencies of `liquidsoap`
 which provide opt-in features. For instance `opam info soundtouch` will let you know that this
 package provides functions for changing pitch and timestretching audio data.
 
@@ -85,10 +85,10 @@ Lastly, there are two types of dependencies:
 For dependencies not maintained by us, most of the time, we rely on the latest published version. Very rarely should you
 have to fetch/pin the latest version of these dependencies.
 
-For dependencies maintained by us, we may break their API during our development cycle, and you maybe have to fetch/pin
+For dependencies maintained by us, we may break their API during our development cycle, and you may have to fetch/pin
 the latest version when compiling the latest `liquidsoap` code. You may also have to check out a specific
 branch when compiling `liquidsoap` from a specific development branch when the changes in the liquidsoap code are paired with
-changes in one of our dependencies. Typically, this happens a lof with the `ffmpeg` binding.
+changes in one of our dependencies. Typically, this happens a lot with the `ffmpeg` binding.
 
 ## Optional packages
 
@@ -97,7 +97,7 @@ Liquidsoap’s support for audio/video codecs, I/O backends, and other features 
 `pulseaudio`, `srt`, `lame`, `flac`, `opus`, `vorbis`, `samplerate`, `soundtouch`, etc.).
 
 When building with `dune` from the top-level repository, all packages whose C library dependencies are detected on the system are
-compiled automatically — no manual pinning is required. If a C library is missing, the corresponding package is simply skipped
+compiled automatically. If a C library is missing, the build skips the corresponding package
 (unless `LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL` is set to `false`, in which case the build will report it as an error).
 
 You can install the optional packages independently via opam as well:
@@ -111,7 +111,7 @@ Run `opam info liquidsoap` to see the full list of optional dependencies and wha
 ## Environment variables
 
 When compiling Liquidsoap from source, certain environment variables can be set to control the build process and customize the build
-configuration. Here’s a brief overview of the relevant environment variables and their purposes:
+configuration:
 
 - `IS_SNAPSHOT`: Set this variable to indicate whether you are building a snapshot version of Liquidsoap. It affects the version suffix and
   whether the Git commit is displayed.
@@ -126,7 +126,6 @@ configuration. Here’s a brief overview of the relevant environment variables a
     - `LIQUIDSOAP_LOG_DIR` (default: `/var/log/liquidsoap`): Log file directory.
     - `LIQUIDSOAP_LIBS_DIR` (default: `/usr/share/liquidsoap/libs`): Liquidsoap standard library directory.
     - `LIQUIDSOAP_BIN_DIR` (default: `/usr/share/liquidsoap/bin`): Liquidsoap binary scripts directory.
-    - `LIQUIDSOAP_CAMOMILE_DIR` (default: `/usr/share/liquidsoap/camomile`): Camomile charset data directory.
     - `LIQUIDSOAP_CACHE_DIR` (default: `/var/cache/liquidsoap`): System cache directory.
 - `LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL`: Set to `true` to allow `dune build @install` to succeed even when optional C libraries are
   not available on the system. Useful when building in environments where not all optional dependencies are present.
@@ -147,7 +146,7 @@ Then build:
 dune build
 ```
 
-If an error occurs, you may need to see if you need to update a dependency. Hopefully, with a short iteration of this cycle,
+If an error occurs, you may need to update a dependency. Hopefully, with a short iteration of this cycle,
 you will end up with a successful build!
 
 Once you have a successful build, you can also use the top-level `liquidsoap` script. This script builds the latest code and
@@ -157,7 +156,7 @@ executes it right away. It works as if you were calling the `liquidsoap` binary 
 ./liquidsoap -h output.ao
 ```
 
-From here, you can start changing code, testing script etc. Happy hacking!
+From here, you can start changing code, testing scripts, etc. Happy hacking!
 
 ## Debugging with AddressSanitizer
 
@@ -171,9 +170,9 @@ corruption in the C bindings or OCaml runtime.
 An ASAN-instrumented build of Liquidsoap is produced automatically on every commit to `main`
 and `v*-latest` branches and is available in two forms:
 
-- **Debian package**: attached to the rolling release assets on the
+- Debian package: attached to the rolling release assets on the
   [releases page](https://github.com/savonet/liquidsoap/releases), with `asan` in the filename.
-- **Docker image**: published to the GitHub Container Registry as
+- Docker image: published to the GitHub Container Registry as
   `ghcr.io/savonet/liquidsoap:asan-<sha>`, where `<sha>` is the full Git commit SHA.
 
 To run your script under the ASAN Docker image:
@@ -188,7 +187,7 @@ access sites.
 
 ### ASAN options
 
-You can tune ASAN's behaviour at runtime via the `ASAN_OPTIONS` environment variable. Consult
+You can tune ASAN's behavior at runtime via the `ASAN_OPTIONS` environment variable. Consult
 the [AddressSanitizer flags reference](https://github.com/google/sanitizers/wiki/AddressSanitizerFlags)
 for the full list of available options. A good starting point is to enable leak detection:
 
@@ -202,7 +201,7 @@ To build Liquidsoap yourself with ASAN, create an opam switch using the
 `ocaml-option-address-sanitizer` variant:
 
 ```shell
-opam switch create asan-dev ocaml-variants.5.4.0+options ocaml-option-address-sanitizer
+opam switch create asan-dev ocaml-variants.5.5.0+options ocaml-option-address-sanitizer
 eval $(opam env)
 opam install --deps-only ./opam/liquidsoap.opam ./opam/liquidsoap-lang.opam
 dune build

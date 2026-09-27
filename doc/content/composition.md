@@ -206,7 +206,7 @@ It also runs on every selection, so any callback it registers on `ending` or
 switch releases those for you when the selection ends, and `cross` does the same
 for its transition — see [source callbacks](./callbacks.md).
 
-To keep the previous behaviour, where switching mid-track cut straight over with
+To keep the previous behavior, where switching mid-track cut straight over with
 no fade, there is a ready-made transition:
 
 ```liquidsoap
@@ -234,7 +234,7 @@ radio =
 ended: `true` if the source had nothing left for its current track — it reached a
 boundary, or simply became unavailable — and `false` if the switch cut into a
 track it was still playing. That is the switch's own account of the handoff, not
-something the source reports. This is what the default file behaviour uses to
+something the source reports. This is what the default file behavior uses to
 decide to skip a half-played track so the source starts fresh next time.
 
 Like `on_select`, `on_leave` runs in the streaming thread and must return

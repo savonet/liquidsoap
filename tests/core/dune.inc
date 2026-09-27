@@ -309,6 +309,37 @@
   (run %{decoder_test})))
 
 (executable
+ (name encoder_pcm_kind_test)
+ (modules encoder_pcm_kind_test)
+ (flags
+  (:standard -open Liquidsoap_core))
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias encoder_pcm_kind_test)
+ (package liquidsoap)
+ (deps
+  (:encoder_pcm_kind_test encoder_pcm_kind_test.exe))
+ (action
+  (run %{encoder_pcm_kind_test})))
+
+(executable
  (name ffmpeg_content_base_test)
  (modules ffmpeg_content_base_test)
  (flags
@@ -1321,6 +1352,7 @@
   (alias clock_utils_test)
   (alias content_test)
   (alias decoder_test)
+  (alias encoder_pcm_kind_test)
   (alias ffmpeg_content_base_test)
   (alias ffmpeg_dummy_content_test)
   (alias ffmpeg_quality)

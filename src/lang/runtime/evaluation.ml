@@ -473,7 +473,10 @@ let toplevel_add ?doc pat ~t v =
                                 (entry.meth_description, m.doc.category)
                             | None -> (Some m.doc.meth_descr, m.doc.category))
                   in
-                  let t = Repr.string_of_scheme m.scheme in
+                  let t =
+                    let vars, meth_t = m.scheme in
+                    Repr.string_of_scheme (vars @ generalized, meth_t)
+                  in
                   let entry =
                     (l, Doc.Value.{ meth_type = t; meth_description = d })
                   in
