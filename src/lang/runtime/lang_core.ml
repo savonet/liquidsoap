@@ -187,6 +187,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
          })
   in
   let doc () =
+    let generalized = Typing.filter_vars (fun _ -> true) t in
     let meth, return_t = Type.split_meths return_t in
     let callbacks, meth =
       List.partition (fun (m : Type.meth) -> m.doc.category = `Callback) meth
@@ -195,7 +196,6 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
       List.partition (fun (m : Type.meth) -> m.doc.category = `Composition) meth
     in
     let t = builtin_type proto return_t in
-    let generalized = Typing.filter_vars (fun _ -> true) t in
     let examples =
       List.map
         (fun e ->
@@ -231,7 +231,9 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
           ( (if m.optional then m.meth ^ "?" else m.meth),
             Doc.Value.
               {
-                meth_type = Repr.string_of_scheme m.scheme;
+                meth_type =
+                  (let vars, meth_t = m.scheme in
+                   Repr.string_of_scheme (vars @ generalized, meth_t));
                 meth_description = d;
               } ))
         l
