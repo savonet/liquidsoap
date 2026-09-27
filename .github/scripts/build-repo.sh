@@ -36,13 +36,18 @@ ABUILD_KEY="${ABUILD_KEY:?build-repo: ABUILD_KEY must point at liquidsoap.rsa}"
 [ "$(basename "${ABUILD_KEY}")" = "liquidsoap.rsa" ] ||
   fail "ABUILD_KEY must be named liquidsoap.rsa"
 
-WORK=$(mktemp -d)
-trap 'rm -rf "${WORK}"' EXIT
-
 # Kept outside the scratch directory when asked, so the verification pass can
 # serve the packages the redirects point at without downloading them twice.
-DOWNLOAD_DIR="${DOWNLOAD_DIR:-${WORK}/downloads}"
-mkdir -p "${DOWNLOAD_DIR}"
+# The scratch directory sits next to it because packages are staged by hard link.
+if [ -n "${DOWNLOAD_DIR:-}" ]; then
+  mkdir -p "${DOWNLOAD_DIR}"
+  WORK=$(mktemp -d -p "$(dirname "${DOWNLOAD_DIR}")")
+else
+  WORK=$(mktemp -d)
+  DOWNLOAD_DIR="${WORK}/downloads"
+  mkdir -p "${DOWNLOAD_DIR}"
+fi
+trap 'rm -rf "${WORK}"' EXIT
 
 rm -rf "${SITE}"
 mkdir -p "${SITE}"
