@@ -35,7 +35,7 @@ Decoded URI can be any url to pass down to the protocol resolution pipeline. Mos
 a decoded file but it could also be an `annotate` uri if you wish to also pass down decoded metadata along with
 the decoded file.
 
-```{.liquidsoap include="decoder-openmpt.liq"}
+```{.liquidsoap include="decoder-openmpt.liq" from="BEGIN"}
 
 ```
 

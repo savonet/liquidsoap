@@ -55,7 +55,7 @@ one is more readable in this context.
 
 Here's an example of how to use this:
 
-```{.liquidsoap include="video-canvas-example.liq"}
+```{.liquidsoap include="video-canvas-example.liq" from="BEGIN" to="END"}
 
 ```
 
