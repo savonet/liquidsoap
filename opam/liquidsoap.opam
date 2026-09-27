@@ -131,7 +131,7 @@ x-maintenance-intent: ["(latest)"]
 post-messages: [
   """\
 We're sorry that your liquidsoap install failed. Check out our installation
-instructions at: https://www.liquidsoap.info/doc-%{version}%/install.html#opam
+instructions at: https://www.liquidsoap.info/doc-%{version}%/install#install-using-opam
 for more information."""
     {failure}
   "✨ Congratulations on installing liquidsoap! ✨" {success}
