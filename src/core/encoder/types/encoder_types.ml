@@ -51,7 +51,19 @@ let video_type () =
     ~video:(Type.make (Format_type.descr (`Format (video_format ()))))
     ()
 
+let reject_pcm_kind_params p =
+  List.iter
+    (function
+      | `Anonymous s
+        when List.mem (String.lowercase_ascii s) ["pcm_s16"; "pcm_f32"] ->
+          raise_error ~pos:None
+            (Printf.sprintf
+               "%s audio is only supported by the %%ffmpeg encoder." s)
+      | _ -> ())
+    p
+
 let channels_of_params ?(default = 2) p =
+  reject_pcm_kind_params p;
   match
     List.find_map
       (function
@@ -104,7 +116,11 @@ let type_of_encoder ~pos ((name, params) : Term.encoder) =
   match find name with
     | None -> raise_error ~pos ("unsupported format: " ^ name)
     | Some type_of_encoder ->
-        let fields = type_of_encoder params in
+        let fields =
+          try type_of_encoder params
+          with Runtime_error.Runtime_error { kind; msg; pos = [] } ->
+            Runtime_error.raise ~message:msg ~pos:(Option.to_list pos) kind
+        in
         format_t ?pos (Frame_type.make Liquidsoap_lang.Lang.unit_t fields)
 
 let () = Hooks.implement Hooks.type_of_encoder type_of_encoder
