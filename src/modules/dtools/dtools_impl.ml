@@ -639,12 +639,14 @@ module Log = struct
   let proceed entry =
     let rec push () =
       let pending = Atomic.get log_queue in
-      if not (Atomic.compare_and_set log_queue pending (entry :: pending)) then
-        push ()
+      if Atomic.compare_and_set log_queue pending (entry :: pending) then
+        pending = []
+      else push ()
     in
-    push ();
-    (* Signalling under the lock is what makes the wait above race-free. *)
-    mutexify (fun () -> Condition.signal log_condition) ()
+    (* The consumer only sleeps on an empty queue, checked under the lock, so
+       only the push that fills it needs to signal, and it must do so under the
+       lock. *)
+    if push () then mutexify (fun () -> Condition.signal log_condition) ()
 
   let make path : t =
     let path_str = Conf.string_of_path path in

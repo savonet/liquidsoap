@@ -61,7 +61,7 @@ let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:3
 
 let conf_capture =
   Dtools.Conf.bool ~p:(conf_log#plug "capture")
-    "Process logs through the main liquidsoap log facilities." ~d:false
+    "Process logs through the main liquidsoap log facilities." ~d:true
 
 let conf_scaling_algorithm =
   Dtools.Conf.string
@@ -107,6 +107,12 @@ let () =
       if conf_capture#get then
         Avutil.Log.set_callback (fun s ->
             log#f conf_level#get "%s" (String.trim s)))
+
+(* FFmpeg keeps logging after the log stops, when finalizers free its
+   contexts. *)
+let _ =
+  Dtools.Init.make ~name:"ffmpeg-log-release" ~before:[Dtools.Log.stop]
+    (fun () -> if conf_capture#get then Avutil.Log.clear_callback ())
 
 let liq_main_ticks_time_base () =
   { Avutil.num = 1; den = Lazy.Mutexed.force Frame.main_rate }
