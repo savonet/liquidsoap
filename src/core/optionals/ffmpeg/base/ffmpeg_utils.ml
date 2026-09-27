@@ -61,7 +61,7 @@ let conf_level = Dtools.Conf.int ~p:(conf_log#plug "level") "Level" ~d:3
 
 let conf_capture =
   Dtools.Conf.bool ~p:(conf_log#plug "capture")
-    "Process logs through the main liquidsoap log facilities." ~d:false
+    "Process logs through the main liquidsoap log facilities." ~d:true
 
 let conf_scaling_algorithm =
   Dtools.Conf.string
