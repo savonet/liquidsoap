@@ -216,6 +216,8 @@ module Log = struct
   let clear_callback () =
     mutexify log_m
       (fun () ->
+        clear_callback ();
+        List.iter (Atomic.get log_thread_processor) (get_pending_logs ());
         log_thread_should_stop := true;
         signal_logs ())
       ()

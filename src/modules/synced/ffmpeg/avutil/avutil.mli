@@ -141,6 +141,9 @@ module Log : sig
 
   val set_level : level -> unit
   val set_callback : (string -> unit) -> unit
+
+  (** Restore FFmpeg's default callback, then pass pending messages to the
+      current one on the calling thread. *)
   val clear_callback : unit -> unit
 end
 
