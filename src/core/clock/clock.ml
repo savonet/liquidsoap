@@ -284,9 +284,7 @@ let () =
     | Loop (pos, a, b) ->
         Liquidsoap_lang.Runtime.error_header ~formatter 11 pos;
         Format.fprintf formatter
-          "Cannot unify two nested clocks@ (%s,@ %s).@ Do you need to set@ \
-           `settings.output.use_default_clock := false`?@]@."
-          a b;
+          "Cannot unify two nested clocks@ (%s,@ %s).@]@." a b;
         true
     | Main_conflict { pos; left_main; left_child; right_main; right_child } ->
         Liquidsoap_lang.Runtime.error_header ~formatter 16 pos;
