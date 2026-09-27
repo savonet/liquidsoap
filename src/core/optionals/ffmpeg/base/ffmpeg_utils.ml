@@ -108,6 +108,12 @@ let () =
         Avutil.Log.set_callback (fun s ->
             log#f conf_level#get "%s" (String.trim s)))
 
+(* FFmpeg keeps logging after the log stops, when finalizers free its
+   contexts. *)
+let _ =
+  Dtools.Init.make ~name:"ffmpeg-log-release" ~before:[Dtools.Log.stop]
+    (fun () -> if conf_capture#get then Avutil.Log.clear_callback ())
+
 let liq_main_ticks_time_base () =
   { Avutil.num = 1; den = Lazy.Mutexed.force Frame.main_rate }
 
