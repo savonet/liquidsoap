@@ -286,6 +286,7 @@ typedef struct log_msg_t {
 static _Atomic(log_msg_t *) log_head = NULL;
 static pthread_cond_t log_condition = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int log_wakeup = 0;
 
 static void av_log_ocaml_callback(void *ptr, int level, const char *fmt,
                                   va_list vl) {
@@ -309,7 +310,13 @@ static void av_log_ocaml_callback(void *ptr, int level, const char *fmt,
     msg->next = old_head;
   } while (!atomic_compare_exchange_weak(&log_head, &old_head, msg));
 
-  pthread_cond_signal(&log_condition);
+  /* The reader sleeps only on an empty list, checked under the lock, so only
+     the push that fills it signals, and under the lock. */
+  if (old_head == NULL) {
+    pthread_mutex_lock(&log_mutex);
+    pthread_cond_signal(&log_condition);
+    pthread_mutex_unlock(&log_mutex);
+  }
 }
 
 CAMLprim value ocaml_ffmpeg_wait_for_logs(value unit) {
@@ -318,7 +325,9 @@ CAMLprim value ocaml_ffmpeg_wait_for_logs(value unit) {
 
   caml_release_runtime_system();
   pthread_mutex_lock(&log_mutex);
-  pthread_cond_wait(&log_condition, &log_mutex);
+  while (atomic_load(&log_head) == NULL && !log_wakeup)
+    pthread_cond_wait(&log_condition, &log_mutex);
+  log_wakeup = 0;
   pthread_mutex_unlock(&log_mutex);
   caml_acquire_runtime_system();
 
@@ -328,7 +337,10 @@ CAMLprim value ocaml_ffmpeg_wait_for_logs(value unit) {
 CAMLprim value ocaml_ffmpeg_signal_logs(value unit) {
   (void)unit;
   CAMLparam0();
+  pthread_mutex_lock(&log_mutex);
+  log_wakeup = 1;
   pthread_cond_signal(&log_condition);
+  pthread_mutex_unlock(&log_mutex);
   CAMLreturn(Val_unit);
 }
 
