@@ -13,10 +13,10 @@ object whose methods can be used to modify or query the database:
 
 ```
 
-table in the database can then be created by calling the `table.create` method
+A table in the database can then be created by calling the `table.create` method
 on the object with as arguments the table name (labeled by `table`) and the list
 of columns specified by pairs consisting of the column name, and its
-type. Setting the `preserve` argument to `true`{.liquidsoap} allows not creating
+type. Setting the `preserve` argument to `true`{.liquidsoap} avoids creating
 the table if one already exists under this name. In our example, we want to use
 our database to store metadata for files so that we create a table named
 `"metadata"`{.liquidsoap} with columns corresponding to the artist, title, etc.:
@@ -34,26 +34,26 @@ argument the table and a record containing the data for the row:
 
 Since the field `filename` is a primary key, it has to be unique (two rows
 cannot have the same file name), so that inserting two files with the same
-filename in the database will result in an error. If we want that the second
-insertion replace the first one, we can pass the `replace=true`{.liquidsoap}
+filename in the database will result in an error. If we want the second
+insertion to replace the first one, we can pass the `replace=true`{.liquidsoap}
 argument to the `insert` function.
 
 We can query the database with the `select` method. For instance, to obtain all
-the files whose year is posterior to 2000, we can write
+the files whose year is 2000 or later, we can write
 
 ```{.liquidsoap include="sqlite.liq" from="select-begin" to="select-end"}
 
 ```
 
 In the case where you want to use strings in your queries, you should always use
-`sqlite.escape` to properly escape it and avoid injections:
+`sqlite.escape` to properly escape them and avoid injections:
 
 ```{.liquidsoap include="sqlite.liq" from="select2-begin" to="select2-end"}
 
 ```
 
-The `select` function, returns a list of rows. To each row will correspond a
-list of pairs strings consisting of
+The `select` function returns a list of rows. Each row can be converted to a
+list of pairs consisting of
 
 - a string: the name of the column,
 - a nullable string: its value (this is nullable because the contents of a
@@ -68,7 +68,7 @@ order to build a playlist as follows:
 
 This can be read as follows: for each row (by `list.map`{.liquidsoap}), we
 convert the row to a list of pairs of strings as described above (by calling the
-`to_list`{.liquidsoap} method), we replace take the field labeled
+`to_list`{.liquidsoap} method), we take the field labeled
 `"filename"`{.liquidsoap} (by `list.assoc`{.liquidsoap}) and take its value,
 assuming that it is not null (by `null.get`{.liquidsoap}).
 
@@ -99,7 +99,7 @@ Other useful methods include
 
 - `delete` to delete rows from a table
 
-  ```{.liquidsoap include="sqlite.liq" from="play-begin" to="play-end"}
+  ```{.liquidsoap include="sqlite.liq" from="delete-begin" to="delete-end"}
 
   ```
 
@@ -123,4 +123,5 @@ Other useful methods include
 
 Finally, if your aim is to index file metadata, you might be interested in the
 `medialib.sqlite`{.liquidsoap} operator which is implemented in the standard
-library as described above (see the [cookbook](./cookbook.md)).
+library as described above (see the
+[cookbook](./cookbook.md#generating-playlists-from-a-media-library)).

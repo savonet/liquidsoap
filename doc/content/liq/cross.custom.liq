@@ -21,7 +21,7 @@ radio = rotate([jingles.{weight = 1}, music.{weight = 3}])
 def transition(a, b) =
   # If old or new source is not music, no fade
   if
-    a.metadata["source_tag"] != "music" or a.metadata["source_tag"] != "music"
+    a.metadata["source_tag"] != "music" or b.metadata["source_tag"] != "music"
   then
     sequence([a.source, b.source])
   else

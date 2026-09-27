@@ -1,16 +1,17 @@
 # Multitrack
 
-Liquidsoap supports working with individual tracks inside a source. Audio, video, metadata and track marks can each be extracted,
-manipulated independently, and recombined into a new source. This unlocks
-workflows like keeping multiple language audio tracks, remuxing streams without
-re-encoding, or applying different processing chains to audio and video.
+Liquidsoap lets you work with the individual tracks of a source. You can
+extract the audio, video, metadata and track marks of a source, process each of
+them separately and combine them into a new source. For instance, you can keep
+the audio tracks of several languages from a movie file, remux streams without
+re-encoding them, or apply different processing to audio and video.
 
 ## What is a track?
 
 A source produces a _frame_ on each streaming cycle. A frame is a collection of
-typed fields — typically `audio`, `video`, `metadata` and `track_marks`, though
-you can have any number of named audio or video fields (e.g. `audio_2`). Each
-field is what Liquidsoap calls a _track_.
+typed fields, typically `audio`, `video`, `metadata` and `track_marks`. A frame
+can have any number of named audio or video fields, for instance `audio_2`.
+Liquidsoap calls each field a _track_.
 
 The type of a source describes its tracks. For example:
 
@@ -20,12 +21,11 @@ source(audio=pcm(stereo), video=yuv420p)
 
 describes a source with a stereo PCM audio track and a YUV420P video track.
 
-## Content types drive what you get
+## Content types depend on usage
 
-An important subtlety: **what tracks a source exposes depends on how you use
-it**. Liquidsoap uses type inference to determine the content type of each
-source. The expected content is inferred from the downstream operators and
-propagated back to the source.
+The tracks of a source depend on how you use the source. Liquidsoap uses type
+inference to determine the content type of each source: the operators that
+consume a source determine the content that the source must produce.
 
 For instance, if you write:
 
@@ -35,12 +35,11 @@ output.file(%ffmpeg(%audio.copy, %video.copy), "/path/to/copy.mkv", s)
 ```
 
 then the encoder tells Liquidsoap that it needs `audio` and `video` in FFmpeg
-copy format. That requirement propagates back to `s`, which then instructs the
-decoder to provide exactly those tracks.
+copy format. The source `s` then asks the decoder for exactly those tracks.
 
-If you do not request a track, the decoder will not decode it. A file with three
-audio tracks will only produce `audio` (and discard `audio_2`, `audio_3`) unless
-you explicitly ask for them.
+The decoder only decodes the tracks that you request. For a file with three
+audio tracks, the script above only produces `audio`. To get the other audio
+tracks, request `audio_2` and `audio_3` explicitly.
 
 You can force a particular content type with a type annotation:
 
@@ -57,22 +56,21 @@ s = single("movie.mkv")
 let {audio, video, metadata, track_marks} = source.tracks(s)
 ```
 
-Each extracted value is a _track_ — a typed handle tied to the underlying
-source. You can then recombine tracks into a new source:
+Each extracted value is a _track_ tied to the underlying source. You can then
+combine tracks into a new source:
 
 ```liquidsoap
 s = source({audio = audio, video = video, metadata = metadata, track_marks = track_marks})
 ```
 
-Or replace one track while keeping the others:
+You can also replace one track and keep the others:
 
 ```liquidsoap
 image = single("logo.png")
 s = source(source.tracks(s).{video = source.tracks(image).video})
 ```
 
-To drop a track entirely, use the `_` pattern or the dedicated `source.drop.*`
-operators:
+To drop a track, use the `_` pattern or the `source.drop.*` operators:
 
 ```liquidsoap
 # Drop track_marks by pattern
@@ -87,8 +85,8 @@ s = source.drop.track_marks(s)
 
 When decoding a file with multiple tracks of the same type, the decoder names
 them `audio`, `audio_2`, `audio_3`, ... and `video`, `video_2`, `video_3`, ...
-These names are assigned by the decoder and cannot be changed at the input side.
-You can however give them any name when remuxing:
+Requests to the decoder must use these names. For instance, to keep both audio
+tracks of a file and re-encode the second one to stereo AAC:
 
 ```liquidsoap
 output.file(
@@ -102,13 +100,16 @@ output.file(
 )
 ```
 
-Only files containing all requested tracks will be accepted when using a
-playlist. Files missing any of the required tracks will be skipped.
+When the source is a playlist, it only accepts files that contain all the
+requested tracks. It skips the files that miss one of them.
+
+Once you extract tracks with `source.tracks`, you can give them any name when
+building a new source.
 
 ## Track-level operators
 
-Many processing operators work directly on tracks rather than full sources. This
-lets you apply different processing to each track independently:
+Many processing operators work on tracks. This lets you apply different
+processing to each track:
 
 ```liquidsoap
 let {audio, video} = source.tracks(s)
@@ -122,33 +123,28 @@ encoded = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio)
 
 ### Clocks and cross-clock composition
 
-Some track operators — in particular FFmpeg encoders — assign the track to a
-new clock. This becomes relevant when you want to recombine encoded tracks with
-other tracks derived from a different source.
+Some track operators, in particular the FFmpeg encoders, place their input in a
+new clock. This matters when you combine the output of such an operator with
+other tracks.
 
-When rebuilding a source from tracks that live on different clocks, you also
-need to re-derive `metadata` and `track_marks` from a track on the same clock.
-`track.metadata` and `track.track_marks` extract those special tracks from any
-content track, making it straightforward to reassemble a full source:
+All tracks of a source must belong to the same clock. When you rebuild a source
+from an encoded track, take its `metadata` and `track_marks` from the encoded
+track. `track.metadata` and `track.track_marks` return the metadata and track
+marks associated with any track:
 
 ```liquidsoap
 let {audio} = source.tracks(s)
 
 encoded = track.ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), audio)
 
-# Re-derive metadata and track_marks from the encoded track,
-# which now lives on the encoder's clock
+# Take metadata and track_marks from the encoded track,
+# which belongs to the encoder's clock
 s = source({
   audio = encoded,
   metadata = track.metadata(encoded),
   track_marks = track.track_marks(encoded)
 })
 ```
-
-This pattern is the standard way to rebuild a complete source on the encoder's
-clock. All tracks in a source must share the same clock, so `metadata` and
-`track_marks` must also be derived from the encoded track rather than from the
-original source.
 
 ## Inspecting content types at runtime
 
@@ -160,16 +156,16 @@ mapping field names to their format values:
 ```liquidsoap
 s = (noise() : source(audio=pcm, video=yuv420p))
 
-list.iter(
-  fun (entry) ->
-    let (field, fmt) = entry
-    print("#{field}: #{format.description(fmt)}"),
-  source.content(s)
-)
+def print_content(entry) =
+  let (field, fmt) = entry
+  print("#{field}: #{format.description(fmt)}")
+end
+
+list.iter(print_content, source.content(s))
 ```
 
-The returned list reflects what the type checker has determined the source will
-produce — which, as explained above, depends on how the source is used.
+The returned list is the content that the type checker has determined for the
+source. As explained above, this content depends on how the source is used.
 
 ### track.format
 
@@ -216,8 +212,8 @@ The main content types and their fields are:
 | FFmpeg raw audio | `ffmpeg_raw_audio?` | string description             |
 | FFmpeg raw video | `ffmpeg_raw_video?` | string description             |
 
-Methods are optional (marked `?`) because a given format will only populate one
-of them. Use safe navigation to access them:
+The methods are optional (marked `?`) because a given format only has one of
+them. Use safe navigation to access them:
 
 ```liquidsoap
 fmt = track.format(audio)
@@ -231,13 +227,13 @@ end
 
 ## Encoder track type hints
 
-When writing an FFmpeg encoder with custom track names, Liquidsoap needs to know
-whether each track is audio or video. It determines this from, in priority order:
+When you use custom track names in an FFmpeg encoder, Liquidsoap needs to know
+whether each track is audio, video or subtitles. Copy tracks, such as
+`%en.copy`, need no type. For other tracks, Liquidsoap uses, in priority order:
 
-1. `%audio.copy` or `%video.copy` — type is inferred from the format
-2. An explicit `audio_content` or `video_content` hint in the encoder spec
-3. The track name containing `"audio"` or `"video"` as a substring
-4. The codec name implying a type
+1. An explicit `audio_content`, `video_content` or `subtitle_content` hint in the encoder parameters
+2. The track name containing `"subtitle"`, `"audio"` or `"video"`
+3. The media type of the codec, when `codec` is a constant string
 
 For full control, use explicit hints:
 
@@ -252,5 +248,5 @@ output.file(
 )
 ```
 
-Note that once tracks are handed to FFmpeg for muxing, their Liquidsoap names
-are lost — FFmpeg sees them as numbered streams in the order they appear.
+FFmpeg does not receive the Liquidsoap track names. In the output file, the
+tracks are numbered streams, in the order in which they appear in the encoder.

@@ -28,7 +28,7 @@ to guess and check what you're doing.
 
 ## Content types
 
-Liquidsoap supports various type of content to be produced as the
+Liquidsoap supports various types of content to be produced as the
 script runs.
 
 ### Internal content
@@ -41,26 +41,27 @@ using OCaml native 64-bits float array representations. This is the format that 
 fastest manipulation.
 
 For video, the default internal content type is `yuv420p`: planar YUV420 images
-stored in C in-memory arrays. Internally, the content is structured as a _canvas_
-— a superposition of layers, each containing a `yuv420p` image placed at a given
-position. This canvas model makes compositing operations (overlaying a logo,
-assembling multi-camera video, etc.) efficient without unnecessary copies.
+stored in C in-memory arrays. Internally, the content is structured as a _canvas_:
+a superposition of layers, each containing a `yuv420p` image placed at a given
+position. This canvas model makes compositing operations, such as overlaying a logo
+or assembling multi-camera video, efficient because images are stacked as layers
+and copied only when the canvas is rendered.
 
 For users concerned with memory consumption, we also support two additional audio formats,
 `pcm_s16` and `pcm_f32` using, resp., signed 16-bit integers and 32-bit floating point numbers.
 These formats may increase CPU usage, however, as we do need to convert back and forth when
-using them in audio manipulation operators such as `amplify`, `crossfade` and etc. See [this
+using them in audio manipulation operators such as `amplify`, `crossfade`, etc. See [this
 link](./memory.md#audio-data-format) for more details.
 
 ### Opaque content
 
-Liquidsoap also supports content type that are opaque to the application, provided by the `ffmpeg` decoder. There
+Liquidsoap also supports content types that are opaque to the application, provided by the `ffmpeg` decoder. There
 are two:
 
 - FFmpeg raw frames, which are decoded plain FFmpeg frames
 - FFmpeg packets, also referred to as FFmpeg copy content. These are packets of encoded content
 
-These type of content are consumed by FFmpeg specific operators and it is possible to convert back and
+These types of content are consumed by FFmpeg specific operators and it is possible to convert back and
 forth if you want to use them with our internal operators. However, their best use-case is to keep them as-is end-to-end
 to optimize for memory and/or CPU usage.
 
@@ -72,7 +73,7 @@ You might have noticed that our description of internal stream contents is
 missing some information, such as sample rate, video size, etc.
 Indeed, that information is not part of the stream types, which is
 local to each source/request/format, but global in liquidsoap.
-You can change it using the `frame.audio/video.*`
+You can change it using the `settings.frame.audio.*` and `settings.frame.video.*`
 settings, shown here with their default values:
 
 ```liquidsoap
@@ -93,49 +94,51 @@ Checking the consistency of use of stream contents is done as part
 of type checking. There is not so much to say here, except that you
 have to read type errors. We present a few examples.
 
-For example, if you try to send an ALSA input to a SDL input using
+For example, if you try to send an ALSA input to an SDL output using
 `output.sdl(input.alsa())`, you'll get the following:
 
 ```
-At line 1, char 22-23:
-  this value has type
-    source(audio=pcm('a))
-  but it should be a subtype of
-    source(video=yuv420p)
+At line 1, char 11-23:
+output.sdl(input.alsa())
+
+Error 5: this value has type
+  source(audio=pcm('A))
+but it should be a subtype of
+  source(video=_, _)
 ```
 
 It means that a source with a video channel was expected
-by the SDL output, but the ALSA output can only offer sources
+by the SDL output, but the ALSA input can only offer sources
 producing audio.
 
 ## Conversions
 
-get a type error on seemingly meaningful code, and you'll wonder how
+Sometimes, you will get a type error on seemingly meaningful code, and you'll wonder how
 to fix it. Often, it suffices to perform a few explicit conversions.
 
-Consider another example involving the SDL output, where we also try
-to use AO to output the audio content of a video:
+Consider another example, where we output the video content of a file to one
+file and its audio content to another:
 
 ```liquidsoap
 s = single("file.mp4")
 
 # Output video here
 output.file(
-  %ffmpeg(%video(codec="libx264"),
+  %ffmpeg(%video(codec="libx264")),
   "/path/to/video.flv",
   s
 )
 
 # Output audio here
 output.file(
-  %ffmpeg(%audio(codec="aac"))
+  %ffmpeg(%audio(codec="aac")),
   "/path/to/video.aac",
   s
 )
 ```
 
 This won't work because the first output expects a video-only
-stream while the second one expected an audio-only stream
+stream while the second one expects an audio-only stream.
 
 The solution is to split the stream in two, dropping the irrelevant content:
 
@@ -144,14 +147,14 @@ s = single("file.mp4")
 
 # Output video here
 output.file(
-  %ffmpeg(%video(codec="libx264"),
+  %ffmpeg(%video(codec="libx264")),
   "/path/to/video.flv",
   source.drop.audio(s)
 )
 
 # Output audio here
 output.file(
-  %ffmpeg(%audio(codec="aac"))
+  %ffmpeg(%audio(codec="aac")),
   "/path/to/video.aac",
   source.drop.video(s)
 )
@@ -211,7 +214,7 @@ After this first phase, it is possible that some contents are still
 undetermined. For example in `output.alsa(input.alsa())`,
 any number of audio channels could work, and nothing helps us determine
 what is intended. At this point, the default numbers of channels are
-used. They are given by the setting
-`frame.audio/video/midi.channels` (whose defaults are respectively
-`2`, `0` and `0`). In our example,
+used. They are given by the settings
+`settings.frame.audio.channels` and `settings.frame.midi.channels`
+(whose defaults are respectively `2` and `0`). In our example,
 stereo audio would be chosen.

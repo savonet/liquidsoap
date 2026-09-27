@@ -15,9 +15,9 @@ recipe = # <fill this>
 output(recipe)
 ```
 
-See the [quickstart guide](./quick_start.md) for more information on how to run [Liquidsoap](./index.md), on what is this `output(..)` operator, etc.
+See the [quickstart guide](./quick_start.md) for more information on how to run [Liquidsoap](./index.md), on what this `output(..)` operator is, etc.
 
-See also the [ffmpeg cookbook](./ffmpeg_cookbook.md) for examples specific to the ffmpeg support.
+See also the [FFmpeg cookbook](./ffmpeg_cookbook.md) for examples specific to the FFmpeg support.
 
 ## Contents
 
@@ -32,15 +32,19 @@ See also the [ffmpeg cookbook](./ffmpeg_cookbook.md) for examples specific to th
   - [Periodic playlists](#periodic-playlists)
   - [Play a jingle at a fixed time](#play-a-jingle-at-a-fixed-time)
   - [Mixing and switching](#mixing-and-switching)
+  - [Live show with a failsafe](#live-show-with-a-failsafe)
 - [Transitions](#transitions)
+  - [Transitions based on loudness](#transitions-based-on-loudness)
 - [Encoding and streaming](#encoding-and-streaming)
   - [Transcoding](#transcoding)
   - [Re-encoding a file](#re-encoding-a-file)
   - [RTMP server](#rtmp-server)
   - [Transmitting signal](#transmitting-signal)
+  - [Running several channels](#running-several-channels)
 - [Recording](#recording)
   - [Generating CUE files](#generating-cue-files)
   - [Dumping a stream into segmented files](#dumping-a-stream-into-segmented-files)
+  - [Archiving a live show](#archiving-a-live-show)
 - [Hardware](#hardware)
   - [ALSA output delay](#alsa-output-delay)
 
@@ -88,14 +92,16 @@ The parameters of the `find` method follow this convention:
   regular expression (for instance `artist_matches="(a)+.*(b)+"` looks for files
   where the artist contains an `a` followed by a `b`).
 
-The tags for which such parameters are provided are: `artist`, `title`, `album`
-and `filename`.
+Exact matching is available for `artist`, `title`, `album`, `genre` and
+`filename`, `_contains` for `artist`, `title` and `filename`, and `_matches` for
+`artist` and `filename`. Matching is case-sensitive unless you pass
+`case_sensitive=false`.
 
 Some numeric tags are also supported:
 
 - `year=1999` looks for files where the year is exactly the given one
 - `year_ge=1999` looks for files where the year is at least the given one
-- `year_lt=1999` looks for files where the year is at most the given one
+- `year_lt=1999` looks for files where the year is before the given one
 
 The following numeric tags are supported: `bpm`, `year`.
 
@@ -126,7 +132,7 @@ can use the `medialib.sqlite` operator as follows:
 ### Dynamic requests
 
 Liquidsoap can create a source that uses files provided by the result of the execution of any arbitrary function of your own.
-This is explained in the documentation for [request-based sources](./request_sources.md).
+This is explained in the documentation for [request-based sources](./requests.md#request-based-sources).
 
 For instance, the following snippet defines a source which repeatedly plays the first valid URI in the playlist:
 
@@ -134,9 +140,9 @@ For instance, the following snippet defines a source which repeatedly plays the 
 
 ```
 
-Of course a more interesting behaviour is obtained with a more interesting program than `cat`, see [Beets](./beets.md) for example.
+Of course a more interesting behavior is obtained with a more interesting program than `cat`, see [Beets](./beets.md) for example.
 
-Another way of using an external program is to define a new protocol which uses it to resolve URIs. `protocol.add` takes a protocol name, a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time left for resolving -- though nothing really bad happens if you don't respect it. It usually passes the parameter to an external program; it is another way to integrate [Beets](./beets.md), for example:
+Another way of using an external program is to define a new protocol which uses it to resolve URIs. `protocol.add` takes a protocol name and a function to be used for resolving URIs using that protocol. The function will be given the URI parameter part and the time by which resolution should be done -- though nothing really bad happens if you don't respect it. See [protocols in Liquidsoap](./requests.md#writing-your-own-protocol) for more details. It usually passes the parameter to an external program; it is another way to integrate [Beets](./beets.md), for example:
 
 ```{.liquidsoap include="beets-protocol-short.liq"}
 
@@ -158,7 +164,7 @@ This can be very useful to relay a live stream without polling the Icecast serve
 
 This script, when launched, will start a local server bound to `"0.0.0.0"`, meaning it will listen on all available network interfaces. The server will wait for a source stream to connect on mount point `/live`. If you start a source client streaming to your server on port 8080 with password `"hackme"`, the live source will become available and the radio will stream it immediately.
 
-If the live connection is unstable — for instance when streaming through a roaming phone device — it can be useful to add a short silence when transitioning out of the live input to give it a chance to reconnect:
+If the live connection is unstable, for instance when streaming through a roaming phone device, it can be useful to add a short silence when transitioning out of the live input to give it a chance to reconnect:
 
 ```{.liquidsoap include="append-silence.liq" to="END"}
 
@@ -212,29 +218,49 @@ Add a jingle to your normal source at the beginning of every hour:
 
 ```
 
-Switch to a live show as soon as one is available. Make the show unavailable when it is silent, and skip tracks from the normal source if they contain too much silence.
+Switch to a live show as soon as one is available. Make the show unavailable when it is silent, and do the same for the normal source.
 
 ```{.liquidsoap include="switch-show.liq" from="BEGIN" to="END"}
 
 ```
 
-Live inputs such as `input.http` automatically use immediate switching (they default to `track_sensitive=false`). To override this and wait for track boundaries, use `.{track_sensitive = true}` on the source, or set its `composition_type` to `"file"` — see [source composition](./composition.md). When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
+Live inputs such as `input.http` automatically use immediate switching (they default to `track_sensitive=false`). To override this and wait for track boundaries, use `.{track_sensitive = true}` on the source, or set its `composition_type` to `"file"`. See [source composition](./composition.md) for details. When using the blank detection operators, make sure to fine-tune their `threshold` and `length` (float) parameters.
+
+### Live show with a failsafe
+
+A radio with live shows usually has three layers: the live show when a host is on air, the programmed music the rest of the time, and a failsafe file when everything else fails. You want the radio to keep playing if the host forgets to disconnect and streams silence, and you want the switches between layers to sound smooth.
+
+```{.liquidsoap include="cookbook-live-failsafe.liq" from="BEGIN" to="END"}
+
+```
+
+`blank.strip` makes the live source unavailable after 10 seconds of silence, so the fallback returns to the music. The `on_select` method of each fallback child is called when the fallback switches to that child; here it fades the starting source in. The `interlude` file plays when neither the live show nor the music is available.
 
 ## Transitions
 
-Crossfade-based transitions buffer source data in advance to compute a transition where the ending and starting tracks potentially overlap. This does not work with all sources — for instance, `input.http` may only receive data at real-time rate and cannot be accelerated to buffer data without risking running out.
+Crossfade-based transitions buffer source data in advance to compute a transition where the ending and starting tracks potentially overlap. Some sources can only produce data at real-time rate. For instance, `input.http` receives data as the remote server sends it, so reading it ahead to fill the buffer would run out of data.
 
-The `cross.simple` operator provides a ready-to-use crossfade transition suitable for most cases. You can also create your own custom crossfade transitions — for example, if you want crossfades between tracks of your `music` source but not between a `music` track and jingles. Here's how:
+The `cross.simple` operator provides a ready-to-use crossfade transition suitable for most cases. You can also create your own custom crossfade transitions. For example, the following script crossfades between two tracks of the `music` source and plays jingles right after the music track that precedes them:
 
 ```{.liquidsoap include="cross.custom.liq" from="BEGIN" to="END"}
 
 ```
 
+### Transitions based on loudness
+
+A fixed crossfade sounds good when both tracks end and start quietly. When one track ends on a loud chord and the next one starts loud, overlapping them muddles both. The transition function receives the loudness of the end of the old track and of the beginning of the new track in `a.db_level` and `b.db_level`, in decibels, so you can pick a transition that fits each pair of tracks. This example also plays jingles back to back with the music, using a `type` metadata on the jingle tracks:
+
+```{.liquidsoap include="cookbook-cross-loudness.liq" from="BEGIN" to="END"}
+
+```
+
+The `duration` parameter of `cross` sets how many seconds of each track the transition function receives, and `width` sets the window used to compute `db_level`. Adjust the thresholds to your music.
+
 ## Encoding and streaming
 
 ### Transcoding
 
-[Liquidsoap](./index.md) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
+[Liquidsoap](./index.md) can achieve basic streaming tasks like transcoding with ease. You input any number of "source" streams using `input.http`, and then transcode them to any number of formats / bitrates / etc. The only limitation is your hardware: encoding and decoding are both heavy on CPU. If you want to get the best use of CPUs (multicore, memory footprint, etc.) when encoding media with Liquidsoap, we recommend using the `%ffmpeg` encoders.
 
 ```{.liquidsoap include="transcoding.liq"}
 
@@ -249,7 +275,7 @@ That source is obviously fallible.
 We pass it to a file output, which has to be in fallible mode.
 We also disable the `sync` parameter on the source's clock,
 to encode the file as quickly as possible.
-Finally, we use the `on_stop` handler to shutdown
+Finally, we use the `on_stop` handler to shut down
 liquidsoap when streaming is finished.
 
 ```{.liquidsoap include="re-encode.liq"}
@@ -279,6 +305,22 @@ Receiver:
 ```{.liquidsoap include="srt-receiver.liq" to="END"}
 
 ```
+
+### Running several channels
+
+A web radio often runs several themed channels, for instance jazz, reggae and classical, and relays its live shows on all of them. You can build every channel from one function, so that each channel gets the same processing, and send them all to Icecast through one output function.
+
+In this example, an external script `next-song` prints the URI of the next song for the channel it receives as argument. It could query the database of your scheduling system, for instance. The script can also pass metadata to Liquidsoap with the [`annotate:` protocol](./protocols.md):
+
+```
+annotate:title="Holigan",artist="John Holt":/music/3541.mp3
+```
+
+```{.liquidsoap include="cookbook-channels.liq" from="BEGIN"}
+
+```
+
+The `next` function returns `null` when the script prints nothing, and `request.dynamic` tries again later. `normalize_track_gain` applies the ReplayGain values computed by `enable_replaygain_metadata`. `blank.skip` skips tracks with long silences, which is why the classical channel disables it. The shared `live` source is inserted in front of every channel by `output_channel`.
 
 ## Recording
 
@@ -313,7 +355,7 @@ FILE "backup.mp3" MP3
 
 It is sometimes useful (or even legally necessary) to keep a backup of an audio
 stream. Storing all the stream in one file can be very impractical. In order to
-save a file per hour in wav format, the following script can be used:
+save a file per hour in WAV format, the following script can be used:
 
 ```{.liquidsoap include="dump-hourly.liq" from="BEGIN"}
 
@@ -324,7 +366,7 @@ the hour, etc. The fact that it is between curly brackets,
 i.e. `{time.string(...)}`, ensures that it is re-evaluated each time a new file
 is created, changing the file name each time according to the current time.
 
-In the following variant we write a new mp3 file each time new metadata is
+In the following variant we write a new MP3 file each time new metadata is
 coming from `s`:
 
 ```{.liquidsoap include="dump-hourly2.liq" from="BEGIN"}
@@ -334,7 +376,7 @@ coming from `s`:
 In the two examples we use [string interpolation](./language.md) and time
 literals to generate the output file name.
 
-In order to limit the disk space used by this archive, on unix systems we can
+In order to limit the disk space used by this archive, on UNIX systems we can
 regularly call `find` to clean up the folder; if we want to keep 31 days of
 recordings:
 
@@ -342,15 +384,25 @@ recordings:
 
 ```
 
+### Archiving a live show
+
+You may want to keep a recording of every live show, one file per show, named after the show. Pass `fallible=true` to `output.file` on the live source: the output writes a file while a host is on air and stops when the host disconnects. `reopen_on_metadata` starts a new file each time the host sends a new title.
+
+```{.liquidsoap include="cookbook-live-archive.liq" from="BEGIN"}
+
+```
+
+The file name is a getter, re-evaluated each time the output opens a file. `time.string` replaces `%Y`, `%H`, etc. with the current date and time. `output.file` then replaces `$(title)` and `$(artist)` with the metadata of the show, and the `$(if $(title),...)` syntax gives a default name when the host sends no title.
+
 ## Hardware
 
 ### ALSA output delay
 
 You can use [Liquidsoap](./index.md) to capture and play through ALSA with minimal delay. This is particularly useful when running a live show from your computer, allowing you to capture and play audio through external speakers without audible delay.
 
-This configuration is not trivial since it depends on your hardware. Some hardware allows both recording and playing at the same time, some only one at once, and some none at all. These notes describe what works for us — your mileage may vary.
+This configuration is not trivial since it depends on your hardware. Some hardware allows both recording and playing at the same time, some only one at once, and some none at all. These notes describe what works for us, your mileage may vary.
 
-First launch liquidsoap as a one line program
+First launch liquidsoap as a one-line program:
 
 ```
 liquidsoap -v --debug 'input.alsa()'
@@ -359,19 +411,19 @@ liquidsoap -v --debug 'input.alsa()'
 Unless you're lucky, the logs are full of lines like the following:
 
 ```
-Could not set buffer size to 'frame.size' (1920 samples), got 2048.
+Could not set buffer size to: 0.04s (1920 samples), got: 0.05 (2048 samples).
 ```
 
 The solution is then to set liquidsoap's internal frame size to this value, which is most likely specific to your hardware. Let's try this script:
 
-```{.liquidsoap include="frame-size.liq"}
+```{.liquidsoap include="frame-size.liq" from="BEGIN" to="END"}
 
 ```
 
 The setting will be acknowledged in the log as follows:
 
 ```
-Targeting 'frame.audio.size': 2048 audio samples = 2048 ticks.
+Targeting 'frame.audio.size': 2048 audio samples = 2048 ticks = 0.0464s.
 ```
 
 If everything goes right, you may hear on your output the captured sound without any delay!

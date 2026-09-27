@@ -1,6 +1,6 @@
 # Blank detection
 
-[Liquidsoap](./index.md) has three operators for dealing with blanks.
+[Liquidsoap](./index.md) has several operators for dealing with blanks.
 
 On GeekRadio, we play many files, some of which include bonus tracks, which
 means that they end with a very long blank and then a little extra music. It's
@@ -13,14 +13,14 @@ usage is simple:
 s = blank.skip(s)
 ```
 
-At [RadioPi](http://www.radiopi.org/) they have another problem: sometimes they
+At [RadioPi](https://www.radiopi.org/) they have another problem: sometimes they
 have technical problems, and while they think they are doing a live show,
 they're making noise only in the studio, while only blank is on air; sometimes,
-the staff has so much fun (or is it something else ?) doing live shows that they
+the staff has so much fun (or is it something else?) doing live shows that they
 leave at the end of the show without thinking to turn off the live, and the
 listeners get some silence again. To avoid that problem we made the
-`blank.strip` operators which hides the stream when it's too blank
-(i.e. declare it as unavailable), which perfectly suits the typical setup used
+`blank.strip` operator, which hides the stream when it's too blank
+(i.e. declares it as unavailable), which perfectly suits the typical setup used
 for live shows:
 
 ```{.liquidsoap include="blank-sorry.liq"}
@@ -36,3 +36,7 @@ have `blank.detect`:
 ```{.liquidsoap include="blank-detect.liq" from="BEGIN" to="END"}
 
 ```
+
+To drop blank parts from a stream, for instance silence at the beginning of
+tracks, use `blank.eat`. The [Beets integration](./beets.md#applying-replaygain)
+shows an example.

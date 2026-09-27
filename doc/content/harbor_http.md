@@ -1,6 +1,12 @@
 # Harbor as HTTP server
 
-The harbor server can be used as a HTTP server. We provide two type of APIs for this:
+The harbor server can be used as a general HTTP server: you register your own
+endpoints and write the responses yourself. Use it to build a web interface or
+an HTTP API for your script. For the Icecast-style operators, where source
+clients push a stream to Liquidsoap with `input.harbor` and listeners play it
+with `output.harbor`, see [harbor input and output](./harbor.md).
+
+We provide two types of APIs for this:
 
 ## Simple API
 
@@ -18,7 +24,7 @@ to e.g. write the request data to a file using `file.write.stream`.
 The `body` method can be used to read all of the request's data and store it in
 memory. Make sure to only use it if you know that the response should be small enough!
 
-For convenience, a HTTP response builder is provided via `http.response`. Here's an example:
+For convenience, an HTTP response builder is provided via `http.response`. Here's an example:
 
 ```{.liquidsoap include="harbor.http.response.liq" from="BEGIN"}
 
@@ -28,7 +34,7 @@ where:
 
 - `port` is the port where to receive incoming connections
 - `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
-- `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
+- `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
 
 ## Node/express API
 
@@ -48,9 +54,7 @@ where:
 The handler function receives a record containing all the information about the request and fills
 up the details about the response, which is then used to write a proper HTTP response to the client.
 
-Named fragments from the request path are passed to the response `query` list.
-
-Middleware _a la_ node/express are also supported and registered via `http.harbor.middleware.register`. See `http.harbor.middleware.cors` for an example of how to implement one such middleware.
+Middleware _a la_ node/express are also supported and registered via `harbor.http.middleware.register`. See `harbor.http.middleware.cors` for an example of how to implement one such middleware.
 
 Here's how you would enable the `cors` middleware:
 
@@ -60,38 +64,22 @@ harbor.http.middleware.register(harbor.http.middleware.cors(origin="example.com"
 
 ## Https support
 
-`https` is supported using either `libssl` or `ocaml-tls`. When compiled with either of them, a `http.transport.ssl` or `http.transport.tls`
-is available and can be passed to each `harbor` operator:
+`https` is supported using either `http.transport.ssl` or `http.transport.tls`.
+Pass the transport to each registration function with its `transport` argument:
 
 ```liquidsoap
-transport = http.transport.ssl(
-  # Server mode: required,
-  # client mode: optional, add certificate to trusted pool
-  certificate="/path/to/certificate/file",
-
-  # Server mode: required, client mode: ignored
-  key="/path/to/secret/key/file",
-
-  # Required if key file requires one.
-  # TLS does not support password encrypted keys!
-  password="optional password"
-)
-
 harbor.http.register(transport=transport, port=8000, ...)
-
-input.harbor(transport=..., port=8000, ...)
-
-output.harbor(transport=..., port=8000, ...)
-
-output.icecast(transport=..., port=8000, ...)
 ```
 
-A given port can only support one type of transport at a time and registering handlers, sources or outputs on the same port with different transports
-will raise a `error.http` error.
+The harbor HTTP server shares its ports with `input.harbor` and
+`output.harbor`, so a port uses one transport for all of them. See
+[SSL / HTTPS](./harbor.md#ssl--https) for how to create a transport and
+[renewing certificates](./harbor.md#renewing-certificates) for how to keep it up
+to date.
 
 ## Advanced usage
 
-All registration functions have a `.regexp` counter part, e.g. `harbor.http.register.simple.regexp`. These function accept
+All registration functions have a `.regexp` counterpart, e.g. `harbor.http.register.simple.regexp`. These functions accept
 a full regular expression for their `path` argument. Named matches on the regular expression are also passed via the request's `query`
 parameter.
 
@@ -106,20 +94,20 @@ It is also possible to directly interact with the underlying socket using the `s
 These functions can be used to create your own HTTP interface. Some examples
 are:
 
-## Redirect Icecast's pages
+### Redirect Icecast's pages
 
 Some source clients using the harbor may also request pages that
-are served by an icecast server, for instance listeners statistics.
+are served by an icecast server, for instance listener statistics.
 In this case, you can register the following handler:
 
 ```{.liquidsoap include="harbor-redirect.liq"}
 
 ```
 
-## Get metadata
+### Get metadata
 
 You can use harbor to register HTTP services to
-fecth/set the metadata of a source.
+fetch/set the metadata of a source.
 
 ```{.liquidsoap include="harbor-metadata.liq" from="BEGIN"}
 
@@ -141,7 +129,7 @@ Content-Type: application/json; charset=utf-8
 }
 ```
 
-## Set metadata
+### Set metadata
 
 Using source's `insert_metadata` method, you can register a GET handler that
 updates the metadata of a given source. For instance:

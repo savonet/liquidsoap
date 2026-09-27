@@ -19,16 +19,16 @@ socket to some privileged users.
 You can find more details on how to configure the server in the
 [documentation](./help.md#settings) of the settings key `server`, in particular
 `server.telnet` for the TCP interface and `server.socket` for the Unix
-interface. Liquidsoap also embeds some [documentation](./help.md#server) about
-the available server commands.
+interface. Liquidsoap also embeds some documentation about the available server
+commands, which the `help` server command displays.
 
-### Using telnet
+## Using telnet
 
 Now, we shall simply enable the Telnet interface to the server, by setting
 `settings.server.telnet := true` or simply passing the `-t` option on the
 command-line. In a [complete case analysis](./complete_case.md) we set up a
 `request.queue()` instance to play user requests. It had the identifier
-`"queue"`. We are now going to interact via the server to push requests into
+`"request"`. We are now going to interact via the server to push requests into
 that queue:
 
 ```
@@ -36,13 +36,13 @@ dbaelde@selassie:~$ telnet localhost 1234
 Trying 127.0.0.1...
 Connected to localhost.localdomain.
 Escape character is '^]'.
-queue.push /path/to/some/file.ogg
+request.push /path/to/some/file.ogg
 5
 END
 request.metadata 5
 [...]
 END
-queue.push http://remote/audio.ogg
+request.push http://remote/audio.ogg
 6
 END
 request.trace 6
@@ -59,21 +59,20 @@ usage, so we have not released any of ours.
 ### Web interface
 
 Another simple way to test the telnet server consists in using the
+[`server.harbor`](./reference-extras.md) command:
 
 ```{.liquidsoap include="server-harbor.liq" from=1}
 
 ```
 
-server.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference-extras.html#server.harbor
-
-command which will start a web interface accessible at
+This command will start a web interface accessible at
 <http://localhost:8000/telnet> providing an emulation of a telnet.
 
 ## Interactive variables
 
 Sometimes it is useful to control a variable using telnet. A simple way to
 achieve this is to use the `interactive.float` function. For instance, in order
-to dynamically the volume of a source:
+to dynamically change the volume of a source:
 
 ```{.liquidsoap include="server-interactive-float.liq" from=2}
 
@@ -105,12 +104,11 @@ the telnet server and type `var.set button = false`.
 ### Web interface
 
 A nice web interface can be obtained by running
+[`interactive.harbor`](./reference-extras.md)
 
 ```{.liquidsoap include="server-interactive-harbor.liq" from=1}
 
 ```
-
-interactive.harbor api: https://www.liquidsoap.info/doc-2.0.0/reference.html#interactive.harbor
 
 after all interactive variables have been defined. This will start a web server
 accessible at <http://localhost:8000/interactive> on which you can easily change
@@ -127,7 +125,7 @@ values are lost if you restart the script. This can be changed by running the co
 
 after all the interactive variables have been defined. This will store the
 values of all the interactive variables in the file `vars.json` (in JSON format)
-whenever you modify them, and reload them next time your run your script. This
+whenever you modify them, and reload them next time you run your script. This
 can be very handy for setting parameters for sound effects for instance.
 
 ## Securing the server
@@ -138,9 +136,9 @@ provided. The telnet server has no authentication and listens by default on the
 localhost (`127.0.0.1`) network interface, which means that it is accessible to
 any logged user on the machine.
 
-Many users have expressed interest into setting up a secured access to the
+Many users have expressed interest in setting up a secured access to the
 command server, using for instance user and password information. While we
-understand and share this need, we do not believe this is a task that lies into
+understand and share this need, we do not believe this is a task that lies within
 Liquidsoap's scope. An authentication mechanism is not something that should be
 implemented naively. Being SSH, HTTP login or any other mechanism, all these
 methods have been, at some point, exposed to security issues. Thus, implementing
@@ -151,7 +149,7 @@ Rather than doing our own home-made secure access, we believe that our users
 should be able to define their own secure access to the command server, taking
 advantage of a mainstream authentication mechanism, for instance HTTP or SSH
 login. In order to give an example of this approach, we show here how to create
-a SSH access to the command server: we create a SSH user that, when logging
+an SSH access to the command server: we create an SSH user that, when logging
 through SSH, has only access to the command server.
 
 First, we enable the unix socket for the command server in Liquidsoap:
@@ -168,9 +166,9 @@ if your user has read and write rights on the socket file, you can do
 socat /path/to/socket -
 ```
 
-The interface is then exactly the same has for the telnet server.
+The interface is then exactly the same as for the telnet server.
 
-We define now a new ``shell''. This shell is in fact the invocation of the socat command. Thus, we create a `/usr/local/bin/liq_shell` file with the following
+We define now a new "shell". This shell is in fact the invocation of the socat command. Thus, we create a `/usr/local/bin/liq_shell` file with the following
 content:
 
 ```bash
@@ -180,7 +178,7 @@ if [ -S /path/to/socket ] && [ -w /path/to/socket ] && \
    [ -r /path/to/socket ]; then
   socat /path/to/socket -
 else
-# If not, we exit..
+# If not, we exit.
   exit 1
 fi
 ```
@@ -242,5 +240,5 @@ secure the access to liquidsoap's command server. This way, you make sure
 that you are using a mainstream secure application, here SSH.
 
 This example may be adapted similarly to use an online HTTP login
-mechanism, which is probably the most comment type of mechanism
+mechanism, which is probably the most common type of mechanism
 intended for the command line server.

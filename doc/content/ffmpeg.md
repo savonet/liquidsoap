@@ -6,6 +6,7 @@ Since the `2.0.x` release cycle, liquidsoap includes tight FFmpeg integration. T
 - [Encoders](#encoders)
 - [Filters](#filters)
 - [Subtitles](#subtitles)
+- [Multitrack](#multitrack)
 - [Bitstream filters](#bitstream-filters)
 - [Encoded data tweaks](#encoded-data-tweaks)
 - [Examples](#examples)
@@ -31,7 +32,7 @@ If you are installing via [opam](https://opam.ocaml.org/), installing the `ffmpe
 
 ### fdk-aac support in ffmpeg
 
-**Since `2.5.x`**, all binary releases and Docker images ship with a static FFmpeg build that includes `fdk-aac` out of the box. No extra steps are needed.
+Since `2.5.x`, all binary releases and Docker images ship with a static FFmpeg build that includes `fdk-aac`.
 
 For releases prior to `2.5.x`, `fdk-aac` support requires the FFmpeg shared libraries compiled with `libfdk-aac`. On Debian, [deb-multimedia.org](https://www.deb-multimedia.org/) provided such a build. See also [this discussion](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
 
@@ -68,7 +69,7 @@ When debugging issues with `ffmpeg`, it can be useful to increase the log verbos
 settings.ffmpeg.log.verbosity := "warning"
 ```
 
-This sets the verbosity of `ffmpeg` logs. Values from least to most verbose: `"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"`, `"debug"`.
+This sets the verbosity of `ffmpeg` logs. Values from least to most verbose: `"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"`, `"debug"`, `"trace"`.
 
 To route `ffmpeg` logs through liquidsoap's logging facilities, enable log capture:
 
@@ -76,7 +77,7 @@ To route `ffmpeg` logs through liquidsoap's logging facilities, enable log captu
 settings.ffmpeg.log.capture := true
 ```
 
-When enabled, `ffmpeg` log messages are forwarded to liquidsoap's logger at the level set by `settings.ffmpeg.log.level`. When disabled (the default), they are printed directly to standard output.
+When enabled, `ffmpeg` log messages are forwarded to liquidsoap's logger at the level set by `settings.ffmpeg.log.level`. When disabled (the default), `ffmpeg` prints them directly to standard error.
 
 ### Decoder arguments
 
@@ -87,7 +88,7 @@ There are two ways to provide them:
 - For _streams_, the `content_type` argument can be used. The convention is to use `"application/ffmpeg;<arguments>"`.
 - For _files_, the `ffmpeg_options` metadata can be used, for instance using the `annotate` protocol: `annotate:ffmpeg_options="<arguments>":/path/to/file.raw`
 
-Here is an example of a SRT input and output for sending raw PCM data between two instances:
+Here is an example of an SRT input and output for sending raw PCM data between two instances:
 
 Sender:
 
@@ -130,13 +131,17 @@ See detailed [ffmpeg filters](./ffmpeg_filters.md) article.
 
 ## Subtitles
 
-See detailed [ffmpeg subtitles](./ffmpeg_subtitles.md) article.
+See the [FFmpeg subtitles](./subtitles.md#ffmpeg-subtitles) section of the subtitles page.
+
+## Multitrack
+
+See the [multitrack](./multitrack.md) page to decode, process and encode sources with several audio, video or subtitle tracks.
 
 ## Bitstream filters
 
 FFmpeg bitstream filters modify the binary content of _encoded data_. They adjust codec and container aspects for specific uses, such as rtmp/flv output. They are particularly important for live switches on encoded content (see the [Examples](#examples) section).
 
-All bitstream filters are listed in the [FFmpeg documentation](https://www.ffmpeg.org/ffmpeg-bitstream-filters.html) and our [extra API reference](reference-extras.html). Here is an example:
+All bitstream filters are listed in the [FFmpeg documentation](https://www.ffmpeg.org/ffmpeg-bitstream-filters.html) and our [extra API reference](./reference-extras.md). Here is an example:
 
 ```liquidsoap
 % liquidsoap -h ffmpeg.filter.bitstream.h264_mp4toannexb
@@ -144,17 +149,17 @@ All bitstream filters are listed in the [FFmpeg documentation](https://www.ffmpe
 FFmpeg h264_mp4toannexb bitstream filter. See ffmpeg documentation for more
 details.
 
-Type: (?id : string?, source(video=ffmpeg.copy('a), 'b)) ->
-source(video=ffmpeg.copy('a), 'b)
+Type: (?id : string?, source(video=ffmpeg.copy, 'a)) ->
+source(video=ffmpeg.copy, 'a)
 
 Category: Source / FFmpeg filter
 
 Arguments:
 
- * id : string?
+ * id : string? (default: null)
      Force the value of the source ID.
 
- * (unlabeled) : source(video=ffmpeg.copy('a), 'b)
+ * (unlabeled) : source(video=ffmpeg.copy, 'a)
 
 Methods:
 ...
@@ -223,7 +228,7 @@ output.file.hls(
 )
 ```
 
-Working with encoded data requires some knowledge of ffmpeg internals and media codecs and containers. In this example, the stream will have issues because the `flv` format requires global data — called `extradata` in ffmpeg terms.
+Working with encoded data requires some knowledge of ffmpeg internals and media codecs and containers. In this example, the stream will have issues because the `flv` format requires global data, called `extradata` in ffmpeg terms.
 
 When working with a single encoder such as:
 
@@ -237,11 +242,11 @@ When working with a single encoder such as:
 
 When initializing the encoders, liquidsoap knows the target container is `flv` and implicitly enables the global header for each encoder.
 
-With inline encoding, the target container is not known at encode time — and the encoded stream may be sent to multiple containers with different requirements.
+With inline encoding, the target container is not known at encode time, and the encoded stream may be sent to multiple containers with different requirements.
 
 There are two ways to solve this:
 
-If all containers accept global header, enable the flag in the encoder:
+If all containers accept global headers, enable the flag in the encoder:
 
 ```liquidsoap
 stream = ffmpeg.encode.audio_video(
@@ -253,9 +258,9 @@ stream = ffmpeg.encode.audio_video(
 )
 ```
 
-If only one stream needs global header (as with `mpegts` here), use the `ffmpeg.filter.bitstream.extract_extradata` bitstream filter to apply it selectively:
+If only one container needs global headers (`flv` here), apply the `ffmpeg.filter.bitstream.extract_extradata` bitstream filter to the stream sent to that container only:
 
-```
+```liquidsoap
 audio_source = single(audio_url)
 video_source = single(image)
 

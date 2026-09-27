@@ -1,4 +1,4 @@
-BEET = "/usr/bin/beets"
+BEET = "/usr/bin/beet"
 
 # BEGIN
 def beets_protocol(~rlog, ~maxtime, arg) =

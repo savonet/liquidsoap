@@ -1,10 +1,10 @@
 # Icecast Server Emulation
 
-Liquidsoap can act as an icecast-compatible server, accepting source client connections using the `icecast.server` operator. This allows you to receive streams from software like butt, mixxx, or any other icecast-compatible source client.
+Liquidsoap can act as an icecast-compatible server, accepting source client connections using the `icecast.server` operator. You can use it to receive streams from butt, Mixxx or any other icecast-compatible source client. To send your stream to an external Icecast server, see [streaming to Icecast and Shoutcast](./icecast.md).
 
 ## Experimental Feature
 
-This functionality is still experimental. While it works for many common use cases, some features may change in future releases and some icecast configuration options are not yet supported.
+This functionality is still experimental. It works for many common use cases, but some features may change in future releases and some icecast configuration options are not supported yet.
 
 ## Basic Usage
 
@@ -20,9 +20,7 @@ This starts a server on port 8000 with the default password "hackme".
 
 - `port`: Port to listen on (default: 8000)
 - `password`: Source password for authentication (default: "hackme")
-
-Parameters passed explicitly take precedence over the values of a configuration file.
-
+- `name`: Namespace of the server's telnet commands (default: `"icecast.server"`)
 - `config`: Optional path to an icecast XML configuration file
 - `dedicated_encoder`: Allocate one encoder per listener (see [below](#dedicated_encoder))
 - `serve`: Enable or disable the built-in status page (default: `true`, see [below](#status-page))
@@ -37,6 +35,8 @@ Parameters passed explicitly take precedence over the values of a configuration 
 - `playlist_log`: Path of an icecast-style playlist log, `-` for standard error
 - `admin_user`: User name for the admin listener page (default: `"admin"`)
 - `admin_password`: Password for the admin listener page, which is disabled without one (see [below](#admin-listener-page))
+
+Parameters passed explicitly take precedence over the values of a configuration file.
 
 ### Return Value
 
@@ -159,21 +159,21 @@ Keep in mind that some data still contains raw addresses:
 
 By default, all listeners on a mount share a single encoder instance. Setting `dedicated_encoder=true` allocates one independent encoder per listener.
 
-With copy-based encoders (e.g. `copy_encoder("matroska")` or `%ffmpeg` with `%audio.copy` / `%video.copy`), this amounts to a lightweight remux per listener. The overhead is low — essentially one mux pass per listener — while the benefit is significant: each listener receives a clean, self-contained stream starting from a proper frame boundary.
+With copy-based encoders (e.g. `copy_encoder("matroska")` or `%ffmpeg` with `%audio.copy` / `%video.copy`), each listener gets its own remuxer. A remux costs little CPU, and each listener receives a self-contained stream that starts on a frame boundary, with its own container header.
 
 ```{.liquidsoap include="icecast-server-dedicated-encoder.liq"}
 
 ```
 
-Each listener that connects will get their own stream, properly initialised from a clean frame boundary, regardless of when they join.
+Each listener that connects gets their own stream, starting from a frame boundary at the time they join.
 
-> **Note:** With full re-encoding (e.g. `%mp3`, `%aac`), `dedicated_encoder=true` creates a complete encoder per listener, which can be costly under load. Prefer copy-based encoders when using `dedicated_encoder`.
+With full re-encoding (e.g. `%mp3`, `%aac`), `dedicated_encoder=true` creates a complete encoder per listener, which can use a lot of CPU with many listeners. Use copy-based encoders with `dedicated_encoder`.
 
 ## Reverse Proxy and X-Forwarded-For
 
-When `icecast.server` runs behind a reverse proxy (e.g. nginx), the listener IP recorded in stats will be the proxy's IP rather than the real client IP. Use `x_forwarded_for_proxy_ips` to fix this.
+When `icecast.server` runs behind a reverse proxy (e.g. nginx), every listener connects from the proxy's IP. Set `x_forwarded_for_proxy_ips` to record the listener's own IP.
 
-`x_forwarded_for_proxy_ips` takes a list of known proxy IPs. The default implementation (`icecast.server.x_forwarded_for`) walks the `X-Forwarded-For` header from right to left, skips any IP in the list, and returns the first non-proxy IP. This is safe against client spoofing: even if a client sends a forged `X-Forwarded-For` header, the proxy appends the real connecting IP as the rightmost entry, which is what gets used.
+`x_forwarded_for_proxy_ips` takes a list of known proxy IPs. The default implementation (`icecast.server.x_forwarded_for`) walks the `X-Forwarded-For` header from right to left, skips any IP in the list, and returns the first non-proxy IP. A client can send a forged `X-Forwarded-For` header, but each proxy appends the IP it received the connection from as the rightmost entry, and that entry is the one used.
 
 ```liquidsoap
 # Single nginx proxy at 10.0.0.1
@@ -189,7 +189,7 @@ icecast.server(
 )
 ```
 
-For advanced use cases — custom header names, CIDR matching, CDN-specific headers like `CF-Connecting-IP` — pass a full callback via `x_forwarded_for`. The callback receives a record with `ip` (connection IP), `headers`, `protocol`, `uri`, and `proxy_ips` (from `x_forwarded_for_proxy_ips`, or `[]` if not set), and must return a string IP:
+For custom header names, CIDR matching or CDN-specific headers like `CF-Connecting-IP`, pass your own callback with `x_forwarded_for`. The callback receives a record with `ip` (connection IP), `headers`, `protocol`, `uri`, and `proxy_ips` (from `x_forwarded_for_proxy_ips`, or `[]` if not set), and must return a string IP:
 
 ```liquidsoap
 # Trust Cloudflare's CF-Connecting-IP header
@@ -204,8 +204,8 @@ icecast.server(
 
 By default, `icecast.server` registers two HTTP endpoints on the icecast port:
 
-- `/` — an HTML status page showing active mounts, listener counts, and playback controls
-- `/status.json` — a JSON endpoint with the same data, polled by the HTML page every 5 seconds
+- `/`: an HTML status page showing active mounts, listener counts and a player for each mount
+- `/status.json`: a JSON endpoint with the same data, polled by the HTML page every 5 seconds
 
 ### Disabling the Status Page
 
@@ -229,14 +229,14 @@ Any request that fails the check receives a `401 Unauthorized` response with a `
 
 The public status page only shows listener counts. For operators, `icecast.server` also serves a listener page protected by HTTP Basic authentication:
 
-- `/admin/listeners` — an HTML page listing each mount's listeners, with their (hashed) IP, user agent, connection time and bytes sent, plus the mount's peak listeners, connection count and total listening time
-- `/admin/listeners.json` — the same data as JSON
+- `/admin/listeners`: an HTML page listing each mount's listeners, with their (hashed) IP, user agent, connection time and bytes sent, plus the mount's peak listeners, connection count and total listening time
+- `/admin/listeners.json`: the same data as JSON
 
 The page is enabled by setting an admin password, either with the `admin_password` parameter or with `<admin-password>` in the configuration file. The user name defaults to `admin`. Without a password, the page is not registered at all. Like the status page, it is disabled by `serve=false`.
 
 ### Custom JSON Renderer
 
-Use `serve_json` to replace the built-in `/status.json` output. The callback receives the stats list and must return a JSON string. The example below also disables the HTML page by returning a plain not-found response from `serve_html`:
+Use `serve_json` to replace the built-in `/status.json` output. The callback receives the stats list and must return a JSON string. The example below also replaces the HTML page with a short not-found message using `serve_html`:
 
 ```{.liquidsoap include="icecast-server-serve-json.liq"}
 
@@ -256,14 +256,14 @@ Listener records contain hashed IPs unless `ip_hash` says otherwise. Keep that i
 
 ## Live Streaming Muxer Options
 
-Some container formats require specific muxer flags to produce a valid live stream. For example, Matroska and WebM streams need their muxer told that there will be no seekable index at the end.
+Some container formats require specific muxer flags to produce a valid live stream. For example, the Matroska and WebM muxers write an index by seeking back into the file when it ends. A live stream cannot seek, so these muxers must be told that they write a live stream.
 
 `icecast.server` automatically applies these options when remuxing an incoming stream via `copy_encoder`. The defaults are controlled by `settings.icecast.server.default_muxer_options`, which maps container format names to lists of FFmpeg muxer options:
 
-| Format     | Default options    | Effect                                                              |
-| ---------- | ------------------ | ------------------------------------------------------------------- |
-| `matroska` | `dash=1`, `live=1` | Disables index/cues, writes streaming-compatible cluster timestamps |
-| `webm`     | `dash=1`, `live=1` | Same as matroska (WebM is a subset)                                 |
+| Format     | Default options    | Effect                                                                 |
+| ---------- | ------------------ | ---------------------------------------------------------------------- |
+| `matroska` | `dash=1`, `live=1` | Clusters follow the WebM DASH specification, output is written as live |
+| `webm`     | `dash=1`, `live=1` | Same as matroska (WebM is a subset)                                    |
 
 To override the defaults globally, set the setting before starting the server:
 
@@ -289,29 +289,21 @@ icecast.server(
 )
 ```
 
-When `format_options` is `null` (the default), `settings.icecast.server.default_muxer_options` is used. When provided, it fully replaces the settings lookup — the callback is responsible for returning all options for every format.
+When `format_options` is `null` (the default), `settings.icecast.server.default_muxer_options` is used. When provided, the callback alone decides: it returns the complete list of options for every format.
 
 ## Key Differences from Icecast
 
-The liquidsoap icecast server operates fundamentally differently from a traditional icecast server. Understanding these differences is important for getting the most out of this feature.
+Icecast relays the encoded data it receives from a source client to its listeners. Liquidsoap demuxes the incoming stream, passes its encoded packets through a regular liquidsoap source and remuxes them for the mount's output. The content is never decoded or re-encoded, so CPU and memory usage stay low.
 
-### Direct Encoded Content Manipulation
+This gives `icecast.server` the following behavior:
 
-Unlike icecast, which primarily acts as a relay for encoded streams, liquidsoap can directly manipulate the encoded content. The incoming stream is demuxed, passed as encoded packets through the liquidsoap pipeline, and remuxed for output. This allows advanced format manipulation without ever needing to decode and re-encode, avoiding the CPU and memory consumption typically associated with transcoding.
+- Fallback happens inside the mount's output. When a source disconnects, the mount switches to the source of its `<fallback-mount>` and listeners stay connected to the same mount. When the source reconnects, the mount switches back to it.
+- With `dedicated_encoder=true` and copy encoders, each listener gets a stream that starts with its own container header. Listeners can then join a stream in any streamable container format at any time.
 
-This makes it possible to:
+Because of this architecture, the following icecast options do not apply:
 
-- **Format-compatible fallbacks**: When a source disconnects, the fallback mount seamlessly takes over without format incompatibility, because both streams go through the same processing pipeline.
-
-- **Seamless transitions**: Listeners are never disconnected during source switches. The transition happens smoothly within the liquidsoap processing chain.
-
-- **Per-listener clean streams**: With `dedicated_encoder=true` and copy encoders, each listener gets a fresh, properly initialised stream, enabling reliable playback of any streamable container format.
-
-Because of this architecture, the following icecast options are fundamentally incompatible:
-
-- `fallback-override`: In icecast, this allows a reconnecting source to "steal back" listeners from a fallback mount. In Liquidsoap, fallback is implemented by switching the underlying source inside the same output via `source.dynamic`. Listeners remain connected to the original mount throughout — there are no listeners "at the fallback mount" to reclaim, so the concept does not apply.
-
-- `fallback-when-full`: In icecast, this redirects to a fallback when max-listeners is reached. Liquidsoap's architecture handles this differently through its own source management.
+- `fallback-override`: in icecast, a source that reconnects takes its listeners back from the fallback mount. In liquidsoap, listeners always stay on their mount, which switches back to its source as soon as the source reconnects.
+- `fallback-when-full`: in icecast, listeners are redirected to a fallback mount once `max-listeners` is reached. `icecast.server` does not enforce `max-listeners` yet.
 
 ## Using an Icecast Configuration File
 
@@ -321,7 +313,7 @@ You can use a standard icecast XML configuration file:
 
 ```
 
-This parses the configuration file and extracts supported settings. See the [Configuration Reference](#configuration-reference) section below for complete details on what is supported.
+Liquidsoap reads the supported settings from the file and logs a message for each unsupported option it recognizes. The [configuration reference](#configuration-reference) below lists which options are supported.
 
 ### Example Configuration File
 
@@ -397,11 +389,11 @@ Settings apply at different times:
   timeout. A reload that changes one of them logs that it was not applied.
 
 The TLS certificate and key are read again on every reload, and also once a
-day on their own, see [Renewing certificates](harbor.html#renewing-certificates).
+day on their own, see [Renewing certificates](./harbor.md#renewing-certificates).
 
 ## Configuration Reference
 
-This section provides a comprehensive reference for icecast XML configuration options, indicating which are supported, which are not yet implemented, and which will likely never be supported due to architectural differences.
+This section lists the icecast XML configuration options and their status in `icecast.server`. Options marked as not implemented may be added later. Incompatible options do not fit liquidsoap's architecture, see [Key Differences from Icecast](#key-differences-from-icecast).
 
 ### listen-socket
 
@@ -444,8 +436,8 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 | `pidfile`                             | Not supported   |                                                                                                                                |
 | `tls-certificate` / `ssl-certificate` | Supported       | Path to TLS certificate file (required when TLS is enabled). May include the private key. Read again on reload and once a day. |
 | `tls-key`                             | Supported       | Path to separate TLS private key file (icecast 2.5 only)                                                                       |
-| `webroot`                             | Not implemented | No built-in web interface                                                                                                      |
-| `adminroot`                           | Not implemented | No built-in admin interface                                                                                                    |
+| `webroot`                             | Not implemented | Static files are not served, see the [status page](#status-page)                                                               |
+| `adminroot`                           | Not implemented | Icecast's admin interface is not available, see the [admin listener page](#admin-listener-page)                                |
 | `allow-ip`                            | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
 | `deny-ip`                             | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
 | `ssl-allowed-ciphers`                 | Not implemented | TLS cipher configuration not exposed                                                                                           |
@@ -511,25 +503,25 @@ These options are not yet implemented:
 
 #### Incompatible Mount Options
 
-These options are fundamentally incompatible with liquidsoap's architecture.
+These options do not apply to liquidsoap's architecture, see [Key Differences from Icecast](#key-differences-from-icecast).
 
-| Option               | Reason                                                                                       |
-| -------------------- | -------------------------------------------------------------------------------------------- |
-| `fallback-override`  | Liquidsoap manages sources through its own pipeline; "stealing back" listeners doesn't apply |
-| `fallback-when-full` | Liquidsoap handles listener limits through its own source management                         |
+| Option               | Reason                                                                     |
+| -------------------- | -------------------------------------------------------------------------- |
+| `fallback-override`  | Listeners stay on their mount, which switches back when its source returns |
+| `fallback-when-full` | Depends on `max-listeners`, which is not implemented                       |
 
 ### Configuration Sections Not Supported
 
-The following icecast configuration sections are not supported and will be ignored:
+The following icecast configuration sections are ignored:
 
-- `fileserve` - Static file serving (use liquidsoap's harbor HTTP handlers)
-- `relay` - Stream relaying (use liquidsoap's `input.http` instead)
-- `directory` - Directory listings (YP)
-- `security` - Use liquidsoap's security settings
+- `fileserve`: static file serving. Use [harbor HTTP handlers](./harbor_http.md).
+- `relay`: stream relaying. Use `input.http`.
+- `directory`: directory listings (YP).
+- `security`: `chroot` and user change. Use your service manager to run liquidsoap as the user you want.
 
 ## Complete Example
 
-Here's a complete example showing a radio station setup with multiple mounts and fallback handling:
+Here is an example that starts the server from a configuration file and logs DJ connections:
 
 ```{.liquidsoap include="icecast-server-complete.liq"}
 

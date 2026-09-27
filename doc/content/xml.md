@@ -1,13 +1,13 @@
-## Importing/exporting XML values
+# Importing/exporting XML values
 
 Support for XML parsing and rendering was first added in liquidsoap `2.3.1`.
 
 You can parse XML strings using a decorator and type annotation. There are two different representations of XML you can use.
 
-### Record access representation
+## Record access representation
 
-This is the easiest representation. It is intended for quick access to parsed value via
-record and tuples.
+This is the easiest representation. It is intended for quick access to parsed values via
+records and tuples.
 
 Here's an example:
 
@@ -42,11 +42,11 @@ Things to note:
 
 - The basic mappings are: `<tag name> -> <tag content>`
 - Tag content maps tag parameters to a `xml_params` method.
-- When multiple tags are present, their values are collected as tuple (`bar` tag in the example)
-- When a tag contains a single ground value (`string`, `bool`, `float` or `integer`), the mapping is from tag name to the corresponding value, with xml attributes attached as methods
+- When multiple tags are present, their values are collected as a tuple (`bar` tag in the example)
+- When a tag contains a single ground value (`string`, `bool`, `float` or `int`), the mapping is from tag name to the corresponding value, with XML attributes attached as methods
 - Tag parameters can be converted to ground values and omitted.
 
-### Custom element names
+## Custom element names
 
 XML element names often contain characters like hyphens that aren't valid Liquidsoap variable names. You can map them to valid names using the `as` syntax:
 
@@ -68,7 +68,7 @@ This maps the XML element `listen-socket` to the variable `listen_socket`.
 
 The parsing is driven by the type annotation and is intended to be permissive. For instance, this will work:
 
-```liquidsoaop
+```liquidsoap
 s = '<bla>foo</bla>'
 
 # Here, `foo` is omitted.
@@ -82,9 +82,9 @@ let xml.parse (x: { bla: string? }) = s
 # x contains: { bla = "foo" }
 ```
 
-### Formal representation
+## Formal representation
 
-Because XML format can result in complex values, the parser can also use a generic representation.
+Because the XML format can result in complex values, the parser can also use a generic representation.
 
 Here's an example:
 
@@ -137,7 +137,7 @@ let xml.parse (x :
           "bar",
           {
             xml_children=[("xml_text", {xml_text="bla"})],
-            xml_params=[("option", "aab")]
+            xml_params=[]
           }
         ),
         (
@@ -166,15 +166,15 @@ Things to note:
 - `<tag properties>` is a record containing the following methods:
   - `xml_params`, represented as a list of pairs `(string * string)`
   - `xml_children`, containing a list of the XML node's children. Each entry in the list is a node in the formal XML representation.
-  - `xml_text`, present when the node is a text node. In this case, `xml_params` and `xm_children` are empty.
-- By convention, text nodes are labelled `xml_text` and are of the form: `{ xml_text: "node content" }`
+  - `xml_text`, present when the node is a text node. In this case, `xml_params` and `xml_children` are empty.
+- By convention, text nodes are labeled `xml_text` and are of the form: `{ xml_text: "node content" }`
 
-### Rendering XML values
+## Rendering XML values
 
 XML values can be converted back to strings using `xml.stringify`.
 
-Both the formal and record-access form can be rendered back into XML strings however, with the record-access representations, if a node has multiple children with the same tag, the conversion to XML string will fail.
+Both the formal and record-access forms can be rendered back into XML strings. However, with the record-access representation, if a node has multiple children with the same tag, the conversion to XML string will fail.
 
-More generally, if the values you want to convert to XML strings are complex, for instance if they use several times the same tag as child node or if the order of child nodes matters, we recommend using the formal representation to make sure that children ordering is properly preserved.
+More generally, if the values you want to convert to XML strings are complex, for instance if they use the same tag several times as child node or if the order of child nodes matters, we recommend using the formal representation to make sure that children ordering is properly preserved.
 
-This is because record methods are not ordered in the language so we make no guarantee that the child nodes they represent be rendered in a specific order.
+This is because record methods are not ordered in the language so we make no guarantee that the child nodes they represent are rendered in a specific order.

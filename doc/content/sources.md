@@ -1,31 +1,33 @@
-# Understanding Sources in Liquidsoap 🎧
+# Understanding Sources in Liquidsoap
 
-When you write a Liquidsoap script, you're not just stringing commands together — you're **building a streaming system**.
+A Liquidsoap script describes a streaming system. The basic element of this
+system is the **source**.
 
-At the heart of that system is a powerful and abstract concept: the **source**.
+## What is a source?
 
-## What Is a Source?
+A **source** produces a stream of media. Each source emits:
 
-A **source** is more than just a stream of audio or video — it’s the fundamental unit of streaming in Liquidsoap. Think of it like a little engine that knows how to produce media, frame by frame.
+- **Frames**: small chunks of media samples.
+- **Metadata**: information like artist, title, etc.
+- **Track marks**: marks indicating where a track ends and the next one starts.
 
-Each source emits:
+When Liquidsoap needs more data, it asks a source for the next frame. The source
+fills the frame with audio (or video) and adds any metadata and track marks
+it has.
 
-- **Frames**: Small chunks of media samples.
-- **Metadata**: Information like artist, title, etc.
-- **Track marks**: Signals when a track starts or ends.
+You can combine sources, modify them, filter them or choose between them in your
+script.
 
-At any moment, Liquidsoap can ask a source: _"Give me the next frame."_ The source responds with a small packet of sound (or video), plus any metadata if available.
-
-This model lets you combine sources, decorate them, filter them, or choose between them — all in a script.
-
-## Building Streams from Sources 🧱
+## Building streams from sources
 
 The Liquidsoap language gives you **functions and operators** to build sources:
 
-- Some functions produce **elementary sources** (e.g. reading from a file or microphone).
-- Others **combine or transform** sources (e.g. playlists, fallbacks, crossfades, etc.).
+- Some functions produce **elementary sources**, for instance by reading a file
+  or a microphone.
+- Other operators **combine or transform** sources, for instance `fallback`,
+  `random` or `crossfade`.
 
-You can build complex behaviors from simple building blocks. For example:
+You build complex behaviors from simple ones. For example:
 
 ```liquidsoap
 radio =
@@ -38,89 +40,88 @@ radio =
   )
 ```
 
-Here’s what’s happening:
+In this script:
 
-1. The `output.icecast` sends audio to an Icecast server.
-2. It gets that audio from a `random` source.
-3. `random` picks between `jingle` or a `fallback` playlist group.
-4. `fallback` plays from the first available playlist in order.
+1. `output.icecast` sends audio to an Icecast server.
+2. `output.icecast` gets its audio from a `random` source.
+3. `random` picks between `jingle` and a `fallback` source.
+4. `fallback` plays the first available source among the three playlists.
 
-Every time the system needs audio, this little pipeline wakes up and produces a frame of data.
+Each time the output needs audio, it asks the `random` source for a frame, which
+asks one of its sources, and so on.
 
-Operators like `random`, `fallback`, `switch` and `rotate` have to decide _when_ to
-hand over from one source to another, and what that handoff sounds like. Each source
-carries its own answer, so you rarely have to configure the operator itself — see
-[source composition](./composition.md).
+Operators like `random`, `fallback`, `switch` and `rotate` decide _when_ to hand
+over from one source to another, and how the transition sounds. Each source
+carries its own transition settings, so you rarely have to configure the operator
+itself. See [source composition](./composition.md).
 
-## Sources Are Not Always Reliable (And That’s Okay) ⚠️
+## Fallible sources
 
-What happens if a playlist runs out of tracks? Or a file fails to load?
+A playlist can run out of tracks, and a file can fail to load. Liquidsoap
+distinguishes two kinds of sources:
 
-In Liquidsoap, we say that a source is either:
+- **Infallible** sources always produce data.
+- **Fallible** sources may fail to produce data at some point.
 
-- **Infallible**: Guaranteed to always produce data.
-- **Fallible**: Might fail at some point.
-
-To keep your stream running smoothly, your output expects an **infallible** source. That means somewhere in your source graph, you need a fallback plan.
-
-For example:
+Outputs expect an **infallible** source, so that your stream keeps running. When
+a source is fallible, add a fallback plan to your script. For example:
 
 - Add a static file with `single()` at the end of a `fallback()`.
-- Use `mksafe()` to replace failures with silence.
+- Use `mksafe()` to play silence when the source fails.
 
-Liquidsoap can **check the liveness** of your source graph at startup and warn you if it detects possible failure. That’s a safety net to ensure your stream doesn’t unexpectedly stop.
+Liquidsoap checks your sources at startup and reports an error when an output
+has a fallible source.
 
-Want to allow failures? You can pass `fallible=true` to most output operators — but do so only if you’re okay with your stream pausing and restarting when necessary.
+To allow failures, pass `fallible=true` to the output. The output then stops when
+its source fails and starts again when the source is available.
 
-## How Streaming Actually Happens 🔁
+## How streaming happens
 
-Once your script defines a set of sources and outputs, how does Liquidsoap keep the data flowing?
+Once your script defines its sources and outputs, a **clock** drives the data
+flow.
 
-It all comes down to a **clock**. ⏰
+Each source is assigned to a clock. During each clock tick (i.e. iteration),
+Liquidsoap:
 
-Each source is assigned to a clock. During each clock tick (i.e. iteration), Liquidsoap:
+1. Asks each output to send a frame of data.
+2. The output asks its source for the frame.
+3. That source may ask other sources.
+4. This chain continues until elementary sources produce the data.
 
-1. Asks the output to send a frame of data.
-2. The output asks its underlying source.
-3. That source might ask other sources.
-4. This chain continues until some elementary sources produce real data.
+This is the **streaming loop**, which runs Liquidsoap. See [clocks](./clocks.md)
+for more details.
 
-This forms a **streaming loop**, and it's central to how Liquidsoap runs.
+## Active sources
 
-## Active Sources 🔌
-
-Most sources are passive: they only do work when asked. But some are **active** — they need to run even if no one is listening.
+Most sources are passive: they compute data only when another source or an
+output asks them. Some sources are **active**: Liquidsoap animates them at each
+clock tick, even when no output uses their data.
 
 For example:
 
-- `input.harbor`: Accepts live streams from the network.
-- `input.alsa`: Listens to a microphone.
+- `input.harbor` receives live streams from the network.
+- `input.alsa` reads from a sound card.
 
-These sources are **always receiving data**, so they must process it continually or risk overflowing. Even if you don’t route them to an output, Liquidsoap keeps them alive.
+These sources receive data continuously, so they must consume it at each tick to
+keep their buffers from overflowing.
 
-## Don’t Block the Stream 🛑
+## Keeping the streaming loop fast
 
-The streaming loop must stay fast and responsive. So, **expensive tasks are offloaded to background threads**:
+The streaming loop must produce each frame in time. Liquidsoap runs expensive
+tasks in background threads:
 
 - Downloading remote files
 - Reloading playlists
-- Checking metadata
-- Polling URLs
+- Resolving requests and their metadata
 
-This means:
+Remote files, for instance files accessed through `http:` URIs, are downloaded to
+a temporary file before playback begins. Local files are read directly by the
+streaming loop, so files stored on a slow network file system such as NFS can
+delay the loop and cause glitches.
 
-- Don’t rely on remote files that stream directly from NFS or the web.
-- All remote files are pre-downloaded into a temp file before playback begins.
+## Next steps
 
-Keep the streaming loop light and snappy — it’s the heartbeat of your system.
-
-## What’s Next?
-
-Now that you understand what sources are and how they work, you’ve unlocked the foundation of Liquidsoap. 🎉
-
-Want to go deeper?
-
-- Explore the [scripting API reference](reference.html)
+- Explore the [scripting API reference](./reference.md)
 - Learn about [clocks](./clocks.md)
 - See how [source callbacks](./callbacks.md) hook into what a source is doing
-- Experiment with your own custom source graphs
+- Experiment with your own source graphs

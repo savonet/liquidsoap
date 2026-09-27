@@ -7,7 +7,7 @@ s = sine()
 # Dump the stream
 output.file(
   %wav,
-  {time.string("/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.mp3")},
+  {time.string("/archive/%Y-%m-%d/%Y-%m-%d-%H_%M_%S.wav")},
   s,
   reopen_when={0m}
 )

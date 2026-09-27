@@ -26,7 +26,7 @@ def delete_stream(url) =
   if
     not list.assoc.mem(url, streams())
   then
-    "Stream for url #{url} does not exists!"
+    "Stream for url #{url} does not exist!"
   else
     shutdown = list.assoc(url, streams())
     shutdown()

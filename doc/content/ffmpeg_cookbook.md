@@ -32,7 +32,7 @@ Liquidsoap can encode once and share the result across multiple outputs, minimiz
 
 ```
 
-Shared encoding is especially useful for video, which is computationally expensive. Here is an example sharing audio and video encoding across multiple destinations — both Icecast and YouTube/Facebook via RTMP:
+Shared encoding is especially useful for video, which is computationally expensive. Here is an example sharing audio and video encoding across multiple destinations, Icecast and YouTube/Facebook via RTMP:
 
 ```{.liquidsoap include="ffmpeg-shared-encoding-rtmp.liq"}
 
@@ -40,7 +40,7 @@ Shared encoding is especially useful for video, which is computationally expensi
 
 ## Add transparent logo and video
 
-See: https://github.com/savonet/liquidsoap/discussions/1862
+See [this discussion](https://github.com/savonet/liquidsoap/discussions/1862).
 
 ## Live switch between encoded content
 
@@ -57,6 +57,6 @@ Here is a tested use case: live switch between a playlist of MP4 files and an RT
 ```
 
 - The `h264_mp4toannexb` filter is needed on each stream to ensure the MP4 data conforms to what the MPEG-TS container expects.
-- FFmpeg's automatic bitstream filter insertion must be disabled via `-autobsf`. FFmpeg does not support this kind of live switch natively and its auto-inserted filters will not work.
+- FFmpeg's automatic bitstream filter insertion must be disabled with `fflags="-autobsf"`. FFmpeg does not support this kind of live switch natively and its auto-inserted filters break it.
 
 Future work includes extending this to also support RTMP output from the same data.

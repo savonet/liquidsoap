@@ -6,9 +6,6 @@ server =
     config="/etc/liquidsoap/icecast.xml"
   )
 
-# Create a fallback source (e.g., playlist)
-fallback_source = playlist("/path/to/music")
-
 # When a DJ connects, log it and optionally do something
 server.on_source_connect(
   fun (r) ->

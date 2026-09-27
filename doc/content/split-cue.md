@@ -1,4 +1,4 @@
-# Split and re-encode a CUE sheet.
+# Split and re-encode a CUE sheet
 
 CUE sheets are sometimes distributed along with a single audio file containing a whole CD.
 Liquidsoap can parse CUE sheets as playlists and use them in your request-based sources.

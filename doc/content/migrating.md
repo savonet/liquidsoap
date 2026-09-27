@@ -1,8 +1,8 @@
 # Migrating to a new Liquidsoap version
 
-This page lists the most common issues when migrating to a new version of Liquidsoap.
+This page lists the changes you may need to make to your script when you upgrade Liquidsoap, one section per release, from 2.1.x to 2.2.x onward. Each section covers the breaking changes and the new behaviors that can affect an existing script.
 
-### Generalities
+## Generalities
 
 If you are installing via `opam`, it can be useful to create a [new switch](https://opam.ocaml.org/doc/Usage.html) to install
 the new version of `liquidsoap`. This lets you test the new version while keeping
@@ -10,8 +10,8 @@ the old version around in case you need to revert.
 
 More generally, we recommend keeping a backup of your script and testing it in a staging
 environment close to production before going live. Streaming issues can build up over time.
-We do our best to release stable code, but problems can arise for many reasons —
-always do a trial run before putting things into production.
+We do our best to release stable code, but problems can arise for many reasons.
+Always do a trial run before putting things into production.
 
 ## From 2.4.x to 2.5.x
 
@@ -47,7 +47,7 @@ Integers can now be implicitly converted to floats when a float is expected. Thi
 
 Previously, you would need to explicitly use `5.` or `float_of_int(5)`.
 
-**Limitations:** This conversion only works when the type checker can safely determine that a float is expected. There are inherent limitations to where this can be applied. The following cases do **not** work:
+This conversion only applies when the type checker can safely determine that a float is expected. The following cases are rejected:
 
 ```liquidsoap
 # if-then-else with mixed types - ERROR
@@ -64,7 +64,7 @@ In these cases, the type checker cannot safely reconcile the mixed `int` and `fl
 
 ### Metadata in `add` operators
 
-The `add` operator (and related track-level `track.audio.add` and `track.video.add` operators) now relays metadata from **all** sources being summed, not just the first one.
+The `add` operator (and related track-level `track.audio.add` and `track.video.add` operators) now relays metadata from all the sources being summed.
 
 Previously, only metadata from the first source effectively added was relayed. This was a long-standing behavior that could be surprising when mixing multiple sources with distinct metadata.
 
@@ -112,9 +112,9 @@ o.on_disconnect(fun (listener) -> log("#{listener.ip} disconnected"))
 
 The `cross` and `crossfade` operators have been simplified. The separate `start_duration` and `end_duration` parameters have been replaced by a single unified `duration` parameter. The crossfade now buffers the same duration from both ending and starting tracks.
 
-**If you use autocue** (via `enable_autocue_metadata()` or external autocue implementations like those used in AzuraCast): No changes are required. Everything should work as before.
+If you use autocue (via `enable_autocue_metadata()` or external autocue implementations like those used in AzuraCast), your script works as before.
 
-**If you don't use autocue**: The transition will now be computed using the same duration for both tracks. If you were previously using different `start_duration` and `end_duration` values, you'll need to adjust your script to use a single `duration` value.
+If you do not use autocue, the transition will now be computed using the same duration for both tracks. If you were previously using different `start_duration` and `end_duration` values, you'll need to adjust your script to use a single `duration` value.
 
 The following changes were made:
 
@@ -131,79 +131,29 @@ The following changes were made:
 | `assume_autocue` parameter                  | Removed                           |
 | `settings.crossfade.assume_autocue` setting | Removed                           |
 
-The `add` operator now relays metadata from all sources being summed (see above). To prevent metadata from the ending track from being surfaced in crossfade transitions, they have been removed from the source passed to the transition. Instead, they are passed explicitly via the transition arguments. In the transition function, use `ending.metadata` and `starting.metadata` to access the metadata from each track.
+The `add` operator now relays metadata from all sources being summed (see above). To keep metadata from the ending track out of crossfade transitions, metadata is removed from the sources passed to the transition and passed explicitly via the transition arguments. In the transition function, use `ending.metadata` and `starting.metadata` to access the metadata from each track.
 
 Also, remember that the `add` operator removes all track marks.
 
 ### Per-source methods on `switch`, `fallback`, `rotate`, `random`
 
-The `switch` operator (and its wrappers `fallback`, `rotate`, `random`) now uses per-source methods instead of parallel list parameters. This gives fine-grained control per branch.
+The `switch` operator and its wrappers `fallback`, `rotate` and `random` now take their per-branch settings as methods on each source. The old parallel list parameters are gone. See [source composition](./composition.md) for how these methods work together.
 
-#### `replay_metadata` (moved to a per-source method)
+| Old                                            | New                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| `fallback(replay_metadata=false, [s1, s2])`    | `fallback([s1.{replay_metadata = false}, s2])`               |
+| `switch(single=[true, false], [...])`          | `s1.{single = true}` on the source                           |
+| `rotate(weights=[3, 1], [music, jingles])`     | `rotate([music.{weight = 3}, jingles.{weight = 1}])`         |
+| `random(weights=[2, 1], [music, jingles])`     | `random([music.{weight = 2}, jingles])`                      |
+| `transitions`, `transition_length`             | `on_select` on the source being entered                      |
+| `override`                                     | Removed                                                      |
+| `track_sensitive` on the switch                | `track_sensitive` on each source                             |
+| `fallback.skip(main, fallback=backup)`         | `fallback([main, backup.{track_sensitive = getter(false)}])` |
+| Switching mid-track with no fade (old default) | `s1.{on_select = source.composition.legacy_on_select}`       |
 
-The `replay_metadata` parameter on the switch has been removed. It is now a per-source method, still defaulting to `true`:
+Each source now carries its own `weight`, defaulting to `1`. The old `weights` list was positional and was padded with `1` when shorter than the source list.
 
-**Before:**
-
-```liquidsoap
-s = fallback(replay_metadata=false, [s1, s2])
-```
-
-**After:**
-
-```liquidsoap
-s = fallback([s1.{replay_metadata = false}, s2])
-```
-
-Replayed metadata never overrides metadata that the source provides itself: when the starting source begins a fresh track with its own metadata, that metadata wins and the replay only fills in what would otherwise be missing.
-
-#### `single` (deprecated parameter on `switch`)
-
-**Before:**
-
-```liquidsoap
-s = switch(single=[true, false], [({cond1}, s1), ({cond2}, s2)])
-```
-
-**After:**
-
-```liquidsoap
-s = switch([({cond1}, s1.{single = true}), ({cond2}, s2)])
-```
-
-#### `weights` on `rotate` and `random` (moved to a per-source method)
-
-The `weights` list is gone. Weights were positional, so a list shorter than the source list was silently padded with `1`; each source now carries its own `weight`, defaulting to `1`.
-
-**Before:**
-
-```liquidsoap
-s = rotate(weights=[3, 1], [music, jingles])
-s = random(weights=[2, 1], [music, jingles])
-```
-
-**After:**
-
-```liquidsoap
-s = rotate([music.{weight = 3}, jingles.{weight = 1}])
-s = random([music.{weight = 2}, jingles])
-```
-
-`weight` is a getter, so it can vary at runtime: `music.{weight = {if peak_hour() then 5 else 3 end}}`.
-
-#### `rotate.merge`
-
-`rotate.merge` no longer takes `transitions` or `weights` either. Use `weight` on the sources, exactly as with `rotate`. Note that `rotate.merge` installs its own `on_select` on the **first** source — that is how it pads the round and keeps the merged tracks separable — so an `on_select` set on the first source is ignored.
-
-#### `transitions`, `transition_length`, `override` (breaking change)
-
-The `transitions`, `transition_length`, `override`, `track_sensitive`, and `replay_metadata` parameters have been removed. Per-source selection behavior is now controlled through composition methods on each source. See [source composition](./composition.md) for the concepts behind them:
-
-- `on_select`: a method of the source being _entered_. Called when it is selected. Receives `{starting, ending, replay_metadata}` and returns the source to play. `ending` is `null` when nothing was interrupted — the source being left reached a track boundary or is no longer available — and non-null when it was preempted mid-track. `replay_metadata` mirrors the per-source `replay_metadata` method (default `true`). By default, both file and live profiles replay the latest metadata when `replay_metadata` is `true` and fade out `ending` when non-null and the source has only PCM audio content (no video, no encoded audio such as `ffmpeg.copy`).
-- `on_leave`: a method of the source being _left_. Called when switching away from it. Receives `{source, track_sensitive}`, where `track_sensitive` reports whether it finished its track naturally (`true`) or was preempted mid-track (`false`). By default, skips the source when it was preempted so it starts fresh on next selection.
-- `track_sensitive`: whether this source insists on track boundaries, both for being interrupted and for being started. A switch may only cut into a track that is still playing when at least one of the two sources involved has `track_sensitive = false`; otherwise it waits for a track boundary. Defaults to `true` for file-based sources, `false` for live inputs. Because the decision only involves the two sources actually handing over, adding a live source to a switch does not change how two file sources hand off to each other.
-- `single`: forbid selecting this source for two consecutive tracks.
-- `composition_type`: `"file"` or `"live"`. Controls which global profile (`source.composition.file` / `source.composition.live`) provides the defaults for the above methods. Can be overridden per source with `:=`.
+A `transitions` function becomes an `on_select` method on the source being entered:
 
 **Before:**
 
@@ -217,48 +167,6 @@ s = fallback(transitions=[my_transition], transition_length=3., [s1, s2])
 **After:**
 
 ```liquidsoap
-def my_on_select({ending, starting, replay_metadata}) =
-  if null.defined(ending) then
-    let old = null.get(ending)
-    (sequence([(fade.out(duration=3., old) : source), starting]) : source)
-  else
-    starting
-  end
-end
-s = fallback([s1.{on_select = my_on_select}, s2])
-```
-
-**Adjusting the maximum fade duration:**
-
-The default `on_select` handles the ending source as follows: if it has between `0.` and `settings.source.composition.max_fade` seconds remaining (inclusive), it is sequenced with the starting source so it finishes naturally; if it has enough remaining time and carries only PCM audio, it is faded out for `max_fade` seconds; otherwise switching is immediate. The default `max_fade` is `1.`. To change it globally:
-
-```liquidsoap
-settings.source.composition.max_fade := 2.
-```
-
-**`on_leave` and source release in custom transitions:**
-
-`on_leave` is called on the ending source only after it has been fully released — once it is no longer being consumed by the transition. This means that in a custom `on_select`, you must ensure the ending source is eventually discarded. If it is not, `on_leave` never fires and the ending source's cleanup (e.g. `skip`/`clear_last_metadata`) never runs.
-
-A common mistake is passing `ending` into a mix with no duration bound:
-
-```liquidsoap
-# Wrong: add([fade.out(ending), ...]) runs forever because add keeps pulling
-# from ending indefinitely — it is never discarded and on_leave never fires.
-def my_on_select({ending, starting, replay_metadata=_}) =
-  if null.defined(ending) then
-    let old = null.get(ending)
-    (add([fade.out(duration=3., old), fade.in(duration=3., starting)]) : source)
-  else
-    starting
-  end
-end
-```
-
-The fix is to bound `ending` with `max_duration` before passing it into the mix. Once the duration is exhausted, `max_duration` discards the source, which triggers `on_leave`:
-
-```liquidsoap
-# Correct: max_duration discards ending after 3s, so on_leave fires.
 def my_on_select({ending, starting, replay_metadata=_}) =
   if null.defined(ending) then
     let old = max_duration(3., null.get(ending))
@@ -267,44 +175,24 @@ def my_on_select({ending, starting, replay_metadata=_}) =
     starting
   end
 end
+s = fallback([s1.{on_select = my_on_select}, s2])
 ```
 
-**Restoring the legacy (no-fade) switching behavior:**
+Bound `ending` with `max_duration` as above. The source being left is cleaned up only once your transition stops pulling from it. See [writing your own transition](./composition.md#writing-your-own-transition).
 
-If your script relied on the old behavior where switching did not fade out the
-ending source, use `source.composition.legacy_on_select`. It replays metadata
-when `replay_metadata` is `true` but passes `starting` through immediately with
-no transition:
+Switching now fades out the ending source by default. The default `on_select` sequences the ending source with the starting one when the ending source has between `0.` and `settings.source.composition.max_fade` seconds left, so it finishes naturally. When more time is left and the ending source carries only PCM audio, it is faded out over `max_fade` seconds (default `1.`). Otherwise switching is immediate.
 
-```liquidsoap
-s = fallback([s1.{on_select = source.composition.legacy_on_select}, s2])
-```
+`input.http` is a live source, so it now cuts in immediately. For a relay that carries a playlist, set `s.composition_type := "file"` on it. See [a relay that carries a playlist](./composition.md#a-relay-that-carries-a-playlist).
 
-**Changing the composition type of a live relay:**
-
-```liquidsoap
-# input.http defaults to live composition (immediate switching with fade).
-# For a relay carrying a playlist, wait for track boundaries instead.
-s = input.http("https://relay.example.com/stream")
-s.composition_type := "file"
-s = fallback([live_show, s, backup])
-```
+`rotate.merge` no longer takes `transitions` or `weights`. Set `weight` on the sources, as with `rotate`. `rotate.merge` installs its own `on_select` on the first source, so an `on_select` you set on that source is ignored.
 
 #### Stdlib operators that used to pin `track_sensitive`
 
 Several operators are built on top of `fallback` and used to pass a fixed `track_sensitive`. They now inherit it from the source they wrap, so their behavior follows that source's composition type: `append`, `prepend`, `map_first_track`, `overlap_sources` and the deprecated `fade.final`. If you relied on one of them switching (or not switching) mid-track regardless of its input, set `track_sensitive` on the source you pass in.
 
-`mksafe` is the exception: it pins `source.composition.legacy_on_select` on both branches, so falling back to `safe_blank` and coming back from it stay abrupt rather than fading.
+`mksafe` is the exception: it pins `source.composition.legacy_on_select` on both branches, so switching to `safe_blank` and back is immediate, with no fade.
 
-The deprecated `mkavailable` lost its `track_sensitive` parameter with no replacement; use `source.available` instead, as the deprecation warning already suggests.
-
-#### `fallback.skip` (deprecated)
-
-`fallback.skip` was a track insensitive `fallback` that skipped the fallback source before switching back to the main one. Both halves of that are now what a plain `fallback` does: a source with `track_sensitive = false` can be cut into mid-track, and the `file` composition profile's `on_leave` skips a source that was left mid-track. Set `track_sensitive` on the fallback source instead:
-
-```liquidsoap
-s = fallback([main, fallback_source.{track_sensitive = getter(false)}])
-```
+The deprecated `mkavailable` lost its `track_sensitive` parameter with no replacement. Use `source.available`, as the deprecation warning suggests.
 
 ### Source callbacks return a release
 
@@ -315,7 +203,7 @@ announce = s.on_metadata(synchronous=true, fn)
 announce.release()
 ```
 
-Nothing to change in existing scripts: the value is still `unit` underneath and can be ignored. It matters if you register callbacks repeatedly on long-lived sources, typically when handling dynamic sources — see [source callbacks](./callbacks.md).
+Nothing to change in existing scripts: the value is still `unit` underneath and can be ignored. It matters if you register callbacks repeatedly on long-lived sources, typically when handling dynamic sources. See [source callbacks](./callbacks.md).
 
 ### Scheduled work runs concurrently
 
@@ -347,7 +235,11 @@ If concurrent execution breaks a script and it cannot be fixed right away, `sett
 
 The `-d`/`--daemon` option and the `settings.init.daemon` settings are gone, pidfile writing included. Detaching from the terminal required forking, which is not safe now that liquidsoap runs on several cores.
 
-Run liquidsoap in the foreground under a service manager instead — `systemd` on Linux, `launchd` on macOS. Both keep track of the process, restart it, and capture its output, so a pidfile is not needed. A script still setting `init.daemon`, `init.daemon.pidfile` or `init.daemon.change_user` no longer typechecks (`this value has no method daemon`); drop those lines, and let the service manager set user and group.
+Run liquidsoap in the foreground under a service manager instead, such as `systemd` on Linux or `launchd` on macOS. Both keep track of the process, restart it, and capture its output, so a pidfile is not needed. A script still setting `init.daemon`, `init.daemon.pidfile` or `init.daemon.change_user` no longer typechecks (`this value has no method daemon`); drop those lines, and let the service manager set user and group.
+
+### Prometheus latency metrics renamed
+
+The metrics exported by `prometheus.latency` are ratios of the frame duration: a value below `1` means that liquidsoap keeps up. Their names now end in `_ratio` to say so. `liquidsoap_input_latency_seconds` is now `liquidsoap_input_latency_ratio`, and likewise for the `peak` and `max` variants and for the `output` and `overall` modes. Update your dashboards and alerts to the new names.
 
 ## From 2.3.x to 2.4.x
 
@@ -370,7 +262,7 @@ s.insert_metadata([("title","bla")])
 ### Stream-related callbacks
 
 Stream-related callbacks are the biggest change in this release. They are now fully documented
-in their own dedicated section, and can be executed asynchronously by setting `synchronous=false`
+in their own [section](./callbacks.md), and can be executed asynchronously by setting `synchronous=false`
 when registering them.
 
 When `synchronous=false`, the callback is placed in a `thread.run` task, keeping it off the
@@ -442,10 +334,10 @@ o = output.ao(...)
 o.on_start(synchronous=false, fn)
 ```
 
-**Asynchronous or synchronous?** Use `synchronous=true` for fast or timing-sensitive callbacks.
+Use `synchronous=true` for fast or timing-sensitive callbacks.
 Use `synchronous=false` for slow, non-time-sensitive work like submitting to a remote HTTP server.
 
-**Note on execution order:** When `synchronous=false`, callbacks run via `thread.run`, which means
+When `synchronous=false`, callbacks run via `thread.run`, which means
 there may be a slight delay and execution order is not guaranteed.
 
 ### Error methods
@@ -471,7 +363,7 @@ This prevents situations like this:
 ```liquidsoap
 request = ...
 # Later...
-request.create(...)  # 💥 Cryptic type error!
+request.create(...)  # Cryptic type error
 ```
 
 Previously, it was far too easy to overwrite important built-in modules (like `request`) and end up with confusing type errors.
@@ -486,7 +378,7 @@ Warning 6: Top-level variable request is overridden!
 
 ### `null()` replaced by `null`
 
-Previously, `null` was a function — you had to call `null()` to get a null value, or `null(value)` to wrap something.
+Previously, `null` was a function: you had to call `null()` to get a null value, or `null(value)` to wrap something.
 
 Now, `null` can be used directly:
 
@@ -504,7 +396,7 @@ my_var = null("some value")
 
 ### Script caching
 
-A mechanism for caching script was added. There are two caches, one for the standard library
+A mechanism for caching scripts was added. There are two caches, one for the standard library
 that is shared by all scripts, and one for individual scripts.
 
 Scripts run the same way with or without caching. However, caching your script has two advantages:
@@ -512,16 +404,16 @@ Scripts run the same way with or without caching. However, caching your script h
 - The script starts much faster.
 - Much less memory is used at startup. The cache stores the result of typechecking and other initialization work done on first run.
 
-You can pre-cache a script using the `--cache-only` command:
+You can pre-cache a script using the `--cache-only` option:
 
-```liquidsoap
+```
 $ liquidsoap --cache-only /path/to/script.liq
 ```
 
 The location of the two caches can be found by running `liquidsoap --build-config`. You can also set them using the
 `$LIQ_CACHE_USER_DIR` and `$LIQ_CACHE_SYSTEM_DIR` environment variables.
 
-Typically, inside a docker container, to pre-cache a script you would set `$LIQ_CACHE_SYSTEM_DIR` to the appropriate
+Typically, inside a docker container, to pre-cache a script you would set `$LIQ_CACHE_USER_DIR` to the appropriate
 location and then run `liquidsoap --cache-only`:
 
 ```dockerfile
@@ -531,7 +423,7 @@ RUN mkdir -p $LIQ_CACHE_USER_DIR && \
     liquidsoap --cache-only /path/to/script.liq
 ```
 
-See [the language page](./language.md#caching) for more details!
+See [caching](./script_lifecycle.md#caching) for more details.
 
 ### Default frame size
 
@@ -582,7 +474,7 @@ end
 The regular expression backend was replaced in `2.3.0`. Most existing patterns work as before,
 but subtle differences can arise with advanced expressions.
 
-**Known behavioral change** — `string.split` with a capture group no longer returns the matched separator:
+One known behavior change is that `string.split` with a capture group no longer returns the matched separator:
 
 ```
 # 2.2.x: matched separator was included in the result
@@ -594,7 +486,7 @@ but subtle differences can arise with advanced expressions.
 ["foo", "bar"]
 ```
 
-**Known incompatibility** — Named capture groups using `(?P<name>pattern)` are no longer supported.
+Named capture groups using `(?P<name>pattern)` are no longer supported.
 Use `(?<name>pattern)` instead.
 
 ### Static requests
@@ -685,7 +577,7 @@ As before, you can change it with `settings.prometheus.server.port := <your port
 
 Operators such as `single` and `request.once` have been reworked to use `source.dynamic` internally.
 
-The operator is now considered production-ready, though it is very powerful and should be used with care.
+The operator is now considered production-ready, though it should be used with care.
 
 If you were already using it, note that the `set` method has been removed in favor of a callback API.
 
@@ -708,12 +600,12 @@ We applied the following changes:
 - Old `icy_metadata` argument was renamed to `send_icy_metadata` and changed to a nullable `bool`. `null` means guess.
 - New `icy_metadata` argument now returns a list of metadata to send with ICY updates.
 - Added a `icy_song` argument to generate default `"song"` metadata for ICY updates. Defaults to `<artist> - <title>` when available, otherwise `artist` or `title` if available, otherwise `null`, meaning don't add the metadata.
-- Cleaned up and removed parameters that were irrelevant to each operator, i.e. `icy_id` in `output.icecast` and etc.
+- Cleaned up and removed parameters that were irrelevant to each operator, e.g. `icy_id` in `output.icecast`.
 - Made `mount` mandatory and `name` nullable. Use `mount` as `name` when `name` is `null`.
 
 ### HLS events
 
-Starting with version `2.2.1`, on HLS outputs, `on_file_change` events are now `"created"`, `"updated"` and `"deleted"`. This breaking
+Starting with version `2.2.1`, on HLS outputs, `on_file_change` events are now `"created"`, `"updated"` and `"deleted"`. This breaking change
 was required to reflect the fact that file changes are now atomic. See [this issue](https://github.com/savonet/liquidsoap/issues/3284)
 for more details.
 
@@ -726,13 +618,13 @@ when creating requests or `playlist` sources.
 
 ### Harbor HTTP server and SSL support
 
-The API for registering HTTP server endpoint and using SSL was completely rewritten. It should be more flexible and
-provide node/express like API for registering endpoints and middleware. You can checkout [the harbor HTTP documentation](./harbor_http.md)
+The API for registering HTTP server endpoints and using SSL was completely rewritten. It should be more flexible and
+provide a node/express-like API for registering endpoints and middleware. You can check out [the harbor HTTP documentation](./harbor_http.md)
 for more details. The [Https support](./harbor_http.md#https-support) section also explains the new SSL/TLS API.
 
 ### Timeout
 
-Timeout values were previously inconsistent — some were named `timeout_ms` (integer, milliseconds),
+Timeout values were previously inconsistent: some were named `timeout_ms` (integer, milliseconds),
 others `timeout` (float, seconds). All `timeout` settings and arguments are now unified: they are
 named `timeout` and hold a floating-point number of seconds.
 
@@ -763,7 +655,7 @@ the `json.stringify()` function or the generic `json()` object mapper. Please us
 Default metadata encoding for `output.harbor`, `output.icecast`, and `output.shoutcast` has changed to `UTF-8`.
 
 Legacy systems expected `ISO-8859-1` (`latin1`) for ICY metadata in MP3 streams, but most modern clients
-now expect `UTF-8` — including those that previously defaulted to other encodings.
+now expect `UTF-8`, including those that previously defaulted to other encodings.
 
 If you use these outputs, verify that your listeners' clients handle `UTF-8` correctly. If needed, the
 encoding can be set explicitly via the operator's parameters.
@@ -804,343 +696,6 @@ output.file({time.string("/path/to/file%H%M%S.wav")}, ...)
 
 ### Other breaking changes
 
-- `reopen_on_error` and `reopen_on_metadata` in `output.file` an related outputs are now callbacks.
-- `request.duration` now returns a `nullable` float, `null` being value returned when the request duration could not be computed.
+- `reopen_on_error` and `reopen_on_metadata` in `output.file` and related outputs are now callbacks.
+- `request.duration` now returns a `nullable` float, `null` being the value returned when the request duration could not be computed.
 - `getenv` (resp. `setenv`) has been renamed to `environment.get` (resp. `environment.set`).
-
-## From 2.0.x to 2.1.x
-
-### Regular expressions
-
-First-class [regular expression](./language.md#regular-expressions) are introduced and are used to replace the following operators:
-
-- `string.match(pattern=<regexp>, <string>` is replaced by: `r/<regexp>/.test(<string>)`
-- `string.extract(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/.exec(<string>)`
-- `string.replace(pattern=<regexp>, <string>)` is replaced by: `r/<regexp>/g.replace(<string>)`
-- `string.split(separator=<regexp>, <string>)` is replaced by: `r/<regexp>/.split(<string>)`
-
-### Partial application
-
-In order to improve performance, avoid some programming errors and simplify the
-code, the support for partial application of functions was removed (from our
-experience it was not used much anyway). This means that you should now provide
-all required arguments for functions. The behavior corresponding to partial
-application can of course still be achieved by explicitly abstracting (with
-`fun(x) -> ...`) over some arguments.
-
-For instance, suppose that we defined the addition function with two arguments
-with
-
-```liquidsoap
-def add(x,y) =
-  x + y
-end
-```
-
-and defined the successor function by partially applying it to the first
-argument
-
-```liquidsoap
-suc = add(1)
-```
-
-We now need to explicitly provide the second argument, and the `suc` function
-should now be defined as
-
-```liquidsoap
-suc = fun(x) -> add(1, x)
-```
-
-or
-
-```liquidsoap
-def suc(x) =
-  add(1, x)
-end
-```
-
-### JSON parsing
-
-JSON parsing was greatly improved and is now much more user-friendly.
-You can check out our detailed presentation [here](./json.md).
-
-### Runtime evaluation
-
-Runtime evaluation of strings has been re-implemented as a type-safe
-eval `let` decoration. You can now do:
-
-```liquidsoap
-let eval x = "[1,2,3]"
-```
-
-And, just like with JSON parsing, the recommended use is with a
-_type annotation_:
-
-```liquidsoap
-let eval (x: [int]) = "[1,2,3]"
-```
-
-### Deprecations and breaking changes
-
-- The argument `streams_info` of `output.file.hls` is now a record.
-- Deprecated argument `timeout` of `http.*` operators.
-- `source.on_metadata` and `source.on_track` now return a source as this was the case in previous versions, and associated handlers are triggered only when the returned source is pulled
-- `output.youtube.live` renamed `output.youtube.live.rtmp`, remove `bitrate` and `quality` arguments and added a single encoder argument to allow stream copy and more.
-- `list.mem_assoc` is replaced by `list.assoc.mem`
-- `timeout` argument in `http.*` operators is replaced by `timeout_ms`.
-- `request.ready` is replaced by `request.resolved`
-
-## From 1.4.x to 2.0.0
-
-### `audio_to_stereo`
-
-`audio_to_stereo` should not be required in most situations anymore. `liquidsoap` can handle channels conversions transparently now!
-
-### `auth` function in `input.harbor`
-
-The type of the `auth` function in `input.harbor` has changed. Where before, you would do:
-
-```liquidsoap
-def auth(user, password) =
-  ...
-end
-```
-
-You would now do:
-
-```liquidsoap
-def auth(params)
-  user     = params.user
-  password = params.password
-  ...
-end
-```
-
-### Type errors with lists of sources
-
-Now that sources have their own methods, the actual list of methods attached to each source can vary from one to the next. For instance,
-`playlist` has a `reload` method but `input.http` does not. This currently confuses the type checker and leads to errors that look like this:
-
-```liquidsoap
-At script.liq, line xxx, char yyy-zzz:
-Error 5: this value has type
-  _ * source(audio=?A, video=?B, midi=?C)
-  .{
-    time : () -> float,
-    shutdown : () -> unit,
-    fallible : bool,
-    skip : () -> unit,
-    seek : (float) -> float,
-    is_active : () -> bool,
-    is_up : () -> bool,
-    log :
-    {level : (() -> int?).{set : ((int) -> unit)}
-    },
-    self_sync : () -> bool,
-    duration : () -> float,
-    elapsed : () -> float,
-    remaining : () -> float,
-    on_track : ((([string * string]) -> unit)) -> unit,
-    on_leave : ((() -> unit)) -> unit,
-    on_shutdown : ((() -> unit)) -> unit,
-    on_metadata : ((([string * string]) -> unit)) -> unit,
-    is_ready : () -> bool,
-    id : () -> string,
-    selected : (() -> source(audio=?D, video=?E, midi=?F)?)
-  }
-but it should be a subtype of the type of the value at radio.liq, line 122, char 2-21
-  _ * _.{reload : _}
-```
-
-Use the `(s:source)` type annotation to tell the type checker to ignore source-specific methods
-and treat the value simply as a source:
-
-```liquidsoap
-s = fallback([
-  (s1:source),
-  (s2:source),
-  (s3:source)
-])
-```
-
-### Http input and operators
-
-HTTP support has been delegated to external libraries for broader protocol compatibility.
-If you installed `liquidsoap` via `opam`:
-
-- You need to install the `ocurl` package to enable all HTTP request operators, `http.get`, `http.post`, `http.put`, `http.delete` and `http.head`
-- You need to install the `ffmpeg` package (version `1.0.0` or above) to enable `input.http`
-- You do not need to install the `ssl` package anymore to enable their `https` counter-part. These operators have been deprecated.
-
-### Crossfade
-
-The `cross` transition function signature changed: instead of individual arguments for each track's
-properties, they are now grouped into two records (`ending` and `starting`). For example:
-
-```liquidsoap
-def transition(
-  ending_dB_level, starting_dB_level,
-  ending_metadata, starting_metadata,
-  ending_source,   starting_source) =
-...
-end
-```
-
-You would now do:
-
-```liquidsoap
-def transition(ending, starting) =
-  # Now you can use:
-  #  - ending.db_level, ending.metadata, ending.source
-  #  - starting.db_level, starting.metadata, starting.source
-...
-end
-```
-
-### Settings
-
-Settings are now exported as records. Where you would before write:
-
-```liquidsoap
-set("decoder.decoders", ["MAD", "FFMPEG"])
-```
-
-You can now write:
-
-```liquidsoap
-settings.decoder.decoders.set(["MAD", "FFMPEG"])
-```
-
-Likewise, to get a setting's value you can now do:
-
-```liquidsoap
-current_decoders = settings.decoder.decoders()
-```
-
-This provides many good features, in particular type-safety.
-
-For convenience, we have added shorter versions of the most used settings. These are all shortcuts to their respective `settings` values:
-
-```liquidsoap
-log.level.set(4)
-log.file.set(true)
-log.stdout.set(true)
-init.daemon.set(true)
-audio.samplerate.set(48000)
-audio.channels.set(2)
-video.frame.width.set(720)
-video.frame.height.set(1280)
-```
-
-The `register` operator was removed as it could not be adapted to the new API. Backward-compatible
-`set` and `get` operators are provided, but should be replaced as they will be removed in a future version.
-
-### Metadata insertion
-
-`insert_metadata` no longer returns a pair. It now returns a source with an `insert_metadata` method.
-Update your code from:
-
-```liquidsoap
-fs = insert_metadata(s)
-# The function to insert metadata
-f = fst(ms)
-# The source with inserted metadata
-s = snd(ms)
-...
-# Using the function
-f([("artist", "Bob")])
-...
-# Using the source
-output.pulseaudio(s)
-```
-
-to:
-
-```liquidsoap
-s = insert_metadata(s)
-...
-# Using the function
-s.insert_metadata([("artist", "Bob")])
-...
-# Using the source
-output.pulseaudio(s)
-```
-
-### Request-based queueing
-
-Queueing for request-based sources has been simplified. The `default_duration` and `length` parameters
-have been removed. Use `prefetch` instead to specify how many requests to queue in advance.
-
-For more advanced queueing, `request.dynamic.list` and `request.dynamic` now expose functions to
-inspect and set their own request queues.
-
-### JSON import/export
-
-`json_of` has been renamed `json.stringify` and `of_json` has been renamed `json.parse`.
-
-JSON export has been enhanced with a new generic object exporter. Associative lists of type `(string, 'a)` are
-now exported as objects. See the [JSON documentation page](./json.md) for more details.
-
-Convenience functions have been added to convert metadata to and from JSON object format: `metadata.json.stringify` and
-`metadata.json.parse`.
-
-### Returned types from output operators
-
-Output operators now return `()` instead of a source, enforcing that outputs are end-points of the
-signal graph. If your script used the return value of an output, apply the operator directly to the
-source instead. For example:
-
-```liquidsoap
-s = ...
-
-clock.assign_new([output.icecast(..., s)])
-```
-
-Should now be written:
-
-```liquidsoap
-s = ...
-
-clock.assign_new([s], ...)
-
-output.icecast(..., s)
-```
-
-### Deprecated operators
-
-Some operators have been deprecated. Most have backward-compatible replacements. You will see
-deprecation warnings in your logs. Here's a list of the most important ones:
-
-- `playlist.safe` is replaced by: `playlist(mksafe(..))`
-- `playlist.once` is replaced by: `playlist`, setting `reload_mode` argument to `"never"` and `loop` to `false`
-- `rewrite_metadata` should be rewritten using `metadata.map`
-- `fade.initial` and `fade.final` are not needed anymore
-- `get_process_output` is replaced by: `process.read`
-- `get_process_lines` is replaced by: `process.read.lines`
-- `test_process` is replaced by: `process.test`
-- `system` is replaced by: `process.run`
-- `add_timeout` is replaced by: `thread.run.recurrent`
-- `on_blank` is replaced by: `blank.detect`
-- `skip_blank` is replaced by: `blank.skip`
-- `eat_blank` is replaced by: `blank.eat`
-- `strip_blank` is replaced by: `blank.strip`
-- `which` is replaced by: `file.which`
-- `register_flow`: flow is no longer maintained
-- `empty` is replaced by: `source.fail`
-- `file.unlink` is replaced by: `file.remove`
-- `string.utf8.escape` is replaced by: `string.escape`
-- `map_metadata` is replaced by: `metadata.map`
-
-### Windows build
-
-The Windows binary is statically built, which means both `%ffmpeg` and any encoder sharing its
-underlying libraries (e.g. `libmp3lame` for MP3) cannot be enabled simultaneously — they export
-conflicting C symbols.
-
-Since `%ffmpeg` covers all conflicting encoders and more, the Windows build enables `%ffmpeg` and
-disables all other encoders. If you were using a different encoder, switch to `%ffmpeg`. For example,
-for MP3 encoding with variable bitrate:
-
-```liquidsoap
-%ffmpeg(format="mp3", %audio(codec="libmp3lame", q=7))
-```

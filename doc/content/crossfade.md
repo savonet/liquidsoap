@@ -9,7 +9,7 @@ it is done.
 
 Since release `2.2.5`, liquidsoap integrates an automated mechanism to compute crossfade transitions that was contributed by our users.
 
-If you have the `ffmpeg` bindings enabled, all you should need to do to enable this feature is adding the following to your script:
+If you have the `ffmpeg` bindings enabled, all you should need to do to enable this feature is add the following to your script:
 
 ```liquidsoap
 enable_autocue_metadata()
@@ -23,10 +23,16 @@ check out the external [autocue](https://github.com/Moonbase59/autocue) implemen
 You can also define your own crossfade transitions if you want to be more specific about them! The base `cross` operator accepts a scripted transition function that,
 according to the average volume level (in dB) computed on the end of the ending track and the beginning of the new one, returns the transition that is desired.
 
-You can find its documentation in the [language reference](reference.html).
+You can find its documentation in the [language reference](./reference.md).
 
 Here's an example:
 
 ```{.liquidsoap include="crossfade.liq"}
 
+```
+
+To use this transition, pass it to `cross`:
+
+```liquidsoap
+radio = cross(cross.smart, radio)
 ```

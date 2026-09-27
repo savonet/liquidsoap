@@ -508,6 +508,62 @@
    content/liq/complete-case.liq)))
 
 (rule
+ (alias test-doc-cookbook-channels)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/cookbook-channels.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/cookbook-channels.liq)))
+
+(rule
+ (alias test-doc-cookbook-cross-loudness)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/cookbook-cross-loudness.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/cookbook-cross-loudness.liq)))
+
+(rule
+ (alias test-doc-cookbook-live-archive)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/cookbook-live-archive.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/cookbook-live-archive.liq)))
+
+(rule
+ (alias test-doc-cookbook-live-failsafe)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/cookbook-live-failsafe.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/cookbook-live-failsafe.liq)))
+
+(rule
  (alias test-doc-cron_add)
  (package liquidsoap)
  (deps
@@ -586,6 +642,20 @@
    --check
    --no-fallible-check
    content/liq/crossfade.liq)))
+
+(rule
+ (alias test-doc-decoder-metadata-metaflac)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/decoder-metadata-metaflac.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/decoder-metadata-metaflac.liq)))
 
 (rule
  (alias test-doc-decoder-openmpt)
@@ -1182,6 +1252,76 @@
    content/liq/http-input.liq)))
 
 (rule
+ (alias test-doc-icecast-output-basic)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-output-basic.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-output-basic.liq)))
+
+(rule
+ (alias test-doc-icecast-output-callbacks)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-output-callbacks.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-output-callbacks.liq)))
+
+(rule
+ (alias test-doc-icecast-output-https)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-output-https.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-output-https.liq)))
+
+(rule
+ (alias test-doc-icecast-output-icy)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-output-icy.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-output-icy.liq)))
+
+(rule
+ (alias test-doc-icecast-output-multiple)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-output-multiple.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-output-multiple.liq)))
+
+(rule
  (alias test-doc-icecast-server-access-log)
  (package liquidsoap)
  (deps
@@ -1362,20 +1502,6 @@
    --check
    --no-fallible-check
    content/liq/implicit-float-ok.liq)))
-
-(rule
- (alias test-doc-input.mplayer)
- (package liquidsoap)
- (deps
-  (alias_rec ../install)
-  (source_tree ../src/libs)
-  (:test_liq content/liq/input.mplayer.liq))
- (action
-  (run
-   %{bin:liquidsoap}
-   --check
-   --no-fallible-check
-   content/liq/input.mplayer.liq)))
 
 (rule
  (alias test-doc-jack-buffer)
@@ -1608,6 +1734,20 @@
    content/liq/medialib.sqlite.liq)))
 
 (rule
+ (alias test-doc-memory-usage)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/memory-usage.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/memory-usage.liq)))
+
+(rule
  (alias test-doc-multitrack-add-video-track2)
  (package liquidsoap)
  (deps
@@ -1704,16 +1844,6 @@
    --check
    --no-fallible-check
    content/liq/prometheus-settings.liq)))
-
-(rule
- (alias test-doc-radiopi)
- (package liquidsoap)
- (deps
-  (alias_rec ../install)
-  (source_tree ../src/libs)
-  (:test_liq content/liq/radiopi.liq))
- (action
-  (run %{bin:liquidsoap} --check --no-fallible-check content/liq/radiopi.liq)))
 
 (rule
  (alias test-doc-raw-string-delimited)
@@ -2348,12 +2478,17 @@
   (alias test-doc-clock-srt-crossfade-buffer)
   (alias test-doc-clock-srt-crossfade-conflict)
   (alias test-doc-complete-case)
+  (alias test-doc-cookbook-channels)
+  (alias test-doc-cookbook-cross-loudness)
+  (alias test-doc-cookbook-live-archive)
+  (alias test-doc-cookbook-live-failsafe)
   (alias test-doc-cron_add)
   (alias test-doc-cron_id)
   (alias test-doc-cron_id_arg)
   (alias test-doc-cron_remove)
   (alias test-doc-cross.custom)
   (alias test-doc-crossfade)
+  (alias test-doc-decoder-metadata-metaflac)
   (alias test-doc-decoder-openmpt)
   (alias test-doc-dump-hourly)
   (alias test-doc-dump-hourly2)
@@ -2397,6 +2532,11 @@
   (alias test-doc-harbor.http.response)
   (alias test-doc-hls-metadata)
   (alias test-doc-http-input)
+  (alias test-doc-icecast-output-basic)
+  (alias test-doc-icecast-output-callbacks)
+  (alias test-doc-icecast-output-https)
+  (alias test-doc-icecast-output-icy)
+  (alias test-doc-icecast-output-multiple)
   (alias test-doc-icecast-server-access-log)
   (alias test-doc-icecast-server-basic)
   (alias test-doc-icecast-server-complete)
@@ -2410,7 +2550,6 @@
   (alias test-doc-icecast-server-serve-json)
   (alias test-doc-icy-update)
   (alias test-doc-implicit-float-ok)
-  (alias test-doc-input.mplayer)
   (alias test-doc-jack-buffer)
   (alias test-doc-jack-connect)
   (alias test-doc-jack-low-latency)
@@ -2428,6 +2567,7 @@
   (alias test-doc-medialib)
   (alias test-doc-medialib-predicate)
   (alias test-doc-medialib.sqlite)
+  (alias test-doc-memory-usage)
   (alias test-doc-multitrack-add-video-track2)
   (alias test-doc-multitrack-default-video-track)
   (alias test-doc-multitrack2)
@@ -2435,7 +2575,6 @@
   (alias test-doc-playlists)
   (alias test-doc-prometheus-callback)
   (alias test-doc-prometheus-settings)
-  (alias test-doc-radiopi)
   (alias test-doc-raw-string)
   (alias test-doc-raw-string-delimited)
   (alias test-doc-re-encode)
