@@ -70,13 +70,11 @@ settings.ffmpeg.log.verbosity := "warning"
 
 This sets the verbosity of `ffmpeg` logs. Values from least to most verbose: `"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"`, `"debug"`.
 
-To route `ffmpeg` logs through liquidsoap's logging facilities, enable log capture:
+By default, `ffmpeg` log messages are forwarded to liquidsoap's logger at the level set by `settings.ffmpeg.log.level`. To print them directly to standard error instead, disable log capture:
 
 ```liquidsoap
-settings.ffmpeg.log.capture := true
+settings.ffmpeg.log.capture := false
 ```
-
-When enabled, `ffmpeg` log messages are forwarded to liquidsoap's logger at the level set by `settings.ffmpeg.log.level`. When disabled (the default), they are printed directly to standard output.
 
 ### Decoder arguments
 
