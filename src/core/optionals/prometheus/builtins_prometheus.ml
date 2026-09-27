@@ -96,18 +96,29 @@ let get_latencies ~prefix ~label_names mode =
     | None ->
         let latency =
           Gauge.v_labels ~label_names
-            ~help:(Printf.sprintf "Mean %s latency over the chosen window" mode)
-            (Printf.sprintf "%s%s_latency_seconds" prefix mode)
+            ~help:
+              (Printf.sprintf
+                 "Mean %s latency over the chosen window, as a ratio of the \
+                  frame duration"
+                 mode)
+            (Printf.sprintf "%s%s_latency_ratio" prefix mode)
         in
         let peak_latency =
           Prometheus.Gauge.v_labels ~label_names
-            ~help:(Printf.sprintf "Peak %s latency over the chosen window" mode)
-            (Printf.sprintf "%s%s_peak_latency_seconds" prefix mode)
+            ~help:
+              (Printf.sprintf
+                 "Peak %s latency over the chosen window, as a ratio of the \
+                  frame duration"
+                 mode)
+            (Printf.sprintf "%s%s_peak_latency_ratio" prefix mode)
         in
         let max_latency =
           Prometheus.Gauge.v_labels ~label_names
-            ~help:(Printf.sprintf "Max %s latency since start" mode)
-            (Printf.sprintf "%s%s_max_latency_seconds" prefix mode)
+            ~help:
+              (Printf.sprintf
+                 "Max %s latency since start, as a ratio of the frame duration"
+                 mode)
+            (Printf.sprintf "%s%s_max_latency_ratio" prefix mode)
         in
         Hashtbl.replace latencies key (latency, peak_latency, max_latency);
         (latency, peak_latency, max_latency)
