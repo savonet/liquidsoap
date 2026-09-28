@@ -19,7 +19,7 @@ elif [ -n "${IS_RELEASE}" ]; then
   RPM_PACKAGE="liquidsoap"
   RPM_RELEASE=1
 else
-  TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9a-z.]#.#g')
+  TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9a-z.-]#-#g')
   RPM_PACKAGE="liquidsoap-${TAG}"
   RPM_RELEASE="0.${BUILD_STAMP}.${COMMIT_SHORT}"
 fi
