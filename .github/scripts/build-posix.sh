@@ -43,6 +43,7 @@ git clone https://github.com/savonet/ocaml-ssl.git
 cd ocaml-ssl && git checkout d4a65d7b0514859fc02647b6a8b9b2e2fb2358ca
 opam pin -ny .
 opam reinstall -y ssl
+cd /tmp/liquidsoap
 
 echo "::endgroup::"
 
