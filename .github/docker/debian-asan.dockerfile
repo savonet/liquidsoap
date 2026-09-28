@@ -5,7 +5,8 @@ FROM $BASE_IMAGE AS ocaml
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
-ARG OCAML_VERSION=5.5.0
+ARG OCAML_VERSION=5.5.1
+ARG OCAML_PATCH_URL
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0:protect_shadow_gap=0:verify_asan_link_order=0"
@@ -23,10 +24,9 @@ RUN useradd -m opam
 
 USER opam
 
-RUN opam init -y --disable-sandboxing --bare && \
-    opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-address-sanitizer && \
-    opam update -y && \
-    opam clean
+COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
+
+RUN sh /tmp/setup-ocaml.sh ocaml-option-address-sanitizer
 
 # Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned

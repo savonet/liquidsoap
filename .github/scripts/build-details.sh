@@ -84,11 +84,11 @@ fi
 
 MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi fdkaac flac frei0r gd graphics irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt tls theora tsdl sqlite3 vorbis sdl-liquidsoap"
 
-echo "Ocaml version to build: 5.5.0"
-OCAML_VERSION='["5.5.0"]'
+echo "Ocaml version to build: 5.5.1"
+OCAML_VERSION='["5.5.1"]'
 
-echo "OCaml docker release version: 5.5.0"
-OCAML_DOCKER_RELEASE_VERSION="5.5.0"
+echo "OCaml docker release version: 5.5.1"
+OCAML_DOCKER_RELEASE_VERSION="5.5.1"
 
 {
   echo "branch=${BRANCH}"

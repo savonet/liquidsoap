@@ -1,12 +1,11 @@
 ARG BASE_IMAGE
-ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/b62191b568d80253b882b4702a1b2f5272c3d595.tar.gz
 
 # Stage 1: OCaml compiler
 FROM $BASE_IMAGE AS ocaml
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
-ARG OCAML_VERSION=5.5.0
+ARG OCAML_VERSION=5.5.1
 ARG OCAML_PATCH_URL
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -24,17 +23,9 @@ RUN useradd -m opam
 
 USER opam
 
-RUN opam init -y --disable-sandboxing --bare && \
-    opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-flambda && \
-    opam update -y && \
-    opam clean
+COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
 
-# The global-root debugging patches, ocaml/ocaml#15027. They are all #ifdef DEBUG,
-# so they only show up in the runtime reached through -runtime-variant d. Build with
-# an empty OCAML_PATCH_URL for a stock compiler.
-RUN test -z "$OCAML_PATCH_URL" || \
-    (opam pin add -y ocaml-compiler.$OCAML_VERSION "$OCAML_PATCH_URL" && \
-     opam clean)
+RUN sh /tmp/setup-ocaml.sh ocaml-option-flambda
 
 # Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned
@@ -99,8 +90,6 @@ USER root
 # Stage 4: Install remaining external and opam dependencies
 FROM static-packages AS build
 
-ARG OCAML_PATCH_URL
-
 COPY .github/docker/ext-packages /tmp/ext-packages
 
 USER opam
@@ -139,8 +128,8 @@ RUN eval $(opam env) && \
 
 # The compiler pin has to survive the pin cleanup above, or the patched compiler is
 # silently replaced by the release one.
-RUN test -z "$OCAML_PATCH_URL" || \
-    (eval $(opam env) && opam pin list --short | grep -qx ocaml-compiler)
+RUN eval $(opam env) && \
+    (! opam var ocaml_patch_url >/dev/null 2>&1 || opam pin list --short | grep -qx ocaml-compiler)
 
 USER root
 

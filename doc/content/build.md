@@ -201,7 +201,7 @@ To build Liquidsoap yourself with ASAN, create an opam switch using the
 `ocaml-option-address-sanitizer` variant:
 
 ```shell
-opam switch create asan-dev ocaml-variants.5.5.0+options ocaml-option-address-sanitizer
+opam switch create asan-dev ocaml-variants.5.5.1+options ocaml-option-address-sanitizer
 eval $(opam env)
 opam install --deps-only ./opam/liquidsoap.opam ./opam/liquidsoap-lang.opam
 dune build

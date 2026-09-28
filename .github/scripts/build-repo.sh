@@ -153,7 +153,7 @@ build_deb() {
     version=$(dpkg-deb -f "${deb}" Version)
 
     # The distribution a package was built for is in its version --
-    # 1:2.5.0-debian-trixie-ocaml5.5.0-2 -- and is the codename /etc/os-release
+    # 1:2.5.0-debian-trixie-ocaml5.5.1-2 -- and is the codename /etc/os-release
     # reports, which is what setup.sh looks the directory up by.
     local codename
     codename=$(printf '%s' "${version}" | sed -n 's/.*-\(debian\|ubuntu\)-\([a-z]*\)-ocaml.*/\2/p')
