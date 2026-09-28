@@ -33,25 +33,28 @@ fetch() {
 # shellcheck disable=SC1091 # provided by the distribution
 . /etc/os-release
 
-# Where each channel publishes this system's packages, and the name of the list
-# of channels that have them.
+# TARGET is where a channel publishes this system's packages, and SYSTEM names
+# the list of channels that have them for this architecture.
 if [ -d /etc/apt/sources.list.d ]; then
   if [ -z "${VERSION_CODENAME:-}" ]; then
     echo "cannot tell which release this is: /etc/os-release has no VERSION_CODENAME" >&2
     exit 1
   fi
   TARGET="deb/${VERSION_CODENAME}"
+  SYSTEM="${TARGET}/$(dpkg --print-architecture)"
 elif [ -d /etc/apk ]; then
-  TARGET="alpine/$(apk --print-arch)"
+  TARGET="alpine"
+  SYSTEM="alpine/$(apk --print-arch)"
 elif [ -d /etc/yum.repos.d ]; then
   TARGET="fedora/${VERSION_ID}"
+  SYSTEM="${TARGET}/$(uname -m)"
 else
   echo "no apt, apk or dnf here: see https://liquidsoap.info/doc-dev/install.html" >&2
   exit 1
 fi
 
-if ! curl -fsSL "${BASE}/targets/${TARGET}.txt" -o /tmp/liquidsoap-channels; then
-  echo "no release has packages for ${TARGET}; see ${BASE}" >&2
+if ! curl -fsSL "${BASE}/targets/${SYSTEM}.txt" -o /tmp/liquidsoap-channels; then
+  echo "no release has packages for ${SYSTEM}; see ${BASE}" >&2
   exit 1
 fi
 
@@ -77,12 +80,12 @@ if [ -z "${CHANNEL}" ]; then
 
   CHANNEL=$(sed -n "${answer:-1}p" /tmp/liquidsoap-channels | cut -f1)
   if [ -z "${CHANNEL}" ]; then
-    echo "no such choice; see ${BASE}/targets/${TARGET}.txt" >&2
+    echo "no such choice; see ${BASE}/targets/${SYSTEM}.txt" >&2
     exit 1
   fi
   echo "Using ${CHANNEL}."
 elif ! cut -f1 /tmp/liquidsoap-channels | grep -qxF "${CHANNEL}"; then
-  echo "${CHANNEL} has no packages for ${TARGET}; see ${BASE}/targets/${TARGET}.txt" >&2
+  echo "${CHANNEL} has no packages for ${SYSTEM}; see ${BASE}/targets/${SYSTEM}.txt" >&2
   exit 1
 fi
 
@@ -95,12 +98,12 @@ case "${TARGET}" in
     apt-get update
     echo "Done. Install with: apt-get install liquidsoap"
     ;;
-  alpine/*)
+  alpine)
     fetch "${BASE}/liquidsoap.rsa.pub" /etc/apk/keys/liquidsoap.rsa.pub
     # Rewritten rather than appended, so re-running the script switches channel
     # instead of leaving two of them for apk to choose between.
     sed -i "\\#^${BASE}/#d" /etc/apk/repositories
-    echo "${BASE}/${CHANNEL}/alpine" >> /etc/apk/repositories
+    echo "${BASE}/${CHANNEL}/${TARGET}" >> /etc/apk/repositories
     apk update
     echo "Done. Install with: apk add liquidsoap"
     ;;
