@@ -1,5 +1,5 @@
 ARG BASE_IMAGE
-ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/b62191b568d80253b882b4702a1b2f5272c3d595.tar.gz
+ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/4552e40b1121fd64a2de0603246ed08a9c8910d8.tar.gz
 
 # Stage 1: OCaml compiler
 FROM $BASE_IMAGE AS ocaml
