@@ -116,8 +116,8 @@ let eval_script expr =
     | `Parse_and_type ->
         let parsed_term, term = Runtime.parse expr in
         ignore
-          (Lang.type_term ~name:"main script" ~parsed_term ~stdlib:!stdlib
-             ~trim:true ~deprecated:!deprecated term);
+          (Lang.type_term ~name:"main script" ~cache:!cache ~parsed_term
+             ~stdlib:!stdlib ~trim:true ~deprecated:!deprecated term);
         if !show_cache_key then
           Printf.printf "Term cached with key %s\n"
             (Parsed_term.hash parsed_term)
@@ -247,8 +247,10 @@ let options =
          Arg.Unit
            (fun () ->
              run_streams := false;
-             eval_mode := `Parse_and_type),
-         "Parse, type-check but do not evaluate the script." );
+             eval_mode := `Parse_and_type;
+             cache := false),
+         "Parse, type-check but do not evaluate the script. The script cache \
+          is not used, so every warning is reported." );
        ( ["-p"; "--parse-only"],
          Arg.Unit (fun () -> eval_mode := `Parse_only),
          "Parse script but do not type-check and run them." );

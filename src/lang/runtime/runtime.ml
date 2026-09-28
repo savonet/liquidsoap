@@ -68,12 +68,9 @@ let on_error_print fn =
     errors are re-raised, so that their content is not totally lost. *)
 exception Error
 
-exception Warning of string
-
 let () =
   Printexc.register_printer (function
     | Error -> Some "Liquidsoap Error"
-    | Warning s -> Some (Printf.sprintf "Warning: %s" s)
     | _ -> None)
 
 type diagnostic = {
@@ -254,6 +251,8 @@ let rec throw ?(formatter = Format.err_formatter) ~lexbuf ~bt () = function
   | Term_preprocessor.Includer_error (exn, lexbuf, bt) ->
       throw ~formatter ~lexbuf:(Some lexbuf) ~bt () exn
   | End_of_file -> Printexc.raise_with_backtrace End_of_file bt
+  (* Already reported, e.g. a warning stopped by strict mode. *)
+  | Error -> Printexc.raise_with_backtrace Error bt
   | exn -> (
       flush_all ();
       match describe ~lexbuf ~bt exn with
@@ -263,9 +262,8 @@ let rec throw ?(formatter = Format.err_formatter) ~lexbuf ~bt () = function
               | `Error -> error_header ~formatter code pos);
             message formatter;
             match (severity, exn) with
-              | `Warning strict_message, _ ->
-                  if !strict then
-                    Printexc.raise_with_backtrace (Warning strict_message) bt
+              | `Warning _, _ ->
+                  if !strict then Printexc.raise_with_backtrace Error bt
               (* A malformed UTF-8 error does not stop processing. *)
               | `Error, Sedlexing.MalFormed -> ()
               | `Error, _ -> Printexc.raise_with_backtrace Error bt)
