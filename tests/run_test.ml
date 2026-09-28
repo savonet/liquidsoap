@@ -45,8 +45,8 @@ let colorized_failed = Console.colorize [`red; `bold] "[failed]"
 
 let run_process ~action cmd args =
   let start_time = Unix.time () in
-  let logfile = Filename.temp_file "test" test in
-  let errfile = Filename.temp_file "test_err" test in
+  let logfile = Filename.temp_file "test" (Filename.basename test) in
+  let errfile = Filename.temp_file "test_err" (Filename.basename test) in
   log_files := logfile :: errfile :: !log_files;
   let stdin = Unix.openfile stdin_file [Unix.O_RDWR] 0o644 in
   let stdout = Unix.openfile logfile [Unix.O_RDWR; Unix.O_TRUNC] 0o644 in
