@@ -11,14 +11,14 @@ override_dh_autoreconf:
 override_dh_auto_configure:
 	/bin/true
 
+# Built outside fakeroot: see rules.
 override_dh_auto_build:
-	/bin/true
+	LIQUIDSOAP_BUILD_TARGET=posix LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true dune build @install --release
 
 override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
-	LIQUIDSOAP_BUILD_TARGET=posix LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true dune build @install --release
 	dune install --relocatable --prefix $(DESTDIR)
 	rm -rf $(DESTDIR)/share/liquidsoap-lang/libs/extra
 	dh_install

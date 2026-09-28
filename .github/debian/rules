@@ -11,16 +11,16 @@ override_dh_autoreconf:
 override_dh_auto_configure:
 	/bin/true
 
+# Built outside fakeroot: its stale inode cache can report a recycled inode's
+# old file type, which dune rejects when digesting targets.
 override_dh_auto_build:
-	/bin/true
+	rm -rf _build/install
+	LIQUIDSOAP_BUILD_TARGET=posix LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true dune build @install --release
 
 override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
-# Building @install over an existing tree is unreliable. Rebuild from a clean state.
-	rm -rf _build/install
-	LIQUIDSOAP_BUILD_TARGET=posix LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true dune build @install --release
 	dune install --relocatable --prefix $(DESTDIR)
 	dh_install
 
