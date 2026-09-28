@@ -47,7 +47,7 @@ opam install -y domain_shims syslog dune.3.23.1
 opam install -y xml-light
 
 git clone https://github.com/savonet/ocaml-ssl.git
-cd ocaml-ssl && git checkout 0fec715539d066db4b9497e18a5c6c14665aa1aa
+cd ocaml-ssl && git checkout d4a65d7b0514859fc02647b6a8b9b2e2fb2358ca
 opam pin -ny .
 opam reinstall -y ssl
 
