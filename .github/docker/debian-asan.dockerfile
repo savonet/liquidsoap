@@ -24,17 +24,9 @@ RUN useradd -m opam
 
 USER opam
 
-RUN opam init -y --disable-sandboxing --bare && \
-    opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-address-sanitizer && \
-    opam update -y && \
-    opam clean
+COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
 
-# The global-root debugging patches, ocaml/ocaml#15027. They are all #ifdef DEBUG,
-# so they only show up in the runtime reached through -runtime-variant d. Build with
-# an empty OCAML_PATCH_URL for a stock compiler.
-RUN test -z "$OCAML_PATCH_URL" || \
-    (opam pin add -y ocaml-compiler.$OCAML_VERSION "$OCAML_PATCH_URL" && \
-     opam clean)
+RUN sh /tmp/setup-ocaml.sh ocaml-option-address-sanitizer
 
 # Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned
