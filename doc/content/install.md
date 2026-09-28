@@ -55,8 +55,7 @@ There is one channel per supported version: a stable channel following the lates
 and a rolling channel rebuilt on every commit. https://repo.liquidsoap.info lists the ones currently
 published. Not every channel has packages for every distribution: the script only offers the ones that
 have packages for your system, and refuses a `--channel` that has none. A machine tracking a rolling channel
-picks up each new build with an ordinary `apt-get upgrade`, `dnf upgrade` or `apk upgrade`, and the final
-release supersedes the rolling builds that led up to it.
+picks up each new build with an ordinary `apt-get upgrade`, `dnf upgrade` or `apk upgrade`.
 
 Both the `liquidsoap` and `liquidsoap-minimal` packages are available from every channel, except on Fedora,
 which only carries `liquidsoap`. Re-running the script switches channel.
