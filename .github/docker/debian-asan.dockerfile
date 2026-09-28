@@ -1,5 +1,4 @@
 ARG BASE_IMAGE=debian:sid
-ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/4552e40b1121fd64a2de0603246ed08a9c8910d8.tar.gz
 
 # Stage 1: OCaml compiler with AddressSanitizer option
 FROM $BASE_IMAGE AS ocaml
@@ -7,6 +6,7 @@ FROM $BASE_IMAGE AS ocaml
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=5.5.1
+ARG OCAML_PATCH_URL
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ASAN_OPTIONS="detect_leaks=0:detect_stack_use_after_return=0:detect_container_overflow=0:protect_shadow_gap=0:verify_asan_link_order=0"

@@ -1,5 +1,4 @@
 ARG BASE_IMAGE
-ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/4552e40b1121fd64a2de0603246ed08a9c8910d8.tar.gz
 
 # Stage 1: OCaml compiler
 FROM $BASE_IMAGE AS ocaml
@@ -26,7 +25,7 @@ USER opam
 
 COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
 
-RUN sh /tmp/setup-ocaml.sh
+RUN sh /tmp/setup-ocaml.sh ocaml-option-flambda
 
 # Stage 2: Clone liquidsoap and pin all synced modules
 FROM ocaml AS pinned
@@ -91,8 +90,6 @@ USER root
 # Stage 4: Install remaining external and opam dependencies
 FROM static-packages AS build
 
-ARG OCAML_PATCH_URL
-
 COPY .github/docker/ext-packages /tmp/ext-packages
 
 USER opam
@@ -131,8 +128,8 @@ RUN eval $(opam env) && \
 
 # The compiler pin has to survive the pin cleanup above, or the patched compiler is
 # silently replaced by the release one.
-RUN test -z "$OCAML_PATCH_URL" || \
-    (eval $(opam env) && opam pin list --short | grep -qx ocaml-compiler)
+RUN eval $(opam env) && \
+    (! opam var ocaml_patch_url >/dev/null 2>&1 || opam pin list --short | grep -qx ocaml-compiler)
 
 USER root
 

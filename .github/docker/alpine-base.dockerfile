@@ -5,7 +5,7 @@ ENTRYPOINT bash
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=5.5.1
-ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/4552e40b1121fd64a2de0603246ed08a9c8910d8.tar.gz
+ARG OCAML_PATCH_URL
 
 USER root
 
@@ -24,7 +24,7 @@ USER opam
 
 COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
 
-RUN sh /tmp/setup-ocaml.sh
+RUN sh /tmp/setup-ocaml.sh ocaml-option-flambda
 
 ARG LIQUIDSOAP_SHA=main
 
@@ -67,8 +67,8 @@ RUN \
 
 # The compiler pin has to survive the pin cleanup above, or the patched compiler is
 # silently replaced by the release one.
-RUN test -z "$OCAML_PATCH_URL" || \
-    (eval $(opam env) && opam pin list --short | grep -qx ocaml-compiler)
+RUN eval $(opam env) && \
+    (! opam var ocaml_patch_url >/dev/null 2>&1 || opam pin list --short | grep -qx ocaml-compiler)
 
 USER root
 
