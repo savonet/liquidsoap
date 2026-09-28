@@ -53,6 +53,27 @@
    (echo "print(123)")
    (run %{run_test} "stdin script" liquidsoap --check "-"))))
 
+; A cached script still reports its warnings to --check, so --strict fails.
+
+(rule
+ (aliases citest test_strict_check)
+ (package liquidsoap)
+ (deps
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (:stdlib ../../src/libs/stdlib.liq))
+ (action
+  (progn
+   (run liquidsoap --cache-only "def f(x) = y = 3; x + 1 end; print(f(1))")
+   (with-accepted-exit-codes
+    1
+    (run
+     liquidsoap
+     --strict
+     --check
+     "def f(x) = y = 3; x + 1 end; print(f(1))"))
+   (run liquidsoap --strict --check "def f(x) = x + 1 end; print(f(1))"))))
+
 (rule
  (alias citest)
  (package liquidsoap)
