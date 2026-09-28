@@ -80,6 +80,8 @@ jobs:
           # packages are not published yet is not asked for.
           for channel in check/*/; do
             channel=$(basename "${channel}")
+            # Holds the per-machine channel lists, laid out like a channel.
+            [ "${channel}" = targets ] && continue
             [ -d "check/${channel}/deb" ] || continue
             for dist in check/"${channel}"/deb/*/; do
               codename=$(basename "${dist}")
