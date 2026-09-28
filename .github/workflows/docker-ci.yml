@@ -13,6 +13,21 @@ on:
         required: false
         default: true
         type: boolean
+      build_fedora:
+        description: "Build Fedora CI images"
+        required: false
+        default: true
+        type: boolean
+      fedora_base_images:
+        description: "Fedora base images (JSON array)"
+        required: false
+        default: '["fedora:44"]'
+        type: string
+      fedora_ocaml_versions:
+        description: "OCaml versions for Fedora (JSON array)"
+        required: false
+        default: '["5.5.0"]'
+        type: string
       debian_base_images:
         description: "Debian/Ubuntu base images (JSON array)"
         required: false
@@ -90,6 +105,54 @@ jobs:
           provenance: false
           sbom: false
 
+  build-fedora-ci:
+    if: ${{ inputs.build_fedora }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        base_image: ${{ fromJSON(inputs.fedora_base_images) }}
+        ocaml_version: ${{ fromJSON(inputs.fedora_ocaml_versions) }}
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            runs-on: ubuntu-24.04
+          - platform: arm64
+            runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute build args
+        id: build_args
+        env:
+          BASE_IMAGE: ${{ matrix.base_image }}
+          OCAML_VERSION: ${{ matrix.ocaml_version }}
+        run: |
+          TAG=$(echo ${BASE_IMAGE} | sed -e 's#/#_#g' -e 's#:#_#g')
+          echo "tag=ghcr.io/savonet/liquidsoap:ci-v2-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          build-args: |
+            OCAML_VERSION=${{ matrix.ocaml_version }}
+            BASE_IMAGE=${{ matrix.base_image }}
+            LIQUIDSOAP_SHA=${{ github.sha }}
+          context: .
+          file: .github/docker/fedora-base.dockerfile
+          platforms: linux/${{ matrix.platform }}
+          tags: ${{ steps.build_args.outputs.tag }}-${{ matrix.platform }}
+          push: ${{ inputs.push }}
+          no-cache: ${{ inputs.no_cache }}
+          provenance: false
+          sbom: false
+
   build-alpine-ci:
     if: ${{ inputs.build_alpine }}
     runs-on: ${{ matrix.runs-on }}
@@ -132,7 +195,7 @@ jobs:
   # usual tag as one multi-arch manifest. A family with a failed build is left
   # at its previous image.
   merge-ci:
-    needs: [build-debian-ci, build-alpine-ci]
+    needs: [build-debian-ci, build-fedora-ci, build-alpine-ci]
     if: ${{ !cancelled() && inputs.push }}
     runs-on: ubuntu-26.04
     steps:
@@ -148,6 +211,8 @@ jobs:
         env:
           DEBIAN_IMAGES: ${{ needs.build-debian-ci.result == 'success' && inputs.debian_base_images || '[]' }}
           DEBIAN_OCAML: ${{ inputs.debian_ocaml_versions }}
+          FEDORA_IMAGES: ${{ needs.build-fedora-ci.result == 'success' && inputs.fedora_base_images || '[]' }}
+          FEDORA_OCAML: ${{ inputs.fedora_ocaml_versions }}
           ALPINE_IMAGES: ${{ needs.build-alpine-ci.result == 'success' && '["alpine"]' || '[]' }}
           ALPINE_OCAML: ${{ inputs.alpine_ocaml_versions }}
         run: |
@@ -160,4 +225,5 @@ jobs:
             done
           }
           merge "${DEBIAN_IMAGES}" "${DEBIAN_OCAML}"
+          merge "${FEDORA_IMAGES}" "${FEDORA_OCAML}"
           merge "${ALPINE_IMAGES}" "${ALPINE_OCAML}"

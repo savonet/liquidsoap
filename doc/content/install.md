@@ -2,7 +2,7 @@
 
 You can install liquidsoap using binary builds, with OPAM or from source.
 
-Binary builds are provided with our releases, either in the form of debian/ubuntu and alpine
+Binary builds are provided with our releases, either in the form of debian/ubuntu, fedora and alpine
 packages or as docker images (also for debian or alpine). Your favorite distribution may also have
 binary packages.
 
@@ -27,6 +27,7 @@ Lastly, compiling from source should be reserved for developers.
 
 - [Package repositories](#package-repositories)
 - [Debian/Ubuntu](#debianubuntu)
+- [Fedora](#fedora)
 - [Alpine](#alpine)
 - [Docker](#docker)
 - [Windows](#windows)
@@ -35,7 +36,7 @@ Lastly, compiling from source should be reserved for developers.
 
 ## Package repositories
 
-If you would rather have `apt` or `apk` keep liquidsoap up to date than download a package by hand, we
+If you would rather have `apt`, `dnf` or `apk` keep liquidsoap up to date than download a package by hand, we
 publish a repository for each release. Setting one up is a single command, which asks which release you
 want and configures the matching repository:
 
@@ -52,11 +53,11 @@ curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh -s -- --channel rolli
 
 There is one channel per supported version: a stable channel following the latest release of that version,
 and a rolling channel rebuilt on every commit. https://repo.liquidsoap.info lists the ones currently
-published. A machine tracking a rolling channel picks up each new build with an ordinary `apt-get upgrade`
-or `apk upgrade`, and the final release supersedes the rolling builds that led up to it.
+published. A machine tracking a rolling channel picks up each new build with an ordinary `apt-get upgrade`,
+`dnf upgrade` or `apk upgrade`, and the final release supersedes the rolling builds that led up to it.
 
-Both the `liquidsoap` and `liquidsoap-minimal` packages are available from every channel. Re-running the
-script switches channel.
+Both the `liquidsoap` and `liquidsoap-minimal` packages are available from every channel, except on Fedora,
+which only carries `liquidsoap`. Re-running the script switches channel.
 
 Channels that have one also carry `liquidsoap-asan`, a build with AddressSanitizer enabled, for Debian
 testing on `amd64`. It replaces `liquidsoap` when installed and is meant for tracking down crashes, not for
@@ -84,6 +85,15 @@ EOF
 sudo apt-get update
 ```
 
+On Fedora:
+
+```shell
+CHANNEL=rolling-release-v2.5.x
+. /etc/os-release
+sudo curl -fsSL https://repo.liquidsoap.info/${CHANNEL}/fedora/${VERSION_ID}/liquidsoap.repo -o /etc/yum.repos.d/liquidsoap.repo
+sudo dnf makecache --repo liquidsoap
+```
+
 On Alpine:
 
 ```shell
@@ -94,8 +104,8 @@ apk update
 ```
 
 Each channel covers the same distributions and architectures as our release assets: the current Debian stable
-and testing, the current Ubuntu LTS and latest release, and Alpine edge. Debian and Ubuntu packages are built
-for `amd64` and `arm64`, Alpine packages for `x86_64` and `aarch64`. https://repo.liquidsoap.info lists what
+and testing, the current Ubuntu LTS and latest release, the current Fedora release, and Alpine edge. Debian and
+Ubuntu packages are built for `amd64` and `arm64`, Fedora and Alpine packages for `x86_64` and `aarch64`. https://repo.liquidsoap.info lists what
 each published channel actually carries.
 
 ## Debian/Ubuntu
@@ -106,6 +116,15 @@ can check out the official [debian](https://packages.debian.org/liquidsoap) and 
 Starting from version `2.5.x`, our Debian/Ubuntu packages bundle a static FFmpeg build with full codec support, including `fdk-aac`. No third-party repositories are required.
 
 For Debian releases prior to `2.5.x`, you also need the [deb-multimedia.org](https://www.deb-multimedia.org/) packages, which provide up-to-date FFmpeg libraries with `fdk-aac` support. Note that deb-multimedia.org is Debian-only and does not apply to Ubuntu.
+
+## Fedora
+
+Fedora packages are provided as part of our [release process](https://github.com/savonet/liquidsoap/releases),
+and through the [package repositories](#package-repositories) described above.
+
+They are built against Fedora's own FFmpeg, which leaves out patent-encumbered codecs such as the H.264
+encoder. Switching to the full FFmpeg from [RPM Fusion](https://rpmfusion.org/Howto/Multimedia) replaces those
+libraries, and liquidsoap picks up the extra codecs without being reinstalled.
 
 ## Alpine
 

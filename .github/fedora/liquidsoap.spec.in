@@ -1,0 +1,60 @@
+Name: @RPM_PACKAGE@
+Version: @RPM_VERSION@
+Release: @RPM_RELEASE@%{?dist}
+Summary: Swiss-army knife for multimedia streaming
+License: GPL-2.0-only
+URL: https://liquidsoap.info/
+Requires: SDL2 SDL2_image SDL2_ttf
+Requires(post): shadow-utils
+
+# The binary is built by build-posix.sh before rpmbuild runs, so there are no
+# sources and no debuginfo to extract.
+%global debug_package %{nil}
+%global source_date_epoch_from_changelog 0
+
+%description
+Liquidsoap is a powerful tool for building complex audio and video streaming
+systems, typically targeting internet radios (e.g. icecast streams).
+
+%install
+eval "$(opam config env)"
+cd /tmp/liquidsoap
+export LIQUIDSOAP_BUILD_TARGET=posix
+export LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=true
+# Building @install over an existing tree is unreliable.
+rm -rf _build/install
+dune build @install --release
+# The binary's dune-site paths name the prefix, so the buildroot has to go in
+# --destdir, where it never reaches them.
+dune install --prefix /usr --destdir %{buildroot}
+rm -rf %{buildroot}/usr/lib %{buildroot}/usr/doc %{buildroot}/usr/share/doc
+rm -rf %{buildroot}/usr/share/emacs %{buildroot}/usr/share/liquidsoap-js
+mkdir -p %{buildroot}/usr/share/man
+mv %{buildroot}/usr/man/man1 %{buildroot}/usr/share/man/
+rmdir %{buildroot}/usr/man
+mv %{buildroot}/usr/share/liquidsoap-lang %{buildroot}/usr/share/liquidsoap
+mkdir -p %{buildroot}/usr/share/bash-completion
+mv %{buildroot}/usr/share/bash_completion/completions %{buildroot}/usr/share/bash-completion/
+rmdir %{buildroot}/usr/share/bash_completion
+mkdir -p %{buildroot}/var/log/liquidsoap %{buildroot}/var/cache/liquidsoap
+
+%post
+getent group liquidsoap > /dev/null || groupadd -r liquidsoap
+id liquidsoap > /dev/null 2>&1 ||
+  useradd -r -g liquidsoap -G audio -d /var/cache/liquidsoap -s /sbin/nologin liquidsoap
+
+# In %post, the libraries liquidsoap links against may not be installed yet,
+# and until ldconfig runs at the end of the transaction, some are not found.
+%posttrans
+/sbin/ldconfig
+echo "Generating cache for the standard library.."
+LIQ_CACHE_SYSTEM_DIR=/var/cache/liquidsoap liquidsoap --cache-only '()'
+chown -R liquidsoap:liquidsoap /var/log/liquidsoap /var/cache/liquidsoap
+
+%files
+/usr/bin/liquidsoap
+/usr/share/liquidsoap
+/usr/share/bash-completion/completions/liquidsoap
+/usr/share/man/man1/liquidsoap.1*
+%dir /var/log/liquidsoap
+%dir /var/cache/liquidsoap

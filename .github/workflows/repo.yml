@@ -1,6 +1,6 @@
 name: Package repository
 
-# Publishes the apt and apk repositories for every channel in
+# Publishes the apt, apk and dnf repositories for every channel in
 # .github/release-matrix.json. Each run rebuilds the whole site from the
 # releases, so running it twice is running it once, and a channel whose own
 # branch has not built in a while is republished anyway.
@@ -42,7 +42,7 @@ jobs:
       - name: Install repository tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends dpkg-dev apt-utils gnupg
+          sudo apt-get install -y --no-install-recommends dpkg-dev apt-utils gnupg rpm createrepo-c
       - name: Import the signing keys
         env:
           REPO_GPG_KEY: ${{ secrets.REPO_GPG_KEY }}
@@ -119,6 +119,19 @@ jobs:
                 curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
                 apk fetch --no-cache ${package}
                 ls -l ${package}-*.apk"
+              echo "::endgroup::"
+            done
+            # dnf makecache in setup.sh verifies the signed repomd.xml, and the
+            # download verifies the checksum it lists after following the redirect.
+            for dist in check/"${channel}"/fedora/*/; do
+              [ -d "${dist}" ] || continue
+              image="fedora:$(basename "${dist}")"
+              echo "::group:: ${channel} liquidsoap on ${image}"
+              docker run --rm --network host "${image}" sh -c "
+                set -eux
+                curl -fsSL http://127.0.0.1:8000/setup.sh | sh -s -- --channel ${channel}
+                dnf -y download liquidsoap
+                rpm -qp liquidsoap-*.rpm"
               echo "::endgroup::"
             done
           done

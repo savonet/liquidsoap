@@ -1,6 +1,6 @@
 # Using in production
 
-Our Debian, Ubuntu and Alpine packages create a `liquidsoap` system user and
+Our Debian, Ubuntu, Fedora and Alpine packages create a `liquidsoap` system user and
 group, a log directory `/var/log/liquidsoap` and a cache directory
 `/var/cache/liquidsoap`. The package also fills that cache for the standard
 library, which speeds up startup.

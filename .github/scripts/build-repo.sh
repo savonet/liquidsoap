@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Assembles the apt and apk repositories for every published channel into the
+# Assembles the apt, apk and dnf repositories for every published channel into the
 # site directory $1. Run from the repository root.
 #
 # The packages themselves are not republished: they stay the release assets they
@@ -12,7 +12,8 @@
 # Nothing here is incremental: the site is rebuilt from the releases every time,
 # so a stale index has nowhere to survive.
 #
-# Needs gh, jq, dpkg-dev, apt-utils, docker, and a gpg secret key.
+# Needs gh, jq, dpkg-dev, apt-utils, rpm, createrepo-c, docker, and a gpg secret
+# key.
 
 set -euo pipefail
 
@@ -83,6 +84,7 @@ select_packages() {
   local downloads="$1" ocaml="$2" name
   : > "${WORK}/debs"
   : > "${WORK}/apks"
+  : > "${WORK}/rpms"
 
   for deb in "${downloads}"/*.deb; do
     [ -e "${deb}" ] || continue
@@ -102,6 +104,14 @@ select_packages() {
     printf '%s\n' "${apk}" >> "${WORK}/apks"
   done
 
+  for rpm in "${downloads}"/*.rpm; do
+    [ -e "${rpm}" ] || continue
+    case "${rpm}" in *"-ocaml${ocaml}."*) ;; *) continue ;; esac
+    publishable "$(rpm -qp --qf '%{NAME}' "${rpm}")" || continue
+    printf '%s\n' "${rpm}" >> "${WORK}/rpms"
+  done
+
+  # Channels built before there were rpms still publish their debs and apks.
   [ -s "${WORK}/debs" ] && [ -s "${WORK}/apks" ]
 }
 
@@ -227,6 +237,54 @@ build_apk() {
   done
 }
 
+build_rpm() {
+  local channel="$1" stage="${WORK}/rpm"
+  rm -rf "${stage}"
+
+  while IFS= read -r rpm; do
+    # The dist tag, .fc44, is the VERSION_ID setup.sh looks the directory up by.
+    local fedora
+    fedora=$(rpm -qp --qf '%{RELEASE}' "${rpm}" | sed -n 's/.*\.fc\([0-9]*\)$/\1/p')
+    [ -n "${fedora}" ] || fail "no fedora release in ${rpm}"
+
+    mkdir -p "${stage}/${fedora}/pool"
+    ln -f "${rpm}" "${stage}/${fedora}/pool/$(basename "${rpm}")"
+  done < "${WORK}/rpms"
+
+  [ -d "${stage}" ] || return 0
+
+  for dir in "${stage}"/*/; do
+    local fedora out expected indexed
+    fedora=$(basename "${dir}")
+    out="${SITE}/${channel}/fedora/${fedora}"
+    mkdir -p "${out}"
+    createrepo_c --quiet --general-compress-type=gz "${dir}"
+    expected=$(find "${dir}/pool" -name '*.rpm' | wc -l)
+    indexed=$(zcat "${dir}"/repodata/*-primary.xml.gz | grep -o 'packages="[0-9]*"' | tr -dc 0-9)
+    [ "${indexed}" = "${expected}" ] ||
+      fail "indexed ${indexed} of ${expected} packages"
+    cp -R "${dir}/repodata" "${out}/"
+    gpg --batch --yes --detach-sign --armor \
+      -o "${out}/repodata/repomd.xml.asc" "${out}/repodata/repomd.xml"
+
+    # Packages are not signed one by one: the signed repomd.xml carries the
+    # checksum of every package it lists.
+    cat > "${out}/liquidsoap.repo" << EOF
+[liquidsoap]
+name=Liquidsoap ${channel}
+baseurl=${BASE_URL}/${channel}/fedora/${fedora}
+enabled=1
+gpgcheck=0
+repo_gpgcheck=1
+skip_if_unavailable=False
+skip_if_unavailable=False
+gpgkey=${BASE_URL}/liquidsoap.asc
+EOF
+    printf '/%s/fedora/%s/pool/*  %s/%s/:splat  302\n' \
+      "${channel}" "${fedora}" "${PACKAGE_BASE_URL}" "${channel}" >> "${SITE}/_redirects"
+  done
+}
+
 while IFS=$'\t' read -r channel description package_ocaml; do
   [ -n "${channel}" ] || continue
 
@@ -245,7 +303,7 @@ while IFS=$'\t' read -r channel description package_ocaml; do
   downloads="${DOWNLOAD_DIR}/${channel}"
   mkdir -p "${downloads}"
   gh release download "${channel}" -R "${RELEASE_REPO}" -D "${downloads}" \
-    -p '*.deb' -p '*.apk' --clobber
+    -p '*.deb' -p '*.apk' -p '*.rpm' --clobber
 
   ocaml=$(newest_ocaml "${downloads}" "${package_ocaml}")
   [ -n "${ocaml}" ] || fail "no ocaml version in ${channel} assets"
@@ -258,6 +316,7 @@ while IFS=$'\t' read -r channel description package_ocaml; do
 
   build_deb "${channel}"
   build_apk "${channel}"
+  build_rpm "${channel}"
 
   printf '%s\t%s\n' "${channel}" "${description}" >> "${SITE}/channels.txt"
 done < <(.github/scripts/release-channels.sh | cut -f1,4,5)
@@ -279,16 +338,19 @@ chmod +x "${SITE}/setup.sh"
   printf '<style>body{font:15px/1.6 system-ui,sans-serif;margin:3rem auto;max-width:46rem;padding:0 1rem}'
   printf 'pre{background:#f4f4f4;padding:.8rem;overflow-x:auto}</style>'
   printf '<h1>Liquidsoap packages</h1>'
-  printf '<p>Debian, Ubuntu and Alpine repositories for <a href="https://liquidsoap.info">Liquidsoap</a>.</p>'
+  printf '<p>Debian, Ubuntu, Fedora and Alpine repositories for <a href="https://liquidsoap.info">Liquidsoap</a>.</p>'
   printf '<pre>curl -fsSL %s/setup.sh | sudo sh</pre>' "${BASE_URL}"
   printf '<p>The script asks which release to install. To pick one up front:</p>'
   printf '<pre>curl -fsSL %s/setup.sh | sudo sh -s -- --channel CHANNEL</pre>' "${BASE_URL}"
   printf '<p>We build for the current Debian stable and testing, the current Ubuntu LTS'
-  printf ' and latest release, and Alpine edge.</p><h2>Channels</h2>'
+  printf ' and latest release, the current Fedora release, and Alpine edge.</p><h2>Channels</h2>'
   while IFS=$'\t' read -r channel description; do
     printf '<h3><code>%s</code></h3><p>%s</p><ul>' "${channel}" "${description}"
     printf '<li>Debian and Ubuntu: %s — %s</li>' \
       "$(dir_names "${SITE}/${channel}/deb")" "$(deb_arches "${channel}")"
+    if [ -d "${SITE}/${channel}/fedora" ]; then
+      printf '<li>Fedora: %s</li>' "$(dir_names "${SITE}/${channel}/fedora")"
+    fi
     printf '<li>Alpine: %s</li></ul>' "$(dir_names "${SITE}/${channel}/alpine")"
   done < "${SITE}/channels.txt"
 } > "${SITE}/index.html"
