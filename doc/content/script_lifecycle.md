@@ -165,7 +165,7 @@ RUN mkdir -p $LIQ_CACHE_USER_DIR && \
 Make sure that the user running the container can read that directory.
 
 `--cache-only` also caches the standard library in the system cache. Our Debian,
-Ubuntu and Alpine packages already fill the system cache in
+Ubuntu, Fedora and Alpine packages already fill the system cache in
 `/var/cache/liquidsoap`, see [using in production](./in_production.md). When
 Liquidsoap cannot write a cache file, it logs `Error while storing cache: ...`
 and keeps running without the cache.

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Configures the Liquidsoap apt or apk repository. Published as
+# Configures the Liquidsoap apt, apk or dnf repository. Published as
 # https://repo.liquidsoap.info/setup.sh.
 #
 # The script asks which release to install. To pick one up front, or to run it
@@ -82,7 +82,13 @@ elif [ -d /etc/apk ]; then
   echo "${BASE}/${CHANNEL}/alpine" >> /etc/apk/repositories
   apk update
   echo "Done. Install with: apk add liquidsoap"
+elif [ -d /etc/yum.repos.d ]; then
+  fetch "${BASE}/${CHANNEL}/fedora/${VERSION_ID}/liquidsoap.repo" \
+    /etc/yum.repos.d/liquidsoap.repo
+  # Imports the key and verifies the signed index up front, as apt-get update does.
+  dnf -y makecache --repo liquidsoap
+  echo "Done. Install with: dnf install liquidsoap"
 else
-  echo "no apt and no apk here: see https://liquidsoap.info/doc-dev/install.html" >&2
+  echo "no apt, apk or dnf here: see https://liquidsoap.info/doc-dev/install.html" >&2
   exit 1
 fi

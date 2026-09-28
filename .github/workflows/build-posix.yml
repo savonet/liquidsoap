@@ -114,6 +114,41 @@ jobs:
           name: ${{ steps.build_deb.outputs.basename }}
           path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/debian
           if-no-files-found: error
+      - name: Build fedora package
+        if: contains(matrix.os, 'fedora')
+        id: build_rpm
+        env:
+          GITHUB_SHA: ${{ inputs.sha }}
+          BRANCH: ${{ inputs.branch }}
+          RPM_TAG: ocaml${{ matrix.ocaml_version }}
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/fedora
+          PLATFORM: ${{ matrix.platform }}
+          IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
+          IS_RELEASE: ${{ inputs.is_release }}
+          BUILD_STAMP: ${{ inputs.build_stamp }}
+        run: |
+          mkdir -p "${LIQ_TMP_DIR}"
+          chown -R opam "${LIQ_TMP_DIR}"
+          chown -R opam "${GITHUB_OUTPUT}"
+          cd /tmp/liquidsoap
+          sudo -u opam -E ./.github/scripts/build-rpm.sh
+      - name: Print fedora package info
+        if: contains(matrix.os, 'fedora')
+        env:
+          LIQ_TMP_DIR: /tmp/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/fedora
+        run: |
+          for f in "${LIQ_TMP_DIR}"/*.rpm; do
+            echo "=== $f ==="
+            rpm -qip "$f"
+            rpm -qpR "$f"
+          done
+      - name: Upload fedora packages artifacts
+        if: contains(matrix.os, 'fedora')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.build_rpm.outputs.basename }}
+          path: ${{ github.workspace }}/${{ github.run_number }}/${{ matrix.os }}_${{ matrix.platform }}/fedora
+          if-no-files-found: error
       - name: Build alpine package
         if: matrix.os == 'alpine'
         id: build_apk

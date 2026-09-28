@@ -19,8 +19,8 @@ override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
-	dune install --relocatable --prefix $(DESTDIR)
-	rm -rf $(DESTDIR)/share/liquidsoap-lang/libs/extra
+	dune install --prefix /usr --destdir $(DESTDIR)
+	rm -rf $(DESTDIR)/usr/share/liquidsoap-lang/libs/extra
 	dh_install
 
 override_dh_auto_clean:

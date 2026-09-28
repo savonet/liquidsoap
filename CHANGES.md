@@ -58,6 +58,9 @@
   day, so a renewed certificate applies without a restart or dropping connections. The
   `reload_on` argument changes when, `reload()` applies it at once, and the certificate and key
   arguments now accept getters (#5418).
+- Added Fedora packages for the current Fedora release, on `x86_64` and `aarch64`, and a
+  matching dnf repository: `curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh`
+  now configures it on Fedora as it does apt and apk elsewhere.
 
 ## Changed:
 

@@ -1,6 +1,6 @@
-FROM alpine:edge AS base
+ARG BASE_IMAGE=fedora:44
 
-ENTRYPOINT bash
+FROM $BASE_IMAGE AS base
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
@@ -9,16 +9,15 @@ ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/b62191b568d80253b882b
 
 USER root
 
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
-    echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
-    apk update && \
-    apk add --no-cache \
-      aspcud autoconf automake bash build-base curl git \
-      openssh-client openssl unzip gnupg sudo musl-dbg rsync
+RUN dnf install -y \
+      bzip2 curl diffutils findutils gcc gcc-c++ git gnupg2 make \
+      openssh-clients openssl patch pkgconf-pkg-config rpm-build rsync \
+      sudo unzip which && \
+    dnf clean all
 
 RUN printf "\ny\n" | bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
 
-RUN adduser -D opam
+RUN useradd -m opam
 
 USER opam
 
@@ -48,24 +47,21 @@ RUN find /tmp/liquidsoap/src/modules/synced -maxdepth 1 -mindepth 1 -type d | \
 
 # Build the package list from .opam files in synced modules
 RUN find /tmp/liquidsoap/src/modules/synced -name '*.opam' ! -name '*.opam.template' | \
-    xargs -I{} basename {} .opam | grep -Ev "^(speex|theora|dssi)$" > /tmp/packages
+    xargs -I{} basename {} .opam | grep -Ev "^(speex|theora|dssi|shine)$" > /tmp/packages
 
 COPY .github/docker/ext-packages /tmp/ext-packages
 
-# Shared with the other CI images, plus what only this one builds.
-ENV EXTRA_EXT_PACKAGES="gd"
-
-RUN eval $(opam env) && EXT_PACKAGES="$EXTRA_EXT_PACKAGES $(xargs < /tmp/ext-packages)" && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
+RUN eval $(opam env) && EXT_PACKAGES=$(xargs < /tmp/ext-packages) && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
 
 USER root
 
-RUN cat /tmp/deps | xargs apk add --no-cache
+RUN cat /tmp/deps | xargs dnf install -y && dnf clean all
 
 USER opam
 
 RUN \
     eval $(opam config env) && \
-    EXT_PACKAGES="$EXTRA_EXT_PACKAGES $(xargs < /tmp/ext-packages)" && \
+    EXT_PACKAGES=$(xargs < /tmp/ext-packages) && \
     PACKAGES=`cat /tmp/packages | xargs echo` && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
@@ -82,5 +78,6 @@ USER root
 
 RUN echo 'Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' > /etc/sudoers.d/secure_path
 
-FROM alpine:edge
+FROM $BASE_IMAGE
+ENTRYPOINT bash
 COPY --from=base / /

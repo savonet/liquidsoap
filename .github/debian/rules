@@ -21,7 +21,7 @@ override_dh_auto_test:
 	/bin/true
 
 override_dh_auto_install:
-	dune install --relocatable --prefix $(DESTDIR)
+	dune install --prefix /usr --destdir $(DESTDIR)
 	dh_install
 
 override_dh_auto_clean:

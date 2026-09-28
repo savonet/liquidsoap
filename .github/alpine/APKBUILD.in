@@ -24,7 +24,7 @@ package() {
         eval "$(opam config env)"
         cd /tmp/liquidsoap
 
-        dune install --relocatable --prefix "${pkgdir}/usr"
+        dune install --prefix /usr --destdir "${pkgdir}"
 
         rm -rf "$pkgdir/usr/lib"
         rm -rf "$pkgdir/usr/share/doc"

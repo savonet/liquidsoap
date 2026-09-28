@@ -36,13 +36,13 @@ Liquidsoap uses [dune](https://dune.build) as its build system and [opam](https:
 
 ### Binary packages
 
-We publish Debian, Ubuntu and Alpine repositories, one per release. This configures the one you pick:
+We publish Debian, Ubuntu, Fedora and Alpine repositories, one per release. This configures the one you pick:
 
 ```shell
 curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh
 ```
 
-It asks which release to follow, after which `apt-get install liquidsoap` or `apk add liquidsoap` works as usual, and upgrades arrive with the rest of the system. To configure the repository by hand instead, see [manual configuration](doc/content/install.md#manual-configuration).
+It asks which release to follow, after which `apt-get install liquidsoap`, `dnf install liquidsoap` or `apk add liquidsoap` works as usual, and upgrades arrive with the rest of the system. To configure the repository by hand instead, see [manual configuration](doc/content/install.md#manual-configuration).
 
 Each channel covers the same distributions and architectures as our release assets: the current Debian stable and testing, the current Ubuntu LTS and latest release, and Alpine edge, on `amd64`/`arm64` for Debian and Ubuntu and `x86_64`/`aarch64` for Alpine. See [supported OSes](#supported-oses-for-pre-built-binary-assets) for the current releases, and https://repo.liquidsoap.info for what each channel actually carries.
 
