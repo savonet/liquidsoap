@@ -46,6 +46,11 @@ opam install -y domain_shims syslog dune.3.23.1
 # is rebuilt with it.
 opam install -y xml-light
 
+git clone https://github.com/savonet/ocaml-ssl.git
+cd ocaml-ssl
+opam pin -ny .
+opam reinstall -y ssl
+
 echo "::endgroup::"
 
 echo "::group::Cleaning up cache"
