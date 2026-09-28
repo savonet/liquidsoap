@@ -37,14 +37,6 @@ if [ -z "${SKIP_SDL}" ]; then
   # until https://github.com/sanette/tsdl-ttf/issues/14 is resolved.
   opam pin -y add tsdl-ttf 0.6
 fi
-opam upgrade -y posix-socket
-# The CI image still ships camomile 2.0. Delete once it is rebuilt with
-# camomile-embedded.
-opam install -y camomile-embedded
-opam install -y domain_shims syslog dune.3.23.1
-# xml-light is a required dependency of liquidsoap-lang. Delete once the CI image
-# is rebuilt with it.
-opam install -y xml-light
 
 git clone https://github.com/savonet/ocaml-ssl.git
 cd ocaml-ssl && git checkout d4a65d7b0514859fc02647b6a8b9b2e2fb2358ca
