@@ -4,7 +4,7 @@ FROM $BASE_IMAGE AS base
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
-ARG OCAML_VERSION=5.5.0
+ARG OCAML_VERSION=5.5.1
 ARG OCAML_PATCH_URL=https://github.com/toots/ocaml/archive/b62191b568d80253b882b4702a1b2f5272c3d595.tar.gz
 
 USER root

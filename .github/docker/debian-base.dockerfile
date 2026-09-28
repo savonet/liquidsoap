@@ -6,7 +6,7 @@ FROM $BASE_IMAGE AS ocaml
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
-ARG OCAML_VERSION=5.5.0
+ARG OCAML_VERSION=5.5.1
 ARG OCAML_PATCH_URL
 
 ENV DEBIAN_FRONTEND=noninteractive

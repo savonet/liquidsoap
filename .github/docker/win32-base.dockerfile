@@ -2,7 +2,7 @@ ARG DEBIAN_VERSION=bookworm
 
 FROM debian:${DEBIAN_VERSION}-slim AS builder
 
-ARG OCAML_VERSION=5.5.0
+ARG OCAML_VERSION=5.5.1
 
 # MXE revision. This is pinned rather than tracked: MXE decides a package is
 # stale by comparing its install stamp against the mtime of the recipe, so a
