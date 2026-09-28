@@ -19,6 +19,7 @@ If you are migrating from a previous version, you might want to check out
 - [The book](./book.md): The Liquidsoap book
 - [Video presentations](./presentations.md): some presentations we did about liquidsoap
 - [How to find help](./help.md) about operators, settings, server commands, etc.
+- [Developer tools](./tooling.md): check scripts, editor support with the language server, formatting and continuous integration.
 - [Frequently Asked Questions, Troubleshooting](./faq.md)
 - [Quickstart](./quick_start.md): where anyone should start.
 - [Complete case analysis](./complete_case.md): an example that is not a toy.

@@ -134,6 +134,8 @@ As of now, FFmpeg `5.1` and above also work. We reserve the right to drop suppor
 
 ## Tooling
 
+See the [developer tools](https://www.liquidsoap.info/doc-dev/tooling) page to set them up.
+
 |                                |                                                                                                                                        |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Language Server (experimental) | [liquidsoap-language-server](https://github.com/savonet/liquidsoap-language-server)                                                    |
