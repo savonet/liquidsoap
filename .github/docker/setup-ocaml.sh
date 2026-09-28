@@ -15,7 +15,7 @@ opam update -y
 # an empty OCAML_PATCH_URL for a stock compiler.
 if [ -n "$OCAML_PATCH_URL" ]; then
   opam pin add -y "ocaml-compiler.$OCAML_VERSION" "$OCAML_PATCH_URL"
-  opam var ocaml_patch_url="$OCAML_PATCH_URL"
+  opam var --switch "$OCAML_VERSION" ocaml_patch_url="$OCAML_PATCH_URL"
 fi
 
 opam clean
