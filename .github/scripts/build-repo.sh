@@ -269,6 +269,9 @@ build_rpm() {
 
     # Packages are not signed one by one: the signed repomd.xml carries the
     # checksum of every package it lists.
+    #
+    # Metadata expires quickly because a rolling release deletes the packages
+    # its previous index lists.
     cat > "${out}/liquidsoap.repo" << EOF
 [liquidsoap]
 name=Liquidsoap ${channel}
@@ -277,7 +280,7 @@ enabled=1
 gpgcheck=0
 repo_gpgcheck=1
 skip_if_unavailable=False
-skip_if_unavailable=False
+metadata_expire=10m
 gpgkey=${BASE_URL}/liquidsoap.asc
 EOF
     printf '/%s/fedora/%s/pool/*  %s/%s/:splat  302\n' \
