@@ -50,9 +50,12 @@ RUN find /tmp/liquidsoap/src/modules/synced -maxdepth 1 -mindepth 1 -type d | \
 RUN find /tmp/liquidsoap/src/modules/synced -name '*.opam' ! -name '*.opam.template' | \
     xargs -I{} basename {} .opam | grep -Ev "^(speex|theora|dssi)$" > /tmp/packages
 
-ENV EXT_PACKAGES="$EXTRA_PACKAGES camomile-embedded ocurl irc-client-unix osc-unix gd inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 odoc"
+COPY .github/docker/ext-packages /tmp/ext-packages
 
-RUN eval $(opam env) && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
+# Shared with the other CI images, plus what only this one builds.
+ENV EXTRA_EXT_PACKAGES="gd"
+
+RUN eval $(opam env) && EXT_PACKAGES="$EXTRA_EXT_PACKAGES $(xargs < /tmp/ext-packages)" && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
 
 USER root
 
@@ -62,6 +65,7 @@ USER opam
 
 RUN \
     eval $(opam config env) && \
+    EXT_PACKAGES="$EXTRA_EXT_PACKAGES $(xargs < /tmp/ext-packages)" && \
     PACKAGES=`cat /tmp/packages | xargs echo` && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \

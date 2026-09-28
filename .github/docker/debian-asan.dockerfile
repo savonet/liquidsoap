@@ -61,10 +61,7 @@ ENV OPTIONAL_OPAM_PACKAGES="\
     ffmpeg ffmpeg-av ffmpeg-avcodec ffmpeg-avdevice ffmpeg-avfilter ffmpeg-avutil ffmpeg-swresample ffmpeg-swscale \
     flac ogg opus speex theora vorbis"
 
-ENV EXT_PACKAGES="\
-    camomile-embedded ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap \
-    tls-liquidsoap syslog memtrace ssl posix-time2 \
-    yaml js_of_ocaml js_of_ocaml-ppx re sqlite3"
+COPY .github/docker/ext-packages /tmp/ext-packages
 
 ENV APT_PACKAGES="\
     aspcud autoconf automake rsync build-essential ca-certificates curl \
@@ -122,7 +119,7 @@ USER opam
 
 RUN eval $(opam env) && \
     opam install --no-depexts -y --deps-only liquidsoap $OPTIONAL_OPAM_PACKAGES && \
-    opam install --no-depexts -y $EXT_PACKAGES && \
+    opam install --no-depexts -y $(grep -vxE 'tsdl|sdl-liquidsoap|odoc' /tmp/ext-packages) && \
     rm -rf /tmp/liquidsoap && \
     opam clean
 

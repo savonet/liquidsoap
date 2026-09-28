@@ -101,11 +101,12 @@ FROM static-packages AS build
 
 ARG OCAML_PATCH_URL
 
-ENV EXT_PACKAGES="camomile-embedded ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 odoc"
+COPY .github/docker/ext-packages /tmp/ext-packages
 
 USER opam
 
 RUN eval $(opam env) && \
+    EXT_PACKAGES=$(xargs < /tmp/ext-packages) && \
     STATIC_RE=$(echo $STATIC_PACKAGES | tr ' ' '|') && \
     PKGS=$(cat /tmp/packages | grep -Ev "^($STATIC_RE)$" | while read i; do printf "$i,"; done) && \
     opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,$PKGS,liquidsoap" > /tmp/deps
@@ -128,6 +129,7 @@ RUN arch=$(dpkg --print-architecture) && \
 USER opam
 
 RUN eval $(opam env) && \
+    EXT_PACKAGES=$(xargs < /tmp/ext-packages) && \
     PACKAGES=$(cat /tmp/packages | grep -Ev "^(speex|theora)$" | xargs echo) && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
