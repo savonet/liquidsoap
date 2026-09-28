@@ -326,6 +326,35 @@ done < <(.github/scripts/release-channels.sh | cut -f1,4,5)
 
 [ -s "${SITE}/channels.txt" ] || fail "no channel could be built"
 
+# The systems a channel has packages for, as setup.sh names them: deb and fedora
+# directories hold every architecture, so theirs are read from the index.
+channel_systems() {
+  local channel="$1" dir index
+  for index in "${SITE}/${channel}"/deb/*/Packages; do
+    [ -e "${index}" ] || continue
+    dir=$(basename "$(dirname "${index}")")
+    sed -n "s#^Architecture: #deb/${dir}/#p" "${index}"
+  done
+  for index in "${SITE}/${channel}"/fedora/*/repodata/*-primary.xml.gz; do
+    [ -e "${index}" ] || continue
+    dir=$(basename "$(dirname "$(dirname "${index}")")")
+    zcat "${index}" | sed -n "s#.*<arch>\([^<]*\)</arch>.*#fedora/${dir}/\1#p"
+  done
+  for dir in "${SITE}/${channel}"/alpine/*/; do
+    [ -d "${dir}" ] || continue
+    echo "alpine/$(basename "${dir}")"
+  done
+}
+
+# One channel list per system setup.sh runs on, written from what was built, so
+# its menu cannot offer a release with nothing to install.
+while IFS=$'\t' read -r channel description; do
+  for system in $(channel_systems "${channel}" | sort -u); do
+    mkdir -p "$(dirname "${SITE}/targets/${system}")"
+    printf '%s\t%s\n' "${channel}" "${description}" >> "${SITE}/targets/${system}.txt"
+  done
+done < "${SITE}/channels.txt"
+
 # Without it, Pages answers every missing path with index.html and a 200, so
 # setup.sh would install the page as a sources file.
 printf 'Not found\n' > "${SITE}/404.html"

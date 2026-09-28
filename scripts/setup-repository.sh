@@ -30,11 +30,37 @@ fetch() {
   exit 1
 }
 
+# shellcheck disable=SC1091 # provided by the distribution
+. /etc/os-release
+
+# TARGET is where a channel publishes this system's packages, and SYSTEM names
+# the list of channels that have them for this architecture.
+if [ -d /etc/apt/sources.list.d ]; then
+  if [ -z "${VERSION_CODENAME:-}" ]; then
+    echo "cannot tell which release this is: /etc/os-release has no VERSION_CODENAME" >&2
+    exit 1
+  fi
+  TARGET="deb/${VERSION_CODENAME}"
+  SYSTEM="${TARGET}/$(dpkg --print-architecture)"
+elif [ -d /etc/apk ]; then
+  TARGET="alpine"
+  SYSTEM="alpine/$(apk --print-arch)"
+elif [ -d /etc/yum.repos.d ]; then
+  TARGET="fedora/${VERSION_ID}"
+  SYSTEM="${TARGET}/$(uname -m)"
+else
+  echo "no apt, apk or dnf here: see https://liquidsoap.info/doc-dev/install.html" >&2
+  exit 1
+fi
+
+if ! curl -fsSL "${BASE}/targets/${SYSTEM}.txt" -o /tmp/liquidsoap-channels; then
+  echo "no release has packages for ${SYSTEM}; see ${BASE}" >&2
+  exit 1
+fi
+
 # Piped to a shell, so stdin is the script itself: the menu has to talk to the
 # terminal directly, and has to have an answer when there is no terminal.
 if [ -z "${CHANNEL}" ]; then
-  fetch "${BASE}/channels.txt" /tmp/liquidsoap-channels
-
   # Opened rather than tested: /dev/tty is there in a container with no terminal
   # and only fails when something tries to use it. The subshell keeps that
   # failure from taking the script with it.
@@ -54,41 +80,38 @@ if [ -z "${CHANNEL}" ]; then
 
   CHANNEL=$(sed -n "${answer:-1}p" /tmp/liquidsoap-channels | cut -f1)
   if [ -z "${CHANNEL}" ]; then
-    echo "no such choice; see ${BASE}/channels.txt" >&2
+    echo "no such choice; see ${BASE}/targets/${SYSTEM}.txt" >&2
     exit 1
   fi
   echo "Using ${CHANNEL}."
-fi
-
-# shellcheck disable=SC1091 # provided by the distribution
-. /etc/os-release
-
-if [ -d /etc/apt/sources.list.d ]; then
-  if [ -z "${VERSION_CODENAME:-}" ]; then
-    echo "cannot tell which release this is: /etc/os-release has no VERSION_CODENAME" >&2
-    exit 1
-  fi
-  install -d /etc/apt/keyrings
-  fetch "${BASE}/liquidsoap.asc" /etc/apt/keyrings/liquidsoap.asc
-  fetch "${BASE}/${CHANNEL}/deb/${VERSION_CODENAME}/liquidsoap.sources" \
-    /etc/apt/sources.list.d/liquidsoap.sources
-  apt-get update
-  echo "Done. Install with: apt-get install liquidsoap"
-elif [ -d /etc/apk ]; then
-  fetch "${BASE}/liquidsoap.rsa.pub" /etc/apk/keys/liquidsoap.rsa.pub
-  # Rewritten rather than appended, so re-running the script switches channel
-  # instead of leaving two of them for apk to choose between.
-  sed -i "\\#^${BASE}/#d" /etc/apk/repositories
-  echo "${BASE}/${CHANNEL}/alpine" >> /etc/apk/repositories
-  apk update
-  echo "Done. Install with: apk add liquidsoap"
-elif [ -d /etc/yum.repos.d ]; then
-  fetch "${BASE}/${CHANNEL}/fedora/${VERSION_ID}/liquidsoap.repo" \
-    /etc/yum.repos.d/liquidsoap.repo
-  # Imports the key and verifies the signed index up front, as apt-get update does.
-  dnf -y makecache --repo liquidsoap
-  echo "Done. Install with: dnf install liquidsoap"
-else
-  echo "no apt, apk or dnf here: see https://liquidsoap.info/doc-dev/install.html" >&2
+elif ! cut -f1 /tmp/liquidsoap-channels | grep -qxF "${CHANNEL}"; then
+  echo "${CHANNEL} has no packages for ${SYSTEM}; see ${BASE}/targets/${SYSTEM}.txt" >&2
   exit 1
 fi
+
+case "${TARGET}" in
+  deb/*)
+    install -d /etc/apt/keyrings
+    fetch "${BASE}/liquidsoap.asc" /etc/apt/keyrings/liquidsoap.asc
+    fetch "${BASE}/${CHANNEL}/${TARGET}/liquidsoap.sources" \
+      /etc/apt/sources.list.d/liquidsoap.sources
+    apt-get update
+    echo "Done. Install with: apt-get install liquidsoap"
+    ;;
+  alpine)
+    fetch "${BASE}/liquidsoap.rsa.pub" /etc/apk/keys/liquidsoap.rsa.pub
+    # Rewritten rather than appended, so re-running the script switches channel
+    # instead of leaving two of them for apk to choose between.
+    sed -i "\\#^${BASE}/#d" /etc/apk/repositories
+    echo "${BASE}/${CHANNEL}/${TARGET}" >> /etc/apk/repositories
+    apk update
+    echo "Done. Install with: apk add liquidsoap"
+    ;;
+  fedora/*)
+    fetch "${BASE}/${CHANNEL}/${TARGET}/liquidsoap.repo" \
+      /etc/yum.repos.d/liquidsoap.repo
+    # Imports the key and verifies the signed index up front, as apt-get update does.
+    dnf -y makecache --repo liquidsoap
+    echo "Done. Install with: dnf install liquidsoap"
+    ;;
+esac
