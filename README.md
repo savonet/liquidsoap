@@ -44,7 +44,7 @@ curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh
 
 It asks which release to follow, after which `apt-get install liquidsoap`, `dnf install liquidsoap` or `apk add liquidsoap` works as usual, and upgrades arrive with the rest of the system. To configure the repository by hand instead, see [manual configuration](doc/content/install.md#manual-configuration).
 
-Each channel covers the same distributions and architectures as our release assets: the current Debian stable and testing, the current Ubuntu LTS and latest release, and Alpine edge, on `amd64`/`arm64` for Debian and Ubuntu and `x86_64`/`aarch64` for Alpine. See [supported OSes](#supported-oses-for-pre-built-binary-assets) for the current releases, and https://repo.liquidsoap.info for what each channel actually carries.
+Each channel covers the same distributions and architectures as our release assets: the current Debian stable and testing, the current Ubuntu LTS and latest release, the current Fedora release, and Alpine edge, on `amd64`/`arm64` for Debian and Ubuntu and `x86_64`/`aarch64` for Fedora and Alpine. See [supported OSes](#supported-oses-for-pre-built-binary-assets) for the current releases, and https://repo.liquidsoap.info for what each channel actually carries.
 
 ### Developer build
 
@@ -109,7 +109,7 @@ Release assets are provided at: https://github.com/savonet/liquidsoap/releases. 
 
 We also provide **rolling releases**. A rolling release is a snapshot of a current, unpublished release. It can be a future stable release or a future bugfix release for a given major/minor version.
 
-These assets are also served as apt and apk repositories, one channel per release, at https://repo.liquidsoap.info. See [binary packages](#binary-packages).
+These assets are also served as apt, dnf and apk repositories, one channel per release, at https://repo.liquidsoap.info. See [binary packages](#binary-packages).
 
 For both types of releases, we reserve the right to update, delete and add assets to the release at any time. If you are looking for permanent links to release assets, you should grab them from https://github.com/savonet/liquidsoap-release-assets/releases, which reflects all our releases but whose artifacts are never modified/deleted.
 
@@ -123,6 +123,7 @@ We generally try to support the latest LTS release of each OS as well as their m
 | ------- | ---------------------------------------------------------- | ------------------------------ | ------------------- | -------------------------------------------------------------------------------------------- |
 | Debian  | stable (currently: `trixie`), testing (currently: `forky`) | `.deb` packages, docker images | `amd64`, `arm64`    | `.deb` packages before `2.5.x` require [deb-multimedia.org](https://www.deb-multimedia.org/) |
 | Ubuntu  | LTS (currently: `resolute`), latest (currently: `plucky`)  | `.deb` packages, docker images | `amd64`, `arm64`    |                                                                                              |
+| Fedora  | latest (currently: `44`)                                   | `.rpm` packages                | `x86_64`, `aarch64` | All FFmpeg codecs need [RPM Fusion](https://rpmfusion.org/Howto/Multimedia)                  |
 | Alpine  | `edge`                                                     | `.apk` packages, docker images | `x86_64`, `aarch64` |                                                                                              |
 | Windows | N/A                                                        | `.zip` archive                 | Windows 64          |                                                                                              |
 
