@@ -326,6 +326,18 @@ done < <(.github/scripts/release-channels.sh | cut -f1,4,5)
 
 [ -s "${SITE}/channels.txt" ] || fail "no channel could be built"
 
+# One channel list per system setup.sh runs on, written from the directories
+# that were built, so its menu cannot offer a release with nothing to install.
+while IFS=$'\t' read -r channel description; do
+  for dir in "${SITE}/${channel}"/{deb,fedora,alpine}/*/; do
+    [ -d "${dir}" ] || continue
+    target="${dir#"${SITE}/${channel}/"}"
+    target="${target%/}"
+    mkdir -p "$(dirname "${SITE}/targets/${target}")"
+    printf '%s\t%s\n' "${channel}" "${description}" >> "${SITE}/targets/${target}.txt"
+  done
+done < "${SITE}/channels.txt"
+
 # Without it, Pages answers every missing path with index.html and a 200, so
 # setup.sh would install the page as a sources file.
 printf 'Not found\n' > "${SITE}/404.html"
