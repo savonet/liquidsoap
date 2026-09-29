@@ -1,0 +1,127 @@
+- name: "record with  2 fields"
+  category: "performance"
+  value: 0.625043869019
+  unit: "s"
+  time: 1790693928.34
+  min: 0.0
+
+- name: "record with  5 fields"
+  category: "performance"
+  value: 0.822212934494
+  unit: "s"
+  time: 1790693929.16
+  min: 0.0
+
+- name: "record with 10 fields"
+  category: "performance"
+  value: 1.18020009995
+  unit: "s"
+  time: 1790693930.34
+  min: 0.0
+
+- name: "record with 20 fields"
+  category: "performance"
+  value: 2.3780901432
+  unit: "s"
+  time: 1790693932.72
+  min: 0.0
+
+- name: "sum of fields (big record)"
+  category: "performance"
+  value: 2.33684015274
+  unit: "s"
+  time: 1790693952.82
+  min: 0.0
+
+- name: "Erathostenes (imperative)"
+  category: "performance"
+  value: 18.8392031193
+  unit: "s"
+  time: 1790693975.07
+  min: 0.0
+
+- name: "Erathostenes (recursive)"
+  category: "performance"
+  value: 27.1082439423
+  unit: "s"
+  time: 1790694002.18
+  min: 0.0
+
+- name: "Memory usage: process private memory"
+  category: "memory"
+  value: 107.01953125
+  unit: "MiB"
+  time: 1790694091.28
+  min: 0.0
+
+- name: "Memory usage: process swapped memory"
+  category: "memory"
+  value: 0.0
+  unit: "MiB"
+  time: 1790694091.28
+  min: 0.0
+
+- name: "Memory usage: process physical memory"
+  category: "memory"
+  value: 166.05078125
+  unit: "MiB"
+  time: 1790694091.28
+  min: 0.0
+
+- name: "Memory usage: process virtual memory"
+  category: "memory"
+  value: 1682.9140625
+  unit: "MiB"
+  time: 1790694091.28
+  min: 0.0
+
+- name: "Memory usage: total physical memory"
+  category: "memory"
+  value: 15983.109375
+  unit: "MiB"
+  time: 1790694091.28
+  min: 0.0
+
+- name: "Memory usage: total virtual memory"
+  category: "memory"
+  value: 19055.1054688
+  unit: "MiB"
+  time: 1790694091.28
+  min: 0.0
+
+- name: "Memory usage: total used physical memory"
+  category: "memory"
+  value: 14154.5546875
+  unit: "MiB"
+  time: 1790694091.29
+  min: 0.0
+
+- name: "Memory usage: total used virtual memory"
+  category: "memory"
+  value: 14392.0664062
+  unit: "MiB"
+  time: 1790694091.29
+  min: 0.0
+
+- name: "functions"
+  category: "language"
+  value: 1651.0
+  unit: "functions"
+  time: 1790694094.44
+
+- name: "protocols"
+  category: "language"
+  value: 24.0
+  unit: "protocols"
+  time: 1790694094.45
+
+- name: "Process managed memory"
+  category: "memory"
+  value: 400.214187622
+  unit: "Mio"
+  time: 1790694214.22
+  min: 0.0
+
+- commit: ed9903cfcb255685fcc799d3590374707449302d
+  branch: harbor-duppy-feed
+  time: 1790694402
