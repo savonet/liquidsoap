@@ -158,7 +158,11 @@ module type T = sig
   (* Http Server *)
 
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-  type reply = Close of (unit -> string) | Relay of string | Custom
+
+  type reply =
+    | Close of (unit -> string)
+    | Relay of string * (unit -> unit)
+    | Custom
 
   exception Reply of reply
 
@@ -204,7 +208,7 @@ module type T = sig
 
   class virtual source : object
     inherit Source.source
-    method virtual relay : relay_info -> unit
+    method virtual relay : relay_info -> unit -> unit
     method virtual encode_metadata : Frame.metadata -> unit
     method virtual login : string * (login_args -> bool)
     method virtual icy_charset : string option
@@ -213,7 +217,7 @@ module type T = sig
   end
 
   type source_handler = {
-    relay : relay_info -> unit;
+    relay : relay_info -> unit -> unit;
     login : string * (login_args -> bool);
     icy_charset : string option;
     meta_charset : string option;
@@ -230,7 +234,7 @@ module type T = sig
     (string * string) list ->
     unit
 
-  val relayed : string -> 'a
+  val relayed : string -> (unit -> unit) -> 'a
 
   val add_source :
     pos:Pos.t list ->
@@ -277,7 +281,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   class virtual source =
     object
       inherit Source.source ~name:"input.harbor" ()
-      method virtual relay : relay_info -> unit
+      method virtual relay : relay_info -> unit -> unit
       method virtual encode_metadata : Frame.metadata -> unit
       method virtual login : string * (login_args -> bool)
       method virtual icy_charset : string option
@@ -286,7 +290,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     end
 
   type source_handler = {
-    relay : relay_info -> unit;
+    relay : relay_info -> unit -> unit;
     login : string * (login_args -> bool);
     icy_charset : string option;
     meta_charset : string option;
@@ -351,7 +355,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     | `Xaudiocast_uri uri -> Printf.sprintf "X-AUDIOCAST (%s)" uri
     | `Websocket -> "WEBSOCKET"
 
-  type reply = Close of (unit -> string) | Relay of string | Custom
+  type reply =
+    | Close of (unit -> string)
+    | Relay of string * (unit -> unit)
+    | Custom
 
   let mk_simple s =
     let ret = Atomic.make s in
@@ -361,7 +368,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let simple_reply s = raise (Reply (Close (mk_simple s)))
   let reply s = raise (Reply (Close s))
-  let relayed s = raise (Reply (Relay s))
+  let relayed s release = raise (Reply (Relay (s, release)))
   let custom () = raise (Reply Custom)
 
   type http_handler =
@@ -706,7 +713,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           ~buffered:(fun () -> not (Strings.Mutable.is_empty chunk))
           h
       in
-      s.relay { stype; headers; read; groups; uri; socket };
+      let release = s.relay { stype; headers; read; groups; uri; socket } in
       log#info "Adding source on mountpoint %S with type %S." uri stype;
       log#debug "Relaying %s." (string_of_protocol hprotocol);
       let protocol =
@@ -716,7 +723,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           | `Http_11 -> "HTTP/1.1"
           | _ -> assert false
       in
-      relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol)
+      relayed (Printf.sprintf "%s 200 OK\r\n\r\n" protocol) release
     with
       | Mount_taken ->
           log#info "Returned 403: Mount taken";
@@ -840,9 +847,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       if Strings.Mutable.is_empty binary_data then read_socket socket;
       Strings.Mutable.take binary_data buf ofs len
     in
-    source.relay
-      { uri = huri; groups; stype; headers; read = Some read; socket };
-    relayed ""
+    let release =
+      source.relay
+        { uri = huri; groups; stype; headers; read = Some read; socket }
+    in
+    relayed "" release
 
   exception Handled of (http_verb * (string * string) list * http_handler)
 
@@ -1223,7 +1232,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           try
             match r with
               | Custom -> ()
-              | Relay s -> write s
+              | Relay (s, release) ->
+                  (* The relaying source owns the socket: a failed reply is its
+                     to handle, and closing it here would free it under it. *)
+                  (try write s with Io.Error e -> ignore (on_error e));
+                  release ()
               | Close fn ->
                   (* A reply is sent in as many chunks as [fn] hands over, and
                      an empty one ends it. *)

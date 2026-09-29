@@ -245,6 +245,86 @@ let test_blocking_cap () =
   Duppy.stop s;
   ok "%d blocking tasks all ran with only 4 slots" count
 
+(* Tasks holding their slot until [n] of them run together can only get there
+   if the budget allows [n], so how far they get measures the budget. *)
+let concurrent_blocking s n =
+  let l = latch () in
+  let release = latch () in
+  for _ = 1 to n do
+    Duppy.Task.add s
+      (task Blocking (fun _ ->
+           bump l;
+           await release 1;
+           []))
+  done;
+  let deadline = Unix.gettimeofday () +. 1. in
+  while Atomic.get l.n < n && Unix.gettimeofday () < deadline do
+    Thread.delay 0.01
+  done;
+  let reached = Atomic.get l.n in
+  bump release;
+  await l n;
+  reached
+
+let thread_count () =
+  try Some (Array.length (Sys.readdir "/proc/self/task")) with _ -> None
+
+let test_reserve_blocking () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 1) ~max_blocking:1 s;
+  if concurrent_blocking s 2 <> 1 then fail "a budget of 1 ran 2 tasks at once";
+  let before = thread_count () in
+  let releases = List.init 3 (fun _ -> Duppy.reserve_blocking s) in
+  if concurrent_blocking s 4 <> 4 then
+    fail "3 reserved slots did not let 4 blocking tasks run at once";
+  List.iter (fun release -> release ()) releases;
+  List.iter (fun release -> release ()) releases;
+  if concurrent_blocking s 2 <> 1 then
+    fail "released slots still let 2 tasks run at once";
+  begin match (before, thread_count ()) with
+    | Some before, Some after when after > before ->
+        fail "auxiliary threads grew from %d to %d after release" before after
+    | _ -> ()
+  end;
+  Duppy.stop s;
+  ok "reserved blocking slots are added and given back"
+
+(* A blocking task whose error [on_error] re-raises still gives its slot back:
+   with one slot, the next blocking task only runs if it did. *)
+let test_raising_blocking_task () =
+  let fatal = Atomic.make 0 in
+  let raised = latch () in
+  let s =
+    Duppy.create ~classify
+      ~on_error:(fun exn bt ->
+        bump raised;
+        Printexc.raise_with_backtrace exn bt)
+      ~on_fatal:(fun _ _ -> Atomic.incr fatal)
+      ()
+  in
+  Duppy.start ~pool:(`Domains 1) ~max_blocking:1 s;
+  let ran = latch () in
+  Duppy.Task.add s (task Blocking (fun _ -> failwith "task error"));
+  await raised 1;
+  Thread.delay 0.1;
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         bump ran;
+         []));
+  let deadline = Unix.gettimeofday () +. 2. in
+  while Atomic.get ran.n = 0 && Unix.gettimeofday () < deadline do
+    Thread.delay 0.01
+  done;
+  if Atomic.get ran.n = 0 then
+    fail "a raising blocking task kept its slot and starved the next one";
+  if Atomic.get fatal <> 1 then
+    fail "the unhandled task error reached on_fatal %d times" (Atomic.get fatal);
+  let t0 = Unix.gettimeofday () in
+  Duppy.stop s;
+  if Unix.gettimeofday () -. t0 > 1. then
+    fail "stop waited on the slot of a task that had raised";
+  ok "a blocking task that raises gives its slot back"
+
 (* A computation started here parks on the pool and resumes on one of its
    domains, so the two halves never run on the same one. *)
 let test_effect_resumes_elsewhere () =
@@ -490,6 +570,8 @@ let () =
   test_batch ();
   test_io ();
   test_blocking_cap ();
+  test_reserve_blocking ();
+  test_raising_blocking_task ();
   test_stop_drains ();
   test_stop_with_thread_outliving_its_task ();
   test_idle_loop_wakes_itself ();

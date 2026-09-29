@@ -771,6 +771,41 @@
   (run %{run_test} file_output.liq liquidsoap file_output.liq)))
 
 (rule
+ (alias test_harbor_dynamic_failed_connect)
+ (package liquidsoap)
+ (deps
+  harbor_dynamic_failed_connect.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_dynamic_failed_connect.liq
+   liquidsoap
+   harbor_dynamic_failed_connect.liq)))
+
+(rule
  (alias test_harbor_kick_client)
  (package liquidsoap)
  (deps
@@ -800,6 +835,41 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} harbor_kick_client.liq liquidsoap harbor_kick_client.liq)))
+
+(rule
+ (alias test_harbor_kick_replaced_client)
+ (package liquidsoap)
+ (deps
+  harbor_kick_replaced_client.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_kick_replaced_client.liq
+   liquidsoap
+   harbor_kick_replaced_client.liq)))
 
 (rule
  (alias test_harbor_metadata)
@@ -893,6 +963,76 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} harbor_metadata_3.liq liquidsoap harbor_metadata_3.liq)))
+
+(rule
+ (alias test_harbor_stop_during_relay)
+ (package liquidsoap)
+ (deps
+  harbor_stop_during_relay.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_stop_during_relay.liq
+   liquidsoap
+   harbor_stop_during_relay.liq)))
+
+(rule
+ (alias test_harbor_unknown_codec)
+ (package liquidsoap)
+ (deps
+  harbor_unknown_codec.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_unknown_codec.liq
+   liquidsoap
+   harbor_unknown_codec.liq)))
 
 (rule
  (alias test_hls_custom_tags)
@@ -2480,10 +2620,14 @@
   (alias test_ffmpeg-errors)
   (alias test_ffmpeg-trim)
   (alias test_file_output)
+  (alias test_harbor_dynamic_failed_connect)
   (alias test_harbor_kick_client)
+  (alias test_harbor_kick_replaced_client)
   (alias test_harbor_metadata)
   (alias test_harbor_metadata_2)
   (alias test_harbor_metadata_3)
+  (alias test_harbor_stop_during_relay)
+  (alias test_harbor_unknown_codec)
   (alias test_hls_custom_tags)
   (alias test_hls_discontinuity)
   (alias test_hls_global_headers)

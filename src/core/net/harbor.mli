@@ -78,7 +78,11 @@ module type T = sig
   val close : socket -> unit
 
   type http_verb = [ `Get | `Post | `Put | `Delete | `Head | `Options ]
-  type reply = Close of (unit -> string) | Relay of string | Custom
+
+  type reply =
+    | Close of (unit -> string)
+    | Relay of string * (unit -> unit)
+    | Custom
 
   (** How a handler finishes: raised rather than returned, so it can happen from
       anywhere in the exchange. *)
@@ -127,7 +131,7 @@ module type T = sig
 
   class virtual source : object
     inherit Source.source
-    method virtual relay : relay_info -> unit
+    method virtual relay : relay_info -> unit -> unit
     method virtual encode_metadata : Frame.metadata -> unit
     method virtual login : string * (login_args -> bool)
     method virtual icy_charset : string option
@@ -136,7 +140,9 @@ module type T = sig
   end
 
   type source_handler = {
-    relay : relay_info -> unit;
+    relay : relay_info -> unit -> unit;
+        (** Takes the socket over and returns the function harbor calls once it
+            is done writing the reply on it. *)
     login : string * (login_args -> bool);
     icy_charset : string option;
     meta_charset : string option;
@@ -153,7 +159,7 @@ module type T = sig
     (string * string) list ->
     unit
 
-  val relayed : string -> 'a
+  val relayed : string -> (unit -> unit) -> 'a
 
   val add_source :
     pos:Pos.t list ->
