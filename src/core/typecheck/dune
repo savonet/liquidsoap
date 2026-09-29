@@ -1,9 +1,8 @@
 ; What a process that only typechecks scripts links.
 ;
 ; Everything here computes types and builds nothing: the content formats, the
-; encoders' types, ffmpeg's content types over the names a script wrote. A
-; liquidsoap that streams implements the same hooks from its own modules, so
-; it must not link this library -- Hooks.implement says so.
+; encoders' types, and source types over the tracks a script annotated. The
+; streaming core links it too, for the same types.
 
 (library
  (name liquidsoap_typecheck)
