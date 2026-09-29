@@ -44,48 +44,70 @@ let regexp_of_string s =
   let descr = "^" ^ escaped ^ "$" in
   { Lang_regexp.descr; flags = []; regexp = Re.Pcre.regexp descr }
 
-(** A source client's socket, used by one task at a time. Only a [Free] socket
-    is closed directly: a [Busy] one may be watched or read, so [abort] only
-    shuts it down and its task closes it. Each connection reserves the blocking
-    slot its task may park in while waiting for the rest of a frame. *)
+(** A source client's socket, shared by harbor while it writes the reply and by
+    the tasks reading it. It is closed only once it is aborted and unused, so a
+    descriptor is never freed under a task that may still watch or read it. Each
+    connection reserves the blocking slot its task may park in while waiting for
+    the rest of a frame. *)
 module Connection = struct
   type t = {
     socket : Harbor.socket;
-    state : [ `Free | `Busy | `Closing | `Closed ] Atomic.t;
+    (* [-1] once closed. *)
+    users : int Atomic.t;
+    aborted : bool Atomic.t;
     release_slot : unit -> unit;
   }
 
+  (** Created in use by harbor, which hands its use back after the reply. *)
   let create socket =
     {
       socket;
-      state = Atomic.make `Free;
+      users = Atomic.make 1;
+      aborted = Atomic.make false;
       release_slot = Duppy.reserve_blocking Tutils.scheduler;
     }
 
-  let close c =
-    Atomic.set c.state `Closed;
-    (try Harbor.close c.socket with _ -> ());
-    c.release_slot ()
+  let close_unused c =
+    Atomic.compare_and_set c.users 0 (-1)
+    && begin
+      (try Harbor.close c.socket with _ -> ());
+      c.release_slot ();
+      true
+    end
 
-  let acquire c = Atomic.compare_and_set c.state `Free `Busy
+  let rec acquire c =
+    match Atomic.get c.users with
+      | n when n < 0 || Atomic.get c.aborted -> false
+      | n -> Atomic.compare_and_set c.users n (n + 1) || acquire c
 
   let release c =
-    if not (Atomic.compare_and_set c.state `Busy `Free) then close c
+    if Atomic.fetch_and_add c.users (-1) = 1 && Atomic.get c.aborted then
+      ignore (close_unused c)
 
-  let rec abort c =
-    match Atomic.get c.state with
-      | `Free ->
-          if Atomic.compare_and_set c.state `Free `Closed then close c
-          else abort c
-      | `Busy ->
-          if Atomic.compare_and_set c.state `Busy `Closing then (
-            try
-              Unix.shutdown
-                (Harbor.file_descr_of_socket c.socket)
-                Unix.SHUTDOWN_ALL
-            with _ -> ())
-          else abort c
-      | `Closing | `Closed -> ()
+  (* The socket is only shut down while holding a use, so that it cannot be
+     closed and its descriptor reused in between. *)
+  let abort c =
+    Atomic.set c.aborted true;
+    let rec shut_down () =
+      match Atomic.get c.users with
+        | n when n < 0 -> ()
+        | 0 -> if not (close_unused c) then shut_down ()
+        | n ->
+            if Atomic.compare_and_set c.users n (n + 1) then (
+              (try
+                 Unix.shutdown
+                   (Harbor.file_descr_of_socket c.socket)
+                   Unix.SHUTDOWN_ALL
+               with _ -> ());
+              release c)
+            else shut_down ()
+    in
+    shut_down ()
+
+  (** Gives up a connection harbor still owns, without touching its socket. *)
+  let forget c =
+    Atomic.set c.users (-1);
+    c.release_slot ()
 
   let has_data c =
     c.socket#pending
@@ -312,14 +334,23 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       groups <- relay_groups;
       let read = Option.value ~default:Harbor.read read in
       let c = Connection.create socket in
-      if not (Atomic.compare_and_set relay None (Some c)) then (
-        c.release_slot ();
+      let claimed = Some c in
+      if not (Atomic.compare_and_set relay None claimed) then (
+        Connection.forget c;
         raise Harbor.Mount_taken);
       let mime = extract_mime stype in
       Atomic.set mime_type (Some mime);
       pending_headers <- headers;
       relay_read <- read;
-      match on_relay with Some fn -> fn () | None -> ()
+      (* A failure here, such as an unknown codec, is answered by harbor on a
+         socket it keeps. *)
+      (try Option.iter (fun fn -> fn ()) on_relay
+       with exn ->
+         let bt = Printexc.get_raw_backtrace () in
+         ignore (Atomic.compare_and_set relay claimed None);
+         Connection.forget c;
+         Printexc.raise_with_backtrace exn bt);
+      fun () -> Connection.release c
 
     method private close_connection c =
       Connection.abort c;
