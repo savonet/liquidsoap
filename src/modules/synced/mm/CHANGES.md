@@ -1,6 +1,10 @@
-# 0.8.7 (unreleased)
+# 0.8.7 (2026-09-28)
 
 - Fix color bug in YUV rotation (#27).
+- Add `Image.Canvas.has_alpha`.
+- `Image.Bitmap.Font.native` is now a function: `native ()`.
+- `Image.Bitmap.Font.render` now takes a mandatory `~font` argument.
+- Require OCaml >= 4.12.
 
 # 0.8.6 (2024-10-29)
 
