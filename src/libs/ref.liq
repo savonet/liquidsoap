@@ -29,10 +29,10 @@ def ref.getter((r:ref)) =
   {r()}
 end
 
-# Increment a reference to an integer.
+# Increment a reference to an integer, as one atomic section.
 # @category Programming
 def ref.incr(r) =
-  r := r() + 1
+  atomic({r := r() + 1})
 end
 
 # Map functions to a reference.
