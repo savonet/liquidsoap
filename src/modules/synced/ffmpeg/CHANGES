@@ -1,6 +1,5 @@
 1.4.0 (unreleased)
 ======
-* TODO: rename ffmpeg-av into ffmpeg-avformat
 * `Av.seek` drops the frames its decoders had buffered, which used to be
   returned after the seek carrying their pre-seek timestamps.
 * `Av.read_input` returns the frames its decoders still hold at end of input:
