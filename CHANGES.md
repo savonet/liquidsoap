@@ -71,6 +71,7 @@
 - Errors raised by the OCaml code behind a builtin, such as `file.ls` on an
   unreadable directory, are now runtime errors that `try ... catch` can handle,
   instead of aborting the script (#5454)
+- Fixed `input.harbor` socket cleanup (#5479)
 
 ---
 
