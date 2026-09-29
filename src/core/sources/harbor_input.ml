@@ -44,12 +44,62 @@ let regexp_of_string s =
   let descr = "^" ^ escaped ^ "$" in
   { Lang_regexp.descr; flags = []; regexp = Re.Pcre.regexp descr }
 
+(** A source client's socket, used by one task at a time. Only a [Free] socket
+    is closed directly: a [Busy] one may be watched or read, so [abort] only
+    shuts it down and its task closes it. Each connection reserves the blocking
+    slot its task may park in while waiting for the rest of a frame. *)
+module Connection = struct
+  type t = {
+    socket : Harbor.socket;
+    state : [ `Free | `Busy | `Closing | `Closed ] Atomic.t;
+    release_slot : unit -> unit;
+  }
+
+  let create socket =
+    {
+      socket;
+      state = Atomic.make `Free;
+      release_slot = Duppy.reserve_blocking Tutils.scheduler;
+    }
+
+  let close c =
+    Atomic.set c.state `Closed;
+    (try Harbor.close c.socket with _ -> ());
+    c.release_slot ()
+
+  let acquire c = Atomic.compare_and_set c.state `Free `Busy
+
+  let release c =
+    if not (Atomic.compare_and_set c.state `Busy `Free) then close c
+
+  let rec abort c =
+    match Atomic.get c.state with
+      | `Free ->
+          if Atomic.compare_and_set c.state `Free `Closed then close c
+          else abort c
+      | `Busy ->
+          if Atomic.compare_and_set c.state `Busy `Closing then (
+            try
+              Unix.shutdown
+                (Harbor.file_descr_of_socket c.socket)
+                Unix.SHUTDOWN_ALL
+            with _ -> ())
+          else abort c
+      | `Closing | `Closed -> ()
+
+  let has_data c =
+    c.socket#pending
+    ||
+    let fd = Harbor.file_descr_of_socket c.socket in
+    match Utils.select [fd] [] [] 0. with [], _, _ -> false | _ -> true
+end
+
 class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
   ~login ~debug ~timeout () =
   object (self)
     inherit Source.active_source ~name:"input.harbor" ()
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
-    val relay_socket = Atomic.make None
+    val relay : Connection.t option Atomic.t = Atomic.make None
     val mutable pending_headers : (string * string) list = []
     val mutable pending_metadata : Frame.Metadata.t option = None
 
@@ -79,7 +129,12 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
     method on_relay fn = on_relay <- Some fn
 
     method connected_client =
-      Option.map address_resolver (Atomic.get relay_socket)
+      Option.map
+        (fun c -> address_resolver c.Connection.socket)
+        (Atomic.get relay)
+
+    method private relaying c =
+      match Atomic.get relay with Some c' -> c' == c | None -> false
 
     method status_cmd =
       match self#connected_client with
@@ -111,33 +166,30 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
 
     method get_mime_type = Atomic.get mime_type
 
-    method feed =
-      self#log#important "Decoding...";
+    method private read_from c =
       let t0 = Unix.gettimeofday () in
-      let read buf ofs len =
+      let socket = c.Connection.socket in
+      fun buf ofs len ->
         let input =
-          (fun buf len ->
-            match Atomic.get relay_socket with
-              | None -> 0
-              | Some socket -> (
-                  try
-                    let rec f () =
-                      try
-                        socket#wait_for ~log:(self#log#info "%s") `Read timeout;
-                        relay_read socket buf ofs len
-                      with Harbor.Retry -> f ()
-                    in
-                    f ()
-                  with
-                    | Tutils.Exit -> 0
-                    | e ->
-                        let bt = Printexc.get_backtrace () in
-                        Utils.log_exception ~log:self#log ~bt
-                          (Printf.sprintf "Error while reading from client: %s"
-                             (Printexc.to_string e));
-                        (try self#disconnect with _ -> ());
-                        0))
-            buf len
+          if not (self#relaying c) then 0
+          else (
+            try
+              let rec f () =
+                try
+                  socket#wait_for ~log:(self#log#info "%s") `Read timeout;
+                  relay_read socket buf ofs len
+                with Harbor.Retry -> f ()
+              in
+              f ()
+            with
+              | Tutils.Exit -> 0
+              | e ->
+                  let bt = Printexc.get_backtrace () in
+                  Utils.log_exception ~log:self#log ~bt
+                    (Printf.sprintf "Error while reading from client: %s"
+                       (Printexc.to_string e));
+                  (try self#disconnect with _ -> ());
+                  0)
         in
         begin match dump with
           | Some b ->
@@ -152,25 +204,68 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
           | None -> ()
         end;
         input
-      in
+
+    (* Decodes while the socket has data, then parks on it without holding a
+       thread. A frame arriving in pieces is waited for in the reserved slot. *)
+    method private feed c =
+      self#log#important "Decoding...";
+      let read = self#read_from c in
       let input = { Decoder.read; tell = None; length = None; lseek = None } in
-      try
-        let decoder, buffer = create_decoder input in
-        Fun.protect ~finally:decoder.Decoder.close (fun () ->
-            while true do
-              if Atomic.get relay_socket = None then failwith "relaying stopped";
-              if Atomic.get should_shutdown then failwith "shutdown called";
-              decoder.Decoder.decode buffer
-            done)
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        (* Feeding has stopped: adding a break here. *)
-        Generator.add_track_mark self#buffer;
-        Utils.log_exception ~log:self#log
-          ~bt:(Printexc.raw_backtrace_to_string bt)
-          (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string exn));
-        self#disconnect;
-        if debug then Printexc.raise_with_backtrace exn bt
+      let decoder = ref None in
+      let stop () =
+        Option.iter (fun (d, _) -> d.Decoder.close ()) !decoder;
+        Connection.release c;
+        []
+      in
+      let check () =
+        if not (self#relaying c) then failwith "relaying stopped";
+        if Atomic.get should_shutdown then failwith "shutdown called"
+      in
+      let decode () =
+        let d, buffer =
+          match !decoder with
+            | Some d -> d
+            | None ->
+                let d = create_decoder input in
+                decoder := Some d;
+                d
+        in
+        d.Decoder.decode buffer
+      in
+      let rec handler events =
+        try
+          check ();
+          if
+            events <> []
+            && not
+                 (List.exists (function `Read _ -> true | _ -> false) events)
+          then raise (Tutils.Timeout timeout);
+          decode ();
+          while Connection.has_data c do
+            check ();
+            decode ()
+          done;
+          [task ()]
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Generator.add_track_mark self#buffer;
+          Utils.log_exception ~log:self#log
+            ~bt:(Printexc.raw_backtrace_to_string bt)
+            (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string exn));
+          self#disconnect;
+          let tasks = stop () in
+          if debug then Printexc.raise_with_backtrace exn bt;
+          tasks
+      and task () =
+        {
+          Duppy.Task.priority = `Threaded;
+          events =
+            [`Read (Harbor.file_descr_of_socket c.socket); `Delay timeout];
+          handler;
+        }
+      in
+      Duppy.Task.add Tutils.scheduler
+        { (task ()) with events = [`Delay 0.]; handler = (fun _ -> handler []) }
 
     method virtual private register_decoder : string -> unit
 
@@ -195,7 +290,9 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                 (Printexc.to_string e))
         | None -> ()
       end;
-      ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")
+      match Atomic.get relay with
+        | Some c when Connection.acquire c -> self#feed c
+        | _ -> ()
 
     val mutable uri = ""
     method uri = uri
@@ -214,8 +311,10 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       uri <- relay_uri;
       groups <- relay_groups;
       let read = Option.value ~default:Harbor.read read in
-      if not (Atomic.compare_and_set relay_socket None (Some socket)) then
-        raise Harbor.Mount_taken;
+      let c = Connection.create socket in
+      if not (Atomic.compare_and_set relay None (Some c)) then (
+        c.release_slot ();
+        raise Harbor.Mount_taken);
       let mime = extract_mime stype in
       Atomic.set mime_type (Some mime);
       pending_headers <- headers;
@@ -223,10 +322,10 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       match on_relay with Some fn -> fn () | None -> ()
 
     method disconnect =
-      match Atomic.exchange relay_socket None with
+      match Atomic.exchange relay None with
         | None -> ()
-        | Some s ->
-            (try Harbor.close s with _ -> ());
+        | Some c ->
+            Connection.abort c;
             (match dump with
               | Some f ->
                   close_out f;

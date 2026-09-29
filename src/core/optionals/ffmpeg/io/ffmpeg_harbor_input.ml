@@ -143,24 +143,38 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
           self#on_wake_up (fun () -> self#start_feed))
 
     method private open_container =
-      let task =
-        {
-          Duppy.Task.priority = `Threaded;
-          events = [`Delay 0.];
-          handler =
-            (fun _ ->
-              (try self#do_open_container
-               with exn ->
-                 self#log#severe "Error while opening container: %s!"
-                   (Printexc.to_string exn));
-              []);
-        }
-      in
-      Duppy.Task.add Tutils.scheduler task
+      match Atomic.get relay with
+        | Some c when Harbor_input.Connection.acquire c ->
+            let task =
+              {
+                Duppy.Task.priority = `Threaded;
+                events = [`Delay 0.];
+                handler =
+                  (fun _ ->
+                    let log_error exn =
+                      self#log#severe "Error while opening container: %s!"
+                        (Printexc.to_string exn)
+                    in
+                    let connect =
+                      try Some (self#do_open_container c.socket)
+                      with exn ->
+                        log_error exn;
+                        None
+                    in
+                    (* [on_connect] starts the feed, which takes the socket. *)
+                    Harbor_input.Connection.release c;
+                    Option.iter
+                      (fun connect ->
+                        try connect () with exn -> log_error exn)
+                      connect;
+                    []);
+              }
+            in
+            Duppy.Task.add Tutils.scheduler task
+        | _ -> ()
 
-    method private do_open_container =
+    method private do_open_container socket =
       (* Open FFmpeg container and call on_connect *)
-      let socket = Option.get (Atomic.get relay_socket) in
       let mime = Option.get self#get_mime_type in
       let format = mime_to_format (String.lowercase_ascii mime) in
       let read buf ofs len =
@@ -279,8 +293,9 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
             ("copy_encoder", copy_encoder);
           ]
       in
-      let handler = Lang.apply on_connect_callback [("", callback_record)] in
-      ignore (Lang.apply handler [("", source_value)])
+      fun () ->
+        let handler = Lang.apply on_connect_callback [("", callback_record)] in
+        ignore (Lang.apply handler [("", source_value)])
 
     method private register_decoder _ =
       match Atomic.get ffmpeg_container with
