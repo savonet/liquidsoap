@@ -1,4 +1,4 @@
-1.4.0 (unreleased)
+1.4.0 (2026-09-28)
 ======
 * `Av.seek` drops the frames its decoders had buffered, which used to be
   returned after the seek carrying their pre-seek timestamps.
