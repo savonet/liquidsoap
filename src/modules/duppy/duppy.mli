@@ -135,6 +135,12 @@ val started : 'a scheduler -> bool
     domains to return. *)
 val stop : 'a scheduler -> unit
 
+(** [reserve_blocking s] adds one slot to the [`Threaded] budget set by
+    [max_blocking] and returns the function giving it back. A task that may park
+    for as long as a resource it owns lives takes one, so that it cannot starve
+    the others. Auxiliary threads above a lowered budget exit once idle. *)
+val reserve_blocking : 'a scheduler -> unit -> unit
+
 (** Core task registration. * * A task will be a set of events to watch, and a
     corresponding function to * execute when one of the events is triggered. * *
     The executed function may then return a list of new tasks to schedule. *)

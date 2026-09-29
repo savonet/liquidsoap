@@ -142,7 +142,10 @@ type 'a scheduler = {
   started : bool Atomic.t;
   stopped : bool Atomic.t;
   poller_done : bool Atomic.t;
-  mutable blocking_per_worker : int;
+  blocking_per_worker : int Atomic.t;
+  (* [max_blocking] and [reserved] are guarded by [ready_m]. *)
+  mutable max_blocking : int;
+  mutable reserved : int;
   mutable threaded : bool;
   mutable workers : 'a worker list;
   mutable members : member list;
@@ -234,7 +237,9 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     started = Atomic.make false;
     stopped = Atomic.make false;
     poller_done = Atomic.make false;
-    blocking_per_worker = 1;
+    blocking_per_worker = Atomic.make 1;
+    max_blocking = 64;
+    reserved = 0;
     threaded = false;
     workers = [];
     members = [];
@@ -442,7 +447,8 @@ let take_work s w =
     List.partition (fun e -> s.classify e.prio = `Immediate) rest
   in
   let singles =
-    if Atomic.get w.blocking < s.blocking_per_worker then direct @ blocking
+    if Atomic.get w.blocking < Atomic.get s.blocking_per_worker then
+      direct @ blocking
     else direct
   in
   let can_block = singles <> [] in
@@ -491,7 +497,11 @@ let run_task s fn =
     where a submission would pick it. *)
 let aux_loop s w =
   let rec loop () =
-    while w.aux_pending = [] && not (Atomic.get s.stopped) do
+    while
+      w.aux_pending = []
+      && (not (Atomic.get s.stopped))
+      && w.aux_total <= Atomic.get s.blocking_per_worker
+    do
       Condition.wait w.aux_c w.aux_m
     done;
     match w.aux_pending with
@@ -536,7 +546,7 @@ let run_blocking s w fn =
     w.aux_pending <- w.aux_pending @ [job];
     if
       w.aux_total - w.aux_busy < List.length w.aux_pending
-      && w.aux_total < s.blocking_per_worker
+      && w.aux_total < Atomic.get s.blocking_per_worker
     then begin
       w.aux_total <- w.aux_total + 1;
       ignore (Thread.create (fun () -> aux_loop s w) ())
@@ -666,6 +676,29 @@ let poller s =
         poll_once s
       done)
 
+(** Rounded up, so that every worker keeps at least its share of the budget.
+    [s.ready_m] must be held. *)
+let update_blocking_per_worker s =
+  let count = max 1 (List.length s.workers) in
+  Atomic.set s.blocking_per_worker
+    (max 1 ((s.max_blocking + s.reserved + count - 1) / count))
+
+(* A lowered budget lets the auxiliary threads above it exit, and a raised one
+   lets idle workers take the blocking tasks they had declined. *)
+let reserve_blocking s =
+  let change n =
+    Mutex.protect s.ready_m (fun () ->
+        s.reserved <- s.reserved + n;
+        update_blocking_per_worker s);
+    List.iter
+      (fun w -> Mutex.protect w.aux_m (fun () -> Condition.broadcast w.aux_c))
+      s.workers;
+    wake_idle s max_int
+  in
+  change 1;
+  let released = Atomic.make false in
+  fun () -> if Atomic.compare_and_set released false true then change (-1)
+
 let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
   if not (Atomic.compare_and_set s.started false true) then
     failwith "Duppy.start: scheduler already started";
@@ -708,9 +741,11 @@ let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
     else None
   in
   let workers = workers @ Option.to_list current in
+  Mutex.protect s.ready_m (fun () ->
+      s.workers <- workers;
+      s.max_blocking <- max_blocking;
+      update_blocking_per_worker s);
   let count = List.length workers in
-  s.blocking_per_worker <- max 1 ((max_blocking + count - 1) / count);
-  s.workers <- workers;
   let guard fn () =
     try fn ()
     with exn ->
@@ -741,7 +776,8 @@ let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
       if s.threaded then Printf.sprintf "Started %d dispatch threads." count
       else
         Printf.sprintf "Started %d dispatch domains, %d blocking tasks each."
-          count s.blocking_per_worker)
+          count
+          (Atomic.get s.blocking_per_worker))
 
 let stop s =
   if Atomic.get s.started then begin
