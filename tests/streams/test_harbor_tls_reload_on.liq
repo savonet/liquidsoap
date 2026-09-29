@@ -18,17 +18,22 @@ client = http.transport.tls(certificate="./ssl2.cert")
 port = 1449
 errors = ref(0)
 
-def on_error(~restart_in, _) =
-  errors := errors() + 1
+def on_error(~restart_in, err) =
+  # Connections refused before the port opens must not advance the script.
   if
-    errors() == 2
+    error.kind(err) == "tls"
   then
-    certificate := "./ssl2.cert"
-    key := "./ssl2.key"
-  elsif
-    errors() == 3
-  then
-    should_reload := true
+    errors := errors() + 1
+    if
+      errors() == 2
+    then
+      certificate := "./ssl2.cert"
+      key := "./ssl2.key"
+    elsif
+      errors() == 3
+    then
+      should_reload := true
+    end
   end
   restart_in(0.1)
 end
@@ -38,8 +43,8 @@ def on_wake_up() =
     output.icecast(
       port=port,
       mount="tls_reload_on",
-      connection_timeout=0.1,
-      timeout=0.1,
+      connection_timeout=1.,
+      timeout=1.,
       transport=client,
       %vorbis,
       sine()

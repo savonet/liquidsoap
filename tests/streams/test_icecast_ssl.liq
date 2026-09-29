@@ -11,8 +11,8 @@ def on_wake_up() =
   output.icecast(
     port=port,
     mount="ssl_test",
-    connection_timeout=0.1,
-    timeout=0.1,
+    connection_timeout=1.,
+    timeout=1.,
     transport=transport,
     %vorbis,
     s
