@@ -188,7 +188,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                   Utils.log_exception ~log:self#log ~bt
                     (Printf.sprintf "Error while reading from client: %s"
                        (Printexc.to_string e));
-                  (try self#disconnect with _ -> ());
+                  (try self#disconnect_connection c with _ -> ());
                   0)
         in
         begin match dump with
@@ -252,7 +252,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
           Utils.log_exception ~log:self#log
             ~bt:(Printexc.raw_backtrace_to_string bt)
             (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string exn));
-          self#disconnect;
+          self#disconnect_connection c;
           let tasks = stop () in
           if debug then Printexc.raise_with_backtrace exn bt;
           tasks
@@ -321,22 +321,31 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       relay_read <- read;
       match on_relay with Some fn -> fn () | None -> ()
 
+    method private close_connection c =
+      Connection.abort c;
+      (match dump with
+        | Some f ->
+            close_out f;
+            dump <- None
+        | None -> ());
+      (match logf with
+        | Some f ->
+            close_out f;
+            logf <- None
+        | None -> ());
+      List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect)
+
     method disconnect =
-      match Atomic.exchange relay None with
-        | None -> ()
-        | Some c ->
-            Connection.abort c;
-            (match dump with
-              | Some f ->
-                  close_out f;
-                  dump <- None
-              | None -> ());
-            (match logf with
-              | Some f ->
-                  close_out f;
-                  logf <- None
-              | None -> ());
-            List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect)
+      Option.iter self#close_connection (Atomic.exchange relay None)
+
+    (* A task outliving its connection must not drop the client that replaced
+       it. *)
+    method private disconnect_connection c =
+      match Atomic.get relay with
+        | Some c' as current when c' == c ->
+            if Atomic.compare_and_set relay current None then
+              self#close_connection c
+        | _ -> ()
   end
 
 class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy

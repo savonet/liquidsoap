@@ -161,12 +161,17 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                         log_error exn;
                         None
                     in
-                    (* [on_connect] starts the feed, which takes the socket. *)
+                    (* [on_connect] starts the feed, which takes the socket. No
+                       source is woken for a client that failed to connect, so
+                       nothing else would close it. *)
                     Harbor_input.Connection.release c;
-                    Option.iter
-                      (fun connect ->
-                        try connect () with exn -> log_error exn)
-                      connect;
+                    (match connect with
+                      | None -> self#disconnect_connection c
+                      | Some connect -> (
+                          try connect ()
+                          with exn ->
+                            log_error exn;
+                            self#disconnect_connection c));
                     []);
               }
             in
