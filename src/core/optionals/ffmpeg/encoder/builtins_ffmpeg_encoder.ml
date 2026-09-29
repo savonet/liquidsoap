@@ -560,8 +560,7 @@ let mk_encoder mode =
          in
 
          let producer =
-           Ffmpeg_inline.mk_producer
-             ~stack:(Liquidsoap_lang.Lang_core.pos p)
+           Ffmpeg_inline.mk_producer ~stack:(Lang.pos p)
              ~name:(id ^ ".producer") ~field ~input_frame_t
              ~mk_process_frame:mk_encode_frame (Lang.source source)
          in

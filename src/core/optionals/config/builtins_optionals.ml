@@ -3,8 +3,7 @@
    the (select ...) stanzas, see gen_dune.ml. *)
 
 let liquidsoap_build_config_optionals =
-  Lang.add_module ~base:Liquidsoap_lang.Builtins_lang.liquidsoap_build_config
-    "optionals"
+  Lang.add_module ~base:Builtins_lang.liquidsoap_build_config "optionals"
 
 let () =
   List.iter

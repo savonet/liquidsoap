@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_dssi)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   dssi
   dtools
@@ -13,5 +11,4 @@
   mm.base
   mm.midi
   unix)
- (wrapped false)
  (optional))

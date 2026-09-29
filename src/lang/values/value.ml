@@ -272,7 +272,7 @@ and to_string v =
   let base_string v =
     match v with
       | Int { value = i; flags } -> string_of_int_value ~flags i
-      | Float { value = f } -> Utils.string_of_float f
+      | Float { value = f } -> Utils_base.string_of_float f
       | Bool { value = b } -> string_of_bool b
       | String { value = s } when Lang_string.is_binary s -> "<string>"
       | String { value = s } -> Lang_string.quote_string s

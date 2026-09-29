@@ -9,5 +9,4 @@
   liquidsoap_ffmpeg_encoder
   liquidsoap_ffmpeg_filter
   liquidsoap_ffmpeg_io)
- (wrapped false)
  (optional))

@@ -430,7 +430,7 @@ let _ =
                  else if relay.uri = "" || relay.uri = "/" then
                    "input.harbor.dynamic"
                  else relay.uri);
-              s#set_stack (Liquidsoap_lang.Lang_core.pos p);
+              s#set_stack (Lang.pos p);
               s#relay relay);
           login;
           icy_charset;

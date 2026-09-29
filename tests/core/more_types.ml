@@ -1,5 +1,3 @@
-open Liquidsoap_lang
-
 let () =
   (* def f(x) =
        if x?.foo ?? false then
@@ -75,7 +73,7 @@ let () =
       Term.t = typ;
       term = `Int 1;
       methods = Term.Methods.empty;
-      flags = Liquidsoap_lang_data.Flags.empty;
+      flags = Flags.empty;
     }
   in
   let invoke =
@@ -84,7 +82,7 @@ let () =
       term =
         `Invoke { Term.invoked = term; invoke_default = None; meth = "opt" };
       methods = Term.Methods.empty;
-      flags = Liquidsoap_lang_data.Flags.empty;
+      flags = Flags.empty;
     }
   in
   try

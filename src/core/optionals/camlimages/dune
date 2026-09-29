@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_camlimages)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   camlimages.core
   camlimages.all_formats
@@ -11,5 +9,4 @@
   mm.base
   mm.image
   mm.video)
- (wrapped false)
  (optional))

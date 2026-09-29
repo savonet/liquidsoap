@@ -1,13 +1,10 @@
 (library
  (name liquidsoap_srt)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   ctypes
   dtools
   duppy
   integers
-  liquidsoap-lang.ast
   liquidsoap_core
   metadata
   mm

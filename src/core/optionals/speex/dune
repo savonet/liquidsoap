@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_speex)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   liquidsoap_ogg

@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-module Lang = Liquidsoap_lang.Lang
 open Lang
 
 module ClockSource = struct

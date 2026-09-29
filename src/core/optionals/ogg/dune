@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_ogg)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   dtools
   liquidsoap_core

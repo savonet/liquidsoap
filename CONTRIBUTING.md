@@ -89,7 +89,7 @@ liquidsoap/
 │   │   ├── clock/      # Clocks
 │   │   ├── source/     # The source class, tracks, source values
 │   │   ├── request/    # URI resolution, request pool, playlist parsing
-│   │   ├── runtime/    # The Lang API operators register themselves with
+│   │   ├── lang/       # The language as core sees it: Lang, re-exported modules
 │   │   ├── net/        # HTTP and the harbor server
 │   │   ├── protocols/  # Request protocols (annotate:, mpd:)
 │   │   ├── decoders/   # Concrete decoders and metadata resolvers
@@ -166,12 +166,17 @@ The streaming engine is where audio/video processing happens. Like `src/lang/`,
 it is a stack of layered dune libraries, each one directory, each of which may
 only depend on the ones above it in this table. The layering is enforced by the
 build: `liquidsoap_core_utils` cannot reach a frame, and nothing below
-`runtime` can register an operator.
+`lang` can register an operator.
 
-Each library has a `src/core/<dir>/liquidsoap_core_<dir>.mli` listing exactly
-what it exports; everything else in the directory is private to it. Consumers
-get the exported modules unqualified through `-open`, which is why the code
-reads `Frame.` and `Lang.` rather than `Liquidsoap_core_stream.Frame.`.
+Every library is unwrapped (`(wrapped false)`): its modules are top-level, so
+the code reads `Frame.` and `Lang.` with no `-open`.
+
+`liquidsoap_core_lang` is the only place above it that names `liquidsoap-lang`.
+It re-exports the language's modules under their short names, replacing the
+ones core augments (`Lang`, `Modules`, `Doc`, `Startup`) with the augmented
+version. Everything above it, builtins and plugins included, uses those and
+never depends on `liquidsoap-lang`. The layers below it use `liquidsoap-lang`
+directly through `-open Liquidsoap_lang_*`.
 
 Operators register themselves through top-level side effects, and the modules
 that do so are referenced by nothing, so every library keeps `-linkall`.
@@ -185,7 +190,7 @@ that do so are referenced by nothing, so every library keeps `-linkall`.
 | `liquidsoap_core_clock`     | `src/core/clock/`     | **Timing and synchronization**. Clocks tick, and each tick asks every animated source for one frame.               |
 | `liquidsoap_core_source`    | `src/core/source/`    | **The heart of Liquidsoap**: the `source` class every operator inherits from, tracks, and source values.           |
 | `liquidsoap_core_request`   | `src/core/request/`   | URI resolution, the request pool, playlist parsing.                                                                |
-| `liquidsoap_core_runtime`   | `src/core/runtime/`   | Core's `Lang`: everything an operator needs to register itself, plus the hooks `liquidsoap-lang` calls back into.  |
+| `liquidsoap_core_lang`      | `src/core/lang/`      | Core's `Lang`, the other `liquidsoap-lang` modules re-exported, and the hooks `liquidsoap-lang` calls back into.   |
 | `liquidsoap_core_net`       | `src/core/net/`       | HTTP and the harbor server that `input.harbor` and `output.harbor` are built on.                                   |
 | `liquidsoap_core_protocols` | `src/core/protocols/` | Request protocols: `annotate:` and `mpd:`.                                                                         |
 | `liquidsoap_core_decoders`  | `src/core/decoders/`  | Concrete decoders and metadata resolvers. Above `request/` because they register into its resolver plugs.          |
@@ -193,12 +198,8 @@ that do so are referenced by nothing, so every library keeps `-linkall`.
 | `liquidsoap_core_outputs`   | `src/core/outputs/`   | The output framework and the outputs built on it: icecast, harbor, HLS, pipes.                                     |
 | `liquidsoap_core_operators` | `src/core/operators/` | **All audio/video operators**, plus synth and visualisation. The top of the stack.                                 |
 
-`liquidsoap_core` itself holds no code: `src/core/liquidsoap_core.mli`
-re-exports, under short names, everything builtins and optional plugins are
-meant to use — including the `liquidsoap-lang` modules core republishes, so it
-is the only file that spells out a `Liquidsoap_lang_*` path. Plugins do
-`(libraries liquidsoap_core)` plus `-open Liquidsoap_core` and never name a
-layer.
+`liquidsoap_core` itself holds no code: it re-exports every layer, so plugins
+do `(libraries liquidsoap_core)` and never name a layer.
 
 The files you are most likely to want:
 
@@ -316,11 +317,7 @@ let _ =
       new my_operator source param)
 ```
 
-2. **Add it to `src/core/operators/liquidsoap_core_operators.ml` and `.mli`**,
-   which list what the library exports. Nothing outside the library can see a
-   module that is missing from them.
-
-3. **Add a high-level wrapper** in `src/libs/audio.liq` if appropriate:
+2. **Add a high-level wrapper** in `src/libs/audio.liq` if appropriate:
 
 ```liquidsoap
 # My new operator
@@ -331,7 +328,7 @@ def my_operator(~param=1.0, s)
 end
 ```
 
-4. **Add tests** in `tests/` directory
+3. **Add tests** in `tests/` directory
 
 ### "I want to contribute to the scripting library"
 

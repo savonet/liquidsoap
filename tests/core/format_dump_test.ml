@@ -2,8 +2,6 @@
    parameters, what a reader makes of it, and whether types that shared a
    format still share one. *)
 
-open Liquidsoap_lang
-
 let () =
   Frame_settings.conf_duration#set 0.04;
   Frame_settings.lazy_config_eval := true
@@ -37,8 +35,7 @@ let () =
 let () = print_newline ()
 
 let dump env =
-  Liquidsoap_lang_types.Jsoo_safe_env.(fun t -> (restore t).restored_env)
-    (Liquidsoap_lang_types.Jsoo_safe_env.strip env)
+  Jsoo_safe_env.(fun t -> (restore t).restored_env) (Jsoo_safe_env.strip env)
 
 let scheme descr = ([], Type.make descr)
 
@@ -100,7 +97,7 @@ let () =
   print_newline ();
   List.iter
     (fun dump ->
-      match Liquidsoap_lang_types.Jsoo_safe_env.of_string dump with
+      match Jsoo_safe_env.of_string dump with
         | _ -> print_endline "read"
         | exception Failure message -> print_endline message)
     ["garbage"; "99 2.5.0 (custom build)\nrest"]

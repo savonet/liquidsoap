@@ -1,7 +1,5 @@
 ; Modules with no dependencies of their own that every other liquidsoap-lang
-; library needs. Kept wrapped because `Pos` and `Lang_string` collide with
-; modules of the same name in liquidsoap_core; consumers get them unqualified
-; through `-open Liquidsoap_lang_prelude`.
+; library needs.
 
 (library
  (name liquidsoap_lang_prelude)

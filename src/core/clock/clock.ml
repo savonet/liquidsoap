@@ -50,8 +50,6 @@
 
 exception Invalid_state
 
-module Evaluation = Liquidsoap_lang.Evaluation
-
 type active_source = < id : string ; reset : unit ; output : unit >
 
 type source_type =
@@ -531,7 +529,7 @@ let get_id ~pending_activations id =
 
 let _id { id; pending_activations } = get_id ~pending_activations id
 let id c = _id (Unifier.deref c)
-let generate_id = Lang_string.generate_id ~category:"clock"
+let generate_id = Utils.generate_id ~category:"clock"
 
 let _set_id clock new_id =
   if Atomic.get clock.id <> Some new_id then

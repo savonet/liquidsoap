@@ -1,0 +1,14 @@
+; Everything a process that cannot stream needs, under one name.
+;
+; liquidsoap.typecheck computes types; the ffmpeg stand-in supplies content
+; types for a process with no libav. Linking this is all the playground and
+; the language server's analysis have to do. A liquidsoap that streams must not
+; link it: the stand-in registers the same content kinds as the real ffmpeg
+; formats, and linking both raises.
+
+(library
+ (name liquidsoap_typecheck_dummy)
+ (public_name liquidsoap.typecheck_dummy)
+ (modules)
+ (library_flags (-linkall))
+ (libraries liquidsoap_typecheck liquidsoap_ffmpeg_formats_dummy))

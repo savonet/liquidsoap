@@ -162,7 +162,7 @@ let _ =
             ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
             (processor tokenizer)
         in
-        Lang.val_fun [] (fun _ -> Liquidsoap_lang.Evaluation.eval predicate)
+        Lang.val_fun [] (fun _ -> Evaluation.eval predicate)
       with _ ->
         Lang.raise_error
           ~message:

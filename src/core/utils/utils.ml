@@ -20,7 +20,7 @@
 
  *****************************************************************************)
 
-include Liquidsoap_lang_data.Utils
+include Liquidsoap_lang_data.Utils_base
 
 let select = if Sys.win32 then Unix_utils.select else Unix_utils.poll
 
@@ -682,3 +682,46 @@ let mime_of_container_format = function
   | "webvtt" -> Some "text/vtt"
   | "wv" -> Some "audio/x-wavpack"
   | _ -> None
+
+type base_id = { category : string; name : string; mutable counter : int }
+
+module IdMap = Weak.Make (struct
+  type t = base_id
+
+  let equal id id' = id.category = id'.category && id.name = id'.name
+  let hash { category; name } = Hashtbl.hash (category ^ name)
+end)
+
+(** Generate a unique unifier based on name and category. *)
+let generate_id =
+  let m = Mutex.create () in
+  let h = IdMap.create 10 in
+  fun ~category name ->
+    (* Remove trailing numbers. *)
+    let name =
+      let rec drop_dots = function
+        | v :: tail -> (
+            try
+              ignore (int_of_string v);
+              drop_dots tail
+            with _ -> v :: tail)
+        | v -> v
+      in
+      String.concat "."
+        (List.rev (drop_dots (List.rev (String.split_on_char '.' name))))
+    in
+    Mutex_utils.mutexify m
+      (fun () ->
+        let base_id = IdMap.merge h { category; name; counter = 0 } in
+        let id =
+          Bytes.(
+            unsafe_to_string
+              (of_string
+                 (match base_id.counter with
+                   | 0 -> name
+                   | n -> name ^ "." ^ string_of_int n)))
+        in
+        base_id.counter <- base_id.counter + 1;
+        Gc.finalise_last (fun () -> ignore (Sys.opaque_identity base_id)) id;
+        id)
+      ()

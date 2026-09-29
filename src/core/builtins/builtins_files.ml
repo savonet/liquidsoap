@@ -1,5 +1,5 @@
 module Http = Liq_http
-module File = Stdlib_wrappers.File
+module File = Liquidsoap_stdlib_wrappers.File
 
 let file = Modules.file
 
@@ -396,7 +396,7 @@ let _ =
           Lang.raise_as_runtime ~bt ~kind:"file" exn
       in
       let unwatch =
-        Liq_file_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f
+        Liquidsoap_file_watcher.watch ~pos:(Lang.pos p) [`Modify] fname f
       in
       Lang.meth Lang.unit
         [

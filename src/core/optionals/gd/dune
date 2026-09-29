@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_gd)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries gd liquidsoap_core)
- (wrapped false)
  (optional))

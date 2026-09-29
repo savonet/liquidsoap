@@ -42,11 +42,7 @@ let extract_mime stype =
 let regexp_of_string s =
   let escaped = Re.Pcre.quote s in
   let descr = "^" ^ escaped ^ "$" in
-  {
-    Liquidsoap_lang.Lang_regexp.descr;
-    flags = [];
-    regexp = Re.Pcre.regexp descr;
-  }
+  { Lang_regexp.descr; flags = []; regexp = Re.Pcre.regexp descr }
 
 class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
   ~login ~debug ~timeout () =
@@ -391,7 +387,7 @@ let proto ?(buffer_default = 12.) mountpoint_t =
   ]
 
 type 'a parse_result = {
-  pos : Liquidsoap_lang_prelude.Pos.t list;
+  pos : Pos.t list;
   mountpoint : 'a;
   login : string * (Harbor.login_args -> bool);
   debug : bool;

@@ -1,18 +1,13 @@
 (library
  (name liquidsoap_file_watcher)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   dtools
   duppy
-  liquidsoap-lang
-  liquidsoap-lang.prelude
   liquidsoap_core
   threads.posix
   unix
   (select
-   liq_file_watcher.ml
+   liquidsoap_file_watcher.ml
    from
-   (inotify -> liq_file_watcher.inotify.ml)
-   (-> liq_file_watcher.mtime.ml)))
- (wrapped false))
+   (inotify -> liquidsoap_file_watcher.inotify.ml)
+   (-> liquidsoap_file_watcher.mtime.ml))))

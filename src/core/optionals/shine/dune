@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_shine)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries liquidsoap_core mm mm.audio mm.base shine)
- (wrapped false)
  (optional))

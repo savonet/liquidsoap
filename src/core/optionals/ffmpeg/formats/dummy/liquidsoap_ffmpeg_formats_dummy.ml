@@ -20,6 +20,63 @@
 
  *****************************************************************************)
 
-(* See liquidsoap_ffmpeg_formats_dummy.mli. *)
+(** What a process without libav knows of an ffmpeg stream's parameters: the
+    names a script wrote, and no more. Two streams are compatible when nothing
+    they both name differs. *)
+module Params = struct
+  let implementation = "the stand-in for libav"
 
-module Ffmpeg_named_params = Ffmpeg_named_params
+  type t = (string * string) list
+
+  let default = []
+  let parse label value = Some [(label, value)]
+
+  let to_string params =
+    String.concat ","
+      (List.map (fun (label, value) -> label ^ "=" ^ value) params)
+
+  let compatible p p' =
+    List.for_all
+      (fun (label, value) ->
+        match List.assoc_opt label p' with
+          | Some value' -> value = value'
+          | None -> true)
+      p
+
+  let merge p p' =
+    if not (compatible p p') then failwith "Incompatible format!";
+    p @ List.filter (fun (label, _) -> not (List.mem_assoc label p)) p'
+end
+
+module Copy =
+  Ffmpeg_content_type.Make
+    (Params)
+    (struct
+      type kind = [ `Copy ]
+
+      let kind = `Copy
+      let name = "ffmpeg.copy"
+      let kind_name = "ffmpeg.copy"
+    end)
+
+module Raw_audio =
+  Ffmpeg_content_type.Make
+    (Params)
+    (struct
+      type kind = [ `Raw ]
+
+      let kind = `Raw
+      let name = "ffmpeg.raw.audio"
+      let kind_name = "ffmpeg.audio.raw"
+    end)
+
+module Raw_video =
+  Ffmpeg_content_type.Make
+    (Params)
+    (struct
+      type kind = [ `Raw ]
+
+      let kind = `Raw
+      let name = "ffmpeg.raw.video"
+      let kind_name = "ffmpeg.video.raw"
+    end)

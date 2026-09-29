@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_ogg_flac)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   dtools
   flac

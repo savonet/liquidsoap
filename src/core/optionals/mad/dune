@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_mad)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries dtools liquidsoap_core mad magic-mime mm mm.audio mm.base)
- (wrapped false)
  (optional))

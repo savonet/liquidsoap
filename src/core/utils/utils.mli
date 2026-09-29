@@ -24,8 +24,8 @@
     used from more than one place; anything used from only one belongs next to
     its caller.
 
-    This module also re-exports {!Liquidsoap_lang_data.Utils}, which is where
-    [check_readable] and [string_of_float] come from. *)
+    This module also re-exports {!Liquidsoap_lang_data.Utils_base}, which is
+    where [check_readable] and [string_of_float] come from. *)
 
 (** {1 Paths and files} *)
 
@@ -169,3 +169,4 @@ val name_of_sockaddr :
 val abs_float : float -> float
 
 val optional_apply : ('a -> unit) -> 'a option -> unit
+val generate_id : category:string -> string -> string

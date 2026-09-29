@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-module Runtime = Liquidsoap_lang.Runtime
-module Profiler = Liquidsoap_lang_data.Profiler
-module Lang_string = Liquidsoap_lang_prelude.Lang_string
 module Queue = Queues.Queue
 
 let usage =
@@ -89,7 +86,7 @@ let print_json_term = ref false
 let is_relative = Filename.is_relative Sys.argv.(0)
 
 (* Should we load the stdlib? *)
-let stdlib : Liquidsoap_lang.Lang_eval.stdlib ref =
+let stdlib : Lang_eval.stdlib ref =
   ref (if is_relative then `If_present else `Force)
 
 (* Shall we use the cache *)
@@ -97,7 +94,7 @@ let cache = ref true
 
 (* Display cache key. *)
 let show_cache_key = ref false
-let deprecated = Liquidsoap_lang.Runtime.deprecated
+let deprecated = Runtime.deprecated
 
 (* Shall we start an interactive interpreter (REPL) *)
 let interactive = ref false
@@ -105,13 +102,12 @@ let log = Log.make ["main"]
 let to_load = Queue.create ()
 
 let eval_script expr =
-  let open Liquidsoap_lang in
   match !eval_mode with
     | `Parse_only ->
         let tm, _ = Runtime.parse expr in
         if !print_json_term then
           Printf.printf "%s\n"
-            (Liquidsoap_lang_data.Json.to_string ~compact:false
+            (Json.to_string ~compact:false
                (Liquidsoap_tooling.Parsed_json.to_json tm))
     | `Parse_and_type ->
         let parsed_term, term = Runtime.parse expr in
@@ -153,7 +149,7 @@ let eval () =
   try
     eval_script script;
     log#important "User script loaded in %.02f seconds." (Sys.time () -. t)
-  with Liquidsoap_lang.Runtime.Error ->
+  with Runtime.Error ->
     (* The error is reported on its own; pending logs would only bury it. *)
     stop_log ();
     flush_all ();
@@ -265,7 +261,7 @@ let options =
                     the type of a source with its methods, and of a clock. *)
                  let core_types =
                    {
-                     Liquidsoap_lang_types.Jsoo_safe_env.source_methods =
+                     Jsoo_safe_env.source_methods =
                        Some
                          (Lang_source.source_t ~methods:true (Lang.univ_t ()));
                      clock = Some Lang_clock.ClockValue.base_t;
@@ -273,9 +269,8 @@ let options =
                  in
                  let env = Environment.default_typing_environment () in
                  let dump =
-                   Liquidsoap_lang_types.Jsoo_safe_env.(
-                     to_string
-                       ~version:Liquidsoap_lang_data.Build_config.version
+                   Jsoo_safe_env.(
+                     to_string ~version:Build_config.version
                        (strip ~core_types env))
                  in
                  Out_channel.with_open_bin file (fun oc ->
@@ -487,9 +482,7 @@ let options =
         ( ["--enable-deprecated"],
           Arg.Set deprecated,
           "Load wrappers for deprecated operators." );
-        ( ["-i"],
-          Arg.Set Liquidsoap_lang.Typechecking.display_types,
-          "Display inferred types." );
+        (["-i"], Arg.Set Typechecking.display_types, "Display inferred types.");
         ( ["--version"],
           Arg.Unit
             (fun () ->
@@ -505,13 +498,13 @@ See <http://liquidsoap.info> for more information.
         ( ["--build-config"],
           Arg.Unit
             (fun () ->
-              Printf.printf "%s\n" Build_config.build_config;
+              Printf.printf "%s\n" Build_summary.build_config;
               exit 0),
           "Display liquidsoap's build configuration." );
         ( ["--opam-config"],
           Arg.Unit
             (fun () ->
-              Printf.printf "%s\n" Build_config.opam_config;
+              Printf.printf "%s\n" Build_summary.opam_config;
               exit 0),
           "Print out opam's liquidsoap.config, for internal use." );
         ( ["--interactive"],

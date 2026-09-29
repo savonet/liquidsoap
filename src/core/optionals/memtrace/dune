@@ -2,8 +2,7 @@
  (name liquidsoap_memtrace)
  (libraries
   (select
-   liq_memtrace.ml
+   liquidsoap_memtrace.ml
    from
-   (memtrace -> liq_memtrace.memtrace.ml)
-   (-> liq_memtrace.disabled.ml)))
- (wrapped false))
+   (memtrace -> liquidsoap_memtrace.memtrace.ml)
+   (-> liquidsoap_memtrace.disabled.ml))))

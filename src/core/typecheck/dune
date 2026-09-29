@@ -1,0 +1,35 @@
+; What a process that only typechecks scripts links.
+;
+; Everything here computes types and builds nothing: the content formats, the
+; encoders' types, and source types over the tracks a script annotated. The
+; streaming core links it too, for the same types.
+
+(library
+ (name liquidsoap_typecheck)
+ (public_name liquidsoap.typecheck)
+ ; Linking it is what implements its hooks, so its initialisers must run.
+ (library_flags (-linkall))
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_lang_ast
+   -open
+   Liquidsoap_lang_parser))
+ (libraries
+  liquidsoap-lang
+  liquidsoap-lang.ast
+  liquidsoap-lang.data
+  liquidsoap-lang.parser
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  encoder_types
+  liquidsoap_core_formats))

@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_tls)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   ca-certs
   cstruct
@@ -16,5 +14,4 @@
   tls
   x509
   unix)
- (wrapped false)
  (optional))

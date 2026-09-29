@@ -20,11 +20,7 @@
    -open
    Liquidsoap_lang_values
    -open
-   Liquidsoap_lang
-   -open
-   Liquidsoap_core_formats
-   -open
-   Liquidsoap_ffmpeg_formats))
+   Liquidsoap_lang))
  (libraries
   liquidsoap-lang
   liquidsoap-lang.data

@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_xmlplaylist)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries dtools liquidsoap_builtins liquidsoap_core xmlplaylist)
- (wrapped false)
  (optional))

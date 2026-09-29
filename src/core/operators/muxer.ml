@@ -164,8 +164,7 @@ let muxer_operator p =
               track.fields <- field :: track.fields;
               tracks
           | None -> { source = s; fields = [field] } :: tracks)
-      []
-      (Liquidsoap_lang_data.Methods.bindings tracks)
+      [] (Methods.bindings tracks)
   in
   let s = new muxer ~pos:(try Lang.pos p with _ -> []) ~base tracks in
   let target_fields =

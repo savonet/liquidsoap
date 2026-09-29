@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_fdkaac)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries fdkaac liquidsoap_core mm mm.audio mm.base)
- (wrapped false)
  (optional))

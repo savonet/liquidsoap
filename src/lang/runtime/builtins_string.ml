@@ -562,7 +562,7 @@ let _ =
       let s =
         match dp with
           | Some d -> Printf.sprintf "%.*f" d x
-          | None -> Utils.string_of_float x
+          | None -> Utils_base.string_of_float x
       in
       Lang.string s)
 

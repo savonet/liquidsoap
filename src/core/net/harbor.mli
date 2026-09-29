@@ -105,7 +105,7 @@ module type T = sig
   val custom : unit -> 'a
 
   val add_http_handler :
-    pos:Liquidsoap_lang_prelude.Pos.t list ->
+    pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
     verb:http_verb ->
@@ -156,16 +156,15 @@ module type T = sig
   val relayed : string -> 'a
 
   val add_source :
-    pos:Liquidsoap_lang_prelude.Pos.t list ->
+    pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
-    mountpoint:Liquidsoap_lang.Lang.regexp ->
+    mountpoint:Lang.regexp ->
     icy:bool ->
     source_handler ->
     unit
 
-  val remove_source :
-    port:int -> mountpoint:Liquidsoap_lang.Lang.regexp -> unit -> unit
+  val remove_source : port:int -> mountpoint:Lang.regexp -> unit -> unit
 end
 
 module Make (T : Transport_t) : T with type socket = T.socket

@@ -593,7 +593,7 @@ let _ =
            Ffmpeg_filter_io.(
              audio_output ~pass_metadata ~name ~frame_t ~field source)
          in
-         s#set_stack (Liquidsoap_lang.Lang_core.pos p);
+         s#set_stack (Lang.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
          Queue.push graph.input_flushes (fun () -> s#flush_input);
@@ -724,7 +724,7 @@ let _ =
            Ffmpeg_filter_io.(
              video_output ~pass_metadata ~name ~frame_t ~field source)
          in
-         s#set_stack (Liquidsoap_lang.Lang_core.pos p);
+         s#set_stack (Lang.pos p);
          s#set_id id;
          Queue.push graph.graph_inputs (s :> Source.source);
          Queue.push graph.input_flushes (fun () -> s#flush_input);

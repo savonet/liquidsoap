@@ -370,14 +370,14 @@ module Socket_value = struct
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Stdlib_wrappers.Socket.bind socket#file_descr
+              Liquidsoap_stdlib_wrappers.Socket.bind socket#file_descr
                 (Socket_addr.of_value (List.assoc "" p));
               Lang.unit) );
         ( "listen",
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Stdlib_wrappers.Socket.listen socket#file_descr
+              Liquidsoap_stdlib_wrappers.Socket.listen socket#file_descr
                 (Lang.to_int (List.assoc "" p));
               Lang.unit) );
       ]
@@ -424,7 +424,7 @@ module Socket_value = struct
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              Stdlib_wrappers.Socket.connect socket#file_descr
+              Liquidsoap_stdlib_wrappers.Socket.connect socket#file_descr
                 (Socket_addr.of_value (List.assoc "" p));
               Lang.unit) );
       ]
@@ -450,7 +450,8 @@ let _ =
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
       Socket_value.to_unix_value ~pos:(Lang.pos p)
-        (Stdlib_wrappers.Socket.socket ~cloexec:true domain typ protocol))
+        (Liquidsoap_stdlib_wrappers.Socket.socket ~cloexec:true domain typ
+           protocol))
 
 let _ =
   Lang.add_builtin ~base:socket "pair" ~category:`Internet
@@ -470,7 +471,8 @@ let _ =
       let typ = Socket_type.of_value (List.assoc "type" p) in
       let protocol = Lang.to_int (List.assoc "protocol" p) in
       let s, s' =
-        Stdlib_wrappers.Socket.socketpair ~cloexec:true domain typ protocol
+        Liquidsoap_stdlib_wrappers.Socket.socketpair ~cloexec:true domain typ
+          protocol
       in
       let pos = Lang.pos p in
       Lang.product
