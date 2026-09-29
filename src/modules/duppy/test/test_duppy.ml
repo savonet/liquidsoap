@@ -289,6 +289,42 @@ let test_reserve_blocking () =
   Duppy.stop s;
   ok "reserved blocking slots are added and given back"
 
+(* A blocking task whose error [on_error] re-raises still gives its slot back:
+   with one slot, the next blocking task only runs if it did. *)
+let test_raising_blocking_task () =
+  let fatal = Atomic.make 0 in
+  let raised = latch () in
+  let s =
+    Duppy.create ~classify
+      ~on_error:(fun exn bt ->
+        bump raised;
+        Printexc.raise_with_backtrace exn bt)
+      ~on_fatal:(fun _ _ -> Atomic.incr fatal)
+      ()
+  in
+  Duppy.start ~pool:(`Domains 1) ~max_blocking:1 s;
+  let ran = latch () in
+  Duppy.Task.add s (task Blocking (fun _ -> failwith "task error"));
+  await raised 1;
+  Thread.delay 0.1;
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         bump ran;
+         []));
+  let deadline = Unix.gettimeofday () +. 2. in
+  while Atomic.get ran.n = 0 && Unix.gettimeofday () < deadline do
+    Thread.delay 0.01
+  done;
+  if Atomic.get ran.n = 0 then
+    fail "a raising blocking task kept its slot and starved the next one";
+  if Atomic.get fatal <> 1 then
+    fail "the unhandled task error reached on_fatal %d times" (Atomic.get fatal);
+  let t0 = Unix.gettimeofday () in
+  Duppy.stop s;
+  if Unix.gettimeofday () -. t0 > 1. then
+    fail "stop waited on the slot of a task that had raised";
+  ok "a blocking task that raises gives its slot back"
+
 (* A computation started here parks on the pool and resumes on one of its
    domains, so the two halves never run on the same one. *)
 let test_effect_resumes_elsewhere () =
@@ -535,6 +571,7 @@ let () =
   test_io ();
   test_blocking_cap ();
   test_reserve_blocking ();
+  test_raising_blocking_task ();
   test_stop_drains ();
   test_stop_with_thread_outliving_its_task ();
   test_idle_loop_wakes_itself ();

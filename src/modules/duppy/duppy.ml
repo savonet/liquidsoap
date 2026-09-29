@@ -512,10 +512,12 @@ let aux_loop s w =
           w.aux_pending <- rest;
           w.aux_busy <- w.aux_busy + 1;
           Mutex.unlock w.aux_m;
+          (* [on_error] has already seen what escapes a job: like on a domain,
+             it is fatal rather than left to kill this thread. *)
           (try job ()
            with exn ->
              let bt = Printexc.get_raw_backtrace () in
-             s.on_error exn bt);
+             s.on_fatal exn bt);
           Mutex.lock w.aux_m;
           w.aux_busy <- w.aux_busy - 1;
           loop ()
@@ -532,16 +534,16 @@ let aux_loop s w =
 let run_blocking s w fn =
   Atomic.incr w.blocking;
   let run () =
-    let tasks = run_task s fn in
-    Atomic.decr w.blocking;
+    let tasks =
+      Fun.protect
+        ~finally:(fun () -> Atomic.decr w.blocking)
+        (fun () -> run_task s fn)
+    in
     add_t s tasks
   in
   if s.threaded then run ()
   else begin
-    let job () =
-      run ();
-      wake_worker s w
-    in
+    let job () = Fun.protect ~finally:(fun () -> wake_worker s w) run in
     Mutex.lock w.aux_m;
     w.aux_pending <- w.aux_pending @ [job];
     if
