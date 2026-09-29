@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-module Runtime = Runtime
-module Profiler = Profiler
-module Lang_string = Lang_string
 module Queue = Queues.Queue
 
 let usage =

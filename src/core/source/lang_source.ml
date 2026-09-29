@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-module Lang = Liquidsoap_lang.Lang
-module Flags = Liquidsoap_lang_data.Flags
-module Runtime = Liquidsoap_lang.Runtime
 open Lang
 
 let eval ?toplevel ?typecheck ?cache ?deprecated ?ty ?name ~stdlib s =

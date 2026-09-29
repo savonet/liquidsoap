@@ -50,8 +50,6 @@
 
 exception Invalid_state
 
-module Evaluation = Liquidsoap_lang.Evaluation
-
 type active_source = < id : string ; reset : unit ; output : unit >
 
 type source_type =

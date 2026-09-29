@@ -35,7 +35,6 @@ type regexp = Liquidsoap_lang.Lang.regexp
 
 module Custom = Value.Custom
 module Methods = Term.Methods
-module Flags = Liquidsoap_lang_data.Flags
 
 type in_value = Value.in_value
 type env = Value.env

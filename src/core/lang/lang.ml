@@ -1,7 +1,6 @@
 include Liquidsoap_lang.Lang
 include Lang_source
 include Lang_encoder.L
-module Flags = Liquidsoap_lang_data.Flags
 module Http = Liq_http
 
 let source_t = source_t ?pos:None
