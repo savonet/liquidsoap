@@ -41,6 +41,8 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
     inherit Source.active_source ~name:"input.harbor" ()
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
     val relay_socket = Atomic.make None
+    val feeding_lock = Mutex.create ()
+    val mutable feeding_thread = None
 
     (** Function to read on socket. *)
     val mutable relay_read = fun _ _ _ -> assert false
@@ -91,37 +93,38 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
 
     method get_mime_type = Atomic.get mime_type
 
-    method feed =
+    method private relaying socket =
+      match Atomic.get relay_socket with Some s -> s == socket | None -> false
+
+    method feed socket =
       self#log#important "Decoding...";
       let t0 = Unix.gettimeofday () in
       let read buf ofs len =
         let input =
           (fun buf len ->
-            match Atomic.get relay_socket with
-              | None -> 0
-              | Some socket -> (
+            if not (self#relaying socket) then 0
+            else (
+              try
+                let rec f () =
                   try
-                    let rec f () =
-                      try
-                        let fd = Harbor.file_descr_of_socket socket in
-                        (* Wait for `Read event on socket. *)
-                        Tutils.wait_for ~log:(self#log#info "%s") (`Read fd)
-                          timeout;
+                    let fd = Harbor.file_descr_of_socket socket in
+                    (* Wait for `Read event on socket. *)
+                    Tutils.wait_for ~log:(self#log#info "%s") (`Read fd) timeout;
 
-                        (* Now read. *)
-                        relay_read socket buf ofs len
-                      with Harbor.Retry -> f ()
-                    in
-                    f ()
-                  with
-                    | Tutils.Exit -> 0
-                    | e ->
-                        let bt = Printexc.get_backtrace () in
-                        Utils.log_exception ~log:self#log ~bt
-                          (Printf.sprintf "Error while reading from client: %s"
-                             (Printexc.to_string e));
-                        (try self#disconnect with _ -> ());
-                        0))
+                    (* Now read. *)
+                    relay_read socket buf ofs len
+                  with Harbor.Retry -> f ()
+                in
+                f ()
+              with
+                | Tutils.Exit -> 0
+                | e ->
+                    let bt = Printexc.get_backtrace () in
+                    Utils.log_exception ~log:self#log ~bt
+                      (Printf.sprintf "Error while reading from client: %s"
+                         (Printexc.to_string e));
+                    (try self#disconnect with _ -> ());
+                    0))
             buf len
         in
         begin match dump with
@@ -143,7 +146,7 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         let decoder, buffer = create_decoder input in
         Fun.protect ~finally:decoder.Decoder.close (fun () ->
             while true do
-              if Atomic.get relay_socket = None then failwith "relaying stopped";
+              if not (self#relaying socket) then failwith "relaying stopped";
               if Atomic.get should_shutdown then failwith "shutdown called";
               decoder.Decoder.decode buffer
             done)
@@ -214,12 +217,33 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         | None -> ()
       end;
       fun () ->
-        ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")
+        Mutex_utils.mutexify feeding_lock
+          (fun () ->
+            if self#relaying socket then
+              feeding_thread <-
+                Some (Tutils.create self#feed socket "harbor source feeding"))
+          ()
 
     method disconnect =
       match Atomic.exchange relay_socket None with
         | None -> ()
         | Some s ->
+            (* The feeding thread may be waiting on [s]: closing it first would
+               free a descriptor that the next accepted connection can reuse. *)
+            (try Unix.shutdown (Harbor.file_descr_of_socket s) Unix.SHUTDOWN_ALL
+             with _ -> ());
+            let thread =
+              Mutex_utils.mutexify feeding_lock
+                (fun () ->
+                  let thread = feeding_thread in
+                  feeding_thread <- None;
+                  thread)
+                ()
+            in
+            (match thread with
+              | Some t when Thread.id t <> Thread.id (Thread.self ()) ->
+                  Thread.join t
+              | _ -> ());
             (try Harbor.close s with _ -> ());
             (match dump with
               | Some f ->
