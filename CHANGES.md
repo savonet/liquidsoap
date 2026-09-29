@@ -162,6 +162,10 @@
 
 ## Fixed:
 
+- Stopping an `input.harbor` with a source client connected can no longer swallow the next
+  connection accepted by the process. The client socket was closed while the feeding thread could
+  still be waiting on its file descriptor, so a new connection reusing it, such as a `harbor.http`
+  request or the next source client, could be read as relay data and never answered.
 - Active inputs such as `input.ffmpeg` replaced through `source.dynamic` are now stopped and
   released. They used to keep their connection, decoder and threads alive for the lifetime of
   the script (#5389).

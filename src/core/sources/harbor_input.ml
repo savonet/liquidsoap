@@ -54,6 +54,13 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
     inherit Source.active_source ~name:"input.harbor" ()
     inherit! Generated.source ~empty_on_abort:false ~replay_meta ~bufferize ()
     val relay_socket = Atomic.make None
+
+    (* While the feeding thread runs it owns the socket: [disconnect] only shuts
+       it down to wake the thread, which closes it on exit. Closing it from
+       [disconnect] would free the file descriptor while the thread still waits
+       on it, and the next accepted connection would be read as relay data. *)
+    val socket_lock = Mutex.create ()
+    val mutable feeding = false
     val mutable pending_headers : (string * string) list = []
     val mutable pending_metadata : Frame.Metadata.t option = None
 
@@ -115,7 +122,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
 
     method get_mime_type = Atomic.get mime_type
 
-    method feed =
+    method feed socket =
       self#log#important "Decoding...";
       let t0 = Unix.gettimeofday () in
       let read buf ofs len =
@@ -174,7 +181,15 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
           ~bt:(Printexc.raw_backtrace_to_string bt)
           (Printf.sprintf "Feeding stopped: %s" (Printexc.to_string exn));
         self#disconnect;
+        self#release_socket socket;
         if debug then Printexc.raise_with_backtrace exn bt
+
+    method private release_socket socket =
+      Mutex_utils.mutexify socket_lock
+        (fun () ->
+          feeding <- false;
+          Option.iter (fun s -> try Harbor.close s with _ -> ()) socket)
+        ()
 
     method virtual private register_decoder : string -> unit
 
@@ -199,7 +214,16 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                 (Printexc.to_string e))
         | None -> ()
       end;
-      ignore (Tutils.create (fun () -> self#feed) () "harbor source feeding")
+      let socket =
+        Mutex_utils.mutexify socket_lock
+          (fun () ->
+            let socket = Atomic.get relay_socket in
+            feeding <- socket <> None;
+            socket)
+          ()
+      in
+      ignore
+        (Tutils.create (fun () -> self#feed socket) () "harbor source feeding")
 
     val mutable uri = ""
     method uri = uri
@@ -230,7 +254,13 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
       match Atomic.exchange relay_socket None with
         | None -> ()
         | Some s ->
-            (try Harbor.close s with _ -> ());
+            Mutex_utils.mutexify socket_lock
+              (fun () ->
+                try
+                  if feeding then Unix.shutdown s#file_descr Unix.SHUTDOWN_ALL
+                  else Harbor.close s
+                with _ -> ())
+              ();
             (match dump with
               | Some f ->
                   close_out f;
