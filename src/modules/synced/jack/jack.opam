@@ -11,6 +11,7 @@ bug-reports: "https://github.com/savonet/ocaml-jack/issues"
 depends: [
   "conf-jack"
   "conf-pkg-config"
+  "ocaml" {>= "4.12"}
   "dune" {>= "3.23"}
   "dune-configurator"
   "odoc" {with-doc}

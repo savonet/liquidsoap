@@ -18,5 +18,6 @@
  (depends
   conf-jack
   conf-pkg-config
+  (ocaml (>= 4.12))
   dune
   dune-configurator))
