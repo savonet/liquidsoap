@@ -290,8 +290,13 @@ let transport ~read_timeout ~write_timeout ~server_config ~certificate
           | Error (`Msg message) -> Runtime_error.raise ~pos:[] ~message "tls"
       in
       let fd = Http.connect ?bind_address ~timeout ?prefer host port in
-      let session = Liq_tls.init_client ~timeout ~client fd in
-      tls_socket ~pos:[] ~session self
+      try
+        let session = Liq_tls.init_client ~timeout ~client fd in
+        tls_socket ~pos:[] ~session self
+      with exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        Unix.close fd;
+        Printexc.raise_with_backtrace exn bt
 
     method server =
       ignore (server_config ());
