@@ -13,25 +13,30 @@ port = 1447
 errors = ref(0)
 reloaded = ref(false)
 
-def on_error(~restart_in, _) =
-  errors := errors() + 1
+def on_error(~restart_in, err) =
+  # Connections refused before the port opens must not advance the script.
   if
-    errors() == 2
+    error.kind(err) == "ssl"
   then
-    certificate := "./missing.cert"
-    raised =
-      try
-        transport.reload()
-        false
-      catch _ do
-        true
-      end
-    test.equal(raised, true)
+    errors := errors() + 1
+    if
+      errors() == 2
+    then
+      certificate := "./missing.cert"
+      raised =
+        try
+          transport.reload()
+          false
+        catch _ do
+          true
+        end
+      test.equal(raised, true)
 
-    certificate := "./ssl2.cert"
-    key := "./ssl2.key"
-    transport.reload()
-    reloaded := true
+      certificate := "./ssl2.cert"
+      key := "./ssl2.key"
+      transport.reload()
+      reloaded := true
+    end
   end
   restart_in(0.1)
 end
@@ -41,8 +46,8 @@ def on_wake_up() =
     output.icecast(
       port=port,
       mount="ssl_reload",
-      connection_timeout=0.1,
-      timeout=0.1,
+      connection_timeout=1.,
+      timeout=1.,
       transport=client,
       %vorbis,
       sine()
