@@ -35,7 +35,7 @@
   liquidsoap-lang.reducer
   liquidsoap-lang.types
   liquidsoap-lang.values
-  liquidsoap_core_lang_dummy
+  liquidsoap_typecheck_dummy
   liquidsoap_lang
   liquidsoap_tooling
   re
@@ -43,7 +43,7 @@
 
 (executable
  (name gen_dune)
- (libraries liquidsoap_build_tools)
+ (libraries build_tools)
  (modules gen_dune))
 
 (rule

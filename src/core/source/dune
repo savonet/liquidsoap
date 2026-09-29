@@ -2,12 +2,10 @@
 ;
 ; The source class every operator inherits from, tracks, and the language
 ; values that wrap sources and clocks.
-;
-; liquidsoap_core_source.mli lists what this library exports. A module that is
-; not in it is private to this directory.
 
 (library
  (name liquidsoap_core_source)
+ (wrapped false)
  (flags
   (:standard
    -open
@@ -21,19 +19,7 @@
    -open
    Liquidsoap_lang_ast
    -open
-   Liquidsoap_lang
-   -open
-   Liquidsoap_core_utils
-   -open
-   Liquidsoap_core_lang
-   -open
-   Liquidsoap_core_stream
-   -open
-   Liquidsoap_core_media
-   -open
-   Liquidsoap_core_encoder
-   -open
-   Liquidsoap_core_clock))
+   Liquidsoap_lang))
  (libraries
   dtools
   duppy
@@ -45,7 +31,7 @@
   liquidsoap-lang.values
   liquidsoap_core_encoder
   liquidsoap_core_media
-  liquidsoap_core_lang
+  liquidsoap_typecheck
   liquidsoap_core_stream
   liquidsoap_core_utils
   metadata

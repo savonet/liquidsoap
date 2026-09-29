@@ -109,7 +109,7 @@ let on_finalize ~on_collect id =
 class virtual operator ?(stack = []) ?clock ~name sources =
   let frame_type = Type.var () in
   let clock = match clock with Some c -> c | None -> Clock.create ~stack () in
-  let id = ref (Lang_string.generate_id ~category:"source" name) in
+  let id = ref (Utils.generate_id ~category:"source" name) in
   let on_collect = Callbacks.create () in
   object (self)
     (** Monitoring *)
@@ -171,7 +171,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           s
       in
       if force && s <> self#id then (
-        id := Lang_string.generate_id ~category:"source" s;
+        id := Utils.generate_id ~category:"source" s;
 
         (* Sometimes the ID is changed during initialization, in order to make it
          equal to the server name, which is only registered at initialization

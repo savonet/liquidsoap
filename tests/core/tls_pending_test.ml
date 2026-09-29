@@ -151,10 +151,10 @@ let () =
   let scheduler = Duppy.create () in
   Duppy.start ~pool:(`Domains 2) scheduler;
   let ssl =
-    Builtins_ssl.transport ~min_protocol:None ~max_protocol:None ~read_timeout
+    Liquidsoap_ssl.transport ~min_protocol:None ~max_protocol:None ~read_timeout
       ~write_timeout:read_timeout
       ~server_context:
-        (Builtins_ssl.server_context ~min_protocol:None ~max_protocol:None
+        (Liquidsoap_ssl.server_context ~min_protocol:None ~max_protocol:None
            ~password:None
            ~certificate:(fun () -> certificate)
            ~key:(fun () -> Some key))
@@ -162,9 +162,9 @@ let () =
       ()
   in
   let tls =
-    Builtins_tls.transport ~read_timeout ~write_timeout:read_timeout
+    Liquidsoap_tls.transport ~read_timeout ~write_timeout:read_timeout
       ~server_config:
-        (Builtins_tls.server_config
+        (Liquidsoap_tls.server_config
            ~certificate:(fun () -> certificate)
            ~key:(fun () -> Some key)
            ~client_certificate:(fun () -> None))

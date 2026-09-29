@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_irc)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries dtools irc-client irc-client-unix liquidsoap_core result)
- (wrapped false)
  (optional))

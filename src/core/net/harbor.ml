@@ -180,7 +180,7 @@ module type T = sig
   val custom : unit -> 'a
 
   val add_http_handler :
-    pos:Liquidsoap_lang_prelude.Pos.t list ->
+    pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
     verb:http_verb ->
@@ -233,7 +233,7 @@ module type T = sig
   val relayed : string -> 'a
 
   val add_source :
-    pos:Liquidsoap_lang_prelude.Pos.t list ->
+    pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
     mountpoint:Lang.regexp ->
@@ -398,7 +398,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let rec find = function
       | [] -> raise Not_found
       | (regex, handler) :: rest -> (
-          let rex = regex.Liquidsoap_lang.Lang_regexp.regexp in
+          let rex = regex.Lang_regexp.regexp in
           try
             let sub = Re.Pcre.exec ~rex mount in
             let names = Re.Pcre.names rex in
@@ -978,7 +978,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | None -> ans_404 base_uri
     in
     let f (verb, regex, handler) =
-      let rex = regex.Liquidsoap_lang.Lang_regexp.regexp in
+      let rex = regex.Lang_regexp.regexp in
       let sub =
         Lazy.Mutexed.from_fun (fun () ->
             try Some (Re.Pcre.exec ~rex base_uri) with _ -> None)

@@ -1,5 +1,3 @@
-open Liquidsoap_lang
-
 (* Only %ffmpeg encodes pcm_s16 or pcm_f32 audio. *)
 
 let typecheck encoder =

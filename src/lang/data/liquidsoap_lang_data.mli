@@ -16,7 +16,7 @@ module Json = Json
 module Doc = Doc
 
 (** Path resolution and a couple of formatting helpers. *)
-module Utils = Utils
+module Utils_base = Utils_base
 
 (** Messages emitted before the logger is up. *)
 module Startup = Startup

@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_ffmpeg_decoder)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   dtools
   ffmpeg-av
@@ -9,7 +7,6 @@
   ffmpeg-avutil
   ffmpeg-swresample
   ffmpeg-swscale
-  liquidsoap-lang
   liquidsoap_core
   liquidsoap_ffmpeg_base
   menhirLib

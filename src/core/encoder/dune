@@ -2,12 +2,10 @@
 ;
 ; The encoder framework, one module per output format, and the language
 ; bindings that turn %mp3(...) and friends into encoder formats.
-;
-; liquidsoap_core_encoder.mli lists what this library exports. A module that is
-; not in it is private to this directory.
 
 (library
  (name liquidsoap_core_encoder)
+ (wrapped false)
  (flags
   (:standard
    -open
@@ -21,15 +19,7 @@
    -open
    Liquidsoap_lang_ast
    -open
-   Liquidsoap_lang
-   -open
-   Liquidsoap_core_utils
-   -open
-   Liquidsoap_core_encoder_types
-   -open
-   Liquidsoap_core_stream
-   -open
-   Liquidsoap_core_media))
+   Liquidsoap_lang))
  (libraries
   dtools
   liquidsoap-lang
@@ -38,7 +28,7 @@
   liquidsoap-lang.prelude
   liquidsoap-lang.types
   liquidsoap-lang.values
-  liquidsoap_core_encoder_types
+  encoder_types
   liquidsoap_core_stream
   liquidsoap_core_utils
   metadata

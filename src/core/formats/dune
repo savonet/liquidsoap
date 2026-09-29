@@ -3,13 +3,11 @@
 ; Everything here is mm-free and settings-free: the language server and the
 ; browser build link this library to compute the same content types the binary
 ; does. Adding a dependency on another core library defeats that.
-;
-; liquidsoap_core_formats.mli lists what this library exports. A module that is
-; not in it is private to this directory.
 
 (library
  (name liquidsoap_core_formats)
  (public_name liquidsoap.formats)
+ (wrapped false)
  (flags
   (:standard
    -open

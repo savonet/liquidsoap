@@ -47,12 +47,10 @@
 ; Logging, threads, processes, sockets, time, string handling, build-time
 ; paths and the global configuration tree. Depends on no other core library:
 ; anything here must make sense without knowing what a frame or a source is.
-;
-; liquidsoap_core_utils.mli lists what this library exports. A module that is
-; not in it is private to this directory.
 
 (library
  (name liquidsoap_core_utils)
+ (wrapped false)
  (flags
   (:standard
    -open
@@ -74,7 +72,7 @@
   duppy
   liquidsoap-lang
   liquidsoap-lang.ast
-  liquidsoap_core_formats
+  (re_export liquidsoap_core_formats)
   liquidsoap-lang.cache
   liquidsoap-lang.console
   liquidsoap-lang.data

@@ -25,7 +25,6 @@ exception Found of (Lang.value * (string * Lang.value) list option)
 let settings = ref Lang.null
 
 let dtools_constr =
-  let open Liquidsoap_lang in
   let open Type in
   constr ~name:"dtools" ~descr:"unit, bool, int, float, string or [string]"
     (fun ~subtype ~satisfies:_ b ->

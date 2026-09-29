@@ -4,11 +4,9 @@
 ; to encode anything, so this half of the encoder registry depends on the
 ; language and the content formats alone. The other half -- building the
 ; encoder itself -- lives in liquidsoap_core_encoder.
-;
-; liquidsoap_core_encoder_types.mli lists what this library exports.
 
 (library
- (name liquidsoap_core_encoder_types)
+ (name encoder_types)
  (public_name liquidsoap.encoder_types)
  (flags
   (:standard
@@ -23,9 +21,7 @@
    -open
    Liquidsoap_lang_ast
    -open
-   Liquidsoap_lang
-   -open
-   Liquidsoap_core_formats))
+   Liquidsoap_lang))
  (libraries
   liquidsoap-lang
   liquidsoap-lang.ast

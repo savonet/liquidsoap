@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_stereotool)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries liquidsoap_core mm mm.audio mm.base stereotool)
- (wrapped false)
  (optional))

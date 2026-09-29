@@ -4,7 +4,7 @@
 
 (executable
  (name gen_dune)
- (libraries liquidsoap_build_tools)
+ (libraries build_tools)
  (modules gen_dune))
 
 (rule

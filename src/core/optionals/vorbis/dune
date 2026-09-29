@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_vorbis)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   dtools
   liquidsoap_core

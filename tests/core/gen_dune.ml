@@ -55,8 +55,6 @@ let () =
 (executable
  (name %s)
  (modules %s)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   liquidsoap_builtins

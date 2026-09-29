@@ -1,7 +1,4 @@
 (library
  (name liquidsoap_portaudio)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries dtools liquidsoap_core mm mm.audio mm.base portaudio)
- (wrapped false)
  (optional))

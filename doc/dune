@@ -17,7 +17,7 @@
  (name gen_dune)
  (preprocess
   (pps ppx_string))
- (libraries re liquidsoap_build_tools)
+ (libraries re build_tools)
  (modules gen_dune))
 
 (rule

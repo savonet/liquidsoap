@@ -8,7 +8,7 @@
 
 (executable
  (name gen_dune)
- (libraries liquidsoap_build_tools test_media_formats)
+ (libraries build_tools test_media_formats)
  (modules gen_dune))
 
 (rule

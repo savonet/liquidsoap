@@ -8,8 +8,6 @@
 
 (library
  (name liquidsoap_builtins)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   cron
   cry
@@ -17,10 +15,6 @@
   dtools
   duppy
   fileutils
-  liquidsoap-lang
-  liquidsoap-lang.ast
-  liquidsoap-lang.data
-  liquidsoap-lang.prelude
   liquidsoap_core
   liquidsoap_file_watcher
   magic-mime

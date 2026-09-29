@@ -698,8 +698,6 @@
  (wrapped false)
  (modules
   (:standard \ gen_dune))
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   liquidsoap_core
   (select

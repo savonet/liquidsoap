@@ -6,9 +6,8 @@ let report exn =
   let buf = Buffer.create 1024 in
   let formatter = Format.formatter_of_buffer buf in
   (try
-     Liquidsoap_lang.Runtime.throw ~formatter ~lexbuf:None
-       ~bt:(Printexc.get_callstack 0) () exn
-   with Liquidsoap_lang.Runtime.Error -> ());
+     Runtime.throw ~formatter ~lexbuf:None ~bt:(Printexc.get_callstack 0) () exn
+   with Runtime.Error -> ());
   Format.pp_print_flush formatter ();
   Buffer.contents buf
 

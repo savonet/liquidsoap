@@ -315,7 +315,7 @@ let string_of_ground v =
   match v with
     | Value.String { value = s } -> s
     | Value.Bool { value = b } -> string_of_bool b
-    | Value.Float { value = f } -> Utils.string_of_float f
+    | Value.Float { value = f } -> Utils_base.string_of_float f
     | Value.Int { value = i; flags } -> Value.string_of_int_value ~flags i
     | _ -> assert false
 

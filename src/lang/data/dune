@@ -2,9 +2,8 @@
 ; on: JSON, documentation, method maps, positions-free utilities, the runtime
 ; error type, and the generated build configuration.
 ;
-; Kept wrapped because `Doc`, `Startup` and `Utils` collide with modules of the
-; same name in liquidsoap_core; consumers get them unqualified through
-; `-open Liquidsoap_lang_data`.
+; Kept wrapped because liquidsoap_core_lang publishes augmented `Doc` and
+; `Startup` under the same names.
 
 (menhir
  (modules json_parser))

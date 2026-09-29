@@ -3,12 +3,10 @@
 ; AVI/WAV readers and writers, sample-rate and channel-layout converters,
 ; and the Decoder plug registry. The concrete decoders live in decoders/,
 ; above request/, because they register metadata resolvers into requests.
-;
-; liquidsoap_core_media.mli lists what this library exports. A module that is
-; not in it is private to this directory.
 
 (library
  (name liquidsoap_core_media)
+ (wrapped false)
  (flags
   (:standard
    -open
@@ -18,11 +16,7 @@
    -open
    Liquidsoap_lang_values
    -open
-   Liquidsoap_lang
-   -open
-   Liquidsoap_core_utils
-   -open
-   Liquidsoap_core_stream))
+   Liquidsoap_lang))
  (libraries
   dtools
   liquidsoap-lang

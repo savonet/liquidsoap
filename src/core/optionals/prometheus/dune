@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_prometheus)
- (flags
-  (:standard -open Liquidsoap_core))
  (libraries
   cohttp
   cohttp-lwt

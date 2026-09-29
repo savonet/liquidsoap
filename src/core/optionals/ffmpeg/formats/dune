@@ -11,6 +11,7 @@
 (library
  (name liquidsoap_ffmpeg_formats)
  (public_name liquidsoap.ffmpeg_formats)
+ (wrapped false)
  (flags
   (:standard
    -open
@@ -24,11 +25,7 @@
    -open
    Liquidsoap_lang_ast
    -open
-   Liquidsoap_lang
-   -open
-   Liquidsoap_core_formats
-   -open
-   Liquidsoap_core_encoder_types))
+   Liquidsoap_lang))
  (libraries
   liquidsoap-lang
   liquidsoap-lang.ast
@@ -36,5 +33,5 @@
   liquidsoap-lang.prelude
   liquidsoap-lang.types
   liquidsoap-lang.values
-  liquidsoap_core_encoder_types
+  encoder_types
   liquidsoap_core_formats))

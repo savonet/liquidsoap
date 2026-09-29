@@ -5,12 +5,10 @@
 ; metadata_base exist because Content and Frame genuinely need each other's
 ; types -- the shared definitions are hoisted into modules that depend on
 ; neither. Do not merge them back.
-;
-; liquidsoap_core_stream.mli lists what this library exports. A module that is
-; not in it is private to this directory.
 
 (library
  (name liquidsoap_core_stream)
+ (wrapped false)
  (flags
   (:standard
    -open
@@ -22,11 +20,7 @@
    -open
    Liquidsoap_lang_values
    -open
-   Liquidsoap_lang
-   -open
-   Liquidsoap_core_formats
-   -open
-   Liquidsoap_core_utils))
+   Liquidsoap_lang))
  (libraries
   dtools
   liquidsoap-lang

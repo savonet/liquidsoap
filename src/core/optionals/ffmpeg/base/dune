@@ -1,7 +1,5 @@
 (library
  (name liquidsoap_ffmpeg_base)
- (flags
-  (:standard -open Liquidsoap_core -open Liquidsoap_ffmpeg_formats))
  (libraries
   dtools
   ffmpeg-av
@@ -11,8 +9,7 @@
   ffmpeg-avutil
   ffmpeg-swresample
   ffmpeg-swscale
-  liquidsoap-lang
-  liquidsoap_core_encoder_types
+  encoder_types
   liquidsoap_ffmpeg_formats
   liquidsoap_core
   mm
