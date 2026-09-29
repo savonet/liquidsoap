@@ -65,6 +65,8 @@
 ## Changed:
 
 - Liquidsoap now requires OCaml 5.5 to build.
+- Removed the deprecated `input.udp` and `output.udp` operators. Use `input.srt`/`output.srt`
+  for low-latency network streaming.
 - `ffmpeg` log messages now go through liquidsoap's logger by default, with the same timestamps, log file and levels as the rest of the logs. Set `settings.ffmpeg.log.capture := false` to print them to standard error as before.
 - `output.harbor`'s `on_connect` and `on_disconnect` callbacks now receive a listener record with
   its session duration and bytes sent, and a new `listeners` method lists connected listeners. The
