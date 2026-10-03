@@ -2,6 +2,10 @@ name: Build opam
 
 on:
   workflow_call:
+    inputs:
+      is_release:
+        required: true
+        type: string
 
 jobs:
   build_opam:
@@ -24,6 +28,7 @@ jobs:
           opam-pin: false
           opam-depext: false
       - name: Pin synced modules
+        if: inputs.is_release != 'true'
         run: |
           for dir in src/modules/synced/*/; do
             (cd "$dir" && opam pin -ny .)

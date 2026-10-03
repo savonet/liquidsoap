@@ -39,8 +39,12 @@ if [ -n "${ENTRY}" ]; then
   RELEASE_TAG=$("$(dirname "$0")/release-channels.sh" |
       awk -F'\t' -v branch="${BRANCH}" '$2 == "rolling" && $3 == branch { print $1 }')
   IS_ROLLING_RELEASE=true
-  IS_RELEASE=true
   DOCKER_RELEASE=true
+  # A cycle still in development publishes rolling builds but builds as a
+  # development branch.
+  if [ "$(echo "${ENTRY}" | jq -r .supported)" != "wip" ]; then
+    IS_RELEASE=true
+  fi
 elif [ "${IS_FORK}" != "true" ] && [[ "${BRANCH}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
   echo "Branch is release branch"
   IS_RELEASE=true
