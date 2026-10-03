@@ -1,4 +1,4 @@
-# 0.1.7 (unreleased\_
+# 0.1.7 (unreleased)
 
 - Clip returned values, except in big array API.
 

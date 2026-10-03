@@ -26,7 +26,9 @@ TABLE=$(
   echo "| Branch | Latest release | Supported | Rolling Release |"
   echo "| --- | --- | --- | --- |"
   jq -r --arg repo "${REPO}" '
-    def status: if . == true then "✅" elif . == false then "❌" else "🚧" end;
+    def status:
+      if . == true then "✅" elif . == false then "❌"
+      elif . == "pre-release" then "🧪" else "🚧" end;
 
     .[] | [
       "| `\(.version)` | ",
