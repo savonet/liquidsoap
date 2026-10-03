@@ -114,7 +114,9 @@ static int pollset_filter(int set, int fd, int filter, int enable) {
   EV_SET(&ch, fd, filter, enable ? EV_ADD : EV_DELETE, 0, 0, NULL);
   if (kevent(set, &ch, 1, NULL, 0, NULL) == 0)
     return 0;
-  return (errno == ENOENT || errno == EBADF) ? 0 : -1;
+  /* Only a removal may find nothing registered; an addition that fails
+     reports it, so the scheduler fires the wait. */
+  return (!enable && (errno == ENOENT || errno == EBADF)) ? 0 : -1;
 }
 
 static int pollset_set(int set, int fd, int read, int write) {

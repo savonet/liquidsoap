@@ -1,13 +1,31 @@
 (executables
- (names test_duppy bench_duppy bench_timer)
- (libraries duppy unix threads.posix))
+ (names
+  test_duppy
+  test_pollset
+  test_signal_handlers
+  bench_duppy
+  bench_timer
+  pollcost)
+ (libraries duppy stdlib_utils unix threads.posix))
+
+(rule
+ (alias runtest)
+ (package duppy)
+ (action
+  (progn
+   (run ./test_duppy.exe)
+   (run ./test_pollset.exe)
+   (run ./test_signal_handlers.exe))))
 
 (rule
  (alias citest)
- (action
-  (run ./test_duppy.exe)))
+ (deps
+  (alias runtest))
+ (action (progn)))
 
 (rule
  (alias bench)
  (action
-  (run ./bench_duppy.exe)))
+  (progn
+   (run ./bench_duppy.exe)
+   (run ./pollcost.exe))))
