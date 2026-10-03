@@ -43,8 +43,8 @@ TABLE=$(
 )
 
 SPLICED=$(
-  awk -v start="${START}" -v end="${END}" -v table="${TABLE}" '
-    $0 == start { print; print table; skip = 1; next }
+  TABLE="${TABLE}" awk -v start="${START}" -v end="${END}" '
+    $0 == start { print; print ENVIRON["TABLE"]; skip = 1; next }
     $0 == end { skip = 0 }
     !skip { print }
   ' "${README}"

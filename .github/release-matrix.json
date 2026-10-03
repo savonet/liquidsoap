@@ -3,7 +3,7 @@
     "version": "2.5.x",
     "branch": "main",
     "save_traces": true,
-    "supported": "wip",
+    "supported": "pre-release",
     "latest_release": null
   },
   {

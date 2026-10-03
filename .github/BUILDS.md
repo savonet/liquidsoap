@@ -38,6 +38,8 @@ A build's kind is determined as follows.
 
 A version line is work in progress from the start of its development cycle until it is considered ready for its first release candidate. Whether its branch publishes rolling builds during that time is optional and is decided by the release matrix alone.
 
+Between then and its first final release, a version line is in pre-release: its branch builds as a release, but the line MUST NOT be presented as supported until a final release exists.
+
 ## Requirements
 
 ### Release builds
