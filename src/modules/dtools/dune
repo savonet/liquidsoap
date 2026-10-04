@@ -2,7 +2,7 @@
  (name dtools)
  (libraries
   str
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   unix
   (select

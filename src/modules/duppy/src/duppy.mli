@@ -37,7 +37,8 @@
     * {2 Duppy task scheduler for OCaml.}
     *
     * {!Duppy} is a task scheduler for ocaml. It implements a wrapper
-    * around [Unix.select].
+    * around the platform's readiness call: [epoll] or [kqueue], and
+    * [poll] elsewhere. SPEC.md states what it guarantees.
     *
     * Using {!Duppy.Task}, the programmer can easily submit tasks that need to wait
     * on a socket even, or for a given timeout (possibly zero).
@@ -46,8 +47,8 @@
     *
     * {!Duppy.Io} implements recursive easy reading and writing to a [Unix.file_descr]
     *
-    * Finally, {!Duppy.Monad} and {!Duppy.Monad.Io} provide a monadic interface to
-    * program server code that with an implicit return/reply execution flow.
+    * Finally, {!Duppy.run} lets a computation park on its events in direct
+    * style instead of splitting into tasks.
     *
     * The scheduler runs a pool of domains, one per core: a task is dispatched
     * onto whichever domain is free when it becomes ready. It can also run a
@@ -58,19 +59,45 @@
     objects used for priorities. *)
 type 'a scheduler
 
-(** How a task is run.
+(** How a task is run. A worker is one domain of the pool; on a thread pool,
+    where a worker is a thread, [`Threaded] tasks run in place.
 
-    [`Immediate] tasks never block. All the ready ones are taken as a single
-    batch and run in sequence directly on a domain of the pool, which costs less
-    than handing each of them over.
+    [`Immediate]: a worker takes every ready one as a single batch and runs them
+    in sequence on its own thread. No hand-off, no auxiliary thread, no slot of
+    [max_blocking]. Nothing else is dispatched by that worker until the batch
+    ends, so one task that blocks holds up the rest of the batch and the worker.
+    A worker alternates a batch with one task of another class, so a ready list
+    that refills as fast as it drains does not starve the others.
 
-    [`Threaded] tasks may park in a syscall. Each one is run on an auxiliary
-    thread inside its domain, so that parking releases the runtime lock and the
-    domain goes back to dispatching.
+    [`Direct]: a worker takes one and runs it on its own thread. No hand-off, no
+    auxiliary thread, no slot of [max_blocking], so it is taken even when every
+    slot is in use. The worker dispatches nothing else until it returns. Ready
+    ones are taken one per worker and so spread over the pool. The worker's
+    auxiliary threads share its domain lock, and may be given it while the task
+    runs.
 
-    [`Direct] tasks are long but do not block: each one runs on a domain by
-    itself, one at a time, so several of them spread over the pool rather than
-    running in sequence on one domain. *)
+    [`Threaded]: a worker hands one to an auxiliary thread of its domain and
+    goes back to dispatching. When the task parks in a syscall the runtime lock
+    is released and the domain keeps running. Each holds a slot of
+    [max_blocking] until it returns; with none left the workers decline them,
+    and they wait for a slot.
+
+    Among ready [`Direct] and [`Threaded] tasks a worker takes one of the lowest
+    [rank], and among those the one that became ready first.
+
+    {3 Choosing a class}
+
+    Which work goes where belongs to the application. As a starting point:
+
+    - [`Immediate] for reads and writes on descriptors known not to block, and
+      for bookkeeping that only wakes something else.
+    - [`Direct] for work that is time-sensitive and has to run ahead of the
+      rest, such as a clock, and for work whose duration is predictable and
+      large enough to be worth a scheduling step of its own.
+    - [`Threaded] for everything that may block or run long for any reason: disk
+      and network calls, loops sized by their data. It is the default because a
+      task wrongly placed here costs a hand-off, while one wrongly placed in the
+      other two stalls a worker. *)
 type execution_class = [ `Immediate | `Direct | `Threaded ]
 
 (** Wraps every task body. Effect handlers do not cross the thread a task is
@@ -85,44 +112,47 @@ exception Unknown_domain of int
   * @param on_fatal called when the event loop itself crashes, which should be
   * considered a MAJOR FAILURE: all non-ready tasks are dropped. Default: print
   * the backtrace and exit.
-  * @param compare the comparison function used to sort tasks according to priorities.
-  * Works as in [List.sort]
+  * @param rank the urgency of a priority, lowest first, between [0] and [63].
+  * Default: [fun _ -> 0]
   * @param classify how each priority is run. Default: [fun _ -> `Threaded]
   * @param wrapper wraps every task body. Default: run it as is *)
 val create :
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
   ?on_fatal:(exn -> Printexc.raw_backtrace -> unit) ->
-  ?compare:('a -> 'a -> int) ->
+  ?rank:('a -> int) ->
   ?classify:('a -> execution_class) ->
   ?wrapper:wrapper ->
   unit ->
   'a scheduler
 
-(** [start s] spawns the scheduler's pool: one member running the event loop,
-  * and the others running tasks. Raises [Failure] if [s] is already started.
+(** [start s] spawns the scheduler's pool, and the thread that waits for
+  * events, which is not a domain and runs no OCaml code. Raises [Failure] if
+  * [s] is already started.
   *
-  * With [`Domains n], the pool is [n] domains and tasks run in parallel.
-  * Spawning a domain makes [Unix.fork] fail from then on, so this must be
-  * called after any daemonization.
+  * With [`Domains n], the pool is [n] workers on [n] domains, the calling
+  * domain being the first of them: [n - 1] domains are spawned. Tasks run in
+  * parallel. Spawning a domain makes [Unix.fork] fail from then on, so with
+  * [n > 1] this must be called after any daemonization.
+  *
+  * With [`Selective_domains accepts], the pool is likewise one worker and one
+  * domain per predicate, each taking only the tasks whose priority it accepts.
+  * The first predicate is the calling domain's: one that refuses everything
+  * keeps that domain out of the pool.
   *
   * With [`Threads accepts], the pool is one systhread per predicate, each
   * taking only the tasks whose priority it accepts, and a [`Threaded] task runs
   * in place on the thread that took it. Nothing runs in parallel and
   * [Unix.fork] stays usable.
   * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
-  * @param current_domain also run one worker as a thread on the calling
-  * domain, so that domain takes tasks too and a GC there reclaims what it
-  * allocated. Ignored for a thread pool, which is on the calling domain
-  * already. Default: [false]
   * @param max_blocking the most [`Threaded] tasks that may be in flight at
-  * once, spread evenly over the domains. Each domain keeps at least one slot,
-  * rounded up, so the whole budget is available even when it does not divide
-  * evenly and a value below their number gives one per domain. Unused by a
-  * thread pool. Default: [64]
+  * once over the whole pool, whichever workers took them. Unused by a thread
+  * pool. Default: [64]
   * @param log Logging function. Default: no logging *)
 val start :
-  ?pool:[ `Domains of int | `Threads of ('a -> bool) list ] ->
-  ?current_domain:bool ->
+  ?pool:
+    [ `Domains of int
+    | `Selective_domains of ('a -> bool) list
+    | `Threads of ('a -> bool) list ] ->
   ?max_blocking:int ->
   ?log:(string -> unit) ->
   'a scheduler ->
@@ -157,10 +187,7 @@ module Task : sig
   (** Type for possible events. * * Please not that currently, under win32, all
       socket used in ocaml-duppy * are expected to be in blocking mode only! *)
   type event =
-    [ `Delay of float
-    | `Write of Unix.file_descr
-    | `Read of Unix.file_descr
-    | `Exception of Unix.file_descr ]
+    [ `Delay of float | `Write of Unix.file_descr | `Read of Unix.file_descr ]
 
   (** Schedule a task. With [domain], only the worker on that domain runs it,
       and so does every task its handler returns. Raises [Unknown_domain] when
@@ -184,6 +211,15 @@ val run : (unit -> unit) -> unit
     task handler raises [Effect.Unhandled]. *)
 val await :
   priority:'a -> 'a scheduler -> [< Task.event ] list -> Task.event list
+
+(** [suspend ~priority s register] parks the calling computation and calls
+    [register] with a function that resumes it. The resumer may be called from
+    any thread or domain, at most once; the computation then continues as a task
+    of [priority]. *)
+val suspend : priority:'a -> 'a scheduler -> ((unit -> unit) -> unit) -> unit
+
+(** Monotonic seconds with an arbitrary origin, the clock of every delay. *)
+val time : unit -> float
 
 (** [reschedule ?delay ~priority s] parks and resumes the computation under
     [priority], to leave a priority a computation should no longer hold. *)
@@ -236,7 +272,7 @@ end
 module type Io_t = sig
   type socket
 
-  (** Type for markers. [Split s] recognizes all regexp allowed by the [Pcre]
+  (** Type for markers. [Split s] recognizes all regexp allowed by the [Re.Pcre]
       module. *)
   type marker = Length of int | Split of string
 

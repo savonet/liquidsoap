@@ -28,7 +28,7 @@
   mm.video
   re
   sedlex
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   uri
   unix))

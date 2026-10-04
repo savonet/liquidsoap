@@ -77,8 +77,7 @@ let blocking_tasks =
         "Raising it helps when the tasks truly wait, on a socket or a";
         "slow mount. A task that uses a core instead of waiting on one, such as";
         "probing a file for its decoder, gains nothing from extra slots and";
-        "takes cores the streaming threads need. Each domain keeps at least one";
-        "slot, so setting this below the number of domains has no effect.";
+        "takes cores the streaming threads need.";
       ]
 
 let legacy =
@@ -271,7 +270,7 @@ let scheduler : priority Duppy.scheduler =
          Please report at: https://github.com/savonet/liquidsoap";
       flush_all ();
       _exit 1)
-    ~compare:(fun a b -> compare (priority_rank a) (priority_rank b))
+    ~rank:priority_rank
     ~classify:(function
       | `Non_blocking -> `Immediate
       (* A clock tick is long and holds a stream to real time: it runs on the
@@ -321,7 +320,7 @@ let start () =
              settings.scheduler.legacy is set.";
         None)
     in
-    Duppy.start ?pool ~current_domain:true ~max_blocking:blocking_tasks#get
+    Duppy.start ?pool ~max_blocking:blocking_tasks#get
       ?log:(scheduler_logger ()) scheduler)
 
 (** Waits for [f()] to become true on condition [c]. *)

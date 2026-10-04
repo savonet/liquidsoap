@@ -8,4 +8,4 @@
  (name liquidsoap_stdlib_wrappers)
  (flags
   (:standard -open Liquidsoap_lang))
- (libraries fileutils liquidsoap-lang stdlib_utils unix))
+ (libraries fileutils liquidsoap-lang duppy.stdlib_utils unix))

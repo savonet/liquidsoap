@@ -10,7 +10,7 @@
   mirage-crypto-rng.unix
   ptime
   ptime.clock.os
-  stdlib_utils
+  duppy.stdlib_utils
   tls
   x509
   unix)

@@ -35,6 +35,7 @@
     dune-build-info
     xmlm
     (liquidsoap-lang (= :version))
+    (duppy (= :version))
     (ppx_string :build))
   (depopts
     alsa
@@ -120,6 +121,13 @@
 "\| use, in the Unix tradition of simple strong components working
 "\| together.
   ))
+
+(package
+  (name duppy)
+  (synopsis "Task scheduler for OCaml 5 domains")
+  (depends
+    (ocaml (>= 5.5))
+    (re (>= 1.11.0))))
 
 (package
   (name liquidsoap-lang)
