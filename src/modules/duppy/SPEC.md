@@ -186,3 +186,40 @@ The binding is the only code that knows both sides. It:
 A handle is chosen by the binding and is valid from submission until the task is taken by a worker or dropped. The binding MUST NOT submit a handle that is still valid. The core treats it as opaque.
 
 The binding stores the handler under its handle before submitting the task, and removes it when the task is taken or dropped. A worker that receives a handle from the core therefore always finds its handler.
+
+## 13. Examples
+
+This section is not normative.
+
+### 13.1 Order on one worker
+
+A pool of one worker is idle when these tasks become ready, in this order:
+
+| task | class     | rank |
+| ---- | --------- | ---- |
+| A    | Immediate | 0    |
+| B    | Threaded  | 2    |
+| C    | Immediate | 0    |
+| D    | Direct    | 2    |
+| E    | Direct    | 1    |
+
+The worker takes:
+
+1. A and C, as one batch (6.2).
+2. E, the lowest rank among the Direct and Threaded tasks (6.1).
+3. D, since a Direct task goes before a Threaded one of the same rank (6.1).
+4. B, which runs parked and leaves the worker free (4).
+
+An Immediate task F that becomes ready while E runs is taken after E and before D: the worker alternates between a batch and a single task (6.2).
+
+### 13.2 Blocking budget
+
+A pool of two workers starts with `max_blocking` set to 2, which gives each worker one slot (7). Three Threaded tasks X, Y and Z become ready.
+
+Each worker takes one of X and Y. Z stays ready: neither worker has a slot left, and both keep taking Immediate and Direct tasks. When X returns, its worker takes Z.
+
+### 13.3 A deadline under load
+
+A task waits on `Delay 0.02` while every worker runs a Direct handler that lasts 10 ms.
+
+At the deadline the task becomes ready, whatever the workers are doing (8). Its handler starts when the first worker returns, up to 10 ms later: the scheduler does not interrupt a handler (4). Its rank decides only which ready task that worker takes first.
