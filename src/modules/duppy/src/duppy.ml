@@ -174,12 +174,14 @@ let rearm s fd =
                })
              no_interest tasks)
 
+exception Unwatchable of fd
+
 let register s t =
   List.iter
     (fun fd ->
       Hashtbl.replace s.by_fd fd
         (t :: Option.value ~default:[] (Hashtbl.find_opt s.by_fd fd));
-      rearm s fd)
+      try rearm s fd with Unix.Unix_error _ -> raise (Unwatchable fd))
     (fds_of_events t.events);
   if t.deadline < infinity then
     s.timers <- Timers.add (t.deadline, t.id) t s.timers
@@ -345,10 +347,12 @@ module Task = struct
             try
               Mutex.protect s.tasks_m (fun () -> register s item);
               []
-            with Unix.Unix_error _ ->
+            with Unwatchable unwatchable ->
               Mutex.protect s.tasks_m (fun () -> unregister s item);
               List.filter
-                (function `Delay _ -> false | _ -> true)
+                (function
+                  | `Read fd | `Write fd | `Exception fd -> fd = unwatchable
+                  | `Delay _ -> false)
                 (item.events :> event list))
         | fired -> fired
     in

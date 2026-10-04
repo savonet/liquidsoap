@@ -27,7 +27,7 @@
   mm
   mm.base
   re
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   liquidsoap_core_source
   unix))

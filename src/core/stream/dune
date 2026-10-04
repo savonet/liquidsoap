@@ -38,7 +38,7 @@
   mm.image
   mm.midi
   mm.video
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix)
  (foreign_stubs
   (language c)
