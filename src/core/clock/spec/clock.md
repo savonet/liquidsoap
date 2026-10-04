@@ -215,6 +215,15 @@ current stream time. Whatever advance or latency had accumulated is dropped.
 
 In the other sync modes, steps 1–3 still apply and step 4 does not.
 
+**Stated intent.** The interface documents this as: a clock with a current sync
+source "delegates latency control to it". The clock has no separate code path
+for a self-sync clock. The delegation is carried entirely by the time source
+the sync source supplies: latency control ([§9.1](#91-latency-control)) runs
+unchanged, on that time source. A sync source that paces the stream by itself
+supplies the unconstrained time source ([§17](#17-contracts-the-clock-relies-on)),
+on which the clock is never behind and sleeping returns at once. A sync source
+may instead supply a real time source and so keep the clock's own pacing.
+
 **Sync error text** (error number 17):
 
 ```

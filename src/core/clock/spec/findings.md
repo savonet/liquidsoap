@@ -8,6 +8,12 @@ tries to refute it). Section numbers refer to [clock.md](clock.md).
 
 ### D1. A clock paced by a sound card crawls when animated as a task — checked
 
+The code contradicts its own stated rule: a self-sync clock delegates latency
+control to its sync source ([clock.md §8](clock.md#8-sync-sources)). The rule
+is not written as a rule anywhere in the clock; it holds only as a side effect
+of the time source, and the task animator's rest does not go through the time
+source.
+
 Sync sources that pace the stream themselves use the unconstrained time
 source: now never advances (§17). After a switch to such a sync source, the
 stream time is therefore always ahead of now, by the amount produced since the
