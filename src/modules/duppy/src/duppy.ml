@@ -139,7 +139,11 @@ type 'a scheduler = {
   by_fd : (fd, 'a t list) Hashtbl.t;
   mutable timers : 'a t Timers.t;
   tasks_m : Mutex.t;
-  mutable ready : 'a ready list;
+  (* Ready tasks by class, most recent first. *)
+  mutable ready_immediate : 'a ready list;
+  mutable ready_direct : 'a ready list;
+  mutable ready_threaded : 'a ready list;
+  mutable ready_count : int;
   mutable idle : 'a worker list;
   ready_m : Mutex.t;
   started : bool Atomic.t;
@@ -236,7 +240,10 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     by_fd = Hashtbl.create 64;
     timers = Timers.empty;
     tasks_m = Mutex.create ();
-    ready = [];
+    ready_immediate = [];
+    ready_direct = [];
+    ready_threaded = [];
+    ready_count = 0;
     idle = [];
     ready_m = Mutex.create ();
     started = Atomic.make false;
@@ -260,6 +267,14 @@ let wake_up s =
   | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
   ->
     ()
+
+(** [s.ready_m] must be held. *)
+let push_ready s e =
+  s.ready_count <- s.ready_count + 1;
+  match s.classify e.prio with
+    | `Immediate -> s.ready_immediate <- e :: s.ready_immediate
+    | `Direct -> s.ready_direct <- e :: s.ready_direct
+    | `Threaded -> s.ready_threaded <- e :: s.ready_threaded
 
 let signal_worker w =
   Mutex.lock w.worker_m;
@@ -358,13 +373,12 @@ module Task = struct
         | fired ->
             item.dispatched <- true;
             Mutex.lock s.ready_m;
-            s.ready <-
+            push_ready s
               {
                 prio = item.prio;
                 run = (fun () -> item.fire fired);
                 target = item.pinned;
-              }
-              :: s.ready;
+              };
             Mutex.unlock s.ready_m;
             incr ready;
             Option.iter (fun d -> pinned := d :: !pinned) item.pinned
@@ -470,52 +484,56 @@ type 'a work =
     slot, since it runs on the domain rather than on one of its auxiliary
     threads, so a worker out of slots still takes it. *)
 let take_work s w =
-  let mine, others =
-    List.partition
-      (fun e ->
-        w.accepts e.prio && (e.target = None || e.target = Some w.domain))
-      s.ready
+  let mine e =
+    w.accepts e.prio && (e.target = None || e.target = Some w.domain)
   in
-  let direct, rest =
-    List.partition (fun e -> s.classify e.prio = `Direct) mine
+  let least best e =
+    match best with
+      | Some b when s.compare e.prio b.prio >= 0 -> best
+      | _ -> if mine e then Some e else best
   in
-  let immediate, blocking =
-    List.partition (fun e -> s.classify e.prio = `Immediate) rest
+  let has_slot = Atomic.get w.blocking < Atomic.get s.blocking_per_worker in
+  (* ponytail: each take scans the direct tasks, and the threaded ones when a
+     slot is free; a heap per class if that scan shows up in a profile. *)
+  let direct = List.fold_left least None s.ready_direct in
+  let single =
+    if has_slot then List.fold_left least direct s.ready_threaded else direct
   in
-  let singles =
-    if Atomic.get w.blocking < Atomic.get s.blocking_per_worker then
-      direct @ blocking
-    else direct
-  in
-  let can_block = singles <> [] in
+  let without e = List.filter (fun x -> x != e) in
   (* A worker alternates between a batch and a single task. Taking every ready
      immediate task on every round starves the rest whenever the ready list refills
      as fast as it drains, which a lone worker cannot escape by leaving the
      rest to someone else. *)
-    match immediate with
-    | _ :: _ when not (w.took_batch && can_block) ->
-        s.ready <- direct @ blocking @ others;
+    match single with
+    | _
+      when List.exists mine s.ready_immediate
+           && not (w.took_batch && single <> None) ->
+        let batch, others = List.partition mine s.ready_immediate in
+        s.ready_immediate <- others;
+        s.ready_count <- s.ready_count - List.length batch;
         w.took_batch <- true;
-        ( Some (Batch (List.rev_map (fun e -> e.run) immediate)),
-          take_idle s (List.length s.ready) )
-    | _ when can_block ->
-        let best =
-          List.fold_left
-            (fun best x -> if s.compare x.prio best.prio < 0 then x else best)
-            (List.hd singles) singles
-        in
-        s.ready <- List.filter (fun x -> x != best) s.ready;
-        w.took_batch <- false;
+        ( Some (Batch (List.rev_map (fun e -> e.run) batch)),
+          take_idle s s.ready_count )
+    | Some best ->
         let work =
-          if s.classify best.prio = `Direct then Direct best.run
-          else One best.run
+          if List.memq best s.ready_direct then begin
+            s.ready_direct <- without best s.ready_direct;
+            Direct best.run
+          end
+          else begin
+            s.ready_threaded <- without best s.ready_threaded;
+            One best.run
+          end
         in
-        (Some work, take_idle s (List.length s.ready))
+        s.ready_count <- s.ready_count - 1;
+        w.took_batch <- false;
+        (Some work, take_idle s s.ready_count)
     (* Blocking work is ready but this worker is at its own capacity for it:
        leaving it there would strand the task until a worker happens to look
        for an unrelated reason, so hand it to the ones that are idle. *)
-    | _ when blocking <> [] -> (None, take_idle s (List.length blocking))
-    | _ -> (None, [])
+    | None when List.exists mine s.ready_threaded ->
+        (None, take_idle s s.ready_count)
+    | None -> (None, [])
 
 let run_task s fn =
   match s.wrapper.wrap fn with
@@ -693,13 +711,12 @@ let poll_once s =
               in
               List.iter
                 (fun ((t : _ t), events) ->
-                  s.ready <-
+                  push_ready s
                     {
                       prio = t.prio;
                       run = (fun () -> t.fire events);
                       target = t.pinned;
-                    }
-                    :: s.ready)
+                    })
                 collected;
               List.map (claim_worker s) targets
               @ take_idle s (List.length collected))
