@@ -21,7 +21,6 @@ The **core** is the part of the scheduler that tracks waiting tasks, detects the
 - `Delay d`: `d` seconds have elapsed since the task was submitted.
 - `Read fd`: `fd` can be read without blocking.
 - `Write fd`: `fd` can be written without blocking.
-- `Exception fd`: `fd` is in an exceptional condition.
 
 Delays MUST be measured on a monotonic clock. A change of the wall-clock time MUST NOT move a deadline.
 
@@ -72,18 +71,17 @@ While a worker runs an Immediate batch or a Direct task it dispatches nothing el
 
 ## 5. Workers and eligibility
 
-A pool is one of:
+The workers of a pool run handlers in parallel with each other, and any of them can run any task.
 
-- **Parallel**: `n` workers that run handlers in parallel with each other.
-- **Serial**: workers that never run handlers at the same time, each declaring the priorities it accepts.
-
-A task is **eligible** for a worker when the worker accepts its priority and, if the task is pinned, the worker is the one it is pinned to. Workers of a parallel pool accept every priority.
+A task MAY be **pinned** to one worker. A task is **eligible** for a worker unless it is pinned to another one.
 
 A task pinned to a worker MUST only run on that worker, and so MUST every task its handler returns.
 
-Submitting a task pinned to a worker that does not exist or does not accept its priority MUST fail at submission.
+Submitting a task pinned to a worker that does not exist MUST fail at submission.
 
 The scheduler MUST work with a single worker. No rule in this document may be satisfied only by having a second one.
+
+An implementation MAY, at its own discretion, also offer a pool whose workers do not run in parallel. Such a pool is outside this specification.
 
 ## 6. Dispatch
 
@@ -115,19 +113,17 @@ A worker with nothing to take MUST NOT consume CPU while idle.
 
 `max_blocking` is the largest number of Threaded tasks that may be running at once. It is set when the pool starts.
 
-In a parallel pool the budget is divided evenly among the workers, rounded up, each worker keeping at least one slot. A worker whose slots are all in use MUST NOT take a Threaded task; it still takes Immediate and Direct ones.
+The budget is divided evenly among the workers, rounded up, each worker keeping at least one slot. A worker whose slots are all in use MUST NOT take a Threaded task; it still takes Immediate and Direct ones.
 
 A Threaded task that no worker can take for lack of a slot stays ready, keeps its place (6.1), and MUST be taken once a slot frees up.
 
 A caller MAY reserve one slot beyond the budget and later give it back. A lowered budget takes effect as running tasks return.
 
-In a serial pool a Threaded task runs in place on the worker that took it, and the budget is unused.
-
 ## 8. Timing
 
 The transition from waiting to ready MUST NOT wait for any handler to return.
 
-The transition from waiting to ready MUST NOT be delayed by the host: not by its garbage collector, not by its locks, not by the progress of any worker.
+The transition from waiting to ready MUST NOT be delayed by the host: not by any pause its runtime imposes on running code, not by its locks, not by the progress of any worker.
 
 A waiting task with a deadline `t` MUST be ready no later than `t` plus the time the operating system takes to schedule the core.
 
@@ -168,12 +164,12 @@ The scheduler is split in two.
 
 The core holds the waiting tasks, the deadlines, the watched descriptors, the ready tasks and the idle workers. It waits for events on its own thread.
 
-**The core MUST NOT depend on OCaml.** In particular:
+**The core MUST NOT depend on the host.** In particular:
 
-- It includes no header of the OCaml runtime and links against no part of it.
-- It builds and passes its own tests as a plain C library, with no OCaml toolchain present.
-- It holds no OCaml value. A task is known to the core by an integer **handle** and by plain data: its rank, class, eligibility, deadline, descriptors and which events occurred.
-- Its event thread is an ordinary operating-system thread, unknown to the OCaml runtime. It never runs OCaml code and is never stopped by the OCaml garbage collector.
+- It uses no interface of the host's runtime and links against no part of it.
+- It builds and passes its own tests alone, with no toolchain of the host present.
+- It holds no value of the host. A task is known to the core by an integer **handle** and by plain data: its rank, class, eligibility, deadline, descriptors and which events occurred.
+- Its event thread is an ordinary operating-system thread, unknown to the host's runtime. It never runs code of the host and is never paused by it.
 - Its event thread blocks every signal, so that no signal handler of the host runs on it.
 
 ### 12.2 The binding

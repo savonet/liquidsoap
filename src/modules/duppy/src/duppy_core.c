@@ -30,16 +30,15 @@
 
 #ifdef _WIN32
 #define poll WSAPoll
-#define DUPPY_POLL_EXCEPT 0
 #else
 #include <poll.h>
 #include <signal.h>
 #include <unistd.h>
-#define DUPPY_POLL_EXCEPT POLLPRI
 #endif
 
 #if defined(__linux__)
 #include <sys/epoll.h>
+#include <sys/timerfd.h>
 #define DUPPY_NATIVE "epoll"
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||    \
     defined(__NetBSD__) || defined(__DragonFly__)
@@ -49,6 +48,10 @@
 #endif
 
 #define MAX_EVENTS 512
+
+/* An error or a hangup, which satisfies whatever its descriptor is watched
+   for. */
+#define FD_FAILED 4
 #define NOT_IN_HEAP SIZE_MAX
 
 /* A wake-up is a byte the writer drops when the buffer is full, so the event
@@ -123,6 +126,7 @@ struct duppy_core {
   duppy_fd wake_write;
   int fallback;
   int native;
+  int timer;
   int started;
   int stopped;
   int error;
@@ -183,7 +187,23 @@ static void drain_wake(duppy_core *core) {
 
 #if defined(__linux__)
 
-static int native_open(void) { return epoll_create1(EPOLL_CLOEXEC); }
+static int native_open(duppy_core *core) {
+  struct epoll_event event;
+  memset(&event, 0, sizeof(event));
+  event.events = EPOLLIN;
+  int native = epoll_create1(EPOLL_CLOEXEC);
+  core->timer = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC | TFD_NONBLOCK);
+  event.data.fd = core->timer;
+  if (native >= 0 && core->timer >= 0 &&
+      epoll_ctl(native, EPOLL_CTL_ADD, core->timer, &event) == 0)
+    return native;
+  if (native >= 0)
+    close(native);
+  if (core->timer >= 0)
+    close(core->timer);
+  core->timer = -1;
+  return -1;
+}
 
 static int native_set(duppy_core *core, duppy_fd fd, int interest) {
   struct epoll_event event;
@@ -204,25 +224,43 @@ static void native_remove(duppy_core *core, duppy_fd fd) {
   epoll_ctl(core->native, EPOLL_CTL_DEL, fd, NULL);
 }
 
+/* epoll_wait counts in milliseconds, so the timeout is a timer in the set:
+   arming it also clears its previous expiry. */
 static int native_wait(duppy_core *core, double timeout, fd_event *events) {
   struct epoll_event fired[MAX_EVENTS];
-  int count = epoll_wait(core->native, fired, MAX_EVENTS, (int)(timeout * 1e3));
-  for (int i = 0; i < count; i++) {
-    events[i].fd = fired[i].data.fd;
-    events[i].flags = 0;
+  struct itimerspec wait;
+  memset(&wait, 0, sizeof(wait));
+  wait.it_value.tv_sec = (time_t)timeout;
+  wait.it_value.tv_nsec =
+      (long)((timeout - (double)wait.it_value.tv_sec) * 1e9);
+  if (timeout > 0 && wait.it_value.tv_sec == 0 && wait.it_value.tv_nsec == 0)
+    wait.it_value.tv_nsec = 1;
+  timerfd_settime(core->timer, 0, &wait, NULL);
+  int fired_count =
+      epoll_wait(core->native, fired, MAX_EVENTS, timeout > 0 ? -1 : 0);
+  int count = 0;
+  for (int i = 0; i < fired_count; i++) {
+    if (fired[i].data.fd == core->timer)
+      continue;
+    events[count].fd = fired[i].data.fd;
+    events[count].flags = 0;
     if (fired[i].events & EPOLLIN)
-      events[i].flags |= DUPPY_READ;
+      events[count].flags |= DUPPY_READ;
     if (fired[i].events & EPOLLOUT)
-      events[i].flags |= DUPPY_WRITE;
+      events[count].flags |= DUPPY_WRITE;
     if (fired[i].events & (EPOLLERR | EPOLLHUP))
-      events[i].flags |= DUPPY_EXCEPT;
+      events[count].flags |= FD_FAILED;
+    count++;
   }
-  return count;
+  return fired_count < 0 ? fired_count : count;
 }
 
 #elif defined(DUPPY_NATIVE)
 
-static int native_open(void) { return kqueue(); }
+static int native_open(duppy_core *core) {
+  (void)core;
+  return kqueue();
+}
 
 static int native_filter(duppy_core *core, duppy_fd fd, int filter,
                          int enable) {
@@ -258,14 +296,17 @@ static int native_wait(duppy_core *core, double timeout, fd_event *events) {
     if (fired[i].filter == EVFILT_WRITE)
       events[i].flags |= DUPPY_WRITE;
     if (fired[i].flags & (EV_ERROR | EV_EOF))
-      events[i].flags |= DUPPY_EXCEPT;
+      events[i].flags |= FD_FAILED;
   }
   return count;
 }
 
 #else
 
-static int native_open(void) { return -1; }
+static int native_open(duppy_core *core) {
+  (void)core;
+  return -1;
+}
 
 static int native_set(duppy_core *core, duppy_fd fd, int interest) {
   (void)core;
@@ -308,16 +349,17 @@ static int fallback_snapshot(duppy_core *core) {
       core->poll_fds[count].fd = entry->fd;
       core->poll_fds[count].events =
           ((entry->armed & DUPPY_READ) ? POLLIN : 0) |
-          ((entry->armed & DUPPY_WRITE) ? POLLOUT : 0) |
-          ((entry->armed & DUPPY_EXCEPT) ? DUPPY_POLL_EXCEPT : 0);
+          ((entry->armed & DUPPY_WRITE) ? POLLOUT : 0);
       count++;
     }
   return (int)count;
 }
 
+/* ponytail: poll counts in milliseconds, so a deadline is met up to one late;
+   ppoll where it exists would remove that. */
 static int fallback_wait(duppy_core *core, int watched, double timeout,
                          fd_event *events) {
-  int ready = poll(core->poll_fds, watched, (int)(timeout * 1e3));
+  int ready = poll(core->poll_fds, watched, (int)ceil(timeout * 1e3));
   if (ready < 0)
     return ready;
   int count = 0;
@@ -331,8 +373,8 @@ static int fallback_wait(duppy_core *core, int watched, double timeout,
       events[count].flags |= DUPPY_READ;
     if (fired & POLLOUT)
       events[count].flags |= DUPPY_WRITE;
-    if (fired & (POLLERR | POLLHUP | POLLNVAL | DUPPY_POLL_EXCEPT))
-      events[count].flags |= DUPPY_EXCEPT;
+    if (fired & (POLLERR | POLLHUP | POLLNVAL))
+      events[count].flags |= FD_FAILED;
     count++;
   }
   return count;
@@ -723,6 +765,25 @@ static candidate find_single(duppy_core *core, int worker_index, int has_slot) {
   return found;
 }
 
+static int has_work(duppy_core *core, int worker_index) {
+  worker *idler = &core->workers[worker_index];
+  if (find_single(core, worker_index, idler->blocking < core->slots).entry)
+    return 1;
+  return earliest(&core->immediate, NULL, &idler->pinned_immediate, NULL,
+                  worker_index)
+             .entry != NULL;
+}
+
+/* A worker woken for one task may take another, which leaves the first to
+   whoever else is idle. */
+static void offer_remaining(duppy_core *core) {
+  for (int i = 0; i < core->worker_count; i++)
+    if (core->workers[i].idle && has_work(core, i)) {
+      wake_worker(&core->workers[i]);
+      return;
+    }
+}
+
 static void take_candidate(candidate *found) {
   queue_unlink(found->source, found->previous, found->entry);
   if (found->ranks && found->source->head == NULL)
@@ -793,8 +854,8 @@ duppy_work duppy_core_take(duppy_core *core, int worker_index, intptr_t *out,
         work = DUPPY_ONE_DIRECT;
     } else
       taker->idle = 1;
-    if (work != DUPPY_NONE && core->immediate.head)
-      offer(core, core->immediate.head);
+    if (work != DUPPY_NONE)
+      offer_remaining(core);
   }
   pthread_mutex_unlock(&core->mutex);
 
@@ -855,12 +916,10 @@ int duppy_core_slots(duppy_core *core) {
 
 static int fired_mask(int interest, int flags) {
   int fired = 0;
-  if ((interest & DUPPY_READ) && (flags & (DUPPY_READ | DUPPY_EXCEPT)))
+  if ((interest & DUPPY_READ) && (flags & (DUPPY_READ | FD_FAILED)))
     fired |= DUPPY_READ;
-  if ((interest & DUPPY_WRITE) && (flags & (DUPPY_WRITE | DUPPY_EXCEPT)))
+  if ((interest & DUPPY_WRITE) && (flags & (DUPPY_WRITE | FD_FAILED)))
     fired |= DUPPY_WRITE;
-  if ((interest & DUPPY_EXCEPT) && (flags & DUPPY_EXCEPT))
-    fired |= DUPPY_EXCEPT;
   return fired;
 }
 
@@ -896,7 +955,8 @@ int duppy_core_submit(duppy_core *core, const duppy_task *request) {
   if (core->stopped) {
     free(entry);
   } else if (entry->pin != DUPPY_ANY_WORKER &&
-             (entry->pin < 0 || entry->pin >= core->worker_count)) {
+             (entry->pin < 0 || entry->pin >= core->worker_count ||
+              !accepted_by(entry, entry->pin))) {
     failure = EINVAL;
   } else {
     entry->sequence = core->next_sequence++;
@@ -1060,9 +1120,10 @@ duppy_core *duppy_core_create(duppy_fd wake_read, duppy_fd wake_write,
     return NULL;
   core->wake_read = wake_read;
   core->wake_write = wake_write;
+  core->timer = -1;
   core->bucket_count = 64;
   core->buckets = calloc(core->bucket_count, sizeof(fd_entry *));
-  core->native = force_fallback ? -1 : native_open();
+  core->native = force_fallback ? -1 : native_open(core);
   core->fallback = core->native < 0;
   if (core->buckets == NULL ||
       (!core->fallback && native_set(core, wake_read, DUPPY_READ) != 0) ||
@@ -1071,6 +1132,8 @@ duppy_core *duppy_core_create(duppy_fd wake_read, duppy_fd wake_write,
 #ifndef _WIN32
     if (core->native >= 0)
       close(core->native);
+    if (core->timer >= 0)
+      close(core->timer);
 #endif
     free(core->buckets);
     free(core);
@@ -1138,6 +1201,8 @@ void duppy_core_free(duppy_core *core) {
 #ifndef _WIN32
   if (core->native >= 0)
     close(core->native);
+  if (core->timer >= 0)
+    close(core->timer);
 #endif
   pthread_mutex_destroy(&core->mutex);
   free(core->workers);

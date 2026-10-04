@@ -185,10 +185,7 @@ module Task : sig
   (** Type for possible events. * * Please not that currently, under win32, all
       socket used in ocaml-duppy * are expected to be in blocking mode only! *)
   type event =
-    [ `Delay of float
-    | `Write of Unix.file_descr
-    | `Read of Unix.file_descr
-    | `Exception of Unix.file_descr ]
+    [ `Delay of float | `Write of Unix.file_descr | `Read of Unix.file_descr ]
 
   (** Schedule a task. With [domain], only the worker on that domain runs it,
       and so does every task its handler returns. Raises [Unknown_domain] when

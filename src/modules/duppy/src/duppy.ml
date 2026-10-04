@@ -23,7 +23,7 @@
 module Pcre = Re.Pcre
 
 type fd = Unix.file_descr
-type event = [ `Delay of float | `Write of fd | `Read of fd | `Exception of fd ]
+type event = [ `Delay of float | `Write of fd | `Read of fd ]
 
 (** A submitted task: what it waits on and what to run with whichever of its
     events occurred. [fds] are the distinct descriptors of [events], in the
@@ -71,10 +71,19 @@ module Core = struct
   external blocking_done : t -> int -> unit = "duppy_stub_blocking_done"
   [@@noalloc]
 
+  (** What [take] hands over, in the order of [duppy_work]. *)
+  let work = function
+    | 0 -> `None
+    | 1 -> `Batch
+    | 2 -> `One_direct
+    | 3 -> `One_threaded
+    | 4 -> `Stopped
+    | 5 -> `Failed
+    | _ -> assert false
+
   let ranks = 64
   let read = 1
   let write = 2
-  let except = 4
   let any_worker = -1
   let every_worker = -1
 end
@@ -130,17 +139,18 @@ module Slab = struct
   let take t handle =
     let chunk = chunk t handle in
     let slot = handle land (chunk_size - 1) in
-    let v = Option.get chunk.(slot) in
+    let v = chunk.(slot) in
     chunk.(slot) <- None;
     release t handle;
     v
+
+  let clear t = Array.iter (fun cell -> Atomic.set cell [||]) t.chunks
 end
 
 let fds_of_events events =
   List.sort_uniq compare
     (List.filter_map
-       (function
-         | `Read fd | `Write fd | `Exception fd -> Some fd | `Delay _ -> None)
+       (function `Read fd | `Write fd -> Some fd | `Delay _ -> None)
        events)
 
 let interest_for fd events =
@@ -149,7 +159,6 @@ let interest_for fd events =
       match ev with
         | `Read f when f = fd -> acc lor Core.read
         | `Write f when f = fd -> acc lor Core.write
-        | `Exception f when f = fd -> acc lor Core.except
         | _ -> acc)
     0 events
 
@@ -178,8 +187,7 @@ let fired_events t taken position =
     (function
       | `Delay d -> expired && (d <= earliest || now >= t.t0 +. d)
       | `Read fd -> occurred fd Core.read
-      | `Write fd -> occurred fd Core.write
-      | `Exception fd -> occurred fd Core.except)
+      | `Write fd -> occurred fd Core.write)
     t.events
 
 type execution_class = [ `Immediate | `Direct | `Threaded ]
@@ -520,32 +528,34 @@ let taken_tasks s w written =
   let rec decode position acc =
     if position >= written then List.rev acc
     else (
-      let t = Slab.take s.tasks w.taken.(position) in
-      let fired = fired_events t w.taken position in
-      decode
-        (position + 2 + Array.length t.fds)
-        ((fun () -> t.fire fired) :: acc))
+      match Slab.take s.tasks w.taken.(position) with
+        | None -> List.rev acc
+        | Some t ->
+            let fired = fired_events t w.taken position in
+            decode
+              (position + 2 + Array.length t.fds)
+              ((fun () -> t.fire fired) :: acc))
   in
   decode 0 []
 
 let dispatch s w =
   let rec loop () =
     let result = Core.take s.core w.index w.taken in
-    match (result land 7, taken_tasks s w (result lsr 3)) with
-      | 0, _ ->
+    match (Core.work (result land 7), taken_tasks s w (result lsr 3)) with
+      | `None, _ ->
           Core.wait s.core w.index;
           loop ()
-      | 1, fns ->
+      | `Batch, fns ->
           List.iter (fun fn -> add_t s (run_task s fn)) fns;
           loop ()
-      | 2, [fn] ->
+      | `One_direct, [fn] ->
           add_t s (run_task s fn);
           loop ()
-      | 3, [fn] ->
+      | `One_threaded, [fn] ->
           run_blocking s w fn;
           loop ()
-      | 4, _ -> ()
-      | 5, _ ->
+      | `Stopped, _ -> ()
+      | `Failed, _ ->
           s.on_fatal
             (Failure ("Duppy: event thread failed: " ^ Core.error s.core))
             (Printexc.get_callstack 0);
@@ -646,6 +656,9 @@ let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
 let stop s =
   if Atomic.get s.started && not (Atomic.exchange s.stopped true) then begin
     Core.stop s.core;
+    (* The core dropped the tasks it held, so nothing will ask for their
+       handlers. *)
+    Slab.clear s.tasks;
     wake_auxiliaries s;
     (* Let the tasks still parked on the workers finish, bounded because a
        blocking task is under no obligation to return. *)

@@ -8,9 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
-#define EXPECTED_CHECKS 99
+#define EXPECTED_CHECKS 110
 #define CAPACITY 256
 
 static int checks = 0;
@@ -294,6 +295,10 @@ static void test_eligibility(int force_fallback) {
   check(take(core, 1, out, &written) == DUPPY_ONE_DIRECT && out[0] == 5,
         "a worker takes the tasks it accepts");
 
+  task.pin = 0;
+  check(duppy_core_submit(core, &task) == -1 && errno == EINVAL,
+        "a pin to a worker that does not accept the task fails");
+  task.pin = DUPPY_ANY_WORKER;
   task.accepted_by = DUPPY_EVERY_WORKER;
   task.rank = DUPPY_RANKS;
   check(duppy_core_submit(core, &task) == -1 && errno == EINVAL,
@@ -302,6 +307,64 @@ static void test_eligibility(int force_fallback) {
   task.fd_count = DUPPY_MAX_FDS + 1;
   check(duppy_core_submit(core, &task) == -1 && errno == EINVAL,
         "too many descriptors fail");
+  close_core(&opened);
+}
+
+/* Worker 0 is woken for a task either worker may take, then takes one that
+   only it accepts: the first must reach worker 1, whose wait would otherwise
+   never return. */
+static void test_leftover_is_offered(int force_fallback) {
+  fixture opened = open_core(force_fallback);
+  duppy_core *core = opened.core;
+  intptr_t out[CAPACITY];
+  size_t written;
+  duppy_task task = {
+      1,    0,   DUPPY_THREADED, DUPPY_ANY_WORKER, DUPPY_EVERY_WORKER, 0., 0,
+      NULL, NULL};
+  duppy_core_start(core, 2, 4);
+  check(take(core, 0, out, &written) == DUPPY_NONE &&
+            take(core, 1, out, &written) == DUPPY_NONE,
+        "both workers are idle");
+  duppy_core_submit(core, &task);
+  task.handle = 2;
+  task.task_class = DUPPY_DIRECT;
+  task.accepted_by = 1;
+  duppy_core_submit(core, &task);
+  check(take(core, 0, out, &written) == DUPPY_ONE_DIRECT && out[0] == 2,
+        "the woken worker takes the task only it accepts");
+  duppy_core_wait(core, 1);
+  check(take(core, 1, out, &written) == DUPPY_ONE_THREADED && out[0] == 1,
+        "the task it left is offered to the idle worker");
+  close_core(&opened);
+}
+
+static double cpu_seconds(void) {
+  struct timespec used;
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &used);
+  return (double)used.tv_sec + (double)used.tv_nsec * 1e-9;
+}
+
+/* Waiting out a deadline by polling would burn about a millisecond of CPU for
+   each of these. */
+static void test_deadline_wait_is_idle(int force_fallback) {
+  fixture opened = open_core(force_fallback);
+  duppy_core *core = opened.core;
+  intptr_t out[CAPACITY];
+  size_t written;
+  duppy_core_start(core, 1, 4);
+  double before = cpu_seconds();
+  double earliest = 1;
+  for (int i = 0; i < 50; i++) {
+    double deadline = duppy_core_now() + 0.0045;
+    submit(core, i, DUPPY_DIRECT, 0, 0.0045, -1, 0);
+    next(core, 0, out, &written);
+    double late = duppy_core_now() - deadline;
+    earliest = late < earliest ? late : earliest;
+  }
+  check(cpu_seconds() - before < 0.015, "waiting for a deadline uses no CPU");
+  if (!force_fallback)
+    check(earliest < 0.0003,
+          "a deadline is met without rounding to the millisecond");
   close_core(&opened);
 }
 
@@ -323,6 +386,7 @@ static void test_stop(int force_fallback) {
 }
 
 int main(void) {
+  alarm(60);
   for (int force_fallback = 0; force_fallback <= 1; force_fallback++) {
     int before = checks;
     test_deadlines(force_fallback);
@@ -335,6 +399,8 @@ int main(void) {
     test_batch_bound(force_fallback);
     test_slots(force_fallback);
     test_eligibility(force_fallback);
+    test_leftover_is_offered(force_fallback);
+    test_deadline_wait_is_idle(force_fallback);
     test_stop(force_fallback);
     printf("core (%s): %d checks\n", backend, checks - before);
   }

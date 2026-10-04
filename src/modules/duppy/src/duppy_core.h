@@ -37,7 +37,6 @@ typedef int duppy_fd;
 
 #define DUPPY_READ 1
 #define DUPPY_WRITE 2
-#define DUPPY_EXCEPT 4
 
 #define DUPPY_RANKS 64
 #define DUPPY_MAX_FDS 64
@@ -69,7 +68,7 @@ typedef struct {
   double delay;
   size_t fd_count;
   const duppy_fd *fds;
-  /* A mask of DUPPY_READ, DUPPY_WRITE and DUPPY_EXCEPT for each of fds. */
+  /* A mask of DUPPY_READ and DUPPY_WRITE for each of fds. */
   const int *interests;
 } duppy_task;
 
@@ -100,7 +99,7 @@ int duppy_core_reserve(duppy_core *core, int delta);
 int duppy_core_slots(duppy_core *core);
 
 /* Returns 0, or -1 with errno set: EINVAL for a task outside the limits above
-   or pinned to an unknown worker. */
+   or pinned to a worker that is unknown or does not accept it. */
 int duppy_core_submit(duppy_core *core, const duppy_task *task);
 
 /* Each task taken is written to out as its handle, 1 if its delay elapsed or

@@ -11,6 +11,15 @@
    (run ./test_signal_handlers.exe))))
 
 (rule
+ (alias runtest)
+ (package duppy)
+ (action
+  (setenv
+   DUPPY_BACKEND
+   poll
+   (run ./test_duppy.exe))))
+
+(rule
  (alias citest)
  (deps
   (alias runtest))

@@ -596,6 +596,33 @@ let test_suspend () =
   Duppy.stop s;
   ok "a suspended computation resumes when woken"
 
+(* The scheduler is still referenced after its stop, so a handler it dropped
+   is only collected if stop let go of it. *)
+let test_stop_releases_handlers () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 1) s;
+  let held = Weak.create 1 in
+  let[@inline never] add () =
+    let payload = Bytes.create 64 in
+    Weak.set held 0 (Some payload);
+    Duppy.Task.add s
+      {
+        Duppy.Task.priority = Blocking;
+        events = [`Delay 1000.];
+        handler =
+          (fun _ ->
+            ignore (Sys.opaque_identity payload);
+            []);
+      }
+  in
+  add ();
+  Duppy.stop s;
+  Gc.full_major ();
+  Gc.full_major ();
+  if Weak.check held 0 then fail "stop kept the handler of a dropped task";
+  ignore (Sys.opaque_identity s);
+  ok "stop releases the handlers of the tasks it drops"
+
 let () =
   watchdog 60.;
   test_backend ();
@@ -619,4 +646,5 @@ let () =
   test_current_domain ();
   test_unwatchable_descriptor ();
   test_suspend ();
+  test_stop_releases_handlers ();
   print_endline "all duppy pool checks passed"
