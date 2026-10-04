@@ -23,79 +23,171 @@
 module Pcre = Re.Pcre
 
 type fd = Unix.file_descr
-type event = [ `Delay of float | `Write of fd | `Read of fd | `Exception of fd ]
+type event = [ `Delay of float | `Write of fd | `Read of fd ]
 
-(** A task waiting to run: what it waits on, when its earliest delay elapses and
-    what to run with whichever of its events fired. [dispatched] retires the
-    entry a task leaves behind in the timer index when a descriptor fired first.
-*)
+(** A submitted task: what it waits on and what to run with whichever of its
+    events occurred. [fds] are the distinct descriptors of [events], in the
+    order the core reports on them. *)
 type 'a t = {
-  id : int;
   prio : 'a;
   t0 : float;
   events : event list;
-  deadline : float;
+  fds : fd array;
   fire : event list -> 'a t list;
-  mutable dispatched : bool;
   (* The one worker allowed to run it, by domain. *)
   pinned : int option;
 }
 
-(** A task whose events fired, waiting for a worker. [target] is the domain of
-    the one worker that may take it. *)
-type 'a ready = { prio : 'a; run : unit -> 'a t list; target : int option }
+external time : unit -> float = "duppy_stub_now"
 
-(** Waiting tasks ordered by when they expire, the id breaking ties between
-    tasks sharing a deadline. *)
-module Timers = Map.Make (struct
-  type t = float * int
+(** The scheduler's core, specified in SPEC.md. Tasks are known to it by a
+    handle and plain data: no OCaml value crosses this interface. *)
+module Core = struct
+  type t
 
-  let compare = compare
-end)
+  external create : fd -> fd -> bool -> t = "duppy_stub_create"
+  external backend : t -> string = "duppy_stub_backend"
+  external start : t -> int -> int -> unit = "duppy_stub_start"
+  external stop : t -> unit = "duppy_stub_stop"
+  external reserve : t -> int -> int = "duppy_stub_reserve" [@@noalloc]
+  external slots : t -> int = "duppy_stub_slots" [@@noalloc]
+  external error : t -> string = "duppy_stub_error"
 
-let next_id = Atomic.make 0
+  external submit :
+    t ->
+    int ->
+    int ->
+    int ->
+    int ->
+    int ->
+    float ->
+    fd array ->
+    int array ->
+    unit = "duppy_stub_submit_bytecode" "duppy_stub_submit"
 
-(* Monotonic: deadlines must not move with wall-clock steps. *)
-external time : unit -> float = "duppy_monotonic_now"
+  external take : t -> int -> int array -> int = "duppy_stub_take" [@@noalloc]
+  external wait : t -> int -> unit = "duppy_stub_wait"
 
-let no_interest = { Pollset.read = false; write = false; except = false }
+  external blocking_done : t -> int -> unit = "duppy_stub_blocking_done"
+  [@@noalloc]
+
+  (** What [take] hands over, in the order of [duppy_work]. *)
+  let work = function
+    | 0 -> `None
+    | 1 -> `Batch
+    | 2 -> `One_direct
+    | 3 -> `One_threaded
+    | 4 -> `Stopped
+    | 5 -> `Failed
+    | _ -> assert false
+
+  let ranks = 64
+  let read = 1
+  let write = 2
+  let any_worker = -1
+  let every_worker = -1
+end
+
+(** Handles to values, issued and resolved without a lock. A handle is passed
+    from the domain that adds a value to the one that takes it through the core,
+    whose own lock orders the two accesses. *)
+module Slab = struct
+  let chunk_bits = 12
+  let chunk_size = 1 lsl chunk_bits
+  let chunk_count = 1 lsl 12
+
+  type 'a t = {
+    chunks : 'a option array Atomic.t array;
+    next : int Atomic.t;
+    free : int list Atomic.t;
+  }
+
+  let create () =
+    {
+      chunks = Array.init chunk_count (fun _ -> Atomic.make [||]);
+      next = Atomic.make 0;
+      free = Atomic.make [];
+    }
+
+  let rec reuse t =
+    match Atomic.get t.free with
+      | [] -> Atomic.fetch_and_add t.next 1
+      | handle :: rest as free ->
+          if Atomic.compare_and_set t.free free rest then handle else reuse t
+
+  let rec release t handle =
+    let free = Atomic.get t.free in
+    if not (Atomic.compare_and_set t.free free (handle :: free)) then
+      release t handle
+
+  let chunk t handle =
+    if handle lsr chunk_bits >= chunk_count then
+      failwith "Duppy: too many tasks";
+    let cell = t.chunks.(handle lsr chunk_bits) in
+    match Atomic.get cell with
+      | [||] as empty ->
+          let fresh = Array.make chunk_size None in
+          if Atomic.compare_and_set cell empty fresh then fresh
+          else Atomic.get cell
+      | chunk -> chunk
+
+  let add t v =
+    let handle = reuse t in
+    (chunk t handle).(handle land (chunk_size - 1)) <- Some v;
+    handle
+
+  let take t handle =
+    let chunk = chunk t handle in
+    let slot = handle land (chunk_size - 1) in
+    let v = chunk.(slot) in
+    chunk.(slot) <- None;
+    release t handle;
+    v
+
+  let clear t = Array.iter (fun cell -> Atomic.set cell [||]) t.chunks
+end
 
 let fds_of_events events =
   List.sort_uniq compare
     (List.filter_map
-       (function
-         | `Read fd | `Write fd | `Exception fd -> Some fd | `Delay _ -> None)
+       (function `Read fd | `Write fd -> Some fd | `Delay _ -> None)
        events)
 
 let interest_for fd events =
   List.fold_left
     (fun acc ev ->
       match ev with
-        | `Read f when f = fd -> { acc with Pollset.read = true }
-        | `Write f when f = fd -> { acc with Pollset.write = true }
-        | `Exception f when f = fd -> { acc with Pollset.except = true }
+        | `Read f when f = fd -> acc lor Core.read
+        | `Write f when f = fd -> acc lor Core.write
         | _ -> acc)
-    no_interest events
+    0 events
 
-(** Which of [t]'s events have fired, given what a wait reported. A descriptor
-    in error satisfies whatever it was awaited for, so the task runs and finds
-    out. *)
-let fired_events t ready =
-  let of_fd fd = List.assoc_opt fd ready in
+let earliest_delay events =
+  List.fold_left
+    (fun earliest -> function
+      | `Delay d -> Float.min earliest d | _ -> earliest)
+    infinity events
+
+(** Which of [t]'s events occurred, from what the core wrote at [position]: its
+    handle, whether its delay elapsed, then a mask for each of [t.fds]. *)
+let fired_events t taken position =
+  let now = time () in
+  let expired = taken.(position + 1) = 1 in
+  let earliest = earliest_delay t.events in
+  let occurred fd flag =
+    let rec find i =
+      i < Array.length t.fds
+      &&
+      if t.fds.(i) = fd then taken.(position + 2 + i) land flag <> 0
+      else find (i + 1)
+    in
+    find 0
+  in
   List.filter
-    (fun ev ->
-      match ev with
-        | `Delay d -> time () >= t.t0 +. d
-        | `Read fd -> (
-            match of_fd fd with
-              | Some i -> i.Pollset.read || i.Pollset.except
-              | None -> false)
-        | `Write fd -> (
-            match of_fd fd with
-              | Some i -> i.Pollset.write || i.Pollset.except
-              | None -> false)
-        | `Exception fd -> (
-            match of_fd fd with Some i -> i.Pollset.except | None -> false))
+    (function
+      | `Delay d -> expired && (d <= earliest || now >= t.t0 +. d)
+      | `Read fd -> occurred fd Core.read
+      | `Write fd -> occurred fd Core.write)
     t.events
 
 type execution_class = [ `Immediate | `Direct | `Threaded ]
@@ -104,19 +196,16 @@ type execution_class = [ `Immediate | `Direct | `Threaded ]
     dispatched to, so a caller whose tasks need one installs it here. *)
 type wrapper = { wrap : 'a. (unit -> 'a) -> 'a }
 
-(** One domain or thread of the pool. [wake] carries a signal across the window
-    between registering as idle and blocking on [worker_c], so a wake-up sent in
-    that window is not lost. [blocking] counts the tasks parked on this worker's
-    auxiliary threads, which live in [aux_pending] and the fields around it. *)
+(** One domain or thread of the pool. [taken] receives what the core hands this
+    worker. [blocking] counts the tasks parked on its auxiliary threads, which
+    live in [aux_pending] and the fields around it. *)
 type 'a worker = {
-  worker_m : Mutex.t;
-  worker_c : Condition.t;
-  mutable wake : bool;
-  mutable took_batch : bool;
-  blocking : int Atomic.t;
+  index : int;
   accepts : 'a -> bool;
   (* Set by [start] from the spawned domain; stays [-1] on a thread pool. *)
   mutable domain : int;
+  taken : int array;
+  blocking : int Atomic.t;
   aux_m : Mutex.t;
   aux_c : Condition.t;
   mutable aux_pending : (unit -> unit) list;
@@ -130,83 +219,24 @@ type 'a scheduler = {
   on_error : exn -> Printexc.raw_backtrace -> unit;
   on_fatal : exn -> Printexc.raw_backtrace -> unit;
   mutable log : (string -> unit) option;
-  compare : 'a -> 'a -> int;
+  rank : 'a -> int;
   classify : 'a -> execution_class;
   wrapper : wrapper;
-  out_pipe : fd;
-  in_pipe : fd;
-  pollset : Pollset.t;
-  by_fd : (fd, 'a t list) Hashtbl.t;
-  mutable timers : 'a t Timers.t;
-  tasks_m : Mutex.t;
-  mutable ready : 'a ready list;
-  mutable idle : 'a worker list;
-  ready_m : Mutex.t;
+  core : Core.t;
+  wake_read : fd;
+  wake_write : fd;
+  tasks : 'a t Slab.t;
+  (* Submitted before the pool exists, which is what decides who may take
+     them. *)
+  pending : 'a t list Atomic.t;
   started : bool Atomic.t;
+  running : bool Atomic.t;
   stopped : bool Atomic.t;
-  poller_done : bool Atomic.t;
-  blocking_per_worker : int Atomic.t;
-  (* [max_blocking] and [reserved] are guarded by [ready_m]. *)
-  mutable max_blocking : int;
-  mutable reserved : int;
   mutable threaded : bool;
+  mutable selective : bool;
   mutable workers : 'a worker list;
   mutable members : member list;
 }
-
-(** The interest registered for a descriptor is the union of what the tasks
-    waiting on it want, so dropping one task does not stop watching for the
-    others. [s.tasks_m] must be held. *)
-let rearm s fd =
-  match Hashtbl.find_opt s.by_fd fd with
-    | None | Some [] ->
-        Hashtbl.remove s.by_fd fd;
-        Pollset.remove s.pollset fd
-    | Some tasks ->
-        Pollset.set s.pollset fd
-          (List.fold_left
-             (fun acc t ->
-               let i = interest_for fd t.events in
-               {
-                 Pollset.read = acc.Pollset.read || i.Pollset.read;
-                 write = acc.Pollset.write || i.Pollset.write;
-                 except = acc.Pollset.except || i.Pollset.except;
-               })
-             no_interest tasks)
-
-exception Unwatchable of fd
-
-let register s t =
-  List.iter
-    (fun fd ->
-      Hashtbl.replace s.by_fd fd
-        (t :: Option.value ~default:[] (Hashtbl.find_opt s.by_fd fd));
-      try rearm s fd with Unix.Unix_error _ -> raise (Unwatchable fd))
-    (fds_of_events t.events);
-  if t.deadline < infinity then
-    s.timers <- Timers.add (t.deadline, t.id) t s.timers
-
-(* A descriptor closed while tasks still wait on it cannot be re-armed: its
-   interest is dropped, and those tasks end at their deadline. *)
-let unregister s t =
-  List.iter
-    (fun fd ->
-      (match Hashtbl.find_opt s.by_fd fd with
-        | None -> ()
-        | Some tasks ->
-            Hashtbl.replace s.by_fd fd
-              (List.filter (fun x -> x.id <> t.id) tasks));
-      try rearm s fd with Unix.Unix_error _ -> Pollset.remove s.pollset fd)
-    (fds_of_events t.events);
-  if t.deadline < infinity then
-    s.timers <- Timers.remove (t.deadline, t.id) s.timers
-
-let clear_tasks s =
-  Mutex.lock s.tasks_m;
-  Hashtbl.iter (fun fd _ -> Pollset.remove s.pollset fd) s.by_fd;
-  Hashtbl.reset s.by_fd;
-  s.timers <- Timers.empty;
-  Mutex.unlock s.tasks_m
 
 let default_on_fatal exn bt =
   Printf.eprintf "Duppy: event loop crashed with %s\n%s\n%!"
@@ -214,94 +244,101 @@ let default_on_fatal exn bt =
     (Printexc.raw_backtrace_to_string bt);
   exit 1
 
+(* Forces the portable backend, so that it runs where a native one exists. *)
+let forced_fallback () = Sys.getenv_opt "DUPPY_BACKEND" = Some "poll"
+
 let create ?(on_error = Printexc.raise_with_backtrace)
-    ?(on_fatal = default_on_fatal) ?(compare = compare)
+    ?(on_fatal = default_on_fatal) ?(rank = fun _ -> 0)
     ?(classify : 'a -> execution_class = fun _ -> `Threaded)
     ?(wrapper = { wrap = (fun fn -> fn ()) }) () =
   (* A socket pair rather than a pipe: on Windows only sockets can be made
      non-blocking, and a blocking wake-up write could hang its caller. *)
-  let out_pipe, in_pipe = Unix_utils.socketpair () in
-  Unix.set_nonblock in_pipe;
-  let pollset = Pollset.create () in
-  Pollset.set pollset out_pipe
-    { Pollset.read = true; write = false; except = false };
+  let wake_read, wake_write = Unix_utils.socketpair () in
+  Unix.set_nonblock wake_write;
   {
     on_error;
     on_fatal;
     log = None;
-    compare;
+    rank;
     classify;
     wrapper;
-    out_pipe;
-    in_pipe;
-    pollset;
-    by_fd = Hashtbl.create 64;
-    timers = Timers.empty;
-    tasks_m = Mutex.create ();
-    ready = [];
-    idle = [];
-    ready_m = Mutex.create ();
+    core = Core.create wake_read wake_write (forced_fallback ());
+    wake_read;
+    wake_write;
+    tasks = Slab.create ();
+    pending = Atomic.make [];
     started = Atomic.make false;
+    running = Atomic.make false;
     stopped = Atomic.make false;
-    poller_done = Atomic.make false;
-    blocking_per_worker = Atomic.make 1;
-    max_blocking = 64;
-    reserved = 0;
     threaded = false;
+    selective = false;
     workers = [];
     members = [];
   }
 
 let started s = Atomic.get s.started
 let log s fn = match s.log with None -> () | Some log -> log (fn ())
-
-let wake_up s =
-  try ignore (Unix_utils.write s.in_pipe (Bytes.of_string "x") 0 1)
-  with
-  | Unix.Unix_error (Unix.EAGAIN, _, _)
-  | Unix.Unix_error (Unix.EWOULDBLOCK, _, _)
-  ->
-    ()
-
-let signal_worker w =
-  Mutex.lock w.worker_m;
-  w.wake <- true;
-  Condition.signal w.worker_c;
-  Mutex.unlock w.worker_m
-
-(** Detach up to [n] idle workers. [s.ready_m] must be held.
-
-    Threads each accept a subset of priorities, so a wake-up may land on one
-    that has nothing to take: wake them all. *)
-let take_idle s n =
-  let n = if s.threaded then max_int else n in
-  let rec f n acc =
-    if n <= 0 then acc
-    else (
-      match s.idle with
-        | [] -> acc
-        | w :: l ->
-            s.idle <- l;
-            f (n - 1) (w :: acc))
-  in
-  f n []
-
-let wake_idle s n =
-  let workers = Mutex.protect s.ready_m (fun () -> take_idle s n) in
-  List.iter signal_worker workers
-
-(** Take one worker off the idle list. [s.ready_m] must be held. *)
-let claim_worker s w =
-  s.idle <- List.filter (fun x -> x != w) s.idle;
-  w
-
-let wake_worker s w =
-  Mutex.protect s.ready_m (fun () -> ignore (claim_worker s w));
-  signal_worker w
-
 let worker_for s domain = List.find_opt (fun w -> w.domain = domain) s.workers
 
 exception Unknown_domain of int
+
+let class_code = function `Immediate -> 0 | `Direct -> 1 | `Threaded -> 2
+
+(** Workers that declare what they accept are told to the core as one bit each.
+*)
+let accepted_by s prio =
+  if not s.selective then Core.every_worker
+  else
+    List.fold_left
+      (fun mask w -> if w.accepts prio then mask lor (1 lsl w.index) else mask)
+      0 s.workers
+
+let submit s t =
+  if not (Atomic.get s.stopped) then begin
+    let rank = s.rank t.prio in
+    if rank < 0 || rank >= Core.ranks then
+      invalid_arg "Duppy: rank out of range";
+    let pin =
+      match t.pinned with
+        | None -> Core.any_worker
+        | Some domain -> (
+            match worker_for s domain with
+              | Some w -> w.index
+              | None -> raise (Unknown_domain domain))
+    in
+    let delay =
+      match earliest_delay t.events with
+        | d when d = infinity -> -1.
+        | d -> Float.max 0. (t.t0 +. d -. time ())
+    in
+    let handle = Slab.add s.tasks t in
+    try
+      Core.submit s.core handle rank
+        (class_code (s.classify t.prio))
+        pin (accepted_by s t.prio) delay t.fds
+        (Array.map (fun fd -> interest_for fd t.events) t.fds)
+    with exn ->
+      ignore (Slab.take s.tasks handle);
+      raise exn
+  end
+
+let flush_pending s =
+  List.iter (submit s) (List.rev (Atomic.exchange s.pending []))
+
+let rec hold s t =
+  let pending = Atomic.get s.pending in
+  if not (Atomic.compare_and_set s.pending pending (t :: pending)) then hold s t
+
+(* A task held just as the pool starts is flushed by whoever looks last. *)
+let add_t s tasks =
+  List.iter
+    (fun t ->
+      if Atomic.get s.running then submit s t
+      else begin
+        hold s t;
+        if Atomic.get s.running then flush_pending s
+      end)
+    tasks
 
 module Task = struct
   (** Events and tasks from the user's point-of-view. *)
@@ -315,68 +352,20 @@ module Task = struct
   }
 
   let rec t_of_task ?domain (task : ('a, [< event ]) task) =
-    let t0 = time () in
     let events = (task.events :> event list) in
     {
-      id = Atomic.fetch_and_add next_id 1;
       prio = task.priority;
-      t0;
+      t0 = time ();
       events;
-      deadline =
-        List.fold_left
-          (fun d -> function `Delay s -> min d (t0 +. s) | _ -> d)
-          infinity events;
+      fds = Array.of_list (fds_of_events events);
       fire =
         (fun fired ->
           let l =
             List.filter (fun ev -> List.mem (ev :> event) fired) task.events
           in
           List.map (t_of_task ?domain) (task.handler l));
-      dispatched = false;
       pinned = domain;
     }
-
-  let add_t s items =
-    let ready = ref 0 in
-    let pinned = ref [] in
-    (* A wait on a descriptor that cannot be watched fires at once, so its
-       fiber meets the error from its own I/O. *)
-    let fired item =
-      match fired_events item [] with
-        | [] -> (
-            try
-              Mutex.protect s.tasks_m (fun () -> register s item);
-              []
-            with Unwatchable unwatchable ->
-              Mutex.protect s.tasks_m (fun () -> unregister s item);
-              List.filter
-                (function
-                  | `Read fd | `Write fd | `Exception fd -> fd = unwatchable
-                  | `Delay _ -> false)
-                (item.events :> event list))
-        | fired -> fired
-    in
-    let f item =
-      match fired item with
-        | [] -> ()
-        | fired ->
-            item.dispatched <- true;
-            Mutex.lock s.ready_m;
-            s.ready <-
-              {
-                prio = item.prio;
-                run = (fun () -> item.fire fired);
-                target = item.pinned;
-              }
-              :: s.ready;
-            Mutex.unlock s.ready_m;
-            incr ready;
-            Option.iter (fun d -> pinned := d :: !pinned) item.pinned
-    in
-    List.iter f items;
-    if 0 < !ready then wake_idle s !ready;
-    List.iter (fun d -> Option.iter (wake_worker s) (worker_for s d)) !pinned;
-    wake_up s
 
   (* A pin names a worker that has to exist and accept the task, so a wrong one
      fails here rather than leaving a task nobody will ever take. *)
@@ -384,7 +373,7 @@ module Task = struct
     (match domain with
       | None -> ()
       | Some d -> (
-          if (not (Atomic.get s.started)) || s.threaded then
+          if (not (Atomic.get s.running)) || s.threaded then
             raise (Unknown_domain d);
           match worker_for s d with
             | Some w when w.accepts t.priority -> ()
@@ -457,70 +446,6 @@ let run fn =
             | _ -> None);
     }
 
-let tmp = Bytes.create 1024
-
-type 'a work =
-  | Batch of (unit -> 'a t list) list
-  | Direct of (unit -> 'a t list)
-  | One of (unit -> 'a t list)
-
-(** Pick this worker's next unit of work and the idle workers to signal for what
-    is left behind. [s.ready_m] must be held.
-
-    Immediate tasks go as one batch: they do not block, so running them in
-    sequence on the calling domain costs less than a hand-off each. Direct and
-    blocking tasks go one at a time, so they spread over the pool rather than
-    queue behind one another on one domain. A direct task holds no blocking
-    slot, since it runs on the domain rather than on one of its auxiliary
-    threads, so a worker out of slots still takes it. *)
-let take_work s w =
-  let mine, others =
-    List.partition
-      (fun e ->
-        w.accepts e.prio && (e.target = None || e.target = Some w.domain))
-      s.ready
-  in
-  let direct, rest =
-    List.partition (fun e -> s.classify e.prio = `Direct) mine
-  in
-  let immediate, blocking =
-    List.partition (fun e -> s.classify e.prio = `Immediate) rest
-  in
-  let singles =
-    if Atomic.get w.blocking < Atomic.get s.blocking_per_worker then
-      direct @ blocking
-    else direct
-  in
-  let can_block = singles <> [] in
-  (* A worker alternates between a batch and a single task. Taking every ready
-     immediate task on every round starves the rest whenever the ready list refills
-     as fast as it drains, which a lone worker cannot escape by leaving the
-     rest to someone else. *)
-    match immediate with
-    | _ :: _ when not (w.took_batch && can_block) ->
-        s.ready <- direct @ blocking @ others;
-        w.took_batch <- true;
-        ( Some (Batch (List.rev_map (fun e -> e.run) immediate)),
-          take_idle s (List.length s.ready) )
-    | _ when can_block ->
-        let best =
-          List.fold_left
-            (fun best x -> if s.compare x.prio best.prio < 0 then x else best)
-            (List.hd singles) singles
-        in
-        s.ready <- List.filter (fun x -> x != best) s.ready;
-        w.took_batch <- false;
-        let work =
-          if s.classify best.prio = `Direct then Direct best.run
-          else One best.run
-        in
-        (Some work, take_idle s (List.length s.ready))
-    (* Blocking work is ready but this worker is at its own capacity for it:
-       leaving it there would strand the task until a worker happens to look
-       for an unrelated reason, so hand it to the ones that are idle. *)
-    | _ when blocking <> [] -> (None, take_idle s (List.length blocking))
-    | _ -> (None, [])
-
 let run_task s fn =
   match s.wrapper.wrap fn with
     | exception exn ->
@@ -530,17 +455,21 @@ let run_task s fn =
     | v -> v
 
 (** Auxiliary threads are kept parked between tasks, since a task in this class
-    can be shorter than the spawn it would otherwise pay for.
+    can be shorter than the spawn it would otherwise pay for. A worker keeps an
+    even share of the budget parked: the threads a burst added beyond it exit
+    once idle.
 
     Finishing a job leads back into the queue check under the same lock, so a
     thread with work waiting never parks and is never counted idle in the window
     where a submission would pick it. *)
 let aux_loop s w =
+  let workers = List.length s.workers in
+  let kept () = (Core.slots s.core + workers - 1) / workers in
   let rec loop () =
     while
       w.aux_pending = []
       && (not (Atomic.get s.stopped))
-      && w.aux_total <= Atomic.get s.blocking_per_worker
+      && w.aux_total <= kept ()
     do
       Condition.wait w.aux_c w.aux_m
     done;
@@ -574,21 +503,19 @@ let aux_loop s w =
 let run_blocking s w fn =
   Atomic.incr w.blocking;
   let run () =
-    let tasks =
-      Fun.protect
-        ~finally:(fun () -> Atomic.decr w.blocking)
-        (fun () -> run_task s fn)
-    in
-    add_t s tasks
+    Fun.protect
+      ~finally:(fun () ->
+        Atomic.decr w.blocking;
+        Core.blocking_done s.core w.index)
+      (fun () -> add_t s (run_task s fn))
   in
   if s.threaded then run ()
   else begin
-    let job () = Fun.protect ~finally:(fun () -> wake_worker s w) run in
     Mutex.lock w.aux_m;
-    w.aux_pending <- w.aux_pending @ [job];
+    w.aux_pending <- w.aux_pending @ [run];
     if
       w.aux_total - w.aux_busy < List.length w.aux_pending
-      && w.aux_total < Atomic.get s.blocking_per_worker
+      && w.aux_total < Core.slots s.core
     then begin
       w.aux_total <- w.aux_total + 1;
       ignore (Thread.create (fun () -> aux_loop s w) ())
@@ -597,245 +524,151 @@ let run_blocking s w fn =
     Mutex.unlock w.aux_m
   end
 
-let wait_for_work s w =
-  Mutex.lock w.worker_m;
-  while (not w.wake) && not (Atomic.get s.stopped) do
-    Condition.wait w.worker_c w.worker_m
-  done;
-  w.wake <- false;
-  Mutex.unlock w.worker_m
-
 (** How long [stop] waits for a parked task before giving up on it. *)
 let drain_timeout = 5.
 
-(** Longest the loop parks in one wait. A wake-up is a byte on a socket the
-    writer drops when its buffer is full, so waiting on one alone risks never
-    looking at [stopped] again. *)
-let idle_timeout = 1.
+(** What the core handed [w], as the handlers to run, in order. The handles are
+    resolved before any of them runs, since running one takes from the core
+    again. *)
+let taken_tasks s w written =
+  let rec decode position acc =
+    if position >= written then List.rev acc
+    else (
+      match Slab.take s.tasks w.taken.(position) with
+        | None -> List.rev acc
+        | Some t ->
+            let fired = fired_events t w.taken position in
+            decode
+              (position + 2 + Array.length t.fds)
+              ((fun () -> t.fire fired) :: acc))
+  in
+  decode 0 []
 
 let dispatch s w =
-  while not (Atomic.get s.stopped) do
-    Mutex.lock s.ready_m;
-    let work, wake = take_work s w in
-    (match work with None -> s.idle <- w :: s.idle | Some _ -> ());
-    Mutex.unlock s.ready_m;
-    List.iter signal_worker wake;
-    begin match work with
-      | Some (Batch fns) -> List.iter (fun fn -> add_t s (run_task s fn)) fns
-      | Some (Direct fn) -> add_t s (run_task s fn)
-      | Some (One fn) -> run_blocking s w fn
-      | None -> wait_for_work s w
-    end
-  done
-
-(** Wait for events, then move the tasks they woke to the ready list. *)
-let poll_once s =
-  let timeout =
-    Mutex.protect s.tasks_m (fun () ->
-        match Timers.min_binding_opt s.timers with
-          | None -> idle_timeout
-          | Some ((deadline, _), _) ->
-              min idle_timeout (max 0. (deadline -. time ())))
+  let rec loop () =
+    let result = Core.take s.core w.index w.taken in
+    match (Core.work (result land 7), taken_tasks s w (result lsr 3)) with
+      | `None, _ ->
+          Core.wait s.core w.index;
+          loop ()
+      | `Batch, fns ->
+          List.iter (fun fn -> add_t s (run_task s fn)) fns;
+          loop ()
+      | `One_direct, [fn] ->
+          add_t s (run_task s fn);
+          loop ()
+      | `One_threaded, [fn] ->
+          run_blocking s w fn;
+          loop ()
+      | `Stopped, _ -> ()
+      | `Failed, _ ->
+          s.on_fatal
+            (Failure ("Duppy: event thread failed: " ^ Core.error s.core))
+            (Printexc.get_callstack 0);
+          loop ()
+      | _ -> assert false
   in
-  log s (fun () ->
-      Printf.sprintf "Waiting on %s at %f, timeout %f."
-        (Pollset.backend s.pollset)
-        (time ()) timeout);
-  let fired =
-    try Pollset.wait s.pollset ~timeout
-    with exn ->
-      (* We do not know which descriptor caused the error, so every task
-         currently in the loop is discarded. *)
-      clear_tasks s;
-      raise exn
-  in
-  log s (fun () ->
-      Printf.sprintf "Woke at %f (%d)." (time ()) (List.length fired));
-  (* Absorb more than one write: excessive wake-ups would otherwise fill the
-     socket's buffer and make [wake_up] block. *)
-  if List.mem_assoc s.out_pipe fired then
-    ignore (Unix_utils.read s.out_pipe tmp 0 1024);
-  let collected =
-    Mutex.protect s.tasks_m (fun () ->
-        let collected = ref [] in
-        let take t =
-          if not t.dispatched then (
-            match fired_events t fired with
-              | [] -> ()
-              | events ->
-                  t.dispatched <- true;
-                  collected := (t, events) :: !collected)
-        in
-        List.iter
-          (fun (fd, _) ->
-            match Hashtbl.find_opt s.by_fd fd with
-              | None -> ()
-              | Some tasks -> List.iter take tasks)
-          fired;
-        let now = time () in
-        let rec expired () =
-          match Timers.min_binding_opt s.timers with
-            | Some ((deadline, _), t) when deadline <= now ->
-                s.timers <- Timers.remove (deadline, t.id) s.timers;
-                take t;
-                expired ()
-            | _ -> ()
-        in
-        expired ();
-        List.iter (fun (t, _) -> unregister s t) !collected;
-        !collected)
-  in
-  match collected with
-    | [] -> ()
-    | _ ->
-        let wake =
-          Mutex.protect s.ready_m (fun () ->
-              let targets =
-                List.filter_map
-                  (fun ((t : _ t), _) -> Option.bind t.pinned (worker_for s))
-                  collected
-              in
-              List.iter
-                (fun ((t : _ t), events) ->
-                  s.ready <-
-                    {
-                      prio = t.prio;
-                      run = (fun () -> t.fire events);
-                      target = t.pinned;
-                    }
-                    :: s.ready)
-                collected;
-              List.map (claim_worker s) targets
-              @ take_idle s (List.length collected))
-        in
-        List.iter signal_worker wake
+  loop ()
 
-let poller s =
-  Fun.protect
-    ~finally:(fun () -> Atomic.set s.poller_done true)
-    (fun () ->
-      while not (Atomic.get s.stopped) do
-        poll_once s
-      done)
-
-(** Rounded up, so that every worker keeps at least its share of the budget.
-    [s.ready_m] must be held. *)
-let update_blocking_per_worker s =
-  let count = max 1 (List.length s.workers) in
-  Atomic.set s.blocking_per_worker
-    (max 1 ((s.max_blocking + s.reserved + count - 1) / count))
+let wake_auxiliaries s =
+  List.iter
+    (fun w -> Mutex.protect w.aux_m (fun () -> Condition.broadcast w.aux_c))
+    s.workers
 
 (* A lowered budget lets the auxiliary threads above it exit, and a raised one
    lets idle workers take the blocking tasks they had declined. *)
 let reserve_blocking s =
   let change n =
-    Mutex.protect s.ready_m (fun () ->
-        s.reserved <- s.reserved + n;
-        update_blocking_per_worker s);
-    List.iter
-      (fun w -> Mutex.protect w.aux_m (fun () -> Condition.broadcast w.aux_c))
-      s.workers;
-    wake_idle s max_int
+    ignore (Core.reserve s.core n);
+    wake_auxiliaries s
   in
   change 1;
   let released = Atomic.make false in
   fun () -> if Atomic.compare_and_set released false true then change (-1)
 
-let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
+let start ?pool ?(max_blocking = 64) ?log:logger s =
   if not (Atomic.compare_and_set s.started false true) then
     failwith "Duppy.start: scheduler already started";
   s.log <- logger;
   let accepts =
     match pool with
-      | Some (`Threads accepts) -> accepts
+      | Some (`Threads accepts) | Some (`Selective_domains accepts) -> accepts
       | Some (`Domains n) -> List.init (max 1 n) (fun _ _ -> true)
-      | None ->
-          List.init
-            (max 1 (Domain.recommended_domain_count ()))
-            (fun _ _ -> true)
+      | None -> List.init (Domain.recommended_domain_count ()) (fun _ _ -> true)
   in
   s.threaded <- (match pool with Some (`Threads _) -> true | _ -> false);
-  let make_worker accepts =
-    {
-      worker_m = Mutex.create ();
-      worker_c = Condition.create ();
-      wake = false;
-      took_batch = false;
-      blocking = Atomic.make 0;
-      accepts;
-      domain = -1;
-      aux_m = Mutex.create ();
-      aux_c = Condition.create ();
-      aux_pending = [];
-      aux_busy = 0;
-      aux_total = 0;
-    }
+  s.selective <-
+    (match pool with
+      | Some (`Threads _) | Some (`Selective_domains _) -> true
+      | _ -> false);
+  let count = List.length accepts in
+  if s.selective && count >= Sys.int_size then
+    invalid_arg "Duppy.start: too many threads";
+  let workers =
+    List.mapi
+      (fun index accepts ->
+        {
+          index;
+          accepts;
+          domain = -1;
+          taken = Array.make 1024 0;
+          blocking = Atomic.make 0;
+          aux_m = Mutex.create ();
+          aux_c = Condition.create ();
+          aux_pending = [];
+          aux_busy = 0;
+          aux_total = 0;
+        })
+      accepts
   in
-  let workers = List.map make_worker accepts in
-  (* A thread on the calling domain, so the domain that evaluated the script
-     takes tasks too and collects what it allocated: a GC only reclaims the
-     heap of the domain it runs on. A thread pool already sits there. *)
-  let current =
-    if current_domain && not s.threaded then (
-      let w = make_worker (fun _ -> true) in
-      w.domain <- (Domain.self () :> int);
-      Some w)
-    else None
-  in
-  let workers = workers @ Option.to_list current in
-  Mutex.protect s.ready_m (fun () ->
-      s.workers <- workers;
-      s.max_blocking <- max_blocking;
-      update_blocking_per_worker s);
-  let count = List.length workers in
+  s.workers <- workers;
+  Core.start s.core count max_blocking;
+  (* What was submitted before the pool is ready before any worker looks. *)
+  flush_pending s;
   let guard fn () =
     try fn ()
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
       s.on_fatal exn bt
   in
-  let spawn fn =
-    if s.threaded then `Thread (Thread.create (guard fn) ())
-    else `Domain (Domain.spawn (guard fn))
+  (* The first worker of a domain pool is a thread on the calling domain, which
+     exists anyway and collects only what it allocated itself.
+
+     The parent reads a spawned domain's id directly, so a pin can be validated
+     before the worker has run a single instruction. *)
+  let spawn w =
+    let run = guard (fun () -> dispatch s w) in
+    if s.threaded then `Thread (Thread.create run ())
+    else if w.index = 0 then begin
+      w.domain <- (Domain.self () :> int);
+      `Thread (Thread.create run ())
+    end
+    else (
+      let d = Domain.spawn run in
+      w.domain <- (Domain.get_id d :> int);
+      `Domain d)
   in
-  (* The parent reads the spawned domain's id directly, so a pin can be
-     validated before the worker has run a single instruction. *)
-  let spawn_worker w =
-    let m = spawn (fun () -> dispatch s w) in
-    (match m with
-      | `Domain d -> w.domain <- (Domain.get_id d :> int)
-      | `Thread _ -> ());
-    m
-  in
-  let spawn_worker w =
-    match current with
-      | Some c when c == w ->
-          `Thread (Thread.create (guard (fun () -> dispatch s w)) ())
-      | _ -> spawn_worker w
-  in
-  s.members <- spawn (fun () -> poller s) :: List.map spawn_worker workers;
+  s.members <- List.map spawn workers;
+  Atomic.set s.running true;
+  flush_pending s;
   log s (fun () ->
       if s.threaded then Printf.sprintf "Started %d dispatch threads." count
       else
-        Printf.sprintf "Started %d dispatch domains, %d blocking tasks each."
-          count
-          (Atomic.get s.blocking_per_worker))
+        Printf.sprintf "Started %d dispatch domains on %s, %d blocking tasks."
+          count (Core.backend s.core) (Core.slots s.core))
 
 let stop s =
-  if Atomic.get s.started then begin
-    clear_tasks s;
-    Atomic.set s.stopped true;
-    wake_up s;
-    List.iter signal_worker s.workers;
-    List.iter
-      (fun w -> Mutex.protect w.aux_m (fun () -> Condition.broadcast w.aux_c))
-      s.workers;
+  if Atomic.get s.started && not (Atomic.exchange s.stopped true) then begin
+    Core.stop s.core;
+    (* The core dropped the tasks it held, so nothing will ask for their
+       handlers. *)
+    Slab.clear s.tasks;
+    wake_auxiliaries s;
     (* Let the tasks still parked on the workers finish, bounded because a
        blocking task is under no obligation to return. *)
     let deadline = time () +. drain_timeout in
     while
-      ((not (Atomic.get s.poller_done))
-      || List.exists (fun w -> 0 < Atomic.get w.blocking) s.workers)
+      List.exists (fun w -> 0 < Atomic.get w.blocking) s.workers
       && time () < deadline
     do
       Thread.delay 0.01
@@ -850,10 +683,9 @@ let stop s =
     in
     List.iter (fun m -> ignore (Thread.create (fun () -> join m) ())) s.members;
     s.members <- [];
-    s.workers <- [];
-    (* Freeing what the loop waits on while it is still in there is a use after
-       free, and a descriptor is the cheaper thing to lose. *)
-    if Atomic.get s.poller_done then Pollset.close s.pollset
+    List.iter
+      (fun fd -> try Unix.close fd with _ -> ())
+      [s.wake_read; s.wake_write]
   end
 
 module Async = struct
