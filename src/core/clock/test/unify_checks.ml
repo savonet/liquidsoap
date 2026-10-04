@@ -7,21 +7,22 @@ let controller_conflict = function
   | Clock.Controller_conflict _ -> true
   | _ -> false
 
-let unifies a b = match Clock.unify a b with () -> true | exception _ -> false
+let unifies a b =
+  match Clock.unify ~pos:None a b with () -> true | exception _ -> false
 
 let basics () =
   let clock = Clock.create () in
   check "a handle unifies with itself" (unifies clock clock);
   let named = Clock.create ~id:"named" () in
   let anonymous = Clock.create () in
-  Clock.unify named anonymous;
+  Clock.unify ~pos:None named anonymous;
   check "two stopped automatic clocks unify"
     (Clock.equal named anonymous && registered named = 1);
   check "the survivor takes the other's id when it has none"
     (Clock.id anonymous = Some "named");
   let left = Clock.create ~id:"left" () in
   let right = Clock.create ~id:"right" () in
-  Clock.unify left right;
+  Clock.unify ~pos:None left right;
   check "the survivor keeps its own id when both have one, and says so"
     (List.exists
        (function Clock.Event.Id_kept _ -> true | _ -> false)
@@ -43,16 +44,16 @@ let basics () =
   let cpu = Clock.create ~sync:`Cpu () in
   let unsynced = Clock.create ~sync:`Unsynced () in
   raises "a stopped CPU clock and a stopped unsynced clock conflict" conflict
-    (fun () -> Clock.unify cpu unsynced);
+    (fun () -> Clock.unify ~pos:None cpu unsynced);
   raises "the conflict does not depend on the order of the arguments" conflict
-    (fun () -> Clock.unify unsynced cpu)
+    (fun () -> Clock.unify ~pos:None unsynced cpu)
 
 let pending_sources () =
   let a = Clock.create () and b = Clock.create () in
   let on_a = source ~id:"a" `Output and on_b = source ~id:"b" `Output in
   attach a on_a;
   attach b on_b;
-  Clock.unify a b;
+  Clock.unify ~pos:None a b;
   let pending clock =
     List.sort String.compare
       (List.map (fun (s : Clock.source) -> s#id) (Clock.pending clock))
@@ -65,18 +66,18 @@ let nesting () =
   let child = sub_clock top in
   let grandchild = sub_clock child in
   raises "unifying a clock with its sub-clock is a loop" loop (fun () ->
-      Clock.unify top child);
+      Clock.unify ~pos:None top child);
   raises "unifying a clock with a clock nested deeper in it is a loop" loop
-    (fun () -> Clock.unify grandchild top)
+    (fun () -> Clock.unify ~pos:None grandchild top)
 
 let owners () =
   let owned () = Clock.create ~sync:`Passive ~owner:(owner ()) () in
   raises "two passive clocks with different owners are a controller conflict"
-    controller_conflict (fun () -> Clock.unify (owned ()) (owned ()));
+    controller_conflict (fun () -> Clock.unify ~pos:None (owned ()) (owned ()));
   let parent = Clock.create () in
   let shared = sub_clock parent in
   raises "a passive clock with an owner and one without never unify"
-    controller_conflict (fun () -> Clock.unify (owned ()) shared);
+    controller_conflict (fun () -> Clock.unify ~pos:None (owned ()) shared);
   let exclusive () = Clock.create ~sync:`Passive ~parent ~owner:(owner ()) () in
   let first = exclusive () and second = exclusive () in
   check "K15: two exclusive child clocks stay two"
@@ -88,7 +89,7 @@ let owners () =
 let parents () =
   let left_parent = Clock.create () and right_parent = Clock.create () in
   let left = sub_clock left_parent and right = sub_clock right_parent in
-  Clock.unify left right;
+  Clock.unify ~pos:None left right;
   check "two child clocks unify when their parents do, which are unified too"
     (Clock.equal left right && Clock.equal left_parent right_parent);
   let cpu = Clock.create ~id:"cpu" ~sync:`Cpu () in
@@ -100,7 +101,7 @@ let parents () =
   let all = [cpu; unsynced; under_cpu; under_unsynced] in
   let before = List.map Clock.status all in
   raises "two child clocks whose parents conflict do not unify" conflict
-    (fun () -> Clock.unify under_cpu under_unsynced);
+    (fun () -> Clock.unify ~pos:None under_cpu under_unsynced);
   check "K11: a failed unification leaves every clock involved as it was"
     (List.map Clock.status all = before
     && (not (Clock.equal under_cpu under_unsynced))
@@ -116,7 +117,7 @@ let merge_into_started () =
   let output = source `Output in
   attach joining output;
   let registry_size = List.length (Clock.clocks ()) in
-  Clock.unify joining child;
+  Clock.unify ~pos:None joining child;
   check "K11: no set holds the clock merged away, and none a clock twice"
     (List.length (Clock.clocks ()) = registry_size - 1
     && registered running = 1
@@ -134,7 +135,7 @@ let sub_clocks_of_one_parent () =
   Clock.register ~parent second;
   Clock.stop first;
   Clock.stop second;
-  Clock.unify first second;
+  Clock.unify ~pos:None first second;
   check "K3: two unified sub-clocks of one parent are one entry"
     (List.length (Clock.sub_clocks parent) = 1);
   Clock.deregister ~parent first;
@@ -163,7 +164,7 @@ let no_cycle () =
   for _ = 1 to 2000 do
     (match Random.int 3 with
       | 0 -> clocks := Array.append !clocks [| sub_clock (pick ()) |]
-      | 1 -> ( try Clock.unify (pick ()) (pick ()) with _ -> ())
+      | 1 -> ( try Clock.unify ~pos:None (pick ()) (pick ()) with _ -> ())
       | _ -> (
           let sub = pick () in
           try Clock.register ~parent:(pick ()) sub with _ -> ()));
@@ -194,8 +195,8 @@ let concurrent () =
       try
         let fresh = Clock.create () and shared = pick () in
         attach fresh (source `Passive);
-        if Random.State.bool state then Clock.unify shared fresh
-        else Clock.unify fresh shared;
+        if Random.State.bool state then Clock.unify ~pos:None shared fresh
+        else Clock.unify ~pos:None fresh shared;
         ignore (Clock.name (pick ()), Clock.status (pick ()));
         if not (Clock.equal fresh shared) then Atomic.incr failures
       with error ->
@@ -207,7 +208,7 @@ let concurrent () =
   List.iter Domain.join domains;
   check "K11: threads unifying and reading at once never fail"
     (Atomic.get failures = 0);
-  Array.iter (Clock.unify handles.(0)) handles;
+  Array.iter (Clock.unify ~pos:None handles.(0)) handles;
   check "K11: every handle still designates a clock, held once"
     (Array.for_all (fun handle -> registered handle = 1) handles
     && Array.for_all (Clock.equal handles.(0)) handles);
@@ -228,7 +229,7 @@ let churn main count =
     let track = Sys.opaque_identity (Clock.create ()) in
     let child = sub_clock track in
     attach track (source `Passive);
-    Clock.unify track main;
+    Clock.unify ~pos:None track main;
     ignore (Sys.opaque_identity child);
     Clock.tick main
   done

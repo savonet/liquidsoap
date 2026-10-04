@@ -34,6 +34,9 @@ exception Cannot_start = State.Cannot_start
 exception Not_a_sub_clock = State.Not_a_sub_clock
 exception Stop_signal = State.Stop_signal
 
+type activation = State.activation
+type active = State.active
+type source_type = [ `Passive | `Active of active | `Output of active ]
 type source = State.source
 
 type reported = State.reported = {
@@ -61,6 +64,12 @@ let set_stack t stack =
 let streaming t = Atomic.get (get t).streaming
 let ticks t = Option.map (fun st -> Atomic.get st.ticks) (streaming t)
 let time t = Option.map stream_time (streaming t)
+
+let time_implementation () =
+  Option.value ~default:Liq_time.unix
+    (Hashtbl.find_opt Liq_time.implementations Settings.conf_preferred#get)
+
+let tick_count t = Option.value ~default:0 (ticks t)
 
 let self_sync t =
   match streaming t with

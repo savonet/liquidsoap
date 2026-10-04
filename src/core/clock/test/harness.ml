@@ -59,13 +59,30 @@ class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
     val mutable on_sleep : unit -> unit = ignore
     method id : string = id
     method stack : Pos.t list = []
-    method source_type = source_type
 
-    method wake_up () =
+    method source_type :
+        [ `Passive | `Active of Clock.active | `Output of Clock.active ] =
+      let active =
+        object
+          method id = id
+          method reset = self#reset
+          method output = self#animate
+        end
+      in
+      match source_type with
+        | `Passive -> `Passive
+        | `Active -> `Active active
+        | `Output -> `Output active
+
+    method wake_up (requester : Clock.source) : Clock.activation =
       Atomic.incr awake;
-      fun () ->
-        Atomic.decr awake;
-        on_sleep ()
+      object
+        method id = requester#id
+      end
+
+    method sleep (_ : Clock.activation) =
+      Atomic.decr awake;
+      on_sleep ()
 
     method animate : unit =
       Atomic.incr animated;
@@ -86,7 +103,15 @@ class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
           subscribers <- List.filter (fun other -> other != fn) subscribers
         end
 
-    method activations = if Atomic.get awake > 0 then [id] else []
+    method activations : Clock.activation list =
+      if Atomic.get awake > 0 then
+        [
+          object
+            method id = id
+          end;
+        ]
+      else []
+
     method awake = Atomic.get awake
     method animated = Atomic.get animated
     method resets = Atomic.get resets

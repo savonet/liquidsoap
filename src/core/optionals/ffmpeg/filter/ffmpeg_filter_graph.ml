@@ -54,7 +54,7 @@ class source ~name ~pull ~is_ready ~flush_inputs ~reset ~self_sync () =
     method add_sink sink = sinks <- sinks @ [sink]
     method fallible = true
     method effective_source = (self :> Source.source)
-    method self_sync : Clock.self_sync = self_sync (self :> Source.source)
+    method self_sync : Source.self_sync = self_sync (self :> Source.source)
     method remaining = Generator.remaining self#buffer
 
     method abort_track =

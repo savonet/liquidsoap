@@ -23,16 +23,7 @@
 open Mm
 open Pulseaudio
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = unit
-
-  let time_implementation () = Clock.unconstrained_time
-  let to_string _ = "pulseaudio"
-  let latency () = Clock.conf_latency#get
-  let max_latency () = Clock.conf_max_latency#get
-end)
-
-let sync_source = SyncSource.make ()
+let sync_source = Clock.Sync_source.make ~name:"pulseaudio" `Self_paced
 
 (** Error translator *)
 let error_translator e =
@@ -46,15 +37,15 @@ let () = Printexc.register_printer error_translator
 
 class virtual base ~self_sync ?(default_self_sync = fun () -> (`Static, None))
   ~client ~device () =
-  object
+  object (self)
+    method virtual private set_sync_source : Clock.Sync_source.t option -> unit
+    method virtual private dynamic_self_sync : Source.self_sync
     val client_name = client
     val dev = device
     val mutable stream = None
 
-    method self_sync : Clock.self_sync =
-      if self_sync then
-        (`Dynamic, if stream <> None then Some sync_source else None)
-      else default_self_sync ()
+    method self_sync : Source.self_sync =
+      if self_sync then self#dynamic_self_sync else default_self_sync ()
   end
 
 let log = Log.make ["pulseaudio"]
@@ -108,7 +99,8 @@ class output ~infallible ~register_telnet ~start p =
           stream <-
             Some
               (Pulseaudio.Simple.create ~client_name ~stream_name:self#id ?dev
-                 ~dir:Dir_playback ~sample:ss ()))
+                 ~dir:Dir_playback ~sample:ss ()));
+        self#set_sync_source (Some sync_source)
       with exn ->
         let bt = Printexc.get_backtrace () in
         let error =
@@ -123,7 +115,8 @@ class output ~infallible ~register_telnet ~start p =
         | None -> ()
         | Some s ->
             Pulseaudio.Simple.free s;
-            stream <- None
+            stream <- None;
+            self#set_sync_source None
 
     method start = self#open_device
     method stop = self#close_device
@@ -201,7 +194,8 @@ class input p =
           stream <-
             Some
               (Pulseaudio.Simple.create ~client_name ~stream_name:self#id
-                 ~dir:Dir_record ?dev ~sample:ss ())
+                 ~dir:Dir_record ?dev ~sample:ss ());
+          self#set_sync_source (Some sync_source)
         with exn when fallible ->
           let bt = Printexc.get_backtrace () in
           let error =
@@ -215,7 +209,8 @@ class input p =
       match stream with
         | Some device ->
             Pulseaudio.Simple.free device;
-            stream <- None
+            stream <- None;
+            self#set_sync_source None
         | None -> ()
 
     method generate_frame =

@@ -25,16 +25,7 @@
 open Mm
 open Ndi_format
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = unit
-
-  let time_implementation () = Clock.unconstrained_time
-  let to_string _ = "ndi"
-  let latency () = Clock.conf_latency#get
-  let max_latency () = Clock.conf_max_latency#get
-end)
-
-let sync_source = SyncSource.make ()
+let sync_source = Clock.Sync_source.make ~name:"ndi" `Self_paced
 
 type sender = { handler : Ndi.Send.sender; mutable position : int64 }
 
@@ -64,11 +55,7 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
           source start
 
     val mutable sender = None
-
-    method self_sync =
-      if self_sync then
-        (`Dynamic, if sender <> None then Some sync_source else None)
-      else s#self_sync
+    method self_sync = if self_sync then self#dynamic_self_sync else s#self_sync
 
     method get_sender =
       match sender with
@@ -79,6 +66,7 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
             in
             let s = { handler; position = 0L } in
             sender <- Some s;
+            self#set_sync_source (Some sync_source);
             s
 
     method start = ignore self#get_sender
@@ -87,7 +75,8 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
       match sender with
         | Some { handler } ->
             Ndi.Send.destroy handler;
-            sender <- None
+            sender <- None;
+            self#set_sync_source None
         | None -> ()
 
     method private send_audio_frame ~timecode ~sender frame =

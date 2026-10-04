@@ -1,13 +1,20 @@
+type activation = < id : string >
+type active = < id : string ; reset : unit ; output : unit >
+
 type source =
-  < activations : string list
-  ; animate : unit
-  ; id : string
-  ; on_sync_source : (Sync_source.t option -> unit) -> unit -> unit
-  ; reset : unit
-  ; source_type : [ `Active | `Output | `Passive ]
-  ; stack : Liquidsoap_lang_prelude.Pos.t list
+  < id : string
+  ; stack : Pos.t list
+  ; source_type : [ `Passive | `Active of active | `Output of active ]
+  ; wake_up : source -> activation
+  ; sleep : activation -> unit
   ; sync_source : Sync_source.t option
-  ; wake_up : unit -> unit -> unit >
+  ; on_sync_source : (Sync_source.t option -> unit) -> unit -> unit
+  ; activations : activation list >
+
+val role : source -> [ `Passive | `Active | `Output ]
+
+(** What animates and resets an active or output source. *)
+val active : source -> active option
 
 module Sources : sig
   type key = source
@@ -39,11 +46,12 @@ type reported = {
   stack : Liquidsoap_lang_prelude.Pos.t list;
 }
 
-exception Conflict of { left : string; right : string }
-exception Loop of { left : string; right : string }
+exception Conflict of { pos : Pos.t option; left : string; right : string }
+exception Loop of { pos : Pos.t option; left : string; right : string }
 
 exception
   Controller_conflict of {
+    pos : Pos.t option;
     left : string;
     left_controller : string;
     right : string;

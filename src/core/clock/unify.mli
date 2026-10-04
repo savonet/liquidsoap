@@ -1,1 +1,1 @@
-val unify : State.t -> State.t -> unit
+val unify : pos:Pos.t option -> State.t -> State.t -> unit

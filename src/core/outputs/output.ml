@@ -145,7 +145,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
              user-defined ID. Our ID will be used for the server interface. *)
           if name <> "" then self#set_id ~force:false name;
 
-          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#debug "Clock is %s." (Clock.name self#clock);
 
           if Frame.Fields.is_empty self#content_type then
             failwith

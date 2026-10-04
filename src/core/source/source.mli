@@ -34,6 +34,8 @@ type source_type = [ `Passive | `Active of active | `Output of active ]
 
 exception Unavailable
 
+type self_sync = Source_sync.t
+
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
@@ -164,22 +166,34 @@ object
       a [`Auto] clock), we simply decide based on whether there is one
       [self_sync] source or not. This logic should dictate how the method is
       implemented by the various operators. *)
-  method virtual self_sync : Clock.self_sync
+  method virtual self_sync : self_sync
 
-  method source_sync : bool -> Clock.sync_source option
+  method source_sync : bool -> Clock.Sync_source.t option
 
   (** Cached sync source of this source, updated at wake_up and on changes. *)
-  method source_state : Clock.sync_source option
+  method source_state : Clock.Sync_source.t option
 
   (** Register a callback fired when the source's sync source changes. Returns a
       deregistration thunk. *)
   method on_sync_source_change :
-    (old:Clock.sync_source option -> Clock.sync_source option -> unit) ->
+    (old:Clock.Sync_source.t option -> Clock.Sync_source.t option -> unit) ->
     unit ->
     unit
 
   (** Update the cached sync source and notify registered callbacks. *)
-  method private notify_sync_source : Clock.sync_source option -> unit
+  method private notify_sync_source : Clock.Sync_source.t option -> unit
+
+  (** For a source that paces its stream by itself, while it does: the sync
+      source it currently reports, or [None]. Setting it notifies the clock. *)
+  method private set_sync_source : Clock.Sync_source.t option -> unit
+
+  (** What [self_sync] is for such a source. *)
+  method private dynamic_self_sync : self_sync
+
+  (** What the clock requires of a source: spec/clock.md §15. *)
+  method sync_source : Clock.Sync_source.t option
+
+  method on_sync_source : (Clock.Sync_source.t option -> unit) -> unit -> unit
 
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit

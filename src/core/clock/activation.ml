@@ -104,14 +104,15 @@ let track st (source : source) role =
   member
 
 let activate_source st (source : source) =
-  match source#source_type with
+  match role source with
     | `Passive ->
         Mutex.protect st.m (fun () ->
             if not (Queues.WeakQueue.exists st.passive (( == ) source)) then
               Queues.WeakQueue.push st.passive source)
     | `Active -> ignore (track st source `Active)
     | `Output ->
-        let sleep = source#wake_up () in
+        let activation = source#wake_up source in
+        let sleep () = source#sleep activation in
         let member =
           try track st source `Output
           with error ->

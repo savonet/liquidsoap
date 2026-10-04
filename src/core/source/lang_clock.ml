@@ -24,10 +24,10 @@ open Lang
 
 module ClockSource = struct
   include Value.MkCustom (struct
-    type content = Clock.source
+    type content = string
 
     let name = "clock_source"
-    let to_string s = Printf.sprintf "clock_source<id=%s>" s#id
+    let to_string id = Printf.sprintf "clock_source<id=%s>" id
 
     let to_json ~pos _ =
       Lang.raise_error ~message:"Clock sources cannot be represented as json"
@@ -44,7 +44,7 @@ module ClockSource = struct
       ( "id",
         Lang.fun_t [] Lang.string_t,
         "The sources's id",
-        fun s -> Lang.val_fun [] (fun _ -> Lang.string s#id) );
+        fun id -> Lang.val_fun [] (fun _ -> Lang.string id) );
     ]
 
   let t =
@@ -56,18 +56,29 @@ module ClockSource = struct
       (List.map (fun (lbl, _, _, v) -> (lbl, v c)) methods)
 end
 
+let sync_state c =
+  match Clock.stop_reason c with
+    | Some _ -> "stopped"
+    | None when not (Clock.started c) -> "stopping"
+    | None -> Clock.string_of_sync_mode (Clock.sync_mode c)
+
+let source_ids entries =
+  List.map (fun (entry : Clock.Status.entry) -> entry.id) entries
+
 module ClockValue = struct
   include Value.MkCustom (struct
     type content = Clock.t
 
     let name = "clock"
-    let to_string = Clock.descr
+
+    let to_string c =
+      Printf.sprintf "clock(id=%s,sync=%s)" (Clock.name c) (sync_state c)
 
     let to_json ~pos _ =
       Lang.raise_error ~message:"Clocks cannot be represented as json" ~pos
         "json"
 
-    let compare = Stdlib.compare
+    let compare = Clock.compare
   end)
 
   let base_t = t
@@ -79,7 +90,7 @@ module ClockValue = struct
         Lang.ref_t Lang.string_t,
         "The clock's id",
         fun c ->
-          let get () = Lang.string (Clock.id c) in
+          let get () = Lang.string (Clock.name c) in
           let set v = Clock.set_id c (Lang.to_string v) in
           Lang.reference get set );
       ( "sub_clocks",
@@ -92,9 +103,7 @@ module ClockValue = struct
         Lang.fun_t [] Lang.string_t,
         "The clock's current sync mode. One of: `\"stopped\"`, `\"stopping\"`, \
          `\"auto\"`, `\"cpu\"`, `\"none\"` or `\"passive\"`.",
-        fun c ->
-          Lang.val_fun [] (fun _ ->
-              Lang.string Clock.(string_of_sync_mode (sync c))) );
+        fun c -> Lang.val_fun [] (fun _ -> Lang.string (sync_state c)) );
       ( "start",
         Lang.fun_t [(true, "force", Lang.bool_t)] Lang.unit_t,
         "Start the clock.",
@@ -107,12 +116,9 @@ module ClockValue = struct
               try
                 Clock.start ~force c;
                 Lang.unit
-              with Clock.Invalid_state ->
-                Runtime_error.raise
-                  ~message:
-                    (Printf.sprintf "Invalid clock state: %s"
-                       Clock.(string_of_sync_mode (sync c)))
-                  ~pos "clock") );
+              with Clock.Cannot_start _ as error ->
+                Runtime_error.raise ~message:(Printexc.to_string error) ~pos
+                  "clock") );
       ( "stop",
         Lang.fun_t [] Lang.unit_t,
         "Stop the clock. Does nothing if the clock is stopping or stopped.",
@@ -142,7 +148,11 @@ module ClockValue = struct
          for logging and etc. These sources cannot be used in operators.",
         fun c ->
           Lang.val_fun [] (fun _ ->
-              Lang.list (List.map ClockSource.to_value (Clock.sources c))) );
+              let status = Clock.status c in
+              Lang.list
+                (List.map ClockSource.to_value
+                   (source_ids
+                      (status.outputs @ status.active @ status.passive)))) );
       ( "active_sources",
         Lang.fun_t [] (Lang.list_t ClockSource.t),
         "List of active sources connected to the clock. This returns abstract \
@@ -150,8 +160,9 @@ module ClockValue = struct
          operators.",
         fun c ->
           Lang.val_fun [] (fun _ ->
-              Lang.list (List.map ClockSource.to_value (Clock.active_sources c)))
-      );
+              Lang.list
+                (List.map ClockSource.to_value
+                   (source_ids (Clock.status c).active))) );
       ( "passive_sources",
         Lang.fun_t [] (Lang.list_t ClockSource.t),
         "List of passive sources connected to the clock. This returns abstract \
@@ -160,30 +171,37 @@ module ClockValue = struct
         fun c ->
           Lang.val_fun [] (fun _ ->
               Lang.list
-                (List.map ClockSource.to_value (Clock.passive_sources c))) );
+                (List.map ClockSource.to_value
+                   (source_ids (Clock.status c).passive))) );
       ( "outputs",
         Lang.fun_t [] (Lang.list_t ClockSource.t),
         "List of outputs connected to the clock. This returns abstract sources \
          for logging and etc. These sources cannot be used in operators.",
         fun c ->
           Lang.val_fun [] (fun _ ->
-              Lang.list (List.map ClockSource.to_value (Clock.outputs c))) );
+              Lang.list
+                (List.map ClockSource.to_value
+                   (source_ids (Clock.status c).outputs))) );
       ( "tick",
         Lang.fun_t [] Lang.unit_t,
         "Animate the clock and run one tick",
         fun c ->
-          Lang.val_fun [] (fun _ ->
-              Clock.tick c;
+          Lang.val_fun [] (fun p ->
+              (try Clock.tick c
+               with (Invalid_argument _ | Clock.Not_running _) as error ->
+                 Runtime_error.raise ~message:(Printexc.to_string error)
+                   ~pos:(Lang.pos p) "clock");
               Lang.unit) );
       ( "ticks",
         Lang.fun_t [] Lang.int_t,
         "The total number of times the clock has ticked.",
-        fun c -> Lang.val_fun [] (fun _ -> Lang.int (Clock.ticks c)) );
+        fun c -> Lang.val_fun [] (fun _ -> Lang.int (Clock.tick_count c)) );
       ( "dump",
         Lang.fun_t [] Lang.string_t,
         "Dump source graph for the clock.",
-        fun c -> Lang.val_fun [] (fun _ -> Lang.string (Clock.dump_sources c))
-      );
+        fun c ->
+          Lang.val_fun [] (fun _ ->
+              Lang.string (Clock.Status.source_graph [Clock.status c])) );
     ]
 
   let t =

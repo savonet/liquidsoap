@@ -1,18 +1,21 @@
+type activation = < id : string >
+type active = < id : string ; reset : unit ; output : unit >
+type source_type = [ `Passive | `Active of active | `Output of active ]
+
 (** What a clock requires of a source: spec/clock.md §15.
 
-    [wake_up ()] wakes the source with itself as the requester and returns what
-    puts that activation to sleep. [on_sync_source] subscribes to the changes of
-    [sync_source] and returns what unsubscribes. *)
+    The clock wakes an output with the output itself as the requester, and keeps
+    the activation until it winds down. [on_sync_source] subscribes to the
+    changes of [sync_source] and returns what unsubscribes. *)
 type source =
   < id : string
   ; stack : Pos.t list
-  ; source_type : [ `Passive | `Active | `Output ]
-  ; wake_up : unit -> unit -> unit
-  ; animate : unit
-  ; reset : unit
+  ; source_type : [ `Passive | `Active of active | `Output of active ]
+  ; wake_up : source -> activation
+  ; sleep : activation -> unit
   ; sync_source : Sync_source.t option
   ; on_sync_source : (Sync_source.t option -> unit) -> unit -> unit
-  ; activations : string list >
+  ; activations : activation list >
 
 module Settings = Settings
 module Status = Status
@@ -40,11 +43,12 @@ type activity = Status.activity
 type figures = Status.figures
 type reported = { sync_source : string; source : string; stack : Pos.t list }
 
-exception Conflict of { left : string; right : string }
-exception Loop of { left : string; right : string }
+exception Conflict of { pos : Pos.t option; left : string; right : string }
+exception Loop of { pos : Pos.t option; left : string; right : string }
 
 exception
   Controller_conflict of {
+    pos : Pos.t option;
     left : string;
     left_controller : string;
     right : string;
@@ -129,6 +133,14 @@ val pending : t -> source list
 val ticks : t -> int option
 
 val time : t -> float option
+
+(** The [Liq_time] implementation that [clock.preferred] names, for callers that
+    keep time on their own. *)
+val time_implementation : unit -> Liq_time.implementation
+
+(** [ticks], with 0 for a clock that is not running. *)
+val tick_count : t -> int
+
 val self_sync : t -> bool
 val pulled : t -> bool
 
@@ -150,7 +162,7 @@ val sub_clocks : t -> t list
 
 (** Raises [Conflict], [Loop] or [Controller_conflict], and then changes
     nothing. *)
-val unify : t -> t -> unit
+val unify : pos:Pos.t option -> t -> t -> unit
 
 (** What hands work to the scheduler and waits for it goes through this, so that
     a tick running on a scheduler worker gives it back meanwhile. *)

@@ -93,5 +93,5 @@ object
   method private start : unit
   method private stop : unit
   method private send_frame : Frame.t -> unit
-  method self_sync : Clock.self_sync
+  method self_sync : Source.self_sync
 end

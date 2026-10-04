@@ -19,7 +19,7 @@ let cannot_start ~force c =
     not
       (force || c.sync_mode = `Passive
       || List.exists
-           (fun (s : source) -> s#source_type = `Output)
+           (fun (s : source) -> role s = `Output)
            (Atomic.get c.pending))
   then Some `No_output
   else None
@@ -101,7 +101,8 @@ let animate c st (source : source) member =
   if not (Atomic.get member.removed) then begin
     let started = Duppy.time () in
     let waited = st.tick_waited in
-    source_error c st source (fun () -> source#animate);
+    source_error c st source (fun () ->
+        Option.iter (fun (a : active) -> a#output) (active source));
     note_slowest st.tick_slowest
       ~duration:(Duppy.time () -. started -. (st.tick_waited -. waited))
       ~name:(Some source#id)
@@ -334,7 +335,11 @@ let loop c st () =
 
 let rec spawn animator fn =
   match animator with
-    | `Thread -> Duppy.thread ~priority:`Clock scheduler fn
+    | `Thread ->
+        (* Script code registers its callbacks through an effect that only the
+           scheduler's own tasks handle. *)
+        Duppy.thread ~priority:`Clock scheduler (fun () ->
+            Script_callback.uncollected fn)
     | `Task ->
         Duppy.Task.add scheduler
           {
@@ -368,7 +373,7 @@ and animated c st fn () =
     }
 
 let sources_of_pending c =
-  List.map (fun (s : source) -> (s#id, s#source_type)) (Atomic.get c.pending)
+  List.map (fun (s : source) -> (s#id, role s)) (Atomic.get c.pending)
 
 let rec start_clock ~force c =
   Transition.run (fun () ->

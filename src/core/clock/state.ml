@@ -1,16 +1,29 @@
 open Settings
 open Status
 
+type activation = < id : string >
+type active = < id : string ; reset : unit ; output : unit >
+
 type source =
   < id : string
   ; stack : Pos.t list
-  ; source_type : [ `Passive | `Active | `Output ]
-  ; wake_up : unit -> unit -> unit
-  ; animate : unit
-  ; reset : unit
+  ; source_type : [ `Passive | `Active of active | `Output of active ]
+  ; wake_up : source -> activation
+  ; sleep : activation -> unit
   ; sync_source : Sync_source.t option
   ; on_sync_source : (Sync_source.t option -> unit) -> unit -> unit
-  ; activations : string list >
+  ; activations : activation list >
+
+let role (source : source) =
+  match source#source_type with
+    | `Passive -> `Passive
+    | `Active _ -> `Active
+    | `Output _ -> `Output
+
+let active (source : source) =
+  match source#source_type with
+    | `Active active | `Output active -> Some active
+    | `Passive -> None
 
 module Sources = Ephemeron.K1.Make (struct
   type t = source
@@ -21,11 +34,12 @@ end)
 
 type reported = { sync_source : string; source : string; stack : Pos.t list }
 
-exception Conflict of { left : string; right : string }
-exception Loop of { left : string; right : string }
+exception Conflict of { pos : Pos.t option; left : string; right : string }
+exception Loop of { pos : Pos.t option; left : string; right : string }
 
 exception
   Controller_conflict of {
+    pos : Pos.t option;
     left : string;
     left_controller : string;
     right : string;
@@ -93,6 +107,20 @@ let () =
           (Printf.sprintf "Clock %s is not a passive clock whose parent is %s."
              clock parent)
     | _ -> None)
+
+let numbered ~formatter number pos error =
+  Runtime.error_header ~formatter number pos;
+  Format.fprintf formatter "%s@]@." (Printexc.to_string error);
+  true
+
+let () =
+  Runtime.on_error_print (fun ~formatter error ->
+      match error with
+        | Conflict { pos } -> numbered ~formatter 10 pos error
+        | Loop { pos } -> numbered ~formatter 11 pos error
+        | Controller_conflict { pos } -> numbered ~formatter 16 pos error
+        | Sync_error _ -> numbered ~formatter 17 None error
+        | _ -> false)
 
 type member = {
   role : [ `Output | `Active ];
@@ -295,7 +323,7 @@ end
 let significant_pending c =
   let pending = Atomic.get c.pending in
   let first source_type =
-    List.find_opt (fun (s : source) -> s#source_type = source_type) pending
+    List.find_opt (fun (s : source) -> role s = source_type) pending
   in
   List.find_map first [`Output; `Active; `Passive]
 
@@ -322,8 +350,8 @@ let emit c kind = Event.emit ~clock:(clock_name c) kind
 let entry (source : source) =
   {
     Status.id = source#id;
-    source_type = source#source_type;
-    activations = source#activations;
+    source_type = role source;
+    activations = List.map (fun (a : activation) -> a#id) source#activations;
   }
 
 (* Ephemeron tables cannot be walked, so the sources are also kept in a weak

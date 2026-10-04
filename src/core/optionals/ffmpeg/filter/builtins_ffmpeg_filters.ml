@@ -167,7 +167,7 @@ let pull graph =
 let flush_inputs graph = Queue.iter graph.input_flushes (fun flush -> flush ())
 
 let self_sync graph source =
-  (Clock.self_sync_of_sources ~source (Queue.elements graph.graph_inputs)) ()
+  (Source_sync.of_sources ~source (Queue.elements graph.graph_inputs)) ()
 
 (* Created on the first output: a graph with none needs no source. *)
 let graph_source graph =
@@ -844,30 +844,21 @@ let _ =
       let ret = Lang.apply ~pos:(Lang.pos p) fn [("", Graph.to_value graph)] in
       let id = "ffmpeg.filter" in
       let output_clock = Clock.create ~id () in
-      let controller =
-        object
-          method id = id
-        end
-      in
       let input_clock =
-        Clock.create ~sync:`Passive ~id:(id ^ ".input")
-          ~controller:(`Other ("ffmpeg filter graph", controller))
-          ()
+        Clock.create ~sync:`Passive ~id:(id ^ ".input") ~parent:output_clock
+          ~owner:Ffmpeg_filter_io.graph_owner ()
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       (match graph.graph_source with
         | None -> ()
         | Some s -> Clock.unify ~pos:s#pos output_clock s#clock);
-      (* We need an early registration for sources such as source.dynamic. *)
-      Clock.register_sub_clock output_clock input_clock;
       (match graph.graph_source with
         | None -> ()
         | Some s ->
             s#on_wake_up (fun () ->
-                (* Idempotent, so doing it twice the first time is fine. *)
-                Clock.register_sub_clock output_clock input_clock);
+                Clock.register ~parent:output_clock input_clock);
             s#on_sleep (fun () ->
-                Clock.deregister_sub_clock output_clock input_clock));
+                Clock.deregister ~parent:output_clock input_clock));
 
       (* Pushed last, so everything the script described is attached and linked
          by the time it runs. Re-pointing the setters is all a new generation

@@ -24,16 +24,7 @@
 
 open Ao
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = unit
-
-  let time_implementation () = Clock.unconstrained_time
-  let to_string _ = "ao"
-  let latency () = Clock.conf_latency#get
-  let max_latency () = Clock.conf_max_latency#get
-end)
-
-let sync_source = SyncSource.make ()
+let sync_source = Clock.Sync_source.make ~name:"ao" `Self_paced
 
 class output ~self_sync ~driver ~register_telnet ~infallible ~options
   ?channels_matrix source start =
@@ -47,11 +38,7 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
           start
 
     val mutable device = None
-
-    method self_sync =
-      if self_sync then
-        (`Dynamic, if device <> None then Some sync_source else None)
-      else s#self_sync
+    method self_sync = if self_sync then self#dynamic_self_sync else s#self_sync
 
     method private get_device =
       match device with
@@ -68,6 +55,7 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
                 ~channels:self#audio_channels ()
             in
             device <- Some dev;
+            self#set_sync_source (Some sync_source);
             dev
 
     method start = ignore self#get_device
@@ -76,7 +64,8 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
       match device with
         | Some d ->
             Ao.close d;
-            device <- None
+            device <- None;
+            self#set_sync_source None
         | None -> ()
 
     method send_frame frame = play self#get_device (AFrame.s16le frame)

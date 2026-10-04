@@ -32,18 +32,9 @@ type streaming_state =
 
 type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
+type self_sync = Source_sync.t
 
-module SourceSync = Clock.MkSyncSource (struct
-  type t = < id : string >
-
-  let time_implementation _ = Clock.time_implementation ()
-  let to_string s = Printf.sprintf "source(id=%s)" s#id
-  let latency _ = Clock.conf_latency#get
-  let max_latency _ = Clock.conf_max_latency#get
-end)
-
-let sync_source_changed a b =
-  match (a, b) with None, None -> false | Some a, Some b -> a != b | _ -> true
+let sync_source_changed a b = not (Source_sync.same a b)
 
 (** {1 Sources} *)
 
@@ -232,13 +223,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | `Passive -> false
         | `Output _ | `Active _ -> true
 
-    method virtual self_sync : Clock.self_sync
+    method virtual self_sync : self_sync
     val mutable self_sync_source = None
 
     method private self_sync_source =
       match self_sync_source with
         | None ->
-            let s = SourceSync.make (self :> < id : string >) in
+            let s =
+              Clock.Sync_source.generic
+                ~name:(Printf.sprintf "source(id=%s)" self#id)
+            in
             self_sync_source <- Some s;
             s
         | Some s -> s
@@ -246,11 +240,11 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method source_sync self_sync =
       if self_sync then Some self#self_sync_source else None
 
-    val mutable source_state : Clock.sync_source option = None
+    val mutable source_state : Clock.Sync_source.t option = None
     method source_state = source_state
 
     val state_callbacks
-        : (old:Clock.sync_source option -> Clock.sync_source option -> unit)
+        : (old:Clock.Sync_source.t option -> Clock.Sync_source.t option -> unit)
           Callbacks.t =
       Callbacks.create ()
 
@@ -267,11 +261,19 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private on_child_state_change ~child:_ ~old:_ _ =
       self#notify_sync_source (snd self#self_sync)
 
-    initializer
-      self#on_before_streaming_cycle (fun () ->
-          let sync_source = snd self#self_sync in
-          if sync_source_changed sync_source source_state then
-            self#notify_sync_source sync_source)
+    val mutable own_sync_source : Clock.Sync_source.t option = None
+
+    (* The pacing of a source that paces by itself is this one value: setting
+       it is what tells the clock. *)
+    method private set_sync_source sync_source =
+      own_sync_source <- sync_source;
+      if self#is_up then self#notify_sync_source (snd self#self_sync)
+
+    method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
+    method sync_source = source_state
+
+    method on_sync_source fn =
+      self#on_sync_source_change (fun ~old:_ sync_source -> fn sync_source)
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
@@ -298,7 +300,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                 (Printf.sprintf
                    "Early computation of source content-type detected for \
                     source %s on clock %s!"
-                   self#id (Clock.id self#clock));
+                   self#id (Clock.name self#clock));
             self#log#debug "Assigning source content type for frame type: %s"
               (Type.to_string self#frame_type);
             let ct = Frame_type.content_type self#frame_type in
@@ -369,7 +371,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           self#iter_watchers (fun w ->
               w.wake_up ~fallible:self#fallible ~source_type:self#source_type
                 ~id:self#id ~ctype:self#content_type
-                ~clock_id:(Clock.id self#clock)))
+                ~clock_id:(Clock.name self#clock)))
 
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
@@ -377,10 +379,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
     method activations = WeakQueue.elements activations
 
-    method wake_up src =
+    method wake_up (src : Clock.source) =
       let activation =
         object
-          method id = !id
+          method id = src#id
         end
       in
       Gc.finalise (check_sleep ~activations ~s:self) activation;
@@ -395,7 +397,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             self#id src#id
             (Frame.string_of_content_type self#content_type)
             (Type.to_string self#frame_type);
-          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#debug "Clock is %s." (Clock.name self#clock);
           self#log#important "Content type is %s."
             (Frame.string_of_content_type self#content_type);
           List.iter (fun fn -> fn ()) (Callbacks.elements on_wake_up)

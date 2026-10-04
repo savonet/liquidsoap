@@ -338,6 +338,8 @@ class process ~name r =
             | None | (exception _) -> raise Process_failed)
   end
 
+let stream_time clock = Option.value ~default:0. (Clock.time clock)
+
 let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
   let module Time = (val Clock.time_implementation () : Liq_time.T) in
   let open Time in
@@ -352,6 +354,7 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
           let s = (process (s :> Source.source) :> Source.source) in
           let clock =
             Clock.create ~id:name ~sync:`Passive
+              ~owner:{ Clock.kind = "request.process"; id = name }
               ~on_error:(fun exn bt ->
                 Utils.log_exception ~log
                   ~bt:(Printexc.raw_backtrace_to_string bt)
@@ -378,7 +381,7 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
               let target_time () =
                 Time.(
                   start_time |+| sleep_latency
-                  |+| of_float (Clock.time clock /. ratio))
+                  |+| of_float (stream_time clock /. ratio))
               in
               while (not (Atomic.get should_stop)) && not !stopped do
                 if (not !started) && Time.(timeout_time |<=| Time.time ()) then (
@@ -392,12 +395,12 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
                     sleep_until target_time)
               done;
               let processing_time = Time.(to_float (time () |-| start_time)) in
-              let effective_ratio = Clock.time clock /. processing_time in
+              let effective_ratio = stream_time clock /. processing_time in
               log#info
                 "Request processed. Total processing time: %.02fs, effective \
                  ratio: %.02fx"
                 processing_time effective_ratio)
-        with Process_failed | Clock.Has_stopped -> ())
+        with Process_failed | Clock.Stop_signal | Clock.Not_running _ -> ())
 
 let _ =
   let log = Log.make ["request"; "dump"] in

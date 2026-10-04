@@ -5,7 +5,12 @@
      ticking the clock again,
    - a custom process_frame receives `Flush when the producer sleeps,
    - two producers sharing a child clock but consuming at diverging rates
-     raise instead of buffering without bound. *)
+     raise instead of buffering without bound,
+   - a producer created while its parent runs produces data on its first
+     cycle, and one that is never woken adds no sub-clock to its parent. *)
+
+let owned id =
+  Clock.create ~sync:`Passive ~owner:{ Clock.kind = "test"; id } ~id ()
 
 class ready_source =
   object (self)
@@ -31,6 +36,14 @@ class test_output ~clock source =
 
 let () = Frame_settings.lazy_config_eval := true
 
+(* The default policy shuts the application down. *)
+let failed_clocks = ref []
+
+let () =
+  Clock.set_failure_policy (fun clock (failure : Clock.failure) ->
+      failed_clocks :=
+        (Clock.name clock, Printexc.to_string failure.error) :: !failed_clocks)
+
 let audio_t =
   Lang.frame_t (Lang.univ_t ())
     (Frame.Fields.make ~audio:(Format_type.audio ()) ())
@@ -41,7 +54,7 @@ let producer ~name source =
     (Lang.source (source :> Source.source))
 
 let () =
-  let parent = Clock.create ~sync:`Passive ~id:"child_support_test" () in
+  let parent = owned "child_support_test" in
   let child_source = new ready_source in
   let producer_1 = producer ~name:"producer_1" child_source in
   let producer_2 = producer ~name:"producer_2" child_source in
@@ -58,20 +71,21 @@ let () =
 
   (* Both producers wrap the same source: their child clocks are unified. *)
   assert (
-    Clock.ticks producer_1#child_clock = Clock.ticks producer_2#child_clock);
+    Clock.tick_count producer_1#child_clock
+    = Clock.tick_count producer_2#child_clock);
 
   Clock.start ~force:true parent;
-  Clock.activate_pending_sources parent;
+  Clock.activate_pending parent;
 
   (* First parent tick: producer_1 ticks the child clock to fill its buffer;
      the same tick also fills producer_2's buffer, so producer_2 reads
      without ticking again. *)
   Clock.tick parent;
-  assert (Clock.ticks producer_1#child_clock = 1);
+  assert (Clock.tick_count producer_1#child_clock = 1);
 
   (* Same balance on subsequent ticks: one child tick per parent tick. *)
   Clock.tick parent;
-  assert (Clock.ticks producer_1#child_clock = 2);
+  assert (Clock.tick_count producer_1#child_clock = 2);
 
   (* Both buffers were fully consumed each cycle. *)
   assert (Generator.length producer_1#child_buffer = 0);
@@ -91,7 +105,7 @@ let () =
 
 let () =
   Child_support.conf_max_buffer#set 0.5;
-  let parent = Clock.create ~sync:`Passive ~id:"child_support_diverging" () in
+  let parent = owned "child_support_diverging" in
   let child_source = new ready_source in
   let fast = producer ~name:"fast" child_source in
   let slow = producer ~name:"slow" child_source in
@@ -111,7 +125,7 @@ let () =
     | `Flush -> ());
 
   Clock.start ~force:true parent;
-  Clock.activate_pending_sources parent;
+  Clock.activate_pending parent;
 
   let raised = ref false in
   (try
@@ -120,5 +134,26 @@ let () =
      done
    with Runtime_error.Runtime_error { kind = "clock" } -> raised := true);
   assert !raised;
+  (* The child clock fails, then its parent, whose reader got the error. *)
+  assert (List.length !failed_clocks = 2)
+
+let () =
+  let parent = owned "child_support_running" in
+  Clock.start ~force:true parent;
+  Clock.tick parent;
+  let unused = producer ~name:"unused" (new ready_source) in
+  Typing.(unused#frame_type <: audio_t);
+  assert (Clock.sub_clocks parent = []);
+  let late = producer ~name:"late" (new ready_source) in
+  Typing.(late#frame_type <: audio_t);
+  let output = new test_output ~clock:parent late in
+  output#content_type_computation_allowed;
+  Clock.tick parent;
+  assert (List.length (Clock.sub_clocks parent) = 1);
+  assert (Clock.tick_count late#child_clock = 1);
+  assert (Clock.started late#child_clock);
+  Clock.stop parent;
+  assert (Clock.sub_clocks parent = []);
+  assert (Clock.stop_reason late#child_clock <> None);
 
   Printf.printf "child_support_test passed!\n%!"

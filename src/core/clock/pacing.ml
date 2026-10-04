@@ -234,8 +234,11 @@ let reset c st ~lateness =
   emit c
     (Latency_reset
        { lateness; since_last = mark_warning st; ticks_before; ticks_after });
-  List.iter (fun o -> o.source#reset) (Atomic.get st.outputs);
-  List.iter (fun ((source : source), _) -> source#reset) (active_members st)
+  let reset source =
+    Option.iter (fun (a : active) -> a#reset) (active source)
+  in
+  List.iter (fun o -> reset o.source) (Atomic.get st.outputs);
+  List.iter (fun ((source : source), _) -> reset source) (active_members st)
 
 (* Returns whether the clock rested. *)
 let rest_or_lateness c st =

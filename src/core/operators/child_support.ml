@@ -42,7 +42,7 @@ type write_payload = [ `Frame of Frame.t | `Flush ]
 
 let conf_child_support =
   Dtools.Conf.void
-    ~p:(Clock.conf_clock#plug "child")
+    ~p:(Clock.Settings.conf#plug "child")
     "Settings related to child clocks, i.e. clocks animating sources depending \
      on a main source such as `crossfade`, `accelerate`, etc."
 
@@ -128,14 +128,16 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
   let child = new child_output (Lang.to_source child_val) in
   object (self)
     initializer
-      if check_self_sync then
-        if (Lang.to_source child_val)#self_sync <> (`Static, None) then
-          raise
-            (Error.Invalid_value
-               ( child_val,
-                 "This source may control its own latency and cannot be used \
-                  with this operator.",
-                 [] ))
+      if check_self_sync then (
+        match (Lang.to_source child_val)#self_sync with
+          | `Static, None -> ()
+          | _ ->
+              raise
+                (Error.Invalid_value
+                   ( child_val,
+                     "This source may control its own latency and cannot be \
+                      used with this operator.",
+                     [] )))
 
     method virtual id : string
     method virtual clock : Clock.t
@@ -146,11 +148,15 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
     method virtual on_before_streaming_cycle : (unit -> unit) -> unit
     method virtual on_wake_up : (unit -> unit) -> unit
     method virtual on_sleep : (unit -> unit) -> unit
-    method virtual self_sync : Clock.self_sync
+    method virtual self_sync : Source.self_sync
     method virtual source_type : Clock.source_type
     method virtual activations : Clock.activation list
     method virtual wake_up : Clock.source -> Clock.activation
-    method child_clock_controller = None
+
+    method child_clock_controller :
+        [ `Other of string * < id : string > ] option =
+      None
+
     method child = child
     val mutable child_clock = None
 
@@ -162,41 +168,40 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
     method child_buffer = child_buffer
 
     initializer
-      let controller =
-        Option.value self#child_clock_controller ~default:(`Clock self#clock)
+      let owner =
+        Option.map
+          (fun (`Other (kind, (owner : < id : string >))) ->
+            { Clock.kind; id = owner#id })
+          self#child_clock_controller
       in
       child_clock <-
         Some
-          (Clock.create ~controller ~sync:`Passive ~id:(Clock.id self#clock) ());
+          (Clock.create ~parent:self#clock ?owner ~sync:`Passive
+             ~id:(Clock.name self#clock) ());
       Clock.unify ~pos:self#pos self#child_clock child#clock;
       let child_frame_type =
         Option.value ~default:self#frame_type child_frame_type
       in
       Typing.(child#frame_type <: child_frame_type);
-      Typing.((Lang.to_source child_val)#frame_type <: child#frame_type);
-      self#on_before_streaming_cycle (fun () ->
-          if not (Clock.started self#child_clock) then
-            Clock.start self#child_clock;
-          Clock.activate_pending_sources self#child_clock)
+      Typing.((Lang.to_source child_val)#frame_type <: child#frame_type)
 
     method child_clock =
       match child_clock with Some c -> c | None -> assert false
 
     val mutable child_activation = None
 
+    (* Registration is counted and only held while awake, so that an operator
+       created and never woken costs its parent nothing. *)
     initializer
-      (* We need an early registration for sources such as source.dynamic. *)
-      Clock.register_sub_clock self#clock self#child_clock;
       self#on_wake_up (fun () ->
-          (* This is idempotent so it's okay to do it twice the first time. *)
-          Clock.register_sub_clock self#clock self#child_clock;
+          Clock.register ~parent:self#clock self#child_clock;
           child_buffer <- Generator.create self#content_type;
           child#set_generator ~owner:self#id child_buffer;
           child#set_stack self#stack;
           assert (child_activation = None);
           child_activation <- Some (child#wake_up (self :> Clock.source)));
       self#on_sleep (fun () ->
-          Clock.deregister_sub_clock self#clock self#child_clock;
+          Clock.deregister ~parent:self#clock self#child_clock;
           child#sleep (Option.get child_activation);
           child_activation <- None;
           child#flush)
@@ -232,15 +237,9 @@ class producer ?stack ?child_frame_type ~check_self_sync ~name child_val =
     inherit Source.source ?stack ~name ()
     inherit base ?child_frame_type ~check_self_sync child_val
 
-    (* Only claim the child's sync source while it is actually producing: the
-       child paces its own clock, not ours, and must not take the sync role
-       here while idle. *)
-    method self_sync =
-      match self#child#self_sync with
-        | self_sync_type, Some _ when not self#child#is_ready ->
-            (self_sync_type, None)
-        | self_sync -> self_sync
-
+    (* A report does not cross a child clock: the child's sync source paces
+       the child clock, not ours. *)
+    method self_sync = (fst self#child#self_sync, None)
     method fallible = self#child#fallible
     method effective_source = (self :> Source.source)
 

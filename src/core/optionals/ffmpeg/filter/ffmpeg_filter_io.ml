@@ -157,12 +157,15 @@ class virtual ['a] duration_converter =
         | Some { converter; _ } -> Ffmpeg_utils.Duration.flush converter
   end
 
+(* The inputs of a graph are ticked by the graph alone, as pulls. *)
+let graph_owner = { Clock.kind = "ffmpeg filter graph"; id = "ffmpeg.filter" }
+
 class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
   source =
   object (self)
     inherit
       Output.output
-        ~clock:(Clock.create ~sync:`Passive ~id:name ())
+        ~clock:(Clock.create ~sync:`Passive ~owner:graph_owner ~id:name ())
         ~infallible:false ~register_telnet:false ~name
         ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
 

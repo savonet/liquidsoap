@@ -26,7 +26,7 @@ let pending_mode c =
   if state c = `Stopping then `Stopping
   else (c.sync_mode :> [ sync_mode | `Stopping ])
 
-let direction ca cb =
+let direction ~pos ca cb =
   let merges_into c other =
     state c = `Stopped
     && (c.sync_mode = `Automatic
@@ -34,29 +34,30 @@ let direction ca cb =
   in
   if merges_into ca cb then { from = ca; into = cb }
   else if merges_into cb ca then { from = cb; into = ca }
-  else raise (Conflict { left = clock_name ca; right = clock_name cb })
+  else raise (Conflict { pos; left = clock_name ca; right = clock_name cb })
 
-let check_owners ca cb =
+let check_owners ~pos ca cb =
   if ca.sync_mode = `Passive && cb.sync_mode = `Passive && ca.owner <> cb.owner
   then
     raise
       (Controller_conflict
          {
+           pos;
            left = clock_name ca;
            left_controller = string_of_controller ca;
            right = clock_name cb;
            right_controller = string_of_controller cb;
          })
 
-let rec plan merges a b =
+let rec plan ~pos merges a b =
   let a = resolve merges a and b = resolve merges b in
   if a == b then merges
   else begin
-    let merge = direction a b in
-    check_owners a b;
+    let merge = direction ~pos a b in
+    check_owners ~pos a b;
     let parents = (class_parent merges a, class_parent merges b) in
     let merges = merges @ [merge] in
-    match parents with Some a, Some b -> plan merges a b | _ -> merges
+    match parents with Some a, Some b -> plan ~pos merges a b | _ -> merges
   end
 
 exception Nested
@@ -146,12 +147,13 @@ let start_moved_subs (survivor, moved) =
           moved
     | _ -> ()
 
-let unify a b =
+let unify ~pos a b =
   Transition.run (fun () ->
-      let merges = plan [] (get a) (get b) in
+      let merges = plan ~pos [] (get a) (get b) in
       (try check_nesting merges
        with Nested ->
-         raise (Loop { left = clock_name (get a); right = clock_name (get b) }));
+         raise
+           (Loop { pos; left = clock_name (get a); right = clock_name (get b) }));
       let moved = List.map commit merges in
       settle_subs merges;
       List.iter start_moved_subs moved)

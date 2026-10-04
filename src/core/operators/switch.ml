@@ -119,7 +119,7 @@ let find ?(strict = false) f l =
 
 class switch ~all_predicates children =
   let sources = List.map (fun c -> c.source) children in
-  let self_sync_type = Clock.self_sync_type_of_sources sources in
+  let self_sync_type = Source_sync.type_of_sources sources in
   let track_sensitive = Atomic.make true in
   object (self)
     inherit operator ~name:"switch" sources as super
@@ -182,7 +182,7 @@ class switch ~all_predicates children =
 
     initializer
       self#on_before_streaming_cycle (fun () ->
-          let tick = Clock.ticks self#clock in
+          let tick = Clock.tick_count self#clock in
           resuming <- 1 < tick - last_animated_tick;
           last_animated_tick <- tick;
           excluded_sources <- [];
