@@ -83,8 +83,8 @@
   `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
   nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
   warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
-  resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to one per
-  domain and never fewer than 8, so a machine with few cores keeps room to run several at once. Raising it pays off
+  resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to 64,
+  whatever the number of cores, so tasks that wait on a socket or a slow mount do not queue behind each other. Raising it pays off
   when those tasks truly wait. A task that uses a core instead of waiting on one, such as probing a
   file for its decoder, only takes cores the streaming threads need.
 - Clocks run as scheduler tasks rather than each on a thread of its own. A clock that is ahead
