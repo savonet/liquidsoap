@@ -229,7 +229,7 @@ may instead supply a real time source and so keep the clock's own pacing.
 | Kind                                                   | Time source        | Latency / maximum | Effect on the clock                                                                        |
 | ------------------------------------------------------ | ------------------ | ----------------- | ------------------------------------------------------------------------------------------ |
 | device-paced (sound cards, network input)              | unconstrained      | configured values | The clock does no pacing. The device's blocking call paces.                                |
-| server-driven (an audio server with its own callback)  | the server's       | 0 s / 0.5 s       | The clock's own pacing runs, on the server's time: the server's callback drives the clock. |
+| server-driven (an audio server with its own callback)  | the server's       | its own settings  | The clock's own pacing runs, on the server's time: the server's callback drives the clock. |
 | generic (a source that only declares itself self-sync) | the configured one | configured values | Pacing is unchanged. The source only takes the clock's single sync source slot.            |
 
 **Sync error text** (error number 17):
@@ -330,7 +330,8 @@ wind down, clearing the controller
 
 "Something to process" is: a pending source, an output, or an active source.
 The "has stopped" signal raised inside a tick ends the loop and winds down the
-same way. Any other error leaves the loop without winding down.
+same way. Any other error leaves the loop without winding down; what happens
+next is decided outside the clock, by whatever runs the animator.
 
 Before winding down it logs `Clock has stopped: <reasons>.`, the reasons being
 those that hold among `clock stopped`, `global stop`,
@@ -472,16 +473,18 @@ ticked by its parent's tick unless already ticked during it
 
 ## 16. Constants
 
-| Name                        | Value   | Use                                                               |
-| --------------------------- | ------- | ----------------------------------------------------------------- |
-| `clock.latency`             | 0.1 s   | Advance at which a paced clock rests; size of a catch-up turn.    |
-| `clock.max_latency`         | 60 s    | Latency at which sources are reset. Also the shutdown wait.       |
-| `clock.log_delay`           | 1 s     | Minimum time between latency warnings.                            |
-| `clock.log_delay_threshold` | 0.2 s   | Latency below which no warning is logged.                         |
-| `clock.preferred`           | `posix` | Time source name. An unknown name falls back to the built-in one. |
-| `clock.task`                | true    | Animate clocks as scheduler tasks.                                |
-| `clock.leak_warning`        | 50      | Source count multiple at which the leak warning is logged.        |
-| shutdown poll               | 10 ms   | [§12](#12-global-stop-and-shutdown)                               |
+| Name                        | Value   | Use                                                                    |
+| --------------------------- | ------- | ---------------------------------------------------------------------- |
+| `clock.latency`             | 0.1 s   | Advance at which a paced clock rests; size of a catch-up turn.         |
+| `clock.max_latency`         | 60 s    | Latency at which sources are reset. Also the shutdown wait.            |
+| `clock.log_delay`           | 1 s     | Minimum time between latency warnings.                                 |
+| `clock.log_delay_threshold` | 0.2 s   | Latency below which no warning is logged.                              |
+| `clock.preferred`           | `posix` | Time source name. An unknown name falls back to the built-in one.      |
+| `clock.task`                | true    | Animate clocks as scheduler tasks.                                     |
+| `clock.leak_warning`        | 50      | Source count multiple at which the leak warning is logged.             |
+| shutdown poll               | 10 ms   | [§12](#12-global-stop-and-shutdown)                                    |
+| `jack.latency`              | 0 s     | Latency of a server-driven clock ([§18.2](#182-server-driven-clocks)). |
+| `jack.max_latency`          | 0.5 s   | Its maximum latency.                                                   |
 
 The log and latency settings are read when a clock starts, except the latency
 and maximum latency, which are read each time they are used.
@@ -547,7 +550,8 @@ server. Its time source is backed by the server:
   raises the "has stopped" signal if the server stopped before or during the
   wait.
 
-Its latency is 0 and its maximum latency 0.5 s. With these, the ordinary
+Its latency and maximum latency are settings of its own, 0 s and 0.5 s by
+default, read each time the clock switches to it. With these, the ordinary
 latency control makes the clock produce one frame and then wait for the
 server's callback: the whole clock follows the server. Several clocks may wait
 on one server.

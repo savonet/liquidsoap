@@ -48,9 +48,9 @@ wraps one. The "posix" implementation is registered by another library;
 - The task animator is one `Duppy.Task` of priority `` `Clock `` with a
   `` `Delay 0. `` event. Its handler wraps the loop in `Duppy.run`, which
   installs the effect handler `Duppy.reschedule` needs.
-- Parking is `Duppy.reschedule ~delay ~priority:`Clock`. It raises
-`Effect.Unhandled`outside a`Duppy.run`, which is how a tick driven from
-  elsewhere learns it cannot park.
+- Parking is a call to `Duppy.reschedule` with a delay and the clock priority.
+  It raises `Effect.Unhandled` outside a `Duppy.run`, which is how a tick
+  driven from elsewhere learns it cannot park.
 - The thread animator is created through `Tutils.create`, which names and
   tracks the thread.
 

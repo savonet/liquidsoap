@@ -54,14 +54,20 @@ The catch-up turn is a number of ticks (§9.1). A tick's real duration is not
 bounded, so the time a clock holds its worker between two yields is not
 bounded either.
 
-### D4. An error that leaves a tick leaves the clock started with no animator — read only
+### D4. An error that leaves a tick has three different outcomes, none of them a clean stop — read only
 
 When a source fails and the clock has no error handler, the error leaves the
-tick (§13) and the animator loop without winding down (§10). The clock stays
-`started`, in the `started` set, with its controller set and its outputs
-awake. Nothing ticks it again, and shutdown waits the full 60 s for it (§12).
+tick (§13) and the animator loop without winding down (§10). What follows
+depends on the animator and on the kind of error:
 
-The same holds for "invalid state" raised from inside a tick (D5).
+| Animator | Error                                                                                               | Outcome                                                                                                                                                                                     |
+| -------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| task     | a script error, which the script-level handler for task errors claims (one is installed by default) | The error is logged. The clock stays `started`, in the `started` set, with its controller set and its outputs awake. Nothing ticks it again, and shutdown waits the full 60 s for it (§12). |
+| task     | any other error: a sync error, "invalid state" (D5), an internal error                              | The scheduler treats it as fatal: the process prints a crash message and exits with status 1 at once. No shutdown sequence, no wait.                                                        |
+| thread   | any                                                                                                 | The application records the error and starts its shutdown. The clock is never wound down; if it was started by a start pass, shutdown waits the full 60 s for it.                           |
+
+So the same failure stalls one clock silently, kills the process, or shuts the
+application down, depending on two things the failing source does not choose.
 
 ### D5. A stopped sub-clock makes its parent's tick fail — read only
 
@@ -138,10 +144,16 @@ as-built registration only skips duplicates (§15).
 
 [clock.md §18.3](clock.md#183-child-clocks). Registration is undone when the
 operator goes to sleep. An operator that is created and never woken leaves its
-child clock registered, and ticked, for as long as the parent lives. This is
-the accumulation of
-[known-complexity.md K3](known-complexity.md#k3-sub-clocks-that-pile-up),
-still open for that case.
+child clock registered for as long as the parent lives. Two cases:
+
+- the parent was not yet started when the operator was created: the child
+  clock is started with the parent (§6) and is then ticked on every tick. This
+  is the accumulation of
+  [known-complexity.md K3](known-complexity.md#k3-sub-clocks-that-pile-up),
+  still open for that case;
+- the parent was already running: nothing starts the child clock, since only
+  the operator's own cycle does. It is a stopped sub-clock, and the parent's
+  next tick fails (D5).
 
 ## Gaps
 

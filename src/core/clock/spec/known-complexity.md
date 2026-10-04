@@ -377,7 +377,8 @@ stopped. Binding: the order of the two events and the bound.
 **Reconciliation.** Covered: the stop is checked between every step of a tick
 ([§9](clock.md#9-tick)) and shutdown waits for clocks
 ([§12](clock.md#12-global-stop-and-shutdown)). The bound is a borrowed
-setting: finding G1. A clock that died is waited for in full: finding D4.
+setting: finding G1. A clock whose tick failed is in some cases waited for in full, and in others
+the process exits with no shutdown at all: finding D4.
 
 Trace: one direct commit.
 
