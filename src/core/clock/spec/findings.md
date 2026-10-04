@@ -208,6 +208,70 @@ owner as clunky. The clock logs its start, its stop, a sync source switch and
 latency; it logs nothing about who animates it, how long ticks take, when it
 rests or releases its worker, or why it is late.
 
+## Ownership
+
+From an ownership review of the clock's seams: is each rule held by one place,
+and by the place that has the knowledge to decide. Counts are from a search of
+the sources; none of this was run.
+
+### O1. How a clock rests is decided by the clock, which has to guess — read only
+
+A sync source hands the clock a time source, and the contract is that the
+clock rests by sleeping on it (§8). The time source cannot say what that sleep
+is: free (device-paced), a timer (real time), or a blocking wait in a library
+(server-driven). The clock therefore guesses from "now" and parks itself
+(§9.1), which is D1. The knowledge belongs to the sync source, as a
+declaration.
+
+### O2. A source enacts the choice of animator instead of declaring it — read only
+
+"This clock needs a thread" is called on the clock by the source (§10), by one
+caller. It must happen before the clock starts, or it fails with error 18. The
+fact belongs to the sync source: it is the same declaration as O1.
+
+### O3. The clock decides when to give its worker back — read only
+
+The yield is computed from the clock's own latency (§9.1). The clock knows its
+deadline; it cannot see what else waits on the pool. The scheduler can. This
+is D2 and D3 seen from the side of ownership.
+
+### O4. The shutdown wait belongs to no one — read only
+
+Same as G1: it reuses the maximum latency.
+
+### O5. Eight of nine sync sources restate the clock's defaults — read only
+
+Eight declare "my latency is the clock's configured latency" and the same for
+the maximum; only the server-driven one differs. Seven declare the
+unconstrained time source. A default that almost every implementation spells
+out by hand is a default the contract should own.
+
+### O6. "Tell the clock when your sync source changes" is written by hand — read only
+
+Three operators notify explicitly when their selection changes. A network
+input, which was given explicit notifications when push notification was
+introduced, has none today and relies on the per-cycle recomputation (G10). A
+fourth place that forgets fails silently.
+
+### O7. Sync source equality has two owners that disagree — read only
+
+Same as A6. A divergence, not a repetition.
+
+### O8. The source contract is wider than its use — read only
+
+The clock requires of a source two members it never calls: whether it is
+active, and its frame (§17). Two exported readers of a sync source's latency
+have no caller outside the clock. One exported accessor, the pending sources,
+has callers only in tests.
+
+### Left alone, on purpose
+
+- A crossfade controlling its own child clock: only the crossfade knows it must
+  be the sole reader.
+- Each device deciding when it is pacing (stream open, socket connected): that
+  knowledge is local.
+- The child buffer limit living with child clocks: it protects that buffer only.
+
 ## To verify
 
 - Whether every sync source using the unconstrained time source is affected by
@@ -225,7 +289,11 @@ Decisions the project owner has already stated, to be turned into rules:
    lower-priority work (D2).
 2. **Whether an unsynced clock needs a thread of its own** is to be decided
    after rule 1, not before: with an effective release it may not.
-3. **Better logging and observability of clocks is a goal** (G11): the tree
+3. **D1 is a logic gap in the specification**, to be closed by the normative
+   pass and not by a code fix ahead of it: the contract between a sync source
+   and the clock cannot say what kind of rest the sync source offers (none, a
+   timer, a blocking wait), so the clock guesses.
+4. **Better logging and observability of clocks is a goal** (G11): the tree
    reports are to be improved and the logs extended.
 
 Suggested, not decided: **at least two workers** for the single-worker wait
