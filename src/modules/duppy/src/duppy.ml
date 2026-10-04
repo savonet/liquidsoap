@@ -233,6 +233,7 @@ type 'a scheduler = {
   running : bool Atomic.t;
   stopped : bool Atomic.t;
   mutable threaded : bool;
+  mutable selective : bool;
   mutable workers : 'a worker list;
   mutable members : member list;
 }
@@ -270,6 +271,7 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     running = Atomic.make false;
     stopped = Atomic.make false;
     threaded = false;
+    selective = false;
     workers = [];
     members = [];
   }
@@ -282,10 +284,10 @@ exception Unknown_domain of int
 
 let class_code = function `Immediate -> 0 | `Direct -> 1 | `Threaded -> 2
 
-(** On a thread pool each worker declares what it accepts, which the core is
-    told as one bit per worker. *)
+(** Workers that declare what they accept are told to the core as one bit each.
+*)
 let accepted_by s prio =
-  if not s.threaded then Core.every_worker
+  if not s.selective then Core.every_worker
   else
     List.fold_left
       (fun mask w -> if w.accepts prio then mask lor (1 lsl w.index) else mask)
@@ -586,7 +588,7 @@ let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
   s.log <- logger;
   let accepts =
     match pool with
-      | Some (`Threads accepts) -> accepts
+      | Some (`Threads accepts) | Some (`Selective_domains accepts) -> accepts
       | Some (`Domains n) -> List.init (max 1 n) (fun _ _ -> true)
       | None ->
           List.init
@@ -594,13 +596,17 @@ let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
             (fun _ _ -> true)
   in
   s.threaded <- (match pool with Some (`Threads _) -> true | _ -> false);
+  s.selective <-
+    (match pool with
+      | Some (`Threads _) | Some (`Selective_domains _) -> true
+      | _ -> false);
   (* A thread on the calling domain, so the domain that evaluated the script
      takes tasks too and collects what it allocated: a GC only reclaims the
      heap of the domain it runs on. A thread pool already sits there. *)
   let current = current_domain && not s.threaded in
   let accepts = if current then accepts @ [(fun _ -> true)] else accepts in
   let count = List.length accepts in
-  if s.threaded && count >= Sys.int_size then
+  if s.selective && count >= Sys.int_size then
     invalid_arg "Duppy.start: too many threads";
   let workers =
     List.mapi

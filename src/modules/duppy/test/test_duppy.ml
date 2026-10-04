@@ -623,6 +623,35 @@ let test_stop_releases_handlers () =
   ignore (Sys.opaque_identity s);
   ok "stop releases the handlers of the tasks it drops"
 
+(* Each priority has one domain accepting it, so its tasks all run there even
+   though they queue faster than that one domain runs them. *)
+let test_selective_domains () =
+  let s = Duppy.create ~classify () in
+  Duppy.start
+    ~pool:(`Selective_domains [(fun p -> p = Immediate); (fun p -> p = Direct)])
+    s;
+  let runs = 40 in
+  let immediate = Array.make runs (-1) and direct = Array.make runs (-1) in
+  let finished = latch () in
+  let record where i _ =
+    where.(i) <- domain_id ();
+    Thread.delay 0.002;
+    bump finished;
+    []
+  in
+  for i = 0 to runs - 1 do
+    Duppy.Task.add s (task Immediate (record immediate i));
+    Duppy.Task.add s (task Direct (record direct i))
+  done;
+  await finished (2 * runs);
+  if ran_on immediate <> 1 || ran_on direct <> 1 then
+    fail "a selective domain took a task it does not accept";
+  if immediate.(0) = direct.(0) then
+    fail "both priorities ran on domain %d" direct.(0);
+  Duppy.stop s;
+  ok "selective domains ran %d tasks each, on domains %d and %d" runs
+    immediate.(0) direct.(0)
+
 let () =
   watchdog 60.;
   test_backend ();
@@ -644,6 +673,7 @@ let () =
   test_direct_survives_a_batch ();
   test_pinned ();
   test_current_domain ();
+  test_selective_domains ();
   test_unwatchable_descriptor ();
   test_suspend ();
   test_stop_releases_handlers ();

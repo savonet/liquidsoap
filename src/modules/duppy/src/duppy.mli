@@ -133,6 +133,9 @@ val create :
   * Spawning a domain makes [Unix.fork] fail from then on, so this must be
   * called after any daemonization.
   *
+  * With [`Selective_domains accepts], the pool is one domain per predicate,
+  * each taking only the tasks whose priority it accepts.
+  *
   * With [`Threads accepts], the pool is one systhread per predicate, each
   * taking only the tasks whose priority it accepts, and a [`Threaded] task runs
   * in place on the thread that took it. Nothing runs in parallel and
@@ -149,7 +152,10 @@ val create :
   * thread pool. Default: [64]
   * @param log Logging function. Default: no logging *)
 val start :
-  ?pool:[ `Domains of int | `Threads of ('a -> bool) list ] ->
+  ?pool:
+    [ `Domains of int
+    | `Selective_domains of ('a -> bool) list
+    | `Threads of ('a -> bool) list ] ->
   ?current_domain:bool ->
   ?max_blocking:int ->
   ?log:(string -> unit) ->
