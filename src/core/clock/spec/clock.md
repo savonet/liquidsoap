@@ -1,45 +1,60 @@
-# Clocks — as built (Part A)
+# Clocks (Part A)
+
+Pacing, the time box and the animator are in [pacing.md](pacing.md).
+Unification is in [unification.md](unification.md). Logs and reports are in
+[observability.md](observability.md).
 
 ## 1. Entities
 
 **Clock.** Fields that exist for the clock's whole life:
 
-| Field           | Meaning                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------- |
-| identity        | A number unique in the process, increasing with creation order. Used to compare and deduplicate clocks. |
-| id              | Optional name. See [§2](#2-names).                                                                      |
-| sync mode       | One of `auto`, `cpu`, `none`, `passive`. Fixed at creation.                                             |
-| controller      | `none`, another clock, or a named external entity (a kind string plus an object with an id).            |
-| stack           | Script positions, for error reports. Set once: a second set is ignored.                                 |
-| state           | `stopped`, `started` or `stopping`.                                                                     |
-| pending sources | Sources attached but not yet activated. No duplicates.                                                  |
-| sub-clocks      | Handles of the clocks this clock ticks. No two designate the same clock.                                |
-| needs thread    | Whether a source required a thread animator.                                                            |
-| error handlers  | Callbacks `(error, backtrace)`.                                                                         |
+| Field           | Meaning                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| identity        | A number unique in the process, increasing with creation order. Clocks are compared by identity only.    |
+| id              | Optional name. See [§2](#2-names).                                                                       |
+| sync mode       | One of `auto`, `cpu`, `none`, `passive`. Fixed at creation.                                              |
+| parent          | Passive clocks only: the clock inside whose ticks this clock is ticked. Optional when there is an owner. |
+| owner           | Passive clocks only, optional: a named external entity (a kind and an object id) that alone may tick it. |
+| stack           | Script positions, for error reports. Set once: a second set is ignored.                                  |
+| state           | `stopped`, `started` or `stopping`.                                                                      |
+| stop reason     | Why the clock is stopped. See [§4](#4-states).                                                           |
+| pending sources | Sources attached but not yet activated. No duplicates.                                                   |
+| sub-clocks      | The clocks this clock ticks, each with its registrants. See [§11](#11-sub-clocks).                       |
+| error handlers  | Callbacks `(error, backtrace)`.                                                                          |
+
+The **controller** of a passive clock is what ticks it: its owner if it has
+one, else its parent. It is derived, never stored. A clock MUST have a
+controller if and only if it is passive: a passive clock has a parent, an
+owner, or both. A clock registered as a sub-clock MUST have a parent.
+
+Rationale: "no controller" on a passive clock would mean "unify with
+anything", and losing a controller would raise no error where it is lost.
+Making it mandatory turns that loss into a refused creation.
 
 **Streaming state.** Exists only while the clock is `started` or `stopping`,
 and is created anew at every start:
 
-| Field                | Meaning                                                                                      |
-| -------------------- | -------------------------------------------------------------------------------------------- |
-| ticks                | Number of ticks completed. Starts at 0.                                                      |
-| frame duration       | Seconds of stream per tick. Read once at start from the frame settings.                      |
-| time source          | Where "now" comes from. Anchored so that now = 0 at tick 0.                                  |
-| current sync source  | The sync source that paces the clock, with its latency and maximum latency.                  |
-| sync source entries  | One entry per source that currently declares a sync source: source name, sync source, stack. |
-| outputs              | Ordered list of (activation, source).                                                        |
-| active sources       | Set, weakly held.                                                                            |
-| passive sources      | Set, weakly held.                                                                            |
-| sync deregistrations | One callback per animated source, undoing its change subscription.                           |
-| on-tick callbacks    | One-shot.                                                                                    |
-| after-tick callbacks | One-shot.                                                                                    |
-| pulled               | Whether the tick in progress was requested by a reader.                                      |
-| animator             | `none`, `thread` or `task`.                                                                  |
-| catch-up ticks       | Ticks taken in a row without resting.                                                        |
-| last latency log     | Time of the last latency warning. Starts at the clock's start.                               |
+| Field                | Meaning                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| ticks                | Number of ticks completed. Starts at 0.                                                  |
+| frame duration       | Seconds of stream per tick. Read once at start from the frame settings.                  |
+| pacing state         | Time source, anchor, tracked and followed sync source. See [pacing.md](pacing.md).       |
+| outputs              | Ordered list of (activation, source). Keeps each source alive.                           |
+| active sources       | Set. MUST NOT be what keeps a source alive.                                              |
+| passive sources      | Set. MUST NOT be what keeps a source alive.                                              |
+| subscriptions        | One per animated source, to its sync source changes.                                     |
+| on-tick callbacks    | One-shot.                                                                                |
+| after-tick callbacks | One-shot.                                                                                |
+| pulled               | Whether the tick in progress was requested by a reader.                                  |
+| animator             | `task` or `thread`; absent on a passive clock. See [pacing.md §8](pacing.md#8-animator). |
+| statistics           | See [observability.md §1](observability.md#1-status-record).                             |
 
-"Weakly held" means the set does not keep a source alive: a source nothing
-else references disappears from it.
+**Stream time** is `ticks × frame duration`.
+
+**No value.** A clock without streaming state has no ticks, no stream time, no
+sources other than pending ones, and is not self-sync. Reading any of these
+MUST return "no value", the same one for all of them. It MUST NOT fail, MUST
+NOT log, and MUST behave the same during shutdown.
 
 ## 2. Names
 
@@ -47,82 +62,96 @@ A clock's name is, in order: its id if set; else the id of its most significant
 pending source (outputs first, then active, then passive; first in attachment
 order within a type); else `generic`.
 
-Setting an id passes the wanted name through a generator that makes it unique
-among clock ids. Setting the id a clock already has does nothing. At start, the
-clock's name at that moment is frozen as its id.
-
-The description string is `clock(id=<name>,sync=<mode>)`. For a stopped clock
-`<mode>` is `stopped` and the string ends `,pending=<sync mode>)` instead.
+Setting an id MUST make the wanted name unique among clock ids. Setting the id
+a clock already has does nothing. At start, the clock's name at that moment is
+frozen as its id.
 
 ## 3. Sync modes
 
-| Mode      | Text      | Meaning                                                                          |
-| --------- | --------- | -------------------------------------------------------------------------------- |
-| automatic | `auto`    | Paced by its sync source when it has one, by the time source otherwise. Default. |
-| CPU       | `cpu`     | Always paced by the time source.                                                 |
-| unsynced  | `none`    | Not paced: ticks as fast as possible.                                            |
-| passive   | `passive` | Has no animator. Ticked by whoever controls it.                                  |
+| Mode      | Text      | Meaning                                                                                 |
+| --------- | --------- | --------------------------------------------------------------------------------------- |
+| automatic | `auto`    | Follows its sync source when it has one, the configured time source otherwise. Default. |
+| CPU       | `cpu`     | Always paced by the configured time source.                                             |
+| unsynced  | `none`    | Not paced: ticks as fast as possible.                                                   |
+| passive   | `passive` | Has no animator. Ticked by its controller.                                              |
 
-The reported mode of a clock also takes the values `stopped` and `stopping`,
-which replace the mode while the clock is in those states. Parsing any other
-text than the four above fails.
+Parsing any other text than the four above MUST fail. What each mode does
+after a tick is in [pacing.md §5](pacing.md#5-after-a-tick).
 
 ## 4. States
 
 ```
-            start                       stop (non-passive)
- stopped ───────────▶ started ─────────────────────────▶ stopping
-    ▲                    │                                   │
-    │   stop (passive)   │                                   │
-    └────────────────────┘                                   │
-    └──────────── animator sees it, winds down ◀─────────────┘
+            start                        stop
+ stopped ───────────▶ started ─────────────────────▶ stopping
+    ▲                                                    │
+    └────────── whoever ticks it winds it down ◀─────────┘
 ```
 
 - `stop` on a stopped or stopping clock does nothing.
-- `stop` on a started passive clock winds it down at once, in the caller
-  ([§11](#11-winding-down)), keeping its controller.
-- `stop` on any other started clock only moves it to `stopping`. Its animator
-  notices before its next tick and winds it down, clearing the controller.
+- `stop` on a started clock moves it to `stopping`. It is then wound down
+  ([§10](#10-winding-down)):
+  - a clock with an animator, by its animator, before its next tick;
+  - a passive clock with a tick in progress, by that tick, as its last step
+    ([§8](#8-tick));
+  - a passive clock with no tick in progress, by the caller of `stop`, at
+    once.
+- A tick and the winding down of one clock are mutually exclusive
+  ([§17](#17-concurrency)).
+- A clock MAY be started again after it stopped. It gets a new streaming state.
 
-A stopped clock reports 0 ticks, no sources other than pending ones, not
-self-sync, and stream time −1.
+A stopped clock carries a **stop reason**, one of:
+
+| Reason              | When                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `never started`     | From creation until the first start.                                                         |
+| `requested`         | `stop` was called.                                                                           |
+| `no sources`        | The animator found nothing to process ([pacing.md §8](pacing.md#8-animator)).                |
+| `global stop`       | [§13](#13-global-stop-and-shutdown).                                                         |
+| `sync source ended` | The followed sync source ended the clock ([pacing.md §9](pacing.md#9-server-driven-clocks)). |
+| `parent stopped`    | A sub-clock stopped with its parent, or at its last deregistration.                          |
+| `failed`            | With the error. See [§12](#12-failure).                                                      |
+
+When several hold, `failed` wins, then `global stop`, then the others in the
+order above.
 
 ## 5. Registry
 
-Process-wide sets of handles:
+Two process-wide sets of **top-level** clocks: the clocks that have no
+parent. A clock with a parent is never in either: it is reached through its
+parent.
 
-| Set      | Holds                                                                                               | Strength |
-| -------- | --------------------------------------------------------------------------------------------------- | -------- |
-| all      | Every clock created.                                                                                | weak     |
-| retained | Clocks created outside a collecting scope ([§6](#6-creation-and-start)), until the next start pass. | strong   |
-| pending  | Clocks that could not start, and clocks that stopped.                                               | weak     |
-| started  | Clocks started by a start pass. Removed when they stop.                                             | strong   |
+| Set     | Holds                                                   |
+| ------- | ------------------------------------------------------- |
+| waiting | Stopped top-level clocks.                               |
+| running | Started and stopping top-level clocks, however started. |
 
-"The clocks of the application" is retained + pending + started, deduplicated
-by clock identity.
+- A top-level clock MUST be in exactly one of the two for as long as
+  something other than the registry refers to it.
+- The registry MUST NOT be what keeps a stopped clock alive: memory MUST NOT
+  grow with the number of clocks created and discarded without being started.
+- No set holds one clock twice, and no set holds a clock merged away by a
+  unification ([unification.md §5](unification.md#5-guarantees)).
+
+"The clocks of the application" is waiting + running.
 
 ## 6. Creation and start
 
-**Creation.** A new clock is `stopped`, with the given sync mode (default
-automatic), controller (default none), id, stack and error handler. It joins
-the `all` set. Unless passive, it is announced: inside a collecting scope it is
-added to that scope's list; outside any, it goes to `retained`.
+**Creation.** A new clock is `stopped` with reason `never started`, with the
+given sync mode (default automatic), id, stack and error handler. Creating a
+passive clock without a controller, or a non-passive clock with one, MUST be
+refused. A top-level clock joins `waiting`.
 
-**Collecting scope.** Runs a function, collecting the clocks announced during
-it. When the function ends, normally or by an error, a start pass runs over the
-collected clocks in creation order, unless the global stop is set or there is
-nothing collected and nothing retained or pending.
+**Start scope.** Runs a function that may create clocks. When the function
+returns, a start pass runs. When the function fails, no start pass runs: the
+clocks it created stay in `waiting`, and the error is passed on. An error
+MUST NOT have the side effect of starting clocks.
 
-**Start pass.** Takes the given clocks plus everything in `retained` and
-`pending` (both emptied), deduplicated by identity. For each one that is
-stopped:
+**Start pass.** For each non-passive clock in `waiting` that can start: start
+it. A start pass also runs once when the application starts.
 
-- if it can start and is not passive, it is started and added to `started`;
-- if it can start and is passive, nothing happens;
-- otherwise it goes back to `pending`.
-
-A start pass also runs once when the application starts, after setting the
-"application started" flag.
+- A pass MUST cost at most a time proportional to the number of waiting
+  clocks.
+- With nothing waiting it MUST cost a constant.
 
 **Can start.** All of:
 
@@ -131,479 +160,395 @@ A start pass also runs once when the application starts, after setting the
 - the application has started, or the start is forced;
 - the clock is passive, or has a pending output, or the start is forced.
 
-**Explicit start.** `start` on a handle starts the clock if it can start. It
-does not add it to `started`.
+**Explicit start.** `start` on a handle starts the clock if it can start and
+fails with `cannot start` otherwise. It follows the same steps as a start
+pass, registry included.
 
-**Starting.** In order:
+**Starting.** Every check comes before any effect: a start that fails MUST
+leave the clock exactly as it was. In order:
 
-1. Freeze the name ([§2](#2-names)).
-2. Log `Starting <top-level|passive> clock <id>[ controlled by <controller>] with sources: <list>[ and sync: <mode>]`.
-   The source list is `id (type)` per pending source. `and sync` is omitted for
-   a passive clock.
-3. Anchor the time source at now.
-4. Create the streaming state.
-5. Start each sub-clock through explicit start, with the same force flag.
-6. Set the state to `started`.
-7. Unless passive: start the animator ([§10](#10-animator)). If the controller
-   was `none`, set it to an external entity of kind `task` or `thread`.
-   Otherwise fail with "invalid state".
+1. Check that the clock can start.
+2. Freeze the name ([§2](#2-names)).
+3. Create the streaming state: 0 ticks, the frame duration, the pacing state
+   anchored so that now is 0 ([pacing.md §4](pacing.md#4-switch)).
+4. Set the state to `started`. A top-level clock moves from `waiting` to
+   `running`.
+5. Log the start ([observability.md §2](observability.md#2-log-events)).
+6. Start each registered sub-clock that can start, with the same force flag.
+7. Unless passive: choose and start the animator
+   ([pacing.md §8](pacing.md#8-animator)). No source is tracked yet: the
+   choice is revised at the first tick.
 
-## 7. Attaching sources
+Starting, stopping and unifying one clock are mutually exclusive
+([§17](#17-concurrency)).
+
+## 7. Sources on a clock
 
 **Attach** adds the source to the pending sources, unless already there.
 
-**Activation** happens at the start of every tick, and on request (used for a
-passive clock before its controller ticks it). If there are pending sources,
-each is removed and, under the error rule of [§13](#13-failure-behaviour):
+**Activation** happens at the start of every tick, and on request by the
+controller of a passive clock. Each pending source is removed and, under the
+source error rule ([§12](#12-failure)):
 
-- **active**: added to the active set; sync tracking is set up ([§8](#8-sync-sources));
+- **active**: added to the active set; its sync source is tracked
+  ([pacing.md §3](pacing.md#3-finding-the-sync-source));
 - **output**: woken up with itself as the requester, which yields an
-  activation; (activation, source) is appended to the outputs; sync tracking is
-  set up;
+  activation; (activation, source) is appended to the outputs; its sync source
+  is tracked;
 - **passive**: added to the passive set.
 
+The clock is the one holder of an output's activation that MUST NOT let go
+while it runs: an output attached to a running clock stays awake for as long
+as the clock runs.
+
 After a batch, if the total number of activated sources crossed a multiple of
-the leak threshold because of this batch, a warning is logged with the total
-and the source report ([reports.md §1](reports.md#1-source-list)).
+the leak threshold because of this batch, a warning MUST be logged
+([observability.md §2](observability.md#2-log-events)).
 
-**Detach** removes the source from the pending sources at once. Then:
-
-- stopped clock: nothing more;
-- stopping clock: the removal below runs at once;
-- started clock: the removal is queued as an after-tick callback, so that it
-  never changes the lists a tick is reading.
+**Detach** removes the source from the pending sources at once. If the clock
+has streaming state, the **removal** below is queued and applied by whoever
+ticks the clock, at the end of the tick in progress or at the start of the
+next ([§8](#8-tick)), so that it never changes the lists a tick is reading.
+Winding down applies it to everything. A source whose removal is queued MUST
+NOT be animated again, the tick in progress included.
 
 The removal: take the source's entries out of the outputs and put the source to
 sleep once per activation taken; remove it from the active and passive sets;
-run and drop its sync deregistrations, ignoring their errors. The lists are
-changed first and the callbacks run after, because putting a source to sleep
-detaches its children, which re-enters the removal.
+drop its subscription and its sync source entry. The lists MUST be changed
+before the source is put to sleep, because putting a source to sleep detaches
+its children, which re-enters the removal. Errors from putting a source to
+sleep or from unsubscribing are logged and ignored.
 
-## 8. Sync sources
+Every subscription MUST end when its source leaves the clock, whatever the
+way: detach, failure or wind-down. On a clock that keeps running, attaching
+and discarding a source any number of times MUST leave the number of
+subscriptions and of sources kept alive unchanged.
 
-A sync source carries a printable name, a time source, a latency and a maximum
-latency. Two sync sources are the same if they compare equal by value.
-
-**A source's sync declaration** is a pair: `static` or `dynamic`, and an
-optional sync source.
-
-**For an operator over children:**
-
-- its declaration is `dynamic` if any child's is, else `static`; this is
-  computed once and remembered;
-- its sync source is the single distinct sync source among the children that
-  are ready, if any. Two distinct ones among ready children is a sync error
-  naming the operator.
-
-**Tracking on a clock.** When an animated source is activated, the clock
-subscribes to its sync source changes, keeps the unsubscribe callback, and
-records its current sync source. On every change, and at activation:
-
-1. Drop the entry with that source's name; add a new one if a sync source is
-   given.
-2. Deduplicate the entries by sync source. More than one distinct sync source
-   is a sync error naming the clock; the entries are left as they were.
-3. The clock's sync source is the single remaining one, or none.
-4. If it differs from the current one and the clock is automatic, switch.
-
-**Switch.** Log one of `Switching to self-sync mode (<name>)`,
-`Switching to non-self-sync mode`, `Switching self-sync source to <name>`. Set
-the current sync source with its latency and maximum latency (the configured
-values where it gives none). Take the new time source (the sync source's, or
-the configured one when there is none) and anchor it so that now equals the
-current stream time. Whatever advance or latency had accumulated is dropped.
-
-In the other sync modes, steps 1–3 still apply and step 4 does not.
-
-**Stated intent.** The interface documents this as: a clock with a current sync
-source "delegates latency control to it". The clock has no separate code path
-for a self-sync clock. The delegation is carried entirely by the time source
-the sync source supplies: latency control ([§9.1](#91-latency-control)) runs
-unchanged, on that time source. A sync source that paces the stream by itself
-supplies the unconstrained time source ([§17](#17-contracts-the-clock-relies-on)),
-on which the clock is never behind and sleeping returns at once. A sync source
-may instead supply a real time source and so keep the clock's own pacing.
-
-**The three kinds of sync source in use** ([§18](#18-how-the-clock-is-used)):
-
-| Kind                                                   | Time source        | Latency / maximum | Effect on the clock                                                                        |
-| ------------------------------------------------------ | ------------------ | ----------------- | ------------------------------------------------------------------------------------------ |
-| device-paced (sound cards, network input)              | unconstrained      | configured values | The clock does no pacing. The device's blocking call paces.                                |
-| server-driven (an audio server with its own callback)  | the server's       | its own settings  | The clock's own pacing runs, on the server's time: the server's callback drives the clock. |
-| generic (a source that only declares itself self-sync) | the configured one | configured values | Pacing is unchanged. The source only takes the clock's single sync source slot.            |
-
-**Sync error text** (error number 17):
-
-```
-<name> has multiple synchronization sources. Do you need to set self_sync=false?
-
-Sync sources:
- <sync source> from source <source name>
- ...
-
-Stack traces:
-<name>:
-<up to 3 positions, or " Unknown position">
-
-<source name>:
-...
-```
-
-## 9. Tick
+## 8. Tick
 
 A tick may be requested as a **pull** (a reader wants data) or not (the clock
-is merely animated). One tick, in order:
+is merely animated). A clock's ticks MUST run one at a time. One tick, in
+order:
 
-1. Set `pulled` to whether this is a pull.
-2. Record, for each sub-clock, its tick count.
-3. Activate pending sources ([§7](#7-attaching-sources)).
-4. Animate each output in list order, then each active source, each under the
-   error rule ([§13](#13-failure-behaviour)). The active set is read as a
+1. Apply the queued removals ([§7](#7-sources-on-a-clock)).
+2. Set `pulled` to whether this is a pull.
+3. Activate pending sources ([§7](#7-sources-on-a-clock)).
+4. The pacing point: apply the sync source changes, switch and change
+   animator if due ([pacing.md §3](pacing.md#3-finding-the-sync-source)).
+5. Animate each output in list order, then each active source, each under the
+   source error rule ([§12](#12-failure)). The active set is read as a
    snapshot.
-5. Run and drop the on-tick callbacks, checking the global stop before each.
-6. Set `pulled` to false. Check the global stop.
-7. For each sub-clock recorded in step 2 whose tick count has not changed
-   since, tick it (not a pull). One whose count changed was already ticked
-   during step 4 or 5 and is left alone.
-8. Add one to ticks. Check the global stop.
-9. Run and drop the after-tick callbacks, checking the global stop before each.
-10. Latency control ([§9.1](#91-latency-control)).
-11. Check the global stop.
+6. Run and drop the on-tick callbacks, with a stop check before each.
+7. Set `pulled` to false. Stop check.
+8. Tick, not as a pull, each started sub-clock that was registered when the
+   tick began and has not been ticked since. One that was ticked during
+   steps 5 or 6 is left alone. A sub-clock that is not started is skipped.
+9. Add one to ticks. Stop check.
+10. Run and drop the after-tick callbacks, with a stop check before each, then
+    apply the queued removals.
+11. Update the statistics ([observability.md §1](observability.md#1-status-record)).
+12. A passive clock that is `stopping` is wound down ([§10](#10-winding-down)).
+    This step also runs when the tick was abandoned.
 
-"Check the global stop" means: if it is set, the tick is abandoned with the
-"has stopped" signal.
+What the clock does between this tick and the next (rest, lateness, release)
+is not part of the tick: [pacing.md §5](pacing.md#5-after-a-tick).
 
-Ticking a handle whose clock is stopped fails: with "has stopped" if the global
-stop is set, otherwise with "invalid state" after a critical log line
-`Clock <id> has invalid state: stopped`. Registering an on-tick or after-tick
-callback on a stopped clock fails the same way.
+**Stop check.** If the global stop is set, the tick is abandoned with the
+**stop signal**. The stop signal is never reported as an error.
 
-### 9.1 Latency control
+Ticking a handle whose clock is not started, or registering an on-tick or
+after-tick callback on it, fails: with the stop signal if the global stop is
+set, otherwise with `not running`. Neither logs.
 
-Let `end` be now on the clock's time source, and `target` = ticks × frame
-duration. Let `L` be the latency of the current sync source, or the configured
-latency without one.
+A passive clock with a parent MUST only be ticked from inside a tick of its
+parent: by step 8, or by a reader pulling it. When it has an owner, the owner
+is its only reader. A passive clock without a parent is ticked by its owner.
 
-| Mode           | `end < target` (ahead)     | otherwise (behind)    |
-| -------------- | -------------------------- | --------------------- |
-| passive        | nothing                    | nothing               |
-| unsynced       | yield                      | yield                 |
-| automatic, CPU | reset catch-up ticks; rest | handle latency; yield |
+## 9. Waiting inside a tick
 
-**Rest.** Only if `target − end ≥ L`. Compute `delay = target − now`. If the
-delay is positive and the clock can park ([§10](#10-animator)), park for
-`delay`. Otherwise sleep on the time source until `target`.
+A tick MUST NOT hold a scheduler worker while it waits for something that
+only a scheduler worker can complete.
 
-So a paced clock produces up to `L` of stream ahead of real time, then rests
-until real time catches up.
+The clock therefore offers a **wait**: wait until a condition holds. The duty
+to use it belongs to the facility through which work is handed to the
+scheduler and awaited, not to each of its callers: called from inside a
+tick, that facility MUST wait through the clock. A caller then cannot forget
+it.
 
-**Handle latency.** Let `late = end − target` and `M` the maximum latency of
-the current sync source, or the configured one.
+- When the tick runs on a scheduler worker, the wait MUST give the worker
+  back and resume the tick, as a ready clock task, once the condition holds.
+  The tick may resume on another worker.
+- When the tick runs on a thread of the clock's own, the wait blocks.
+- A wait MUST end when the clock is asked to stop or the global stop is set.
+  The tick then meets a stop check.
+- The time spent in waits is counted apart from production time
+  ([observability.md §1](observability.md#1-status-record)).
 
-- If `late ≥ M`: log `Too much latency! Resetting active sources...`, set ticks
-  to `floor(end / frame duration)`, and reset every output and active source.
-- Else if `late ≥` the log threshold and at least the log period has passed
-  since the last warning: log
-  `Latency is too high: we must catchup <late, 2 decimals> seconds! ...` and
-  record the time.
+This is what makes a pool of any size, one worker included, sufficient. The
+work waited for runs at its own rank: while other clocks are ready it waits
+for them ([pacing.md §7](pacing.md#7-time-box-and-release)).
 
-**Yield.** Add one to catch-up ticks. If it has reached
-`max(1, floor(L / frame duration))`, reset it to 0 and park for no delay if the
-clock can park.
+## 10. Winding down
 
-## 10. Animator
+Run by whoever ticks the clock, between ticks, or by the caller of `stop` when
+nothing ticks it ([§4](#4-states)). In order:
 
-A started, non-passive clock has one animator, chosen at start and never
-changed:
+1. Take a snapshot of the registered sub-clocks.
+2. Put each output to sleep with its activation. Errors are logged and
+   ignored.
+3. Drop every subscription. Errors are logged and ignored.
+4. Drop the active and passive sets and the callbacks not yet run.
+5. Stop each sub-clock of the snapshot that is started, with reason
+   `parent stopped`, and wind it down.
+6. Set the state to `stopped` with its reason. The streaming state is gone.
+7. A top-level clock moves from `running` to `waiting`.
+8. Log the stop.
+9. If the reason is `failed`, report it ([§12](#12-failure)).
 
-- **task** if the "clocks as tasks" setting is on and no source required a
-  thread;
-- **thread** otherwise.
+The snapshot in step 1 exists because putting an output to sleep can
+deregister sub-clocks, and those MUST still be stopped.
 
-**Loop.** Both run the same loop:
+The clock does not wake active or passive sources, so it does not put them to
+sleep: it only lets go of them. Sources the clock held are released; a source
+that is to run again MUST be attached again.
 
-```
-while state is started and global stop is not set and there is something to process:
-    tick
-wind down, clearing the controller
-```
+Winding down MUST complete whatever fails inside it.
 
-"Something to process" is: a pending source, an output, or an active source.
-The "has stopped" signal raised inside a tick ends the loop and winds down the
-same way. Any other error leaves the loop without winding down; what happens
-next is decided outside the clock, by whatever runs the animator.
+## 11. Sub-clocks
 
-Before winding down it logs `Clock has stopped: <reasons>.`, the reasons being
-those that hold among `clock stopped`, `global stop`,
-`no more sources to process`.
+A sub-clock is a passive clock ticked as part of its parent's tick.
 
-**Task.** One scheduler task of the clock priority, ready at once. Its handler
-runs the whole loop and returns no follow-up task. It logs
-`Clock task is starting`. Its controller id is `task-<identity>`.
+**Registration** is made by a registrant, on the sub-clock's parent, and is
+counted: a sub-clock stays registered while at least one registrant holds it.
+It MUST be refused with `not a sub-clock` unless the clock is passive and its
+parent is the clock it is registered on. So a clock has at most one parent,
+fixed at its creation, and no chain of parents can be changed into a cycle by
+registration.
 
-**Thread.** A thread named `Clock <id>`. It logs `Clock thread is starting`.
-Its controller id is the thread's number.
+- A registration on a started parent starts the sub-clock if it is stopped
+  and can start.
+- A parent that starts starts its registered sub-clocks
+  ([§6](#6-creation-and-start)).
+- The last deregistration stops the sub-clock with reason `parent stopped`.
+- A parent that winds down stops its registered sub-clocks
+  ([§10](#10-winding-down)). Their registrations are kept.
 
-**Parking.** Only a task animator can park, and only from inside its handler.
-Parking suspends the loop where it is, gives the scheduler worker back, and
-queues the continuation as a task of the clock priority, ready after the given
-delay. A thread animator, a passive clock, and a tick driven from outside the
-task cannot park.
+A started sub-clock is ticked by its parent's tick unless already ticked
+during it ([§8](#8-tick)). A sub-clock that is not started is skipped, never
+an error.
 
-**Requiring a thread.** A source may require it before the clock starts. On a
-clock that is not stopped this fails with the animator conflict (error number
-18), text: `Clock <description> has already started as a scheduler task. A
-source that rests by waiting on an external server, such as JACK input or
-output, needs a clock animated by a thread of its own and cannot join a clock
-that is already running.`
+After two registered sub-clocks of one parent are unified, the parent holds
+one entry, with the registrants of both, and ticks it once per tick.
 
-### 10.1 What the clock relies on from the scheduler
+On a parent where sub-clocks are registered and deregistered any number of
+times, the number of entries MUST return to its starting value, and the cost
+of a tick MUST depend only on the sub-clocks currently registered.
 
-- Tasks have a priority; a worker picks, among ready tasks, by priority order.
-  The order is: server-like tasks, clocks, tasks that keep a worker busy, tasks
-  that may wait.
-- A clock task occupies its worker from the moment it is picked until it parks
-  or ends.
-- A parked clock is picked again like any ready clock task, possibly by another
-  worker.
+## 12. Failure
 
-## 11. Winding down
+Clocks can fail. A failure has one outcome, whatever the animator and
+whatever the kind of error.
 
-1. Take a snapshot of the sub-clocks.
-2. Put each output to sleep with its activation, ignoring errors.
-3. Run and drop every sync deregistration, ignoring errors.
-4. Stop each sub-clock from the snapshot.
-5. If asked, set the controller to `none`.
-6. Set the state to `stopped`. The streaming state is gone.
-7. Remove the clock from `started` and add it to `pending`.
-8. Log `Clock stopped`.
+**Source error rule.** Used for the activation and the animation of one
+source, and for a sync error charged to it
+([pacing.md §3](pacing.md#3-finding-the-sync-source)):
 
-The snapshot in step 1 exists because putting an output to sleep can remove
-sub-clocks from the clock, and those must still be stopped.
-
-Active and passive sources are not notified.
-
-## 12. Global stop and shutdown
-
-**Global stop** is a process-wide flag. Once set, nothing starts, every tick
-is abandoned at its next check, and every animator winds down.
-
-**Shutdown**, before the rest of the application shuts down:
-
-1. Set the global stop.
-2. Stop every non-passive clock in `started`.
-3. Poll every 10 ms until `started` is empty or the maximum-latency setting
-   has elapsed.
-4. If any remain, log `Clocks still running at shutdown: <ids>`.
-
-## 13. Failure behaviour
-
-**Source error rule.** Used for activation and animation of one source:
-
-1. Check the global stop.
-2. Run. On any error other than "has stopped":
-   - log `Source <id> failed while streaming: <error>!` with the backtrace;
-   - detach the source ([§7](#7-attaching-sources));
+1. Stop check.
+2. Run. On any error other than the stop signal:
+   - log the failure with the source, the error and the backtrace;
+   - detach the source ([§7](#7-sources-on-a-clock));
    - if the clock has error handlers, call each with the error and backtrace
      and carry on with the tick;
-   - otherwise let the error out of the tick.
+   - otherwise the clock fails with that error.
 
-**Errors and their text:**
+**Clock failure.** A clock fails when an error other than the stop signal
+leaves its tick or what follows it: a source error with no handler, an error
+from an error handler, from an on-tick or after-tick callback, from a rest,
+or from the clock itself. Then:
 
-| Error               | Number | Text                                                                                                            |
-| ------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
-| conflict            | 10     | `A source cannot belong to two clocks (<a>, <b>).`                                                              |
-| loop                | 11     | `Cannot unify two nested clocks (<a>, <b>).`                                                                    |
-| controller conflict | 16     | `Cannot unify clocks <l> and <r>: clock <l> is controlled by clock <lc> while clock <r> is controlled by <rc>.` |
-| sync error          | 17     | [§8](#8-sync-sources)                                                                                           |
-| animator conflict   | 18     | [§10](#10-animator)                                                                                             |
-| invalid state       | —      | none                                                                                                            |
-| has stopped         | —      | none; a signal, never reported                                                                                  |
+1. The tick is abandoned.
+2. The clock is wound down ([§10](#10-winding-down)) with reason `failed`
+   and the error. It ends `stopped`, in `waiting` if it is top-level, its
+   outputs asleep and its sub-clocks stopped.
+3. The failure is logged once, with the clock, the error and the backtrace.
+4. The failure is reported, once per failed clock, to the application's
+   **clock failure policy**.
 
-## 14. Unification
+**Clock failure policy.** One per application, given the clock and the error.
+The default policy MUST start an orderly shutdown of the application
+([§13](#13-global-stop-and-shutdown)). A script MAY replace it, for instance
+to keep running without the failed clock. The policy is called after the
+wind-down, possibly from inside a tick of another clock: it MUST NOT wait for
+clocks to stop. The default only asks for the shutdown, which runs elsewhere.
 
-`unify(a, b)` makes two handles designate one clock.
+**Sub-clocks.** A failing sub-clock fails like any clock: it is wound down and
+reported. Then:
 
-1. **Controllers must be compatible**, else controller conflict:
-   - either is `none`: compatible;
-   - both external: same kind and the same object;
-   - both clocks: compatible if those two clocks unify. They are unified as
-     part of the test;
-   - one clock, one external: not compatible.
-2. If both handles already designate the same clock: done.
-3. Pick the direction. "Pending mode" of a clock is its sync mode, or
-   `stopping` while it is stopping.
-   - both stopped with the same sync mode: merge `a` into `b`;
-   - `a` stopped, and `a` is automatic or its mode equals `b`'s pending mode:
-     merge `a` into `b`;
-   - `b` stopped, and `b` is automatic or its mode equals `a`'s pending mode:
-     merge `b` into `a`;
-   - otherwise: conflict.
+- if it was being ticked by its parent ([§8](#8-tick) step 8), the parent's
+  tick carries on;
+- if it was being ticked as a pull, the error is passed to the reader. It is
+  then an error of that reader, a source of the parent, under the source
+  error rule.
 
-   The clock merged away is always a stopped one.
+Later ticks of the parent skip it, and a later pull meets `not running`.
 
-**Merge `x` into `y`:**
+**Errors.** The content is binding, the wording is not:
 
-1. Fail with loop if `y` is a sub-clock of `x` at any depth, or `x` of `y`.
-2. If `y` has no controller, it takes `x`'s.
-3. Move `x`'s pending sources to `y`.
-4. Move `x`'s sub-clocks to `y`.
-5. If `x` needs a thread, require it of `y` ([§10](#10-animator)).
-6. Move `x`'s error handlers to `y`.
-7. Id: if `y` has none it takes `x`'s; if both have one `y` keeps its own and
-   the event is logged.
-8. Point `x`'s handle at `y`.
-9. Deduplicate the sub-clock list of `y` and of every clock in the `all` set.
-10. Remove `x`'s handle from every registry set.
+| Error               | Number | Content                                                              |
+| ------------------- | ------ | -------------------------------------------------------------------- |
+| conflict            | 10     | The two clocks, and that a source cannot belong to two clocks.       |
+| loop                | 11     | The two clocks, and that they are nested.                            |
+| controller conflict | 16     | The two clocks and the controller of each.                           |
+| sync error          | 17     | [pacing.md §3](pacing.md#3-finding-the-sync-source)                  |
+| not running         | —      | The clock.                                                           |
+| cannot start        | —      | The clock and which condition of [§6](#6-creation-and-start) failed. |
+| not a sub-clock     | —      | The clock and the parent it was registered on.                       |
+| stop signal         | —      | Never reported.                                                      |
 
-`y` keeps its sync mode, state and streaming state.
+## 13. Global stop and shutdown
 
-## 15. Sub-clocks
+**Global stop** is a process-wide flag. Once set, nothing starts, every tick
+is abandoned at its next stop check, every rest and wait ends, and every
+animator winds its clock down.
 
-Registering a sub-clock adds its handle unless one already designates the same
-clock. Deregistering removes every handle designating it. Neither starts nor
-stops anything.
+**Shutdown**, before anything a tick reads from is torn down:
 
-See [§18.3](#183-child-clocks) for who registers sub-clocks.
+1. Set the global stop.
+2. Stop every clock in `running`.
+3. Wait until `running` is empty or the shutdown wait
+   ([§14](#14-parameters)) has elapsed.
+4. If any remain, log each of them with what it was doing
+   ([observability.md §2](observability.md#2-log-events)).
 
-A sub-clock is started when its parent starts ([§6](#6-creation-and-start)),
-ticked by its parent's tick unless already ticked during it
-([§9](#9-tick)), and stopped when its parent winds down
-([§11](#11-winding-down)).
+A clock MUST act on a stop within one tick: a rest, a release and a wait MUST
+end early on a stop, whatever the animator. A call blocked in a device is
+bounded by the device.
 
-## 16. Constants
+A passive clock with no parent is stopped at step 2 like any top-level clock,
+and wound down per [§4](#4-states).
 
-| Name                        | Value   | Use                                                                    |
-| --------------------------- | ------- | ---------------------------------------------------------------------- |
-| `clock.latency`             | 0.1 s   | Advance at which a paced clock rests; size of a catch-up turn.         |
-| `clock.max_latency`         | 60 s    | Latency at which sources are reset. Also the shutdown wait.            |
-| `clock.log_delay`           | 1 s     | Minimum time between latency warnings.                                 |
-| `clock.log_delay_threshold` | 0.2 s   | Latency below which no warning is logged.                              |
-| `clock.preferred`           | `posix` | Time source name. An unknown name falls back to the built-in one.      |
-| `clock.task`                | true    | Animate clocks as scheduler tasks.                                     |
-| `clock.leak_warning`        | 50      | Source count multiple at which the leak warning is logged.             |
-| shutdown poll               | 10 ms   | [§12](#12-global-stop-and-shutdown)                                    |
-| `jack.latency`              | 0 s     | Latency of a server-driven clock ([§18.2](#182-server-driven-clocks)). |
-| `jack.max_latency`          | 0.5 s   | Its maximum latency.                                                   |
+## 14. Parameters
 
-The log and latency settings are read when a clock starts, except the latency
-and maximum latency, which are read each time they are used.
+Every limit names what it protects. The values of the first seven are fixed
+with their names; the others are recommendations.
 
-## 17. Contracts the clock relies on
+| Parameter             | Setting                     | Value   | Protects                                                                                                    |
+| --------------------- | --------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| latency               | `clock.latency`             | 0.1 s   | Wake-ups: how far ahead of its time source a paced clock produces before it rests.                          |
+| maximum latency       | `clock.max_latency`         | 60 s    | Listeners: beyond it a late stream is reset instead of caught up.                                           |
+| latency log period    | `clock.log_delay`           | 1 s     | The log: minimum time between two latency warnings of one clock.                                            |
+| latency log threshold | `clock.log_delay_threshold` | 0.2 s   | The log: lateness below it is ordinary jitter.                                                              |
+| time source           | `clock.preferred`           | `posix` | —. An unknown name falls back to the built-in time source, with a warning.                                  |
+| clocks as tasks       | `clock.task`                | true    | —. When off, every clock is animated by a thread.                                                           |
+| leak threshold        | `clock.leak_warning`        | 50      | Memory: source count multiple at which the leak warning is logged.                                          |
+| time box              | `clock.time_box`            | 0.1 s   | Other clocks: the longest a clock keeps a worker while another clock waits for one, a tick's overrun aside. |
+| shutdown wait         | `clock.shutdown_wait`       | 10 s    | Shutdown: the longest the application waits for clocks that do not stop.                                    |
 
-**Source.** Has an id and a stack; a type (passive, active, output); a sync
-declaration; whether it is ready; its current sync source; a subscription to
-sync source changes returning an unsubscribe callback; wake-up (by a requester,
-yielding an activation) and sleep (of an activation); its list of activations.
-An active or output source can be reset and animated ("output").
+The first seven names and values are compatibility surface. The shutdown wait
+MUST NOT be derived from the maximum latency.
 
-**Time source.** Gives now; sleeps until a time; converts to and from seconds;
-adds, subtracts and compares times. It can be wrapped with an offset: now is
-then `now − offset` and sleeping until `t` sleeps until `t + offset`.
+A change to the latency or the maximum latency MUST take effect by the clock's
+next tick. A change to any other MUST take effect by the clock's next start.
 
-One time source is provided here, the **unconstrained** one: now is always 0
-and sleeping returns at once. It is for sync sources that pace the stream
-entirely by themselves.
+## 15. Contracts the clock relies on
 
-A time source's sleep may end the clock: if it raises the "has stopped" signal,
-the animator loop winds the clock down ([§10](#10-animator)).
+**Source.** The clock uses, and requires, only:
 
-## 18. How the clock is used
+- an identity, an id and a stack;
+- a type: passive, active or output;
+- wake-up by a requester, yielding an activation, and sleep of an activation.
+  An activation dropped without being handed back puts the source to sleep on
+  its own: every holder but the clock may let go;
+- for an active or output source: animate, and reset;
+- its current sync source, and a subscription to its changes that returns a
+  way to unsubscribe ([pacing.md §3](pacing.md#3-finding-the-sync-source)).
 
-The clock's rules above only make sense with what its users do. These are not
-clock code; they are the other half of each contract.
+**Time source.** [pacing.md §2](pacing.md#2-sync-source).
 
-### 18.1 Sync source reporting by sources
+**Scheduler.** [pacing.md §10](pacing.md#10-what-the-clock-asks-of-the-scheduler).
 
-A source reports its sync source only while it is really pacing: a sound card
-source while its stream is open, a network input while it is connected, each
-only if its own "self-sync" option is on. Otherwise it reports none.
+**Application.** A started flag, a shutdown sequence the clock joins
+([§13](#13-global-stop-and-shutdown)), and the clock failure policy
+([§12](#12-failure)).
 
-The report travels up the source graph by notification, not by the clock
-asking:
+## 16. Child clocks
 
-- every source keeps its last reported sync source and a list of subscribers;
-- a source notifies its subscribers when the value changes, compared by
-  identity;
-- an operator subscribes to its children when it wakes up and unsubscribes when
-  it sleeps; on a child's change it recomputes its own value from its ready
-  children ([§8](#8-sync-sources));
-- going to sleep notifies "none";
-- an operator that selects among children at run time notifies explicitly when
-  its selection changes, since the selected child is not among its fixed
-  children;
-- a source whose pacing depends on a connection notifies on connect and on
-  disconnect;
-- before each streaming cycle a source also recomputes its value and notifies
-  if it changed.
-
-The clock subscribes only to its outputs and active sources
-([§7](#7-attaching-sources)).
-
-### 18.2 Server-driven clocks
-
-An audio server that calls back at its own rhythm is given one sync source per
-server. Its time source is backed by the server:
-
-- **now** is the time the server's callback has counted so far;
-- **sleep until `t`** blocks until the server's callback has reached `t`, and
-  raises the "has stopped" signal if the server stopped before or during the
-  wait.
-
-Its latency and maximum latency are settings of its own, 0 s and 0.5 s by
-default, read each time the clock switches to it. With these, the ordinary
-latency control makes the clock produce one frame and then wait for the
-server's callback: the whole clock follows the server. Several clocks may wait
-on one server.
-
-Because that sleep blocks in a foreign call, sources of this kind require a
-thread animator ([§10](#10-animator)). If the server stops, the clock stops.
-
-### 18.3 Child clocks
+How operators use sub-clocks. This is the other half of the contract of
+[§11](#11-sub-clocks); it binds the operators, not the clock.
 
 An operator that reads from its child at a pace of its own (a crossfade, a
 time stretch, an inline encoder, a resampler) gives the child a clock of its
 own.
 
+Everything below SHOULD be held by one reader component that such operators
+use. An operator then declares only what is its own: whether it is the sole
+reader, and its buffer limit.
+
 **Set-up, when the operator is created:**
 
 - it wraps its child in an output that lives in the child clock;
-- it creates a passive clock whose controller is, by default, the operator's
-  own clock;
-- it unifies that clock with the wrapped child's clock;
-- it registers the child clock as a sub-clock of its own clock, at once.
+- it creates a passive clock whose parent is the operator's own clock, with
+  no owner;
+- it unifies that clock with the wrapped child's clock.
+
+It MUST NOT register the sub-clock yet.
 
 **While running:**
 
-- on waking up it registers the sub-clock again (a no-op the first time),
-  creates its buffer and wakes the wrapped child;
-- before each streaming cycle it starts the child clock if it is not started
-  and activates its pending sources;
-- on going to sleep it deregisters the sub-clock, puts the wrapped child to
-  sleep and flushes it.
+- on waking up it registers the child clock as a sub-clock, which starts it
+  when the parent runs, creates its buffer and wakes the wrapped child;
+- on going to sleep it deregisters it and flushes its buffer.
+
+An operator created and never woken therefore costs its parent nothing, and
+an operator created inside a running script produces data on its first cycle.
 
 **Reading.** The operator reads from its buffer. While the buffer holds less
 than a frame and the child is ready, it ticks the child clock **as a pull**.
 On a pull, the wrapped child appends its frame to the buffer; on a tick that
-is not a pull, it does nothing. The parent's tick still reaches the child
-clock when no reader pulled during it ([§9](#9-tick) step 7), which keeps real
-outputs and active sources inside the child clock running without buffering
-data nobody asked for.
+is not a pull, it MUST buffer nothing. The parent's tick still reaches the
+child clock when no reader pulled during it ([§8](#8-tick) step 8), which
+keeps real outputs and active sources inside the child clock running without
+buffering data nobody asked for.
 
-**Shared child clocks.** Several operators may read from one child clock. A
-pull by any of them fills the buffer of all. A buffer holding more than the
-child buffer limit (10 s by default) is an error naming the operator that fell
-behind.
+**Shared child clocks.** Several operators may read from one child clock;
+each is a registrant. A pull by any of them fills the buffer of all. A buffer
+holding more than the child buffer limit is an error naming the operator that
+fell behind, raised at the limit and not before. A reader holding a remainder
+when its child ends still delivers it.
 
-**Exclusive child clocks.** A crossfade's child clock is controlled by the
-crossfade itself, as an external entity, not by the crossfade's clock. Two
-such child clocks therefore never unify
-([§14](#14-unification)): the crossfade needs to be the only reader of its
-child.
+**Exclusive child clocks.** An operator that must be the only reader of its
+child, such as a crossfade, makes itself the owner of its child clock, with
+its own clock as the parent. Two such child clocks never unify
+([unification.md §3](unification.md#3-plan)).
 
-**Pacing.** Such an operator may ask for a check at creation, which refuses a
-child that declares a sync source or a dynamic sync type: "This source may control its own latency
-and cannot be used with this operator."
+**Pacing.** A sync source inside a child clock paces that child clock's
+ticks, not the operator's clock, which goes on pacing by its own means
+([pacing.md §3](pacing.md#3-finding-the-sync-source)). An operator that
+cannot work that way SHOULD refuse, at creation, a child that declares a
+sync source or whose sync source can change at run time: "This source may
+control its own latency and cannot be used with this operator" is the
+content of the error. For this a
+source declares whether its sync source is `static` or `dynamic`; an operator
+is `dynamic` if any of its children is. The clock does not read this
+declaration. Where it is computed once and remembered, two threads computing
+it at the same moment MUST both get the right value.
 
-So two child clocks with the default controller can only be unified if the
-clocks controlling them can ([§14](#14-unification)).
+## 17. Concurrency
+
+- A clock's ticks run one at a time, on whatever ticks it.
+- Everything that changes the streaming state is applied by whatever ticks the
+  clock, or by the caller of `stop` when nothing does, between two steps that
+  read it: sync source changes
+  ([pacing.md §3](pacing.md#3-finding-the-sync-source)), removals
+  ([§7](#7-sources-on-a-clock)), the animator change
+  ([pacing.md §8](pacing.md#8-animator)), winding down.
+- These MAY be called from any thread at any time, a tick in progress
+  included: attach, detach, stop, register and deregister a sub-clock,
+  register a callback, report a sync source change, read any figure or
+  report, unify.
+- Every state transition of a clock, a tick of a passive clock included, and
+  every unification that names it are mutually exclusive. The exclusion is
+  re-entrant: winding down, registering and creating operators start, stop
+  and unify clocks from inside it. Reads are never blocked by it.
+- A read returns a value the field held at some moment; several fields read
+  together need not be from the same moment.

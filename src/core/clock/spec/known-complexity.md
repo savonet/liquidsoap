@@ -1,8 +1,8 @@
 # Known complexity
 
 What the project's history shows to be hard about clocks, stated without
-reference to the code. Each entry is reconciled with the as-built spec
-([clock.md](clock.md)) and the findings ([findings.md](findings.md)).
+reference to the code. Each entry ends with the rule that answers it, and has
+its check in [conformance.md](conformance.md).
 
 **Coverage.** This is a partial mining. Six areas were read: finding the
 pacer, sub-clocks, child clocks, unification, server-driven clocks, and clocks
@@ -33,10 +33,10 @@ to know its pacer does not depend on the size of the graph. Binding: the count
 of pacing queries made to sources over many idle ticks is zero, or a constant
 per tick. Incidental: the mechanism.
 
-**Reconciliation.** Partly covered. The clock side is by notification
-([§8](clock.md#8-sync-sources)). The source side still recomputes before every
-cycle: finding G10. The hand-off of a change to the clock's own thread was lost
-since: finding G9.
+**Rule.** The clock never asks: sources notify, the clock applies changes at its
+next tick, and the per-tick cost is fixed on both sides
+([pacing.md §3](pacing.md#3-finding-the-sync-source)). Changes reported from
+another thread are handed to the clock, never applied in place.
 
 Trace: #5133.
 
@@ -62,9 +62,9 @@ many times. Binding: the number of live subscriptions and the number of
 sources kept alive return to their starting value; memory does not grow with
 the count of cycles.
 
-**Reconciliation.** Covered: subscriptions are dropped at detach
-([§7](clock.md#7-attaching-sources)) and at wind-down
-([§11](clock.md#11-winding-down)). Not tested: G8.
+**Rule.** Every subscription ends when its source leaves the clock, whatever the
+way ([clock.md §7](clock.md#7-sources-on-a-clock),
+[§10](clock.md#10-winding-down)).
 
 Trace: #5153, #5163 and one direct commit. Three fixes.
 
@@ -97,13 +97,14 @@ notion: unification makes two entries one after they were added.
 - Unify two sub-clocks of one parent: the parent has one entry and ticks it
   once per tick. Binding: the count and the tick count.
 
-**Reconciliation.** Partly covered. A sub-clock is deregistered when its
-operator sleeps, but it is registered as soon as the operator is created
-([§18.3](clock.md#183-child-clocks)), so one that never wakes stays: finding
-A8. Covered: the snapshot at wind-down
-([§11](clock.md#11-winding-down)); deduplication at unification
-([§14](clock.md#14-unification)). The second and third have tests. The
-validation that once came with registration is gone: finding A7.
+**Rule.** Registration is counted, made when an operator wakes and undone when it
+sleeps, so the list holds only what is in use
+([clock.md §11](clock.md#11-sub-clocks), [§16](clock.md#16-child-clocks)).
+Winding down stops the sub-clocks it saw before putting outputs to sleep
+([clock.md §10](clock.md#10-winding-down)). A merge leaves one entry
+([unification.md §4](unification.md#4-commit)). Nesting is carried
+by the parent, fixed at creation, not by the list
+([clock.md §1](clock.md#1-entities)).
 
 Trace: #5029, #5103, #5114. Three fixes.
 
@@ -127,9 +128,9 @@ and total, but then two values that mean the same thing are different.
 **How to tell.** Deduplicating a set of distinct clocks never fails, whatever
 they hold. A change check on an unchanged sync source costs a constant.
 
-**Reconciliation.** Clocks: covered, compared by identity
-([§1](clock.md#1-entities)). Sync sources: split, by identity on the source
-side and by value on the clock side: findings A6 and G3.
+**Rule.** Clocks are compared by identity ([clock.md §1](clock.md#1-entities)).
+Sync sources are compared by an identity they declare, in constant time, by
+sources and clock alike ([pacing.md §2](pacing.md#2-sync-source)).
 
 Trace: #5114, #5153.
 
@@ -148,9 +149,8 @@ proportional to the number of idle clocks is paid constantly.
 **How to tell.** A start pass over N clocks that cannot start costs
 proportionally to N. With nothing waiting and nothing new it costs a constant.
 
-**Reconciliation.** Covered ([§6](clock.md#6-creation-and-start)): the pass is
-skipped when there is nothing to do, and clocks are put back without a scan.
-Not tested.
+**Rule.** [clock.md §6](clock.md#6-creation-and-start): the pass is linear in the
+waiting clocks and constant with none.
 
 Trace: #5153.
 
@@ -172,12 +172,13 @@ applied by hand at every place an answer can change, and the order between
 changing the state and announcing it matters.
 
 **How to tell.** Switch a selecting operator between a child that paces and
-one that does not: the clock changes mode within one tick. Connect and
-disconnect a pacing input: same. Binding: the clock's mode after one tick.
+one that does not: the clock changes pacing within one tick. Connect and
+disconnect a pacing input: same. Binding: the clock's pacing after one tick.
 
-**Reconciliation.** Covered as a contract on sources
-([§18.1](clock.md#181-sync-source-reporting-by-sources)), outside the clock.
-The per-cycle recomputation (G10) exists as a net under it.
+**Rule.** A contract on sources, with the rule held once by what all sources
+share and the order between changing state and announcing it stated
+([pacing.md §3](pacing.md#3-finding-the-sync-source)). There is no per-cycle
+recomputation under it.
 
 Trace: #5133 and two direct commits. Three rounds.
 
@@ -197,8 +198,8 @@ so letting both compute is safe.
 **How to tell.** Two threads compute the value in a forced overlap: both get
 the right value and none fails.
 
-**Reconciliation.** Covered ([§8](clock.md#8-sync-sources)) and tested
-([tests.md](tests.md#operator-sync-type)).
+**Rule.** [clock.md §16](clock.md#16-child-clocks), last paragraph. The clock
+itself does not read this value.
 
 Trace: one direct commit.
 
@@ -212,9 +213,8 @@ although nothing was pacing.
 **How to tell.** With a pacing source that is not ready, the clock paces
 itself.
 
-**Reconciliation.** Covered: only ready children count
-([§8](clock.md#8-sync-sources)), and a source reports a sync source only while
-it paces ([§18.1](clock.md#181-sync-source-reporting-by-sources)).
+**Rule.** Only a sync source that is really pacing is reported, and only ready
+children count ([pacing.md §3](pacing.md#3-finding-the-sync-source)).
 
 Trace: two direct commits.
 
@@ -242,7 +242,12 @@ breaks the rule without touching it.
 time, the stream produced equals the real time elapsed, whichever way the
 clock is animated. Binding: the ratio, within the device's own tolerance.
 
-**Reconciliation.** Contradicts: finding D1.
+**Rule.** The rule is a statement of the clock
+([pacing.md §1](pacing.md#1-the-rule)). A sync source declares its pacing;
+a clock following a `self-paced` one has no rest at all
+([pacing.md §5](pacing.md#5-after-a-tick)), and every form of rest is derived
+from the declaration ([pacing.md §6](pacing.md#6-rest-and-lateness)).
+Every time source's now advances ([pacing.md §2](pacing.md#2-sync-source)).
 
 Trace: #5021, #5397.
 
@@ -254,7 +259,7 @@ data ready. Several clocks may use one server. The server can stop.
 **What went wrong, and what the design answers.**
 
 - The clock's own time fighting the server's: answered by taking the server's
-  time as the clock's time ([§18.2](clock.md#182-server-driven-clocks)).
+  time as the clock's time ([pacing.md §9](pacing.md#9-server-driven-clocks)).
 - Several clocks waiting on one server stepping on each other: each waits on
   its own target.
 - Waking too late to prepare the data: the wait ends a full server period
@@ -271,11 +276,11 @@ a worker — has to be re-read for this case.
 drift over a long run; stopping the server stops the clock within one period;
 two clocks on one server each keep their own pace.
 
-**Reconciliation.** Covered as a contract
-([§18.2](clock.md#182-server-driven-clocks)); the thread requirement is in
-[§10](clock.md#10-animator). Not tested in the clock's tests. A source that
-asks for a thread after its clock has started fails
-([§10](clock.md#10-animator)), which a script meets as an error at run time.
+**Rule.** A first-class way to drive a clock
+([pacing.md §9](pacing.md#9-server-driven-clocks)), each point above stated
+as a guarantee of the wait. The clock moves to a thread when such a source
+joins it, so it can join a running clock
+([pacing.md §8](pacing.md#8-animator)).
 
 Trace: #5021, #5028, #5397.
 
@@ -325,11 +330,12 @@ after it has started changing things.
 - A failed unification leaves both clocks as they were. Binding: every field
   of both.
 
-**Reconciliation.** Mostly covered ([§14](clock.md#14-unification),
-[§5](clock.md#5-registry)). Not covered: a failed unification can leave
-changes behind (finding D6); starting a controlled clock is refused only after
-it has started (finding D7). The last two checks above have no test in the
-clock's suite.
+**Rule.** [unification.md](unification.md): a plan that checks and a commit that
+cannot fail, so a failed unification leaves nothing behind. A clock has a
+controller exactly when it is passive, and a passive clock never gets an
+animator, so a controlled clock never runs on its own
+([clock.md §1](clock.md#1-entities), [§6](clock.md#6-creation-and-start)). Leftovers, memory and threads are
+guarantees of [unification.md §5](unification.md#5-guarantees).
 
 Trace: #3905, #4638, #4643, #4645, #4647, #5114, #5336, #5447 and one direct
 commit. Nine changes.
@@ -354,11 +360,17 @@ while it runs.
 
 - N clocks that rest, on fewer than N workers, all stay in real time.
   Binding: no clock late by more than its latency.
-- With as many never-resting clocks as workers, other work still runs within a
-  stated bound. Binding: the delay of a task due at a known time.
+- With as many unsynced clocks as workers, other work still runs on time.
+  Binding: the delay of a task due at a known time.
+- More late clocks than workers take turns within a stated bound. Binding:
+  the longest a ready clock waits for a worker.
 
-**Reconciliation.** The first is the design ([§10](clock.md#10-animator)). The
-second is not met: findings D2 and D3.
+**Rule.** The animator follows what the clock is at the moment, and changes with
+it ([pacing.md §8](pacing.md#8-animator)): clocks that block or never rest
+get a thread, the others share workers. A clock task is time-boxed and
+yields to other clocks ([pacing.md §7](pacing.md#7-time-box-and-release)).
+Work ranked after clocks waits for clocks by design: it is delayed only while
+every worker holds a late clock.
 
 Trace: #5397.
 
@@ -374,11 +386,11 @@ asked.
 bound, and nothing a tick reads from is torn down before the clock has
 stopped. Binding: the order of the two events and the bound.
 
-**Reconciliation.** Covered: the stop is checked between every step of a tick
-([§9](clock.md#9-tick)) and shutdown waits for clocks
-([§12](clock.md#12-global-stop-and-shutdown)). The bound is a borrowed
-setting: finding G1. A clock whose tick failed is in some cases waited for in full, and in others
-the process exits with no shutdown at all: finding D4.
+**Rule.** The stop is checked between the steps of a tick
+([clock.md §8](clock.md#8-tick)), ends rests and waits, and shutdown waits
+for every running clock under a parameter of its own
+([clock.md §13](clock.md#13-global-stop-and-shutdown)). A failed clock is
+wound down like any other ([clock.md §12](clock.md#12-failure)).
 
 Trace: one direct commit.
 
@@ -413,9 +425,10 @@ readers is wrong; only a bound on each buffer works.
 - A reader holding a remainder when its child ends still delivers it.
   Binding: the data delivered.
 
-**Reconciliation.** Covered ([§18.3](clock.md#183-child-clocks),
-[§9](clock.md#9-tick) for the pull flag). The tests exist but outside the
-clock's suite.
+**Rule.** [clock.md §16](clock.md#16-child-clocks) and the pull flag of
+[clock.md §8](clock.md#8-tick). Each reader is a registrant, so one going to
+sleep does not take the child clock from the others
+([clock.md §11](clock.md#11-sub-clocks)).
 
 Trace: #5267 and the abandoned attempt it replaced.
 
@@ -438,8 +451,9 @@ exists. Two crossfades over two sources end with two child clocks. Two
 readers of one shared child end with one. Binding: the number of distinct
 child clocks and each one's controller.
 
-**Reconciliation.** Covered ([§18.3](clock.md#183-child-clocks)). Nothing in
-the clock refuses a passive clock without a controller.
+**Rule.** A passive clock without a controller cannot be created
+([clock.md §1](clock.md#1-entities), [§6](clock.md#6-creation-and-start)).
+Exclusive child clocks: [unification.md §3](unification.md#3-plan).
 
 Trace: #4645, #5113. One regression on a release.
 
@@ -460,9 +474,10 @@ sleep at any time.
 **How to tell.** An operator with a child clock created inside a running
 script produces data on its first cycle. Binding: no failure, data produced.
 
-**Reconciliation.** Covered by the operator
-([§18.3](clock.md#183-child-clocks)); the clock itself fails when a stopped
-sub-clock is ticked: finding D5.
+**Rule.** Registering a sub-clock on a running parent starts it, and a sub-clock
+that is not started is skipped, not an error
+([clock.md §11](clock.md#11-sub-clocks)). The operator does not have to start
+its child clock.
 
 Trace: #4598.
 
@@ -485,9 +500,8 @@ stops.
 as the clock runs. A source whose reader is discarded without putting it to
 sleep ends up asleep. Binding: the awake state of each.
 
-**Reconciliation.** Covered: the clock keeps each output with its activation
-([§7](clock.md#7-attaching-sources)) and hands it back at wind-down and detach
-([§11](clock.md#11-winding-down)).
+**Rule.** [clock.md §7](clock.md#7-sources-on-a-clock) and
+[§10](clock.md#10-winding-down).
 
 Trace: #4804, #4808 and one direct commit.
 
@@ -504,8 +518,9 @@ construction.
 a clock that is its own sub-clock at any depth. Binding: the loop error, or
 the absence of a cycle.
 
-**Reconciliation.** Covered by a check at unification
-([§14](clock.md#14-unification)), not by construction: registration accepts
-any clock (finding A7), so a cycle can still be registered directly.
+**Rule.** By construction and by check: a parent is fixed at creation,
+registration is refused on any other clock
+([clock.md §11](clock.md#11-sub-clocks)), and unification refuses a merge
+that would nest a clock in itself ([unification.md §3](unification.md#3-plan)).
 
 Trace: #3781.
