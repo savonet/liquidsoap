@@ -10,7 +10,7 @@
  (libraries
   dtools
   duppy
-  liquidsoap_core_clock
+  clock
   liquidsoap_core_decoders
   liquidsoap_core_encoder
   liquidsoap_core_media

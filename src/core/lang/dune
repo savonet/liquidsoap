@@ -20,7 +20,7 @@
   liquidsoap-lang.reducer
   liquidsoap-lang.types
   liquidsoap-lang.values
-  liquidsoap_core_clock
+  clock
   liquidsoap_core_encoder
   liquidsoap_core_media
   liquidsoap_core_request
