@@ -9,7 +9,7 @@
   liquidsoap_core
   liquidsoap_optionals
   liquidsoap_tooling
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   (select
    runner.ml

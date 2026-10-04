@@ -17,7 +17,7 @@
   menhirLib
   metadata
   sedlex
-  stdlib_utils
+  duppy.stdlib_utils
   liquidsoap_core_lang
   str
   unix))

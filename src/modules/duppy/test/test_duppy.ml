@@ -554,6 +554,48 @@ let test_backend () =
   Duppy.stop s;
   print_endline !started
 
+(* A regular file is refused by epoll and always readable elsewhere: either way
+   its wait fires at once, and must not report the quiet pipe beside it. *)
+let test_unwatchable_descriptor () =
+  let s = Duppy.create ~classify () in
+  let l = latch () in
+  let file = Unix.openfile Sys.executable_name [Unix.O_RDONLY] 0 in
+  let r, w = Unix.pipe () in
+  let fired = ref [] in
+  Duppy.Task.add s
+    {
+      Duppy.Task.priority = Blocking;
+      events = [`Read file; `Read r];
+      handler =
+        (fun events ->
+          fired := events;
+          bump l;
+          []);
+    };
+  Duppy.start ~pool:(`Domains 1) s;
+  await l 1;
+  Duppy.stop s;
+  List.iter Unix.close [file; r; w];
+  if !fired <> [`Read file] then
+    fail "a wait on a file reported %d events" (List.length !fired);
+  ok "a descriptor that cannot be watched reports its own events only"
+
+let test_suspend () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 1) s;
+  let l = latch () in
+  let resume = ref (fun () -> fail "suspend never registered") in
+  let resumed = Atomic.make false in
+  Duppy.run (fun () ->
+      Duppy.suspend ~priority:Blocking s (fun wake -> resume := wake);
+      Atomic.set resumed true;
+      bump l);
+  if Atomic.get resumed then fail "suspend did not park the computation";
+  !resume ();
+  await l 1;
+  Duppy.stop s;
+  ok "a suspended computation resumes when woken"
+
 let () =
   watchdog 60.;
   test_backend ();
@@ -575,4 +617,6 @@ let () =
   test_direct_survives_a_batch ();
   test_pinned ();
   test_current_domain ();
+  test_unwatchable_descriptor ();
+  test_suspend ();
   print_endline "all duppy pool checks passed"

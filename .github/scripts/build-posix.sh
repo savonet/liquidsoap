@@ -41,7 +41,7 @@ fi
 if [ ! -d /tmp/ocaml-ssl ]; then
   cd /tmp
   git clone https://github.com/savonet/ocaml-ssl.git
-  cd ocaml-ssl && git checkout d4a65d7b0514859fc02647b6a8b9b2e2fb2358ca
+  cd ocaml-ssl && git checkout dc834fffb543fe75fd1aa7dae5bc53ac3e1c14fe
   opam pin -ny .
   opam reinstall -y ssl
   cd /tmp/liquidsoap

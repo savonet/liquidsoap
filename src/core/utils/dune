@@ -80,7 +80,7 @@
   liquidsoap_memtrace
   metadata
   re
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   str
   unix)
