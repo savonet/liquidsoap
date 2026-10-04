@@ -309,10 +309,10 @@ let test_raising_blocking_task () =
   ok "a blocking task that raises gives its slot back"
 
 (* A computation started here parks on the pool and resumes on one of its
-   domains, so the two halves never run on the same one. *)
+   workers, which is another domain when the calling one refuses every task. *)
 let test_effect_resumes_elsewhere () =
   let s = Duppy.create ~classify () in
-  Duppy.start ~pool:(`Domains 2) s;
+  Duppy.start ~pool:(`Selective_domains [(fun _ -> false); (fun _ -> true)]) s;
   let l = latch () in
   let before = ref (-1) in
   let after = ref (-1) in
@@ -521,18 +521,12 @@ let test_pinned () =
   ok "a pinned task and its %d reruns all ran on domain %d" (runs - 1) home;
   Duppy.stop s
 
-(* The calling domain joins the pool as a thread when asked, so a task can be
-   pinned to it; without asking, that domain has no worker. *)
+(* The calling domain is the pool's first worker, so a task can be pinned to
+   it. *)
 let test_current_domain () =
   let here = domain_id () in
   let s = Duppy.create ~classify () in
   Duppy.start ~pool:(`Domains 2) s;
-  (match Duppy.Task.add ~domain:here s (task Immediate (fun _ -> [])) with
-    | () -> fail "the calling domain had a worker without asking for one"
-    | exception Duppy.Unknown_domain _ -> ());
-  Duppy.stop s;
-  let s = Duppy.create ~classify () in
-  Duppy.start ~pool:(`Domains 2) ~current_domain:true s;
   let ran_on = Atomic.make (-1) in
   let seen = latch () in
   Duppy.Task.add ~domain:here s

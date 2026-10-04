@@ -582,7 +582,7 @@ let reserve_blocking s =
   let released = Atomic.make false in
   fun () -> if Atomic.compare_and_set released false true then change (-1)
 
-let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
+let start ?pool ?(max_blocking = 64) ?log:logger s =
   if not (Atomic.compare_and_set s.started false true) then
     failwith "Duppy.start: scheduler already started";
   s.log <- logger;
@@ -590,21 +590,13 @@ let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
     match pool with
       | Some (`Threads accepts) | Some (`Selective_domains accepts) -> accepts
       | Some (`Domains n) -> List.init (max 1 n) (fun _ _ -> true)
-      | None ->
-          List.init
-            (max 1 (Domain.recommended_domain_count ()))
-            (fun _ _ -> true)
+      | None -> List.init (Domain.recommended_domain_count ()) (fun _ _ -> true)
   in
   s.threaded <- (match pool with Some (`Threads _) -> true | _ -> false);
   s.selective <-
     (match pool with
       | Some (`Threads _) | Some (`Selective_domains _) -> true
       | _ -> false);
-  (* A thread on the calling domain, so the domain that evaluated the script
-     takes tasks too and collects what it allocated: a GC only reclaims the
-     heap of the domain it runs on. A thread pool already sits there. *)
-  let current = current_domain && not s.threaded in
-  let accepts = if current then accepts @ [(fun _ -> true)] else accepts in
   let count = List.length accepts in
   if s.selective && count >= Sys.int_size then
     invalid_arg "Duppy.start: too many threads";
@@ -635,15 +627,18 @@ let start ?pool ?(current_domain = false) ?(max_blocking = 64) ?log:logger s =
       let bt = Printexc.get_raw_backtrace () in
       s.on_fatal exn bt
   in
-  (* The parent reads the spawned domain's id directly, so a pin can be
-     validated before the worker has run a single instruction. *)
+  (* The first worker of a domain pool is a thread on the calling domain, which
+     exists anyway and collects only what it allocated itself.
+
+     The parent reads a spawned domain's id directly, so a pin can be validated
+     before the worker has run a single instruction. *)
   let spawn w =
     let run = guard (fun () -> dispatch s w) in
-    if current && w.index = count - 1 then begin
+    if s.threaded then `Thread (Thread.create run ())
+    else if w.index = 0 then begin
       w.domain <- (Domain.self () :> int);
       `Thread (Thread.create run ())
     end
-    else if s.threaded then `Thread (Thread.create run ())
     else (
       let d = Domain.spawn run in
       w.domain <- (Domain.get_id d :> int);

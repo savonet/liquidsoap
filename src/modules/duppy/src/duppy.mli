@@ -129,22 +129,21 @@ val create :
   * events, which is not a domain and runs no OCaml code. Raises [Failure] if
   * [s] is already started.
   *
-  * With [`Domains n], the pool is [n] domains and tasks run in parallel.
-  * Spawning a domain makes [Unix.fork] fail from then on, so this must be
-  * called after any daemonization.
+  * With [`Domains n], the pool is [n] workers on [n] domains, the calling
+  * domain being the first of them: [n - 1] domains are spawned. Tasks run in
+  * parallel. Spawning a domain makes [Unix.fork] fail from then on, so with
+  * [n > 1] this must be called after any daemonization.
   *
-  * With [`Selective_domains accepts], the pool is one domain per predicate,
-  * each taking only the tasks whose priority it accepts.
+  * With [`Selective_domains accepts], the pool is likewise one worker and one
+  * domain per predicate, each taking only the tasks whose priority it accepts.
+  * The first predicate is the calling domain's: one that refuses everything
+  * keeps that domain out of the pool.
   *
   * With [`Threads accepts], the pool is one systhread per predicate, each
   * taking only the tasks whose priority it accepts, and a [`Threaded] task runs
   * in place on the thread that took it. Nothing runs in parallel and
   * [Unix.fork] stays usable.
   * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
-  * @param current_domain also run one worker as a thread on the calling
-  * domain, so that domain takes tasks too and a GC there reclaims what it
-  * allocated. Ignored for a thread pool, which is on the calling domain
-  * already. Default: [false]
   * @param max_blocking the most [`Threaded] tasks that may be in flight at
   * once, spread evenly over the domains. Each domain keeps at least one slot,
   * rounded up, so the whole budget is available even when it does not divide
@@ -156,7 +155,6 @@ val start :
     [ `Domains of int
     | `Selective_domains of ('a -> bool) list
     | `Threads of ('a -> bool) list ] ->
-  ?current_domain:bool ->
   ?max_blocking:int ->
   ?log:(string -> unit) ->
   'a scheduler ->
