@@ -173,4 +173,5 @@ Decisions the project owner has already stated, to be turned into rules:
    lower-priority work (D2).
 2. **Whether an unsynced clock needs a thread of its own** is to be decided
    after rule 1, not before: with an effective release it may not.
-3. **At least two workers** was accepted for the single-worker wait (G7).
+   Suggested, not decided: **at least two workers** for the single-worker wait
+   (G7). It is a last resort, to be adopted only if no other solution is found.
