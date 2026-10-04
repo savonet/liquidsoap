@@ -646,6 +646,63 @@ let test_selective_domains () =
   ok "selective domains ran %d tasks each, on domains %d and %d" runs
     immediate.(0) direct.(0)
 
+(* Linux only: where threads cannot be counted the check says so rather than
+   pass. *)
+let thread_count () =
+  try Some (Array.length (Sys.readdir "/proc/self/task"))
+  with Sys_error _ -> None
+
+(* One worker alone accepts the tasks, so it holds the whole budget at once;
+   it keeps only its share of the threads that took. *)
+let test_burst_threads_retire () =
+  match thread_count () with
+    | None -> print_endline "skipped: threads cannot be counted here"
+    | Some _ ->
+        let s = Duppy.create ~classify () in
+        let budget = 16 in
+        Duppy.start
+          ~pool:(`Selective_domains [(fun _ -> false); (fun _ -> true)])
+          ~max_blocking:budget s;
+        (* The first task brings up one auxiliary thread and whatever the
+           runtime starts along with a domain's first thread. *)
+        let warm = latch () in
+        Duppy.Task.add s
+          (task Blocking (fun _ ->
+               bump warm;
+               []));
+        await warm 1;
+        Thread.delay 0.05;
+        let baseline = Option.get (thread_count ()) - 1 in
+        let started = latch () and finished = latch () in
+        let release = latch () in
+        for _ = 1 to budget do
+          Duppy.Task.add s
+            (task Blocking (fun _ ->
+                 bump started;
+                 await release 1;
+                 bump finished;
+                 []))
+        done;
+        await started budget;
+        let peak = Option.get (thread_count ()) in
+        bump release;
+        await finished budget;
+        if peak < baseline + budget then
+          fail "%d tasks in flight on %d threads" budget (peak - baseline);
+        let kept = budget / 2 in
+        let deadline = Unix.gettimeofday () +. 2. in
+        while
+          Option.get (thread_count ()) > baseline + kept
+          && Unix.gettimeofday () < deadline
+        do
+          Thread.delay 0.01
+        done;
+        let parked = Option.get (thread_count ()) - baseline in
+        if parked > kept then
+          fail "%d threads stayed parked, %d expected" parked kept;
+        Duppy.stop s;
+        ok "a burst of %d blocking tasks left %d threads parked" budget parked
+
 let () =
   watchdog 60.;
   test_backend ();
@@ -668,6 +725,7 @@ let () =
   test_pinned ();
   test_current_domain ();
   test_selective_domains ();
+  test_burst_threads_retire ();
   test_unwatchable_descriptor ();
   test_suspend ();
   test_stop_releases_handlers ();

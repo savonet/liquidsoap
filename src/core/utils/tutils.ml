@@ -78,8 +78,7 @@ let blocking_tasks =
         "than 8. Raising it helps when the tasks truly wait, on a socket or a";
         "slow mount. A task that uses a core instead of waiting on one, such as";
         "probing a file for its decoder, gains nothing from extra slots and";
-        "takes cores the streaming threads need. Each domain keeps at least one";
-        "slot, so setting this below the number of domains has no effect.";
+        "takes cores the streaming threads need.";
       ]
 
 let legacy =

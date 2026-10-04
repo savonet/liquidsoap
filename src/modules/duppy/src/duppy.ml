@@ -455,17 +455,21 @@ let run_task s fn =
     | v -> v
 
 (** Auxiliary threads are kept parked between tasks, since a task in this class
-    can be shorter than the spawn it would otherwise pay for.
+    can be shorter than the spawn it would otherwise pay for. A worker keeps an
+    even share of the budget parked: the threads a burst added beyond it exit
+    once idle.
 
     Finishing a job leads back into the queue check under the same lock, so a
     thread with work waiting never parks and is never counted idle in the window
     where a submission would pick it. *)
 let aux_loop s w =
+  let workers = List.length s.workers in
+  let kept () = (Core.slots s.core + workers - 1) / workers in
   let rec loop () =
     while
       w.aux_pending = []
       && (not (Atomic.get s.stopped))
-      && w.aux_total <= Core.slots s.core
+      && w.aux_total <= kept ()
     do
       Condition.wait w.aux_c w.aux_m
     done;
@@ -509,8 +513,6 @@ let run_blocking s w fn =
   else begin
     Mutex.lock w.aux_m;
     w.aux_pending <- w.aux_pending @ [run];
-    (* ponytail: a worker keeps every auxiliary thread it ever needed, up to
-       the whole budget; retire idle ones if parked threads add up. *)
     if
       w.aux_total - w.aux_busy < List.length w.aux_pending
       && w.aux_total < Core.slots s.core
