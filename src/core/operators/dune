@@ -30,7 +30,7 @@
   mm.midi
   mm.video
   re
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   unix)
  (foreign_stubs

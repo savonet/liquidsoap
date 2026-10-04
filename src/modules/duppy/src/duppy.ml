@@ -54,7 +54,10 @@ module Timers = Map.Make (struct
 end)
 
 let next_id = Atomic.make 0
-let time () = Unix.gettimeofday ()
+
+(* Monotonic: deadlines must not move with wall-clock steps. *)
+external time : unit -> float = "duppy_monotonic_now"
+
 let no_interest = { Pollset.read = false; write = false; except = false }
 
 let fds_of_events events =
@@ -171,16 +174,20 @@ let rearm s fd =
                })
              no_interest tasks)
 
+exception Unwatchable of fd
+
 let register s t =
   List.iter
     (fun fd ->
       Hashtbl.replace s.by_fd fd
         (t :: Option.value ~default:[] (Hashtbl.find_opt s.by_fd fd));
-      rearm s fd)
+      try rearm s fd with Unix.Unix_error _ -> raise (Unwatchable fd))
     (fds_of_events t.events);
   if t.deadline < infinity then
     s.timers <- Timers.add (t.deadline, t.id) t s.timers
 
+(* A descriptor closed while tasks still wait on it cannot be re-armed: its
+   interest is dropped, and those tasks end at their deadline. *)
 let unregister s t =
   List.iter
     (fun fd ->
@@ -189,7 +196,7 @@ let unregister s t =
         | Some tasks ->
             Hashtbl.replace s.by_fd fd
               (List.filter (fun x -> x.id <> t.id) tasks));
-      rearm s fd)
+      try rearm s fd with Unix.Unix_error _ -> Pollset.remove s.pollset fd)
     (fds_of_events t.events);
   if t.deadline < infinity then
     s.timers <- Timers.remove (t.deadline, t.id) s.timers
@@ -332,12 +339,26 @@ module Task = struct
   let add_t s items =
     let ready = ref 0 in
     let pinned = ref [] in
-    let f item =
+    (* A wait on a descriptor that cannot be watched fires at once, so its
+       fiber meets the error from its own I/O. *)
+    let fired item =
       match fired_events item [] with
-        | [] ->
-            Mutex.lock s.tasks_m;
-            register s item;
-            Mutex.unlock s.tasks_m
+        | [] -> (
+            try
+              Mutex.protect s.tasks_m (fun () -> register s item);
+              []
+            with Unwatchable unwatchable ->
+              Mutex.protect s.tasks_m (fun () -> unregister s item);
+              List.filter
+                (function
+                  | `Read fd | `Write fd | `Exception fd -> fd = unwatchable
+                  | `Delay _ -> false)
+                (item.events :> event list))
+        | fired -> fired
+    in
+    let f item =
+      match fired item with
+        | [] -> ()
         | fired ->
             item.dispatched <- true;
             Mutex.lock s.ready_m;
@@ -396,6 +417,25 @@ let await ~priority s events =
                });
        })
 
+let suspend ~priority s register =
+  ignore
+    (Effect.perform
+       (Await
+          {
+            park =
+              (fun resume ->
+                register (fun () ->
+                    Task.add s
+                      {
+                        priority;
+                        events = [`Delay 0.];
+                        handler =
+                          (fun _ ->
+                            resume [];
+                            []);
+                      }));
+          }))
+
 let reschedule ?(delay = 0.) ~priority s =
   ignore (await ~priority s [`Delay delay])
 
@@ -429,10 +469,10 @@ type 'a work =
 
     Immediate tasks go as one batch: they do not block, so running them in
     sequence on the calling domain costs less than a hand-off each. Direct and
-    blocking tasks go one at a time, so they spread over the pool: batching them
-    would run several long tasks in sequence on one domain. A direct task holds
-    no blocking slot, since it runs on the domain rather than on one of its
-    auxiliary threads. *)
+    blocking tasks go one at a time, so they spread over the pool rather than
+    queue behind one another on one domain. A direct task holds no blocking
+    slot, since it runs on the domain rather than on one of its auxiliary
+    threads, so a worker out of slots still takes it. *)
 let take_work s w =
   let mine, others =
     List.partition

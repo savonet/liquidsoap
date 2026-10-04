@@ -14,7 +14,7 @@
   mm.video
   re
   srt
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   unix)
  (wrapped false)

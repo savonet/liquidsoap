@@ -69,7 +69,7 @@ let () =
   mm.video
   mm.image
   dtools
-  stdlib_utils
+  duppy.stdlib_utils
   threads.posix
   unix))
 
