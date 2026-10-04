@@ -4,5 +4,6 @@
  (libraries unix threads.posix re stdlib_utils)
  (foreign_stubs
   (language c)
-  (names clock_stubs))
+  (names duppy_core duppy_stubs)
+  (extra_deps duppy_core.h))
  (synopsis "OCaml advanced scheduler"))

@@ -38,7 +38,7 @@
     *
     * {!Duppy} is a task scheduler for ocaml. It implements a wrapper
     * around the platform's readiness call: [epoll] or [kqueue], and
-    * [select] elsewhere.
+    * [poll] elsewhere. SPEC.md states what it guarantees.
     *
     * Using {!Duppy.Task}, the programmer can easily submit tasks that need to wait
     * on a socket even, or for a given timeout (possibly zero).
@@ -82,8 +82,8 @@ type 'a scheduler
     [max_blocking] until it returns; a worker with none left declines them, and
     they wait for a slot.
 
-    Among ready [`Direct] and [`Threaded] tasks a worker takes the least by
-    [compare].
+    Among ready [`Direct] and [`Threaded] tasks a worker takes one of the lowest
+    [rank], and among those the one that became ready first.
 
     {3 Choosing a class}
 
@@ -112,21 +112,22 @@ exception Unknown_domain of int
   * @param on_fatal called when the event loop itself crashes, which should be
   * considered a MAJOR FAILURE: all non-ready tasks are dropped. Default: print
   * the backtrace and exit.
-  * @param compare the comparison function used to sort tasks according to priorities.
-  * Works as in [List.sort]
+  * @param rank the urgency of a priority, lowest first, between [0] and [63].
+  * Default: [fun _ -> 0]
   * @param classify how each priority is run. Default: [fun _ -> `Threaded]
   * @param wrapper wraps every task body. Default: run it as is *)
 val create :
   ?on_error:(exn -> Printexc.raw_backtrace -> unit) ->
   ?on_fatal:(exn -> Printexc.raw_backtrace -> unit) ->
-  ?compare:('a -> 'a -> int) ->
+  ?rank:('a -> int) ->
   ?classify:('a -> execution_class) ->
   ?wrapper:wrapper ->
   unit ->
   'a scheduler
 
-(** [start s] spawns the scheduler's pool: one member running the event loop,
-  * and the others running tasks. Raises [Failure] if [s] is already started.
+(** [start s] spawns the scheduler's pool, and the thread that waits for
+  * events, which is not a domain and runs no OCaml code. Raises [Failure] if
+  * [s] is already started.
   *
   * With [`Domains n], the pool is [n] domains and tasks run in parallel.
   * Spawning a domain makes [Unix.fork] fail from then on, so this must be

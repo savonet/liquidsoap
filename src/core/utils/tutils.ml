@@ -272,7 +272,7 @@ let scheduler : priority Duppy.scheduler =
          Please report at: https://github.com/savonet/liquidsoap";
       flush_all ();
       _exit 1)
-    ~compare:(fun a b -> compare (priority_rank a) (priority_rank b))
+    ~rank:priority_rank
     ~classify:(function
       | `Non_blocking -> `Immediate
       (* A clock tick is long and holds a stream to real time: it runs on the

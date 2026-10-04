@@ -5,5 +5,5 @@
  (wrapped false)
  (foreign_stubs
   (language c)
-  (names unix_utils_stubs pollset_stubs))
+  (names unix_utils_stubs))
  (synopsis "Stdlib utilities"))
