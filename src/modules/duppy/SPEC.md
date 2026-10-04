@@ -71,13 +71,17 @@ While a worker runs an Immediate batch or a Direct task it dispatches nothing el
 
 ## 5. Workers and eligibility
 
-The workers of a pool run handlers in parallel with each other, and any of them can run any task.
+The workers of a pool run handlers in parallel with each other. By default any of them can run any task.
 
-A task MAY be **pinned** to one worker. A task is **eligible** for a worker unless it is pinned to another one.
+A worker MAY be given, when the pool starts, a rule saying which priorities it **accepts**. The rule MUST be pure: the same priority is always accepted or always declined by that worker. A worker given no rule accepts every priority.
+
+A task MAY be **pinned** to one worker. A task is **eligible** for a worker if that worker accepts its priority and the task is not pinned to another one.
 
 A task pinned to a worker MUST only run on that worker, and so MUST every task its handler returns.
 
-Submitting a task pinned to a worker that does not exist MUST fail at submission.
+Submitting a task pinned to a worker that does not exist, or that does not accept it, MUST fail at submission.
+
+A task that is eligible for no worker is never run. Giving every priority a worker that accepts it is the application's duty.
 
 The scheduler MUST work with a single worker. No rule in this document may be satisfied only by having a second one.
 
@@ -113,7 +117,7 @@ A worker with nothing to take MUST NOT consume CPU while idle.
 
 `max_blocking` is the largest number of Threaded tasks that may be running at once. It is set when the pool starts.
 
-The budget is divided evenly among the workers, rounded up, each worker keeping at least one slot. A worker whose slots are all in use MUST NOT take a Threaded task; it still takes Immediate and Direct ones.
+The budget is divided evenly among the workers, rounded up, each worker keeping at least one slot, whether or not it accepts Threaded tasks. A worker whose slots are all in use MUST NOT take a Threaded task; it still takes Immediate and Direct ones.
 
 A Threaded task that no worker can take for lack of a slot stays ready, keeps its place (6.1), and MUST be taken once a slot frees up.
 
