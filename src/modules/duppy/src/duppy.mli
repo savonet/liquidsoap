@@ -70,17 +70,17 @@ type 'a scheduler
     that refills as fast as it drains does not starve the others.
 
     [`Direct]: a worker takes one and runs it on its own thread. No hand-off, no
-    auxiliary thread, no slot of [max_blocking], so it is taken even by a worker
-    whose slots are all in use. The worker dispatches nothing else until it
-    returns. Ready ones are taken one per worker and so spread over the pool.
-    The worker's auxiliary threads share its domain lock, and may be given it
-    while the task runs.
+    auxiliary thread, no slot of [max_blocking], so it is taken even when every
+    slot is in use. The worker dispatches nothing else until it returns. Ready
+    ones are taken one per worker and so spread over the pool. The worker's
+    auxiliary threads share its domain lock, and may be given it while the task
+    runs.
 
     [`Threaded]: a worker hands one to an auxiliary thread of its domain and
     goes back to dispatching. When the task parks in a syscall the runtime lock
     is released and the domain keeps running. Each holds a slot of
-    [max_blocking] until it returns; a worker with none left declines them, and
-    they wait for a slot.
+    [max_blocking] until it returns; with none left the workers decline them,
+    and they wait for a slot.
 
     Among ready [`Direct] and [`Threaded] tasks a worker takes one of the lowest
     [rank], and among those the one that became ready first.
@@ -145,10 +145,8 @@ val create :
   * [Unix.fork] stays usable.
   * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
   * @param max_blocking the most [`Threaded] tasks that may be in flight at
-  * once, spread evenly over the domains. Each domain keeps at least one slot,
-  * rounded up, so the whole budget is available even when it does not divide
-  * evenly and a value below their number gives one per domain. Unused by a
-  * thread pool. Default: [64]
+  * once over the whole pool, whichever workers took them. Unused by a thread
+  * pool. Default: [64]
   * @param log Logging function. Default: no logging *)
 val start :
   ?pool:

@@ -85,15 +85,15 @@ void duppy_core_free(duppy_core *core);
 
 const char *duppy_core_backend(const duppy_core *core);
 
-/* max_blocking is shared evenly among the workers, rounded up. Returns 0, or
-   -1 with errno set. */
+/* max_blocking is how many threaded tasks the pool may have taken and not
+   reported done. Returns 0, or -1 with errno set. */
 int duppy_core_start(duppy_core *core, int worker_count, int max_blocking);
 
 /* Drops every task not yet taken, wakes every worker and joins the event
    thread. */
 void duppy_core_stop(duppy_core *core);
 
-/* Adds delta to the blocking budget and returns the slots each worker has. */
+/* Adds delta to the blocking budget and returns it. */
 int duppy_core_reserve(duppy_core *core, int delta);
 
 int duppy_core_slots(duppy_core *core);

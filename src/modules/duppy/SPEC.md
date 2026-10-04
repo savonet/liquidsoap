@@ -117,9 +117,11 @@ A worker with nothing to take MUST NOT consume CPU while idle.
 
 `max_blocking` is the largest number of Threaded tasks that may be running at once. It is set when the pool starts.
 
-The budget is divided evenly among the workers, rounded up, each worker keeping at least one slot, whether or not it accepts Threaded tasks. A worker whose slots are all in use MUST NOT take a Threaded task; it still takes Immediate and Direct ones.
+The budget belongs to the pool as a whole: a running Threaded task holds one **slot** of it, whichever worker took it. While every slot is in use no worker may take a Threaded task; they all still take Immediate and Direct ones. A budget below one counts as one.
 
-A Threaded task that no worker can take for lack of a slot stays ready, keeps its place (6.1), and MUST be taken once a slot frees up.
+So that Threaded tasks spread over the pool (6.3), a worker MUST leave one to another worker that is eligible for it, is not running a handler and has fewer Threaded tasks running. A worker MAY therefore hold more than an even share of the budget while the others are busy.
+
+A Threaded task that cannot be taken for lack of a slot stays ready, keeps its place (6.1), and MUST be taken by a worker eligible for it once a slot frees up.
 
 A caller MAY reserve one slot beyond the budget and later give it back. A lowered budget takes effect as running tasks return.
 
@@ -218,9 +220,9 @@ An Immediate task F that becomes ready while E runs is taken after E and before 
 
 ### 13.2 Blocking budget
 
-A pool of two workers starts with `max_blocking` set to 2, which gives each worker one slot (7). Three Threaded tasks X, Y and Z become ready.
+A pool of two workers starts with `max_blocking` set to 2 (7). Three Threaded tasks X, Y and Z become ready.
 
-Each worker takes one of X and Y. Z stays ready: neither worker has a slot left, and both keep taking Immediate and Direct tasks. When X returns, its worker takes Z.
+If both workers are free, each takes one of X and Y; if one of them is in a long Direct handler, the other takes both. Z stays ready: the pool has no slot left, and both workers keep taking Immediate and Direct tasks. When X returns, Z is taken, by the worker with fewer Threaded tasks running if both are free.
 
 ### 13.3 A deadline under load
 

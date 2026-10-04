@@ -509,6 +509,8 @@ let run_blocking s w fn =
   else begin
     Mutex.lock w.aux_m;
     w.aux_pending <- w.aux_pending @ [run];
+    (* ponytail: a worker keeps every auxiliary thread it ever needed, up to
+       the whole budget; retire idle ones if parked threads add up. *)
     if
       w.aux_total - w.aux_busy < List.length w.aux_pending
       && w.aux_total < Core.slots s.core
@@ -650,9 +652,8 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
   log s (fun () ->
       if s.threaded then Printf.sprintf "Started %d dispatch threads." count
       else
-        Printf.sprintf
-          "Started %d dispatch domains on %s, %d blocking tasks each." count
-          (Core.backend s.core) (Core.slots s.core))
+        Printf.sprintf "Started %d dispatch domains on %s, %d blocking tasks."
+          count (Core.backend s.core) (Core.slots s.core))
 
 let stop s =
   if Atomic.get s.started && not (Atomic.exchange s.stopped true) then begin

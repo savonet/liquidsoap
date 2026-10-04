@@ -107,6 +107,7 @@ typedef struct {
   int wake;
   int idle;
   int took_batch;
+  int running;
   int blocking;
   queue pinned_immediate;
   queue pinned_direct[DUPPY_RANKS];
@@ -154,6 +155,7 @@ struct duppy_core {
   int max_blocking;
   int reserved;
   int slots;
+  int blocking;
   struct pollfd *poll_fds;
   size_t poll_capacity;
 };
@@ -636,10 +638,28 @@ static int accepted_by(const task *entry, int worker_index) {
   return (entry->accepted_by >> worker_index) & 1;
 }
 
-static task *queue_find(queue *source, int worker_index, task **previous) {
+/* Whether a worker that is not running a handler and holds fewer threaded
+   tasks could take this one: leaving it to that worker is what spreads them
+   over the pool. */
+static int better_placed(const duppy_core *core, const task *entry,
+                         int worker_index) {
+  const worker *taker = &core->workers[worker_index];
+  for (int i = 0; i < core->worker_count; i++) {
+    const worker *other = &core->workers[i];
+    if (i != worker_index && !other->running &&
+        other->blocking < taker->blocking && accepted_by(entry, i))
+      return 1;
+  }
+  return 0;
+}
+
+/* balanced is the core when the queue holds threaded tasks, NULL otherwise. */
+static task *queue_find(queue *source, int worker_index,
+                        const duppy_core *balanced, task **previous) {
   *previous = NULL;
   for (task *entry = source->head; entry; entry = entry->next) {
-    if (accepted_by(entry, worker_index))
+    if (accepted_by(entry, worker_index) &&
+        !(balanced && better_placed(balanced, entry, worker_index)))
       return entry;
     *previous = entry;
   }
@@ -652,8 +672,11 @@ static int can_take(const duppy_core *core, int worker_index,
     return 0;
   if (!accepted_by(entry, worker_index))
     return 0;
-  return entry->task_class != DUPPY_THREADED ||
-         core->workers[worker_index].blocking < core->slots;
+  if (entry->task_class != DUPPY_THREADED)
+    return 1;
+  return core->blocking < core->slots &&
+         (entry->pin != DUPPY_ANY_WORKER ||
+          !better_placed(core, entry, worker_index));
 }
 
 static void wake_worker(worker *sleeper) {
@@ -724,10 +747,11 @@ typedef struct {
 /* The earlier of a shared queue's first acceptable task and a pinned queue's
    first task. */
 static candidate earliest(queue *shared, uint64_t *shared_ranks, queue *pinned,
-                          uint64_t *pinned_ranks, int worker_index) {
+                          uint64_t *pinned_ranks, int worker_index,
+                          const duppy_core *balanced) {
   candidate found = {NULL, NULL, NULL, NULL};
   task *previous;
-  task *from_shared = queue_find(shared, worker_index, &previous);
+  task *from_shared = queue_find(shared, worker_index, balanced, &previous);
   task *from_pinned = pinned->head;
   if (from_shared &&
       (!from_pinned || from_shared->sequence < from_pinned->sequence)) {
@@ -754,11 +778,11 @@ static candidate find_single(duppy_core *core, int worker_index, int has_slot) {
     ranks &= ranks - 1;
     found = earliest(&core->direct[rank], &core->direct_ranks,
                      &taker->pinned_direct[rank], &taker->pinned_direct_ranks,
-                     worker_index);
+                     worker_index, NULL);
     if (found.entry == NULL && has_slot)
       found = earliest(&core->threaded[rank], &core->threaded_ranks,
                        &taker->pinned_threaded[rank],
-                       &taker->pinned_threaded_ranks, worker_index);
+                       &taker->pinned_threaded_ranks, worker_index, core);
     if (found.entry)
       return found;
   }
@@ -767,10 +791,10 @@ static candidate find_single(duppy_core *core, int worker_index, int has_slot) {
 
 static int has_work(duppy_core *core, int worker_index) {
   worker *idler = &core->workers[worker_index];
-  if (find_single(core, worker_index, idler->blocking < core->slots).entry)
+  if (find_single(core, worker_index, core->blocking < core->slots).entry)
     return 1;
   return earliest(&core->immediate, NULL, &idler->pinned_immediate, NULL,
-                  worker_index)
+                  worker_index, NULL)
              .entry != NULL;
 }
 
@@ -816,16 +840,18 @@ duppy_work duppy_core_take(duppy_core *core, int worker_index, intptr_t *out,
   pthread_mutex_lock(&core->mutex);
   worker *taker = &core->workers[worker_index];
   taker->idle = 0;
+  taker->running = 0;
   if (core->error && !core->error_reported) {
     core->error_reported = 1;
     work = DUPPY_FAILED;
   } else if (core->stopped) {
     work = DUPPY_STOPPED;
   } else {
-    int has_slot = taker->blocking < core->slots;
+    int has_slot = core->blocking < core->slots;
     candidate single = find_single(core, worker_index, has_slot);
-    candidate batched = earliest(&core->immediate, NULL,
-                                 &taker->pinned_immediate, NULL, worker_index);
+    candidate batched =
+        earliest(&core->immediate, NULL, &taker->pinned_immediate, NULL,
+                 worker_index, NULL);
     /* A worker alternates a batch with a single task: immediate tasks that
        become ready as fast as they run would otherwise starve the rest, which
        a lone worker cannot leave to another. */
@@ -838,9 +864,10 @@ duppy_work duppy_core_take(duppy_core *core, int worker_index, intptr_t *out,
         *last = batched.entry;
         last = &batched.entry->next;
         batched = earliest(&core->immediate, NULL, &taker->pinned_immediate,
-                           NULL, worker_index);
+                           NULL, worker_index, NULL);
       }
       taker->took_batch = 1;
+      taker->running = 1;
       work = DUPPY_BATCH;
     } else if (single.entry) {
       take_candidate(&single);
@@ -849,13 +876,15 @@ duppy_work duppy_core_take(duppy_core *core, int worker_index, intptr_t *out,
       taker->took_batch = 0;
       if (single.entry->task_class == DUPPY_THREADED) {
         taker->blocking++;
+        core->blocking++;
         work = DUPPY_ONE_THREADED;
-      } else
+      } else {
+        taker->running = 1;
         work = DUPPY_ONE_DIRECT;
+      }
     } else
       taker->idle = 1;
-    if (work != DUPPY_NONE)
-      offer_remaining(core);
+    offer_remaining(core);
   }
   pthread_mutex_unlock(&core->mutex);
 
@@ -878,8 +907,8 @@ void duppy_core_blocking_done(duppy_core *core, int worker_index) {
   pthread_mutex_lock(&core->mutex);
   worker *owner = &core->workers[worker_index];
   owner->blocking--;
-  if (owner->idle)
-    wake_worker(owner);
+  core->blocking--;
+  offer_remaining(core);
   pthread_mutex_unlock(&core->mutex);
 }
 
@@ -888,10 +917,8 @@ static void wake_every_worker(duppy_core *core) {
     wake_worker(&core->workers[i]);
 }
 
-/* Rounded up, so that every worker keeps at least its share of the budget. */
 static void update_slots(duppy_core *core) {
-  int count = core->worker_count > 0 ? core->worker_count : 1;
-  int slots = (core->max_blocking + core->reserved + count - 1) / count;
+  int slots = core->max_blocking + core->reserved;
   core->slots = slots > 1 ? slots : 1;
 }
 

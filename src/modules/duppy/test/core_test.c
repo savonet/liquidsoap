@@ -11,7 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define EXPECTED_CHECKS 110
+#define EXPECTED_CHECKS 118
 #define CAPACITY 256
 
 static int checks = 0;
@@ -267,6 +267,28 @@ static void test_slots(int force_fallback) {
   close_core(&opened);
 }
 
+static void test_budget_is_pool_wide(int force_fallback) {
+  fixture opened = open_core(force_fallback);
+  duppy_core *core = opened.core;
+  intptr_t out[CAPACITY];
+  size_t written;
+  for (int handle = 0; handle < 3; handle++)
+    submit(core, handle, DUPPY_THREADED, 0, 0., -1, 0);
+  submit(core, 3, DUPPY_DIRECT, 1, 0., -1, 0);
+  duppy_core_start(core, 2, 2);
+  take(core, 1, out, &written);
+  check(take(core, 1, out, &written) == DUPPY_ONE_DIRECT,
+        "a threaded task is left to a worker holding fewer");
+  check(take(core, 0, out, &written) == DUPPY_ONE_THREADED && out[0] == 1,
+        "the worker holding fewer takes it");
+  check(take(core, 0, out, &written) == DUPPY_NONE,
+        "no worker takes a threaded task beyond the budget");
+  duppy_core_blocking_done(core, 1);
+  check(take(core, 0, out, &written) == DUPPY_ONE_THREADED && out[0] == 2,
+        "a worker takes more than its share while the other runs a handler");
+  close_core(&opened);
+}
+
 static void test_eligibility(int force_fallback) {
   fixture opened = open_core(force_fallback);
   duppy_core *core = opened.core;
@@ -398,6 +420,7 @@ int main(void) {
     test_alternation(force_fallback);
     test_batch_bound(force_fallback);
     test_slots(force_fallback);
+    test_budget_is_pool_wide(force_fallback);
     test_eligibility(force_fallback);
     test_leftover_is_offered(force_fallback);
     test_deadline_wait_is_idle(force_fallback);
