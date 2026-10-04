@@ -260,6 +260,9 @@ Ticking a handle whose clock is not started, or registering an on-tick or
 after-tick callback on it, fails: with the stop signal if the global stop is
 set, otherwise with `not running`. Neither logs.
 
+A tick asked of a clock while one of its ticks is in progress MUST be
+refused.
+
 A passive clock with a parent MUST only be ticked from inside a tick of its
 parent: by step 8, or by a reader pulling it. When it has an owner, the owner
 is its only reader. A passive clock without a parent is ticked by its owner.
@@ -278,7 +281,9 @@ it.
 - When the tick runs on a scheduler worker, the wait MUST give the worker
   back and resume the tick, as a ready clock task, once the condition holds.
   The tick may resume on another worker.
-- When the tick runs on a thread of the clock's own, the wait blocks.
+- When the tick runs on a thread of the clock's own, the wait blocks. So does
+  the wait of a tick that no animator runs: a passive clock ticked by its
+  owner from a thread of the owner's. Such a wait ends on the global stop.
 - A wait MUST end when the clock is asked to stop or the global stop is set.
   The tick then meets a stop check.
 - The time spent in waits is counted apart from production time
@@ -461,7 +466,9 @@ next tick. A change to any other MUST take effect by the clock's next start.
   its own: every holder but the clock may let go;
 - for an active or output source: animate, and reset;
 - its current sync source, and a subscription to its changes that returns a
-  way to unsubscribe ([pacing.md §3](pacing.md#3-finding-the-sync-source)).
+  way to unsubscribe ([pacing.md §3](pacing.md#3-finding-the-sync-source));
+- the ids of its current activations, for the reports
+  ([observability.md §1](observability.md#1-status-record)).
 
 **Time source.** [pacing.md §2](pacing.md#2-sync-source).
 

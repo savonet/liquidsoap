@@ -221,8 +221,8 @@ on a stop, on a thread as on a task. A rest ending with the **ended** signal sto
 
 **Behind** (`now ≥ target`). Let `late = now − target`.
 
-- If `late ≥ M`: **reset**. Log it, set ticks to `floor(now / frame
-duration)`, and reset every output and active source.
+- If `late ≥ M`: **reset**. Log it, set ticks to
+  `floor(now / frame duration)`, and reset every output and active source.
 - Else if `late ≥` the latency log threshold and at least the latency log
   period has passed since the last warning: log a latency warning
   ([observability.md §2](observability.md#2-log-events)).
@@ -395,6 +395,8 @@ The scheduler is the one that knows which other clocks wait on the pool. The
 clock only says that its time box has elapsed; whether the release costs the
 clock anything is the scheduler's answer.
 
-The scheduler also reports, for each of these, how long the clock then waited
-for a worker after becoming ready
+How long a clock then waited for a worker is measured by the clock, from the
+instant it became ready: the deadline of a rest, the moment the condition of
+a wait was signalled. After a release the clock is ready at once, so the whole
+span until it is given a worker counts as time released
 ([observability.md §1](observability.md#1-status-record)).

@@ -59,8 +59,8 @@ most checks free of animators and of real time.
 - K17: an output attached to a running clock stays awake for as long as the
   clock runs; winding down puts it to sleep once per activation. Binding: the
   awake state.
-- A detach asked during a tick does not change what that tick animates.
-  Binding: the sources animated in that tick.
+- A detach asked during a tick takes the detached source, and nothing else,
+  out of what that tick animates. Binding: the sources animated in that tick.
 - Crossing a multiple of the leak threshold logs the leak warning once.
 
 ## Sub-clocks

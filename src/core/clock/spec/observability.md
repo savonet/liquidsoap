@@ -32,17 +32,17 @@ A **source entry** is an id, a type and the ids of the source's activations.
 **Statistics**, over the life of the streaming state, each also over a recent
 window:
 
-| Figure                | Meaning                                                                     |
-| --------------------- | --------------------------------------------------------------------------- |
-| tick duration         | Mean and maximum real time of a tick, waits excluded                        |
-| slowest source        | The animated source that took the longest in the slowest tick               |
-| time producing        | Total real time inside ticks, waits excluded                                |
-| time waiting in ticks | Total time in waits ([clock.md §9](clock.md#9-waiting-inside-a-tick))       |
-| time resting          | Total time in rests, and their count                                        |
-| time released         | Total time between a release and the clock being ready again, and the count |
-| time without a worker | Total time between being ready and being given a worker                     |
-| resets                | Count of latency resets                                                     |
-| switches              | Count of sync source switches and of animator changes                       |
+| Figure                | Meaning                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| tick duration         | Mean and maximum real time of a tick, waits excluded                                 |
+| slowest source        | The animated source that took the longest in the slowest tick                        |
+| time producing        | Total real time inside ticks, waits excluded                                         |
+| time waiting in ticks | Total time in waits ([clock.md §9](clock.md#9-waiting-inside-a-tick))                |
+| time resting          | Total time in rests, and their count                                                 |
+| time released         | Total time between a release and the clock being given a worker again, and the count |
+| time without a worker | After a rest or a wait: total time between being ready and being given a worker      |
+| resets                | Count of latency resets                                                              |
+| switches              | Count of sync source switches and of animator changes                                |
 
 Keeping them MUST cost a constant per tick, plus a constant per animated
 source.
@@ -133,8 +133,8 @@ Clock main:
 
 - If `S` lists `A` among its activations, `S` is printed under `A`. A source's
   own id among its activations is ignored.
-- Roots, in order: each output that no other source of the list activates, in
-  input order.
+- Roots, in order: each output that nothing but itself activates, in input
+  order.
 - An activation id that matches no source in the list is an **external
   activator**. Sources activated only from outside are listed under their
   activator in a second section, activators sorted by id.
