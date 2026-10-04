@@ -590,6 +590,57 @@ let test_suspend () =
   Duppy.stop s;
   ok "a suspended computation resumes when woken"
 
+let test_suspend_delay () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 1) s;
+  let l = latch () in
+  let resume = ref (fun () -> ()) in
+  let resumed_at = Array.make 2 0. in
+  let park i delay =
+    Duppy.run (fun () ->
+        Duppy.suspend ~delay ~priority:Direct s (fun wake -> resume := wake);
+        resumed_at.(i) <- Duppy.time ();
+        bump l)
+  in
+  let t0 = Duppy.time () in
+  park 0 0.1;
+  (* Called after the delay too: a second resume would fail the continuation. *)
+  let on_time = !resume in
+  await l 1;
+  on_time ();
+  let waited = resumed_at.(0) -. t0 in
+  if waited < 0.1 || waited > 0.5 then
+    fail "a 0.1s suspension resumed after %.3fs" waited;
+  let t0 = Duppy.time () in
+  park 1 10.;
+  !resume ();
+  await l 2;
+  if resumed_at.(1) -. t0 > 1. then fail "the resumer did not end the delay";
+  Thread.delay 0.05;
+  Duppy.stop s;
+  ok "a suspension with a delay resumes once, at the delay or when woken"
+
+let test_thread () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 2) s;
+  let l = latch () in
+  let hold = latch () in
+  let where = Array.make 4 (-1) in
+  Array.iteri
+    (fun i _ ->
+      Duppy.thread ~priority:Blocking s (fun () ->
+          where.(i) <- domain_id ();
+          bump l;
+          await hold 1))
+    where;
+  await l 4;
+  let on d = List.length (List.filter (( = ) d) (Array.to_list where)) in
+  if ran_on where <> 2 || on where.(0) <> 2 then
+    fail "4 threads were not spread evenly over 2 domains";
+  bump hold;
+  Duppy.stop s;
+  ok "threads spread evenly over the pool's domains"
+
 (* The scheduler is still referenced after its stop, so a handler it dropped
    is only collected if stop let go of it.
 
@@ -730,5 +781,7 @@ let () =
   test_burst_threads_retire ();
   test_unwatchable_descriptor ();
   test_suspend ();
+  test_suspend_delay ();
+  test_thread ();
   test_stop_releases_handlers ();
   print_endline "all duppy pool checks passed"
