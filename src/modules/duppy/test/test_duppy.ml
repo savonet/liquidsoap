@@ -591,12 +591,14 @@ let test_suspend () =
   ok "a suspended computation resumes when woken"
 
 (* The scheduler is still referenced after its stop, so a handler it dropped
-   is only collected if stop let go of it. *)
+   is only collected if stop let go of it.
+
+   The call is opaque because flambda otherwise keeps [payload] alive. *)
 let test_stop_releases_handlers () =
   let s = Duppy.create ~classify () in
   Duppy.start ~pool:(`Domains 1) s;
   let held = Weak.create 1 in
-  let[@inline never] add () =
+  let add () =
     let payload = Bytes.create 64 in
     Weak.set held 0 (Some payload);
     Duppy.Task.add s
@@ -609,7 +611,7 @@ let test_stop_releases_handlers () =
             []);
       }
   in
-  add ();
+  (Sys.opaque_identity add) ();
   Duppy.stop s;
   Gc.full_major ();
   Gc.full_major ();
