@@ -119,6 +119,30 @@ the global stop alone. Four callers start clocks this way.
 §11. Active sources are not woken by the clock either, so this may be
 consistent; nothing states it.
 
+### A6. Sources compare sync sources by identity, the clock by value — read only
+
+A source decides whether its sync source changed by identity
+([clock.md §18.1](clock.md#181-sync-source-reporting-by-sources)); the clock
+decides whether two sync sources are the same by value (§8). Two equal but
+distinct values would be a change for the source and the same pacer for the
+clock.
+
+### A7. Registering a sub-clock checks nothing — read only
+
+History says registration validated that the sub-clock is passive and not
+already owned by another clock
+([known-complexity.md K3](known-complexity.md#k3-sub-clocks-that-pile-up)). The
+as-built registration only skips duplicates (§15).
+
+### A8. A child clock is registered as a sub-clock before its operator wakes — read only
+
+[clock.md §18.3](clock.md#183-child-clocks). Registration is undone when the
+operator goes to sleep. An operator that is created and never woken leaves its
+child clock registered, and ticked, for as long as the parent lives. This is
+the accumulation of
+[known-complexity.md K3](known-complexity.md#k3-sub-clocks-that-pile-up),
+still open for that case.
+
 ## Gaps
 
 ### G1. The shutdown wait borrows the maximum-latency setting — read only
@@ -162,6 +186,28 @@ on a scheduler worker (§10.1).
 See [tests.md](tests.md#what-is-not-covered): nothing covers the animator,
 latency control or sync source tracking. D1 and D2 are in that area.
 
+### G9. Sync source changes are applied on whichever thread reports them — read only
+
+Sharpens G4. When push notification was introduced, a change coming from
+another thread was handed to the clock and applied at the end of its tick
+([known-complexity.md K1](known-complexity.md#k1-finding-the-pacer-on-every-tick)).
+As built, the change is applied at once on the notifying thread, which also
+replaces the time source the animator is reading (§8).
+
+### G10. Sources still recompute their sync source before every cycle — read only
+
+[clock.md §18.1](clock.md#181-sync-source-reporting-by-sources), last item. An
+operator's recomputation asks each of its children, which ask theirs. This is
+the per-tick graph walk that push notification was meant to remove, moved from
+the clock to the sources. Not measured.
+
+### G11. The reports are hard to read and the logs say little — owner's statement
+
+The three tree reports ([reports.md](reports.md)) are described by the project
+owner as clunky. The clock logs its start, its stop, a sync source switch and
+latency; it logs nothing about who animates it, how long ticks take, when it
+rests or releases its worker, or why it is late.
+
 ## To verify
 
 - Whether every sync source using the unconstrained time source is affected by
@@ -179,5 +225,8 @@ Decisions the project owner has already stated, to be turned into rules:
    lower-priority work (D2).
 2. **Whether an unsynced clock needs a thread of its own** is to be decided
    after rule 1, not before: with an effective release it may not.
-   Suggested, not decided: **at least two workers** for the single-worker wait
-   (G7). It is a last resort, to be adopted only if no other solution is found.
+3. **Better logging and observability of clocks is a goal** (G11): the tree
+   reports are to be improved and the logs extended.
+
+Suggested, not decided: **at least two workers** for the single-worker wait
+(G7). It is a last resort, to be adopted only if no other solution is found.

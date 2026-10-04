@@ -224,6 +224,14 @@ supplies the unconstrained time source ([§17](#17-contracts-the-clock-relies-on
 on which the clock is never behind and sleeping returns at once. A sync source
 may instead supply a real time source and so keep the clock's own pacing.
 
+**The three kinds of sync source in use** ([§18](#18-how-the-clock-is-used)):
+
+| Kind                                                   | Time source        | Latency / maximum | Effect on the clock                                                                        |
+| ------------------------------------------------------ | ------------------ | ----------------- | ------------------------------------------------------------------------------------------ |
+| device-paced (sound cards, network input)              | unconstrained      | configured values | The clock does no pacing. The device's blocking call paces.                                |
+| server-driven (an audio server with its own callback)  | the server's       | 0 s / 0.5 s       | The clock's own pacing runs, on the server's time: the server's callback drives the clock. |
+| generic (a source that only declares itself self-sync) | the configured one | configured values | Pacing is unchanged. The source only takes the clock's single sync source slot.            |
+
 **Sync error text** (error number 17):
 
 ```
@@ -455,6 +463,8 @@ Registering a sub-clock adds its handle unless one already designates the same
 clock. Deregistering removes every handle designating it. Neither starts nor
 stops anything.
 
+See [§18.3](#183-child-clocks) for who registers sub-clocks.
+
 A sub-clock is started when its parent starts ([§6](#6-creation-and-start)),
 ticked by its parent's tick unless already ticked during it
 ([§9](#9-tick)), and stopped when its parent winds down
@@ -491,3 +501,105 @@ then `now − offset` and sleeping until `t` sleeps until `t + offset`.
 One time source is provided here, the **unconstrained** one: now is always 0
 and sleeping returns at once. It is for sync sources that pace the stream
 entirely by themselves.
+
+A time source's sleep may end the clock: if it raises the "has stopped" signal,
+the animator loop winds the clock down ([§10](#10-animator)).
+
+## 18. How the clock is used
+
+The clock's rules above only make sense with what its users do. These are not
+clock code; they are the other half of each contract.
+
+### 18.1 Sync source reporting by sources
+
+A source reports its sync source only while it is really pacing: a sound card
+source while its stream is open, a network input while it is connected, each
+only if its own "self-sync" option is on. Otherwise it reports none.
+
+The report travels up the source graph by notification, not by the clock
+asking:
+
+- every source keeps its last reported sync source and a list of subscribers;
+- a source notifies its subscribers when the value changes, compared by
+  identity;
+- an operator subscribes to its children when it wakes up and unsubscribes when
+  it sleeps; on a child's change it recomputes its own value from its ready
+  children ([§8](#8-sync-sources));
+- going to sleep notifies "none";
+- an operator that selects among children at run time notifies explicitly when
+  its selection changes, since the selected child is not among its fixed
+  children;
+- a source whose pacing depends on a connection notifies on connect and on
+  disconnect;
+- before each streaming cycle a source also recomputes its value and notifies
+  if it changed.
+
+The clock subscribes only to its outputs and active sources
+([§7](#7-attaching-sources)).
+
+### 18.2 Server-driven clocks
+
+An audio server that calls back at its own rhythm is given one sync source per
+server. Its time source is backed by the server:
+
+- **now** is the time the server's callback has counted so far;
+- **sleep until `t`** blocks until the server's callback has reached `t`, and
+  raises the "has stopped" signal if the server stopped before or during the
+  wait.
+
+Its latency is 0 and its maximum latency 0.5 s. With these, the ordinary
+latency control makes the clock produce one frame and then wait for the
+server's callback: the whole clock follows the server. Several clocks may wait
+on one server.
+
+Because that sleep blocks in a foreign call, sources of this kind require a
+thread animator ([§10](#10-animator)). If the server stops, the clock stops.
+
+### 18.3 Child clocks
+
+An operator that reads from its child at a pace of its own (a crossfade, a
+time stretch, an inline encoder, a resampler) gives the child a clock of its
+own.
+
+**Set-up, when the operator is created:**
+
+- it wraps its child in an output that lives in the child clock;
+- it creates a passive clock whose controller is, by default, the operator's
+  own clock;
+- it unifies that clock with the wrapped child's clock;
+- it registers the child clock as a sub-clock of its own clock, at once.
+
+**While running:**
+
+- on waking up it registers the sub-clock again (a no-op the first time),
+  creates its buffer and wakes the wrapped child;
+- before each streaming cycle it starts the child clock if it is not started
+  and activates its pending sources;
+- on going to sleep it deregisters the sub-clock, puts the wrapped child to
+  sleep and flushes it.
+
+**Reading.** The operator reads from its buffer. While the buffer holds less
+than a frame and the child is ready, it ticks the child clock **as a pull**.
+On a pull, the wrapped child appends its frame to the buffer; on a tick that
+is not a pull, it does nothing. The parent's tick still reaches the child
+clock when no reader pulled during it ([§9](#9-tick) step 7), which keeps real
+outputs and active sources inside the child clock running without buffering
+data nobody asked for.
+
+**Shared child clocks.** Several operators may read from one child clock. A
+pull by any of them fills the buffer of all. A buffer holding more than the
+child buffer limit (10 s by default) is an error naming the operator that fell
+behind.
+
+**Exclusive child clocks.** A crossfade's child clock is controlled by the
+crossfade itself, as an external entity, not by the crossfade's clock. Two
+such child clocks therefore never unify
+([§14](#14-unification)): the crossfade needs to be the only reader of its
+child.
+
+**Pacing.** Such an operator may ask for a check at creation, which refuses a
+child that declares a sync source or a dynamic sync type: "This source may control its own latency
+and cannot be used with this operator."
+
+So two child clocks with the default controller can only be unified if the
+clocks controlling them can ([§14](#14-unification)).

@@ -7,17 +7,21 @@ It describes and does not judge: everything that looks wrong is in
 **Scope.** The clock library only: clocks, their registry, unification, the
 tick, latency control, the animator, and the three text reports. Sources,
 outputs, the scheduler and the time implementations are described only as the
-contracts the clock relies on.
+contracts the clock relies on. How sources, audio servers and operators
+with child clocks use the clock is described in
+[clock.md §18](clock.md#18-how-the-clock-is-used), as the other half of those
+contracts.
 
 **Reader.** Someone rebuilding clocks without the code in view.
 
-| File                             | Content                                                                        |
-| -------------------------------- | ------------------------------------------------------------------------------ |
-| [clock.md](clock.md)             | Part A. Entities, states, rules, algorithms, constants, failure behaviour.     |
-| [reports.md](reports.md)         | Part A. The three text reports, with exact formats.                            |
-| [ocaml-notes.md](ocaml-notes.md) | Part B. What is specific to OCaml and to the libraries used.                   |
-| [tests.md](tests.md)             | The test suite, by principle.                                                  |
-| [findings.md](findings.md)       | Defects, asymmetries, gaps and open checks. The agenda for the normative pass. |
+| File                                       | Content                                                                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------ |
+| [clock.md](clock.md)                       | Part A. Entities, states, rules, algorithms, constants, failure behaviour.     |
+| [reports.md](reports.md)                   | Part A. The three text reports, with exact formats.                            |
+| [ocaml-notes.md](ocaml-notes.md)           | Part B. What is specific to OCaml and to the libraries used.                   |
+| [tests.md](tests.md)                       | The test suite, by principle.                                                  |
+| [findings.md](findings.md)                 | Defects, asymmetries, gaps and open checks. The agenda for the normative pass. |
+| [known-complexity.md](known-complexity.md) | What the history shows to be hard, by situation. Partial: six areas mined.     |
 
 No separate document is given to failure classification, crash safety or
 security: a clock holds no durable state and crosses no trust boundary, and its
