@@ -285,24 +285,26 @@ let restart () =
   let parent = passive () in
   let child = sub_clock parent in
   let output = source ~id:"out" `Output in
+  let detached = source ~id:"detached" `Output in
   attach child output;
+  attach child detached;
   Clock.register ~parent child;
   tick parent 3;
   Clock.deregister ~parent child;
-  check "a stopped sub-clock has put its output to sleep"
+  check "a stopped sub-clock has put its outputs to sleep"
     (is_stopped child `Parent_stopped && output#awake = 0);
+  detach child detached;
+  let animated = output#animated and left_out = detached#animated in
   Clock.register ~parent child;
   check "a sub-clock registered again starts from 0 ticks"
     (Clock.started child && Clock.ticks child = Some 0);
-  let animated = output#animated in
   tick parent 2;
-  check "a restarted clock has let go of the sources it had"
+  check "a restarted clock animates the output it held when it stopped"
     (Clock.ticks child = Some 2
-    && output#awake = 0 && output#animated = animated);
-  attach child output;
-  tick parent 2;
-  check "a source attached again runs on the restarted clock"
-    (output#awake = 1 && output#animated = animated + 2)
+    && output#awake = 1
+    && output#animated = animated + 2);
+  check "a source detached while the clock was stopped stays out"
+    (detached#awake = 0 && detached#animated = left_out)
 
 let run () =
   lifecycle ();

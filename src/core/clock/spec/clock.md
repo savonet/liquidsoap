@@ -97,7 +97,8 @@ after a tick is in [pacing.md §5](pacing.md#5-after-a-tick).
     once.
 - A tick and the winding down of one clock are mutually exclusive
   ([§16](#16-concurrency)).
-- A clock MAY be started again after it stopped. It gets a new streaming state.
+- A clock MAY be started again after it stopped. It gets a new streaming state,
+  and activates the sources it held when it stopped ([§9](#9-winding-down)).
 
 A stopped clock carries a **stop reason**, one of:
 
@@ -146,8 +147,10 @@ returns, a start pass runs. When the function fails, no start pass runs: the
 clocks it created stay in `waiting`, and the error is passed on. An error
 MUST NOT have the side effect of starting clocks.
 
-**Start pass.** For each non-passive clock in `waiting` that can start: start
-it. A start pass also runs once when the application starts.
+**Start pass.** For each non-passive clock in `waiting` that can start, and
+whose stop reason is `never started` or `no sources`: start it. A start pass
+also runs once when the application starts. A clock stopped for any other
+reason starts again by an explicit start only, so that a stop holds.
 
 - A pass MUST cost at most a time proportional to the number of waiting
   clocks.
@@ -279,7 +282,9 @@ nothing ticks it ([§4](#4-states)). In order:
 2. Put each output to sleep with its activation. Errors are logged and
    ignored.
 3. Drop every subscription. Errors are logged and ignored.
-4. Drop the active and passive sets and the callbacks not yet run.
+4. Move the sources still held to the pending sources: the outputs, the active
+   set and the passive set, less the sources whose removal is queued. Drop the
+   callbacks not yet run.
 5. Stop each sub-clock of the snapshot that is started, with reason
    `parent stopped`, and wind it down.
 6. Set the state to `stopped` with its reason. The streaming state is gone.
@@ -291,8 +296,9 @@ The snapshot in step 1 exists because putting an output to sleep can
 deregister sub-clocks, and those MUST still be stopped.
 
 The clock does not wake active or passive sources, so it does not put them to
-sleep: it only lets go of them. Sources the clock held are released; a source
-that is to run again MUST be attached again.
+sleep. A source the clock held is pending again, and a later start activates
+it like a newly attached one. A source that was detached, or that detached
+itself when put to sleep, stays out until it is attached again.
 
 Winding down MUST complete whatever fails inside it.
 

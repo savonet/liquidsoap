@@ -564,6 +564,15 @@ let emptied_and_refilled () =
   check "a start pass starts it again once it has an output"
     (wait_until (fun () -> Clock.started clock && second#animated > 0));
   check "it counts its ticks from 0 again" (ticks clock <= second#animated + 1);
+  stop clock;
+  let animated = second#animated in
+  ignore (Clock.start_pass ());
+  Thread.delay 0.1;
+  check "a start pass leaves a clock stopped on request as it is"
+    (is_stopped clock `Requested && second#animated = animated);
+  Clock.start clock;
+  check "an explicit start animates the output it held"
+    (wait_until (fun () -> second#animated > animated));
   stop clock
 
 let run () =

@@ -196,11 +196,22 @@ let rec wind_down c =
               (fun (_, member) ->
                 quietly c "unsubscribing from a source" member.unsubscribe)
               (members st);
-            Mutex.protect st.m (fun () ->
-                Atomic.set st.outputs [];
-                Sources.reset st.animated;
-                ignore (Queues.WeakQueue.flush_elements st.animated_sources);
-                ignore (Queues.WeakQueue.flush_elements st.passive));
+            let held =
+              Mutex.protect st.m (fun () ->
+                  let outputs =
+                    List.map (fun o -> o.source) (Atomic.get st.outputs)
+                  in
+                  Atomic.set st.outputs [];
+                  Sources.reset st.animated;
+                  Queues.WeakQueue.flush_elements st.passive
+                  @ Queues.WeakQueue.flush_elements st.animated_sources
+                  @ outputs)
+            in
+            let removed = Atomic.get st.removals in
+            List.iter
+              (fun source ->
+                if not (List.memq source removed) then add_pending c source)
+              held;
             List.iter
               (fun queue -> Atomic.set queue [])
               [st.on_tick; st.after_tick];
@@ -424,11 +435,18 @@ and start_sub ~force parent sub =
 
 let start ?(force = false) t = start_clock ~force (get t)
 
+(* A clock stopped for another reason stays stopped until it is started
+   explicitly, although it still has its outputs. *)
+let starts_by_itself c =
+  match Atomic.get c.stop_reason with
+    | `Never_started | `No_sources -> true
+    | _ -> false
+
 let start_pass () =
   let waiting = Registry.waiting_clocks () in
   List.iter
     (fun c ->
-      if c.sync_mode <> `Passive then
+      if c.sync_mode <> `Passive && starts_by_itself c then
         Transition.run (fun () ->
             if cannot_start ~force:false c = None then
               start_clock ~force:false c))
