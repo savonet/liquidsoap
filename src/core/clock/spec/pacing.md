@@ -84,7 +84,7 @@ are ready and that it currently reads, if any. Two distinct ones is a sync
 error charged to the operator.
 
 A report does not cross a child clock: an operator that reads its child
-through a child clock ([clock.md §16](clock.md#16-child-clocks)) reports
+through a child clock ([clock.md §15](clock.md#15-child-clocks)) reports
 nothing on its behalf. The child's sync source is tracked by the child
 clock.
 
@@ -130,7 +130,7 @@ activated taken together:
    identity, by its new sync source, or drop it if it has none.
 2. While the entries hold more than one distinct sync source: this is a
    **sync error** charged, under the source error rule
-   ([clock.md §12](clock.md#12-failure)), to the source whose change came
+   ([clock.md §11](clock.md#11-failure)), to the source whose change came
    last among those in conflict. It is detached and its entry dropped.
 3. The **tracked** sync source is the single remaining one, or none.
 4. If the clock's answer to "blocks" changed, tell the parent and change the
@@ -167,7 +167,7 @@ are animated under the new pacing.
 
 The latency and maximum latency **in effect** are those the followed sync
 source gives; where it gives none, the current value of the parameter
-([clock.md §14](clock.md#14-parameters)).
+([clock.md §13](clock.md#13-parameters)).
 
 Stream time is continuous across a switch. Whatever advance or lateness had
 accumulated is dropped, on purpose: lateness measured against one pacer means
@@ -251,9 +251,8 @@ has held it for the time box.
   source, from the moment the clock was last given a worker.
 - It is checked between ticks. A tick cannot be interrupted, so a clock holds
   a worker for at most the time box plus one tick.
-- A rest ([§6](#6-rest-and-lateness)) and a wait
-  ([clock.md §9](clock.md#9-waiting-inside-a-tick)) give the worker back too,
-  and start a new time box.
+- A rest ([§6](#6-rest-and-lateness)) gives the worker back too, and starts a
+  new time box.
 
 **Release.** Giving the worker back at the end of a time box is a release.
 **A released clock yields to other clocks, and to nothing ranked after
@@ -294,7 +293,7 @@ its sub-clocks to find out, so the cost per tick is a constant when nothing
 changes. The animator is:
 
 - a **thread** of the clock's own, if the clock blocks, if it is unsynced, or
-  if clocks as tasks is off ([clock.md §14](clock.md#14-parameters));
+  if clocks as tasks is off ([clock.md §13](clock.md#13-parameters));
 - a **scheduler task** otherwise.
 
 Rationale: a task is right for a clock that rests most of the time. A call
@@ -327,7 +326,7 @@ keeps its thread for a lease instead.
 - A clock that stops blocking records the time, on real, monotonic time like
   the time box.
 - A clock that blocks again within the thread lease
-  ([clock.md §14](clock.md#14-parameters)) of that time has seen a **flap**.
+  ([clock.md §13](clock.md#13-parameters)) of that time has seen a **flap**.
   The thread it moves to is **leased**. The flap is logged, with the time the
   source stayed away
   ([observability.md §2](observability.md#2-log-events)).
@@ -375,7 +374,7 @@ wind down
 
 "Something to process" is: a pending source, an output, or an active source.
 The stop signal ends the loop and winds down the same way. Any other error is
-a clock failure ([clock.md §12](clock.md#12-failure)), which winds down too.
+a clock failure ([clock.md §11](clock.md#11-failure)), which winds down too.
 The loop never ends without winding down.
 
 A clock task MUST NOT animate a source while the clock blocks. A blocking
@@ -441,8 +440,8 @@ Asked for:
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | rest                      | Give the worker back; ready again after a delay. Used by [§6](#6-rest-and-lateness).                                                 |
 | release                   | Give the worker back; ready again per [§7](#7-time-box-and-release).                                                                 |
-| wait                      | Give the worker back; ready again when a condition holds ([clock.md §9](clock.md#9-waiting-inside-a-tick)).                          |
-| interrupt                 | Make a resting, released or waiting clock ready at once. Used by a stop.                                                             |
+| condition                 | Code in a tick that waits for other work parks on it: the worker is given back, and the tick resumes when the condition holds.       |
+| interrupt                 | Make a resting or released clock ready at once. Used by a stop.                                                                      |
 | time since given a worker | Real, monotonic. Used by [§7](#7-time-box-and-release).                                                                              |
 | clock thread              | A thread for a clock that cannot be a task. Its placement ([§8](#8-animator)) is the scheduler's: it is the one that sees the cores. |
 

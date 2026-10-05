@@ -167,10 +167,7 @@ let pacing_point c st =
 let park c st ?delay what =
   let started = Duppy.time () in
   Atomic.set st.activity
-    (match what with
-      | `Rest -> `Resting
-      | `Release -> `Released
-      | `Wait -> `Waiting);
+    (match what with `Rest -> `Resting | `Release -> `Released);
   (match (Atomic.get st.animator, what) with
     | Some (`Task, _), `Release -> Duppy.reschedule ~priority:`Clock scheduler
     | Some (`Task, _), _ -> Parker.park_task ?delay st.parker

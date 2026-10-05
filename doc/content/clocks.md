@@ -153,12 +153,11 @@ time, and log a warning:
 
 ```
 [clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds!
-[clock.pulseaudio:3] Since the last warning: 50 ticks, producing 1.860s, waiting 0.000s, resting 0.000s, released 0.000s, no worker 0.000s, slowest source: output.pulseaudio
+[clock.pulseaudio:3] Since the last warning: 50 ticks, producing 1.860s, resting 0.000s, released 0.000s, no worker 0.000s, slowest source: output.pulseaudio
 ```
 
 The second line says where the clock's time went since the previous warning:
-`producing` is the time spent computing frames, `waiting` the time spent
-waiting for work handed to the scheduler, and `no worker` the time spent
+`producing` is the time spent computing frames, and `no worker` the time spent
 waiting for a free core. The slowest source is named at the end.
 
 This usually indicates CPU overload, a slow network operation blocking the

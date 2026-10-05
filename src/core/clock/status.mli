@@ -21,7 +21,6 @@ type stop_reason =
 type figures = {
   ticks : int;
   producing : float;
-  waiting : float;
   resting : float;
   rests : int;
   released : float;
@@ -62,7 +61,7 @@ type t = {
   statistics : statistics option;
 }
 
-type activity = [ `Idle | `Released | `Resting | `Ticking of float | `Waiting ]
+type activity = [ `Idle | `Released | `Resting | `Ticking of float ]
 
 val no_figures : figures
 

@@ -76,7 +76,6 @@ let new_streaming ~force c =
     last_unblocked = None;
     leased = false;
     worker_since = real_time;
-    tick_waited = 0.;
     tick_slowest = slowest ();
     last_warning = neg_infinity;
     last_long_tick = neg_infinity;
@@ -103,11 +102,10 @@ let note_slowest slowest ~duration ~name =
 let animate c st (source : source) member =
   if not (Atomic.get member.removed) then begin
     let started = Duppy.time () in
-    let waited = st.tick_waited in
     source_error c st source (fun () ->
         Option.iter (fun (a : active) -> a#output) (active source));
     note_slowest st.tick_slowest
-      ~duration:(Duppy.time () -. started -. (st.tick_waited -. waited))
+      ~duration:(Duppy.time () -. started)
       ~name:(Some source#id)
   end
 
@@ -124,7 +122,7 @@ let roll_window st real_time =
 
 let update_statistics c st ~started =
   let real_time = Duppy.time () in
-  let duration = real_time -. started -. st.tick_waited in
+  let duration = real_time -. started in
   let name = st.tick_slowest.culprit in
   note_slowest st.warning_slowest ~duration ~name;
   note_slowest st.window_slowest ~duration ~name;
@@ -243,7 +241,6 @@ let fail c st error backtrace =
 let rec run_tick c st ~pull =
   let started = Duppy.time () in
   Atomic.set st.activity (`Ticking started);
-  st.tick_waited <- 0.;
   st.tick_slowest.duration <- 0.;
   st.tick_slowest.culprit <- None;
   let subs = sub_snapshot c in

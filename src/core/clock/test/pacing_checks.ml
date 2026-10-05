@@ -510,8 +510,8 @@ let breakdown () =
     | (last, figures) :: (previous, _) :: _ ->
         let span = last -. previous in
         let accounted =
-          figures.producing +. figures.waiting +. figures.resting
-          +. figures.released +. figures.no_worker
+          figures.producing +. figures.resting +. figures.released
+          +. figures.no_worker
         in
         check
           (Printf.sprintf

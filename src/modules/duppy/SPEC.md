@@ -59,6 +59,7 @@ A handler MAY park its remaining work. The worker is given back, and the remaini
 
 - Parked on events, the work resumes when one of them occurs and receives those that did.
 - Parked on a resumer, the work hands out a function that makes it ready. The function MAY be called from any thread. Given a delay, the work also becomes ready once the delay has elapsed. The work MUST resume exactly once, on whichever comes first, and every later call to the resumer does nothing.
+- Parked on a condition, the work resumes once what it waits for holds. Whoever changes what a waiter checks signals the condition, and every waiter checks again. A wait from a thread outside any handler blocks that thread until the condition holds. A signal sent between a waiter's check and its park MUST reach that waiter.
 
 ## 3. Priorities
 

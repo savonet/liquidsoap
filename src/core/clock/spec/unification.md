@@ -52,7 +52,7 @@ violation ends the plan with its error.
    Two passive clocks with different owners, or one with an owner and one
    without, therefore never unify. This is what gives an operator a child
    clock of which it is the only reader
-   ([clock.md §16](clock.md#16-child-clocks)).
+   ([clock.md §15](clock.md#15-child-clocks)).
 
 4. **Parents.** When both clocks have a parent: add the plan for `unify` of
    the two parents. So two child clocks unify exactly when the clocks that
@@ -73,7 +73,7 @@ merged away before a merge that names it:
 2. Move `x`'s sub-clock registrations to `y`. Entries that now designate one
    clock become one entry, with the registrants of both. If `y` is started,
    a sub-clock that has just become registered on it is started, as for any
-   registration ([clock.md §11](clock.md#11-sub-clocks)).
+   registration ([clock.md §10](clock.md#10-sub-clocks)).
 3. Move `x`'s error handlers to `y`.
 4. Id: if `y` has none it takes `x`'s; if both have one, `y` keeps its own and
    the event is logged.
@@ -110,7 +110,7 @@ joined it are activated at its next tick.
 ## 6. Failure
 
 A unification fails with one of **conflict**, **loop** or **controller
-conflict** ([clock.md §12](clock.md#12-failure)), raised to the caller of
+conflict** ([clock.md §11](clock.md#11-failure)), raised to the caller of
 `unify`. It is an error of the script, not of a clock: no clock fails.
 
 A failed unification leaves nothing behind. Every field of every clock, every

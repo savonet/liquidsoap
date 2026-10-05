@@ -2,7 +2,7 @@ type activation = < id : string >
 type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
 
-(** What a clock requires of a source: spec/clock.md §15.
+(** What a clock requires of a source: spec/clock.md §14.
 
     The clock wakes an output with the output itself as the requester, and keeps
     the activation until it winds down. [on_sync_source] subscribes to the
@@ -171,21 +171,6 @@ val sub_clocks : t -> t list
 (** Raises [Conflict], [Loop] or [Controller_conflict], and then changes
     nothing. *)
 val unify : pos:Pos.t option -> t -> t -> unit
-
-(** What hands work to the scheduler and waits for it goes through this, so that
-    a tick running on a scheduler worker gives it back meanwhile. *)
-module Wait : sig
-  type t
-
-  val create : unit -> t
-
-  (** To be called after what [until] checks has changed. *)
-  val signal : t -> unit
-
-  (** Returns once the condition holds, or the clock or the application is asked
-      to stop. *)
-  val until : t -> (unit -> bool) -> unit
-end
 
 val status : t -> Status.t
 

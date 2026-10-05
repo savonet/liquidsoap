@@ -191,8 +191,9 @@ most checks free of animators and of real time.
   moves the clock back at once.
 - With a thread lease of 0, a clock moves back at the tick where its sync
   source leaves, a leased clock included.
-- A tick that waits, on one worker and with no other clock ready, for work
-  only a worker can do completes as soon as that work is done. Binding: the
+- A tick that waits on the scheduler's condition, on one worker and with no
+  other clock ready, for work only a worker can do completes as soon as that
+  work is done. Binding: the
   delay, against the work's own duration.
 
 ## Server-driven clocks

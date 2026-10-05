@@ -22,11 +22,11 @@ relies on, each stated where it is used.
 
 No separate document is given to crash safety or security: a clock holds no
 durable state and crosses no trust boundary. Failure is
-[clock.md §12](clock.md#12-failure).
+[clock.md §11](clock.md#11-failure).
 
 **Compatibility surface.** The four sync mode names
 ([clock.md §3](clock.md#3-sync-modes)) and the existing setting names and
-defaults ([clock.md §14](clock.md#14-parameters)). Nothing else: for errors,
+defaults ([clock.md §13](clock.md#13-parameters)). Nothing else: for errors,
 logs and reports the content is specified and the wording is free.
 
 ## Vocabulary

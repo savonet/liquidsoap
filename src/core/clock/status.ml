@@ -21,7 +21,6 @@ type stop_reason =
 type figures = {
   ticks : int;
   producing : float;
-  waiting : float;
   resting : float;
   rests : int;
   released : float;
@@ -62,13 +61,12 @@ type t = {
   statistics : statistics option;
 }
 
-type activity = [ `Idle | `Ticking of float | `Resting | `Waiting | `Released ]
+type activity = [ `Idle | `Ticking of float | `Resting | `Released ]
 
 let no_figures =
   {
     ticks = 0;
     producing = 0.;
-    waiting = 0.;
     resting = 0.;
     rests = 0;
     released = 0.;
@@ -89,7 +87,6 @@ let figures_since ~slowest (mark : figures) (figures : figures) =
   {
     ticks = figures.ticks - mark.ticks;
     producing = figures.producing -. mark.producing;
-    waiting = figures.waiting -. mark.waiting;
     resting = figures.resting -. mark.resting;
     rests = figures.rests - mark.rests;
     released = figures.released -. mark.released;
@@ -206,10 +203,9 @@ let streaming_lines status =
               (1000. *. life.longest_tick)
               (or_none life.slowest_source);
             Printf.sprintf
-              "held: producing %.01fs  waiting %.01fs  resting %.01fs  \
-               released %.01fs  no worker %.01fs"
-              life.producing life.waiting life.resting life.released
-              life.no_worker;
+              "held: producing %.01fs  resting %.01fs  released %.01fs  no \
+               worker %.01fs"
+              life.producing life.resting life.released life.no_worker;
           ]
     | _ -> []
 

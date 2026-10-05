@@ -64,7 +64,7 @@ the count of cycles.
 
 **Rule.** Every subscription ends when its source leaves the clock, whatever the
 way ([clock.md §7](clock.md#7-sources-on-a-clock),
-[§10](clock.md#10-winding-down)).
+[§10](clock.md#9-winding-down)).
 
 Trace: #5153, #5163 and one direct commit. Three fixes.
 
@@ -99,9 +99,9 @@ notion: unification makes two entries one after they were added.
 
 **Rule.** Registration is counted, made when an operator wakes and undone when it
 sleeps, so the list holds only what is in use
-([clock.md §11](clock.md#11-sub-clocks), [§16](clock.md#16-child-clocks)).
+([clock.md §10](clock.md#10-sub-clocks), [§16](clock.md#15-child-clocks)).
 Winding down stops the sub-clocks it saw before putting outputs to sleep
-([clock.md §10](clock.md#10-winding-down)). A merge leaves one entry
+([clock.md §9](clock.md#9-winding-down)). A merge leaves one entry
 ([unification.md §4](unification.md#4-commit)). Nesting is carried
 by the parent, fixed at creation, not by the list
 ([clock.md §1](clock.md#1-entities)).
@@ -198,7 +198,7 @@ so letting both compute is safe.
 **How to tell.** Two threads compute the value in a forced overlap: both get
 the right value and none fails.
 
-**Rule.** [clock.md §16](clock.md#16-child-clocks), last paragraph. The clock
+**Rule.** [clock.md §15](clock.md#15-child-clocks), last paragraph. The clock
 itself does not read this value.
 
 Trace: one direct commit.
@@ -389,8 +389,8 @@ stopped. Binding: the order of the two events and the bound.
 **Rule.** The stop is checked between the steps of a tick
 ([clock.md §8](clock.md#8-tick)), ends rests and waits, and shutdown waits
 for every running clock under a parameter of its own
-([clock.md §13](clock.md#13-global-stop-and-shutdown)). A failed clock is
-wound down like any other ([clock.md §12](clock.md#12-failure)).
+([clock.md §12](clock.md#12-global-stop-and-shutdown)). A failed clock is
+wound down like any other ([clock.md §11](clock.md#11-failure)).
 
 Trace: one direct commit.
 
@@ -425,10 +425,10 @@ readers is wrong; only a bound on each buffer works.
 - A reader holding a remainder when its child ends still delivers it.
   Binding: the data delivered.
 
-**Rule.** [clock.md §16](clock.md#16-child-clocks) and the pull flag of
+**Rule.** [clock.md §15](clock.md#15-child-clocks) and the pull flag of
 [clock.md §8](clock.md#8-tick). Each reader is a registrant, so one going to
 sleep does not take the child clock from the others
-([clock.md §11](clock.md#11-sub-clocks)).
+([clock.md §10](clock.md#10-sub-clocks)).
 
 Trace: #5267 and the abandoned attempt it replaced.
 
@@ -476,7 +476,7 @@ script produces data on its first cycle. Binding: no failure, data produced.
 
 **Rule.** Registering a sub-clock on a running parent starts it, and a sub-clock
 that is not started is skipped, not an error
-([clock.md §11](clock.md#11-sub-clocks)). The operator does not have to start
+([clock.md §10](clock.md#10-sub-clocks)). The operator does not have to start
 its child clock.
 
 Trace: #4598.
@@ -501,7 +501,7 @@ as the clock runs. A source whose reader is discarded without putting it to
 sleep ends up asleep. Binding: the awake state of each.
 
 **Rule.** [clock.md §7](clock.md#7-sources-on-a-clock) and
-[§10](clock.md#10-winding-down).
+[§10](clock.md#9-winding-down).
 
 Trace: #4804, #4808 and one direct commit.
 
@@ -520,7 +520,7 @@ the absence of a cycle.
 
 **Rule.** By construction and by check: a parent is fixed at creation,
 registration is refused on any other clock
-([clock.md §11](clock.md#11-sub-clocks)), and unification refuses a merge
+([clock.md §10](clock.md#10-sub-clocks)), and unification refuses a merge
 that would nest a clock in itself ([unification.md §3](unification.md#3-plan)).
 
 Trace: #3781.

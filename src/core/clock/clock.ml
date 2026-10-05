@@ -111,8 +111,6 @@ let sub_clocks = sub_clocks
 let unify = Unify.unify
 let status t = Inspect.clock_status (get t)
 
-module Wait = Wait
-
 let create ?(stack = []) ?on_error ?id ?(sync = `Automatic) ?parent ?owner () =
   (match (sync, parent, owner) with
     | `Passive, None, None ->
@@ -158,7 +156,6 @@ let statuses () =
 
 let shutdown () =
   Atomic.set global_stop true;
-  List.iter Wait.signal (Atomic.get Wait.blocked);
   List.iter (fun c -> stop_clock c `Global_stop) (Registry.running_clocks ());
   let deadline = Duppy.time () +. conf_shutdown_wait#get in
   while Registry.running_clocks () <> [] && Duppy.time () < deadline do

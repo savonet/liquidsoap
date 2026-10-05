@@ -194,7 +194,7 @@ object
   (** What [self_sync] is for such a source. *)
   method private dynamic_self_sync : self_sync
 
-  (** What the clock requires of a source: spec/clock.md §15. *)
+  (** What the clock requires of a source: spec/clock.md §14. *)
   method sync_source : Clock.Sync_source.t option
 
   method on_sync_source : (Clock.Sync_source.t option -> unit) -> unit -> unit

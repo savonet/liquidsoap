@@ -190,7 +190,6 @@ type streaming = {
   mutable last_unblocked : float option;
   mutable leased : bool;
   mutable worker_since : float;
-  mutable tick_waited : float;
   tick_slowest : slowest;
   mutable last_warning : float;
   mutable last_long_tick : float;
@@ -223,6 +222,9 @@ type clock = {
 and sub = { sub : t; registrants : int }
 and t = clock Unifier.t
 
+(* The lock belongs to the thread that took it: a callback that waits under it
+   has to come back on that thread, hence the blocking section. *)
+
 (** Every state transition and every unification run under this one lock. It is
     never held across a tick, which can resume on another thread. *)
 module Transition = struct
@@ -235,7 +237,9 @@ module Transition = struct
     else
       Mutex.protect m (fun () ->
           Atomic.set holder (Thread.id (Thread.self ()));
-          Fun.protect ~finally:(fun () -> Atomic.set holder (-1)) fn)
+          Fun.protect
+            ~finally:(fun () -> Atomic.set holder (-1))
+            (fun () -> Duppy.blocking fn))
 end
 
 let global_stop = Atomic.make false

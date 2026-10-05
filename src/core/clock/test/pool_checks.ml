@@ -93,7 +93,7 @@ let wait_in_tick () =
       output#set_on_animate ignore;
       let started = Duppy.time () in
       let finished = Atomic.make false in
-      let wait = Clock.Wait.create () in
+      let wait = Scheduler.Condition.create () in
       Scheduler.Task.add
         {
           Duppy.Task.priority = `Blocking;
@@ -102,10 +102,10 @@ let wait_in_tick () =
             (fun _ ->
               Thread.delay work_time;
               Atomic.set finished true;
-              Clock.Wait.signal wait;
+              Scheduler.Condition.signal wait;
               []);
         };
-      Clock.Wait.until wait (fun () -> Atomic.get finished);
+      Scheduler.Condition.until wait (fun () -> Atomic.get finished);
       Atomic.set spent (Duppy.time () -. started));
   let clock = started ~id:"waiting" ~sync:`Cpu [output] in
   check "a tick waiting, on one worker, for work only a worker can do completes"
@@ -115,9 +115,6 @@ let wait_in_tick () =
        "it completes as soon as the work is done: %.03fs for %.03fs"
        (Atomic.get spent) work_time)
     (Atomic.get spent < work_time +. 0.05);
-  check "the time waited is counted apart from the time producing"
-    (wait_until (fun () -> (figures clock).waiting >= work_time)
-    && (figures clock).longest_tick < work_time);
   stop clock
 
 let two_workers () =

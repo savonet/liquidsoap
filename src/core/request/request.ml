@@ -87,7 +87,7 @@ type metadata_resolver = {
 }
 
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
-type resolving = { since : float; resolved : Clock.Wait.t }
+type resolving = { since : float; resolved : Scheduler.Condition.t }
 type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
 type decoder = string * (unit -> Decoder.file_decoder_ops)
 type on_air = { source : Source.source; timestamp : float }
@@ -679,7 +679,8 @@ let resolve_req t timeout =
   let timeout = Option.value ~default:conf_timeout#get timeout in
   log#debug "Resolving request %s." (string_of_indicators t);
   let since = Unix.gettimeofday () in
-  Atomic.set t.status (`Resolving { since; resolved = Clock.Wait.create () });
+  Atomic.set t.status
+    (`Resolving { since; resolved = Scheduler.Condition.create () });
   let maxtime = since +. timeout in
   let rec resolve i =
     if Atomic.get should_fail then raise No_indicator;
@@ -755,7 +756,7 @@ let resolve_req t timeout =
       (string_of_indicators t) timeout;
   let status = if result <> `Resolved then `Failed else `Ready in
   (match Atomic.exchange t.status status with
-    | `Resolving { resolved } -> Clock.Wait.signal resolved
+    | `Resolving { resolved } -> Scheduler.Condition.signal resolved
     | _ -> assert false);
   result
 
@@ -766,9 +767,8 @@ let rec resolve ?timeout t =
         let resolving () =
           match Atomic.get t.status with `Resolving _ -> true | _ -> false
         in
-        Clock.Wait.until resolved (fun () -> not (resolving ()));
-        (* The wait also ends when the waiting clock stops. *)
-        if resolving () then `Failed else resolve ?timeout t
+        Scheduler.Condition.until resolved (fun () -> not (resolving ()));
+        resolve ?timeout t
     | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed
 

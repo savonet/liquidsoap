@@ -455,6 +455,36 @@ let run fn =
             | _ -> None);
     }
 
+(* A park is handled by blocking: the calling thread waits here for what the
+   computation parked on, then continues the computation itself. *)
+let blocking fn =
+  let open Effect.Deep in
+  Effect_utils.try_with fn ()
+    {
+      effc =
+        (fun (type a) (e : a Effect.t) ->
+          match e with
+            | Await { park } ->
+                Some
+                  (fun (k : (a, _) continuation) ->
+                    let m = Mutex.create () in
+                    let woken = Stdlib.Condition.create () in
+                    let occurred = ref None in
+                    park (fun events ->
+                        Mutex.protect m (fun () ->
+                            occurred := Some events;
+                            Stdlib.Condition.signal woken));
+                    let events =
+                      Mutex.protect m (fun () ->
+                          while !occurred = None do
+                            Stdlib.Condition.wait woken m
+                          done;
+                          Option.get !occurred)
+                    in
+                    continue k events)
+            | _ -> None);
+    }
+
 let run_task s fn =
   match s.wrapper.wrap fn with
     | exception exn ->
@@ -996,3 +1026,50 @@ struct
 end
 
 module Io : Io_t with type socket = Unix.file_descr = MakeIo (Unix_transport)
+
+module Condition = struct
+  type t = {
+    mutex : Mutex.t;
+    changed : Stdlib.Condition.t;
+    parked : (unit -> unit) list Atomic.t;
+  }
+
+  let create () =
+    {
+      mutex = Mutex.create ();
+      changed = Stdlib.Condition.create ();
+      parked = Atomic.make [];
+    }
+
+  let signal c =
+    Mutex.protect c.mutex (fun () -> Stdlib.Condition.broadcast c.changed);
+    List.iter (fun resume -> resume ()) (Atomic.exchange c.parked [])
+
+  let rec remember c resume =
+    let parked = Atomic.get c.parked in
+    if not (Atomic.compare_and_set c.parked parked (resume :: parked)) then
+      remember c resume
+
+  let block c ready =
+    Mutex.protect c.mutex (fun () ->
+        while not (ready ()) do
+          Stdlib.Condition.wait c.changed c.mutex
+        done)
+
+  (* The resumer is remembered before the condition is checked again: a signal
+     sent in between either finds it or is seen by the check. *)
+  let park ~priority s c ready =
+    while not (ready ()) do
+      suspend ~priority s (fun resume ->
+          let resumed = Atomic.make false in
+          let resume () =
+            if Atomic.compare_and_set resumed false true then resume ()
+          in
+          remember c resume;
+          if ready () then resume ())
+    done
+
+  let wait ~priority s c ready =
+    try park ~priority s c ready
+    with Effect.Unhandled (Await _) -> block c ready
+end

@@ -35,11 +35,7 @@ type event_kind =
       ticks_after : int;
     }
   | Long_tick of { duration : float; slowest_source : string option }
-  | Park of {
-      what : [ `Rest | `Release | `Wait ];
-      delay : float option;
-      spent : float;
-    }
+  | Park of { what : [ `Rest | `Release ]; delay : float option; spent : float }
   | Leak_warning of { activated : int; status : Status.t }
   | Id_kept of { kept : string; dropped : string }
   | Sync_source_ended of { sync_source : string }
@@ -53,15 +49,14 @@ let string_of_activity = function
   | `Ticking since ->
       Printf.sprintf "in a tick for %.02fs" (Duppy.time () -. since)
   | `Resting -> "resting"
-  | `Waiting -> "waiting"
   | `Released -> "released"
 
 let string_of_breakdown (figures : figures) =
   Printf.sprintf
-    "%d ticks, producing %.03fs, waiting %.03fs, resting %.03fs, released \
-     %.03fs, no worker %.03fs, slowest source: %s"
-    figures.ticks figures.producing figures.waiting figures.resting
-    figures.released figures.no_worker
+    "%d ticks, producing %.03fs, resting %.03fs, released %.03fs, no worker \
+     %.03fs, slowest source: %s"
+    figures.ticks figures.producing figures.resting figures.released
+    figures.no_worker
     (or_none figures.slowest_source)
 
 let level_and_text = function
@@ -150,10 +145,7 @@ let level_and_text = function
   | Park { what; delay; spent } ->
       ( 5,
         Printf.sprintf "%s%s: %.03fs"
-          (match what with
-            | `Rest -> "Rest"
-            | `Release -> "Release"
-            | `Wait -> "Wait")
+          (match what with `Rest -> "Rest" | `Release -> "Release")
           (match delay with
             | Some delay -> Printf.sprintf " for %.03fs" delay
             | None -> "")

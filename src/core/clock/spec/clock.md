@@ -19,7 +19,7 @@ Unification is in [unification.md](unification.md). Logs and reports are in
 | state           | `stopped`, `started` or `stopping`.                                                                      |
 | stop reason     | Why the clock is stopped. See [§4](#4-states).                                                           |
 | pending sources | Sources attached but not yet activated. No duplicates.                                                   |
-| sub-clocks      | The clocks this clock ticks, each with its registrants. See [§11](#11-sub-clocks).                       |
+| sub-clocks      | The clocks this clock ticks, each with its registrants. See [§10](#10-sub-clocks).                       |
 | error handlers  | Callbacks `(error, backtrace)`.                                                                          |
 
 The **controller** of a passive clock is what ticks it: its owner if it has
@@ -89,14 +89,14 @@ after a tick is in [pacing.md §5](pacing.md#5-after-a-tick).
 
 - `stop` on a stopped or stopping clock does nothing.
 - `stop` on a started clock moves it to `stopping`. It is then wound down
-  ([§10](#10-winding-down)):
+  ([§9](#9-winding-down)):
   - a clock with an animator, by its animator, before its next tick;
   - a passive clock with a tick in progress, by that tick, as its last step
     ([§8](#8-tick));
   - a passive clock with no tick in progress, by the caller of `stop`, at
     once.
 - A tick and the winding down of one clock are mutually exclusive
-  ([§17](#17-concurrency)).
+  ([§16](#16-concurrency)).
 - A clock MAY be started again after it stopped. It gets a new streaming state.
 
 A stopped clock carries a **stop reason**, one of:
@@ -106,10 +106,10 @@ A stopped clock carries a **stop reason**, one of:
 | `never started`     | From creation until the first start.                                                         |
 | `requested`         | `stop` was called.                                                                           |
 | `no sources`        | The animator found nothing to process ([pacing.md §8](pacing.md#8-animator)).                |
-| `global stop`       | [§13](#13-global-stop-and-shutdown).                                                         |
+| `global stop`       | [§12](#12-global-stop-and-shutdown).                                                         |
 | `sync source ended` | The followed sync source ended the clock ([pacing.md §9](pacing.md#9-server-driven-clocks)). |
 | `parent stopped`    | A sub-clock stopped with its parent, or at its last deregistration.                          |
-| `failed`            | With the error. See [§12](#12-failure).                                                      |
+| `failed`            | With the error. See [§11](#11-failure).                                                      |
 
 When several hold, `failed` wins, then `global stop`, then the others in the
 order above.
@@ -180,7 +180,7 @@ leave the clock exactly as it was. In order:
    choice is revised at the first tick.
 
 Starting, stopping and unifying one clock are mutually exclusive
-([§17](#17-concurrency)).
+([§16](#16-concurrency)).
 
 ## 7. Sources on a clock
 
@@ -188,7 +188,7 @@ Starting, stopping and unifying one clock are mutually exclusive
 
 **Activation** happens at the start of every tick, and on request by the
 controller of a passive clock. Each pending source is removed and, under the
-source error rule ([§12](#12-failure)):
+source error rule ([§11](#11-failure)):
 
 - **active**: added to the active set; its sync source is tracked
   ([pacing.md §3](pacing.md#3-finding-the-sync-source));
@@ -236,7 +236,7 @@ order:
 4. The pacing point: apply the sync source changes, switch and change
    animator if due ([pacing.md §3](pacing.md#3-finding-the-sync-source)).
 5. Animate each output in list order, then each active source, each under the
-   source error rule ([§12](#12-failure)). The active set is read as a
+   source error rule ([§11](#11-failure)). The active set is read as a
    snapshot.
 6. Run and drop the on-tick callbacks, with a stop check before each.
 7. Set `pulled` to false. Stop check.
@@ -247,7 +247,7 @@ order:
 10. Run and drop the after-tick callbacks, with a stop check before each, then
     apply the queued removals.
 11. Update the statistics ([observability.md §1](observability.md#1-status-record)).
-12. A passive clock that is `stopping` is wound down ([§10](#10-winding-down)).
+12. A passive clock that is `stopping` is wound down ([§9](#9-winding-down)).
     This step also runs when the tick was abandoned.
 
 What the clock does between this tick and the next (rest, lateness, release)
@@ -270,33 +270,7 @@ A passive clock with a parent MUST only be ticked from inside a tick of its
 parent: by step 8, or by a reader pulling it. When it has an owner, the owner
 is its only reader. A passive clock without a parent is ticked by its owner.
 
-## 9. Waiting inside a tick
-
-A tick MUST NOT hold a scheduler worker while it waits for something that
-only a scheduler worker can complete.
-
-The clock therefore offers a **wait**: wait until a condition holds. The duty
-to use it belongs to the facility through which work is handed to the
-scheduler and awaited, not to each of its callers: called from inside a
-tick, that facility MUST wait through the clock. A caller then cannot forget
-it.
-
-- When the tick runs on a scheduler worker, the wait MUST give the worker
-  back and resume the tick, as a ready clock task, once the condition holds.
-  The tick may resume on another worker.
-- When the tick runs on a thread of the clock's own, the wait blocks. So does
-  the wait of a tick that no animator runs: a passive clock ticked by its
-  owner from a thread of the owner's. Such a wait ends on the global stop.
-- A wait MUST end when the clock is asked to stop or the global stop is set.
-  The tick then meets a stop check.
-- The time spent in waits is counted apart from production time
-  ([observability.md §1](observability.md#1-status-record)).
-
-This is what makes a pool of any size, one worker included, sufficient. The
-work waited for runs at its own rank: while other clocks are ready it waits
-for them ([pacing.md §7](pacing.md#7-time-box-and-release)).
-
-## 10. Winding down
+## 9. Winding down
 
 Run by whoever ticks the clock, between ticks, or by the caller of `stop` when
 nothing ticks it ([§4](#4-states)). In order:
@@ -311,7 +285,7 @@ nothing ticks it ([§4](#4-states)). In order:
 6. Set the state to `stopped` with its reason. The streaming state is gone.
 7. A top-level clock moves from `running` to `waiting`.
 8. Log the stop.
-9. If the reason is `failed`, report it ([§12](#12-failure)).
+9. If the reason is `failed`, report it ([§11](#11-failure)).
 
 The snapshot in step 1 exists because putting an output to sleep can
 deregister sub-clocks, and those MUST still be stopped.
@@ -322,7 +296,7 @@ that is to run again MUST be attached again.
 
 Winding down MUST complete whatever fails inside it.
 
-## 11. Sub-clocks
+## 10. Sub-clocks
 
 A sub-clock is a passive clock ticked as part of its parent's tick.
 
@@ -339,7 +313,7 @@ registration.
   ([§6](#6-creation-and-start)).
 - The last deregistration stops the sub-clock with reason `parent stopped`.
 - A parent that winds down stops its registered sub-clocks
-  ([§10](#10-winding-down)). Their registrations are kept.
+  ([§9](#9-winding-down)). Their registrations are kept.
 
 A started sub-clock is ticked by its parent's tick unless already ticked
 during it ([§8](#8-tick)). A sub-clock that is not started is skipped, never
@@ -352,7 +326,7 @@ On a parent where sub-clocks are registered and deregistered any number of
 times, the number of entries MUST return to its starting value, and the cost
 of a tick MUST depend only on the sub-clocks currently registered.
 
-## 12. Failure
+## 11. Failure
 
 Clocks can fail. A failure has one outcome, whatever the animator and
 whatever the kind of error.
@@ -375,7 +349,7 @@ from an error handler, from an on-tick or after-tick callback, from a rest,
 or from the clock itself. Then:
 
 1. The tick is abandoned.
-2. The clock is wound down ([§10](#10-winding-down)) with reason `failed`
+2. The clock is wound down ([§9](#9-winding-down)) with reason `failed`
    and the error. It ends `stopped`, in `waiting` if it is top-level, its
    outputs asleep and its sub-clocks stopped.
 3. The failure is logged once, with the clock, the error and the backtrace.
@@ -384,7 +358,7 @@ or from the clock itself. Then:
 
 **Clock failure policy.** One per application, given the clock and the error.
 The default policy MUST start an orderly shutdown of the application
-([§13](#13-global-stop-and-shutdown)). A script MAY replace it, for instance
+([§12](#12-global-stop-and-shutdown)). A script MAY replace it, for instance
 to keep running without the failed clock. The policy is called after the
 wind-down, possibly from inside a tick of another clock: it MUST NOT wait for
 clocks to stop. The default only asks for the shutdown, which runs elsewhere.
@@ -413,7 +387,7 @@ Later ticks of the parent skip it, and a later pull meets `not running`.
 | not a sub-clock     | —      | The clock and the parent it was registered on.                       |
 | stop signal         | —      | Never reported.                                                      |
 
-## 13. Global stop and shutdown
+## 12. Global stop and shutdown
 
 **Global stop** is a process-wide flag. Once set, nothing starts, every tick
 is abandoned at its next stop check, every rest and wait ends, and every
@@ -424,18 +398,18 @@ animator winds its clock down.
 1. Set the global stop.
 2. Stop every clock in `running`.
 3. Wait until `running` is empty or the shutdown wait
-   ([§14](#14-parameters)) has elapsed.
+   ([§13](#13-parameters)) has elapsed.
 4. If any remain, log each of them with what it was doing
    ([observability.md §2](observability.md#2-log-events)).
 
-A clock MUST act on a stop within one tick: a rest, a release and a wait MUST
+A clock MUST act on a stop within one tick: a rest and a release MUST
 end early on a stop, whatever the animator. A call blocked in a device is
 bounded by the device.
 
 A passive clock with no parent is stopped at step 2 like any top-level clock,
 and wound down per [§4](#4-states).
 
-## 14. Parameters
+## 13. Parameters
 
 Every limit names what it protects. The values of the first seven are fixed
 with their names; the others are recommendations.
@@ -460,7 +434,7 @@ A change to the latency, the maximum latency or the thread lease MUST take
 effect by the clock's next tick. A change to any other MUST take effect by the
 clock's next start.
 
-## 15. Contracts the clock relies on
+## 14. Contracts the clock relies on
 
 **Source.** The clock uses, and requires, only:
 
@@ -480,13 +454,13 @@ clock's next start.
 **Scheduler.** [pacing.md §10](pacing.md#10-what-the-clock-asks-of-the-scheduler).
 
 **Application.** A started flag, a shutdown sequence the clock joins
-([§13](#13-global-stop-and-shutdown)), and the clock failure policy
-([§12](#12-failure)).
+([§12](#12-global-stop-and-shutdown)), and the clock failure policy
+([§11](#11-failure)).
 
-## 16. Child clocks
+## 15. Child clocks
 
 How operators use sub-clocks. This is the other half of the contract of
-[§11](#11-sub-clocks); it binds the operators, not the clock.
+[§10](#10-sub-clocks); it binds the operators, not the clock.
 
 An operator that reads from its child at a pace of its own (a crossfade, a
 time stretch, an inline encoder, a resampler) gives the child a clock of its
@@ -545,7 +519,7 @@ is `dynamic` if any of its children is. The clock does not read this
 declaration. Where it is computed once and remembered, two threads computing
 it at the same moment MUST both get the right value.
 
-## 17. Concurrency
+## 16. Concurrency
 
 - A clock's ticks run one at a time, on whatever ticks it.
 - Everything that changes the streaming state is applied by whatever ticks the

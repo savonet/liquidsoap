@@ -350,7 +350,7 @@ catches up:
 
   ```
   [clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds!
-  [clock.pulseaudio:3] Since the last warning: 50 ticks, producing 1.860s, waiting 0.000s, resting 0.000s, released 0.000s, no worker 0.000s, slowest source: output.pulseaudio
+  [clock.pulseaudio:3] Since the last warning: 50 ticks, producing 1.860s, resting 0.000s, released 0.000s, no worker 0.000s, slowest source: output.pulseaudio
   ```
 
 - When the clock is behind by more than `settings.clock.max_latency` (`60`

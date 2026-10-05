@@ -127,7 +127,6 @@ type streaming = {
   mutable last_unblocked : float option;
   mutable leased : bool;
   mutable worker_since : float;
-  mutable tick_waited : float;
   tick_slowest : Status.slowest;
   mutable last_warning : float;
   mutable last_long_tick : float;

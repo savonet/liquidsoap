@@ -36,11 +36,7 @@ type event_kind =
       ticks_after : int;
     }
   | Long_tick of { duration : float; slowest_source : string option }
-  | Park of {
-      what : [ `Release | `Rest | `Wait ];
-      delay : float option;
-      spent : float;
-    }
+  | Park of { what : [ `Release | `Rest ]; delay : float option; spent : float }
   | Leak_warning of { activated : int; status : Status.t }
   | Id_kept of { kept : string; dropped : string }
   | Sync_source_ended of { sync_source : string }
