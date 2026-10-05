@@ -143,7 +143,7 @@ let raw : priority Duppy.scheduler =
 
 let () =
   Lifecycle.on_scheduler_shutdown ~name:"scheduler shutdown" (fun () ->
-      log#important "Shutting down raw...";
+      log#important "Shutting down scheduler...";
       Duppy.stop raw;
       log#important "Scheduler shut down.")
 
