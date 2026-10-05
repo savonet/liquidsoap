@@ -155,7 +155,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
                  self#id);
 
           if not autostart then start_stop#execute_transition `Stopped);
-      self#on_sleep (fun () -> start_stop#execute_transition `Stopped)
+      self#on_sleep (fun () -> start_stop#execute_transition `Idle)
 
     (* The output process *)
     val mutable skip = false
