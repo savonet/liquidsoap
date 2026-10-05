@@ -100,15 +100,15 @@ class keyboard =
               end;
               [
                 {
-                  Duppy.Task.handler = task;
+                  Scheduler.Task.handler = task;
                   priority = `Non_blocking;
                   events = [`Read Unix.stdin];
                 };
               ])
           in
-          Duppy.Task.add Tutils.scheduler
+          Scheduler.Task.add
             {
-              Duppy.Task.handler = task;
+              Scheduler.Task.handler = task;
               priority = `Non_blocking;
               events = [`Read Unix.stdin];
             });

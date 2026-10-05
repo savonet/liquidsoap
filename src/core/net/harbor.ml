@@ -250,7 +250,7 @@ end
 
 module Make (T : Transport_t) : T with type socket = T.socket = struct
   module Websocket = T.Websocket
-  module Task = Duppy.Task
+  module Task = Scheduler.Task
   module Io = T.Io
 
   type socket = T.socket
@@ -471,7 +471,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         simple_reply "No / mountpoint\r\n\r\n"
     in
     (* Authentication can be blocking. *)
-    Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
+    Scheduler.reschedule ~priority:`Threaded ();
     let user, auth_f = s.login in
     let user = if requested_user = "" then user else requested_user in
     if
@@ -606,7 +606,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) query [])
         args
     in
-    Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
+    Scheduler.reschedule ~priority:`Threaded ();
     http_auth_check ?query ~meth ~uri ~login h.Io.socket headers
 
   (* [buffered] reports bytes a relay reader holds on top of the socket. *)
@@ -800,7 +800,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         h
     in
     let stype, huri, user, password =
-      Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
+      Scheduler.reschedule ~priority:`Threaded ();
       read_hello socket
     in
     log#info "Mime type: %s" stype;
@@ -1070,7 +1070,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                   fun timeout -> fst (Http.read_chunked ~timeout socket)
               | _ -> fun _ -> ""
           in
-          Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
+          Scheduler.reschedule ~priority:`Threaded ();
           handler ~protocol ~meth ~headers ~data ~socket ~query base_uri
       | Reply _ as e -> raise e
       | e ->
@@ -1134,7 +1134,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               in
               (* Authentication can be blocking. ICY = true means that
                  authentication has already happened. *)
-              Duppy.reschedule ~priority:`Threaded h.Io.scheduler;
+              Scheduler.reschedule ~priority:`Threaded ();
               let valid_user, auth_f = s.login in
               if
                 not
@@ -1222,7 +1222,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                     "The server timed out waiting for the request."))
           else Close (mk_simple "")
         in
-        let h = Io.handle Tutils.scheduler socket in
+        let h = Io.handle Scheduler.raw socket in
         let send r =
           let close () = try close socket with _ -> () in
           let write s =
@@ -1252,7 +1252,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             ignore (on_error e);
             close ()
         in
-        Duppy.run (fun () ->
+        Scheduler.run (fun () ->
             send
               (try handle_client ~port ~icy h with
                 | Reply r -> r
@@ -1305,7 +1305,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
        select uses the plain winsock fast path. *)
     let in_s, out_s = Unix_utils.socketpair ~cloexec:true () in
     let events = `Read in_s :: List.map (open_socket port) bind_addrs in
-    Task.add Tutils.scheduler
+    Task.add
       {
         Task.priority = `Non_blocking;
         events;

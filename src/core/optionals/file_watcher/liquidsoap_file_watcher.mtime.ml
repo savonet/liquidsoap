@@ -56,7 +56,7 @@ let rec handler _ =
               (Printf.sprintf "Error while executing file watcher callback: %s"
                  (Printexc.to_string exn)))
         !watched;
-      [{ Duppy.Task.priority = `Threaded; events = [`Delay 1.]; handler }])
+      [{ Scheduler.Task.priority = `Threaded; events = [`Delay 1.]; handler }])
     ()
 
 let watch : watch =
@@ -67,8 +67,12 @@ let watch : watch =
       (fun () ->
         if not !launched then begin
           launched := true;
-          Duppy.Task.add Tutils.scheduler
-            { Duppy.Task.priority = `Threaded; events = [`Delay 1.]; handler }
+          Scheduler.Task.add
+            {
+              Scheduler.Task.priority = `Threaded;
+              events = [`Delay 1.];
+              handler;
+            }
         end;
         let mtime = try file_mtime file with _ -> 0. in
         watched := { file; mtime; callback } :: !watched;

@@ -873,6 +873,35 @@
   (run %{pool_test})))
 
 (executable
+ (name scheduler_test)
+ (modules scheduler_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias scheduler_test)
+ (package liquidsoap)
+ (deps
+  (:scheduler_test scheduler_test.exe))
+ (action
+  (run %{scheduler_test})))
+
+(executable
  (name start_stop_test)
  (modules start_stop_test)
  (libraries
@@ -1286,6 +1315,7 @@
   (alias parsesrt)
   (alias playlist_basic_test)
   (alias pool_test)
+  (alias scheduler_test)
   (alias start_stop_test)
   (alias stream_decoder_test)
   (alias string_test)

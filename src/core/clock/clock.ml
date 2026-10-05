@@ -1043,7 +1043,7 @@ let _park params ~delay =
     | `Thread | `None -> false
     | `Task -> (
         try
-          Duppy.reschedule ~delay ~priority:`Clock Tutils.scheduler;
+          Scheduler.reschedule ~delay ~priority:`Clock ();
           true
         with Effect.Unhandled _ -> false)
 
@@ -1289,13 +1289,13 @@ let _start_animator ~clock ~c params =
   in
   if conf_task#get && not (Atomic.get clock.needs_thread) then (
     params.animator <- `Task;
-    Duppy.Task.add Tutils.scheduler
+    Scheduler.Task.add
       {
-        Duppy.Task.priority = `Clock;
+        Scheduler.Task.priority = `Clock;
         events = [`Delay 0.];
         handler =
           (fun _ ->
-            Duppy.run (fun () ->
+            Scheduler.run (fun () ->
                 params.log#info "Clock task is starting";
                 run ());
             []);

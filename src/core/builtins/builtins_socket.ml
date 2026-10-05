@@ -231,8 +231,8 @@ module Socket_value = struct
                   ignore (Lang.apply fn []);
                   []
                 in
-                Duppy.Task.add Tutils.scheduler
-                  { Duppy.Task.priority = `Threaded; events; handler = fn };
+                Scheduler.Task.add
+                  { Scheduler.Task.priority = `Threaded; events; handler = fn };
                 Lang.unit) );
         ]
     in

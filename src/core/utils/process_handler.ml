@@ -29,7 +29,7 @@ type _t = {
   p : process;
   status : status option Atomic.t;
   stopped : bool Atomic.t;
-  priority : Tutils.priority Atomic.t;
+  priority : Scheduler.priority Atomic.t;
 }
 
 type t = { mutex : Mutex.t; mutable process : _t option }
@@ -39,7 +39,7 @@ type continuation =
   | `Stop
   | `Kill
   | `Delay of float
-  | `Reschedule of Tutils.priority ]
+  | `Reschedule of Scheduler.priority ]
 
 type 'a callback = 'a -> continuation
 type pull = Bytes.t -> int -> int -> int
@@ -214,7 +214,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         | `Continue -> continue_events
         | `Delay d -> [`Delay d; `Read process.out_pipe]
     in
-    { Duppy.Task.priority = Atomic.get process.priority; events; handler }
+    { Scheduler.Task.priority = Atomic.get process.priority; events; handler }
   in
   let restart_decision handler delay =
     if delay < 0. then begin
@@ -227,7 +227,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
         [get_task handler (on_start (pusher fd))]
       in
-      [{ Duppy.Task.priority; events = [`Delay delay]; handler = spawn }]
+      [{ Scheduler.Task.priority; events = [`Delay delay]; handler = spawn }]
     end
   in
   (* Read any remaining data from stdout/stderr pipes. Called when the process
@@ -357,7 +357,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                 restart_decision (on_stop (`Exception e)))
   in
   let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
-  Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
+  Scheduler.Task.add (get_task handler (on_start (pusher fd)));
   t
 
 let really_write ?(offset = 0) ?length data push =

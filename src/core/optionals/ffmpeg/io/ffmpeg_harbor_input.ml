@@ -147,7 +147,7 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
         | Some c when Harbor_input.Connection.acquire c ->
             let task =
               {
-                Duppy.Task.priority = `Threaded;
+                Scheduler.Task.priority = `Threaded;
                 events = [`Delay 0.];
                 handler =
                   (fun _ ->
@@ -175,7 +175,7 @@ class ffmpeg_http_input ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                     []);
               }
             in
-            Duppy.Task.add Tutils.scheduler task
+            Scheduler.Task.add task
         | _ -> ()
 
     method private do_open_container socket =

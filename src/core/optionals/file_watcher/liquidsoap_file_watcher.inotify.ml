@@ -65,7 +65,7 @@ let rec watchdog () =
           events;
         [watchdog ()])
   in
-  { Duppy.Task.priority = `Threaded; events = [`Read fd]; handler }
+  { Scheduler.Task.priority = `Threaded; events = [`Read fd]; handler }
 
 let watch : watch =
  fun ~pos e file f ->
@@ -74,7 +74,7 @@ let watch : watch =
     (fun () ->
       if !fd = None then (
         fd := Some (Inotify.create ());
-        Duppy.Task.add Tutils.scheduler (watchdog ()));
+        Scheduler.Task.add (watchdog ()));
       let fd = Option.get !fd in
       let watched, basename =
         if Sys.is_directory file then (file, None)
