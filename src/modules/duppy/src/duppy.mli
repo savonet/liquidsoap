@@ -243,14 +243,6 @@ val thread : priority:'a -> 'a scheduler -> (unit -> unit) -> unit
     section that holds a mutex. *)
 val blocking : (unit -> 'a) -> 'a
 
-(** [blocking fn] runs [fn] and returns its result. A computation that parks
-    inside [fn] blocks the calling thread until what it waits for occurs, and
-    continues on that same thread.
-
-    Use it around code that has to finish on the thread it started on, such as a
-    section that holds a mutex. *)
-val blocking : (unit -> 'a) -> 'a
-
 (** A condition a computation waits for without holding a worker. *)
 module Condition : sig
   type t
