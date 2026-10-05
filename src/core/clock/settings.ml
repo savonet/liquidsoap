@@ -45,6 +45,13 @@ let conf_shutdown_wait =
     ~d:10.
     "Longest the application waits at shutdown for clocks to stop, in seconds."
 
+let conf_thread_lease =
+  Dtools.Conf.float ~p:(conf#plug "thread_lease") ~d:5.
+    "A blocking source that leaves a clock and returns within this many \
+     seconds is flapping. Its clock then keeps its thread for this long after \
+     each drop, until the source stays away longer. With 0, a clock always \
+     gives its thread back at once."
+
 let rec push queue value =
   let values = Atomic.get queue in
   if not (Atomic.compare_and_set queue values (value :: values)) then

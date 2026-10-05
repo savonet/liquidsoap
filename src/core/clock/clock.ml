@@ -133,6 +133,7 @@ let create ?(stack = []) ?on_error ?id ?(sync = `Automatic) ?parent ?owner () =
       ticking = Atomic.make false;
       activated = Atomic.make 0;
       self = Atomic.make None;
+      log = Atomic.make None;
     }
   in
   Registry.watch c;

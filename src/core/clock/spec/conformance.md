@@ -168,9 +168,23 @@ most checks free of animators and of real time.
   clock, and any clock
   with clocks as tasks off, are animated by a thread; every other by a task.
 - A blocking sync source that joins a running task clock: the clock moves to
-  a thread between two ticks, with ticks continuous and no error; when it
-  leaves, the clock moves back. The same when the sync source is in a
-  sub-clock.
+  a thread between two ticks, with ticks continuous and no error. The same
+  when the sync source is in a sub-clock.
+- A blocking sync source that leaves a clock that has seen no flap: the
+  clock moves back to a task at that tick, however many times it happens.
+- A blocking sync source that returns within the thread lease: the flap is
+  logged, with the time the source stayed away, and the thread the clock
+  moves to is leased.
+- A leased clock whose sync source leaves and returns within the lease, any
+  number of times: the clock stays on its thread. Binding: the count of
+  animator changes. The start of each lease is logged.
+- During a lease the clock rests and stays in real time. Binding: the stream
+  produced against the real time elapsed.
+- A leased clock whose lease has elapsed moves back to a task. Its next
+  thread starts without a lease: a sync source that then joins and leaves
+  moves the clock back at once.
+- With a thread lease of 0, a clock moves back at the tick where its sync
+  source leaves, a leased clock included.
 - A tick that waits, on one worker and with no other clock ready, for work
   only a worker can do completes as soon as that work is done. Binding: the
   delay, against the work's own duration.

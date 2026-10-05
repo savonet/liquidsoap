@@ -83,6 +83,22 @@ let rec single_sync_source c st =
         source_error c st source (fun () -> raise error);
         single_sync_source c st
 
+let announce_lease c st =
+  match Atomic.get st.animator with
+    | Some (`Thread, _)
+      when lease_left st > 0. && conf_task#get && c.sync_mode <> `Unsynced ->
+        emit c (Thread_lease { lease = lease_left st })
+    | _ -> ()
+
+(* The thread a clock moves to is leased when the blocking source came back
+   within a lease of leaving. *)
+let detect_flap c st ~now =
+  match st.last_unblocked with
+    | Some left when (not st.leased) && now -. left <= conf_thread_lease#get ->
+        st.leased <- true;
+        emit c (Flap { gap = now -. left; lease = conf_thread_lease#get })
+    | _ -> ()
+
 let update_blocking c st =
   let blocking =
     (match Atomic.get st.tracked with
@@ -90,8 +106,19 @@ let update_blocking c st =
       | None -> false)
     || Atomic.get st.sub_blocking > 0
   in
-  if Atomic.exchange st.blocking blocking <> blocking then
+  if Atomic.exchange st.blocking blocking <> blocking then begin
+    let now = Duppy.time () in
+    if blocking then begin
+      detect_flap c st ~now;
+      st.unblocked_at <- None
+    end
+    else begin
+      st.unblocked_at <- Some now;
+      st.last_unblocked <- Some now;
+      announce_lease c st
+    end;
     tell_parent c blocking
+  end
 
 let wanted_animator c st =
   if Atomic.get st.blocking then
@@ -101,6 +128,7 @@ let wanted_animator c st =
         | _ -> "blocks: sub-clock" )
   else if c.sync_mode = `Unsynced then (`Thread, "unsynced")
   else if not conf_task#get then (`Thread, "tasks off")
+  else if lease_left st > 0. then (`Thread, "lease")
   else (`Task, "rests")
 
 type _ Effect.t +=
@@ -134,7 +162,12 @@ let apply_change st (source, sync) =
 
 let pacing_point c st =
   let changes = List.rev (Atomic.exchange st.changes []) in
-  if Atomic.exchange st.dirty false || changes <> [] then begin
+  let lease_over = st.unblocked_at <> None && lease_left st = 0. in
+  if lease_over then begin
+    st.unblocked_at <- None;
+    st.leased <- false
+  end;
+  if Atomic.exchange st.dirty false || changes <> [] || lease_over then begin
     Mutex.protect st.m (fun () -> List.iter (apply_change st) changes);
     let tracked = single_sync_source c st in
     Atomic.set st.tracked tracked;
@@ -161,7 +194,7 @@ let park c st ?delay what =
   let spent = real_time -. started in
   st.worker_since <- real_time;
   Atomic.set st.activity `Idle;
-  if wants_debug () then emit c (Park { what; delay; spent });
+  if wants_debug c then emit c (Park { what; delay; spent });
   spent
 
 let rest_on_timer c st delay_until =

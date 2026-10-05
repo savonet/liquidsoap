@@ -195,6 +195,118 @@ let sub_clock_blocks () =
     (wait_until (fun () -> animator parent = Some `Task));
   stop parent
 
+let animator_reason clock =
+  match (Clock.status clock).animator with Some (_, why) -> why | None -> ""
+
+let lease_starts clock =
+  count clock (function Clock.Event.Thread_lease _ -> true | _ -> false)
+
+let flaps clock =
+  List.filter_map
+    (function
+      | Clock.Event.Flap { gap; lease } -> Some (gap, lease) | _ -> None)
+    (events_of clock)
+
+let lease = 0.5
+
+(* A source that sets and drops a blocking sync source on [clock]. *)
+let flapping_source clock pacer =
+  let card = Clock.Sync_source.make ~name:"flapping.card" `Self_paced in
+  let on_thread () = animator clock = Some `Thread in
+  let on_task () = animator clock = Some `Task in
+  let join () =
+    pacer#set_on_animate (fun () -> Thread.delay frame_duration);
+    pacer#set_sync (Some card);
+    ignore (wait_until on_thread)
+  in
+  let leave () =
+    pacer#set_on_animate ignore;
+    pacer#set_sync None
+  in
+  (join, leave, on_thread, on_task)
+
+let leased_clock id =
+  let pacer = source ~id:(id ^ ".source") `Active in
+  let clock = started ~id [source `Output; pacer] in
+  ignore (wait_until (fun () -> ticks clock > 2));
+  (clock, flapping_source clock pacer)
+
+let no_flap () =
+  let clock, (join, leave, _, on_task) = leased_clock "steady" in
+  let back_at_once () =
+    join ();
+    leave ();
+    let back = wait_until ~timeout:0.3 on_task in
+    Thread.delay (lease +. 0.2);
+    back
+  in
+  let first = back_at_once () in
+  let second = back_at_once () in
+  let third = back_at_once () in
+  check "a clock that has seen no flap moves back at once, every time"
+    (first && second && third && flaps clock = [] && lease_starts clock = 0);
+  stop clock
+
+let flap () =
+  let clock, (join, leave, on_thread, on_task) = leased_clock "leased" in
+  join ();
+  leave ();
+  ignore (wait_until ~timeout:0.3 on_task);
+  Thread.delay 0.15;
+  join ();
+  check
+    "a source that returns within the thread lease is logged as a flap, once"
+    (match flaps clock with
+      | [(gap, logged)] -> gap > 0.1 && gap <= lease && logged = lease
+      | _ -> false);
+  for _ = 1 to 4 do
+    leave ();
+    Thread.delay 0.15;
+    join ();
+    Thread.delay 0.15
+  done;
+  check "a leased clock stays on its thread while its source flaps"
+    (on_thread () && count clock is_change = 3 && List.length (flaps clock) = 1);
+  check "the start of each lease is logged" (lease_starts clock = 4);
+  leave ();
+  Thread.delay 0.05;
+  check "a clock in its lease is on a thread and says how long is left"
+    (on_thread ()
+    && String.starts_with ~prefix:"lease: " (animator_reason clock));
+  let ticks_before = ticks clock and started_at = Duppy.time () in
+  Thread.delay 0.2;
+  let produced = float (ticks clock - ticks_before) *. frame_duration in
+  let elapsed = Duppy.time () -. started_at in
+  check
+    (Printf.sprintf
+       "during a lease the clock rests in real time: %.02fs in %.02fs" produced
+       elapsed)
+    (produced /. elapsed > 0.5 && produced /. elapsed < 1.6);
+  check "a leased clock whose lease has elapsed moves back to a task"
+    (wait_until ~timeout:1.5 on_task && count clock is_change = 4);
+  Thread.delay 0.1;
+  let leases = lease_starts clock in
+  join ();
+  leave ();
+  check "back on a task, the clock starts over without a lease"
+    (wait_until ~timeout:0.3 on_task
+    && lease_starts clock = leases
+    && List.length (flaps clock) = 1);
+  Thread.delay 0.15;
+  join ();
+  Clock.Settings.conf_thread_lease#set 0.;
+  leave ();
+  check "with a thread lease of 0, a leased clock moves back at once"
+    (List.length (flaps clock) = 2 && wait_until ~timeout:0.3 on_task);
+  stop clock
+
+let thread_lease () =
+  real_time ();
+  Clock.Settings.conf_thread_lease#set lease;
+  no_flap ();
+  flap ();
+  Clock.Settings.conf_thread_lease#set 5.
+
 let sync_error_in_each_mode () =
   real_time ();
   List.iter
@@ -382,6 +494,7 @@ let run () =
   unsynced ();
   changing_animator ();
   sub_clock_blocks ();
+  thread_lease ();
   sync_error_in_each_mode ();
   failing ~tasks:true ();
   failing ~tasks:false ();

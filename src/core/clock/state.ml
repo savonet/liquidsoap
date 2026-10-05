@@ -166,6 +166,9 @@ type streaming = {
   recent : figures option Atomic.t;
   mutable changes_applied : int;
   mutable failing : string option;
+  mutable unblocked_at : float option;
+  mutable last_unblocked : float option;
+  mutable leased : bool;
   mutable worker_since : float;
   mutable tick_waited : float;
   tick_slowest : slowest;
@@ -194,6 +197,7 @@ type clock = {
   ticking : bool Atomic.t;
   activated : int Atomic.t;
   self : t option Atomic.t;
+  log : Log.t option Atomic.t;
 }
 
 and sub = { sub : t; registrants : int }
@@ -342,10 +346,23 @@ let string_of_controller c =
     | None, None -> "none"
 
 let set_clock_id c id =
-  if Atomic.get c.id <> Some id then
-    Atomic.set c.id (Some (Registry.claim_id c id))
+  if Atomic.get c.id <> Some id then begin
+    Atomic.set c.id (Some (Registry.claim_id c id));
+    Atomic.set c.log None
+  end
 
-let emit c kind = Event.emit ~clock:(clock_name c) kind
+(* A clock logs under its own name. The logger is kept once the name is an id,
+   which only [set_clock_id] and a merge change. *)
+let logger c =
+  match Atomic.get c.log with
+    | Some log -> log
+    | None ->
+        let log = Log.make ["clock"; clock_name c] in
+        if Atomic.get c.id <> None then Atomic.set c.log (Some log);
+        log
+
+let emit c kind = Event.emit ~log:(logger c) ~clock:(clock_name c) kind
+let wants_debug c = Event.wants_debug ~log:(logger c)
 
 let entry (source : source) =
   {
@@ -407,8 +424,7 @@ let started_streaming c =
 let quietly c what fn =
   try fn ()
   with error ->
-    log#severe "[%s] Error while %s: %s" (clock_name c) what
-      (Printexc.to_string error)
+    (logger c)#severe "Error while %s: %s" what (Printexc.to_string error)
 
 let latency st =
   match (Atomic.get st.pace).followed with
@@ -419,6 +435,13 @@ let max_latency st =
   match (Atomic.get st.pace).followed with
     | Some { pacing = `Timed { max_latency = Some max_latency } } -> max_latency
     | _ -> conf_max_latency#get
+
+(* How much of the clock's thread lease is left: spec/pacing.md §8. *)
+let lease_left st =
+  match st.unblocked_at with
+    | Some since when st.leased ->
+        Float.max 0. (conf_thread_lease#get -. (Duppy.time () -. since))
+    | _ -> 0.
 
 let update_figures st (fn : figures -> figures) =
   Atomic.set st.life (fn (Atomic.get st.life))

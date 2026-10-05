@@ -437,23 +437,25 @@ and wound down per [§4](#4-states).
 Every limit names what it protects. The values of the first seven are fixed
 with their names; the others are recommendations.
 
-| Parameter             | Setting                     | Value   | Protects                                                                                                    |
-| --------------------- | --------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| latency               | `clock.latency`             | 0.1 s   | Wake-ups: how far ahead of its time source a paced clock produces before it rests.                          |
-| maximum latency       | `clock.max_latency`         | 60 s    | Listeners: beyond it a late stream is reset instead of caught up.                                           |
-| latency log period    | `clock.log_delay`           | 1 s     | The log: minimum time between two latency warnings of one clock.                                            |
-| latency log threshold | `clock.log_delay_threshold` | 0.2 s   | The log: lateness below it is ordinary jitter.                                                              |
-| time source           | `clock.preferred`           | `posix` | —. An unknown name falls back to the built-in time source, with a warning.                                  |
-| clocks as tasks       | `clock.task`                | true    | —. When off, every clock is animated by a thread.                                                           |
-| leak threshold        | `clock.leak_warning`        | 50      | Memory: source count multiple at which the leak warning is logged.                                          |
-| time box              | `clock.time_box`            | 0.1 s   | Other clocks: the longest a clock keeps a worker while another clock waits for one, a tick's overrun aside. |
-| shutdown wait         | `clock.shutdown_wait`       | 10 s    | Shutdown: the longest the application waits for clocks that do not stop.                                    |
+| Parameter             | Setting                     | Value   | Protects                                                                                                                                                             |
+| --------------------- | --------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| latency               | `clock.latency`             | 0.1 s   | Wake-ups: how far ahead of its time source a paced clock produces before it rests.                                                                                   |
+| maximum latency       | `clock.max_latency`         | 60 s    | Listeners: beyond it a late stream is reset instead of caught up.                                                                                                    |
+| latency log period    | `clock.log_delay`           | 1 s     | The log: minimum time between two latency warnings of one clock.                                                                                                     |
+| latency log threshold | `clock.log_delay_threshold` | 0.2 s   | The log: lateness below it is ordinary jitter.                                                                                                                       |
+| time source           | `clock.preferred`           | `posix` | —. An unknown name falls back to the built-in time source, with a warning.                                                                                           |
+| clocks as tasks       | `clock.task`                | true    | —. When off, every clock is animated by a thread.                                                                                                                    |
+| leak threshold        | `clock.leak_warning`        | 50      | Memory: source count multiple at which the leak warning is logged.                                                                                                   |
+| time box              | `clock.time_box`            | 0.1 s   | Other clocks: the longest a clock keeps a worker while another clock waits for one, a tick's overrun aside.                                                          |
+| shutdown wait         | `clock.shutdown_wait`       | 10 s    | Shutdown: the longest the application waits for clocks that do not stop.                                                                                             |
+| thread lease          | `clock.thread_lease`        | 5 s     | Threads: a blocking source that returns within it is flapping, and its clock then keeps its thread this long after each drop ([pacing.md §8](pacing.md#8-animator)). |
 
 The first seven names and values are compatibility surface. The shutdown wait
 MUST NOT be derived from the maximum latency.
 
-A change to the latency or the maximum latency MUST take effect by the clock's
-next tick. A change to any other MUST take effect by the clock's next start.
+A change to the latency, the maximum latency or the thread lease MUST take
+effect by the clock's next tick. A change to any other MUST take effect by the
+clock's next start.
 
 ## 15. Contracts the clock relies on
 

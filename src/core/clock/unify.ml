@@ -81,7 +81,8 @@ let merge_ids x y =
   match (Atomic.get x.id, Atomic.get y.id) with
     | Some id, None ->
         Registry.move_id ~from:x ~into:y id;
-        Atomic.set y.id (Some id)
+        Atomic.set y.id (Some id);
+        Atomic.set y.log None
     | Some dropped, Some kept ->
         Registry.drop_id x;
         emit y (Id_kept { kept; dropped })

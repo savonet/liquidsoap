@@ -27,7 +27,12 @@ let rec clock_status c =
              owner = c.owner;
            }
        else None);
-    animator = Option.bind st (fun st -> Atomic.get st.animator);
+    animator =
+      Option.bind st (fun st ->
+          match Atomic.get st.animator with
+            | Some (animator, "lease") ->
+                Some (animator, Printf.sprintf "lease: %.01fs" (lease_left st))
+            | animator -> animator);
     sync =
       Option.bind st (fun st ->
           Option.map

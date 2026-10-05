@@ -11,6 +11,8 @@ type event_kind =
       into : Status.animator;
       why : string;
     }
+  | Flap of { gap : float; lease : float }
+  | Thread_lease of { lease : float }
   | Sync_source_switch of {
       from : string option;
       into : string option;
@@ -53,7 +55,7 @@ type event = { clock : string; kind : event_kind }
 val on_event : (event -> unit) -> unit
 
 (** Logs the event and hands it to the subscribers. *)
-val emit : clock:string -> event_kind -> unit
+val emit : log:Log.t -> clock:string -> event_kind -> unit
 
 (** Whether a debug event is worth building. *)
-val wants_debug : unit -> bool
+val wants_debug : log:Log.t -> bool

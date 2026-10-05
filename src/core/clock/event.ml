@@ -10,6 +10,8 @@ type event_kind =
       animator : (animator * string) option;
     }
   | Animator_change of { from : animator; into : animator; why : string }
+  | Flap of { gap : float; lease : float }
+  | Thread_lease of { lease : float }
   | Sync_source_switch of {
       from : string option;
       into : string option;
@@ -87,12 +89,36 @@ let level_and_text = function
       ( 3,
         Printf.sprintf "Animator changes from %s to %s (%s)"
           (string_of_animator from) (string_of_animator into) why )
-  | Sync_source_switch { from; into; pacing; latency; max_latency } ->
+  | Flap { gap; lease } ->
       ( 3,
         Printf.sprintf
-          "Sync source changes from %s to %s (%s), latency: %.02fs, maximum: \
-           %.02fs"
-          (or_none from) (or_none into) (or_none pacing) latency max_latency )
+          "The clock's blocking source came back %.01fs after it left: the \
+           clock keeps this thread for %.01fs after each drop \
+           (settings.clock.thread_lease)"
+          gap lease )
+  | Thread_lease { lease } ->
+      ( 3,
+        Printf.sprintf
+          "The clock keeps its thread for %.01fs before it returns to a \
+           scheduler task"
+          lease )
+  | Sync_source_switch { from; into; pacing; latency; max_latency } -> (
+      let limits =
+        Printf.sprintf "latency: %.02fs, maximum latency: %.02fs" latency
+          max_latency
+      in
+      ( 3,
+        match (from, into, pacing) with
+          | _, Some into, Some "self-paced" ->
+              Printf.sprintf "Now paced by sync source %s" into
+          | _, Some into, _ ->
+              Printf.sprintf "Now following sync source %s (%s)" into limits
+          | Some from, None, _ ->
+              Printf.sprintf
+                "Sync source %s left: the clock paces the stream (%s)" from
+                limits
+          | None, None, _ ->
+              Printf.sprintf "The clock paces the stream (%s)" limits ))
   | Stop { reason; ticks; stream_time } ->
       ( 3,
         Printf.sprintf "Stopped: %s, after %d ticks (%.02fs)"
@@ -158,9 +184,9 @@ let level_and_text = function
 let subscribers : (event -> unit) list Atomic.t = Atomic.make []
 let on_event fn = push subscribers fn
 
-let emit ~clock kind =
+let emit ~(log : Log.t) ~clock kind =
   let level, text = level_and_text kind in
-  log#f level "[%s] %s" clock text;
+  log#f level "%s" text;
   List.iter (fun fn -> fn { clock; kind }) (Atomic.get subscribers)
 
-let wants_debug () = log#active 5 || Atomic.get subscribers <> []
+let wants_debug ~(log : Log.t) = log#active 5 || Atomic.get subscribers <> []

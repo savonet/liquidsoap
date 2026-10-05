@@ -309,6 +309,50 @@ is logged.
 So no source can be refused by a clock for the way that clock is animated,
 and nothing has to be declared before a clock starts.
 
+**Thread lease.** A clock moves to a thread as soon as it blocks, and moves
+back to a task when it stops blocking. A clock whose blocking source flaps
+keeps its thread for a lease instead.
+
+- A clock that stops blocking records the time, on real, monotonic time like
+  the time box.
+- A clock that blocks again within the thread lease
+  ([clock.md §14](clock.md#14-parameters)) of that time has seen a **flap**.
+  The thread it moves to is **leased**. The flap is logged, with the time the
+  source stayed away
+  ([observability.md §2](observability.md#2-log-events)).
+- A leased clock that stops blocking keeps its thread for the thread lease
+  and rests on it ([§6](#6-rest-and-lateness)). Pacing follows the sync
+  source as usual: the lease only holds the animator. The start of each lease
+  is logged.
+- A leased clock that blocks again during its lease keeps its thread. The
+  animator is unchanged.
+- A leased clock whose lease has elapsed MUST move to a task at the pacing
+  point of its next tick. The check costs a constant per tick.
+- The lease ends with the thread. A clock that is back on a task starts over:
+  its next thread is leased only if it sees a new flap.
+- A clock starts without a lease.
+- A thread lease of 0 turns the mechanism off: every clock moves back at the
+  pacing point where it stops blocking.
+- The lease applies to a clock that is on a thread because it blocked. An
+  unsynced clock stays on its thread for its whole run, and so does every
+  clock while clocks as tasks is off.
+
+Consequences, each of which MUST hold:
+
+- A clock whose blocking source leaves moves back to a task at once, for as
+  long as it has seen no flap. A script that alternates between a playlist
+  and a live input every few minutes sees each move happen at the switch.
+- A clock whose blocking source leaves and returns within the thread lease
+  moves twice for that first return, then keeps its thread through every
+  drop shorter than the lease.
+- A clock whose source stays away longer than the lease moves back to a task,
+  and treats the next drop like a first one.
+
+Rationale: a source that connects and drops every few seconds moves its clock
+twice per drop, and each move to a thread creates one. The lease is a
+mechanism for that degraded case: a thread earns it by a flap and keeps it
+while the flapping lasts, and every other move happens at once. A resting thread uses no processing.
+
 **Loop.**
 
 ```

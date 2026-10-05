@@ -115,6 +115,9 @@ type streaming = {
   recent : Status.figures option Atomic.t;
   mutable changes_applied : int;
   mutable failing : string option;
+  mutable unblocked_at : float option;
+  mutable last_unblocked : float option;
+  mutable leased : bool;
   mutable worker_since : float;
   mutable tick_waited : float;
   tick_slowest : Status.slowest;
@@ -143,6 +146,7 @@ type clock = {
   ticking : bool Atomic.t;
   activated : int Atomic.t;
   self : t option Atomic.t;
+  log : Log.t option Atomic.t;
 }
 
 and sub = { sub : t; registrants : int }
@@ -195,8 +199,14 @@ val clock_name : clock -> string
 val string_of_controller : clock -> string
 val set_clock_id : clock -> string -> unit
 
+(** The clock's own logger, labelled [clock.<name>]. *)
+val logger : clock -> Log.t
+
 (** Logs an event under the clock's name. *)
 val emit : clock -> Event.event_kind -> unit
+
+(** Whether a debug event is worth building. *)
+val wants_debug : clock -> bool
 
 val entry : source -> Status.entry
 val members : streaming -> (Sources.key * member) list
@@ -212,6 +222,10 @@ val started_streaming : clock -> streaming
 val quietly : clock -> string -> (unit -> unit) -> unit
 val latency : streaming -> float
 val max_latency : streaming -> float
+
+(** How much of the clock's thread lease is left: spec/pacing.md §8. *)
+val lease_left : streaming -> float
+
 val update_figures : streaming -> (Status.figures -> Status.figures) -> unit
 
 (** Tells the parent's streaming state that this clock's answer to "blocks"
