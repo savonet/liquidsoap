@@ -109,25 +109,41 @@ source disappears, the clock takes the pacing back and logs:
 Your stream may switch between different types of sources. For example:
 
 ```liquidsoap
-fallback([input.srt(...), single("music.mp3")])
+fallback([input.srt(...), playlist("~/music")])
 ```
 
 In this case:
 
-- `single` is CPU-controlled.
+- `playlist` is CPU-controlled.
 - `input.srt` is self-sync.
 
-Liquidsoap has to decide which component controls the clock at any given
-moment. It does this by looking at the sources that will be used to produce
-data in the next round of the streaming loop.
+Liquidsoap decides which component controls the clock at every round of the
+streaming loop. It follows the self-sync sources that are producing data in
+that round, and uses the CPU the rest of the time.
 
-For instance, in the above, only one of the two sources is used to produce
-data at a time. If it is `single`, the clock is CPU-controlled, otherwise it
-is self-sync.
+`playlist` reads files from the disk, so its data is available at any speed.
+
+`input.srt` is self-sync: the SRT library delivers each packet at the time set
+by the sender, and a read blocks until then. This wait paces the clock.
+
+`input.srt` is also an active source: the clock reads from it on every round,
+whichever source the fallback plays. It controls the clock while a sender is
+connected:
+
+- With a sender connected, the clock follows `input.srt`. This starts at the
+  connection, before the fallback has switched to it.
+- With no sender, the clock is CPU-controlled.
+
+The log shows each change:
+
+```
+[clock.output:3] Now paced by sync source srt
+[clock.output:3] Sync source srt left: the clock paces the stream (latency: 0.10s, maximum latency: 60.00s)
+```
 
 Which of the two is playing at a given moment is a separate question, answered
 by [source composition](./composition.md): `input.srt` is a live source, so it
-cuts into `single` mid-track rather than waiting for the end of the file.
+cuts into `playlist` mid-track rather than waiting for the end of the file.
 
 ## Catchup warnings
 
