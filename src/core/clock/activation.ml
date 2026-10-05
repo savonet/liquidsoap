@@ -3,16 +3,19 @@ open Status
 open Event
 open State
 
-let attach t source =
+let rec add_pending c source =
+  let pending = Atomic.get c.pending in
+  if
+    (not (List.memq source pending))
+    && not (Atomic.compare_and_set c.pending pending (pending @ [source]))
+  then add_pending c source
+
+(* A merge may move the handle to another clock while the source is added:
+   the source then follows it. *)
+let rec attach t source =
   let c = get t in
-  let rec add () =
-    let pending = Atomic.get c.pending in
-    if
-      (not (List.memq source pending))
-      && not (Atomic.compare_and_set c.pending pending (pending @ [source]))
-    then add ()
-  in
-  add ()
+  add_pending c source;
+  if get t != c then attach t source
 
 let rec forget_pending c source =
   let pending = Atomic.get c.pending in

@@ -219,6 +219,10 @@ val recent_figures : streaming -> Status.figures
 val stop_check : unit -> unit
 val not_running : clock -> 'a
 val started_streaming : clock -> streaming
+
+(** The streaming state of a clock that is started or stopping. *)
+val running_streaming : clock -> streaming
+
 val quietly : clock -> string -> (unit -> unit) -> unit
 val latency : streaming -> float
 val max_latency : streaming -> float

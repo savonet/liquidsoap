@@ -289,7 +289,7 @@ and tick_passive c ~pull =
               finish ();
               Printexc.raise_with_backtrace error backtrace)
     | _ ->
-        Atomic.set c.ticking false;
+        finish ();
         not_running c
 
 let passive t =

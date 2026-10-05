@@ -53,6 +53,18 @@ let stop_inside_tick () =
   check "a stop from inside a tick winds the clock down at the end of it"
     (!seen_started && is_stopped clock `Requested)
 
+let callback_during_stop () =
+  let clock = passive () in
+  let registered = ref false in
+  Clock.on_tick clock (fun () ->
+      Clock.stop clock;
+      Clock.on_tick clock ignore;
+      Clock.after_tick clock ignore;
+      registered := true);
+  (try Clock.tick clock with _ -> ());
+  check "a callback registered from a tick that a stop landed in is accepted"
+    (!registered && is_stopped clock `Requested)
+
 let failed_start () =
   let clock = Clock.create ~id:"unstartable" () in
   attach clock (source ~id:"idle" `Passive);
@@ -272,6 +284,7 @@ let names () =
 let run () =
   lifecycle ();
   stop_inside_tick ();
+  callback_during_stop ();
   failed_start ();
   registry ();
   start_pass ();

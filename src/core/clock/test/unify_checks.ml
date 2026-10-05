@@ -216,6 +216,31 @@ let concurrent () =
     (List.length (Clock.pending handles.(0)) = 4 * 3000)
 
 (* Finalised clocks leave the registry at its next use, one cycle later. *)
+(* Sources attached through a handle while its clock is merged away must all
+   end up pending on the survivor. *)
+let attach_during_merges () =
+  let handle = Clock.create () in
+  let count = 3000 in
+  let attaching =
+    Domain.spawn (fun () ->
+        for _ = 1 to count do
+          attach handle (source `Passive)
+        done)
+  in
+  let merging =
+    Domain.spawn (fun () ->
+        for _ = 1 to count do
+          Clock.unify ~pos:None handle (Clock.create ())
+        done)
+  in
+  Domain.join attaching;
+  Domain.join merging;
+  check
+    (Printf.sprintf "K11: sources attached during merges are all kept: %d of %d"
+       (List.length (Clock.pending handle))
+       count)
+    (List.length (Clock.pending handle) = count)
+
 let live_words () =
   clear_events ();
   for _ = 1 to 3 do
@@ -260,4 +285,5 @@ let run () =
   no_cycle ();
   deduplication ();
   concurrent ();
+  attach_during_merges ();
   flat_memory ()

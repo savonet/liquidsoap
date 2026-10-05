@@ -109,10 +109,6 @@ let merge_subs c =
   Atomic.set c.subs merged
 
 let commit { from = x; into = y } =
-  let pending = Atomic.get y.pending in
-  Atomic.set y.pending
-    (pending
-    @ List.filter (fun s -> not (List.memq s pending)) (Atomic.get x.pending));
   let moved = Atomic.get x.subs in
   Atomic.set y.subs (Atomic.get y.subs @ moved);
   Atomic.set y.error_handlers
@@ -124,6 +120,9 @@ let commit { from = x; into = y } =
     Registry.remove y
   end;
   Unifier.(handle x <-- handle y);
+  (* The handles move first: a source attached meanwhile is either moved here
+     or re-attached by [attach], which sees that its clock changed. *)
+  List.iter (Activation.add_pending y) (Atomic.exchange x.pending []);
   Registry.remove x;
   (y, moved)
 

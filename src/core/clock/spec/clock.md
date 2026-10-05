@@ -256,9 +256,12 @@ is not part of the tick: [pacing.md §5](pacing.md#5-after-a-tick).
 **Stop check.** If the global stop is set, the tick is abandoned with the
 **stop signal**. The stop signal is never reported as an error.
 
-Ticking a handle whose clock is not started, or registering an on-tick or
-after-tick callback on it, fails: with the stop signal if the global stop is
-set, otherwise with `not running`. Neither logs.
+Ticking a handle whose clock is not started fails: with the stop signal if
+the global stop is set, otherwise with `not running`. Registering an on-tick
+or after-tick callback fails the same way on a stopped clock. On a stopping
+clock the callback is accepted and dropped by the wind-down, so that a source
+registering its next callback from inside a tick is unaffected by a stop.
+Neither logs.
 
 A tick asked of a clock while one of its ticks is in progress MUST be
 refused.

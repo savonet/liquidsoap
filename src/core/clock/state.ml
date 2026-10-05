@@ -421,6 +421,11 @@ let started_streaming c =
     | `Started, Some st -> st
     | _ -> not_running c
 
+(* A source may register its next callback from inside the tick that a stop
+   landed in: the callback is accepted, and dropped by the wind-down. *)
+let running_streaming c =
+  match Atomic.get c.streaming with Some st -> st | None -> not_running c
+
 let quietly c what fn =
   try fn ()
   with error ->

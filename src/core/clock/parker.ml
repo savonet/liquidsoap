@@ -21,7 +21,10 @@ let wake parker =
   Atomic.set parker.notified true;
   Mutex.protect parker.m (fun () -> Condition.broadcast parker.c)
 
+(* [notified] is set before the resumer is read: a task that is just parking
+   either gets resumed here or sees the flag. *)
 let unpark parker =
+  Atomic.set parker.notified true;
   (Atomic.get parker.resume) ();
   wake parker
 

@@ -352,6 +352,7 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
         try
           let s = new process ~name r in
           let s = (process (s :> Source.source) :> Source.source) in
+          let failed = Atomic.make false in
           let clock =
             Clock.create ~id:name ~sync:`Passive
               ~owner:{ Clock.kind = "request.process"; id = name }
@@ -360,7 +361,7 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
                   ~bt:(Printexc.raw_backtrace_to_string bt)
                   (Printf.sprintf "Error while processing source: %s"
                      (Printexc.to_string exn));
-                raise Process_failed)
+                Atomic.set failed true)
               ()
           in
           Fun.protect
@@ -390,6 +391,7 @@ let process_request ~log ~name ~ratio ~timeout ~sleep_latency ~process r =
                   raise Process_failed)
                 else (
                   Clock.tick clock;
+                  if Atomic.get failed then raise Process_failed;
                   let target_time = target_time () in
                   if Time.(time () |<| (target_time |+| sleep_latency)) then
                     sleep_until target_time)

@@ -1,3 +1,6 @@
+(** Adds a source to a clock's pending sources, once. *)
+val add_pending : State.clock -> State.source -> unit
+
 val attach : State.t -> State.source -> unit
 val detach : State.t -> State.source -> unit
 
