@@ -1158,9 +1158,8 @@ def replaces playlist(
   is_loading = ref(false)
   def if_not_reloading(fn) =
     if
-      not is_loading()
+      not is_loading.exchange(true)
     then
-      is_loading := true
       try
         fn()
       finally
