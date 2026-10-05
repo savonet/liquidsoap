@@ -76,3 +76,17 @@ val reschedule : ?delay:float -> priority:priority -> unit -> unit
 
 (** {!Duppy.reserve_blocking} on {!raw}. *)
 val reserve_blocking : unit -> unit -> unit
+
+(** Waiting for something another party does, without holding a worker. *)
+module Condition : sig
+  type t = Duppy.Condition.t
+
+  val create : unit -> t
+
+  (** To be called after what [until] checks has changed. *)
+  val signal : t -> unit
+
+  (** {!Duppy.Condition.wait} on {!raw}: [until c ready] returns once [ready ()]
+      holds. A computation parked here resumes as a [`Threaded] task. *)
+  val until : t -> (unit -> bool) -> unit
+end

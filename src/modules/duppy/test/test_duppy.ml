@@ -590,6 +590,76 @@ let test_suspend () =
   Duppy.stop s;
   ok "a suspended computation resumes when woken"
 
+(* One worker: the waiter parks, or the task that makes its condition true
+   never runs. *)
+let test_condition_parks () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 1) s;
+  let l = latch () in
+  let condition = Duppy.Condition.create () in
+  let ready = Atomic.make false in
+  Duppy.Task.add s
+    (task Direct (fun _ ->
+         Duppy.run (fun () ->
+             Duppy.Condition.wait ~priority:Direct s condition (fun () ->
+                 Atomic.get ready);
+             bump l);
+         []));
+  Duppy.Task.add s
+    (task Direct (fun _ ->
+         Atomic.set ready true;
+         Duppy.Condition.signal condition;
+         []));
+  await l 1;
+  Duppy.stop s;
+  ok "a computation waiting for a condition gives its worker back"
+
+(* [run] returns when its computation parks or ends: it returns with the
+   computation finished only if the wait inside [blocking] did not park. *)
+let test_blocking () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 1) s;
+  let condition = Duppy.Condition.create () in
+  let ready = Atomic.make false in
+  let finished = ref false in
+  Duppy.Task.add s
+    {
+      (task Direct (fun _ ->
+           Atomic.set ready true;
+           Duppy.Condition.signal condition;
+           []))
+      with
+      events = [`Delay 0.05];
+    };
+  Duppy.run (fun () ->
+      Duppy.blocking (fun () ->
+          Duppy.Condition.wait ~priority:Direct s condition (fun () ->
+              Atomic.get ready));
+      finished := true);
+  if not !finished then fail "a wait inside a blocking section parked";
+  Duppy.stop s;
+  ok "a wait inside a blocking section blocks its thread"
+
+let test_condition_blocks_a_thread () =
+  let s = Duppy.create ~classify () in
+  let condition = Duppy.Condition.create () in
+  let ready = Atomic.make false in
+  let waited = Atomic.make false in
+  let waiter =
+    Thread.create
+      (fun () ->
+        Duppy.Condition.wait ~priority:Blocking s condition (fun () ->
+            Atomic.get ready);
+        Atomic.set waited true)
+      ()
+  in
+  Thread.delay 0.05;
+  if Atomic.get waited then fail "a wait returned before its condition held";
+  Atomic.set ready true;
+  Duppy.Condition.signal condition;
+  Thread.join waiter;
+  ok "a thread waiting for a condition blocks until it holds"
+
 (* The scheduler is still referenced after its stop, so a handler it dropped
    is only collected if stop let go of it.
 
@@ -730,5 +800,8 @@ let () =
   test_burst_threads_retire ();
   test_unwatchable_descriptor ();
   test_suspend ();
+  test_condition_parks ();
+  test_blocking ();
+  test_condition_blocks_a_thread ();
   test_stop_releases_handlers ();
   print_endline "all duppy pool checks passed"
