@@ -240,7 +240,7 @@ let handle_client socket ip =
              "\n" ^ Printexc.raw_backtrace_to_string bt
            else "")
   in
-  let h = Duppy.Io.handle Tutils.scheduler socket in
+  let h = Duppy.Io.handle Scheduler.raw socket in
   let read marker =
     Duppy.Io.read ~timeout:(get_timeout ()) ~priority:`Non_blocking h marker
   in
@@ -264,7 +264,7 @@ let handle_client socket ip =
   let rec process () =
     let req = read (Duppy.Io.Split "[\r\n]+") in
     (* A command can block, and holds a non-blocking priority until here. *)
-    Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
+    Scheduler.reschedule ~priority:`Threaded ();
     let ans = answer (fun () -> exec req) in
     write ans;
     write "\r\nEND\r\n";
@@ -279,7 +279,7 @@ let handle_client socket ip =
       log#f conf_log_level#get "Client %s disconnected while saying goodbye..!"
         ip
   in
-  Duppy.run (fun () ->
+  Scheduler.run (fun () ->
       (try process () with
         | Exit -> goodbye "Bye!\r\n"
         | Duppy.Io.Error Duppy.Io.Timeout ->
@@ -313,7 +313,7 @@ let start_socket () =
          (Printexc.to_string e));
     [
       {
-        Duppy.Task.priority = `Non_blocking;
+        Scheduler.Task.priority = `Non_blocking;
         events = [`Read sock];
         handler = incoming;
       };
@@ -334,9 +334,9 @@ let start_socket () =
       log#f conf_log_level#get "Unlink %s" socket_name;
       Unix.unlink socket_path);
   Unix.chmod socket_path rights;
-  Duppy.Task.add Tutils.scheduler
+  Scheduler.Task.add
     {
-      Duppy.Task.priority = `Non_blocking;
+      Scheduler.Task.priority = `Non_blocking;
       events = [`Read sock];
       handler = incoming;
     }
@@ -367,7 +367,7 @@ let start_telnet () =
          (Printexc.to_string e));
     [
       {
-        Duppy.Task.priority = `Non_blocking;
+        Scheduler.Task.priority = `Non_blocking;
         events = [`Read sock];
         handler = incoming;
       };
@@ -378,9 +378,9 @@ let start_telnet () =
   with exn -> raise (Bind_error (Printexc.to_string exn))
   end;
   Unix.listen sock max_conn;
-  Duppy.Task.add Tutils.scheduler
+  Scheduler.Task.add
     {
-      Duppy.Task.priority = `Non_blocking;
+      Scheduler.Task.priority = `Non_blocking;
       events = [`Read sock];
       handler = incoming;
     }

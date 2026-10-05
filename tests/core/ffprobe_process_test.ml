@@ -54,7 +54,7 @@ let () =
     exit 1
   end;
   Printf.printf "Testing ffprobe on: %s\n%!" media_file;
-  Tutils.start ();
+  Scheduler.start ();
   let command =
     Printf.sprintf
       "ffprobe -v quiet -print_format json -show_format -show_streams %s"

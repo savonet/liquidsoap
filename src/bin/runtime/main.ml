@@ -742,7 +742,7 @@ let () =
          an exception and dtools catches it so we don't get a backtrace (by
          default at least). *)
       Server.start ();
-      Tutils.start ();
+      Scheduler.start ();
 
       if !interactive then
         ignore

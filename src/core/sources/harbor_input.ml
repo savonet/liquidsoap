@@ -64,7 +64,7 @@ module Connection = struct
       socket;
       users = Atomic.make 1;
       aborted = Atomic.make false;
-      release_slot = Duppy.reserve_blocking Tutils.scheduler;
+      release_slot = Scheduler.reserve_blocking ();
     }
 
   let close_unused c =
@@ -280,13 +280,13 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
           tasks
       and task () =
         {
-          Duppy.Task.priority = `Threaded;
+          Scheduler.Task.priority = `Threaded;
           events =
             [`Read (Harbor.file_descr_of_socket c.socket); `Delay timeout];
           handler;
         }
       in
-      Duppy.Task.add Tutils.scheduler
+      Scheduler.Task.add
         { (task ()) with events = [`Delay 0.]; handler = (fun _ -> handler []) }
 
     method virtual private register_decoder : string -> unit

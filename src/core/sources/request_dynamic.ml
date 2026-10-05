@@ -243,12 +243,10 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
                 stop = (fun () -> ());
               }
             else (
-              let t =
-                Duppy.Async.add Tutils.scheduler ~priority self#feed_queue
-              in
+              let t = Scheduler.Async.add ~priority self#feed_queue in
               {
-                notify = (fun () -> Duppy.Async.wake_up t);
-                stop = (fun () -> Duppy.Async.stop t);
+                notify = (fun () -> Scheduler.Async.wake_up t);
+                stop = (fun () -> Scheduler.Async.stop t);
               })
           in
           assert (
@@ -415,7 +413,7 @@ let _ =
                     | _, 0 ->
                         let task =
                           {
-                            Duppy.Task.priority;
+                            Scheduler.Task.priority;
                             events = [`Delay 0.];
                             handler =
                               (fun _ ->
@@ -428,7 +426,7 @@ let _ =
                                 []);
                           }
                         in
-                        Duppy.Task.add Tutils.scheduler task
+                        Scheduler.Task.add task
                     | _ -> s#notify_new_request);
                   Lang.unit));
         };
