@@ -87,7 +87,7 @@ type metadata_resolver = {
 }
 
 type indicator = { uri : string; temporary : bool; metadata : Frame.metadata }
-type resolving = { since : float; pending : (Condition.t * Mutex.t) list }
+type resolving = { since : float; resolved : Scheduler.Condition.t }
 type status = [ `Idle | `Resolving of resolving | `Ready | `Destroyed | `Failed ]
 type decoder = string * (unit -> Decoder.file_decoder_ops)
 type on_air = { source : Source.source; timestamp : float }
@@ -679,7 +679,8 @@ let resolve_req t timeout =
   let timeout = Option.value ~default:conf_timeout#get timeout in
   log#debug "Resolving request %s." (string_of_indicators t);
   let since = Unix.gettimeofday () in
-  Atomic.set t.status (`Resolving { since; pending = [] });
+  Atomic.set t.status
+    (`Resolving { since; resolved = Scheduler.Condition.create () });
   let maxtime = since +. timeout in
   let rec resolve i =
     if Atomic.get should_fail then raise No_indicator;
@@ -755,27 +756,18 @@ let resolve_req t timeout =
       (string_of_indicators t) timeout;
   let status = if result <> `Resolved then `Failed else `Ready in
   (match Atomic.exchange t.status status with
-    | `Resolving { pending } ->
-        List.iter
-          (fun (c, m) ->
-            Mutex_utils.mutexify m (fun () -> Condition.signal c) ())
-          pending
+    | `Resolving { resolved } -> Scheduler.Condition.signal resolved
     | _ -> assert false);
   result
 
 let rec resolve ?timeout t =
   match Atomic.get t.status with
     | `Idle -> resolve_req t timeout
-    | `Resolving ({ pending } as r) as status ->
-        let m = Mutex.create () in
-        let c = Condition.create () in
-        Mutex_utils.mutexify m
-          (fun () ->
-            if
-              Atomic.compare_and_set t.status status
-                (`Resolving { r with pending = (c, m) :: pending })
-            then Condition.wait c m)
-          ();
+    | `Resolving { resolved } ->
+        let resolving () =
+          match Atomic.get t.status with `Resolving _ -> true | _ -> false
+        in
+        Scheduler.Condition.until resolved (fun () -> not (resolving ()));
         resolve ?timeout t
     | `Ready -> `Resolved
     | `Destroyed | `Failed -> `Failed

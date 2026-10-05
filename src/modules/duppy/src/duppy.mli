@@ -218,6 +218,22 @@ val await :
     of [priority]. *)
 val suspend : priority:'a -> 'a scheduler -> ((unit -> unit) -> unit) -> unit
 
+(** A condition a computation waits for without holding a worker. *)
+module Condition : sig
+  type t
+
+  val create : unit -> t
+
+  (** Wake every waiter, to check what it waits for again. Call it after
+      changing what a waiter checks. *)
+  val signal : t -> unit
+
+  (** [wait ~priority s c ready] returns once [ready ()] holds. Under {!run} it
+      parks the computation, which resumes as a task of [priority]. From any
+      other thread it blocks that thread. *)
+  val wait : priority:'a -> 'a scheduler -> t -> (unit -> bool) -> unit
+end
+
 (** Monotonic seconds with an arbitrary origin, the clock of every delay. *)
 val time : unit -> float
 

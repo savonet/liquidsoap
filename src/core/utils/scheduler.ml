@@ -209,3 +209,10 @@ end
 let run fn = Duppy.run (fun () -> prepared fn)
 let reschedule ?delay ~priority () = Duppy.reschedule ?delay ~priority raw
 let reserve_blocking () = Duppy.reserve_blocking raw
+
+module Condition = struct
+  include Duppy.Condition
+
+  let until condition ready =
+    Duppy.Condition.wait ~priority:`Threaded raw condition ready
+end
