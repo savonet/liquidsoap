@@ -15,6 +15,7 @@
    Liquidsoap_lang_values))
  (libraries
   dtools
+  clock
   liquidsoap-lang.ast
   liquidsoap-lang.data
   liquidsoap-lang.prelude

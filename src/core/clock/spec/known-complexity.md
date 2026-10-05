@@ -177,8 +177,8 @@ disconnect a pacing input: same. Binding: the clock's pacing after one tick.
 
 **Rule.** A contract on sources, with the rule held once by what all sources
 share and the order between changing state and announcing it stated
-([pacing.md §3](pacing.md#3-finding-the-sync-source)). There is no per-cycle
-recomputation under it.
+([pacing.md §3](pacing.md#3-finding-the-sync-source)). A source settles its
+answer once per streaming cycle, from what it reads in that cycle.
 
 Trace: #5133 and two direct commits. Three rounds.
 

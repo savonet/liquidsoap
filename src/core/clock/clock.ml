@@ -29,6 +29,9 @@ exception Conflict = State.Conflict
 exception Loop = State.Loop
 exception Controller_conflict = State.Controller_conflict
 exception Sync_error = State.Sync_error
+
+let sync_error = State.sync_error
+
 exception Not_running = State.Not_running
 exception Cannot_start = State.Cannot_start
 exception Not_a_sub_clock = State.Not_a_sub_clock

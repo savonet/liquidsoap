@@ -59,6 +59,14 @@ exception
   }
 
 exception Sync_error of { clock : string; reported : reported list }
+
+(** The sync error of [clock], or of an operator, whose sources report these
+    distinct sync sources. *)
+val sync_error :
+  clock:string ->
+  (< id : string ; stack : Pos.t list ; .. > * Sync_source.t) list ->
+  exn
+
 exception Not_running of string
 
 exception

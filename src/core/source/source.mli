@@ -329,7 +329,8 @@ object
   method virtual private can_generate_frame : bool
 
   (** [per_cycle settled compute] is [compute ()] the first time it is read in a
-      streaming cycle, and that same value until the cycle ends. *)
+      streaming cycle, and that same value until the cycle ends. The source
+      releases the value when the cycle ends and when the next one opens. *)
   method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a
 
   method on_before_streaming_cycle : (unit -> unit) -> unit

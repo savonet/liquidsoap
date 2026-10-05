@@ -53,6 +53,13 @@ A `Delay` MUST NOT be reported before its deadline.
 
 Tasks whose deadlines have passed become ready in deadline order; tasks sharing a deadline become ready in submission order.
 
+### 2.4 Parked computations
+
+A handler MAY park its remaining work. The worker is given back, and the remaining work becomes a task of the priority given at that moment. It resumes on any worker eligible for that priority.
+
+- Parked on events, the work resumes when one of them occurs and receives those that did.
+- Parked on a resumer, the work hands out a function that makes it ready. The function MAY be called from any thread. Given a delay, the work also becomes ready once the delay has elapsed. The work MUST resume exactly once, on whichever comes first, and every later call to the resumer does nothing.
+
 ## 3. Priorities
 
 Each task has a priority. The scheduler maps every priority to an integer **rank** by a function fixed at creation. A lower rank is more urgent.
@@ -86,6 +93,14 @@ A task that is eligible for no worker is never run. Giving every priority a work
 The scheduler MUST work with a single worker. No rule in this document may be satisfied only by having a second one.
 
 An implementation MAY, at its own discretion, also offer a pool whose workers do not run in parallel. Such a pool is outside this specification.
+
+### 5.1 Threads of their own
+
+A caller MAY ask the pool for a thread of its own, for work that blocks for an unbounded time. Such a thread holds neither a worker nor a slot of the blocking budget (7).
+
+The thread MUST be placed on the domain of the worker that accepts the given priority and has the fewest such threads. The count includes a thread from the moment its place is chosen, so that two requests in a row go to two workers.
+
+Before the pool starts, and on a pool whose workers do not run in parallel, the thread is created where the request is made.
 
 ## 6. Dispatch
 

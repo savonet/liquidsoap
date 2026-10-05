@@ -47,6 +47,26 @@ exception
   }
 
 exception Sync_error of { clock : string; reported : reported list }
+
+let rec first count = function
+  | value :: rest when count > 0 -> value :: first (count - 1) rest
+  | _ -> []
+
+let sync_error ~clock reporting =
+  Sync_error
+    {
+      clock;
+      reported =
+        List.map
+          (fun (source, (sync : Sync_source.t)) ->
+            {
+              sync_source = sync.name;
+              source = source#id;
+              stack = first 3 source#stack;
+            })
+          reporting;
+    }
+
 exception Not_running of string
 
 exception

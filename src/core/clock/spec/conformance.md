@@ -181,6 +181,9 @@ most checks free of animators and of real time.
 - A leased clock whose sync source leaves and returns within the lease, any
   number of times: the clock stays on its thread. Binding: the count of
   animator changes. The start of each lease is logged.
+- A clock made to move between a task and a thread at every tick, two
+  thousand times, animates its sources once per tick throughout, with no
+  reset.
 - During a lease the clock rests and stays in real time. Binding: the stream
   produced against the real time elapsed.
 - A leased clock whose lease has elapsed moves back to a task. Its next
@@ -222,6 +225,8 @@ K10, with the blocking time source double as the server:
 
 - Each event of [observability.md §2](observability.md#2-log-events) is
   logged with its facts. Binding: the presence and value of each fact.
+- A tick longer than the time box is reported from the second tick of a
+  start, and by a clock that follows a self-paced sync source it is not.
 - A latency warning's breakdown adds up: time producing, waiting, released
   and without a worker account for the span since the last one.
 - The reports are checked on their structure: which clocks, in which order

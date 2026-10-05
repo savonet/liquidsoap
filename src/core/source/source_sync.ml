@@ -23,25 +23,6 @@ let reporting sources =
       else None)
     sources
 
-let rec first count = function
-  | value :: rest when count > 0 -> value :: first (count - 1) rest
-  | _ -> []
-
-let conflict ~operator reporting =
-  Clock.Sync_error
-    {
-      clock = operator;
-      reported =
-        List.map
-          (fun (s, (sync : Clock.Sync_source.t)) ->
-            {
-              Clock.sync_source = sync.name;
-              source = s#id;
-              stack = first 3 s#stack;
-            })
-          reporting;
-    }
-
 let of_sources sources =
   let sync_type = type_of_sources sources in
   fun ?source () ->
@@ -58,6 +39,6 @@ let of_sources sources =
       | [sync] -> (sync_type (), Some sync)
       | _ ->
           let operator = match source with Some s -> s#id | None -> "?" in
-          raise (conflict ~operator reporting)
+          raise (Clock.sync_error ~clock:operator reporting)
 
 let same (a : Clock.Sync_source.t option) b = Clock.Sync_source.same a b

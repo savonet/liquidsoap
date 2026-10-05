@@ -51,24 +51,9 @@ let distinct_sync_sources reporting =
       else sync :: distinct)
     [] reporting
 
-let rec first count = function
-  | value :: rest when count > 0 -> value :: first (count - 1) rest
-  | _ -> []
-
 let sync_error c reporting =
-  Sync_error
-    {
-      clock = clock_name c;
-      reported =
-        List.map
-          (fun ((source : source), _, (sync : Sync_source.t)) ->
-            {
-              sync_source = sync.name;
-              source = source#id;
-              stack = first 3 source#stack;
-            })
-          reporting;
-    }
+  sync_error ~clock:(clock_name c)
+    (List.map (fun (source, _, sync) -> (source, sync)) reporting)
 
 let rec single_sync_source c st =
   let reporting = reporting st in

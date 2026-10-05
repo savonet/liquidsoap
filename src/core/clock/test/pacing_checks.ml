@@ -176,6 +176,43 @@ let changing_animator () =
     && count clock is_reset = 0);
   stop clock
 
+(* The source asks for a move at every tick, and keeps the time source level
+   with the stream so that the clock never rests. *)
+let repeated_moves () =
+  let moves = 2000 in
+  let now = manual_time () in
+  let lease = Clock.Settings.conf_thread_lease#get in
+  Clock.Settings.conf_thread_lease#set 0.;
+  let card = Clock.Sync_source.make ~name:"moving.card" `Self_paced in
+  let pacer = source ~id:"moving.pacer" `Active in
+  let output = source ~id:"moving.out" `Output in
+  let clock = started ~id:"moving" [output; pacer] in
+  pacer#set_on_animate (fun () ->
+      let ticks = ticks clock in
+      Atomic.set now (float (ticks + 1) *. frame_duration);
+      pacer#set_sync (if ticks mod 2 = 0 then Some card else None));
+  let started_at = Duppy.time () in
+  let moved () = (figures clock).animator_changes >= moves in
+  let done_moving = wait_until ~timeout:60. moved in
+  let spent = Duppy.time () -. started_at in
+  stop clock;
+  let ticks =
+    List.fold_left
+      (fun ticks -> function Clock.Event.Stop { ticks } -> ticks | _ -> ticks)
+      0 (events_of clock)
+  in
+  Clock.Settings.conf_thread_lease#set lease;
+  check
+    (Printf.sprintf
+       "%d moves between a task and a thread take %.02fs, with one animation \
+        per tick and no reset"
+       moves spent)
+    (done_moving && ticks >= moves
+    && output#animated - ticks >= 0
+    && output#animated - ticks <= 1
+    && count clock is_reset = 0
+    && is_stopped clock `Requested)
+
 let sub_clock_blocks () =
   real_time ();
   let parent = started ~id:"blocked.by.child" [source `Output] in
@@ -486,13 +523,42 @@ let breakdown () =
     | _ -> ());
   stop clock
 
+let is_long_tick = function Clock.Event.Long_tick _ -> true | _ -> false
+
+let long_ticks () =
+  real_time ();
+  let longer_than_the_time_box () =
+    Thread.delay (Clock.Settings.conf_time_box#get *. 1.2)
+  in
+  let slow = source ~id:"long.out" `Output in
+  slow#set_on_animate longer_than_the_time_box;
+  let clock = passive ~id:"long.clock" () in
+  attach clock slow;
+  tick clock 1;
+  check "the first tick of a start is not reported as a long tick"
+    (count clock is_long_tick = 0);
+  tick clock 1;
+  check "a later tick longer than the time box is reported"
+    (count clock is_long_tick = 1);
+  Clock.stop clock;
+  let card = Clock.Sync_source.make ~name:"long.card" `Self_paced in
+  let device = source ~id:"long.device" ~sync:card `Output in
+  device#set_on_animate longer_than_the_time_box;
+  let clock = started ~id:"long.device" [device] in
+  ignore (wait_until (fun () -> ticks clock > 3));
+  check "a clock that follows a self-paced sync source reports no long tick"
+    (ticks clock > 3 && count clock is_long_tick = 0);
+  stop clock
+
 let run () =
   Tutils.start ();
+  long_ticks ();
   paced ();
   device_paced ~tasks:true ();
   device_paced ~tasks:false ();
   unsynced ();
   changing_animator ();
+  repeated_moves ();
   sub_clock_blocks ();
   thread_lease ();
   sync_error_in_each_mode ();

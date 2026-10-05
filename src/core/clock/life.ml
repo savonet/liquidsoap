@@ -138,8 +138,15 @@ let update_statistics c st ~started =
         slowest_source = (if longest then name else figures.slowest_source);
       });
   roll_window st real_time;
+  let waits_in_tick =
+    match (Atomic.get st.pace).followed with
+      | Some { Sync_source.pacing = `Self_paced } -> true
+      | _ -> false
+  in
   if
     duration > conf_time_box#get
+    && (Atomic.get st.life).ticks > 1
+    && (not waits_in_tick)
     && real_time -. st.last_long_tick >= conf_log_delay#get
   then begin
     st.last_long_tick <- real_time;

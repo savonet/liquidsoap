@@ -76,17 +76,19 @@ Consider this script:
 At startup you will see:
 
 ```
-[clock:3] Starting top-level clock output.file with sources: output.file (output), amplify (passive), input.alsa (active) and sync: auto
+[clock.output.file:3] Starting top-level clock, sync: auto, sources: input.alsa (active), amplify (passive), output.file (output), animated by a task (rests)
 ```
 
 Sources marked `active` are animated every streaming cycle regardless of
 whether they are being pulled downstream — `input.alsa` must consume incoming
 audio continuously even when nothing is asking for it. Sources marked `passive`
 are only animated when something downstream requests data. Once the clock finds
-a sync source, it hands over timing control:
+a sync source, it hands over timing control. A sound card paces the stream by
+blocking, so the clock also moves to a thread of its own:
 
 ```
-[clock.output.file:3] Switching to self-sync mode (alsa)
+[clock.output.file:3] Animator changes from task to thread (blocks: alsa)
+[clock.output.file:3] Now paced by sync source alsa
 ```
 
 By contrast, a script with no hardware or network source:
@@ -95,12 +97,11 @@ By contrast, a script with no hardware or network source:
 
 ```
 
-produces no sync source, so the clock runs under CPU control. You will also see
-this message whenever a sync source disappears and the clock reverts to CPU-led
-mode:
+produces no sync source, so the clock runs under CPU control. When a sync
+source disappears, the clock takes the pacing back and logs:
 
 ```
-[clock.output.file:3] Switching to non-self-sync mode
+[clock.output.file:3] Sync source alsa left: the clock paces the stream (latency: 0.10s, maximum latency: 60.00s)
 ```
 
 ### Switching between time sources
@@ -135,8 +136,14 @@ than the frame duration — it will attempt to catch up by running faster than r
 time, and log a warning:
 
 ```
-[clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds! ...
+[clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds!
+[clock.pulseaudio:3] Since the last warning: 50 ticks, producing 1.860s, waiting 0.000s, resting 0.000s, released 0.000s, no worker 0.000s, slowest source: output.pulseaudio
 ```
+
+The second line says where the clock's time went since the previous warning:
+`producing` is the time spent computing frames, `waiting` the time spent
+waiting for work handed to the scheduler, and `no worker` the time spent
+waiting for a free core. The slowest source is named at the end.
 
 This usually indicates CPU overload, a slow network operation blocking the
 streaming loop, or a source that is consistently too slow. Buffers help absorb

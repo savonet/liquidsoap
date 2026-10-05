@@ -57,25 +57,30 @@ worker).
 Each event MUST be logged with the facts listed. A rate limit, where given,
 is per clock.
 
-| Event                     | Facts                                                                                                                                          | Level     |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| start                     | name; top-level or passive; controller; sync mode; sources as `id (type)`; animator and why                                                    | important |
-| flap                      | the time the blocking source stayed away, and the lease its clock's thread gets                                                                | important |
-| thread lease              | the lease, each time a leased clock that stopped blocking keeps its thread                                                                     | important |
-| animator change           | from, to, why                                                                                                                                  | important |
-| sync source switch        | from, to, pacing, latency and maximum latency in effect                                                                                        | important |
-| stop                      | stop reason; ticks and stream time reached                                                                                                     | important |
-| failure                   | the error, its backtrace, the failing source if any                                                                                            | critical  |
-| source failure            | the source, the error, its backtrace, whether a handler took it                                                                                | severe    |
-| latency warning           | lateness; since the last warning: stream produced, time producing, time waiting in ticks, time released, time without a worker; slowest source | severe    |
-| latency reset             | lateness; the same breakdown; ticks before and after                                                                                           | severe    |
-| long tick                 | a tick longer than the time box: duration, slowest source. At most one per latency log period                                                  | important |
-| rest, release, wait       | deadline or condition, time actually spent                                                                                                     | debug     |
-| leak warning              | total sources activated; the status report of the clock                                                                                        | severe    |
-| id kept at merge          | both ids                                                                                                                                       | info      |
-| sync source ended         | the sync source                                                                                                                                | important |
-| still running at shutdown | each clock: name, what it is doing (in a tick since when, resting, waiting), its slowest source                                                | critical  |
-| unknown time source       | the name asked for and the one used                                                                                                            | severe    |
+| Event                     | Facts                                                                                                                                                                                          | Level     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| start                     | name; top-level or passive; controller; sync mode; sources as `id (type)`; animator and why                                                                                                    | important |
+| flap                      | the time the blocking source stayed away, and the lease its clock's thread gets                                                                                                                | important |
+| thread lease              | the lease, each time a leased clock that stopped blocking keeps its thread                                                                                                                     | important |
+| animator change           | from, to, why                                                                                                                                                                                  | important |
+| sync source switch        | from, to, pacing, latency and maximum latency in effect                                                                                                                                        | important |
+| stop                      | stop reason; ticks and stream time reached                                                                                                                                                     | important |
+| failure                   | the error, its backtrace, the failing source if any                                                                                                                                            | critical  |
+| source failure            | the source, the error, its backtrace, whether a handler took it                                                                                                                                | severe    |
+| latency warning           | lateness, on a line of its own; then, at level important, since the last warning: stream produced, time producing, time waiting in ticks, time released, time without a worker; slowest source | severe    |
+| latency reset             | the reset, on a line of its own; then, at level important, ticks before and after and the same breakdown                                                                                       | severe    |
+| long tick                 | a tick longer than the time box: duration, slowest source. At most one per latency log period. See below                                                                                       | important |
+| rest, release, wait       | deadline or condition, time actually spent                                                                                                                                                     | debug     |
+| leak warning              | total sources activated; the status report of the clock                                                                                                                                        | severe    |
+| id kept at merge          | both ids                                                                                                                                                                                       | info      |
+| sync source ended         | the sync source                                                                                                                                                                                | important |
+| still running at shutdown | each clock: name, what it is doing (in a tick since when, resting, waiting), its slowest source                                                                                                | critical  |
+| unknown time source       | the name asked for and the one used                                                                                                                                                            | severe    |
+
+A long tick is reported from the second tick of a start, by a clock that
+paces itself or follows a timed sync source. The first tick wakes the sources
+up, and a self-paced sync source waits inside the tick: both exceed the time
+box by design.
 
 Reading a clock's status never logs.
 

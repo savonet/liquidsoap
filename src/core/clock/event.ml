@@ -138,17 +138,11 @@ let level_and_text = function
           (if handled then "handled" else "no handler")
           (Printexc.to_string error)
           (Printexc.raw_backtrace_to_string backtrace) )
-  | Latency_warning { lateness; since_last } ->
+  | Latency_warning { lateness; _ } ->
       ( 2,
-        Printf.sprintf "Late by %.02fs. Since the last warning: %s" lateness
-          (string_of_breakdown since_last) )
-  | Latency_reset { lateness; since_last; ticks_before; ticks_after } ->
-      ( 2,
-        Printf.sprintf
-          "Late by %.02fs: resetting from tick %d to tick %d. Since the last \
-           warning: %s"
-          lateness ticks_before ticks_after
-          (string_of_breakdown since_last) )
+        Printf.sprintf "Latency is too high: we must catchup %.2f seconds!"
+          lateness )
+  | Latency_reset _ -> (2, "Too much latency! Resetting active sources...")
   | Long_tick { duration; slowest_source } ->
       ( 3,
         Printf.sprintf "A tick took %.03fs, slowest source: %s" duration
@@ -184,9 +178,21 @@ let level_and_text = function
 let subscribers : (event -> unit) list Atomic.t = Atomic.make []
 let on_event fn = push subscribers fn
 
+let details = function
+  | Latency_warning { since_last; _ } ->
+      Some ("Since the last warning: " ^ string_of_breakdown since_last)
+  | Latency_reset { since_last; ticks_before; ticks_after; _ } ->
+      Some
+        (Printf.sprintf
+           "Resetting from tick %d to tick %d. Since the last warning: %s"
+           ticks_before ticks_after
+           (string_of_breakdown since_last))
+  | _ -> None
+
 let emit ~(log : Log.t) ~clock kind =
   let level, text = level_and_text kind in
   log#f level "%s" text;
+  Option.iter (log#important "%s") (details kind);
   List.iter (fun fn -> fn { clock; kind }) (Atomic.get subscribers)
 
 let wants_debug ~(log : Log.t) = log#active 5 || Atomic.get subscribers <> []

@@ -27,24 +27,22 @@ exception Unavailable
 module Queue = Queues.Queue
 module WeakQueue = Queues.WeakQueue
 
-(* A value settled once per streaming cycle: computed on first read, then kept
-   until the source's cycle changes. *)
+(* A value settled once per streaming cycle: computed on first read, then held
+   until its source releases it at the cycle's boundaries. *)
 module Per_cycle = struct
-  type 'a t = (int * 'a) option Atomic.t
+  type 'a t = 'a option Atomic.t
 
   let make () = Atomic.make None
+  let find = Atomic.get
+  let release settled = Atomic.set settled None
 
-  let find ~cycle settled =
-    match Atomic.get settled with
-      | Some (settled_in, value) when settled_in = cycle -> Some value
-      | _ -> None
-
-  let get ~cycle settled compute =
-    match find ~cycle settled with
+  let get ~on_release settled compute =
+    match find settled with
       | Some value -> value
       | None ->
           let value = compute () in
-          Atomic.set settled (Some (cycle, value));
+          Atomic.set settled (Some value);
+          on_release (fun () -> release settled);
           value
 end
 
@@ -289,14 +287,19 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       if self#is_up then self#notify_sync_source (snd self#self_sync)
 
     method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
+    val cycle_open = Atomic.make false
+    val cycle_readiness : readiness Per_cycle.t = Per_cycle.make ()
+    val cycle_frame : Frame.t Per_cycle.t = Per_cycle.make ()
 
     val cycle_sync_source : Clock.Sync_source.t option Per_cycle.t =
       Per_cycle.make ()
 
+    (* Outside a cycle this is the last answer notified: computing one would
+       ask the children whether they are ready and open their cycle early. *)
     method sync_source =
-      if self#is_up then
+      if Atomic.get cycle_open then
         self#per_cycle cycle_sync_source (fun () -> snd self#self_sync)
-      else None
+      else source_state
 
     method on_sync_source fn =
       self#on_sync_source_change (fun ~old:_ sync_source -> fn sync_source)
@@ -401,10 +404,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
-    val mutable cycle = 0
-    val cycle_open = Atomic.make false
-    val cycle_readiness : readiness Per_cycle.t = Per_cycle.make ()
-    val cycle_frame : Frame.t Per_cycle.t = Per_cycle.make ()
     val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
     method activations = WeakQueue.elements activations
 
@@ -479,7 +478,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           "source");
       WeakQueue.filter_out activations (fun a -> a == src);
       let frame_pending =
-        Atomic.get cycle_open && Per_cycle.find ~cycle cycle_frame = None
+        Atomic.get cycle_open && Per_cycle.find cycle_frame = None
       in
       match (WeakQueue.length activations, Clock.started self#clock) with
         | 0, true when frame_pending ->
@@ -596,7 +595,18 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable consumed = 0
 
     method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a =
-      fun settled compute -> Per_cycle.get ~cycle settled compute
+      fun settled compute ->
+        Per_cycle.get ~on_release:self#on_cycle_release settled compute
+
+    val held_for_cycle : (unit -> unit) list Atomic.t = Atomic.make []
+
+    method private on_cycle_release release =
+      let held = Atomic.get held_for_cycle in
+      if not (Atomic.compare_and_set held_for_cycle held (release :: held)) then
+        self#on_cycle_release release
+
+    method private release_cycle_values =
+      List.iter (fun release -> release ()) (Atomic.exchange held_for_cycle [])
 
     val mutable on_before_streaming_cycle = []
 
@@ -643,7 +653,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
        closes the cycle and opens another one finds it not open yet. *)
     method private before_streaming_cycle =
       if not (Atomic.get cycle_open) then (
-        cycle <- cycle + 1;
+        self#release_cycle_values;
         List.iter (fun fn -> fn ()) on_before_streaming_cycle;
         consumed <- 0;
         ignore self#readiness;
@@ -652,12 +662,12 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         self#notify_sync_source self#sync_source)
 
     method private after_streaming_cycle =
-      (match Per_cycle.find ~cycle cycle_frame with
+      (match Per_cycle.find cycle_frame with
         | Some buf when consumed < Frame.position buf ->
             _cache <- Some (Frame.append (Frame.after buf consumed) self#cache)
         | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
-      cycle <- cycle + 1;
+      self#release_cycle_values;
       Atomic.set cycle_open false
 
     (* Frame generation executes script callbacks which may read the source's
@@ -666,7 +676,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable generating = false
 
     method peek_frame =
-      match Per_cycle.find ~cycle cycle_frame with
+      match Per_cycle.find cycle_frame with
         | Some data -> data
         | None when not (Atomic.get cycle_open && self#ready) ->
             log#critical "source called while not ready!";
