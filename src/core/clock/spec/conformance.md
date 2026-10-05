@@ -38,6 +38,11 @@ most checks free of animators and of real time.
 - Ticking a stopped clock fails with `not running` and logs nothing.
 - A start that cannot proceed leaves every field of the clock as it was.
   Binding: every field, and the registry.
+- A clock started again after a stop counts its ticks from 0 and has let go of
+  the sources it had. A source attached again runs on it. Binding: the tick
+  count, and which sources are animated.
+- A clock that stopped for lack of sources is started by a start pass once it
+  has an output again.
 
 ## Registry and start
 

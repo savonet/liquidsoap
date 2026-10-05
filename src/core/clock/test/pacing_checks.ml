@@ -550,9 +550,26 @@ let long_ticks () =
     (ticks clock > 3 && count clock is_long_tick = 0);
   stop clock
 
+let emptied_and_refilled () =
+  real_time ();
+  let first = source ~id:"first" `Output in
+  let clock = started ~id:"refilled" ~sync:`Cpu [first] in
+  ignore (wait_until (fun () -> ticks clock > 0));
+  detach clock first;
+  check "a clock left without sources stops by itself"
+    (wait_until (fun () -> is_stopped clock `No_sources));
+  let second = source ~id:"second" `Output in
+  attach clock second;
+  Clock.application_start ();
+  check "a start pass starts it again once it has an output"
+    (wait_until (fun () -> Clock.started clock && second#animated > 0));
+  check "it counts its ticks from 0 again" (ticks clock <= second#animated + 1);
+  stop clock
+
 let run () =
   Scheduler.start ();
   long_ticks ();
+  emptied_and_refilled ();
   paced ();
   device_paced ~tasks:true ();
   device_paced ~tasks:false ();
