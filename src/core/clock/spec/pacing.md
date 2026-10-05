@@ -76,6 +76,9 @@ connected, each only if its own self-sync option is on. A sync source that is
 not ready MUST NOT be reported: a clock whose only pacer is not producing
 paces itself.
 
+A source's sync source is the sync source of the data its reader is about to
+pull from it in the current streaming cycle.
+
 An operator's sync source is the single distinct one among its children that
 are ready and that it currently reads, if any. Two distinct ones is a sync
 error charged to the operator.
@@ -89,15 +92,23 @@ The report travels by notification. A source MUST notify its subscribers
 whenever its answer changes, after its own state has changed, so that a
 subscriber reading back sees the new state. The clock MUST NOT ask.
 
-- With nothing changing, the work done per tick to know the sync source MUST
-  be zero on the source side and constant on the clock side, whatever the
-  size of the source graph. A source MUST NOT recompute its answer on every
-  cycle.
-- An answer depends on a source's own state, on which children it currently
-  reads, on their readiness and on their answers. The rule "notify when any
-  of these changes" SHOULD be held once, by what all sources share, and fed
-  with those inputs, not written again by each operator. An operator that
-  selects a child at run time then only declares its selection.
+- A source that paces by itself notifies when its own pacing state changes,
+  from whatever thread changes it.
+- Every source computes its answer when it prepares a streaming cycle, once
+  it knows whether it is ready, and notifies if the answer differs from the
+  previous one. An answer depends on a source's own state, on which children
+  it reads in this cycle, on their readiness and on their answers: computing
+  it in the cycle reads all four as they hold for the data about to be
+  pulled.
+- This rule MUST be held once, by what all sources share. An operator only
+  states its answer.
+- A source's readiness and what follows from it, its answer included, are
+  settled once when the source prepares a streaming cycle and MUST stay the
+  same for every reader until the cycle ends. The clock's own work per tick
+  MUST be constant, whatever the size of the source graph.
+- A change found while a tick animates its sources reaches the clock at the
+  pacing point of the next tick: the clock paces one tick on the previous
+  answer.
 - A change check MUST cost a constant: sync sources are compared by identity
   ([§2](#2-sync-source)), by sources and by the clock alike.
 

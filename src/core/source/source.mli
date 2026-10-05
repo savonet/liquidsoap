@@ -36,8 +36,12 @@ exception Unavailable
 
 type self_sync = Source_sync.t
 
-type streaming_state =
-  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+(** A value settled once per streaming cycle. *)
+module Per_cycle : sig
+  type 'a t
+
+  val make : unit -> 'a t
+end
 
 (** Instrumentation. *)
 
@@ -323,6 +327,10 @@ object
   (** Sources must implement this method. It should return [true] when the
       source can produce data during the current streaming cycle. *)
   method virtual private can_generate_frame : bool
+
+  (** [per_cycle settled compute] is [compute ()] the first time it is read in a
+      streaming cycle, and that same value until the cycle ends. *)
+  method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a
 
   method on_before_streaming_cycle : (unit -> unit) -> unit
   method on_after_streaming_cycle : (unit -> unit) -> unit

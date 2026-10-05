@@ -728,6 +728,35 @@
   (run %{pool_test})))
 
 (executable
+ (name source_sync_test)
+ (modules source_sync_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias source_sync_test)
+ (package liquidsoap)
+ (deps
+  (:source_sync_test source_sync_test.exe))
+ (action
+  (run %{source_sync_test})))
+
+(executable
  (name start_stop_test)
  (modules start_stop_test)
  (libraries
@@ -1078,6 +1107,7 @@
   (alias parsesrt)
   (alias playlist_basic_test)
   (alias pool_test)
+  (alias source_sync_test)
   (alias start_stop_test)
   (alias stream_decoder_test)
   (alias string_test)

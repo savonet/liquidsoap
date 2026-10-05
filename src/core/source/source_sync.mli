@@ -10,7 +10,12 @@ val type_of_sources :
     source among those that are ready. Raises [Clock.Sync_error] when they
     report two. *)
 val of_sources :
-  < id : string ; stack : Pos.t list ; is_ready : bool ; self_sync : t ; .. >
+  < id : string
+  ; stack : Pos.t list
+  ; is_ready : bool
+  ; self_sync : t
+  ; sync_source : Clock.Sync_source.t option
+  ; .. >
   list ->
   ?source:< id : string ; .. > ->
   unit ->

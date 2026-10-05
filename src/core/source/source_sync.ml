@@ -19,7 +19,7 @@ let type_of_sources sources =
 let reporting sources =
   List.filter_map
     (fun s ->
-      if s#is_ready then Option.map (fun sync -> (s, sync)) (snd s#self_sync)
+      if s#is_ready then Option.map (fun sync -> (s, sync)) s#sync_source
       else None)
     sources
 

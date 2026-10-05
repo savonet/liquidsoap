@@ -27,9 +27,28 @@ exception Unavailable
 module Queue = Queues.Queue
 module WeakQueue = Queues.WeakQueue
 
-type streaming_state =
-  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+(* A value settled once per streaming cycle: computed on first read, then kept
+   until the source's cycle changes. *)
+module Per_cycle = struct
+  type 'a t = (int * 'a) option Atomic.t
 
+  let make () = Atomic.make None
+
+  let find ~cycle settled =
+    match Atomic.get settled with
+      | Some (settled_in, value) when settled_in = cycle -> Some value
+      | _ -> None
+
+  let get ~cycle settled compute =
+    match find ~cycle settled with
+      | Some value -> value
+      | None ->
+          let value = compute () in
+          Atomic.set settled (Some (cycle, value));
+          value
+end
+
+type readiness = { cached : int; can_generate : bool }
 type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
 type self_sync = Source_sync.t
@@ -270,7 +289,14 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       if self#is_up then self#notify_sync_source (snd self#self_sync)
 
     method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
-    method sync_source = source_state
+
+    val cycle_sync_source : Clock.Sync_source.t option Per_cycle.t =
+      Per_cycle.make ()
+
+    method sync_source =
+      if self#is_up then
+        self#per_cycle cycle_sync_source (fun () -> snd self#self_sync)
+      else None
 
     method on_sync_source fn =
       self#on_sync_source_change (fun ~old:_ sync_source -> fn sync_source)
@@ -375,7 +401,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
-    val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
+    val mutable cycle = 0
+    val cycle_open = Atomic.make false
+    val cycle_readiness : readiness Per_cycle.t = Per_cycle.make ()
+    val cycle_frame : Frame.t Per_cycle.t = Per_cycle.make ()
     val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
     method activations = WeakQueue.elements activations
 
@@ -449,14 +478,13 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                src#id)
           "source");
       WeakQueue.filter_out activations (fun a -> a == src);
-      match
-        ( WeakQueue.length activations,
-          Clock.started self#clock,
-          Atomic.get streaming_state )
-      with
-        | 0, true, (`Ready _ | `Unavailable) ->
+      let frame_pending =
+        Atomic.get cycle_open && Per_cycle.find ~cycle cycle_frame = None
+      in
+      match (WeakQueue.length activations, Clock.started self#clock) with
+        | 0, true when frame_pending ->
             Clock.after_tick self#clock (fun () -> self#actual_sleep)
-        | 0, _, _ -> self#actual_sleep
+        | 0, _ -> self#actual_sleep
         | _ -> ()
 
     method register_on_collect fn = Callbacks.register on_collect fn
@@ -561,13 +589,15 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method is_ready =
       if self#is_up && Clock.started self#clock then (
         self#before_streaming_cycle;
-        match Atomic.get streaming_state with
-          | `Ready _ | `Done _ -> true
-          | _ -> false)
+        self#ready)
       else false
 
     val mutable _cache = None
     val mutable consumed = 0
+
+    method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a =
+      fun settled compute -> Per_cycle.get ~cycle settled compute
+
     val mutable on_before_streaming_cycle = []
 
     method on_before_streaming_cycle fn =
@@ -584,46 +614,51 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private cache_pos =
       match _cache with None -> 0 | Some c -> Frame.position c
 
-    (* This is the implementation of the main streaming logic. *)
+    method private readiness =
+      self#per_cycle cycle_readiness (fun () ->
+          let cached = self#cache_pos in
+          { cached; can_generate = self#can_generate_frame })
+
+    method private ready =
+      let { cached; can_generate } = self#readiness in
+      cached > 0 || can_generate
+
+    method private generated_frame =
+      self#per_cycle cycle_frame (fun () ->
+          let { cached; can_generate } = self#readiness in
+          let size = Lazy.Mutexed.force Frame.size in
+          let buf =
+            if can_generate && cached < size then
+              Frame.append self#cache self#instrumented_generate_frame
+            else self#cache
+          in
+          if size < Frame.position buf then (
+            _cache <- Some (Frame.after buf size);
+            Frame.slice buf size)
+          else (
+            _cache <- None;
+            buf))
+
+    (* The cycle counts as open only once its readiness is settled: a hook that
+       closes the cycle and opens another one finds it not open yet. *)
     method private before_streaming_cycle =
-      match Atomic.get streaming_state with
-        | `Pending ->
-            List.iter (fun fn -> fn ()) on_before_streaming_cycle;
-            consumed <- 0;
-            let cache_pos = self#cache_pos in
-            let size = Lazy.Mutexed.force Frame.size in
-            let can_generate_frame = self#can_generate_frame in
-            if cache_pos > 0 || can_generate_frame then
-              Atomic.set streaming_state
-                (`Ready
-                   (fun () ->
-                     let buf =
-                       if can_generate_frame && cache_pos < size then
-                         Frame.append self#cache
-                           self#instrumented_generate_frame
-                       else self#cache
-                     in
-                     let buf_pos = Frame.position buf in
-                     let buf =
-                       if size < buf_pos then (
-                         _cache <- Some (Frame.after buf size);
-                         Frame.slice buf size)
-                       else (
-                         _cache <- None;
-                         buf)
-                     in
-                     Atomic.set streaming_state (`Done buf)))
-            else Atomic.set streaming_state `Unavailable;
-            Clock.after_tick self#clock (fun () -> self#after_streaming_cycle)
-        | _ -> ()
+      if not (Atomic.get cycle_open) then (
+        cycle <- cycle + 1;
+        List.iter (fun fn -> fn ()) on_before_streaming_cycle;
+        consumed <- 0;
+        ignore self#readiness;
+        Atomic.set cycle_open true;
+        Clock.after_tick self#clock (fun () -> self#after_streaming_cycle);
+        self#notify_sync_source self#sync_source)
 
     method private after_streaming_cycle =
-      (match (Atomic.get streaming_state, consumed) with
-        | `Done buf, n when n < Frame.position buf ->
-            _cache <- Some (Frame.append (Frame.after buf n) self#cache)
+      (match Per_cycle.find ~cycle cycle_frame with
+        | Some buf when consumed < Frame.position buf ->
+            _cache <- Some (Frame.append (Frame.after buf consumed) self#cache)
         | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
-      Atomic.set streaming_state `Pending
+      cycle <- cycle + 1;
+      Atomic.set cycle_open false
 
     (* Frame generation executes script callbacks which may read the source's
        frame again. Such a re-entrant call must not restart the generation, so
@@ -631,16 +666,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable generating = false
 
     method peek_frame =
-      match Atomic.get streaming_state with
-        | `Pending | `Unavailable ->
+      match Per_cycle.find ~cycle cycle_frame with
+        | Some data -> data
+        | None when not (Atomic.get cycle_open && self#ready) ->
             log#critical "source called while not ready!";
             raise Unavailable
-        | `Ready _ when generating -> self#cache
-        | `Ready fn ->
+        | None when generating -> self#cache
+        | None ->
             generating <- true;
-            Fun.protect ~finally:(fun () -> generating <- false) fn;
-            self#peek_frame
-        | `Done data -> data
+            Fun.protect
+              ~finally:(fun () -> generating <- false)
+              (fun () -> self#generated_frame)
 
     method get_partial_frame cb =
       let data = cb self#peek_frame in

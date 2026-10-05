@@ -121,6 +121,9 @@ most checks free of animators and of real time.
   does not; connect and disconnect a pacing input. Binding: the clock's
   pacing after one tick.
 - K8: with a pacing source that is not ready, the clock paces itself.
+- An operator that reads a passive pacing source reports it from the first
+  tick, stops reporting it on the tick where the source is not ready, and
+  reports it again on the tick where it is.
 - A change reported from another thread during a tick is applied at the next
   tick and not during this one. Two changes of one source before a tick: the
   later one applies. Two sources moving together from one sync source to

@@ -67,8 +67,8 @@ type child = {
   on_leave : source -> bool -> unit;
   track_sensitive : unit -> bool;
   single : bool;
-  mutable effective_track_sensitive : bool option;
-  mutable effective_predicate : bool option;
+  effective_track_sensitive : bool Source.Per_cycle.t;
+  effective_predicate : bool Source.Per_cycle.t;
 }
 
 type selection = {
@@ -83,22 +83,6 @@ type selection = {
 (** A source we have switched away from. A transition may keep pulling from it
     for a while, so its [on_leave] only runs once nothing holds it any more. *)
 type leaving = { leaving_proxy : source; fire : unit -> unit }
-
-let is_ready c =
-  match c.effective_predicate with
-    | Some v -> v
-    | None ->
-        let v = Lang.to_bool (Lang.apply c.predicate []) in
-        c.effective_predicate <- Some v;
-        v
-
-let is_track_sensitive c =
-  match c.effective_track_sensitive with
-    | Some v -> v
-    | None ->
-        let v = c.track_sensitive () in
-        c.effective_track_sensitive <- Some v;
-        v
 
 let trivially_true = function
   | Value.Fun { fun_body = { Term.term = `Bool true } } -> true
@@ -186,13 +170,8 @@ class switch ~all_predicates children =
           resuming <- 1 < tick - last_animated_tick;
           last_animated_tick <- tick;
           excluded_sources <- [];
-          Atomic.set track_sensitive (List.for_all is_track_sensitive children));
-      self#on_after_streaming_cycle (fun () ->
-          List.iter
-            (fun c ->
-              c.effective_track_sensitive <- None;
-              c.effective_predicate <- None)
-            children);
+          Atomic.set track_sensitive
+            (List.for_all self#is_track_sensitive children));
       self#on_frame
         (`After_frame (fun _ -> self#release_leaving ~force:false ()))
 
@@ -218,15 +197,16 @@ class switch ~all_predicates children =
                  interrupted, or the one starting must not need to start on a
                  boundary. *)
               (boundary
-              || (not (is_track_sensitive child))
-              || not (is_track_sensitive c))
+              || (not (self#is_track_sensitive child))
+              || not (self#is_track_sensitive c))
               && not (List.memq c excluded_sources)
           | None -> not (List.memq c excluded_sources)
       in
       try
         Some
           (find ~strict:all_predicates
-             (fun c -> is_ready c && may_select c && c.source#is_ready)
+             (fun c ->
+               self#predicate_holds c && may_select c && c.source#is_ready)
              children)
       with Not_found -> None
 
@@ -279,7 +259,15 @@ class switch ~all_predicates children =
 
     (* A track-sensitive child keeps its slot until its track ends, even if its
        predicate has gone false in the meantime. *)
-    method private still_wanted c = is_track_sensitive c || is_ready c
+    method private still_wanted c =
+      self#is_track_sensitive c || self#predicate_holds c
+
+    method private predicate_holds c =
+      self#per_cycle c.effective_predicate (fun () ->
+          Lang.to_bool (Lang.apply c.predicate []))
+
+    method private is_track_sensitive c =
+      self#per_cycle c.effective_track_sensitive c.track_sensitive
 
     (* A transition is in progress while something we switched away from is
        still being pulled from. *)
@@ -306,11 +294,8 @@ class switch ~all_predicates children =
       Atomic_section.run (fun () ->
           List.iter
             (fun c ->
-              if c.effective_predicate = None then
-                c.effective_predicate <-
-                  Some (Lang.to_bool (Lang.apply c.predicate []));
-              if c.effective_track_sensitive = None then
-                c.effective_track_sensitive <- Some (c.track_sensitive ()))
+              ignore (self#predicate_holds c);
+              ignore (self#is_track_sensitive c))
             children)
 
     method get_source ~reselect () =
@@ -535,8 +520,8 @@ let _ =
               on_leave;
               track_sensitive;
               single;
-              effective_track_sensitive = None;
-              effective_predicate = None;
+              effective_track_sensitive = Source.Per_cycle.make ();
+              effective_predicate = Source.Per_cycle.make ();
             })
           (Lang.to_list (List.assoc "" p))
       in
