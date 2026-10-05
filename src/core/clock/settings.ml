@@ -1,5 +1,5 @@
 let log = Log.make ["clock"]
-let scheduler = Tutils.scheduler
+let scheduler = Scheduler.raw
 let conf = Dtools.Conf.void ~p:(Configure.conf#plug "clock") "Clock settings"
 
 let conf_latency =

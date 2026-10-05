@@ -345,11 +345,7 @@ let loop c st () =
 
 let rec spawn animator fn =
   match animator with
-    | `Thread ->
-        (* Script code registers its callbacks through an effect that only the
-           scheduler's own tasks handle. *)
-        Duppy.thread ~priority:`Clock scheduler (fun () ->
-            Script_callback.uncollected fn)
+    | `Thread -> Duppy.thread ~priority:`Clock scheduler fn
     | `Task ->
         Duppy.Task.add scheduler
           {
@@ -362,9 +358,12 @@ let rec spawn animator fn =
           }
 
 (* A deep handler is part of the continuation, so the loop keeps it when it
-   resumes under another animator. *)
+   resumes under another animator. The same holds for the handler of the
+   effect through which script code registers its callbacks. *)
 and animated c st fn () =
-  Effect.Deep.match_with fn ()
+  Effect.Deep.match_with
+    (fun () -> Script_callback.uncollected fn)
+    ()
     {
       retc = Fun.id;
       exnc = raise;

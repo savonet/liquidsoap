@@ -53,7 +53,7 @@ type continuation =
         waiting for termination *)
   | `Kill  (** kill the process immediately *)
   | `Delay of float  (** wait for a given amount of seconds *)
-  | `Reschedule of Tutils.priority
+  | `Reschedule of Scheduler.priority
     (** Update the process' priority and continue processing. *) ]
 
 (** A call back. *)
@@ -75,7 +75,7 @@ exception Finished
     immediately after the callback has returned. [on_stop] returns the delay in
     seconds before restarting the process; negative means do not restart.*)
 val run :
-  ?priority:Tutils.priority ->
+  ?priority:Scheduler.priority ->
   ?env:string array ->
   ?on_start:push callback ->
   ?on_stdin:push callback ->
@@ -88,7 +88,7 @@ val run :
 
 (** Change the process' asynchronous task priority. Useful when switching from
     blocking read to non-blocking read. *)
-val set_priority : t -> Tutils.priority -> unit
+val set_priority : t -> Scheduler.priority -> unit
 
 (** Asynchronous stop. The process' stdin will be closed some time in the
     future. *)

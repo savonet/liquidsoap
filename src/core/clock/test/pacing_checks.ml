@@ -473,7 +473,7 @@ let unsynced_and_due_task () =
   Thread.delay 0.1;
   let ran = Atomic.make 0. in
   let submitted = Duppy.time () in
-  Duppy.Task.add Tutils.scheduler
+  Scheduler.Task.add
     {
       Duppy.Task.priority = `Blocking;
       events = [`Delay 0.2];
@@ -551,7 +551,7 @@ let long_ticks () =
   stop clock
 
 let run () =
-  Tutils.start ();
+  Scheduler.start ();
   long_ticks ();
   paced ();
   device_paced ~tasks:true ();

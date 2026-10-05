@@ -168,7 +168,7 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
               else fun args ->
                 let task =
                   {
-                    Duppy.Task.priority = `Threaded;
+                    Scheduler.Task.priority = `Threaded;
                     events = [`Delay 0.];
                     handler =
                       (fun _ ->
@@ -176,7 +176,7 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
                         []);
                   }
                 in
-                Duppy.Task.add Tutils.scheduler task
+                Scheduler.Task.add task
             in
             (s#log : Log.t)#debug "Registering %s %s callback" name
               (if synchronous then "synchronous" else "asynchronous");

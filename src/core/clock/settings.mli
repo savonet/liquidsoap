@@ -1,5 +1,5 @@
 val log : Log.t
-val scheduler : Tutils.priority Duppy.scheduler
+val scheduler : Scheduler.priority Duppy.scheduler
 val conf : Dtools.Conf.ut
 val conf_latency : float Dtools.Conf.t
 val conf_max_latency : float Dtools.Conf.t

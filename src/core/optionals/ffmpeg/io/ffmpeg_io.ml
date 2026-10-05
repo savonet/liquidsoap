@@ -181,17 +181,14 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
         | `Starting | `Polling _ | `Connected _ -> ()
         | `Stopping | `Stopped ->
             Atomic.set source_status `Starting;
-            let t =
-              Duppy.Async.add ~priority:`Threaded Tutils.scheduler
-                self#connect_task
-            in
+            let t = Scheduler.Async.add ~priority:`Threaded self#connect_task in
             Atomic.set connect_task (Some t);
-            Duppy.Async.wake_up t
+            Scheduler.Async.wake_up t
 
     method private disconnect =
       (* The stopped task no longer retains this source. *)
       let stop_task () =
-        Option.iter Duppy.Async.stop (Atomic.exchange connect_task None)
+        Option.iter Scheduler.Async.stop (Atomic.exchange connect_task None)
       in
       match self#source_status with
         | `Stopping | `Stopped -> ()

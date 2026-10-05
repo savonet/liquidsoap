@@ -7,7 +7,7 @@ let start_pool workers =
   (Dtools.Conf.as_bool (setting "legacy"))#set true;
   (Dtools.Conf.as_int (setting "generic_queues"))#set workers;
   (Dtools.Conf.as_int (setting "non_blocking_queues"))#set 0;
-  Tutils.start ();
+  Scheduler.start ();
   real_time ()
 
 let resting_clocks () =
@@ -66,7 +66,7 @@ let clocks_before_other_work () =
   Thread.delay 0.2;
   let ran = Atomic.make 0 in
   for _ = 1 to 3 do
-    Duppy.Task.add Tutils.scheduler
+    Scheduler.Task.add
       {
         Duppy.Task.priority = `Blocking;
         events = [`Delay 0.];
@@ -94,7 +94,7 @@ let wait_in_tick () =
       let started = Duppy.time () in
       let finished = Atomic.make false in
       let wait = Clock.Wait.create () in
-      Duppy.Task.add Tutils.scheduler
+      Scheduler.Task.add
         {
           Duppy.Task.priority = `Blocking;
           events = [`Delay 0.];

@@ -4,7 +4,7 @@ open Pacing_checks
 (* The global stop cannot be undone, so each of these runs in a process of its
    own. *)
 let orderly () =
-  Tutils.start ();
+  Scheduler.start ();
   real_time ();
   let task = started ~id:"task" ~sync:`Cpu [source `Output] in
   let thread = started ~id:"thread" ~sync:`Unsynced [source `Output] in
@@ -51,7 +51,7 @@ let orderly () =
     (( = ) Clock.Stop_signal) (fun () -> Clock.tick by_hand)
 
 let stuck () =
-  Tutils.start ();
+  Scheduler.start ();
   real_time ();
   Clock.Settings.conf_shutdown_wait#set 0.3;
   Clock.Settings.conf_max_latency#set 1000.;

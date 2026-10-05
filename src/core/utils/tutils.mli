@@ -33,7 +33,10 @@ val error_handlers : (bt:string -> exn -> bool) Stack.t
 val create : ('a -> unit) -> 'a -> string -> Thread.t
 
 val main : unit -> unit
-val start : unit -> unit
+
+(** Mark the application as starting. [true] the first time. *)
+val start : unit -> bool
+
 val running : unit -> bool
 val finished : unit -> bool
 val shutdown : int -> unit
@@ -48,22 +51,6 @@ exception Exit
 (** Wait for the threads to terminate, never return if some thread keeps
     running. *)
 val join_all : unit -> unit
-
-(** {1 Multi-tasking scheduler} *)
-
-(** Priorities for the different scheduler usages. *)
-type priority =
-  [ `Clock  (** A clock resuming to produce its next frames. *)
-  | `Blocking
-    (** Keeps its domain busy until done and never parks, such as a listener
-        writer. *)
-  | `Threaded
-    (** May wait on a socket or a file, such as a request resolution or a
-        last.fm submission. *)
-  | `Non_blocking  (** Non-blocking tasks like the server. *) ]
-
-(** task scheduler *)
-val scheduler : priority Duppy.scheduler
 
 (** {1 Misc} *)
 

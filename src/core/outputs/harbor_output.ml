@@ -48,7 +48,7 @@ let () =
 
 (** Output to harbor listeners. *)
 
-module Task = Duppy.Task
+module Task = Scheduler.Task
 
 module Icecast = struct
   type protocol = unit
@@ -537,7 +537,7 @@ class virtual ['a] base p =
         (* Encoder teardown and user callbacks can be slow: run them on the
            Maybe_blocking queue so they never delay the streaming thread or
            the non-blocking write task. *)
-        Task.add Tutils.scheduler
+        Task.add
           {
             Task.priority = `Threaded;
             events = [`Delay 0.];
@@ -663,7 +663,7 @@ class virtual ['a] base p =
           (fun shard ->
             match Atomic.get shard.wake with
               | Some (wake_out, _) ->
-                  Task.add Tutils.scheduler
+                  Task.add
                     {
                       Task.priority = `Blocking;
                       events = [`Read wake_out; `Delay 1.];
@@ -747,7 +747,7 @@ class virtual ['a] base p =
       self#log#info "New listener connection from %s" client_id;
       (match login with
         | Some login -> (
-            Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
+            Scheduler.reschedule ~priority:`Threaded ();
             try
               Harbor.http_auth_check ~query ~meth:"GET" ~uri:request_uri ~login
                 socket headers
@@ -815,7 +815,7 @@ class virtual ['a] base p =
         | Some _ ->
             self#wake_shard shard;
             self#log#info "Listener %s connected" client_id;
-            Duppy.reschedule ~priority:`Threaded Tutils.scheduler;
+            Scheduler.reschedule ~priority:`Threaded ();
             Harbor.custom ()
 
     method private register_http_handler =

@@ -37,7 +37,7 @@ let run fn =
       (Printf.sprintf "Error in signal callback: %s" (Printexc.to_string exn))
 
 (* Handlers only queue their callback and write to a never-closed pipe:
-   running the callback, adding a task or waking a [Duppy.Async] takes a lock
+   running the callback, adding a task or waking a [Scheduler.Async] takes a lock
    the interrupted code may hold. *)
 let wake_task =
   Lazy.Mutexed.from_fun (fun () ->
@@ -47,7 +47,7 @@ let wake_task =
       let buffer = Bytes.create 256 in
       let rec task () =
         {
-          Duppy.Task.priority = `Threaded;
+          Scheduler.Task.priority = `Threaded;
           events = [`Read read_fd];
           handler =
             (fun _ ->
@@ -59,7 +59,7 @@ let wake_task =
               [task ()]);
         }
       in
-      Duppy.Task.add Tutils.scheduler (task ());
+      Scheduler.Task.add (task ());
       let byte = Bytes.make 1 '\000' in
       fun () ->
         try ignore (Unix.single_write write_fd byte 0 1)

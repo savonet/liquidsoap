@@ -17,7 +17,7 @@ let () =
   Dtools.Log.conf_stdout#set true;
   Dtools.Log.conf_file#set false;
   Dtools.Init.exec Dtools.Log.start;
-  Tutils.start ();
+  Scheduler.start ();
   for _ = 0 to 10 do
     let r =
       Request.create ~cue_in_metadata:None ~cue_out_metadata:None "/tmp/bla.mp3"
