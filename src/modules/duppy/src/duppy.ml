@@ -446,6 +446,36 @@ let run fn =
             | _ -> None);
     }
 
+(* A park is handled by blocking: the calling thread waits here for what the
+   computation parked on, then continues the computation itself. *)
+let blocking fn =
+  let open Effect.Deep in
+  Effect_utils.try_with fn ()
+    {
+      effc =
+        (fun (type a) (e : a Effect.t) ->
+          match e with
+            | Await { park } ->
+                Some
+                  (fun (k : (a, _) continuation) ->
+                    let m = Mutex.create () in
+                    let woken = Stdlib.Condition.create () in
+                    let occurred = ref None in
+                    park (fun events ->
+                        Mutex.protect m (fun () ->
+                            occurred := Some events;
+                            Stdlib.Condition.signal woken));
+                    let events =
+                      Mutex.protect m (fun () ->
+                          while !occurred = None do
+                            Stdlib.Condition.wait woken m
+                          done;
+                          Option.get !occurred)
+                    in
+                    continue k events)
+            | _ -> None);
+    }
+
 let run_task s fn =
   match s.wrapper.wrap fn with
     | exception exn ->

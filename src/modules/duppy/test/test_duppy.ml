@@ -614,6 +614,32 @@ let test_condition_parks () =
   Duppy.stop s;
   ok "a computation waiting for a condition gives its worker back"
 
+(* [run] returns when its computation parks or ends: it returns with the
+   computation finished only if the wait inside [blocking] did not park. *)
+let test_blocking () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Domains 1) s;
+  let condition = Duppy.Condition.create () in
+  let ready = Atomic.make false in
+  let finished = ref false in
+  Duppy.Task.add s
+    {
+      (task Direct (fun _ ->
+           Atomic.set ready true;
+           Duppy.Condition.signal condition;
+           []))
+      with
+      events = [`Delay 0.05];
+    };
+  Duppy.run (fun () ->
+      Duppy.blocking (fun () ->
+          Duppy.Condition.wait ~priority:Direct s condition (fun () ->
+              Atomic.get ready));
+      finished := true);
+  if not !finished then fail "a wait inside a blocking section parked";
+  Duppy.stop s;
+  ok "a wait inside a blocking section blocks its thread"
+
 let test_condition_blocks_a_thread () =
   let s = Duppy.create ~classify () in
   let condition = Duppy.Condition.create () in
@@ -775,6 +801,7 @@ let () =
   test_unwatchable_descriptor ();
   test_suspend ();
   test_condition_parks ();
+  test_blocking ();
   test_condition_blocks_a_thread ();
   test_stop_releases_handlers ();
   print_endline "all duppy pool checks passed"
