@@ -53,7 +53,7 @@ type t = State.t
 let equal = equal
 let compare = compare
 let name t = clock_name (get t)
-let id t = Atomic.get (get t).id
+let id t = clock_id (get t)
 let set_id t id = set_clock_id (get t) id
 let sync_mode t = (get t).sync_mode
 let parent t = Atomic.get (get t).parent
@@ -62,7 +62,7 @@ let set_stack t stack =
   let c = get t in
   if Atomic.get c.stack = [] then Atomic.set c.stack stack
 
-let streaming t = Atomic.get (get t).streaming
+let streaming t = State.streaming (get t)
 let ticks t = Option.map (fun st -> Atomic.get st.ticks) (streaming t)
 let time t = Option.map stream_time (streaming t)
 
@@ -82,8 +82,7 @@ let pulled t =
   match streaming t with Some st -> Atomic.get st.pulled | None -> false
 
 let stop_reason t =
-  let c = get t in
-  if state c = `Stopped then Some (Atomic.get c.stop_reason) else None
+  match lifecycle (get t) with `Stopped reason -> Some reason | _ -> None
 
 let started t = state (get t) = `Started
 let pending t = Atomic.get (get t).pending
@@ -119,16 +118,13 @@ let create ?(stack = []) ?on_error ?id ?(sync = `Automatic) ?parent ?owner () =
       parent = Atomic.make parent;
       owner;
       stack = Atomic.make stack;
-      state = Atomic.make `Stopped;
-      stop_reason = Atomic.make `Never_started;
+      state = Atomic.make (`Stopped `Never_started);
       pending = Atomic.make [];
       subs = Atomic.make [];
       error_handlers = Atomic.make (Option.to_list on_error);
-      streaming = Atomic.make None;
       ticking = Atomic.make false;
       activated = Atomic.make 0;
       self = Atomic.make None;
-      log = Atomic.make None;
     }
   in
   Registry.watch c;
@@ -167,7 +163,7 @@ let shutdown () =
                  activity = Atomic.get st.activity;
                  slowest_source = (Atomic.get st.life).slowest_source;
                }))
-        (Atomic.get c.streaming))
+        (State.streaming c))
     (Registry.running_clocks ())
 
 let () =

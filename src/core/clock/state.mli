@@ -78,11 +78,12 @@ exception
 exception Not_a_sub_clock of { clock : string; parent : string }
 exception Stop_signal
 
+type answer = { pacer : Sync_source.t; rank : int }
+
 type member = {
   role : [ `Active | `Output ];
   removed : bool Atomic.t;
-  mutable sync : Sync_source.t option;
-  mutable change : int;
+  mutable sync : answer option;
 }
 
 type output = { sleep : unit -> unit; source : source; member : member }
@@ -91,6 +92,12 @@ type pace = {
   time_source : Sync_source.time_source;
   offset : float;
   followed : Sync_source.t option;
+}
+
+type span = {
+  mutable mark : Status.figures;
+  mutable since : float;
+  longest : Status.slowest;
 }
 
 type streaming = {
@@ -125,32 +132,30 @@ type streaming = {
   mutable leased : bool;
   mutable worker_since : float;
   tick_slowest : Status.slowest;
-  mutable last_warning : float;
   mutable last_long_tick : float;
-  mutable warning_mark : Status.figures;
-  warning_slowest : Status.slowest;
-  mutable window_mark : Status.figures;
-  mutable window_started : float;
-  window_slowest : Status.slowest;
+  warning : span;
+  window : span;
 }
+
+type lifecycle =
+  [ `Stopped of Status.stop_reason
+  | `Started of streaming
+  | `Stopping of streaming * Status.stop_reason ]
 
 type clock = {
   identity : int;
-  id : string option Atomic.t;
+  id : (string * Log.t) option Atomic.t;
   sync_mode : Status.sync_mode;
   parent : t option Atomic.t;
   owner : Status.owner option;
   stack : Liquidsoap_lang_prelude.Pos.t list Atomic.t;
-  state : [ `Started | `Stopped | `Stopping ] Atomic.t;
-  stop_reason : Status.stop_reason Atomic.t;
+  state : lifecycle Atomic.t;
   pending : source list Atomic.t;
   subs : sub list Atomic.t;
   error_handlers : (exn -> Printexc.raw_backtrace -> unit) list Atomic.t;
-  streaming : streaming option Atomic.t;
   ticking : bool Atomic.t;
   activated : int Atomic.t;
   self : t option Atomic.t;
-  log : Log.t option Atomic.t;
 }
 
 and sub = { sub : t; registrants : int }
@@ -173,7 +178,13 @@ val handle : clock -> t
 val get : t -> clock
 val equal : t -> t -> bool
 val compare : t -> t -> int
+val lifecycle : clock -> lifecycle
 val state : clock -> [ `Started | `Stopped | `Stopping ]
+
+(** The current run of the clock, if it has one. *)
+val streaming : clock -> streaming option
+
+val clock_id : clock -> string option
 val running : clock -> bool
 val stream_time : streaming -> float
 
@@ -219,6 +230,8 @@ val passive_sources : streaming -> source list
 val measures : clock -> streaming -> bool
 val now : streaming -> float
 val lateness : clock -> streaming -> float option
+val span_figures : span -> Status.figures -> Status.figures
+val restart_span : span -> mark:Status.figures -> since:float -> unit
 val recent_figures : streaming -> Status.figures
 val stop_check : unit -> unit
 val not_running : clock -> 'a

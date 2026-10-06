@@ -61,6 +61,7 @@ let default_time_source c =
         Sync_source.builtin
 
 let slowest () = { duration = 0.; culprit = None }
+let new_span since = { mark = no_figures; since; longest = slowest () }
 
 (* The state of a new run, with its stream anchored at the current time. *)
 let new_streaming ~force c =
@@ -104,13 +105,9 @@ let new_streaming ~force c =
     leased = false;
     worker_since = real_time;
     tick_slowest = slowest ();
-    last_warning = neg_infinity;
     last_long_tick = neg_infinity;
-    warning_mark = no_figures;
-    warning_slowest = slowest ();
-    window_mark = no_figures;
-    window_started = real_time;
-    window_slowest = slowest ();
+    warning = new_span neg_infinity;
+    window = new_span real_time;
   }
 
 (* Runs and clears one-shot callbacks, in registration order. *)
@@ -140,14 +137,10 @@ let animate c st (source : source) member =
 
 (* Closes the statistics window once it is full. *)
 let roll_window st real_time =
-  if real_time -. st.window_started >= window_length then begin
+  if real_time -. st.window.since >= window_length then begin
     let life = Atomic.get st.life in
-    Atomic.set st.recent
-      (Some (figures_since ~slowest:st.window_slowest st.window_mark life));
-    st.window_mark <- life;
-    st.window_started <- real_time;
-    st.window_slowest.duration <- 0.;
-    st.window_slowest.culprit <- None
+    Atomic.set st.recent (Some (span_figures st.window life));
+    restart_span st.window ~mark:life ~since:real_time
   end
 
 (* Adds a finished tick to the figures, and logs a long one. *)
@@ -155,8 +148,8 @@ let update_statistics c st ~started =
   let real_time = Duppy.time () in
   let duration = real_time -. started in
   let name = st.tick_slowest.culprit in
-  note_slowest st.warning_slowest ~duration ~name;
-  note_slowest st.window_slowest ~duration ~name;
+  note_slowest st.warning.longest ~duration ~name;
+  note_slowest st.window.longest ~duration ~name;
   update_figures st (fun figures ->
       let longest = duration > figures.longest_tick in
       {
@@ -182,35 +175,29 @@ let update_statistics c st ~started =
     emit c (Long_tick { duration; slowest_source = name })
   end
 
-(* Where a sub-clock stood when its parent's tick began: its run and its tick
-   count. *)
-type sub_snapshot = {
-  snapshot_of : clock;
-  streaming_then : streaming option;
-  ticks_then : int;
-}
+(* Where a sub-clock stood when its parent's tick began: its run, if it had
+   one, with the run's tick count. *)
+type sub_snapshot = { snapshot_of : clock; run_then : (streaming * int) option }
 
 let sub_snapshot c =
   List.map
     (fun { sub } ->
       let snapshot_of = get sub in
-      let streaming_then = Atomic.get snapshot_of.streaming in
       {
         snapshot_of;
-        streaming_then;
-        ticks_then =
-          (match streaming_then with
-            | Some st -> Atomic.get st.ticks
-            | None -> 0);
+        run_then =
+          Option.map
+            (fun st -> (st, Atomic.get st.ticks))
+            (streaming snapshot_of);
       })
     (Atomic.get c.subs)
 
 (* Whether the sub-clock ticked since the snapshot, in the same run or in a new
    one. *)
-let ticked_since { snapshot_of; streaming_then; ticks_then } =
-  match (Atomic.get snapshot_of.streaming, streaming_then) with
-    | Some current, Some before when current == before ->
-        Atomic.get current.ticks > ticks_then
+let ticked_since { snapshot_of; run_then } =
+  match (streaming snapshot_of, run_then) with
+    | Some current, Some (before, ticks) when current == before ->
+        Atomic.get current.ticks > ticks
     | Some current, _ -> Atomic.get current.ticks > 0
     | None, _ -> false
 
@@ -226,8 +213,8 @@ let report_failure c failure =
    sub-clocks stop, and a failure is reported. *)
 let rec wind_down c =
   Transition.run (fun () ->
-      match (state c, Atomic.get c.streaming) with
-        | `Stopping, Some st -> (
+      match lifecycle c with
+        | `Stopping (st, reason) -> (
             let subs = Atomic.get c.subs in
             List.iter
               (fun o -> quietly c "putting an output to sleep" o.sleep)
@@ -257,9 +244,14 @@ let rec wind_down c =
                     stop_clock (get sub) `Parent_stopped))
               subs;
             if Atomic.get st.blocking then tell_parent c false;
-            let reason = Atomic.get c.stop_reason in
-            Atomic.set c.streaming None;
-            Atomic.set c.state `Stopped;
+            (* A callback above may have given the stop a reason that takes
+               precedence. *)
+            let reason =
+              match lifecycle c with
+                | `Stopping (_, latest) -> latest
+                | _ -> reason
+            in
+            Atomic.set c.state (`Stopped reason);
             if is_top_level c then Registry.wait c;
             emit c
               (Stop
@@ -278,7 +270,7 @@ let rec wind_down c =
 and stop_clock c reason =
   Transition.run (fun () ->
       if request_stop c reason then begin
-        Option.iter interrupt (Atomic.get c.streaming);
+        Option.iter interrupt (streaming c);
         if c.sync_mode = `Passive && not (Atomic.get c.ticking) then wind_down c
       end)
 
@@ -333,8 +325,8 @@ and tick_passive c ~pull =
     Atomic.set c.ticking false;
     if state c = `Stopping then wind_down c
   in
-  match (state c, Atomic.get c.streaming) with
-    | `Started, Some st -> (
+  match lifecycle c with
+    | `Started st -> (
         match run_tick c st ~pull with
           | () -> finish ()
           | exception Stop_signal ->
@@ -453,8 +445,7 @@ let rec start_clock ~force c =
       let name = clock_name c in
       let st = new_streaming ~force c in
       set_clock_id c name;
-      Atomic.set c.streaming (Some st);
-      Atomic.set c.state `Started;
+      Atomic.set c.state (`Started st);
       if is_top_level c then Registry.run c;
       let animator =
         if c.sync_mode = `Passive then None else Some (wanted_animator c st)
@@ -482,7 +473,7 @@ let rec start_clock ~force c =
    blocks. *)
 and start_sub ~force parent sub =
   if cannot_start ~force sub = None then start_clock ~force sub;
-  match Atomic.get sub.streaming with
+  match streaming sub with
     | Some st when Atomic.get st.blocking ->
         Atomic.incr parent.sub_blocking;
         Atomic.set parent.dirty true
@@ -493,8 +484,8 @@ let start ?(force = false) t = start_clock ~force (get t)
 (* A clock stopped for another reason stays stopped until it is started
    explicitly, although it still has its outputs. *)
 let starts_by_itself c =
-  match Atomic.get c.stop_reason with
-    | `Never_started | `No_sources -> true
+  match lifecycle c with
+    | `Stopped (`Never_started | `No_sources) -> true
     | _ -> false
 
 (* Starts every waiting clock that may start by itself, and returns how many
@@ -547,9 +538,8 @@ let register ~parent sub =
             raise
               (Not_a_sub_clock { clock = clock_name s; parent = clock_name p }));
       set_registrants p sub (registrants p sub + 1);
-      match (state p, Atomic.get p.streaming) with
-        | `Started, Some st when state s = `Stopped ->
-            start_sub ~force:st.forced st s
+      match lifecycle p with
+        | `Started st when state s = `Stopped -> start_sub ~force:st.forced st s
         | _ -> ())
 
 (* Drops one registration, and stops the sub-clock with the last one. *)

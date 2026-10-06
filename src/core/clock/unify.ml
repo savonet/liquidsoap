@@ -91,11 +91,10 @@ let check_nesting merges =
 
 (* Carries the absorbed clock's id over, unless the survivor has its own. *)
 let merge_ids x y =
-  match (Atomic.get x.id, Atomic.get y.id) with
+  match (clock_id x, clock_id y) with
     | Some id, None ->
         Registry.move_id ~from:x ~into:y id;
-        Atomic.set y.id (Some id);
-        Atomic.set y.log None
+        Atomic.set y.id (Atomic.get x.id)
     | Some dropped, Some kept ->
         Registry.drop_id x;
         emit y (Id_kept { kept; dropped })
@@ -153,8 +152,8 @@ let settle_subs merges =
     merges
 
 let start_moved_subs (survivor, moved) =
-  match (state survivor, Atomic.get survivor.streaming) with
-    | `Started, Some st ->
+  match lifecycle survivor with
+    | `Started st ->
         List.iter
           (fun { sub } ->
             let sub = get sub in

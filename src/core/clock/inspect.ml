@@ -6,15 +6,16 @@ let sorted entries =
   List.sort (fun a b -> String.compare a.Status.id b.Status.id) entries
 
 let rec clock_status c =
-  let st = Atomic.get c.streaming in
+  let st = streaming c in
   let streaming fn = Option.map fn st in
   let sources fn = Option.value ~default:[] (streaming fn) in
   {
     Status.name = clock_name c;
     state =
-      (match state c with
-        | `Stopped -> `Stopped (Atomic.get c.stop_reason)
-        | (`Started | `Stopping) as state -> state);
+      (match lifecycle c with
+        | `Stopped reason -> `Stopped reason
+        | `Started _ -> `Started
+        | `Stopping _ -> `Stopping);
     sync_mode = c.sync_mode;
     controller =
       (if c.sync_mode = `Passive then

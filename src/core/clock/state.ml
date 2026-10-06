@@ -152,15 +152,17 @@ let () =
         | Sync_error _ -> numbered ~formatter 17 None error
         | _ -> false)
 
+(* A sync source read from a source; [rank] orders the answers of a run, which
+   tells the latest of two conflicting sources. *)
+type answer = { pacer : Sync_source.t; rank : int }
+
 type member = {
   role : [ `Output | `Active ];
   (* Set when the source is detached, so that the rest of the tick skips it. *)
   removed : bool Atomic.t;
-  (* The sync source read from the source at the last pacing point. *)
-  mutable sync : Sync_source.t option;
-  (* Rank of the source's last sync change, which tells the latest of two
-     conflicting sources. *)
-  mutable change : int;
+  (* The source's answer at the last pacing point, when it reported a sync
+     source. *)
+  mutable sync : answer option;
 }
 
 type output = { sleep : unit -> unit; source : source; member : member }
@@ -173,6 +175,10 @@ type pace = {
   (* The sync source the clock paces on, if any. *)
   followed : Sync_source.t option;
 }
+
+(* A stretch of a run over which figures are taken: the figures and the time at
+   its start, and its longest tick with that tick's slowest source. *)
+type span = { mutable mark : figures; mutable since : float; longest : slowest }
 
 (* The state of one run of a clock, created at start and dropped at stop. *)
 type streaming = {
@@ -224,7 +230,7 @@ type streaming = {
   life : figures Atomic.t;
   (* Figures of the last complete window; [None] during the first one. *)
   recent : figures option Atomic.t;
-  (* Number of sync changes seen, the source of [member.change]. *)
+  (* Number of sync changes seen, the source of each answer's [rank]. *)
   mutable changes_applied : int;
   (* Id of the source whose unhandled error is failing the clock. *)
   mutable failing : string option;
@@ -237,21 +243,27 @@ type streaming = {
   (* When the loop last took its worker, the start of its time box. *)
   mutable worker_since : float;
   tick_slowest : slowest;
-  mutable last_warning : float;
   mutable last_long_tick : float;
-  mutable warning_mark : figures;
-  warning_slowest : slowest;
-  mutable window_mark : figures;
-  mutable window_started : float;
-  window_slowest : slowest;
+  (* The span since the last latency warning or reset was logged. *)
+  warning : span;
+  (* The current statistics window. *)
+  window : span;
 }
+
+(* A clock's lifecycle: a run exists exactly while the clock is started or
+   stopping, and a stop reason exactly while it is stopping or stopped. *)
+type lifecycle =
+  [ `Stopped of stop_reason
+  | `Started of streaming
+  | `Stopping of streaming * stop_reason ]
 
 (* A clock. Handles designate it through the unifier, and a merge moves all of
    them to the surviving clock. *)
 type clock = {
   identity : int;
-  (* The id set by the user or taken at start; [None] before that. *)
-  id : string option Atomic.t;
+  (* The id set by the user or taken at start, with the logger named after it;
+     [None] before that. *)
+  id : (string * Log.t) option Atomic.t;
   sync_mode : sync_mode;
   (* The clock that ticks this passive clock in the ticks where its controller
      does not. *)
@@ -260,23 +272,19 @@ type clock = {
      never merge. *)
   owner : owner option;
   stack : Pos.t list Atomic.t;
-  (* The lifecycle state, changed under the transition lock. *)
-  state : [ `Stopped | `Started | `Stopping ] Atomic.t;
-  (* Why the clock is stopped or stopping; [`Never_started] at creation. *)
-  stop_reason : stop_reason Atomic.t;
+  (* The lifecycle, changed under the transition lock. *)
+  state : lifecycle Atomic.t;
   (* Attached sources waiting for activation, in attachment order. *)
   pending : source list Atomic.t;
   subs : sub list Atomic.t;
   (* Handlers of source errors; with none, a source error fails the clock. *)
   error_handlers : (exn -> Printexc.raw_backtrace -> unit) list Atomic.t;
-  streaming : streaming option Atomic.t;
   (* Raised while a tick or an activation of a passive clock runs: it rejects a
      concurrent one and leaves the wind-down to the one in progress. *)
   ticking : bool Atomic.t;
   (* Sources activated since creation, for the leak warning. *)
   activated : int Atomic.t;
   self : t option Atomic.t;
-  log : Log.t option Atomic.t;
 }
 
 and sub = { sub : t; registrants : int }
@@ -323,7 +331,20 @@ let rec equal a b =
   clock_a == clock_b || (get a != clock_a && equal a b)
 
 let compare a b = Int.compare (get a).identity (get b).identity
-let state c = Atomic.get c.state
+let lifecycle c = Atomic.get c.state
+
+let state c =
+  match lifecycle c with
+    | `Stopped _ -> `Stopped
+    | `Started _ -> `Started
+    | `Stopping _ -> `Stopping
+
+let streaming c =
+  match lifecycle c with
+    | `Started st | `Stopping (st, _) -> Some st
+    | `Stopped _ -> None
+
+let clock_id c = Option.map fst (Atomic.get c.id)
 let running c = state c = `Started && not (Atomic.get global_stop)
 let stream_time st = float (Atomic.get st.ticks) *. st.frame_duration
 
@@ -360,7 +381,7 @@ module Registry = struct
         fn ())
 
   (* Queues a clock's entries for removal when it is collected. *)
-  let watch c = Gc.finalise (fun c -> push dead (c.identity, Atomic.get c.id)) c
+  let watch c = Gc.finalise (fun c -> push dead (c.identity, clock_id c)) c
 
   let wait c =
     locked (fun () ->
@@ -410,7 +431,7 @@ module Registry = struct
             | Some identity when identity <> c.identity -> free (attempt + 1)
             | _ -> candidate
         in
-        Option.iter (release_id c.identity) (Atomic.get c.id);
+        Option.iter (release_id c.identity) (clock_id c);
         let id = free 1 in
         Hashtbl.replace ids id c.identity;
         id)
@@ -421,7 +442,7 @@ module Registry = struct
         Hashtbl.replace ids id into.identity)
 
   let drop_id c =
-    locked (fun () -> Option.iter (release_id c.identity) (Atomic.get c.id))
+    locked (fun () -> Option.iter (release_id c.identity) (clock_id c))
 end
 
 (* The pending source that names an unnamed clock: an output first, then an
@@ -435,7 +456,7 @@ let significant_pending c =
 
 (* The clock's id, or the name it would take at start. *)
 let clock_name c =
-  match Atomic.get c.id with
+  match clock_id c with
     | Some id -> id
     | None -> (
         match significant_pending c with
@@ -449,20 +470,15 @@ let string_of_controller c =
     | None, None -> "none"
 
 let set_clock_id c id =
-  if Atomic.get c.id <> Some id then begin
-    Atomic.set c.id (Some (Registry.claim_id c id));
-    Atomic.set c.log None
+  if clock_id c <> Some id then begin
+    let id = Registry.claim_id c id in
+    Atomic.set c.id (Some (id, Log.make ["clock"; id]))
   end
 
-(* A clock logs under its own name. The logger is kept once the name is an id,
-   which only [set_clock_id] and a merge change. *)
 let logger c =
-  match Atomic.get c.log with
-    | Some log -> log
-    | None ->
-        let log = Log.make ["clock"; clock_name c] in
-        if Atomic.get c.id <> None then Atomic.set c.log (Some log);
-        log
+  match Atomic.get c.id with
+    | Some (_, log) -> log
+    | None -> Log.make ["clock"; clock_name c]
 
 let emit c kind = Event.emit ~log:(logger c) ~clock:(clock_name c) kind
 let wants_debug c = Event.wants_debug ~log:(logger c)
@@ -509,12 +525,19 @@ let now st =
 let lateness c st =
   if measures c st then Some (now st -. stream_time st) else None
 
+let span_figures span figures =
+  figures_since ~slowest:span.longest span.mark figures
+
+let restart_span span ~mark ~since =
+  span.mark <- mark;
+  span.since <- since;
+  span.longest.duration <- 0.;
+  span.longest.culprit <- None
+
 let recent_figures st =
   match Atomic.get st.recent with
     | Some figures -> figures
-    | None ->
-        figures_since ~slowest:st.window_slowest st.window_mark
-          (Atomic.get st.life)
+    | None -> span_figures st.window (Atomic.get st.life)
 
 (* Unwinds the calling tick once the global stop is set. *)
 let stop_check () = if Atomic.get global_stop then raise Stop_signal
@@ -524,14 +547,12 @@ let not_running c =
   raise (Not_running (clock_name c))
 
 let started_streaming c =
-  match (state c, Atomic.get c.streaming) with
-    | `Started, Some st -> st
-    | _ -> not_running c
+  match lifecycle c with `Started st -> st | _ -> not_running c
 
 (* A source may register its next callback from inside the tick that a stop
    landed in: the callback is accepted, and dropped by the wind-down. *)
 let running_streaming c =
-  match Atomic.get c.streaming with Some st -> st | None -> not_running c
+  match streaming c with Some st -> st | None -> not_running c
 
 (* Runs [fn] and logs its error, for cleanup steps that must all run. *)
 let quietly c what fn =
@@ -563,15 +584,14 @@ let update_figures st (fn : figures -> figures) =
 
 (* Tells the parent's run that this clock started or stopped blocking. *)
 let tell_parent c blocking =
-  match Option.map get (Atomic.get c.parent) with
-    | Some { streaming } -> (
-        match Atomic.get streaming with
-          | Some parent ->
-              ignore
-                (Atomic.fetch_and_add parent.sub_blocking
-                   (if blocking then 1 else -1));
-              Atomic.set parent.dirty true
-          | None -> ())
+  match
+    Option.bind (Atomic.get c.parent) (fun parent -> streaming (get parent))
+  with
+    | Some parent ->
+        ignore
+          (Atomic.fetch_and_add parent.sub_blocking
+             (if blocking then 1 else -1));
+        Atomic.set parent.dirty true
     | None -> ()
 
 (* Precedence of stop reasons: of two given to a stopping clock, the lower rank
@@ -594,17 +614,15 @@ let interrupt st =
    call is the one that did. *)
 let request_stop c reason =
   Transition.run (fun () ->
-      if Atomic.compare_and_set c.state `Started `Stopping then begin
-        Atomic.set c.stop_reason reason;
-        true
-      end
-      else begin
-        if
-          state c = `Stopping
-          && reason_rank reason < reason_rank (Atomic.get c.stop_reason)
-        then Atomic.set c.stop_reason reason;
-        false
-      end)
+      match lifecycle c with
+        | `Started st ->
+            Atomic.set c.state (`Stopping (st, reason));
+            true
+        | `Stopping (st, current) ->
+            if reason_rank reason < reason_rank current then
+              Atomic.set c.state (`Stopping (st, reason));
+            false
+        | `Stopped _ -> false)
 
 (* Whether the clock has no parent, which puts it in the registry. *)
 let is_top_level c = Atomic.get c.parent = None

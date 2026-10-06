@@ -40,7 +40,7 @@ let queue_removal st source =
 let detach t source =
   let c = get t in
   forget_pending c source;
-  Option.iter (fun st -> queue_removal st source) (Atomic.get c.streaming)
+  Option.iter (fun st -> queue_removal st source) (streaming c)
 
 (* Takes a source out of the run and puts its output to sleep.
 
@@ -94,7 +94,7 @@ let source_error c st (source : source) fn =
         List.iter (fun handler -> handler error backtrace) handlers
 
 let track st (source : source) role =
-  let member = { role; removed = Atomic.make false; sync = None; change = 0 } in
+  let member = { role; removed = Atomic.make false; sync = None } in
   Mutex.protect st.m (fun () ->
       Sources.replace st.animated source member;
       Queues.WeakQueue.push st.animated_sources source;

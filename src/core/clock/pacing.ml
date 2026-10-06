@@ -60,21 +60,21 @@ let reporting st =
   List.filter_map
     (fun (source, member) ->
       match member.sync with
-        | Some sync when not (Atomic.get member.removed) ->
-            Some (source, member, sync)
+        | Some answer when not (Atomic.get member.removed) ->
+            Some (source, member, answer)
         | _ -> None)
     (members st)
 
 let distinct_sync_sources reporting =
   List.fold_left
-    (fun distinct (_, _, sync) ->
-      if List.exists (Sync_source.equal sync) distinct then distinct
-      else sync :: distinct)
+    (fun distinct (_, _, { pacer }) ->
+      if List.exists (Sync_source.equal pacer) distinct then distinct
+      else pacer :: distinct)
     [] reporting
 
 let sync_error c reporting =
   sync_error ~clock:(clock_name c)
-    (List.map (fun (source, _, sync) -> (source, sync)) reporting)
+    (List.map (fun (source, _, { pacer }) -> (source, pacer)) reporting)
 
 (* The one sync source of the clock; with several, the source that changed last
    fails with a sync error and its answer is dropped. *)
@@ -84,7 +84,7 @@ let rec single_sync_source c st =
     | [] -> None
     | [sync] -> Some sync
     | _ ->
-        let last (_, a, _) (_, b, _) = Int.compare b.change a.change in
+        let last (_, _, a) (_, _, b) = Int.compare b.rank a.rank in
         let source, member, _ = List.hd (List.sort last reporting) in
         let error = sync_error c reporting in
         member.sync <- None;
@@ -172,11 +172,12 @@ let change_animator c st =
    source changed. *)
 let read_sync st changed ((source : source), member) =
   let sync = source#sync_source in
-  if Sync_source.same sync member.sync then changed
+  if Sync_source.same sync (Option.map (fun answer -> answer.pacer) member.sync)
+  then changed
   else begin
     st.changes_applied <- st.changes_applied + 1;
-    member.sync <- sync;
-    member.change <- st.changes_applied;
+    member.sync <-
+      Option.map (fun pacer -> { pacer; rank = st.changes_applied }) sync;
     true
   end
 
@@ -275,14 +276,9 @@ let rest_until c st target =
 
 (* Returns the figures since the last warning, and starts a new span. *)
 let mark_warning st =
-  let since_last =
-    figures_since ~slowest:st.warning_slowest st.warning_mark
-      (Atomic.get st.life)
-  in
-  st.warning_mark <- Atomic.get st.life;
-  st.warning_slowest.duration <- 0.;
-  st.warning_slowest.culprit <- None;
-  st.last_warning <- Duppy.time ();
+  let life = Atomic.get st.life in
+  let since_last = span_figures st.warning life in
+  restart_span st.warning ~mark:life ~since:(Duppy.time ());
   since_last
 
 (* Moves the stream to the current time after too much lateness, and resets the
@@ -318,7 +314,7 @@ let rest_or_lateness c st =
     if lateness >= max_latency st then reset c st ~lateness
     else if
       lateness >= conf_log_delay_threshold#get
-      && Duppy.time () -. st.last_warning >= conf_log_delay#get
+      && Duppy.time () -. st.warning.since >= conf_log_delay#get
     then emit c (Latency_warning { lateness; since_last = mark_warning st });
     false
   end
