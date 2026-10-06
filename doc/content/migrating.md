@@ -139,17 +139,19 @@ Also, remember that the `add` operator removes all track marks.
 
 The `switch` operator and its wrappers `fallback`, `rotate` and `random` now take their per-branch settings as methods on each source. The old parallel list parameters are gone. See [source composition](./composition.md) for how these methods work together.
 
-| Old                                            | New                                                          |
-| ---------------------------------------------- | ------------------------------------------------------------ |
-| `fallback(replay_metadata=false, [s1, s2])`    | `fallback([s1.{replay_metadata = false}, s2])`               |
-| `switch(single=[true, false], [...])`          | `s1.{single = true}` on the source                           |
-| `rotate(weights=[3, 1], [music, jingles])`     | `rotate([music.{weight = 3}, jingles.{weight = 1}])`         |
-| `random(weights=[2, 1], [music, jingles])`     | `random([music.{weight = 2}, jingles])`                      |
-| `transitions`, `transition_length`             | `on_select` on the source being entered                      |
-| `override`                                     | Removed                                                      |
-| `track_sensitive` on the switch                | `track_sensitive` on each source                             |
-| `fallback.skip(main, fallback=backup)`         | `fallback([main, backup.{track_sensitive = getter(false)}])` |
-| Switching mid-track with no fade (old default) | `s1.{on_select = source.composition.legacy_on_select}`       |
+Start with `track_sensitive`: each source now picks the right value on its own. A live source such as `input.harbor` cuts in immediately and a file source such as `playlist` waits for the end of the current track, so `fallback(track_sensitive=false, [live, music])` becomes `fallback([live, music])`. The first question to ask is whether you can simply remove `track_sensitive`. The [source composition](./composition.md) page walks through the common setups and shows what each one does by default. Set `track_sensitive` on a source only when its default does the wrong thing for you, as in [an announcement that cannot wait](./composition.md#an-announcement-that-cannot-wait).
+
+| Old                                            | New                                                    |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| `fallback(replay_metadata=false, [s1, s2])`    | `fallback([s1.{replay_metadata = false}, s2])`         |
+| `switch(single=[true, false], [...])`          | `s1.{single = true}` on the source                     |
+| `rotate(weights=[3, 1], [music, jingles])`     | `rotate([music.{weight = 3}, jingles.{weight = 1}])`   |
+| `random(weights=[2, 1], [music, jingles])`     | `random([music.{weight = 2}, jingles])`                |
+| `transitions`, `transition_length`             | `on_select` on the source being entered                |
+| `override`                                     | Removed                                                |
+| `track_sensitive` on the switch                | Usually removed, else `track_sensitive` on each source |
+| `fallback.skip(main, fallback=backup)`         | `fallback([main, backup.{track_sensitive = false}])`   |
+| Switching mid-track with no fade (old default) | `s1.{on_select = source.composition.legacy_on_select}` |
 
 Each source now carries its own `weight`, defaulting to `1`. The old `weights` list was positional and was padded with `1` when shorter than the source list.
 
