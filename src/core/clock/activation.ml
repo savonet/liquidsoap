@@ -41,7 +41,7 @@ let detach t source =
 (* The lists change before the source sleeps: sleeping detaches its children,
    which queues further removals. *)
 let remove_source c st source =
-  let sleeps, unsubscribe =
+  let sleeps =
     Mutex.protect st.m (fun () ->
         let mine, others =
           List.partition (fun o -> o.source == source) (Atomic.get st.outputs)
@@ -55,11 +55,9 @@ let remove_source c st source =
         others st.animated_sources;
         others st.passive;
         if member <> None then Atomic.set st.dirty true;
-        ( List.map (fun o -> o.sleep) mine,
-          Option.map (fun member -> member.unsubscribe) member ))
+        List.map (fun o -> o.sleep) mine)
   in
-  List.iter (quietly c "putting a source to sleep") sleeps;
-  Option.iter (quietly c "unsubscribing from a source") unsubscribe
+  List.iter (quietly c "putting a source to sleep") sleeps
 
 let rec apply_removals c st =
   match Atomic.exchange st.removals [] with
@@ -87,23 +85,12 @@ let source_error c st (source : source) fn =
         List.iter (fun handler -> handler error backtrace) handlers
 
 let track st (source : source) role =
-  let member =
-    {
-      role;
-      removed = Atomic.make false;
-      sync = None;
-      change = 0;
-      unsubscribe = ignore;
-    }
-  in
-  member.unsubscribe <-
-    source#on_sync_source (fun sync -> push st.changes (source, sync));
+  let member = { role; removed = Atomic.make false; sync = None; change = 0 } in
   Mutex.protect st.m (fun () ->
       Sources.replace st.animated source member;
       Queues.WeakQueue.push st.animated_sources source;
       if List.memq source (Atomic.get st.removals) then
         Atomic.set member.removed true);
-  push st.changes (source, source#sync_source);
   member
 
 let activate_source st (source : source) =

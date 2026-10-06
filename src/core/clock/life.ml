@@ -49,7 +49,6 @@ let new_streaming ~force c =
     animated_sources = Queues.WeakQueue.create ();
     passive = Queues.WeakQueue.create ();
     removals = Atomic.make [];
-    changes = Atomic.make [];
     dirty = Atomic.make false;
     on_tick = Atomic.make [];
     after_tick = Atomic.make [];
@@ -192,10 +191,6 @@ let rec wind_down c =
             List.iter
               (fun o -> quietly c "putting an output to sleep" o.sleep)
               (Atomic.get st.outputs);
-            List.iter
-              (fun (_, member) ->
-                quietly c "unsubscribing from a source" member.unsubscribe)
-              (members st);
             let held =
               Mutex.protect st.m (fun () ->
                   let outputs =

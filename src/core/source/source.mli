@@ -174,21 +174,13 @@ object
 
   method source_sync : bool -> Clock.Sync_source.t option
 
-  (** Cached sync source of this source, updated at wake_up and on changes. *)
+  (** Sync source of this source as last settled: at wake-up, at each streaming
+      cycle and when the source's own pacing changes. *)
   method source_state : Clock.Sync_source.t option
 
-  (** Register a callback fired when the source's sync source changes. Returns a
-      deregistration thunk. *)
-  method on_sync_source_change :
-    (old:Clock.Sync_source.t option -> Clock.Sync_source.t option -> unit) ->
-    unit ->
-    unit
-
-  (** Update the cached sync source and notify registered callbacks. *)
-  method private notify_sync_source : Clock.Sync_source.t option -> unit
-
   (** For a source that paces its stream by itself, while it does: the sync
-      source it currently reports, or [None]. Setting it notifies the clock. *)
+      source it currently reports, or [None]. The clock reads it at its next
+      tick. *)
   method private set_sync_source : Clock.Sync_source.t option -> unit
 
   (** What [self_sync] is for such a source. *)
@@ -196,8 +188,6 @@ object
 
   (** What the clock requires of a source: spec/clock.md §14. *)
   method sync_source : Clock.Sync_source.t option
-
-  method on_sync_source : (Clock.Sync_source.t option -> unit) -> unit -> unit
 
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit

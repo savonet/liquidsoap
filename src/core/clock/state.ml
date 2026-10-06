@@ -11,7 +11,6 @@ type source =
   ; wake_up : source -> activation
   ; sleep : activation -> unit
   ; sync_source : Sync_source.t option
-  ; on_sync_source : (Sync_source.t option -> unit) -> unit -> unit
   ; activations : activation list >
 
 let role (source : source) =
@@ -147,7 +146,6 @@ type member = {
   removed : bool Atomic.t;
   mutable sync : Sync_source.t option;
   mutable change : int;
-  mutable unsubscribe : unit -> unit;
 }
 
 type output = { sleep : unit -> unit; source : source; member : member }
@@ -169,7 +167,6 @@ type streaming = {
   animated_sources : source Queues.WeakQueue.t;
   passive : source Queues.WeakQueue.t;
   removals : source list Atomic.t;
-  changes : (source * Sync_source.t option) list Atomic.t;
   dirty : bool Atomic.t;
   on_tick : (unit -> unit) list Atomic.t;
   after_tick : (unit -> unit) list Atomic.t;

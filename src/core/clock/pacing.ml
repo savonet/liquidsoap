@@ -137,23 +137,24 @@ let change_animator c st =
         else Atomic.set st.animator (Some (current, why))
     | None -> ()
 
-let apply_change st (source, sync) =
-  match Sources.find_opt st.animated source with
-    | Some member ->
-        st.changes_applied <- st.changes_applied + 1;
-        member.sync <- sync;
-        member.change <- st.changes_applied
-    | None -> ()
+let read_sync st changed ((source : source), member) =
+  let sync = source#sync_source in
+  if Sync_source.same sync member.sync then changed
+  else begin
+    st.changes_applied <- st.changes_applied + 1;
+    member.sync <- sync;
+    member.change <- st.changes_applied;
+    true
+  end
 
 let pacing_point c st =
-  let changes = List.rev (Atomic.exchange st.changes []) in
+  let changed = List.fold_left (read_sync st) false (members st) in
   let lease_over = st.unblocked_at <> None && lease_left st = 0. in
   if lease_over then begin
     st.unblocked_at <- None;
     st.leased <- false
   end;
-  if Atomic.exchange st.dirty false || changes <> [] || lease_over then begin
-    Mutex.protect st.m (fun () -> List.iter (apply_change st) changes);
+  if Atomic.exchange st.dirty false || changed || lease_over then begin
     let tracked = single_sync_source c st in
     Atomic.set st.tracked tracked;
     update_blocking c st;

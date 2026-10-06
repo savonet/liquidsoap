@@ -30,13 +30,14 @@ the clock keeps the old answer.
 
 **How to tell.** With a deep graph and nothing changing, the work a tick does
 to know its pacer does not depend on the size of the graph. Binding: the count
-of pacing queries made to sources over many idle ticks is zero, or a constant
-per tick. Incidental: the mechanism.
+of pacing queries made per tick equals the number of animated sources, and a
+source below them is never queried. Incidental: the mechanism.
 
-**Rule.** The clock never asks: sources notify, the clock applies changes at its
-next tick, and the per-tick cost is fixed on both sides
-([pacing.md §3](pacing.md#3-finding-the-sync-source)). Changes reported from
-another thread are handed to the clock, never applied in place.
+**Rule.** Each source keeps its current answer and settles it once per
+streaming cycle. The clock reads the answer of the sources it animates at its
+pacing point, at a constant cost each
+([pacing.md §3](pacing.md#3-finding-the-sync-source)). An answer changed from
+another thread takes effect at the clock's next pacing point.
 
 Trace: #5133.
 
@@ -58,12 +59,12 @@ kind, and the clock stopping never comes for a clock that runs for weeks. Only
 the moment a source leaves the clock is common to all.
 
 **How to tell.** On a clock that keeps running, attach and discard a source
-many times. Binding: the number of live subscriptions and the number of
-sources kept alive return to their starting value; memory does not grow with
+many times. Binding: the number of
+sources kept alive returns to their starting value; memory does not grow with
 the count of cycles.
 
-**Rule.** Every subscription ends when its source leaves the clock, whatever the
-way ([clock.md §7](clock.md#7-sources-on-a-clock),
+**Rule.** The clock subscribes to nothing: it reads the sources it animates,
+and holds nothing of a source that left it, whatever the way ([clock.md §7](clock.md#7-sources-on-a-clock),
 [§10](clock.md#9-winding-down)).
 
 Trace: #5153, #5163 and one direct commit. Three fixes.

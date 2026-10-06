@@ -61,7 +61,7 @@ most checks free of animators and of real time.
 ## Sources
 
 - K2: on a running clock, attach and discard a source many times. Binding:
-  subscriptions and sources kept alive return to their starting value.
+  sources kept alive return to their starting value.
 - K17: an output attached to a running clock stays awake for as long as the
   clock runs; winding down puts it to sleep once per activation. Binding: the
   awake state.
@@ -121,8 +121,8 @@ most checks free of animators and of real time.
 
 ## Sync sources
 
-- K1: with a deep graph and nothing changing, the count of sync source
-  queries made to sources over many ticks is zero.
+- K1: with a deep graph and nothing changing, each tick queries each animated
+  source once, and never a source below them.
 - K6: switch a selecting operator between a child that paces and one that
   does not; connect and disconnect a pacing input. Binding: the clock's
   pacing two ticks after a switch and one tick after a connection.

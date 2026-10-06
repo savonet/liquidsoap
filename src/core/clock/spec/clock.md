@@ -42,7 +42,6 @@ and is created anew at every start:
 | outputs              | Ordered list of (activation, source). Keeps each source alive.                           |
 | active sources       | Set. MUST NOT be what keeps a source alive.                                              |
 | passive sources      | Set. MUST NOT be what keeps a source alive.                                              |
-| subscriptions        | One per animated source, to its sync source changes.                                     |
 | on-tick callbacks    | One-shot.                                                                                |
 | after-tick callbacks | One-shot.                                                                                |
 | pulled               | Whether the tick in progress was requested by a reader.                                  |
@@ -217,15 +216,15 @@ NOT be animated again, the tick in progress included.
 
 The removal: take the source's entries out of the outputs and put the source to
 sleep once per activation taken; remove it from the active and passive sets;
-drop its subscription and its sync source entry. The lists MUST be changed
+drop its sync source entry. The lists MUST be changed
 before the source is put to sleep, because putting a source to sleep detaches
 its children, which re-enters the removal. Errors from putting a source to
-sleep or from unsubscribing are logged and ignored.
+sleep are logged and ignored.
 
-Every subscription MUST end when its source leaves the clock, whatever the
-way: detach, failure or wind-down. On a clock that keeps running, attaching
-and discarding a source any number of times MUST leave the number of
-subscriptions and of sources kept alive unchanged.
+The clock holds nothing of a source that left it, whatever the way: detach,
+failure or wind-down. On a clock that keeps running, attaching and discarding
+a source any number of times MUST leave the number of sources kept alive
+unchanged.
 
 ## 8. Tick
 
@@ -281,16 +280,15 @@ nothing ticks it ([§4](#4-states)). In order:
 1. Take a snapshot of the registered sub-clocks.
 2. Put each output to sleep with its activation. Errors are logged and
    ignored.
-3. Drop every subscription. Errors are logged and ignored.
-4. Move the sources still held to the pending sources: the outputs, the active
+3. Move the sources still held to the pending sources: the outputs, the active
    set and the passive set, less the sources whose removal is queued. Drop the
    callbacks not yet run.
-5. Stop each sub-clock of the snapshot that is started, with reason
+4. Stop each sub-clock of the snapshot that is started, with reason
    `parent stopped`, and wind it down.
-6. Set the state to `stopped` with its reason. The streaming state is gone.
-7. A top-level clock moves from `running` to `waiting`.
-8. Log the stop.
-9. If the reason is `failed`, report it ([§11](#11-failure)).
+5. Set the state to `stopped` with its reason. The streaming state is gone.
+6. A top-level clock moves from `running` to `waiting`.
+7. Log the stop.
+8. If the reason is `failed`, report it ([§11](#11-failure)).
 
 The snapshot in step 1 exists because putting an output to sleep can
 deregister sub-clocks, and those MUST still be stopped.
@@ -450,8 +448,8 @@ clock's next start.
   An activation dropped without being handed back puts the source to sleep on
   its own: every holder but the clock may let go;
 - for an active or output source: animate, and reset;
-- its current sync source, and a subscription to its changes that returns a
-  way to unsubscribe ([pacing.md §3](pacing.md#3-finding-the-sync-source));
+- its current sync source, read at a constant cost between cycles
+  ([pacing.md §3](pacing.md#3-finding-the-sync-source));
 - the ids of its current activations, for the reports
   ([observability.md §1](observability.md#1-status-record)).
 

@@ -45,12 +45,10 @@ let events_of clock =
     (all_events ())
 
 let live_sources = Atomic.make 0
-let subscriptions = Atomic.make 0
 
 class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
   object (self)
     val mutable sync : Clock.Sync_source.t option = sync
-    val mutable subscribers : (Clock.Sync_source.t option -> unit) list = []
     val awake = Atomic.make 0
     val animated = Atomic.make 0
     val resets = Atomic.make 0
@@ -94,15 +92,6 @@ class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
       Atomic.incr queries;
       sync
 
-    method on_sync_source fn =
-      Atomic.incr subscriptions;
-      subscribers <- fn :: subscribers;
-      fun () ->
-        if List.memq fn subscribers then begin
-          Atomic.decr subscriptions;
-          subscribers <- List.filter (fun other -> other != fn) subscribers
-        end
-
     method activations : Clock.activation list =
       if Atomic.get awake > 0 then
         [
@@ -116,21 +105,13 @@ class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
     method animated = Atomic.get animated
     method resets = Atomic.get resets
     method queries = Atomic.get queries
-    method subscribers = List.length subscribers
     method set_on_animate fn = on_animate <- fn
     method set_on_sleep fn = on_sleep <- fn
-
-    method set_sync value =
-      sync <- value;
-      List.iter (fun fn -> fn value) subscribers
+    method set_sync value = sync <- value
 
     initializer
       Atomic.incr live_sources;
-      Gc.finalise
-        (fun source ->
-          Atomic.decr live_sources;
-          ignore (Atomic.fetch_and_add subscriptions (-source#subscribers)))
-        self
+      Gc.finalise (fun _ -> Atomic.decr live_sources) self
   end
 
 let source ?sync ?(id = "source") source_type = new source ?sync ~id source_type

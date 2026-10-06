@@ -5,8 +5,7 @@ type source_type = [ `Passive | `Active of active | `Output of active ]
 (** What a clock requires of a source: spec/clock.md §14.
 
     The clock wakes an output with the output itself as the requester, and keeps
-    the activation until it winds down. [on_sync_source] subscribes to the
-    changes of [sync_source] and returns what unsubscribes. *)
+    the activation until it winds down. *)
 type source =
   < id : string
   ; stack : Pos.t list
@@ -14,7 +13,6 @@ type source =
   ; wake_up : source -> activation
   ; sleep : activation -> unit
   ; sync_source : Sync_source.t option
-  ; on_sync_source : (Sync_source.t option -> unit) -> unit -> unit
   ; activations : activation list >
 
 module Settings = Settings

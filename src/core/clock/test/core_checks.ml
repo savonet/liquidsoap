@@ -122,13 +122,12 @@ let start_pass () =
   check "clocks created and discarded do not accumulate"
     (Clock.start_pass () <= baseline + 100)
 
-let subscriptions_return () =
+let discarded_sources_return () =
   let clock = passive () in
   attach clock (source ~id:"keep" `Output);
   Clock.tick clock;
   collect ();
   let sources = Atomic.get live_sources in
-  let subscribed = Atomic.get subscriptions in
   for _ = 1 to 200 do
     attach clock (Sys.opaque_identity (source `Active));
     attach clock (Sys.opaque_identity (source `Passive));
@@ -138,17 +137,7 @@ let subscriptions_return () =
   Clock.tick clock;
   collect ();
   check "K2: discarded sources are not kept alive by a running clock"
-    (Atomic.get live_sources = sources);
-  check "K2: their subscriptions are gone"
-    (Atomic.get subscriptions = subscribed);
-  let detached = source `Active in
-  attach clock detached;
-  Clock.tick clock;
-  let subscribed_once = detached#subscribers = 1 in
-  detach clock detached;
-  Clock.tick clock;
-  check "K2: a detached source is unsubscribed"
-    (subscribed_once && detached#subscribers = 0)
+    (Atomic.get live_sources = sources)
 
 let output_stays_awake () =
   let clock = passive () in
@@ -314,7 +303,7 @@ let run () =
   failed_start ();
   registry ();
   start_pass ();
-  subscriptions_return ();
+  discarded_sources_return ();
   output_stays_awake ();
   detach_during_tick ();
   leak_warning ();

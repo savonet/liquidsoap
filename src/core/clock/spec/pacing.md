@@ -88,15 +88,13 @@ through a child clock ([clock.md §15](clock.md#15-child-clocks)) reports
 nothing on its behalf. The child's sync source is tracked by the child
 clock.
 
-The report travels by notification. A source MUST notify its subscribers
-whenever its answer changes, after its own state has changed, so that a
-subscriber reading back sees the new state. The clock MUST NOT ask.
+A source keeps its **current answer**, and reading it costs a constant
+between cycles.
 
-- A source that paces by itself notifies when its own pacing state changes,
-  from whatever thread changes it.
+- A source that paces by itself updates its answer when its own pacing state
+  changes, from whatever thread changes it, after its own state has changed.
 - Every source computes its answer when it prepares a streaming cycle, once
-  it knows whether it is ready, and notifies if the answer differs from the
-  previous one. An answer depends on a source's own state, on which children
+  it knows whether it is ready, and keeps it as its current answer. An answer depends on a source's own state, on which children
   it reads in this cycle, on their readiness and on their answers: computing
   it in the cycle reads all four as they hold for the data about to be
   pulled.
@@ -105,7 +103,8 @@ subscriber reading back sees the new state. The clock MUST NOT ask.
 - A source's readiness and what follows from it, its answer included, are
   settled once when the source prepares a streaming cycle and MUST stay the
   same for every reader until the cycle ends. The clock's own work per tick
-  MUST be constant, whatever the size of the source graph.
+  MUST depend on the number of sources it animates only, whatever the size of
+  the source graph.
 - A change found while a tick animates its sources reaches the clock at the
   pacing point of the next tick: the clock paces one tick on the previous
   answer.
@@ -118,22 +117,17 @@ subscriber reading back sees the new state. The clock MUST NOT ask.
 - A change check MUST cost a constant: sync sources are compared by identity
   ([§2](#2-sync-source)), by sources and by the clock alike.
 
-**Tracking, by the clock.** In every sync mode, passive included, the clock
-subscribes to each animated source when it activates it
-([clock.md §7](clock.md#7-sources-on-a-clock)) and reads its current sync
-source.
+**Tracking, by the clock.** In every sync mode, passive included, whatever
+ticks the clock reads the current answer of each source it animates at the
+**pacing point** of every tick: after activation, before any source is
+animated ([clock.md §8](clock.md#8-tick) step 4). The clock reads the sources
+it animates and nothing below them.
 
-A change may be reported from any thread. It MUST be queued and applied by
-whatever ticks the clock, at the **pacing point** of its next tick: after
-activation, before any source is animated
-([clock.md §8](clock.md#8-tick) step 4). The latest change of a source
-replaces an earlier one not yet applied. No change may be lost.
+At the pacing point, with every answer read taken together:
 
-At the pacing point, with every queued change and every source just
-activated taken together:
-
-1. For each source concerned, replace its entry, keyed by the source's
-   identity, by its new sync source, or drop it if it has none.
+1. For each source whose answer differs from its entry, replace the entry,
+   keyed by the source's identity, by the new sync source, or drop it if it
+   has none.
 2. While the entries hold more than one distinct sync source: this is a
    **sync error** charged, under the source error rule
    ([clock.md §11](clock.md#11-failure)), to the source whose change came
@@ -144,7 +138,7 @@ activated taken together:
 5. An automatic clock **follows** the tracked sync source: when it differs
    from the one followed, the clock switches ([§4](#4-switch)).
 
-The whole batch is applied before the check, so that several sources moving
+Every answer is read before the check, so that several sources moving
 together from one sync source to another are not seen half-way.
 
 The tracked sync source decides the animator in every mode. A clock that

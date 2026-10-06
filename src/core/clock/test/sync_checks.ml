@@ -15,7 +15,7 @@ let identity () =
     (Clock.Sync_source.equal first first
     && not (Clock.Sync_source.equal first second))
 
-let no_queries () =
+let one_query_per_source () =
   let clock = passive () in
   let sources = List.init 50 (fun _ -> source `Active) in
   List.iter (attach clock) sources;
@@ -25,8 +25,8 @@ let no_queries () =
   in
   let after_activation = queries () in
   tick clock 1000;
-  check "K1: with nothing changing, no tick queries a source for its pacer"
-    (queries () = after_activation && after_activation <= 50)
+  check "K1: a tick queries each animated source once for its pacer"
+    (queries () - after_activation = 1000 * List.length sources)
 
 let changes () =
   let clock = passive () in
@@ -110,7 +110,7 @@ let conflict_without_handler () =
 
 let run () =
   identity ();
-  no_queries ();
+  one_query_per_source ();
   changes ();
   moving_together ();
   conflict_with_handler ();

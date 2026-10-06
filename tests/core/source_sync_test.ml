@@ -76,12 +76,8 @@ let () =
       (Lang.source (reader :> Source.source))
   in
   output#content_type_computation_allowed;
-  let notified = ref None in
-  let (_ : unit -> unit) =
-    output#on_sync_source (fun sync_source -> notified := sync_source)
-  in
   let reports expected =
-    same reader#sync_source expected && same !notified expected
+    same reader#sync_source expected && same output#sync_source expected
   in
   Clock.start ~force:true clock;
   Clock.activate_pending clock;

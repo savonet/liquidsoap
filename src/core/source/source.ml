@@ -51,8 +51,6 @@ type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
 type self_sync = Source_sync.t
 
-let sync_source_changed a b = not (Source_sync.same a b)
-
 (** {1 Sources} *)
 
 (** Instrumentation. *)
@@ -259,29 +257,11 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     val mutable source_state : Clock.Sync_source.t option = None
     method source_state = source_state
-
-    val state_callbacks
-        : (old:Clock.Sync_source.t option -> Clock.Sync_source.t option -> unit)
-          Callbacks.t =
-      Callbacks.create ()
-
-    method on_sync_source_change fn = Callbacks.register state_callbacks fn
-
-    method private notify_sync_source new_state =
-      if sync_source_changed new_state source_state then (
-        let old = source_state in
-        source_state <- new_state;
-        List.iter
-          (fun fn -> fn ~old new_state)
-          (Callbacks.elements state_callbacks))
-
     val mutable own_sync_source : Clock.Sync_source.t option = None
 
-    (* The pacing of a source that paces by itself is this one value: setting
-       it is what tells the clock. *)
     method private set_sync_source sync_source =
       own_sync_source <- sync_source;
-      if self#is_up then self#notify_sync_source (snd self#self_sync)
+      if self#is_up then source_state <- snd self#self_sync
 
     method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
     val cycle_open = Atomic.make false
@@ -291,15 +271,12 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val cycle_sync_source : Clock.Sync_source.t option Per_cycle.t =
       Per_cycle.make ()
 
-    (* Outside a cycle this is the last answer notified: computing one would
+    (* Outside a cycle this is the last answer settled: computing one would
        ask the children whether they are ready and open their cycle early. *)
     method sync_source =
       if Atomic.get cycle_open then
         self#per_cycle cycle_sync_source (fun () -> snd self#self_sync)
       else source_state
-
-    method on_sync_source fn =
-      self#on_sync_source_change (fun ~old:_ sync_source -> fn sync_source)
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
@@ -544,8 +521,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           self#iter_watchers (fun w -> w.sleep ()))
 
     initializer
-      self#on_wake_up (fun () -> self#notify_sync_source (snd self#self_sync));
-      self#on_sleep (fun () -> self#notify_sync_source None)
+      self#on_wake_up (fun () -> source_state <- snd self#self_sync);
+      self#on_sleep (fun () -> source_state <- None)
 
     (** Streaming *)
 
@@ -644,7 +621,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         ignore self#readiness;
         Atomic.set cycle_open true;
         Clock.after_tick self#clock (fun () -> self#after_streaming_cycle);
-        self#notify_sync_source self#sync_source)
+        source_state <- self#sync_source)
 
     method private after_streaming_cycle =
       (match Per_cycle.find cycle_frame with
