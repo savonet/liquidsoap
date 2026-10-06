@@ -66,6 +66,7 @@ let streaming t = Atomic.get (get t).streaming
 let ticks t = Option.map (fun st -> Atomic.get st.ticks) (streaming t)
 let time t = Option.map stream_time (streaming t)
 
+(* The [Liq_time] implementation matching the preferred time source. *)
 let time_implementation () =
   Option.value ~default:Liq_time.unix
     (Hashtbl.find_opt Liq_time.implementations Settings.conf_preferred#get)
@@ -147,6 +148,8 @@ let statuses () =
     (Registry.by_creation
        (Registry.waiting_clocks () @ Registry.running_clocks ()))
 
+(* Stops every clock, waits for them up to the shutdown wait, and reports those
+   still running. *)
 let shutdown () =
   Atomic.set global_stop true;
   List.iter (fun c -> stop_clock c `Global_stop) (Registry.running_clocks ());

@@ -1,3 +1,26 @@
+(** Life: what takes a clock from stopped to started and back, and what ticks it
+    (spec/clock.md).
+
+    A clock starts through [start_clock]: explicitly ([start]), from the start
+    pass that follows script code ([start_pass], [start_scope],
+    [application_start]), or as the sub-clock of a started parent ([start_sub],
+    [register]). Starting creates the run and, for a clock that is not passive,
+    spawns its animator.
+
+    The animator runs [loop] under the handler of [animated]: [run_tick], then
+    [Pacing.between_ticks], until the clock stops or has no work. A passive
+    clock has no animator. Its controller calls [tick], and its parent's
+    [run_tick] ticks it in the ticks where the controller did not.
+
+    A stop takes two steps. [stop_clock] moves the clock to stopping and wakes
+    its loop. [wind_down] then runs on whatever ticks the clock, at the end of
+    its loop or of its tick: it puts the outputs to sleep, returns the sources
+    to pending, stops the sub-clocks and hands a failure to the policy.
+
+    [register] and [deregister] count the operators that hold a sub-clock. The
+    first registration starts it under a started parent, and the last
+    deregistration stops it. *)
+
 open Settings
 open Status
 open Event
@@ -24,6 +47,8 @@ let cannot_start ~force c =
   then Some `No_output
   else None
 
+(* The preferred time source, or the built-in one with a log line when the
+   preferred one is absent. *)
 let default_time_source c =
   let wanted = conf_preferred#get in
   match Sync_source.find_time_source wanted with
@@ -37,6 +62,7 @@ let default_time_source c =
 
 let slowest () = { duration = 0.; culprit = None }
 
+(* The state of a new run, with its stream anchored at the current time. *)
 let new_streaming ~force c =
   let default_time_source = default_time_source c in
   let real_time = Duppy.time () in
@@ -87,6 +113,7 @@ let new_streaming ~force c =
     window_slowest = slowest ();
   }
 
+(* Runs and clears one-shot callbacks, in registration order. *)
 let take_callbacks callbacks =
   List.iter
     (fun fn ->
@@ -100,6 +127,7 @@ let note_slowest slowest ~duration ~name =
     slowest.culprit <- name
   end
 
+(* Has a source produce its frame of the tick, and times it. *)
 let animate c st (source : source) member =
   if not (Atomic.get member.removed) then begin
     let started = Duppy.time () in
@@ -110,6 +138,7 @@ let animate c st (source : source) member =
       ~name:(Some source#id)
   end
 
+(* Closes the statistics window once it is full. *)
 let roll_window st real_time =
   if real_time -. st.window_started >= window_length then begin
     let life = Atomic.get st.life in
@@ -121,6 +150,7 @@ let roll_window st real_time =
     st.window_slowest.culprit <- None
   end
 
+(* Adds a finished tick to the figures, and logs a long one. *)
 let update_statistics c st ~started =
   let real_time = Duppy.time () in
   let duration = real_time -. started in
@@ -152,6 +182,8 @@ let update_statistics c st ~started =
     emit c (Long_tick { duration; slowest_source = name })
   end
 
+(* Where a sub-clock stood when its parent's tick began: its run and its tick
+   count. *)
 type sub_snapshot = {
   snapshot_of : clock;
   streaming_then : streaming option;
@@ -173,6 +205,8 @@ let sub_snapshot c =
       })
     (Atomic.get c.subs)
 
+(* Whether the sub-clock ticked since the snapshot, in the same run or in a new
+   one. *)
 let ticked_since { snapshot_of; streaming_then; ticks_then } =
   match (Atomic.get snapshot_of.streaming, streaming_then) with
     | Some current, Some before when current == before ->
@@ -180,12 +214,16 @@ let ticked_since { snapshot_of; streaming_then; ticks_then } =
     | Some current, _ -> Atomic.get current.ticks > 0
     | None, _ -> false
 
+(* Logs a failure and hands it to the policy, unless the application is
+   stopping. *)
 let report_failure c failure =
   emit c (Failure failure);
   if not (Atomic.get global_stop) then
     quietly c "reporting a failure" (fun () ->
         (Atomic.get failure_policy) (handle c) failure)
 
+(* Takes a stopping clock to stopped: outputs sleep, sources return to pending,
+   sub-clocks stop, and a failure is reported. *)
 let rec wind_down c =
   Transition.run (fun () ->
       match (state c, Atomic.get c.streaming) with
@@ -235,6 +273,8 @@ let rec wind_down c =
               | _ -> ())
         | _ -> ())
 
+(* Asks a clock to stop and wakes its loop; a passive clock outside a tick is
+   wound down here. *)
 and stop_clock c reason =
   Transition.run (fun () ->
       if request_stop c reason then begin
@@ -247,6 +287,8 @@ let stop t = stop_clock (get t) `Requested
 let fail c st error backtrace =
   ignore (request_stop c (`Failed { error; backtrace; source = st.failing }))
 
+(* One tick: removals, activation, pacing point, outputs and active sources,
+   callbacks, sub-clocks, statistics. *)
 let rec run_tick c st ~pull =
   let started = Duppy.time () in
   Atomic.set st.activity (`Ticking started);
@@ -272,13 +314,17 @@ let rec run_tick c st ~pull =
   update_statistics c st ~started;
   Atomic.set st.activity `Idle
 
+(* Ticks a started sub-clock that its controller left alone during the parent's
+   tick. *)
 and tick_sub snapshot =
   if state snapshot.snapshot_of = `Started && not (ticked_since snapshot) then (
     try tick_passive snapshot.snapshot_of ~pull:false with
       | Stop_signal -> raise Stop_signal
       | _ -> ())
 
-(* [ticking] is raised before the state is read, and [stop_clock] reads it
+(* Runs one tick of a passive clock on the calling thread.
+
+   [ticking] is raised before the state is read, and [stop_clock] reads it
    after changing the state: one of the two winds the clock down. *)
 and tick_passive c ~pull =
   if Atomic.exchange c.ticking true then
@@ -313,6 +359,7 @@ let passive t =
 
 let tick ?(pull = false) t = tick_passive (passive t) ~pull
 
+(* Activates a passive clock's pending sources outside a tick. *)
 let activate_pending t =
   let c = passive t in
   if Atomic.exchange c.ticking true then
@@ -335,6 +382,8 @@ let has_work c st =
   || Atomic.get st.outputs <> []
   || active_members st <> []
 
+(* The body of a clock's animator: ticks until the clock stops or runs out of
+   work, then winds it down. *)
 let loop c st () =
   st.worker_since <- Duppy.time ();
   (try
@@ -349,6 +398,7 @@ let loop c st () =
     | error -> fail c st error (Printexc.get_raw_backtrace ()));
   wind_down c
 
+(* Runs [fn] on a new thread or as a scheduler task. *)
 let rec spawn animator fn =
   match animator with
     | `Thread -> Duppy.thread ~priority:`Clock scheduler fn
@@ -363,7 +413,10 @@ let rec spawn animator fn =
                 []);
           }
 
-(* A deep handler is part of the continuation, so the loop keeps it when it
+(* Runs the loop under the handler that answers [Context] and moves the loop
+   on [Hop].
+
+   A deep handler is part of the continuation, so the loop keeps it when it
    resumes under another animator. The same holds for the handler of the
    effect through which script code registers its callbacks. *)
 and animated c st fn () =
@@ -390,6 +443,8 @@ and animated c st fn () =
 let sources_of_pending c =
   List.map (fun (s : source) -> (s#id, role s)) (Atomic.get c.pending)
 
+(* Starts a clock: new run, id, registry, start event, sub-clocks, then its
+   animator. *)
 let rec start_clock ~force c =
   Transition.run (fun () ->
       (match cannot_start ~force c with
@@ -423,6 +478,8 @@ let rec start_clock ~force c =
         (fun (animator, _) -> spawn animator (animated c st (loop c st)))
         animator)
 
+(* Starts a sub-clock that can start, and counts it on the parent's run if it
+   blocks. *)
 and start_sub ~force parent sub =
   if cannot_start ~force sub = None then start_clock ~force sub;
   match Atomic.get sub.streaming with
@@ -440,6 +497,8 @@ let starts_by_itself c =
     | `Never_started | `No_sources -> true
     | _ -> false
 
+(* Starts every waiting clock that may start by itself, and returns how many
+   were waiting. *)
 let start_pass () =
   let waiting = Registry.waiting_clocks () in
   List.iter
@@ -451,11 +510,13 @@ let start_pass () =
     waiting;
   List.length waiting
 
+(* Runs [fn], then a start pass for the clocks it created. *)
 let start_scope fn =
   let result = fn () in
   ignore (start_pass ());
   result
 
+(* Opens the application to clock starts and runs the first start pass. *)
 let application_start () =
   Atomic.set application_started true;
   ignore (start_pass ())
@@ -463,6 +524,7 @@ let application_start () =
 let find_sub c sub =
   List.find_opt (fun entry -> get entry.sub == get sub) (Atomic.get c.subs)
 
+(* Sets a sub-clock's registration count, and drops its entry at 0. *)
 let set_registrants c sub registrants =
   let others =
     List.filter (fun entry -> get entry.sub != get sub) (Atomic.get c.subs)
@@ -473,6 +535,8 @@ let set_registrants c sub registrants =
 let registrants c sub =
   match find_sub c sub with Some { registrants } -> registrants | None -> 0
 
+(* Counts one more registration of a sub-clock on its parent, and starts it
+   under a started parent. *)
 let register ~parent sub =
   Transition.run (fun () ->
       let p = get parent in
@@ -488,6 +552,7 @@ let register ~parent sub =
             start_sub ~force:st.forced st s
         | _ -> ())
 
+(* Drops one registration, and stops the sub-clock with the last one. *)
 let deregister ~parent sub =
   Transition.run (fun () ->
       let p = get parent in

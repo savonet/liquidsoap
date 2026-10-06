@@ -1,9 +1,30 @@
+(** Pacing: who sets the pace of a clock's stream, and what runs its loop
+    (spec/pacing.md).
+
+    The loop in [Life] calls this module at two points of every tick:
+
+    - [pacing_point], at the start of a tick. It reads the sync source of each
+      animated source. On a change it settles the clock's single sync source
+      ([single_sync_source]), whether the clock blocks ([update_blocking]), what
+      runs its loop ([change_animator]) and the time source it follows
+      ([switch]).
+    - [between_ticks], after a tick. A clock ahead of its time source rests
+      ([rest_until]). A late clock warns or resets its stream ([reset]). A task
+      that kept its worker for a time box releases it ([time_box]).
+
+    [wanted_animator] chooses between a scheduler task and a thread. The
+    [Context] and [Hop] effects reach the handler that [Life] installs around
+    the loop: [Context] gives the clock of the running tick, [Hop] continues the
+    tick on another animator. *)
+
 open Settings
 open Status
 open Event
 open State
 open Activation
 
+(* Makes the clock pace on [tracked], or on its default time source for [None],
+   anchored at the current stream time. *)
 let switch c st tracked =
   let pace = Atomic.get st.pace in
   let time_source =
@@ -55,6 +76,8 @@ let sync_error c reporting =
   sync_error ~clock:(clock_name c)
     (List.map (fun (source, _, sync) -> (source, sync)) reporting)
 
+(* The one sync source of the clock; with several, the source that changed last
+   fails with a sync error and its answer is dropped. *)
 let rec single_sync_source c st =
   let reporting = reporting st in
   match distinct_sync_sources reporting with
@@ -68,6 +91,7 @@ let rec single_sync_source c st =
         source_error c st source (fun () -> raise error);
         single_sync_source c st
 
+(* Logs that a clock that stopped blocking keeps its thread for the lease. *)
 let announce_lease c st =
   match Atomic.get st.animator with
     | Some (`Thread, _)
@@ -84,6 +108,8 @@ let detect_flap c st ~now =
         emit c (Flap { gap = now -. left; lease = conf_thread_lease#get })
     | _ -> ()
 
+(* Recomputes whether the clock blocks; a change updates the lease and tells the
+   parent. *)
 let update_blocking c st =
   let blocking =
     (match Atomic.get st.tracked with
@@ -105,6 +131,7 @@ let update_blocking c st =
     tell_parent c blocking
   end
 
+(* What should run the loop, and why. *)
 let wanted_animator c st =
   if Atomic.get st.blocking then
     ( `Thread,
@@ -116,12 +143,16 @@ let wanted_animator c st =
   else if lease_left st > 0. then (`Thread, "lease")
   else (`Task, "rests")
 
+(* [Context] asks for the clock whose loop runs the calling code; [Hop]
+   continues that loop on another animator. *)
 type _ Effect.t +=
   | Context : (clock * streaming) option Effect.t
   | Hop : animator -> unit Effect.t
 
+(* The clock whose loop runs the calling code, if any. *)
 let context () = try Effect.perform Context with Effect.Unhandled _ -> None
 
+(* Moves the loop to the wanted animator when it differs from the current one. *)
 let change_animator c st =
   match Atomic.get st.animator with
     | Some (current, _) ->
@@ -137,6 +168,8 @@ let change_animator c st =
         else Atomic.set st.animator (Some (current, why))
     | None -> ()
 
+(* Reads a source's sync source and records a change; the fold tells whether any
+   source changed. *)
 let read_sync st changed ((source : source), member) =
   let sync = source#sync_source in
   if Sync_source.same sync member.sync then changed
@@ -147,6 +180,8 @@ let read_sync st changed ((source : source), member) =
     true
   end
 
+(* Start of a tick: reads the sync sources and, on a change, settles the tracked
+   one, the animator and the pace. *)
 let pacing_point c st =
   let changed = List.fold_left (read_sync st) false (members st) in
   let lease_over = st.unblocked_at <> None && lease_left st = 0. in
@@ -165,6 +200,8 @@ let pacing_point c st =
     then switch c st tracked
   end
 
+(* Gives the worker or the thread up for a rest or a release, and returns the
+   time spent away. *)
 let park c st ?delay what =
   let started = Duppy.time () in
   Atomic.set st.activity
@@ -180,6 +217,8 @@ let park c st ?delay what =
   if wants_debug c then emit c (Park { what; delay; spent });
   spent
 
+(* Rests until the delay is spent or the clock stops, and splits the time
+   between resting and waiting for a worker. *)
 let rest_on_timer c st delay_until =
   let rec rest () =
     let delay = delay_until () in
@@ -197,6 +236,8 @@ let rest_on_timer c st delay_until =
   rest ();
   update_figures st (fun figures -> { figures with rests = figures.rests + 1 })
 
+(* Rests in a time source's blocking wait, and stops the clock when the time
+   source ends. *)
 let rest_on_wait c st (wait : Sync_source.blocking_wait) target =
   let started = Duppy.time () in
   Atomic.set st.interrupt_wait wait.interrupt;
@@ -222,7 +263,9 @@ let rest_on_wait c st (wait : Sync_source.blocking_wait) target =
     ignore (request_stop c `Sync_source_ended)
   end
 
-(* The deadline is the target on the time source, read again at every
+(* Rests until stream time [target] on the current time source.
+
+   The deadline is the target on the time source, read again at every
    wake-up: delays are never added up. *)
 let rest_until c st target =
   let { time_source; offset } = Atomic.get st.pace in
@@ -230,6 +273,7 @@ let rest_until c st target =
     | `Timer delay -> rest_on_timer c st (fun () -> delay (target +. offset))
     | `Blocking wait -> rest_on_wait c st wait (target +. offset)
 
+(* Returns the figures since the last warning, and starts a new span. *)
 let mark_warning st =
   let since_last =
     figures_since ~slowest:st.warning_slowest st.warning_mark
@@ -241,6 +285,8 @@ let mark_warning st =
   st.last_warning <- Duppy.time ();
   since_last
 
+(* Moves the stream to the current time after too much lateness, and resets the
+   animated sources. *)
 let reset c st ~lateness =
   let ticks_before = Atomic.get st.ticks in
   let ticks_after = int_of_float (floor (now st /. st.frame_duration)) in
@@ -256,7 +302,8 @@ let reset c st ~lateness =
   List.iter (fun o -> reset o.source) (Atomic.get st.outputs);
   List.iter (fun ((source : source), _) -> reset source) (active_members st)
 
-(* Returns whether the clock rested. *)
+(* Rests when the stream leads by the latency, and warns or resets when it is
+   late; returns whether the clock rested. *)
 let rest_or_lateness c st =
   let now = now st in
   let target = stream_time st in
@@ -276,6 +323,7 @@ let rest_or_lateness c st =
     false
   end
 
+(* Releases the worker of a task that kept it for a time box. *)
 let time_box c st =
   match Atomic.get st.animator with
     | Some (`Task, _) when Duppy.time () -. st.worker_since >= conf_time_box#get
@@ -289,6 +337,7 @@ let time_box c st =
             })
     | _ -> ()
 
+(* After a tick: rest, handle lateness, or give the worker a turn. *)
 let between_ticks c st =
   stop_check ();
   if not (measures c st && rest_or_lateness c st) then time_box c st

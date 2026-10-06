@@ -26,6 +26,8 @@ let rec forget_pending c source =
             (List.filter (fun s -> s != source) pending))
   then forget_pending c source
 
+(* Marks an animated source as removed and queues it for the next application of
+   removals. *)
 let queue_removal st source =
   Mutex.protect st.m (fun () ->
       Option.iter
@@ -33,12 +35,16 @@ let queue_removal st source =
         (Sources.find_opt st.animated source);
       push st.removals source)
 
+(* Detaches a source: out of the pending sources at once, out of the run when
+   removals are applied. *)
 let detach t source =
   let c = get t in
   forget_pending c source;
   Option.iter (fun st -> queue_removal st source) (Atomic.get c.streaming)
 
-(* The lists change before the source sleeps: sleeping detaches its children,
+(* Takes a source out of the run and puts its output to sleep.
+
+   The lists change before the source sleeps: sleeping detaches its children,
    which queues further removals. *)
 let remove_source c st source =
   let sleeps =
@@ -59,6 +65,7 @@ let remove_source c st source =
   in
   List.iter (quietly c "putting a source to sleep") sleeps
 
+(* Applies the queued removals, including those that sleeping sources queue. *)
 let rec apply_removals c st =
   match Atomic.exchange st.removals [] with
     | [] -> ()
@@ -66,6 +73,8 @@ let rec apply_removals c st =
         List.iter (remove_source c st) (List.rev sources);
         apply_removals c st
 
+(* Runs [fn] for a source; an error detaches the source, then goes to the
+   handlers or fails the clock. *)
 let source_error c st (source : source) fn =
   stop_check ();
   try fn () with
@@ -93,6 +102,8 @@ let track st (source : source) role =
         Atomic.set member.removed true);
   member
 
+(* Brings a pending source into the run: an output is woken up, an active source
+   is tracked, a passive one is listed. *)
 let activate_source st (source : source) =
   match role source with
     | `Passive ->
@@ -124,6 +135,7 @@ let rec pop_pending c =
 let crossed_multiple ~before ~after threshold =
   threshold > 0 && before / threshold <> after / threshold
 
+(* Activates every pending source, and logs a leak warning at each threshold. *)
 let activate c st =
   let rec batch count =
     match pop_pending c with

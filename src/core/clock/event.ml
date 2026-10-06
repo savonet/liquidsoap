@@ -172,6 +172,7 @@ let level_and_text = function
 let subscribers : (event -> unit) list Atomic.t = Atomic.make []
 let on_event fn = push subscribers fn
 
+(* The second line, at level 3, of the events that carry figures. *)
 let details = function
   | Latency_warning { since_last; _ } ->
       Some ("Since the last warning: " ^ string_of_breakdown since_last)
@@ -189,4 +190,5 @@ let emit ~(log : Log.t) ~clock kind =
   Option.iter (log#important "%s") (details kind);
   List.iter (fun fn -> fn { clock; kind }) (Atomic.get subscribers)
 
+(* Whether a level 5 event would reach a log or a subscriber. *)
 let wants_debug ~(log : Log.t) = log#active 5 || Atomic.get subscribers <> []

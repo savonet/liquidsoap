@@ -21,18 +21,23 @@ type stop_reason =
 type figures = {
   ticks : int;
   producing : float;
+  (* Seconds spent resting ahead of the time source. *)
   resting : float;
   rests : int;
+  (* Seconds spent away from a worker after a time box. *)
   released : float;
   releases : int;
+  (* Seconds a rest lasted beyond its delay, waiting for a worker. *)
   no_worker : float;
   resets : int;
   switches : int;
   animator_changes : int;
   longest_tick : float;
+  (* Slowest source of the longest tick. *)
   slowest_source : string option;
 }
 
+(* A source in a status: its id, its kind and the ids of what keeps it awake. *)
 type entry = {
   id : string;
   source_type : source_type;
@@ -43,6 +48,8 @@ type controller = { parent : string option; owner : owner option }
 type sync = { sync_source : string; pacing : string; followed : bool }
 type statistics = { life : figures; recent : figures }
 
+(* A snapshot of a clock; the streaming fields are [None] and the source lists
+   empty while it is stopped. *)
 type t = {
   name : string;
   state : [ `Stopped of stop_reason | `Started | `Stopping ];
@@ -61,6 +68,7 @@ type t = {
   statistics : statistics option;
 }
 
+(* What a clock's loop is doing; [`Ticking] carries the tick's start time. *)
 type activity = [ `Idle | `Ticking of float | `Resting | `Released ]
 
 let no_figures =
@@ -234,6 +242,8 @@ let activators entries (entry : entry) =
   let known id = List.exists (fun (other : entry) -> other.id = id) entries in
   List.partition known (List.filter (( <> ) entry.id) entry.activations)
 
+(* A clock's sources as trees: from its outputs, from sources woken by other
+   clocks, and from sources nobody woke. *)
 let graph_lines entries =
   let printed = Hashtbl.create 16 in
   let children (parent : entry) =

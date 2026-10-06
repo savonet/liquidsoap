@@ -4,13 +4,17 @@ open Event
 open State
 open Life
 
+(* One step of a plan: [from] disappears into [into]. *)
 type merge = { from : clock; into : clock }
 
+(* The clock that [c] ends up in under the plan. *)
 let rec resolve merges c =
   match List.find_opt (fun merge -> merge.from == c) merges with
     | Some merge -> resolve merges merge.into
     | None -> c
 
+(* The parent of the clocks that the plan merges into [c], when one of them has
+   a parent. *)
 let class_parent merges c =
   let members =
     c
@@ -22,10 +26,14 @@ let class_parent merges c =
   Option.map get
     (List.find_map (fun member -> Atomic.get member.parent) members)
 
+(* A clock's sync mode, or [`Stopping] while it stops, which fits no other
+   clock. *)
 let pending_mode c =
   if state c = `Stopping then `Stopping
   else (c.sync_mode :> [ sync_mode | `Stopping ])
 
+(* Which of two clocks merges into the other: a stopped clock that is [auto] or
+   has the other's mode. *)
 let direction ~pos ca cb =
   let merges_into c other =
     state c = `Stopped
@@ -49,6 +57,8 @@ let check_owners ~pos ca cb =
            right_controller = string_of_controller cb;
          })
 
+(* Extends the plan to unify two clocks, and then their parents when both have
+   one. *)
 let rec plan ~pos merges a b =
   let a = resolve merges a and b = resolve merges b in
   if a == b then merges
@@ -62,6 +72,8 @@ let rec plan ~pos merges a b =
 
 exception Nested
 
+(* Rejects a plan where climbing the parents from a survivor comes back to a
+   clock already met. *)
 let check_nesting merges =
   let rec climb visited cell =
     match class_parent merges cell with
@@ -77,6 +89,7 @@ let check_nesting merges =
       climb [survivor] survivor)
     merges
 
+(* Carries the absorbed clock's id over, unless the survivor has its own. *)
 let merge_ids x y =
   match (Atomic.get x.id, Atomic.get y.id) with
     | Some id, None ->
@@ -88,6 +101,7 @@ let merge_ids x y =
         emit y (Id_kept { kept; dropped })
     | None, _ -> ()
 
+(* Merges the entries that designate one sub-clock, adding their counts. *)
 let merge_subs c =
   let merged =
     List.fold_left
@@ -108,6 +122,7 @@ let merge_subs c =
   in
   Atomic.set c.subs merged
 
+(* Applies one merge, and returns the survivor with the sub-clocks it received. *)
 let commit { from = x; into = y } =
   let moved = Atomic.get x.subs in
   Atomic.set y.subs (Atomic.get y.subs @ moved);
@@ -147,6 +162,7 @@ let start_moved_subs (survivor, moved) =
           moved
     | _ -> ()
 
+(* Unifies two clocks: plans and checks everything, then commits the whole plan. *)
 let unify ~pos a b =
   Transition.run (fun () ->
       let merges = plan ~pos [] (get a) (get b) in

@@ -1,10 +1,15 @@
 open Settings
 
+(* Where a clock's loop rests, as a suspended task or as a waiting thread, and
+   where it is woken early. *)
 type t = {
+  (* Set by a wake-up and consumed by the park it ends. *)
   notified : bool Atomic.t;
+  (* Resumes the task parked here; [ignore] when none is. *)
   resume : (unit -> unit) Atomic.t;
   m : Mutex.t;
   c : Condition.t;
+  (* Number of thread parks completed, which dates a delayed wake-up. *)
   parks : int Atomic.t;
 }
 
@@ -21,14 +26,18 @@ let wake parker =
   Atomic.set parker.notified true;
   Mutex.protect parker.m (fun () -> Condition.broadcast parker.c)
 
-(* [notified] is set before the resumer is read: a task that is just parking
+(* Ends the park in progress, or the next one.
+
+   [notified] is set before the resumer is read: a task that is just parking
    either gets resumed here or sees the flag. *)
 let unpark parker =
   Atomic.set parker.notified true;
   (Atomic.get parker.resume) ();
   wake parker
 
-(* The task of an earlier park finds [parks] moved on and does nothing. *)
+(* Ends the thread park in progress after [delay].
+
+   The task of an earlier park finds [parks] moved on and does nothing. *)
 let wake_after parker delay =
   let park = Atomic.get parker.parks in
   Duppy.Task.add scheduler
@@ -41,6 +50,7 @@ let wake_after parker delay =
           []);
     }
 
+(* Blocks the calling thread until a wake-up, or [delay] at most. *)
 let park_thread ?delay parker =
   Option.iter (wake_after parker) delay;
   Mutex.protect parker.m (fun () ->
@@ -50,6 +60,8 @@ let park_thread ?delay parker =
   Atomic.incr parker.parks;
   Atomic.set parker.notified false
 
+(* Suspends the calling task until a wake-up, or [delay] at most, and frees its
+   worker. *)
 let park_task ?delay parker =
   if not (Atomic.get parker.notified) then
     Duppy.suspend ?delay ~priority:`Clock scheduler (fun resume ->
