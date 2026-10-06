@@ -104,64 +104,7 @@ external force_locale : string -> unit = "liquidsoap_set_locale"
 
 let buflen = try int_of_string (Sys.getenv "LIQ_BUFLEN") with _ -> 1024
 let () = force_locale "C"
-
-(* Several list utilities *)
-
-let rec prefix p l =
-  match (p, l) with
-    | [], _ -> true
-    | _, [] -> false
-    | hp :: tp, hl :: tl -> hp = hl && prefix tp tl
-
-(** Remove the first element satisfying a predicate, raising Not_found if none
-    is found. *)
-let remove_one f l =
-  let rec aux acc = function
-    | [] -> raise Not_found
-    | x :: l -> if f x then List.rev_append acc l else aux (x :: acc) l
-  in
-  aux [] l
-
-(** Read all data from a given filename. We cannot use really_input with the
-    reported length of the file because some OSes such as windows may do
-    implicit conversions (file opened in text mode in win32), thus making the
-    actual number of characters that can be read from the file different than
-    its reported length.. *)
-let read_all filename =
-  let channel = open_in filename in
-  let tmp = Bytes.create buflen in
-  let contents = Strings.Mutable.empty () in
-  let rec read () =
-    let ret = input channel tmp 0 buflen in
-    if ret > 0 then (
-      Strings.Mutable.add_subbytes contents tmp 0 ret;
-      read ())
-  in
-  read ();
-  close_in channel;
-  Strings.Mutable.to_string contents
-
-let copy ?(mode = [Open_wronly; Open_creat; Open_trunc]) ?(perms = 0o660) src
-    dst =
-  let oc = open_out_gen mode perms dst in
-  Fun.protect
-    ~finally:(fun () -> close_out_noerr oc)
-    (fun () ->
-      set_binary_mode_out oc true;
-      let ic = open_in_bin src in
-      Fun.protect
-        ~finally:(fun () -> close_in_noerr ic)
-        (fun () ->
-          let len = 4096 in
-          let buf = Bytes.create len in
-          let rec f () =
-            match input ic buf 0 len with
-              | 0 -> ()
-              | n ->
-                  output_substring oc (Bytes.unsafe_to_string buf) 0 n;
-                  f ()
-          in
-          f ()))
+let read_all filename = In_channel.with_open_bin filename In_channel.input_all
 
 (* Here we take care not to introduce new redexes when substituting *)
 
@@ -336,19 +279,12 @@ let strftime ?time str : string =
   in
   Re.replace (Re.Pcre.regexp "%(.)") ~f:subst str
 
-(** Check if a directory exists. *)
-let is_dir d =
-  try
-    ignore (Sys.readdir d);
-    true
-  with _ -> false
-
-let dir_exists d = Sys.file_exists d && is_dir d
+let dir_exists d = Sys.file_exists d && Sys.is_directory d
 
 (** Create a directory, and its parents if needed. Raise Unix_error on error. *)
 let rec mkdir ~perm dir =
   if Sys.file_exists dir then
-    if is_dir dir then ()
+    if Sys.is_directory dir then ()
     else raise (Unix.Unix_error (Unix.ENOTDIR, "Utils.mkdir", dir))
   else (
     let up = Filename.dirname dir in
@@ -539,9 +475,6 @@ let concat_with_last ~last sep l =
     | x :: l ->
         Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x
 
-(* Stdlib.abs_float is not inlined!. *)
-let abs_float (f : float) = if f < 0. then -.f else f [@@inline always]
-
 let frame_id_of_string = function
   | "comment" -> Some `COMM
   | "album" -> Some `TALB
@@ -586,8 +519,6 @@ let is_docker =
   Lazy.Mutexed.from_fun (fun () ->
       Sys.unix
       && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
-
-let optional_apply fn = function None -> () | Some v -> fn v
 
 let mime_of_container_format = function
   | "3dostr" -> Some "application/vnd.pg.format"
@@ -710,8 +641,7 @@ let generate_id =
       String.concat "."
         (List.rev (drop_dots (List.rev (String.split_on_char '.' name))))
     in
-    Mutex_utils.mutexify m
-      (fun () ->
+    Mutex.protect m (fun () ->
         let base_id = IdMap.merge h { category; name; counter = 0 } in
         let id =
           Bytes.(
@@ -724,4 +654,3 @@ let generate_id =
         base_id.counter <- base_id.counter + 1;
         Gc.finalise_last (fun () -> ignore (Sys.opaque_identity base_id)) id;
         id)
-      ()

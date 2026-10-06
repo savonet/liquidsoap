@@ -38,7 +38,6 @@ val check_readable :
   string
 
 val read_all : string -> string
-val copy : ?mode:open_flag list -> ?perms:int -> string -> string -> unit
 val dir_exists : string -> bool
 val mkdir : perm:Unix.file_perm -> string -> unit
 
@@ -165,8 +164,4 @@ external force_locale : string -> unit = "liquidsoap_set_locale"
 val name_of_sockaddr :
   ?rev_dns:bool -> ?show_port:bool -> Unix.sockaddr -> string
 
-(** [Stdlib.abs_float] is not inlined. *)
-val abs_float : float -> float
-
-val optional_apply : ('a -> unit) -> 'a option -> unit
 val generate_id : category:string -> string -> string

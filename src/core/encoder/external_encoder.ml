@@ -34,8 +34,8 @@ let encoder id ext =
   let bytes = Bytes.create Utils.buflen in
   let mutex = Mutex.create () in
   let condition = Condition.create () in
-  let restart_decision =
-    Mutex_utils.mutexify mutex (fun () ->
+  let restart_decision () =
+    Mutex.protect mutex (fun () ->
         let decision =
           match (!is_metadata_restart, !is_stop) with
             | _, true -> -1.
@@ -90,8 +90,8 @@ let encoder id ext =
     on_stop v
   in
   let log s = log#important "%s" s in
-  let on_stdout =
-    Mutex_utils.mutexify mutex (fun puller ->
+  let on_stdout puller =
+    Mutex.protect mutex (fun () ->
         begin
           let len = puller bytes 0 Utils.buflen in
           match len with
@@ -104,8 +104,8 @@ let encoder id ext =
     Process_handler.run ~on_start ~on_stop ~on_stdout ~on_stderr ~log
       ext.process
   in
-  let encode_metadata =
-    Mutex_utils.mutexify mutex (fun _ ->
+  let encode_metadata _ =
+    Mutex.protect mutex (fun () ->
         if ext.restart = Metadata then (
           is_metadata_restart := true;
           Process_handler.stop process))
@@ -137,8 +137,7 @@ let encoder id ext =
         Audio.S16LE.of_audio b start sbuf 0 len;
         Strings.unsafe_of_bytes sbuf)
     in
-    Mutex_utils.mutexify mutex
-      (fun () ->
+    Mutex.protect mutex (fun () ->
         try
           Process_handler.on_stdin process (fun push ->
               Strings.iter
@@ -150,12 +149,11 @@ let encoder id ext =
         | Process_handler.Finished
         when ext.restart_on_crash || !is_metadata_restart
         ->
-          ())
-      ();
+          ());
     Strings.Mutable.flush buf
   in
-  let stop =
-    Mutex_utils.mutexify mutex (fun () ->
+  let stop () =
+    Mutex.protect mutex (fun () ->
         is_stop := true;
         Process_handler.stop process;
         Condition.wait condition mutex;

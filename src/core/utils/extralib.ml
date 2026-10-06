@@ -16,25 +16,6 @@ let assoc_all key l =
 
 let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
 
-(* The first [n] elements of [l], or all of them if it is shorter. *)
-let rec prefix n l =
-  match l with
-    | [] -> []
-    | x :: l -> if n = 0 then [] else x :: prefix (n - 1) l
-
-(** Perfect Fisher-Yates shuffle
-    (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
-let shuffle l =
-  let a = Array.of_list l in
-  let len = Array.length a in
-  for i = 0 to len - 1 do
-    let j = i + Random.int (len - i) in
-    let tmp = a.(i) in
-    a.(i) <- a.(j);
-    a.(j) <- tmp
-  done;
-  Array.to_list a
-
 (* Keep reading until [len] bytes have been read or [read] returns 0. *)
 let read_retry read buf off len =
   let r = ref 0 in

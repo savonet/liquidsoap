@@ -1344,8 +1344,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* Add sources... This is tied up to sources lifecycle so
      no need to prevent early start *)
   let add_source ~pos ~transport ~port ~mountpoint ~icy source =
-    Mutex_utils.mutexify registration_lock
-      (fun () ->
+    Mutex.protect registration_lock (fun () ->
         let handler = get_handler ~pos ~transport ~icy port in
         let smount = Lang.descr_of_regexp mountpoint in
         let current = Atomic.get handler.sources in
@@ -1355,12 +1354,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         else ();
         log#important "Adding mountpoint '%s' on port %i" smount port;
         Atomic.set handler.sources ((mountpoint, source) :: current))
-      ()
 
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =
-    Mutex_utils.mutexify registration_lock
-      (fun () ->
+    Mutex.protect registration_lock (fun () ->
         let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
         let smount = Lang.descr_of_regexp mountpoint in
         let current = Atomic.get handler.sources in
@@ -1381,12 +1378,11 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           List.iter f fds;
           Concurrent_hashtbl.remove opened_ports port)
         else ())
-      ()
 
   (* Add http_handler... *)
   let add_http_handler ~pos ~transport ~port ~verb ~uri h =
-    let exec =
-      Mutex_utils.mutexify registration_lock (fun () ->
+    let exec () =
+      Mutex.protect registration_lock (fun () ->
           let handler = get_handler ~pos ~transport ~icy:false port in
           let suri = Lang.descr_of_regexp uri in
           log#important "Adding handler for '%s %s' on port %i"
@@ -1397,8 +1393,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* Remove http_handler. *)
   let remove_http_handler ~port ~verb ~uri () =
-    let exec =
-      Mutex_utils.mutexify registration_lock (fun () ->
+    let exec () =
+      Mutex.protect registration_lock (fun () ->
           let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
           let suri = Lang.descr_of_regexp uri in
           let removed, remaining =

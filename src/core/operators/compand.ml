@@ -41,7 +41,7 @@ class compand ~field (source : source) mu =
           (* Cf. http://en.wikipedia.org/wiki/Mu-law *)
           let sign = if b_c.(i) < 0. then -1. else 1. in
           b_c.(i) <-
-            sign *. log (1. +. (mu *. Utils.abs_float b_c.(i))) /. log (1. +. mu)
+            sign *. log (1. +. (mu *. Float.abs b_c.(i))) /. log (1. +. mu)
         done
       done;
       source#set_frame_data field Content.Audio.lift_data b

@@ -292,19 +292,6 @@ let _ =
         Lang.list (List.filter (fun v' -> v' != v) l)
       with Not_found -> lv)
 
-(* Perfect Fisher-Yates shuffle
-   (http://www.nist.gov/dads/HTML/fisherYatesShuffle.html). *)
-let shuffle l =
-  let a = Array.of_list l in
-  let len = Array.length a in
-  for i = 0 to len - 1 do
-    let j = i + Random.int (len - i) in
-    let tmp = a.(i) in
-    a.(i) <- a.(j);
-    a.(j) <- tmp
-  done;
-  Array.to_list a
-
 let _ =
   let t = Lang.list_t (Lang.univ_t ()) in
   Lang.add_builtin ~base:list "shuffle" ~category:`List
@@ -313,4 +300,7 @@ let _ =
        same elements but in different, random, order."
     [("", t, None, None)]
     t
-    (fun p -> List.assoc "" p |> Lang.to_list |> shuffle |> Lang.list)
+    (fun p ->
+      let a = List.assoc "" p |> Lang.to_list |> Array.of_list in
+      Array.shuffle ~rand:Random.int a;
+      Lang.list (Array.to_list a))

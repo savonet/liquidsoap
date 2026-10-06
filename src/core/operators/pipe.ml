@@ -79,16 +79,14 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       if not !header_read then (
         let wav = Wav_aiff.read_header Wav_aiff.callback_ops pull in
         header_read := true;
-        Mutex_utils.mutexify mutex
-          (fun () ->
+        Mutex.protect mutex (fun () ->
             if Wav_aiff.channels wav <> self#audio_channels then
               failwith "Invalid channels from pipe process!";
             samplesize <- Wav_aiff.sample_size wav;
             samplerate <- Wav_aiff.sample_rate wav;
             converter <-
               Decoder_utils.from_iff ~format:`Wav ~channels:self#audio_channels
-                ~samplesize)
-          ();
+                ~samplesize);
         `Reschedule `Non_blocking)
       else (
         let len = pull bytes 0 Utils.buflen in
@@ -100,8 +98,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         Generator.put self#buffer Frame.Fields.audio
           (Content.Audio.lift_data ~offset ~length:duration data);
         let to_replay =
-          Mutex_utils.mutexify mutex
-            (fun () ->
+          Mutex.protect mutex (fun () ->
               let pending = !replay_pending in
               let to_replay, pending =
                 List.fold_left
@@ -119,7 +116,6 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
               in
               replay_pending := pending;
               to_replay)
-            ()
         in
         begin match to_replay with
           | -1, _ -> ()
@@ -186,12 +182,11 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
         if ret = len then (
           let action =
             if next <> `Nothing && replay_delay >= 0 then (
-              Mutex_utils.mutexify mutex
-                (fun () -> replay_pending := (0, next) :: !replay_pending)
-                ();
+              Mutex.protect mutex (fun () ->
+                  replay_pending := (0, next) :: !replay_pending);
               `Continue)
             else (
-              Mutex_utils.mutexify mutex (fun () -> next_stop := next) ();
+              Mutex.protect mutex (fun () -> next_stop := next);
               if next <> `Nothing then `Stop else `Continue)
           in
           ignore (Queue.take to_write);
@@ -207,8 +202,8 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       !log_error (Bytes.unsafe_to_string (Bytes.sub bytes 0 len));
       `Continue
 
-    method private on_stop =
-      Mutex_utils.mutexify mutex (fun e ->
+    method private on_stop e =
+      Mutex.protect mutex (fun () ->
           let ret = !next_stop in
           next_stop := `Nothing;
           header_read := false;
@@ -252,15 +247,13 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
       self#on_sleep (fun () ->
           source#sleep (Option.get !a);
           a := None;
-          Mutex_utils.mutexify mutex
-            (fun () ->
+          Mutex.protect mutex (fun () ->
               try
                 next_stop := `Sleep;
                 replay_pending := [];
                 Process_handler.stop self#get_handler;
                 handler <- None
-              with Process_handler.Finished -> ())
-            ())
+              with Process_handler.Finished -> ()))
 
     method! abort_track = source#abort_track
   end

@@ -277,7 +277,7 @@ module AdaptativeBuffer = struct
     mutable abort : bool; (* whether we asked to abort the current track *)
   }
 
-  let proceed control f = Mutex_utils.mutexify control.lock f ()
+  let proceed control f = Mutex.protect control.lock f
 
   (** The source which produces data by reading the buffer. *)
   class producer ~pre_buffer ~averaging ~limit ~resample c =

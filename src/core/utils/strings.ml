@@ -151,7 +151,7 @@ module Mutable = struct
   type nonrec t = { content : content Atomic.t; mutex : Mutex.t }
 
   let initial_size = 1024
-  let mutate m fn = Mutex_utils.mutexify m.mutex fn m
+  let mutate m fn = Mutex.protect m.mutex (fun () -> fn m)
   let get m fn = fn (Atomic.get m.content)
 
   let create ?(size = initial_size) () =
