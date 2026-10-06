@@ -16,12 +16,6 @@ let assoc_all key l =
 
 let rec last = function [x] -> x | _ :: l -> last l | [] -> raise Not_found
 
-(* The first [n] elements of [l], or all of them if it is shorter. *)
-let rec prefix n l =
-  match l with
-    | [] -> []
-    | x :: l -> if n = 0 then [] else x :: prefix (n - 1) l
-
 (* Keep reading until [len] bytes have been read or [read] returns 0. *)
 let read_retry read buf off len =
   let r = ref 0 in
