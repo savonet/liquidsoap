@@ -168,5 +168,4 @@ val name_of_sockaddr :
 (** [Stdlib.abs_float] is not inlined. *)
 val abs_float : float -> float
 
-val optional_apply : ('a -> unit) -> 'a option -> unit
 val generate_id : category:string -> string -> string
