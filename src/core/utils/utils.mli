@@ -165,7 +165,4 @@ external force_locale : string -> unit = "liquidsoap_set_locale"
 val name_of_sockaddr :
   ?rev_dns:bool -> ?show_port:bool -> Unix.sockaddr -> string
 
-(** [Stdlib.abs_float] is not inlined. *)
-val abs_float : float -> float
-
 val generate_id : category:string -> string -> string
