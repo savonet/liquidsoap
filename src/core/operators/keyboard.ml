@@ -66,16 +66,13 @@ class keyboard =
     val ev_m = Mutex.create ()
 
     method private add_event (t : int) (e : MIDI.event) =
-      Mutex.lock ev_m;
-      MIDI.insert ev (t, e);
-      Mutex.unlock ev_m
+      Mutex.protect ev_m (fun () -> MIDI.insert ev (t, e))
 
     method private get_events =
-      Mutex.lock ev_m;
-      let e = MIDI.copy ev in
-      MIDI.clear_all ev;
-      Mutex.unlock ev_m;
-      e
+      Mutex.protect ev_m (fun () ->
+          let e = MIDI.copy ev in
+          MIDI.clear_all ev;
+          e)
 
     (* Unique ID for runs (a run is delimited by get_ready/sleep,
      * used to manage the asynchronous task. *)
@@ -113,7 +110,8 @@ class keyboard =
               events = [`Read Unix.stdin];
             });
 
-      self#on_sleep (Mutex_utils.mutexify lock (fun () -> run_id <- run_id + 1))
+      self#on_sleep (fun () ->
+          Mutex.protect lock (fun () -> run_id <- run_id + 1))
 
     method reset = ()
 

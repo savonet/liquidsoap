@@ -139,8 +139,7 @@ let prefix_ns cmd ns = to_string (ns @ [cmd])
 let add ~ns ?usage ~descr cmd handler =
   let usage = match usage with None -> cmd | Some u -> u in
   let usage = prefix_ns usage ns in
-  Mutex_utils.mutexify lock
-    (fun () ->
+  Mutex.protect lock (fun () ->
       let name = prefix_ns cmd ns in
       if Hashtbl.mem commands name then
         log#f (conf_log_level#get - 1)
@@ -148,13 +147,10 @@ let add ~ns ?usage ~descr cmd handler =
           name
       else ();
       Hashtbl.replace commands (prefix_ns cmd ns) (handler, usage, descr))
-    ()
 
 (* ... and maybe remove them. *)
 let remove ~ns cmd =
-  Mutex_utils.mutexify lock
-    (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
-    ()
+  Mutex.protect lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
 
 type ('a, 'b) interruption = { payload : 'a; after : 'b -> string }
 type write = (string, unit) interruption
@@ -172,9 +168,8 @@ let read ~after payload = raise (Read { payload; after })
 (* The usage string sums up all the commands... *)
 let usage () =
   let l =
-    Mutex_utils.mutexify lock
-      (fun () -> Hashtbl.fold (fun k v l -> (k, v) :: l) commands [])
-      ()
+    Mutex.protect lock (fun () ->
+        Hashtbl.fold (fun k v l -> (k, v) :: l) commands [])
   in
   let compare (x, _) (y, _) = -compare x y in
   let l = List.sort compare l in
@@ -195,7 +190,9 @@ let () =
     ~descr:"Get information on available commands." (fun args ->
       try
         let args = String.trim args in
-        let _, us, d = Mutex_utils.mutexify lock (Hashtbl.find commands) args in
+        let _, us, d =
+          Mutex.protect lock (fun () -> Hashtbl.find commands args)
+        in
         Printf.printf "Done\n%!";
         Printf.sprintf "Usage: %s\r\n  %s" us d
       with Not_found ->
@@ -212,7 +209,9 @@ let exec s =
     with Not_found -> (s, "")
   in
   try
-    let command, _, _ = Mutex_utils.mutexify lock (Hashtbl.find commands) s in
+    let command, _, _ =
+      Mutex.protect lock (fun () -> Hashtbl.find commands s)
+    in
     command args
   with
     | Write opts -> raise (Write opts)
@@ -391,13 +390,11 @@ let started = ref false
 
 let on_start fn =
   if
-    Mutex_utils.mutexify on_start_m
-      (fun () ->
+    Mutex.protect on_start_m (fun () ->
         if !started then true
         else (
           on_start_fns := fn :: !on_start_fns;
           false))
-      ()
   then fn ()
 
 (* Callbacks are run outside of the lock: they may register further callbacks,
@@ -406,13 +403,11 @@ let on_start fn =
    ends up in the next round or runs the callback itself. *)
 let rec run_on_start_fns () =
   let fns =
-    Mutex_utils.mutexify on_start_m
-      (fun () ->
+    Mutex.protect on_start_m (fun () ->
         let fns = List.rev !on_start_fns in
         on_start_fns := [];
         if fns = [] then started := true;
         fns)
-      ()
   in
   if fns <> [] then (
     List.iter (fun fn -> fn ()) fns;

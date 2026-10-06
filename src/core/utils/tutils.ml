@@ -72,12 +72,10 @@ let all = ref Set.empty
 let join_all ~set () =
   let rec f () =
     try
-      Mutex_utils.mutexify lock
-        (fun () ->
+      Mutex.protect lock (fun () ->
           let name, c = Set.choose !set in
           log#info "Waiting for thread %s to shutdown" name;
-          Condition.wait c lock)
-        ();
+          Condition.wait c lock);
       f ()
     with Not_found -> ()
   in
@@ -97,20 +95,17 @@ exception Exit
 let create f x s =
   let c = Condition.create () in
   let set = all in
-  Mutex_utils.mutexify lock
-    (fun () ->
+  Mutex.protect lock (fun () ->
       let id =
         let process x =
           Utils.Thread.set_current_thread_name s;
           try
             Script_callback.uncollected (fun () -> f x);
-            Mutex_utils.mutexify lock
-              (fun () ->
+            Mutex.protect lock (fun () ->
                 set := Set.remove (s, c) !set;
                 log#info "Thread %S terminated (%d remaining)." s
                   (Set.cardinal !set);
                 Condition.signal c)
-              ()
           with e -> (
             let raw_bt = Printexc.get_raw_backtrace () in
             let bt = Printexc.get_backtrace () in
@@ -127,15 +122,13 @@ let create f x s =
             with e ->
               let l = String.split_on_char '\n' bt in
               List.iter (log#info "%s") l;
-              Mutex_utils.mutexify lock
-                (fun () ->
+              Mutex.protect lock (fun () ->
                   set := Set.remove (s, c) !set;
                   if
                     Atomic.compare_and_set state `Running
                       (`Done (`Error (raw_bt, e)))
                   then set_done ();
-                  Condition.signal c)
-                ();
+                  Condition.signal c);
               Printexc.raise_with_backtrace e raw_bt)
         in
         Thread.create process x
@@ -143,7 +136,6 @@ let create f x s =
       set := Set.add (s, c) !set;
       log#info "Created thread %S (%d total)." s (Set.cardinal !set);
       id)
-    ()
 
 let error_handlers = Stack.create ()
 
@@ -166,12 +158,10 @@ let start () = Atomic.compare_and_set state `Idle `Starting
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
-  Mutex_utils.mutexify m
-    (fun () ->
+  Mutex.protect m (fun () ->
       while not (f ()) do
         Condition.wait c m
       done)
-    ()
 
 exception Timeout of float
 

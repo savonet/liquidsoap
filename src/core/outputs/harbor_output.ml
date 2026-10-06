@@ -1011,8 +1011,7 @@ class shared_output p =
       self#wake_write_task
 
     method start =
-      Mutex_utils.mutexify start_stop_mutex
-        (fun () ->
+      Mutex.protect start_stop_mutex (fun () ->
           match enc with
             | Some _ -> ()
             | None ->
@@ -1023,11 +1022,9 @@ class shared_output p =
                 Option.iter
                   (fun path -> dump_channel <- Some (open_out_bin path))
                   dumpfile)
-        ()
 
     method stop =
-      Mutex_utils.mutexify start_stop_mutex
-        (fun () ->
+      Mutex.protect start_stop_mutex (fun () ->
           match enc with
             | None -> ()
             | Some e ->
@@ -1038,7 +1035,6 @@ class shared_output p =
                 self#stop_write_tasks;
                 Option.iter close_out dump_channel;
                 dump_channel <- None)
-        ()
   end
 
 (* Dedicated encoder: a fresh instance is created per listener at connect time,
@@ -1096,23 +1092,20 @@ class dedicated_output p =
       let appended =
         if Atomic.get listener.closed then true
         else
-          Mutex_utils.mutexify listener.state.encoder_mutex
-            (fun () ->
+          Mutex.protect listener.state.encoder_mutex (fun () ->
               if Atomic.get listener.closed then true
               else
                 append_data_to_listener ~buffer_limit listener
                   (insert_icy_metadata ~metadata listener
                      (listener.state.encoder.Encoder.encode frame)))
-            ()
       in
       (* Disconnect outside encoder_mutex: the deferred encoder teardown takes
          the same lock. *)
       if not appended then self#disconnect_overflowed listener
 
     method private stop_listener_encoder listener =
-      Mutex_utils.mutexify listener.state.encoder_mutex
-        (fun () -> ignore (listener.state.encoder.Encoder.stop ()))
-        ()
+      Mutex.protect listener.state.encoder_mutex (fun () ->
+          ignore (listener.state.encoder.Encoder.stop ()))
 
     method encode frame =
       current_frame <- Some frame;
@@ -1132,8 +1125,7 @@ class dedicated_output p =
         current_frame
 
     method start =
-      Mutex_utils.mutexify start_stop_mutex
-        (fun () ->
+      Mutex.protect start_stop_mutex (fun () ->
           match encoder_factory with
             | Some _ -> ()
             | None ->
@@ -1143,11 +1135,9 @@ class dedicated_output p =
                 Option.iter
                   (fun path -> dump_channel <- Some (open_out_bin path))
                   dumpfile)
-        ()
 
     method stop =
-      Mutex_utils.mutexify start_stop_mutex
-        (fun () ->
+      Mutex.protect start_stop_mutex (fun () ->
           match encoder_factory with
             | None -> ()
             | Some _ ->
@@ -1157,7 +1147,6 @@ class dedicated_output p =
                 self#stop_write_tasks;
                 Option.iter close_out dump_channel;
                 dump_channel <- None)
-        ()
   end
 
 let listener_t =
