@@ -8,7 +8,7 @@ let overlapped = Atomic.make false
    same time. *)
 let slow_source =
   object
-    method self_sync : Clock.self_sync =
+    method cached_self_sync : Clock.self_sync =
       Atomic.incr entered;
       let rec wait n =
         if Atomic.get entered < 2 && 0 < n then (

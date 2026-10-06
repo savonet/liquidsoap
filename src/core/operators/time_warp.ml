@@ -51,7 +51,7 @@ module Buffer = struct
       inherit Source.source ~name:id ()
       val mutable cur_meta : Frame.metadata option = None
       val mutable is_buffering = true
-      method self_sync = (`Static, None)
+      method private self_sync = (`Static, None)
       method fallible = true
 
       method remaining =
@@ -139,7 +139,7 @@ module Buffer = struct
       method! reset = ()
       method start = ()
       method stop = ()
-      method self_sync = source#self_sync
+      method private self_sync = source#cached_self_sync
       val source = Lang.to_source source_val
 
       method send_frame frame =
@@ -289,7 +289,7 @@ module AdaptativeBuffer = struct
     object (self)
       inherit Source.source ~name:"buffer.adaptative.producer" ()
       method effective_source = (self :> Source.source)
-      method self_sync = (`Static, None)
+      method private self_sync = (`Static, None)
       method fallible = true
       method remaining = proceed c (fun () -> Generator.remaining c.mg)
       method private can_generate_frame = proceed c (fun () -> not c.buffering)
@@ -428,7 +428,7 @@ module AdaptativeBuffer = struct
       method! reset = ()
       method start = ()
       method stop = ()
-      method self_sync = source#self_sync
+      method private self_sync = source#cached_self_sync
       val source = Lang.to_source source_val
 
       method send_frame frame =

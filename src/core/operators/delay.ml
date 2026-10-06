@@ -67,7 +67,7 @@ class delay ~initial (source : source) delay =
       source#abort_track
 
     method effective_source = source#effective_source
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method private delay_ok = delay_ok last_track
 
     (* The start of the next track, saved at the boundary: it carries the track

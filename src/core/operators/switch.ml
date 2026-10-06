@@ -40,7 +40,7 @@ class insert_initial_track_mark ~name src =
     method private can_generate_frame = src#is_ready
     method abort_track = src#abort_track
     method remaining = src#remaining
-    method self_sync = src#self_sync
+    method private self_sync = src#cached_self_sync
     method effective_source = src#effective_source
     method! last_metadata = src#last_metadata
     method! clear_last_metadata = src#clear_last_metadata
@@ -357,10 +357,10 @@ class switch ~all_predicates children =
                   Some s.effective_source
               | _ -> None)
 
-    method self_sync =
+    method private self_sync =
       ( self_sync_type (),
         match self#selected with
-          | Some s -> snd s.effective_source#self_sync
+          | Some s -> snd s.effective_source#cached_self_sync
           | None -> None )
 
     method remaining =

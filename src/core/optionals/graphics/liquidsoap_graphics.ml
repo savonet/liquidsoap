@@ -39,7 +39,7 @@ class output ~infallible ~register_telnet ~autostart source_val =
       Graphics.resize_window width height;
       sleep <- false
 
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method send_frame buf =
       match (VFrame.data buf).Content.Video.data with

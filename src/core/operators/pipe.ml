@@ -64,7 +64,7 @@ class pipe ~replay_delay ~data_len ~process ~bufferize ~max ~restart
 
     (* Filled in by wake_up. *)
     val mutable converter = fun _ _ _ -> assert false
-    method! self_sync = source#self_sync
+    method! private self_sync = source#cached_self_sync
 
     method private header =
       Bytes.unsafe_of_string

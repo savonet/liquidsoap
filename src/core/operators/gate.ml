@@ -31,7 +31,7 @@ class gate ~threshold ~attack ~release ~hold ~range ~window (source : source) =
     method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     (* Position of the gate between 0. and 1. *)
     val mutable gate = 1.

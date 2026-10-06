@@ -29,7 +29,7 @@ class frame_op ~name f default s =
     method abort_track = s#abort_track
     method remaining = s#remaining
     method effective_source = s#effective_source
-    method self_sync = s#self_sync
+    method private self_sync = s#cached_self_sync
     val mutable value = default
     method value : Lang.value = value
 

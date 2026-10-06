@@ -120,7 +120,7 @@ class child_output src =
     method private generate_frame = src#get_frame
     method abort_track = src#abort_track
     method remaining = src#remaining
-    method self_sync = src#self_sync
+    method private self_sync = src#cached_self_sync
     method effective_source = src#effective_source
   end
 
@@ -129,7 +129,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
   object (self)
     initializer
       if check_self_sync then
-        if (Lang.to_source child_val)#self_sync <> (`Static, None) then
+        if (Lang.to_source child_val)#cached_self_sync <> (`Static, None) then
           raise
             (Error.Invalid_value
                ( child_val,
@@ -146,7 +146,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
     method virtual on_before_streaming_cycle : (unit -> unit) -> unit
     method virtual on_wake_up : (unit -> unit) -> unit
     method virtual on_sleep : (unit -> unit) -> unit
-    method virtual self_sync : Clock.self_sync
+    method virtual cached_self_sync : Clock.self_sync
     method virtual source_type : Clock.source_type
     method virtual activations : Clock.activation list
     method virtual wake_up : Clock.source -> Clock.activation
@@ -235,8 +235,8 @@ class producer ?stack ?child_frame_type ~check_self_sync ~name child_val =
     (* Only claim the child's sync source while it is actually producing: the
        child paces its own clock, not ours, and must not take the sync role
        here while idle. *)
-    method self_sync =
-      match self#child#self_sync with
+    method private self_sync =
+      match self#child#cached_self_sync with
         | self_sync_type, Some _ when not self#child#is_ready ->
             (self_sync_type, None)
         | self_sync -> self_sync

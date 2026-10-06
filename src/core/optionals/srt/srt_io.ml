@@ -933,7 +933,7 @@ class virtual input_base ~max ~self_sync ~payload_size ~dump ~autostart format =
     method private can_generate_frame =
       super#started && (not self#should_stop) && self#is_connected
 
-    method self_sync =
+    method private self_sync =
       if self_sync then
         (`Dynamic, if self#is_connected then Some sync_source else None)
       else (`Static, None)
@@ -1230,7 +1230,7 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
           ~hostname ~port ~prefer_address ~payload_size ~read_timeout
           ~write_timeout ~connection_timeout ~messageapi
 
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private get_sockets =
       try [self#get_socket] with Not_connected -> []
@@ -1261,7 +1261,7 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
           ~write_timeout ~messageapi ~enforced_encryption ~pbkeylen ~passphrase
           ~listen_callback ~max_clients ~ipv6only ()
 
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private client_error socket exn bt =
       Utils.log_exception ~log:self#log

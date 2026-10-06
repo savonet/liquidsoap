@@ -117,7 +117,7 @@ type activation = < id : string >
 type source =
   < id : string
   ; stack : Pos.t list
-  ; self_sync : self_sync
+  ; cached_self_sync : self_sync
   ; source_type : source_type
   ; active : bool
   ; activations : activation list
@@ -135,7 +135,7 @@ type source =
     Not to be confused with {!self_sync}, which reports whether a clock is
     currently in self-sync mode. *)
 val self_sync_of_sources :
-  < self_sync : self_sync
+  < cached_self_sync : self_sync
   ; is_ready : bool
   ; id : string
   ; stack : Pos.t list
@@ -147,7 +147,7 @@ val self_sync_of_sources :
 
 (** [`Dynamic] as soon as one of the sources is, [`Static] otherwise. *)
 val self_sync_type_of_sources :
-  < self_sync : self_sync ; .. > list -> unit -> [ `Static | `Dynamic ]
+  < cached_self_sync : self_sync ; .. > list -> unit -> [ `Static | `Dynamic ]
 
 (** Sync mode of a clock:
     - [`Automatic]: the clock delegates latency control to its current sync

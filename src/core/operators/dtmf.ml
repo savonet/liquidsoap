@@ -161,7 +161,7 @@ class dtmf ~duration ~bands ~threshold ~smoothing ~debug callback
     method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     val bands =
       Bands.make ~size:nbands ~samplerate
@@ -299,7 +299,7 @@ class detect ~duration ~bands ~threshold ~smoothing ~debug ~frequencies callback
     method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     val bands = Bands.make ~size:nbands ~samplerate frequencies
     val mutable n = nbands
     val mutable detected = []

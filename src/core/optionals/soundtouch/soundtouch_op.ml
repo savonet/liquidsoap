@@ -30,7 +30,7 @@ class soundtouch source_val rate tempo pitch =
     inherit Child_support.base ~check_self_sync:true source_val
     val mutable st = None
     method fallible = source#fallible
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method private can_generate_frame = self#child_is_ready
     method effective_source = source#effective_source
     method remaining = -1

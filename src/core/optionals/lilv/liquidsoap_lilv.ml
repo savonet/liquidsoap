@@ -40,7 +40,7 @@ class virtual base source =
     method remaining = source#remaining
     method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method abort_track = source#abort_track
   end
 
@@ -154,7 +154,7 @@ class lilv (source : source) plugin inputs outputs params =
 class lilv_nosource plugin outputs params =
   object (self)
     inherit base_nosource
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
 
     val inst =
       Plugin.instantiate plugin

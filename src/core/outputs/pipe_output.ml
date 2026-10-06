@@ -219,7 +219,7 @@ class url_output p =
         Strings.empty
 
     method write_pipe _ _ _ = ()
-    method self_sync = (`Static, self#source_sync self_sync)
+    method private self_sync = (`Static, self#source_sync self_sync)
   end
 
 let _ =
@@ -476,7 +476,7 @@ class virtual ['a] file_output_base p =
       self#interpolate ~subst filename
 
     method virtual open_out_gen : open_flag list -> int -> string -> 'a
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private prepare_filename =
       let mode =
@@ -630,7 +630,7 @@ class external_output ?clock p =
     inherit piped_output ?clock ~name:"output.external" p
     inherit [out_channel] chan_output p
     method encoder_factory = encoder_factory format_val
-    method self_sync = (`Static, self#source_sync self_sync)
+    method private self_sync = (`Static, self#source_sync self_sync)
 
     method open_chan =
       let process = process () in

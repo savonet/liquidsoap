@@ -572,7 +572,8 @@ let source_methods : source_meth list =
       name = "self_sync";
       scheme = (fun _ -> ([], fun_t [] bool_t));
       descr = "Is the source currently controlling its own real-time loop.";
-      value = (fun s -> val_fun [] (fun _ -> bool (snd s#self_sync <> None)));
+      value =
+        (fun s -> val_fun [] (fun _ -> bool (snd s#cached_self_sync <> None)));
     };
     {
       name = "self_sync_description";
@@ -581,7 +582,7 @@ let source_methods : source_meth list =
       value =
         (fun s ->
           val_fun [] (fun _ ->
-              match s#self_sync with
+              match s#cached_self_sync with
                 | `Static, Some src ->
                     string ("Static: " ^ Clock.string_of_sync_source src)
                 | `Dynamic, Some src ->
@@ -1304,7 +1305,7 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
                 value =
                   (fun s ->
                     val_fun [] (fun _ ->
-                        match s#self_sync with
+                        match s#cached_self_sync with
                           | `Static, Some src ->
                               string
                                 ("Static: " ^ Clock.string_of_sync_source src)

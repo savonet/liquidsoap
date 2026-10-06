@@ -33,7 +33,7 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = source#remaining
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method effective_source = source#effective_source
     val mutable state = `Idle
 
@@ -91,7 +91,7 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
     inherit operator ~name:"video.fade.out" [source]
     method fallible = source#fallible
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method effective_source = source#effective_source
 
     (* Fade-out length (in video frames) for the current track.

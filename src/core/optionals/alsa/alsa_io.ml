@@ -56,7 +56,7 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync
             gen <- Some g;
             g
 
-    method self_sync : Clock.self_sync =
+    method private self_sync : Clock.self_sync =
       if self_sync then
         (`Dynamic, if pcm <> None then Some Alsa_settings.sync_source else None)
       else default_self_sync ()
@@ -184,7 +184,7 @@ class output ~buffer_size ~self_sync ~start ~infallible ~register_telnet dev
     inherit
       base
         ~buffer_size ~self_sync
-        ~default_self_sync:(fun () -> s#self_sync)
+        ~default_self_sync:(fun () -> s#cached_self_sync)
         dev [Pcm.Playback]
 
     val mutable samplerate_converter = None
