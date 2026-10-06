@@ -176,4 +176,6 @@ let shutdown () =
 
 let () =
   Lifecycle.before_start ~name:"clocks start" application_start;
+  Lifecycle.after_main_loop ~name:"clocks global stop" (fun () ->
+      Atomic.set global_stop true);
   Lifecycle.before_core_shutdown ~name:"clocks shutdown" shutdown

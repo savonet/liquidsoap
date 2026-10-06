@@ -367,6 +367,11 @@ to keep running without the failed clock. The policy is called after the
 wind-down, possibly from inside a tick of another clock: it MUST NOT wait for
 clocks to stop. The default only asks for the shutdown, which runs elsewhere.
 
+The default policy asks for a shutdown until the global stop is set
+([§12](#12-global-stop-and-shutdown)). A tick in progress when the global stop
+is set may fail on a source that the shutdown puts out of service: that
+failure is logged, and the exit status already asked for stands.
+
 **Sub-clocks.** A failing sub-clock fails like any clock: it is wound down and
 reported. Then:
 
@@ -397,7 +402,10 @@ Later ticks of the parent skip it, and a later pull meets `not running`.
 is abandoned at its next stop check, every rest and wait ends, and every
 animator winds its clock down.
 
-**Shutdown**, before anything a tick reads from is torn down:
+**Shutdown.** The global stop is the clocks' record that the shutdown is under
+way. It MUST be set once the application has left its main loop and before
+anything a tick reads from is torn down. A failure before that point is a
+failure of the script and keeps its effect on the exit status.
 
 1. Set the global stop.
 2. Stop every clock in `running`.

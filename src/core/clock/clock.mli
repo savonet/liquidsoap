@@ -128,7 +128,7 @@ val application_start : unit -> unit
 val shutdown : unit -> unit
 
 (** Called once per failed clock, after it was wound down. The default asks for
-    the application to shut down. *)
+    the application to shut down, until the global stop is set. *)
 val set_failure_policy : (t -> failure -> unit) -> unit
 
 val attach : t -> source -> unit

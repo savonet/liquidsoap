@@ -6,7 +6,8 @@ open Activation
 open Pacing
 
 let failure_policy : (t -> failure -> unit) Atomic.t =
-  Atomic.make (fun _ _ -> Tutils.shutdown 1)
+  Atomic.make (fun _ _ ->
+      if not (Atomic.get global_stop) then Tutils.shutdown 1)
 
 let set_failure_policy policy = Atomic.set failure_policy policy
 
