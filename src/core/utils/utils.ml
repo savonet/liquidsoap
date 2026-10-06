@@ -104,25 +104,7 @@ external force_locale : string -> unit = "liquidsoap_set_locale"
 
 let buflen = try int_of_string (Sys.getenv "LIQ_BUFLEN") with _ -> 1024
 let () = force_locale "C"
-
-(** Read all data from a given filename. We cannot use really_input with the
-    reported length of the file because some OSes such as windows may do
-    implicit conversions (file opened in text mode in win32), thus making the
-    actual number of characters that can be read from the file different than
-    its reported length.. *)
-let read_all filename =
-  let channel = open_in filename in
-  let tmp = Bytes.create buflen in
-  let contents = Strings.Mutable.empty () in
-  let rec read () =
-    let ret = input channel tmp 0 buflen in
-    if ret > 0 then (
-      Strings.Mutable.add_subbytes contents tmp 0 ret;
-      read ())
-  in
-  read ();
-  close_in channel;
-  Strings.Mutable.to_string contents
+let read_all filename = In_channel.with_open_bin filename In_channel.input_all
 
 (* Here we take care not to introduce new redexes when substituting *)
 
