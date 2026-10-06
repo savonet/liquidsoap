@@ -55,7 +55,7 @@ class dssi ?chan plugin descr outputs params source =
     method fallible = source#fallible
     method remaining = source#remaining
     method private can_generate_frame = source#is_ready
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method abort_track = source#abort_track
 
     val di =

@@ -461,7 +461,7 @@ class virtual ['a] base p =
       Callbacks.register on_disconnect_callbacks fn
 
     method on_disconnect fn = Callbacks.add on_disconnect_callbacks fn
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method private get_metadata = Atomic.get shared_metadata
 
     (* Called synchronously when a listener connects, before it is published

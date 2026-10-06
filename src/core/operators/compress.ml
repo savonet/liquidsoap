@@ -37,7 +37,7 @@ class compress ~attack ~release ~threshold ~ratio ~knee ~track_sensitive
     method fallible = source#fallible
     method remaining = source#remaining
     method effective_source = source#effective_source
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
 

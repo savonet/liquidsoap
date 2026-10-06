@@ -65,10 +65,10 @@ class output ~self_sync ~register_telnet ~name ~groups ~infallible ~handler
 
     val mutable sender = None
 
-    method self_sync =
+    method private self_sync =
       if self_sync then
         (`Dynamic, if sender <> None then Some sync_source else None)
-      else s#self_sync
+      else s#cached_self_sync
 
     method get_sender =
       match sender with

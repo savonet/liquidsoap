@@ -164,7 +164,11 @@ object
       a [`Auto] clock), we simply decide based on whether there is one
       [self_sync] source or not. This logic should dictate how the method is
       implemented by the various operators. *)
-  method virtual self_sync : Clock.self_sync
+  method virtual private self_sync : Clock.self_sync
+
+  (** What other sources and the clock read: [self_sync], computed once per
+      streaming cycle. *)
+  method cached_self_sync : Clock.self_sync
 
   method source_sync : bool -> Clock.sync_source option
 

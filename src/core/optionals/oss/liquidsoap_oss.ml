@@ -55,9 +55,9 @@ class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
 
     val mutable fd = None
 
-    method self_sync =
+    method private self_sync =
       if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
-      else s#self_sync
+      else s#cached_self_sync
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
@@ -97,7 +97,7 @@ class input ~self_sync ~start ~fallible dev =
 
     val mutable fd = None
 
-    method self_sync =
+    method private self_sync =
       if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
       else (`Static, None)
 

@@ -13,7 +13,7 @@ class ready_source =
     method effective_source = (self :> Source.source)
     method fallible = false
     method private can_generate_frame = true
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
     method remaining = -1
     method abort_track = ()
 

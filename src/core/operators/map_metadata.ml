@@ -47,7 +47,7 @@ class map_metadata source rewrite_f insert_missing update strip =
     method remaining = source#remaining
     method abort_track = source#abort_track
     method effective_source = source#effective_source
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private rewrite m =
       let m' = Lang.apply rewrite_f [("", Lang.metadata m)] in

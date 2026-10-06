@@ -35,7 +35,7 @@ class insert_subtitles ~field (s : source option) =
     method effective_source =
       opt (fun s -> s#effective_source) (self :> Source.source)
 
-    method self_sync = opt (fun s -> s#self_sync) (`Static, None)
+    method private self_sync = opt (fun s -> s#cached_self_sync) (`Static, None)
     method insert_subtitle sub = Queue.push sub pending
 
     method private generate_frame =

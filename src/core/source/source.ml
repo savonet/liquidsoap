@@ -27,6 +27,25 @@ exception Unavailable
 module Queue = Queues.Queue
 module WeakQueue = Queues.WeakQueue
 
+(* A value settled once per streaming cycle: computed on first read, then held
+   until its source releases it at the cycle's boundaries. *)
+module Per_cycle = struct
+  type 'a t = 'a option Atomic.t
+
+  let make () = Atomic.make None
+  let find = Atomic.get
+  let release settled = Atomic.set settled None
+
+  let get ~on_release settled compute =
+    match find settled with
+      | Some value -> value
+      | None ->
+          let value = compute () in
+          Atomic.set settled (Some value);
+          on_release (fun () -> release settled);
+          value
+end
+
 type streaming_state =
   [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
 
@@ -232,7 +251,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | `Passive -> false
         | `Output _ | `Active _ -> true
 
-    method virtual self_sync : Clock.self_sync
+    method virtual private self_sync : Clock.self_sync
+    val cycle_self_sync : Clock.self_sync Per_cycle.t = Per_cycle.make ()
     val mutable self_sync_source = None
 
     method private self_sync_source =
@@ -257,6 +277,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method on_sync_source_change fn = Callbacks.register state_callbacks fn
 
     method private notify_sync_source new_state =
+      Per_cycle.release cycle_self_sync;
       if sync_source_changed new_state source_state then (
         let old = source_state in
         source_state <- new_state;
@@ -558,6 +579,26 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           | _ -> false)
       else false
 
+    method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a =
+      fun settled compute ->
+        Per_cycle.get ~on_release:self#on_cycle_release settled compute
+
+    val held_for_cycle : (unit -> unit) list Atomic.t = Atomic.make []
+
+    method private on_cycle_release release =
+      let held = Atomic.get held_for_cycle in
+      if not (Atomic.compare_and_set held_for_cycle held (release :: held)) then
+        self#on_cycle_release release
+
+    method private release_cycle_values =
+      List.iter (fun release -> release ()) (Atomic.exchange held_for_cycle [])
+
+    (* Outside a cycle the answer is computed on each read. *)
+    method cached_self_sync =
+      match Atomic.get streaming_state with
+        | `Pending -> self#self_sync
+        | _ -> self#per_cycle cycle_self_sync (fun () -> self#self_sync)
+
     val mutable _cache = None
     val mutable consumed = 0
     val mutable on_before_streaming_cycle = []
@@ -580,6 +621,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private before_streaming_cycle =
       match Atomic.get streaming_state with
         | `Pending ->
+            self#release_cycle_values;
             List.iter (fun fn -> fn ()) on_before_streaming_cycle;
             consumed <- 0;
             let cache_pos = self#cache_pos in
@@ -615,7 +657,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             _cache <- Some (Frame.append (Frame.after buf n) self#cache)
         | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
-      Atomic.set streaming_state `Pending
+      Atomic.set streaming_state `Pending;
+      self#release_cycle_values
 
     (* Frame generation executes script callbacks which may read the source's
        frame again. Such a re-entrant call must not restart the generation, so

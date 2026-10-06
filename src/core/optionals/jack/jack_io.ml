@@ -402,7 +402,7 @@ class virtual base ~server () =
       Option.iter (fun c -> c#close) _jack_client;
       _jack_client <- None
 
-    method self_sync : Clock.self_sync =
+    method private self_sync : Clock.self_sync =
       ( `Dynamic,
         match _jack_client with None -> None | Some _ -> Some sync_source )
 

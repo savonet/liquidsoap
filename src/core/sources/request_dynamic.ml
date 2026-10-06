@@ -70,7 +70,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
     val mutable first_fill = false
     val mutable current = Atomic.make None
     method current = Atomic.get current
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
     val should_skip = Atomic.make false
 
     initializer

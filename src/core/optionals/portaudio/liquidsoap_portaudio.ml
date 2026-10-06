@@ -201,10 +201,10 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_name
 
     val mutable stream = None
 
-    method self_sync =
+    method private self_sync =
       if self_sync then
         (`Dynamic, if stream <> None then Some sync_source else None)
-      else s#self_sync
+      else s#cached_self_sync
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -246,7 +246,7 @@ class input ~self_sync ~start ~fallible ~device_name ~device_id ~latency buflen
     method private stop = self#close_device
     val mutable stream = None
 
-    method self_sync =
+    method private self_sync =
       if self_sync then
         (`Dynamic, if stream <> None then Some sync_source else None)
       else (`Static, None)

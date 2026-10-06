@@ -32,7 +32,7 @@ class replay ?(name = "replay_metadata") meta src =
     method private can_generate_frame = src#is_ready
     method abort_track = src#abort_track
     method remaining = src#remaining
-    method self_sync = src#self_sync
+    method private self_sync = src#cached_self_sync
     method effective_source = src#effective_source
 
     method private generate_frame =

@@ -27,7 +27,7 @@ class accelerate ~ratio ~randomize source_val =
   object (self)
     inherit operator ~name:"accelerate" []
     inherit Child_support.base ~check_self_sync:true source_val
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method fallible = source#fallible
     method effective_source = source#effective_source
 

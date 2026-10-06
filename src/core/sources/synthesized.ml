@@ -39,7 +39,7 @@ class virtual source ~name duration =
             r
 
     method effective_source = (self :> Source.source)
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
 
     method remaining =
       match remaining with None -> -1 | Some remaining -> remaining

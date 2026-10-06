@@ -172,7 +172,7 @@ class lufs window true_peak_enabled source =
     method remaining = source#remaining
     method effective_source = source#effective_source
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     (** Last 100ms blocks. *)
     val mutable ms_blocks = []

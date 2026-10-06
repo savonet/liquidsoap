@@ -182,7 +182,7 @@ type activation = < id : string >
 type source =
   < id : string
   ; stack : Pos.t list
-  ; self_sync : self_sync
+  ; cached_self_sync : self_sync
   ; source_type : source_type
   ; active : bool
   ; activations : activation list
@@ -203,8 +203,8 @@ let self_sync_type_of_sources sources =
       | Some self_sync_type -> self_sync_type
       | None ->
           let self_sync_type =
-            if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then
-              `Dynamic
+            if List.exists (fun s -> fst s#cached_self_sync = `Dynamic) sources
+            then `Dynamic
             else `Static
           in
           Atomic.set cached (Some self_sync_type);
@@ -217,7 +217,7 @@ let self_sync_of_sources sources =
       List.fold_left
         (fun sync_sources s ->
           if s#is_ready then (
-            match s#self_sync with
+            match s#cached_self_sync with
               | _, Some sync_source ->
                   { name = s#id; stack = s#stack; sync_source } :: sync_sources
               | _ -> sync_sources)

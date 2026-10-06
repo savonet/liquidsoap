@@ -499,7 +499,7 @@ class output p =
     val mutable dump = None
 
     val mutable encoder = None
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     val on_connect = Callbacks.create ()
     method register_on_connect fn = Callbacks.register on_connect fn
     method on_connect fn = Callbacks.add on_connect fn

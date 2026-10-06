@@ -64,7 +64,7 @@ class virtual base source =
     method remaining = source#remaining
     method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method abort_track = source#abort_track
   end
 
@@ -74,7 +74,7 @@ class virtual base_nosource =
     method effective_source = (self :> Source.source)
     method fallible = false
     method private can_generate_frame = true
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
     val mutable must_fail = false
     method abort_track = must_fail <- true
     method remaining = -1
