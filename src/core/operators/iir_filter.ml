@@ -94,7 +94,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
 
         (* check that computed coeffs of z^k are all real *)
         for i = 0 to n do
-          if Utils.abs_float c.(i).im > 1e-10 then
+          if Float.abs c.(i).im > 1e-10 then
             (* coeff of z^i is not real; poles/zeros are not complex conj. *)
             assert false
         done;
@@ -294,7 +294,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
                 let phi = g.im /. g.re in
                 (* approx to atan2 *)
                 if phi > 0. then th2 := !thm else th1 := !thm;
-                if Utils.abs_float phi < 1e-10 then cvg := true;
+                if Float.abs phi < 1e-10 then cvg := true;
                 thm := 0.5 *. (!th1 +. !th2)
               done;
 

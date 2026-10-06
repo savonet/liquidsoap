@@ -66,7 +66,7 @@ class window mode duration source =
             let x = buf.(c).(i) in
             match mode with
               | RMS -> acc.(c) <- acc.(c) +. (x *. x)
-              | Peak -> acc.(c) <- max acc.(c) (Utils.abs_float x)
+              | Peak -> acc.(c) <- max acc.(c) (Float.abs x)
           done;
           acc_dur <- acc_dur + 1;
           if acc_dur >= duration then (

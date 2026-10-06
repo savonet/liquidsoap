@@ -515,9 +515,6 @@ let concat_with_last ~last sep l =
     | x :: l ->
         Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x
 
-(* Stdlib.abs_float is not inlined!. *)
-let abs_float (f : float) = if f < 0. then -.f else f [@@inline always]
-
 let frame_id_of_string = function
   | "comment" -> Some `COMM
   | "album" -> Some `TALB
