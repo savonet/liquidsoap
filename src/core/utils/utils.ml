@@ -710,8 +710,7 @@ let generate_id =
       String.concat "."
         (List.rev (drop_dots (List.rev (String.split_on_char '.' name))))
     in
-    Mutex_utils.mutexify m
-      (fun () ->
+    Mutex.protect m (fun () ->
         let base_id = IdMap.merge h { category; name; counter = 0 } in
         let id =
           Bytes.(
@@ -724,4 +723,3 @@ let generate_id =
         base_id.counter <- base_id.counter + 1;
         Gc.finalise_last (fun () -> ignore (Sys.opaque_identity base_id)) id;
         id)
-      ()

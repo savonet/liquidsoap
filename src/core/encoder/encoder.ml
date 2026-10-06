@@ -347,8 +347,10 @@ let get_factory fmt =
       in
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in
-      let encode_metadata = Mutex_utils.mutexify m encode_metadata in
-      let header = Mutex_utils.mutexify m header in
+      let encode_metadata metadata =
+        Mutex.protect m (fun () -> encode_metadata metadata)
+      in
+      let header () = Mutex.protect m header in
       let {
         init;
         init_encode;
@@ -361,22 +363,17 @@ let get_factory fmt =
         hls
       in
       let init ?id3_enabled ?id3_version () =
-        Mutex_utils.mutexify m (fun () -> init ?id3_enabled ?id3_version ()) ()
+        Mutex.protect m (fun () -> init ?id3_enabled ?id3_version ())
       in
-      let init_encode frame =
-        Mutex_utils.mutexify m (fun () -> init_encode frame) ()
-      in
-      let split_encode frame =
-        Mutex_utils.mutexify m (fun () -> split_encode frame) ()
-      in
-      let codec_attrs = Mutex_utils.mutexify m codec_attrs in
+      let init_encode frame = Mutex.protect m (fun () -> init_encode frame) in
+      let split_encode frame = Mutex.protect m (fun () -> split_encode frame) in
+      let codec_attrs () = Mutex.protect m codec_attrs in
       let insert_id3 ~frame_position ~sample_position meta =
-        Mutex_utils.mutexify m
-          (fun () -> insert_id3 ~frame_position ~sample_position meta)
-          ()
+        Mutex.protect m (fun () ->
+            insert_id3 ~frame_position ~sample_position meta)
       in
-      let bitrate = Mutex_utils.mutexify m bitrate in
-      let video_size = Mutex_utils.mutexify m video_size in
+      let bitrate () = Mutex.protect m bitrate in
+      let video_size () = Mutex.protect m video_size in
       let hls =
         {
           init;
@@ -388,6 +385,6 @@ let get_factory fmt =
           video_size;
         }
       in
-      let encode frame = Mutex_utils.mutexify m (fun () -> encode frame) () in
-      let stop = Mutex_utils.mutexify m stop in
+      let encode frame = Mutex.protect m (fun () -> encode frame) in
+      let stop () = Mutex.protect m stop in
       { encode_metadata; hls; encode; stop; header }

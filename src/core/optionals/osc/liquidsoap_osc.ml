@@ -92,23 +92,23 @@ let start_server () =
        ())
 
 let () =
-  Lifecycle.on_start ~name:"osc initialization"
-    (Mutex_utils.mutexify started_m (fun () ->
-         if !should_start && !server = None then start_server ()
-         else started := true))
+  Lifecycle.on_start ~name:"osc initialization" (fun () ->
+      Mutex.protect started_m (fun () ->
+          if !should_start && !server = None then start_server ()
+          else started := true))
 
 let () =
-  Lifecycle.on_core_shutdown ~name:"osc shutdown"
-    (Mutex_utils.mutexify started_m (fun () ->
-         match !server with
-           | Some s ->
-               log#info "Stopping OSC server";
-               server := None;
-               Osc_unix.Udp.Server.destroy s
-           | None -> ()))
+  Lifecycle.on_core_shutdown ~name:"osc shutdown" (fun () ->
+      Mutex.protect started_m (fun () ->
+          match !server with
+            | Some s ->
+                log#info "Stopping OSC server";
+                server := None;
+                Osc_unix.Udp.Server.destroy s
+            | None -> ()))
 
-let start_server =
-  Mutex_utils.mutexify started_m (fun () ->
+let start_server () =
+  Mutex.protect started_m (fun () ->
       if !started && !server = None then start_server ()
       else should_start := true)
 

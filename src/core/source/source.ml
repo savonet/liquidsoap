@@ -463,12 +463,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val script_callbacks_m = Mutex.create ()
 
     method script_callback_counts =
-      Mutex_utils.mutexify script_callbacks_m
-        (fun () ->
+      Mutex.protect script_callbacks_m (fun () ->
           Hashtbl.fold
             (fun name count l -> (name, count) :: l)
             script_callbacks [])
-        ()
 
     (* Callbacks a script registers live as long as this source does, so a
        function registering on a source it is handed piles them up every time it
@@ -477,15 +475,13 @@ class virtual operator ?(stack = []) ?clock ~name sources =
        is normal anyway. *)
     method register_script_callback name release =
       let count =
-        Mutex_utils.mutexify script_callbacks_m
-          (fun () ->
+        Mutex.protect script_callbacks_m (fun () ->
             let count =
               1
               + Option.value ~default:0 (Hashtbl.find_opt script_callbacks name)
             in
             Hashtbl.replace script_callbacks name count;
             count)
-          ()
       in
       if count = max_script_callbacks + 1 then
         self#log#important
@@ -496,14 +492,12 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       let released = Atomic.make false in
       fun () ->
         if Atomic.compare_and_set released false true then (
-          Mutex_utils.mutexify script_callbacks_m
-            (fun () ->
+          Mutex.protect script_callbacks_m (fun () ->
               match Hashtbl.find_opt script_callbacks name with
                 | Some count when count <= 1 ->
                     Hashtbl.remove script_callbacks name
                 | Some count -> Hashtbl.replace script_callbacks name (count - 1)
-                | None -> ())
-            ();
+                | None -> ());
           release ())
 
     initializer

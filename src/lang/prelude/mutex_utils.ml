@@ -20,17 +20,6 @@
 
  *****************************************************************************)
 
-let[@inline never] mutexify m f x =
-  Mutex.lock m;
-  match f x with
-    | exception exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Mutex.unlock m;
-        Printexc.raise_with_backtrace exn bt
-    | v ->
-        Mutex.unlock m;
-        v
-
 type state = {
   mutex : Mutex.t;
   condition : Condition.t;
@@ -57,11 +46,9 @@ let rec wait state held =
   if not (Atomic.compare_and_set state.lock `None held) then (
     (match Atomic.get state.lock with
       | `Mutating ->
-          mutexify state.mutex
-            (fun () ->
+          Mutex.protect state.mutex (fun () ->
               if Atomic.get state.lock = `Mutating then
                 Condition.wait state.condition state.mutex)
-            ()
       | _ -> Domain.cpu_relax ());
     wait state held)
 
