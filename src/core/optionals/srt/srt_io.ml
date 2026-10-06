@@ -694,27 +694,17 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         try
           Srt.setsockflag s Srt.sndsyn true;
           Srt.setsockflag s Srt.rcvsyn true;
-          Utils.optional_apply
-            (fun id -> Srt.(setsockflag s streamid id))
-            streamid;
-          Utils.optional_apply
+          Option.iter (fun id -> Srt.(setsockflag s streamid id)) streamid;
+          Option.iter
             (fun b -> Srt.(setsockflag s enforced_encryption b))
             enforced_encryption;
-          Utils.optional_apply
-            (fun len -> Srt.(setsockflag s pbkeylen len))
-            pbkeylen;
-          Utils.optional_apply
-            (fun p -> Srt.(setsockflag s passphrase p))
-            passphrase;
-          Utils.optional_apply
+          Option.iter (fun len -> Srt.(setsockflag s pbkeylen len)) pbkeylen;
+          Option.iter (fun p -> Srt.(setsockflag s passphrase p)) passphrase;
+          Option.iter
             (fun v -> Srt.(setsockflag s conntimeo v))
             connection_timeout;
-          Utils.optional_apply
-            (fun v -> Srt.(setsockflag s sndtimeo v))
-            write_timeout;
-          Utils.optional_apply
-            (fun v -> Srt.(setsockflag s rcvtimeo v))
-            read_timeout;
+          Option.iter (fun v -> Srt.(setsockflag s sndtimeo v)) write_timeout;
+          Option.iter (fun v -> Srt.(setsockflag s rcvtimeo v)) read_timeout;
           Srt.connect s sockaddr.Unix.ai_addr;
           self#log#important "Client connected!";
           self#apply_on_connect;
@@ -813,18 +803,12 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
                   None
                   [max_clients_callback; listen_callback]
               in
-              Utils.optional_apply
-                (fun fn -> Srt.listen_callback s fn)
-                listen_callback;
-              Utils.optional_apply
+              Option.iter (fun fn -> Srt.listen_callback s fn) listen_callback;
+              Option.iter
                 (fun b -> Srt.(setsockflag s enforced_encryption b))
                 enforced_encryption;
-              Utils.optional_apply
-                (fun len -> Srt.(setsockflag s pbkeylen len))
-                pbkeylen;
-              Utils.optional_apply
-                (fun p -> Srt.(setsockflag s passphrase p))
-                passphrase;
+              Option.iter (fun len -> Srt.(setsockflag s pbkeylen len)) pbkeylen;
+              Option.iter (fun p -> Srt.(setsockflag s passphrase p)) passphrase;
               Srt.listen s (Option.value ~default:1 max_clients);
               self#log#info "Setting up socket to listen at %s"
                 (string_of_address bind_address.Unix.ai_addr);
@@ -847,10 +831,10 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             Poll.add_socket ~mode:`Read s accept_connection;
             Srt.(setsockflag client sndsyn true);
             Srt.(setsockflag client rcvsyn true);
-            Utils.optional_apply
+            Option.iter
               (fun v -> Srt.(setsockflag client sndtimeo v))
               write_timeout;
-            Utils.optional_apply
+            Option.iter
               (fun v -> Srt.(setsockflag client rcvtimeo v))
               read_timeout;
             self#apply_on_socket ~mode:`Incoming client;

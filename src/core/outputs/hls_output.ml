@@ -27,6 +27,35 @@ exception Invalid_state
 let default_id3_version = 3
 let log = Log.make ["hls"; "output"]
 
+let copy_file ~perms src dst =
+  Out_channel.with_open_gen [Open_wronly; Open_creat; Open_trunc; Open_binary]
+    perms dst (fun oc ->
+      In_channel.with_open_bin src (fun ic ->
+          let len = 4096 in
+          let buf = Bytes.create len in
+          let rec copy () =
+            match In_channel.input ic buf 0 len with
+              | 0 -> ()
+              | n ->
+                  Out_channel.output oc buf 0 n;
+                  copy ()
+          in
+          copy ()))
+
+(* Staging next to [dst] keeps the final rename on one file system. *)
+let atomic_copy ~perms src dst =
+  let staged =
+    Filename.temp_file ~temp_dir:(Filename.dirname dst) "liq" "tmp"
+  in
+  try
+    Unix.chmod staged perms;
+    copy_file ~perms src staged;
+    Unix.rename staged dst
+  with exn ->
+    let bt = Printexc.get_raw_backtrace () in
+    (try Sys.remove staged with _ -> ());
+    Printexc.raise_with_backtrace exn bt
+
 let default_name =
   Lang.eval ~cache:false ~typecheck:false ~stdlib:`Disabled
     {|fun (metadata) -> "#{metadata.stream_name}_#{metadata.position}.#{metadata.extname}"|}
@@ -435,6 +464,20 @@ class hls_output p =
       (validate_writable_directory ~descr:"temporary directory" temp_dir_val)
       temp_dir
   in
+  let () =
+    Option.iter
+      (fun temp_dir ->
+        if
+          (Unix.stat temp_dir).Unix.st_dev
+          <> (Unix.stat hls_directory).Unix.st_dev
+        then
+          log#important
+            "Temporary directory %s is on a different file system than %s: \
+             each file is copied into place, set `temp_dir` to the same file \
+             system to avoid the extra copy."
+            temp_dir hls_directory)
+      temp_dir
+  in
   let persist_at_val = List.assoc "persist_at" p in
   let persist_at =
     Option.map
@@ -720,15 +763,7 @@ class hls_output p =
               in
               (try Unix.rename tmp_file fname
                with Unix.Unix_error (Unix.EXDEV, _, _) ->
-                 self#log#important
-                   "Rename failed! Directory for temporary files appears to be \
-                    on a different file system. Please set it to the same one \
-                    using `temp_dir` argument to guarantee atomic file \
-                    operations!";
-                 Utils.copy
-                   ~mode:[Open_creat; Open_trunc; Open_binary]
-                   ~perms tmp_file fname;
-                 Sys.remove tmp_file);
+                 atomic_copy ~perms tmp_file fname);
               List.iter
                 (fun fn -> fn ~state fname)
                 (Callbacks.elements on_file_change))

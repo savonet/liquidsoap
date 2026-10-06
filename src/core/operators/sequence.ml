@@ -43,7 +43,9 @@ class sequence ?(name = "sequence") ?(merge = false)
 
     method private self_sync =
       ( self_sync_type (),
-        match sources with hd :: _ -> snd hd#cached_self_sync | [] -> None )
+        match Atomic.get seq_sources with
+          | hd :: _ -> snd hd#cached_self_sync
+          | [] -> None )
 
     method fallible =
       match List.rev sources with hd :: _ -> hd#fallible | [] -> true

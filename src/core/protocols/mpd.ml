@@ -116,7 +116,11 @@ let search read write field v =
           metadata := (field, value) :: !metadata))
     l;
   add ();
-  if conf_randomize#get then Extralib.shuffle !ans else List.rev !ans
+  if conf_randomize#get then (
+    let a = Array.of_list !ans in
+    Array.shuffle ~rand:Random.int a;
+    Array.to_list a)
+  else List.rev !ans
 
 let re_request = Str.regexp "^\\([^=]+\\)=\\(.*\\)$"
 let re_version = Str.regexp "OK MPD \\([0-9\\.]+\\)"

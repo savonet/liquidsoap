@@ -127,13 +127,14 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
                    {
                      req;
                      fread =
-                       Mutex_utils.mutexify m (fun len ->
-                           let buf = decoder.Decoder.fread len in
-                           remaining <- decoder.Decoder.remaining ();
-                           buf);
+                       (fun len ->
+                         Mutex.protect m (fun () ->
+                             let buf = decoder.Decoder.fread len in
+                             remaining <- decoder.Decoder.remaining ();
+                             buf));
                      seek =
-                       Mutex_utils.mutexify m (fun len ->
-                           decoder.Decoder.fseek len);
+                       (fun len ->
+                         Mutex.protect m (fun () -> decoder.Decoder.fseek len));
                      close = decoder.Decoder.fclose;
                    });
               remaining <- decoder.Decoder.remaining ();
