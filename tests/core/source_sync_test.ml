@@ -134,6 +134,41 @@ let () =
   assert (tracked clock = None);
   Clock.stop clock
 
+(* The clock's pacing follows a sequence to the child it moved on to. *)
+let () =
+  let clock =
+    Clock.create ~sync:`Passive
+      ~owner:{ Clock.kind = "test"; id = "sequence_test" }
+      ~id:"sequence_test" ()
+  in
+  let pacer = new pacer in
+  let silent =
+    (object
+       inherit pacer
+       method! self_sync = (`Static, None)
+     end
+      :> Source.source)
+  in
+  let sequence = new Sequence.sequence [(pacer :> Source.source); silent] in
+  Typing.(sequence#frame_type <: audio_t);
+  let output =
+    new Output.dummy
+      ~clock ~autostart:true ~infallible:false ~register_telnet:false
+      (Lang.source (sequence :> Source.source))
+  in
+  output#content_type_computation_allowed;
+  Clock.start ~force:true clock;
+  Clock.activate_pending clock;
+  Clock.tick clock;
+  Clock.tick clock;
+  assert (tracked clock = Some "test_pacer");
+  pacer#set_ready false;
+  Clock.tick clock;
+  Clock.tick clock;
+  Clock.tick clock;
+  assert (tracked clock = None);
+  Clock.stop clock
+
 (* K7: two threads computing an operator's sync type at once both get it. *)
 let () =
   let inside = Atomic.make 0 in
