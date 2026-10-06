@@ -99,7 +99,7 @@ let _ =
       in
       let rec task delay =
         {
-          Duppy.Task.priority;
+          Scheduler.Task.priority;
           events = [`Delay delay];
           handler =
             (fun _ ->
@@ -110,7 +110,7 @@ let _ =
         }
       in
       Lifecycle.after_start ~name:"thread start" (fun () ->
-          try Duppy.Task.add ?domain Tutils.scheduler (task delay)
+          try Scheduler.Task.add ?domain (task delay)
           with Duppy.Unknown_domain d ->
             Lang.raise_error ~pos:(Lang.pos p)
               ~message:

@@ -42,8 +42,7 @@ let m = Mutex.create ()
 let file_mtime file = (Unix.stat file).Unix.st_mtime
 
 let rec handler _ =
-  Mutex_utils.mutexify m
-    (fun () ->
+  Mutex.protect m (fun () ->
       List.iter
         (fun ({ file; callback; mtime } as w) ->
           try
@@ -56,26 +55,27 @@ let rec handler _ =
               (Printf.sprintf "Error while executing file watcher callback: %s"
                  (Printexc.to_string exn)))
         !watched;
-      [{ Duppy.Task.priority = `Threaded; events = [`Delay 1.]; handler }])
-    ()
+      [{ Scheduler.Task.priority = `Threaded; events = [`Delay 1.]; handler }])
 
 let watch : watch =
  fun ~pos e file callback ->
   if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
   if List.mem `Modify e then
-    Mutex_utils.mutexify m
-      (fun () ->
+    Mutex.protect m (fun () ->
         if not !launched then begin
           launched := true;
-          Duppy.Task.add Tutils.scheduler
-            { Duppy.Task.priority = `Threaded; events = [`Delay 1.]; handler }
+          Scheduler.Task.add
+            {
+              Scheduler.Task.priority = `Threaded;
+              events = [`Delay 1.];
+              handler;
+            }
         end;
         let mtime = try file_mtime file with _ -> 0. in
         watched := { file; mtime; callback } :: !watched;
-        let unwatch =
-          Mutex_utils.mutexify m (fun () ->
+        let unwatch () =
+          Mutex.protect m (fun () ->
               watched := List.filter (fun w -> w.file <> file) !watched)
         in
         unwatch)
-      ()
   else fun () -> ()

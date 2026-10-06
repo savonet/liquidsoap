@@ -1,8 +1,9 @@
 (library
  (name stdlib_utils)
+ (public_name duppy.stdlib_utils)
  (libraries unix threads.posix)
  (wrapped false)
  (foreign_stubs
   (language c)
-  (names unix_utils_stubs pollset_stubs))
+  (names unix_utils_stubs))
  (synopsis "Stdlib utilities"))

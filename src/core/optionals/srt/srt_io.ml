@@ -524,14 +524,14 @@ module Poll = struct
                (Printexc.to_string exn));
           -1.
 
-  let task = Duppy.Async.add ~priority:`Threaded Tutils.scheduler process
+  let task = Scheduler.Async.add ~priority:`Threaded process
 
   let add_socket ~mode socket fn =
     Srt.setsockflag socket Srt.sndsyn false;
     Srt.setsockflag socket Srt.rcvsyn false;
     Hashtbl.replace t.handlers socket (mode, fn);
     Srt.Poll.add_usock t.p socket ~flags:[(mode :> Srt.Poll.flag)];
-    Duppy.Async.wake_up task
+    Scheduler.Async.wake_up task
 
   let remove_socket socket =
     Hashtbl.remove t.handlers socket;
@@ -694,27 +694,17 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
         try
           Srt.setsockflag s Srt.sndsyn true;
           Srt.setsockflag s Srt.rcvsyn true;
-          Utils.optional_apply
-            (fun id -> Srt.(setsockflag s streamid id))
-            streamid;
-          Utils.optional_apply
+          Option.iter (fun id -> Srt.(setsockflag s streamid id)) streamid;
+          Option.iter
             (fun b -> Srt.(setsockflag s enforced_encryption b))
             enforced_encryption;
-          Utils.optional_apply
-            (fun len -> Srt.(setsockflag s pbkeylen len))
-            pbkeylen;
-          Utils.optional_apply
-            (fun p -> Srt.(setsockflag s passphrase p))
-            passphrase;
-          Utils.optional_apply
+          Option.iter (fun len -> Srt.(setsockflag s pbkeylen len)) pbkeylen;
+          Option.iter (fun p -> Srt.(setsockflag s passphrase p)) passphrase;
+          Option.iter
             (fun v -> Srt.(setsockflag s conntimeo v))
             connection_timeout;
-          Utils.optional_apply
-            (fun v -> Srt.(setsockflag s sndtimeo v))
-            write_timeout;
-          Utils.optional_apply
-            (fun v -> Srt.(setsockflag s rcvtimeo v))
-            read_timeout;
+          Option.iter (fun v -> Srt.(setsockflag s sndtimeo v)) write_timeout;
+          Option.iter (fun v -> Srt.(setsockflag s rcvtimeo v)) read_timeout;
           Srt.connect s sockaddr.Unix.ai_addr;
           self#log#important "Client connected!";
           self#apply_on_connect;
@@ -731,14 +721,11 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
     method connect =
       Atomic.set task_should_stop false;
       match connect_task with
-        | Some t -> Duppy.Async.wake_up t
+        | Some t -> Scheduler.Async.wake_up t
         | None ->
-            let t =
-              Duppy.Async.add ~priority:`Threaded Tutils.scheduler
-                self#connect_fn
-            in
+            let t = Scheduler.Async.add ~priority:`Threaded self#connect_fn in
             connect_task <- Some t;
-            Duppy.Async.wake_up t
+            Scheduler.Async.wake_up t
 
     method disconnect =
       (match Atomic.exchange socket None with
@@ -750,7 +737,7 @@ class virtual caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
       match connect_task with
         | None -> ()
         | Some t ->
-            Duppy.Async.stop t;
+            Scheduler.Async.stop t;
             connect_task <- None
   end
 
@@ -816,18 +803,12 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
                   None
                   [max_clients_callback; listen_callback]
               in
-              Utils.optional_apply
-                (fun fn -> Srt.listen_callback s fn)
-                listen_callback;
-              Utils.optional_apply
+              Option.iter (fun fn -> Srt.listen_callback s fn) listen_callback;
+              Option.iter
                 (fun b -> Srt.(setsockflag s enforced_encryption b))
                 enforced_encryption;
-              Utils.optional_apply
-                (fun len -> Srt.(setsockflag s pbkeylen len))
-                pbkeylen;
-              Utils.optional_apply
-                (fun p -> Srt.(setsockflag s passphrase p))
-                passphrase;
+              Option.iter (fun len -> Srt.(setsockflag s pbkeylen len)) pbkeylen;
+              Option.iter (fun p -> Srt.(setsockflag s passphrase p)) passphrase;
               Srt.listen s (Option.value ~default:1 max_clients);
               self#log#info "Setting up socket to listen at %s"
                 (string_of_address bind_address.Unix.ai_addr);
@@ -850,10 +831,10 @@ class virtual listener ~enforced_encryption ~pbkeylen ~passphrase ~max_clients
             Poll.add_socket ~mode:`Read s accept_connection;
             Srt.(setsockflag client sndsyn true);
             Srt.(setsockflag client rcvsyn true);
-            Utils.optional_apply
+            Option.iter
               (fun v -> Srt.(setsockflag client sndtimeo v))
               write_timeout;
-            Utils.optional_apply
+            Option.iter
               (fun v -> Srt.(setsockflag client rcvtimeo v))
               read_timeout;
             self#apply_on_socket ~mode:`Incoming client;

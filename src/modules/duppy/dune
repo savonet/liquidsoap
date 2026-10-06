@@ -1,4 +1,0 @@
-(library
- (name duppy)
- (libraries unix threads.posix re stdlib_utils)
- (synopsis "OCaml advanced scheduler"))

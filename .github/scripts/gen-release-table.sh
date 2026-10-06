@@ -26,7 +26,9 @@ TABLE=$(
   echo "| Branch | Latest release | Supported | Rolling Release |"
   echo "| --- | --- | --- | --- |"
   jq -r --arg repo "${REPO}" '
-    def status: if . == true then "✅" elif . == false then "❌" else "🚧" end;
+    def status:
+      if . == true then "✅" elif . == false then "❌"
+      elif . == "pre-release" then "🧪" else "🚧" end;
 
     .[] | [
       "| `\(.version)` | ",
@@ -43,8 +45,8 @@ TABLE=$(
 )
 
 SPLICED=$(
-  awk -v start="${START}" -v end="${END}" -v table="${TABLE}" '
-    $0 == start { print; print table; skip = 1; next }
+  TABLE="${TABLE}" awk -v start="${START}" -v end="${END}" '
+    $0 == start { print; print ENVIRON["TABLE"]; skip = 1; next }
     $0 == end { skip = 0 }
     !skip { print }
   ' "${README}"

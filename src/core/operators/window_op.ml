@@ -52,7 +52,7 @@ class window mode duration source =
           value <- Array.make channels 0.)
 
     val m = Mutex.create ()
-    method value = Mutex_utils.mutexify m (fun () -> value) ()
+    method value = Mutex.protect m (fun () -> value)
 
     method private generate_frame =
       let frame = source#get_frame in
@@ -66,7 +66,7 @@ class window mode duration source =
             let x = buf.(c).(i) in
             match mode with
               | RMS -> acc.(c) <- acc.(c) +. (x *. x)
-              | Peak -> acc.(c) <- max acc.(c) (Utils.abs_float x)
+              | Peak -> acc.(c) <- max acc.(c) (Float.abs x)
           done;
           acc_dur <- acc_dur + 1;
           if acc_dur >= duration then (
@@ -84,7 +84,7 @@ class window mode duration source =
                         v)
             in
             acc_dur <- 0;
-            Mutex_utils.mutexify m (fun () -> value <- value') ())
+            Mutex.protect m (fun () -> value <- value'))
         done);
       frame
   end

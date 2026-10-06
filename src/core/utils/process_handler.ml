@@ -29,7 +29,7 @@ type _t = {
   p : process;
   status : status option Atomic.t;
   stopped : bool Atomic.t;
-  priority : Tutils.priority Atomic.t;
+  priority : Scheduler.priority Atomic.t;
 }
 
 type t = { mutex : Mutex.t; mutable process : _t option }
@@ -39,7 +39,7 @@ type continuation =
   | `Stop
   | `Kill
   | `Delay of float
-  | `Reschedule of Tutils.priority ]
+  | `Reschedule of Scheduler.priority ]
 
 type 'a callback = 'a -> continuation
 type pull = Bytes.t -> int -> int -> int
@@ -74,8 +74,8 @@ exception Wrapped of exn
 let get_process { process; _ } =
   match process with Some process -> process | None -> raise Finished
 
-let set_priority t =
-  Mutex_utils.mutexify t.mutex (fun priority ->
+let set_priority t priority =
+  Mutex.protect t.mutex (fun () ->
       match t.process with
         | None -> raise Finished
         | Some p -> Atomic.set p.priority priority)
@@ -85,33 +85,27 @@ let stop_c, kill_c, done_c =
   (fn '0', fn '1', fn '2')
 
 let stop t =
-  Mutex_utils.mutexify t.mutex
-    (fun () ->
+  Mutex.protect t.mutex (fun () ->
       match t.process with
         | None -> raise Finished
         | Some { in_pipe } -> (
             try ignore (Unix_utils.write in_pipe stop_c 0 1) with _ -> ()))
-    ()
 
 let kill t =
-  Mutex_utils.mutexify t.mutex
-    (fun () ->
+  Mutex.protect t.mutex (fun () ->
       match t.process with
         | None -> raise Finished
         | Some { in_pipe } -> (
             try ignore (Unix_utils.write in_pipe kill_c 0 1) with _ -> ()))
-    ()
 
 let send_stop ~log t =
-  Mutex_utils.mutexify t.mutex
-    (fun () ->
+  Mutex.protect t.mutex (fun () ->
       let process = get_process t in
       match Atomic.exchange process.stopped true with
         | false -> (
             log "Closing process's stdin";
             try close_out process.p.stdin with _ -> ())
         | _ -> ())
-    ()
 
 let _kill = function
   | Some { p; in_pipe; out_pipe } ->
@@ -125,13 +119,11 @@ let _kill = function
   | None -> ()
 
 let cleanup ~log t =
-  Mutex_utils.mutexify t.mutex
-    (fun () ->
+  Mutex.protect t.mutex (fun () ->
       log "Cleaning up process";
       let { process; _ } = t in
       t.process <- None;
       _kill process)
-    ()
 
 let pusher fd buf ofs len = Unix_utils.write fd buf ofs len
 
@@ -166,21 +158,19 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
          (fun () ->
            try
              let _, status = wait p in
-             Mutex_utils.mutexify mutex
-               (fun () ->
+             Mutex.protect mutex (fun () ->
                  if Atomic.compare_and_set process.status None (Some status)
                  then (
                    (try close_out p.stdin with _ -> ());
                    ignore (Unix_utils.write in_pipe done_c 0 1)))
-               ()
            with _ -> ())
          ());
     process
   in
   let process = create () in
   let t = { mutex; process = Some process } in
-  let create =
-    Mutex_utils.mutexify t.mutex (fun () ->
+  let create () =
+    Mutex.protect t.mutex (fun () ->
         _kill t.process;
         t.process <- Some (create ()))
   in
@@ -214,7 +204,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         | `Continue -> continue_events
         | `Delay d -> [`Delay d; `Read process.out_pipe]
     in
-    { Duppy.Task.priority = Atomic.get process.priority; events; handler }
+    { Scheduler.Task.priority = Atomic.get process.priority; events; handler }
   in
   let restart_decision handler delay =
     if delay < 0. then begin
@@ -227,7 +217,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
         [get_task handler (on_start (pusher fd))]
       in
-      [{ Duppy.Task.priority; events = [`Delay delay]; handler = spawn }]
+      [{ Scheduler.Task.priority; events = [`Delay delay]; handler = spawn }]
     end
   in
   (* Read any remaining data from stdout/stderr pipes. Called when the process
@@ -357,7 +347,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                 restart_decision (on_stop (`Exception e)))
   in
   let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
-  Duppy.Task.add Tutils.scheduler (get_task handler (on_start (pusher fd)));
+  Scheduler.Task.add (get_task handler (on_start (pusher fd)));
   t
 
 let really_write ?(offset = 0) ?length data push =
@@ -368,30 +358,27 @@ let really_write ?(offset = 0) ?length data push =
   f offset
 
 let on_stdout t fn =
-  let process = Mutex_utils.mutexify t.mutex (fun () -> get_process t) () in
+  let process = Mutex.protect t.mutex (fun () -> get_process t) in
   let fd = Unix.descr_of_in_channel process.p.stdout in
   fn (puller fd)
 
 let on_stdin t fn =
   let process =
-    Mutex_utils.mutexify t.mutex
-      (fun () ->
+    Mutex.protect t.mutex (fun () ->
         match t.process with
           | Some process ->
               if Atomic.get process.stopped then raise Finished;
               process
           | None -> raise Finished)
-      ()
   in
   let fd = Unix.descr_of_out_channel process.p.stdin in
   fn (pusher fd)
 
 let on_stderr t fn =
-  let process = Mutex_utils.mutexify t.mutex (fun () -> get_process t) () in
+  let process = Mutex.protect t.mutex (fun () -> get_process t) in
   let fd = Unix.descr_of_in_channel process.p.stderr in
   fn (puller fd)
 
 let stopped t =
-  Mutex_utils.mutexify t.mutex
-    (fun () -> try Atomic.get (get_process t).stopped with Finished -> true)
-    ()
+  Mutex.protect t.mutex (fun () ->
+      try Atomic.get (get_process t).stopped with Finished -> true)

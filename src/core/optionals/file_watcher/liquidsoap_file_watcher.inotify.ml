@@ -47,8 +47,8 @@ let log = Log.make ["inotify"]
 
 let rec watchdog () =
   let fd = Option.get !fd in
-  let handler =
-    Mutex_utils.mutexify m (fun _ ->
+  let handler _ =
+    Mutex.protect m (fun () ->
         let events = Inotify.read fd in
         List.iter
           (fun (wd, _, _, name) ->
@@ -65,16 +65,15 @@ let rec watchdog () =
           events;
         [watchdog ()])
   in
-  { Duppy.Task.priority = `Threaded; events = [`Read fd]; handler }
+  { Scheduler.Task.priority = `Threaded; events = [`Read fd]; handler }
 
 let watch : watch =
  fun ~pos e file f ->
   if not (Sys.file_exists file) then Lang.raise_error ~pos "not_found";
-  Mutex_utils.mutexify m
-    (fun () ->
+  Mutex.protect m (fun () ->
       if !fd = None then (
         fd := Some (Inotify.create ());
-        Duppy.Task.add Tutils.scheduler (watchdog ()));
+        Scheduler.Task.add (watchdog ()));
       let fd = Option.get !fd in
       let watched, basename =
         if Sys.is_directory file then (file, None)
@@ -94,13 +93,13 @@ let watch : watch =
       let wd = Inotify.add_watch fd watched e in
       let handler = { wd; basename; callback = f } in
       handlers := handler :: !handlers;
-      Mutex_utils.mutexify m (fun () ->
-          handlers := List.filter (fun h -> h != handler) !handlers;
-          if not (List.exists (fun h -> h.wd = wd) !handlers) then (
-            try Inotify.rm_watch fd wd
-            with exn ->
-              let bt = Printexc.get_backtrace () in
-              Utils.log_exception ~log ~bt
-                (Printf.sprintf "Error while removing file watch handler: %s"
-                   (Printexc.to_string exn)))))
-    ()
+      fun () ->
+        Mutex.protect m (fun () ->
+            handlers := List.filter (fun h -> h != handler) !handlers;
+            if not (List.exists (fun h -> h.wd = wd) !handlers) then (
+              try Inotify.rm_watch fd wd
+              with exn ->
+                let bt = Printexc.get_backtrace () in
+                Utils.log_exception ~log ~bt
+                  (Printf.sprintf "Error while removing file watch handler: %s"
+                     (Printexc.to_string exn)))))

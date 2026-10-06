@@ -1113,11 +1113,15 @@ def replaces playlist(
     list.map.right(fun (file) -> prefix ^ file, files)
   end
 
+  # A playlist that is not loaded yet is empty and ends its round at once: that
+  # round does not count.
+  loaded = ref(false)
+
   # Reload when the playlist is done
   def on_loop() =
     reloader = reloader_ref()
     if
-      reload_mode == "rounds" and reload > 0
+      reload_mode == "rounds" and reload > 0 and loaded()
     then
       round := round() + 1
       if
@@ -1158,9 +1162,8 @@ def replaces playlist(
   is_loading = ref(false)
   def if_not_reloading(fn) =
     if
-      not is_loading()
+      not is_loading.exchange(true)
     then
-      is_loading := true
       try
         fn()
       finally
@@ -1175,13 +1178,16 @@ def replaces playlist(
       {
         if_not_reloading(
           fun () ->
-            begin
+            if
+              not loaded()
+            then
               log(
                 label=s.id(),
                 "Initial load with URI #{playlist_uri()}."
               )
               files := load_playlist()
               s.reload(empty_queue=true, files())
+              loaded := true
             end
         )
       }
@@ -1202,6 +1208,7 @@ def replaces playlist(
           )
           files := load_playlist()
           s.reload(empty_queue=empty_queue, files())
+          loaded := true
           on_reload(playlist_uri())
         end
     )

@@ -23,9 +23,9 @@
 type ('a, 'b) t = { m : Mutex.t; h : ('a, 'b) Hashtbl.t }
 
 let create n = { m = Mutex.create (); h = Hashtbl.create n }
-let replace { m; h } k v = Mutex_utils.mutexify m (Hashtbl.replace h k) v
-let mem { m; h } k = Mutex_utils.mutexify m (Hashtbl.mem h) k
-let find { m; h } k = Mutex_utils.mutexify m (Hashtbl.find h) k
-let find_opt { m; h } k = Mutex_utils.mutexify m (Hashtbl.find_opt h) k
-let remove { m; h } k = Mutex_utils.mutexify m (Hashtbl.remove h) k
-let length { m; h } = Mutex_utils.mutexify m Hashtbl.length h
+let replace { m; h } k v = Mutex.protect m (fun () -> Hashtbl.replace h k v)
+let mem { m; h } k = Mutex.protect m (fun () -> Hashtbl.mem h k)
+let find { m; h } k = Mutex.protect m (fun () -> Hashtbl.find h k)
+let find_opt { m; h } k = Mutex.protect m (fun () -> Hashtbl.find_opt h k)
+let remove { m; h } k = Mutex.protect m (fun () -> Hashtbl.remove h k)
+let length { m; h } = Mutex.protect m (fun () -> Hashtbl.length h)

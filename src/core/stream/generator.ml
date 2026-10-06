@@ -54,8 +54,7 @@ let set_field =
     Atomic.set gen.content
       (Frame_base.Fields.add field content (Atomic.get gen.content))
   in
-  fun gen field content ->
-    Mutex_utils.mutexify gen.lock (add_field gen field content) ()
+  fun gen field content -> Mutex.protect gen.lock (add_field gen field content)
 
 let max_length { max_length } = Atomic.get max_length
 let content_type { content_type } = content_type
@@ -110,7 +109,7 @@ let _truncate ?(allow_desync = false) gen len =
          Content.truncate content len)
        (Atomic.get gen.content))
 
-let truncate gen = Mutex_utils.mutexify gen.lock (_truncate gen)
+let truncate gen len = Mutex.protect gen.lock (fun () -> _truncate gen len)
 
 let _keep gen len =
   Atomic.set gen.content
@@ -120,7 +119,7 @@ let _keep gen len =
          Content.sub content 0 len)
        (Atomic.get gen.content))
 
-let keep gen = Mutex_utils.mutexify gen.lock (_keep gen)
+let keep gen len = Mutex.protect gen.lock (fun () -> _keep gen len)
 
 let _slice ?(peek = false) gen len =
   let content = Atomic.get gen.content in
@@ -133,7 +132,9 @@ let _slice ?(peek = false) gen len =
   if not peek then _truncate gen len;
   slice
 
-let slice ?peek gen = Mutex_utils.mutexify gen.lock (_slice ?peek gen)
+let slice ?peek gen len =
+  Mutex.protect gen.lock (fun () -> _slice ?peek gen len)
+
 let clear gen = Atomic.set gen.content (make_content ~length:0 gen.content_type)
 
 let _set_metadata gen =
@@ -156,8 +157,8 @@ let _add_metadata ?pos gen m =
   in
   _set_metadata gen (upsert (get_metadata gen))
 
-let add_metadata ?pos gen =
-  Mutex_utils.mutexify gen.lock (_add_metadata ?pos gen)
+let add_metadata ?pos gen m =
+  Mutex.protect gen.lock (fun () -> _add_metadata ?pos gen m)
 
 let _set_track_marks gen =
   Content.Track_marks.set_data
@@ -174,7 +175,7 @@ let _add_track_mark ?pos gen =
   _set_track_marks gen (pos :: get_track_marks gen)
 
 let add_track_mark ?pos gen =
-  Mutex_utils.mutexify gen.lock (fun () -> _add_track_mark ?pos gen) ()
+  Mutex.protect gen.lock (fun () -> _add_track_mark ?pos gen)
 
 let _put gen field new_content =
   (match field with
@@ -209,14 +210,14 @@ let _put gen field new_content =
     in
     _truncate ~allow_desync gen dropped)
 
-let put gen field =
-  Mutex_utils.mutexify gen.lock (fun content -> _put gen field content)
+let put gen field content =
+  Mutex.protect gen.lock (fun () -> _put gen field content)
 
 let peek gen = Atomic.get gen.content
 let peek_media gen = media_content gen
 
-let append ?(offset = 0) ?length gen =
-  Mutex_utils.mutexify gen.lock (fun frame ->
+let append ?(offset = 0) ?length gen frame =
+  Mutex.protect gen.lock (fun () ->
       let pos = _length gen in
       let length = Option.value ~default:(Frame_base.position frame) length in
       Atomic.set gen.content

@@ -1,13 +1,58 @@
 (executables
- (names test_duppy bench_duppy bench_timer)
- (libraries duppy unix threads.posix))
+ (names test_duppy test_signal_handlers bench_duppy bench_timer)
+ (libraries duppy stdlib_utils unix threads.posix))
+
+(rule
+ (alias runtest)
+ (package duppy)
+ (action
+  (progn
+   (run ./test_duppy.exe)
+   (run ./test_signal_handlers.exe))))
+
+(rule
+ (alias runtest)
+ (package duppy)
+ (action
+  (setenv
+   DUPPY_BACKEND
+   poll
+   (run ./test_duppy.exe))))
 
 (rule
  (alias citest)
- (action
-  (run ./test_duppy.exe)))
+ (deps
+  (alias runtest))
+ (action (progn)))
 
 (rule
  (alias bench)
  (action
   (run ./bench_duppy.exe)))
+
+; Built without the OCaml headers: that is what shows the core does not need
+; them.
+
+(rule
+ (targets core_test.exe)
+ (deps core_test.c ../src/duppy_core.c ../src/duppy_core.h)
+ (action
+  (run
+   %{cc}
+   -Wall
+   -Wextra
+   -Werror
+   -pthread
+   -I
+   ../src
+   -o
+   %{targets}
+   core_test.c
+   ../src/duppy_core.c
+   -lm)))
+
+(rule
+ (alias runtest)
+ (package duppy)
+ (action
+  (run ./core_test.exe)))

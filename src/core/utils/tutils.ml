@@ -20,26 +20,6 @@
 
  *****************************************************************************)
 
-let conf_scheduler =
-  Dtools.Conf.void
-    ~p:(Configure.conf#plug "scheduler")
-    "Internal scheduler"
-    ~comments:
-      [
-        "The scheduler is used to process various tasks in liquidsoap.";
-        "It runs one domain per core and dispatches ready tasks onto";
-        "whichever of them is free. A task is one of three kinds, named after";
-        "what it does to the domain running it:";
-        "\"Non-blocking\" tasks are instantaneous, such as the server's";
-        "internal processes; they run in batches directly on a domain.";
-        "\"Blocking\" tasks keep a domain busy until they finish, such as a";
-        "clock tick or a listener writer; each one runs on a domain by itself.";
-        "\"Threaded\" tasks may wait on a socket or a file, such as request";
-        "resolution, last.fm submission, or user-defined tasks registered via";
-        "`thread.run`; each one runs on a thread inside a domain, so that";
-        "waiting leaves the domain free for other work.";
-      ]
-
 type exit_status =
   [ `None | `Exit of int | `Error of Printexc.raw_backtrace * exn ]
 
@@ -65,62 +45,6 @@ let exit () =
   match Atomic.get state with
     | `Done (`Error (bt, err)) -> Printexc.raise_with_backtrace err bt
     | _ -> exit (exit_code ())
-
-let blocking_tasks =
-  Dtools.Conf.int
-    ~p:(conf_scheduler#plug "blocking_tasks")
-    ~d:(max 8 (Domain.recommended_domain_count ()))
-    "Threaded tasks"
-    ~comments:
-      [
-        "Maximum number of threaded tasks running at once, spread evenly over";
-        "the scheduler's domains. Defaults to one per domain, and never fewer";
-        "than 8. Raising it helps when the tasks truly wait, on a socket or a";
-        "slow mount. A task that uses a core instead of waiting on one, such as";
-        "probing a file for its decoder, gains nothing from extra slots and";
-        "takes cores the streaming threads need. Each domain keeps at least one";
-        "slot, so setting this below the number of domains has no effect.";
-      ]
-
-let legacy =
-  Dtools.Conf.bool
-    ~p:(conf_scheduler#plug "legacy")
-    ~d:false "Legacy scheduler"
-    ~comments:
-      [
-        "Run tasks on threads rather than domains, one at a time as before";
-        "2.5: no task runs in parallel with another or with the streaming";
-        "loop. A fail-safe for a script that concurrent execution breaks,";
-        "which will be removed in a later version. The threads are the queues";
-        "configured by `generic_queues`, `fast_queues` and";
-        "`non_blocking_queues`.";
-      ]
-
-let deprecated_queue name ~d descr comments =
-  Dtools.Conf.int ~p:(conf_scheduler#plug name) ~d descr
-    ~comments:
-      (comments
-      @ [
-          "Deprecated: this only applies when `settings.scheduler.legacy` is";
-          "set and goes away with it.";
-        ])
-
-let generic_queues =
-  deprecated_queue "generic_queues" ~d:5 "Generic queues"
-    ["Number of legacy queues accepting any kind of task."]
-
-let fast_queues =
-  deprecated_queue "fast_queues" ~d:0 "Fast queues"
-    ["Number of legacy queues dedicated to fast tasks."]
-
-let non_blocking_queues =
-  deprecated_queue "non_blocking_queues" ~d:2 "Non-blocking queues"
-    ["Number of legacy queues dedicated to internal non-blocking tasks."]
-
-let scheduler_log =
-  Dtools.Conf.bool
-    ~p:(conf_scheduler#plug "log")
-    ~d:false "Log scheduler messages"
 
 let seems_locked =
   if Sys.win32 then fun _ -> true
@@ -148,12 +72,10 @@ let all = ref Set.empty
 let join_all ~set () =
   let rec f () =
     try
-      Mutex_utils.mutexify lock
-        (fun () ->
+      Mutex.protect lock (fun () ->
           let name, c = Set.choose !set in
           log#info "Waiting for thread %s to shutdown" name;
-          Condition.wait c lock)
-        ();
+          Condition.wait c lock);
       f ()
     with Not_found -> ()
   in
@@ -173,20 +95,17 @@ exception Exit
 let create f x s =
   let c = Condition.create () in
   let set = all in
-  Mutex_utils.mutexify lock
-    (fun () ->
+  Mutex.protect lock (fun () ->
       let id =
         let process x =
           Utils.Thread.set_current_thread_name s;
           try
             Script_callback.uncollected (fun () -> f x);
-            Mutex_utils.mutexify lock
-              (fun () ->
+            Mutex.protect lock (fun () ->
                 set := Set.remove (s, c) !set;
                 log#info "Thread %S terminated (%d remaining)." s
                   (Set.cardinal !set);
                 Condition.signal c)
-              ()
           with e -> (
             let raw_bt = Printexc.get_raw_backtrace () in
             let bt = Printexc.get_backtrace () in
@@ -203,15 +122,13 @@ let create f x s =
             with e ->
               let l = String.split_on_char '\n' bt in
               List.iter (log#info "%s") l;
-              Mutex_utils.mutexify lock
-                (fun () ->
+              Mutex.protect lock (fun () ->
                   set := Set.remove (s, c) !set;
                   if
                     Atomic.compare_and_set state `Running
                       (`Done (`Error (raw_bt, e)))
                   then set_done ();
-                  Condition.signal c)
-                ();
+                  Condition.signal c);
               Printexc.raise_with_backtrace e raw_bt)
         in
         Thread.create process x
@@ -219,17 +136,6 @@ let create f x s =
       set := Set.add (s, c) !set;
       log#info "Created thread %S (%d total)." s (Set.cardinal !set);
       id)
-    ()
-
-type priority =
-  [ `Clock  (** A clock resuming to produce its next frames. *)
-  | `Blocking
-    (** Keeps its domain busy until done and never parks, such as a listener
-        writer. *)
-  | `Threaded
-    (** May wait on a socket or a file, such as a request resolution or a
-        last.fm submission. *)
-  | `Non_blocking  (** Non-blocking tasks like the server. *) ]
 
 let error_handlers = Stack.create ()
 
@@ -247,92 +153,15 @@ let rec error_handler ~bt exn =
         let bt = Printexc.get_backtrace () in
         error_handler ~bt exn
 
-(* Polymorphic compare orders these by name hash, which is not the order we
-   want: the server must come first, then a clock holding a stream to real
-   time, then a writer before a task that may wait. *)
-let priority_rank = function
-  | `Non_blocking -> 0
-  | `Clock -> 1
-  | `Blocking -> 2
-  | `Threaded -> 3
-
-let scheduler : priority Duppy.scheduler =
-  Duppy.create
-    ~on_error:(fun exn raw_bt ->
-      let bt = Printexc.raw_backtrace_to_string raw_bt in
-      if not (error_handler ~bt exn) then
-        Printexc.raise_with_backtrace exn raw_bt)
-    ~on_fatal:(fun exn bt ->
-      Dtools.Init.exec Dtools.Log.stop;
-      Printf.printf "Scheduler crashed with exception %s\n%s"
-        (Printexc.to_string exn)
-        (Printexc.raw_backtrace_to_string bt);
-      Printf.printf
-        "PANIC: Liquidsoap has crashed, exiting.,\n\
-         Please report at: https://github.com/savonet/liquidsoap";
-      flush_all ();
-      _exit 1)
-    ~compare:(fun a b -> compare (priority_rank a) (priority_rank b))
-    ~classify:(function
-      | `Non_blocking -> `Immediate
-      (* A clock tick is long and holds a stream to real time: it runs on the
-         domain, alone, so ticks spread rather than queueing behind each
-         other. *)
-      | `Clock | `Blocking -> `Direct
-      | `Threaded -> `Threaded)
-      (* Tasks run script code, which registers its callbacks through an
-         effect. *)
-    ~wrapper:{ Duppy.wrap = Script_callback.uncollected }
-    ()
-
-let () =
-  Lifecycle.on_scheduler_shutdown ~name:"scheduler shutdown" (fun () ->
-      log#important "Shutting down scheduler...";
-      Duppy.stop scheduler;
-      log#important "Scheduler shut down.")
-
-let scheduler_logger () =
-  if scheduler_log#get then (
-    let log = Log.make ["scheduler"] in
-    Some (fun m -> log#info "%s" m))
-  else None
-
 let join_all () = join_all ~set:all ()
-
-let legacy_pool () =
-  let queues n accepts = List.init n#get (fun _ -> accepts) in
-  `Threads
-    (queues generic_queues (fun _ -> true)
-    @ queues fast_queues (fun p -> p = `Threaded)
-    @ queues non_blocking_queues (fun p -> p = `Non_blocking))
-
-let start () =
-  if Atomic.compare_and_set state `Idle `Starting then (
-    let pool =
-      if legacy#get then Some (legacy_pool ())
-      else (
-        if
-          List.exists
-            (fun q -> q#is_set)
-            [generic_queues; fast_queues; non_blocking_queues]
-        then
-          log#important
-            "settings.scheduler.generic_queues, fast_queues and \
-             non_blocking_queues are deprecated and ignored unless \
-             settings.scheduler.legacy is set.";
-        None)
-    in
-    Duppy.start ?pool ~current_domain:true ~max_blocking:blocking_tasks#get
-      ?log:(scheduler_logger ()) scheduler)
+let start () = Atomic.compare_and_set state `Idle `Starting
 
 (** Waits for [f()] to become true on condition [c]. *)
 let wait c m f =
-  Mutex_utils.mutexify m
-    (fun () ->
+  Mutex.protect m (fun () ->
       while not (f ()) do
         Condition.wait c m
       done)
-    ()
 
 exception Timeout of float
 

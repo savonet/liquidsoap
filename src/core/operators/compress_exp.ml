@@ -39,7 +39,7 @@ class compress ~field (source : source) mu =
         for i = 0 to source#frame_audio_position - 1 do
           let x = b_c.(i) in
           let sign = if x < 0. then -1. else 1. in
-          b_c.(i) <- sign *. (1. -. ((1. -. Utils.abs_float x) ** mu))
+          b_c.(i) <- sign *. (1. -. ((1. -. Float.abs x) ** mu))
         done
       done;
       source#set_frame_data field Content.Audio.lift_data b

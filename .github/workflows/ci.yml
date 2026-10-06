@@ -75,6 +75,9 @@ jobs:
 
   build_opam:
     uses: ./.github/workflows/build-opam.yml
+    needs: build_details
+    with:
+      is_release: ${{ needs.build_details.outputs.is_release }}
 
   run_tests:
     uses: ./.github/workflows/tests.yml
@@ -150,7 +153,7 @@ jobs:
         build_win32,
         build_asan,
       ]
-    if: needs.build_details.outputs.is_release == 'true'
+    if: needs.build_details.outputs.is_release == 'true' || needs.build_details.outputs.is_rolling_release == 'true'
     with:
       sha: ${{ needs.build_details.outputs.sha }}
       branch: ${{ needs.build_details.outputs.release_tag }}

@@ -63,7 +63,7 @@ let run_test () =
     Mutex.unlock m;
     -1.
   in
-  Tutils.start ();
+  Scheduler.start ();
   let exe = Sys.executable_name in
   let command = Printf.sprintf "%s --generate-output %d" exe output_size in
   ignore

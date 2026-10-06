@@ -147,7 +147,7 @@ let () =
       | [| _; certificate; key |] -> (certificate, key)
       | _ -> fail "usage: %s <certificate> <key>" Sys.argv.(0)
   in
-  Tutils.start ();
+  Scheduler.start ();
   let scheduler = Duppy.create () in
   Duppy.start ~pool:(`Domains 2) scheduler;
   let ssl =
