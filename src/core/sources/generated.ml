@@ -34,7 +34,7 @@ class virtual source ?(seek = false) ?(replay_meta = false) ~bufferize
     method virtual buffer : Generator.t
     method virtual private mutable_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
     method virtual private atomic_lock : 'a 'b. ('a -> 'b) -> 'a -> 'b
-    method self_sync : Source.self_sync = (`Static, None)
+    method private self_sync : Source.self_sync = (`Static, None)
 
     method seek len =
       if (not seek) || len <= 0 then 0

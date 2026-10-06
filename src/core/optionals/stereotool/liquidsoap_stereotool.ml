@@ -78,7 +78,7 @@ class virtual base ~field ~handler (source : Source.source) =
     method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private generate_frame =
       let b = Content.Audio.get_data (source#get_mutable_content field) in

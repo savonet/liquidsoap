@@ -407,7 +407,7 @@ class virtual base ~server () =
       _jack_client <- None;
       self#set_sync_source None
 
-    method self_sync : Source.self_sync = self#dynamic_self_sync
+    method private self_sync : Source.self_sync = self#dynamic_self_sync
     method private samples_per_second = samples_per_second
     method private jack_stopped = ServerState.get_stopped server_state
 

@@ -120,7 +120,7 @@ class child_output src =
     method private generate_frame = src#get_frame
     method abort_track = src#abort_track
     method remaining = src#remaining
-    method self_sync = src#self_sync
+    method private self_sync = src#cached_self_sync
     method effective_source = src#effective_source
   end
 
@@ -129,7 +129,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
   object (self)
     initializer
       if check_self_sync then (
-        match (Lang.to_source child_val)#self_sync with
+        match (Lang.to_source child_val)#cached_self_sync with
           | `Static, None -> ()
           | _ ->
               raise
@@ -148,7 +148,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
     method virtual on_before_streaming_cycle : (unit -> unit) -> unit
     method virtual on_wake_up : (unit -> unit) -> unit
     method virtual on_sleep : (unit -> unit) -> unit
-    method virtual self_sync : Source.self_sync
+    method virtual private self_sync : Source.self_sync
     method virtual source_type : Clock.source_type
     method virtual activations : Clock.activation list
     method virtual wake_up : Clock.source -> Clock.activation
@@ -239,7 +239,7 @@ class producer ?stack ?child_frame_type ~check_self_sync ~name child_val =
 
     (* A report does not cross a child clock: the child's sync source paces
        the child clock, not ours. *)
-    method self_sync = (fst self#child#self_sync, None)
+    method private self_sync = (fst self#child#cached_self_sync, None)
     method fallible = self#child#fallible
     method effective_source = (self :> Source.source)
 

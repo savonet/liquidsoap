@@ -28,7 +28,7 @@ class resample ~field ~ratio source =
   object (self)
     inherit operator ~name:"stretch" []
     inherit Child_support.base ~check_self_sync:true source_val
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method fallible = source#fallible
 
     method! seek len =

@@ -51,7 +51,7 @@ class frei0r_filter ~name bgra instance params (source : source) =
     method remaining = source#remaining
     method effective_source = source#effective_source
     method private can_generate_frame = source#is_ready
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method abort_track = source#abort_track
     val mutable t = 0.
 
@@ -96,7 +96,7 @@ class frei0r_mixer ~name bgra instance params (source : source) source2 =
         | x, y -> min x y
 
     method private can_generate_frame = source#is_ready && source2#is_ready
-    method self_sync = self_sync ~source:self ()
+    method private self_sync = self_sync ~source:self ()
 
     method abort_track =
       source#abort_track;
@@ -171,7 +171,7 @@ class frei0r_source ~name bgra instance params =
     method effective_source = (self :> Source.source)
     method fallible = false
     method private can_generate_frame = true
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
     val mutable must_fail = false
     method abort_track = must_fail <- true
     method remaining = if must_fail then 0 else -1

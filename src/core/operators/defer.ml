@@ -50,7 +50,7 @@ class defer ~delay ~overhead ~field source =
     method remaining = source#remaining
     method abort_track = source#abort_track
     method effective_source = source#effective_source
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     val mutable state = { offset = 0; position = 0 }
     val mutable deferred = true
     val mutable generator = None

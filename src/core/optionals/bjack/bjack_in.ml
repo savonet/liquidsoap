@@ -39,7 +39,7 @@ class jack_in ~fallible ~autostart ~server =
     method remaining = -1
     val mutable sample_freq = samples_per_second
     val mutable device = None
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
 
     method stop =
       match device with

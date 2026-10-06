@@ -41,10 +41,10 @@ class sequence ?(name = "sequence") ?(merge = false)
         ~track_sensitive:(fun () -> true)
         ()
 
-    method self_sync =
+    method private self_sync =
       ( self_sync_type (),
         match Atomic.get seq_sources with
-          | hd :: _ -> snd hd#self_sync
+          | hd :: _ -> snd hd#cached_self_sync
           | [] -> None )
 
     method fallible =
@@ -124,7 +124,7 @@ class merge_tracks source =
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
     method remaining = -1
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method effective_source = source#effective_source
 
     method private generate_frame =

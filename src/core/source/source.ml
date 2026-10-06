@@ -238,7 +238,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | `Passive -> false
         | `Output _ | `Active _ -> true
 
-    method virtual self_sync : self_sync
+    method virtual private self_sync : self_sync
     val mutable self_sync_source = None
 
     method private self_sync_source =
@@ -255,28 +255,33 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method source_sync self_sync =
       if self_sync then Some self#self_sync_source else None
 
-    val mutable source_state : Clock.Sync_source.t option = None
-    method source_state = source_state
+    val mutable settled_self_sync : self_sync option = None
+    method source_state = Option.bind settled_self_sync snd
     val mutable own_sync_source : Clock.Sync_source.t option = None
 
     method private set_sync_source sync_source =
       own_sync_source <- sync_source;
-      if self#is_up then source_state <- snd self#self_sync
+      if self#is_up then settled_self_sync <- Some self#self_sync
 
     method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
     val cycle_open = Atomic.make false
     val cycle_readiness : readiness Per_cycle.t = Per_cycle.make ()
     val cycle_frame : Frame.t Per_cycle.t = Per_cycle.make ()
-
-    val cycle_sync_source : Clock.Sync_source.t option Per_cycle.t =
-      Per_cycle.make ()
+    val cycle_self_sync : self_sync Per_cycle.t = Per_cycle.make ()
 
     (* Outside a cycle this is the last answer settled: computing one would
        ask the children whether they are ready and open their cycle early. *)
-    method sync_source =
+    method cached_self_sync =
       if Atomic.get cycle_open then
-        self#per_cycle cycle_sync_source (fun () -> snd self#self_sync)
-      else source_state
+        self#per_cycle cycle_self_sync (fun () -> self#self_sync)
+      else (
+        match settled_self_sync with
+          | Some settled -> settled
+          | None -> self#self_sync)
+
+    method sync_source =
+      if Atomic.get cycle_open then snd self#cached_self_sync
+      else self#source_state
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
@@ -521,8 +526,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           self#iter_watchers (fun w -> w.sleep ()))
 
     initializer
-      self#on_wake_up (fun () -> source_state <- snd self#self_sync);
-      self#on_sleep (fun () -> source_state <- None)
+      self#on_wake_up (fun () -> settled_self_sync <- Some self#self_sync);
+      self#on_sleep (fun () -> settled_self_sync <- None)
 
     (** Streaming *)
 
@@ -621,7 +626,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         ignore self#readiness;
         Atomic.set cycle_open true;
         Clock.after_tick self#clock (fun () -> self#after_streaming_cycle);
-        source_state <- self#sync_source)
+        settled_self_sync <- Some self#cached_self_sync)
 
     method private after_streaming_cycle =
       (match Per_cycle.find cycle_frame with

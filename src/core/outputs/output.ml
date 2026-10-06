@@ -215,7 +215,7 @@ class dummy ?clock ~infallible ~autostart ~register_telnet source =
     method private start = ()
     method private stop = ()
     method private send_frame _ = ()
-    method self_sync = s#self_sync
+    method private self_sync = s#cached_self_sync
   end
 
 let _ =

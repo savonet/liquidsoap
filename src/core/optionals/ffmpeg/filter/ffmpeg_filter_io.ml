@@ -179,7 +179,7 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
     val mutable input : [ `Frame of 'a Avutil.frame | `Flush ] -> unit =
       fun _ -> ()
 
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method set_input fn = input <- fn
     val mutable init : 'a Avutil.frame -> unit = fun _ -> assert false
     method set_init v = init <- v

@@ -14,7 +14,7 @@ class metadata_first_test encode_metadata_called encode_called send_called =
           ~register_telnet:false ~autostart:false ~export_cover_metadata:false
         (Lang.source (new Noise.noise None))
 
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
 
     method encode_metadata _ =
       assert (not !encode_called);
@@ -45,7 +45,7 @@ class data_first_test encode_metadata_called encode_called send_called =
         (Lang.source (new Noise.noise None))
 
     initializer self#set_encoding_order `Data_first
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
 
     method encode_metadata _ =
       assert !send_called;

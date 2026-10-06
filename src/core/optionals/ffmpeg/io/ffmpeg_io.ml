@@ -79,7 +79,7 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
 
-    method self_sync = self#dynamic_self_sync
+    method private self_sync = self#dynamic_self_sync
 
     initializer
       self#on_connect (fun _ ->

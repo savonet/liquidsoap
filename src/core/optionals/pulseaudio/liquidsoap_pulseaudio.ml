@@ -44,7 +44,7 @@ class virtual base ~self_sync ?(default_self_sync = fun () -> (`Static, None))
     val dev = device
     val mutable stream = None
 
-    method self_sync : Source.self_sync =
+    method private self_sync : Source.self_sync =
       if self_sync then self#dynamic_self_sync else default_self_sync ()
   end
 
@@ -74,7 +74,8 @@ class output ~infallible ~register_telnet ~start p =
     inherit
       base
         ~self_sync
-        ~default_self_sync:(fun () -> (Lang.to_source val_source)#self_sync)
+        ~default_self_sync:(fun () ->
+          (Lang.to_source val_source)#cached_self_sync)
         ~client ~device ()
 
     inherit

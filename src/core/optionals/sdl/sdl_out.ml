@@ -37,7 +37,7 @@ class output ~infallible ~register_telnet ~autostart source_val =
 
     val mutable fullscreen = false
     val mutable window = None
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method start =
       let w, h = self#video_dimensions in

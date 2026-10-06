@@ -29,7 +29,7 @@ class track_map ~name ~field ~fn s =
     method remaining = s#remaining
     method abort_track = s#abort_track
     method effective_source = s#effective_source
-    method self_sync = s#self_sync
+    method private self_sync = s#cached_self_sync
     method private can_generate_frame = s#is_ready
 
     method private generate_frame =

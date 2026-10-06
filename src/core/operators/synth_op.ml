@@ -28,7 +28,7 @@ class synth (synth : Synth.synth) (source : source) chan volume =
     inherit operator ~name:"synth" [source]
     initializer synth#set_volume volume
     method fallible = source#fallible
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method remaining = source#remaining
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track

@@ -26,7 +26,7 @@ class merge_metadata tracks =
   object (self)
     inherit Source.operator ~name:"track.metadata.merge" sources
     initializer Typing.(self#frame_type <: Lang.unit_t)
-    method self_sync = self_sync ~source:self ()
+    method private self_sync = self_sync ~source:self ()
     method fallible = false
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private ready_sources = List.filter (fun s -> s#is_ready) sources

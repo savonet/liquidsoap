@@ -35,7 +35,7 @@ class virtual base ~name tracks =
   object (self)
     inherit Source.operator ~name sources
     method fallible = not infallible
-    method self_sync = self_sync ~source:self ()
+    method private self_sync = self_sync ~source:self ()
 
     method remaining =
       let f cur pos =

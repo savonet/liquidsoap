@@ -12,7 +12,7 @@ class pacer =
     method effective_source = (self :> Source.source)
     method fallible = true
     method private can_generate_frame = ready
-    method self_sync = (`Dynamic, Some sync)
+    method private self_sync = (`Dynamic, Some sync)
     method remaining = -1
     method abort_track = ()
 
@@ -30,7 +30,7 @@ class reader sources =
     method private can_generate_frame =
       List.exists (fun s -> s#is_ready) sources
 
-    method self_sync = self_sync ~source:self ()
+    method private self_sync = self_sync ~source:self ()
     method remaining = -1
     method abort_track = ()
 
@@ -47,7 +47,7 @@ class selector children =
     method effective_source = (self :> Source.source)
     method fallible = true
     method private can_generate_frame = selected#is_ready
-    method self_sync = (`Dynamic, snd selected#self_sync)
+    method private self_sync = (`Dynamic, snd selected#cached_self_sync)
     method remaining = -1
     method abort_track = ()
     method private generate_frame = selected#get_frame
@@ -107,7 +107,7 @@ let () =
   let silent =
     (object
        inherit pacer
-       method! self_sync = (`Static, None)
+       method! private self_sync = (`Static, None)
      end
       :> Source.source)
   in
@@ -145,7 +145,7 @@ let () =
   let silent =
     (object
        inherit pacer
-       method! self_sync = (`Static, None)
+       method! private self_sync = (`Static, None)
      end
       :> Source.source)
   in
@@ -174,7 +174,7 @@ let () =
   let inside = Atomic.make 0 in
   let slow =
     object
-      method self_sync : Source_sync.t =
+      method cached_self_sync : Source_sync.t =
         Atomic.incr inside;
         let give_up = Unix.gettimeofday () +. 2. in
         while Atomic.get inside < 2 && Unix.gettimeofday () < give_up do

@@ -29,7 +29,7 @@ class max_duration ~override_meta ~duration source =
     initializer Clock.unify ~pos:self#pos self#clock source#clock
     val mutable remaining = duration
     val mutable s = source
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method fallible = true
     method private can_generate_frame = remaining > 0 && s#is_ready
     method abort_track = s#abort_track

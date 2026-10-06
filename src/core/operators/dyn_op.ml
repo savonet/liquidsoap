@@ -129,13 +129,13 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
         | Some s -> s#effective_source
         | None -> (self :> Source.source)
 
-    method self_sync =
+    method private self_sync =
       match self_sync with
         | Some v -> (`Static, self#source_sync v)
         | None ->
             ( `Dynamic,
               match self#current_source with
-                | Some s -> snd s#self_sync
+                | Some s -> snd s#cached_self_sync
                 | None -> None )
   end
 

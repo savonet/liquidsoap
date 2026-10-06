@@ -9,8 +9,8 @@ let type_of_sources sources =
       | Some sync_type -> sync_type
       | None ->
           let sync_type =
-            if List.exists (fun s -> fst s#self_sync = `Dynamic) sources then
-              `Dynamic
+            if List.exists (fun s -> fst s#cached_self_sync = `Dynamic) sources
+            then `Dynamic
             else `Static
           in
           Atomic.set memo (Some sync_type);

@@ -35,7 +35,7 @@ class output ~infallible ~register_telnet ~server source =
           ~output_kind:"output.jack" source true
 
     val mutable device = None
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
 
     method get_device =
       match device with

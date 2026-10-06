@@ -38,7 +38,9 @@ class output ~self_sync ~driver ~register_telnet ~infallible ~options
           start
 
     val mutable device = None
-    method self_sync = if self_sync then self#dynamic_self_sync else s#self_sync
+
+    method private self_sync =
+      if self_sync then self#dynamic_self_sync else s#cached_self_sync
 
     method private get_device =
       match device with

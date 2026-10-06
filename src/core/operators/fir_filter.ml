@@ -127,7 +127,7 @@ class fir (source : source) freq beta numcoeffs =
     method private can_generate_frame = source#is_ready
     method effective_source = source#effective_source
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private generate_frame =
       let b =

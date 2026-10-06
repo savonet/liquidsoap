@@ -656,7 +656,7 @@ class hls_output p =
     method streams = streams
     val mutable current_position = (0, 0)
     val mutable stopped = false
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     val on_file_change : (state:file_state -> string -> unit) Callbacks.t =
       Callbacks.create ()

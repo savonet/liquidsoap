@@ -31,7 +31,7 @@ class pan ~field (source : source) phi phi_0 =
     method remaining = source#remaining
     method effective_source = source#effective_source
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private generate_frame =
       let buffer = Content.Audio.get_data (source#get_mutable_content field) in

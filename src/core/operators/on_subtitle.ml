@@ -31,7 +31,7 @@ class on_subtitle ~field (source : source) callback =
     method remaining = source#remaining
     method abort_track = source#abort_track
     method effective_source = source#effective_source
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private generate_frame =
       let buf = source#get_frame in

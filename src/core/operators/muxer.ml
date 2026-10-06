@@ -36,7 +36,7 @@ class muxer ~pos ~base tracks =
   object (self)
     (* Pass duplicated list to operator to make sure caching is properly enabled. *)
     inherit Source.operator ~name:"source" sources
-    method self_sync = self_sync ~source:self ()
+    method private self_sync = self_sync ~source:self ()
     method fallible = fallible
     method abort_track = List.iter (fun s -> s#abort_track) sources
     method private sources_ready = List.for_all (fun s -> s#is_ready) sources

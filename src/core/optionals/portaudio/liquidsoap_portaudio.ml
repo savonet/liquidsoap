@@ -191,7 +191,9 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_name
           ~output_kind:"output.portaudio" val_source start
 
     val mutable stream = None
-    method self_sync = if self_sync then self#dynamic_self_sync else s#self_sync
+
+    method private self_sync =
+      if self_sync then self#dynamic_self_sync else s#cached_self_sync
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -235,7 +237,7 @@ class input ~self_sync ~start ~fallible ~device_name ~device_id ~latency buflen
     method private stop = self#close_device
     val mutable stream = None
 
-    method self_sync =
+    method private self_sync =
       if self_sync then self#dynamic_self_sync else (`Static, None)
 
     method abort_track = ()

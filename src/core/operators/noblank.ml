@@ -96,7 +96,7 @@ class detect ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method abort_track = source#abort_track
     method remaining = source#remaining
     method effective_source = source#effective_source
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     val on_blank = Callbacks.create ()
     method register_on_blank fn = Callbacks.register on_blank fn
     method on_blank fn = Callbacks.add on_blank fn
@@ -142,7 +142,7 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
       if self#is_blank then (self :> Source.source) else source#effective_source
 
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
     method private generate_frame = source#get_frame
 
     method private output =
@@ -170,7 +170,7 @@ class eat ~track_sensitive ~at_beginning ~start_blank ~max_blank ~min_noise
     method remaining = source#remaining
     method effective_source = source#effective_source
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private generate_frame =
       let first = ref true in

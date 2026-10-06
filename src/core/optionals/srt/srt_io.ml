@@ -930,7 +930,7 @@ class virtual input_base ~max ~self_sync ~payload_size ~dump ~autostart format =
         self#on_disconnect (fun () -> self#set_sync_source None)
       end
 
-    method self_sync =
+    method private self_sync =
       if self_sync then self#dynamic_self_sync else (`Static, None)
 
     method private create_decoder socket =
@@ -1225,7 +1225,7 @@ class output_caller ~enforced_encryption ~pbkeylen ~passphrase ~streamid
           ~hostname ~port ~prefer_address ~payload_size ~read_timeout
           ~write_timeout ~connection_timeout ~messageapi
 
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private get_sockets =
       try [self#get_socket] with Not_connected -> []
@@ -1256,7 +1256,7 @@ class output_listener ~enforced_encryption ~pbkeylen ~passphrase
           ~write_timeout ~messageapi ~enforced_encryption ~pbkeylen ~passphrase
           ~listen_callback ~max_clients ~ipv6only ()
 
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     method private client_error socket exn bt =
       Utils.log_exception ~log:self#log

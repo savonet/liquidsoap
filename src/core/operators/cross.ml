@@ -33,7 +33,7 @@ class consumer ~name ~clock buffer =
       Generator.slice buffer (Lazy.Mutexed.force Frame.size)
 
     method abort_track = Generator.clear buffer
-    method self_sync = (`Static, None)
+    method private self_sync = (`Static, None)
     method effective_source = (self :> Source.source)
     method remaining = Generator.length buffer
   end
@@ -71,7 +71,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
     (* This is complicated. crossfade should never be used with [self_sync]
      * sources but we do not have a static way of knowing it at the moment.
      * Going with the same choice as above for now. *)
-    method self_sync = s#self_sync
+    method private self_sync = s#cached_self_sync
     val mutable duration_getter = duration_getter
     val mutable main_duration = 0
     method cross_duration = Frame.seconds_of_main main_duration

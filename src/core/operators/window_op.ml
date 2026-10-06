@@ -34,7 +34,7 @@ class window mode duration source =
     method remaining = source#remaining
     method effective_source = source#effective_source
     method abort_track = source#abort_track
-    method self_sync = source#self_sync
+    method private self_sync = source#cached_self_sync
 
     (** Accumulator (e.g. sum of squares). *)
     val mutable acc = [||]
