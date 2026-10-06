@@ -168,8 +168,9 @@ def default_error_handler(~backtrace, err) =
   log(
     label="runtime",
     level=1,
-    "Uncaught error #{err}!\n#{backtrace}"
+    "Uncaught error #{err}!"
   )
+  log(label="runtime", level=4, backtrace)
 end
 
 thread.on_error(null, default_error_handler)
