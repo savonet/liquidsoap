@@ -105,23 +105,6 @@ external force_locale : string -> unit = "liquidsoap_set_locale"
 let buflen = try int_of_string (Sys.getenv "LIQ_BUFLEN") with _ -> 1024
 let () = force_locale "C"
 
-(* Several list utilities *)
-
-let rec prefix p l =
-  match (p, l) with
-    | [], _ -> true
-    | _, [] -> false
-    | hp :: tp, hl :: tl -> hp = hl && prefix tp tl
-
-(** Remove the first element satisfying a predicate, raising Not_found if none
-    is found. *)
-let remove_one f l =
-  let rec aux acc = function
-    | [] -> raise Not_found
-    | x :: l -> if f x then List.rev_append acc l else aux (x :: acc) l
-  in
-  aux [] l
-
 (** Read all data from a given filename. We cannot use really_input with the
     reported length of the file because some OSes such as windows may do
     implicit conversions (file opened in text mode in win32), thus making the
