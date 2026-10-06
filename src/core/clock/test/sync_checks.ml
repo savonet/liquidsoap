@@ -5,7 +5,9 @@ let device name = Clock.Sync_source.make ~name `Self_paced
 let tracked clock =
   Option.map
     (fun (sync : Clock.Status.sync) -> sync.sync_source)
-    (Clock.status clock).sync
+    (Option.bind
+       (Clock.Status.run (Clock.status clock))
+       (fun (run : Clock.Status.run) -> run.sync))
 
 let sync_error = function Clock.Sync_error _ -> true | _ -> false
 

@@ -19,8 +19,7 @@ let resting_clocks () =
   for _ = 1 to 100 do
     Thread.delay 0.02;
     List.iter
-      (fun clock ->
-        late := Float.max !late (Option.get (Clock.status clock).lateness))
+      (fun clock -> late := Float.max !late (Option.get (lateness clock)))
       clocks
   done;
   check

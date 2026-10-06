@@ -137,6 +137,11 @@ let tick ?pull clock n =
     Clock.tick ?pull clock
   done
 
+let run clock = Clock.Status.run (Clock.status clock)
+
+let lateness clock =
+  Option.bind (run clock) (fun (run : Clock.Status.run) -> run.lateness)
+
 let is_stopped clock reason =
   match Clock.stop_reason clock with
     | Some found -> found = reason

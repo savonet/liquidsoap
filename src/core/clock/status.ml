@@ -48,24 +48,28 @@ type controller = { parent : string option; owner : owner option }
 type sync = { sync_source : string; pacing : string; followed : bool }
 type statistics = { life : figures; recent : figures }
 
-(* A snapshot of a clock; the streaming fields are [None] and the source lists
-   empty while it is stopped. *)
-type t = {
-  name : string;
-  state : [ `Stopped of stop_reason | `Started | `Stopping ];
-  sync_mode : sync_mode;
-  controller : controller option;
+(* What a clock tells only while it has a run; [animator] is [None] for a
+   passive clock. *)
+type run = {
   animator : (animator * string) option;
   sync : sync option;
-  ticks : int option;
-  stream_time : float option;
+  ticks : int;
+  stream_time : float;
   lateness : float option;
-  pending : entry list;
   outputs : entry list;
   active : entry list;
   passive : entry list;
+  statistics : statistics;
+}
+
+(* A snapshot of a clock and of its sub-clocks. *)
+type t = {
+  name : string;
+  state : [ `Stopped of stop_reason | `Started of run | `Stopping of run ];
+  sync_mode : sync_mode;
+  controller : controller option;
+  pending : entry list;
   sub_clocks : t list;
-  statistics : statistics option;
 }
 
 (* What a clock's loop is doing; [`Ticking] carries the tick's start time. *)
@@ -146,15 +150,22 @@ let string_of_controller { parent; owner } =
     | None, Some parent -> parent
     | None, None -> none
 
+let run status =
+  match status.state with
+    | `Started run | `Stopping run -> Some run
+    | `Stopped _ -> None
+
 let header status =
   let state =
     match status.state with
       | `Stopped reason -> "stopped: " ^ string_of_stop_reason reason
-      | `Started -> "started"
-      | `Stopping -> "stopping"
+      | `Started _ -> "started"
+      | `Stopping _ -> "stopping"
   in
   let driver =
-    match (status.controller, status.animator) with
+    match
+      (status.controller, Option.bind (run status) (fun run -> run.animator))
+    with
       | Some controller, _ ->
           [Printf.sprintf "controlled by %s" (string_of_controller controller)]
       | None, Some (animator, why) ->
@@ -180,19 +191,19 @@ let source_lines status =
   in
   (if status.pending = [] then [] else [line "pending" status.pending])
   @
-    match status.state with
-    | `Stopped _ -> []
-    | `Started | `Stopping ->
+    match run status with
+    | None -> []
+    | Some run ->
         [
-          line "outputs" status.outputs;
-          line "active" status.active;
-          line "passive" status.passive;
+          line "outputs" run.outputs;
+          line "active" run.active;
+          line "passive" run.passive;
         ]
 
 let streaming_lines status =
-  match (status.ticks, status.stream_time, status.statistics) with
-    | Some ticks, Some stream_time, Some { life } ->
-        (match status.sync with
+  match run status with
+    | Some { sync; ticks; stream_time; lateness; statistics = { life } } ->
+        (match sync with
           | Some { sync_source; pacing; followed } ->
               [
                 Printf.sprintf "sync source: %s (%s%s)" sync_source pacing
@@ -202,7 +213,7 @@ let streaming_lines status =
         @ [
             Printf.sprintf "ticks: %d  time: %.02fs  lateness: %s" ticks
               stream_time
-              (match status.lateness with
+              (match lateness with
                 | Some lateness -> Printf.sprintf "%.03fs" lateness
                 | None -> none);
             Printf.sprintf "tick: mean %.01fms max %.01fms (slowest: %s)"
@@ -215,7 +226,7 @@ let streaming_lines status =
                worker %.01fs"
               life.producing life.resting life.released life.no_worker;
           ]
-    | _ -> []
+    | None -> []
 
 let rec block indent status =
   let body = indent ^ "  " in
@@ -234,7 +245,10 @@ let report statuses =
     (List.map (fun status -> String.concat "\n" (block "" status)) statuses)
 
 let all_entries status =
-  status.outputs @ status.active @ status.passive @ status.pending
+  (match run status with
+    | Some run -> run.outputs @ run.active @ run.passive
+    | None -> [])
+  @ status.pending
 
 (* A source's own id among its activations is how its clock holds it, not an
    edge of the graph. *)

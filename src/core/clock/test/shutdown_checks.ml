@@ -45,7 +45,7 @@ let orderly () =
   check "after the global stop a stopped clock still reads as no value"
     (Clock.ticks idle = None
     && Clock.time idle = None
-    && (Clock.status idle).lateness = None
+    && lateness idle = None
     && event_count () = before);
   raises "ticking after the global stop fails with the stop signal"
     (( = ) Clock.Stop_signal) (fun () -> Clock.tick by_hand)

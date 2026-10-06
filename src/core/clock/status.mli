@@ -43,23 +43,31 @@ type controller = { parent : string option; owner : owner option }
 type sync = { sync_source : string; pacing : string; followed : bool }
 type statistics = { life : figures; recent : figures }
 
-type t = {
-  name : string;
-  state : [ `Started | `Stopped of stop_reason | `Stopping ];
-  sync_mode : sync_mode;
-  controller : controller option;
+(** What a clock tells only while it has a run; [animator] is [None] for a
+    passive clock. *)
+type run = {
   animator : (animator * string) option;
   sync : sync option;
-  ticks : int option;
-  stream_time : float option;
+  ticks : int;
+  stream_time : float;
   lateness : float option;
-  pending : entry list;
   outputs : entry list;
   active : entry list;
   passive : entry list;
-  sub_clocks : t list;
-  statistics : statistics option;
+  statistics : statistics;
 }
+
+type t = {
+  name : string;
+  state : [ `Stopped of stop_reason | `Started of run | `Stopping of run ];
+  sync_mode : sync_mode;
+  controller : controller option;
+  pending : entry list;
+  sub_clocks : t list;
+}
+
+(** The run of a started or stopping clock. *)
+val run : t -> run option
 
 type activity = [ `Idle | `Released | `Resting | `Ticking of float ]
 

@@ -68,7 +68,7 @@ let status_report () =
     (lines archive_block
     = ["report.archive [stopped: never started, auto]"; "  pending: file []"]);
   check "the same record is available in structured form"
-    ((Clock.status main).ticks = Some 3
+    ((Option.get (run main)).ticks = 3
     && List.length (Clock.status main).sub_clocks = 1)
 
 let entry id source_type activations =
@@ -78,18 +78,33 @@ let source_graph () =
   let status =
     {
       (Clock.status (Clock.create ~id:"graph" ())) with
-      outputs =
-        [
-          entry "output.icecast" `Output ["output.icecast"];
-          entry "output.file" `Output ["output.file"];
-          entry "cross.out" `Output ["cross"];
-        ];
-      passive =
-        [
-          entry "shared_encoder" `Passive ["output.icecast"; "output.file"];
-          entry "audio" `Passive ["shared_encoder"];
-          entry "spare" `Passive [];
-        ];
+      state =
+        `Started
+          {
+            Clock.Status.animator = None;
+            sync = None;
+            ticks = 0;
+            stream_time = 0.;
+            lateness = None;
+            outputs =
+              [
+                entry "output.icecast" `Output ["output.icecast"];
+                entry "output.file" `Output ["output.file"];
+                entry "cross.out" `Output ["cross"];
+              ];
+            active = [];
+            passive =
+              [
+                entry "shared_encoder" `Passive ["output.icecast"; "output.file"];
+                entry "audio" `Passive ["shared_encoder"];
+                entry "spare" `Passive [];
+              ];
+            statistics =
+              {
+                life = Clock.Status.no_figures;
+                recent = Clock.Status.no_figures;
+              };
+          };
     }
   in
   let graph = Clock.Status.source_graph [status] in

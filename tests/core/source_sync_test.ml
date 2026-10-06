@@ -94,7 +94,9 @@ let () =
 let tracked clock =
   Option.map
     (fun (sync : Clock.Status.sync) -> sync.sync_source)
-    (Clock.status clock).sync
+    (Option.bind
+       (Clock.Status.run (Clock.status clock))
+       (fun (run : Clock.Status.run) -> run.sync))
 
 (* K6: the clock's pacing follows the child a selecting operator plays. *)
 let () =

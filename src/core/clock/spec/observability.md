@@ -12,20 +12,27 @@ layouts shown are recommendations.
 Every clock gives, at any moment and from any thread, one record. A report is
 a pure function of records: it never reads a clock.
 
-| Field       | Value                                                                                                                            |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| name        | [clock.md §2](clock.md#2-names)                                                                                                  |
-| state       | `stopped`, `started`, `stopping`, and the stop reason of a stopped clock, with the error if it failed                            |
-| sync mode   | [clock.md §3](clock.md#3-sync-modes)                                                                                             |
-| controller  | Passive clocks: the controlling clock or external entity                                                                         |
-| animator    | Non-passive started clocks: `task` or `thread`, and why (`blocks: <sync source>`, `unsynced`, `tasks off`, `lease: <time left>`) |
-| sync source | The tracked one, its pacing, and whether the clock follows it                                                                    |
-| ticks       | No value when stopped                                                                                                            |
-| stream time | No value when stopped                                                                                                            |
-| lateness    | Seconds behind its time source; negative when ahead. No value when the clock does not measure it                                 |
-| sources     | Pending, outputs, active, passive: each a list of source entries                                                                 |
-| sub-clocks  | The records of its registered sub-clocks                                                                                         |
-| statistics  | Below                                                                                                                            |
+| Field      | Value                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
+| name       | [clock.md §2](clock.md#2-names)                                                                       |
+| state      | `stopped` with the stop reason and the error if it failed, `started` or `stopping`, each with the run |
+| sync mode  | [clock.md §3](clock.md#3-sync-modes)                                                                  |
+| controller | Passive clocks: the controlling clock or external entity                                              |
+| pending    | The pending sources, as source entries                                                                |
+| sub-clocks | The records of its registered sub-clocks                                                              |
+
+The **run** is part of the `started` and `stopping` states. A stopped clock has
+no run, so it has none of these values:
+
+| Field       | Value                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------ |
+| animator    | Non-passive clocks: `task` or `thread`, and why (`blocks: <sync source>`, `unsynced`, `tasks off`, `lease: <time left>`) |
+| sync source | The tracked one, its pacing, and whether the clock follows it                                                            |
+| ticks       | Ticks of the run                                                                                                         |
+| stream time | Stream time of the run                                                                                                   |
+| lateness    | Seconds behind its time source; negative when ahead. No value when the clock does not measure it                         |
+| sources     | Outputs, active, passive: each a list of source entries                                                                  |
+| statistics  | Below                                                                                                                    |
 
 A **source entry** is an id, a type and the ids of the source's activations.
 

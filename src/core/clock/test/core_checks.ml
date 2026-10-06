@@ -3,13 +3,12 @@ open Harness
 let lifecycle () =
   let before = event_count () in
   let clock = Clock.create ~sync:`Passive ~owner:(owner ()) () in
-  let status = Clock.status clock in
   check "a new clock is stopped, never started"
     (is_stopped clock `Never_started);
   check "a stopped clock has no ticks, no time and no lateness"
     (Clock.ticks clock = None
     && Clock.time clock = None
-    && status.lateness = None
+    && lateness clock = None
     && not (Clock.self_sync clock));
   check "reading a stopped clock logs nothing" (event_count () = before);
   Clock.start ~force:true clock;
@@ -21,7 +20,7 @@ let lifecycle () =
   check "an activated output is listed"
     (List.map
        (fun (entry : Clock.Status.entry) -> entry.id)
-       (Clock.status clock).outputs
+       (Option.get (run clock)).outputs
     = ["out"]);
   tick clock 7;
   check "each tick adds exactly one to the tick count"

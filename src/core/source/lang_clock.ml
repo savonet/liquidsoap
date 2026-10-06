@@ -65,6 +65,10 @@ let sync_state c =
 let source_ids entries =
   List.map (fun (entry : Clock.Status.entry) -> entry.id) entries
 
+let run_source_ids c entries =
+  source_ids
+    (Option.fold ~none:[] ~some:entries (Clock.Status.run (Clock.status c)))
+
 module ClockValue = struct
   include Value.MkCustom (struct
     type content = Clock.t
@@ -148,11 +152,10 @@ module ClockValue = struct
          for logging and etc. These sources cannot be used in operators.",
         fun c ->
           Lang.val_fun [] (fun _ ->
-              let status = Clock.status c in
               Lang.list
                 (List.map ClockSource.to_value
-                   (source_ids
-                      (status.outputs @ status.active @ status.passive)))) );
+                   (run_source_ids c (fun run ->
+                        run.outputs @ run.active @ run.passive)))) );
       ( "active_sources",
         Lang.fun_t [] (Lang.list_t ClockSource.t),
         "List of active sources connected to the clock. This returns abstract \
@@ -162,7 +165,7 @@ module ClockValue = struct
           Lang.val_fun [] (fun _ ->
               Lang.list
                 (List.map ClockSource.to_value
-                   (source_ids (Clock.status c).active))) );
+                   (run_source_ids c (fun run -> run.active)))) );
       ( "passive_sources",
         Lang.fun_t [] (Lang.list_t ClockSource.t),
         "List of passive sources connected to the clock. This returns abstract \
@@ -172,7 +175,7 @@ module ClockValue = struct
           Lang.val_fun [] (fun _ ->
               Lang.list
                 (List.map ClockSource.to_value
-                   (source_ids (Clock.status c).passive))) );
+                   (run_source_ids c (fun run -> run.passive)))) );
       ( "outputs",
         Lang.fun_t [] (Lang.list_t ClockSource.t),
         "List of outputs connected to the clock. This returns abstract sources \
@@ -181,7 +184,7 @@ module ClockValue = struct
           Lang.val_fun [] (fun _ ->
               Lang.list
                 (List.map ClockSource.to_value
-                   (source_ids (Clock.status c).outputs))) );
+                   (run_source_ids c (fun run -> run.outputs)))) );
       ( "tick",
         Lang.fun_t [] Lang.unit_t,
         "Animate the clock and run one tick",

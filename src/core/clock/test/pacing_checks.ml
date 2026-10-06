@@ -29,8 +29,12 @@ let manual_time () =
 let real_time () = use_time_source Clock.Sync_source.builtin
 let stream clock = Option.value ~default:0. (Clock.time clock)
 let ticks clock = Option.value ~default:0 (Clock.ticks clock)
-let figures clock = (Option.get (Clock.status clock).statistics).life
-let animator clock = Option.map fst (Clock.status clock).animator
+let figures clock = (Option.get (run clock)).statistics.life
+
+let animator_and_reason clock =
+  Option.bind (run clock) (fun (run : Clock.Status.run) -> run.animator)
+
+let animator clock = Option.map fst (animator_and_reason clock)
 let count clock matching = List.length (List.filter matching (events_of clock))
 let is_warning = function Clock.Event.Latency_warning _ -> true | _ -> false
 let is_reset = function Clock.Event.Latency_reset _ -> true | _ -> false
@@ -112,7 +116,7 @@ let device_paced ~tasks () =
     (produced /. elapsed > 0.8 && produced /. elapsed < 1.05);
   check
     (label "a clock following a self-paced sync source never rests")
-    ((figures clock).rests = 0 && (Clock.status clock).lateness = None);
+    ((figures clock).rests = 0 && lateness clock = None);
   check
     (label "it never warns and never resets")
     (count clock is_warning = 0 && count clock is_reset = 0);
@@ -166,7 +170,7 @@ let changing_animator () =
   check "when it leaves, the clock moves back to a task"
     (wait_until (fun () -> animator clock = Some `Task));
   ignore (wait_until (fun () -> settled clock));
-  let lateness = Option.get (Clock.status clock).lateness in
+  let lateness = Option.get (lateness clock) in
   check "a switch leaves the clock neither late nor ahead"
     (lateness <= 1e-9 && lateness >= -.(latency +. frame_duration +. 1e-9));
   check "ticks are continuous across the changes, with no error and no reset"
@@ -233,7 +237,7 @@ let sub_clock_blocks () =
   stop parent
 
 let animator_reason clock =
-  match (Clock.status clock).animator with Some (_, why) -> why | None -> ""
+  match animator_and_reason clock with Some (_, why) -> why | None -> ""
 
 let lease_starts clock =
   count clock (function Clock.Event.Thread_lease _ -> true | _ -> false)
