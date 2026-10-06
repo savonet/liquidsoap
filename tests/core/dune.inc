@@ -57,6 +57,35 @@
   (run %{byteRing_test})))
 
 (executable
+ (name cached_self_sync_test)
+ (modules cached_self_sync_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias cached_self_sync_test)
+ (package liquidsoap)
+ (deps
+  (:cached_self_sync_test cached_self_sync_test.exe))
+ (action
+  (run %{cached_self_sync_test})))
+
+(executable
  (name child_support_test)
  (modules child_support_test)
  (libraries
@@ -1113,6 +1142,7 @@
  (deps
   (alias binary_strings_test)
   (alias byteRing_test)
+  (alias cached_self_sync_test)
   (alias child_support_test)
   (alias content_test)
   (alias decoder_test)
