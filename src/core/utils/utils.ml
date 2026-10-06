@@ -124,28 +124,6 @@ let read_all filename =
   close_in channel;
   Strings.Mutable.to_string contents
 
-let copy ?(mode = [Open_wronly; Open_creat; Open_trunc]) ?(perms = 0o660) src
-    dst =
-  let oc = open_out_gen mode perms dst in
-  Fun.protect
-    ~finally:(fun () -> close_out_noerr oc)
-    (fun () ->
-      set_binary_mode_out oc true;
-      let ic = open_in_bin src in
-      Fun.protect
-        ~finally:(fun () -> close_in_noerr ic)
-        (fun () ->
-          let len = 4096 in
-          let buf = Bytes.create len in
-          let rec f () =
-            match input ic buf 0 len with
-              | 0 -> ()
-              | n ->
-                  output_substring oc (Bytes.unsafe_to_string buf) 0 n;
-                  f ()
-          in
-          f ()))
-
 (* Here we take care not to introduce new redexes when substituting *)
 
 (* Interpolation:
