@@ -287,7 +287,6 @@ module State = struct
     mutable leased : bool;
     (* When the loop last took its worker, the start of its time box. *)
     mutable worker_since : float;
-    tick_slowest : slowest;
     mutable last_long_tick : float;
     (* The span since the last latency warning or reset was logged. *)
     warning : span;

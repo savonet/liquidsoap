@@ -134,15 +134,11 @@ let create ?(stack = []) ?on_error ?id ?(sync = `Automatic) ?parent ?owner () =
   Atomic.set c.self (Some self);
   self
 
-let clocks () =
-  List.map handle
-    (Registry.by_creation
-       (Registry.waiting_clocks () @ Registry.running_clocks ()))
+let all_clocks () =
+  Registry.by_creation (Registry.waiting_clocks () @ Registry.running_clocks ())
 
-let statuses () =
-  List.map Inspect.clock_status
-    (Registry.by_creation
-       (Registry.waiting_clocks () @ Registry.running_clocks ()))
+let clocks () = List.map handle (all_clocks ())
+let statuses () = List.map Inspect.clock_status (all_clocks ())
 
 (* Stops every clock, waits for them up to the shutdown wait, and reports those
    still running. *)

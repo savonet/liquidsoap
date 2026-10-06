@@ -72,10 +72,6 @@ let distinct_sync_sources reporting =
       else pacer :: distinct)
     [] reporting
 
-let sync_error c reporting =
-  sync_error ~clock:(clock_name c)
-    (List.map (fun (source, _, { pacer }) -> (source, pacer)) reporting)
-
 (* The one sync source of the clock; with several, the source that changed last
    fails with a sync error and its answer is dropped. *)
 let rec single_sync_source c st =
@@ -86,7 +82,10 @@ let rec single_sync_source c st =
     | _ ->
         let last (_, _, a) (_, _, b) = Int.compare b.rank a.rank in
         let source, member, _ = List.hd (List.sort last reporting) in
-        let error = sync_error c reporting in
+        let error =
+          sync_error ~clock:(clock_name c)
+            (List.map (fun (source, _, { pacer }) -> (source, pacer)) reporting)
+        in
         member.sync <- None;
         source_error c st source (fun () -> raise error);
         single_sync_source c st
@@ -215,7 +214,7 @@ let park c st ?delay what =
   let spent = real_time -. started in
   st.worker_since <- real_time;
   Atomic.set st.activity `Idle;
-  if wants_debug c then emit c (Park { what; delay; spent });
+  if Event.wants_debug ~log:(logger c) then emit c (Park { what; delay; spent });
   spent
 
 (* Rests until the delay is spent or the clock stops, and splits the time

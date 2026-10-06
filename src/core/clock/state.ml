@@ -250,23 +250,18 @@ module Registry = struct
     locked (fun () -> Option.iter (release_id c.identity) (clock_id c))
 end
 
-(* The pending source that names an unnamed clock: an output first, then an
-   active source, then any. *)
-let significant_pending c =
-  let pending = Atomic.get c.pending in
-  let first source_type =
-    List.find_opt (fun (s : source) -> role s = source_type) pending
-  in
-  List.find_map first [`Output; `Active; `Passive]
-
-(* The clock's id, or the name it would take at start. *)
+(* The clock's id, or the name it would take at start: that of a pending
+   output first, then of an active source, then of any. *)
 let clock_name c =
-  match clock_id c with
-    | Some id -> id
-    | None -> (
-        match significant_pending c with
-          | Some source -> source#id
-          | None -> "generic")
+  let pending source_type =
+    List.find_opt
+      (fun (s : source) -> role s = source_type)
+      (Atomic.get c.pending)
+  in
+  match (clock_id c, List.find_map pending [`Output; `Active; `Passive]) with
+    | Some id, _ -> id
+    | None, Some source -> source#id
+    | None, None -> "generic"
 
 let string_of_controller c =
   match (c.owner, Atomic.get c.parent) with
@@ -286,7 +281,6 @@ let logger c =
     | None -> Log.make ["clock"; clock_name c]
 
 let emit c kind = Event.emit ~log:(logger c) ~clock:(clock_name c) kind
-let wants_debug c = Event.wants_debug ~log:(logger c)
 
 let entry (source : source) =
   {
@@ -308,8 +302,6 @@ let members st =
 
 let active_members st =
   List.filter (fun (_, member) -> member.role = `Active) (members st)
-
-let passive_sources st = Queues.WeakQueue.elements st.passive
 
 (* Whether the clock compares its stream to a time source; a self-paced sync
    source, [none] and [passive] leave the pace to something else. *)

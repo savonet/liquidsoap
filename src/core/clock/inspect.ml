@@ -28,7 +28,7 @@ let run_status c st =
     outputs =
       sorted (List.map (fun o -> entry o.source) (Atomic.get st.outputs));
     active = sorted (List.map (fun (s, _) -> entry s) (active_members st));
-    passive = sorted (List.map entry (passive_sources st));
+    passive = sorted (List.map entry (Queues.WeakQueue.elements st.passive));
     statistics =
       { Status.life = Atomic.get st.life; recent = recent_figures st };
   }

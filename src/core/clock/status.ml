@@ -206,23 +206,18 @@ let graph_lines entries =
   let top = tree "  " "  " in
   let inside entry = fst (activators entries entry) in
   let outside entry = snd (activators entries entry) in
-  let roots =
-    List.filter
-      (fun (entry : entry) ->
-        entry.source_type = `Output && inside entry = [] && outside entry = [])
-      entries
+  let roots, unwoken =
+    List.partition
+      (fun (entry : entry) -> entry.source_type = `Output)
+      (List.filter
+         (fun entry -> inside entry = [] && outside entry = [])
+         entries)
   in
   let from_outside =
     List.filter (fun entry -> inside entry = [] && outside entry <> []) entries
   in
   let external_activators =
     List.sort_uniq String.compare (List.concat_map outside from_outside)
-  in
-  let unwoken =
-    List.filter
-      (fun (entry : entry) ->
-        entry.source_type <> `Output && inside entry = [] && outside entry = [])
-      entries
   in
   let section title lines = if lines = [] then [] else title @ lines in
   List.concat_map top roots

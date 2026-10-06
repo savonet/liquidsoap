@@ -104,7 +104,6 @@ let new_streaming ~force c =
     last_unblocked = None;
     leased = false;
     worker_since = real_time;
-    tick_slowest = slowest ();
     last_long_tick = neg_infinity;
     warning = new_span neg_infinity;
     window = new_span real_time;
@@ -125,12 +124,12 @@ let note_slowest slowest ~duration ~name =
   end
 
 (* Has a source produce its frame of the tick, and times it. *)
-let animate c st (source : source) member =
+let animate c st ~tick_slowest (source : source) member =
   if not (Atomic.get member.removed) then begin
     let started = Duppy.time () in
     source_error c st source (fun () ->
         Option.iter (fun (a : active) -> a#output) (active source));
-    note_slowest st.tick_slowest
+    note_slowest tick_slowest
       ~duration:(Duppy.time () -. started)
       ~name:(Some source#id)
   end
@@ -144,10 +143,10 @@ let roll_window st real_time =
   end
 
 (* Adds a finished tick to the figures, and logs a long one. *)
-let update_statistics c st ~started =
+let update_statistics c st ~started ~tick_slowest =
   let real_time = Duppy.time () in
   let duration = real_time -. started in
-  let name = st.tick_slowest.culprit in
+  let name = tick_slowest.culprit in
   note_slowest st.warning.longest ~duration ~name;
   note_slowest st.window.longest ~duration ~name;
   update_figures st (fun figures ->
@@ -235,9 +234,8 @@ let rec wind_down c =
               (fun source ->
                 if not (List.memq source removed) then add_pending c source)
               held;
-            List.iter
-              (fun queue -> Atomic.set queue [])
-              [st.on_tick; st.after_tick];
+            Atomic.set st.on_tick [];
+            Atomic.set st.after_tick [];
             List.iter
               (fun { sub } ->
                 quietly c "stopping a sub-clock" (fun () ->
@@ -279,22 +277,41 @@ let stop t = stop_clock (get t) `Requested
 let fail c st error backtrace =
   ignore (request_stop c (`Failed { error; backtrace; source = st.failing }))
 
+(* Runs [fn] on the run of a passive clock, as the only tick or activation in
+   progress; an error fails the clock.
+
+   [ticking] is raised before the state is read, and [stop_clock] reads it
+   after changing the state: one of the two winds the clock down. *)
+let exclusively c ~what fn =
+  if Atomic.exchange c.ticking true then
+    invalid_arg ("Clock." ^ what ^ ": a tick of this clock is in progress");
+  Fun.protect
+    ~finally:(fun () ->
+      Atomic.set c.ticking false;
+      if state c = `Stopping then wind_down c)
+    (fun () ->
+      let st = started_streaming c in
+      try fn st with
+        | Stop_signal -> raise Stop_signal
+        | error ->
+            let backtrace = Printexc.get_raw_backtrace () in
+            fail c st error backtrace;
+            Printexc.raise_with_backtrace error backtrace)
+
 (* One tick: removals, activation, pacing point, outputs and active sources,
    callbacks, sub-clocks, statistics. *)
 let rec run_tick c st ~pull =
   let started = Duppy.time () in
   Atomic.set st.activity (`Ticking started);
-  st.tick_slowest.duration <- 0.;
-  st.tick_slowest.culprit <- None;
+  let tick_slowest = slowest () in
   let subs = sub_snapshot c in
   apply_removals c st;
   Atomic.set st.pulled pull;
   activate c st;
   pacing_point c st;
-  List.iter (fun o -> animate c st o.source o.member) (Atomic.get st.outputs);
-  List.iter
-    (fun (source, member) -> animate c st source member)
-    (active_members st);
+  let animate = animate c st ~tick_slowest in
+  List.iter (fun o -> animate o.source o.member) (Atomic.get st.outputs);
+  List.iter (fun (source, member) -> animate source member) (active_members st);
   take_callbacks st.on_tick;
   Atomic.set st.pulled false;
   stop_check ();
@@ -303,7 +320,7 @@ let rec run_tick c st ~pull =
   stop_check ();
   take_callbacks st.after_tick;
   apply_removals c st;
-  update_statistics c st ~started;
+  update_statistics c st ~started ~tick_slowest;
   Atomic.set st.activity `Idle
 
 (* Ticks a started sub-clock that its controller left alone during the parent's
@@ -314,34 +331,12 @@ and tick_sub snapshot =
       | Stop_signal -> raise Stop_signal
       | _ -> ())
 
-(* Runs one tick of a passive clock on the calling thread.
-
-   [ticking] is raised before the state is read, and [stop_clock] reads it
-   after changing the state: one of the two winds the clock down. *)
+(* Runs one tick of a passive clock on the calling thread. *)
 and tick_passive c ~pull =
-  if Atomic.exchange c.ticking true then
-    invalid_arg "Clock.tick: a tick of this clock is in progress";
-  let finish () =
-    Atomic.set c.ticking false;
-    if state c = `Stopping then wind_down c
-  in
-  match lifecycle c with
-    | `Started st -> (
-        match run_tick c st ~pull with
-          | () -> finish ()
-          | exception Stop_signal ->
-              Atomic.set st.pulled false;
-              finish ();
-              raise Stop_signal
-          | exception error ->
-              let backtrace = Printexc.get_raw_backtrace () in
-              Atomic.set st.pulled false;
-              fail c st error backtrace;
-              finish ();
-              Printexc.raise_with_backtrace error backtrace)
-    | _ ->
-        finish ();
-        not_running c
+  exclusively c ~what:"tick" (fun st ->
+      Fun.protect
+        ~finally:(fun () -> Atomic.set st.pulled false)
+        (fun () -> run_tick c st ~pull))
 
 let passive t =
   let c = get t in
@@ -354,20 +349,7 @@ let tick ?(pull = false) t = tick_passive (passive t) ~pull
 (* Activates a passive clock's pending sources outside a tick. *)
 let activate_pending t =
   let c = passive t in
-  if Atomic.exchange c.ticking true then
-    invalid_arg "Clock.activate_pending: a tick of this clock is in progress";
-  Fun.protect
-    ~finally:(fun () ->
-      Atomic.set c.ticking false;
-      if state c = `Stopping then wind_down c)
-    (fun () ->
-      let st = started_streaming c in
-      try activate c st with
-        | Stop_signal -> raise Stop_signal
-        | error ->
-            let backtrace = Printexc.get_raw_backtrace () in
-            fail c st error backtrace;
-            Printexc.raise_with_backtrace error backtrace)
+  exclusively c ~what:"activate_pending" (activate c)
 
 let has_work c st =
   Atomic.get c.pending <> []
@@ -391,7 +373,7 @@ let loop c st () =
   wind_down c
 
 (* Runs [fn] on a new thread or as a scheduler task. *)
-let rec spawn animator fn =
+let spawn animator fn =
   match animator with
     | `Thread -> Duppy.thread ~priority:`Clock scheduler fn
     | `Task ->
@@ -411,7 +393,7 @@ let rec spawn animator fn =
    A deep handler is part of the continuation, so the loop keeps it when it
    resumes under another animator. The same holds for the handler of the
    effect through which script code registers its callbacks. *)
-and animated c st fn () =
+let animated c st fn () =
   Effect.Deep.match_with
     (fun () -> Script_callback.uncollected fn)
     ()
@@ -431,9 +413,6 @@ and animated c st fn () =
                     spawn animator (fun () -> Effect.Deep.continue k ()))
             | _ -> None);
     }
-
-let sources_of_pending c =
-  List.map (fun (s : source) -> (s#id, role s)) (Atomic.get c.pending)
 
 (* Starts a clock: new run, id, registry, start event, sub-clocks, then its
    animator. *)
@@ -459,7 +438,10 @@ let rec start_clock ~force c =
                (if c.sync_mode = `Passive then Some (string_of_controller c)
                 else None);
              sync_mode = c.sync_mode;
-             sources = sources_of_pending c;
+             sources =
+               List.map
+                 (fun (s : source) -> (s#id, role s))
+                 (Atomic.get c.pending);
              animator;
            });
       List.iter
@@ -512,9 +494,6 @@ let application_start () =
   Atomic.set application_started true;
   ignore (start_pass ())
 
-let find_sub c sub =
-  List.find_opt (fun entry -> get entry.sub == get sub) (Atomic.get c.subs)
-
 (* Sets a sub-clock's registration count, and drops its entry at 0. *)
 let set_registrants c sub registrants =
   let others =
@@ -524,7 +503,11 @@ let set_registrants c sub registrants =
     (if registrants > 0 then others @ [{ sub; registrants }] else others)
 
 let registrants c sub =
-  match find_sub c sub with Some { registrants } -> registrants | None -> 0
+  match
+    List.find_opt (fun entry -> get entry.sub == get sub) (Atomic.get c.subs)
+  with
+    | Some { registrants } -> registrants
+    | None -> 0
 
 (* Counts one more registration of a sub-clock on its parent, and starts it
    under a started parent. *)
@@ -548,9 +531,8 @@ let deregister ~parent sub =
       let p = get parent in
       match registrants p sub with
         | 0 -> ()
-        | 1 ->
-            set_registrants p sub 0;
-            stop_clock (get sub) `Parent_stopped
-        | count -> set_registrants p sub (count - 1))
+        | count ->
+            set_registrants p sub (count - 1);
+            if count = 1 then stop_clock (get sub) `Parent_stopped)
 
 let sub_clocks t = List.map (fun { sub } -> sub) (Atomic.get (get t).subs)

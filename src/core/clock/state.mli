@@ -61,13 +61,9 @@ val logger : clock -> Log.t
 (** Logs an event under the clock's name. *)
 val emit : clock -> Event.event_kind -> unit
 
-(** Whether a debug event is worth building. *)
-val wants_debug : clock -> bool
-
 val entry : source -> Status.entry
 val members : streaming -> (source * member) list
 val active_members : streaming -> (source * member) list
-val passive_sources : streaming -> source list
 val measures : clock -> streaming -> bool
 val now : streaming -> float
 val lateness : clock -> streaming -> float option
