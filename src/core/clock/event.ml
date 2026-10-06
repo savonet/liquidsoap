@@ -1,49 +1,6 @@
 open Settings
 open Status
-
-type event_kind =
-  | Start of {
-      top_level : bool;
-      controller : string option;
-      sync_mode : sync_mode;
-      sources : (string * [ `Passive | `Active | `Output ]) list;
-      animator : (animator * string) option;
-    }
-  | Animator_change of { from : animator; into : animator; why : string }
-  | Flap of { gap : float; lease : float }
-  | Thread_lease of { lease : float }
-  | Sync_source_switch of {
-      from : string option;
-      into : string option;
-      pacing : string option;
-      latency : float;
-      max_latency : float;
-    }
-  | Stop of { reason : stop_reason; ticks : int; stream_time : float }
-  | Failure of failure
-  | Source_failure of {
-      source : string;
-      error : exn;
-      backtrace : Printexc.raw_backtrace;
-      handled : bool;
-    }
-  | Latency_warning of { lateness : float; since_last : figures }
-  | Latency_reset of {
-      lateness : float;
-      since_last : figures;
-      ticks_before : int;
-      ticks_after : int;
-    }
-  | Long_tick of { duration : float; slowest_source : string option }
-  | Park of { what : [ `Rest | `Release ]; delay : float option; spent : float }
-  | Leak_warning of { activated : int; status : Status.t }
-  | Id_kept of { kept : string; dropped : string }
-  | Sync_source_ended of { sync_source : string }
-  | Still_running of { activity : activity; slowest_source : string option }
-  | Unknown_time_source of { wanted : string; used : string }
-  | Time_source of { used : string }
-
-type event = { clock : string; kind : event_kind }
+include Types.Event
 
 let string_of_activity = function
   | `Idle -> "idle"

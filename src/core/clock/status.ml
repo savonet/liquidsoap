@@ -1,79 +1,4 @@
-type sync_mode = [ `Automatic | `Cpu | `Unsynced | `Passive ]
-type source_type = [ `Passive | `Active | `Output ]
-type owner = { kind : string; id : string }
-type animator = [ `Task | `Thread ]
-
-type failure = {
-  error : exn;
-  backtrace : Printexc.raw_backtrace;
-  source : string option;
-}
-
-type stop_reason =
-  [ `Never_started
-  | `Requested
-  | `No_sources
-  | `Global_stop
-  | `Sync_source_ended
-  | `Parent_stopped
-  | `Failed of failure ]
-
-type figures = {
-  ticks : int;
-  producing : float;
-  (* Seconds spent resting ahead of the time source. *)
-  resting : float;
-  rests : int;
-  (* Seconds spent away from a worker after a time box. *)
-  released : float;
-  releases : int;
-  (* Seconds a rest lasted beyond its delay, waiting for a worker. *)
-  no_worker : float;
-  resets : int;
-  switches : int;
-  animator_changes : int;
-  longest_tick : float;
-  (* Slowest source of the longest tick. *)
-  slowest_source : string option;
-}
-
-(* A source in a status: its id, its kind and the ids of what keeps it awake. *)
-type entry = {
-  id : string;
-  source_type : source_type;
-  activations : string list;
-}
-
-type controller = { parent : string option; owner : owner option }
-type sync = { sync_source : string; pacing : string; followed : bool }
-type statistics = { life : figures; recent : figures }
-
-(* What a clock tells only while it has a run; [animator] is [None] for a
-   passive clock. *)
-type run = {
-  animator : (animator * string) option;
-  sync : sync option;
-  ticks : int;
-  stream_time : float;
-  lateness : float option;
-  outputs : entry list;
-  active : entry list;
-  passive : entry list;
-  statistics : statistics;
-}
-
-(* A snapshot of a clock and of its sub-clocks. *)
-type t = {
-  name : string;
-  state : [ `Stopped of stop_reason | `Started of run | `Stopping of run ];
-  sync_mode : sync_mode;
-  controller : controller option;
-  pending : entry list;
-  sub_clocks : t list;
-}
-
-(* What a clock's loop is doing; [`Ticking] carries the tick's start time. *)
-type activity = [ `Idle | `Ticking of float | `Resting | `Released ]
+include Types.Status
 
 let no_figures =
   {
@@ -90,8 +15,6 @@ let no_figures =
     longest_tick = 0.;
     slowest_source = None;
   }
-
-type slowest = { mutable duration : float; mutable culprit : string option }
 
 (* The maxima of a span cannot be had by subtraction: they come from [slowest].
 *)

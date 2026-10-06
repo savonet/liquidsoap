@@ -1,63 +1,11 @@
-type activation = < id : string >
-type active = < id : string ; reset : unit ; output : unit >
-
-type source =
-  < id : string
-  ; stack : Pos.t list
-  ; source_type : [ `Passive | `Active of active | `Output of active ]
-  ; wake_up : source -> activation
-  ; sleep : activation -> unit
-  ; sync_source : Sync_source.t option
-  ; activations : activation list >
+include module type of struct
+  include Types.State
+end
 
 val role : source -> [ `Passive | `Active | `Output ]
 
 (** What animates and resets an active or output source. *)
 val active : source -> active option
-
-module Sources : sig
-  type key = source
-  type !'a t
-
-  val create : int -> 'a t
-  val clear : 'a t -> unit
-  val reset : 'a t -> unit
-  val copy : 'a t -> 'a t
-  val add : 'a t -> key -> 'a -> unit
-  val remove : 'a t -> key -> unit
-  val find : 'a t -> key -> 'a
-  val find_opt : 'a t -> key -> 'a option
-  val find_all : 'a t -> key -> 'a list
-  val replace : 'a t -> key -> 'a -> unit
-  val mem : 'a t -> key -> bool
-  val length : 'a t -> int
-  val stats : 'a t -> Hashtbl.statistics
-  val add_seq : 'a t -> (key * 'a) Seq.t -> unit
-  val replace_seq : 'a t -> (key * 'a) Seq.t -> unit
-  val of_seq : (key * 'a) Seq.t -> 'a t
-  val clean : 'a t -> unit
-  val stats_alive : 'a t -> Hashtbl.statistics
-end
-
-type reported = {
-  sync_source : string;
-  source : string;
-  stack : Liquidsoap_lang_prelude.Pos.t list;
-}
-
-exception Conflict of { pos : Pos.t option; left : string; right : string }
-exception Loop of { pos : Pos.t option; left : string; right : string }
-
-exception
-  Controller_conflict of {
-    pos : Pos.t option;
-    left : string;
-    left_controller : string;
-    right : string;
-    right_controller : string;
-  }
-
-exception Sync_error of { clock : string; reported : reported list }
 
 (** The sync error of [clock], or of an operator, whose sources report these
     distinct sync sources. *)
@@ -66,105 +14,7 @@ val sync_error :
   (< id : string ; stack : Pos.t list ; .. > * Sync_source.t) list ->
   exn
 
-exception Not_running of string
-
-exception
-  Cannot_start of {
-    clock : string;
-    reason :
-      [ `Application_not_started | `Global_stop | `No_output | `Not_stopped ];
-  }
-
-exception Not_a_sub_clock of { clock : string; parent : string }
-exception Stop_signal
-
-type answer = { pacer : Sync_source.t; rank : int }
-
-type member = {
-  role : [ `Active | `Output ];
-  removed : bool Atomic.t;
-  mutable sync : answer option;
-}
-
-type output = { sleep : unit -> unit; source : source; member : member }
-
-type pace = {
-  time_source : Sync_source.time_source;
-  offset : float;
-  followed : Sync_source.t option;
-}
-
-type span = {
-  mutable mark : Status.figures;
-  mutable since : float;
-  longest : Status.slowest;
-}
-
-type streaming = {
-  frame_duration : float;
-  forced : bool;
-  default_time_source : Sync_source.time_source;
-  ticks : int Atomic.t;
-  m : Mutex.t;
-  outputs : output list Atomic.t;
-  animated : member Sources.t;
-  animated_sources : source Queues.WeakQueue.t;
-  passive : source Queues.WeakQueue.t;
-  removals : source list Atomic.t;
-  dirty : bool Atomic.t;
-  on_tick : (unit -> unit) list Atomic.t;
-  after_tick : (unit -> unit) list Atomic.t;
-  pulled : bool Atomic.t;
-  animator : (Status.animator * string) option Atomic.t;
-  pace : pace Atomic.t;
-  tracked : Sync_source.t option Atomic.t;
-  blocking : bool Atomic.t;
-  sub_blocking : int Atomic.t;
-  parker : Parker.t;
-  interrupt_wait : (unit -> unit) Atomic.t;
-  activity : Status.activity Atomic.t;
-  life : Status.figures Atomic.t;
-  recent : Status.figures option Atomic.t;
-  mutable changes_applied : int;
-  mutable failing : string option;
-  mutable unblocked_at : float option;
-  mutable last_unblocked : float option;
-  mutable leased : bool;
-  mutable worker_since : float;
-  tick_slowest : Status.slowest;
-  mutable last_long_tick : float;
-  warning : span;
-  window : span;
-}
-
-type lifecycle =
-  [ `Stopped of Status.stop_reason
-  | `Started of streaming
-  | `Stopping of streaming * Status.stop_reason ]
-
-type clock = {
-  identity : int;
-  id : (string * Log.t) option Atomic.t;
-  sync_mode : Status.sync_mode;
-  parent : t option Atomic.t;
-  owner : Status.owner option;
-  stack : Liquidsoap_lang_prelude.Pos.t list Atomic.t;
-  state : lifecycle Atomic.t;
-  pending : source list Atomic.t;
-  subs : sub list Atomic.t;
-  error_handlers : (exn -> Printexc.raw_backtrace -> unit) list Atomic.t;
-  ticking : bool Atomic.t;
-  activated : int Atomic.t;
-  self : t option Atomic.t;
-}
-
-and sub = { sub : t; registrants : int }
-and t = clock Unifier.t
-
 module Transition : sig
-  val m : Mutex.t
-  val holder : int Atomic.t
-  val held : unit -> bool
   val run : (unit -> 'a) -> 'a
 end
 
@@ -189,15 +39,7 @@ val running : clock -> bool
 val stream_time : streaming -> float
 
 module Registry : sig
-  val m : Mutex.t
-  val waiting : (int, clock Weak.t) Hashtbl.t
-  val running : (int, clock) Hashtbl.t
-  val ids : (string, int) Hashtbl.t
-  val dead : (int * string option) list Atomic.t
   val identities : int Atomic.t
-  val release_id : int -> string -> unit
-  val drain : unit -> unit
-  val locked : (unit -> 'a) -> 'a
   val watch : clock -> unit
   val wait : clock -> unit
   val run : clock -> unit
@@ -205,7 +47,6 @@ module Registry : sig
   val by_creation : clock list -> clock list
   val waiting_clocks : unit -> clock list
   val running_clocks : unit -> clock list
-  val claim_id : clock -> string -> string
   val move_id : from:clock -> into:clock -> string -> unit
   val drop_id : clock -> unit
 end
@@ -224,8 +65,8 @@ val emit : clock -> Event.event_kind -> unit
 val wants_debug : clock -> bool
 
 val entry : source -> Status.entry
-val members : streaming -> (Sources.key * member) list
-val active_members : streaming -> (Sources.key * member) list
+val members : streaming -> (source * member) list
+val active_members : streaming -> (source * member) list
 val passive_sources : streaming -> source list
 val measures : clock -> streaming -> bool
 val now : streaming -> float
