@@ -109,6 +109,12 @@ subscriber reading back sees the new state. The clock MUST NOT ask.
 - A change found while a tick animates its sources reaches the clock at the
   pacing point of the next tick: the clock paces one tick on the previous
   answer.
+- **The tick is the unit of pacing.** A frame may hold data from two
+  children, one that paces and one that does not, when a track ends inside
+  it. The whole tick is paced on the answer applied at its pacing point. The
+  stream then departs from its pacing by at most one frame duration, which
+  the clock absorbs like any lateness ([§6](#6-rest-and-lateness)). The frame
+  duration SHOULD stay well under the latency.
 - A change check MUST cost a constant: sync sources are compared by identity
   ([§2](#2-sync-source)), by sources and by the clock alike.
 

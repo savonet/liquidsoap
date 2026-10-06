@@ -147,8 +147,7 @@ class switch ~all_predicates children =
       Option.iter
         (fun old_selection -> old_selection.sleep ())
         (Atomic.exchange selected v);
-      if Option.is_none v then self#release_leaving ~force:true ();
-      self#notify_sync_source (snd self#self_sync)
+      if Option.is_none v then self#release_leaving ~force:true ()
 
     initializer self#on_sleep (fun () -> self#exchange_selected None)
 

@@ -172,8 +172,10 @@ applied by hand at every place an answer can change, and the order between
 changing the state and announcing it matters.
 
 **How to tell.** Switch a selecting operator between a child that paces and
-one that does not: the clock changes pacing within one tick. Connect and
-disconnect a pacing input: same. Binding: the clock's pacing after one tick.
+one that does not: the operator reports the change when it prepares its next
+streaming cycle, and the clock changes pacing within one tick of the report.
+Connect and disconnect a pacing input: the input reports at once. Binding: the
+clock's pacing two ticks after a switch and one tick after a connection.
 
 **Rule.** A contract on sources, with the rule held once by what all sources
 share and the order between changing state and announcing it stated

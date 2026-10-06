@@ -84,7 +84,6 @@ class sequence ?(name = "sequence") ?(merge = false)
               self#log#info "Finished with %s" s#id;
               Atomic.set seq_sources rest;
               self#release_source s;
-              self#notify_sync_source (snd self#self_sync);
               (* The source we just moved to has not been read yet during this
                  streaming cycle, so a position constraint computed against the
                  source we are done with does not apply to it. Carrying

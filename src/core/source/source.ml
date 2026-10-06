@@ -275,9 +275,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           (fun fn -> fn ~old new_state)
           (Callbacks.elements state_callbacks))
 
-    method private on_child_state_change ~child:_ ~old:_ _ =
-      self#notify_sync_source (snd self#self_sync)
-
     val mutable own_sync_source : Clock.Sync_source.t option = None
 
     (* The pacing of a source that paces by itself is this one value: setting
@@ -546,21 +543,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
               sources;
           self#iter_watchers (fun w -> w.sleep ()))
 
-    val mutable child_state_deregisters : (unit -> unit) list = []
-
     initializer
-      self#on_wake_up (fun () ->
-          self#notify_sync_source (snd self#self_sync);
-          child_state_deregisters <-
-            List.map
-              (fun (_, s) ->
-                s#on_sync_source_change (fun ~old new_state ->
-                    self#on_child_state_change ~child:s ~old new_state))
-              sources);
-      self#on_sleep (fun () ->
-          List.iter (fun d -> d ()) child_state_deregisters;
-          child_state_deregisters <- [];
-          self#notify_sync_source None)
+      self#on_wake_up (fun () -> self#notify_sync_source (snd self#self_sync));
+      self#on_sleep (fun () -> self#notify_sync_source None)
 
     (** Streaming *)
 

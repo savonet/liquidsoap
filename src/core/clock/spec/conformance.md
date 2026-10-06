@@ -125,7 +125,7 @@ most checks free of animators and of real time.
   queries made to sources over many ticks is zero.
 - K6: switch a selecting operator between a child that paces and one that
   does not; connect and disconnect a pacing input. Binding: the clock's
-  pacing after one tick.
+  pacing two ticks after a switch and one tick after a connection.
 - K8: with a pacing source that is not ready, the clock paces itself.
 - An operator that reads a passive pacing source reports it from the first
   tick, stops reporting it on the tick where the source is not ready, and
