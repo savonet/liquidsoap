@@ -705,6 +705,8 @@ let () =
                `settings.init.allow_root := true` to silence this warning."
               err);
 
+  Clock.set_failure_policy (fun _ _ -> Tutils.shutdown 1);
+
   Lifecycle.on_start ~name:"main application start" (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for
          this: we want Unix EPIPE error and not SIGPIPE, which crashes the

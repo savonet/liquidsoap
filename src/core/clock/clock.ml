@@ -56,9 +56,7 @@ let name t = clock_name (get t)
 let id t = Atomic.get (get t).id
 let set_id t id = set_clock_id (get t) id
 let sync_mode t = (get t).sync_mode
-let owner t = (get t).owner
 let parent t = Atomic.get (get t).parent
-let stack t = Atomic.get (get t).stack
 
 let set_stack t stack =
   let c = get t in
@@ -88,11 +86,6 @@ let stop_reason t =
 
 let started t = state (get t) = `Started
 let pending t = Atomic.get (get t).pending
-
-let on_error t handler =
-  let c = get t in
-  push c.error_handlers handler
-
 let on_tick t fn = push (running_streaming (get t)).on_tick fn
 let after_tick t fn = push (running_streaming (get t)).after_tick fn
 let set_failure_policy = set_failure_policy

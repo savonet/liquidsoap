@@ -80,6 +80,7 @@ type graph = {
   mutable current : Avfilter.config option;
   mutable generation : int;
   mutable failed : bool;
+  owner : Clock.owner;
   init : (unit -> unit) Queue.t;
   resets : (unit -> unit) Queue.t;
   input_inits : (unit -> bool) Queue.t;
@@ -591,7 +592,8 @@ let _ =
          let name = uniq_name "abuffer" in
          let s =
            Ffmpeg_filter_io.(
-             audio_output ~pass_metadata ~name ~frame_t ~field source)
+             audio_output ~owner:graph.owner ~pass_metadata ~name ~frame_t
+               ~field source)
          in
          s#set_stack (Lang.pos p);
          s#set_id id;
@@ -722,7 +724,8 @@ let _ =
          let name = uniq_name "buffer" in
          let s =
            Ffmpeg_filter_io.(
-             video_output ~pass_metadata ~name ~frame_t ~field source)
+             video_output ~owner:graph.owner ~pass_metadata ~name ~frame_t
+               ~field source)
          in
          s#set_stack (Lang.pos p);
          s#set_id id;
@@ -824,6 +827,7 @@ let _ =
             current = None;
             generation = 0;
             failed = false;
+            owner = Ffmpeg_filter_io.graph_owner ();
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
             input_flushes = Queue.create ();
@@ -846,7 +850,7 @@ let _ =
       let output_clock = Clock.create ~id () in
       let input_clock =
         Clock.create ~sync:`Passive ~id:(id ^ ".input") ~parent:output_clock
-          ~owner:Ffmpeg_filter_io.graph_owner ()
+          ~owner:graph.owner ()
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       (match graph.graph_source with

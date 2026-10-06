@@ -41,6 +41,7 @@ type event_kind =
   | Sync_source_ended of { sync_source : string }
   | Still_running of { activity : activity; slowest_source : string option }
   | Unknown_time_source of { wanted : string; used : string }
+  | Time_source of { used : string }
 
 type event = { clock : string; kind : event_kind }
 
@@ -166,6 +167,7 @@ let level_and_text = function
           (or_none slowest_source) )
   | Unknown_time_source { wanted; used } ->
       (2, Printf.sprintf "Unknown time source %s, using %s" wanted used)
+  | Time_source { used } -> (4, Printf.sprintf "Using time source %s" used)
 
 let subscribers : (event -> unit) list Atomic.t = Atomic.make []
 let on_event fn = push subscribers fn

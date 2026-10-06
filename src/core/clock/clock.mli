@@ -97,14 +97,10 @@ val name : t -> string
 val id : t -> string option
 val set_id : t -> string -> unit
 val sync_mode : t -> sync_mode
-val owner : t -> owner option
 val parent : t -> t option
-val stack : t -> Pos.t list
 
 (** Does nothing when the stack is already set. *)
 val set_stack : t -> Pos.t list -> unit
-
-val on_error : t -> (exn -> Printexc.raw_backtrace -> unit) -> unit
 
 (** Raises [Cannot_start]. *)
 val start : ?force:bool -> t -> unit
@@ -127,8 +123,9 @@ val application_start : unit -> unit
     [clock.shutdown_wait]. *)
 val shutdown : unit -> unit
 
-(** Called once per failed clock, after it was wound down. The default asks for
-    the application to shut down, until the global stop is set. *)
+(** Called once per failed clock, after it was wound down. The application
+    installs it. A failure after the global stop is set is logged and not
+    reported. *)
 val set_failure_policy : (t -> failure -> unit) -> unit
 
 val attach : t -> source -> unit

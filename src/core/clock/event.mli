@@ -45,6 +45,7 @@ type event_kind =
       slowest_source : string option;
     }
   | Unknown_time_source of { wanted : string; used : string }
+  | Time_source of { used : string }
 
 type event = { clock : string; kind : event_kind }
 

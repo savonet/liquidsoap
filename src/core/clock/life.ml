@@ -6,8 +6,7 @@ open Activation
 open Pacing
 
 let failure_policy : (t -> failure -> unit) Atomic.t =
-  Atomic.make (fun _ _ ->
-      if not (Atomic.get global_stop) then Tutils.shutdown 1)
+  Atomic.make (fun _ _ -> ())
 
 let set_failure_policy policy = Atomic.set failure_policy policy
 
@@ -30,8 +29,10 @@ let default_time_source c =
   match Sync_source.find_time_source wanted with
     | Some time_source -> time_source
     | None ->
+        let used = Sync_source.builtin.label in
         emit c
-          (Unknown_time_source { wanted; used = Sync_source.builtin.label });
+          (if conf_preferred#get_d = Some wanted then Time_source { used }
+           else Unknown_time_source { wanted; used });
         Sync_source.builtin
 
 let slowest () = { duration = 0.; culprit = None }
@@ -181,8 +182,9 @@ let ticked_since { snapshot_of; streaming_then; ticks_then } =
 
 let report_failure c failure =
   emit c (Failure failure);
-  quietly c "reporting a failure" (fun () ->
-      (Atomic.get failure_policy) (handle c) failure)
+  if not (Atomic.get global_stop) then
+    quietly c "reporting a failure" (fun () ->
+        (Atomic.get failure_policy) (handle c) failure)
 
 let rec wind_down c =
   Transition.run (fun () ->

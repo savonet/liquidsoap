@@ -157,15 +157,21 @@ class virtual ['a] duration_converter =
         | Some { converter; _ } -> Ffmpeg_utils.Duration.flush converter
   end
 
-(* The inputs of a graph are ticked by the graph alone, as pulls. *)
-let graph_owner = { Clock.kind = "ffmpeg filter graph"; id = "ffmpeg.filter" }
+(* The inputs of a graph are ticked by that graph alone, as pulls. *)
+let graphs = Atomic.make 0
 
-class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
-  source =
+let graph_owner () =
+  {
+    Clock.kind = "ffmpeg filter graph";
+    id = Printf.sprintf "ffmpeg.filter.%d" (Atomic.fetch_and_add graphs 1);
+  }
+
+class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
+  ~field source =
   object (self)
     inherit
       Output.output
-        ~clock:(Clock.create ~sync:`Passive ~owner:graph_owner ~id:name ())
+        ~clock:(Clock.create ~sync:`Passive ~owner ~id:name ())
         ~infallible:false ~register_telnet:false ~name
         ~output_kind:"ffmpeg.filter.input" (Lang.source source) true as super
 
@@ -277,11 +283,13 @@ class ['a, 'params] base_output ~media ~pass_metadata ~name ~frame_t ~field
 
 (** From the script perspective, the operator sending data to a filter graph is
     an output. *)
-let audio_output ~pass_metadata ~name ~frame_t ~field source =
-  new base_output ~media:audio_media ~pass_metadata ~name ~frame_t ~field source
+let audio_output ~owner ~pass_metadata ~name ~frame_t ~field source =
+  new base_output
+    ~owner ~media:audio_media ~pass_metadata ~name ~frame_t ~field source
 
-let video_output ~pass_metadata ~name ~frame_t ~field source =
-  new base_output ~media:video_media ~pass_metadata ~name ~frame_t ~field source
+let video_output ~owner ~pass_metadata ~name ~frame_t ~field source =
+  new base_output
+    ~owner ~media:video_media ~pass_metadata ~name ~frame_t ~field source
 
 (* The graph end of an output: a buffersink, drained into the field of the
    graph source's generator that this output was given. The graph source owns
