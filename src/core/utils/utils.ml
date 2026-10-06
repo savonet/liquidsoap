@@ -336,19 +336,12 @@ let strftime ?time str : string =
   in
   Re.replace (Re.Pcre.regexp "%(.)") ~f:subst str
 
-(** Check if a directory exists. *)
-let is_dir d =
-  try
-    ignore (Sys.readdir d);
-    true
-  with _ -> false
-
-let dir_exists d = Sys.file_exists d && is_dir d
+let dir_exists d = Sys.file_exists d && Sys.is_directory d
 
 (** Create a directory, and its parents if needed. Raise Unix_error on error. *)
 let rec mkdir ~perm dir =
   if Sys.file_exists dir then
-    if is_dir dir then ()
+    if Sys.is_directory dir then ()
     else raise (Unix.Unix_error (Unix.ENOTDIR, "Utils.mkdir", dir))
   else (
     let up = Filename.dirname dir in
