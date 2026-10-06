@@ -38,7 +38,6 @@ val check_readable :
   string
 
 val read_all : string -> string
-val copy : ?mode:open_flag list -> ?perms:int -> string -> string -> unit
 val dir_exists : string -> bool
 val mkdir : perm:Unix.file_perm -> string -> unit
 
