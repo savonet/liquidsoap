@@ -587,8 +587,6 @@ let is_docker =
       Sys.unix
       && Sys.command "grep 'docker\\|lxc' /proc/1/cgroup >/dev/null 2>&1" = 0)
 
-let optional_apply fn = function None -> () | Some v -> fn v
-
 let mime_of_container_format = function
   | "3dostr" -> Some "application/vnd.pg.format"
   | "3g2" -> Some "video/3gpp2"
