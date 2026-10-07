@@ -85,7 +85,7 @@ let mk_audio_decoder ~channels ~field ~pcm_kind codec =
   let in_channel_layout = ref (Avcodec.Audio.get_channel_layout codec) in
   let in_sample_format = ref (Avcodec.Audio.get_sample_format codec) in
   let target_sample_rate = Lazy.Mutexed.force Frame.audio_rate in
-  let target_channel_layout = Avutil.Channel_layout.get_default channels in
+  let target_channel_layout = Ffmpeg_utils.default_channel_layout channels in
   let mk_converter () =
     Converter.create !in_channel_layout ~in_sample_format:!in_sample_format
       !in_sample_rate target_channel_layout target_sample_rate
@@ -96,7 +96,7 @@ let mk_audio_decoder ~channels ~field ~pcm_kind codec =
     | `Frame frame ->
         let frame_in_sample_rate = Avutil.Audio.frame_get_sample_rate frame in
         let frame_in_channel_layout =
-          Avutil.Channel_layout.get_default
+          Ffmpeg_utils.default_channel_layout
             (Avutil.Audio.frame_get_channels frame)
         in
         let frame_in_sample_format =
@@ -268,10 +268,12 @@ let mk_bitmap_subtitle_decoder ~field ~width ~height =
       (Ffmpeg_utils.convert_time_base ~src:avutil_time_base
          ~dst:liq_main_ticks_time_base ts)
   in
-  let convert (x, y, w, h, sub) =
+  (* A subtitle picture has four plane slots; a paletted image is the first
+     two, its plane and its palette. *)
+  let convert (x, y, w, h, (planes, linesizes)) =
     let scaler = get_scaler w h in
     let img =
-      SubScaler.convert scaler sub
+      SubScaler.convert scaler (Array.sub planes 0 2, Array.sub linesizes 0 2)
       |> Ffmpeg_utils.unpack_image ~width:w ~height:h
     in
     Video.Canvas.Image.make ~width ~height ~x ~y img

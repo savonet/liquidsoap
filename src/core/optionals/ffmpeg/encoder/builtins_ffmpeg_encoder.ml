@@ -49,14 +49,14 @@ let source_idx_map = SourceIdx.create 0
 let encode_audio_frame ~source_idx ~type_t ~mode ~opts ?codec ~format
     ~content_type ~field generator =
   let internal_channel_layout =
-    Avutil.Channel_layout.get_default
+    Ffmpeg_utils.default_channel_layout
       (Content.Audio.channels_of_format
          (Frame.Fields.find field (content_type ())))
   in
   let internal_samplerate = Lazy.Mutexed.force Frame.audio_rate in
   let target_channels = format.Ffmpeg_format.channels in
   let target_channel_layout =
-    Avutil.Channel_layout.get_default target_channels
+    Ffmpeg_utils.default_channel_layout target_channels
   in
   let target_samplerate = Lazy.Mutexed.force format.Ffmpeg_format.samplerate in
   let target_time_base = { Avutil.num = 1; den = target_samplerate } in

@@ -517,7 +517,7 @@ let abuffer_args frame =
       | Some id -> ("channel_layout", `Int64 id)
       | None ->
           let channel_layout =
-            Avutil.Channel_layout.get_default
+            Ffmpeg_utils.default_channel_layout
               (Avutil.Channel_layout.get_nb_channels channel_layout)
           in
           ( "channel_layout",

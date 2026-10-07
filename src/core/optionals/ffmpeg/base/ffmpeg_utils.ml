@@ -25,6 +25,13 @@ open Mm
 let log = Log.make ["ffmpeg"]
 let () = Avdevice.init ()
 
+let default_channel_layout channels =
+  try Avutil.Channel_layout.get_default channels
+  with Not_found ->
+    failwith
+      (Printf.sprintf "FFmpeg has no default channel layout for %d channels"
+         channels)
+
 let () =
   Lifecycle.on_init ~name:"FFmpeg init" (fun () ->
       let v = Avutil.version_string in
