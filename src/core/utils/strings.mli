@@ -91,9 +91,6 @@ val map_view : (StringView.t -> StringView.t) -> t -> t
 (** Drop the first given bytes. *)
 val drop : t -> int -> t
 
-(** Keep the last given bytes. *)
-val keep : t -> int -> t
-
 (** Sub-buffer of a buffer. *)
 val sub : t -> int -> int -> t
 

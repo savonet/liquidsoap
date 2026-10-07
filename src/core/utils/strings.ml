@@ -103,10 +103,6 @@ let drop l len =
   assert (r = 0);
   l
 
-let keep l len =
-  let cur_len = length l in
-  if cur_len <= len then [] else drop l (cur_len - len)
-
 let sub l o len =
   assert (o + len <= length l);
   let o = ref o in
