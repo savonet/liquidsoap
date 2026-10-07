@@ -132,9 +132,9 @@ let passive ?id ?on_error () =
 
 let sub_clock ?id parent = Clock.create ?id ~sync:`Passive ~parent ()
 
-let tick ?pull clock n =
+let tick clock n =
   for _ = 1 to n do
-    Clock.tick ?pull clock
+    Clock.tick clock
   done
 
 let run clock = Clock.Status.run (Clock.status clock)

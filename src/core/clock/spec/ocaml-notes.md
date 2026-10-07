@@ -17,7 +17,7 @@ the stopped clock is the one merged away.
 
 - OCaml 5, several domains. A clock's tick runs on one thread at a time, but
   handles are read from any thread: script callbacks, the server, other clocks.
-- State, id, controller, stack, ticks and the pulled flag are `Atomic`.
+- State, id, controller, stack, and ticks are `Atomic`.
 - The lists are queues from the shared utilities: `Queue` is a lock-free
   snapshot list (iteration reads an immutable snapshot; mutation takes a lock),
   `WeakQueue` the weak variant. Both are wrapped so that `push` skips an

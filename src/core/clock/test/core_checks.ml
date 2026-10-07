@@ -193,19 +193,41 @@ let nested_ticks () =
   check "registering on a started parent starts the sub-clock, at every depth"
     (Clock.started child && Clock.started grandchild);
   tick parent 3;
-  check "a tick ticks the started sub-clocks at every depth, once each"
-    (Clock.ticks child = Some 3 && Clock.ticks grandchild = Some 3);
+  check "a tick of the parent produces nothing in a sub-clock nobody ticks"
+    (Clock.ticks child = Some 0 && Clock.ticks grandchild = Some 0);
   let reader = source `Output in
   attach parent reader;
-  reader#set_on_animate (fun () -> Clock.tick ~pull:true child);
-  tick parent 2;
-  check "a sub-clock pulled during its parent's tick is not ticked again"
-    (Clock.ticks child = Some 5 && Clock.ticks grandchild = Some 5);
+  let pulls = ref [3; 0; 0] in
+  reader#set_on_animate (fun () ->
+      match !pulls with
+        | n :: rest ->
+            pulls := rest;
+            tick child n
+        | [] -> ());
+  tick parent 3;
+  check "K19: a sub-clock ticks as often as its reader ticks it"
+    (Clock.ticks child = Some 3 && Clock.ticks grandchild = Some 0);
+  let inner = source `Output and below = source `Output in
+  let closed = ref false in
+  reader#set_on_animate (fun () ->
+      attach child inner;
+      attach grandchild below;
+      Clock.after_tick grandchild (fun () -> closed := true));
+  tick parent 1;
+  check "K19: a tick cleans up the sub-clocks at every depth"
+    (inner#awake = 0 && below#awake = 0 && !closed);
   reader#set_on_animate ignore;
+  tick parent 1;
+  check "K19: a tick prepares the sub-clocks at every depth"
+    (inner#awake = 1 && below#awake = 1);
+  check "K19: a sub-clock nobody ticks produces nothing and counts no tick"
+    (inner#animated = 0 && below#animated = 0
+    && Clock.ticks child = Some 3
+    && Clock.ticks grandchild = Some 0);
   Clock.stop grandchild;
   tick parent 1;
   check "a stopped sub-clock is skipped and the parent's tick succeeds"
-    (Clock.ticks parent = Some 6 && Clock.ticks child = Some 6)
+    (Clock.ticks parent = Some 9 && Clock.started child)
 
 let registration () =
   let parent = passive () in
@@ -277,7 +299,7 @@ let restart () =
   attach child output;
   attach child detached;
   Clock.register ~parent child;
-  tick parent 3;
+  tick child 3;
   Clock.deregister ~parent child;
   check "a stopped sub-clock has put its outputs to sleep"
     (is_stopped child `Parent_stopped && output#awake = 0);
@@ -286,7 +308,7 @@ let restart () =
   Clock.register ~parent child;
   check "a sub-clock registered again starts from 0 ticks"
     (Clock.started child && Clock.ticks child = Some 0);
-  tick parent 2;
+  tick child 2;
   check "a restarted clock animates the output it held when it stopped"
     (Clock.ticks child = Some 2
     && output#awake = 1

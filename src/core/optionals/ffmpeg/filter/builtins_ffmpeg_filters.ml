@@ -146,7 +146,7 @@ let is_ready graph =
   (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
     | false, Some s ->
         if not (Clock.started s#clock) then Clock.start s#clock;
-        Clock.tick ~pull:true s#clock
+        Clock.tick s#clock
     (* No liquidsoap input to wait for: the graph is fed by source filters
        alone, so nothing else will ever trigger initialization. Doing it here
        rather than when the graph is built keeps it at streaming time, where
@@ -160,7 +160,7 @@ let is_ready graph =
 
 let pull graph =
   match Queue.peek_opt graph.graph_inputs with
-    | Some s -> Clock.tick ~pull:true s#clock
+    | Some s -> Clock.tick s#clock
     | None -> ()
 
 (* Once the inputs are done, the graph needs to be told so that filters holding

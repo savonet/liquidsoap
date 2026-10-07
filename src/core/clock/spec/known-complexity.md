@@ -72,7 +72,7 @@ Trace: #5153, #5163 and one direct commit. Three fixes.
 ## K3. Sub-clocks that pile up
 
 **Situation.** Operators with a child clock are created and discarded at run
-time, inside transitions and dynamic sources. A clock ticks every sub-clock it
+time, inside transitions and dynamic sources. A clock visits every sub-clock it
 knows.
 
 **What went wrong.** Three separate failures.
@@ -95,8 +95,8 @@ notion: unification makes two entries one after they were added.
   sub-clock count returns to its starting value. Binding: the count.
 - Stop a clock whose output removes a sub-clock while going to sleep: the
   sub-clock ends stopped. Binding: its state.
-- Unify two sub-clocks of one parent: the parent has one entry and ticks it
-  once per tick. Binding: the count and the tick count.
+- Unify two sub-clocks of one parent: the parent has one entry and prepares
+  it. Binding: the count, and a source attached to it being activated.
 
 **Rule.** Registration is counted, made when an operator wakes and undone when it
 sleeps, so the list holds only what is in use
@@ -422,14 +422,13 @@ readers is wrong; only a bound on each buffer works.
 
 - Two readers on one child clock: a tick asked by one fills both buffers.
   Binding: both buffer lengths.
-- A tick that is not a pull buffers nothing. Binding: buffer length unchanged.
 - Two readers at diverging rates: an error naming the slower one, at the
   limit. Binding: the error and that it is raised at the limit, not before.
 - A reader holding a remainder when its child ends still delivers it.
   Binding: the data delivered.
 
-**Rule.** [clock.md §15](clock.md#15-child-clocks) and the pull flag of
-[clock.md §8](clock.md#8-tick). Each reader is a registrant, so one going to
+**Rule.** [clock.md §15](clock.md#15-child-clocks): a child clock is ticked
+by its readers alone. Each reader is a registrant, so one going to
 sleep does not take the child clock from the others
 ([clock.md §10](clock.md#10-sub-clocks)).
 
@@ -510,7 +509,7 @@ Trace: #4804, #4808 and one direct commit.
 
 ## K18. Loops between clocks
 
-**Situation.** A clock ticks its sub-clocks, which tick theirs.
+**Situation.** A clock's tick reaches its sub-clocks, and theirs.
 
 **What went wrong.** In an earlier design clocks could form cycles, and a
 dedicated error existed. The redesign made sub-clocks always passive and
@@ -527,3 +526,44 @@ registration is refused on any other clock
 that would nest a clock in itself ([unification.md §3](unification.md#3-plan)).
 
 Trace: #3781.
+
+## K19. A reader that pulls its sub-clock in bursts
+
+**Situation.** A reader buffers what its sub-clock produces and pulls only
+when the buffer runs short: a filter graph whose outputs come at different
+frame sizes, a decoder behind it, a transition that buffers the end of a
+track. An active source that consumes a live input sits in the sub-clock.
+
+**What went wrong.** The parent ticked the sub-clock on every tick during
+which no reader had pulled it. A reader that pulled several times in one tick
+and then lived on its buffer left the following parent ticks to animate the
+sub-clock. Each of those made the active source produce a frame that nobody
+read. The live input was consumed several times faster than it arrived, ran
+dry and rebuffered, in a loop.
+
+**Why it is hard.** The parent's tick did two things to a sub-clock at once:
+it kept it up to date and it made it produce. The first is owed on every tick
+of the parent, the second only when a reader wants a frame, and a buffering
+reader wants frames in bursts. Counting reader ticks against parent ticks
+fails the other way: a reader that consumes faster than its parent by design
+builds a lead that is never paid back.
+
+**How to tell.**
+
+- A reader ticks its sub-clock three times during one parent tick and not at
+  all during the next two: the sub-clock has ticked three times. Binding:
+  the sub-clock's tick count.
+- A source is attached to a sub-clock that nobody ticks: the next tick of the
+  parent activates it and does not animate it. Binding: both.
+- A source in the sub-clock answers a readiness check while the reader lives
+  on its buffer: the answer is asked again on the next parent tick. Binding:
+  the after-tick callbacks of the sub-clock run before the parent's tick
+  ends.
+
+**Rule.** A tick is three phases: prepare, produce, cleanup. A parent's tick
+gives its sub-clocks the first and the last, and producing a frame in a
+sub-clock is its readers' doing alone
+([clock.md §8](clock.md#8-tick), [§10](clock.md#10-sub-clocks)).
+
+Trace: a user report on the reimplementation, reproduced with a live input
+feeding a filter graph read by two decoders.

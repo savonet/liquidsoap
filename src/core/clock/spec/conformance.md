@@ -71,8 +71,8 @@ most checks free of animators and of real time.
 
 ## Sub-clocks
 
-- Ticking a clock ticks its started sub-clocks at every depth, once each. One
-  already ticked during the parent's tick is not ticked again.
+- Ticking a clock prepares and cleans up its started sub-clocks at every
+  depth and ticks none of them.
 - A stopped sub-clock is skipped; the parent's tick succeeds.
 - Registering on a started parent starts the sub-clock; the last
   deregistration stops it; with two registrants, the first deregistration
@@ -82,14 +82,21 @@ most checks free of animators and of real time.
 - K3: register and deregister many times: the entry count returns to its
   starting value. Stop a clock whose output deregisters a sub-clock while
   going to sleep: the sub-clock ends stopped. Unify two sub-clocks of one
-  parent: one entry, ticked once per tick.
+  parent: one entry, prepared by the parent's tick.
 - K16: an operator with a child clock created while its parent runs produces
   data on its first cycle. An operator created and never woken adds no entry
   to its parent.
-- K14: two readers on one child clock: a pull by one fills both buffers; a
-  tick that is not a pull buffers nothing; at diverging rates the error names
+- K14: two readers on one child clock: a tick by one fills both buffers; at
+  diverging rates the error names
   the slower one, at the limit; a remainder held when the child ends is still
   delivered.
+- K19: a reader ticks its sub-clock three times during one tick of the
+  parent and not at all during the next two: the sub-clock has ticked three
+  times. A source attached to a sub-clock, at any depth, and an after-tick
+  callback registered on it while the parent produces: the callback runs
+  before the parent's tick ends, the next tick of the parent activates the
+  source, the source is not animated and the sub-clock's tick count is
+  unchanged.
 - K15: a passive clock cannot be created without a controller. Two exclusive
   child clocks stay two; two readers of a shared child end with one.
 
@@ -220,8 +227,8 @@ K10, with the blocking time source double as the server:
   called once. Binding: all of these, the same in every combination.
 - With a handler: the source is detached, the handler called, the tick
   completes, the policy is not called.
-- A sub-clock failing under its parent's tick: the parent carries on. Failing
-  under a pull: the reader gets the error.
+- A sub-clock failing while its parent cleans it up: the parent carries on. Failing
+  under a reader's tick: the reader gets the error.
 - K13: after a global stop every clock is stopped within one tick plus one
   rest, resting clocks included; nothing a tick reads is torn down before
   that or before the shutdown wait. A failed clock is not waited for.

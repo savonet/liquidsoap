@@ -4,7 +4,7 @@ val set_failure_policy : (State.t -> Status.failure -> unit) -> unit
 val stop_clock : State.clock -> Status.stop_reason -> unit
 
 val stop : State.t -> unit
-val tick : ?pull:bool -> State.t -> unit
+val tick : State.t -> unit
 val activate_pending : State.t -> unit
 
 (** Starts a sub-clock if it can start, and counts it on its parent's streaming

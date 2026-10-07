@@ -275,10 +275,6 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
         input `Flush)
 
     initializer self#on_sleep (fun () -> self#flush_input)
-
-    (* The graph drives its inputs itself: a tick that merely animates the
-       input clock, rather than one asking for data, must not push. *)
-    method! output = if Clock.pulled self#clock then super#output
   end
 
 (** From the script perspective, the operator sending data to a filter graph is

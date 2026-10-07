@@ -19,7 +19,7 @@ Unification is in [unification.md](unification.md). Logs and reports are in
 | state           | `stopped`, `started` or `stopping`.                                                                      |
 | stop reason     | Why the clock is stopped. See [§4](#4-states).                                                           |
 | pending sources | Sources attached but not yet activated. No duplicates.                                                   |
-| sub-clocks      | The clocks this clock ticks, each with its registrants. See [§10](#10-sub-clocks).                       |
+| sub-clocks      | The clocks this clock prepares and cleans up, each with its registrants. See [§10](#10-sub-clocks).      |
 | error handlers  | Callbacks `(error, backtrace)`.                                                                          |
 
 The **controller** of a passive clock is what ticks it: its owner if it has
@@ -44,7 +44,6 @@ and is created anew at every start:
 | passive sources      | Set. MUST NOT be what keeps a source alive.                                              |
 | on-tick callbacks    | One-shot.                                                                                |
 | after-tick callbacks | One-shot.                                                                                |
-| pulled               | Whether the tick in progress was requested by a reader.                                  |
 | animator             | `task` or `thread`; absent on a passive clock. See [pacing.md §8](pacing.md#8-animator). |
 | statistics           | See [observability.md §1](observability.md#1-status-record).                             |
 
@@ -228,29 +227,45 @@ unchanged.
 
 ## 8. Tick
 
-A tick may be requested as a **pull** (a reader wants data) or not (the clock
-is merely animated). A clock's ticks MUST run one at a time. One tick, in
-order:
+A tick produces one frame, in three phases. A clock's ticks MUST run one at
+a time.
+
+**Prepare**, in order:
 
 1. Apply the queued removals ([§7](#7-sources-on-a-clock)).
-2. Set `pulled` to whether this is a pull.
-3. Activate pending sources ([§7](#7-sources-on-a-clock)).
-4. The pacing point: apply the sync source changes, switch and change
+2. Activate pending sources ([§7](#7-sources-on-a-clock)).
+3. The pacing point: apply the sync source changes, switch and change
    animator if due ([pacing.md §3](pacing.md#3-finding-the-sync-source)).
-5. Animate each output in list order, then each active source, each under the
+4. Prepare each started sub-clock ([§10](#10-sub-clocks)).
+
+**Produce**, in order:
+
+1. Animate each output in list order, then each active source, each under the
    source error rule ([§11](#11-failure)). The active set is read as a
    snapshot.
-6. Run and drop the on-tick callbacks, with a stop check before each.
-7. Set `pulled` to false. Stop check.
-8. Tick, not as a pull, each started sub-clock that was registered when the
-   tick began and has not been ticked since. One that was ticked during
-   steps 5 or 6 is left alone. A sub-clock that is not started is skipped.
-9. Add one to ticks. Stop check.
-10. Run and drop the after-tick callbacks, with a stop check before each, then
-    apply the queued removals.
-11. Update the statistics ([observability.md §1](observability.md#1-status-record)).
-12. A passive clock that is `stopping` is wound down ([§9](#9-winding-down)).
-    This step also runs when the tick was abandoned.
+2. Run and drop the on-tick callbacks, with a stop check before each.
+3. Stop check. Add one to ticks. Stop check.
+
+**Cleanup**, in order:
+
+1. Run and drop the after-tick callbacks, with a stop check before each.
+2. Apply the queued removals.
+3. Clean up each started sub-clock.
+
+The tick then updates the statistics
+([observability.md §1](observability.md#1-status-record)). A passive clock
+that is `stopping` is wound down ([§9](#9-winding-down)) at the end of its
+tick, also when the tick was abandoned.
+
+A sub-clock is thus prepared and cleaned up once by each tick of its parent,
+around the parent's produce phase, whether or not it produces. Its own
+prepare or cleanup takes the place of a tick under the one-at-a-time rule,
+fails like one and ends with the same wind-down. A sub-clock that is not
+started is skipped.
+
+Prepare and cleanup consume what they process, so running either again with
+nothing new changes nothing. A sub-clock that its readers tick is prepared
+and cleaned up by each of those ticks as well as by its parent.
 
 What the clock does between this tick and the next (rest, lateness, release)
 is not part of the tick: [pacing.md §5](pacing.md#5-after-a-tick).
@@ -269,7 +284,7 @@ A tick asked of a clock while one of its ticks is in progress MUST be
 refused.
 
 A passive clock with a parent MUST only be ticked from inside a tick of its
-parent: by step 8, or by a reader pulling it. When it has an owner, the owner
+parent, by a reader. When it has an owner, the owner
 is its only reader. A passive clock without a parent is ticked by its owner.
 
 ## 9. Winding down
@@ -302,7 +317,8 @@ Winding down MUST complete whatever fails inside it.
 
 ## 10. Sub-clocks
 
-A sub-clock is a passive clock ticked as part of its parent's tick.
+A sub-clock is a passive clock prepared and cleaned up by each tick of its
+parent, and ticked by its readers in between.
 
 **Registration** is made by a registrant, on the sub-clock's parent, and is
 counted: a sub-clock stays registered while at least one registrant holds it.
@@ -319,12 +335,33 @@ registration.
 - A parent that winds down stops its registered sub-clocks
   ([§9](#9-winding-down)). Their registrations are kept.
 
-A started sub-clock is ticked by its parent's tick unless already ticked
-during it ([§8](#8-tick)). A sub-clock that is not started is skipped, never
-an error.
+Each tick of the parent prepares its started sub-clocks before it produces
+and cleans them up after, at every depth ([§8](#8-tick)). Sources that joined
+or left, sync source changes, the streaming cycles their sources opened to
+answer a readiness check and a pending stop are thus settled within each
+tick of the parent, whether or not a frame is produced. A sub-clock that is
+not started is skipped, never an error.
+
+A sub-clock is ticked only by its readers: the sources of the parent that
+take what it produces. While the parent produces, a reader may tick it any
+number of times, including none. Each of those is a full tick. A sub-clock
+that no reader ticks produces nothing: its outputs, active sources and
+on-tick callbacks wait, and its tick count stands.
+
+A tick produces one frame and carries no time of its own: time enters only
+through what paces a clock ([pacing.md](pacing.md)). A sub-clock is paced
+through its readers alone, by the number of its ticks they ask for each tick
+of its parent. That number is the reader's choice: one for one over time for
+a reader that only buffers, more or fewer for a reader that skips or
+stretches.
+
+A source that follows a measure of time of its own, such as a live input,
+produces one frame per tick whatever asked for the tick. Placing it under
+readers whose ticks follow that measure is the script's responsibility.
 
 After two registered sub-clocks of one parent are unified, the parent holds
-one entry, with the registrants of both, and ticks it once per tick.
+one entry, with the registrants of both, prepared and cleaned up once per
+tick.
 
 On a parent where sub-clocks are registered and deregistered any number of
 times, the number of entries MUST return to its starting value, and the cost
@@ -376,13 +413,13 @@ failure is logged, and the exit status already asked for stands.
 **Sub-clocks.** A failing sub-clock fails like any clock: it is wound down and
 reported. Then:
 
-- if it was being ticked by its parent ([§8](#8-tick) step 8), the parent's
-  tick carries on;
-- if it was being ticked as a pull, the error is passed to the reader. It is
+- if it was being prepared or cleaned up by its parent ([§8](#8-tick)), the
+  parent's tick carries on;
+- if it was being ticked by a reader, the error is passed to the reader. It is
   then an error of that reader, a source of the parent, under the source
   error rule.
 
-Later ticks of the parent skip it, and a later pull meets `not running`.
+Later ticks of the parent skip it, and a later tick meets `not running`.
 
 **Errors.** The content is binding, the wording is not:
 
@@ -502,15 +539,13 @@ An operator created and never woken therefore costs its parent nothing, and
 an operator created inside a running script produces data on its first cycle.
 
 **Reading.** The operator reads from its buffer. While the buffer holds less
-than a frame and the child is ready, it ticks the child clock **as a pull**.
-On a pull, the wrapped child appends its frame to the buffer; on a tick that
-is not a pull, it MUST buffer nothing. The parent's tick still reaches the
-child clock when no reader pulled during it ([§8](#8-tick) step 8), which
-keeps real outputs and active sources inside the child clock running without
-buffering data nobody asked for.
+than a frame and the child is ready, it ticks the child clock, and the
+wrapped child appends its frame to the buffer. A cycle served from the buffer
+ticks nothing, so the child clock produces exactly the frames its readers
+asked for.
 
 **Shared child clocks.** Several operators may read from one child clock;
-each is a registrant. A pull by any of them fills the buffer of all. A buffer
+each is a registrant. A tick by any of them fills the buffer of all. A buffer
 holding more than the child buffer limit is an error naming the operator that
 fell behind, raised at the limit and not before. A reader holding a remainder
 when its child ends still delivers it.

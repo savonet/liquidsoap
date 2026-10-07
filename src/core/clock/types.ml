@@ -254,8 +254,6 @@ module State = struct
     on_tick : (unit -> unit) list Atomic.t;
     (* One-shot callbacks run once the next tick is counted. *)
     after_tick : (unit -> unit) list Atomic.t;
-    (* True while a tick asked with [~pull] animates its sources. *)
-    pulled : bool Atomic.t;
     (* What runs the clock's loop and why; [None] for a passive clock. *)
     animator : (animator * string) option Atomic.t;
     pace : pace Atomic.t;

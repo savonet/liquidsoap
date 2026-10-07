@@ -225,7 +225,7 @@ let sub_clock_blocks () =
   attach child pacer;
   Clock.register ~parent child;
   check "a clock whose sub-clock does not block stays a task"
-    (wait_until (fun () -> ticks child > 2) && animator parent = Some `Task);
+    (wait_until (fun () -> ticks parent > 2) && animator parent = Some `Task);
   pacer#set_on_animate (fun () -> Thread.delay frame_duration);
   pacer#set_sync (Some (Clock.Sync_source.make ~name:"child.card" `Self_paced));
   check "a blocking sync source in a sub-clock moves its parent to a thread"

@@ -78,9 +78,6 @@ let self_sync t =
     | Some st -> (Atomic.get st.pace).followed <> None
     | None -> false
 
-let pulled t =
-  match streaming t with Some st -> Atomic.get st.pulled | None -> false
-
 let stop_reason t =
   match lifecycle (get t) with `Stopped reason -> Some reason | _ -> None
 

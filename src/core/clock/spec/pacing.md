@@ -120,7 +120,7 @@ between cycles.
 **Tracking, by the clock.** In every sync mode, passive included, whatever
 ticks the clock reads the current answer of each source it animates at the
 **pacing point** of every tick: after activation, before any source is
-animated ([clock.md §8](clock.md#8-tick) step 4). The clock reads the sources
+animated (the pacing point of [clock.md §8](clock.md#8-tick)). The clock reads the sources
 it animates and nothing below them.
 
 At the pacing point, with every answer read taken together:

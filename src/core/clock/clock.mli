@@ -145,11 +145,10 @@ val time_implementation : unit -> Liq_time.implementation
 val tick_count : t -> int
 
 val self_sync : t -> bool
-val pulled : t -> bool
 
 (** Ticks a passive clock. Raises [Not_running], or [Stop_signal] once the
     application stops. *)
-val tick : ?pull:bool -> t -> unit
+val tick : t -> unit
 
 (** Activates the pending sources of a passive clock outside of a tick. *)
 val activate_pending : t -> unit

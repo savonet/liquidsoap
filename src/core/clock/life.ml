@@ -9,8 +9,8 @@
 
     The animator runs [loop] under the handler of [animated]: [run_tick], then
     [Pacing.between_ticks], until the clock stops or has no work. A passive
-    clock has no animator. Its controller calls [tick], and its parent's
-    [run_tick] ticks it in the ticks where the controller did not.
+    clock has no animator. Its controller calls [tick], and each tick of its
+    parent prepares it and cleans it up ([prepare], [cleanup]).
 
     A stop takes two steps. [stop_clock] moves the clock to stopping and wakes
     its loop. [wind_down] then runs on whatever ticks the clock, at the end of
@@ -81,7 +81,6 @@ let new_streaming ~force c =
     dirty = Atomic.make false;
     on_tick = Atomic.make [];
     after_tick = Atomic.make [];
-    pulled = Atomic.make false;
     animator = Atomic.make None;
     pace =
       Atomic.make
@@ -173,32 +172,6 @@ let update_statistics c st ~started ~tick_slowest =
     st.last_long_tick <- real_time;
     emit c (Long_tick { duration; slowest_source = name })
   end
-
-(* Where a sub-clock stood when its parent's tick began: its run, if it had
-   one, with the run's tick count. *)
-type sub_snapshot = { snapshot_of : clock; run_then : (streaming * int) option }
-
-let sub_snapshot c =
-  List.map
-    (fun { sub } ->
-      let snapshot_of = get sub in
-      {
-        snapshot_of;
-        run_then =
-          Option.map
-            (fun st -> (st, Atomic.get st.ticks))
-            (streaming snapshot_of);
-      })
-    (Atomic.get c.subs)
-
-(* Whether the sub-clock ticked since the snapshot, in the same run or in a new
-   one. *)
-let ticked_since { snapshot_of; run_then } =
-  match (streaming snapshot_of, run_then) with
-    | Some current, Some (before, ticks) when current == before ->
-        Atomic.get current.ticks > ticks
-    | Some current, _ -> Atomic.get current.ticks > 0
-    | None, _ -> false
 
 (* Logs a failure and hands it to the policy, unless the application is
    stopping. *)
@@ -298,45 +271,49 @@ let exclusively c ~what fn =
             fail c st error backtrace;
             Printexc.raise_with_backtrace error backtrace)
 
-(* One tick: removals, activation, pacing point, outputs and active sources,
-   callbacks, sub-clocks, statistics. *)
-let rec run_tick c st ~pull =
-  let started = Duppy.time () in
-  Atomic.set st.activity (`Ticking started);
-  let tick_slowest = slowest () in
-  let subs = sub_snapshot c in
+(* Runs one phase of a tick on each started sub-clock. A sub-clock's own failure
+   stops it and is reported there. *)
+let each_sub c ~what phase =
+  List.iter
+    (fun { sub } ->
+      let sub = get sub in
+      if state sub = `Started then (
+        try exclusively sub ~what (phase sub) with
+          | Stop_signal -> raise Stop_signal
+          | _ -> ()))
+    (Atomic.get c.subs)
+
+let rec prepare c st =
   apply_removals c st;
-  Atomic.set st.pulled pull;
   activate c st;
   pacing_point c st;
+  each_sub c ~what:"prepare" prepare
+
+let rec cleanup c st =
+  take_callbacks st.after_tick;
+  apply_removals c st;
+  each_sub c ~what:"cleanup" cleanup
+
+let produce c st ~tick_slowest =
   let animate = animate c st ~tick_slowest in
   List.iter (fun o -> animate o.source o.member) (Atomic.get st.outputs);
   List.iter (fun (source, member) -> animate source member) (active_members st);
   take_callbacks st.on_tick;
-  Atomic.set st.pulled false;
   stop_check ();
-  List.iter tick_sub subs;
   Atomic.incr st.ticks;
-  stop_check ();
-  take_callbacks st.after_tick;
-  apply_removals c st;
+  stop_check ()
+
+(* One tick. The two outer phases reach the sub-clocks, which produce only when
+   a source of this clock ticks them during [produce]. *)
+let run_tick c st =
+  let started = Duppy.time () in
+  Atomic.set st.activity (`Ticking started);
+  let tick_slowest = slowest () in
+  prepare c st;
+  produce c st ~tick_slowest;
+  cleanup c st;
   update_statistics c st ~started ~tick_slowest;
   Atomic.set st.activity `Idle
-
-(* Ticks a started sub-clock that its controller left alone during the parent's
-   tick. *)
-and tick_sub snapshot =
-  if state snapshot.snapshot_of = `Started && not (ticked_since snapshot) then (
-    try tick_passive snapshot.snapshot_of ~pull:false with
-      | Stop_signal -> raise Stop_signal
-      | _ -> ())
-
-(* Runs one tick of a passive clock on the calling thread. *)
-and tick_passive c ~pull =
-  exclusively c ~what:"tick" (fun st ->
-      Fun.protect
-        ~finally:(fun () -> Atomic.set st.pulled false)
-        (fun () -> run_tick c st ~pull))
 
 let passive t =
   let c = get t in
@@ -344,7 +321,9 @@ let passive t =
     invalid_arg "Clock: only a passive clock is ticked by its controller";
   c
 
-let tick ?(pull = false) t = tick_passive (passive t) ~pull
+let tick t =
+  let c = passive t in
+  exclusively c ~what:"tick" (run_tick c)
 
 (* Activates a passive clock's pending sources outside a tick. *)
 let activate_pending t =
@@ -362,7 +341,7 @@ let loop c st () =
   st.worker_since <- Duppy.time ();
   (try
      while running c && has_work c st do
-       run_tick c st ~pull:false;
+       run_tick c st;
        between_ticks c st
      done;
      if Atomic.get global_stop then ignore (request_stop c `Global_stop)

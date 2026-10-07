@@ -62,16 +62,14 @@ let sub_clock_under_parent () =
   let parent = passive ~id:"parent" () in
   let child = sub_clock ~id:"failing.child" parent in
   Clock.register ~parent child;
-  let bad = source `Output in
-  attach child bad;
-  bad#set_on_animate (fun () -> raise Boom);
+  Clock.after_tick child (fun () -> raise Boom);
   tick parent 3;
   check "a sub-clock failing under its parent's tick lets the parent carry on"
     (Clock.ticks parent = Some 3 && failed child);
   check "a failed sub-clock is reported once" (policy_calls_for child = 1);
-  raises "a later pull of a failed sub-clock meets not running"
+  raises "a later tick of a failed sub-clock meets not running"
     (function Clock.Not_running _ -> true | _ -> false)
-    (fun () -> Clock.tick ~pull:true child)
+    (fun () -> Clock.tick child)
 
 let sub_clock_under_pull () =
   let handled = ref [] in
@@ -87,9 +85,10 @@ let sub_clock_under_pull () =
   bad#set_on_animate (fun () -> raise Boom);
   let reader = source ~id:"reader" `Output in
   attach parent reader;
-  reader#set_on_animate (fun () -> Clock.tick ~pull:true child);
+  reader#set_on_animate (fun () -> Clock.tick child);
   tick parent 2;
-  check "a sub-clock failing under a pull passes the error to its reader"
+  check
+    "a sub-clock failing under a reader's tick passes the error to its reader"
     (!handled = [Boom] && reader#awake = 0 && failed child);
   check "the parent, which has a handler, carries on"
     (Clock.ticks parent = Some 2)
