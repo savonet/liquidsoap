@@ -157,9 +157,7 @@ class switch ~all_predicates children =
     (* A selection only holds while we are being animated: when we resume after
        going quiet it has to be re-evaluated, and nothing is playing for a new
        one to interrupt. A parent that is not playing us does not animate us at
-       all, which is what we detect here. Being animated without being pulled is
-       not quiet: a passive clock is ticked by its parent on cycles where its
-       consumer asks for no data. *)
+       all, which is what we detect here. *)
     val mutable last_animated_tick = -1
     val mutable resuming = false
 
