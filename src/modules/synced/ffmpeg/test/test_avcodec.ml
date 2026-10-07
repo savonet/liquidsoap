@@ -365,12 +365,12 @@ let requirement_2_9 () =
   decode (video_decoder encoder) ignore first;
   equal before (packet_properties first)
     "a packet given to a decoder is unchanged";
-  let sets =
+  let setts =
     List.find
-      (fun (f : BitstreamFilter.filter) -> f.name = "sets")
+      (fun (f : BitstreamFilter.filter) -> f.name = "setts")
       BitstreamFilter.filters
   in
-  let filter, _ = BitstreamFilter.init sets (params encoder) in
+  let filter, _ = BitstreamFilter.init setts (params encoder) in
   BitstreamFilter.send_packet filter first;
   equal before (packet_properties first)
     "a packet given to a filter is unchanged";
@@ -407,25 +407,27 @@ let requirement_2_10 () =
   Packet.add_side_data empty (`Metadata_update []);
   equal [`Metadata_update []] (Packet.side_data empty) "an empty dictionary"
 
-let sets () =
+let setts () =
   match
     List.find_opt
-      (fun (f : BitstreamFilter.filter) -> f.name = "sets")
+      (fun (f : BitstreamFilter.filter) -> f.name = "setts")
       BitstreamFilter.filters
   with
     | Some filter -> filter
-    | None -> skip "the sets bitstream filter is missing"
+    | None -> skip "the setts bitstream filter is missing"
 
 let requirement_2_11 () =
-  let sets = sets () in
+  let setts = setts () in
   check
     (List.exists
        (fun (o : Options.opt) -> o.name = "pts")
-       (Options.opts sets.options))
+       (Options.opts setts.options))
     "the filter's private options are listed";
   let encoder, packets = encoded_video 3 in
   let table = opts [("pts", `String "PTS+1000"); ("no_such_option", `Int 1)] in
-  let filter, output = BitstreamFilter.init ~opts:table sets (params encoder) in
+  let filter, output =
+    BitstreamFilter.init ~opts:table setts (params encoder)
+  in
   equal ["no_such_option"] (keys table)
     "the private option is not reported unused";
   equal `Mpeg4 (Video.get_params_id output) "the output parameters";
@@ -447,7 +449,7 @@ let requirement_2_11 () =
       BitstreamFilter.receive_packet filter);
   let table = opts [("pts", `String "not ( an expression")] in
   raises is_error "a rejected option" (fun () ->
-      BitstreamFilter.init ~opts:table sets (params encoder));
+      BitstreamFilter.init ~opts:table setts (params encoder));
   equal ["pts"] (keys table) "a failed init leaves the table untouched"
 
 let requirement_2_12 () =
@@ -578,7 +580,7 @@ let concurrent_use () =
   let decoder = video_decoder source in
   let packet = List.hd packets in
   let busy_decoder = hammer (fun () -> decode decoder ignore packet) in
-  let filter, _ = BitstreamFilter.init (sets ()) (params source) in
+  let filter, _ = BitstreamFilter.init (setts ()) (params source) in
   let busy_filter =
     hammer (fun () ->
         BitstreamFilter.send_packet filter packet;
@@ -614,7 +616,7 @@ let native_memory () =
 let error_paths () =
   let encoder, packets = encoded_video 3 in
   let garbage : video Packet.t = Packet.create (String.make 64 '\xff') in
-  let sets = sets () in
+  let setts = setts () in
   for _ = 1 to 100 do
     ignore
       (try Some (video_encoder ~bindings:[("bf", `String "nonsense")] ())
@@ -624,7 +626,7 @@ let error_paths () =
     let decoder = video_decoder encoder in
     (try decode decoder ignore garbage with Error _ -> ());
     decode decoder ignore (List.hd packets);
-    let filter, _ = BitstreamFilter.init sets (params encoder) in
+    let filter, _ = BitstreamFilter.init setts (params encoder) in
     (try ignore (BitstreamFilter.receive_packet filter)
      with Error `Eagain -> ());
     ignore
@@ -632,7 +634,7 @@ let error_paths () =
          Some
            (BitstreamFilter.init
               ~opts:(opts [("pts", `String "(")])
-              sets (params encoder))
+              setts (params encoder))
        with Error _ -> None)
   done;
   check true "the failure paths ran"
