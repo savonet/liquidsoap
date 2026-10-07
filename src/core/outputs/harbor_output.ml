@@ -589,9 +589,9 @@ class virtual ['a] base p =
        writability: on Windows [Unix.select] falls back to edge-triggered
        WSAEventSelect whenever any non-socket fd is present in the scheduler,
        and FD_WRITE then only fires once after connect, so pending data would
-       never be flushed. Instead [send] wakes every shard each streaming
-       cycle and each firing attempts a non-blocking write to every listener
-       of the shard with pending data. *)
+       never be flushed. Instead [send] wakes every shard that has listeners
+       each streaming cycle and each firing attempts a non-blocking write to
+       every listener of the shard with pending data. *)
     method private write_task_handler shard ~wake_out events =
       match Atomic.get shard.wake with
         | None ->
@@ -698,7 +698,15 @@ class virtual ['a] base p =
             with _ -> ())
         | None -> ()
 
-    method private wake_write_task = Array.iter self#wake_shard shards
+    (* [add_listener] wakes the shard it publishes to, so one without members
+       has nothing to flush, close or time out. *)
+    method private wake_write_task =
+      Array.iter
+        (fun shard ->
+          match Atomic.get shard.members with
+            | [] -> ()
+            | _ -> self#wake_shard shard)
+        shards
 
     method private add_listener ~protocol ~headers ~uri:request_uri ~query
         socket =
