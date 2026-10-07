@@ -113,12 +113,22 @@ check.
 - A callback entered from FFmpeg takes the lock, calls the closure through the
   exception-catching entry point, converts the result, and releases the lock.
   An exception must not unwind through FFmpeg's frames.
+- The result of the exception-catching entry point, when the closure raised,
+  is an encoded exception and not a value. Left in a registered local across
+  an allocation, it crashes the collector: replace it with the extracted
+  exception before anything else.
 - A callback cannot know by itself whether its thread holds the lock. The
   binding must: every FFmpeg call that can reach a callback is made with the
   lock released.
 - A thread created by FFmpeg must be registered with the runtime before it
   takes the lock, and unregistered when the thread exits, not when the
-  callback returns. A thread-specific key with a destructor does that.
+  callback returns. A thread-specific key with a destructor does that, on one
+  condition: the key is created before the runtime creates the key that
+  holds its thread descriptor. glibc, musl and winpthreads clear the values
+  of an exiting thread in key order before they call each destructor, and
+  the runtime's unregistration returns at once when its own value is gone.
+  The thread is then never detached; nothing fails, a leak detector shows
+  it. A function run when the stubs are loaded creates the key early enough.
 - With several domains the runtime lock is per domain. It serialises nothing
   between domains: use atomics for state that two domains can reach.
 

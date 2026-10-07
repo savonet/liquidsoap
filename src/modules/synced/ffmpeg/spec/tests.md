@@ -205,15 +205,15 @@ an array option; a protocol that can block.
 Each fixture records the property that makes it trigger the condition it is
 for. A convenient file that lacks the property passes for the wrong reason.
 
-| Fixture                               | Defining property                                                                       |
-| ------------------------------------- | --------------------------------------------------------------------------------------- |
-| video with reordering                 | the decoder holds frames: B-frames, with a known frame count and an explicit frame rate |
-| one-frame image                       | the only frame is still in the decoder when the demuxer ends                            |
-| late streams                          | a headerless container whose extra streams start after the probe window                 |
-| audio, video and text subtitle in one | one stream of each kind, for selections and unhandled packets                           |
-| text subtitles                        | several cues, multi-line cues, non-ASCII text, exact times                              |
-| high bit rate stream                  | one write exceeds FFmpeg's I/O buffer                                                   |
-| custom-order layout                   | the layout owns heap memory                                                             |
+| Fixture                               | Defining property                                                                                                     |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| video with reordering                 | the decoder holds frames: B-frames, with a known frame count and an explicit frame rate                               |
+| one-frame image                       | the only frame is still in the decoder when the demuxer ends                                                          |
+| late streams                          | a headerless container whose extra streams are absent from the start of the file and from its end: probing reads both |
+| audio, video and text subtitle in one | one stream of each kind, for selections and unhandled packets                                                         |
+| text subtitles                        | several cues, multi-line cues, non-ASCII text, exact times                                                            |
+| high bit rate stream                  | one write exceeds FFmpeg's I/O buffer                                                                                 |
+| custom-order layout                   | the layout owns heap memory                                                                                           |
 
 Doubles:
 

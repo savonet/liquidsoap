@@ -2,7 +2,8 @@
  (name ffmpeg)
  (public_name ffmpeg)
  (synopsis "Top-level ffmpeg library")
- (optional)
+ (enabled_if
+  (= %{read:../detect/all_libs_available} "true"))
  (libraries
   ffmpeg-avutil
   ffmpeg-avcodec

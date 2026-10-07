@@ -190,7 +190,9 @@ read:
 | bigarray planes, packed planes, byte planes | it does not hold exactly the buffers the format needs; a line size is too small for the width; a buffer is shorter than its line size and the height require |
 | packed planes                               | the two arrays differ in length                                                                                                                              |
 
-A paletted input format needs its palette as the buffer after the plane.
+A paletted input format needs its palette as the buffer after the plane. A
+subtitle picture ([avutil.md](avutil.md) §4.14) has four plane slots: a caller
+that scales one passes its first two.
 
 **Output value**: fresh on every call.
 

@@ -283,8 +283,8 @@ operations do with them.
 | `filter_type` | `SwrFilterType` | `` `Filter_type_cubic ``, `` `Filter_type_kaiser `` |
 
 **Value lists.** For each type the generated module also defines a list of all
-its constructors, named after the type. An enumeration's list is in
-declaration order. A macro family's list is in ascending order of C value.
+its constructors, named after the type, in declaration order. The generator
+does not read C values (G6), so it cannot order a list by them.
 
 ### 3.6 Variant constants in C
 

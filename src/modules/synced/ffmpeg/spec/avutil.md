@@ -239,6 +239,8 @@ FFmpeg stores every bound as a floating-point number. "Saturated" means: a
 bound at or below the smallest 64-bit integer becomes that integer, a bound at
 or above the largest becomes that one, any other is truncated. "none" means
 the field is `None`. A default that does not meet its condition is `None`.
+FFmpeg's "none" format names no format: a pixel-format or sample-format
+option whose default is "none" has the default `None`.
 
 ### 3.3 Parameters
 
@@ -319,11 +321,6 @@ dictionary's order.
 - A key that appears twice in `l` keeps its last value.
 - An empty list leaves the frame with no metadata.
 - On failure the frame's metadata is unchanged and nothing leaks.
-
-`copy src dst` copies the sample or pixel data of `src` into `dst`, which must
-already be allocated with the same format and dimensions, or sample count and
-layout (`av_frame_copy`). It copies no property. A mismatch raises the error
-FFmpeg reports.
 
 ### 4.4 Exception
 
@@ -477,6 +474,9 @@ module Chroma_location  : sig type t = Chroma_location.t
   none (A3).
 - `from_name s` returns `None` when FFmpeg does not know `s`, and when it
   knows it as a value the type has no constructor for. Otherwise `Some`.
+- A string that is exactly the name of a constructor converts to that
+  constructor, whatever FFmpeg's own lookup answers: FFmpeg may match a name
+  by its prefix and return another value.
 - For every constructor `v` that FFmpeg names, `from_name (name v) = Some v'`
   where `v'` has the same C value as `v`.
 
@@ -668,8 +668,12 @@ below:
 It raises a failure, and leaves nothing behind, when:
 
 - a display time is negative or exceeds 32 unsigned bits;
+- `format`, or an integer of a `pict`, does not fit the native field it is
+  stored in;
 - either array of `planes` does not have exactly 4 elements;
-- a plane's byte length is neither 0 nor the derived size of that plane.
+- a plane's byte length is neither 0 nor the derived size of that plane;
+- the first plane of a `pict` is empty: `get_content` tells a rectangle with
+  a picture by its first plane.
 
 `get_content frame` returns a fresh `content`:
 

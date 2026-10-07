@@ -10,9 +10,8 @@ bug-reports: "https://github.com/savonet/ocaml-ffmpeg/issues"
 depends: [
   "conf-pkg-config" {build}
   "conf-ffmpeg" {build}
-  "ocaml" {>= "4.12"}
+  "ocaml" {>= "5.3"}
   "dune" {>= "3.23"}
-  "dune-configurator" {build}
   "ffmpeg-av" {= version}
   "odoc" {with-doc}
 ]

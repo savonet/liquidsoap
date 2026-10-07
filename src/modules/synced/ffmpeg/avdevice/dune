@@ -7,7 +7,7 @@
  (action
   (with-stdin-from
    ../detect/avdevice_available
-   (run ../detect/check.exe avdevice))))
+   (run ../detect/detect.exe check avdevice))))
 
 (library
  (name avdevice)
@@ -18,6 +18,7 @@
  (foreign_stubs
   (language c)
   (names avdevice_stubs)
+  (extra_deps ../detect/avdevice_versions)
   (flags
    (:include ../detect/avdevice_c_flags.sexp)))
  (c_library_flags

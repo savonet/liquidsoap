@@ -1,182 +1,227 @@
 (executable
  (name detect)
- (libraries dune-configurator unix))
-
-(executable
- (name check))
-
-(executable
- (name all_available))
+ (libraries unix))
 
 (rule
  (target all_libs_available)
  (deps
   avutil_available
   avcodec_available
-  avfilter_available
   av_available
+  avfilter_available
+  avdevice_available
   swscale_available
-  swresample_available
-  avdevice_available)
+  swresample_available)
  (action
   (with-stdout-to
    %{target}
    (run
-    ./all_available.exe
-    avutil_available
-    avcodec_available
-    avfilter_available
-    av_available
-    swscale_available
-    swresample_available
-    avdevice_available))))
+    ./detect.exe
+    all
+    avutil
+    avcodec
+    av
+    avfilter
+    avdevice
+    swscale
+    swresample))))
 
 (rule
  (targets
   avutil_available
   avutil_c_flags
   avutil_c_flags.sexp
-  avutil_c_library_flags.sexp)
+  avutil_c_library_flags.sexp
+  avutil_versions)
  (deps (universe))
  (action
   (run
-   ../detect/detect.exe
+   ./detect.exe
+   detect
    --os-type
    %{os_type}
    --context
    %{context_name}
+   --profile
+   %{profile}
+   --requires
+   ""
    avutil
-   "libavutil libavcodec"
-   "libavutil >= 57.24.100, libavcodec >= 59.24.100"
+   "libavutil >= 59.39.100, libavcodec >= 61.19.100"
    -Wall
-   -Wextra
-   -Werror=unused-variable
-   -Werror=unused-parameter)))
+   -Wextra)))
 
 (rule
  (targets
   avcodec_available
   avcodec_c_flags
   avcodec_c_flags.sexp
-  avcodec_c_library_flags.sexp)
- (deps (universe))
+  avcodec_c_library_flags.sexp
+  avcodec_versions)
+ (deps (universe) avutil_available)
  (action
   (run
-   ../detect/detect.exe
+   ./detect.exe
+   detect
    --os-type
    %{os_type}
    --context
    %{context_name}
+   --profile
+   %{profile}
+   --requires
+   "avutil"
    avcodec
-   libavcodec
-   "libavcodec >= 59.24.100"
+   "libavcodec >= 61.19.100, libavutil >= 59.39.100"
    -Wall
-   -Wextra
-   -Werror=unused-variable
-   -Werror=unused-parameter)))
+   -Wextra)))
 
 (rule
- (targets av_available av_c_flags av_c_flags.sexp av_c_library_flags.sexp)
- (deps (universe))
+ (targets
+  av_available
+  av_c_flags
+  av_c_flags.sexp
+  av_c_library_flags.sexp
+  av_versions)
+ (deps (universe) avutil_available avcodec_available)
  (action
   (run
-   ../detect/detect.exe
+   ./detect.exe
+   detect
    --os-type
    %{os_type}
    --context
    %{context_name}
+   --profile
+   %{profile}
+   --requires
+   "avutil avcodec"
    av
-   "libavutil libavformat"
-   "libavutil >= 57.24.100, libavformat >= 59.19.100"
+   "libavformat >= 61.7.100, libavcodec >= 61.19.100, libavutil >= 59.39.100"
    -Wall
-   -Wextra
-   -Werror=unused-variable
-   -Werror=unused-parameter)))
+   -Wextra)))
 
 (rule
  (targets
   avfilter_available
   avfilter_c_flags
   avfilter_c_flags.sexp
-  avfilter_c_library_flags.sexp)
- (deps (universe))
+  avfilter_c_library_flags.sexp
+  avfilter_versions)
+ (deps (universe) avutil_available)
  (action
   (run
-   ../detect/detect.exe
+   ./detect.exe
+   detect
    --os-type
    %{os_type}
    --context
    %{context_name}
+   --profile
+   %{profile}
+   --requires
+   "avutil"
    avfilter
-   libavfilter
-   "libavfilter >= 8.28.100"
+   "libavfilter >= 10.4.100, libavutil >= 59.39.100"
    -Wall
-   -Wextra
-   -Werror=unused-variable
-   -Werror=unused-parameter)))
+   -Wextra)))
 
 (rule
  (targets
   avdevice_available
   avdevice_c_flags
   avdevice_c_flags.sexp
-  avdevice_c_library_flags.sexp)
- (deps (universe))
+  avdevice_c_library_flags.sexp
+  avdevice_versions)
+ (deps (universe) av_available)
  (action
   (run
-   ../detect/detect.exe
+   ./detect.exe
+   detect
    --os-type
    %{os_type}
    --context
    %{context_name}
+   --profile
+   %{profile}
+   --requires
+   "av"
    avdevice
-   libavdevice
-   "libavdevice >= 59.5.100"
+   "libavdevice >= 61.3.100, libavformat >= 61.7.100"
    -Wall
-   -Wextra
-   -Werror=unused-variable
-   -Werror=unused-parameter)))
+   -Wextra)))
 
 (rule
  (targets
   swscale_available
   swscale_c_flags
   swscale_c_flags.sexp
-  swscale_c_library_flags.sexp)
- (deps (universe))
+  swscale_c_library_flags.sexp
+  swscale_versions)
+ (deps (universe) avutil_available)
  (action
   (run
-   ../detect/detect.exe
+   ./detect.exe
+   detect
    --os-type
    %{os_type}
    --context
    %{context_name}
+   --profile
+   %{profile}
+   --requires
+   "avutil"
    swscale
-   libswscale
-   "libswscale >= 6.5.100"
+   "libswscale >= 8.3.100, libavutil >= 59.39.100"
    -Wall
-   -Wextra
-   -Werror=unused-variable
-   -Werror=unused-parameter)))
+   -Wextra)))
 
 (rule
  (targets
   swresample_available
   swresample_c_flags
   swresample_c_flags.sexp
-  swresample_c_library_flags.sexp)
- (deps (universe))
+  swresample_c_library_flags.sexp
+  swresample_versions)
+ (deps (universe) avutil_available avcodec_available)
  (action
   (run
-   ../detect/detect.exe
+   ./detect.exe
+   detect
    --os-type
    %{os_type}
    --context
    %{context_name}
+   --profile
+   %{profile}
+   --requires
+   "avutil avcodec"
    swresample
-   libswresample
-   "libswresample >= 4.5.100"
+   "libswresample >= 5.3.100, libavutil >= 59.39.100"
    -Wall
-   -Wextra
-   -Werror=unused-variable
-   -Werror=unused-parameter)))
+   -Wextra)))
+
+(rule
+ (target tests.inc)
+ (deps
+  avutil_available
+  avcodec_available
+  av_available
+  avfilter_available
+  avdevice_available
+  swscale_available
+  swresample_available)
+ (action
+  (with-stdout-to
+   %{target}
+   (run
+    ./detect.exe
+    stanzas
+    %{dep:tests.dune}
+    avutil
+    avcodec
+    av
+    avfilter
+    avdevice
+    swscale
+    swresample))))

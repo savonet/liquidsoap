@@ -41,6 +41,11 @@ against the release in hand.
   custom.
 - `avsubtitle_free` reads `rects[i]` for every `i` below `num_rects` with no
   null test.
+- `av_opt_get_video_rate` fails with "invalid argument" on every video-rate
+  option, observed on 7.1, 8.1 and 9.0: its number reader has no case for
+  the type. `av_opt_get` returns the rate as a fraction in text.
+- The `from_name` lookups of the colour properties match by prefix in 7.1:
+  `ycgco-re` is answered as `ycgco`.
 
 ## Sentinels and absent values
 

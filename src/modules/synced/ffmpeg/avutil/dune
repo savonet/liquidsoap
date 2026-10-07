@@ -7,7 +7,7 @@
  (action
   (with-stdin-from
    ../detect/avutil_available
-   (run ../detect/check.exe avutil))))
+   (run ../detect/detect.exe check avutil))))
 
 (library
  (name avutil)
@@ -18,6 +18,7 @@
  (foreign_stubs
   (language c)
   (names avutil_stubs)
+  (extra_deps ../detect/avutil_versions)
   (flags
    (:include ../detect/avutil_c_flags.sexp)))
  (c_library_flags
@@ -29,319 +30,44 @@
  (libraries threads))
 
 (rule
- (targets avutil_stubs.c)
- (mode fallback)
- (deps
-  polymorphic_variant_values_stubs.h
-  pixel_format_stubs.h
-  media_types_stubs.h
-  hw_device_type_stubs.h
-  pixel_format_flag_stubs.h
-  color_space_stubs.h
-  color_range_stubs.h
-  color_primaries_stubs.h
-  color_trc_stubs.h
-  chroma_location_stubs.h
-  sample_format_stubs.h
-  channel_layout_stubs.h
-  subtitle_type_stubs.h
-  subtitle_flag_stubs.h)
- (action
-  (echo "this should not happen")))
-
-(rule
- (targets hw_device_type_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   hw_device_type
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets hw_device_type.ml)
- (deps hw_device_type_stubs.h ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   hw_device_type
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets media_types_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   media_types
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets media_types.ml)
- (deps media_types_stubs.h ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   media_types
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
  (targets polymorphic_variant_values_stubs.h)
- (deps ../detect/avutil_c_flags)
  (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   polymorphic_variant
-   h
-   %{read-lines:../detect/avutil_c_flags})))
+  (run ../gen_code/gen_code.exe variants)))
 
 (rule
- (targets color_space_stubs.h)
- (deps ../detect/avutil_c_flags)
+ (targets
+  pixel_format.ml
+  pixel_format_stubs.h
+  pixel_format_flag.ml
+  pixel_format_flag_stubs.h
+  color_space.ml
+  color_space_stubs.h
+  color_range.ml
+  color_range_stubs.h
+  color_primaries.ml
+  color_primaries_stubs.h
+  color_trc.ml
+  color_trc_stubs.h
+  chroma_location.ml
+  chroma_location_stubs.h
+  sample_format.ml
+  sample_format_stubs.h
+  channel_layout.ml
+  channel_layout_stubs.h
+  hw_device_type.ml
+  hw_device_type_stubs.h
+  media_types.ml
+  media_types_stubs.h
+  subtitle_type.ml
+  subtitle_type_stubs.h
+  subtitle_flag.ml
+  subtitle_flag_stubs.h)
+ (deps ../detect/avutil_versions)
+ (enabled_if
+  (= %{read:../detect/avutil_available} "true"))
  (action
   (run
    ../gen_code/gen_code.exe
    "%{cc}"
-   color_space
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets color_space.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   color_space
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets color_range_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   color_range
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets color_range.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   color_range
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets color_primaries_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   color_primaries
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets color_primaries.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   color_primaries
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets color_trc_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   color_trc
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets color_trc.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   color_trc
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets chroma_location_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   chroma_location
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets chroma_location.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   chroma_location
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets pixel_format_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   pixel_format
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets pixel_format.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   pixel_format
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets pixel_format_flag_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   pixel_format_flag
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets pixel_format_flag.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   pixel_format_flag
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets sample_format_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   sample_format
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets sample_format.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   sample_format
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets channel_layout_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   channel_layout
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets channel_layout.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   channel_layout
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets subtitle_type_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   subtitle_type
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets subtitle_type.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   subtitle_type
-   ml
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets subtitle_flag_stubs.h)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   subtitle_flag
-   h
-   %{read-lines:../detect/avutil_c_flags})))
-
-(rule
- (targets subtitle_flag.ml)
- (deps ../detect/avutil_c_flags)
- (action
-  (run
-   ../gen_code/gen_code.exe
-   "%{cc}"
-   subtitle_flag
-   ml
+   avutil
    %{read-lines:../detect/avutil_c_flags})))
