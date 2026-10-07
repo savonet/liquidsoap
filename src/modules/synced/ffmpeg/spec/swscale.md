@@ -9,8 +9,8 @@ Image scaling and pixel-format conversion. It follows
 `data`, video frames, the error exception.
 
 It installs no C header and provides nothing to other libraries. Module
-initialisation reads the version, configuration string and licence string of
-the libswscale loaded at run time and cannot fail.
+initialisation reads the version of the libswscale loaded at run time and
+cannot fail.
 
 ## 2. Objects
 
@@ -88,16 +88,13 @@ An image has at most 4 buffers (FFmpeg's limit).
 
 ## 4. Operations
 
-### 4.1 `version`, `configuration`, `license`
+### 4.1 `version`
 
 ```ocaml
 val version : version
-val configuration : string
-val license : string
 ```
 
-The version, build configuration and licence of the libswscale loaded at run
-time, read once at module load.
+The version of the libswscale loaded at run time, read once at module load.
 
 ### 4.2 `pixel_format`, `flag`, `t`
 

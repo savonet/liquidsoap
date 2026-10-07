@@ -71,8 +71,7 @@ pointer.
 - **Release**: by collection only. No closed state.
 - **Concurrent use**: §6.2.
 - **Phantom parameter**: `'media` is `audio` or `video`. Every producer of
-  frames gives the parameter that matches the content. `Frame.copy` accepts
-  two different parameters and relies on FFmpeg's own checks (§4.3).
+  frames gives the parameter that matches the content.
 - **Dependents**: the plane bigarrays of `Video.frame_visit` (§8.2).
 
 ### 2.2 Channel layout — `Channel_layout.t`
@@ -136,8 +135,6 @@ parameters. `data` is a one-dimensional unsigned-8-bit C-layout bigarray.
 
 | Place                                  | Run-time check                              |
 | -------------------------------------- | ------------------------------------------- |
-| `Frame.copy` between any two frames    | formats and dimensions (FFmpeg's)           |
-| `Audio.frame_copy_samples`             | sample formats, layouts, ranges (§4.12)     |
 | `Subtitle.pict.planes`                 | array lengths and plane sizes (§4.14)       |
 | `Video.frame_visit` on any video frame | the frame holds software pixel data (§4.13) |
 
@@ -276,13 +273,10 @@ Type declarations only.
 type version = { major : int; minor : int; micro : int }
 val version : version
 val version_string : version -> string
-val compare_version : version -> version -> int
 ```
 
 - `version`: the libavutil loaded at run time, read once at module load.
 - `version_string v` is `major.minor.micro` in decimal.
-- `compare_version a b` orders by major, then minor, then micro, and returns
-  a negative, zero or positive integer.
 
 ### 4.3 Frame
 
@@ -298,7 +292,6 @@ module Frame : sig
   val metadata : _ t -> (string * string) list
   val set_metadata : _ t -> (string * string) list -> unit
   val best_effort_timestamp : _ t -> Int64.t option
-  val copy : 'a t -> 'b t -> unit
 end
 type 'media frame = 'media Frame.t
 ```
@@ -540,8 +533,6 @@ module Audio : sig
   val frame_get_channels : audio frame -> int
   val frame_get_channel_layout : audio frame -> Channel_layout.t
   val frame_nb_samples : audio frame -> int
-  val frame_copy_samples :
-    audio frame -> int -> audio frame -> int -> int -> unit
 end
 ```
 
@@ -558,16 +549,6 @@ failure. Any FFmpeg failure releases the frame and raises.
 | `frame_get_channels`       | the channel count of the frame's layout   |
 | `frame_get_channel_layout` | an independent copy of the frame's layout |
 | `frame_nb_samples`         | the number of samples per channel         |
-
-`frame_copy_samples src src_offset dst dst_offset len` copies `len` samples
-per channel from `src`, starting at sample `src_offset`, into `dst` starting
-at sample `dst_offset`. It raises a failure, and copies nothing, when:
-
-- an offset or `len` is negative;
-- `src_offset + len` exceeds the samples of `src`, or `dst_offset + len` those
-  of `dst`;
-- the two frames differ in sample format or in channel layout;
-- a plane the format requires is missing in either frame.
 
 ### 4.13 Video frames
 
@@ -808,8 +789,6 @@ Everything FFmpeg allocates for a read is released before the getter returns.
 type value =
   [ `String of string | `Int of int | `Int64 of int64 | `Float of float ]
 type opts = (string, value) Hashtbl.t
-val opts_default : opts option -> opts
-val mk_opts_array : opts -> (string * string) array
 val string_of_opts : opts -> string
 val filter_opts : string array -> opts -> unit
 ```
@@ -826,9 +805,6 @@ Value rendering:
 | `` `Int64 i ``  | `i` in decimal                                           |
 | `` `Float f ``  | a decimal text that FFmpeg parses back to the same value |
 
-- `opts_default o`: `Some t` gives `t` itself; `None` gives a new empty table.
-- `mk_opts_array t`: one `(key, text)` pair per key of the table. The order is
-  unspecified.
 - `string_of_opts t`: the `key=text` forms of all keys joined with `,`. The
   order is unspecified and nothing is escaped.
 - `filter_opts unused t`: removes from `t`, in place, every key that is not an
@@ -933,9 +909,6 @@ Frames have no guard (contract M8). Operations that change a frame are
 `Frame.set_pts`, `set_duration`, `set_pkt_dts`, `set_metadata` and
 `Video.frame_visit ~make_writable:true`; every other operation that takes a
 frame, in any library, only reads its structure.
-
-`Frame.copy` and `Audio.frame_copy_samples` write sample or pixel bytes of
-their destination and leave its structure alone.
 
 Channel layouts, subtitles, hardware contexts and descriptors are immutable.
 
@@ -1047,9 +1020,8 @@ buffers.
 
 ### 8.3 Audio samples
 
-`Avutil` exposes no bigarray view of audio samples. `frame_copy_samples`
-copies between two frames. [swresample.md](swresample.md) owns the bigarray
-paths.
+`Avutil` exposes no bigarray view of audio samples.
+[swresample.md](swresample.md) owns the bigarray paths.
 
 ### 8.4 Subtitle bitmaps — copied
 
@@ -1057,8 +1029,7 @@ Both directions copy each plane (§4.14).
 
 ### 8.5 Frames
 
-`Frame.copy` copies data between two allocated frames and no property. A
-frame handed to a dependent library is passed by reference (A4).
+A frame handed to a dependent library is passed by reference (A4).
 
 ### 8.6 Channel layouts
 
@@ -1117,8 +1088,7 @@ None.
 
 ## 11. Composite operations
 
-- `version_string`, `compare_version` (§4.2).
-- `opts_default`, `mk_opts_array`, `string_of_opts`, `filter_opts` (§4.17):
-  pure functions on tables.
+- `version_string` (§4.2).
+- `string_of_opts`, `filter_opts` (§4.17): pure functions on tables.
 - `Video.frame_visit` is: prepare the planes, call the visitor, return the
   frame.

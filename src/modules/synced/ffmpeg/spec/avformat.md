@@ -18,15 +18,13 @@ It depends on `avutil` and `avcodec`, and on the OCaml `unix` library for
 time, initialises FFmpeg's network layer, and wraps the option class of
 containers as `container_options`. It cannot fail (I1).
 
-**Provided to dependent libraries** (`avdevice`), through its installed C
-header:
+**Provided to dependent libraries**, through its installed C header:
 
-| Service                 | Contract                                                                                                                   |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| native container        | The format context of a container value. Raises the state errors of the contract's §5.3. Needs the runtime lock.           |
-| container guard         | Taking and releasing the guard of a container value.                                                                       |
-| formats                 | The native format of a format value; constructors that wrap an input or an output format. A null pointer raises a failure. |
-| control-message closure | §7.1.5.                                                                                                                    |
+| Service          | Contract                                                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| native container | The format context of a container value. Raises the state errors of the contract's §5.3. Needs the runtime lock.           |
+| container guard  | Taking and releasing the guard of a container value.                                                                       |
+| formats          | The native format of a format value; constructors that wrap an input or an output format. A null pointer raises a failure. |
 
 ## 2. Objects
 
@@ -39,7 +37,7 @@ header:
 - **Ownership**: the container owns its format context, every per-stream
   codec context, and its I/O context.
 - **Keeps alive**: the closures installed on it — interrupt, custom read,
-  write and seek, control message — from installation until release (C3, L8).
+  write and seek — from installation until release (C3, L8).
 - **Kept alive by**: every stream value, every `uninitialized_stream_copy`,
   and the value `input_obj` returns (L3).
 - **Release**: `close`, or collection.
@@ -74,13 +72,13 @@ let a closure that FFmpeg invokes only during an operation pin its container.
 
 #### States of an input container
 
-| Operation                                        | Open                      | Closed       |
-| ------------------------------------------------ | ------------------------- | ------------ |
-| getters, `set_input_metadata`, stream operations | performed                 | closed error |
-| `read_input`                                     | performed                 | closed error |
-| `seek`                                           | performed; decoders reset | closed error |
-| `close`                                          | releases → Closed         | nothing      |
-| collection                                       | releases                  | nothing      |
+| Operation                  | Open                      | Closed       |
+| -------------------------- | ------------------------- | ------------ |
+| getters, stream operations | performed                 | closed error |
+| `read_input`               | performed                 | closed error |
+| `seek`                     | performed; decoders reset | closed error |
+| `close`                    | releases → Closed         | nothing      |
+| collection                 | releases                  | nothing      |
 
 Inside Open, each stream read as frames has a decoder that is unopened, then
 opened, then draining once the input ended. A successful `seek` returns every
@@ -140,9 +138,9 @@ container's current stream count.
 ### 2.3 Formats — `(input, _) format`, `(output, _) format`
 
 Borrowed handles on FFmpeg's static input and output formats. The media
-parameter is phantom: `Avdevice` gives it for device formats, and the caller
-chooses it for the results of `find_input_format` and `guess_output_format`.
-Nothing depends on it for safety.
+parameter is phantom: the caller chooses it for the results of
+`find_input_format` and `guess_output_format`. Nothing depends on it for
+safety.
 
 ### 2.4 `uninitialized_stream_copy`
 
@@ -332,13 +330,6 @@ val get_input_format : input container -> (input, _) format option
 The format the demuxer detected or was given.
 
 ```ocaml
-val set_input_metadata : input container -> (string * string) list -> unit
-```
-
-Replaces the container's metadata, as `set_output_metadata` (§4.4), in any
-state of an open input.
-
-```ocaml
 val input_obj : input container -> Options.obj
 ```
 
@@ -410,13 +401,6 @@ val set_time_base : (_, _, _) stream -> Avutil.rational -> unit
 
 The stream's time base. Setting it does not touch the stream's encoder. A
 muxer may replace the time base of a stream when it writes the header.
-
-```ocaml
-val get_container_stream_time_base : index:int -> _ container -> Avutil.rational
-```
-
-The time base of the stream of that index. It performs the state check like
-every getter, then raises `Not_found` when the container has no such stream.
 
 ```ocaml
 val get_frame_size : (output, audio, _) stream -> int
@@ -800,9 +784,10 @@ val close : _ container -> unit
 | ``Error `Decoder_not_found``              | `read_input`, for a frame-mode stream with no decoder                                                                                                    |
 | the state errors of the contract's §5.3   | every operation, per §2.1                                                                                                                                |
 | ``Error (`Failure msg)``                  | the checks of §2.2 and §2.4; "header written"; an open with neither URL nor format; a format that does or does not need a file; a stream with no encoder |
-| `Not_found`                               | `get_container_stream_time_base`                                                                                                                         |
 | `Out_of_memory`                           | any failed allocation                                                                                                                                    |
 | any exception                             | raised by a function of §7.2; propagates unchanged                                                                                                       |
+
+No operation of this library raises `Not_found`.
 
 A failing custom I/O closure is reported to FFmpeg as `AVERROR_EXTERNAL`
 (§7.1). The operation in progress then raises whatever code FFmpeg
@@ -883,19 +868,6 @@ hands over at a time.
 - `true` aborts the blocking operation, which then raises ``Error `Exit``.
 - An exception aborts it too.
 - It is never called after the container's release completed (L8).
-
-#### 7.1.5 Control messages
-
-`avdevice` installs one closure per container for messages a device sends to
-the application ([avdevice.md](avdevice.md) §7). `Av` provides:
-
-- **install**: given a container, a native callback and a closure, keeps the
-  closure alive until it is replaced or the container is released, and makes
-  the native callback reachable by the device. It performs the state check.
-- **lookup**: given the native context inside the callback, the closure
-  installed on its container.
-
-Both need the runtime lock.
 
 ### 7.2 Functions the binding calls
 

@@ -132,11 +132,6 @@ against the release in hand.
 
 ## Devices
 
-- `avdevice_app_to_dev_control_message` returns "not implemented" for a
-  context that is not an output device with a message handler.
-- Device-to-application messages are emitted by PulseAudio output, from its
-  own threads and from inside a write. The header documents the payload of
-  each message type; typed payloads are never null.
 - `avdevice_register_all` may be called any number of times.
 - One device format has a name that is a comma-separated list of aliases:
   `video4linux2,v4l2`.

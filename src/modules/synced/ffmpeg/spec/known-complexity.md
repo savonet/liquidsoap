@@ -237,7 +237,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 
 ### Callbacks arriving on threads the runtime has not seen
 
-- **Situation** — FFmpeg runs an I/O, interrupt or device callback on one of
+- **Situation** — FFmpeg runs an I/O or interrupt callback on one of
   its own threads.
 - **What went wrong** — The callback entered the runtime from an unregistered
   thread. Registration was added, later removed with a rewrite of the transfer
@@ -249,7 +249,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   completes and the thread exits cleanly.
 - **Count** — 3 changes. **Sources** — `38f651a`, `fa0ec37`,
   liq:`58e3fb3de`.
-- **Rule:** [binding-contract.md](binding-contract.md) §6.3 M10; [avutil.md](avutil.md) §6.3; [tests.md](tests.md) 5.3.
+- **Rule:** [binding-contract.md](binding-contract.md) §6.3 M10; [avutil.md](avutil.md) §6.3; [tests.md](tests.md) 3.26.
 
 ### Codecs and scalers run on one thread unless asked
 
@@ -307,7 +307,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **Count** — 9 changes, 2 reverts. **Sources** — `02ecb6e`, `21bf5a3`,
   `e683c3f`, `a940842`, `f4007d2`, `50a3ece`, `a8ce7c9`, `997e797`,
   liq:`e9bb70415`, liq:`9bc0ad0f0`; #20, #49, #119.
-- **Rule:** [avutil.md](avutil.md) §7.1 N1–N10; [tests.md](tests.md) 1.14, 1.15.
+- **Rule:** [avutil.md](avutil.md) §7.1 N1–N10; [tests.md](tests.md) 1.13, 1.14.
 
 ### The interrupt callback: identity and lifetime
 
@@ -635,7 +635,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   accessor that returns one, under a leak detector and an address sanitiser.
 - **Count** — 3 fixes. **Sources** — `6d9b6f2`, `979d282`,
   liq:`58e3fb3de`; #64, #73, liquidsoap#4064, liquidsoap#4065.
-- **Rule:** [avutil.md](avutil.md) §2.2; [tests.md](tests.md) 1.13, 6.9.
+- **Rule:** [avutil.md](avutil.md) §2.2; [tests.md](tests.md) 1.12, 6.9.
 
 ## Video conversion
 
@@ -935,10 +935,10 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   both needed.
 - **Why it is hard** — Nothing fails at build time. The device list is
   simply shorter.
-- **How to tell** — A program that links the device library and only lists
-  input formats sees the device formats.
+- **How to tell** — A program that links the device library and only looks
+  up a device format by name finds it.
 - **Count** — 2 fixes. **Sources** — `b38419e`, `8191c63`.
-- **Rule:** [avdevice.md](avdevice.md) §1 and §4.1; [tests.md](tests.md) 5.1.
+- **Rule:** [avdevice.md](avdevice.md) §1 and §4; [tests.md](tests.md) 5.1.
 
 ## FFmpeg version drift
 

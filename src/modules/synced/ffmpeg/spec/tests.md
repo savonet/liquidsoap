@@ -36,12 +36,11 @@ requirement verifies.
 | 1.8  | `Frame.set_pts` then every timestamp accessor: they agree.                                                                                                                                                                                                                             | avutil §4.3                  |
 | 1.9  | `Frame.set_metadata` with `{a, b}` then `{b}`: `metadata` returns `{b}`.                                                                                                                                                                                                               | avutil §4.3                  |
 | 1.10 | `Video.frame_visit` on 4:2:0 and 4:2:2 frames: each plane's length is its line size times that plane's height. A bigarray kept after the frame is dropped and collected is still readable and writable.                                                                                | avutil §8.2; contract L4     |
-| 1.11 | `Audio.frame_copy_samples`: negative arguments, ranges past either frame, differing formats and differing layouts each raise; a valid call copies exactly the range.                                                                                                                   | avutil §4.12                 |
-| 1.12 | `Subtitle`: for text and bitmap contents, `get_content (create_frame c) = c`. Plane arrays of a length other than 4 and planes of a wrong size raise.                                                                                                                                  | avutil §4.14                 |
-| 1.13 | `Channel_layout`: a standard and a custom layout round-trip through every operation that returns a layout; `find` of an unknown name and `get_default` of a count with no standard layout raise `Not_found`.                                                                           | avutil §2.2, §4.8            |
-| 1.14 | Logging, with a callback installed and the level at debug, while several threads encode: every message is delivered once, in order per logging thread, and none after `clear_callback` returned.                                                                                       | avutil §7.1 N5–N8            |
-| 1.15 | Logging: a message logged from a thread that holds the runtime lock is delivered and nothing hangs. `set_callback` immediately after `clear_callback` delivers to the new callback. A callback that raises does not stop delivery. A callback that calls `set_callback` does not hang. | avutil §7.1 N1, N9, N10      |
-| 1.16 | `Error`: each constructor of the mapping table is raised for its FFmpeg code and `string_of_error` returns FFmpeg's text for it.                                                                                                                                                       | avutil §5.1                  |
+| 1.11 | `Subtitle`: for text and bitmap contents, `get_content (create_frame c) = c`. Plane arrays of a length other than 4 and planes of a wrong size raise.                                                                                                                                  | avutil §4.14                 |
+| 1.12 | `Channel_layout`: a standard and a custom layout round-trip through every operation that returns a layout; `find` of an unknown name and `get_default` of a count with no standard layout raise `Not_found`.                                                                           | avutil §2.2, §4.8            |
+| 1.13 | Logging, with a callback installed and the level at debug, while several threads encode: every message is delivered once, in order per logging thread, and none after `clear_callback` returned.                                                                                       | avutil §7.1 N5–N8            |
+| 1.14 | Logging: a message logged from a thread that holds the runtime lock is delivered and nothing hangs. `set_callback` immediately after `clear_callback` delivers to the new callback. A callback that raises does not stop delivery. A callback that calls `set_callback` does not hang. | avutil §7.1 N1, N9, N10      |
+| 1.15 | `Error`: each constructor of the mapping table is raised for its FFmpeg code and `string_of_error` returns FFmpeg's text for it.                                                                                                                                                       | avutil §5.1                  |
 
 ## 2. avcodec
 
@@ -90,6 +89,7 @@ requirement verifies.
 | 3.23 | Subtitles: text subtitles read as frames, rebuilt from their content, encoded and muxed give the same cues, text and timing to the millisecond.                                                                         | avformat §4.4                    |
 | 3.24 | `codec_attr` for H.264, HEVC with and without an in-band SPS, and AAC equals the string FFmpeg's own HLS muxer writes for the same stream.                                                                              | avformat §4.4                    |
 | 3.25 | `write_packet` and `write_frame` on streams of the wrong mode, `get_frame_size` on a copy stream, `open_output_format` on a file format, a stream of another container: each raises a failure.                          | avformat §2.2                    |
+| 3.26 | A custom read function and an interrupt function called from a thread created in C complete, and the thread exits cleanly.                                                                                              | contract M10                     |
 
 ## 4. avfilter
 
@@ -108,16 +108,9 @@ requirement verifies.
 
 ## 5. avdevice
 
-| #   | Requirement (binding part)                                                                                                                     | Rule                          |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| 5.1 | A program that links the library and only lists `av` input formats sees the device formats.                                                    | [avdevice.md](avdevice.md) §1 |
-| 5.2 | Each message of §3.2 delivered by a test double of a device arrives as the constructor and payload of the table, the option payloads included. | avdevice §3.2                 |
-| 5.3 | A message sent from a thread created in C is delivered and the thread exits cleanly.                                                           | contract M10                  |
-| 5.4 | `control_messages` on a container that is not a device raises `Avutil.Error`; on a closed container, the closed error.                         | avdevice §2, §5               |
-| 5.5 | A named open with one alias of a multi-alias format name finds the format; an unknown name raises `Not_found`.                                 | avdevice §4.3                 |
-
-Requirements that need a real device are reported as skipped without one
-(§10).
+| #   | Requirement (binding part)                                                                                                           | Rule                          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| 5.1 | A program that links the library and only looks up, with `Format.find_input_format`, a device format the FFmpeg build has, finds it. | [avdevice.md](avdevice.md) §1 |
 
 ## 6. swresample
 
@@ -229,8 +222,9 @@ Doubles:
 - an interrupt function that turns true after a delay;
 - an endpoint that blocks: a listening socket nothing connects to;
 - a log sink that records messages with the thread that logged them;
-- a device double that sends each device-to-application message, from the
-  calling thread and from a thread created in C;
+- a C helper that, given a container's native context through `av`'s
+  installed header, calls its read and interrupt callbacks from a thread it
+  creates;
 - a second thread that allocates continuously, and a second thread that
   counts, for the lock checks of §12.
 

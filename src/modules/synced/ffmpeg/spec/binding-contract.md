@@ -307,7 +307,7 @@ state it keeps. Process-wide state MUST be safe to reach from several domains.
 ### 7.1 Functions FFmpeg calls
 
 A user closure that FFmpeg invokes during one of its own calls (custom I/O,
-interruption, device messages) is called through this sequence:
+interruption) is called through this sequence:
 
 1. Register the current thread (M10).
 2. Acquire the runtime lock.

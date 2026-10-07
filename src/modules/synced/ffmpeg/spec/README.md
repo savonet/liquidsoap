@@ -29,7 +29,7 @@ FFmpeg's C API.
 | 6   | [avcodec.md](avcodec.md)                     | Codecs, packets, parameters, encoders, decoders, bitstream filters                                           |
 | 7   | [avformat.md](avformat.md)                   | The `av` library: containers, streams, custom I/O, demuxing, muxing                                          |
 | 8   | [avfilter.md](avfilter.md)                   | Filter graphs                                                                                                |
-| 9   | [avdevice.md](avdevice.md)                   | Capture and playback devices, control messages                                                               |
+| 9   | [avdevice.md](avdevice.md)                   | Registration of capture and playback devices                                                                 |
 | 10  | [swresample.md](swresample.md)               | Audio resampling and sample-format conversion                                                                |
 | 11  | [swscale.md](swscale.md)                     | Image scaling and pixel-format conversion                                                                    |
 | 12  | [tests.md](tests.md)                         | Conformance: what a test suite must assert and what it must not depend on                                    |
@@ -109,8 +109,7 @@ FFmpeg 7.1, 8.1 and 9.0. Nothing below was run by anyone:
 
 - any build or run on Windows, any cross build, and macOS;
 - hardware encoding, hardware devices and hardware frame pools;
-- any capture or playback device, and so every rule of
-  [avdevice.md](avdevice.md) about real devices;
+- any capture or playback device;
 - an OCaml version other than 5.5.0, and a program with several domains;
 - the resampler's alternative engine, absent from the FFmpeg builds used.
 
