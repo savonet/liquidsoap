@@ -82,18 +82,28 @@ external data_of_bytes : bytes -> data = "ocaml_swresample_data_of_bytes"
 external bytes_of_data : data -> bytes = "ocaml_swresample_bytes_of_data"
 
 let failure message = raise (Error (`Failure message))
-let silenced sample = if Float.is_nan sample then 0. else sample
 
-let plane_of_floats samples =
+(* The loops below keep samples unboxed; a NaN becomes 0. *)
+let plane_of_floats (samples : float array) =
+  let length = Array.length samples in
   let plane =
-    Bigarray.Array1.create Bigarray.float64 Bigarray.c_layout
-      (Array.length samples)
+    Bigarray.Array1.create Bigarray.float64 Bigarray.c_layout length
   in
-  Array.iteri (fun i sample -> plane.{i} <- silenced sample) samples;
+  for i = 0 to length - 1 do
+    let sample = Array.unsafe_get samples i in
+    Bigarray.Array1.unsafe_set plane i
+      (if Float.is_nan sample then 0. else sample)
+  done;
   Plane plane
 
 let floats_of_plane (plane : f64ba) =
-  Array.init (Bigarray.Array1.dim plane) (fun i -> silenced plane.{i})
+  let length = Bigarray.Array1.dim plane in
+  let samples = Array.create_float length in
+  for i = 0 to length - 1 do
+    let sample = Bigarray.Array1.unsafe_get plane i in
+    Array.unsafe_set samples i (if Float.is_nan sample then 0. else sample)
+  done;
+  samples
 
 let samples : type a. a kind -> a -> samples =
  fun kind value ->
