@@ -1014,8 +1014,8 @@ class shared_output p =
           (fun ch -> Strings.iter (output_substring ch) data)
           dump_channel
       end;
-      (* Always wake the write tasks, even when no new data was produced, so
-         pending data for slow listeners keeps getting flushed. *)
+      (* Wake the write tasks even when no new data was produced, so pending
+         data for slow listeners keeps getting flushed. *)
       self#wake_write_task
 
     method start =
