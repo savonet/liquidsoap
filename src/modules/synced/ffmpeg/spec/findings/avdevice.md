@@ -14,7 +14,7 @@ immediate `x` — as the tuple `t`. Destructuring it dereferences an integer.
 `Buffer_readable`/`Buffer_writable` (`:199-208`) build the option
 correctly.
 
-**confirmed (second read)** — confirmed on a second read by the orchestrator. Reach: the only emitter is `opengl_enc.c` at n7.1.5 (`AV_DEV_TO_APP_CREATE_WINDOW_BUFFER` with a non-NULL rect); n8.1.3 has no emitter of this message left.
+**confirmed (second read)** — Reach: the only emitter is `opengl_enc.c` at n7.1.5 (`AV_DEV_TO_APP_CREATE_WINDOW_BUFFER` with a non-NULL rect); n8.1.3 has no emitter of this message left.
 
 ### OCaml runtime used without the runtime lock in `set_control_message_callback`
 
@@ -28,7 +28,7 @@ callback when the container is closed) and calls
 lock; nothing in the call blocks, so there is no reason given for the
 release.
 
-**confirmed (second read)** — confirmed on a second read by the orchestrator; `av/av_stubs.c:329-343` read here too: `Av_val` (which calls back into OCaml through `Fail` on a closed container), the read of `*p_ocaml_callback` and the global-root registration all sit between release and acquire.
+**confirmed (second read)** — read independently a third time; `av/av_stubs.c:329-343` read here too: `Av_val` (which calls back into OCaml through `Fail` on a closed container), the read of `*p_ocaml_callback` and the global-root registration all sit between release and acquire.
 
 ### OCaml heap read, and possible raise, without the runtime lock in `control_message`
 
@@ -36,7 +36,7 @@ release.
 called after `caml_release_runtime_system()`: it reads the custom block and,
 on a closed container, raises from a thread that does not hold the lock.
 
-**confirmed (second read)** — confirmed on a second read by the orchestrator; `ocaml_av_get_format_context` (`av/av_stubs.c:174-176`) is `Av_val(*p_av)->format_context`, a custom-block read plus the `Fail` callback on a closed container.
+**confirmed (second read)** — read independently a third time; `ocaml_av_get_format_context` (`av/av_stubs.c:174-176`) is `Av_val(*p_av)->format_context`, a custom-block read plus the `Fail` callback on a closed container.
 
 ### `open_default_*` and `get_default_*` raise `Not_found`, the `.mli` promises `Error`
 

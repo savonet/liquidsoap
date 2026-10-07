@@ -37,6 +37,7 @@ FFmpeg C API.
 | 11  | [swscale.md](swscale.md)                     | Image scaling and pixel-format conversion                                                                                                   |
 | 12  | [tests.md](tests.md)                         | The test suite by principle: invariants, what is binding, what is incidental, the coverage map                                              |
 | 13  | [findings.md](findings.md)                   | Defects, asymmetries, gaps and API gaps, ranked; what was never run                                                                         |
+| 14  | [known-complexity.md](known-complexity.md)   | Pitfalls from the project's history, stated without reference to the code, each with a check a new implementation can be run against        |
 
 Every rule has one owner. Other files link to it.
 

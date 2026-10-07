@@ -67,24 +67,20 @@ names a constructor absent from the installed headers fails to compile.
 Every one of these is live: both sides are reachable for some version at or
 above the lower bound.
 
-| #   | Library    | Condition                            | What it selects                                   | Behaviour                      |
-| --- | ---------- | ------------------------------------ | ------------------------------------------------- | ------------------------------ |
-| 1   | `avutil`   | libavutil ≥ 57.30.100                | whether frames carry a duration                   | [avutil.md](avutil.md) §10     |
-| 2   | `avutil`   | libavutil ≥ 59.1.100                 | whether array-typed options exist                 | [avutil.md](avutil.md) §10     |
-| 3   | `avutil`   | `AV_OPT_FLAG_BSF_PARAM` defined      | whether the `` `Bsf_param `` flag is reported     | [avutil.md](avutil.md) §10     |
-| 4   | `avutil`   | `AV_OPT_FLAG_DEPRECATED` defined     | whether the `` `Deprecated `` flag is reported    | [avutil.md](avutil.md) §10     |
-| 5   | `avutil`   | `AV_OPT_FLAG_RUNTIME_PARAM` defined  | whether the `` `Runtime_param `` flag is reported | [avutil.md](avutil.md) §10     |
-| 6   | `avcodec`  | libavcodec < 60.26.100               | the names of the unknown profile and level        | [avcodec.md](avcodec.md) §10   |
-| 7   | `avcodec`  | libavcodec ≤ 61.13.100               | where a codec's supported configurations are read | [avcodec.md](avcodec.md) §10   |
-| 8   | `avcodec`  | `AV_PKT_FLAG_DISPOSABLE` not defined | a local definition of the flag                    | [avcodec.md](avcodec.md) §10   |
-| 9   | `av`       | libavformat major < 61               | the buffer type of the custom write function      | [avformat.md](avformat.md) §10 |
-| 10  | `av`       | libavcodec ≥ 60.15.100               | where a stream's bitrate fallback is read         | [avformat.md](avformat.md) §10 |
-| 11  | `avfilter` | libavutil ≥ 59.1.100                 | whether the array-separator lookup can succeed    | [avfilter.md](avfilter.md) §10 |
+| #   | Library    | Condition              | What it selects                                   | Behaviour                      |
+| --- | ---------- | ---------------------- | ------------------------------------------------- | ------------------------------ |
+| 1   | `avutil`   | libavutil ≥ 57.30.100  | whether frames carry a duration                   | [avutil.md](avutil.md) §10     |
+| 2   | `avutil`   | libavutil ≥ 59.1.100   | whether array-typed options exist                 | [avutil.md](avutil.md) §10     |
+| 6   | `avcodec`  | libavcodec < 60.26.100 | the names of the unknown profile and level        | [avcodec.md](avcodec.md) §10   |
+| 7   | `avcodec`  | libavcodec ≤ 61.13.100 | where a codec's supported configurations are read | [avcodec.md](avcodec.md) §10   |
+| 9   | `av`       | libavformat major < 61 | the buffer type of the custom write function      | [avformat.md](avformat.md) §10 |
+| 10  | `av`       | libavcodec ≥ 60.15.100 | where a stream's bitrate fallback is read         | [avformat.md](avformat.md) §10 |
+| 11  | `avfilter` | libavutil ≥ 59.1.100   | whether the array-separator lookup can succeed    | [avfilter.md](avfilter.md) §10 |
 
-## 3. Conditionals whose other side lies below the lower bound
+## 3. Conditionals that take one side across the whole range
 
-These are in the code and always take the same side for any version that
-passes detection. They are recorded so the snapshot is complete.
+Seven test a version below the lower bound and always take the same side for
+any version that passes detection. They are recorded so the snapshot is complete.
 
 | Library      | Condition               | Side always taken                                                                              |
 | ------------ | ----------------------- | ---------------------------------------------------------------------------------------------- |
@@ -95,6 +91,16 @@ passes detection. They are recorded so the snapshot is complete.
 | `avfilter`   | libavfilter < 8.3.100   | False: pad counts come from `avfilter_filter_pad_count`.                                       |
 | `swresample` | libavcodec < 56.0.100   | False.                                                                                         |
 | `swresample` | libavformat < 59.19.100 | False: a frame's channel count is `frame->ch_layout.nb_channels`.                              |
+
+Four conditionals test a macro that every release from 5.1 to 9.0 defines, so
+they always take the same side:
+
+| Library   | Condition                            | Side always taken                               |
+| --------- | ------------------------------------ | ----------------------------------------------- |
+| `avutil`  | `AV_OPT_FLAG_BSF_PARAM` defined      | True: the `` `Bsf_param `` flag maps to it.     |
+| `avutil`  | `AV_OPT_FLAG_DEPRECATED` defined     | True: the `` `Deprecated `` flag maps to it.    |
+| `avutil`  | `AV_OPT_FLAG_RUNTIME_PARAM` defined  | True: the `` `Runtime_param `` flag maps to it. |
+| `avcodec` | `AV_PKT_FLAG_DISPOSABLE` not defined | False: FFmpeg's own definition is used.         |
 
 One conditional always takes the same side for every version:
 

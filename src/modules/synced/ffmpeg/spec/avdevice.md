@@ -17,8 +17,8 @@ Sibling dependencies:
 - `av` (libavformat binding). avdevice adds no object of its own. It uses:
   - `Av`'s format values (`(input, _) format`, `(output, _) format`), built
     with `av`'s wrappers around `AVInputFormat *` / `AVOutputFormat *`
-    (the input wrapper fails with `Avutil.Error (`Failure "Empty input
-    format")`on`NULL`);
+    (the input wrapper fails with ``Avutil.Error (`Failure "Empty input
+format")`` on `NULL`);
   - `Av.Format.get_input_name` / `Av.Format.get_output_name`;
   - `Av.open_input` and `Av.open_output_format` to open devices;
   - `av`'s container object (`_ container`) as the device handle;

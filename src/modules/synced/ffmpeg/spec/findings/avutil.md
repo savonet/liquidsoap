@@ -2,12 +2,11 @@
 
 "Checked" items were run against the library built from this tree
 (`dune build ./avutil/avutil.cmxa ./avutil/libavutil_stubs.a`, linked into a
-throwaway program in the session scratchpad) with libavutil 61.7.100.
+throwaway program) with libavutil 61.7.100.
 
 Verification pass (second reader): verdicts are in bold after each location.
-Runs used the library built from this tree into
-`~/.cache/ffmpeg-spec-builds/verify-avutil` (OCaml 5.5.0, the FFmpeg under
-`~/.local/ffmpeg`), linked into throwaway programs. FFmpeg behaviour was
+Runs used the library built from this tree (OCaml 5.5.0, FFmpeg's development
+head), linked into throwaway programs. FFmpeg behaviour was
 read at tags `n7.1.5` and `n9.0.2`.
 
 ## Defects
@@ -158,8 +157,8 @@ cannot be read or written through this module.
   `Channel_layout.get_default` never raises; `get_default 99` returned an
   unspecified-order layout described as "99 channels".
 - `avutil/avutil.mli:217`, `avutil_stubs.c:631-637`:
-  `Sample_format.find_id` raises `Error (`Failure "Could not find OCaml
-  value ...")`.
+  `Sample_format.find_id` raises ``Error (`Failure "Could not find OCaml
+value ...")``.
 - `avutil/avutil.mli:307`, `avutil_stubs.c:820-826`:
   `Pixel_format.find_id`, same. **Confirmed (second read):** the stub
   returns `Val_PixelFormat(Int_val(_id))`, and every generated `Val_*`
@@ -202,6 +201,19 @@ The two other temporaries (`547`, `1788`) go to
 `av_channel_layout_from_string`, which assigns or clears the structure
 before reading it, and `535` goes to `av_channel_layout_default`, which
 only writes.
+
+### The default of an array option is read from the wrong union member
+
+- `avutil_stubs.c:1848-1982`.
+- The stub clears the array bit and then reads `default_val.i64`, `.dbl` or
+  `.str` as for a scalar of the element type. For an array option FFmpeg
+  stores a pointer to an `AVOptionArrayDef` in `default_val.arr`. The reported
+  default of an integer array is that pointer's value; a float array reports
+  its bits as a float; a string-typed element type dereferences the structure
+  as a C string.
+- **found in review; confirmed (second read)** — the union member is
+  `const AVOptionArrayDef *arr` in `libavutil/opt.h` at n9.0, and the switch
+  on the masked type has no array case before the wrap at `:1974`. Not run.
 
 ## Asymmetries
 

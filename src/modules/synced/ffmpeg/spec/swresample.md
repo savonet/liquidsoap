@@ -268,8 +268,8 @@ length is "everything after the offset".
 
 1. If the input side's planar flag is set (non-frame kind with a planar
    format): the number of fields of the input value must equal the input
-   channel count, else `Error (`Failure "Swresample failed to convert %d
-   channels : %d channels were expected")` (given, expected).
+   channel count, else ``Error (`Failure "Swresample failed to convert %d
+channels : %d channels were expected")`` (given, expected).
 2. Read the input with the reader of the input kind (4.4.1). It returns the
    number of input samples per channel, `n_in`, and leaves the input pointer
    table pointing at the samples.
@@ -388,14 +388,14 @@ With `o > 0` the test fails on channel 0.
 Worked layout, stereo (`C = 2`), signed 16-bit (`B = 2`), three samples per
 channel `L0 L1 L2` / `R0 R1 R2`, each sample two bytes in native byte order:
 
-| Kind           | Value                            | `n_in` arithmetic                  |
-| -------------- | -------------------------------- | ---------------------------------- | -------- | ----------- | -------- | --- | --- | --- |
-| `Str` (S16)    | 12 bytes `L0 R0 L1 R1 L2 R2`     | `12 / (2*2) = 3`                   |
-| `P_Str` (S16P) | `[                               | 6 bytes L0 L1 L2; 6 bytes R0 R1 R2 | ]`       | `6 / 2 = 3` |
-| `Fa` (DBL)     | `[                               | l0; r0; l1; r1; l2; r2             | ]`       | `6 / 2 = 3` |
-| `P_Fa` (DBLP)  | `[                               | [                                  | l0;l1;l2 | ]; [        | r0;r1;r2 | ]   | ]`  | `3` |
-| `Ba` (S16)     | dimension 6: `L0 R0 L1 R1 L2 R2` | `6 / 2 = 3`                        |
-| `P_Ba` (S16P)  | two bigarrays of dimension 3     | `3`                                |
+| Kind           | Value                                                | `n_in` arithmetic |
+| -------------- | ---------------------------------------------------- | ----------------- |
+| `Str` (S16)    | 12 bytes `L0 R0 L1 R1 L2 R2`                         | `12 / (2*2) = 3`  |
+| `P_Str` (S16P) | array of two: 6 bytes `L0 L1 L2`, 6 bytes `R0 R1 R2` | `6 / 2 = 3`       |
+| `Fa` (DBL)     | float array `l0 r0 l1 r1 l2 r2`                      | `6 / 2 = 3`       |
+| `P_Fa` (DBLP)  | array of two float arrays: `l0 l1 l2`, `r0 r1 r2`    | `3`               |
+| `Ba` (S16)     | dimension 6: `L0 R0 L1 R1 L2 R2`                     | `6 / 2 = 3`       |
+| `P_Ba` (S16P)  | two bigarrays of dimension 3                         | `3`               |
 
 Channel order is the order of the channel layout. An interleaved value whose
 length is not a multiple of one frame (`B * C` bytes, or `C` elements) has its

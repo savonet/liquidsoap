@@ -64,8 +64,8 @@ The installed C header exports to sibling stub libraries:
 - Release: garbage collection only; the finaliser calls
   `avcodec_parameters_free`. No explicit close.
 - Immutable from OCaml: the library exposes getters only.
-- The copy constructor fails with `Error (`Failure "Failed to get codec
-  parameters")`when given a null source, raises`Out_of_memory` when the
+- The copy constructor fails with ``Error (`Failure "Failed to get codec
+parameters")`` when given a null source, raises `Out_of_memory` when the
   allocation fails, and raises the mapped error (after freeing the new
   structure) when the copy fails.
 
@@ -175,8 +175,8 @@ that `codec_ids` re-exports.
 Missing mapping:
 
 - Value conversions (codec ids in both directions, and the `avutil`
-  conversions used here) raise `Error (`Failure "Could not find ... value for
-  N in <table>. Do you need to recompile the ffmpeg binding?")`.
+  conversions used here) raise ``Error (`Failure "Could not find ... value for
+N in <table>. Do you need to recompile the ffmpeg binding?")``.
 - Bit-test conversions (capabilities, properties, hardware methods) walk the
   generated table and emit the variants whose bit is set. A bit with no table
   entry is dropped silently.
@@ -369,8 +369,8 @@ val add_side_data : 'media t -> side_data -> unit
 4. The return value of `av_packet_add_side_data` is not examined.
 
 Failure: `Out_of_memory` when `av_malloc` fails; the packet is unchanged.
-Each call appends an entry; an existing entry of the same type is not
-replaced by the binding.
+FFmpeg keeps one entry per side-data type: a call for a type the packet
+already carries replaces that entry.
 
 ```ocaml
 val side_data : 'media t -> side_data list

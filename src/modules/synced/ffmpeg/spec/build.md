@@ -178,13 +178,13 @@ _Observed_ (`avutil`):
 
 ```
 avutil_available:            true
-avutil_c_flags.sexp:         (-I/home/toots/.local/ffmpeg/include -Wall -Wextra -Werror=unused-variable -Werror=unused-parameter)
-avutil_c_flags:              -I/home/toots/.local/ffmpeg/include
+avutil_c_flags.sexp:         (-I<prefix>/include -Wall -Wextra -Werror=unused-variable -Werror=unused-parameter)
+avutil_c_flags:              -I<prefix>/include
                              -Wall
                              -Wextra
                              -Werror=unused-variable
                              -Werror=unused-parameter
-avutil_c_library_flags.sexp: (-L/home/toots/.local/ffmpeg/lib -lavcodec -lavutil)
+avutil_c_library_flags.sexp: (-L<prefix>/lib -lavcodec -lavutil)
 ```
 
 The s-expression files feed the C compile and link flags of the library.
@@ -200,9 +200,10 @@ nothing can depend on it.
 Availability of one library is computed independently of the others. The
 dependency graph of section 1 is not consulted by detection.
 
-The C compile flags of each stub file are exactly the content of
-`<name>_c_flags.sexp`; the build system's standard C flag set is replaced,
-not extended, by it. The link flags of each library are exactly the content
+The build system's standard C flag set for stub files is replaced, not
+extended, by the content of `<name>_c_flags.sexp`. The compiler driver still
+adds the C flags of the OCaml configuration itself (optimisation,
+position-independent code, threads). The link flags of each library are exactly the content
 of `<name>_c_library_flags.sexp`.
 
 ### 2.7 Install-time check
@@ -288,7 +289,10 @@ header again. One run produces one file.
 ### 3.2 Locating a header
 
 Include-path discovery runs once per build context, before the generator is
-compiled, and bakes a list of directories into the generator.
+compiled, and bakes a list of directories into the generator. Under
+cross-compilation the generator that runs is the build machine's, so only the
+`default` context's discovery takes effect
+([cross-compilation.md](cross-compilation.md) §1.2).
 
 Discovery algorithm (program argument: the dune context name):
 
@@ -310,7 +314,7 @@ Discovery algorithm (program argument: the dune context name):
 4. Sort the collected directories and remove duplicates.
 5. Emit them as an OCaml string list.
 
-_Observed_ result: the single directory `/home/toots/.local/ffmpeg/include`.
+_Observed_ result: the single directory `<prefix>/include`.
 
 Discovery does not consult `LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS` and always
 queries all seven packages.
@@ -799,7 +803,7 @@ because the shared module can belong to only one stanza.
 
 Then one rule attached to the alias `ffmpeg_citest` and to the package
 `ffmpeg`. Its dependencies are the test runner, the eleven test
-executables, twenty example executables, a line-ending normaliser and one
+executables, twenty-one example executables, a line-ending normaliser and one
 subtitle fixture file. Its action is one strict sequence: each step is
 either the runner wrapping one executable with arguments, a direct call to
 the `ffmpeg` command-line tool to synthesise an input file, or a `diff`.

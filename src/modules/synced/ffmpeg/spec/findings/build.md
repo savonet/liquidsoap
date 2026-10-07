@@ -291,12 +291,10 @@ read)**: `avutil/avutil.mli:206-261` and `avcodec/avcodec.mli:144,268,391,
 
 ## To verify
 
-- The minimum versions of `detect/dune` (libavutil 57.24.100, libavcodec
-  59.24.100, libavformat 59.19.100, libavfilter 8.28.100, libavdevice
-  59.5.100, libswscale 6.5.100, libswresample 4.5.100) are stated by the
-  README to mean "FFmpeg 5.1". From memory they are development versions
-  between 5.0 and 5.1 (the channel-layout API bump), so 5.1 is the first
-  release that satisfies them. Not checked against FFmpeg's `APIchanges`.
+- Settled: the minimum versions of `detect/dune` fall between the 5.0 and 5.1
+  releases, and 5.1 is the first release that satisfies them. **checked**
+  against the version headers at each release tag
+  ([compatibility.md](../compatibility.md) §4).
 - dune-configurator behaviour assumed in the spec: `Pkg_config.get`
   honours `PKG_CONFIG`; `query_expr_err` runs an existence test on `expr`
   and then `--cflags` / `--libs` on `package` passed as one argument

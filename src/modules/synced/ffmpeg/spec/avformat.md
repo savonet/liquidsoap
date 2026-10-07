@@ -33,8 +33,8 @@ Mechanics of the C stubs are in
     applies the closed check of §2.1);
   - accessors and constructors for input-format and output-format values
     (one-word abstract blocks holding the `AVInputFormat *` /
-    `AVOutputFormat *`); the constructors raise `Error (`Failure "Empty input
-    format")`/`"Empty output format"` on a null pointer;
+    `AVOutputFormat *`); the constructors raise ``Error (`Failure "Empty input
+format")`` / `"Empty output format"` on a null pointer;
   - a const-qualifier shim for those pointer types (§10);
   - the control-message callback pair (§7.5).
 

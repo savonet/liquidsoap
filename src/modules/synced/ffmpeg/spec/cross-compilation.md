@@ -42,10 +42,15 @@ Consequences the bindings rely on:
 1. The availability detector, the install-time checker, the all-available
    reducer, the include-path discoverer, the enum generator and the test and
    example rule generators are compiled for and run on the build machine.
-2. Each of them is run once per context, with that context's variable
-   expansions as arguments. The program learns which context it serves only
-   from its arguments and environment.
-3. A build-time program needs its own library dependencies installed for the
+2. The detector is run once per context, with that context's variable
+   expansions as arguments. It learns which context it serves only from its
+   arguments and environment.
+3. The include-path discoverer's output is compiled into the enum generator.
+   The generator that runs is the build machine's, so the discovery that
+   takes effect is the one run for the `default` context, with the context
+   name `default`. The discovery run for `default.windows` feeds a generator
+   that is never executed.
+4. A build-time program needs its own library dependencies installed for the
    build machine (`dune-configurator`, `unix`, `str`), and the binding
    libraries need theirs installed for the target. A dependency needed on
    both sides is listed twice: `foo` and `foo-windows`.
@@ -54,11 +59,11 @@ Consequences the bindings rely on:
 
 Rules pass these expansions to the build-time programs:
 
-| Variable          | Passed to                         | Value in `default.windows`                                   |
-| ----------------- | --------------------------------- | ------------------------------------------------------------ |
-| `%{context_name}` | detector, include-path discoverer | `default.windows`                                            |
-| `%{os_type}`      | detector                          | the target's OS type, `Win32`                                |
-| `%{cc}`           | enum generator                    | the target C compiler command, with its flags, as one string |
+| Variable          | Passed to      | Value in `default.windows`                                   |
+| ----------------- | -------------- | ------------------------------------------------------------ |
+| `%{context_name}` | detector       | `default.windows`                                            |
+| `%{os_type}`      | detector       | the target's OS type, `Win32`                                |
+| `%{cc}`           | enum generator | the target C compiler command, with its flags, as one string |
 
 A build-time program that reads the OS type from its own runtime gets the
 build machine's. The detector takes the target's as an argument for that
@@ -84,6 +89,13 @@ A context with neither variable set uses the ambient `PKG_CONFIG_PATH` and
 context ([build.md](build.md) §2.1). With
 `LIQUIDSOAP_DUNE_TARGET=default.windows`, the rules of the `default` context
 also detect against the Windows libraries.
+
+It is the only way to point the include-path discovery at the target's
+headers: that discovery takes effect from the `default` context alone (§1.2),
+where the context name selects `PKG_CONFIG_PATH_default`. Without the
+override, the generator locates headers through the build machine's
+pkg-config and relies on the `-I` flags passed on its command line, which
+come from the target's detection.
 
 ### 2.3 Headers come from the target, hashes from the host
 

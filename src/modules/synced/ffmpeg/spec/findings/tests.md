@@ -287,9 +287,10 @@ what the coverage map shows as untested.
   `probesize`/`analyzeduration`. Asserted by the comment at
   `gen/gen_test.ml:151-152`; not run.
 - The `color` lavfi source defaults to 25 fps. From memory.
-- Every FFmpeg encoder sets `AV_CODEC_CAP_DR1`. Asserted by the comment at
-  `test/test_codec.ml:8-10`; from memory it holds for the native AAC
-  encoder in the versions on CI, not checked for all.
+- Settled, false: every FFmpeg encoder sets `AV_CODEC_CAP_DR1`. Asserted by
+  the comment at `test/test_codec.ml:8-10`. **checked**: the native AAC
+  encoder of FFmpeg 5.1.10 does not report it and the step fails there; it
+  passes on 7.1.5, 8.1.3 and 9.0.2.
 - The FLAC demuxer accepts a stream of raw FLAC frames with no `fLaC`
   header, which is what the stand-alone encoder example writes to
   `A4.flac`. From memory.

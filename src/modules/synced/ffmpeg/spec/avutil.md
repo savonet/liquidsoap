@@ -235,8 +235,8 @@ Each generated table pairs an OCaml polymorphic variant with a C constant.
 For each table the generator provides three conversions: OCaml to C
 (raising), OCaml to C (non-raising, returns the sentinel `0xFFFFFFF`), and C
 to OCaml (raising). The raising conversions raise
-`Error (`Failure "Could not find C value for N in TABLE. Do you need to
-recompile the ffmpeg binding?")`(respectively`"... OCaml value for ..."`)
+``Error (`Failure "Could not find C value for N in TABLE. Do you need to
+recompile the ffmpeg binding?")`` (respectively `"... OCaml value for ..."`)
 when the value has no entry.
 
 | Table                      | OCaml type                 | C type                               | Used by `Avutil` for                         |
@@ -733,8 +733,8 @@ end
 4. Wraps the frame. Pixel data is uninitialised.
 
 `frame_get_linesize frame n`: raises
-`Error (`Failure "Failed to get linesize from video frame : line (n) out of
-boundaries")`when`n < 0`, `n >= AV_NUM_DATA_POINTERS`or`frame->data[n]`is`NULL`. Otherwise returns `frame->linesize[n]`.
+``Error (`Failure "Failed to get linesize from video frame : line (n) out of
+boundaries")`` when `n < 0`, `n >= AV_NUM_DATA_POINTERS` or `frame->data[n]` is `NULL`. Otherwise returns `frame->linesize[n]`.
 
 `frame_visit ~make_writable f frame`:
 
@@ -763,8 +763,8 @@ Getters:
 | `frame_get_color_trc`       | `frame->color_trc` converted                                         |
 | `frame_get_chroma_location` | `frame->chroma_location` converted                                   |
 
-A converted getter raises `Error (`Failure "Could not find OCaml value
-for ...")` when the C value has no table entry.
+A converted getter raises ``Error (`Failure "Could not find OCaml value
+for ...")`` when the C value has no table entry.
 
 ### 4.14 Subtitles
 
@@ -887,7 +887,9 @@ classes. Algorithm: section 9.3. Result properties:
 - `flags` holds every flag of the list in section 3.2 whose mask intersects
   `option->flags`, in the reverse of that list's order;
 - `spec` carries `default`, `min`, `max` per section 3.2, wrapped in
-  `` `Array `` when the option type has the array bit (section 10);
+  `` `Array `` when the option type has the array bit (section 10). For such
+  an option the default is read from the same member of the default-value
+  union as for a scalar of the element type;
 - `values` is always `[]` in the current code (section 11.3).
 
 ### 4.16 AVOption reads
@@ -971,8 +973,8 @@ Value rendering, used by `mk_opts_array` and `string_of_opts`:
 
 `mk_audio_opts`:
 
-1. Raises `Error (`Failure "At least one of channels or channel_layout must
-   be passed!")`when both`channels`and`channel_layout` are omitted.
+1. Raises ``Error (`Failure "At least one of channels or channel_layout must
+be passed!")`` when both `channels` and `channel_layout` are omitted.
 2. Copies the caller's table (or starts from an empty one). The caller's
    table is not modified.
 3. Adds, with `Hashtbl.add` (so an existing binding of the same key is

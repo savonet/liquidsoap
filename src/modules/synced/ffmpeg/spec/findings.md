@@ -76,7 +76,7 @@ Each of these corrupts memory or crashes from well-typed OCaml code.
 | Codec enumeration drops every codec whose identifier has a negative variant representation.                                                     | `avcodec`           | checked: 47 of 280 video decoders, 93 of 223 audio decoders missing |
 | Bitstream filter options are never applied.                                                                                                     | `avcodec`           | checked, and confirmed from FFmpeg source                           |
 | `?frame_rate` of the video encoder has no effect; the derived `r`, `channel_layout` and `sample_fmt` keys match no option and vanish.           | `avcodec`           | worse than reported, at all three tags                              |
-| Hardware upload and download copy no frame properties: timestamps are lost.                                                                     | `avcodec`, `av` G10 | read only                                                           |
+| Hardware upload and download copy no frame properties: timestamps are lost.                                                                     | `avcodec`, `av` G10 | confirmed (second read)                                             |
 | Value-to-identifier conversion returns a range marker for the first codec of each family.                                                       | build               | narrowed: one live case, `pcm_rechunk`                              |
 | Enum members declared after a `_NB` marker are cut from their table; converting them raises.                                                    | build               | worse than reported: affects 8.1 and 9.0                            |
 | `SWR_DITHER_NONE` is absent from the dither table.                                                                                              | build               | checked                                                             |
@@ -181,9 +181,10 @@ is frozen, so each is either a comment to correct or a behaviour to change.
 
 ### Version conditionals
 
-- **Seven conditionals are dead**: their other side lies below the detection
-  bound ([compatibility.md](compatibility.md) §3). **checked** against the
-  version headers at each release tag.
+- **Eleven conditionals are dead** ([compatibility.md](compatibility.md) §3).
+  Seven test a version below the detection bound: **checked** against the
+  version headers at each release tag. Four test a macro that FFmpeg defines
+  throughout the range: **checked** in the headers at 5.1 and 9.0.
 - **One conditional is never true** on any version: the `` `Child_consts ``
   flag. **checked**.
 - **The stated bound is untested.** The README says FFmpeg 5.1; CI builds 7.1
@@ -206,9 +207,11 @@ has no Windows toolchain.
 - **Gap: the context and pkg-config selection is written twice**, in the
   detector and in the include-path discoverer, and the two must agree.
   **confirmed (second read)**, in [findings/build.md](findings/build.md).
-- **Gap: why `LIQUIDSOAP_DUNE_TARGET` exists is not recorded.** It forces the
-  target's pkg-config onto the build machine's context; the code gives no
-  reason. **read only**.
+- **Gap: the include-path discovery is tied to the build machine's context.**
+  Its result is compiled into the generator, and the generator that runs
+  under cross-compilation is the build machine's. `LIQUIDSOAP_DUNE_TARGET` is
+  what redirects it to the target's pkg-config; the code does not say so, and
+  the opam packages do not set it. **reasoned from the build rules, not run**.
 - **Asymmetry: the two invocations select pkg-config differently.** The opam
   packages rely on the ambient `PKG_CONFIG_PATH`; the embedded build unsets it
   and uses the per-context variables. **read only**.
@@ -234,6 +237,29 @@ has no Windows toolchain.
   and most operations release the runtime lock mid-way. Two OCaml threads on
   one container, codec, graph or converter race inside FFmpeg. No interface
   comment says so. **read only**.
+
+### From the project's history
+
+[known-complexity.md](known-complexity.md) lists 61 pitfalls mined from the
+history. 42 are covered by a stated rule and 14 are findings already listed in
+the subsystem files. Five are not covered by the specification. All **read
+only**.
+
+- **Gap: no rule on holding OCaml values across an allocation.** The
+  specification says which objects exist and who owns them. It states no rule
+  for values a stub holds while it allocates or calls back into OCaml, which
+  is the most repeated crash in the history.
+- **Gap: no rule on what may be stored in an OCaml block or passed as a native
+  object.** Integers stored in blocks are tagged; a reader of a native object
+  receives the native object.
+- **Gap: no rule on allocator families.** Nothing states that what crosses the
+  boundary is allocated by FFmpeg's allocator and released by one call per
+  object kind.
+- **Gap: text FFmpeg may return as null.** [avfilter.md](avfilter.md) §2
+  describes pad names as copied unconditionally. An upstream issue reports a
+  crash at module load from a null name.
+- **Gap: a copied stream has no frame rate.** [avformat.md](avformat.md) §4.4
+  does not say that copying a stream leaves its average frame rate unset.
 
 ## 6. What was never run
 
