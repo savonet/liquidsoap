@@ -102,7 +102,7 @@ jobs:
           chown -R opam "/tmp/${{ github.run_number }}/metrics"
           sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ inputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
       - name: Upload metrics artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: inputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: metrics
@@ -124,7 +124,7 @@ jobs:
           find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
       - name: Upload traces
         if: (success() || failure()) && inputs.save_traces == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: traces-${{ matrix.target }}
           path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
@@ -139,13 +139,13 @@ jobs:
           done
           cp -f _build/default/tests/regression/GH5019.gen.png /tmp/${{ github.run_number }}/test-artifacts/tests/regression/GH5019.png || true
       - name: Upload test artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: (success() || failure()) && inputs.is_fork != 'true' && matrix.target == '@citest'
         with:
           name: test-artifacts
           path: ${{ github.workspace }}/${{ github.run_number }}/test-artifacts
       - name: Export potential core dumps
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: core-dump-${{ matrix.target }}
