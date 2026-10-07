@@ -1,962 +1,256 @@
-# Test suite of the OCaml FFmpeg bindings
+# Conformance
 
-This file describes the suite by principle. Each entry states what must
-hold (Invariant), what a new suite must reproduce (Binding), what is an
-accident of this one (Incidental), what it reads (Inputs), and where it
-lives (Trace).
+What a test suite for a conforming implementation must assert, and what it
+must not depend on.
 
-Three strengths of check appear below and the entries name which applies:
+## 0. Principles
 
-- **asserted** — the test compares a value and fails on a mismatch;
-- **exercised** — the call runs; only an uncaught exception or a crash
-  fails the test;
-- **compiled** — the call is type-checked and linked, never run.
+- **A requirement is an assertion.** Each entry below names a value to
+  compare or an error to expect. A step that only runs a call and passes when
+  nothing crashes satisfies no requirement.
+- **Binding and incidental.** For each requirement the binding part is
+  stated. Everything else is incidental and a suite MUST NOT assert it: the
+  wording of messages (except the three texts of
+  [binding-contract.md](binding-contract.md) §5.3), log content, the order of
+  unordered results, file names, timing, the representation of handles.
+- **Misuse is tested like use.** For every operation that exists once per
+  media kind, the same misuse cases run on every kind (§12, "One operation
+  written once per media kind").
+- **Every known pitfall is a check.** §12.
+- **A check must be able to fail.** §10.
 
-## 0. Shape of the suite
-
-The suite is one build alias, `ffmpeg_citest`. It carries one rule whose
-action is a fixed sequence of 45 commands, run in order in the test
-directory, stopping at the first non-zero exit. The sequence contains:
-
-- 11 dedicated test programs (`test_*`), 12 invocations;
-- 21 example programs from the examples directory, 27 invocations, used
-  both as smoke checks and as the producers of media for later steps;
-- 4 invocations of the `ffmpeg` command-line tool that synthesise media;
-- 1 line-ending normaliser and 1 `diff`.
-
-Later steps read files written by earlier steps. The order is therefore
-part of the suite. Section 9.3 gives the full order and the file each step
-reads and writes.
-
-The alias exists only when all seven binding libraries are detected as
-available (section 8).
+Requirements are numbered per section. "Rule" columns point at the rule a
+requirement verifies.
 
 ## 1. avutil
 
-### 1.1 Colour property names round-trip
-
-- **Invariant** — For a colour space, colour range, colour primaries,
-  transfer characteristic and chroma location, converting a value to its
-  FFmpeg name and looking that name up returns the same value.
-- **Binding** — `from_name (name v) = Some v` for `Color_space` `` `Bt709``,
-  `Color_range` `` `Mpeg``, `Color_primaries` `` `Bt709``, `Color_trc`
-  `` `Bt709``, `Chroma_location` `` `Left``. One value per enumeration.
-- **Incidental** — The choice of these five values; the message text.
-- **Inputs** — None.
-- **Trace** — `test_info.ml`.
-
-### 1.2 Option getters read the native object
-
-- **Invariant** — Reading a named AVOption from an opened input container
-  returns the value held by the demuxer context.
-- **Binding** — On an opened input, the 64-bit integer option `probesize`
-  is strictly positive and the integer option `max_delay` is at least −1.
-  Both getters return without error.
-- **Incidental** — The two option names; the bounds (they are loose
-  plausibility bounds, not the FFmpeg defaults).
-- **Inputs** — Any openable media file; the suite passes the Matroska file
-  of 3.7 and the FLAC stream of 2.5.
-- **Trace** — `test_info.ml`.
-
-### 1.3 Unused options are reported back, and only those
-
-- **Invariant** — An option dictionary handed to an operation that opens a
-  demuxer, a muxer or an encoder holds, after the call, exactly the keys
-  FFmpeg did not consume. Consumed keys are removed. Keys survive intact
-  whatever their number.
-- **Binding** —
-  1. Open an input with `probesize` = 5000000 plus two unknown keys: the
-     dictionary afterwards holds exactly the two unknown keys.
-  2. Open an output file with the two unknown keys only: both remain.
-  3. Create an AAC audio encoder (stereo, 44100 Hz, planar float, time
-     base 1/44100) with `b` = 128000 plus the two unknown keys: exactly the
-     two unknown keys remain.
-  4. Open an input with 20000 distinct unknown keys: all 20000 remain, and
-     every remaining key is byte-identical to a key that was put in.
-     The comparison is on the set of keys, not on values or order.
-- **Incidental** — The key names (`definitely_not_an_option`, `also_bogus`,
-  `bogus_option_NNNNNN`), the value `"1"`, the count 20000, the output file
-  name, the final full collection.
-- **Inputs** — The Matroska file of 3.7. The output file is created and
-  closed with no stream.
-- **Trace** — `test_options.ml`.
-
-The same rule is asserted for two more entry points by an example: see
-3.9.
-
-### 1.4 Standard channel layouts enumerate and describe
-
-- **Invariant** — The list of standard channel layouts can be built and
-  each layout has a textual description.
-- **Binding** — Exercised only: enumeration and description of every
-  element complete without error.
-- **Incidental** — The printed list.
-- **Inputs** — None.
-- **Trace** — `examples/all_channel_layouts.ml`.
-
-### 1.5 Log redirection
-
-- **Invariant** — With the log level at debug and a user callback
-  installed, every FFmpeg log line produced during demuxing, decoding,
-  encoding and muxing reaches the callback as a string, from whichever
-  thread FFmpeg logs on, without crashing the process.
-- **Binding** — Exercised only. Most programs in the suite install a
-  callback that prints, at debug level; two install a callback that
-  discards. No log content is asserted.
-- **Incidental** — Everything printed.
-- **Inputs** — Whatever the host program reads.
-- **Trace** — `test_info.ml`, `test_resample.ml`, most examples.
+| #    | Requirement (binding part)                                                                                                                                                                                                                                                             | Rule                         |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 1.1  | For every constructor `v` of each of the five colour enumerations that FFmpeg names, `from_name (name v)` is `Some` of a value with the same C value. An unknown name gives `None`.                                                                                                    | [avutil.md](avutil.md) §4.10 |
+| 1.2  | `Pixel_format` and `Sample_format`: every constructor converts to C and back to itself or to its first-declared alias. `find_id` and `find` raise `Not_found` on a miss.                                                                                                               | contract E2–E5; avutil §5.3  |
+| 1.3  | An option read through `Options` equals the value set through FFmpeg: set a container option to a chosen non-default value at open, read it back with each getter of matching type.                                                                                                    | avutil §4.16; contract B2    |
+| 1.4  | `?search_children:false` and omitting it do not search child objects; `true` does: an option that exists only on a child is found in the third case alone.                                                                                                                             | avutil §4.16                 |
+| 1.5  | `Options.opts` on the option class of every registered codec, format, filter and bitstream filter returns. For an option with named constants, `values` lists them.                                                                                                                    | avutil §4.15                 |
+| 1.6  | The bounds of an option spanning the full 64-bit range are the two 64-bit extremes.                                                                                                                                                                                                    | avutil §3.2                  |
+| 1.7  | Option tables: after each operation that takes `?opts`, given one valid and one unknown key, the table holds the unknown key only. After a failing operation it is unchanged. 20000 unknown keys all come back intact.                                                                 | avutil §9.1; contract F7     |
+| 1.8  | `Frame.set_pts` then every timestamp accessor: they agree.                                                                                                                                                                                                                             | avutil §4.3                  |
+| 1.9  | `Frame.set_metadata` with `{a, b}` then `{b}`: `metadata` returns `{b}`.                                                                                                                                                                                                               | avutil §4.3                  |
+| 1.10 | `Video.frame_visit` on 4:2:0 and 4:2:2 frames: each plane's length is its line size times that plane's height. A bigarray kept after the frame is dropped and collected is still readable and writable.                                                                                | avutil §8.2; contract L4     |
+| 1.11 | `Audio.frame_copy_samples`: negative arguments, ranges past either frame, differing formats and differing layouts each raise; a valid call copies exactly the range.                                                                                                                   | avutil §4.12                 |
+| 1.12 | `Subtitle`: for text and bitmap contents, `get_content (create_frame c) = c`. Plane arrays of a length other than 4 and planes of a wrong size raise.                                                                                                                                  | avutil §4.14                 |
+| 1.13 | `Channel_layout`: a standard and a custom layout round-trip through every operation that returns a layout; `find` of an unknown name and `get_default` of a count with no standard layout raise `Not_found`.                                                                           | avutil §2.2, §4.8            |
+| 1.14 | Logging, with a callback installed and the level at debug, while several threads encode: every message is delivered once, in order per logging thread, and none after `clear_callback` returned.                                                                                       | avutil §7.1 N5–N8            |
+| 1.15 | Logging: a message logged from a thread that holds the runtime lock is delivered and nothing hangs. `set_callback` immediately after `clear_callback` delivers to the new callback. A callback that raises does not stop delivery. A callback that calls `set_callback` does not hang. | avutil §7.1 N1, N9, N10      |
+| 1.16 | `Error`: each constructor of the mapping table is raised for its FFmpeg code and `string_of_error` returns FFmpeg's text for it.                                                                                                                                                       | avutil §5.1                  |
 
 ## 2. avcodec
 
-### 2.1 Encoder capabilities are typed values
+| #    | Requirement (binding part)                                                                                                                                                                                                      | Rule                         |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| 2.1  | The name lists of `Audio`, `Video` and `Subtitle` `encoders` and `decoders` equal, as sets, the codecs of that kind and direction FFmpeg registers whose identifier is in the family. `get_id` succeeds on each.                | [avcodec.md](avcodec.md) §11 |
+| 2.2  | For each family, every identifier converts to C and back to itself; the identifier of a codec found by identifier is the identifier asked for, compared as values.                                                              | contract E2–E5               |
+| 2.3  | Each `get_supported_*` list holds exactly the entries `avcodec_get_supported_config` counts, for a codec that declares each kind of list.                                                                                       | avcodec §4.3                 |
+| 2.4  | `capabilities` of a codec matches a literal constructor for a capability the codec is known to have, for an encoder and for a decoder.                                                                                          | avcodec §4.1; contract B2    |
+| 2.5  | A decoder uses several threads on a machine that has several, observed from outside the interface while it decodes with a codec that supports frame threading. An encoder given `threads` = 1 uses one.                         | avcodec §4.9                 |
+| 2.6  | Decoding a stream with reordering returns as many frames as it has, the flush included. A packet that produces several frames delivers them all; one that produces none is not an error.                                        | avcodec §4.10, §11           |
+| 2.7  | State table of §2.4, for a decoder and for an encoder: flush twice; send after flush; each has the documented outcome.                                                                                                          | avcodec §2.4                 |
+| 2.8  | A user function that raises mid-delivery: the exception propagates unchanged, ``Error `Eof`` included; the next call delivers the frames that were pending.                                                                     | avcodec §7.2                 |
+| 2.9  | Packets: `set_flags` then `get_flags`; each setter then its getter, with the sentinels; `dup` shares the payload and copies the properties; a packet given to a decoder, a bitstream filter or a muxer is unchanged afterwards. | avcodec §4.2; contract A4    |
+| 2.10 | Side data: each of the three kinds round-trips with its content and order. A metadata entry written by the binding is accepted by `av_packet_unpack_dictionary`.                                                                | avcodec §3.2                 |
+| 2.11 | Bitstream filter: an option of the filter's private class given to `init` takes effect and is not reported unused.                                                                                                              | avcodec §4.8                 |
+| 2.12 | Encoder typed arguments: after `Video.create_encoder ~frame_rate`, the parameters and the encoded stream carry that frame rate; an unsupported sample format, pixel format or size makes creation fail.                         | avcodec §4.9; contract O2    |
+| 2.13 | Hardware upload: the timestamp of a frame encoded through a hardware frame context reaches the packets. Requires a device; reported as skipped without one (§10).                                                               | avcodec §4.10                |
 
-- **Invariant** — The capability list of an encoder is non-empty and holds
-  values of the public capability enumeration.
-- **Binding** — The AAC encoder, found by codec id, reports at least one
-  capability and the list contains `` `Dr1``.
-- **Incidental** — The choice of AAC and of `` `Dr1``. The code comment
-  gives the reason for `` `Dr1``: every encoder FFmpeg ships sets
-  `AV_CODEC_CAP_DR1`.
-- **Inputs** — None. FFmpeg must be built with the native AAC encoder.
-- **Trace** — `test_codec.ml`.
+## 3. av
 
-### 2.2 Codec id survives a lookup
-
-- **Invariant** — The id reported by a decoder found by id is the id that
-  was asked for, for each media kind.
-- **Binding** — For audio `` `Aac``, video `` `H264`` and subtitle
-  `` `Subrip``: the name of the id of the decoder found for that id equals
-  the name of that id. The comparison is on names.
-- **Incidental** — The three ids.
-- **Inputs** — None. FFmpeg must have AAC, H.264 and SubRip decoders.
-- **Trace** — `test_codec.ml`.
-
-### 2.3 Codec and bitstream-filter catalogues enumerate
-
-- **Invariant** — Every audio, video and subtitle codec id has a name and
-  an optional descriptor (media type, names, MIME types, properties,
-  profiles). Every encoder and decoder has a name and a description. Every
-  video codec reports its supported pixel formats and colour spaces. Every
-  bitstream filter reports its name, codec ids and option table.
-- **Binding** — Exercised only: the full walk completes.
-- **Incidental** — All printed text.
-- **Inputs** — None.
-- **Trace** — `examples/all_codecs.ml`, `examples/all_bitstream_filters.ml`.
-
-### 2.4 Stand-alone audio encoding
-
-- **Invariant** — An encoder created without a container accepts frames
-  and delivers packets, then delivers its remaining packets on flush.
-- **Binding** — Exercised here; asserted downstream: the FLAC output is
-  later demuxed and decoded to a non-zero number of samples (5.4) and
-  probed to a stream with a positive sample rate and channel count (3.1).
-  The encoder is fed 2001 frames. The frame length is 512 samples when the
-  encoder accepts variable frame sizes, otherwise the encoder's own frame
-  size. Each frame is cut from a buffer twice that long with an offset of
-  10 samples (5.5).
-- **Incidental** — 440 Hz sine, mono source up-mixed to stereo at 44100 Hz,
-  the sample format picked as the encoder's closest to double.
-- **Inputs** — Generated in process. Run twice: `flac` and `mp2`. The
-  output is the concatenation of packet payloads with no container.
-- **Trace** — `examples/encode_audio.ml`.
-
-### 2.5 Stand-alone decoding of demuxed packets
-
-- **Invariant** — Decoders created from stream parameters accept the
-  packets the demuxer returns for that stream and flush cleanly.
-- **Binding** — Exercised only. Every packet returned is audio or video;
-  any other result fails. Decoded frames are discarded.
-- **Incidental** — Nothing else.
-- **Inputs** — The Matroska file of 3.7.
-- **Trace** — `examples/decoding.ml`.
-
-### 2.6 Hardware encoding
-
-- **Invariant** — None enforced. The program looks up `h264_nvenc`, lists
-  its hardware configurations and, when a device or frame context can be
-  created, encodes 241 frames.
-- **Binding** — None: every outcome short of a crash exits with status 0.
-- **Incidental** — Everything.
-- **Inputs** — An NVENC-capable host, which the reference CI does not
-  have.
-- **Trace** — `examples/hw_encode.ml`, run with modes `device` and `frame`.
-
-## 3. avformat
-
-### 3.1 Probing an input
-
-- **Invariant** — An opened input exposes at least one stream. Audio
-  streams have a positive sample rate and channel count. Video streams have
-  positive width and height and yield at least one decoded frame.
-- **Binding** — Those four assertions, for each file given. For each video
-  stream a decoder is also created from the stream parameters (exercised).
-  Duration, container and stream metadata, container-level stream time
-  base, codec id, sample format, bit rate, sample aspect ratio and the
-  colour properties of the first video frame are read (exercised).
-- **Incidental** — The printed report, including its unit labels.
-- **Inputs** — The Matroska file of 3.7 and the FLAC stream of 2.4.
-- **Trace** — `test_info.ml`.
-
-### 3.2 Reading subtitle frames
-
-- **Invariant** — A container with a text subtitle stream yields decoded
-  subtitle frames when that stream is selected for frame output, then end
-  of file.
-- **Binding** — The input has at least one subtitle stream; at least one
-  subtitle frame is read; reading ends with the end-of-file error; any
-  other error fails. Content (timestamp, display time, rectangles) is read
-  but not compared.
-- **Incidental** — Printed lines.
-- **Inputs** — The subtitle Matroska file of 10.2.
-- **Trace** — `test_subtitle_read.ml`.
-
-### 3.3 Packets of unselected streams go to the unhandled-packet callback
-
-- **Invariant** — When reading with only some streams selected, packets of
-  the other streams are handed, typed by media kind, to the caller's
-  callback rather than dropped or returned.
-- **Binding** — Selecting all audio streams for frame output: at least one
-  audio frame is returned, and the callback receives at least one video
-  packet when the input has a video stream. Reading ends with end of file;
-  any other error fails.
-- **Incidental** — The printed counters. The count of unhandled subtitle
-  packets is printed and not compared.
-- **Inputs** — The subtitle Matroska file of 10.2 (audio, video, subtitle).
-- **Trace** — `test_unhandled_packet.ml`.
-
-### 3.4 A seek discards frames buffered before it
-
-- **Invariant** — After a seek, the first frame returned for a stream
-  belongs to the new position. Frames a decoder was holding from before
-  the seek are not returned.
-- **Binding** — Read 10 video frames, seek the container to 20000 ms with
-  default flags and no stream, read one video frame: it has a timestamp,
-  and that timestamp, converted with the stream time base, is at least
-  19 s.
-- **Incidental** — The 10 warm-up reads, the 1 s tolerance, the target.
-- **Inputs** — The B-frame Matroska file of 10.2. B-frames are what make the
-  decoder hold frames.
-- **Trace** — `test_seek.ml`.
-
-### 3.5 Decoders are drained at end of input
-
-- **Invariant** — Every frame of a stream is returned before the
-  end-of-file error, including frames the decoder still holds when the
-  demuxer runs out of packets. After end of file a seek to the start makes
-  the whole stream readable again with the same frame count.
-- **Binding** —
-  1. The B-frame video (25 s at 25 fps) yields exactly 625 video frames.
-  2. After seeking that input to 0 ms it yields exactly 625 again.
-  3. A one-frame PNG yields exactly 1 video frame.
-- **Incidental** — Program arguments; the third argument is tested only for
-  presence.
-- **Inputs** — The B-frame Matroska file and the PNG of 10.2.
-- **Trace** — `test_drain.ml`.
-
-### 3.6 Streams found while reading are tracked
-
-- **Invariant** — For a demuxer that discovers streams during reading, the
-  input's stream list grows accordingly, and closing the input afterwards
-  is safe.
-- **Binding** — The number of audio streams after reading the best audio
-  stream to end of file is strictly greater than the number right after
-  opening. Closing then returns normally.
-- **Incidental** — The exact counts.
-- **Inputs** — The MPEG program stream of 10.2. It depends on the MPEG-PS
-  demuxer not finding the late streams during probing.
-- **Trace** — `test_input_streams_grow.ml`.
-
-### 3.7 Muxing encoded audio and video to a file
-
-- **Invariant** — An output container accepts an audio and a video stream
-  with encoders, container and stream metadata, and frames with
-  caller-set timestamps; closing it writes a playable file.
-- **Binding** — Exercised here; asserted downstream by 1.2, 1.3, 3.1, 2.5,
-  3.8, 3.10, 3.11, 4.2, 4.3, 5.4, 6.2, which all read the result.
-- **Incidental** — Container title `On Off`; stream metadata `Media`; the
-  on/off pattern; the subtitle codec argument, which is ignored.
-- **Inputs** — Generated in process: 250 video frames 352×288 `yuv420p` at
-  25 fps (MPEG-4), and 250 audio frames of the encoder's frame size, stereo
-  44100 Hz (AAC), 440 Hz sine alternating with silence. Written as
-  `out.mkv`.
-- **Trace** — `examples/encoding.ml`.
-
-A second program encodes 241 frames 352×288 in `yuva420p` with
-`libvpx-vp9` to WebM. Exercised only; nothing reads the result. It also
-reads the pixel format descriptor. Trace: `examples/encode_video.ml`.
-
-### 3.8 Remuxing packets, with packet side data
-
-- **Invariant** — Packets read in packet mode from every audio, video and
-  subtitle stream can be written unchanged to streams created as copies of
-  the input parameters. Side data added to a packet can be read back from
-  it.
-- **Binding** — Exercised. Every result is an audio, video or subtitle
-  packet; anything else fails. Three side-data items (string metadata,
-  metadata update, replay gain 1/2/3/4) are added to each audio packet and
-  the list is read back and printed, not compared. The video stream's
-  average frame rate is copied.
-- **Incidental** — Printed side data.
-- **Inputs** — `out.mkv` of 3.7; output MP4.
-- **Trace** — `examples/remuxing.ml`.
-
-### 3.9 Custom I/O output, and option reporting on stream creation
-
-- **Invariant** — An output can be driven through caller write and seek
-  callbacks with a guessed output format. Options given when opening the
-  output and when creating an encoded stream follow the rule of 1.3.
-- **Binding** — Asserted:
-  - opening with `packetsize` = 4096 and `foo`: `packetsize` is removed,
-    `foo` remains;
-  - creating the audio stream with `lpc_type` = `none` and `foo`: `foo`
-    remains; `lpc_type` is removed for FLAC and remains for MP2.
-    Exercised: 2001 frames through a resampler and the audio frame-size
-    converter of 4.4, then flush and close.
-- **Incidental** — Output sample rate 22050 for FLAC and 44100 otherwise.
-- **Inputs** — Generated in process. Run for `flac` and `mp2`.
-- **Trace** — `examples/encode_stream.ml`.
-
-### 3.10 Custom I/O input
-
-- **Invariant** — An input can be driven through caller read and seek
-  callbacks with no format hint, and decodes like a file input.
-- **Binding** — Exercised. Each result is an audio frame of the best
-  stream; anything else fails. An invalid-data error is skipped; end of
-  file ends the loop.
-- **Incidental** — The printed format line.
-- **Inputs** — The FLAC and MP2 streams of 2.4; re-encoded with
-  `libmp3lame` to MP3 and `libvorbis` to Ogg.
-- **Trace** — `examples/decode_stream.ml`.
-
-### 3.11 Transcoding frames, including subtitles
-
-- **Invariant** — Frames decoded from every stream can be encoded into new
-  streams of a second container. Frame metadata can be read and replaced.
-- **Binding** — Exercised. Every result is an audio, video or subtitle
-  frame.
-- **Incidental** — The `encoder` metadata entry.
-- **Inputs** — `out.mkv` of 3.7 (no subtitle stream, so the subtitle branch
-  does not run); output MP4.
-- **Trace** — `examples/transcoding.ml`.
-
-### 3.12 Reading metadata
-
-- **Invariant** — Container metadata and per-stream metadata of audio and
-  video streams are readable as key/value lists.
-- **Binding** — Exercised only; only the first program argument is used.
-- **Incidental** — Printed lines; the three unused arguments.
-- **Inputs** — The FLAC and MP2 streams of 2.4.
-- **Trace** — `examples/read_metadata.ml`.
-
-### 3.13 Subtitle content survives decode, rebuild, encode, mux
-
-- **Invariant** — Text subtitles read as frames, taken apart into their
-  content (timing, rectangles, text, ASS line), rebuilt into new frames
-  from that content, encoded as SubRip and muxed, give the same subtitle
-  text and timing as the original.
-- **Binding** — Asserted byte for byte: the SubRip file produced, with
-  every carriage return removed, equals the fixture. This covers cue
-  numbering, start and end times to the millisecond, multi-line cues,
-  accented Latin and Japanese text, and cue order.
-- **Incidental** — The intermediate file names; the progress lines.
-- **Inputs** — The subtitle Matroska file of 10.2, itself built from the
-  fixture.
-- **Trace** — `examples/subtitle_remux.ml`, `normalize_line_endings.ml`,
-  `fixtures/sample.srt`.
-
-### 3.14 Blocking opens can be interrupted
-
-- **Invariant** — An open that blocks returns with the `` `Exit`` error
-  once the caller's interrupt callback returns true.
-- **Binding** — Asserted, outside GitHub Actions only: opening an input on
-  a listening Unix socket, and opening an output on
-  `http://localhost/foo.mp3`, both fail with `` `Exit`` after the callback
-  turns true (about 0.1 s after start). Any other outcome fails.
-- **Incidental** — The 0.1 s delay, the socket path, the URL.
-- **Inputs** — A temporary file name used as a Unix socket path. The
-  protocols `unix` and `http` must be present.
-- **Trace** — `examples/interrupt.ml`.
+| #    | Requirement (binding part)                                                                                                                                                                                              | Rule                             |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 3.1  | Every container and stream operation on a closed container raises the closed error. `close` twice returns. A closed container dropped and collected does nothing.                                                       | [avformat.md](avformat.md) §2.1  |
+| 3.2  | Every open function, failed by each of its causes (unknown format, rejected option, unreachable URL, failed probe, raising configure function) with every callback supplied, then a full collection: no crash, no leak. | contract L2, L8                  |
+| 3.3  | A stream creation that fails for an unsupported parameter or a rejected option leaves the output usable: other streams can be written and `close` returns.                                                              | avformat §2.1, §4.4              |
+| 3.4  | An output opened with streams, then flushed and closed with nothing written: both return.                                                                                                                               | avformat §2.1                    |
+| 3.5  | `close` on an output whose final write fails: the error is raised and the container is closed.                                                                                                                          | contract L6                      |
+| 3.6  | Frame mode: a file with reordered frames yields exactly its frame count before ``Error `Eof``; after a seek to the start it yields the same count again. A one-frame image yields one frame.                            | avformat §4.3                    |
+| 3.7  | After reading some frames and seeking far ahead, the first frame returned has a timestamp at the target, within a stated tolerance on both sides.                                                                       | avformat §4.3                    |
+| 3.8  | A demuxer that adds streams while reading: the stream lists grow; a seek and a close afterwards succeed.                                                                                                                | avformat §2.2                    |
+| 3.9  | Selections: a stream in the packet selection yields packets, in the frame selection frames, in both packets; unselected streams reach `on_unhandled_packet`, typed by kind, for every kind present.                     | avformat §4.3                    |
+| 3.10 | A frame-mode stream whose decoder fails to open: the read raises; a later read raises again or succeeds; `close` returns.                                                                                               | avformat §4.3                    |
+| 3.11 | Preferred decoder and per-stream options from a configure function are the ones the stream's decoder is opened with.                                                                                                    | avformat §4.3                    |
+| 3.12 | Custom write: muxing through a write closure, at a bit rate that fills FFmpeg's buffer, with a closure that consumes a random part of each call, gives the bytes of the same muxing to a file.                          | avformat §7.1.2                  |
+| 3.13 | Custom read: an input read through closures decodes like the file; a read that returns 0 ends the input; a read that returns more than asked fails the operation without writing past the buffer.                       | avformat §7.1.1                  |
+| 3.14 | Each of the four closures raising: the enclosing operation raises `Avutil.Error`, the exception text is logged, and the container can be closed.                                                                        | contract C1                      |
+| 3.15 | Interrupt: an open blocked on a silent endpoint returns with ``Error `Exit`` once the function returns true, with collections forced meanwhile. The function is never called after `close` returned.                    | avformat §7.1.4                  |
+| 3.16 | Key frames: with `on_keyframe` recording `tell`, every recorded position is the start of a key packet. The callback may call `flush`.                                                                                   | avformat §4.4, §6.2              |
+| 3.17 | Options of `open_output`: one generic container option, one muxer private option and one protocol option all take effect and none is reported unused.                                                                   | avformat §9                      |
+| 3.18 | Metadata set twice on a container and on a stream: the second list replaces the first.                                                                                                                                  | avformat §4.4                    |
+| 3.19 | Remuxing a constant-rate video with `new_stream_copy` plus the frame-rate accessor pair: the output stream reports the source's frame rate. Without the pair it reports none.                                           | avformat §4.4                    |
+| 3.20 | Durations and aspect ratios: a live input reports no duration; a stream that declares no aspect ratio reports none.                                                                                                     | avformat §4.3                    |
+| 3.21 | A duration or seek target beyond 3 hours in nanoseconds converts exactly.                                                                                                                                               | avformat §4.3, "Time conversion" |
+| 3.22 | `tell` beyond 2 GiB returns the exact position.                                                                                                                                                                         | avformat §4.4                    |
+| 3.23 | Subtitles: text subtitles read as frames, rebuilt from their content, encoded and muxed give the same cues, text and timing to the millisecond.                                                                         | avformat §4.4                    |
+| 3.24 | `codec_attr` for H.264, HEVC with and without an in-band SPS, and AAC equals the string FFmpeg's own HLS muxer writes for the same stream.                                                                              | avformat §4.4                    |
+| 3.25 | `write_packet` and `write_frame` on streams of the wrong mode, `get_frame_size` on a copy stream, `open_output_format` on a file format, a stream of another container: each raises a failure.                          | avformat §2.2                    |
 
 ## 4. avfilter
 
-### 4.1 Filter catalogue
-
-- **Invariant** — The four buffer and sink filters and every registered
-  filter expose name, description, flags, option table and typed input and
-  output pads.
-- **Binding** — Exercised only.
-- **Incidental** — The printed catalogue.
-- **Inputs** — None.
-- **Trace** — `examples/list_filters.ml`.
-
-### 4.2 Video graph built by hand
-
-- **Invariant** — A graph `buffer → fps → buffersink`, attached and linked
-  pad by pad and launched, accepts frames on its input, returns frames from
-  its sink until it reports "try again", and reports end of file after a
-  flush.
-- **Binding** — Exercised. The sink's time base, frame rate, width, height
-  and pixel aspect are read after launch.
-- **Incidental** — The printed sink description.
-- **Inputs** — `out.mkv` of 3.7; output MP4 (AAC, MPEG-4).
-- **Trace** — `examples/fps.ml`.
-
-### 4.3 Audio graph built by hand
-
-- **Invariant** — A graph `abuffer → aresample → aformat → abuffersink`
-  works the same way; list-valued options are passed as arrays when the
-  filter declares an array separator and as a `|`-joined string otherwise;
-  the sink's frame size can be fixed after launch.
-- **Binding** — Exercised. The sink's time base, channel count, layout,
-  sample rate and format are read and used to create the output stream.
-- **Incidental** — Target rate 22050; formats `s16`, `fltp`; layouts
-  `stereo`, `mono`.
-- **Inputs** — `out.mkv` of 3.7; output MP4.
-- **Trace** — `examples/aresample.ml`.
-
-### 4.4 Audio frame-size converter
-
-- **Invariant** — The audio converter helper re-frames (and optionally
-  reformats) audio to a fixed frame size and delivers the remainder on
-  flush.
-- **Binding** — Exercised by three programs; every frame it delivers is
-  written to an encoder that requires that frame size.
-- **Incidental** — Frame size 512 for variable-size encoders.
-- **Inputs** — As 3.9, 3.10; also an Ogg-to-AAC transcode.
-- **Trace** — `examples/encode_stream.ml`, `examples/decode_stream.ml`,
-  `examples/transcode_aac.ml`.
-
-## 5. swresample
-
-### 5.1 Every output container kind carries the right samples
-
-- **Invariant** — Converting mono 44100 Hz to mono 44100 Hz in double
-  precision is the identity, for every kind of output container.
-- **Binding** — A 1024-sample ramp from −1 to just under 1 is converted
-  from a float array. For each output kind — float array, planar float
-  array, interleaved bytes, planar bytes, interleaved bigarray, planar
-  bigarray, and frame (read back through a frame-to-float-array
-  converter) — the result has exactly 1024 samples and each sample is
-  within 0.01 of the ramp. Planar results have exactly one plane. Bytes
-  hold little-endian IEEE doubles.
-  The planar frame output is exercised only.
-- **Incidental** — The ramp, 1024, the 0.01 tolerance.
-- **Inputs** — Generated in process.
-- **Trace** — `test_swresample.ml`.
-
-### 5.2 Output length follows the converted count
-
-- **Invariant** — When the output holds fewer samples than the upper bound
-  it was allocated for, its reported length is the converted count.
-- **Binding** — Converting the same ramp from 44100 to 22050 Hz, the
-  interleaved bigarray, the planar bigarray (one plane) and the frame each
-  report a length within 16 of 512.
-- **Incidental** — The tolerance 16.
-- **Inputs** — Generated in process.
-- **Trace** — `test_swresample.ml`.
-
-### 5.3 Converters chain across formats, layouts and rates
-
-- **Invariant** — The output container of one converter is a valid input
-  of the next, across interleaved and planar forms, integer and float
-  formats, and mono, stereo, 5.1 and down-mix layouts.
-- **Binding** — For 96 sine notes, a direct conversion (mono float array
-  to stereo signed-32 bytes) yields a non-zero total byte count, and a
-  chain of eleven converters yields a non-zero total byte count. The
-  chain's stages, in order: float array → S16 frame (mono→5.1,
-  44100→96000) → U8 bigarray (→stereo 16000) → double planar frame
-  (→44100) → S32 planar bigarray (→48000) → float planar bigarray
-  (→down-mix 31000) → planar float array (→stereo 73347) → S32 frame
-  (→44100) → float array (→48000) → S32 bigarray (→96000) → S32 bytes
-  (→44100) → S32 bytes (→mono).
-- **Incidental** — The two raw output files; nothing reads them. Note
-  frequencies and lengths.
-- **Inputs** — Generated in process.
-- **Trace** — `test_resample.ml`.
-
-### 5.4 Resampling decoded frames from codec parameters
-
-- **Invariant** — A converter configured from a stream's codec parameters
-  accepts that stream's decoded frames.
-- **Binding** — For each input file, converting every frame of the best
-  audio stream to stereo 44100 Hz planar floats yields a non-zero total
-  sample count. At least one input file must be given.
-- **Incidental** — The raw S16LE file written per input.
-- **Inputs** — The FLAC stream of 2.4.
-- **Trace** — `test_resample.ml`.
-
-### 5.5 Other exercised paths
-
-Exercised only: conversion of a sub-range (`offset` 10, explicit length)
-of a float array to a frame; a converter configured towards codec
-parameters; frame to S32 bytes with the SoX resampler engine, on Ogg and
-Matroska inputs opened with an explicitly named input format. Trace:
-`examples/encode_audio.ml`, `examples/encoding.ml`,
-`examples/audio_decoding.ml`, `examples/demuxing_decoding.ml`.
-
-## 6. swscale
-
-### 6.1 Output planes are sized by the pixel format
-
-- **Invariant** — On the byte-string output path each plane has the size
-  the pixel format gives it, chroma subsampling included, on every call.
-- **Binding** — Converting a 64×64 `rgb24` image (one plane, stride 192)
-  to 64×64 `yuv420p` with the bilinear flag gives 3 planes of 4096, 1024
-  and 1024 bytes. The same holds on a second call on the same context.
-- **Incidental** — The fill byte `0x80`; the image size.
-- **Inputs** — Generated in process.
-- **Trace** — `test_swscale.ml`.
-
-### 6.2 Scaling decoded frames
-
-Exercised only: each decoded video frame of `out.mkv` is scaled from
-352×288 to 800×600 `yuv420p`, frame in, bigarray planes out, with an empty
-flag list. The result is discarded. Trace: `examples/demuxing_decoding.ml`.
-
-## 7. avdevice
-
-No program in the suite calls the device library. Three example programs
-that use it are compiled and linked with the rest and never run.
-
-## 8. build
-
-### 8.1 All or nothing
-
-- **Invariant** — The test programs and the examples are defined only when
-  all seven libraries (`avutil`, `avcodec`, `avfilter`, `av`, `swscale`,
-  `swresample`, `avdevice`) are detected.
-- **Binding** — The gate is a single boolean: the conjunction of the seven
-  per-library availability files, each of which must read exactly `true`
-  on its first line. When it is false the generators emit nothing: no test
-  executable, no example executable, no `ffmpeg_citest` alias.
-- **Incidental** — The generator programs and the include-file mechanism.
-- **Trace** — `gen/gen_test.ml`, `gen/dune`, `test/dune`.
-
-### 8.2 Everything links
-
-- **Invariant** — Each of the 11 test programs builds against the
-  `av`, `swresample` and `swscale` libraries; each of the 28 examples
-  builds against the libraries it names.
-- **Binding** — Compiled. This is the only check on the device library and
-  on the 7 examples that are never run.
-- **Trace** — `gen/gen_test.ml`, `gen/gen_examples.ml`.
-
-### 8.3 Generated enumeration tables produce real variants
-
-- **Invariant** — Values produced from the generated C-to-OCaml tables are
-  usable as the public polymorphic variants.
-- **Binding** — Covered by 2.1 (a literal `` `Dr1`` is found in a list
-  that came from C) and 1.1.
-- **Trace** — `test_codec.ml`, `test_info.ml`.
-
-## 9. Harness
-
-### 9.1 Runner
-
-The runner is a separate program started once per step:
-`runner <label> <program> [args…]`.
-
-1. It prints a header naming the step: a `::group::<label>` line when the
-   environment variable `GITHUB_ACTIONS` is set, a banner otherwise.
-2. It starts `./<program>` as a child process with the given arguments,
-   inheriting standard input, output and error. The working directory is
-   the test directory of the build tree.
-3. It waits for the child with no time limit.
-4. Exit status: a normal exit gives the child's code; a child killed by a
-   signal gives 128 plus the signal number as the OCaml runtime reports
-   it; a stopped child gives 128.
-5. On 0 it prints `PASSED: <label>`. Otherwise it prints
-   `FAILED: <label> (exit code N)` and, under GitHub Actions,
-   `::error::Test <label> failed`.
-6. It prints a footer (`::endgroup::` or a rule) and exits with the same
-   status.
-
-With fewer than two arguments it prints a usage line and exits 1.
-
-Three steps bypass the runner and are run directly by the build rule: the
-subtitle remux, the normaliser and `diff`. So are the four `ffmpeg`
-commands.
-
-The build rule runs the steps as a strict sequence. The first non-zero
-status ends the rule; later steps do not run.
-
-**Binding for a new harness**: each step is a separate process; a non-zero
-exit or a death by signal fails the suite; the order of 9.3. **Incidental**:
-the label, banner and group syntax, the `128 + n` encoding, the absence of
-a timeout, running everything in one rule.
-
-### 9.2 Assertion helper
-
-A small module shared by the 11 test programs keeps two counters, checks
-made and checks failed.
-
-- `check name ok` counts one check; prints `OK: <name>` on standard output
-  when it holds, `FAILED: <name>` on standard error when it does not.
-  Execution continues after a failure.
-- `checkf ok fmt …` is the same with a formatted name.
-- `finish ()` prints `<n> checked, <m> failed`, then exits 1 when no check
-  was made (message `FAILED: test asserted nothing`) or when any failed.
-  Otherwise it returns and the program exits 0.
-
-Ten of the 11 test programs end with `finish ()`. The unhandled-packet
-test does not use the helper: it exits 1 itself on its two conditions.
-
-An uncaught exception ends a program with the OCaml runtime's status 2.
-
-**Binding**: a test that makes no check fails; a failed check fails the
-test; checks after a failed one still run. **Incidental**: the wording and
-the stream each line goes to.
-
-### 9.3 Order, arguments and files
-
-`→` marks a file written, `←` a file read. All paths are relative to the
-test directory of the build tree.
-
-| #   | Label                 | Program and arguments                                           | Files                            |
-| --- | --------------------- | --------------------------------------------------------------- | -------------------------------- |
-| 1   | codec                 | `test_codec`                                                    |                                  |
-| 2   | swscale               | `test_swscale`                                                  |                                  |
-| 3   | swresample            | `test_swresample`                                               |                                  |
-| 4   | list_filters          | `list_filters`                                                  |                                  |
-| 5   | all_codecs            | `all_codecs`                                                    |                                  |
-| 6   | all_channel_layouts   | `all_channel_layouts`                                           |                                  |
-| 7   | all_bitstream_filters | `all_bitstream_filters`                                         |                                  |
-| 8   | hw_encode_device      | `hw_encode nvenc.mp4 h264_nvenc device`                         | → nvenc.mp4                      |
-| 9   | hw_encode_frame       | `hw_encode nvenc.mp4 h264_nvenc frame`                          | → nvenc.mp4                      |
-| 10  | interrupt             | `interrupt`                                                     |                                  |
-| 11  | encode_audio_flac     | `encode_audio A4.flac flac`                                     | → A4.flac                        |
-| 12  | encode_audio_mp2      | `encode_audio A4.mp2 mp2`                                       | → A4.mp2                         |
-| 13  | encode_video_webm     | `encode_video video.webm yuva420p libvpx-vp9`                   | → video.webm                     |
-| 14  | encode_stream_flac    | `encode_stream S4.flac flac`                                    | → S4.flac                        |
-| 15  | encode_stream_mp2     | `encode_stream S4.mp2 mp2`                                      | → S4.mp2                         |
-| 16  | encoding              | `encoding out.mkv aac mpeg4 ass`                                | → out.mkv                        |
-| 17  | resample              | `test_resample A4.flac`                                         | ← A4.flac → three `.raw`         |
-| 18  | info                  | `test_info out.mkv A4.flac`                                     | ← both                           |
-| 19  | options               | `test_options out.mkv`                                          | ← out.mkv → test_options_out.mkv |
-| 20  | decode_stream_mp3     | `decode_stream A4.flac A4.mp3 libmp3lame`                       | ← A4.flac → A4.mp3               |
-| 21  | decode_stream_ogg     | `decode_stream A4.mp2 A4.ogg libvorbis`                         | ← A4.mp2 → A4.ogg                |
-| 22  | audio_decoding_ogg    | `audio_decoding A4.ogg ogg A4`                                  | ← A4.ogg → A4.raw                |
-| 23  | audio_decoding_mkv    | `audio_decoding out.mkv matroska out`                           | ← out.mkv → out.raw              |
-| 24  | remuxing              | `remuxing out.mkv out_remuxed.mp4`                              | ← out.mkv                        |
-| 25  | transcode_aac         | `transcode_aac A4.ogg A4_transcoded.mp4`                        | ← A4.ogg                         |
-| 26  | transcoding           | `transcoding out.mkv out_transcoded.mp4`                        | ← out.mkv                        |
-| 27  | decoding              | `decoding out.mkv`                                              | ← out.mkv                        |
-| 28  | fps                   | `fps out.mkv out_fps.mp4`                                       | ← out.mkv                        |
-| 29  | aresample             | `aresample out.mkv out_aresample.mp4`                           | ← out.mkv                        |
-| 30  | demuxing_decoding     | `demuxing_decoding out.mkv vo.raw ao.raw`                       | ← out.mkv                        |
-| 31  | read_metadata_flac    | `read_metadata A4.flac flac A4.mp3 libmp3lame`                  | ← A4.flac                        |
-| 32  | read_metadata_mp2     | `read_metadata A4.mp2 mp2 A4.ogg libvorbis`                     | ← A4.mp2                         |
-| 33  | —                     | `ffmpeg` (subtitle file, 10.2)                                  | ← fixture → test_with_subs.mkv   |
-| 34  | subtitle_read         | `test_subtitle_read test_with_subs.mkv`                         |                                  |
-| 35  | unhandled_packet      | `test_unhandled_packet test_with_subs.mkv`                      |                                  |
-| 36  | —                     | `ffmpeg` (B-frame file, 10.2)                                   | → test_seek.mkv                  |
-| 37  | seek                  | `test_seek test_seek.mkv`                                       |                                  |
-| 38  | drain_video           | `test_drain test_seek.mkv 625 reseek`                           |                                  |
-| 39  | —                     | `ffmpeg` (PNG, 10.2)                                            | → test_drain.png                 |
-| 40  | drain_image           | `test_drain test_drain.png 1`                                   |                                  |
-| 41  | —                     | `ffmpeg` (MPEG-PS, 10.2)                                        | → test_input_streams_grow.mpg    |
-| 42  | input_streams_grow    | `test_input_streams_grow test_input_streams_grow.mpg`           |                                  |
-| 43  | —                     | `subtitle_remux test_with_subs.mkv raw_remuxed_subs.srt subrip` | → raw_remuxed_subs.srt           |
-| 44  | —                     | normaliser `raw_remuxed_subs.srt remuxed_subs.srt`              | → remuxed_subs.srt               |
-| 45  | —                     | `diff fixtures/sample.srt remuxed_subs.srt`                     |                                  |
-
-None of the written files is a declared build target. They stay in the
-build tree between runs.
-
-### 9.4 Skips
-
-The harness has no notion of a skipped test. Two programs skip by exiting
-0, which the runner reports as `PASSED`:
-
-- the interrupt example exits 0 at once when `GITHUB_ACTIONS` is set;
-- the hardware-encode example exits 0 when the encoder is absent and
-  catches every exception of its optional path.
-
-### 9.5 Output comparison
-
-There is one comparison against an expected file: step 45. `diff` is given
-the fixture and the normalised output; a difference is a non-zero status.
-There is no snapshot or promotion mechanism. All other output is printed
-and discarded.
-
-### 9.6 Line-ending normalisation
-
-The normaliser reads its first argument as bytes, removes every carriage
-return (`0x0D`) wherever it occurs, and writes the result to its second
-argument. The output file is opened in text mode.
-
-It runs once, on the SubRip file produced by step 43, before the `diff`.
-The fixture uses bare line feeds. The code does not record why the
-produced file can contain carriage returns (see findings).
-
-**Binding**: the comparison of 3.13 ignores carriage returns in the
-produced file. **Incidental**: doing it with a separate program.
-
-### 9.7 Reference CI
-
-The bindings' own workflow builds FFmpeg from source (tags `n8.0.1` and
-`n7.1`) with `libtheora`, `libvpx`, `libmp3lame`, `libvorbis` and
-`libsoxr`, on Linux and macOS with OCaml 4.14 and 5.3, then runs
-`dune build @ffmpeg_citest`.
-
-## 10. Doubles and fixtures a new harness needs
-
-### 10.1 Fixture file
-
-One checked-in file: a UTF-8 SubRip file, bare line feeds, 5 cues, with a
-blank line after the last:
-
-| Cue | Start        | End          | Lines                        |
-| --- | ------------ | ------------ | ---------------------------- |
-| 1   | 00:00:01,000 | 00:00:04,000 | 1 line, ASCII                |
-| 2   | 00:00:05,000 | 00:00:08,000 | 2 lines, ASCII               |
-| 3   | 00:00:09,500 | 00:00:12,000 | 2 lines, with `épiphénomène` |
-| 4   | 00:00:13,000 | 00:00:16,500 | 2 lines, with `こんにちは`   |
-| 5   | 00:00:17,000 | 00:00:20,000 | 2 lines, ASCII               |
-
-### 10.2 Media synthesised with the `ffmpeg` tool
-
-All four use `-y` and `lavfi` sources.
-
-| File                          | Recipe                                                                                                                                                                                                                                 | Property the tests rely on                                                                           |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `test_with_subs.mkv`          | `color=c=blue:s=320x240:d=25` as MPEG-4; `anullsrc=r=44100:cl=stereo:d=25` as AAC; the fixture as `srt`; `-shortest`                                                                                                                   | one video, one audio, one text subtitle stream                                                       |
-| `test_seek.mkv`               | `color=c=blue:s=320x240:d=25` as MPEG-4 with `-bf 2`                                                                                                                                                                                   | 625 frames; B-frames, so the decoder buffers                                                         |
-| `test_drain.png`              | `color=c=blue:s=144x144`, `-frames:v 1`                                                                                                                                                                                                | exactly one frame, held by the decoder at end of input                                               |
-| `test_input_streams_grow.mpg` | input 0: `sine=f=440:d=12:r=48000`; input 1: `sine=f=880:d=2:r=16000` with `-itsoffset 6`; maps `0:a` once and `1:a` four times; all audio MP2 mono 32 kb/s, except stream 0 as `pcm_s16be` stereo; `-muxrate 20000000`; format `mpeg` | four streams start 6 s in and last 2 s: after the probe window and before the tail read for duration |
-
-### 10.3 Media produced by the bindings themselves
-
-| File                | Producer | Content                                                |
-| ------------------- | -------- | ------------------------------------------------------ |
-| `A4.flac`, `A4.mp2` | 2.4      | raw encoder packets, 440 Hz, stereo 44100 Hz           |
-| `out.mkv`           | 3.7      | MPEG-4 352×288 25 fps, 250 frames; AAC stereo 44100 Hz |
-| `A4.ogg`, `A4.mp3`  | 3.10     | re-encodes of the two above                            |
-
-A new harness may synthesise these with the `ffmpeg` tool instead. Doing
-so removes the dependency of the read-side tests on the write side, and
-removes the only downstream check on the write side.
-
-### 10.4 Doubles
-
-- Caller-supplied read, write and seek functions over a file descriptor,
-  for custom I/O (3.9, 3.10).
-- An interrupt function that turns true after a delay, set from a second
-  thread (3.14).
-- A Unix-socket path that nothing connects to, and a local HTTP URL with
-  no server, as blocking endpoints (3.14).
-- A log sink (1.5).
-- An unhandled-packet counter per media kind (3.3).
-
-### 10.5 What the FFmpeg build must contain
-
-- Tool: `ffmpeg` on the path, with `lavfi` and the sources `color`,
-  `anullsrc`, `sine`.
-- Encoders: `aac`, `mpeg4`, `flac`, `mp2`, `pcm_s16be`, `png`, `srt`/
-  `subrip`, `libvpx-vp9`, `libmp3lame`, `libvorbis`.
-- Decoders: the matching ones, plus `h264` (looked up only).
-- Muxers and demuxers: Matroska, WebM, MP4, FLAC, MP2, MP3, Ogg, MPEG-PS,
-  SubRip, PNG image.
-- Filters: `fps`, `aresample`, `aformat`, the four buffer filters.
-- Protocols: `file`, `unix`, `http`.
-- libswresample built with the SoX resampler.
-
-A missing component fails the step that needs it. Only `h264_nvenc` is
-optional.
-
-## 11. Coverage map
-
-Legend: **A** asserted, **E** exercised, **C** compiled only, **—** not
-touched. The number is the entry above.
-
-### avutil
-
-| Area                                                                                                                                                                        | Coverage                              |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| Version (`version`, `version_string`, `compare_version`)                                                                                                                    | —                                     |
-| `Frame`: `pts`                                                                                                                                                              | A 3.4 (present after seek)            |
-| `Frame`: `set_pts`, `metadata`, `set_metadata`                                                                                                                              | E 3.7, 3.11                           |
-| `Frame`: `duration`, `set_duration`, `pkt_dts`, `set_pkt_dts`, `best_effort_timestamp`, `copy`                                                                              | —                                     |
-| Errors: `` `Eof`` as end of input                                                                                                                                           | A 3.2, 3.5 and every read loop        |
-| Errors: `` `Exit``                                                                                                                                                          | A 3.14 (not on CI)                    |
-| Errors: `` `Eagain``, `` `Invalid_data``                                                                                                                                    | E 4.2, 4.3, 3.10                      |
-| Errors: every other constructor, `string_of_error` content                                                                                                                  | —                                     |
-| `expr_parse_and_eval`, `create_data`, `string_of_rational`, `qp2lambda`                                                                                                     | —                                     |
-| `Time_format`: `` `Millisecond``                                                                                                                                            | A 3.4, 3.5; others —                  |
-| `time_base ()`                                                                                                                                                              | E 3.2, 3.13                           |
-| `Log`: `set_level`, `set_callback`                                                                                                                                          | E 1.5                                 |
-| `Log`: `clear_callback`, level filtering                                                                                                                                    | —                                     |
-| `Channel_layout`: `mono`, `stereo`, `five_point_one`, `find`, `standard_layouts`, `get_description`                                                                         | E 5.1, 5.3, 1.4                       |
-| `Channel_layout`: `compare`, `get_nb_channels`, `get_default`, `get_mask`, `get_native_id`, failed `find`                                                                   | —                                     |
-| `Sample_format`: `get_name`, `get_id`                                                                                                                                       | E 3.1, 4.3                            |
-| `Sample_format`: `find`, `find_id`                                                                                                                                          | —                                     |
-| Colour enumerations `name` / `from_name`                                                                                                                                    | A 1.1, one value each; unknown name — |
-| `Pixel_format`: `descriptor`, `bits`, `of_string`, `to_string`, `get_id`                                                                                                    | E 3.7, 2.3, 4.2                       |
-| `Pixel_format`: `planes`, `find_id`, failed `of_string`                                                                                                                     | —                                     |
-| `Audio`: `frame_nb_samples`                                                                                                                                                 | A 5.2                                 |
-| `Audio`: `frame_get_sample_format`, `_sample_rate`, `_channel_layout`                                                                                                       | E 3.10                                |
-| `Audio`: `create_frame`, `frame_get_channels`, `frame_copy_samples`                                                                                                         | —                                     |
-| `Video`: `create_frame`, `frame_visit`                                                                                                                                      | E 3.7                                 |
-| `Video`: colour getters on a frame                                                                                                                                          | E 3.1                                 |
-| `Video`: `frame_get_linesize`, `_width`, `_height`, `_pixel_format`, `_pixel_aspect`                                                                                        | —                                     |
-| `Subtitle`: `get_content`, `create_frame` (text)                                                                                                                            | A 3.13                                |
-| `Subtitle`: bitmap rectangles, `header_ass_default`, `get_pts`                                                                                                              | — (bitmap: C)                         |
-| `Options`: `get_int`, `get_int64`                                                                                                                                           | A 1.2 (loose)                         |
-| `Options`: `opts` (option tables)                                                                                                                                           | E 2.3, 4.1                            |
-| `Options`: the nine other getters, `search_children`, missing name                                                                                                          | —                                     |
-| Option dictionaries: unused-key reporting                                                                                                                                   | A 1.3, 3.9                            |
-| Option dictionaries: `opts_default`, `mk_opts_array`, `string_of_opts`, `mk_audio_opts`, `mk_video_opts`, `filter_opts` called directly; `` `Int64`` and `` `Float`` values | —                                     |
-| `HwContext`                                                                                                                                                                 | — (reachable only with NVENC)         |
-
-### avcodec
-
-| Area                                                                                                                                                                                                             | Coverage                  |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `version`, `flag_qscale`, `time_base`                                                                                                                                                                            | —                         |
-| `params`, `descriptor` (of params)                                                                                                                                                                               | E 2.4, 4.4                |
-| `capabilities`                                                                                                                                                                                                   | A 2.1                     |
-| `name`, `hw_configs`                                                                                                                                                                                             | — (2.6 only with NVENC)   |
-| `Packet`: `to_bytes`                                                                                                                                                                                             | E 2.4                     |
-| `Packet`: `add_side_data`, `side_data`                                                                                                                                                                           | E 3.8                     |
-| `Packet`: `dup`, `get_flags`, `get_size`, stream index, pts, dts, duration, position accessors, `create`, `content`                                                                                              | —                         |
-| `Audio`: `find_encoder`, `find_decoder`, `get_id`, `string_of_id`                                                                                                                                                | A 2.1, 2.2                |
-| `Audio`: `find_encoder_by_name`, `find_best_*`, `frame_size`, `create_decoder`, `codec_ids`, `encoders`, `decoders`, `descriptor`, `get_name`, `get_description`                                                 | E                         |
-| `Audio`: `create_encoder`                                                                                                                                                                                        | A (options) 1.3; E 2.4    |
-| `Audio`: `get_sample_rate`, `get_nb_channels` (params)                                                                                                                                                           | A 3.1 (positive)          |
-| `Audio`: other params getters                                                                                                                                                                                    | E 3.1                     |
-| `Audio`: `find_decoder_by_name`, `get_supported_*`, `sample_format` of a decoder, failed lookups                                                                                                                 | —                         |
-| `Video`: `find_decoder`, `get_id`, `string_of_id`                                                                                                                                                                | A 2.2                     |
-| `Video`: `get_width`, `get_height` (params)                                                                                                                                                                      | A 3.1 (positive)          |
-| `Video`: `find_encoder_by_name`, `create_decoder`, `get_supported_pixel_formats`, `get_supported_color_spaces`, catalogue, other params getters                                                                  | E                         |
-| `Video`: `create_encoder` (stand-alone), `find_encoder`, `find_decoder_by_name`, `get_supported_frame_rates`, `find_best_frame_rate`, `get_supported_color_ranges`, `find_best_pixel_format`, `get_pixel_aspect` | — (`create_encoder`: C)   |
-| `Subtitle`: `find_decoder`, `get_id`, `string_of_id`                                                                                                                                                             | A 2.2                     |
-| `Subtitle`: `find_encoder`, `find_encoder_by_name`, `get_params_id`, catalogue                                                                                                                                   | E 3.13, 2.3               |
-| `Unknown`                                                                                                                                                                                                        | —                         |
-| `BitstreamFilter`: `filters`                                                                                                                                                                                     | E 2.3                     |
-| `BitstreamFilter`: `init`, `send_packet`, `send_eof`, `receive_packet`                                                                                                                                           | —                         |
-| `decode`, `flush_decoder`                                                                                                                                                                                        | E 2.5 (frames discarded)  |
-| `encode`, `flush_encoder`                                                                                                                                                                                        | E 2.4, checked downstream |
-
-### av (libavformat)
-
-| Area                                                                                                                                                                                              | Coverage                                       |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `avformat_version`, `container_options`                                                                                                                                                           | —                                              |
-| `Format`: `find_input_format`, `guess_output_format`                                                                                                                                              | E 5.5, 3.9                                     |
-| `Format`: names, default codec ids                                                                                                                                                                | —                                              |
-| `open_input`: plain, `opts`                                                                                                                                                                       | A 1.3                                          |
-| `open_input`: `format`                                                                                                                                                                            | E 5.5                                          |
-| `open_input`: `interrupt`                                                                                                                                                                         | A 3.14 (not on CI)                             |
-| `open_input`: the three `configure_*_stream` callbacks; a failing open                                                                                                                            | —                                              |
-| `open_input_stream` with `seek`                                                                                                                                                                   | E 3.10                                         |
-| `open_input_stream` without `seek`, with `format` or `opts`; a raising callback                                                                                                                   | —                                              |
-| `get_input_duration`, `get_input_metadata`                                                                                                                                                        | E 3.1, 3.12                                    |
-| `get_input_format`, `set_input_metadata`                                                                                                                                                          | —                                              |
-| `input_obj`                                                                                                                                                                                       | A 1.2                                          |
-| `get_audio_streams`, `get_video_streams`, `get_subtitle_streams`                                                                                                                                  | A 3.1, 3.2, 3.6                                |
-| `get_data_streams`, `find_best_subtitle_stream`                                                                                                                                                   | —                                              |
-| `find_best_audio_stream`, `find_best_video_stream`                                                                                                                                                | E                                              |
-| `get_input`, `get_output`, `get_codec_params`, `get_avg_frame_rate`, `set_avg_frame_rate`, `get_container_stream_time_base`, `get_frame_size`, `get_pixel_aspect`, `get_duration`, `get_metadata` | E                                              |
-| `get_time_base`                                                                                                                                                                                   | A 3.4 (used to convert the asserted timestamp) |
-| `get_index`, `set_time_base`                                                                                                                                                                      | —                                              |
-| `read_input`: frame mode, audio/video/subtitle                                                                                                                                                    | A 3.1–3.6                                      |
-| `read_input`: packet mode, audio/video/subtitle                                                                                                                                                   | E 3.8, 2.5                                     |
-| `read_input`: `on_unhandled_packet`                                                                                                                                                               | A 3.3 (video kind only)                        |
-| `read_input`: data packets, mixed packet and frame selection, no selection                                                                                                                        | —                                              |
-| `seek`: `` `Millisecond``, defaults                                                                                                                                                               | A 3.4, 3.5                                     |
-| `seek`: `flags`, `stream`, `min_ts`, `max_ts`, failure                                                                                                                                            | —                                              |
-| `open_output`: plain, `opts`                                                                                                                                                                      | A 1.3                                          |
-| `open_output`: `interrupt`                                                                                                                                                                        | A 3.14 (not on CI)                             |
-| `open_output`: `format`, `interleaved`                                                                                                                                                            | —                                              |
-| `open_output_format`                                                                                                                                                                              | — (C through device examples)                  |
-| `open_output_stream` with `seek`, `opts`                                                                                                                                                          | A 3.9                                          |
-| `reopen_output_stream`, `output_started`                                                                                                                                                          | —                                              |
-| `set_output_metadata`, `set_metadata`                                                                                                                                                             | E 3.7 (not read back by an assertion)          |
-| `new_stream_copy`                                                                                                                                                                                 | E 3.8                                          |
-| `new_uninitialized_stream_copy`, `initialize_stream_copy`                                                                                                                                         | —                                              |
-| `new_audio_stream`                                                                                                                                                                                | E; `opts` A 3.9                                |
-| `new_video_stream`                                                                                                                                                                                | E 3.7; `hardware_context` —                    |
-| `new_subtitle_stream`                                                                                                                                                                             | A 3.13                                         |
-| `new_data_stream`, `codec_attr`, `bitrate`                                                                                                                                                        | —                                              |
-| `write_packet`                                                                                                                                                                                    | E 3.8                                          |
-| `write_frame`                                                                                                                                                                                     | E 3.7, checked downstream                      |
-| `write_subtitle_frame`                                                                                                                                                                            | A 3.13                                         |
-| `flush`, `tell`                                                                                                                                                                                   | —                                              |
-| `close`                                                                                                                                                                                           | E everywhere; A after stream growth 3.6        |
-| Use after `close`, double `close`, release by collection alone                                                                                                                                    | —                                              |
-
-### avfilter
-
-| Area                                                                                                                                    | Coverage                        |
-| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| Sink getters `time_base`, `frame_rate`, `width`, `height`, `pixel_aspect`, `channels`, `channel_layout`, `sample_rate`, `sample_format` | E 4.2, 4.3                      |
-| `pixel_format`                                                                                                                          | —                               |
-| `set_frame_size`                                                                                                                        | E 4.3                           |
-| `get_array_separator`                                                                                                                   | E 4.3 (either outcome accepted) |
-| `filters`, `find`, `abuffer`, `buffer`, `abuffersink`, `buffersink`, `pad_name`                                                         | E 4.1–4.3                       |
-| `find_opt`, `filter_name`, failed `find`                                                                                                | —                               |
-| `init`, `attach`, `link`, `launch`, input and output handlers                                                                           | E 4.2, 4.3                      |
-| `Exists` on a duplicate name                                                                                                            | —                               |
-| `process_command`                                                                                                                       | —                               |
-| `parse`                                                                                                                                 | —                               |
-| `Utils.init_audio_converter`, `Utils.convert_audio`                                                                                     | E 4.4                           |
-| `Utils.time_base`                                                                                                                       | —                               |
-
-### avdevice
-
-| Area                                                                     | Coverage   |
-| ------------------------------------------------------------------------ | ---------- |
-| `init`, format lists and defaults, the eight open functions              | — (some C) |
-| `App_to_dev.control_messages`, `Dev_to_app.set_control_message_callback` | —          |
-
-### swresample
-
-| Area                                                                                                                                                                                                                                                                                                                    | Coverage                         |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `version`                                                                                                                                                                                                                                                                                                               | —                                |
-| `Make(...).create`                                                                                                                                                                                                                                                                                                      | A 5.1–5.3                        |
-| `create` with explicit `in_sample_format` / `out_sample_format`                                                                                                                                                                                                                                                         | E 5.3, 2.4                       |
-| `create` failing on an undefined sample format                                                                                                                                                                                                                                                                          | —                                |
-| `from_codec`                                                                                                                                                                                                                                                                                                            | A 5.4                            |
-| `to_codec`                                                                                                                                                                                                                                                                                                              | E 5.5                            |
-| `from_codec_to_codec`                                                                                                                                                                                                                                                                                                   | —                                |
-| `convert`                                                                                                                                                                                                                                                                                                               | A 5.1–5.4                        |
-| `convert` with `offset` and `length`                                                                                                                                                                                                                                                                                    | E 5.5                            |
-| `flush`                                                                                                                                                                                                                                                                                                                 | —                                |
-| Options: `` `Engine_soxr``                                                                                                                                                                                                                                                                                              | E 5.5; dither and filter types — |
-| Content, per output kind, mono double                                                                                                                                                                                                                                                                                   | A 5.1 (planar frame: E)          |
-| Content for more than one channel, or for any format other than double                                                                                                                                                                                                                                                  | —                                |
-| Data modules used as input or output: `FloatArray`, `PlanarFloatArray`, `S32Bytes`, `DblBytes`, `DblPlanarBytes`, `U8BigArray`, `S32BigArray`, `DblBigArray`, `S32PlanarBigArray`, `FltPlanarBigArray`, `DblPlanarBigArray`, `Frame`, `S16Frame`, `S32Frame`, `DblFrame`, `DblPlanarFrame`                              | A or E                           |
-| Data modules never instantiated: `Bytes`, `U8Bytes`, `S16Bytes`, `FltBytes`, `U8PlanarBytes`, `S16PlanarBytes`, `S32PlanarBytes`, `FltPlanarBytes`, `S16BigArray`, `FltBigArray`, `U8PlanarBigArray`, `S16PlanarBigArray`, `U8Frame`, `FltFrame`, `U8PlanarFrame`, `S16PlanarFrame`, `S32PlanarFrame`, `FltPlanarFrame` | —                                |
-
-### swscale
-
-| Area                                                     | Coverage           |
-| -------------------------------------------------------- | ------------------ |
-| `version`, `configuration`, `license`                    | —                  |
-| Low-level `create` and `scale`                           | —                  |
-| `Make(...).create`                                       | A 6.1; `threads` — |
-| `convert`, `Bytes` → `Bytes`: plane count and sizes      | A 6.1              |
-| `convert`: pixel content, output strides                 | —                  |
-| `convert`, `Frame` → `BigArray`                          | E 6.2              |
-| `PackedBigArray`, `Frame` as output, `BigArray` as input | —                  |
-| Flags other than `Bilinear` and the empty list           | —                  |
-
-### build
-
-| Area                                      | Coverage                                                         |
-| ----------------------------------------- | ---------------------------------------------------------------- |
-| Detection of each library, version floors | —                                                                |
-| The all-seven gate                        | 8.1, by construction                                             |
-| Generated enumeration tables              | A 8.3, two enumerations of values; the rest E through catalogues |
-| Behaviour with one library absent         | —                                                                |
-
-## 12. Tests of these bindings elsewhere in the repository
-
-The enclosing repository's own test directory has five OCaml programs that
-name the binding modules. They test the host application's FFmpeg layer.
-Their direct use of the bindings is: opening and closing an input, looking
-up an input format by name, the rational record, and the error exception.
-None asserts on a binding's behaviour. Nothing in the enclosing
-repository refers to the `ffmpeg_citest` alias.
+| #    | Requirement (binding part)                                                                                                                                                            | Rule                          |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 4.1  | The module loads against an FFmpeg built with every optional filter, and against one configured for small size.                                                                       | contract I1                   |
+| 4.2  | A graph built by `attach` and `link`, and the same graph built by `parse`, each run frames through: every sink receives its own stream, with the frame count and timestamps expected. | [avfilter.md](avfilter.md) §4 |
+| 4.3  | `parse` with two labelled inputs and two labelled outputs between attached sources and sinks.                                                                                         | avfilter §4.10                |
+| 4.4  | A failed `parse`, then every operation on the graph and on each handle obtained before: each raises the failed error or succeeds; none crashes.                                       | avfilter §2.1                 |
+| 4.5  | A sink `context`, an attached pad and an attached filter, each kept alone while every other reference to the graph is dropped and a full collection runs: each is still usable.       | contract L3                   |
+| 4.6  | Arguments are given in list order: a positional value before a pair is accepted, after it rejected by FFmpeg.                                                                         | avfilter §11.2                |
+| 4.7  | `get_array_separator` returns `,` for an array option that declares none and the declared one otherwise; an array argument to such an option is accepted.                             | avfilter §4.3                 |
+| 4.8  | `process_command` with `` `Fast `` has an effect that only that flag causes; on a hand-built filter record it raises.                                                                 | avfilter §2.4, §3             |
+| 4.9  | `launch` twice, `attach` after `launch`, a duplicate instance name: each raises as stated.                                                                                            | avfilter §2.1, §4.7           |
+| 4.10 | The audio converter delivers every input sample once: total samples out equal total samples in, scaled by the rate ratio, flush included.                                             | avfilter §11.3                |
+
+## 5. avdevice
+
+| #   | Requirement (binding part)                                                                                                                     | Rule                          |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 5.1 | A program that links the library and only lists `av` input formats sees the device formats.                                                    | [avdevice.md](avdevice.md) §1 |
+| 5.2 | Each message of §3.2 delivered by a test double of a device arrives as the constructor and payload of the table, the option payloads included. | avdevice §3.2                 |
+| 5.3 | A message sent from a thread created in C is delivered and the thread exits cleanly.                                                           | contract M10                  |
+| 5.4 | `control_messages` on a container that is not a device raises `Avutil.Error`; on a closed container, the closed error.                         | avdevice §2, §5               |
+| 5.5 | A named open with one alias of a multi-alias format name finds the format; an unknown name raises `Not_found`.                                 | avdevice §4.3                 |
+
+Requirements that need a real device are reported as skipped without one
+(§10).
+
+## 6. swresample
+
+| #   | Requirement (binding part)                                                                                                                                                        | Rule                                |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 6.1 | Identity conversion for every output kind, with one, two and six channels and for each sample format: sample values equal the input within the format's precision.                | [swresample.md](swresample.md) §4.4 |
+| 6.2 | `offset` and `length` on every input kind select exactly that range: compare with a conversion of the same range cut by hand.                                                     | swresample §4.4                     |
+| 6.3 | A rate conversion followed by `flush`: the total number of samples is the input count scaled by the rate ratio. A second `flush` is empty.                                        | swresample §4.4                     |
+| 6.4 | Two conversions with different input: the first result still equals a copy taken before the second call, for every output kind.                                                   | swresample §2.2                     |
+| 6.5 | NaN in a float array input, and NaN produced into a float array output, are 0.                                                                                                    | swresample §4.4                     |
+| 6.6 | Invalid input: wrong plane count, planes of unequal length, negative or oversized range, a frame of another format or channel count: each raises and reads nothing out of bounds. | swresample §4.4; contract A1        |
+| 6.7 | `create`: a missing, conflicting or planar-for-bytes sample format raises; `from_codec` with a data kind of another format raises at creation.                                    | swresample §4.4                     |
+| 6.8 | Every element of an options list longer than three is applied.                                                                                                                    | swresample §4.4                     |
+| 6.9 | A custom-order layout on each side: created, used and collected with no leak.                                                                                                     | avutil §2.2                         |
+
+## 7. swscale
+
+| #   | Requirement (binding part)                                                                                                                                                                                                                                                                                                                                                                          | Rule                            |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 7.1 | For grey, planar YUV 4:2:0 and 4:2:2, semi-planar and packed RGB output formats, the number of planes returned equals `av_pix_fmt_count_planes` and each plane's length equals `av_image_fill_plane_sizes`, for every output kind, on a first and on a second call. A paletted input is accepted with its palette buffer; a paletted output is accepted for frames and refused for the other kinds. | [swscale.md](swscale.md) §4.5   |
+| 7.2 | Pixel content: a known image converted to another format and back equals the original within a stated tolerance; a solid colour stays that colour.                                                                                                                                                                                                                                                  | swscale §4.5                    |
+| 7.3 | Several threads give byte for byte the output of one thread.                                                                                                                                                                                                                                                                                                                                        | swscale §4.5                    |
+| 7.4 | Invalid input: a frame of another size or format, too few buffers, a short plane, a short line size, mismatched packed arrays: each raises.                                                                                                                                                                                                                                                         | swscale §4.4, §4.5; contract A1 |
+| 7.5 | `scale` with a row offset writes the image at that row of the destination and nowhere else.                                                                                                                                                                                                                                                                                                         | swscale §4.4                    |
+| 7.6 | A scaler creation with a rejected setting raises the FFmpeg error.                                                                                                                                                                                                                                                                                                                                  | swscale §4.3                    |
+
+## 8. Environment
+
+### 8.1 Versions
+
+- The suite MUST run against the oldest and the newest supported FFmpeg
+  release ([compatibility.md](compatibility.md) §1), with warnings as errors.
+- It MUST run on the minimum and on the newest released OCaml version.
+- It SHOULD run on Linux and macOS.
+
+### 8.2 What the FFmpeg build must contain
+
+The suite states the components it needs: encoders, decoders, muxers,
+demuxers, filters, protocols, and the `ffmpeg` tool when fixtures are
+synthesised with it. A missing component is reported per §10, never as a
+pass.
+
+The requirements above need at least: an audio codec with fixed frame size and
+one with variable frame size; a video codec with frame reordering; an
+intra-only image codec; a text subtitle codec; a container with a header and
+one without (MPEG-PS); a bitstream filter with a private option; a filter with
+an array option; a protocol that can block.
+
+## 9. Build and cross-build
+
+| #   | Requirement                                                                                                                                                                      | Rule                                            |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| 9.1 | With two FFmpeg versions installed and pkg-config pointed at one, every generated table matches that one's headers.                                                              | [build.md](build.md) §3.2                       |
+| 9.2 | With the headers removed, or the preprocessor replaced by a failing program, the build fails and names the header.                                                               | build §3.2 G7                                   |
+| 9.3 | Every member of each C enumeration the installed headers declare, markers excepted, converts to OCaml and back. Checked at build time for every table.                           | build §3.3; contract E2                         |
+| 9.4 | Every hand-written constant is checked against the header at build time.                                                                                                         | contract E1                                     |
+| 9.5 | With FFmpeg present and one library's stubs broken, the build fails. With FFmpeg absent, the build succeeds, reports every library unavailable, and the install target fails.    | build §2.5, §2.6                                |
+| 9.6 | Installing FFmpeg and rebuilding, with no clean, enables the libraries. Upgrading it in place regenerates the tables.                                                            | build §2.1 D5                                   |
+| 9.7 | A cross build for Windows from a machine whose own FFmpeg is another version: tables match the target's headers; every library links into an executable against a static FFmpeg. | [cross-compilation.md](cross-compilation.md) §2 |
+| 9.8 | The stubs include nothing beyond what X12 allows.                                                                                                                                | cross-compilation X12                           |
+| 9.9 | Both invocations of cross-compilation §3 succeed unchanged.                                                                                                                      | cross-compilation §3                            |
+
+## 10. Harness
+
+- **H1. The suite asserts that it ran.** The suite counts the requirements it
+  checked and fails when the count is not the one expected for the
+  environment. A run that executed nothing, or less than intended, is a
+  failure. A build system that replays a cached result without executing the
+  steps does not count as a run.
+- **H2. A program asserts that it asserted.** A test program that made no
+  check fails.
+- **H3. Three outcomes.** A requirement is passed, failed or skipped. A skip
+  names its reason (a missing component, a missing device) and is counted and
+  printed. A skip is never reported as a pass, and the environment of §8
+  fixes which skips are allowed.
+- **H4. Seen to fail.** Each check of §12, and each regression check, is run
+  once against a deliberately broken build and seen to fail before its pass
+  counts. A sanitiser or leak detector is first shown to report a planted
+  defect.
+- **H5. Independence.** A failed requirement does not stop the others from
+  running or being reported. A requirement does not read a file another
+  requirement wrote.
+- **H6. Time limit.** Every step has a time limit; exceeding it is a failure.
+- **H7. A crash is a failure** that names the step: a death by signal is
+  reported as such.
+- **H8. Declared inputs.** The suite's result depends on the FFmpeg libraries
+  it loaded: changing them re-runs it.
+- **H9. The alias.** [build.md](build.md) §5.
+
+## 11. Fixtures and doubles
+
+Each fixture records the property that makes it trigger the condition it is
+for. A convenient file that lacks the property passes for the wrong reason.
+
+| Fixture                               | Defining property                                                                       |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
+| video with reordering                 | the decoder holds frames: B-frames, with a known frame count and an explicit frame rate |
+| one-frame image                       | the only frame is still in the decoder when the demuxer ends                            |
+| late streams                          | a headerless container whose extra streams start after the probe window                 |
+| audio, video and text subtitle in one | one stream of each kind, for selections and unhandled packets                           |
+| text subtitles                        | several cues, multi-line cues, non-ASCII text, exact times                              |
+| high bit rate stream                  | one write exceeds FFmpeg's I/O buffer                                                   |
+| custom-order layout                   | the layout owns heap memory                                                             |
+
+Doubles:
+
+- read, write and seek closures over memory, with a mode that consumes part
+  of each write and a mode that raises;
+- an interrupt function that turns true after a delay;
+- an endpoint that blocks: a listening socket nothing connects to;
+- a log sink that records messages with the thread that logged them;
+- a device double that sends each device-to-application message, from the
+  calling thread and from a thread created in C;
+- a second thread that allocates continuously, and a second thread that
+  counts, for the lock checks of §12.
+
+## 12. Known-complexity checks
+
+Every entry of [known-complexity.md](known-complexity.md) is a check of the
+suite: its "How to tell" paragraph is the check, by principle. The entry's
+"Rule" line names the rule it verifies. Where a requirement above already
+covers an entry, the entry names it.
+
+Three run configurations serve many entries and are part of the suite:
+
+- **Collection at every allocation.** Every operation that returns a compound
+  value or takes a closure runs under a runtime that collects and compacts at
+  each allocation, and its results are compared with a reference run
+  (contract B1). A small minor heap is not this check.
+- **Address and leak sanitisers.** The whole suite runs under both, with the
+  runtime's own lifetime allocations suppressed and nothing else (H4).
+- **Concurrent use.** For each handle with a guard, two threads, and two
+  domains, call its operations at once: every call returns or raises the
+  in-use error, and the sanitisers stay silent (contract M5, M6). An encoding
+  loop and a decoding loop run at the same speed, within measurement noise,
+  with the guards compiled out (contract M12).

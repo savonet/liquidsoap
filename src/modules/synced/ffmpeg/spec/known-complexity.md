@@ -20,8 +20,8 @@ writing the same bindings from the specification.
   recorded reason and is not an entry.
 
 Each entry ends with a **Count** of the separate fixes or reports it stands
-for, a **Sources** trace, and a **Spec** line reconciling it with the as-built
-specification. `#N` is an upstream issue or pull request, `liquidsoap#N` one
+for, a **Sources** trace, and a **Rule** line naming the rule of the
+specification that answers it. `#N` is an upstream issue or pull request, `liquidsoap#N` one
 in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 
 ## Lifetimes and garbage collection
@@ -50,10 +50,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   `4ae9631`, `b661d57`, `6e01868`, `2b8a876`, liq:`ece26c0b7`,
   liq:`f69ea58b3`; #64, #80, liquidsoap#1941, liquidsoap#4064,
   liquidsoap#4065, liquidsoap#4708, liquidsoap#5334.
-- **Spec:** **Not covered** — Part A states no rooting rule;
-  [language-notes/avutil.md](language-notes/avutil.md) describes the current
-  practice and [findings/avutil.md](findings/avutil.md) lists one live
-  instance (subtitles).
+- **Rule:** [binding-contract.md](binding-contract.md) §2.3 B1; [tests.md](tests.md) §12, collection at every allocation.
 
 ### C data and OCaml values confused at the boundary
 
@@ -74,10 +71,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   match it against a literal constructor. For every reader of a native
   object, set the value through FFmpeg and read it through the binding.
 - **Count** — 3 fixes. **Sources** — liq:`531973cbc`, liq:`58e3fb3de`; #114.
-- **Spec:** **Not covered** — [tests.md](tests.md) §1.2 and §2.1 pin two of
-  the fixed cases; no rule covers integers stored in blocks, and
-  [findings/avcodec.md](findings/avcodec.md) lists a remaining instance (a C
-  zero used as a value in flush).
+- **Rule:** [binding-contract.md](binding-contract.md) §2.3 B2; [build.md](build.md) §3.6 G11; [tests.md](tests.md) 1.3, 2.4.
 
 ### Native memory the collector cannot see
 
@@ -92,10 +86,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   check that resident memory stays flat without explicit collections. Repeat
   for each operation that produces a frame or a packet.
 - **Count** — 3 fixes. **Sources** — `e2d36e1`, `fc40b33`, liq:`711701f22`.
-- **Spec:** **Covered** — [binding-contract.md](binding-contract.md) §2;
-  converter contexts that report nothing are in
-  [findings/swresample.md](findings/swresample.md) and
-  [findings/swscale.md](findings/swscale.md).
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L9, which holds for every operation that produces a frame or a packet.
 
 ### What a finaliser is allowed to do
 
@@ -112,13 +103,12 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   finalised value. A release that blocks needs the first kind's timing and the
   second kind's rights.
 - **How to tell** — Open and drop containers, with and without callbacks, in a
-  loop with collections forced, on OCaml 4 and OCaml 5, under an address
-  sanitiser. Each release step is classified: needs the lock released, touches
+  loop with collections forced, on every supported OCaml version, under an
+  address sanitiser. Each release step is classified: needs the lock released, touches
   roots, or frees memory only.
 - **Count** — 6 fixes, 1 revert. **Sources** — `2181f29`, `c5613c4`,
   `c8ced45`, `20929df`, `4bbbd57`, `9c80044`, `9e671f8`.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §2.1 and §2.3 (two-stage
-  release).
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L7 and L8; [avformat.md](avformat.md) §2.1, Release. The two kinds of finaliser are described in [language-notes/ocaml-c-interface.md](language-notes/ocaml-c-interface.md).
 
 ### Dependent handles that outlive their parent
 
@@ -137,10 +127,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   succeeds, or fails with the documented closed error.
 - **Count** — 4 fixes. **Sources** — `be34b3b`, `ffb9e27`, `133bc4a`,
   `ea4fcdd`, `9e671f8`.
-- **Spec:** **Already a finding** —
-  [findings/avfilter.md](findings/avfilter.md) (filter contexts),
-  [findings/avutil.md](findings/avutil.md) (plane bigarrays). Streams and I/O
-  objects are covered by [avformat.md](avformat.md) §2.1.
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L3 and L4; the dependent handles are listed in [avformat.md](avformat.md) §2.1, [avfilter.md](avfilter.md) §2.2 and [avutil.md](avutil.md) §2.5, §8.2.
 
 ### Callback roots on a failed open
 
@@ -158,8 +145,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   with every callback supplied, then force a major collection.
 - **Count** — 5 fixes, 1 report. **Sources** — `2f2e9ef`, `70f4cc9`,
   `1b6ca47`, `d38c2b0`, `ca20131`; #55.
-- **Spec:** **Already a finding** —
-  [findings/avformat.md](findings/avformat.md) D2.
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L2 and L8, §7.1 C3; [avformat.md](avformat.md) §4.3 and §4.4; [tests.md](tests.md) 3.2.
 
 ### Error paths between the C allocation and the OCaml handle
 
@@ -179,10 +165,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **Count** — 10 fixes. **Sources** — `98c8ac0`, `54563e3`, `e129fcb`,
   `09452a6`, `8faf61c`, `2f91f93`, `ea4fcdd`, `cb21b05`, `4153cca`,
   `3d9edbe`, liq:`58e3fb3de`; #76.
-- **Spec:** **Already a finding** —
-  [findings/avformat.md](findings/avformat.md) D4–D7, D16, G1;
-  [findings/swresample.md](findings/swresample.md);
-  [findings/avcodec.md](findings/avcodec.md).
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L1 and L2; [avcodec.md](avcodec.md) §11, last paragraph, for a receive that returns nothing.
 
 ### Two allocator families
 
@@ -199,8 +182,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   allocator. Each object kind has one release call. Run the suite with an
   allocator that aborts on a mismatched free.
 - **Count** — 3 fixes. **Sources** — `250e4cb`, `2f91f93`, liq:`58e3fb3de`.
-- **Spec:** **Not covered** — no rule; one instance is
-  [findings/avformat.md](findings/avformat.md) D15.
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L1 and L10.
 
 ## Runtime lock and threads
 
@@ -219,8 +201,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   counter keeps advancing during the call and the caller gets its error.
 - **Count** — 6 fixes. **Sources** — `ccf8ed9`, `5b4d506`, `e74a92d`,
   `c418da8`, `b05372d`, `55551d8`.
-- **Spec:** **Covered** — [binding-contract.md](binding-contract.md) §6 and
-  §7.
+- **Rule:** [binding-contract.md](binding-contract.md) §6.1 M3.
 
 ### OCaml heap data used while the lock is released
 
@@ -237,11 +218,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   second thread that allocates continuously.
 - **Count** — 2 fixes. **Sources** — `f228110`, `9f87180`; #12,
   liquidsoap#1045.
-- **Spec:** **Already a finding** —
-  [findings/avformat.md](findings/avformat.md) D10,
-  [findings/avutil.md](findings/avutil.md),
-  [findings/avfilter.md](findings/avfilter.md),
-  [findings/avdevice.md](findings/avdevice.md).
+- **Rule:** [binding-contract.md](binding-contract.md) §6.1 M2.
 
 ### A call made with the lock held re-enters through a callback
 
@@ -256,7 +233,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   their calls, run every container operation: each one that triggers a
   callback returns.
 - **Count** — 3 fixes. **Sources** — `2181f29`, liq:`58e3fb3de`; #31.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §6.
+- **Rule:** [binding-contract.md](binding-contract.md) §6.1 M4; [avformat.md](avformat.md) §6.1 lists `tell`, `flush`, `close` and release by collection among the calls made with the lock released.
 
 ### Callbacks arriving on threads the runtime has not seen
 
@@ -272,8 +249,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   completes and the thread exits cleanly.
 - **Count** — 3 changes. **Sources** — `38f651a`, `fa0ec37`,
   liq:`58e3fb3de`.
-- **Spec:** **Covered** — [binding-contract.md](binding-contract.md) §6,
-  [avutil.md](avutil.md) §6.3.
+- **Rule:** [binding-contract.md](binding-contract.md) §6.3 M10; [avutil.md](avutil.md) §6.3; [tests.md](tests.md) 5.3.
 
 ### Codecs and scalers run on one thread unless asked
 
@@ -289,8 +265,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   count; a caller's explicit count still wins. Scale with several threads and
   compare the output byte for byte with one thread.
 - **Count** — 1 fix. **Sources** — liq:`1935cbb18`; #117, liquidsoap#5014.
-- **Spec:** **Covered** — [avcodec.md](avcodec.md) §4.9,
-  [swscale.md](swscale.md) §4.5.
+- **Rule:** [avcodec.md](avcodec.md) §4.9; [swscale.md](swscale.md) §4.5; [tests.md](tests.md) 2.5, 7.3.
 
 ## Callbacks
 
@@ -310,9 +285,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   closed.
 - **Count** — 5 fixes. **Sources** — `54563e3`, `7c945df`, `e74a92d`,
   `ad874cd`, liq:`58e3fb3de`.
-- **Spec:** **Covered** — [binding-contract.md](binding-contract.md) §7,
-  [avformat.md](avformat.md) §7.1–7.4. The interface comment still naming the
-  old code is [findings/avformat.md](findings/avformat.md) D12.
+- **Rule:** [binding-contract.md](binding-contract.md) §7.1 C1; [avformat.md](avformat.md) §7.1; [tests.md](tests.md) 3.14.
 
 ### The log callback
 
@@ -334,9 +307,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **Count** — 9 changes, 2 reverts. **Sources** — `02ecb6e`, `21bf5a3`,
   `e683c3f`, `a940842`, `f4007d2`, `50a3ece`, `a8ce7c9`, `997e797`,
   liq:`e9bb70415`, liq:`9bc0ad0f0`; #20, #49, #119.
-- **Spec:** **Covered** — [avutil.md](avutil.md) §7.1; the remaining defects
-  (order within a batch, restart after stop, a raising callback) are in
-  [findings/avutil.md](findings/avutil.md).
+- **Rule:** [avutil.md](avutil.md) §7.1 N1–N10; [tests.md](tests.md) 1.14, 1.15.
 
 ### The interrupt callback: identity and lifetime
 
@@ -356,8 +327,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   release.
 - **Count** — 5 fixes. **Sources** — `38f651a`, `837fdf2`, `81cf1f4`,
   `1b6ca47`, `d38c2b0`.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §2.1 (release order) and
-  §7.4.
+- **Rule:** [binding-contract.md](binding-contract.md) §2.3 B1 and §2.2 L8; [avformat.md](avformat.md) §7.1.4; [tests.md](tests.md) 3.15.
 
 ### Custom I/O: how much FFmpeg hands over
 
@@ -376,8 +346,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   Feed a custom read function that ends: the reader sees end of input.
 - **Count** — 4 fixes. **Sources** — `89a5118`, `fa0ec37`, `68d2b86`,
   liq:`480f10bde`; #72.
-- **Spec:** **Already a finding** —
-  [findings/avformat.md](findings/avformat.md) G3, G4.
+- **Rule:** [avformat.md](avformat.md) §7.1.1 and §7.1.2; [tests.md](tests.md) 3.12, 3.13.
 
 ### Reporting key frames while muxing
 
@@ -398,7 +367,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   forced.
 - **Count** — 6 changes, 1 revert. **Sources** — `f054d79`, `3f837ba`,
   `bbbc69c`, `7fa2270`, `6e01868`, `2b8a876`, liq:`ece26c0b7`; #71.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §7.6.
+- **Rule:** [avformat.md](avformat.md) §4.4 (`write_frame`), §6.2 and §7.2; [tests.md](tests.md) 3.16.
 
 ## Containers and streams
 
@@ -414,9 +383,9 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   Every loop over streams and every per-stream table must use the current
   count, on read, seek and release.
 - **How to tell** — Read an input with one stream at open and more starting
-  later, seek, and close it. [tests.md](tests.md) §3.6 describes the fixture.
+  later, seek, and close it. [tests.md](tests.md) §11 describes the fixture.
 - **Count** — 1 fix. **Sources** — liq:`9cac50e42`; liquidsoap#5412.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §2.2.
+- **Rule:** [avformat.md](avformat.md) §2.2; [tests.md](tests.md) 3.8.
 
 ### Operations on a closed container
 
@@ -434,8 +403,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   container and collect.
 - **Count** — 5 fixes. **Sources** — `07098d5`, `51799b9`, `262bc70`,
   `a1794c7`, liq:`58e3fb3de`.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §2.1; the one accessor
-  that skips the check is [findings/avformat.md](findings/avformat.md) D8.
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L5 and §5.3; [avformat.md](avformat.md) §2.1; [tests.md](tests.md) 3.1.
 
 ### Muxer calls before the header exists
 
@@ -448,8 +416,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Open an output, add streams, then flush and close without
   writing. Both return.
 - **Count** — 2 fixes. **Sources** — `9b20007`, `26eb22d`.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §2.1, output state
-  machine.
+- **Rule:** [avformat.md](avformat.md) §2.1, states of an output container; [tests.md](tests.md) 3.4.
 
 ### Text FFmpeg returns as NULL
 
@@ -467,9 +434,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   every optional filter enabled.
 - **Count** — 2 fixes, 1 open report. **Sources** — `44275fd`, `f96950a`;
   #120.
-- **Spec:** **Not covered** — [avfilter.md](avfilter.md) §2.3 copies the pad
-  name unconditionally; [findings/avfilter.md](findings/avfilter.md) lists
-  the filter description only.
+- **Rule:** [binding-contract.md](binding-contract.md) §1.3 I1 and §4 A3; [tests.md](tests.md) 4.1.
 
 ### Setting metadata replaces
 
@@ -482,7 +447,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   "Set" at the interface means the whole table.
 - **How to tell** — Set `{a, b}` then `{b}`: a read returns `{b}`.
 - **Count** — 2 fixes. **Sources** — `01c6238`, `09bec7f`.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §2.1 (output table).
+- **Rule:** [avformat.md](avformat.md) §4.4; [avutil.md](avutil.md) §4.3; [tests.md](tests.md) 1.9, 3.18.
 
 ### A copied stream has no frame rate
 
@@ -497,9 +462,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   stream reports the source's frame rate.
 - **Count** — 3 changes, 1 revert. **Sources** — `9731489`, `f7d4055`,
   `9c4cc61`, `3d7ccd2`; #61.
-- **Spec:** **Not covered** — [avformat.md](avformat.md) §4.4 lists the
-  accessors and says the time base is left to the muxer; it is silent on the
-  frame rate of a copied stream.
+- **Rule:** [avformat.md](avformat.md) §4.4, stream copies; [tests.md](tests.md) 3.19.
 
 ### One operation written once per media kind
 
@@ -517,10 +480,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   failed creation, header already written.
 - **Count** — 1 audit, 19 defects. **Sources** — liq:`58e3fb3de`; #114,
   liquidsoap#5334.
-- **Spec:** **Already a finding** — the Asymmetries sections of
-  [findings/avformat.md](findings/avformat.md),
-  [findings/avcodec.md](findings/avcodec.md) and
-  [findings/swresample.md](findings/swresample.md).
+- **Rule:** [binding-contract.md](binding-contract.md), preamble: each library file answers every clause, so a missing answer is visible; [tests.md](tests.md) §0, misuse is tested like use.
 
 ## Encoding and decoding loops
 
@@ -536,8 +496,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Count the frames of a file with B-frames and of a
   single-frame image; seek to the start after end of input and count again.
 - **Count** — 1 fix. **Sources** — liq:`d9d649c45`; #118, liquidsoap#5442.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §4.3 (drain step),
-  [tests.md](tests.md) §3.5.
+- **Rule:** [avformat.md](avformat.md) §4.3, `read_input` step 6; [tests.md](tests.md) 3.6.
 
 ### Frames left in the decoders across a seek
 
@@ -553,8 +512,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   timestamp is at the target. The fixture needs B-frames, or the decoder
   holds nothing.
 - **Count** — 1 fix. **Sources** — liq:`797883677`; #116, liquidsoap#5385.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §4.3 (`seek`, step 5),
-  [tests.md](tests.md) §3.4.
+- **Rule:** [avformat.md](avformat.md) §4.3, `seek`; [tests.md](tests.md) 3.7.
 
 ### A receive that yields nothing
 
@@ -573,7 +531,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   a packet producing none is not an error.
 - **Count** — 4 fixes. **Sources** — `7494b06`, `cb21b05`, `3d9edbe`; #29,
   #31, #76.
-- **Spec:** **Covered** — [avcodec.md](avcodec.md) §4.10.
+- **Rule:** [avcodec.md](avcodec.md) §4.10 and §11. The hardware download this entry mentions is not offered: decoders decode in software ([avcodec.md](avcodec.md) §4.9).
 
 ### Flushing twice
 
@@ -587,9 +545,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Flush twice, and send after flush, on an encoder and on a
   decoder: each case has one documented outcome.
 - **Count** — 1 fix. **Sources** — `1b72beb`.
-- **Spec:** **Covered** — [avcodec.md](avcodec.md) §2.4; the difference
-  between decoder and encoder is in
-  [findings/avcodec.md](findings/avcodec.md).
+- **Rule:** [avcodec.md](avcodec.md) §2.4, one state table for decoders and encoders; [tests.md](tests.md) 2.7.
 
 ## Timestamps and time bases
 
@@ -604,8 +560,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Read the duration of a live stream and the aspect ratio
   of a stream that declares none: both are absent, not numbers.
 - **Count** — 3 changes. **Sources** — `ddd4098`, `6f466fd`, `0a81aff`.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §4.3,
-  [avcodec.md](avcodec.md) §4.4, [avutil.md](avutil.md) §4.13.
+- **Rule:** [binding-contract.md](binding-contract.md) §3 E7; [avformat.md](avformat.md) §4.3; [avcodec.md](avcodec.md) §3.2; [avutil.md](avutil.md) §4.13; [tests.md](tests.md) 3.20.
 
 ### Setting a frame timestamp leaves the derived one behind
 
@@ -617,7 +572,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Set a timestamp on a decoded frame and read every
   timestamp accessor: they agree.
 - **Count** — 1 fix. **Sources** — `828f254`.
-- **Spec:** **Covered** — [avutil.md](avutil.md) §4.3.
+- **Rule:** [avutil.md](avutil.md) §4.3; [tests.md](tests.md) 1.8.
 
 ## Audio conversion
 
@@ -634,7 +589,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   first result with a copy taken before the second call.
 - **Count** — 3 changes, 2 reverts. **Sources** — `3a646ff`, `11b9eae`,
   `20929df`; #13.
-- **Spec:** **Covered** — [swresample.md](swresample.md) §2.2.
+- **Rule:** [binding-contract.md](binding-contract.md) §4 A5 and §8 S3; [swresample.md](swresample.md) §2.2; [tests.md](tests.md) 6.4.
 
 ### NaN samples
 
@@ -647,7 +602,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Convert a buffer containing NaN in each direction: the
   output holds zero at that position.
 - **Count** — 1 fix. **Sources** — `da05c0d`.
-- **Spec:** **Covered** — [swresample.md](swresample.md) §4.4.1 and §4.4.2.
+- **Rule:** [swresample.md](swresample.md) §4.4; [tests.md](tests.md) 6.5.
 
 ### Sample storage on each side
 
@@ -661,9 +616,9 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   counts.
 - **How to tell** — Convert to and from every container kind with one, two
   and six channels under an address sanitiser, and compare sample values.
-  [tests.md](tests.md) §5.1 gives the cases.
+  [tests.md](tests.md) 6.1 gives the cases.
 - **Count** — 2 fixes. **Sources** — `f228110`, `fa05f89`; #12.
-- **Spec:** **Covered** — [swresample.md](swresample.md) §2.1 and §4.4.1.
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L1; [swresample.md](swresample.md) §3.2; [tests.md](tests.md) 6.1.
 
 ### Channel layouts are structures with a lifetime
 
@@ -680,9 +635,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   accessor that returns one, under a leak detector and an address sanitiser.
 - **Count** — 3 fixes. **Sources** — `6d9b6f2`, `979d282`,
   liq:`58e3fb3de`; #64, #73, liquidsoap#4064, liquidsoap#4065.
-- **Spec:** **Already a finding** — [findings/avutil.md](findings/avutil.md)
-  (uninitialised temporaries), [findings/swresample.md](findings/swresample.md),
-  [findings/avfilter.md](findings/avfilter.md).
+- **Rule:** [avutil.md](avutil.md) §2.2; [tests.md](tests.md) 1.13, 6.9.
 
 ## Video conversion
 
@@ -699,8 +652,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   semi-planar, packed RGB and paletted, the reported count equals
   `av_pix_fmt_count_planes`.
 - **Count** — 2 fixes. **Sources** — `8c0f717`, `f204643`; #15.
-- **Spec:** **Covered** — [swscale.md](swscale.md) §4.5,
-  [avutil.md](avutil.md) §4.11.
+- **Rule:** [swscale.md](swscale.md) §4.5; [avutil.md](avutil.md) §4.11, §4.13; [tests.md](tests.md) 7.1.
 
 ### Plane sizes follow chroma subsampling
 
@@ -717,9 +669,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   what `av_image_fill_plane_sizes` reports, plus the stated padding.
 - **Count** — 4 fixes, 1 revert. **Sources** — `c5b4e37`, `d53ad21`,
   `f204643`, `2bca90a`, liq:`58e3fb3de`; #66, #67, #68.
-- **Spec:** **Already a finding** — [findings/avutil.md](findings/avutil.md)
-  ("Chroma planes are exposed with the luma height"). The scaler is covered
-  by [swscale.md](swscale.md) §8.
+- **Rule:** [binding-contract.md](binding-contract.md) §8 S2; [avutil.md](avutil.md) §8.2; [swscale.md](swscale.md) §4.5; [tests.md](tests.md) 1.10, 7.1.
 
 ## Filters
 
@@ -740,8 +690,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   labelled outputs between existing sources and sinks, run frames through,
   and check each sink receives its own stream.
 - **Count** — 2 changes. **Sources** — `094ad19`, `480f6d0`; #84.
-- **Spec:** **Covered** — [avfilter.md](avfilter.md) §4.10; what a failed
-  parse leaves behind is in [findings/avfilter.md](findings/avfilter.md).
+- **Rule:** [avfilter.md](avfilter.md) §4.10 and §2.1; [tests.md](tests.md) 4.3, 4.4.
 
 ## Options
 
@@ -759,7 +708,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   omitted.
 - **Count** — 3 fixes. **Sources** — `e7fe168`, `1e5cbc3`, `0eeb255`;
   liquidsoap#2392.
-- **Spec:** **Covered** — [avutil.md](avutil.md) §9.3.
+- **Rule:** [binding-contract.md](binding-contract.md) §1.3 I1; [avutil.md](avutil.md) §4.15; [tests.md](tests.md) 1.5.
 
 ### Telling the caller which options were not used
 
@@ -773,9 +722,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Pass a table with one valid and one unknown key to every
   operation taking options: afterwards the table holds the unknown key only.
 - **Count** — 3 fixes. **Sources** — `9f87180`, `3649271`, liq:`f69ea58b3`.
-- **Spec:** **Covered** — [avutil.md](avutil.md) §9.1, [tests.md](tests.md)
-  §1.3; derived keys that vanish are in
-  [findings/avcodec.md](findings/avcodec.md).
+- **Rule:** [avutil.md](avutil.md) §9.1; [tests.md](tests.md) 1.7.
 
 ### One dictionary, several consumers
 
@@ -789,7 +736,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Open an output with one option of each kind: all three
   take effect and none is reported unused.
 - **Count** — 1 change. **Sources** — `b449d6d`.
-- **Spec:** **Covered** — [avformat.md](avformat.md) §9.
+- **Rule:** [avformat.md](avformat.md) §4.4 (`open_output`) and §9; [tests.md](tests.md) 3.17.
 
 ### Numeric bounds of options
 
@@ -801,7 +748,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Read the bounds of an option spanning the full integer
   range and of one spanning the full 64-bit range.
 - **Count** — 1 fix. **Sources** — `26b9f26`.
-- **Spec:** **Covered** — [avutil.md](avutil.md) §3.2.
+- **Rule:** [avutil.md](avutil.md) §3.2; [tests.md](tests.md) 1.6.
 
 ### Setters whose result is dropped
 
@@ -815,9 +762,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   parameter: creation fails with an error.
 - **Count** — 3 fixes. **Sources** — `2989235`, `ca20131`,
   liq:`f69ea58b3`.
-- **Spec:** **Already a finding** — [findings/swscale.md](findings/swscale.md)
-  ("`av_opt_set_int` results are ignored"),
-  [findings/avcodec.md](findings/avcodec.md).
+- **Rule:** [binding-contract.md](binding-contract.md) §4 A7 and §9 O2; [tests.md](tests.md) 2.12, 7.6.
 
 ## Enumerations and generated tables
 
@@ -837,9 +782,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   message naming the header.
 - **Count** — 5 fixes, 1 report. **Sources** — `d9b80c4`, `0b50a84`,
   `0dacc4c`, `b964722`, `c2465e4`; #77.
-- **Spec:** **Already a finding** — [findings/build.md](findings/build.md)
-  ("Fallback header lists do not match the includes", "A missing header or
-  start line produces an empty result and exit 0").
+- **Rule:** [build.md](build.md) §3.2 G3 and G7; [tests.md](tests.md) 9.1, 9.2.
 
 ### Enum members behind preprocessor conditionals
 
@@ -856,8 +799,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   fails the build.
 - **Count** — 4 fixes. **Sources** — `d0b8160`, `3d12307`, `c4f3dba`,
   `627500f`.
-- **Spec:** **Covered** — [build.md](build.md) §3.3; the silent fallback is
-  in [findings/build.md](findings/build.md).
+- **Rule:** [build.md](build.md) §3.2 G4, G5 and G7.
 
 ### Values missing from a table
 
@@ -873,8 +815,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   installed header, to OCaml and back. Probe a stream with an unknown codec.
 - **Count** — 4 fixes. **Sources** — `4d5f530`, `b53d9ff`, `9d8c0fd`,
   `9ebabeb`.
-- **Spec:** **Already a finding** — [findings/build.md](findings/build.md)
-  (range markers, members after `_NB`, the missing dither constant).
+- **Rule:** [build.md](build.md) §3.3; [binding-contract.md](binding-contract.md) §3 E3, E4 and E7; [tests.md](tests.md) 9.3.
 
 ### Each capability list has its own terminator
 
@@ -888,7 +829,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — For a codec that declares each list, the binding returns
   exactly the entries `avcodec_get_supported_config` counts.
 - **Count** — 2 fixes. **Sources** — `5b50475`, liq:`afa508cf9`.
-- **Spec:** **Covered** — [avcodec.md](avcodec.md) §4.3 and §4.4.
+- **Rule:** [avcodec.md](avcodec.md) §4.3; [tests.md](tests.md) 2.3.
 
 ### Hand-written flag sets and tables
 
@@ -903,8 +844,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Check each hand-written constant against the header at
   build time. For each flag, observe an effect that only that flag causes.
 - **Count** — 2 fixes. **Sources** — liq:`58e3fb3de`.
-- **Spec:** **Covered** — [avfilter.md](avfilter.md) §3.3,
-  [swresample.md](swresample.md) §3.3.
+- **Rule:** [binding-contract.md](binding-contract.md) §3 E1 and E6; [tests.md](tests.md) 9.4, 4.8.
 
 ## Build, detection and cross-compilation
 
@@ -925,8 +865,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   bytecode-only switch.
 - **Count** — 4 fixes, 1 revert. **Sources** — `fdff66f`, `08543b3`,
   `c2465e4`, `422de27`; #21, #27.
-- **Spec:** **Covered** — [cross-compilation.md](cross-compilation.md) §1.2
-  and §2.3.
+- **Rule:** [cross-compilation.md](cross-compilation.md) §1.2 X1–X3 and X15, §2.3 X8; [tests.md](tests.md) 9.7.
 
 ### Link flags from pkg-config on Windows
 
@@ -939,7 +878,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Cross-build every library against a static FFmpeg and
   link an executable.
 - **Count** — 1 fix. **Sources** — `39adbd5`.
-- **Spec:** **Covered** — [build.md](build.md) §2.4.
+- **Rule:** [build.md](build.md) §2.4 D7; [cross-compilation.md](cross-compilation.md) X10.
 
 ### A library that silently drops out of the build
 
@@ -957,9 +896,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   rebuilding enables the libraries.
 - **Count** — 3 fixes. **Sources** — `9f41de7`, liq:`2465afdab`,
   liq:`a3e5f35a5`.
-- **Spec:** **Covered** — [build.md](build.md) §2.1 and §2.6;
-  [findings/tests.md](findings/tests.md) covers the suite that disappears
-  with one library.
+- **Rule:** [build.md](build.md) §2.1 D5, §2.5 D9–D11, §5 T2; [tests.md](tests.md) 9.5, 9.6.
 
 ### Warning flags
 
@@ -974,7 +911,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Build with the full warning set against the oldest and
   the newest supported FFmpeg.
 - **Count** — 2 fixes. **Sources** — liq:`afa508cf9`, liq:`3a3d1d66c`.
-- **Spec:** **Covered** — [build.md](build.md) §2.3.
+- **Rule:** [build.md](build.md) §2.7; [tests.md](tests.md) §8.1.
 
 ### C library functions the Windows toolchain lacks
 
@@ -986,8 +923,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — The stubs include only ISO C, the OCaml runtime, FFmpeg
   and POSIX threads. Cross-build to verify.
 - **Count** — 2 fixes. **Sources** — `4046247`, `f5371d7`.
-- **Spec:** **Covered** — [cross-compilation.md](cross-compilation.md) §3.1
-  and §4.
+- **Rule:** [cross-compilation.md](cross-compilation.md) §2.5 X12 and X13; [tests.md](tests.md) 9.8.
 
 ### A library whose only job is registration
 
@@ -1002,7 +938,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — A program that links the device library and only lists
   input formats sees the device formats.
 - **Count** — 2 fixes. **Sources** — `b38419e`, `8191c63`.
-- **Spec:** **Covered** — [avdevice.md](avdevice.md) §4.1.
+- **Rule:** [avdevice.md](avdevice.md) §1 and §4.1; [tests.md](tests.md) 5.1.
 
 ## FFmpeg version drift
 
@@ -1020,7 +956,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   masks.
 - **Count** — 3 changes, 3 reports. **Sources** — `5ea1d0a`, `5406339`,
   `ad53aa5`; #59, #60, #62, liquidsoap#2392.
-- **Spec:** **Covered** — [compatibility.md](compatibility.md) §1.1.
+- **Rule:** [compatibility.md](compatibility.md) §1.1 V1 and §2: the floor is above the replacement and no path uses the masks.
 
 ### Symbols removed, renamed or moved at each major release
 
@@ -1039,7 +975,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **Count** — 9 fixes, 4 reports. **Sources** — `e99156f`, `97c1fc4`,
   `7d5b396`, `1e5cbc3`, `8703012`, `dedf071`, `ce9b97f`, `8e648df`,
   `27bb428`; #43, #54, #77, #78.
-- **Spec:** **Covered** — [compatibility.md](compatibility.md) §2 and §3.
+- **Rule:** [compatibility.md](compatibility.md) §2 V5 and V7.
 
 ### An enum member is not a macro
 
@@ -1052,8 +988,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Every feature test compares library versions, or tests a
   name checked to be a macro in the headers.
 - **Count** — 2 fixes. **Sources** — `0eeb255`, `ef67e71`.
-- **Spec:** **Already a finding** — [findings.md](findings.md) §5 ("One
-  conditional is never true").
+- **Rule:** [compatibility.md](compatibility.md) §2 V6.
 
 ### Declared minimum versions the code does not meet
 
@@ -1069,8 +1004,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   passes detection.
 - **Count** — 4 changes, 4 reports. **Sources** — `93655ca`, `ae7573f`,
   liq:`58e3fb3de`, liq:`3a3d1d66c`; #56, #63, #69, #70.
-- **Spec:** **Already a finding** — [findings.md](findings.md) §5 (version
-  conditionals).
+- **Rule:** [compatibility.md](compatibility.md) §1.1 V2 and V3; [build.md](build.md) §2.3 D6.
 
 ## Tests
 
@@ -1086,8 +1020,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Each test fails when it made no check. Break each
   behaviour on purpose once and see the test go red.
 - **Count** — 1 fix, 3 defects. **Sources** — liq:`2ef0317f5`; #114.
-- **Spec:** **Covered** — [tests.md](tests.md) §9.2; the remaining cases are
-  in [findings/tests.md](findings/tests.md).
+- **Rule:** [tests.md](tests.md) §0 and §10 H1, H2, H4.
 
 ### A regression fixture that does not trigger the condition
 
@@ -1101,9 +1034,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   recorded.
 - **Count** — 3 tests. **Sources** — liq:`797883677`, liq:`9cac50e42`,
   liq:`d9d649c45`.
-- **Spec:** **Covered** — [tests.md](tests.md) §3.4–3.6 and §10.2; the
-  dependence on FFmpeg internals is in
-  [findings/tests.md](findings/tests.md).
+- **Rule:** [tests.md](tests.md) §11 and §10 H4.
 
 ### Steps that depend on the FFmpeg build or the machine
 
@@ -1116,19 +1047,13 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   reports skipped steps as skipped.
 - **Count** — 4 changes. **Sources** — `67656de`, `7ac2d7c`, `63b6de5`,
   `0c49fde`.
-- **Spec:** **Already a finding** — [findings/tests.md](findings/tests.md)
-  (hardware steps, the interrupt check, no way to observe a skip).
+- **Rule:** [tests.md](tests.md) §8.2 and §10 H3.
 
 ## Reconciliation
 
-Entries the specification does not cover:
+Every entry above ends with a **Rule** line naming the rule of the normative
+specification that answers it. No entry is unanswered and none contradicts
+the specification.
 
-- **OCaml values held across an allocation** — Part A has no rooting rule.
-- **C data and OCaml values confused at the boundary** — no rule on what may
-  be stored in an OCaml block or passed as a native object.
-- **Two allocator families** — no rule on which allocator owns what crosses
-  the boundary, nor on one release call per object kind.
-- **Text FFmpeg returns as NULL** — pad names are copied unconditionally.
-- **A copied stream has no frame rate** — the copy operation is silent on it.
-
-Entries that contradict the specification: none.
+Where the specification no longer has the mechanism an entry was about, the
+entry says what handles the situation now.

@@ -1,302 +1,197 @@
-# `av` — libavformat binding (as built)
+# av
 
-The OCaml library is named `av` (public name `ffmpeg-av`). It demuxes and
-decodes on the input side, encodes and muxes on the output side.
-Mechanics of the C stubs are in
-[language-notes/avformat.md](language-notes/avformat.md).
+Containers: demuxing and decoding on the input side, encoding and muxing on
+the output side, custom I/O. The OCaml library is named `av`; it binds
+libavformat. It follows [binding-contract.md](binding-contract.md); section
+numbers match.
 
 ## 1. Scope
 
-- Binds **libavformat** (containers, demuxing, muxing, custom I/O). It also
-  calls **libavcodec** directly (decoder and encoder contexts owned by the
-  container, packets, subtitles, codec parameters) and **libavutil**
-  (dictionaries, options, rescaling, hardware frames, logging).
-- Built when detection finds libavutil and libavformat at their minimum
-  versions ([build.md](build.md) §2.3).
-- Depends on the sibling binding libraries `avutil` and `avcodec`, and on the
-  OCaml `unix` library (for `Unix.seek_command`).
-- From `avutil` it uses: the `'a container`, `('line, 'media) format`,
-  `input`, `output`, `audio`, `video`, `subtitle` phantom types, `opts`,
-  `rational`, `Time_format.t`, `'media frame`, `Subtitle.frame`,
-  `Channel_layout.t`, `Sample_format.t`, `Pixel_format.t`, `HwContext`,
-  `Options`; the error-raising helper, the failure helper, the option
-  dictionary helpers, the thread-registration helper, the rational, frame and
-  subtitle wrappers.
-- From `avcodec` it uses: `Avcodec.params`, `Avcodec.Packet.t`,
-  `Avcodec.codec`, the codec-id conversions, the codec-opening helper, the
-  codec-parameters and packet wrappers.
-- Module initialisation: at load time the library calls
-  `avformat_network_init()` once (and `av_register_all()` on libraries older
-  than the supported range, §10).
-- The installed C header exports to sibling stubs (used by `avdevice`):
-  - a function returning the `AVFormatContext *` of a container value (it
-    applies the closed check of §2.1);
-  - accessors and constructors for input-format and output-format values
-    (one-word abstract blocks holding the `AVInputFormat *` /
-    `AVOutputFormat *`); the constructors raise ``Error (`Failure "Empty input
-format")`` / `"Empty output format"` on a null pointer;
-  - a const-qualifier shim for those pointer types (§10);
-  - the control-message callback pair (§7.5).
+`Av` binds libavformat. It also drives libavcodec, for the decoders and
+encoders a container owns, and uses libavutil for dictionaries, options and
+rescaling.
+
+It depends on `avutil` and `avcodec`, and on the OCaml `unix` library for
+`Unix.seek_command`.
+
+**Module initialisation** reads the version of the libavformat loaded at run
+time, initialises FFmpeg's network layer, and wraps the option class of
+containers as `container_options`. It cannot fail (I1).
+
+**Provided to dependent libraries** (`avdevice`), through its installed C
+header:
+
+| Service                 | Contract                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| native container        | The format context of a container value. Raises the state errors of the contract's §5.3. Needs the runtime lock.           |
+| container guard         | Taking and releasing the guard of a container value.                                                                       |
+| formats                 | The native format of a format value; constructors that wrap an input or an output format. A null pointer raises a failure. |
+| control-message closure | §7.1.5.                                                                                                                    |
 
 ## 2. Objects
 
-### 2.1 Container (`input container`, `output container`)
+### 2.1 Container — `input container`, `output container`
 
-**C object.** One heap record per container, holding:
+- **Native object**: one format context, the decoders or encoders of its
+  streams, and the I/O context it opened or was given.
+- **Creation**: `open_input`, `open_input_stream`, `open_output`,
+  `open_output_format`, `open_output_stream`.
+- **Ownership**: the container owns its format context, every per-stream
+  codec context, and its I/O context.
+- **Keeps alive**: the closures installed on it — interrupt, custom read,
+  write and seek, control message — from installation until release (C3, L8).
+- **Kept alive by**: every stream value, every `uninitialized_stream_copy`,
+  and the value `input_obj` returns (L3).
+- **Release**: `close`, or collection.
+- **Guard**: §6.2.
 
-| Field                    | Meaning                                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| format context           | the `AVFormatContext *`; null after release                                                                   |
-| stream table             | array of per-stream records (index, `AVCodecContext *` or null) and its allocated length                      |
-| preferred decoders       | input only: array of `const AVCodec *`, one slot per stream present when the input was opened, and its length |
-| control-message callback | OCaml closure, set by `avdevice` (§7.5)                                                                       |
-| interrupt callback       | OCaml closure or unset (§7.4)                                                                                 |
-| is-input flag            | 1 for inputs, 0 for outputs                                                                                   |
-| closed flag              | 0 until released                                                                                              |
-| pending stream index     | input only: index of the stream whose decoder may still hold frames, or -1                                    |
-| work packet, work frame  | input only: one `AVPacket` and one `AVFrame` reused by every read                                             |
-| work subtitle            | input only: one embedded `AVSubtitle` used as decode target                                                   |
-| header-written flag      | output only                                                                                                   |
-| write function           | output only: `av_interleaved_write_frame` or `av_write_frame`, chosen at open                                 |
-| custom-I/O flag          | output only: 1 when the I/O context came from OCaml callbacks                                                 |
-| I/O object               | the custom I/O value (§2.3), kept alive while the container is open                                           |
+#### Release
 
-Three "best stream" slots exist in the record and are never written with a
-stream; they are cleared on release.
+`close` (L5, L6):
 
-**Creation.** `open_input`, `open_input_stream`, `open_output`,
-`open_output_format`, `open_output_stream` (§4).
+1. On a closed container, returns.
+2. On an output that is not failed: flushes every audio and video encoder
+   into the muxer, in stream order, which writes the header when it is not
+   written yet; then, when the header is written, writes the trailer.
+3. Releases the native object: closes the I/O the container opened, frees the
+   codec contexts and the format context, drops the closures.
+4. The container is closed. When a step of 2 failed, raises the first
+   failure.
 
-**Ownership.** The container owns its format context, every per-stream codec
-context, the work packet/frame, and — for outputs opened on a URL with a
-format that uses a file — the `AVIOContext` opened by `avio_open2`. It does
-not own a custom `AVIOContext`; that belongs to the I/O object.
+Every step of 2 is attempted even when an earlier one failed. A failure of the
+trailer write or of the final I/O flush is reported like any other.
 
-**What it keeps alive.** While not closed, the container holds strong
-references (GC roots) to: the interrupt closure, the control-message closure,
-the I/O object (and through it the read/write/seek closures and the transfer
-buffer).
+An output with no stream, or with only copy and data streams to which nothing
+was written, is closed without a header or a trailer.
 
-**What keeps it alive.** Every stream value holds its container. The value
-returned by `input_obj` holds its container.
+Release by collection performs step 3 only (L7). An output that is collected
+without `close` is truncated: its encoders are not flushed and it has no
+trailer.
 
-**Release.** Two paths lead to the same release routine:
+A container whose closures reference it is not collected until it is closed
+or the closures become unreachable some other way. Implementations SHOULD NOT
+let a closure that FFmpeg invokes only during an operation pin its container.
 
-1. `Av.close` (explicit). For outputs it first flushes encoders and writes
-   the trailer (§4, `close`).
-2. A `Gc.finalise` function attached by every opening function. It runs the
-   release routine only; it does not flush encoders and does not write a
-   trailer.
+#### States of an input container
 
-The release routine is idempotent. With the runtime lock released it:
+| Operation                                        | Open                      | Closed       |
+| ------------------------------------------------ | ------------------------- | ------------ |
+| getters, `set_input_metadata`, stream operations | performed                 | closed error |
+| `read_input`                                     | performed                 | closed error |
+| `seek`                                           | performed; decoders reset | closed error |
+| `close`                                          | releases → Closed         | nothing      |
+| collection                                       | releases                  | nothing      |
 
-1. frees the work packet and work frame;
-2. if the format context is non-null: frees every per-stream record and its
-   codec context (`avcodec_free_context`), frees the stream table, frees the
-   preferred-decoder array;
-3. if the context has an input format: `avformat_close_input`;
-4. otherwise if it has an output format: `avio_closep(&pb)` unless the
-   custom-I/O flag is set or the format has `AVFMT_NOFILE`; then
-   `avformat_free_context`; the pointer is set to null.
+Inside Open, each stream read as frames has a decoder that is unopened, then
+opened, then draining once the input ended. A successful `seek` returns every
+decoder to the opened state.
 
-Then, with the lock held, it drops the three GC roots (control-message
-closure, interrupt closure, I/O object) and sets the closed flag.
+#### States of an output container
 
-The memory of the record itself is freed when the OCaml value is collected
-(custom-block finaliser), after the `Gc.finalise` function has run.
+**Open** (header not written) → **Started** (header written) → **Closed**. An
+open output can also become **Failed**.
 
-**Use after close.** Every operation that takes a container or a stream
-first checks the closed flag and raises
-``Avutil.Error (`Failure "Container closed!")``. This includes a second call to
-`close`. Two entry points skip the check: the GC cleanup (a no-op when
-closed) and `get_container_stream_time_base`, which reads the format context
-directly (null after release).
+The header is written by the first `write_packet`, `write_frame` or
+`write_subtitle_frame`, or by `close` (above). A failed header write leaves
+the output Open; the next write attempts it again. No operation writes the
+header by itself: what the muxer fixes when it writes the header, the time
+bases of the streams among them, is known after the first write.
 
-#### State machine — input container
+| Operation                                                          | Open                           | Started                       | Failed                   | Closed       |
+| ------------------------------------------------------------------ | ------------------------------ | ----------------------------- | ------------------------ | ------------ |
+| `new_*_stream`, `new_stream_copy`, `new_uninitialized_stream_copy` | adds a stream                  | failure: header written       | failed error             | closed error |
+| `initialize_stream_copy`                                           | initialises the stream         | failure: header written       | failed error             | closed error |
+| `set_output_metadata`, `set_metadata`                              | replaces the metadata          | failure: header written       | failed error             | closed error |
+| `set_time_base`, `set_avg_frame_rate`                              | writes the field               | failure: header written       | failed error             | closed error |
+| `write_packet`, `write_frame`, `write_subtitle_frame`              | writes the header, then writes | writes                        | failed error             | closed error |
+| `flush`                                                            | nothing                        | flushes the muxer and the I/O | failed error             | closed error |
+| `output_started`                                                   | `false`                        | `true`                        | failed error             | closed error |
+| getters                                                            | performed                      | performed                     | failed error             | closed error |
+| `close`                                                            | per "Release"                  | per "Release"                 | releases, writes nothing | nothing      |
+| collection                                                         | releases                       | releases                      | releases                 | nothing      |
 
-States: **Open**, **Closed**. Inside Open the container tracks:
+**Failed.** FFmpeg has no call that removes a stream from a muxer. A stream
+creation is therefore ordered so that everything that can fail for a reason
+other than memory happens before the muxer accepts the stream (§4.4). When a
+step after that point fails, the output is failed: the stream cannot be
+completed and cannot be removed.
 
-- per stream: decoder _unopened_ → _opened_ (first time a packet of that
-  stream is read while the stream is selected for frames) → _draining_ (after
-  end of file, once the drain step has sent the null packet). A successful
-  seek flushes every opened decoder, which returns draining decoders to
-  opened.
-- the pending stream index: set to a stream when a packet was accepted by its
-  audio/video decoder, reset to -1 when that decoder reports any error
-  (including `EAGAIN`), after a seek, and initially.
+### 2.2 Stream — `('line, 'media, 'mode) stream`
 
-| Operation                                             | Open                                              | Closed                        |
-| ----------------------------------------------------- | ------------------------------------------------- | ----------------------------- |
-| getters, `set_input_metadata`, stream getters/setters | performed                                         | `Failure "Container closed!"` |
-| `read_input`                                          | performed                                         | same failure                  |
-| `seek`                                                | performed; flushes decoders, clears pending index | same failure                  |
-| `close`                                               | release → Closed                                  | same failure                  |
-| GC cleanup                                            | release → Closed                                  | nothing                       |
+A dependent handle: a container and a stream index. It has no native object
+and no release of its own. All three type parameters are phantom.
 
-#### State machine — output container
+- `'line` and `'media` are given by the operation that produces the stream
+  and match the container and the stream's codec type.
+- `'mode` (`` `Packet `` or `` `Frame ``) is fixed by the creation functions
+  of an output. For the stream lists of §4.3 the caller chooses it.
 
-States: **Open, header not written** → **Header written** → **Closed**.
+Run-time checks (B3):
 
-The header is written (`avformat_write_header(ctx, NULL)`, no options) by the
-first of: `write_packet`, `write_frame` on any stream, `write_subtitle_frame`,
-or the encoder flush performed by `close` when at least one stream has an
-audio or video encoder. A failed header write leaves the flag clear.
+| Situation                                                       | Outcome |
+| --------------------------------------------------------------- | ------- |
+| a stream given to `read_input` or `seek` with another container | failure |
+| `get_frame_size`, `write_frame` on a stream that has no encoder | failure |
+| a stream index the container no longer has                      | failure |
 
-| Operation                                                          | Header not written                                                                                                                 | Header written                                                   | Closed                        |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------- |
-| `new_*_stream`, `new_uninitialized_stream_copy`, `new_stream_copy` | adds a stream                                                                                                                      | `Failure "Failed to create new stream : header already written"` | `Failure "Container closed!"` |
-| `initialize_stream_copy`                                           | copies parameters                                                                                                                  | copies parameters (no check)                                     | same failure                  |
-| `set_output_metadata`, `set_metadata`                              | replaces the dictionary                                                                                                            | `Failure "Failed to set metadata : header already written"`      | same failure                  |
-| `set_time_base`, `set_avg_frame_rate`                              | writes the field                                                                                                                   | writes the field (no check)                                      | same failure                  |
-| `write_packet`, `write_frame`, `write_subtitle_frame`              | writes header, then writes                                                                                                         | writes                                                           | same failure                  |
-| `flush`                                                            | returns without doing anything                                                                                                     | flushes muxer and I/O                                            | same failure                  |
-| `output_started`                                                   | `false`                                                                                                                            | `true`                                                           | same failure                  |
-| `reopen_output_stream`                                             | replaces the I/O context                                                                                                           | replaces the I/O context                                         | same failure                  |
-| `close`                                                            | flushes encoders (which writes the header if an audio/video encoder exists), writes the trailer if the header is written, releases | flushes encoders, writes trailer, releases                       | same failure                  |
-| GC cleanup                                                         | releases, no trailer                                                                                                               | releases, no trailer                                             | nothing                       |
+Some demuxers add streams while packets are read. Every operation uses the
+container's current stream count.
 
-There is no separate "trailer written" state: the trailer is written only
-inside `close`, immediately before release.
+### 2.3 Formats — `(input, _) format`, `(output, _) format`
 
-### 2.2 Stream (`('line, 'media, 'mode) stream`)
+Borrowed handles on FFmpeg's static input and output formats. The media
+parameter is phantom: `Avdevice` gives it for device formats, and the caller
+chooses it for the results of `find_input_format` and `guess_output_format`.
+Nothing depends on it for safety.
 
-Not a C object. A stream is an OCaml record of the container and the stream
-index. All three type parameters are phantom. It has no release of its own
-and stays valid (as a value) after the container is closed; every use then
-fails with the closed-container failure.
+### 2.4 `uninitialized_stream_copy`
 
-The stream index is not validated against the container's stream count by
-the stream operations; indexes come from the binding itself.
-
-Per-stream C state lives in the container's stream table:
-
-| Stream kind                                     | Table entry             | Codec context   |
-| ----------------------------------------------- | ----------------------- | --------------- |
-| input stream never read as frames               | none                    | none            |
-| input stream read as frames                     | created at first packet | decoder, opened |
-| output encoding stream (audio, video, subtitle) | created with the stream | encoder, opened |
-| output copy stream, data stream                 | created with the stream | none            |
-
-For inputs the table is grown to the format context's current stream count
-each time it is consulted during a read, because some demuxers add streams
-while packets are read.
-
-### 2.3 Custom I/O object (internal, not in the `.mli`)
-
-Created by `open_input_stream` and `open_output_stream` before the container.
-
-**C object.** A record holding one `AVIOContext *`, one OCaml `bytes` transfer
-buffer of 32768 bytes, and the read, write and seek closures (each optional).
-
-**Creation.**
-
-1. Allocate the record. Allocate the 32768-byte OCaml transfer buffer and
-   root it.
-2. Allocate a 32768-byte C buffer with `av_malloc`.
-3. Root each closure that was supplied.
-4. `avio_alloc_context(buffer, 32768, write_flag, record, read_fn, write_fn,
-seek_fn)`; `write_flag` is 1 iff a write closure was supplied; each
-   function pointer is null when its closure is absent.
-5. Any allocation failure raises `Out_of_memory` after undoing the roots.
-
-**Ownership and lifetime.** The I/O object owns the `AVIOContext` and its
-current C buffer. The container that uses it holds it alive until the
-container is released. Its release has two stages, both driven by garbage
-collection, never explicit:
-
-1. a `Gc.finalise` function drops the roots of the transfer buffer and the
-   three closures;
-2. the custom-block finaliser frees `avio_context->buffer` (the buffer
-   currently installed, which FFmpeg may have replaced), then
-   `avio_context_free`, then the record.
-
-Releasing a container never frees or closes a custom `AVIOContext`.
-
-### 2.4 Formats (`(input, _) format`, `(output, _) format`)
-
-A one-word block holding a pointer to a static `AVInputFormat` or
-`AVOutputFormat`. Never released; the pointed object belongs to libavformat.
-The media type parameter is phantom and unchecked.
-
-### 2.5 `uninitialized_stream_copy`
-
-An OCaml pair of the output container and the reserved stream index. No C
-object.
+A dependent handle on a stream reserved in an output and not yet given its
+parameters. `initialize_stream_copy` consumes it once; a second
+initialisation of the same reservation raises a failure.
 
 ## 3. Enumerations and constants
 
-Generated tables consumed:
+**Result tags of `read_input`**, by the codec type of the packet's stream:
 
-- polymorphic-variant hash constants for `` `Audio_packet``,
-  `` `Video_packet``, `` `Subtitle_packet``, `` `Data_packet``,
-  `` `Audio_frame``, `` `Video_frame``, `` `Subtitle_frame`` (result tags of
-  `read_input`), C → OCaml only;
-- through `avutil`: the time-format conversion (`` `Second`` 1,
-  `` `Millisecond`` 1000, `` `Microsecond`` 1000000, `` `Nanosecond``
-  1000000000; any other value 1) and the error mapping (§5);
-- through `avcodec`: codec-id conversions (audio, video, subtitle C → OCaml in
-  `Format.get_*_codec_id`; unknown-kind OCaml → C in `new_data_stream`).
-  Their behaviour on a value with no mapping is specified by `avcodec`.
+| Codec type                  | Packet tag             | Frame tag             |
+| --------------------------- | ---------------------- | --------------------- |
+| audio                       | `` `Audio_packet ``    | `` `Audio_frame ``    |
+| video                       | `` `Video_packet ``    | `` `Video_frame ``    |
+| subtitle                    | `` `Subtitle_packet `` | `` `Subtitle_frame `` |
+| data                        | `` `Data_packet ``     | none                  |
+| other (attachment, unknown) | the packet is dropped  | none                  |
 
-Hand-written tables:
+**`seek_flag`** (OCaml to C, OR-ed together):
 
-Internal media-type selector (OCaml constant constructor ordinal → C), used by
-the stream listing and best-stream stubs:
+| Constructor          | C constant             |
+| -------------------- | ---------------------- |
+| `Seek_flag_backward` | `AVSEEK_FLAG_BACKWARD` |
+| `Seek_flag_byte`     | `AVSEEK_FLAG_BYTE`     |
+| `Seek_flag_any`      | `AVSEEK_FLAG_ANY`      |
+| `Seek_flag_frame`    | `AVSEEK_FLAG_FRAME`    |
 
-| Ordinal | OCaml (internal) | C                       |
-| ------- | ---------------- | ----------------------- |
-| 0       | `MT_audio`       | `AVMEDIA_TYPE_AUDIO`    |
-| 1       | `MT_video`       | `AVMEDIA_TYPE_VIDEO`    |
-| 2       | `MT_data`        | `AVMEDIA_TYPE_DATA`     |
-| 3       | `MT_subtitle`    | `AVMEDIA_TYPE_SUBTITLE` |
+**Whence of the custom seek function** (C to OCaml):
 
-`seek_flag` (OCaml → C, OR-ed together):
+| C `whence`                   | `Unix.seek_command`                |
+| ---------------------------- | ---------------------------------- |
+| `SEEK_SET`                   | `SEEK_SET`                         |
+| `SEEK_CUR`                   | `SEEK_CUR`                         |
+| `SEEK_END`                   | `SEEK_END`                         |
+| anything else (a size query) | the closure is not called (§7.1.3) |
 
-| Ordinal | OCaml                | C                      |
-| ------- | -------------------- | ---------------------- |
-| 0       | `Seek_flag_backward` | `AVSEEK_FLAG_BACKWARD` |
-| 1       | `Seek_flag_byte`     | `AVSEEK_FLAG_BYTE`     |
-| 2       | `Seek_flag_any`      | `AVSEEK_FLAG_ANY`      |
-| 3       | `Seek_flag_frame`    | `AVSEEK_FLAG_FRAME`    |
+**Parameters and defaults:**
 
-Seek whence of the custom I/O seek callback (C → integer → OCaml):
-
-| C `whence`                                                    | Integer passed | `Unix.seek_command`                            |
-| ------------------------------------------------------------- | -------------- | ---------------------------------------------- |
-| `SEEK_SET`                                                    | 0              | `SEEK_SET`                                     |
-| `SEEK_CUR`                                                    | 1              | `SEEK_CUR`                                     |
-| `SEEK_END`                                                    | 2              | `SEEK_END`                                     |
-| anything else (`AVSEEK_SIZE`, values carrying `AVSEEK_FORCE`) | —              | callback not called; the C function returns -1 |
-
-Media type of a demuxed packet → result tag:
-
-| `codecpar->codec_type`      | Packet tag            | Frame tag            |
-| --------------------------- | --------------------- | -------------------- |
-| `AVMEDIA_TYPE_AUDIO`        | `` `Audio_packet``    | `` `Audio_frame``    |
-| `AVMEDIA_TYPE_VIDEO`        | `` `Video_packet``    | `` `Video_frame``    |
-| `AVMEDIA_TYPE_SUBTITLE`     | `` `Subtitle_packet`` | `` `Subtitle_frame`` |
-| `AVMEDIA_TYPE_DATA`         | `` `Data_packet``     | —                    |
-| other (attachment, unknown) | packet discarded      | —                    |
-
-The frame tag of a non-subtitle decoder is `` `Audio_frame`` when the codec
-context type is audio and `` `Video_frame`` otherwise.
-
-Constants:
-
-| Constant               | Value                                             | Use                                                                                                                                  |
-| ---------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| custom I/O buffer size | 32768 bytes                                       | both the `AVIOContext` buffer and the OCaml transfer buffer; also the maximum length passed to a read or write closure per call      |
-| subtitle encode buffer | 4096 bytes                                        | packet allocated for `avcodec_encode_subtitle`; the code comment says it should suffice for most text subtitles including styled ASS |
-| codec attribute buffer | 32 bytes                                          | `codec_attr` formatting                                                                                                              |
-| default time format    | `` `Second``                                      | `get_input_duration`, `get_duration`                                                                                                 |
-| default `interleaved`  | `true`                                            | all output opens                                                                                                                     |
-| best-stream arguments  | wanted -1, related -1, no decoder return, flags 0 | `av_find_best_stream`                                                                                                                |
-| seek window defaults   | `INT64_MIN`, `INT64_MAX`                          | `min_ts`, `max_ts`                                                                                                                   |
+| Name                  | Recommended   | Meaning                                                                                                                  |
+| --------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `IO_BUFFER_SIZE`      | 32768 bytes   | Size of the buffer between FFmpeg and the custom I/O closures. It bounds the memory one container with custom I/O holds. |
+| `SUBTITLE_PACKET_MAX` | 1 MiB         | Largest encoded subtitle. FFmpeg's subtitle encoder writes into a buffer the caller sizes; it bounds that allocation.    |
+| default time format   | `` `Second `` | `get_input_duration`, `get_duration`                                                                                     |
+| default `interleaved` | `true`        | every output open                                                                                                        |
 
 ## 4. Operations
 
-Option handling common to all `?opts` arguments is in §9. "Closed check"
-means the failure of §2.1.
+"State check" means the state errors of the tables of §2.1.
 
 ### 4.1 Top level
 
@@ -304,38 +199,33 @@ means the failure of §2.1.
 val avformat_version : version
 ```
 
-`avformat_version()` read once at load, split as major = `v lsr 16`,
-minor = `(v lsr 8) land 0xff`, micro = `v land 0xff`.
+The libavformat loaded at run time, read once at module load.
 
 ```ocaml
 val container_options : Options.t
 ```
 
-The `AVClass` returned by `avformat_get_class()`, wrapped once at load, for
-listing container options with `Avutil.Options`.
+The option class of containers (`avformat_get_class`), for listing container
+options with `Avutil.Options`.
 
 ### 4.2 `Format`
 
 ```ocaml
 val get_input_name : (input, _) format -> string
 val get_input_long_name : (input, _) format -> string
+val get_output_name : (output, _) format -> string
+val get_output_long_name : (output, _) format -> string
 ```
 
-Copy of `name` / `long_name`; the empty string when the C field is null.
+The format's name and long name (A3). A name may be a comma-separated list of
+aliases.
 
 ```ocaml
 val find_input_format : string -> (input, 'a) format option
 ```
 
-Copies the name to a C string, calls `av_find_input_format` with the runtime
-lock released. `None` when it returns null.
-
-```ocaml
-val get_output_name : (output, _) format -> string
-val get_output_long_name : (output, _) format -> string
-```
-
-Same as the input variants.
+FFmpeg's input format of that name (`av_find_input_format`); `None` when
+there is none.
 
 ```ocaml
 val guess_output_format :
@@ -343,9 +233,9 @@ val guess_output_format :
   (output, 'a) format option
 ```
 
-Each argument defaults to `""`. An empty string is passed to FFmpeg as a null
-pointer, a non-empty one as a C copy. Calls `av_guess_format(short_name,
-filename, mime)` with the lock released. `None` when it returns null.
+FFmpeg's guess from any of a short name, a file name and a MIME type
+(`av_guess_format`). An omitted or empty argument does not take part. `None`
+when FFmpeg guesses nothing.
 
 ```ocaml
 val get_audio_codec_id : (output, audio) format -> Avcodec.Audio.id
@@ -353,9 +243,7 @@ val get_video_codec_id : (output, video) format -> Avcodec.Video.id
 val get_subtitle_codec_id : (output, subtitle) format -> Avcodec.Subtitle.id
 ```
 
-Convert the format's `audio_codec` / `video_codec` / `subtitle_codec` field
-with the matching `avcodec` conversion. The format's media type parameter is
-not checked against anything.
+The format's default codec of that kind (E3); `` `None `` when it has none.
 
 ### 4.3 Input
 
@@ -377,51 +265,34 @@ val open_input :
   string -> input container
 ```
 
-1. Build the option dictionary from `opts` (§9).
-2. If the URL is non-empty, copy it to a C string. If the URL is empty and no
-   format is given: free the dictionary and raise
-   ``Error (`Failure "At least one format or url must be provided!")``.
-3. Allocate the container record, `avformat_alloc_context()`, the work packet
-   (`av_packet_alloc`) and the work frame (`av_frame_alloc`). Pending stream
-   index is -1.
-4. If `interrupt` is given: root the closure and set the format context's
-   `interrupt_callback` to the binding's interrupt function with the
-   container record as opaque (§7.4).
-5. `avformat_open_input(&ctx, url_or_NULL, format_or_NULL, &dict)` with the
-   lock released. On failure (and on any allocation failure in step 3): free
-   the URL copy and the dictionary, unroot the interrupt closure, free the
-   work packet and frame, call `avformat_close_input`, raise the mapped
-   error (allocation failures raise ``Error (`Other AVERROR(ENOMEM))``).
-6. Free the URL copy.
-7. Allocate the preferred-decoder array and an array of per-stream option
-   dictionaries, both sized to the stream count at this point.
-8. For each stream, in index order, pick the callback for its codec type
-   (audio, video, subtitle; no callback for other types). When one is given:
-   call it with a **copy** of the stream's codec parameters as they are
-   before stream probing. From the result: when `codec` is `Some c`, record
-   `c` as the preferred decoder for that stream index; fill the stream's
-   option dictionary from `opts` (an absent `opts` gives an empty one).
-9. Per media type, the **first** codec returned by a callback becomes the
-   format context's `audio_codec` / `video_codec` / `subtitle_codec` for the
-   probing step. When a later stream of the same type returned a different
-   codec, a warning is logged on the format context (`AV_LOG_WARNING`,
-   "Multiple audio streams request different preferred decoders; using NAME
-   for stream probing.", same for video and subtitle) and the first one is
-   still used.
-10. `avformat_find_stream_info(ctx, per_stream_dicts)` with the lock
-    released.
-11. Reset the three forced codec fields to null. Free every per-stream
-    dictionary (their unused entries are not reported).
-12. On probing failure: run the release routine, free the record, raise the
-    mapped error.
-13. Collect the unused keys of the container dictionary, wrap the container,
-    return. The OCaml side attaches the GC cleanup and filters `opts` (§9).
+Opens the URL for reading and probes its streams.
 
-The configure callbacks run on the calling thread with the runtime lock held,
-between steps 5 and 10. An exception raised by one propagates out of
-`open_input`.
+1. An empty URL with no `format` raises a failure.
+2. `interrupt` is installed before anything can block (§7.1.4).
+3. The demuxer is opened on the URL, with `format` forced when given, and
+   consumes `opts` ([avutil.md](avutil.md) §9.1).
+4. For each stream then present, in index order, the configure function of
+   its codec type, when given, is called with a copy of the stream's codec
+   parameters as they are before probing (§7.2). Its result configures the
+   stream:
+   - `codec = Some c`: `c` is the stream's **preferred decoder**. It is used
+     to decode the stream in frame mode (§4.3, `read_input`), and for probing
+     as described next.
+   - `opts`: options for that stream's decoder. They are given to probing and
+     to the decoder when it is opened for frame mode. The table is read when
+     the function returns; it is not modified and no unused entry is
+     reported.
+5. Streams are probed (`avformat_find_stream_info`). FFmpeg's probing accepts
+   one forced decoder per media type: the preferred decoder of the first
+   stream of each type that has one. When a later stream of the same type
+   prefers another decoder, a warning is written to FFmpeg's log and the
+   first one is used for probing.
 
-Streams that appear after step 7 have no preferred decoder.
+A stream that appears after step 4 has no configuration.
+
+Any failure, including an exception raised by a configure function, releases
+everything and removes the interrupt closure before it reaches the caller
+(L2).
 
 ```ocaml
 type read = bytes -> int -> int -> int
@@ -429,7 +300,7 @@ type write = bytes -> int -> int -> int
 type seek = int -> Unix.seek_command -> int
 ```
 
-Signatures of the custom I/O closures (§7.1–7.3).
+The custom I/O closures (§7.1).
 
 ```ocaml
 val open_input_stream :
@@ -437,56 +308,41 @@ val open_input_stream :
   input container
 ```
 
-1. Create an I/O object (§2.3) with the read closure, no write closure and
-   the optional seek closure (wrapped so it receives a `Unix.seek_command`).
-2. Build the option dictionary. `avformat_alloc_context()`; set its `pb` to
-   the I/O object's `AVIOContext`.
-3. Same as `open_input` steps 3 and 5 with a null URL, no interrupt.
-4. `avformat_find_stream_info(ctx, NULL)` with the lock released; on failure
-   run the release routine, free the record, raise.
-5. Store and root the I/O object in the container. Report unused options.
-
-There is no interrupt callback, no per-stream configuration and no preferred
-decoder array for this kind of input.
+As `open_input`, reading through the closures instead of a URL. It takes no
+interrupt function and no stream configuration.
 
 ```ocaml
 val get_input_duration :
   ?format:Time_format.t -> input container -> Int64.t option
 ```
 
-Reads the format context `duration` (in `AV_TIME_BASE` units). `None` when it
-is `AV_NOPTS_VALUE`. Otherwise computes, in 64-bit integer arithmetic,
-`(duration * F * 1) / AV_TIME_BASE` where `F` is the number of `format` units
-per second. A result of exactly 0 is turned into `None`. Default format
-`` `Second``.
+The duration of the input in units of `format`. `None` when FFmpeg does not
+know it, and when it converts to 0. See "Time conversion" below.
 
 ```ocaml
 val get_input_metadata : input container -> (string * string) list
 ```
 
-Iterates the format context metadata dictionary with
-`av_dict_get(dict, "", prev, AV_DICT_IGNORE_SUFFIX)` and returns copies of
-each key and value, in dictionary iteration order.
+The container's metadata, in the dictionary's order.
 
 ```ocaml
 val get_input_format : input container -> (input, _) format option
 ```
 
-`Some` of the context's `iformat`, `None` when it is null.
+The format the demuxer detected or was given.
 
 ```ocaml
 val set_input_metadata : input container -> (string * string) list -> unit
 ```
 
-Same routine as `set_output_metadata` (§4.4) on the container dictionary. The
-header-written flag of an input is always clear, so it always proceeds.
+Replaces the container's metadata, as `set_output_metadata` (§4.4), in any
+state of an open input.
 
 ```ocaml
 val input_obj : input container -> Options.obj
 ```
 
-Returns an option object designating the `AVFormatContext`, paired with the
-container so that the container stays alive as long as the object does.
+The container as an option-bearing object ([avutil.md](avutil.md) §9.4).
 
 ```ocaml
 type ('line, 'media, 'mode) stream
@@ -507,12 +363,9 @@ val get_data_streams :
   (int * ('a, [ `Data ], 'b) stream * [ `Data ] Avcodec.params) list
 ```
 
-Scan the format context's streams and keep those whose
-`codecpar->codec_type` equals the requested type. The result is in ascending
-index order. Each element carries the index, a stream value and a fresh copy
-of the codec parameters (as `get_codec_params`). The `'mode` parameter is
-free: the caller chooses packet or frame mode by annotation. Works on input
-and output containers.
+The container's current streams of that codec type, in ascending index order,
+each with its index, a stream value and a copy of its codec parameters. They
+work on inputs and outputs.
 
 ```ocaml
 val find_best_audio_stream :
@@ -524,81 +377,79 @@ val find_best_subtitle_stream :
   int * (input, subtitle, 'a) stream * subtitle Avcodec.params
 ```
 
-`av_find_best_stream(ctx, type, -1, -1, NULL, 0)` with the lock released. Any
-negative result raises ``Error `Stream_not_found``, whatever the code was.
-Otherwise returns the index, a stream value and a copy of its parameters.
+The stream FFmpeg considers the best of that type (`av_find_best_stream`,
+with no preference). When there is none it raises
+``Error `Stream_not_found``.
 
 ```ocaml
 val get_input : (input, _, _) stream -> input container
 val get_index : (_, _, _) stream -> int
+val get_output : (output, _, _) stream -> output container
 ```
 
-Record field reads. No C call, no closed check.
+The stream's container and index. No state check: they read the stream value
+only.
 
 ```ocaml
 val get_codec_params : (_, 'media, _) stream -> 'media Avcodec.params
 ```
 
-Closed check, then a deep copy (`avcodec_parameters_copy` into a freshly
-allocated `AVCodecParameters`) of the stream's `codecpar`, owned by the
-returned value.
+An independent copy of the stream's codec parameters.
 
 ```ocaml
 val get_avg_frame_rate : (_, video, _) stream -> Avutil.rational option
 val set_avg_frame_rate : (_, video, _) stream -> Avutil.rational option -> unit
 ```
 
-Getter: `None` when `avg_frame_rate.num` is 0, else the rational. Setter:
-writes the rational, or `0/1` for `None`. No state check besides closed.
+The stream's average frame rate; `None` is "unset" (a zero numerator).
 
 ```ocaml
 val get_time_base : (_, _, _) stream -> Avutil.rational
+val set_time_base : (_, _, _) stream -> Avutil.rational -> unit
 ```
 
-The `AVStream` time base.
+The stream's time base. Setting it does not touch the stream's encoder. A
+muxer may replace the time base of a stream when it writes the header.
 
 ```ocaml
 val get_container_stream_time_base : index:int -> _ container -> Avutil.rational
 ```
 
-Scans the context's streams for one whose `index` field equals `index` and
-returns its time base. Raises `Not_found` when none matches. Performs no
-closed check.
-
-```ocaml
-val set_time_base : (_, _, _) stream -> Avutil.rational -> unit
-```
-
-Writes the `AVStream` time base. Does not touch any codec context. No check
-on header state.
+The time base of the stream of that index. It performs the state check like
+every getter, then raises `Not_found` when the container has no such stream.
 
 ```ocaml
 val get_frame_size : (output, audio, _) stream -> int
 ```
 
-Reads `frame_size` from the stream's codec context in the stream table. It
-assumes the stream has one (i.e. was created by `new_audio_stream`).
+The frame size of the stream's encoder ([avcodec.md](avcodec.md) §4.3). A
+stream with no encoder raises a failure.
 
 ```ocaml
 val get_pixel_aspect : (_, video, _) stream -> Avutil.rational option
 ```
 
-The `AVStream` `sample_aspect_ratio`; `None` when its numerator is 0.
+The stream's sample aspect ratio; `None` when unknown.
 
 ```ocaml
 val get_duration :
   ?format:Time_format.t -> (input, _, _) stream -> Int64.t option
 ```
 
-Reads the `AVStream` `duration`. `None` when `AV_NOPTS_VALUE`. Otherwise
-`(duration * F * tb.num) / tb.den` in 64-bit integer arithmetic. A zero
-result is returned as `Some 0L` (unlike `get_input_duration`).
+The stream's duration in units of `format`. `None` when FFmpeg does not know
+it, and when it converts to 0.
 
 ```ocaml
 val get_metadata : (input, _, _) stream -> (string * string) list
 ```
 
-As `get_input_metadata` on the stream's dictionary.
+The stream's metadata, in the dictionary's order.
+
+**Time conversion.** A duration or a position `v` expressed in a time base
+`n/d` is converted to units of a time format with `F` units per second as
+`v * F * n / d`, rounded to the nearest integer as FFmpeg's rescaling does
+(`av_rescale_q`). The conversion MUST be exact whenever the result fits in 64
+bits: the intermediate product does not overflow.
 
 ```ocaml
 type packet_result =
@@ -630,99 +481,58 @@ val read_input :
   input container -> input_result
 ```
 
-OCaml side: every stream in every list must be physically the same container
-as the argument, else `Stdlib.Failure "Inconsistent stream and input!"`. The
-packet lists are concatenated (audio, video, subtitle, data) into the _packet
-selection_; the frame lists (audio, video, subtitle) into the _frame
-selection_. All lists default to empty.
+Returns the next packet or frame of the selected streams. The packet lists
+form the **packet selection**, the frame lists the **frame selection**; all
+default to empty. A stream in both is in the packet selection.
 
-Stub, after the closed check — repeat until something is returned or raised:
+Each call returns one result or raises:
 
-1. **If the pending stream index is -1**:
-   1. `av_read_frame(ctx, work_packet)` with the lock released.
-   2. `AVERROR(EAGAIN)`: restart the loop immediately.
-   3. `AVERROR_EOF`: run the **drain step** (below). If it yields a frame,
-      return it as `` `Audio_frame`` / `` `Video_frame``.
-   4. Any negative code (including end of file after an empty drain): raise
-      the mapped error. End of input is ``Error `Eof``.
-   5. Classify the packet by the codec type of its stream (table in §3). A
-      packet of another type is unreferenced and the loop restarts.
-   6. If the packet's stream index is in the packet selection: clone the
-      packet (`av_packet_clone`), unreference the work packet, return
-      `` `X_packet (index, packet)``. The tag follows the stream's actual
-      codec type.
-   7. Else if the index is in the frame selection: take the stream's table
-      entry (growing the table to the current stream count); if there is
-      none, **open the decoder** (below). Continue at step 3 with the work
-      packet as input.
-   8. Else (unhandled): when `on_unhandled_packet` is given, clone the packet,
-      unreference the work packet and call the closure with
-      `` `X_packet (index, packet)``; otherwise unreference the work packet.
-      Restart the loop.
-2. **Else** take the table entry of the pending stream, with no input packet.
-   This happens regardless of the current call's selections.
-3. **Decode.**
-   - _Subtitle decoder_: `avcodec_decode_subtitle2(dec, work_subtitle,
-&got, packet)` with the lock released. On a negative result:
-     unreference the packet, raise. When nothing was produced: unreference
-     the packet, restart the loop. Otherwise adjust timing: if the subtitle
-     `pts` is `AV_NOPTS_VALUE` and the packet has a pts, set it to the packet
-     pts rescaled from the stream time base to `AV_TIME_BASE_Q`; if the
-     packet duration is positive and `end_display_time` is 0, set
-     `end_display_time` to the duration rescaled to milliseconds.
-     Unreference the packet. Move the subtitle into a freshly allocated
-     `AVSubtitle` (bitwise copy; the rectangles now belong to the new
-     object), wrap it, return `` `Subtitle_frame (index, subtitle)``.
-   - _Audio or video decoder_, with the lock released: when there is an
-     input packet, `avcodec_send_packet(dec, packet)` then unreference the
-     packet; on a negative result set pending to -1 and stop with that code;
-     otherwise set pending to this stream. Then
-     `avcodec_receive_frame(dec, work_frame)`; on a negative result set
-     pending to -1. Outcome: `AVERROR(EAGAIN)` restarts the loop; another
-     negative code is raised; success clones the work frame
-     (`av_frame_clone`), unreferences the work frame and returns
-     `` `Audio_frame`` / `` `Video_frame (index, frame)``. Pending stays set,
-     so the next call asks the same decoder for another frame before reading
-     a new packet.
+1. **Pending frames first.** When a decoder holds a frame ready from a packet
+   read by an earlier call, that frame is returned, whatever the selections
+   of this call.
+2. **Read a packet** from the demuxer. A packet of a stream that is neither
+   audio, video, subtitle nor data is dropped.
+3. **Packet selection.** The call returns `` `X_packet (index, packet) ``
+   with a fresh packet. The tag follows the stream's actual codec type (§3).
+4. **Frame selection.** The packet is given to the stream's decoder, which is
+   opened on first use (below). The first frame it produces is returned as
+   `` `X_frame (index, frame) ``. Further frames from the same packet are
+   returned by the following calls, per step 1. A packet that produces no
+   frame is not an error: the call goes back to step 2.
+5. **Neither.** When `on_unhandled_packet` is given, it is called with
+   `` `X_packet (index, packet) `` and a fresh packet (§7.2). The call goes
+   back to step 2.
+6. **End of input.** The decoders of the streams of the frame selection are
+   drained: each remaining frame is returned, one per call. When none remains
+   the call raises ``Error `Eof``, and so does every later call until a
+   `seek`.
 
-**Open the decoder** (first frame-mode packet of a stream):
+Consequences:
 
-1. Index out of range raises
-   `Failure "Failed to open stream N : index out of bounds"`.
-2. Decoder = the preferred decoder recorded for this index at `open_input`,
-   else `avcodec_find_decoder(codecpar->codec_id)`. None found raises
-   ``Error `Decoder_not_found``.
-3. A decoder whose type is not audio, video or subtitle raises
-   `Failure "Failed to allocate stream N of media type T"`.
-4. Allocate the table entry and store it in the table. Allocate a codec
-   context for the decoder (`avcodec_alloc_context3`).
-5. `avcodec_parameters_to_context(dec_ctx, codecpar)`.
-6. Open through the `avcodec` codec-opening helper with no options (the
-   helper sets `thread_count = 0` and calls `avcodec_open2` with the lock
-   released).
-7. A failure in step 5 or 6 frees the entry record and raises the mapped
-   error. The table slot is not cleared and the codec context is not freed.
+- Every frame of a stream read in frame mode is returned before
+  ``Error `Eof``, including frames a decoder holds because of reordering or
+  threading when the demuxer runs out of packets.
+- A packet that produces several frames delivers all of them.
+- With empty selections every packet is unhandled: the call consumes the
+  whole input and raises ``Error `Eof``.
+- A returned packet or frame is independent of the container: later reads do
+  not change it (A5).
 
-The decoder's `pkt_timebase` is not set. Options returned by the configure
-callbacks are not given to the decoder.
+**Opening a decoder**, the first time a packet of a stream is decoded:
 
-**Drain step** (at end of file): for each index of the frame selection, in
-order, skipping indexes beyond the table, streams with no opened decoder and
-subtitle decoders: with the lock released call
-`avcodec_send_packet(dec, NULL)` (result ignored) then
-`avcodec_receive_frame(dec, work_frame)`. Success returns that stream.
-`AVERROR_EOF` and `AVERROR(EAGAIN)` move to the next stream. Any other code
-is raised. The drain step runs again on every later `read_input` call, so
-successive calls return the remaining buffered frames one by one, then raise
-``Error `Eof``.
+- the decoder is the stream's preferred decoder (`open_input`), else FFmpeg's
+  default decoder for the stream's codec; when there is none the call raises
+  ``Error `Decoder_not_found``;
+- it is opened as [avcodec.md](avcodec.md) §4.9 describes, with the stream's
+  codec parameters, the stream's time base as its packet time base, and the
+  stream's configured options;
+- a failure raises, and leaves the container as if the stream had never been
+  read in frame mode: a later call attempts the opening again.
 
-Consequences visible to the caller:
-
-- With empty selections every packet is unhandled; the call loops to the end
-  of the input and raises ``Error `Eof``.
-- A stream listed in both a packet list and a frame list is delivered as
-  packets.
-- The media type given by which packet list a stream sits in is not used.
+**Subtitle frames.** A decoded subtitle with no timestamp takes its packet's,
+converted to FFmpeg's internal time base. A subtitle with a zero end display
+time and a packet with a positive duration takes that duration, in
+milliseconds, as its end display time.
 
 ```ocaml
 type seek_flag =
@@ -735,19 +545,19 @@ val seek :
   fmt:Time_format.t -> ts:Int64.t -> input container -> unit
 ```
 
-1. Closed check. `flags` defaults to `[]`.
-2. Stream index = the given stream's index, or -1. The stream's container is
-   not compared with the container argument.
-3. Conversion, 64-bit integer arithmetic, `F` = `fmt` units per second:
-   without a stream, `ts * AV_TIME_BASE / F`; with a stream,
-   `ts * tb.den / (tb.num * F)`. The same conversion applies to `min_ts` and
-   `max_ts` when given; absent bounds are `INT64_MIN` and `INT64_MAX`. The
-   conversion is applied whatever the flags are.
-4. `avformat_seek_file(ctx, index, min_ts, ts, max_ts, flags)` with the lock
-   released. A negative result is raised.
-5. On success: `avcodec_flush_buffers` on every opened decoder of the
-   container, and the pending stream index is reset to -1, so no frame
-   decoded before the seek is returned after it.
+Repositions the input (`avformat_seek_file`).
+
+- `ts`, and `min_ts` and `max_ts` when given, are times in units of `fmt`.
+  They are converted to the time base of `stream` when one is given, else to
+  FFmpeg's internal time base (see "Time conversion").
+- With `Seek_flag_byte` or `Seek_flag_frame` the three values are a byte
+  offset or a frame number: they are passed as given and `fmt` is not used.
+- An absent `min_ts` or `max_ts` is unbounded.
+- `flags` defaults to none.
+- On success every opened decoder of the container is reset and every frame
+  decoded before the seek is discarded: the first frame returned afterwards
+  belongs to the new position. The end-of-input condition is cleared.
+- On failure the mapped error is raised and the decoders are unchanged.
 
 ### 4.4 Output
 
@@ -757,46 +567,28 @@ val open_output :
   ?interleaved:bool -> ?opts:opts -> string -> output container
 ```
 
-Common output opening routine, with (format or null, file name copy, no
-custom I/O, interrupt, interleaved, option dictionary):
+Opens the URL for writing.
 
-1. Allocate a zeroed container record (is-input 0, header not written).
-2. Select the write function: `av_interleaved_write_frame` when
-   `interleaved` (default `true`), else `av_write_frame`.
-3. If `interrupt` is given, root the closure and prepare an
-   `AVIOInterruptCB` (binding's interrupt function, container record as
-   opaque) for step 7. The format context's own `interrupt_callback` is not
-   set.
-4. `avformat_alloc_output_context2(&ctx, format, NULL, file_name)`. On
-   failure: free the name, the dictionary and the record; raise.
-5. `av_opt_set_dict(ctx, &dict)`: applies generic format options, leaving
-   unrecognised entries in the dictionary. On failure: raise.
-6. If the muxer has private data, `av_opt_set_dict(ctx->priv_data, &dict)`:
-   applies muxer-private options. On failure: raise.
-7. I/O:
-   - with a custom `AVIOContext`: if the format has `AVFMT_NOFILE`, raise
-     `Failure "Cannot set custom I/O on this format!"`; else install it as
-     `pb` and set the custom-I/O flag;
-   - without: unless the format has `AVFMT_NOFILE`, call
-     `avio_open2(&ctx->pb, file_name, AVIO_FLAG_WRITE, interrupt_cb_or_NULL,
-&dict)` with the lock released (protocol options are consumed from the
-     same dictionary); on failure raise. `AVFMT_NOFILE` formats get no I/O
-     context.
-8. Free the file name copy.
-
-The failure paths of steps 5–7 free the record, the name and the dictionary;
-they do not free the format context. Step 7's `avio_open2` failure and step
-5's failure also unroot the interrupt closure.
-
-Then: collect unused keys, wrap, attach GC cleanup, filter `opts`.
+- The muxer is `format` when given, else FFmpeg's guess from the URL.
+- `interleaved` (default `true`) selects whether written packets are
+  interleaved by the muxer (`av_interleaved_write_frame`) or written in call
+  order (`av_write_frame`).
+- `opts` is consumed, in this order, by the generic container options, the
+  muxer's private options, and the I/O protocol
+  ([avutil.md](avutil.md) §9.1). An entry meant for a later consumer is not
+  reported unused because an earlier one did not know it.
+- `interrupt` covers every blocking I/O of the container, including I/O the
+  muxer opens by itself (§7.1.4).
+- For a format that needs no file, no I/O is opened.
+- Any failure releases everything and removes the interrupt closure (L2).
 
 ```ocaml
 val open_output_format :
   ?interleaved:bool -> ?opts:opts -> (output, _) format -> output container
 ```
 
-The common routine with the given format, a null file name, no custom I/O
-and no interrupt.
+Opens an output of a format that needs no file, a device for one. A format
+that needs a file raises a failure.
 
 ```ocaml
 val open_output_stream :
@@ -804,100 +596,55 @@ val open_output_stream :
   (output, _) format -> output container
 ```
 
-Creates an I/O object (§2.3) with no read closure, the write closure and the
-optional seek closure, then runs the common routine with the format, a null
-file name, the I/O object's `AVIOContext` and no interrupt. On success the
-I/O object is stored and rooted in the container.
-
-```ocaml
-val reopen_output_stream : output container -> unit
-```
-
-Closed check. If the context has no `pb`, raises
-`Failure "Not a streamed output!"`. Otherwise calls
-`avio_open_dyn_buf(&ctx->pb)` with the lock released: the `pb` field now
-points to a new dynamic memory buffer context. The previous context is
-neither flushed nor closed, the custom-I/O flag is unchanged. A negative
-result is raised.
+Opens an output of the given format that writes through the closures. A
+format that needs no file raises a failure.
 
 ```ocaml
 val output_started : output container -> bool
 ```
 
-The header-written flag.
+Whether the header is written.
 
 ```ocaml
 val set_output_metadata : output container -> (string * string) list -> unit
 val set_metadata : (_, _, _) stream -> (string * string) list -> unit
 ```
 
-Closed check; raises `Failure "Failed to set metadata : header already
-written"` when the header-written flag is set. Frees the target dictionary
-(container's, or the stream's), then `av_dict_set(dict, key, value, 0)` for
-each pair in order (strings are copied; a later duplicate key replaces an
-earlier one). A failing `av_dict_set` raises, leaving the pairs already set.
-`set_metadata` accepts input streams as well.
+Replace the whole metadata of the container, or of the stream, with the list.
+Entries present before and absent from the list are gone; a key that appears
+twice keeps its last value. On failure the metadata is unchanged.
+`set_metadata` accepts input streams too.
 
-```ocaml
-val get_output : (output, _, _) stream -> output container
-```
+**Adding a stream.** Every creation function below:
 
-Record field read.
-
-Adding a stream — common routine used by every creation function:
-
-1. Closed check; raises `Failure "Failed to create new stream : header
-already written"` when the header is written.
-2. Grow the stream table to the format context's stream count plus one.
-3. Allocate the table entry at the new index; when a codec is given, check
-   its type (audio, video, subtitle, else `Failure "Failed to allocate
-stream N of media type T"`) and allocate its context
-   (`avcodec_alloc_context3`).
-4. `avformat_new_stream(ctx, codec_or_NULL)`; set the stream's `id` to its
-   index.
-
-Opening an encoder — common routine:
-
-1. If the output format has `AVFMT_GLOBALHEADER`, set
-   `AV_CODEC_FLAG_GLOBAL_HEADER` on the encoder.
-2. If a hardware device context is given, `hw_device_ctx =
-av_buffer_ref(device)`; if a hardware frame context is given,
-   `hw_frames_ctx = av_buffer_ref(frames)`.
-3. Open through the `avcodec` codec-opening helper with the option
-   dictionary (thread count 0, `avcodec_open2`, lock released).
-4. Copy the encoder's `time_base` to the `AVStream` time base.
-5. `avcodec_parameters_from_context(stream->codecpar, enc)`.
-6. Any failure frees the dictionary and raises. The `AVStream` and the table
-   entry added by the previous routine remain in the container.
+- performs the state check;
+- on success adds exactly one stream, whose identifier is its index;
+- on failure leaves the output with the streams it had, or failed (§2.1).
 
 ```ocaml
 val new_stream_copy :
   params:'mode Avcodec.params -> output container ->
   (output, 'mode, [ `Packet ]) stream
-```
-
-`new_uninitialized_stream_copy` followed by `initialize_stream_copy`.
-
-```ocaml
 type uninitialized_stream_copy
 val new_uninitialized_stream_copy : output container -> uninitialized_stream_copy
-```
-
-Adds a stream with no codec (common routine) and returns the container with
-the new index. The stream's codec parameters are left as FFmpeg initialises
-them.
-
-```ocaml
 val initialize_stream_copy :
   params:'mode Avcodec.params -> uninitialized_stream_copy ->
   (output, 'mode, [ `Packet ]) stream
 ```
 
-Closed check. `avcodec_parameters_copy(stream->codecpar, params)`, then sets
-`codec_tag` to 0. Returns a stream value for the reserved index. Checks
-neither the header-written flag nor whether the stream was already
-initialised. The stream's time base is left to the muxer (or to
-`set_time_base`).
+A stream that receives packets encoded elsewhere.
+
+- `new_uninitialized_stream_copy` reserves the stream, so that its index is
+  known before its parameters are.
+- `initialize_stream_copy` gives the reserved stream a copy of `params`. The
+  codec tag is cleared so that the muxer chooses its own.
+- `new_stream_copy` is the two in sequence.
+
+Only the codec parameters are copied. The time base is the muxer's choice
+unless `set_time_base` is called. **The average frame rate is not part of the
+codec parameters**: a copied video stream reports none unless the caller sets
+it with `set_avg_frame_rate`, typically from `get_avg_frame_rate` of the
+source stream.
 
 ```ocaml
 val new_audio_stream :
@@ -905,56 +652,36 @@ val new_audio_stream :
   sample_format:Avutil.Sample_format.t -> time_base:Avutil.rational ->
   codec:[ `Encoder ] Avcodec.Audio.t -> output container ->
   (output, audio, [ `Frame ]) stream
-```
-
-1. OCaml side builds a private copy of `opts` extended with the derived
-   audio options produced by the `avutil` audio-options helper from
-   `channel_layout`, `sample_rate`, `sample_format`, `time_base` (sample rate
-   `ar`, `channel_layout`, `sample_fmt`, `time_base`).
-2. Add a stream with the codec (common routine).
-3. Set the encoder's `sample_fmt` to the sample format's C id and copy the
-   channel layout with `av_channel_layout_copy`; a failure frees the
-   dictionary and raises.
-4. Open the encoder (common routine) with the dictionary, no hardware
-   context.
-5. Report unused keys; only the caller's own `opts` table is filtered.
-
-```ocaml
 val new_video_stream :
   ?opts:opts -> ?frame_rate:Avutil.rational ->
   ?hardware_context:Avcodec.Video.hardware_context ->
   pixel_format:Avutil.Pixel_format.t -> width:int -> height:int ->
   time_base:Avutil.rational -> codec:[ `Encoder ] Avcodec.Video.t ->
   output container -> (output, video, [ `Frame ]) stream
-```
-
-1. OCaml side builds a private copy of `opts` extended by the `avutil`
-   video-options helper (`pixel_format`, `video_size` as `WxH`, `time_base`,
-   and the frame rate when given).
-2. `hardware_context` is split: `` `Device_context d`` gives a device
-   context, `` `Frame_context f`` gives a frame context, never both.
-3. Add a stream with the codec, open the encoder with the hardware context
-   and the dictionary. Pixel format, size and time base reach the encoder
-   only through the dictionary.
-4. Filter the caller's `opts`.
-5. Call `set_avg_frame_rate stream frame_rate` (so an absent frame rate
-   writes `0/1`).
-
-```ocaml
 val new_subtitle_stream :
   ?opts:opts -> ?header:string -> time_base:Avutil.rational ->
   codec:[ `Encoder ] Avcodec.Subtitle.t -> output container ->
   (output, subtitle, [ `Frame ]) stream
 ```
 
-1. OCaml side: when `header` is absent and the codec's descriptor (looked up
-   by codec id) lists the `` `Text_sub`` property, the header becomes
-   `Avutil.Subtitle.header_ass_default ()`; otherwise no header.
-2. Add a stream with the codec. Set the encoder `time_base` directly.
-3. With a header: allocate `length + 1` zeroed bytes, copy the string, set
-   `subtitle_header` and `subtitle_header_size = length`.
-4. Open the encoder with the caller's dictionary (no derived options), no
-   hardware context. Filter `opts`.
+A stream that receives frames and encodes them. In this order:
+
+1. An encoder is created for `codec` with the typed arguments, as
+   [avcodec.md](avcodec.md) §4.9 describes for audio and video, and with
+   `opts`. When the output format wants codec headers out of band, the encoder
+   is asked for global headers.
+2. The muxer accepts a new stream.
+3. The stream takes the encoder's time base and the encoder's codec
+   parameters.
+
+A failure in step 1 leaves the output unchanged. A failure in step 3 leaves it
+failed.
+
+- `new_video_stream`: `frame_rate`, when given, is also the stream's average
+  frame rate; otherwise that stays unset.
+- `new_subtitle_stream`: `header` is the subtitle header given to the
+  encoder. When omitted, and the codec is a text subtitle codec, it is
+  `Avutil.Subtitle.header_ass_default ()`; otherwise the encoder gets none.
 
 ```ocaml
 val new_data_stream :
@@ -962,48 +689,41 @@ val new_data_stream :
   (output, [ `Data ], [ `Packet ]) stream
 ```
 
-Adds a stream with no codec, then sets on the `AVStream`: the time base,
-`codecpar->codec_type = AVMEDIA_TYPE_DATA`, `codecpar->codec_id` from the
-`avcodec` unknown-id conversion. Takes no options (the `.mli` comment
-mentions `opts`; the signature has none).
+A data stream of the given codec identifier and time base, with no encoder.
 
 ```ocaml
 val codec_attr : _ stream -> string option
 ```
 
-An RFC 6381 style codec string for HLS playlists, derived from the stream's
-codec parameters. `None` when the context or stream is missing, and in every
-case not listed:
+The codec string of the stream for an HLS playlist (RFC 6381 style), from its
+codec parameters. `None` for every case not listed.
 
-| Codec id | Result                                                                                                                                                                                                            |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H.264    | extradata must begin with `00 00 00 01` followed by a byte whose low 5 bits are 7 (SPS); result `avc1.` + bytes 5, 6, 7 as two lowercase hex digits each; otherwise `None`. The extradata length is not consulted |
-| FLAC     | `fLaC`                                                                                                                                                                                                            |
-| HEVC     | see below                                                                                                                                                                                                         |
-| MP2      | `mp4a.40.33`                                                                                                                                                                                                      |
-| MP3      | `mp4a.40.34`                                                                                                                                                                                                      |
-| AAC      | `mp4a.40.` + (profile + 1) when the profile is known, else `None`                                                                                                                                                 |
-| AC-3     | `ac-3`                                                                                                                                                                                                            |
-| E-AC-3   | `ec-3`                                                                                                                                                                                                            |
+| Codec  | Result                                                                                                                                                                                     |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| H.264  | `avc1.` followed by the three bytes after the SPS NAL header, as two lowercase hex digits each, when the extradata starts with an Annex-B SPS and is long enough to hold them; else `None` |
+| HEVC   | below                                                                                                                                                                                      |
+| AAC    | `mp4a.40.` followed by the profile plus one, when the profile is known; else `None`                                                                                                        |
+| MP2    | `mp4a.40.33`                                                                                                                                                                               |
+| MP3    | `mp4a.40.34`                                                                                                                                                                               |
+| AC-3   | `ac-3`                                                                                                                                                                                     |
+| E-AC-3 | `ec-3`                                                                                                                                                                                     |
+| FLAC   | `fLaC`                                                                                                                                                                                     |
 
-HEVC: profile and level start from the codec parameters when known. The
-extradata is scanned byte by byte, while at least 20 bytes remain, for
-`00 00 00 01` followed by a byte `b` with `b & 0x7E == 0x42` (SPS). When one
-is found, the bytes after the 6-byte start code and NAL header are stripped
-of emulation-prevention bytes; a failure to allocate or fewer than 13
-resulting bytes gives `None`; otherwise profile and level are read (byte 1
-low 5 bits, byte 12) and the function **returns `None`**. When no SPS is
-found: if the codec tag is `hvc1` and profile and level are known the result
-is `hvc1.PROFILE.4.LLEVEL.B01`, otherwise the codec tag printed as a
+HEVC: the profile and level are those of the codec parameters, replaced by the
+ones read from the SPS when the extradata holds an Annex-B SPS. When the codec
+tag is `hvc1` and both are known, the result is
+`hvc1.<profile>.4.L<level>.B01`. Otherwise it is the codec tag as a
 four-character code.
+
+No read goes past the end of the extradata.
 
 ```ocaml
 val bitrate : _ stream -> int option
 ```
 
-`Some codecpar->bit_rate` when non-zero. Otherwise `Some max_bitrate` from
-the stream's `AV_PKT_DATA_CPB_PROPERTIES` side data when present (§10 for
-where it is looked up), else `None`.
+The stream's bit rate when its codec parameters give one; else the maximum
+bit rate of the stream's coded-picture-buffer properties when it has them and
+it is not 0; else `None`.
 
 ```ocaml
 val write_packet :
@@ -1011,18 +731,9 @@ val write_packet :
   'media Avcodec.Packet.t -> unit
 ```
 
-1. Closed check. `Failure "Failed to write in closed output"` when the
-   container has no stream table; `Stdlib.Failure "Internal error"` when the
-   table has no entry for the index.
-2. With the lock released: write the header if not yet written (failure is
-   raised, flag stays clear).
-3. On the caller's packet itself: set `stream_index`, set `pos = -1`,
-   `av_packet_rescale_ts(packet, given_time_base, stream->time_base)`.
-4. Call the container's write function with that packet. A negative result
-   is raised.
-
-The packet is not copied: its fields are modified in place and the muxer
-receives the caller's packet object.
+Writes a packet to the stream. The rational is the time base of the packet's
+timestamps and duration; they are converted to the stream's time base. The
+header is written first when needed. The caller's packet is unchanged (A4).
 
 ```ocaml
 val write_frame :
@@ -1030,327 +741,215 @@ val write_frame :
   'media frame -> unit
 ```
 
-Closed check. `Failure "Invalid input: no streams provided"` without a stream
-table. Dispatch on the encoder's codec type. For audio and video (also used
-with a null frame by `close` to flush):
+Encodes a frame with the stream's encoder and writes every packet that
+becomes available.
 
-1. Checks: `Failure "Stream index not found!"` when the index is not below
-   the stream count; `Failure "Failed to write frame with no encoder"`.
-2. Release the lock. Write the header if needed (failure raised).
-3. Allocate a packet.
-4. If the encoder has a hardware frames context and a frame is given:
-   allocate a frame, `av_hwframe_get_buffer(enc->hw_frames_ctx, hw, 0)`,
-   `av_hwframe_transfer_data(hw, frame, 0)`, and use `hw` as the frame to
-   send. No other frame field is copied. Failures free both and raise.
-5. `avcodec_send_frame(enc, frame)`.
-   - null frame and `AVERROR_EOF`: return (already flushed);
-   - any other negative code (including `AVERROR_EOF` with a frame and
-     `AVERROR(EAGAIN)`): free, raise.
-6. Loop `avcodec_receive_packet(enc, packet)` until it fails. For each
-   packet: if it has `AV_PKT_FLAG_KEY` and `on_keyframe` is given, re-acquire
-   the lock, call the closure, release the lock; then set `stream_index`,
-   `pos = -1`, rescale timestamps from the **encoder** time base to the
-   stream time base, and call the container's write function. A negative
-   write result ends the loop.
-7. Free the packet and the hardware frame. Re-acquire the lock.
-8. Final code `AVERROR(EAGAIN)` is success. `AVERROR_EOF` is success only
-   for a null frame. Any other negative code is raised.
-
-For a subtitle encoder, see `write_subtitle_frame`; `on_keyframe` is ignored.
+- The header is written first when needed.
+- Packet timestamps are converted from the encoder's time base to the
+  stream's.
+- `on_keyframe` is called before each key packet is given to the muxer
+  (§7.2). The muxer position at that moment is the start of that key packet.
+- With a hardware frame context the frame is uploaded first, properties
+  included ([avcodec.md](avcodec.md) §4.10).
+- A frame that produces no packet is not an error.
+- The caller's frame is unchanged (A4).
 
 ```ocaml
 val write_subtitle_frame :
   (output, subtitle, [ `Frame ]) stream -> Avutil.Subtitle.frame -> unit
 ```
 
-Same entry point as `write_frame` without `on_keyframe`.
+Encodes a subtitle and writes it as one packet.
 
-1. Checks as above, with `Failure "Failed to write subtitle frame with no
-encoder"`.
-2. Allocate a packet with a 4096-byte payload (`av_new_packet`).
-3. With the lock released: write the header if needed, then
-   `avcodec_encode_subtitle(enc, packet->data, 4096, subtitle)`. The header
-   is written first, even when the subtitle then encodes to nothing.
-4. A negative result frees the packet and raises. A zero result frees the
-   packet and returns without writing.
-5. Set `packet->size` to the encoded size, `pts = dts = subtitle->pts`
-   (`AV_TIME_BASE` units), `duration = (end_display_time -
-start_display_time) * AV_TIME_BASE / 1000`.
-6. With the lock released: set `stream_index`, `pos = -1`, rescale from
-   `AV_TIME_BASE_Q` to the stream time base, call the write function. Free
-   the packet. A negative result is raised.
+- The header is written first when needed.
+- A subtitle that encodes to nothing writes no packet.
+- The packet's timestamp is the subtitle's timestamp plus its start display
+  time; its duration is the end display time minus the start display time.
+- A subtitle that encodes to more than `SUBTITLE_PACKET_MAX` bytes raises the
+  error the encoder reports.
 
 ```ocaml
 val flush : output container -> unit
 ```
 
-Closed check. Returns immediately when the header is not written. Otherwise,
-with the lock released, calls the container's write function with a null
-packet and, when that succeeds and the context has a `pb`,
-`avio_flush(pb)`. A negative write result is raised. Encoders are not
-flushed.
+On a started output, makes the muxer write out what it buffers and flushes
+the I/O. Encoders are not flushed. On an output whose header is not written
+it does nothing.
 
 ```ocaml
 val tell : _ container -> int option
 ```
 
-Closed check. `None` when the context has no `pb`. Otherwise `avio_tell(pb)`
-with the lock released; the result is held in a C `int`; negative raises the
-mapped error, else `Some`.
+The byte position of the container's I/O; `None` for a container with no I/O
+of its own. Positions beyond 32 bits are returned exactly.
 
 ```ocaml
 val close : _ container -> unit
 ```
 
-1. Closed check (a second `close` raises).
-2. Output with a stream table: for each stream index in order, when the
-   table entry has an audio or video encoder, run the `write_frame` routine
-   with a null frame and no keyframe closure (this writes the header if it
-   is not yet written, drains the encoder, writes the packets). Subtitle
-   encoders are skipped. An error here is raised and the container stays
-   open: later streams are not flushed, no trailer is written, nothing is
-   released.
-3. Output with a stream table and header written: `av_write_trailer(ctx)`
-   with the lock released; its result is ignored.
-4. Release routine (§2.1).
-
-An output with no stream is released without writing a header or trailer. An
-output with only copy/data streams to which no packet was written is
-released without header or trailer.
+§2.1, "Release".
 
 ## 5. Errors
 
-| Raised                                                                                                                                                            | From                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Avutil.Error e` with `e` mapped from a negative FFmpeg code by the `avutil` helper (named variant when the code is one of its known ones, else `` `Other code``) | every FFmpeg call whose result is checked: open, probe, read, decode, seek, header, encode, write, flush, `tell`, dictionary and parameter copies                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ``Avutil.Error `Eof``                                                                                                                                             | `read_input` at end of input after the drain; `write_frame` on an encoder already flushed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ``Avutil.Error `Stream_not_found``                                                                                                                                | `find_best_*_stream` on any failure                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ``Avutil.Error `Decoder_not_found``                                                                                                                               | `read_input` when a frame-mode stream has no decoder                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ``Avutil.Error (`Failure msg)``                                                                                                                                   | closed container; state and argument checks. Messages: "Container closed!", "At least one format or url must be provided!", "Failed to open stream N : index out of bounds", "Failed to allocate stream N of media type T", "Internal error: no packet for subtitle decoder!", "Cannot set custom I/O on this format!", "Not a streamed output!", "Failed to set metadata : header already written", "Failed to create new stream : header already written", "Failed to write in closed output", "Stream index not found!", "Failed to write frame with no encoder", "Failed to write subtitle frame with no encoder", "Invalid input: no streams provided", "Empty input format", "Empty output format", plus those of the `avutil`/`avcodec` wrappers ("Empty packet", "Empty frame", "Empty subtitle", "Failed to get codec parameters") |
-| `Stdlib.Failure "Inconsistent stream and input!"`                                                                                                                 | `read_input`, OCaml side                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `Stdlib.Failure "Internal error"`                                                                                                                                 | `write_packet` when the table entry is missing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `Not_found`                                                                                                                                                       | `get_container_stream_time_base`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `Out_of_memory`                                                                                                                                                   | allocation failures of binding-side records, packets, frames, I/O object                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| any exception                                                                                                                                                     | raised by a configure callback, `on_unhandled_packet` or `on_keyframe`; propagates unchanged                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Raised                                    | By                                                                                                                                                       |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Error e`, `e` mapped from an FFmpeg code | every operation that calls a fallible FFmpeg function                                                                                                    |
+| ``Error `Eof``                            | `read_input` at the end of the input                                                                                                                     |
+| ``Error `Exit``                           | a blocking operation the interrupt function aborted                                                                                                      |
+| ``Error `Stream_not_found``               | `find_best_*_stream`                                                                                                                                     |
+| ``Error `Decoder_not_found``              | `read_input`, for a frame-mode stream with no decoder                                                                                                    |
+| the state errors of the contract's §5.3   | every operation, per §2.1                                                                                                                                |
+| ``Error (`Failure msg)``                  | the checks of §2.2 and §2.4; "header written"; an open with neither URL nor format; a format that does or does not need a file; a stream with no encoder |
+| `Not_found`                               | `get_container_stream_time_base`                                                                                                                         |
+| `Out_of_memory`                           | any failed allocation                                                                                                                                    |
+| any exception                             | raised by a function of §7.2; propagates unchanged                                                                                                       |
 
-Six further `Failure` messages exist for a null format context ("Failed to
-get closed input duration", "Failed to read closed input", "Failed to open
-stream N of closed input", "Failed to seek closed input", "Failed to set
-metadata to closed output", "Failed to add stream to closed output"); the
-closed check precedes them, so they are not observable.
-
-A raising I/O callback is reported to FFmpeg as `AVERROR_EXTERNAL`; the
-operation in progress then raises whatever code FFmpeg propagates. The
-`avutil` mapping has no named variant for `AVERROR_EXTERNAL`, so an unchanged
-code surfaces as `` `Other``.
+A failing custom I/O closure is reported to FFmpeg as `AVERROR_EXTERNAL`
+(§7.1). The operation in progress then raises whatever code FFmpeg
+propagates: `` `Other `` of that code when FFmpeg passes it through unchanged.
 
 ## 6. Blocking and concurrency
 
-The runtime lock is released around:
+### 6.1 The runtime lock
 
-| Operation                                                | FFmpeg calls made without the lock                                                                                                   |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `Format.find_input_format`, `Format.guess_output_format` | `av_find_input_format`, `av_guess_format`                                                                                            |
-| `open_input`, `open_input_stream`                        | `avformat_open_input`, `avformat_find_stream_info`                                                                                   |
-| `find_best_*_stream`                                     | `av_find_best_stream`                                                                                                                |
-| `read_input`                                             | `av_read_frame`, `avcodec_find_decoder`, `avcodec_open2`, `avcodec_send_packet`, `avcodec_receive_frame`, `avcodec_decode_subtitle2` |
-| `seek`                                                   | `avformat_seek_file`                                                                                                                 |
-| `open_output`                                            | `avio_open2`                                                                                                                         |
-| `new_*_stream` (encoding)                                | `avcodec_open2`                                                                                                                      |
-| `reopen_output_stream`                                   | `avio_open_dyn_buf`                                                                                                                  |
-| `write_packet`                                           | `avformat_write_header`, timestamp rescale, write function                                                                           |
-| `write_frame`                                            | header, hardware upload, `avcodec_send_frame`, `avcodec_receive_packet`, write function                                              |
-| `write_subtitle_frame`                                   | header, `avcodec_encode_subtitle`, write function                                                                                    |
-| `flush`                                                  | write function, `avio_flush`                                                                                                         |
-| `tell`                                                   | `avio_tell`                                                                                                                          |
-| `close`, GC cleanup                                      | encoder flush, `av_write_trailer`, the whole C part of the release routine                                                           |
+The runtime lock is released (contract M1, M4) around every open, probing,
+`find_best_*_stream`, `read_input`, `seek`, the creation of an encoding
+stream, the three writes, `flush`, `tell`, `close`, and release by
+collection. `Format.find_input_format` and
+`Format.guess_output_format` MAY release it.
 
-Held throughout: `avformat_alloc_output_context2`, `av_opt_set_dict`,
-`avformat_new_stream`, parameter copies, metadata, `avcodec_flush_buffers`
-after a seek, all getters.
+### 6.2 Guards
 
-The container has no lock of its own. While a stub runs with the runtime
-lock released, another OCaml thread can enter any operation on the same
-container; nothing serialises them.
+A container has one guard, shared by its streams (M9).
 
-Thread registration: each C-to-OCaml callback of §7.1–7.4 first registers
-the current thread with the OCaml runtime through the `avutil` helper
-(idempotent), then acquires the runtime lock.
+| Exclusive                                                                                                                | Shared                                       |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
 
-Global state: `avformat_network_init()` at module load. No other global.
+The container is not in use while a function of §7.2 runs: `on_keyframe` may
+call `flush` or `tell` on its own container.
+
+### 6.3 Global state
+
+FFmpeg's network layer, initialised at module load. No other.
 
 ## 7. Callbacks
 
-### 7.1 Custom read (`read`)
+### 7.1 Functions FFmpeg calls
 
-- Trigger: FFmpeg's buffered I/O, on whatever thread runs the demuxing call
-  (normally the OCaml thread inside `open_input_stream`, `read_input` or
-  `seek`, with the lock released).
-- Steps: `len = min(32768, requested)`; register thread; acquire lock; call
-  `read buffer 0 len` on the shared transfer buffer.
-- Result `n`: negative → returned to FFmpeg unchanged as an error code;
-  otherwise `n` bytes are copied from the transfer buffer to FFmpeg's
-  buffer; `0` → `AVERROR_EOF`; positive → `n`. `n` is not compared with
-  `len`.
-- Exception: caught; logged with `av_log(avio_context, AV_LOG_ERROR,
-"Error while executing OCaml read callback: EXN\n")`; returns
+They follow the contract's §7.1. FFmpeg normally runs them on the thread that
+is inside the container operation, with the lock released; it may run them on
+another thread.
+
+The `bytes` value given to a read or write closure belongs to the binding. Its
+content is meaningful only during the call, and the closure MUST NOT keep it.
+
+#### 7.1.1 Custom read — `read buffer offset length`
+
+- The closure fills at most `length` bytes of `buffer` from `offset` and
+  returns the number of bytes it stored. `length` is at least 1.
+- 0 means end of input.
+- A negative result is given to FFmpeg as the error code of the read.
+- A result greater than `length`, and an exception, are failures of the
+  closure: FFmpeg gets `AVERROR_EXTERNAL` (C1, C2).
+
+#### 7.1.2 Custom write — `write buffer offset length`
+
+- The closure consumes at most `length` bytes of `buffer` from `offset` and
+  returns the number it consumed.
+- When it consumed fewer than `length`, it is called again with the
+  remainder, until everything FFmpeg handed over is written. FFmpeg itself
+  treats a write as all or nothing; the binding makes a short count safe.
+- A negative result is given to FFmpeg as the error code of the write.
+- A result of 0, a result greater than `length`, and an exception, are
+  failures of the closure: FFmpeg gets `AVERROR_EXTERNAL`.
+
+The bytes the closures receive, concatenated, are exactly the bytes the same
+muxing would write to a file, whatever the bit rate and whatever size FFmpeg
+hands over at a time.
+
+#### 7.1.3 Custom seek — `seek offset whence`
+
+- Called for `SEEK_SET`, `SEEK_CUR` and `SEEK_END` (§3); it returns the new
+  position.
+- A size query is answered as "not supported" without calling the closure.
+- A negative result is given to FFmpeg as an error code. An exception gives
   `AVERROR_EXTERNAL`.
 
-### 7.2 Custom write (`write`)
+#### 7.1.4 Interrupt — `interrupt ()`
 
-- Trigger: FFmpeg's buffered I/O flushing during header, packet, trailer,
-  `flush` writes.
-- Steps: `len = min(32768, size)`; register thread; acquire lock; copy `len`
-  bytes from FFmpeg's buffer into the transfer buffer; call
-  `write buffer 0 len`.
-- Result: returned to FFmpeg unchanged. Bytes beyond 32768 in one call are
-  not passed and the function is not called again for them by the binding.
-- Exception: caught, logged as "write", returns `AVERROR_EXTERNAL`.
+- FFmpeg polls it during any blocking I/O of the container, for the whole
+  life of the container, release included.
+- `true` aborts the blocking operation, which then raises ``Error `Exit``.
+- An exception aborts it too.
+- It is never called after the container's release completed (L8).
 
-### 7.3 Custom seek (`seek`)
+#### 7.1.5 Control messages
 
-- Trigger: FFmpeg seeking in the I/O context.
-- Steps: map `whence` (§3); an unmapped value returns -1 without calling
-  OCaml. Register thread; acquire lock; call the closure with the offset as
-  an OCaml `int` and the whence. The user closure receives
-  `Unix.seek_command`.
-- Result: the returned integer, as the new position.
-- Exception: caught, logged as "seek", returns `AVERROR_EXTERNAL`.
+`avdevice` installs one closure per container for messages a device sends to
+the application ([avdevice.md](avdevice.md) §7). `Av` provides:
 
-Closures of 7.1–7.3 are kept alive by the I/O object and released by its GC
-finalisation (§2.3).
+- **install**: given a container, a native callback and a closure, keeps the
+  closure alive until it is replaced or the container is released, and makes
+  the native callback reachable by the device. It performs the state check.
+- **lookup**: given the native context inside the callback, the closure
+  installed on its container.
 
-### 7.4 Interrupt (`?interrupt`)
+Both need the runtime lock.
 
-- Inputs: installed as the format context's `interrupt_callback` before
-  `avformat_open_input`; consulted by FFmpeg during any blocking I/O of that
-  context for its whole life.
-- Outputs: passed only to `avio_open2`; consulted during blocking I/O on the
-  context that call opened.
-- Steps: if no closure, return 0. Register thread, acquire lock, call
-  `interrupt ()`. `true` returns 1 (abort the blocking operation), `false`
-  returns 0.
-- Exception: caught, logged as "interrupt" on the format context, returns 1
-  (abort).
-- Lifetime: rooted from open until the release routine.
+### 7.2 Functions the binding calls
 
-### 7.5 Control message (exported to `avdevice`)
+They follow the contract's §7.2.
 
-The header exports a setter and a getter:
-
-- setter (container value, C callback, OCaml closure): closed check; stores
-  the closure in the container (rooting it the first time, replacing it
-  afterwards), sets the format context's `opaque` to the container record
-  and its `control_message_cb` to the given C callback;
-- getter (format context): returns the address of the stored closure through
-  `opaque`.
-
-The C callback itself, its thread and exception handling belong to
-`avdevice`. The closure is released by the container's release routine.
-
-### 7.6 Synchronous OCaml callbacks
-
-Called on the calling thread, with the lock held, exceptions propagate:
-
-| Callback              | Called from   | Note                                                                                                                        |
-| --------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `configure_*_stream`  | `open_input`  | an exception leaves the half-opened container unreferenced                                                                  |
-| `on_unhandled_packet` | `read_input`  | receives a cloned packet; an exception aborts the read after the work packet was released                                   |
-| `on_keyframe`         | `write_frame` | called before the key packet is given to the muxer; the lock is re-acquired for the call; an exception abandons that packet |
+| Function              | Called from   | State when called, and after it raises                                                                                                                                                              |
+| --------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `configure_*_stream`  | `open_input`  | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                                |
+| `on_unhandled_packet` | `read_input`  | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                     |
+| `on_keyframe`         | `write_frame` | A key packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. Packets still in the encoder are written by the next write or by `close`. |
 
 ## 8. Data transfer
 
-| Path                                                        | Copy or share                                                                                                                                                         |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| URL, format names, MIME type                                | copied to C strings for the call, freed after                                                                                                                         |
-| option keys and values                                      | copied into an `AVDictionary`                                                                                                                                         |
-| metadata get                                                | keys and values copied to OCaml strings                                                                                                                               |
-| metadata set                                                | copied by `av_dict_set`                                                                                                                                               |
-| codec parameters (get, configure callback)                  | deep copy owned by the OCaml value                                                                                                                                    |
-| codec parameters (`initialize_stream_copy`)                 | deep copy into the stream                                                                                                                                             |
-| packet returned by `read_input` or to `on_unhandled_packet` | new `AVPacket` from `av_packet_clone`: new reference to the same data buffer (or a copy when the demuxer's packet is not reference counted); owned by the OCaml value |
-| frame returned by `read_input`                              | new `AVFrame` from `av_frame_clone`: new references to the decoder's buffers; owned by the OCaml value                                                                |
-| subtitle returned by `read_input`                           | new `AVSubtitle` taking over the decoded rectangles; owned by the OCaml value                                                                                         |
-| packet given to `write_packet`                              | not copied; `stream_index`, `pos` and timestamps are overwritten in the caller's packet, which is handed to the muxer                                                 |
-| frame given to `write_frame`                                | not copied; the encoder takes its own references; with a hardware frames context the pixel data is uploaded into a new hardware frame                                 |
-| subtitle given to `write_subtitle_frame`                    | read only                                                                                                                                                             |
-| subtitle header                                             | copied into `av_mallocz(len + 1)`                                                                                                                                     |
-| custom read                                                 | callback fills the OCaml transfer buffer; bytes copied to FFmpeg's buffer                                                                                             |
-| custom write                                                | bytes copied from FFmpeg's buffer to the OCaml transfer buffer                                                                                                        |
-| rationals, durations, indexes                               | by value                                                                                                                                                              |
-
-The transfer buffer is one `bytes` value reused for every call of one I/O
-object; its content is only meaningful during a callback.
+| Path                                                                            | Copy or share                                                                            |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| URL, format names, MIME type, option keys and values, metadata, subtitle header | copied                                                                                   |
+| codec parameters, in every direction                                            | deep copy                                                                                |
+| packet returned by `read_input` or given to `on_unhandled_packet`               | a new packet referencing the demuxer's data buffer, or a copy of it; owned by the value  |
+| frame returned by `read_input`                                                  | a new frame referencing the decoder's buffers; owned by the value                        |
+| subtitle returned by `read_input`                                               | owned by the value                                                                       |
+| packet given to `write_packet`                                                  | FFmpeg gets a reference of its own; the caller's packet is unchanged                     |
+| frame given to `write_frame`                                                    | the encoder takes its own references; with a hardware frame context the data is uploaded |
+| subtitle given to `write_subtitle_frame`                                        | read only                                                                                |
+| custom read and write                                                           | bytes are copied between FFmpeg's buffer and the `bytes` value given to the closure      |
 
 No bigarray, plane or stride handling in this library.
 
 ## 9. Options
 
-- `opts` is an `Avutil.opts` hash table. `None` is treated as an empty table.
-- The OCaml side turns it into an array of `(key, string value)` pairs; the
-  stub builds an `AVDictionary` (`av_dict_set`, flags 0).
-- After the FFmpeg calls that consume it, the keys still in the dictionary
-  are returned as an array and the dictionary is freed. The OCaml side then
-  removes from the caller's table every key **not** in that array: the table
-  ends up holding exactly the unused options.
+| Operation                                                     | Consumers of the entries, in order                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `open_input`, `open_input_stream`                             | the demuxer open                                                   |
+| `stream_config.opts`                                          | probing, and the stream's decoder; nothing is reported             |
+| `open_output`                                                 | generic container options, muxer private options, the I/O protocol |
+| `open_output_format`, `open_output_stream`                    | generic container options, muxer private options                   |
+| `new_audio_stream`, `new_video_stream`, `new_subtitle_stream` | the encoder open                                                   |
 
-| Function                                                      | Consumers of the dictionary, in order                                                                                                      |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `open_input`, `open_input_stream`                             | `avformat_open_input`                                                                                                                      |
-| `open_input` per-stream `opts`                                | `avformat_find_stream_info` (one dictionary per stream; unused entries discarded)                                                          |
-| `open_output`                                                 | `av_opt_set_dict` on the format context, then on the muxer private data, then `avio_open2`                                                 |
-| `open_output_format`, `open_output_stream`                    | `av_opt_set_dict` on the format context, then on the muxer private data (and `avio_open2` for `open_output_format` on a file-based format) |
-| `new_audio_stream`, `new_video_stream`, `new_subtitle_stream` | `avcodec_open2`                                                                                                                            |
+All but the second follow [avutil.md](avutil.md) §9.1. The header write takes
+no option.
 
-`avformat_write_header` receives no options.
-
-For `new_audio_stream` and `new_video_stream` the dictionary contains the
-derived options in addition to the caller's; only the caller's table is
-filtered, so a derived option the encoder did not use is not reported.
-
-AVOption access: `container_options` (class for listing) and `input_obj`
-(object for getters) feed `Avutil.Options`. There is no equivalent object for
-output containers or streams.
+Option introspection: `container_options` lists container options and
+`input_obj` reads them on an input. There is no such object for outputs or
+streams.
 
 ## 10. Version-dependent behaviour
 
-| Condition               | Effect                                                                                                                                               |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| libavcodec < 58.9.100   | `av_register_all()` is called at load. Below the supported range                                                                                     |
-| libavformat <= 59.0.100 | `AVInputFormat *` / `AVOutputFormat *` handled as non-const; const otherwise. Below the supported range                                              |
-| libavformat major < 61  | the custom write function takes `uint8_t *buf`; from 61 it takes `const uint8_t *buf`. No behavioural difference                                     |
-| libavcodec >= 60.15.100 | `bitrate` looks up CPB properties with `av_packet_side_data_get` in `codecpar->coded_side_data`; before, with `av_stream_get_side_data`              |
-| libavcodec < 60.26.100  | `AV_PROFILE_UNKNOWN` / `AV_LEVEL_UNKNOWN` are aliases of `FF_PROFILE_UNKNOWN` / `FF_LEVEL_UNKNOWN` (from the `avcodec` header), used by `codec_attr` |
+None.
 
-The `AVChannelLayout` API is used unconditionally.
+## 11. Composite operations
 
-## 11. Logic on the OCaml side
-
-- **Version split** of `avformat_version` (§4.1).
-- **Option round trip**: default table, array conversion, filtering (§9).
-- **GC cleanup**: every open attaches `Gc.finalise` running the release
-  routine; the I/O object gets a `Gc.finalise` dropping its roots.
-- **Configure wrapper**: turns a `stream_config` record into the pair
-  (codec option, option array) the stub expects.
-- **Seek whence**: wraps the user's `seek` closure, converting integers 0, 1,
-  2 to `Unix.SEEK_SET`, `SEEK_CUR`, `SEEK_END`.
-- **Stream values**: built from container and index; `get_input`,
-  `get_output`, `get_index` are field reads.
-- **Stream lists**: the stub returns indexes in descending order; the OCaml
-  side reverses while attaching the stream value and a parameters copy.
-- **Metadata lists**: the stub returns pairs in reverse iteration order; the
-  OCaml side reverses.
-- **Durations**: index -1 means the container; `get_input_duration` maps
-  `Some 0L` to `None`.
-- **`read_input`**: container identity check and flattening of the seven
-  lists into the packet selection (index with a media-type tag) and the
-  frame selection (indexes).
-- **`seek`**: flag list to array.
-- **Metadata setters**: index -1 for the container, list to array.
-- **Stream copy**: `new_stream_copy` is reserve then initialise.
-- **Audio/video streams**: derived options go in a private copy of the
-  table; video sets the average frame rate after creation.
-- **Subtitle streams**: default ASS header selection for text subtitle
-  codecs.
-- **`write_subtitle_frame`**: `write_frame` without `on_keyframe`.
-- **`input_obj`**: pairs the C object with its container.
+- `new_stream_copy` is `new_uninitialized_stream_copy` then
+  `initialize_stream_copy`.
+- `write_frame` on a stream with an encoder follows the send and receive
+  algorithm of [avcodec.md](avcodec.md) §11, with each received packet written
+  to the muxer.
+- The frame mode of `read_input` follows the decode algorithm of
+  [avcodec.md](avcodec.md) §11, returning one frame per call.

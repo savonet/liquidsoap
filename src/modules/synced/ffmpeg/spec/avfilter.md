@@ -1,162 +1,101 @@
-# avfilter — as-built specification (Part A)
+# avfilter
 
-Mechanism notes are in [language-notes/avfilter.md](language-notes/avfilter.md).
-Observations and judgement are in [findings/avfilter.md](findings/avfilter.md).
+Filter graphs. It follows [binding-contract.md](binding-contract.md); section
+numbers match.
 
 ## 1. Scope
 
-Binds `libavfilter`: the filter registry, filter graphs, buffer sources
-(`libavfilter/buffersrc.h`) and buffer sinks (`libavfilter/buffersink.h`).
-It also uses `av_opt_find` from `libavutil` for one function.
+`Avfilter` binds libavfilter: the filter registry, filter graphs, buffer
+sources and buffer sinks.
 
-Sibling dependency: the `avutil` binding library only. From it the library
-uses: the `Avutil.Error` exception and its raising helper (FFmpeg error code
-to `Avutil.error`), the rational conversion, the channel-layout wrapper
-(which deep-copies the layout into a garbage-collected value), the frame
-wrapper (garbage-collected value that owns an `AVFrame`), the
-`Avutil.Options.t` wrapper around a `const AVClass *`, the sample-format and
-pixel-format conversions, and the polymorphic-variant hash table generated
-for `avutil`.
+It depends on `avutil` only: the error exception, rationals, channel layouts,
+frames, option classes, and the sample-format and pixel-format conversions.
+It installs no C header and provides nothing to other libraries.
 
-No minimum version is stated in the library. The code uses
-`AVChannelLayout` and `av_buffersink_get_ch_layout` unconditionally, which
-sets the practical floor. Two older API generations are still selected by
-version tests (section 10). Whether the library is built at all is decided
-by the detection step.
-
-The library installs no C header and exports nothing to sibling stubs.
-
-Module initialisation calls `avfilter_register_all()` on libavfilter older
-than 7.14.100 and does nothing on later versions. It then enumerates all
-filters (section 4.3); if any of `abuffer`, `buffer`, `abuffersink`,
-`buffersink` is absent, module initialisation raises
-`Failure "ffmpeg API error: missing buffer or sink!"`.
+**Module initialisation** enumerates every filter FFmpeg registers (§4.4). It
+fails only when one of `abuffer`, `buffer`, `abuffersink`, `buffersink` is
+not registered (I2). Absent descriptions and pad names do not make it fail
+(A3).
 
 ## 2. Objects
 
-### 2.1 Filter graph (`config`)
+### 2.1 Filter graph — `config`
 
-- C object: one `AVFilterGraph`, from `avfilter_graph_alloc()`.
-- OCaml side: `config` is a record that holds the graph handle plus mutable
-  bookkeeping:
-  - `names`: instance names attached so far through `attach`;
-  - four association lists `(instance name, filter context)`: audio inputs
-    (`abuffer` instances), video inputs (`buffer`), audio outputs
-    (`abuffersink`), video outputs (`buffersink`). New entries are prepended.
-- Creation: `init ()`. Raises `Out_of_memory` when the allocation fails.
-- Ownership: the graph handle owns the `AVFilterGraph`. The graph owns every
-  `AVFilterContext` created in it.
-- Release: garbage collection only. The finaliser calls
-  `avfilter_graph_free`, which frees all filter contexts of the graph. There
-  is no explicit close.
-- State: the graph has two phases that the types do not separate.
-  1. _Configuration_: `attach`, `link`, `parse` add filters and links.
-     Each call acts on the C graph immediately; nothing is recorded for
-     later replay except the bookkeeping lists above.
-  2. _Running_: after `launch` (which calls `avfilter_graph_config`), frames
-     are pushed and pulled through the closures it returns.
-     The same `config` value stays valid for all operations in both phases;
-     no call is refused on the OCaml side because of the phase.
+- **Native object**: one filter graph, with every filter instance created in
+  it.
+- **Creation**: `init ()`.
+- **Ownership**: the value owns the graph; the graph owns its filter
+  instances.
+- **Kept alive by**: every dependent handle of §2.2 (L3).
+- **Release**: by collection only.
+- **Guard**: §6.2.
+- **States**:
 
-### 2.2 Filter context (internal; public as `'a context`)
+  | Operation                                             | Configuring                   | Running                 | Failed       |
+  | ----------------------------------------------------- | ----------------------------- | ----------------------- | ------------ |
+  | `attach`, `link`, `parse`                             | performed                     | failure: graph launched | failed error |
+  | `launch`                                              | configures → Running          | failure: graph launched | failed error |
+  | `process_command`                                     | performed                     | performed               | failed error |
+  | sink accessors, `set_frame_size`, pushing and pulling | not reachable (no handle yet) | performed               | failed error |
 
-- C object: an `AVFilterContext *` borrowed from the graph.
-- OCaml side: an opaque handle that holds the raw pointer. It has no
-  finaliser and holds no reference to the graph.
-- Public appearances:
-  - `'a context` (the type of `output.context`) _is_ this handle; the
-    parameter is phantom (`` `Audio `` or `` `Video ``);
-  - every attached pad carries `Some handle` and `Some graph handle`;
-  - an ``[`Attached] filter`` carries the handle in a hidden trailing field
-    that the record type does not declare (section 2.4).
-- Lifetime: the pointer is valid while the graph is alive and no `parse`
-  on it has failed (a failed `avfilter_graph_parse_ptr` frees every filter
-  context of the graph). What keeps the graph alive:
-  - the `config` record;
-  - any attached pad (it stores the graph handle);
-  - any input function and any output `handler` returned by `launch` (each
-    closure captures the graph handle and passes it to the stub as an
-    otherwise unused first argument, so the graph stays reachable for the
-    duration of the call);
-  - a `Utils.audio_converter` (it stores such closures).
-    A bare `'a context` value, and the hidden field of an attached filter,
-    do not keep the graph alive by themselves.
+  A graph becomes **Failed** when `parse` or `launch` fails. FFmpeg frees
+  every filter of a graph whose parsing failed, those created before the call
+  included, and leaves a graph whose configuration failed in an unspecified
+  state. No handle of a failed graph reaches a filter instance again. An
+  implementation MAY instead guarantee that a failed `parse` leaves the graph
+  exactly as it was, and then keeps it Configuring.
 
-### 2.3 Pad (`('a, 'b, 'c) pad`)
+### 2.2 Dependent handles
 
-An immutable OCaml record, abstract in the interface, with six fields:
+Each designates a filter instance of a graph, keeps that graph alive, shares
+its guard, and raises the failed error once the graph is failed:
 
-| Field          | Content                                                               |
-| -------------- | --------------------------------------------------------------------- |
-| pad name       | `avfilter_pad_get_name(pads, i)`, copied                              |
-| filter name    | the _filter's_ name (`AVFilter.name`), copied — not the instance name |
-| media type     | polymorphic variant from `avfilter_pad_get_type` (section 3)          |
-| index          | position `i` in the C pad array it was read from                      |
-| filter context | `None` for an unattached pad, `Some handle` once attached             |
-| graph          | `None` for an unattached pad, `Some graph handle` once attached       |
+| Handle                                    | Designates                             |
+| ----------------------------------------- | -------------------------------------- |
+| an attached pad                           | one pad of a filter instance           |
+| an ``[`Attached] filter``                 | the filter instance its pads belong to |
+| `'a context` (the `context` of an output) | a buffer sink                          |
+| an `'a input` function                    | a buffer source                        |
+| an `'a output` handler                    | a buffer sink                          |
+| `Utils.audio_converter`                   | the source and sink of a private graph |
 
-Type parameters: `'a` attached/unattached, `'b` media type
-(``[`Audio]`` / ``[`Video]``), `'c` direction (``[`Input]`` /
-``[`Output]``). All three are phantom except that `'b` is also the type of
-the media-type field.
+### 2.3 Pad — `('a, 'b, 'c) pad`
 
-Pads are plain data; they own nothing. An attached pad keeps its graph
-alive.
+Abstract. A pad records the pad's name, the name of its filter (the filter,
+not the instance), its media type, and its index in the filter's whole pad
+array. An attached pad is a dependent handle; an unattached pad is plain data.
 
-### 2.4 Filter (`'a filter`)
+Type parameters: `'a` attached or unattached, `'b` media type (``[`Audio]``
+or ``[`Video]``), `'c` direction (``[`Input]`` or ``[`Output]``).
+
+### 2.4 Filter — `'a filter`
 
 A public record: `name`, `description`, `options`, `flags`, `io`.
 
-- `name`, `description`: copies of `AVFilter.name` and
-  `AVFilter.description`.
-- `options`: an `Avutil.Options.t` that wraps `AVFilter.priv_class` (the
-  pointer is stored as is, including when it is `NULL`). It points into
-  FFmpeg's static data.
-- `flags`: decoded from `AVFilter.flags` (section 3).
-- `io`: `{ inputs; outputs }`, each `{ audio; video }`, each a pad list
-  sorted by increasing pad index.
+- ``[`Unattached] filter`` values come from the registry and describe the
+  filter's static pads.
+- ``[`Attached] filter`` values come from `attach`: the same `name`,
+  `description`, `options` and `flags`, with `io` holding the instance's
+  actual pads.
 
-``[`Unattached] filter`` values come from the registry and describe the
-filter's static pads. ``[`Attached] filter`` values come from `attach`:
-same `name`, `description`, `options`, `flags` as the unattached filter,
-`io` rebuilt from the instance's actual pads, and one extra hidden trailing
-field that holds the filter context. `process_command` reads the _last_
-field of the value it is given to find the context.
+The record is public, so a caller can build or alter one (B3). An operation
+that takes an ``[`Attached] filter`` finds the filter instance through the
+record's pads, which are abstract and cannot be forged. A record with no
+attached pad, or whose pads belong to several instances, raises a failure.
 
-### 2.5 Graph endpoints (`t`, `'a input`, `'a output`)
+### 2.5 Graph endpoints — `t`, `'a input`, `'a output`
 
-`launch` returns `t = { inputs; outputs }`, each split `{ audio; video }`,
-each an association list keyed by instance name.
-
-- `'a input` is a function ``[`Frame of 'a frame | `Flush] -> unit`` bound
-  to one buffer source.
-- `'a output` is `{ context; handler }`: the sink's filter context and a
-  function `unit -> 'a frame` bound to that sink.
-
-### 2.6 `Utils.audio_converter`
-
-A record of the sink time base (read once), the input function and the
-output handler of a private graph. It keeps that graph alive.
+`launch` returns `t = { inputs; outputs }`, each `{ audio; video }`, each an
+association list from instance name to endpoint.
 
 ## 3. Enumerations and constants
 
-### 3.1 Pad media type (C to OCaml only)
+**Pad media type.** A pad of audio type goes to the `audio` list, a pad of
+video type to the `video` list. A pad of any other media type is in neither.
+The index of a pad is its position among all the pads of the filter in that
+direction, so leaving one out renumbers nothing.
 
-| `avfilter_pad_get_type`   | Variant stored in the pad |
-| ------------------------- | ------------------------- |
-| `AVMEDIA_TYPE_VIDEO`      | `` `Video ``              |
-| `AVMEDIA_TYPE_AUDIO`      | `` `Audio ``              |
-| `AVMEDIA_TYPE_DATA`       | `` `Data ``               |
-| `AVMEDIA_TYPE_SUBTITLE`   | `` `Subtitle ``           |
-| `AVMEDIA_TYPE_ATTACHMENT` | `` `Attachment ``         |
-| anything else             | `` `Unknown ``            |
-
-The variant hashes come from the table generated for `avutil`. When pads are
-split into `{ audio; video }`, a pad whose type is `` `Audio `` goes to
-`audio`; every other pad goes to `video` and its media-type field is
-overwritten with `` `Video ``.
-
-### 3.2 Filter flags (OCaml to C, used to decode)
+**Filter flags** (C to OCaml, per E6):
 
 | `flag`                           | C constant                                |
 | -------------------------------- | ----------------------------------------- |
@@ -166,25 +105,13 @@ overwritten with `` `Video ``.
 | `` `Support_timeline_generic ``  | `AVFILTER_FLAG_SUPPORT_TIMELINE_GENERIC`  |
 | `` `Support_timeline_internal `` | `AVFILTER_FLAG_SUPPORT_TIMELINE_INTERNAL` |
 
-Hand-written. A filter's `flags` list contains, in the table's order, each
-flag whose constant has a non-zero bitwise AND with `AVFilter.flags`. C
-flags outside the table are dropped. The conversion raises
-`Failure "Invalid flag type!"` on any other variant (not reachable through
-the typed API).
+**Command flags** (OCaml to C): `` `Fast `` is `AVFILTER_CMD_FLAG_FAST`.
 
-### 3.3 Command flags
+**Parameter:**
 
-| `command_flag` | Value                                                                  |
-| -------------- | ---------------------------------------------------------------------- |
-| `` `Fast ``    | `2` (`AVFILTER_CMD_FLAG_FAST`), written as a literal on the OCaml side |
-
-Flags in a list are OR-ed; the empty list is `0`.
-
-### 3.4 Formats
-
-`pixel_format` and `sample_format` convert with `avutil`'s generated
-pixel-format and sample-format tables (C to OCaml); behaviour on a missing
-mapping is that of those conversions.
+| Name                   | Recommended | Meaning                                                                                         |
+| ---------------------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| `COMMAND_RESPONSE_MAX` | 4096 bytes  | Size of the buffer a filter writes its answer to a command into. FFmpeg truncates to that size. |
 
 ## 4. Operations
 
@@ -221,28 +148,25 @@ type outputs = ([ `Audio ] output entries, [ `Video ] output entries) av
 type t = (inputs, outputs) io
 ```
 
-`frame` and `rational` are `Avutil`'s.
+`frame` and `rational` are `Avutil`'s. Pad lists are in ascending pad index.
 
-### 4.2 Output context accessors
+### 4.2 Sink accessors
 
-All take the filter context of a buffer sink (the only way to obtain an
-`'a context` is `output.context` from `launch`, so the graph is configured).
-None releases the runtime lock. None takes the graph; the caller must keep
-the graph alive (section 2.2).
+All take the `context` of an output of a launched graph.
 
-| Signature                                                              | C call                                                       | Result                                                                                 |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `val time_base : _ context -> Avutil.rational`                         | `av_buffersink_get_time_base`                                | `{num; den}`                                                                           |
-| ``val frame_rate : [ `Video ] context -> Avutil.rational``             | `av_buffersink_get_frame_rate`                               | `{num; den}`                                                                           |
-| ``val width : [ `Video ] context -> int``                              | `av_buffersink_get_w`                                        | int                                                                                    |
-| ``val height : [ `Video ] context -> int``                             | `av_buffersink_get_h`                                        | int                                                                                    |
-| ``val pixel_aspect : [ `Video ] context -> Avutil.rational option``    | `av_buffersink_get_sample_aspect_ratio`                      | `None` when the numerator is `0`, else `Some {num; den}`                               |
-| ``val pixel_format : [ `Video ] context -> Avutil.Pixel_format.t``     | `av_buffersink_get_format`                                   | cast to `enum AVPixelFormat`, converted                                                |
-| ``val channels : [ `Audio ] context -> int``                           | `av_buffersink_get_channels`                                 | int                                                                                    |
-| ``val channel_layout : [ `Audio ] context -> Avutil.Channel_layout.t`` | `av_buffersink_get_ch_layout` into a local `AVChannelLayout` | a fresh layout value (deep copy of the local); a negative return raises `Avutil.Error` |
-| ``val sample_rate : [ `Audio ] context -> int``                        | `av_buffersink_get_sample_rate`                              | int                                                                                    |
-| ``val sample_format : [ `Audio ] context -> Avutil.Sample_format.t``   | `av_buffersink_get_format`                                   | cast to `enum AVSampleFormat`, converted                                               |
-| ``val set_frame_size : [ `Audio ] context -> int -> unit``             | `av_buffersink_set_frame_size(ctx, n)`                       | unit                                                                                   |
+| Signature                                                              | Result                                                                                                                    |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `val time_base : _ context -> Avutil.rational`                         | the sink's time base                                                                                                      |
+| ``val frame_rate : [ `Video ] context -> Avutil.rational``             | the sink's frame rate                                                                                                     |
+| ``val width : [ `Video ] context -> int``                              | the width of its frames                                                                                                   |
+| ``val height : [ `Video ] context -> int``                             | the height of its frames                                                                                                  |
+| ``val pixel_aspect : [ `Video ] context -> Avutil.rational option``    | the sample aspect ratio; `None` when unknown                                                                              |
+| ``val pixel_format : [ `Video ] context -> Avutil.Pixel_format.t``     | the pixel format (E3)                                                                                                     |
+| ``val channels : [ `Audio ] context -> int``                           | the channel count                                                                                                         |
+| ``val channel_layout : [ `Audio ] context -> Avutil.Channel_layout.t`` | an independent copy of the layout                                                                                         |
+| ``val sample_rate : [ `Audio ] context -> int``                        | the sample rate                                                                                                           |
+| ``val sample_format : [ `Audio ] context -> Avutil.Sample_format.t``   | the sample format (E3)                                                                                                    |
+| ``val set_frame_size : [ `Audio ] context -> int -> unit``             | makes the sink deliver frames of exactly that many samples per channel, except the last. A size below 1 raises a failure. |
 
 ### 4.3 Array separator
 
@@ -250,17 +174,12 @@ the graph alive (section 2.2).
 val get_array_separator : filter_name:string -> option_name:string -> char
 ```
 
-1. `avfilter_get_by_name(filter_name)`. If the filter is not found or its
-   `priv_class` is `NULL`: `Failure "Invalid filter!"`.
-2. `av_opt_find(&priv_class, option_name, NULL, 0, 0)` — the object passed
-   is a pointer to the class pointer.
-3. Where array-typed options exist (libavutil >= 59.1.100):
-   - option not found, or its type lacks `AV_OPT_TYPE_FLAG_ARRAY`:
-     `Failure "Invalid filter option!"`;
-   - if `default_val.arr` is non-`NULL` and its `sep` is non-zero: return
-     `sep` as a `char`;
-   - otherwise: `Failure "Invalid filter!"`.
-4. On older libavutil: always `Failure "Invalid filter!"` (after step 1).
+The character that separates the elements of an array-typed option of a
+filter.
+
+- The separator the option declares, and `,` when it declares none.
+- A failure when FFmpeg knows no filter of that name, when the filter has no
+  option of that name, and when the option is not array-typed.
 
 ### 4.4 Registry
 
@@ -275,25 +194,18 @@ val abuffersink : [ `Unattached ] filter
 val buffersink : [ `Unattached ] filter
 ```
 
-Computed once at module initialisation:
+Computed once at module initialisation, from every filter FFmpeg registers.
 
-1. Iterate all registered filters twice (first to count, then to fill):
-   `av_filter_iterate` (or `avfilter_next` on old versions, section 10).
-2. For each filter read `name`, `description`, the input pad array and the
-   output pad array (section 2.3; each pad's filter-name field is the
-   filter's name, context and graph fields are `None`), `priv_class`, and
-   `flags` as an int. Pad counts come from `avfilter_filter_pad_count(f, 0)`
-   and `(f, 1)` (or `avfilter_pad_count` on old versions).
-3. On the OCaml side build the `filter` record: split pads (section 11.1),
-   decode flags (section 3.2).
-4. The filters named exactly `abuffer`, `buffer`, `abuffersink`,
-   `buffersink` become the four dedicated values and are _removed_ from the
-   list.
-5. `filters` is the remaining list sorted by `name` (polymorphic `compare`).
-
-`find name` returns the first element of `filters` with that name and raises
-`Not_found` otherwise. `find_opt` returns `None` instead. Neither finds the
-four buffer/sink filters.
+- Each filter gives a record: its name, its description (A3), its private
+  option class (no class when it has no option), its flags (§3), and its
+  static input and output pads split by media type (§3).
+- `abuffer`, `buffer`, `abuffersink`, `buffersink` are the four filters of
+  those names: the audio and video buffer sources and sinks.
+- `filters` holds every other filter, sorted by name in ascending byte order.
+  The four endpoint filters are not in it.
+- `find name` returns the element of `filters` of that name and raises
+  `Not_found` when there is none. `find_opt` returns `None` instead. Neither
+  finds the four endpoint filters.
 
 ### 4.5 Pad accessors
 
@@ -302,7 +214,7 @@ val pad_name : _ pad -> string
 val filter_name : _ pad -> string
 ```
 
-Return the pad-name and filter-name fields (section 2.3).
+The pad's name (A3) and the name of its filter.
 
 ### 4.6 Graph creation
 
@@ -310,9 +222,8 @@ Return the pad-name and filter-name fields (section 2.3).
 val init : unit -> config
 ```
 
-`avfilter_graph_alloc()`; `Out_of_memory` on `NULL`. Returns a `config`
-with empty bookkeeping. No graph option is set (thread count, scale options
-and the like keep FFmpeg defaults).
+A new, empty graph in the Configuring state. Every graph option keeps
+FFmpeg's default.
 
 ### 4.7 Attach
 
@@ -322,30 +233,17 @@ val attach :
   [ `Attached ] filter
 ```
 
-1. If `name` is already in the graph's `names` list: raise `Exists`.
-2. Build the argument string from `args` (section 11.2), or pass none when
-   `args` is absent. Building it can raise `Failure` (array separator).
-3. `avfilter_get_by_name(filter.name)`; `Not_found` when `NULL`.
-4. Copy `name` and the argument string to C strings (`Out_of_memory` on
-   allocation failure).
-5. With the runtime lock released:
-   `avfilter_graph_create_filter(&ctx, filter, name, args_or_NULL, NULL,
-graph)`. The copies are freed afterwards on both paths.
-6. A negative result raises `Avutil.Error`. Nothing is recorded on the OCaml
-   side in that case (`names` and the endpoint lists are unchanged).
-7. Read the instance's pads from `ctx->input_pads` / `ctx->nb_inputs` and
-   `ctx->output_pads` / `ctx->nb_outputs`. These reflect pads the filter
-   created at initialisation, so their number can differ from the
-   unattached filter's.
-8. Split them (section 11.1) and set, in every pad, the context field to
-   `Some ctx` and the graph field to `Some graph`.
-9. Prepend `name` to `names`.
-10. If `filter.name` is `abuffer`, `buffer`, `abuffersink` or `buffersink`,
-    prepend `(name, ctx)` to the matching endpoint list (section 2.1).
-11. Return the unattached filter record with `io` replaced, extended with
-    the hidden context field.
+Creates an instance of the filter in the graph, under the instance name
+`name`, initialised with the arguments `args` (§11.2).
 
-Filters created by `parse` are not seen by steps 1, 9 and 10.
+- `Exists` is raised when the graph already has an instance of that name,
+  whether `attach` or `parse` created it.
+- The result's pads are the instance's actual pads, attached. Their number
+  can differ from the unattached filter's: some filters create pads when they
+  are initialised.
+- A filter FFmpeg does not know raises ``Error `Filter_not_found``. Any other
+  FFmpeg failure, a rejected argument among them, raises the mapped error.
+- On failure the graph is unchanged.
 
 ### 4.8 Link
 
@@ -355,12 +253,9 @@ val link :
   unit
 ```
 
-Applied immediately: with the runtime lock released,
-`avfilter_link(src_ctx, src.index, dst_ctx, dst.index)`. Negative result
-raises `Avutil.Error`. If either pad has no context:
-`Failure "ffmpeg API error: filter is not attached!"` (not reachable through
-the typed API). The types force both pads to have the same media type; they
-do not force the same graph.
+Connects an output pad to an input pad (`avfilter_link`). The types require
+the same media type. Two pads of different graphs raise a failure. An FFmpeg
+failure, such as a pad already linked, raises the mapped error.
 
 ### 4.9 Commands
 
@@ -371,18 +266,9 @@ val process_command :
   [ `Attached ] filter -> string
 ```
 
-Defaults: `flags = []` (0), `arg = ""`.
-
-1. Read the filter context from the last field of the filter value.
-2. Copy `cmd` and `arg` to C buffers (`Out_of_memory` on failure).
-3. With the runtime lock released:
-   `avfilter_process_command(ctx, cmd, arg, res, 4096, flags)` where `res` is
-   a zero-filled 4096-byte buffer.
-4. Free the copies. A negative result raises `Avutil.Error`.
-5. Return `res` up to its first NUL byte as a fresh string.
-
-The command goes to that one filter instance; `avfilter_graph_send_command`
-is not used.
+Sends a command to one filter instance (`avfilter_process_command`) and
+returns its answer, truncated to `COMMAND_RESPONSE_MAX`. `flags` defaults to
+none and `arg` to the empty string. A failure raises the mapped error.
 
 ### 4.10 Parse
 
@@ -399,36 +285,25 @@ type 'a parse_io = (('a, [ `Input ]) parse_av, ('a, [ `Output ]) parse_av) io
 val parse : [ `Attached ] parse_io -> string -> config -> unit
 ```
 
-`parse { inputs; outputs } description graph`:
+`parse { inputs; outputs } description graph` adds the filters and links of a
+textual graph description to the graph, and connects the description's open
+ends to pads of filters already attached.
 
-1. Turn each node into `(node_name, pad context, pad index)`. A pad with no
-   context raises `Failure "parse: unattached pad"`. `node_args` is not
-   read.
-2. `inputs` becomes one array: audio nodes then video nodes, each in list
-   order. Same for `outputs`.
-3. For each array build an `AVFilterInOut` linked list in array order:
-   `name` is a C copy of `node_name`, `filter_ctx` and `pad_idx` from the
-   node, `next` chained. An allocation failure of a list element frees that
-   list and raises `Out_of_memory`.
-4. Copy `description` to a C string (`Out_of_memory` on failure, both lists
-   freed).
-5. With the runtime lock released:
-   `avfilter_graph_parse_ptr(graph, description, &inputs_list,
-&outputs_list, NULL)`.
-6. Free the description copy and whatever remains of both lists with
-   `avfilter_inout_free`.
-7. A negative result raises `Avutil.Error`.
-
-Meaning, as with the C API: the `inputs` nodes are _input pads_ of already
-attached filters (typically a sink's input) that the description's
-correspondingly labelled open outputs get linked to; the `outputs` nodes are
-_output pads_ of already attached filters (typically a buffer source's
-output) that feed the description's labelled open inputs. `node_name` is the
-label used in the description.
-
-Filters that the description creates get no OCaml handle, are not added to
-`names`, and are not added to the endpoint lists even when they are buffer
-sources or sinks. Open pads left after parsing are not reported.
+- A node names a label of the description (`node_name`) and an attached pad
+  (`node_pad`). `node_args` has no meaning: it is ignored.
+- As in FFmpeg's API, the naming is from the point of view of the
+  description. The `inputs` nodes are **input pads** of attached filters,
+  typically a sink's input, that the description's open outputs of that label
+  are linked to. The `outputs` nodes are **output pads** of attached filters,
+  typically a source's output, that feed the description's open inputs of
+  that label.
+- Within `inputs` and within `outputs`, audio nodes come before video nodes,
+  each in list order.
+- A pad of another graph raises a failure before anything is parsed.
+- The filters the description creates belong to the graph. Their instance
+  names count for `Exists`. Buffer sources and sinks among them are endpoints
+  of the graph (§4.11). No ``[`Attached] filter`` value is returned for them.
+- On failure the mapped error is raised and the graph is failed (§2.1).
 
 ### 4.11 Launch
 
@@ -436,39 +311,30 @@ sources or sinks. Open pads left after parsing are not reported.
 val launch : config -> t
 ```
 
-1. With the runtime lock released: `avfilter_graph_config(graph, NULL)`.
-   Negative result raises `Avutil.Error`; nothing is returned.
-2. Build the result from the endpoint lists as they are at that moment:
-   - `inputs.audio` / `inputs.video`: for each `(name, ctx)`, `(name, f)`
-     where `f` is the write function below;
-   - `outputs.audio` / `outputs.video`: for each `(name, ctx)`,
-     `(name, { context = ctx; handler })` where `handler` is the read
-     function below.
-     List order is the reverse of attach order (most recently attached
-     first).
+Configures the graph (`avfilter_graph_config`); it becomes Running. On
+failure the mapped error is raised and the graph is failed.
 
-Write function, `` `Frame frame ``: with the runtime lock released,
-`av_buffersrc_write_frame(ctx, frame)`. The source takes its own reference;
-the caller's frame value stays valid and unchanged. Negative result raises
-`Avutil.Error`.
+The result lists **every** buffer source and buffer sink of the graph,
+whichever of `attach` and `parse` created it, by instance name, in the order
+the instances were created in the graph:
 
-Write function, `` `Flush ``: with the runtime lock released,
-`av_buffersrc_write_frame(ctx, NULL)`, which marks end of stream on that
-source. Negative result raises `Avutil.Error`.
+- `inputs.audio`, `inputs.video`: one input function per audio, respectively
+  video, buffer source;
+- `outputs.audio`, `outputs.video`: one `{ context; handler }` per buffer
+  sink.
 
-Read function (`handler ()`):
+**Input function**, `` `Frame frame ``: gives the frame to the source, which
+takes a reference of its own (A4). A failure raises the mapped error.
 
-1. `av_frame_alloc()`; `Out_of_memory` on `NULL`.
-2. With the runtime lock released: `av_buffersink_get_frame(ctx, frame)`.
-3. Negative result: free the frame, raise `Avutil.Error` — `` `Eagain ``
-   when no frame is available yet, `` `Eof `` once the sink has been flushed
-   and drained.
-4. Otherwise wrap the frame in a garbage-collected `Avutil.frame` that owns
-   it and return it.
+**Input function**, `` `Flush ``: marks the end of the stream on that source.
+A source that was flushed accepts no further frame: FFmpeg answers
+``Error `Eof``. There is no way back; a caller that needs the graph again
+builds a new one.
 
-Nothing on the OCaml side prevents calling `launch` more than once on the
-same `config`, or `attach`/`link`/`parse` after it; each call is forwarded
-to FFmpeg as described.
+**Handler** `handler ()`: the next frame the sink has ready, as a fresh frame
+value. It raises ``Error `Eagain`` when none is ready yet and ``Error `Eof``
+once the sink is drained after a flush; both are part of normal operation. A
+receive that returns no frame releases what it allocated.
 
 ### 4.12 `Utils`
 
@@ -489,159 +355,142 @@ val convert_audio :
   [ `Frame of Avutil.audio Avutil.frame | `Flush ] -> unit
 ```
 
-`init_audio_converter`:
+A converter that re-frames audio to a fixed frame size and, optionally,
+converts it to another rate, layout and format. §11.3 gives its construction.
 
-1. `init ()` a private graph.
-2. `attach` `abuffer` under instance name `"abuffer"` with, in this list
-   order (see section 11.2 for the resulting string order):
-   `sample_rate=<in rate>`, `time_base=<num>/<den>`,
-   `channel_layout=<Avutil.Channel_layout.get_description in layout>`,
-   `sample_fmt=<Avutil.Sample_format.get_id in format>` (an integer).
-3. If `out_params` is given: `find "aresample"`, `attach` it under instance
-   name `"aresample"` with `in_sample_rate`, `in_chlayout` (description
-   string), `in_sample_fmt` (integer id), `out_sample_rate`, `out_chlayout`,
-   `out_sample_fmt`; `link` the source's first audio output to its first
-   audio input; continue from its first audio output.
-4. `attach` `abuffersink` under instance name `"sink"` with no arguments;
-   `link` the current output to its first audio input.
-5. `launch`. Take the first audio input function and the first audio
-   output.
-6. If `out_frame_size` is given: `set_frame_size sink_context n`.
-7. Read `time_base sink_context` once and store it.
-
-Any exception from these steps propagates (`Not_found` if `aresample` is
-absent, `Avutil.Error`, `Failure`). A missing first pad is an assertion
-failure.
-
-`time_base c` returns the stored time base.
-
-`convert_audio c cb input`:
-
-1. Call the input function with `input` (push a frame or flush).
-2. Loop: call the output handler; pass each frame to `cb`; repeat.
-3. ``Avutil.Error `Eagain`` ends the loop normally.
-4. ``Avutil.Error `Eof`` is absorbed when `input` is `` `Flush `` and
-   propagates when it is a frame.
-5. Any other exception, including one raised by `cb`, propagates. An
-   ``Avutil.Error `Eagain`` raised by `cb` itself ends the loop the same way
-   as step 3.
+- `init_audio_converter`: without `out_params` the output has the input's
+  parameters. With `out_frame_size`, every frame delivered has exactly that
+  many samples per channel, except the last one after a flush.
+- `time_base c`: the time base of the frames the converter delivers.
+- `convert_audio c cb input`: pushes a frame, or the end of the stream, and
+  calls `cb` on every frame that becomes available, in order.
+  - Pushing a frame when no output is ready yet is not an error.
+  - After `` `Flush `` every remaining frame is delivered.
+  - An exception raised by `cb` propagates, whatever it is (§7.2).
 
 ## 5. Errors
 
-| Exception                                                       | Raised by                                                                                                                                                                                                                          |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Avfilter.Exists`                                               | `attach`, duplicate instance name among names attached through `attach`                                                                                                                                                            |
-| `Not_found`                                                     | `find`; `attach` when `avfilter_get_by_name` fails; `Utils.init_audio_converter` when `aresample` is absent                                                                                                                        |
-| `Avutil.Error e`                                                | negative FFmpeg result in `attach`, `link`, `parse`, `launch`, `process_command`, `channel_layout`, the write functions and the read handler. `e` is `avutil`'s mapping of the code (`` `Eagain ``, `` `Eof ``, …, `` `Other n ``) |
-| `Failure "Invalid filter!"`, `Failure "Invalid filter option!"` | `get_array_separator`; `attach` with an `` `Array `` argument                                                                                                                                                                      |
-| `Failure "ffmpeg API error: missing buffer or sink!"`           | module initialisation                                                                                                                                                                                                              |
-| `Failure "ffmpeg API error: filter is not attached!"`           | `link` on a pad without context                                                                                                                                                                                                    |
-| `Failure "parse: unattached pad"`                               | `parse` on a pad without context                                                                                                                                                                                                   |
-| `Failure "Invalid flag type!"`                                  | flag conversion on an unknown variant                                                                                                                                                                                              |
-| `Out_of_memory`                                                 | `init`, `attach`, `parse`, `process_command`, read handler, on C allocation failure                                                                                                                                                |
-| `Assert_failure`                                                | `Utils.init_audio_converter` when an expected pad or endpoint is missing                                                                                                                                                           |
-
-The binding itself closes or invalidates nothing on error. FFmpeg does: a
-failed `avfilter_graph_parse_ptr` frees every filter context in the graph,
-including those created by earlier `attach` calls, and the binding keeps
-its handles to them and their `names` entries.
+| Raised                                    | By                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Avfilter.Exists`                         | `attach`, when the graph has an instance of that name                                                                          |
+| `Not_found`                               | `find`                                                                                                                         |
+| `Error e`, `e` mapped from an FFmpeg code | `attach`, `link`, `parse`, `launch`, `process_command`, `channel_layout`, pushing, pulling                                     |
+| ``Error `Eagain``, ``Error `Eof``         | an output handler; ``Error `Eof`` also when pushing to a flushed source                                                        |
+| ``Error `Filter_not_found``               | `attach`; `Utils.init_audio_converter` when FFmpeg lacks the resampling filter                                                 |
+| the state errors of the contract's §5.3   | per §2.1                                                                                                                       |
+| ``Error (`Failure msg)``                  | "graph launched"; pads of different graphs; a filter record with no usable pad (§2.4); `get_array_separator`; `set_frame_size` |
+| `Out_of_memory`                           | any failed allocation                                                                                                          |
 
 ## 6. Blocking and concurrency
 
-The runtime lock is released around: `avfilter_graph_create_filter`,
-`avfilter_link`, `avfilter_graph_parse_ptr`, `avfilter_graph_config`,
-`avfilter_process_command`, `av_buffersrc_write_frame` (frame and flush),
-`av_buffersink_get_frame`. Other OCaml threads run meanwhile.
+### 6.1 The runtime lock
 
-The lock is held for: registry enumeration, `init`, all sink accessors,
-`set_frame_size`, `get_array_separator`.
+Contract M1 covers `attach`, `parse`, `launch`, `process_command`, pushing to
+a source and pulling from a sink.
 
-The library takes no lock of its own. Two threads that use the same graph
-at the same time reach FFmpeg concurrently. The OCaml bookkeeping in
-`config` is unsynchronised mutable state.
+### 6.2 Guards
 
-Global state: the registry values, computed once at module initialisation.
-No thread registration is done by this library.
+A graph has one guard, shared by every dependent handle of §2.2 (M9).
+
+| Exclusive                                                                                  | Shared         |
+| ------------------------------------------------------------------------------------------ | -------------- |
+| `attach`, `link`, `parse`, `launch`, `process_command`, `set_frame_size`, pushing, pulling | sink accessors |
+
+Pushing to one source of a graph while another thread pulls from a sink of
+the same graph is a conflict: one of the two raises the in-use error.
+
+### 6.3 Global state
+
+The registry values, computed at module initialisation and immutable. The
+library registers no thread.
 
 ## 7. Callbacks
 
-Nothing. The library installs no C-to-OCaml callback. (`convert_audio` calls
-its `cb` from OCaml.)
+### 7.1 Functions FFmpeg calls
+
+None.
+
+### 7.2 The function passed to `Utils.convert_audio`
+
+Called by the binding between native steps (contract §7.2). The converter is
+not in use while it runs. When it raises, the frames not yet delivered stay in
+the converter's graph; the next `convert_audio` delivers them first.
 
 ## 8. Data transfer
 
-| Path                                                                                  | Copy or share                                                                                                                                                 |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Filter and pad names, descriptions                                                    | copied into OCaml strings                                                                                                                                     |
-| `options`                                                                             | shares FFmpeg's static `AVClass` pointer                                                                                                                      |
-| Instance name, argument string, graph description, command and argument, parse labels | copied into C strings for the call; freed after (parse labels are owned and freed by the in/out lists)                                                        |
-| Frame pushed to a source                                                              | not copied by the binding; FFmpeg adds its own reference to the frame's buffers; the OCaml frame stays owned by its value                                     |
-| Frame pulled from a sink                                                              | a new `AVFrame` allocated by the binding, filled by FFmpeg (reference move from the sink), owned by the returned OCaml frame value and freed by its finaliser |
-| Command response                                                                      | 4096-byte C buffer, copied up to the first NUL                                                                                                                |
-| Channel layout                                                                        | copied into a new layout value                                                                                                                                |
-| Rationals, ints                                                                       | by value                                                                                                                                                      |
+| Path                                                                                  | Copy or share                                                        |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| filter and pad names, descriptions                                                    | copied                                                               |
+| `options`                                                                             | a borrowed option class                                              |
+| instance name, argument string, graph description, command and argument, parse labels | copied for the call                                                  |
+| frame pushed to a source                                                              | FFmpeg takes a reference of its own; the caller's frame is unchanged |
+| frame pulled from a sink                                                              | a new frame owned by the returned value; no copy of the data         |
+| command answer                                                                        | copied                                                               |
+| channel layout                                                                        | copied                                                               |
 
 ## 9. Options
 
-- `filter.options` exposes the filter's private `AVClass` for inspection
+- `filter.options` exposes the filter's private option class for inspection
   through `Avutil.Options`.
-- Filter options are set only at `attach`, through the argument string
-  passed to `avfilter_graph_create_filter` (section 11.2). There is no
-  option dictionary and no unused-option reporting; FFmpeg rejects unknown
-  options with an error from `attach`.
-- Options are not settable through AVOption on an attached filter by this
-  library; `process_command` is the only runtime control.
+- Filter options are set at `attach` only, through the argument string
+  (§11.2). There is no option table and no report of unused options: FFmpeg
+  rejects an unknown option and `attach` fails.
+- `process_command` is the only control of a running filter.
 - No graph-level option is exposed.
 
 ## 10. Version-dependent behaviour
 
-| Condition                               | Below                                                                                                       | At or above                                                                                                         |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| libavfilter 7.14.100                    | module initialisation calls `avfilter_register_all()`; enumeration uses `avfilter_next`                     | no registration call; enumeration uses `av_filter_iterate`                                                          |
-| libavfilter 8.3.100                     | static pad counts from `avfilter_pad_count(pads)`                                                           | from `avfilter_filter_pad_count(filter, is_output)`                                                                 |
-| libavutil 59.1.100 (array option types) | `get_array_separator` always raises `Failure "Invalid filter!"` for an existing filter with a private class | looks the option up and returns the separator it declares; raises `Failure "Invalid filter!"` when it declares none |
+None.
 
-## 11. Logic on the OCaml side
+## 11. Composite operations
 
-### 11.1 Pad splitting
+### 11.1 Endpoints
 
-Input: an array of pads as read from C. Output: `{ audio; video }`.
-
-1. A pad whose media type equals `` `Audio `` goes to `audio`; any other
-   pad goes to `video` with its media type set to `` `Video ``.
-2. Each list is sorted by increasing pad index.
-
-The pad index is the index in the filter's whole pad array, not the
-position within its media type.
+A filter instance is a graph endpoint when its filter is one of the four
+buffer filters. `launch` finds endpoints by walking the graph, so it sees the
+ones a parsed description created.
 
 ### 11.2 Argument string
 
-`args` is rendered to the string given to `avfilter_graph_create_filter`:
+`args` is rendered to the option string FFmpeg's filters parse:
 
-1. Each element is rendered:
-   - `` `Flag s `` → `s`;
-   - `` `Pair (k, v) `` with a ground value → `k=<v>`;
-   - `` `Pair (k, `Array vs) `` → `k=<v1><sep><v2>…` where `sep` is
-     `get_array_separator ~filter_name:<filter's name> ~option_name:k`.
-2. Ground values render as: `` `String s `` → `s` verbatim (no quoting or
-   escaping); `` `Int i `` → decimal; `` `Int64 i `` → decimal;
-   `` `Float f `` → OCaml's `string_of_float` (for example `1.` for 1.0);
-   `` `Rational {num; den} `` → `num/den`.
-3. The rendered elements are joined with `:` in the **reverse** of the list
-   order: the last element of `args` comes first in the string.
-4. `args = Some []` yields the empty string; absent `args` yields no string
-   (`NULL`).
+1. Each element is rendered, in list order:
+   - `` `Flag s `` gives `s`;
+   - `` `Pair (k, v) `` with a ground value gives `k=<v>`;
+   - `` `Pair (k, `Array vs) `` gives `k=<v1><sep><v2>…`, where `sep` is
+     `get_array_separator` for the filter and `k`.
+2. Ground values render as: `` `String s `` verbatim; `` `Int `` and
+   `` `Int64 `` in decimal; `` `Float `` as a decimal text FFmpeg parses back
+   to the same value; `` `Rational {num; den} `` as `num/den`.
+3. The rendered elements are joined with `:`, **in list order**.
+4. An absent or empty `args` gives no argument.
 
-### 11.3 Flag decoding
+Nothing is quoted or escaped: a caller whose string value contains `:`, `=`,
+`'`, `\` or the array separator writes it in FFmpeg's option-string syntax.
 
-Section 3.2: each of the five flags is tested against the C flag word with
-one conversion call per flag per filter, at module initialisation.
+FFmpeg binds a value with no key (`` `Flag ``) to the filter's options in
+declaration order and rejects one that follows a `key=value` pair.
 
-### 11.4 Endpoint tracking
+### 11.3 Audio converter
 
-Section 4.7 step 10 and section 4.11 step 2: endpoints are recognised by
-the _filter name_ at `attach` time and listed by `launch`.
+`init_audio_converter` builds a private graph:
 
-### 11.5 Command flags, parse marshalling, converter
+1. An audio buffer source with the input's sample rate, time base, channel
+   layout and sample format.
+2. With `out_params`: FFmpeg's resampling filter (`aresample`) set from the
+   input and output parameters, linked after the source.
+3. An audio buffer sink, linked last.
+4. The graph is launched. With `out_frame_size`, the sink's frame size is set.
+5. The sink's time base is read once.
 
-Sections 3.3, 4.10 steps 1–2, and 4.12.
+Any failure raises the error of the step that failed.
+
+`convert_audio c cb input`:
+
+1. Deliver to `cb` every frame the sink has ready.
+2. Push `input`.
+3. Deliver to `cb` every frame the sink has ready, until the sink has none
+   (after a frame) or is drained (after `` `Flush ``).
+
+Only the sink's own "none ready" and "drained" answers end a delivery loop;
+the same errors raised by `cb` propagate.

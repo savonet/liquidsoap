@@ -1,87 +1,80 @@
-# avdevice — as-built specification (Part A)
+# avdevice
 
-Mechanism notes are in [language-notes/avdevice.md](language-notes/avdevice.md).
-Observations and judgement are in [findings/avdevice.md](findings/avdevice.md).
+Capture and playback devices, and the control-message channel between
+application and device. It follows
+[binding-contract.md](binding-contract.md); section numbers match.
 
 ## 1. Scope
 
-Binds `libavdevice`: device registration, enumeration of device
-input/output formats, and the control-message channel between application
-and device.
+`Avdevice` binds libavdevice: device registration, enumeration of device
+input and output formats, and control messages.
 
-No minimum version is stated and there is no version test in this library.
-Whether it is built is decided by the detection step.
+It depends on `av`: a device is an `av` container opened with a device
+format. From `av` it uses format values, `Av.open_input`,
+`Av.open_output_format`, the container's native context and guard, and the
+control-message closure of [avformat.md](avformat.md) §7.1.5. It uses
+`avutil`'s error exception and thread registration.
 
-Sibling dependencies:
+It installs no C header and provides nothing to other libraries.
 
-- `av` (libavformat binding). avdevice adds no object of its own. It uses:
-  - `Av`'s format values (`(input, _) format`, `(output, _) format`), built
-    with `av`'s wrappers around `AVInputFormat *` / `AVOutputFormat *`
-    (the input wrapper fails with ``Avutil.Error (`Failure "Empty input
-format")`` on `NULL`);
-  - `Av.Format.get_input_name` / `Av.Format.get_output_name`;
-  - `Av.open_input` and `Av.open_output_format` to open devices;
-  - `av`'s container object (`_ container`) as the device handle;
-  - three C-level services of `av` (section 7.1): get the
-    `AVFormatContext *` of a container (fails with
-    ``Avutil.Error (`Failure "Container closed!")`` on a closed container),
-    install a control-message callback on a container, and retrieve the
-    callback slot from an `AVFormatContext *`.
-- `avutil`: the `Avutil.Error` exception and error-code mapping, and the
-  helper that registers a foreign thread with the OCaml runtime.
-
-The library installs no C header.
+**Module initialisation** registers FFmpeg's devices with libavformat. A
+program that links this library sees the device formats among libavformat's
+formats without calling any function of it. It cannot fail.
 
 ## 2. Objects
 
-Nothing of its own. Devices are `av` containers (`input container`,
-`output container`); creation, ownership, close and garbage collection are
-`av`'s. Device formats are `av` format values that point at FFmpeg's static
-format descriptors.
+None of its own. Devices are `av` containers; creation, ownership, states,
+close and collection are [avformat.md](avformat.md) §2.1. Device formats are
+`av` format values.
 
-The only state avdevice adds to a container is the control-message callback
-installed through `av` (section 7).
+The only state this library adds to a container is the control-message
+closure (§7).
+
+Where the types do not protect (B3): `App_to_dev.control_messages` and
+`Dev_to_app.set_control_message_callback` accept any container. On a
+container that is not a device the first raises the error FFmpeg reports and
+the second installs a closure that is never called.
 
 ## 3. Enumerations and constants
 
-Both message types are ordinary OCaml variants. The mapping is positional
-and hand-written.
+Both message types are ordinary OCaml variants with hand-written tables.
 
 ### 3.1 `App_to_dev.message` (OCaml to C)
 
-| Constructor                   | C message type                 | Payload sent                                                      |
-| ----------------------------- | ------------------------------ | ----------------------------------------------------------------- |
-| `None`                        | `AV_APP_TO_DEV_NONE`           | none (`NULL`, 0)                                                  |
-| `Window_size (x, y, w, h)`    | `AV_APP_TO_DEV_WINDOW_SIZE`    | `AVDeviceRect {x, y, width, height}`, size `sizeof(AVDeviceRect)` |
-| `Window_repaint (x, y, w, h)` | `AV_APP_TO_DEV_WINDOW_REPAINT` | the rect when `w > 0`; none (`NULL`, 0) when `w <= 0`             |
-| `Pause`                       | `AV_APP_TO_DEV_PAUSE`          | none                                                              |
-| `Play`                        | `AV_APP_TO_DEV_PLAY`           | none                                                              |
-| `Toggle_pause`                | `AV_APP_TO_DEV_TOGGLE_PAUSE`   | none                                                              |
-| `Set_volume v`                | `AV_APP_TO_DEV_SET_VOLUME`     | a `double`, size `sizeof(double)`                                 |
-| `Mute`                        | `AV_APP_TO_DEV_MUTE`           | none                                                              |
-| `Unmute`                      | `AV_APP_TO_DEV_UNMUTE`         | none                                                              |
-| `Toggle_mute`                 | `AV_APP_TO_DEV_TOGGLE_MUTE`    | none                                                              |
-| `Get_volume`                  | `AV_APP_TO_DEV_GET_VOLUME`     | none                                                              |
-| `Get_mute`                    | `AV_APP_TO_DEV_GET_MUTE`       | none                                                              |
+| Constructor                   | C message type                 | Payload sent                                                                    |
+| ----------------------------- | ------------------------------ | ------------------------------------------------------------------------------- |
+| `None`                        | `AV_APP_TO_DEV_NONE`           | none                                                                            |
+| `Window_size (x, y, w, h)`    | `AV_APP_TO_DEV_WINDOW_SIZE`    | the rectangle                                                                   |
+| `Window_repaint (x, y, w, h)` | `AV_APP_TO_DEV_WINDOW_REPAINT` | the rectangle when `w > 0`; none when `w <= 0`, which asks for the whole window |
+| `Pause`                       | `AV_APP_TO_DEV_PAUSE`          | none                                                                            |
+| `Play`                        | `AV_APP_TO_DEV_PLAY`           | none                                                                            |
+| `Toggle_pause`                | `AV_APP_TO_DEV_TOGGLE_PAUSE`   | none                                                                            |
+| `Set_volume v`                | `AV_APP_TO_DEV_SET_VOLUME`     | the volume, a double                                                            |
+| `Mute`                        | `AV_APP_TO_DEV_MUTE`           | none                                                                            |
+| `Unmute`                      | `AV_APP_TO_DEV_UNMUTE`         | none                                                                            |
+| `Toggle_mute`                 | `AV_APP_TO_DEV_TOGGLE_MUTE`    | none                                                                            |
+| `Get_volume`                  | `AV_APP_TO_DEV_GET_VOLUME`     | none                                                                            |
+| `Get_mute`                    | `AV_APP_TO_DEV_GET_MUTE`       | none                                                                            |
 
 ### 3.2 `Dev_to_app.message` (C to OCaml)
 
-| C message type                        | Constructor                | Payload read from `data`                                                                                                                                     |
-| ------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `AV_DEV_TO_APP_NONE`                  | `None`                     | —                                                                                                                                                            |
-| `AV_DEV_TO_APP_CREATE_WINDOW_BUFFER`  | `Create_window_buffer opt` | `data` non-`NULL`: read as `AVDeviceRect`; the argument is built as the bare 4-tuple `(x, y, width, height)` with no `Some` around it. `data` `NULL`: `None` |
-| `AV_DEV_TO_APP_PREPARE_WINDOW_BUFFER` | `Prepare_window_buffer`    | —                                                                                                                                                            |
-| `AV_DEV_TO_APP_DISPLAY_WINDOW_BUFFER` | `Display_window_buffer`    | —                                                                                                                                                            |
-| `AV_DEV_TO_APP_DESTROY_WINDOW_BUFFER` | `Destroy_window_buffer`    | —                                                                                                                                                            |
-| `AV_DEV_TO_APP_BUFFER_OVERFLOW`       | `Buffer_overflow`          | —                                                                                                                                                            |
-| `AV_DEV_TO_APP_BUFFER_UNDERFLOW`      | `Buffer_underflow`         | —                                                                                                                                                            |
-| `AV_DEV_TO_APP_BUFFER_READABLE`       | `Buffer_readable opt`      | `data` non-`NULL`: `Some` of the `int64_t` it points to; `NULL`: `None`                                                                                      |
-| `AV_DEV_TO_APP_BUFFER_WRITABLE`       | `Buffer_writable opt`      | same                                                                                                                                                         |
-| `AV_DEV_TO_APP_MUTE_STATE_CHANGED`    | `Mute_state_changed b`     | `*(int *)data != 0`; `data` is dereferenced unconditionally                                                                                                  |
-| `AV_DEV_TO_APP_VOLUME_LEVEL_CHANGED`  | `Volume_level_changed v`   | `*(double *)data`; dereferenced unconditionally                                                                                                              |
-| any other value                       | `None`                     | —                                                                                                                                                            |
+| C message type                        | Constructor                | Payload                                                           |
+| ------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
+| `AV_DEV_TO_APP_NONE`                  | `None`                     |                                                                   |
+| `AV_DEV_TO_APP_CREATE_WINDOW_BUFFER`  | `Create_window_buffer opt` | `Some (x, y, width, height)` of the rectangle; `None` without one |
+| `AV_DEV_TO_APP_PREPARE_WINDOW_BUFFER` | `Prepare_window_buffer`    |                                                                   |
+| `AV_DEV_TO_APP_DISPLAY_WINDOW_BUFFER` | `Display_window_buffer`    |                                                                   |
+| `AV_DEV_TO_APP_DESTROY_WINDOW_BUFFER` | `Destroy_window_buffer`    |                                                                   |
+| `AV_DEV_TO_APP_BUFFER_OVERFLOW`       | `Buffer_overflow`          |                                                                   |
+| `AV_DEV_TO_APP_BUFFER_UNDERFLOW`      | `Buffer_underflow`         |                                                                   |
+| `AV_DEV_TO_APP_BUFFER_READABLE`       | `Buffer_readable opt`      | `Some` of the 64-bit amount; `None` without one                   |
+| `AV_DEV_TO_APP_BUFFER_WRITABLE`       | `Buffer_writable opt`      | the same                                                          |
+| `AV_DEV_TO_APP_MUTE_STATE_CHANGED`    | `Mute_state_changed b`     | whether the device is muted                                       |
+| `AV_DEV_TO_APP_VOLUME_LEVEL_CHANGED`  | `Volume_level_changed v`   | the volume, a double                                              |
 
-`data_size` is ignored.
+- A message whose type needs a payload and that carries none is not
+  delivered, except where the table gives `None`.
+- A message of a type not in the table is not delivered.
 
 ## 4. Operations
 
@@ -91,9 +84,9 @@ and hand-written.
 val init : unit -> unit
 ```
 
-Calls `avdevice_register_all()`. Module initialisation calls it once
-already. Each explicit call calls `avdevice_register_all()` again. The
-function exists so a program can force the library to be linked.
+Registers FFmpeg's devices. Module initialisation already does; calling it
+again has no further effect. It exists so that a program can name something
+from this library and thereby make the linker keep it.
 
 ### 4.2 Device formats
 
@@ -108,26 +101,15 @@ val get_video_output_formats : unit -> (output, video) format list
 val get_default_video_output_format : unit -> (output, video) format
 ```
 
-Each list function iterates FFmpeg's device list twice (count, then fill),
-starting from `NULL`, and returns the formats in FFmpeg's order:
+Each list function returns the device formats of that kind and direction that
+FFmpeg registers, in FFmpeg's order. The list is built on every call.
 
-| Function                   | Iterator                      |
-| -------------------------- | ----------------------------- |
-| `get_audio_input_formats`  | `av_input_audio_device_next`  |
-| `get_video_input_formats`  | `av_input_video_device_next`  |
-| `get_audio_output_formats` | `av_output_audio_device_next` |
-| `get_video_output_formats` | `av_output_video_device_next` |
+Each `get_default_*` function returns the first element of the matching list:
+"default" means "first registered", and no system default is consulted. It
+raises `Not_found` when the list is empty.
 
-The list is rebuilt on every call; nothing is cached. Each element wraps the
-static format pointer.
-
-Each `get_default_*` function calls the matching list function and returns
-its first element. It raises `Not_found` when the list is empty. "Default"
-means "first registered"; no system default is queried.
-
-What is enumerated are device _formats_ (for example `alsa`, `v4l2`), not
-the devices of each format; `avdevice_list_devices` and related calls are
-not bound.
+What is enumerated are device **formats** (`alsa`, `v4l2`), not the devices of
+each format.
 
 ### 4.3 Opening devices
 
@@ -144,33 +126,22 @@ val open_default_video_output : ?interleaved:bool -> ?opts:opts -> unit -> outpu
 
 The `string` argument is a device **format name**.
 
-Named input (`open_audio_input name`, `open_video_input name`):
+- **Lookup.** The format is the first of the matching list (§4.2) whose name
+  is the given one. A format's name may be a comma-separated list of aliases;
+  each alias matches. No match raises `Not_found`.
+- **Named input**: `Av.open_input` with that format and an empty URL, no
+  option and no interrupt function.
+- **Named output**: `Av.open_output_format` with that format, `interleaved`
+  and `opts` passed through.
+- **Default** variants use the first format of the list and raise `Not_found`
+  when the list is empty.
 
-1. Get the matching format list (section 4.2).
-2. Take the first format whose `Av.Format.get_input_name` equals `name`
-   exactly (whole-string equality; a format whose name is a comma-separated
-   list of aliases matches only on the full string).
-3. None found: raise
-   ``Avutil.Error (`Failure ("Input device not found : " ^ name))``.
-4. `Av.open_input ~format ""` — the URL is the empty string, and no
-   interrupt callback, options or stream configuration are passed.
+Errors of the `Av` operations propagate. The result is an ordinary `av`
+container.
 
-Default input: `Av.open_input ~format:(get_default_…_input_format ()) ""`.
-`Not_found` when no such device format is registered.
-
-Named output (`open_audio_output`, `open_video_output`):
-
-1. Same lookup with `Av.Format.get_output_name`; failure raises
-   ``Avutil.Error (`Failure ("Output device not found : " ^ name))``.
-2. `Av.open_output_format ?interleaved ?opts format`. `interleaved` and
-   `opts` are passed through unchanged, so their defaults and the handling
-   of unused options are `av`'s. No file name or URL is given.
-
-Default output: `Av.open_output_format ?interleaved ?opts` on the first
-format of the list; `Not_found` when the list is empty.
-
-Errors from `Av.open_input` / `Av.open_output_format` propagate unchanged.
-The returned container is an ordinary `av` container.
+A caller that needs to name a particular device, or to pass options to an
+input, calls `Av.open_input` or `Av.open_output` with a format from §4.2 and
+the device as the URL.
 
 ### 4.4 `App_to_dev`
 
@@ -186,21 +157,13 @@ type message =
 val control_messages : message list -> _ container -> unit
 ```
 
-`control_messages msgs device` sends the messages one by one in list order.
-For each message:
+Sends the messages to the device one by one, in list order
+(`avdevice_app_to_dev_control_message`). The first failure raises the mapped
+error and the remaining messages are not sent. A container that is not an
+output device with a message handler fails with the error FFmpeg reports.
 
-1. Convert it to a message type and optional payload (section 3.1). The
-   payload lives on the C stack for the duration of the call.
-2. Release the runtime lock.
-3. Obtain the container's `AVFormatContext *` from `av`.
-4. `avdevice_app_to_dev_control_message(ctx, type, data, data_size)`.
-5. Re-acquire the runtime lock.
-6. A negative result raises `Avutil.Error` (for example the code FFmpeg
-   returns when the device does not implement control messages). Remaining
-   messages of the list are not sent.
-
-A device answers `Get_volume` / `Get_mute` through the device-to-application
-callback (section 7), if one is installed.
+`Get_volume` and `Get_mute` have no result here: the device answers through
+the device-to-application closure (§7), when one is installed.
 
 ### 4.5 `Dev_to_app`
 
@@ -220,117 +183,78 @@ type message =
 val set_control_message_callback : (message -> unit) -> _ container -> unit
 ```
 
-`set_control_message_callback f device` asks `av` to install avdevice's C
-trampoline as the container's `control_message_cb` and to store `f` as the
-container's control-message closure (section 7). A second call replaces the
-closure. There is no operation to remove the callback. The runtime lock is
-released for the duration of the installation call.
+Installs the closure that receives the device's messages (§7). A second call
+replaces the closure. The closure is dropped when the container is released;
+there is no other way to remove it.
 
 ## 5. Errors
 
-| Exception                                                      | Raised by                                                                                                                  |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| ``Avutil.Error (`Failure "Input device not found : <name>")``  | `open_audio_input`, `open_video_input`                                                                                     |
-| ``Avutil.Error (`Failure "Output device not found : <name>")`` | `open_audio_output`, `open_video_output`                                                                                   |
-| `Not_found`                                                    | the four `get_default_*_format` and the four `open_default_*` when no device format of that kind is registered             |
-| `Avutil.Error e` (mapped FFmpeg code)                          | `App_to_dev.control_messages` on a negative return                                                                         |
-| ``Avutil.Error (`Failure "Container closed!")``                | `App_to_dev.control_messages`, `Dev_to_app.set_control_message_callback` on a closed container (raised by `av`'s accessor) |
-| ``Avutil.Error (`Failure "Empty input format")``               | from `av`'s wrapper; not reachable from the iterators                                                                      |
-| whatever `Av.open_input` / `Av.open_output_format` raise       | the eight open functions                                                                                                   |
+| Raised | By  |
+| ------ | --- |
 
-An exception raised by the OCaml control-message callback is not an OCaml
-error anywhere: it is discarded and reported to the device as
-`AVERROR_UNKNOWN` (section 7).
+| `Not_found` | the four `get_default_*_format` and the eight open functions, when no device format matches or none is registered |
+| `Error e`, `e` mapped from an FFmpeg code | `App_to_dev.control_messages` |
+| the state errors of the contract's §5.3 | `control_messages`, `set_control_message_callback` |
+| whatever the `Av` open functions raise | the eight open functions |
 
 ## 6. Blocking and concurrency
 
-- `init`, the four enumeration functions: runtime lock held.
-- `App_to_dev.control_messages`: the lock is released around each
-  `avdevice_app_to_dev_control_message` call and around fetching the format
-  context from the container.
-- `Dev_to_app.set_control_message_callback`: the lock is released around
-  the installation call into `av`.
-- The device-to-application trampoline registers the calling thread with
-  the OCaml runtime (through `avutil`'s helper) and acquires the runtime
-  lock itself; it must be entered without the lock.
-
-Global state: FFmpeg's device registry. `avdevice_register_all()` runs at
-module initialisation; the `.mli` states that `init` is not thread-safe. An
-OCaml-side flag guards the module-initialisation call only.
+- `App_to_dev.control_messages` releases the runtime lock around each message
+  sent (M1, M4): a device may answer by calling the closure of §7 from inside
+  the call. The container's native context is obtained, and its state
+  checked, before the lock is released (M2).
+- `Dev_to_app.set_control_message_callback` holds the lock throughout.
+- Guards: both operations take the container's guard exclusively.
+- Global state: FFmpeg's device registry.
 
 ## 7. Callbacks
 
-### 7.1 What avdevice asks of `av`
+### 7.1 Device-to-application messages
 
-- **Format context accessor**: given a container value, return its
-  `AVFormatContext *`.
-- **Install**: given a container value, a C function of type
-  `av_format_control_message` and an OCaml closure: keep the closure alive
-  for as long as the container is open (replacing any previous one), make
-  the format context's `opaque` identify the container, and set the format
-  context's `control_message_cb` to the C function.
-- **Lookup**: given an `AVFormatContext *` inside a callback, return the
-  location of the closure installed on its container.
-- **Release**: when the container is closed, stop keeping the closure
-  alive.
+Trigger: the device sends a message
+(`avdevice_dev_to_app_control_message`). This happens on the thread that is
+inside an operation on the container, or on a thread the device owns, at any
+time while the container is open.
 
-### 7.2 Device-to-application path
+The closure is called through the contract's §7.1 sequence, with the message
+built per §3.2.
 
-Trigger: device code calls the format context's `control_message_cb`
-(through `avdevice_dev_to_app_control_message`). This can happen on the
-thread that is inside an `av` or avdevice call on that container, or on a
-thread the device owns.
+- The closure's result is not used.
+- An exception is caught (C1); the device is told the message failed.
+- Every `av` operation that can make a device send a message releases the
+  runtime lock around the native call (M4): writes, reads, the header, the
+  trailer, close, and `control_messages`.
+- A message is delivered whether or not an operation holds the container's
+  guard at that moment (C4).
+- No message is delivered after the container's release completed (L8).
 
-Steps of the trampoline:
+### 7.2 Functions the binding calls
 
-1. Register the current thread with the OCaml runtime if it is not already
-   registered.
-2. Acquire the runtime lock.
-3. Build the OCaml message from `type` and `data` (section 3.2).
-4. Look the closure up from the format context (section 7.1) and apply it
-   to the message.
-5. If the closure raised: discard the exception; the result is
-   `AVERROR_UNKNOWN`. Otherwise the result is `0`. The closure's return
-   value is not used.
-6. Release the runtime lock and return the result to the device.
-
-The closure runs synchronously inside the device's call. Because step 2
-acquires the lock unconditionally, the device must invoke the callback only
-from code that runs without the runtime lock.
-
-Closure lifetime: kept alive by `av` from installation until replaced or
-until the container is closed.
+None.
 
 ## 8. Data transfer
 
-| Path                                                       | Copy or share                                                                                            |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Device formats                                             | wrap FFmpeg's static descriptor pointers; nothing copied                                                 |
-| `Window_size` / `Window_repaint` rect, `Set_volume` double | copied from the OCaml value into C stack storage, passed by pointer for the call only                    |
-| Dev-to-app payloads (rect, `int64_t`, `int`, `double`)     | read from `data` and copied into fresh OCaml values before the closure is called; `data` is not retained |
+| Path                                                         | Copy or share                                               |
+| ------------------------------------------------------------ | ----------------------------------------------------------- |
+| device formats                                               | borrowed handles on FFmpeg's static formats                 |
+| the rectangle and volume of an application-to-device message | copied into native storage that lives for the call          |
+| device-to-application payloads                               | copied into fresh OCaml values before the closure is called |
 
-No frames or packets pass through this library; device I/O goes through
-`av`.
+No frame or packet passes through this library; device I/O goes through `av`.
 
 ## 9. Options
 
 `?opts` of the four output-open functions is forwarded to
-`Av.open_output_format` unchanged. The input-open functions accept no
-options and pass none. avdevice has no option handling of its own.
+`Av.open_output_format` unchanged ([avformat.md](avformat.md) §9). The
+input-open functions take no option.
 
 ## 10. Version-dependent behaviour
 
-Nothing in this library. The const-qualification of format pointers in the
-iterator signatures follows a macro provided by `av`'s header (non-const up
-to libavformat 59.0.100, const above).
+None in the binding. Which devices emit which messages depends on the FFmpeg
+version and build.
 
-## 11. Logic on the OCaml side
+## 11. Composite operations
 
-- One-time `init` at module initialisation.
-- `get_default_*`: head of the list, `Not_found` on empty.
-- Device lookup by exact format name, with the two `Failure` messages of
-  section 5.
-- The eight open functions as compositions of lookup and `av`'s open
-  functions (section 4.3).
-- `control_messages`: `List.iter` over the per-message primitive.
-- Arrays returned by the enumeration primitives are converted to lists.
+- `get_default_*`: the head of the list.
+- The eight open functions: lookup, then the `Av` open.
+- `control_messages`: one send per message, in order.
