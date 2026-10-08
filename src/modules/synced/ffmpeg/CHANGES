@@ -1,3 +1,21 @@
+2.0.0 (unreleased)
+======
+* Rewrite the bindings from a written specification, kept in `spec/`. The API
+  is unchanged except for the points below.
+* Require FFmpeg 7.1 or later. One source tree builds against FFmpeg 7.1, 8
+  and 9.
+* Using a value while another thread is inside a blocking call on it raises
+  instead of racing.
+* Planes returned by `Video.frame_visit` stay valid for as long as the program
+  holds them, including after a later call makes the frame writable.
+* `Channel_layout.get_default` returns FFmpeg's unspecified layout for a
+  channel count that has no native layout, and raises `Not_found` only for a
+  count below 1.
+* `Swscale` ignores the buffers after the ones a pixel format needs.
+* Report native memory to the OCaml GC.
+* Add a conformance test suite, run with `dune build @ffmpeg_citest`.
+* Remove the examples.
+
 1.4.0 (2026-09-28)
 ======
 * `Av.seek` drops the frames its decoders had buffered, which used to be
