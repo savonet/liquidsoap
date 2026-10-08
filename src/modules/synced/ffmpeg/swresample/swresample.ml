@@ -51,7 +51,11 @@ let setting : options -> setting = function
   | #engine as engine -> Engine engine
   | #filter_type as filter -> Filter filter
 
-type side = Channel_layout.t * Sample_format.t * int
+type side = {
+  channel_layout : Channel_layout.t;
+  sample_format : Sample_format.t;
+  sample_rate : int;
+}
 
 external create_resampler : setting list -> side -> side -> ('i, 'o) ctx
   = "ocaml_swresample_create"
@@ -66,11 +70,11 @@ type samples = Sample_planes of plane array | Sample_frame of audio frame
 
 (* [raw] asks for planes of bytes, whatever the sample format. *)
 external convert_to_planes :
+  raw:bool ->
   (_, _) ctx ->
   samples option ->
   int ->
   int ->
-  raw:bool ->
   (_, _, Bigarray.c_layout) Bigarray.Array1.t array
   = "ocaml_swresample_convert_to_planes"
 
@@ -84,13 +88,13 @@ external bytes_of_data : data -> bytes = "ocaml_swresample_bytes_of_data"
 let failure message = raise (Error (`Failure message))
 
 (* The loops below keep samples unboxed; a NaN becomes 0. *)
-let plane_of_floats (samples : float array) =
-  let length = Array.length samples in
+let plane_of_floats ?(offset = 0) ?length (samples : float array) =
+  let length = Option.value length ~default:(Array.length samples - offset) in
   let plane =
     Bigarray.Array1.create Bigarray.float64 Bigarray.c_layout length
   in
   for i = 0 to length - 1 do
-    let sample = Array.unsafe_get samples i in
+    let sample = Array.unsafe_get samples (offset + i) in
     Bigarray.Array1.unsafe_set plane i
       (if Float.is_nan sample then 0. else sample)
   done;
@@ -119,10 +123,28 @@ let samples : type a. a kind -> a -> samples =
     | Floats -> Sample_planes [| plane_of_floats value |]
     | Planar_floats -> Sample_planes (Array.map plane_of_floats value)
 
+(* Planar float arrays with only the selected range copied; [None] leaves
+   the range, and the failure of an invalid one, to the C side. *)
+let selected_floats : type a. a kind -> a -> int -> int -> samples option =
+ fun kind value offset length ->
+  match kind.layout with
+    | Planar_floats when Array.length value > 0 ->
+        let available = Array.length value.(0) in
+        let length = if length < 0 then available - offset else length in
+        if
+          length >= 0
+          && offset + length <= available
+          && Array.for_all (fun plane -> Array.length plane = available) value
+        then
+          Some
+            (Sample_planes (Array.map (plane_of_floats ~offset ~length) value))
+        else None
+    | _ -> None
+
 let converted : type a.
     a kind -> (_, _) ctx -> samples option -> int -> int -> a =
  fun kind resampler input offset length ->
-  let planes ~raw = convert_to_planes resampler input offset length ~raw in
+  let planes ~raw = convert_to_planes ~raw resampler input offset length in
   match kind.layout with
     | Frame -> convert_to_frame resampler input offset length
     | Interleaved_bigarray -> (planes ~raw:false).(0)
@@ -160,28 +182,38 @@ module Make (I : AudioData) (O : AudioData) = struct
     let out_format = side_format O.kind out_sample_format in
     if in_rate < 1 || out_rate < 1 then failure "sample rate below 1";
     create_resampler (List.map setting options)
-      (in_layout, in_format, in_rate)
-      (out_layout, out_format, out_rate)
+      {
+        channel_layout = in_layout;
+        sample_format = in_format;
+        sample_rate = in_rate;
+      }
+      {
+        channel_layout = out_layout;
+        sample_format = out_format;
+        sample_rate = out_rate;
+      }
 
   let codec_side params =
-    Avcodec.Audio.
-      ( get_channel_layout params,
-        get_sample_format params,
-        get_sample_rate params )
+    {
+      channel_layout = Avcodec.Audio.get_channel_layout params;
+      sample_format = Avcodec.Audio.get_sample_format params;
+      sample_rate = Avcodec.Audio.get_sample_rate params;
+    }
 
   let from_codec ?options params out_layout ?out_sample_format out_rate =
-    let in_layout, in_sample_format, in_rate = codec_side params in
-    create ?options in_layout ~in_sample_format in_rate out_layout
-      ?out_sample_format out_rate
+    let input = codec_side params in
+    create ?options input.channel_layout ~in_sample_format:input.sample_format
+      input.sample_rate out_layout ?out_sample_format out_rate
 
   let to_codec ?options in_layout ?in_sample_format in_rate params =
-    let out_layout, out_sample_format, out_rate = codec_side params in
-    create ?options in_layout ?in_sample_format in_rate out_layout
-      ~out_sample_format out_rate
+    let output = codec_side params in
+    create ?options in_layout ?in_sample_format in_rate output.channel_layout
+      ~out_sample_format:output.sample_format output.sample_rate
 
   let from_codec_to_codec ?options in_params out_params =
-    let out_layout, out_sample_format, out_rate = codec_side out_params in
-    from_codec ?options in_params out_layout ~out_sample_format out_rate
+    let output = codec_side out_params in
+    from_codec ?options in_params output.channel_layout
+      ~out_sample_format:output.sample_format output.sample_rate
 
   (* A length of -1 is everything after the offset. *)
   let convert ?(offset = 0) ?length resampler input =
@@ -189,10 +221,11 @@ module Make (I : AudioData) (O : AudioData) = struct
       offset < 0
       || Option.fold ~none:false ~some:(fun length -> length < 0) length
     then failure "negative offset or length";
-    converted O.kind resampler
-      (Some (samples I.kind input))
-      offset
-      (Option.value length ~default:(-1))
+    let length = Option.value length ~default:(-1) in
+    match selected_floats I.kind input offset length with
+      | Some planes -> converted O.kind resampler (Some planes) 0 (-1)
+      | None ->
+          converted O.kind resampler (Some (samples I.kind input)) offset length
 
   let flush resampler = converted O.kind resampler None 0 0
 end

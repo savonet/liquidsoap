@@ -421,22 +421,33 @@ let initialize_stream_copy ~params { output; reserved } =
 let new_stream_copy ~params output =
   initialize_stream_copy ~params (new_uninitialized_stream_copy output)
 
+type audio_encoding = {
+  channel_layout : Channel_layout.t;
+  sample_rate : int;
+  sample_format : Sample_format.t;
+  audio_time_base : rational;
+}
+
 external add_audio_stream :
   output container ->
   (string * value) array ->
-  Channel_layout.t * int * Sample_format.t * rational ->
+  audio_encoding ->
   [ `Encoder ] Avcodec.Audio.t ->
   int * string array = "ocaml_av_new_audio_stream"
+
+type video_encoding = {
+  frame_rate : rational option;
+  hardware_context : Avcodec.Video.hardware_context option;
+  pixel_format : Pixel_format.t;
+  width : int;
+  height : int;
+  video_time_base : rational;
+}
 
 external add_video_stream :
   output container ->
   (string * value) array ->
-  rational option
-  * Avcodec.Video.hardware_context option
-  * Pixel_format.t
-  * int
-  * int
-  * rational ->
+  video_encoding ->
   [ `Encoder ] Avcodec.Video.t ->
   int * string array = "ocaml_av_new_video_stream"
 
@@ -459,14 +470,26 @@ let new_audio_stream ?opts ~channel_layout ~sample_rate ~sample_format
     ~time_base ~codec container =
   encoding_stream opts container
     (add_audio_stream container (bindings opts)
-       (channel_layout, sample_rate, sample_format, time_base)
+       {
+         channel_layout;
+         sample_rate;
+         sample_format;
+         audio_time_base = time_base;
+       }
        codec)
 
 let new_video_stream ?opts ?frame_rate ?hardware_context ~pixel_format ~width
     ~height ~time_base ~codec container =
   encoding_stream opts container
     (add_video_stream container (bindings opts)
-       (frame_rate, hardware_context, pixel_format, width, height, time_base)
+       {
+         frame_rate;
+         hardware_context;
+         pixel_format;
+         width;
+         height;
+         video_time_base = time_base;
+       }
        codec)
 
 (* An empty header is none: the C side gives the header to text codecs

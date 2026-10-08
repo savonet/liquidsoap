@@ -1015,6 +1015,9 @@ buffers.
   after the visitor returns and after the frame is collected. After a later
   make-writable step gave the frame other buffers, it still designates the
   buffer it was built on.
+- A view derived from one of these bigarrays (`Bigarray.Array1.sub`, a
+  reshape) does not keep the buffer alive: the caller MUST keep the bigarray
+  it was derived from reachable for as long as the view is used.
 - The length of plane `i` is exactly `linesize[i]` times the height of that
   plane. The height of a chroma plane is the frame's height reduced by the
   format's vertical chroma subsampling, rounded up

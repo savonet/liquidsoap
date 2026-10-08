@@ -280,9 +280,9 @@ CAMLprim value ocaml_swresample_convert_to_frame(value _resampler, value _input,
 
 /* [_raw] asks for planes of bytes; otherwise the elements have the kind of
    the output sample format. */
-CAMLprim value ocaml_swresample_convert_to_planes(value _resampler,
+CAMLprim value ocaml_swresample_convert_to_planes(value _raw, value _resampler,
                                                   value _input, value _offset,
-                                                  value _length, value _raw) {
+                                                  value _length) {
   CAMLparam3(_resampler, _input, _raw);
   CAMLlocal2(_planes, _plane);
   resampler *record = Resampler_val(_resampler);

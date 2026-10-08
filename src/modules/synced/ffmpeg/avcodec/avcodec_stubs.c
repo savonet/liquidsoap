@@ -158,7 +158,7 @@ static int codec_matches(const AVCodec *codec, value _family, value _encoder) {
 
 /* The registered codecs of a family and a direction whose identifier has a
    constructor in the family, in FFmpeg's order. */
-CAMLprim value ocaml_avcodec_codecs(value _family, value _encoder) {
+CAMLprim value ocaml_avcodec_codecs(value _encoder, value _family) {
   CAMLparam2(_family, _encoder);
   CAMLlocal1(_codecs);
   const ocaml_ffmpeg_variant_table *table = family_table(_family);
@@ -193,7 +193,7 @@ static value found_codec(const AVCodec *codec, value _family, value _encoder) {
   return ocaml_avcodec_wrap_codec(codec);
 }
 
-CAMLprim value ocaml_avcodec_find_by_name(value _family, value _encoder,
+CAMLprim value ocaml_avcodec_find_by_name(value _encoder, value _family,
                                           value _name) {
   CAMLparam3(_family, _encoder, _name);
   const AVCodec *codec = Bool_val(_encoder)

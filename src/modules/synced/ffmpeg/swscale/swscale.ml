@@ -7,16 +7,16 @@ let version = version ()
 type pixel_format = Avutil.Pixel_format.t
 type flag = Fast_bilinear | Bilinear | Bicubic | Print_info
 type t
+type geometry = { width : int; height : int; pixel_format : pixel_format }
 
-external create_scaler :
-  int -> flag list -> int * int * pixel_format -> int * int * pixel_format -> t
+external create_scaler : int -> flag list -> geometry -> geometry -> t
   = "ocaml_swscale_create"
 
 let create flags width height pixel_format out_width out_height out_pixel_format
     =
   create_scaler 1 flags
-    (width, height, pixel_format)
-    (out_width, out_height, out_pixel_format)
+    { width; height; pixel_format }
+    { width = out_width; height = out_height; pixel_format = out_pixel_format }
 
 type planes = (data * int) array
 
@@ -100,8 +100,12 @@ module Make (I : VideoData) (O : VideoData) = struct
     if is_paletted out_pixel_format && not returns_frame then
       failure "a paletted output needs the frame kind";
     create_scaler threads flags
-      (width, height, pixel_format)
-      (out_width, out_height, out_pixel_format)
+      { width; height; pixel_format }
+      {
+        width = out_width;
+        height = out_height;
+        pixel_format = out_pixel_format;
+      }
 
   let convert scaler input = converted O.kind scaler (image I.kind input)
 end

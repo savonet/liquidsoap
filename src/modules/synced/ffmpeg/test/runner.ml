@@ -83,6 +83,9 @@ let environment () =
 
 let is_control id = String.starts_with ~prefix:"control." id
 
+(* The requirements that read /proc: a system without it skips them. *)
+let needs_proc = ["2.5"; "kc.native-memory"; "kc.avcodec-native-memory"]
+
 let () =
   let profile = ref "dev" and expected_passes = ref (-1) in
   let allowed_skips = ref [] and programs = ref [] in
@@ -102,6 +105,9 @@ let () =
       in
       programs := program :: !programs)
     "runner [options] <test program>...";
+  if not (Sys.file_exists "/proc/self") then (
+    allowed_skips := needs_proc @ !allowed_skips;
+    expected_passes := !expected_passes - List.length needs_proc);
   let env = environment () in
   let requirements =
     List.concat_map

@@ -35,6 +35,7 @@ external set_video_properties : video frame -> unit
 
 external plane_size : video frame -> int -> int = "test_plane_size"
 external touch_frame : _ frame -> unit = "test_touch_frame"
+external share_frame : video frame -> video frame = "test_share_frame"
 external hardware_frame : unit -> video frame = "test_hardware_frame"
 external option_class : unit -> Options.t = "test_option_class"
 external no_option_class : unit -> Options.t = "test_no_option_class"
@@ -427,9 +428,15 @@ let requirement_1_10 () =
   (fst !first.(0)).{0} <- 1;
   equal 1 (fst !second.(0)).{0} "planes share the frame's buffer";
   ignore (Video.frame_visit ~make_writable:true (fun p -> second := p) frame);
-  equal 1 (fst !second.(0)).{0} "make_writable copies the shared data";
   (fst !second.(0)).{0} <- 2;
-  equal 1
+  equal 2 (fst !first.(0)).{0} "a private frame keeps its buffers when visited";
+  let sharing = ref (Some (share_frame frame)) in
+  ignore (Video.frame_visit ~make_writable:true (fun p -> second := p) frame);
+  equal 2 (fst !second.(0)).{0} "make_writable copies the shared data";
+  (fst !second.(0)).{0} <- 3;
+  sharing := None;
+  collect ();
+  equal 2
     (fst !first.(0)).{0}
     "an earlier plane keeps the buffer it was built on";
   raises

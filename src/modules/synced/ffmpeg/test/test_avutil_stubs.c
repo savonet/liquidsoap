@@ -245,6 +245,17 @@ CAMLprim value test_plane_size(value _frame, value _plane) {
   return Val_long(sizes[Int_val(_plane)]);
 }
 
+/* A second frame over the buffers of [_frame]. */
+CAMLprim value test_share_frame(value _frame) {
+  CAMLparam1(_frame);
+  AVFrame *shared = av_frame_clone(Frame_val(_frame));
+
+  if (!shared)
+    caml_raise_out_of_memory();
+
+  CAMLreturn(ocaml_avutil_wrap_frame(shared));
+}
+
 CAMLprim value test_touch_frame(value _frame) {
   AVFrame *frame = Frame_val(_frame);
 

@@ -126,7 +126,15 @@ let get_array_separator ~filter_name ~option_name =
 (* The pads of one direction as the C side gives them: (name, kind), kind
    being 0 for audio, 1 for video and 2 for anything else. *)
 type raw_pads = (string * int) array
-type raw_filter = string * string * Options.t * flag list * raw_pads * raw_pads
+
+type raw_filter = {
+  raw_name : string;
+  raw_description : string;
+  raw_options : Options.t;
+  raw_flags : flag list;
+  raw_inputs : raw_pads;
+  raw_outputs : raw_pads;
+}
 
 external registry : unit -> raw_filter array = "ocaml_avfilter_registry"
 
@@ -142,14 +150,14 @@ let pads_of_raw ~filter ~attachment (raw : raw_pads) =
   in
   { audio = of_kind 0; video = of_kind 1 }
 
-let filter_of_raw (name, description, options, flags, inputs, outputs) =
-  let pads = pads_of_raw ~filter:name ~attachment:None in
+let filter_of_raw raw =
+  let pads = pads_of_raw ~filter:raw.raw_name ~attachment:None in
   {
-    name;
-    description;
-    options;
-    flags;
-    io = { inputs = pads inputs; outputs = pads outputs };
+    name = raw.raw_name;
+    description = raw.raw_description;
+    options = raw.raw_options;
+    flags = raw.raw_flags;
+    io = { inputs = pads raw.raw_inputs; outputs = pads raw.raw_outputs };
   }
 
 let endpoints = ["abuffer"; "buffer"; "abuffersink"; "buffersink"]

@@ -338,20 +338,18 @@ module Video = struct
   external frame_get_linesize : video frame -> int -> int
     = "ocaml_avutil_video_frame_linesize"
 
-  type buffer
-  type plane = { data : data; linesize : int; buffer : buffer }
-
-  external frame_planes : video frame -> bool -> plane array
+  external frame_planes : video frame -> bool -> planes
     = "ocaml_avutil_video_frame_planes"
 
-  (* The finaliser holds [buffer], whose own release unreferences the native
-     buffer: the buffer lives as long as the bigarray over it. *)
-  let shared_plane { data; linesize; buffer } =
-    Gc.finalise (fun _ -> ignore (Sys.opaque_identity buffer)) data;
-    (data, linesize)
-
+  (* The finaliser holds the frame, which owns every buffer a plane of its
+     visits points into: the buffers live as long as the bigarrays. *)
   let frame_visit ~make_writable visit frame =
-    visit (Array.map shared_plane (frame_planes frame make_writable));
+    let planes = frame_planes frame make_writable in
+    Array.iter
+      (fun (data, _) ->
+        Gc.finalise (fun _ -> ignore (Sys.opaque_identity frame)) data)
+      planes;
+    visit planes;
     frame
 
   external frame_get_width : video frame -> int

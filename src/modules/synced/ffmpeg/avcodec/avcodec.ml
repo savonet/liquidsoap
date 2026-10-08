@@ -138,11 +138,11 @@ type family =
   | Unknown_family
   | All_family
 
-external codecs : family -> encoder:bool -> ('media, 'mode) codec list
+external codecs : encoder:bool -> family -> ('media, 'mode) codec list
   = "ocaml_avcodec_codecs"
 
 external find_by_name :
-  family -> encoder:bool -> string -> ('media, 'mode) codec
+  encoder:bool -> family -> string -> ('media, 'mode) codec
   = "ocaml_avcodec_find_by_name"
 
 external find_by_id : family -> encoder:bool -> 'id -> ('media, 'mode) codec
@@ -175,16 +175,16 @@ module Audio = struct
   let family = Audio_family
   let descriptor (id : id) = id_descriptor family id
   let codec_ids = Codec_id.audio
-  let encoders : encode t list = codecs family ~encoder:true
-  let decoders : decode t list = codecs family ~encoder:false
+  let encoders : encode t list = codecs ~encoder:true family
+  let decoders : decode t list = codecs ~encoder:false family
 
   let find_encoder_by_name name : encode t =
-    find_by_name family ~encoder:true name
+    find_by_name ~encoder:true family name
 
   let find_encoder (id : id) : encode t = find_by_id family ~encoder:true id
 
   let find_decoder_by_name name : decode t =
-    find_by_name family ~encoder:false name
+    find_by_name ~encoder:false family name
 
   let find_decoder (id : id) : decode t = find_by_id family ~encoder:false id
 
@@ -265,16 +265,16 @@ module Video = struct
   let family = Video_family
   let descriptor (id : id) = id_descriptor family id
   let codec_ids = Codec_id.video
-  let encoders : encode t list = codecs family ~encoder:true
-  let decoders : decode t list = codecs family ~encoder:false
+  let encoders : encode t list = codecs ~encoder:true family
+  let decoders : decode t list = codecs ~encoder:false family
 
   let find_encoder_by_name name : encode t =
-    find_by_name family ~encoder:true name
+    find_by_name ~encoder:true family name
 
   let find_encoder (id : id) : encode t = find_by_id family ~encoder:true id
 
   let find_decoder_by_name name : decode t =
-    find_by_name family ~encoder:false name
+    find_by_name ~encoder:false family name
 
   let find_decoder (id : id) : decode t = find_by_id family ~encoder:false id
 
@@ -365,16 +365,16 @@ module Subtitle = struct
   let family = Subtitle_family
   let descriptor (id : id) = id_descriptor family id
   let codec_ids = Codec_id.subtitle
-  let encoders : encode t list = codecs family ~encoder:true
-  let decoders : decode t list = codecs family ~encoder:false
+  let encoders : encode t list = codecs ~encoder:true family
+  let decoders : decode t list = codecs ~encoder:false family
 
   let find_encoder_by_name name : encode t =
-    find_by_name family ~encoder:true name
+    find_by_name ~encoder:true family name
 
   let find_encoder (id : id) : encode t = find_by_id family ~encoder:true id
 
   let find_decoder_by_name name : decode t =
-    find_by_name family ~encoder:false name
+    find_by_name ~encoder:false family name
 
   let find_decoder (id : id) : decode t = find_by_id family ~encoder:false id
   let get_name = name

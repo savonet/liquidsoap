@@ -602,8 +602,6 @@ CAMLprim value ocaml_av_container_options(value _unit) {
   return ocaml_avutil_wrap_option_class(avformat_get_class());
 }
 
-/* Inputs, spec/avformat.md §4.3. */
-
 /* Fails an open: releases everything, then raises [error], or a failure
    with [message] when there is one. */
 CAMLnoret static void fail_open(container *record, AVDictionary **options,
@@ -1415,8 +1413,6 @@ CAMLprim value ocaml_av_seek(value _container, value _flags, value _stream,
   CAMLreturn(Val_unit);
 }
 
-/* Outputs, spec/avformat.md §4.4. */
-
 /* [_target] is Av.target: Url { url; interrupt }, Custom { write; seek },
    or No_file. Opens a closed container for writing and returns the option
    keys no consumer used. */
@@ -1595,10 +1591,11 @@ CAMLprim value ocaml_av_new_data_stream(value _container, value _time_base,
   CAMLreturn(Val_int(index));
 }
 
-/* Opens [encoder], configured by the caller, and adds its stream; ends the
-   exclusive operation and returns (index, unused option keys). A failure
-   before the muxer accepted the stream leaves the output unchanged, one
-   after it leaves it failed. */
+/* Opens [encoder], configured by the caller, adds its stream, ends the
+   exclusive operation and returns (index, unused option keys).
+
+   A failure before the muxer accepted the stream leaves the output
+   unchanged, one after it leaves it failed. */
 static value add_encoding_stream(container *record, AVCodecContext *encoder,
                                  const AVCodec *codec, int configured,
                                  AVDictionary **options,
@@ -2090,8 +2087,6 @@ CAMLprim value ocaml_av_close(value _container) {
 
   CAMLreturn(Val_unit);
 }
-
-/* Codec strings, spec/avformat.md §4.4. */
 
 /* The payload of the first NAL unit of [type] in Annex-B data, after its
    [header_size]-byte header; [*size] is what remains of the data. */

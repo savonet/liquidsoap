@@ -682,7 +682,63 @@ CAMLprim value ocaml_avutil_set_log_level(value _level) {
   return Val_unit;
 }
 
-static void finalize_frame(value _frame) { av_frame_free(&Frame_val(_frame)); }
+/* A frame value: the native frame first, where Frame_val reads it, then
+   references to the buffers a make-writable step took away from it, which
+   the bigarrays of earlier visits still point into. */
+typedef struct retired_buffers {
+  AVFrame *holder;
+  struct retired_buffers *next;
+} retired_buffers;
+
+typedef struct {
+  AVFrame *frame;
+  retired_buffers *retired;
+} frame_block;
+
+#define FrameBlock_val(v) ((frame_block *)Data_custom_val(v))
+
+static void finalize_frame(value _frame) {
+  frame_block *block = FrameBlock_val(_frame);
+
+  while (block->retired) {
+    retired_buffers *retired = block->retired;
+
+    block->retired = retired->next;
+    av_frame_free(&retired->holder);
+    av_free(retired);
+  }
+  av_frame_free(&block->frame);
+}
+
+/* Gives the frame buffers of its own when it shares them, keeping the ones
+   it had referenced. Returns FFmpeg's code. */
+static int make_frame_writable(frame_block *block) {
+  retired_buffers *retired;
+  int error;
+
+  if (av_frame_is_writable(block->frame))
+    return 0;
+
+  retired = av_malloc(sizeof(*retired));
+  if (!retired)
+    return AVERROR(ENOMEM);
+  retired->holder = av_frame_clone(block->frame);
+  if (!retired->holder) {
+    av_free(retired);
+    return AVERROR(ENOMEM);
+  }
+
+  error = av_frame_make_writable(block->frame);
+  if (error < 0) {
+    av_frame_free(&retired->holder);
+    av_free(retired);
+    return error;
+  }
+  retired->next = block->retired;
+  block->retired = retired;
+
+  return 0;
+}
 
 static struct custom_operations frame_operations = {
     "ocaml_avutil_frame",       finalize_frame,
@@ -709,9 +765,10 @@ value ocaml_avutil_wrap_frame(AVFrame *frame) {
   if (!frame)
     ocaml_avutil_raise_failure("null frame");
 
-  _frame = caml_alloc_custom_mem(&frame_operations, sizeof(AVFrame *),
+  _frame = caml_alloc_custom_mem(&frame_operations, sizeof(frame_block),
                                  frame_buffers_size(frame));
-  Frame_val(_frame) = frame;
+  FrameBlock_val(_frame)->frame = frame;
+  FrameBlock_val(_frame)->retired = NULL;
 
   return _frame;
 }
@@ -1210,12 +1267,12 @@ static value alloc_buffer_handle(void) {
   return _buffer;
 }
 
-/* The planes of spec/avutil.md §8.2, each with the handle that keeps its
-   buffer alive; Avutil.Video.frame_visit ties the two. */
+/* The planes of spec/avutil.md §8.2: the frame value keeps their buffers
+   alive, and Avutil.Video.frame_visit ties each bigarray to it. */
 CAMLprim value ocaml_avutil_video_frame_planes(value _frame,
                                                value _make_writable) {
   CAMLparam1(_frame);
-  CAMLlocal4(_planes, _plane, _data, _buffer);
+  CAMLlocal3(_planes, _plane, _data);
   AVFrame *frame = Frame_val(_frame);
   int plane_count = software_plane_count(frame);
   ptrdiff_t linesizes[4];
@@ -1223,7 +1280,7 @@ CAMLprim value ocaml_avutil_video_frame_planes(value _frame,
   int error;
 
   if (Bool_val(_make_writable)) {
-    error = av_frame_make_writable(frame);
+    error = make_frame_writable(FrameBlock_val(_frame));
     if (error < 0)
       ocaml_avutil_raise_error(error);
   }
@@ -1243,26 +1300,18 @@ CAMLprim value ocaml_avutil_video_frame_planes(value _frame,
 
   for (int i = 0; i < plane_count; i++) {
     AVBufferRef *owner = av_frame_get_plane_buffer(frame, i);
-    AVBufferRef *reference;
 
     if (!owner || frame->data[i] < owner->data ||
         frame->data[i] + sizes[i] > owner->data + owner->size)
       ocaml_avutil_raise_failure("plane %d lies outside its buffer", i);
 
-    _buffer = alloc_buffer_handle();
-    reference = av_buffer_ref(owner);
-    if (!reference)
-      caml_raise_out_of_memory();
-    HwContext_val(_buffer) = reference;
-
     _data =
         caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_EXTERNAL,
                            1, frame->data[i], (intnat)sizes[i]);
 
-    _plane = caml_alloc_tuple(3);
+    _plane = caml_alloc_tuple(2);
     Store_field(_plane, 0, _data);
     Store_field(_plane, 1, Val_int(frame->linesize[i]));
-    Store_field(_plane, 2, _buffer);
     Store_field(_planes, i, _plane);
   }
 
