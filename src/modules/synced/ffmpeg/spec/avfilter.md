@@ -379,7 +379,7 @@ converts it to another rate, layout and format. §11.3 gives its construction.
 | ``Error `Filter_not_found``               | `attach`; `Utils.init_audio_converter` when FFmpeg lacks the resampling filter                                                 |
 | the state errors of the contract's §5.3   | per §2.1                                                                                                                       |
 | ``Error (`Failure msg)``                  | "graph launched"; pads of different graphs; a filter record with no usable pad (§2.4); `get_array_separator`; `set_frame_size` |
-| `Out_of_memory`                           | any failed allocation                                                                                                          |
+| `Out_of_memory`                           | a failed allocation (F3)                                                                                                       |
 
 ## 6. Blocking and concurrency
 

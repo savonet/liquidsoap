@@ -149,6 +149,7 @@ A format given to interleaved bytes must be a packed format, else a failure.
 **Other arguments.**
 
 - Each sample rate must be positive, else a failure.
+- Each layout holds at most 64 channels, else a failure.
 - Every element of `options` is applied, in list order. A later element of
   the same type overrides an earlier one.
 - Both layouts are copied; the converter keeps no reference to the values.
@@ -294,12 +295,12 @@ The functor is applied by the user; the library ships no instantiation.
 
 ## 5. Errors
 
-| Raised                                    | By                                                                                   |
-| ----------------------------------------- | ------------------------------------------------------------------------------------ |
-| ``Error (`Failure msg)``                  | `create`: sample format missing, conflicting or not packed for bytes; a rate below 1 |
-| ``Error (`Failure msg)``                  | `convert`: range, shape of the input value, frame mismatch                           |
-| `Error e`, `e` mapped from an FFmpeg code | a setting FFmpeg rejects, the resampler's initialisation, a conversion               |
-| `Out_of_memory`                           | any failed allocation                                                                |
+| Raised                                    | By                                                                                                                      |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ``Error (`Failure msg)``                  | `create`: sample format missing, conflicting or not packed for bytes; a rate below 1; a layout of more than 64 channels |
+| ``Error (`Failure msg)``                  | `convert`: range, shape of the input value, frame mismatch                                                              |
+| `Error e`, `e` mapped from an FFmpeg code | a setting FFmpeg rejects, the resampler's initialisation, a conversion                                                  |
+| `Out_of_memory`                           | a failed allocation (F3)                                                                                                |
 
 No operation raises `Not_found`. After any error from `convert` or `flush`
 the converter is valid.

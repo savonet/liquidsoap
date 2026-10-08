@@ -486,8 +486,8 @@ Each call returns one result or raises:
 5. **Neither.** When `on_unhandled_packet` is given, it is called with
    `` `X_packet (index, packet) `` and a fresh packet (§7.2). The call goes
    back to step 2.
-6. **End of input.** The decoders of the streams of the frame selection are
-   drained: each remaining frame is returned, one per call. When none remains
+6. **End of input.** The audio and video decoders of the streams of the frame
+   selection are drained: each remaining frame is returned, one per call. When none remains
    the call raises ``Error `Eof``, and so does every later call until a
    `seek`.
 
@@ -663,9 +663,10 @@ failed.
 
 - `new_video_stream`: `frame_rate`, when given, is also the stream's average
   frame rate; otherwise that stays unset.
-- `new_subtitle_stream`: `header` is the subtitle header given to the
-  encoder. When omitted, and the codec is a text subtitle codec, it is
-  `Avutil.Subtitle.header_ass_default ()`; otherwise the encoder gets none.
+- `new_subtitle_stream`: `header` is the subtitle header given to the encoder
+  of a text subtitle codec; when omitted it is
+  `Avutil.Subtitle.header_ass_default ()`. An empty header is none, and the
+  encoder of a bitmap subtitle codec gets none.
 
 ```ocaml
 val new_data_stream :
@@ -697,7 +698,7 @@ HEVC: the profile and level are those of the codec parameters, replaced by the
 ones read from the SPS when the extradata holds an Annex-B SPS. When the codec
 tag is `hvc1` and both are known, the result is
 `hvc1.<profile>.4.L<level>.B01`. Otherwise it is the codec tag as a
-four-character code.
+four-character code, and `None` when the tag is unset.
 
 No read goes past the end of the extradata.
 
@@ -765,7 +766,7 @@ val tell : _ container -> int option
 ```
 
 The byte position of the container's I/O; `None` for a container with no I/O
-of its own. Positions beyond 32 bits are returned exactly.
+of its own, or when FFmpeg reports no position. Positions beyond 32 bits are returned exactly.
 
 ```ocaml
 val close : _ container -> unit
@@ -784,7 +785,7 @@ val close : _ container -> unit
 | ``Error `Decoder_not_found``              | `read_input`, for a frame-mode stream with no decoder                                                                                                    |
 | the state errors of the contract's §5.3   | every operation, per §2.1                                                                                                                                |
 | ``Error (`Failure msg)``                  | the checks of §2.2 and §2.4; "header written"; an open with neither URL nor format; a format that does or does not need a file; a stream with no encoder |
-| `Out_of_memory`                           | any failed allocation                                                                                                                                    |
+| `Out_of_memory`                           | a failed allocation (F3)                                                                                                                                 |
 | any exception                             | raised by a function of §7.2; propagates unchanged                                                                                                       |
 
 No operation of this library raises `Not_found`.
@@ -807,9 +808,9 @@ collection. `Format.find_input_format` and
 
 A container has one guard, shared by its streams (M9).
 
-| Exclusive                                                                                                                | Shared                                       |
-| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
+| Exclusive                                                                                                                                      | Shared                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
 
 The container is not in use while a function of §7.2 runs: `on_keyframe` may
 call `flush` or `tell` on its own container.

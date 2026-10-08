@@ -281,8 +281,9 @@ val add_side_data : 'media t -> side_data -> unit
 
 Attaches the side data to the packet, encoded per §3.2. A packet holds one
 entry per side-data type: adding a type it already carries replaces that
-entry. On failure the packet is unchanged, nothing leaks, and the mapped error
-is raised.
+entry. A gain outside the range of a C `int`, or a peak outside 32 unsigned
+bits, raises ``Error (`Failure _)``; a failed allocation raises
+`Out_of_memory`. On failure the packet is unchanged and nothing leaks.
 
 ```ocaml
 val side_data : 'media t -> side_data list
@@ -697,7 +698,7 @@ raises.
 | ``Error `Eof``                                          | `decode` and `encode` on a draining or drained codec; `BitstreamFilter.receive_packet` when drained |
 | ``Error `Eagain``                                       | `BitstreamFilter.send_packet` and `receive_packet`                                                  |
 | ``Error (`Failure msg)``                                | a value with no constructor (E3); a null object handed to a wrapping constructor                    |
-| `Out_of_memory`                                         | any failed allocation                                                                               |
+| `Out_of_memory`                                         | a failed allocation (F3)                                                                            |
 
 No operation of this library raises `Not_found`.
 

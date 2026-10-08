@@ -430,7 +430,8 @@ end
 - `get_default n` returns FFmpeg's default layout for `n` channels
   (`av_channel_layout_default`). When FFmpeg has no standard layout of `n`
   channels this is a layout of `n` channels in unspecified order, for which
-  `get_mask` returns `None`. It raises `Not_found` for `n < 1`.
+  `get_mask` returns `None`. It raises `Not_found` for `n < 1` and for an `n`
+  beyond the range of a C `int`.
 - `get_mask l` returns `Some` of the channel mask when the layout has native
   order, else `None`.
 
@@ -589,13 +590,16 @@ failure when `n` is not the index of a plane the frame holds.
 `frame_visit ~make_writable f frame`:
 
 1. Raises a failure when the frame holds no software pixel data (a hardware
-   frame), or a plane with a negative line size.
+   frame).
 2. When `make_writable` is true, makes the frame writable
-   (`av_frame_make_writable`): its buffers are then private to this frame.
-3. Builds one `(data, linesize)` pair per plane of the pixel format
+   (`av_frame_make_writable`): its buffers are then private to this frame, and
+   its line sizes may have changed.
+3. Raises a failure when a plane has a negative line size or lies outside its
+   buffer.
+4. Builds one `(data, linesize)` pair per plane of the pixel format
    (`av_pix_fmt_count_planes`), per §8.2.
-4. Calls `f planes` (§7.2).
-5. Returns `frame`.
+5. Calls `f planes` (§7.2).
+6. Returns `frame`.
 
 The palette of a paletted format is not a plane and is not exposed.
 

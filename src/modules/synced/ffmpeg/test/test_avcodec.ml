@@ -388,6 +388,16 @@ let requirement_2_10 () =
   let update = `Metadata_update [("k", "v")] in
   Packet.add_side_data packet gain;
   equal [gain] (Packet.side_data packet) "side_data after add_side_data";
+  raises is_failure "a peak beyond 32 unsigned bits" (fun () ->
+      Packet.add_side_data packet
+        (`Replaygain
+           {
+             Packet.track_gain = 0;
+             track_peak = -1;
+             album_gain = 0;
+             album_peak = 0;
+           }));
+  equal [gain] (Packet.side_data packet) "a rejected entry changes nothing";
   Packet.add_side_data packet strings;
   Packet.add_side_data packet update;
   equal [gain; strings; update] (Packet.side_data packet)

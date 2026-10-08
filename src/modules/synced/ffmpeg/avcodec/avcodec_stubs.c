@@ -680,6 +680,14 @@ static void add_side_data(AVPacket *packet, enum AVPacketSideDataType type,
     memcpy(data, payload, size);
 }
 
+static uint32_t peak_of_value(value _peak) {
+  intnat peak = Long_val(_peak);
+
+  if (peak < 0 || (uintnat)peak > UINT32_MAX)
+    ocaml_avutil_raise_failure("peak out of range");
+  return (uint32_t)peak;
+}
+
 CAMLprim value ocaml_avcodec_packet_add_side_data(value _packet,
                                                   value _side_data) {
   CAMLparam2(_packet, _side_data);
@@ -691,9 +699,9 @@ CAMLprim value ocaml_avcodec_packet_add_side_data(value _packet,
     AVReplayGain gain;
 
     gain.track_gain = ocaml_avutil_int_of_value(Field(_payload, 0), "gain");
-    gain.track_peak = (uint32_t)Long_val(Field(_payload, 1));
+    gain.track_peak = peak_of_value(Field(_payload, 1));
     gain.album_gain = ocaml_avutil_int_of_value(Field(_payload, 2), "gain");
-    gain.album_peak = (uint32_t)Long_val(Field(_payload, 3));
+    gain.album_peak = peak_of_value(Field(_payload, 3));
     add_side_data(packet, AV_PKT_DATA_REPLAYGAIN, (const uint8_t *)&gain,
                   sizeof(gain));
   } else {

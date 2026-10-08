@@ -234,7 +234,7 @@ The functor is applied by the user; the library ships no instantiation.
 | ``Error (`Failure msg)``                  | the argument checks of §4.3, §4.4 and §4.5 |
 | `Error e`, `e` mapped from an FFmpeg code | creation; `scale`; `convert`               |
 | ``Error (`Failure msg)`` (E3)             | a pixel format with no C value             |
-| `Out_of_memory`                           | any failed allocation                      |
+| `Out_of_memory`                           | a failed allocation (F3)                   |
 
 No operation raises `Not_found`. After an error from `scale` or `convert` the
 scaler is valid.

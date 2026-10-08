@@ -211,7 +211,10 @@ order, with its signature and its behaviour. Rules for every operation:
 - **F2.** A condition the binding detects itself raises
   ``Error (`Failure msg)``. `msg` is for a human reader; its wording is not
   part of the contract except for the texts of §5.3.
-- **F3.** A failed allocation raises `Out_of_memory`.
+- **F3.** A failed allocation raises `Out_of_memory`, or `Error` with FFmpeg's
+  out-of-memory code when it is reported through an FFmpeg error. FFmpeg uses
+  that code for more than memory, such as a hardware device it cannot create,
+  so it is never turned into `Out_of_memory`.
 - **F4.** `Not_found` is raised only by the lookups each library lists in its
   §5. `Avfilter.Exists` is the one exception a library defines besides
   `Avutil.Error`. No operation raises `Stdlib.Failure`, `Invalid_argument` or
