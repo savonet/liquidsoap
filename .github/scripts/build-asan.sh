@@ -43,11 +43,14 @@ opam install -y domain_shims syslog dune.3.23.1
 for pkg in alsa ao faad fdkaac frei0r jack ladspa lame lo mad mem_usage metadata portaudio pulseaudio samplerate shine soundtouch srt; do
   opam pin -ny add https://github.com/savonet/ocaml-${pkg}.git
 done
+for pkg in ogg flac vorbis opus; do
+  opam pin -ny add "$pkg" https://github.com/savonet/ocaml-xiph.git
+done
 # ocaml-mm's default branch carries the API of liquidsoap 2.5.x.
 opam pin -ny add https://github.com/savonet/ocaml-mm.git#v0.8.6
 opam install -y --no-depexts \
-  alsa ao faad fdkaac frei0r jack ladspa lame lo mad mem_usage metadata mm \
-  portaudio pulseaudio samplerate shine soundtouch srt
+  alsa ao faad fdkaac flac frei0r jack ladspa lame lo mad mem_usage metadata \
+  mm ogg opus portaudio pulseaudio samplerate shine soundtouch srt vorbis
 
 echo "::endgroup::"
 
