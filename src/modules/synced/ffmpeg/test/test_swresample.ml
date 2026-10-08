@@ -59,8 +59,14 @@ let kinds =
     ("DblPlanarFrame", Kind ((module S.DblPlanarFrame), None, exact));
   ]
 
+(* Nine channels have no standard layout: their order is unspecified. *)
 let layouts =
-  [Channel_layout.mono; Channel_layout.stereo; Channel_layout.five_point_one]
+  [
+    Channel_layout.mono;
+    Channel_layout.stereo;
+    Channel_layout.five_point_one;
+    Channel_layout.get_default 9;
+  ]
 
 (* [samples] samples per channel, each channel a ramp of its own. *)
 let ramp ?(samples = 256) layout =

@@ -421,9 +421,10 @@ end
 - `get_description l` returns FFmpeg's description of the layout, in full
   whatever its length.
 - `get_nb_channels l` returns the channel count.
-- `get_default n` returns FFmpeg's default layout for `n` channels. It raises
-  `Not_found` when FFmpeg has no standard layout of `n` channels, and for
-  `n < 1`.
+- `get_default n` returns FFmpeg's default layout for `n` channels
+  (`av_channel_layout_default`). When FFmpeg has no standard layout of `n`
+  channels this is a layout of `n` channels in unspecified order, for which
+  `get_mask` returns `None`. It raises `Not_found` for `n < 1`.
 - `get_mask l` returns `Some` of the channel mask when the layout has native
   order, else `None`.
 
@@ -885,14 +886,14 @@ element kind, an unknown pixel format name.
 
 ### 5.3 Not_found
 
-| Raised by                    | When                                                |
-| ---------------------------- | --------------------------------------------------- |
-| `Channel_layout.find`        | FFmpeg does not accept the name                     |
-| `Sample_format.find`         | FFmpeg knows no format of that name                 |
-| `Sample_format.find_id`      | no constructor has that C value                     |
-| `Pixel_format.find_id`       | no constructor has that C value                     |
-| `Pixel_format.descriptor`    | the format has no descriptor                        |
-| `Channel_layout.get_default` | FFmpeg has no standard layout of that channel count |
+| Raised by                    | When                                |
+| ---------------------------- | ----------------------------------- |
+| `Channel_layout.find`        | FFmpeg does not accept the name     |
+| `Sample_format.find`         | FFmpeg knows no format of that name |
+| `Sample_format.find_id`      | no constructor has that C value     |
+| `Pixel_format.find_id`       | no constructor has that C value     |
+| `Pixel_format.descriptor`    | the format has no descriptor        |
+| `Channel_layout.get_default` | the channel count is below 1        |
 
 ### 5.4 State after a failure
 

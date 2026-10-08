@@ -601,8 +601,13 @@ let requirement_1_12 () =
   raises is_not_found "find of an unknown name" (fun () ->
       Channel_layout.find "no such layout");
   raises is_not_found "get_default 0" (fun () -> Channel_layout.get_default 0);
-  raises is_not_found "get_default of a count with no standard layout"
-    (fun () -> Channel_layout.get_default 31)
+  let unspecified = Channel_layout.get_default 31 in
+  equal 31
+    (Channel_layout.get_nb_channels unspecified)
+    "get_default of a count with no standard layout";
+  check
+    (Channel_layout.get_mask unspecified = None)
+    "a layout in unspecified order has no mask"
 
 let log_info = 32
 let log_error = 16
@@ -910,7 +915,7 @@ let error_paths () =
        with Error _ -> None);
     ignore
       (try Some (Channel_layout.find "no such layout") with Not_found -> None);
-    ignore (try Some (Channel_layout.get_default 31) with Not_found -> None);
+    ignore (try Some (Channel_layout.get_default 0) with Not_found -> None);
     ignore
       (try
          Some

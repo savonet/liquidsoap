@@ -916,9 +916,6 @@ CAMLprim value ocaml_avutil_default_channel_layout(value _channels) {
   layout = alloc_channel_layout(&_layout);
   av_channel_layout_default(layout, (int)channels);
 
-  if (layout->order == AV_CHANNEL_ORDER_UNSPEC)
-    caml_raise_not_found();
-
   CAMLreturn(_layout);
 }
 
