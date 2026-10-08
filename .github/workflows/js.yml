@@ -32,9 +32,7 @@ jobs:
       - name: Build JS
         run: |
           cd /tmp/liquidsoap
-          sudo -u opam -E opam update
-          sudo -u opam -E opam upgrade -y
-          sudo -u opam -E opam install domain_shims
+          sudo -u opam -E opam install -y domain_shims
           sudo -u opam -E opam exec -- dune build --profile release src/js --verbose
       - name: Upload JS artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
