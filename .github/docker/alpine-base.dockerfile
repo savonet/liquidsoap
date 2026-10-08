@@ -31,7 +31,9 @@ COPY .github/docker/ext-packages /tmp/ext-packages
 # Alpine packages gd and has no dssi.
 RUN (echo gd; grep -vx dssi /tmp/ext-packages) > /tmp/packages
 
+# flac is pinned to git for a fix to %ogg(%flac) pages that has no release yet.
 RUN eval $(opam env) && \
+    for p in ogg flac vorbis opus; do opam pin add -n -y $p git+https://github.com/savonet/ocaml-xiph.git || exit 1; done && \
     for p in lo lilv frei0r; do opam pin add -n -y $p git+https://github.com/savonet/ocaml-$p.git || exit 1; done && \
     opam list --short --external --resolve="$(xargs < /tmp/packages | tr ' ' ','),liquidsoap" > /tmp/deps
 

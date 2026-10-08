@@ -55,7 +55,9 @@ COPY .github/docker/ext-packages /tmp/ext-packages
 
 USER opam
 
+# flac is pinned to git for a fix to %ogg(%flac) pages that has no release yet.
 RUN eval $(opam env) && \
+    for p in ogg flac vorbis opus; do opam pin add -n -y $p git+https://github.com/savonet/ocaml-xiph.git || exit 1; done && \
     opam install --no-depexts -y $(grep -E "$STATIC_RE" /tmp/ext-packages | xargs) && \
     opam clean
 
