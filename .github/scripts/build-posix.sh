@@ -35,14 +35,6 @@ opam pin -y add re 1.13.2
 # until https://github.com/sanette/tsdl-ttf/issues/14 is resolved.
 opam pin -y add tsdl-ttf 0.6
 
-if [ ! -d /tmp/ocaml-ssl ]; then
-  cd /tmp
-  git clone https://github.com/savonet/ocaml-ssl.git
-  cd ocaml-ssl && git checkout v0.8.0
-  opam pin -y .
-  cd /tmp/liquidsoap
-fi
-
 echo "::endgroup::"
 
 echo "::group::Cleaning up cache"
