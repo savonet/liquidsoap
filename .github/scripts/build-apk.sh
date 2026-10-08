@@ -57,7 +57,7 @@ if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}.."
 
   eval "$(opam config env)"
-  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
+  DUNE_PROFILE=release /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
 
   echo "::endgroup::"
 fi
@@ -95,7 +95,7 @@ echo "::endgroup::"
 if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
-  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
+  DUNE_PROFILE=release /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
 fi
 
 echo "::endgroup::"

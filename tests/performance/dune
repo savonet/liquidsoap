@@ -33,3 +33,8 @@
    (run %{liquidsoap} %{performance} %{big_record})
    (run %{liquidsoap} %{erathostenes})
    (run %{liquidsoap} %{memory}))))
+
+(alias
+ (name citest)
+ (deps
+  (alias perftest)))

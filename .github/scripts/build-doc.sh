@@ -10,7 +10,7 @@ eval "$(opam config env)"
 # declares. An incomplete tree leaves it documenting the builtins and nothing else, and
 # it exits 0 either way: the in-development reference lost 478 of its 2075 functions that
 # way. Build that tree explicitly rather than leaving it to whatever came before.
-dune build @install
+dune build --profile release @install
 
-dune build @doc
+dune build --profile release @doc
 dune build --profile release ./src/js/interactive_js.bc.js

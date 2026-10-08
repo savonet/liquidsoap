@@ -88,6 +88,15 @@ fi
 
 MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi fdkaac flac frei0r gd graphics irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt tls theora tsdl sqlite3 vorbis sdl-liquidsoap"
 
+# One test job per directory, found rather than listed so that a new tests
+# directory gets a job. src/dune and each tests directory define citest.
+# shellcheck disable=SC2016 # \(.) is jq interpolation
+TEST_TARGETS=$(git grep -lw citest -- 'tests/*/dune' 'tests/*/dune.inc' | cut -d/ -f2 | sort -u |
+    jq -Rnc '[{name: "citest-src", target: "@src/citest"}]
+      + [inputs | {name: "citest-\(.)", target: "@tests/\(.)/citest"}]
+      + [{name: "doctest", target: "@doctest"}, {name: "mediatest", target: "@mediatest"}]')
+echo "Test targets: ${TEST_TARGETS}"
+
 echo "Ocaml version to build: 5.5.1"
 OCAML_VERSION='["5.5.1"]'
 
@@ -110,6 +119,7 @@ OCAML_DOCKER_RELEASE_VERSION="5.5.1"
   echo "minimal_exclude_deps=${MINIMAL_EXCLUDE_DEPS}"
   echo "save_traces=${SAVE_TRACES}"
   echo "is_snapshot=${IS_SNAPSHOT}"
+  echo "test_targets=${TEST_TARGETS}"
   echo "ocaml_version=${OCAML_VERSION}"
   echo "ocaml_docker_release_version=${OCAML_DOCKER_RELEASE_VERSION}"
 } >> "${GITHUB_OUTPUT}"
