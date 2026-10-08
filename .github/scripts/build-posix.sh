@@ -37,8 +37,9 @@ opam pin -y add tsdl-ttf 0.6
 # The minimal build has these removed on purpose.
 if [ -z "${LIQ_BUILD_MIN}" ]; then
   for pkg in ogg flac vorbis opus; do
-    opam pin -y add "$pkg" https://github.com/savonet/ocaml-xiph.git
+    opam pin -ny add "$pkg" https://github.com/savonet/ocaml-xiph.git
   done
+  opam reinstall -y --no-depexts ogg flac vorbis opus
 fi
 
 echo "::endgroup::"
