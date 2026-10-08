@@ -6,6 +6,8 @@
   pending on a track whose fade duration is `0.`.
 - Fixed `fade.out` with `track_sensitive=true` muting the whole next track
   after a skip (#5514)
+- Fixed `output.icecast` with `chunked=true` never reconnecting after the
+  server went away (#5519)
 - `cross` and `crossfade` with their default `deduplicate=true` no longer drop
   the metadata of a track that repeats the one before it, e.g. a single file on
   a loop, which silenced the handlers a script registers after the operator.
