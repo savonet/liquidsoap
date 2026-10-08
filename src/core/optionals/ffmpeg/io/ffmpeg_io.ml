@@ -79,8 +79,12 @@ class input ?(name = "input.ffmpeg") ~autostart ~self_sync ~poll_delay ~debug
     method private get_self_sync =
       match self_sync () with Some v -> v | None -> false
 
-    method private self_sync =
-      (`Dynamic, self#source_sync (self#get_self_sync && self#is_connected))
+    method private self_sync = self#dynamic_self_sync
+
+    initializer
+      self#on_connect (fun _ ->
+          self#set_sync_source (self#source_sync self#get_self_sync));
+      self#on_disconnect (fun () -> self#set_sync_source None)
 
     val on_connect = Callbacks.create ()
     method register_on_connect fn = Callbacks.register on_connect fn

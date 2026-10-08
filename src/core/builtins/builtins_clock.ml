@@ -30,14 +30,15 @@ let clock =
 let _ =
   Lang.add_builtin ~base:clock "dump" ~category:`Liquidsoap
     ~descr:"Return a string description of the clocks currently being used." []
-    Lang.string_t (fun _ -> Lang.string (Clock.dump ()))
+    Lang.string_t (fun _ ->
+      Lang.string (Clock.Status.report (Clock.statuses ())))
 
 let _ =
   Lang.add_builtin ~base:clock "dump_all_sources" ~category:`Liquidsoap
     ~descr:
       "Return a string description of all the streaming graph currently being \
        used." [] Lang.string_t (fun _ ->
-      Lang.string (Clock.dump_all_sources ()))
+      Lang.string (Clock.Status.source_graph (Clock.statuses ())))
 
 let _ =
   Lang.add_builtin ~base:clock "active" ~category:`Liquidsoap
@@ -82,7 +83,7 @@ let _ =
       in
       let sync = List.assoc "sync" p in
       let sync =
-        try Clock.active_sync_mode_of_string (Lang.to_string sync)
+        try Clock.sync_mode_of_string (Lang.to_string sync)
         with _ ->
           raise
             (Error.Invalid_value
@@ -92,4 +93,13 @@ let _ =
                  [] ))
       in
       Lang_clock.ClockValue.to_value
-        (Clock.create ~stack:(Lang.pos p) ?on_error ?id ~sync ()))
+        (Clock.create ~stack:(Lang.pos p) ?on_error ?id ~sync
+           ?owner:
+             (if sync = `Passive then
+                Some
+                  {
+                    Clock.kind = "script";
+                    id = Option.value ~default:"clock" id;
+                  }
+              else None)
+           ()))

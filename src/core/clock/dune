@@ -2,11 +2,10 @@
 ;
 ; Clocks animate the sources attached to them by ticking: each tick asks
 ; every animated source to produce one frame. Nothing else drives data
-; production.
+; production. The specification is in spec/.
 
 (library
- (name liquidsoap_core_clock)
- (wrapped false)
+ (name clock)
  (flags
   (:standard
    -open

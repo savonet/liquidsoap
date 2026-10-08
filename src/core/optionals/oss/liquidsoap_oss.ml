@@ -26,16 +26,7 @@ external set_format : Unix.file_descr -> int -> int = "caml_oss_dsp_setfmt"
 external set_channels : Unix.file_descr -> int -> int = "caml_oss_dsp_channels"
 external set_rate : Unix.file_descr -> int -> int = "caml_oss_dsp_speed"
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = unit
-
-  let time_implementation () = Clock.unconstrained_time
-  let to_string _ = "oss"
-  let latency () = Clock.conf_latency#get
-  let max_latency () = Clock.conf_max_latency#get
-end)
-
-let sync_source = SyncSource.make ()
+let sync_source = Clock.Sync_source.make ~name:"oss" `Self_paced
 
 (** Wrapper for calling set_* functions and checking that the desired value has
     been accepted. If not, the current behavior is a bit too violent. *)
@@ -56,12 +47,12 @@ class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
     val mutable fd = None
 
     method private self_sync =
-      if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
-      else s#cached_self_sync
+      if self_sync then self#dynamic_self_sync else s#cached_self_sync
 
     method open_device =
       let descr = Unix.openfile dev [Unix.O_WRONLY; Unix.O_CLOEXEC] 0o200 in
       fd <- Some descr;
+      self#set_sync_source (Some sync_source);
       force set_format descr 16;
       force set_channels descr self#audio_channels;
       force set_rate descr samples_per_second
@@ -71,7 +62,8 @@ class output ~self_sync ~infallible ~register_telnet ~start dev val_source =
         | None -> ()
         | Some x ->
             Unix.close x;
-            fd <- None
+            fd <- None;
+            self#set_sync_source None
 
     method start = self#open_device
     method stop = self#close_device
@@ -98,8 +90,7 @@ class input ~self_sync ~start ~fallible dev =
     val mutable fd = None
 
     method private self_sync =
-      if self_sync then (`Dynamic, if fd <> None then Some sync_source else None)
-      else (`Static, None)
+      if self_sync then self#dynamic_self_sync else (`Static, None)
 
     method abort_track = ()
     method remaining = -1
@@ -110,6 +101,7 @@ class input ~self_sync ~start ~fallible dev =
     method private open_device =
       let descr = Unix.openfile dev [Unix.O_RDONLY; Unix.O_CLOEXEC] 0o400 in
       fd <- Some descr;
+      self#set_sync_source (Some sync_source);
       force set_format descr 16;
       force set_channels descr self#audio_channels;
       force set_rate descr samples_per_second
@@ -118,7 +110,8 @@ class input ~self_sync ~start ~fallible dev =
 
     method private close_device =
       Unix.close (Option.get fd);
-      fd <- None
+      fd <- None;
+      self#set_sync_source None
 
     method generate_frame =
       let length = Lazy.Mutexed.force Frame.size in

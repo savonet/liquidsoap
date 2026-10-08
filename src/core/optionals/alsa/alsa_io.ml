@@ -39,6 +39,8 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync
   object (self)
     method virtual log : Log.t
     method virtual audio_channels : int
+    method virtual private set_sync_source : Clock.Sync_source.t option -> unit
+    method virtual private dynamic_self_sync : Source.self_sync
     val mutable alsa_rate = -1
     val mutable pcm = None
     val mutable write = Pcm.writen_float
@@ -56,10 +58,8 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync
             gen <- Some g;
             g
 
-    method private self_sync : Clock.self_sync =
-      if self_sync then
-        (`Dynamic, if pcm <> None then Some Alsa_settings.sync_source else None)
-      else default_self_sync ()
+    method private self_sync : Source.self_sync =
+      if self_sync then self#dynamic_self_sync else default_self_sync ()
 
     method open_device =
       self#log#important "Using ALSA %s." (Alsa.get_version ());
@@ -159,14 +159,16 @@ class virtual base ~buffer_size:buffer_size_seconds ~self_sync
              "Setting alsa parameters failed (invalid argument)!";
            raise e);
         handle "non-blocking" (Pcm.set_nonblock dev) false;
-        pcm <- Some dev
+        pcm <- Some dev;
+        self#set_sync_source (Some Alsa_settings.sync_source)
       with Unknown_error _ as e -> raise (Error (string_of_error e))
 
     method close_device =
       match pcm with
         | Some d ->
             Pcm.close d;
-            pcm <- None
+            pcm <- None;
+            self#set_sync_source None
         | None -> ()
   end
 

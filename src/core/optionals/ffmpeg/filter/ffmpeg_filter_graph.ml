@@ -55,7 +55,7 @@ class source ~name ~pull ~is_ready ~flush_inputs ~reset ~self_sync () =
     method fallible = true
     method effective_source = (self :> Source.source)
 
-    method private self_sync : Clock.self_sync =
+    method private self_sync : Source.self_sync =
       self_sync (self :> Source.source)
 
     method remaining = Generator.remaining self#buffer

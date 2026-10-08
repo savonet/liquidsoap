@@ -255,7 +255,7 @@ There are various stages of running liquidsoap:
 When a clock starts, you will see a log line like:
 
 ```
-[clock:3] Starting top-level clock output.file with sources: output.file (output), amplify (passive), input.alsa (active) and sync: auto
+[clock.output.file:3] Starting top-level clock, sync: auto, sources: input.alsa (active), amplify (passive), output.file (output), animated by a task (rests)
 ```
 
 Usually, liquidsoap is run by passing one or several scripts and expressions to execute. Those expressions set up some sources, and outputs typically don't change anymore. If those initially provided active sources fail to be initialized (invalid parameter, failure to connect, etc.) liquidsoap will terminate with an error.
@@ -330,8 +330,8 @@ The time that the clock uses depends on its synchronization source:
   `input.alsa` and other sound card operators wait for the hardware, and
   `input.srt` uses the timestamps in its packets. When such a source is active,
   the clock follows that source and logs
-  `Switching to self-sync mode (...)`. When the source goes away, the clock logs
-  `Switching to non-self-sync mode` and goes back to the CPU.
+  `Now paced by sync source ...`. When the source goes away, the clock logs
+  `Sync source ... left: the clock paces the stream` and goes back to the CPU.
 
 At most one self-sync source can produce data in a clock at a time. See
 [clocks](./clocks.md) for the conflicts this causes and how to fix them with
@@ -349,7 +349,8 @@ catches up:
   `settings.clock.log_delay` seconds (`1` by default):
 
   ```
-  [clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds! ...
+  [clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds!
+  [clock.pulseaudio:3] Since the last warning: 50 ticks, producing 1.860s, resting 0.000s, released 0.000s, no worker 0.000s, slowest source: output.pulseaudio
   ```
 
 - When the clock is behind by more than `settings.clock.max_latency` (`60`

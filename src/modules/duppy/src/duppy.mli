@@ -212,11 +212,28 @@ val run : (unit -> unit) -> unit
 val await :
   priority:'a -> 'a scheduler -> [< Task.event ] list -> Task.event list
 
-(** [suspend ~priority s register] parks the calling computation and calls
-    [register] with a function that resumes it. The resumer may be called from
-    any thread or domain, at most once; the computation then continues as a task
-    of [priority]. *)
-val suspend : priority:'a -> 'a scheduler -> ((unit -> unit) -> unit) -> unit
+(** [suspend ?delay ~priority s register] parks the calling computation and
+    calls [register] with a function that resumes it. The resumer may be called
+    from any thread or domain; the computation then continues as a task of
+    [priority].
+
+    With [delay], the computation also resumes once [delay] seconds have
+    elapsed. It resumes once, on whichever comes first, and the resumer may then
+    be called any number of times. *)
+val suspend :
+  ?delay:float ->
+  priority:'a ->
+  'a scheduler ->
+  ((unit -> unit) -> unit) ->
+  unit
+
+(** [thread ~priority s fn] runs [fn] on a thread of its own, on the domain of
+    the pool worker that accepts [priority] and has the fewest such threads, so
+    that they spread over the cores.
+
+    On a thread pool, and before the pool has started, the thread is created in
+    place. *)
+val thread : priority:'a -> 'a scheduler -> (unit -> unit) -> unit
 
 (** [blocking fn] runs [fn] and returns its result. A computation that parks
     inside [fn] blocks the calling thread until what it waits for occurs, and

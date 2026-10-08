@@ -1,0 +1,43 @@
+(executable
+ (name conformance)
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang))
+ (libraries
+  clock
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  duppy
+  dtools
+  threads.posix))
+
+; One process per group: the pool and the global stop are per process.
+
+(rule
+ (alias clock_conformance)
+ (action
+  (progn
+   (run ./conformance.exe core)
+   (run ./conformance.exe unify)
+   (run ./conformance.exe failure)
+   (run ./conformance.exe sync)
+   (run ./conformance.exe report)
+   (run ./conformance.exe pacing)
+   (run ./conformance.exe two_workers)
+   (run ./conformance.exe one_worker)
+   (run ./conformance.exe shutdown)
+   (run ./conformance.exe stuck))))
+
+(rule
+ (alias citest)
+ (deps
+  (alias clock_conformance))
+ (action (progn)))

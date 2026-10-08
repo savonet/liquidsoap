@@ -46,23 +46,10 @@ module Per_cycle = struct
           value
 end
 
-type streaming_state =
-  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
-
+type readiness = { cached : int; can_generate : bool }
 type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
-
-module SourceSync = Clock.MkSyncSource (struct
-  type t = < id : string >
-
-  let time_implementation _ = Clock.time_implementation ()
-  let to_string s = Printf.sprintf "source(id=%s)" s#id
-  let latency _ = Clock.conf_latency#get
-  let max_latency _ = Clock.conf_max_latency#get
-end)
-
-let sync_source_changed a b =
-  match (a, b) with None, None -> false | Some a, Some b -> a != b | _ -> true
+type self_sync = Source_sync.t
 
 (** {1 Sources} *)
 
@@ -251,14 +238,16 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | `Passive -> false
         | `Output _ | `Active _ -> true
 
-    method virtual private self_sync : Clock.self_sync
-    val cycle_self_sync : Clock.self_sync Per_cycle.t = Per_cycle.make ()
+    method virtual private self_sync : self_sync
     val mutable self_sync_source = None
 
     method private self_sync_source =
       match self_sync_source with
         | None ->
-            let s = SourceSync.make (self :> < id : string >) in
+            let s =
+              Clock.Sync_source.generic
+                ~name:(Printf.sprintf "source(id=%s)" self#id)
+            in
             self_sync_source <- Some s;
             s
         | Some s -> s
@@ -266,33 +255,33 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method source_sync self_sync =
       if self_sync then Some self#self_sync_source else None
 
-    val mutable source_state : Clock.sync_source option = None
-    method source_state = source_state
+    val mutable settled_self_sync : self_sync option = None
+    method source_state = Option.bind settled_self_sync snd
+    val mutable own_sync_source : Clock.Sync_source.t option = None
 
-    val state_callbacks
-        : (old:Clock.sync_source option -> Clock.sync_source option -> unit)
-          Callbacks.t =
-      Callbacks.create ()
+    method private set_sync_source sync_source =
+      own_sync_source <- sync_source;
+      if self#is_up then settled_self_sync <- Some self#self_sync
 
-    method on_sync_source_change fn = Callbacks.register state_callbacks fn
+    method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
+    val cycle_open = Atomic.make false
+    val cycle_readiness : readiness Per_cycle.t = Per_cycle.make ()
+    val cycle_frame : Frame.t Per_cycle.t = Per_cycle.make ()
+    val cycle_self_sync : self_sync Per_cycle.t = Per_cycle.make ()
 
-    method private notify_sync_source new_state =
-      Per_cycle.release cycle_self_sync;
-      if sync_source_changed new_state source_state then (
-        let old = source_state in
-        source_state <- new_state;
-        List.iter
-          (fun fn -> fn ~old new_state)
-          (Callbacks.elements state_callbacks))
+    (* Outside a cycle this is the last answer settled: computing one would
+       ask the children whether they are ready and open their cycle early. *)
+    method cached_self_sync =
+      if Atomic.get cycle_open then
+        self#per_cycle cycle_self_sync (fun () -> self#self_sync)
+      else (
+        match settled_self_sync with
+          | Some settled -> settled
+          | None -> self#self_sync)
 
-    method private on_child_state_change ~child:_ ~old:_ _ =
-      self#notify_sync_source (snd self#self_sync)
-
-    initializer
-      self#on_before_streaming_cycle (fun () ->
-          let sync_source = snd self#self_sync in
-          if sync_source_changed sync_source source_state then
-            self#notify_sync_source sync_source)
+    method sync_source =
+      if Atomic.get cycle_open then snd self#cached_self_sync
+      else self#source_state
 
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
@@ -319,7 +308,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                 (Printf.sprintf
                    "Early computation of source content-type detected for \
                     source %s on clock %s!"
-                   self#id (Clock.id self#clock));
+                   self#id (Clock.name self#clock));
             self#log#debug "Assigning source content type for frame type: %s"
               (Type.to_string self#frame_type);
             let ct = Frame_type.content_type self#frame_type in
@@ -390,18 +379,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           self#iter_watchers (fun w ->
               w.wake_up ~fallible:self#fallible ~source_type:self#source_type
                 ~id:self#id ~ctype:self#content_type
-                ~clock_id:(Clock.id self#clock)))
+                ~clock_id:(Clock.name self#clock)))
 
     val is_up : [ `False | `True | `Error ] Atomic.t = Atomic.make `False
     method is_up = Atomic.get is_up = `True
-    val streaming_state : streaming_state Atomic.t = Atomic.make `Pending
     val activations : Clock.activation WeakQueue.t = WeakQueue.create ()
     method activations = WeakQueue.elements activations
 
-    method wake_up src =
+    method wake_up (src : Clock.source) =
       let activation =
         object
-          method id = !id
+          method id = src#id
         end
       in
       Gc.finalise (check_sleep ~activations ~s:self) activation;
@@ -416,7 +404,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             self#id src#id
             (Frame.string_of_content_type self#content_type)
             (Type.to_string self#frame_type);
-          self#log#debug "Clock is %s." (Clock.id self#clock);
+          self#log#debug "Clock is %s." (Clock.name self#clock);
           self#log#important "Content type is %s."
             (Frame.string_of_content_type self#content_type);
           List.iter (fun fn -> fn ()) (Callbacks.elements on_wake_up)
@@ -468,14 +456,13 @@ class virtual operator ?(stack = []) ?clock ~name sources =
                src#id)
           "source");
       WeakQueue.filter_out activations (fun a -> a == src);
-      match
-        ( WeakQueue.length activations,
-          Clock.started self#clock,
-          Atomic.get streaming_state )
-      with
-        | 0, true, (`Ready _ | `Unavailable) ->
+      let frame_pending =
+        Atomic.get cycle_open && Per_cycle.find cycle_frame = None
+      in
+      match (WeakQueue.length activations, Clock.started self#clock) with
+        | 0, true when frame_pending ->
             Clock.after_tick self#clock (fun () -> self#actual_sleep)
-        | 0, _, _ -> self#actual_sleep
+        | 0, _ -> self#actual_sleep
         | _ -> ()
 
     method register_on_collect fn = Callbacks.register on_collect fn
@@ -532,21 +519,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
               sources;
           self#iter_watchers (fun w -> w.sleep ()))
 
-    val mutable child_state_deregisters : (unit -> unit) list = []
-
     initializer
-      self#on_wake_up (fun () ->
-          self#notify_sync_source (snd self#self_sync);
-          child_state_deregisters <-
-            List.map
-              (fun (_, s) ->
-                s#on_sync_source_change (fun ~old new_state ->
-                    self#on_child_state_change ~child:s ~old new_state))
-              sources);
-      self#on_sleep (fun () ->
-          List.iter (fun d -> d ()) child_state_deregisters;
-          child_state_deregisters <- [];
-          self#notify_sync_source None)
+      self#on_wake_up (fun () -> settled_self_sync <- Some self#self_sync);
+      self#on_sleep (fun () -> settled_self_sync <- None)
 
     (** Streaming *)
 
@@ -574,10 +549,11 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method is_ready =
       if self#is_up && Clock.started self#clock then (
         self#before_streaming_cycle;
-        match Atomic.get streaming_state with
-          | `Ready _ | `Done _ -> true
-          | _ -> false)
+        self#ready)
       else false
+
+    val mutable _cache = None
+    val mutable consumed = 0
 
     method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a =
       fun settled compute ->
@@ -593,14 +569,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private release_cycle_values =
       List.iter (fun release -> release ()) (Atomic.exchange held_for_cycle [])
 
-    (* Outside a cycle the answer is computed on each read. *)
-    method cached_self_sync =
-      match Atomic.get streaming_state with
-        | `Pending -> self#self_sync
-        | _ -> self#per_cycle cycle_self_sync (fun () -> self#self_sync)
-
-    val mutable _cache = None
-    val mutable consumed = 0
     val mutable on_before_streaming_cycle = []
 
     method on_before_streaming_cycle fn =
@@ -617,48 +585,51 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private cache_pos =
       match _cache with None -> 0 | Some c -> Frame.position c
 
-    (* This is the implementation of the main streaming logic. *)
+    method private readiness =
+      self#per_cycle cycle_readiness (fun () ->
+          let cached = self#cache_pos in
+          { cached; can_generate = self#can_generate_frame })
+
+    method private ready =
+      let { cached; can_generate } = self#readiness in
+      cached > 0 || can_generate
+
+    method private generated_frame =
+      self#per_cycle cycle_frame (fun () ->
+          let { cached; can_generate } = self#readiness in
+          let size = Lazy.Mutexed.force Frame.size in
+          let buf =
+            if can_generate && cached < size then
+              Frame.append self#cache self#instrumented_generate_frame
+            else self#cache
+          in
+          if size < Frame.position buf then (
+            _cache <- Some (Frame.after buf size);
+            Frame.slice buf size)
+          else (
+            _cache <- None;
+            buf))
+
+    (* The cycle counts as open only once its readiness is settled: a hook that
+       closes the cycle and opens another one finds it not open yet. *)
     method private before_streaming_cycle =
-      match Atomic.get streaming_state with
-        | `Pending ->
-            self#release_cycle_values;
-            List.iter (fun fn -> fn ()) on_before_streaming_cycle;
-            consumed <- 0;
-            let cache_pos = self#cache_pos in
-            let size = Lazy.Mutexed.force Frame.size in
-            let can_generate_frame = self#can_generate_frame in
-            if cache_pos > 0 || can_generate_frame then
-              Atomic.set streaming_state
-                (`Ready
-                   (fun () ->
-                     let buf =
-                       if can_generate_frame && cache_pos < size then
-                         Frame.append self#cache
-                           self#instrumented_generate_frame
-                       else self#cache
-                     in
-                     let buf_pos = Frame.position buf in
-                     let buf =
-                       if size < buf_pos then (
-                         _cache <- Some (Frame.after buf size);
-                         Frame.slice buf size)
-                       else (
-                         _cache <- None;
-                         buf)
-                     in
-                     Atomic.set streaming_state (`Done buf)))
-            else Atomic.set streaming_state `Unavailable;
-            Clock.after_tick self#clock (fun () -> self#after_streaming_cycle)
-        | _ -> ()
+      if not (Atomic.get cycle_open) then (
+        self#release_cycle_values;
+        List.iter (fun fn -> fn ()) on_before_streaming_cycle;
+        consumed <- 0;
+        ignore self#readiness;
+        Atomic.set cycle_open true;
+        Clock.after_tick self#clock (fun () -> self#after_streaming_cycle);
+        settled_self_sync <- Some self#cached_self_sync)
 
     method private after_streaming_cycle =
-      (match (Atomic.get streaming_state, consumed) with
-        | `Done buf, n when n < Frame.position buf ->
-            _cache <- Some (Frame.append (Frame.after buf n) self#cache)
+      (match Per_cycle.find cycle_frame with
+        | Some buf when consumed < Frame.position buf ->
+            _cache <- Some (Frame.append (Frame.after buf consumed) self#cache)
         | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
-      Atomic.set streaming_state `Pending;
-      self#release_cycle_values
+      self#release_cycle_values;
+      Atomic.set cycle_open false
 
     (* Frame generation executes script callbacks which may read the source's
        frame again. Such a re-entrant call must not restart the generation, so
@@ -666,16 +637,17 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable generating = false
 
     method peek_frame =
-      match Atomic.get streaming_state with
-        | `Pending | `Unavailable ->
+      match Per_cycle.find cycle_frame with
+        | Some data -> data
+        | None when not (Atomic.get cycle_open && self#ready) ->
             log#critical "source called while not ready!";
             raise Unavailable
-        | `Ready _ when generating -> self#cache
-        | `Ready fn ->
+        | None when generating -> self#cache
+        | None ->
             generating <- true;
-            Fun.protect ~finally:(fun () -> generating <- false) fn;
-            self#peek_frame
-        | `Done data -> data
+            Fun.protect
+              ~finally:(fun () -> generating <- false)
+              (fun () -> self#generated_frame)
 
     method get_partial_frame cb =
       let data = cb self#peek_frame in

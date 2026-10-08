@@ -16,7 +16,11 @@ class counting =
 let () =
   Frame_settings.lazy_config_eval := true;
   let source = new counting in
-  let clock = Clock.create ~sync:`Passive () in
+  let clock =
+    Clock.create ~sync:`Passive
+      ~owner:{ Clock.kind = "test"; id = "cached_self_sync_test" }
+      ~id:"cached_self_sync_test" ()
+  in
   Clock.start ~force:true clock;
   let output =
     new Output.dummy

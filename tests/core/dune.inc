@@ -115,151 +115,6 @@
   (run %{child_support_test})))
 
 (executable
- (name clock_error_print_test)
- (modules clock_error_print_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias clock_error_print_test)
- (package liquidsoap)
- (deps
-  (:clock_error_print_test clock_error_print_test.exe))
- (action
-  (run %{clock_error_print_test})))
-
-(executable
- (name clock_self_sync_type_test)
- (modules clock_self_sync_type_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias clock_self_sync_type_test)
- (package liquidsoap)
- (deps
-  (:clock_self_sync_type_test clock_self_sync_type_test.exe))
- (action
-  (run %{clock_self_sync_type_test})))
-
-(executable
- (name clock_tick_test)
- (modules clock_tick_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias clock_tick_test)
- (package liquidsoap)
- (deps
-  (:clock_tick_test clock_tick_test.exe))
- (action
-  (run %{clock_tick_test})))
-
-(executable
- (name clock_unify_test)
- (modules clock_unify_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias clock_unify_test)
- (package liquidsoap)
- (deps
-  (:clock_unify_test clock_unify_test.exe))
- (action
-  (run %{clock_unify_test})))
-
-(executable
- (name clock_utils_test)
- (modules clock_utils_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias clock_utils_test)
- (package liquidsoap)
- (deps
-  (:clock_utils_test clock_utils_test.exe))
- (action
-  (run %{clock_utils_test})))
-
-(executable
  (name content_test)
  (modules content_test)
  (libraries
@@ -931,6 +786,35 @@
   (run %{scheduler_test})))
 
 (executable
+ (name source_sync_test)
+ (modules source_sync_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg_decoder
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias source_sync_test)
+ (package liquidsoap)
+ (deps
+  (:source_sync_test source_sync_test.exe))
+ (action
+  (run %{source_sync_test})))
+
+(executable
  (name start_stop_test)
  (modules start_stop_test)
  (libraries
@@ -1049,64 +933,6 @@
   (:strings_test strings_test.exe))
  (action
   (run %{strings_test})))
-
-(executable
- (name sub_clock_stop_test)
- (modules sub_clock_stop_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias sub_clock_stop_test)
- (package liquidsoap)
- (deps
-  (:sub_clock_stop_test sub_clock_stop_test.exe))
- (action
-  (run %{sub_clock_stop_test})))
-
-(executable
- (name sub_clock_tick_test)
- (modules sub_clock_tick_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias sub_clock_tick_test)
- (package liquidsoap)
- (deps
-  (:sub_clock_tick_test sub_clock_tick_test.exe))
- (action
-  (run %{sub_clock_tick_test})))
 
 (executable
  (name timezone)
@@ -1318,11 +1144,6 @@
   (alias byteRing_test)
   (alias cached_self_sync_test)
   (alias child_support_test)
-  (alias clock_error_print_test)
-  (alias clock_self_sync_type_test)
-  (alias clock_tick_test)
-  (alias clock_unify_test)
-  (alias clock_utils_test)
   (alias content_test)
   (alias decoder_test)
   (alias encoder_pcm_kind_test)
@@ -1346,12 +1167,11 @@
   (alias playlist_basic_test)
   (alias pool_test)
   (alias scheduler_test)
+  (alias source_sync_test)
   (alias start_stop_test)
   (alias stream_decoder_test)
   (alias string_test)
   (alias strings_test)
-  (alias sub_clock_stop_test)
-  (alias sub_clock_tick_test)
   (alias timezone)
   (alias types)
   (alias unifier_test)

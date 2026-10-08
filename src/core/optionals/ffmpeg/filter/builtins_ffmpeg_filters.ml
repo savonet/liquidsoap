@@ -80,6 +80,7 @@ type graph = {
   mutable current : Avfilter.config option;
   mutable generation : int;
   mutable failed : bool;
+  owner : Clock.owner;
   init : (unit -> unit) Queue.t;
   resets : (unit -> unit) Queue.t;
   input_inits : (unit -> bool) Queue.t;
@@ -145,7 +146,7 @@ let is_ready graph =
   (match (initialized graph, Queue.peek_opt graph.graph_inputs) with
     | false, Some s ->
         if not (Clock.started s#clock) then Clock.start s#clock;
-        Clock.tick ~pull:true s#clock
+        Clock.tick s#clock
     (* No liquidsoap input to wait for: the graph is fed by source filters
        alone, so nothing else will ever trigger initialization. Doing it here
        rather than when the graph is built keeps it at streaming time, where
@@ -159,7 +160,7 @@ let is_ready graph =
 
 let pull graph =
   match Queue.peek_opt graph.graph_inputs with
-    | Some s -> Clock.tick ~pull:true s#clock
+    | Some s -> Clock.tick s#clock
     | None -> ()
 
 (* Once the inputs are done, the graph needs to be told so that filters holding
@@ -167,7 +168,7 @@ let pull graph =
 let flush_inputs graph = Queue.iter graph.input_flushes (fun flush -> flush ())
 
 let self_sync graph source =
-  (Clock.self_sync_of_sources ~source (Queue.elements graph.graph_inputs)) ()
+  (Source_sync.of_sources ~source (Queue.elements graph.graph_inputs)) ()
 
 (* Created on the first output: a graph with none needs no source. *)
 let graph_source graph =
@@ -591,7 +592,8 @@ let _ =
          let name = uniq_name "abuffer" in
          let s =
            Ffmpeg_filter_io.(
-             audio_output ~pass_metadata ~name ~frame_t ~field source)
+             audio_output ~owner:graph.owner ~pass_metadata ~name ~frame_t
+               ~field source)
          in
          s#set_stack (Lang.pos p);
          s#set_id id;
@@ -722,7 +724,8 @@ let _ =
          let name = uniq_name "buffer" in
          let s =
            Ffmpeg_filter_io.(
-             video_output ~pass_metadata ~name ~frame_t ~field source)
+             video_output ~owner:graph.owner ~pass_metadata ~name ~frame_t
+               ~field source)
          in
          s#set_stack (Lang.pos p);
          s#set_id id;
@@ -824,6 +827,7 @@ let _ =
             current = None;
             generation = 0;
             failed = false;
+            owner = Ffmpeg_filter_io.graph_owner ();
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
             input_flushes = Queue.create ();
@@ -844,30 +848,21 @@ let _ =
       let ret = Lang.apply ~pos:(Lang.pos p) fn [("", Graph.to_value graph)] in
       let id = "ffmpeg.filter" in
       let output_clock = Clock.create ~id () in
-      let controller =
-        object
-          method id = id
-        end
-      in
       let input_clock =
-        Clock.create ~sync:`Passive ~id:(id ^ ".input")
-          ~controller:(`Other ("ffmpeg filter graph", controller))
-          ()
+        Clock.create ~sync:`Passive ~id:(id ^ ".input") ~parent:output_clock
+          ~owner:graph.owner ()
       in
       unify_clocks ~clock:input_clock graph.graph_inputs;
       (match graph.graph_source with
         | None -> ()
         | Some s -> Clock.unify ~pos:s#pos output_clock s#clock);
-      (* We need an early registration for sources such as source.dynamic. *)
-      Clock.register_sub_clock output_clock input_clock;
       (match graph.graph_source with
         | None -> ()
         | Some s ->
             s#on_wake_up (fun () ->
-                (* Idempotent, so doing it twice the first time is fine. *)
-                Clock.register_sub_clock output_clock input_clock);
+                Clock.register ~parent:output_clock input_clock);
             s#on_sleep (fun () ->
-                Clock.deregister_sub_clock output_clock input_clock));
+                Clock.deregister ~parent:output_clock input_clock));
 
       (* Pushed last, so everything the script described is attached and linked
          by the time it runs. Re-pointing the setters is all a new generation

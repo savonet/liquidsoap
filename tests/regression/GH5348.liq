@@ -1,14 +1,13 @@
 %include "../test.liq"
 
 # A switch inside a passive child clock used to re-evaluate its selection on
-# every frame: such a clock is ticked by its parent even on cycles where its
-# consumer pulls nothing, which the switch mistook for resuming after having
-# gone quiet. Track sensitivity was lost, so `rotate` weights were ignored and
-# each jingle was cut after a couple of frames.
+# every frame: it mistook the cycles where its consumer reads nothing for
+# resuming after having gone quiet. Track sensitivity was lost, so `rotate`
+# weights were ignored and each jingle was cut after a couple of frames.
 #
 # `stretch(ratio=2.)` gives us such a clock: it slows the stream down, so it
-# only pulls its child on every other cycle. Track durations are stretched
-# along with it, hence the doubled expectations below.
+# only reads its child on every other cycle. Track durations are measured on
+# the child clock, which advances when the child is read.
 
 def tagged(~every, ~title, s) =
   chop(every=every, metadata={[("title", title)]}, s)
@@ -66,7 +65,7 @@ def check(m) =
     list.iter(
       fun ((title, duration)) ->
         begin
-          expected = title == "jingle" ? 2. : 4.
+          expected = title == "jingle" ? 1. : 2.
           if
             abs(duration - expected) > 0.1
           then

@@ -76,17 +76,19 @@ Consider this script:
 At startup you will see:
 
 ```
-[clock:3] Starting top-level clock output.file with sources: output.file (output), amplify (passive), input.alsa (active) and sync: auto
+[clock.output.file:3] Starting top-level clock, sync: auto, sources: input.alsa (active), amplify (passive), output.file (output), animated by a task (rests)
 ```
 
 Sources marked `active` are animated every streaming cycle regardless of
 whether they are being pulled downstream — `input.alsa` must consume incoming
 audio continuously even when nothing is asking for it. Sources marked `passive`
 are only animated when something downstream requests data. Once the clock finds
-a sync source, it hands over timing control:
+a sync source, it hands over timing control. A sound card paces the stream by
+blocking, so the clock also moves to a thread of its own:
 
 ```
-[clock.output.file:3] Switching to self-sync mode (alsa)
+[clock.output.file:3] Animator changes from task to thread (blocks: alsa)
+[clock.output.file:3] Now paced by sync source alsa
 ```
 
 By contrast, a script with no hardware or network source:
@@ -95,12 +97,11 @@ By contrast, a script with no hardware or network source:
 
 ```
 
-produces no sync source, so the clock runs under CPU control. You will also see
-this message whenever a sync source disappears and the clock reverts to CPU-led
-mode:
+produces no sync source, so the clock runs under CPU control. When a sync
+source disappears, the clock takes the pacing back and logs:
 
 ```
-[clock.output.file:3] Switching to non-self-sync mode
+[clock.output.file:3] Sync source alsa left: the clock paces the stream (latency: 0.10s, maximum latency: 60.00s)
 ```
 
 ### Switching between time sources
@@ -108,25 +109,41 @@ mode:
 Your stream may switch between different types of sources. For example:
 
 ```liquidsoap
-fallback([input.srt(...), single("music.mp3")])
+fallback([input.srt(...), playlist("~/music")])
 ```
 
 In this case:
 
-- `single` is CPU-controlled.
+- `playlist` is CPU-controlled.
 - `input.srt` is self-sync.
 
-Liquidsoap has to decide which component controls the clock at any given
-moment. It does this by looking at the sources that will be used to produce
-data in the next round of the streaming loop.
+Liquidsoap decides which component controls the clock at every round of the
+streaming loop. It follows the self-sync sources that are producing data in
+that round, and uses the CPU the rest of the time.
 
-For instance, in the above, only one of the two sources is used to produce
-data at a time. If it is `single`, the clock is CPU-controlled, otherwise it
-is self-sync.
+`playlist` reads files from the disk, so its data is available at any speed.
+
+`input.srt` is self-sync: the SRT library delivers each packet at the time set
+by the sender, and a read blocks until then. This wait paces the clock.
+
+`input.srt` is also an active source: the clock reads from it on every round,
+whichever source the fallback plays. It controls the clock while a sender is
+connected:
+
+- With a sender connected, the clock follows `input.srt`. This starts at the
+  connection, before the fallback has switched to it.
+- With no sender, the clock is CPU-controlled.
+
+The log shows each change:
+
+```
+[clock.output:3] Now paced by sync source srt
+[clock.output:3] Sync source srt left: the clock paces the stream (latency: 0.10s, maximum latency: 60.00s)
+```
 
 Which of the two is playing at a given moment is a separate question, answered
 by [source composition](./composition.md): `input.srt` is a live source, so it
-cuts into `single` mid-track rather than waiting for the end of the file.
+cuts into `playlist` mid-track rather than waiting for the end of the file.
 
 ## Catchup warnings
 
@@ -135,8 +152,13 @@ than the frame duration — it will attempt to catch up by running faster than r
 time, and log a warning:
 
 ```
-[clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds! ...
+[clock.pulseaudio:2] Latency is too high: we must catchup 0.86 seconds!
+[clock.pulseaudio:3] Since the last warning: 50 ticks, producing 1.860s, resting 0.000s, released 0.000s, no worker 0.000s, slowest source: output.pulseaudio
 ```
+
+The second line says where the clock's time went since the previous warning:
+`producing` is the time spent computing frames, and `no worker` the time spent
+waiting for a free core. The slowest source is named at the end.
 
 This usually indicates CPU overload, a slow network operation blocking the
 streaming loop, or a source that is consistently too slow. Buffers help absorb

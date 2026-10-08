@@ -310,9 +310,8 @@ let options =
                           !dump_delay;
                         Unix.sleepf !dump_delay;
                         Printf.printf "Sources dump:%s\n\n"
-                          (Clock.dump_all_sources ());
+                          (Clock.Status.source_graph (Clock.statuses ()));
                         Printf.printf "Shutting down..\n%!";
-                        Clock.global_stop ();
                         Tutils.shutdown 0)
                       ()))),
          "Describe the script's sources and shutdown. This an an EXPERIMENTAL \
@@ -332,9 +331,9 @@ let options =
                            %!"
                           !dump_delay;
                         Unix.sleepf !dump_delay;
-                        Printf.printf "Clocks dump:%s\n\n" (Clock.dump ());
+                        Printf.printf "Clocks dump:%s\n\n"
+                          (Clock.Status.report (Clock.statuses ()));
                         Printf.printf "Shutting down..\n%!";
-                        Clock.global_stop ();
                         Tutils.shutdown 0)
                       ()))),
          "Describe the script's clocks and shutdown. This an an EXPERIMENTAL \
@@ -705,6 +704,8 @@ let () =
               "WARNING: liquidsoap is running with %s. Set \
                `settings.init.allow_root := true` to silence this warning."
               err);
+
+  Clock.set_failure_policy (fun _ _ -> Tutils.shutdown 1);
 
   Lifecycle.on_start ~name:"main application start" (fun () ->
       (* See http://caml.inria.fr/mantis/print_bug_page.php?bug_id=4640 for

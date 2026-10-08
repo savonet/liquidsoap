@@ -35,7 +35,7 @@ let eval ?toplevel ?typecheck ?cache ?deprecated ?ty ?name ~stdlib s =
 (* Every application of a script function from the core goes through here, so a
    graph one builds is finished by the time it returns. *)
 let apply ?pos v env =
-  try Clock.with_new_clocks (fun () -> apply ?pos v env)
+  try Clock.start_scope (fun () -> apply ?pos v env)
   with exn -> (
     let bt = Printexc.get_raw_backtrace () in
     match exn with
@@ -584,11 +584,11 @@ let source_methods : source_meth list =
           val_fun [] (fun _ ->
               match s#cached_self_sync with
                 | `Static, Some src ->
-                    string ("Static: " ^ Clock.string_of_sync_source src)
+                    string ("Static: " ^ src.Clock.Sync_source.name)
                 | `Dynamic, Some src ->
                     string
                       ("Dynamic synchronization source. Current one: "
-                      ^ Clock.string_of_sync_source src)
+                     ^ src.Clock.Sync_source.name)
                 | `Dynamic, None ->
                     string "Dynamic synchronization source. Current one: none"
                 | `Static, None -> string ""));
@@ -672,7 +672,7 @@ let source_methods : source_meth list =
       value =
         (fun s ->
           val_fun [] (fun _ ->
-              let ticks = Clock.ticks s#clock in
+              let ticks = Clock.tick_count s#clock in
               let frame_position =
                 Lazy.Mutexed.force Frame.duration *. float_of_int ticks
               in
@@ -1307,12 +1307,11 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
                     val_fun [] (fun _ ->
                         match s#cached_self_sync with
                           | `Static, Some src ->
-                              string
-                                ("Static: " ^ Clock.string_of_sync_source src)
+                              string ("Static: " ^ src.Clock.Sync_source.name)
                           | `Dynamic, Some src ->
                               string
                                 ("Dynamic synchronization source. Current one: "
-                                ^ Clock.string_of_sync_source src)
+                               ^ src.Clock.Sync_source.name)
                           | `Dynamic, None ->
                               string
                                 "Dynamic synchronization source. Current one: \

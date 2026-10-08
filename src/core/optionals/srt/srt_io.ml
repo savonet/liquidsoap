@@ -119,16 +119,7 @@ let getaddrinfo ~(log : Log.t) ~prefer_address address port =
                address port)
           "srt"
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = unit
-
-  let time_implementation () = Clock.unconstrained_time
-  let to_string _ = "srt"
-  let latency () = Clock.conf_latency#get
-  let max_latency () = Clock.conf_max_latency#get
-end)
-
-let sync_source = SyncSource.make ()
+let sync_source = Clock.Sync_source.make ~name:"srt" `Self_paced
 
 let mode_of_value v =
   match Lang.to_string v with
@@ -917,10 +908,14 @@ class virtual input_base ~max ~self_sync ~payload_size ~dump ~autostart format =
     method private can_generate_frame =
       super#started && (not self#should_stop) && self#is_connected
 
+    initializer
+      if self_sync then begin
+        self#on_connect (fun () -> self#set_sync_source (Some sync_source));
+        self#on_disconnect (fun () -> self#set_sync_source None)
+      end
+
     method private self_sync =
-      if self_sync then
-        (`Dynamic, if self#is_connected then Some sync_source else None)
-      else (`Static, None)
+      if self_sync then self#dynamic_self_sync else (`Static, None)
 
     method private create_decoder socket =
       let create_decoder =

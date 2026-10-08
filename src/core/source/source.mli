@@ -34,8 +34,14 @@ type source_type = [ `Passive | `Active of active | `Output of active ]
 
 exception Unavailable
 
-type streaming_state =
-  [ `Pending | `Unavailable | `Ready of unit -> unit | `Done of Frame.t ]
+type self_sync = Source_sync.t
+
+(** A value settled once per streaming cycle. *)
+module Per_cycle : sig
+  type 'a t
+
+  val make : unit -> 'a t
+end
 
 (** Instrumentation. *)
 
@@ -164,26 +170,28 @@ object
       a [`Auto] clock), we simply decide based on whether there is one
       [self_sync] source or not. This logic should dictate how the method is
       implemented by the various operators. *)
-  method virtual private self_sync : Clock.self_sync
+  method virtual private self_sync : self_sync
 
-  (** What other sources and the clock read: [self_sync], computed once per
-      streaming cycle. *)
-  method cached_self_sync : Clock.self_sync
+  (** What other sources read: [self_sync], computed once per streaming cycle.
+  *)
+  method cached_self_sync : self_sync
 
-  method source_sync : bool -> Clock.sync_source option
+  method source_sync : bool -> Clock.Sync_source.t option
 
-  (** Cached sync source of this source, updated at wake_up and on changes. *)
-  method source_state : Clock.sync_source option
+  (** Sync source of this source as last settled: at wake-up, at each streaming
+      cycle and when the source's own pacing changes. *)
+  method source_state : Clock.Sync_source.t option
 
-  (** Register a callback fired when the source's sync source changes. Returns a
-      deregistration thunk. *)
-  method on_sync_source_change :
-    (old:Clock.sync_source option -> Clock.sync_source option -> unit) ->
-    unit ->
-    unit
+  (** For a source that paces its stream by itself, while it does: the sync
+      source it currently reports, or [None]. The clock reads it at its next
+      tick. *)
+  method private set_sync_source : Clock.Sync_source.t option -> unit
 
-  (** Update the cached sync source and notify registered callbacks. *)
-  method private notify_sync_source : Clock.sync_source option -> unit
+  (** What [self_sync] is for such a source. *)
+  method private dynamic_self_sync : self_sync
+
+  (** What the clock requires of a source: spec/clock.md §14. *)
+  method sync_source : Clock.Sync_source.t option
 
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit
@@ -313,6 +321,11 @@ object
   (** Sources must implement this method. It should return [true] when the
       source can produce data during the current streaming cycle. *)
   method virtual private can_generate_frame : bool
+
+  (** [per_cycle settled compute] is [compute ()] the first time it is read in a
+      streaming cycle, and that same value until the cycle ends. The source
+      releases the value when the cycle ends and when the next one opens. *)
+  method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a
 
   method on_before_streaming_cycle : (unit -> unit) -> unit
   method on_after_streaming_cycle : (unit -> unit) -> unit

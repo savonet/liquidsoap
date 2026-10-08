@@ -206,6 +206,8 @@ type 'a worker = {
   mutable domain : int;
   taken : int array;
   blocking : int Atomic.t;
+  (* Threads started by [thread] that live on this worker's domain. *)
+  threads : int Atomic.t;
   aux_m : Mutex.t;
   aux_c : Condition.t;
   mutable aux_pending : (unit -> unit) list;
@@ -406,23 +408,30 @@ let await ~priority s events =
                });
        })
 
-let suspend ~priority s register =
+(* The delay and the resumer race on [resumed]. The loser stays a task that
+   does nothing: cancelling it would need a wake by handle in the core. *)
+let suspend ?delay ~priority s register =
   ignore
     (Effect.perform
        (Await
           {
             park =
               (fun resume ->
-                register (fun () ->
-                    Task.add s
-                      {
-                        priority;
-                        events = [`Delay 0.];
-                        handler =
-                          (fun _ ->
+                let resumed = Atomic.make false in
+                let resume_after delay =
+                  Task.add s
+                    {
+                      priority;
+                      events = [`Delay delay];
+                      handler =
+                        (fun _ ->
+                          if Atomic.compare_and_set resumed false true then
                             resume [];
-                            []);
-                      }));
+                          []);
+                    }
+                in
+                Option.iter resume_after delay;
+                register (fun () -> resume_after 0.));
           }))
 
 let reschedule ?(delay = 0.) ~priority s =
@@ -643,6 +652,7 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
           domain = -1;
           taken = Array.make 1024 0;
           blocking = Atomic.make 0;
+          threads = Atomic.make 0;
           aux_m = Mutex.create ();
           aux_c = Condition.create ();
           aux_pending = [];
@@ -686,6 +696,43 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
       else
         Printf.sprintf "Started %d dispatch domains on %s, %d blocking tasks."
           count (Core.backend s.core) (Core.slots s.core))
+
+let least_loaded load = function
+  | [] -> None
+  | first :: rest ->
+      Some
+        (List.fold_left
+           (fun best x ->
+             if Atomic.get (load x) < Atomic.get (load best) then x else best)
+           first rest)
+
+(* Counted from the choice, so that two calls in a row do not pick the same
+   place. *)
+let counted load fn =
+  Atomic.incr load;
+  fun () -> Fun.protect ~finally:(fun () -> Atomic.decr load) fn
+
+let thread ~priority s fn =
+  let in_place () = ignore (Thread.create fn ()) in
+  if s.threaded || not (Atomic.get s.running) then in_place ()
+  else (
+    match
+      least_loaded
+        (fun w -> w.threads)
+        (List.filter (fun w -> w.accepts priority) s.workers)
+    with
+      | None -> in_place ()
+      | Some w ->
+          let job = counted w.threads fn in
+          Task.add ~domain:w.domain s
+            {
+              priority;
+              events = [`Delay 0.];
+              handler =
+                (fun _ ->
+                  ignore (Thread.create job ());
+                  []);
+            })
 
 let stop s =
   if Atomic.get s.started && not (Atomic.exchange s.stopped true) then begin

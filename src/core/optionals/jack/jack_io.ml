@@ -87,32 +87,38 @@ module JackSource = struct
   [@@noalloc]
 end
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = < id : string ; time_implementation : Liq_time.implementation >
+(* ponytail: a wait in the server's library cannot be woken for one clock: a
+   stop is seen when the server's callback next fires, within one period. Add
+   a wake-up to the C state if that proves too long. *)
+let time_source ~name server_state =
+  let stopped () = ServerState.get_stopped server_state in
+  let until ~interrupted target =
+    if stopped () then `Ended
+    else begin
+      ServerState.wait_until server_state target;
+      if stopped () then `Ended
+      else if interrupted () then `Interrupted
+      else `Due
+    end
+  in
+  {
+    Clock.Sync_source.label = name;
+    now = (fun () -> ServerState.get_elapsed server_state);
+    wait = `Blocking { until; interrupt = ignore };
+  }
 
-  let time_implementation s = s#time_implementation
-  let to_string s = Printf.sprintf "jack(%s)" s#id
-  let latency _ = conf_latency#get
-  let max_latency _ = conf_max_latency#get
-end)
-
-module Time = (val Liq_time.unix : Liq_time.T)
-
-let make_time_impl server_state : Liq_time.implementation =
-  (module struct
-    include Time
-
-    let time () = Time.of_float (ServerState.get_elapsed server_state)
-
-    let sleep_until target =
-      if ServerState.get_stopped server_state then raise Clock.Has_stopped;
-      ServerState.wait_until server_state (Time.to_float target);
-      if ServerState.get_stopped server_state then raise Clock.Has_stopped
-  end)
+let sync_source ~name server_state =
+  Clock.Sync_source.make ~name
+    (`Timed
+       {
+         time_source = Some (time_source ~name server_state);
+         latency = Some conf_latency#get;
+         max_latency = Some conf_max_latency#get;
+       })
 
 type server_data = {
   server_state : ServerState.t;
-  sync_source : Clock.sync_source;
+  sync_source : Clock.Sync_source.t;
 }
 
 let server_data_list : (string option * server_data) list ref = ref []
@@ -125,14 +131,10 @@ let get_server_data server =
         | Some data -> data
         | None ->
             let server_state = ServerState.create () in
-            let time_impl = make_time_impl server_state in
-            let sync_src =
-              SyncSource.make
-                (object
-                   method id = Option.value ~default:"default" server
-                   method time_implementation = time_impl
-                end)
+            let name =
+              Printf.sprintf "jack(%s)" (Option.value ~default:"default" server)
             in
+            let sync_src = sync_source ~name server_state in
             let data = { server_state; sync_source = sync_src } in
             server_data_list := (server, data) :: !server_data_list;
             data)
@@ -371,6 +373,8 @@ class virtual base ~server () =
     method virtual audio_channels : int
     method virtual id : string
     method virtual clock : Clock.t
+    method virtual private set_sync_source : Clock.Sync_source.t option -> unit
+    method virtual private dynamic_self_sync : Source.self_sync
     method virtual on_wake_up : (unit -> unit) -> unit
     method virtual on_sleep : (unit -> unit) -> unit
     method virtual private is_input : bool
@@ -400,15 +404,10 @@ class virtual base ~server () =
 
     method private clear_jack_client =
       Option.iter (fun c -> c#close) _jack_client;
-      _jack_client <- None
+      _jack_client <- None;
+      self#set_sync_source None
 
-    method private self_sync : Clock.self_sync =
-      ( `Dynamic,
-        match _jack_client with None -> None | Some _ -> Some sync_source )
-
-    (* Resting means [ServerState.wait_until], which blocks until the JACK
-       server's process callback fires. *)
-    initializer Clock.force_thread self#clock
+    method private self_sync : Source.self_sync = self#dynamic_self_sync
     method private samples_per_second = samples_per_second
     method private jack_stopped = ServerState.get_stopped server_state
 
@@ -458,6 +457,7 @@ class virtual base ~server () =
       self#on_wake_up (fun () ->
           let jack_client = new jack_client ~id:self#id server in
           _jack_client <- Some jack_client;
+          self#set_sync_source (Some sync_source);
           jack_client#open_client;
           let src = JackSource.create () in
           JackSource.set_client src (Option.get jack_client#client);
@@ -537,8 +537,9 @@ class input ~server ~autostart =
 
     method private generate_frame =
       let frame_size = Lazy.Mutexed.force Frame.size in
-      while Generator.length self#buffer < frame_size do
-        if self#jack_stopped then raise Clock.Has_stopped;
+      while
+        Generator.length self#buffer < frame_size && not self#jack_stopped
+      do
         self#drain_ringbuffer;
         if Generator.length self#buffer < frame_size then
           ServerState.wait self#server_state

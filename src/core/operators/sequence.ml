@@ -29,7 +29,7 @@ open Source
     in transitions. *)
 class sequence ?(name = "sequence") ?(merge = false)
   ?(new_track_on_source_switch = true) ?(single_track = true) sources =
-  let self_sync_type = Clock.self_sync_type_of_sources sources in
+  let self_sync_type = Source_sync.type_of_sources sources in
   let seq_sources = Atomic.make sources in
   object (self)
     inherit operator ~name sources
@@ -86,7 +86,6 @@ class sequence ?(name = "sequence") ?(merge = false)
               self#log#info "Finished with %s" s#id;
               Atomic.set seq_sources rest;
               self#release_source s;
-              self#notify_sync_source (snd self#self_sync);
               (* The source we just moved to has not been read yet during this
                  streaming cycle, so a position constraint computed against the
                  source we are done with does not apply to it. Carrying

@@ -22,16 +22,7 @@
 
 open Mm
 
-module SyncSource = Clock.MkSyncSource (struct
-  type t = unit
-
-  let time_implementation () = Clock.unconstrained_time
-  let to_string _ = "portaudio"
-  let latency () = Clock.conf_latency#get
-  let max_latency () = Clock.conf_max_latency#get
-end)
-
-let sync_source = SyncSource.make ()
+let sync_source = Clock.Sync_source.make ~name:"portaudio" `Self_paced
 let initialized = ref false
 
 let () =
@@ -202,9 +193,7 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_name
     val mutable stream = None
 
     method private self_sync =
-      if self_sync then
-        (`Dynamic, if stream <> None then Some sync_source else None)
-      else s#cached_self_sync
+      if self_sync then self#dynamic_self_sync else s#cached_self_sync
 
     method private open_device =
       self#handle "open_device" (fun () ->
@@ -213,14 +202,16 @@ class output ~self_sync ~start ~infallible ~register_telnet ~device_name
               (self#get_device ~mode:`Output ~latency
                  ~channels:self#audio_channels ~buflen ~device_name ~device_id));
       self#handle "start_stream" (fun () ->
-          Portaudio.start_stream (Option.get stream))
+          Portaudio.start_stream (Option.get stream));
+      self#set_sync_source (Some sync_source)
 
     method private close_device =
       match stream with
         | None -> ()
         | Some s ->
             Portaudio.close_stream s;
-            stream <- None
+            stream <- None;
+            self#set_sync_source None
 
     method start = self#open_device
     method stop = self#close_device
@@ -247,9 +238,7 @@ class input ~self_sync ~start ~fallible ~device_name ~device_id ~latency buflen
     val mutable stream = None
 
     method private self_sync =
-      if self_sync then
-        (`Dynamic, if stream <> None then Some sync_source else None)
-      else (`Static, None)
+      if self_sync then self#dynamic_self_sync else (`Static, None)
 
     method abort_track = ()
     method remaining = -1
@@ -263,11 +252,13 @@ class input ~self_sync ~start ~fallible ~device_name ~device_id ~latency buflen
               (self#get_device ~mode:`Input ~latency
                  ~channels:self#audio_channels ~buflen ~device_name ~device_id));
       self#handle "start_stream" (fun () ->
-          Portaudio.start_stream (Option.get stream))
+          Portaudio.start_stream (Option.get stream));
+      self#set_sync_source (Some sync_source)
 
     method private close_device =
       Portaudio.close_stream (Option.get stream);
-      stream <- None
+      stream <- None;
+      self#set_sync_source None
 
     method generate_frame =
       let size = Lazy.Mutexed.force Frame.size in
