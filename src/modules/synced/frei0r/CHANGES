@@ -1,3 +1,10 @@
+0.1.3 (10-08-2026)
+=====
+* Fix segfault when a plugin leaves its name, author or explanation unset.
+* Add `FREI0R_PATH` environment variable, a colon-separated list of directories searched for plugins before the default ones.
+* Detect frei0r through `pkg-config` and skip the build when it is missing.
+* Require dune 3.23 or later.
+
 0.1.2 (03-13-2021)
 =====
 * Changed internal bindings to avoid using global roots.

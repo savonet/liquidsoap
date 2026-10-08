@@ -5,7 +5,6 @@
  (enabled_if
   (= %{read:./detect/frei0r_available} true))
  (libraries threads)
- (modules frei0r)
  (foreign_stubs
   (language c)
   (names frei0r_stubs)
