@@ -56,7 +56,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git checkout -b "$branch"
-            rsync -a --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
+            rsync -a --checksum --delete --exclude='.git' "$GITHUB_WORKSPACE/src/modules/synced/$name/" .
             git add -A
             if git diff --cached --quiet; then
               cd -
