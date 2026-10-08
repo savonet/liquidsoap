@@ -1,0 +1,3 @@
+#!/bin/sh
+
+dune exec ./inspect.exe -- "$@"
