@@ -92,7 +92,7 @@ jobs:
               # InRelease, and the download verifies the index checksum after
               # following the redirect, which is everything the repository is
               # responsible for. Installing would additionally need whatever
-              # ffmpeg the packages were built against, which for 2.4.x lives in
+              # ffmpeg the packages were built against, which before 2.4.6 lives in
               # deb-multimedia and is the user's business, not the repository's.
               for package in liquidsoap liquidsoap-minimal; do
                 echo "::group:: ${channel} ${package} on ${image}"

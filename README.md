@@ -80,7 +80,7 @@ Current release status by version. This table is generated from
 | Branch  | Latest release                                                                                                       | Supported | Rolling Release                                                                                                                          |
 | ------- | -------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `2.5.x` | [2.5.0-rc1](https://github.com/savonet/liquidsoap/releases/tag/v2.5.0-rc1) (docker: `savonet/liquidsoap:v2.5.0-rc1`) | 🧪        | [2.5.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.5.x) (docker: `savonet/liquidsoap:rolling-release-v2.5.x`) |
-| `2.4.x` | [2.4.5](https://github.com/savonet/liquidsoap/releases/tag/v2.4.5) (docker: `savonet/liquidsoap:v2.4.5`)             | ✅        | [2.4.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.4.x) (docker: `savonet/liquidsoap:rolling-release-v2.4.x`) |
+| `2.4.x` | [2.4.6](https://github.com/savonet/liquidsoap/releases/tag/v2.4.6) (docker: `savonet/liquidsoap:v2.4.6`)             | ✅        | [2.4.x](https://github.com/savonet/liquidsoap/releases/tag/rolling-release-v2.4.x) (docker: `savonet/liquidsoap:rolling-release-v2.4.x`) |
 | `2.3.x` | [2.3.3](https://github.com/savonet/liquidsoap/releases/tag/v2.3.3) (docker: `savonet/liquidsoap:v2.3.3`)             | ❌        | ❌                                                                                                                                       |
 
 <!-- release-table:end -->
@@ -121,7 +121,7 @@ We generally try to support the latest LTS release of each OS as well as their m
 
 | OS      | Supported Releases                                         | Binary assets                  | Architectures       | Notes                                                                                        |
 | ------- | ---------------------------------------------------------- | ------------------------------ | ------------------- | -------------------------------------------------------------------------------------------- |
-| Debian  | stable (currently: `trixie`), testing (currently: `forky`) | `.deb` packages, docker images | `amd64`, `arm64`    | `.deb` packages before `2.5.x` require [deb-multimedia.org](https://www.deb-multimedia.org/) |
+| Debian  | stable (currently: `trixie`), testing (currently: `forky`) | `.deb` packages, docker images | `amd64`, `arm64`    | `.deb` packages before `2.4.6` require [deb-multimedia.org](https://www.deb-multimedia.org/) |
 | Ubuntu  | LTS (currently: `resolute`), latest (currently: `plucky`)  | `.deb` packages, docker images | `amd64`, `arm64`    |                                                                                              |
 | Fedora  | latest (currently: `44`)                                   | `.rpm` packages                | `x86_64`, `aarch64` | All FFmpeg codecs need [RPM Fusion](https://rpmfusion.org/Howto/Multimedia)                  |
 | Alpine  | `edge`                                                     | `.apk` packages, docker images | `x86_64`, `aarch64` |                                                                                              |

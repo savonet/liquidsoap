@@ -10,7 +10,7 @@
     "version": "2.4.x",
     "branch": "v2.4.x-latest",
     "supported": true,
-    "latest_release": "2.4.5",
+    "latest_release": "2.4.6",
     "package_ocaml": "4.14"
   },
   {

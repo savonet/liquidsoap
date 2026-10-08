@@ -32,9 +32,9 @@ If you are installing via [opam](https://opam.ocaml.org/), installing the `ffmpe
 
 ### fdk-aac support in ffmpeg
 
-Since `2.5.x`, all binary releases and Docker images ship with a static FFmpeg build that includes `fdk-aac`.
+Since `2.4.6`, all binary releases and Docker images ship with a static FFmpeg build that includes `fdk-aac`.
 
-For releases prior to `2.5.x`, `fdk-aac` support requires the FFmpeg shared libraries compiled with `libfdk-aac`. On Debian, [deb-multimedia.org](https://www.deb-multimedia.org/) provided such a build. See also [this discussion](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
+For releases prior to `2.4.6`, `fdk-aac` support requires the FFmpeg shared libraries compiled with `libfdk-aac`. On Debian, [deb-multimedia.org](https://www.deb-multimedia.org/) provided such a build. See also [this discussion](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
 
 ## Decoders
 
