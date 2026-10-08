@@ -1,0 +1,31 @@
+(executable
+ (name tests)
+ (modules harness test_avutil test_avcodec test_av test_avfilter test_swscale test_swresample tests)
+ (foreign_stubs
+  (language c)
+  (names test_avutil_stubs test_avcodec_stubs test_av_stubs)
+  (flags
+   (:include ../detect/av_c_flags.sexp)))
+ (libraries avutil avcodec av avfilter avdevice swscale swresample threads unix))
+
+(rule
+ (alias ffmpeg_citest)
+ (deps
+  ../detect/avutil_versions
+  ../detect/avcodec_versions
+  ../detect/av_versions
+  ../detect/avfilter_versions
+  ../detect/avdevice_versions
+  ../detect/swscale_versions
+  ../detect/swresample_versions
+  (glob_files fixtures/*))
+ (action
+  (run
+   ./runner.exe
+   --profile
+   %{profile}
+   --expect-pass
+   100
+   --allow-skip
+   2.13
+   %{exe:tests.exe})))

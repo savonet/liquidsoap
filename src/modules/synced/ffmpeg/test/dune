@@ -1,12 +1,35 @@
+(env
+ (gcstress
+  (link_flags
+   (:standard -runtime-variant d))))
+
 (executable
- (name test_runner)
- (modules test_runner)
+ (name runner)
+ (modules runner)
  (libraries unix))
 
-(executable
- (name normalize_line_endings)
- (modules normalize_line_endings))
+(rule
+ (alias ffmpeg_citest)
+ (deps
+  ../detect/avutil_available
+  ../detect/avcodec_available
+  ../detect/av_available
+  ../detect/avfilter_available
+  ../detect/avdevice_available
+  ../detect/swscale_available
+  ../detect/swresample_available)
+ (action
+  (chdir
+   ../detect
+   (run
+    ./detect.exe
+    require
+    avutil
+    avcodec
+    av
+    avfilter
+    avdevice
+    swscale
+    swresample))))
 
-; Test rules — generated conditionally based on library availability
-
-(dynamic_include ../gen/test_executables.inc)
+(dynamic_include ../detect/tests.inc)

@@ -1,81 +1,11 @@
-(* Line *)
 type input
 type output
-
-(* Container *)
 type 'a container
-
-(** {1 Media types} *)
-
 type audio = [ `Audio ]
 type video = [ `Video ]
 type subtitle = [ `Subtitle ]
 type media_type = Media_types.t
-
-(* Format *)
 type ('line, 'media) format
-type version = { major : int; minor : int; micro : int }
-
-external version : unit -> int = "ocaml_avutil_version" [@@noalloc]
-
-external version_int : int -> int -> int -> int = "ocaml_avutil_version_int"
-[@@noalloc]
-
-let version =
-  let v = version () in
-  { major = v lsr 16; minor = (v lsr 8) land 0xff; micro = v land 0xff }
-
-let version_string { major; minor; micro } =
-  Printf.sprintf "%d.%d.%d" major minor micro
-
-let compare_version a b =
-  compare
-    (version_int a.major a.minor a.micro)
-    (version_int b.major b.minor b.micro)
-
-external qp2lambda : unit -> int = "ocaml_avutil_qp2lambda"
-
-let qp2lambda = qp2lambda ()
-
-external expr_parse_and_eval : string -> float
-  = "ocaml_avutil_expr_parse_and_eval"
-
-(* Frame *)
-module Frame = struct
-  type 'media t
-
-  external pts : _ t -> Int64.t option = "ocaml_avutil_frame_pts"
-
-  external set_pts : _ t -> Int64.t option -> unit
-    = "ocaml_avutil_frame_set_pts"
-
-  external duration : _ t -> Int64.t option = "ocaml_avutil_frame_duration"
-
-  external set_duration : _ t -> Int64.t option -> unit
-    = "ocaml_avutil_frame_set_duration"
-
-  external pkt_dts : _ t -> Int64.t option = "ocaml_avutil_frame_pkt_dts"
-
-  external set_pkt_dts : _ t -> Int64.t option -> unit
-    = "ocaml_avutil_frame_set_pkt_dts"
-
-  external metadata : _ t -> (string * string) array
-    = "ocaml_avutil_frame_metadata"
-
-  let metadata frame = Array.to_list (metadata frame)
-
-  external set_metadata : _ t -> (string * string) array -> unit
-    = "ocaml_avutil_frame_set_metadata"
-
-  let set_metadata frame metadata = set_metadata frame (Array.of_list metadata)
-
-  external best_effort_timestamp : _ t -> Int64.t option
-    = "ocaml_avutil_frame_best_effort_timestamp"
-
-  external copy : 'a t -> 'b t -> unit = "ocaml_avutil_frame_copy"
-end
-
-type 'media frame = 'media Frame.t
 
 type error =
   [ `Bsf_not_found
@@ -98,38 +28,98 @@ type error =
   | `Other of int
   | `Failure of string ]
 
+exception Error of error
+
+let () = Callback.register_exception "ocaml_avutil_error" (Error `Unknown)
+
 external string_of_error : error -> string = "ocaml_avutil_string_of_error"
 
-exception Error of error
+let string_of_error = function
+  | `Failure message -> message
+  | error -> string_of_error error
 
 let () =
   Printexc.register_printer (function
-    | Error err ->
-        Some (Printf.sprintf "Avutil.Error(%s)" (string_of_error err))
+    | Error error ->
+        Some (Printf.sprintf "Avutil.Error(%s)" (string_of_error error))
     | _ -> None)
 
-let () =
-  Callback.register_exception "ffmpeg_exn_error" (Error `Unknown);
-  Callback.register "ffmpeg_exn_failure" (fun s -> raise (Error (`Failure s)))
+let failure fmt =
+  Printf.ksprintf (fun message -> raise (Error (`Failure message))) fmt
+
+type version = { major : int; minor : int; micro : int }
+
+external version : unit -> version = "ocaml_avutil_version"
+
+let version = version ()
+
+let version_string { major; minor; micro } =
+  Printf.sprintf "%d.%d.%d" major minor micro
+
+module Frame = struct
+  type 'media t
+
+  external pts : _ t -> Int64.t option = "ocaml_avutil_frame_pts"
+
+  external set_pts : _ t -> Int64.t option -> unit
+    = "ocaml_avutil_frame_set_pts"
+
+  external duration : _ t -> Int64.t option = "ocaml_avutil_frame_duration"
+
+  external set_duration : _ t -> Int64.t option -> unit
+    = "ocaml_avutil_frame_set_duration"
+
+  external pkt_dts : _ t -> Int64.t option = "ocaml_avutil_frame_pkt_dts"
+
+  external set_pkt_dts : _ t -> Int64.t option -> unit
+    = "ocaml_avutil_frame_set_pkt_dts"
+
+  external metadata : _ t -> (string * string) list
+    = "ocaml_avutil_frame_metadata"
+
+  external set_metadata : _ t -> (string * string) list -> unit
+    = "ocaml_avutil_frame_set_metadata"
+
+  external best_effort_timestamp : _ t -> Int64.t option
+    = "ocaml_avutil_frame_best_effort_timestamp"
+end
+
+type 'media frame = 'media Frame.t
+
+external expr_parse_and_eval : string -> float
+  = "ocaml_avutil_expr_parse_and_eval"
 
 type data =
   (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-let create_data len =
-  Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout len
+let create_data length =
+  if length < 0 then failure "negative data length";
+  Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout length
 
 type rational = { num : int; den : int }
 
-external av_d2q : float -> rational = "ocaml_avutil_av_d2q"
-
 let string_of_rational { num; den } = Printf.sprintf "%d/%d" num den
 
-external time_base : unit -> rational = "ocaml_avutil_time_base"
+external qp2lambda : unit -> int = "ocaml_avutil_qp2lambda"
+
+let qp2lambda = qp2lambda ()
 
 module Time_format = struct
   type t = [ `Second | `Millisecond | `Microsecond | `Nanosecond ]
 end
 
+external time_base : unit -> rational = "ocaml_avutil_time_base"
+
+(* Log delivery, spec/avutil.md §7.1.
+
+   The C side queues every captured message and numbers it. A receiver is a
+   callback with the range of message numbers captured while it was
+   installed: [set_callback] opens a range, [clear_callback] and a
+   replacement close it. One thread, started by the first [set_callback],
+   takes the messages in order and gives each to the receiver whose range
+   holds its number.
+
+   [mutex] protects [state] and is never held while a callback runs. *)
 module Log = struct
   type level =
     [ `Quiet
@@ -142,85 +132,110 @@ module Log = struct
     | `Debug
     | `Trace ]
 
-  let int_of_level = function
-    | `Quiet -> -8
-    | `Panic -> 0
-    | `Fatal -> 8
-    | `Error -> 16
-    | `Warning -> 24
-    | `Info -> 32
-    | `Verbose -> 40
-    | `Debug -> 48
-    | `Trace -> 56
+  external set_level : level -> unit = "ocaml_avutil_set_log_level"
+  external start_capture : unit -> int = "ocaml_avutil_log_start_capture"
+  external stop_capture : unit -> int = "ocaml_avutil_log_stop_capture"
+  external wait : unit -> string array = "ocaml_avutil_log_wait"
 
-  external set_level : int -> unit = "ocaml_avutil_set_log_level"
+  type receiver = { first : int; mutable last : int; callback : string -> unit }
 
-  let set_level level = set_level (int_of_level level)
+  type state = {
+    mutable receivers : receiver list;
+    mutable delivered : int;
+    mutable delivery_thread : Thread.t option;
+  }
 
-  external setup_log_callback : unit -> unit = "ocaml_avutil_setup_log_callback"
-  external wait_for_logs : unit -> unit = "ocaml_ffmpeg_wait_for_logs"
-  external signal_logs : unit -> unit = "ocaml_ffmpeg_signal_logs"
+  let state = { receivers = []; delivered = 0; delivery_thread = None }
+  let mutex = Mutex.create ()
+  let delivered_changed = Condition.create ()
 
-  external get_pending_logs : unit -> string list
-    = "ocaml_ffmpeg_get_pending_logs"
+  (* Ends, at message number [last], the range of every receiver. *)
+  let close_receivers last =
+    List.iter (fun r -> r.last <- min r.last last) state.receivers;
+    state.receivers <-
+      List.filter (fun r -> r.last > state.delivered) state.receivers
 
-  external clear_callback : unit -> unit = "ocaml_avutil_clear_log_callback"
-
-  let[@inline never] mutexify m f x =
-    Mutex.lock m;
-    match f x with
-      | exception exn ->
-          let bt = Printexc.get_raw_backtrace () in
-          Mutex.unlock m;
-          Printexc.raise_with_backtrace exn bt
-      | v ->
-          Mutex.unlock m;
-          v
-
-  let log_m = Mutex.create ()
-  let log_thread = ref false
-  let log_thread_should_stop = ref false
-  let log_thread_processor = Atomic.make (fun _ -> assert false)
-
-  let log_processor =
-    let rec fn () =
-      let should_stop =
-        mutexify log_m
-          (fun () ->
-            List.iter (Atomic.get log_thread_processor) (get_pending_logs ());
-            if !log_thread_should_stop then (
-              clear_callback ();
-              log_thread := false;
-              true)
-            else false)
-          ()
-      in
-      if not should_stop then (
-        wait_for_logs ();
-        fn ())
+  let deliver message =
+    let receiver =
+      Mutex.protect mutex (fun () ->
+          List.find_opt
+            (fun r -> r.first <= state.delivered && state.delivered < r.last)
+            state.receivers)
     in
-    fn
+    (match receiver with
+      | None -> ()
+      | Some { callback; _ } -> (
+          try callback message
+          with exn ->
+            Printf.eprintf "Avutil.Log: the log callback raised %s\n%!"
+              (Printexc.to_string exn)));
+    Mutex.protect mutex (fun () ->
+        state.delivered <- state.delivered + 1;
+        close_receivers max_int;
+        Condition.broadcast delivered_changed)
 
-  let set_callback fn =
-    Atomic.set log_thread_processor fn;
-    mutexify log_m
-      (fun () ->
-        if !log_thread then ()
-        else (
-          setup_log_callback ();
-          ignore (Thread.create log_processor ());
-          log_thread_should_stop := false;
-          log_thread := true))
-      ()
+  let rec delivery_loop () =
+    Array.iter deliver (wait ());
+    delivery_loop ()
+
+  (* ponytail: the delivery thread belongs to the domain of the first
+     [set_callback]; a dedicated domain if that domain may terminate. *)
+  let set_callback callback =
+    Mutex.protect mutex (fun () ->
+        let first = start_capture () in
+        close_receivers first;
+        state.receivers <-
+          { first; last = max_int; callback } :: state.receivers;
+        if state.delivery_thread = None then
+          state.delivery_thread <- Some (Thread.create delivery_loop ()))
+
+  let on_delivery_thread () =
+    match state.delivery_thread with
+      | Some thread -> Thread.id thread = Thread.id (Thread.self ())
+      | None -> false
 
   let clear_callback () =
-    mutexify log_m
-      (fun () ->
-        clear_callback ();
-        List.iter (Atomic.get log_thread_processor) (get_pending_logs ());
-        log_thread_should_stop := true;
-        signal_logs ())
-      ()
+    Mutex.protect mutex (fun () ->
+        let last = stop_capture () in
+        close_receivers last;
+        if not (on_delivery_thread ()) then
+          while state.delivered < last do
+            Condition.wait delivered_changed mutex
+          done)
+end
+
+module Channel_layout = struct
+  type layout = Channel_layout.t
+  type t
+
+  external standard_layouts : unit -> t array
+    = "ocaml_avutil_standard_channel_layouts"
+
+  external find : string -> t = "ocaml_avutil_find_channel_layout"
+  external compare : t -> t -> bool = "ocaml_avutil_compare_channel_layouts"
+
+  external get_description : t -> string
+    = "ocaml_avutil_channel_layout_description"
+
+  external get_nb_channels : t -> int
+    = "ocaml_avutil_channel_layout_nb_channels"
+
+  external get_default : int -> t = "ocaml_avutil_default_channel_layout"
+  external get_mask : t -> int64 option = "ocaml_avutil_channel_layout_mask"
+
+  let standard_layouts = Array.to_list (standard_layouts ())
+  let stereo = find "stereo"
+  let mono = find "mono"
+  let five_point_one = find "5.1"
+end
+
+module Sample_format = struct
+  type t = Sample_format.t
+
+  external get_name : t -> string option = "ocaml_avutil_sample_format_name"
+  external find : string -> t = "ocaml_avutil_find_sample_format"
+  external get_id : t -> int = "ocaml_avutil_sample_format_id"
+  external find_id : int -> t = "ocaml_avutil_find_sample_format_id"
 end
 
 module Color_space = struct
@@ -274,9 +289,6 @@ module Pixel_format = struct
     depth : int;
   }
 
-  (* An extra hidden field is stored on the C side
-     with a reference to the underlying C descriptor
-     for use with the C functions consuming it. *)
   type descriptor = {
     name : string;
     nb_components : int;
@@ -287,61 +299,13 @@ module Pixel_format = struct
     alias : string option;
   }
 
-  external descriptor : t -> descriptor = "ocaml_avutil_pixelformat_descriptor"
-  external bits : descriptor -> int = "ocaml_avutil_pixelformat_bits_per_pixel"
-  external planes : t -> int = "ocaml_avutil_pixelformat_planes"
-  external to_string : t -> string option = "ocaml_avutil_pixelformat_to_string"
-  external of_string : string -> t = "ocaml_avutil_pixelformat_of_string"
-  external get_id : t -> int = "ocaml_avutil_get_pixel_fmt_id"
-  external find_id : int -> t = "ocaml_avutil_find_pixel_fmt_from_id"
-end
-
-module Channel_layout = struct
-  type layout = Channel_layout.t
-  type t
-
-  external compare : t -> t -> bool = "ocaml_avutil_compare_channel_layout"
-
-  external get_description : t -> string
-    = "ocaml_avutil_get_channel_layout_description"
-
-  external find : string -> t = "ocaml_avutil_get_channel_layout"
-
-  external get_nb_channels : t -> int
-    = "ocaml_avutil_get_channel_layout_nb_channels"
-
-  external get_default : int -> t = "ocaml_avutil_get_default_channel_layout"
-
-  type opaque
-
-  external start_standard_iteration : unit -> opaque
-    = "ocaml_avutil_start_standard_iteration"
-
-  external get_standard : opaque -> t option = "ocaml_avutil_get_standard"
-
-  let standard_layouts =
-    let start = start_standard_iteration () in
-    let rec f ret =
-      match get_standard start with Some l -> f (l :: ret) | None -> ret
-    in
-    f []
-
-  let mono = find "mono"
-  let stereo = find "stereo"
-  let five_point_one = find "5.1"
-
-  external get_mask : t -> int64 option = "ocaml_avutil_get_channel_mask"
-
-  let get_native_id = get_mask
-end
-
-module Sample_format = struct
-  type t = Sample_format.t
-
-  external get_name : t -> string option = "ocaml_avutil_get_sample_fmt_name"
-  external get_id : t -> int = "ocaml_avutil_get_sample_fmt_id"
-  external find : string -> t = "ocaml_avutil_find_sample_fmt"
-  external find_id : int -> t = "ocaml_avutil_find_sample_fmt_from_id"
+  external descriptor : t -> descriptor = "ocaml_avutil_pixel_format_descriptor"
+  external bits : descriptor -> int = "ocaml_avutil_pixel_format_bits"
+  external planes : t -> int = "ocaml_avutil_pixel_format_planes"
+  external to_string : t -> string option = "ocaml_avutil_pixel_format_name"
+  external of_string : string -> t = "ocaml_avutil_find_pixel_format"
+  external get_id : t -> int = "ocaml_avutil_pixel_format_id"
+  external find_id : int -> t = "ocaml_avutil_find_pixel_format_id"
 end
 
 module Audio = struct
@@ -350,23 +314,19 @@ module Audio = struct
     = "ocaml_avutil_audio_create_frame"
 
   external frame_get_sample_format : audio frame -> Sample_format.t
-    = "ocaml_avutil_audio_frame_get_sample_format"
+    = "ocaml_avutil_audio_frame_sample_format"
 
   external frame_get_sample_rate : audio frame -> int
-    = "ocaml_avutil_audio_frame_get_sample_rate"
+    = "ocaml_avutil_audio_frame_sample_rate"
 
   external frame_get_channels : audio frame -> int
-    = "ocaml_avutil_audio_frame_get_channels"
+    = "ocaml_avutil_audio_frame_channels"
 
   external frame_get_channel_layout : audio frame -> Channel_layout.t
-    = "ocaml_avutil_audio_frame_get_channel_layout"
+    = "ocaml_avutil_audio_frame_channel_layout"
 
   external frame_nb_samples : audio frame -> int
     = "ocaml_avutil_audio_frame_nb_samples"
-
-  external frame_copy_samples :
-    audio frame -> int -> audio frame -> int -> int -> unit
-    = "ocaml_avutil_audio_frame_copy_samples"
 end
 
 module Video = struct
@@ -376,13 +336,20 @@ module Video = struct
     = "ocaml_avutil_video_create_frame"
 
   external frame_get_linesize : video frame -> int -> int
-    = "ocaml_avutil_video_frame_get_linesize"
+    = "ocaml_avutil_video_frame_linesize"
 
-  external get_frame_planes : video frame -> bool -> planes
-    = "ocaml_avutil_video_get_frame_bigarray_planes"
+  external frame_planes : video frame -> bool -> planes
+    = "ocaml_avutil_video_frame_planes"
 
+  (* The finaliser holds the frame, which owns every buffer a plane of its
+     visits points into: the buffers live as long as the bigarrays. *)
   let frame_visit ~make_writable visit frame =
-    visit (get_frame_planes frame make_writable);
+    let planes = frame_planes frame make_writable in
+    Array.iter
+      (fun (data, _) ->
+        Gc.finalise (fun _ -> ignore (Sys.opaque_identity frame)) data)
+      planes;
+    visit planes;
     frame
 
   external frame_get_width : video frame -> int
@@ -392,25 +359,25 @@ module Video = struct
     = "ocaml_avutil_video_frame_height"
 
   external frame_get_pixel_format : video frame -> Pixel_format.t
-    = "ocaml_avutil_video_frame_get_pixel_format"
+    = "ocaml_avutil_video_frame_pixel_format"
 
   external frame_get_pixel_aspect : video frame -> rational option
-    = "ocaml_avutil_video_frame_get_pixel_aspect"
+    = "ocaml_avutil_video_frame_pixel_aspect"
 
   external frame_get_color_space : video frame -> Color_space.t
-    = "ocaml_avutil_video_frame_get_color_space"
+    = "ocaml_avutil_video_frame_color_space"
 
   external frame_get_color_range : video frame -> Color_range.t
-    = "ocaml_avutil_video_frame_get_color_range"
+    = "ocaml_avutil_video_frame_color_range"
 
   external frame_get_color_primaries : video frame -> Color_primaries.t
-    = "ocaml_avutil_video_frame_get_color_primaries"
+    = "ocaml_avutil_video_frame_color_primaries"
 
   external frame_get_color_trc : video frame -> Color_trc.t
-    = "ocaml_avutil_video_frame_get_color_trc"
+    = "ocaml_avutil_video_frame_color_trc"
 
   external frame_get_chroma_location : video frame -> Chroma_location.t
-    = "ocaml_avutil_video_frame_get_chroma_location"
+    = "ocaml_avutil_video_frame_chroma_location"
 end
 
 module Subtitle = struct
@@ -419,24 +386,28 @@ module Subtitle = struct
   type subtitle_flag = Subtitle_flag.t
 
   let header_ass_default () =
-    "[Script Info]\r\n\
-     ; Script generated by ocaml-ffmpeg\r\n\
-     ScriptType: v4.00+\r\n\
-     PlayResX: 384\r\n\
-     PlayResY: 288\r\n\
-     ScaledBorderAndShadow: yes\r\n\
-     \r\n\
-     [V4+ Styles]\r\n\
-     Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, \
-     OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, \
-     ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, \
-     MarginR, MarginV, Encoding\r\n\
-     Style: \
-     Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1\r\n\
-     \r\n\
-     [Events]\r\n\
-     Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, \
-     Effect, Text\r\n"
+    String.concat "\r\n"
+      [
+        "[Script Info]";
+        "; Script generated by ocaml-ffmpeg";
+        "ScriptType: v4.00+";
+        "PlayResX: 384";
+        "PlayResY: 288";
+        "ScaledBorderAndShadow: yes";
+        "";
+        "[V4+ Styles]";
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, \
+         OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, \
+         ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, \
+         Alignment, MarginL, MarginR, MarginV, Encoding";
+        "Style: \
+         Default,Arial,16,&Hffffff,&Hffffff,&H0,&H0,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1";
+        "";
+        "[Events]";
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, \
+         Effect, Text";
+        "";
+      ]
 
   type pict = {
     x : int;
@@ -463,23 +434,18 @@ module Subtitle = struct
     pts : int64 option;
   }
 
-  external get_content : frame -> content = "ocaml_avutil_subtitle_get_content"
-
   external create_frame : content -> frame
     = "ocaml_avutil_subtitle_create_frame"
 
-  external get_pts : frame -> int64 option = "ocaml_avutil_subtitle_get_pts"
+  external get_content : frame -> content = "ocaml_avutil_subtitle_content"
+  external get_pts : frame -> int64 option = "ocaml_avutil_subtitle_pts"
 end
+
+external rational_of_float : float -> rational
+  = "ocaml_avutil_rational_of_float"
 
 module Options = struct
   type t
-
-  type 'a entry = {
-    default : 'a option;
-    min : 'a option;
-    max : 'a option;
-    values : (string * 'a) list;
-  }
 
   type flag =
     [ `Encoding_param
@@ -495,27 +461,12 @@ module Options = struct
     | `Deprecated
     | `Child_consts ]
 
-  external int_of_flag : flag -> int = "ocaml_avutil_av_opt_int_of_flag"
-
-  let flags_of_flags _flags =
-    List.fold_left
-      (fun flags flag ->
-        if _flags land int_of_flag flag = 0 then flags else flag :: flags)
-      []
-      [
-        `Encoding_param;
-        `Decoding_param;
-        `Audio_param;
-        `Video_param;
-        `Subtitle_param;
-        `Export;
-        `Readonly;
-        `Bsf_param;
-        `Runtime_param;
-        `Filtering_param;
-        `Deprecated;
-        `Child_consts;
-      ]
+  type 'a entry = {
+    default : 'a option;
+    min : 'a option;
+    max : 'a option;
+    values : (string * 'a) list;
+  }
 
   type ground =
     [ `Flags of int64 entry
@@ -546,344 +497,273 @@ module Options = struct
     spec : spec;
   }
 
-  type 'a _entry = { _default : 'a option; _min : 'a option; _max : 'a option }
-  type constant
+  type kind =
+    [ `Flags
+    | `Int
+    | `Int64
+    | `UInt64
+    | `Duration
+    | `Double
+    | `Float
+    | `Rational
+    | `String
+    | `Binary
+    | `Dict
+    | `Image_size
+    | `Video_rate
+    | `Color
+    | `Pixel_fmt
+    | `Sample_fmt
+    | `Channel_layout
+    | `Bool
+    | `Const
+    | `Unsupported ]
 
-  external default_int64 : constant -> int64
-    = "ocaml_avutil_avopt_default_int64"
-
-  external default_double : constant -> float
-    = "ocaml_avutil_avopt_default_double"
-
-  external default_string : constant -> string
-    = "ocaml_avutil_avopt_default_string"
-
-  type _ground =
-    [ `Flags of int64 _entry
-    | `Int of int _entry
-    | `Int64 of int64 _entry
-    | `Float of float _entry
-    | `Double of float _entry
-    | `String of string _entry
-    | `Rational of rational _entry
-    | `Binary of string _entry
-    | `Dict of string _entry
-    | `UInt64 of int64 _entry
-    | `Image_size of string _entry
-    | `Pixel_fmt of Pixel_format.t _entry
-    | `Sample_fmt of Sample_format.t _entry
-    | `Video_rate of string _entry
-    | `Duration of int64 _entry
-    | `Color of string _entry
-    | `Channel_layout of Channel_layout.t _entry
-    | `Bool of bool _entry ]
-
-  type _spec = [ `Constant of constant _entry | _ground | `Array of _ground ]
-  type _opt_cursor
-  type _class_cursor
-  type _cursor = { _opt_cursor : _opt_cursor; _class_cursor : _class_cursor }
-
-  type _opt = {
-    _name : string;
-    _help : string option;
-    _spec : _spec;
-    _flags : int;
-    _unit : string option;
-    _cursor : _cursor option;
+  (* An FFmpeg option as its class declares it: [default_int],
+     [default_float] and [default_string] are the members of the default
+     value its [kind] uses, a named constant among them. *)
+  type raw = {
+    raw_name : string;
+    raw_help : string option;
+    raw_unit : string option;
+    kind : kind;
+    is_array : bool;
+    raw_flags : flag list;
+    default_int : int64;
+    default_float : float;
+    default_string : string option;
+    raw_min : float;
+    raw_max : float;
   }
 
-  exception Av_opt_iter_not_implemented of _cursor option
+  external class_options : t -> raw array = "ocaml_avutil_class_options"
+  external child_classes : t -> t array = "ocaml_avutil_child_classes"
 
-  let () =
-    Callback.register_exception "av_opt_iter_not_implemented"
-      (Av_opt_iter_not_implemented None)
+  (* FFmpeg stores every bound as a float. *)
+  let saturated bound =
+    if bound <= Int64.to_float Int64.min_int then Int64.min_int
+    else if bound >= Int64.to_float Int64.max_int then Int64.max_int
+    else Int64.of_float bound
 
-  external av_opt_iter : _cursor option -> t -> _opt option
-    = "ocaml_avutil_av_opt_iter"
+  let found find key = try Some (find key) with Not_found -> None
 
-  let constant_of_opt opt (name, { _default; _ }) =
-    let append fn l = (name, fn (Option.get _default)) :: l in
+  (* The named constants of [raw]: the constants of its class that share
+     its unit. *)
+  let named_values constants raw convert =
+    match raw.raw_unit with
+      | None -> []
+      | Some _ ->
+          List.filter_map
+            (fun constant ->
+              if constant.raw_unit = raw.raw_unit then
+                Some (constant.raw_name, convert constant)
+              else None)
+            constants
 
-    let spec =
-      (* See: https://ffmpeg.org/doxygen/trunk/opt_8c_source.html#l01281 *)
-        match opt.spec with
-        (* Int *)
-        | `Flags ({ values; _ } as spec) ->
-            `Int64 { spec with values = append default_int64 values }
-        | `Int ({ values; _ } as spec) ->
-            `Int
-              {
-                spec with
-                values = append (fun v -> Int64.to_int (default_int64 v)) values;
-              }
-        | `Int64 ({ values; _ } as spec) ->
-            `Int64 { spec with values = append default_int64 values }
-        | `UInt64 ({ values; _ } as spec) ->
-            `UInt64 { spec with values = append default_int64 values }
-        | `Duration ({ values; _ } as spec) ->
-            `Duration { spec with values = append default_int64 values }
-        | `Bool ({ values; _ } as spec) ->
-            `Bool
-              {
-                spec with
-                values = append (fun v -> default_int64 v = 0L) values;
-              }
-        (* Float *)
-        | `Float ({ values; _ } as spec) ->
-            `Float { spec with values = append default_double values }
-        | `Double ({ values; _ } as spec) ->
-            `Double { spec with values = append default_double values }
-        (* Rational *)
-        (* This is surprising but this is the current implementation
-           it looks like. Might be historical. *)
-        | `Rational ({ values; _ } as spec) ->
-            `Rational
-              {
-                spec with
-                values = append (fun v -> av_d2q (default_double v)) values;
-              }
-        (* String *)
-        | `String ({ values; _ } as spec) ->
-            `String { spec with values = append default_string values }
-        | `Video_rate ({ values; _ } as spec) ->
-            `Video_rate { spec with values = append default_string values }
-        | `Color ({ values; _ } as spec) ->
-            `Color { spec with values = append default_string values }
-        | `Image_size ({ values; _ } as spec) ->
-            `Image_size { spec with values = append default_string values }
-        | `Dict ({ values; _ } as spec) ->
-            `Dict { spec with values = append default_string values }
-        (* Other *)
-        | `Channel_layout ({ values; _ } as spec) ->
-            `Channel_layout
-              {
-                spec with
-                values =
-                  append
-                    (fun v -> Channel_layout.find (default_string v))
-                    values;
-              }
-        | `Sample_fmt ({ values; _ } as spec) ->
-            `Sample_fmt
-              {
-                spec with
-                values =
-                  append
-                    (fun v ->
-                      Sample_format.find_id (Int64.to_int (default_int64 v)))
-                    values;
-              }
-        | `Pixel_fmt ({ values; _ } as spec) ->
-            `Pixel_fmt
-              {
-                spec with
-                values =
-                  append
-                    (fun v ->
-                      Pixel_format.find_id (Int64.to_int (default_int64 v)))
-                    values;
-              }
-        | _ -> failwith "Incompatible constant!"
+  let ground constants raw : ground option =
+    let unbounded default = { default; min = None; max = None; values = [] } in
+    let text () = unbounded raw.default_string in
+    let format find_id =
+      match found find_id (Int64.to_int raw.default_int) with
+        | Some `None | None -> None
+        | Some format -> Some format
     in
-    { opt with spec }
-
-  let opts v =
-    let constants = Hashtbl.create 10 in
-
-    let opt_of_ground_opt : _ground -> ground = function
-      | `Flags { _default; _min; _max } ->
-          `Flags { default = _default; min = _min; max = _max; values = [] }
-      | `Int { _default; _min; _max; _ } ->
-          `Int { default = _default; min = _min; max = _max; values = [] }
-      | `Int64 { _default; _min; _max; _ } ->
-          `Int64 { default = _default; min = _min; max = _max; values = [] }
-      | `Float { _default; _min; _max; _ } ->
-          `Float { default = _default; min = _min; max = _max; values = [] }
-      | `Double { _default; _min; _max; _ } ->
-          `Double { default = _default; min = _min; max = _max; values = [] }
-      | `String { _default; _min; _max; _ } ->
-          `String { default = _default; min = _min; max = _max; values = [] }
-      | `Rational { _default; _min; _max; _ } ->
-          `Rational { default = _default; min = _min; max = _max; values = [] }
-      | `Binary { _default; _min; _max; _ } ->
-          `Binary { default = _default; min = _min; max = _max; values = [] }
-      | `Dict { _default; _min; _max; _ } ->
-          `Dict { default = _default; min = _min; max = _max; values = [] }
-      | `UInt64 { _default; _min; _max; _ } ->
-          `UInt64 { default = _default; min = _min; max = _max; values = [] }
-      | `Image_size { _default; _min; _max; _ } ->
-          `Image_size
-            { default = _default; min = _min; max = _max; values = [] }
-      | `Pixel_fmt { _default; _min; _max; _ } ->
-          `Pixel_fmt { default = _default; min = _min; max = _max; values = [] }
-      | `Sample_fmt { _default; _min; _max; _ } ->
-          `Sample_fmt
-            { default = _default; min = _min; max = _max; values = [] }
-      | `Video_rate { _default; _min; _max; _ } ->
-          `Video_rate
-            { default = _default; min = _min; max = _max; values = [] }
-      | `Duration { _default; _min; _max; _ } ->
-          `Duration { default = _default; min = _min; max = _max; values = [] }
-      | `Color { _default; _min; _max; _ } ->
-          `Color { default = _default; min = _min; max = _max; values = [] }
-      | `Channel_layout { _default; _min; _max; _ } ->
-          `Channel_layout
-            { default = _default; min = _min; max = _max; values = [] }
-      | `Bool { _default; _min; _max; _ } ->
-          `Bool { default = _default; min = _min; max = _max; values = [] }
+    let int64 () =
+      {
+        default = Some raw.default_int;
+        min = Some (saturated raw.raw_min);
+        max = Some (saturated raw.raw_max);
+        values = named_values constants raw (fun c -> c.default_int);
+      }
     in
-
-    let opt_of_opt { _name; _help; _spec; _flags; _unit; _ } =
-      let spec : spec =
-        match _spec with
-          | #_ground as g -> (opt_of_ground_opt g :> spec)
-          | `Array g -> `Array (opt_of_ground_opt g :> ground)
-          | `Constant _ -> assert false
-      in
-      let opt =
-        { name = _name; help = _help; flags = flags_of_flags _flags; spec }
-      in
-      match _unit with
-        | Some u when Hashtbl.mem constants u ->
-            List.fold_left constant_of_opt opt (Hashtbl.find_all constants u)
-        | _ -> opt
+    let float () =
+      {
+        default = Some raw.default_float;
+        min = Some raw.raw_min;
+        max = Some raw.raw_max;
+        values = named_values constants raw (fun c -> c.default_float);
+      }
     in
+    match raw.kind with
+      | `Flags -> Some (`Flags (int64 ()))
+      | `Int64 -> Some (`Int64 (int64 ()))
+      | `UInt64 -> Some (`UInt64 (int64 ()))
+      | `Duration -> Some (`Duration (int64 ()))
+      | `Int ->
+          Some
+            (`Int
+               {
+                 default = Some (Int64.to_int raw.default_int);
+                 min = Some (Int64.to_int (saturated raw.raw_min));
+                 max = Some (Int64.to_int (saturated raw.raw_max));
+                 values =
+                   named_values constants raw (fun c ->
+                       Int64.to_int c.default_int);
+               })
+      | `Double -> Some (`Double (float ()))
+      | `Float -> Some (`Float (float ()))
+      | `Rational ->
+          Some
+            (`Rational
+               {
+                 default = Some (rational_of_float raw.default_float);
+                 min = Some (rational_of_float raw.raw_min);
+                 max = Some (rational_of_float raw.raw_max);
+                 values = [];
+               })
+      | `String -> Some (`String (text ()))
+      | `Binary -> Some (`Binary (text ()))
+      | `Dict -> Some (`Dict (text ()))
+      | `Image_size -> Some (`Image_size (text ()))
+      | `Video_rate -> Some (`Video_rate (text ()))
+      | `Color -> Some (`Color (text ()))
+      | `Pixel_fmt ->
+          Some (`Pixel_fmt (unbounded (format Pixel_format.find_id)))
+      | `Sample_fmt ->
+          Some (`Sample_fmt (unbounded (format Sample_format.find_id)))
+      | `Channel_layout ->
+          Some
+            (`Channel_layout
+               (unbounded
+                  (Option.bind raw.default_string (found Channel_layout.find))))
+      | `Bool ->
+          let default =
+            if raw.default_int < 0L then None else Some (raw.default_int <> 0L)
+          in
+          Some
+            (`Bool
+               {
+                 (unbounded default) with
+                 values =
+                   named_values constants raw (fun c -> c.default_int <> 0L);
+               })
+      | `Const | `Unsupported -> None
 
-    let rec f _cursor _opts =
-      match av_opt_iter _cursor v with
-        | None -> List.map opt_of_opt _opts
-        | Some { _name; _spec = `Constant s; _cursor; _unit; _ } ->
-            Hashtbl.add constants (Option.get _unit) (_name, s);
-            f _cursor _opts
-        | Some _opt -> f _opt._cursor (_opt :: _opts)
-        | exception Av_opt_iter_not_implemented _cursor -> f _cursor _opts
-    in
+  let without_default_and_values : ground -> ground =
+    let strip entry = { entry with default = None; values = [] } in
+    function
+    | `Flags e -> `Flags (strip e)
+    | `Int e -> `Int (strip e)
+    | `Int64 e -> `Int64 (strip e)
+    | `Float e -> `Float (strip e)
+    | `Double e -> `Double (strip e)
+    | `String e -> `String (strip e)
+    | `Rational e -> `Rational (strip e)
+    | `Binary e -> `Binary (strip e)
+    | `Dict e -> `Dict (strip e)
+    | `UInt64 e -> `UInt64 (strip e)
+    | `Image_size e -> `Image_size (strip e)
+    | `Pixel_fmt e -> `Pixel_fmt (strip e)
+    | `Sample_fmt e -> `Sample_fmt (strip e)
+    | `Video_rate e -> `Video_rate (strip e)
+    | `Duration e -> `Duration (strip e)
+    | `Color e -> `Color (strip e)
+    | `Channel_layout e -> `Channel_layout (strip e)
+    | `Bool e -> `Bool (strip e)
 
-    f None []
+  let opt constants raw =
+    Option.map
+      (fun ground ->
+        let spec =
+          if raw.is_array then `Array (without_default_and_values ground)
+          else (ground :> spec)
+        in
+        {
+          name = raw.raw_name;
+          help = raw.raw_help;
+          flags = raw.raw_flags;
+          spec;
+        })
+      (ground constants raw)
 
-  (* The type implementation is a tuple [(C object, OCaml value)].
-     OCaml value is passed to make sure that the C object is not
-     collected by the GC while running the function. *)
+  let rec opts option_class =
+    let raws = Array.to_list (class_options option_class) in
+    let constants = List.filter (fun raw -> raw.kind = `Const) raws in
+    List.filter_map (opt constants) raws
+    @ List.concat_map opts (Array.to_list (child_classes option_class))
+
   type obj
   type 'a getter = ?search_children:bool -> name:string -> obj -> 'a
 
-  external get : 'a -> ?search_children:bool -> name:string -> 'b -> 'c
-    = "ocaml_avutil_get_opt"
+  let getter read : _ getter =
+   fun ?(search_children = false) ~name obj -> read search_children name obj
 
-  let get (type a) _type ?search_children ~name (obj : obj) : a =
-    let c, o = Obj.magic obj in
-    let ret = get _type ?search_children ~name c in
-    ignore o;
-    ret
+  external get_string : bool -> string -> obj -> string
+    = "ocaml_avutil_get_option_string"
 
-  let get_string = get `String
-  let get_int = get `Int
-  let get_int64 = get `Int64
-  let get_float = get `Float
-  let get_rational = get `Rational
-  let get_image_size = get `Image_size
-  let get_pixel_fmt = get `Pixel_fmt
-  let get_sample_fmt = get `Sample_fmt
-  let get_video_rate = get `Video_rate
-  let get_channel_layout = get `Channel_layout
+  external get_int : bool -> string -> obj -> int
+    = "ocaml_avutil_get_option_int"
 
-  let get_dictionary ?search_children ~name obj =
-    Array.to_list (get `Dict ?search_children ~name obj)
+  external get_int64 : bool -> string -> obj -> int64
+    = "ocaml_avutil_get_option_int64"
+
+  external get_float : bool -> string -> obj -> float
+    = "ocaml_avutil_get_option_float"
+
+  external get_rational : bool -> string -> obj -> rational
+    = "ocaml_avutil_get_option_rational"
+
+  external get_image_size : bool -> string -> obj -> int * int
+    = "ocaml_avutil_get_option_image_size"
+
+  external get_pixel_fmt : bool -> string -> obj -> Pixel_format.t
+    = "ocaml_avutil_get_option_pixel_format"
+
+  external get_sample_fmt : bool -> string -> obj -> Sample_format.t
+    = "ocaml_avutil_get_option_sample_format"
+
+  external get_video_rate : bool -> string -> obj -> rational
+    = "ocaml_avutil_get_option_video_rate"
+
+  external get_channel_layout : bool -> string -> obj -> Channel_layout.t
+    = "ocaml_avutil_get_option_channel_layout"
+
+  external get_dictionary : bool -> string -> obj -> (string * string) list
+    = "ocaml_avutil_get_option_dictionary"
+
+  let get_string = getter get_string
+  let get_int = getter get_int
+  let get_int64 = getter get_int64
+  let get_float = getter get_float
+  let get_rational = getter get_rational
+  let get_image_size = getter get_image_size
+  let get_pixel_fmt = getter get_pixel_fmt
+  let get_sample_fmt = getter get_sample_fmt
+  let get_video_rate = getter get_video_rate
+  let get_channel_layout = getter get_channel_layout
+  let get_dictionary = getter get_dictionary
 end
 
-(* Options *)
 type value =
   [ `String of string | `Int of int | `Int64 of int64 | `Float of float ]
 
 type opts = (string, value) Hashtbl.t
 
-let _opt_val = function
-  | `String s -> s
-  | `Int i -> string_of_int i
-  | `Int64 i -> Int64.to_string i
-  | `Float f -> string_of_float f
+external render_value : value -> string = "ocaml_avutil_render_option_value"
 
-let opts_default = function None -> Hashtbl.create 0 | Some opts -> opts
-
-let mk_opts_array opts =
-  Array.of_list
-    (Hashtbl.fold
-       (fun opt_name opt_val cur -> (opt_name, _opt_val opt_val) :: cur)
-       opts [])
+(* Each key once, with its most recent binding: [Hashtbl.fold] gives the
+   bindings of a key most recent first. *)
+let bindings opts =
+  let seen = Hashtbl.create (Hashtbl.length opts) in
+  Hashtbl.fold
+    (fun key value bindings ->
+      if Hashtbl.mem seen key then bindings
+      else (
+        Hashtbl.add seen key ();
+        (key, value) :: bindings))
+    opts []
 
 let string_of_opts opts =
-  Hashtbl.fold
-    (fun opt_name opt_val l -> (opt_name ^ "=" ^ _opt_val opt_val) :: l)
-    opts []
-  |> String.concat ","
-
-let on_opt v fn = match v with None -> () | Some v -> fn v
-
-let add_audio_opts ?channels ?channel_layout ~sample_rate ~sample_format
-    ~time_base opts =
-  Hashtbl.add opts "ar" (`Int sample_rate);
-  on_opt channels (fun channels -> Hashtbl.add opts "ac" (`Int channels));
-  on_opt channel_layout (fun channel_layout ->
-      let param =
-        match Channel_layout.get_mask channel_layout with
-          | Some id -> `Int64 id
-          | None ->
-              let channel_layout =
-                Channel_layout.get_default
-                  (Channel_layout.get_nb_channels channel_layout)
-              in
-              `Int64 (Option.get (Channel_layout.get_mask channel_layout))
-      in
-      Hashtbl.add opts "channel_layout" param);
-  Hashtbl.add opts "sample_fmt" (`Int (Sample_format.get_id sample_format));
-  Hashtbl.add opts "time_base" (`String (string_of_rational time_base))
-
-let mk_audio_opts ?opts ?channels ?channel_layout ~sample_rate ~sample_format
-    ~time_base () =
-  let () =
-    match (channels, channel_layout) with
-      | None, None ->
-          raise
-            (Error
-               (`Failure
-                  "At least one of channels or channel_layout must be passed!"))
-      | _ -> ()
-  in
-  (* Derived options go into a copy: they are ours, not the caller's, and
-     mixing them in would make them indistinguishable from the caller's own
-     once ffmpeg reports back which ones it did not use. *)
-  let opts = Hashtbl.copy (opts_default opts) in
-  add_audio_opts ?channels ?channel_layout ~sample_rate ~sample_format
-    ~time_base opts;
-  opts
-
-let add_video_opts ?frame_rate ?color_space ?color_range ~pixel_format ~width
-    ~height ~time_base opts =
-  Hashtbl.add opts "pixel_format" (`Int (Pixel_format.get_id pixel_format));
-  Hashtbl.add opts "video_size" (`String (Printf.sprintf "%dx%d" width height));
-  Hashtbl.add opts "time_base" (`String (string_of_rational time_base));
-  (match color_space with
-    (* Reserved cannot be set as an option. *)
-    | Some `Reserved -> ()
-    | Some cs -> Hashtbl.add opts "colorspace" (`String (Color_space.name cs))
-    | None -> ());
-  (match color_range with
-    | Some cr -> Hashtbl.add opts "color_range" (`String (Color_range.name cr))
-    | None -> ());
-  match frame_rate with
-    | Some r -> Hashtbl.add opts "r" (`String (string_of_rational r))
-    | None -> ()
-
-let mk_video_opts ?opts ?frame_rate ?color_space ?color_range ~pixel_format
-    ~width ~height ~time_base () =
-  let opts = Hashtbl.copy (opts_default opts) in
-  add_video_opts ?frame_rate ?color_space ?color_range ~pixel_format ~width
-    ~height ~time_base opts;
-  opts
+  String.concat ","
+    (List.map
+       (fun (key, value) -> key ^ "=" ^ render_value value)
+       (bindings opts))
 
 let filter_opts unused opts =
+  let kept = Hashtbl.create (Array.length unused) in
+  Array.iter (fun key -> Hashtbl.replace kept key ()) unused;
   Hashtbl.filter_map_inplace
-    (fun k v -> if Array.mem k unused then Some v else None)
+    (fun key value -> if Hashtbl.mem kept key then Some value else None)
     opts
 
 module HwContext = struct
@@ -892,18 +772,12 @@ module HwContext = struct
   type frame_context
 
   external create_device_context :
-    device_type ->
-    string ->
-    (string * string) array ->
-    device_context * string array = "ocaml_avutil_create_device_context"
+    string -> (string * value) array -> device_type -> device_context
+    = "ocaml_avutil_create_device_context"
 
   let create_device_context ?(device = "") ?opts device_type =
-    let opts = opts_default opts in
-    let ret, unused =
-      create_device_context device_type device (mk_opts_array opts)
-    in
-    filter_opts unused opts;
-    ret
+    let options = Option.fold ~none:[] ~some:bindings opts in
+    create_device_context device (Array.of_list options) device_type
 
   external create_frame_context :
     width:int ->

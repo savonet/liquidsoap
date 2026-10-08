@@ -1,39 +1,33 @@
-#ifndef _AV_STUBS_H_
-#define _AV_STUBS_H_
+/* Services of the av binding for the stubs of dependent libraries.
 
-#include <caml/mlvalues.h>
+   Every function needs the OCaml runtime lock unless its comment says
+   otherwise. "Raises" means the function may leave through an OCaml
+   exception: the caller frees what it owns before the call. */
+
+#ifndef OCAML_FFMPEG_AV_STUBS_H
+#define OCAML_FFMPEG_AV_STUBS_H
 
 #include <libavformat/avformat.h>
 
-AVFormatContext *ocaml_av_get_format_context(value *p_av);
+#include "avcodec_stubs.h"
 
-#if LIBAVFORMAT_VERSION_INT <= AV_VERSION_INT(59, 0, 100)
-#define avioformat_const
-#else
-#define avioformat_const const
+/* The format context of a container value. Raises the closed and the
+   failed errors of spec/binding-contract.md §5.3. */
+AVFormatContext *ocaml_av_format_context(value _container);
+
+/* Takes the guard of a container value exclusively; returns 0 when it is
+   taken already. Raises nothing. */
+int ocaml_av_try_guard(value _container);
+
+/* Releases what ocaml_av_try_guard took. Raises nothing. */
+void ocaml_av_release_guard(value _container);
+
+/* The native format of a format value. */
+#define InputFormat_val(v) (*(const AVInputFormat **)Data_abstract_val(v))
+#define OutputFormat_val(v) (*(const AVOutputFormat **)Data_abstract_val(v))
+
+/* Format values. Each raises a failure on a null pointer. */
+value ocaml_av_wrap_input_format(const AVInputFormat *format);
+value ocaml_av_wrap_output_format(const AVOutputFormat *format);
+
 #endif
-
-/***** AVInputFormat *****/
-
-#define InputFormat_val(v)                                                     \
-  (*(avioformat_const AVInputFormat **)Data_abstract_val(v))
-
-void value_of_inputFormat(value *p_value,
-                          avioformat_const AVInputFormat *inputFormat);
-
-/***** AVOutputFormat *****/
-
-#define OutputFormat_val(v)                                                    \
-  (*(avioformat_const AVOutputFormat **)Data_abstract_val(v))
-
-void value_of_outputFormat(value *p_value,
-                           avioformat_const AVOutputFormat *outputFormat);
-
-/***** Control message *****/
-value *ocaml_av_get_control_message_callback(struct AVFormatContext *ctx);
-
-void ocaml_av_set_control_message_callback(value *p_av,
-                                           av_format_control_message c_callback,
-                                           value *p_ocaml_callback);
-
-#endif // _AV_STUBS_H_

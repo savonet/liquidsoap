@@ -1,231 +1,242 @@
 open Avutil
 
-external init : unit -> unit = "ocaml_av_init" [@@noalloc]
-
-let () = init ()
-
-external avformat_version : unit -> int = "ocaml_avformat_version" [@@noalloc]
-
-let avformat_version =
-  let v = avformat_version () in
-  Avutil.{ major = v lsr 16; minor = (v lsr 8) land 0xff; micro = v land 0xff }
-
+external version : unit -> version = "ocaml_av_version"
+external init : unit -> unit = "ocaml_av_init"
 external container_options : unit -> Options.t = "ocaml_av_container_options"
 
+let avformat_version = version ()
+let () = init ()
 let container_options = container_options ()
+let () = Callback.register "ocaml_av_string_of_exception" Printexc.to_string
+let failure message = raise (Error (`Failure message))
 
-(* Format *)
+(* The option bindings of a caller's table, least recent first: the C side
+   lets a later binding of a key replace an earlier one. *)
+let bindings = function
+  | None -> [||]
+  | Some opts ->
+      Array.of_list (Hashtbl.fold (fun key v l -> (key, v) :: l) opts [])
+
+let report_unused opts unused = Option.iter (filter_opts unused) opts
+
 module Format = struct
   external get_input_name : (input, _) format -> string
-    = "ocaml_av_input_format_get_name"
+    = "ocaml_av_input_format_name"
 
   external get_input_long_name : (input, _) format -> string
-    = "ocaml_av_input_format_get_long_name"
-
-  external find_input_format : string -> (input, 'a) format
-    = "ocaml_av_find_input_format"
-
-  let find_input_format name =
-    try Some (find_input_format name) with Not_found -> None
+    = "ocaml_av_input_format_long_name"
 
   external get_output_name : (output, _) format -> string
-    = "ocaml_av_output_format_get_name"
+    = "ocaml_av_output_format_name"
 
   external get_output_long_name : (output, _) format -> string
-    = "ocaml_av_output_format_get_long_name"
+    = "ocaml_av_output_format_long_name"
 
-  external get_audio_codec_id : (output, audio) format -> Avcodec.Audio.id
-    = "ocaml_av_output_format_get_audio_codec_id"
-
-  external get_video_codec_id : (output, video) format -> Avcodec.Video.id
-    = "ocaml_av_output_format_get_video_codec_id"
-
-  external get_subtitle_codec_id :
-    (output, subtitle) format -> Avcodec.Subtitle.id
-    = "ocaml_av_output_format_get_subtitle_codec_id"
+  external find_input_format : string -> (input, 'a) format option
+    = "ocaml_av_find_input_format"
 
   external guess_output_format :
     string -> string -> string -> (output, 'a) format option
-    = "ocaml_av_output_format_guess"
+    = "ocaml_av_guess_output_format"
 
   let guess_output_format ?(short_name = "") ?(filename = "") ?(mime = "") () =
     guess_output_format short_name filename mime
-end
 
-external ocaml_av_cleanup_av : _ container -> unit = "ocaml_av_cleanup_av"
+  external get_audio_codec_id : (output, audio) format -> Avcodec.Audio.id
+    = "ocaml_av_output_format_audio_codec"
+
+  external get_video_codec_id : (output, video) format -> Avcodec.Video.id
+    = "ocaml_av_output_format_video_codec"
+
+  external get_subtitle_codec_id :
+    (output, subtitle) format -> Avcodec.Subtitle.id
+    = "ocaml_av_output_format_subtitle_codec"
+end
 
 type 'media stream_config = {
   codec : ('media, Avcodec.decode) Avcodec.codec option;
   opts : opts option;
 }
 
-(* Input *)
-external open_input :
-  string ->
-  (input, _) format option ->
-  (unit -> bool) option ->
-  (string * string) array ->
-  (audio Avcodec.params ->
-  (audio, Avcodec.decode) Avcodec.codec option * (string * string) array)
-  option ->
-  (video Avcodec.params ->
-  (video, Avcodec.decode) Avcodec.codec option * (string * string) array)
-  option ->
-  (subtitle Avcodec.params ->
-  (subtitle, Avcodec.decode) Avcodec.codec option * (string * string) array)
-  option ->
-  input container * string array
-  = "ocaml_av_open_input_bytecode" "ocaml_av_open_input"
+type read = bytes -> int -> int -> int
+type write = bytes -> int -> int -> int
+type seek = int -> Unix.seek_command -> int
 
-let wrap_configure_stream fn params =
-  match fn params with
-    | { codec; opts } -> (codec, mk_opts_array (opts_default opts))
+(* The media kinds a stream is listed and tagged under; the order is the
+   one of the C side. *)
+type kind = Audio | Video | Subtitle | Data | Other
+
+type source =
+  | Url of { url : string; interrupt : (unit -> bool) option }
+  | Custom of { read : read; seek : seek option }
+
+type target =
+  | No_file
+  | To_url of { url : string; interrupt : (unit -> bool) option }
+  | To_custom of { write : write; seek : seek option }
+
+external alloc_container : unit -> 'line container = "ocaml_av_alloc_container"
+external release : _ container -> unit = "ocaml_av_release"
+external close : _ container -> unit = "ocaml_av_close"
+
+(* A closed container whose release by collection is registered before
+   anything is opened in it. *)
+let new_container () =
+  let container = alloc_container () in
+  Gc.finalise release container;
+  container
+
+external open_input_source :
+  input container ->
+  source ->
+  (input, _) format option ->
+  (string * value) array ->
+  string array = "ocaml_av_open_input"
+
+external stream_kinds : _ container -> kind array = "ocaml_av_stream_kinds"
+
+external stream_parameters : _ container -> int -> 'media Avcodec.params
+  = "ocaml_av_stream_parameters"
+
+external configure_stream :
+  input container ->
+  int ->
+  (_, Avcodec.decode) Avcodec.codec option ->
+  (string * value) array ->
+  unit = "ocaml_av_configure_stream"
+
+external find_stream_info : input container -> unit
+  = "ocaml_av_find_stream_info"
+
+let open_source ?format ?opts source =
+  let container = new_container () in
+  report_unused opts (open_input_source container source format (bindings opts));
+  container
 
 let open_input ?interrupt ?format ?opts ?configure_audio_stream
     ?configure_video_stream ?configure_subtitle_stream url =
-  let opts = opts_default opts in
-  let ret, unused =
-    open_input url format interrupt (mk_opts_array opts)
-      (Option.map wrap_configure_stream configure_audio_stream)
-      (Option.map wrap_configure_stream configure_video_stream)
-      (Option.map wrap_configure_stream configure_subtitle_stream)
+  let container = open_source ?format ?opts (Url { url; interrupt }) in
+  let configure index configure =
+    Option.iter
+      (fun configure ->
+        let { codec; opts } = configure (stream_parameters container index) in
+        configure_stream container index codec (bindings opts))
+      configure
   in
-  Gc.finalise ocaml_av_cleanup_av ret;
-  filter_opts unused opts;
-  ret
-
-type avio
-type read = bytes -> int -> int -> int
-type write = bytes -> int -> int -> int
-type _seek = int -> int -> int
-type seek = int -> Unix.seek_command -> int
-
-let seek_of_int = function
-  | 0 -> Unix.SEEK_SET
-  | 1 -> Unix.SEEK_CUR
-  | 2 -> Unix.SEEK_END
-  | _ -> assert false
-
-external ocaml_av_create_io :
-  read option -> write option -> _seek option -> avio = "ocaml_av_create_io"
-
-external caml_av_io_close : avio -> unit = "caml_av_io_close"
-
-let ocaml_av_create_io read write seek =
-  let avio = ocaml_av_create_io read write seek in
-  Gc.finalise caml_av_io_close avio;
-  avio
-
-let _seek_of_seek = function
-  | None -> None
-  | Some fn -> Some (fun a m -> fn a (seek_of_int m))
-
-let ocaml_av_create_read_io ?seek read =
-  ocaml_av_create_io (Some read) None (_seek_of_seek seek)
-
-external ocaml_av_open_input_stream :
-  avio ->
-  (input, _) format option ->
-  (string * string) array ->
-  input container * string array = "ocaml_av_open_input_stream"
-
-let ocaml_av_open_input_stream ?format ?opts avio =
-  let opts = opts_default opts in
-  let ret, unused =
-    ocaml_av_open_input_stream avio format (mk_opts_array opts)
-  in
-  Gc.finalise ocaml_av_cleanup_av ret;
-  filter_opts unused opts;
-  ret
+  (try
+     Array.iteri
+       (fun index -> function
+         | Audio -> configure index configure_audio_stream
+         | Video -> configure index configure_video_stream
+         | Subtitle -> configure index configure_subtitle_stream
+         | Data | Other -> ())
+       (stream_kinds container);
+     find_stream_info container
+   with exn ->
+     release container;
+     raise exn);
+  container
 
 let open_input_stream ?format ?opts ?seek read =
-  let avio = ocaml_av_create_read_io ?seek read in
-  let input = ocaml_av_open_input_stream ?format ?opts avio in
-  input
+  let container = open_source ?format ?opts (Custom { read; seek }) in
+  (try find_stream_info container
+   with exn ->
+     release container;
+     raise exn);
+  container
 
-external _get_duration :
-  input container -> int -> Time_format.t -> Int64.t option
-  = "ocaml_av_get_duration"
+external input_duration : input container -> Time_format.t -> Int64.t option
+  = "ocaml_av_input_duration"
 
-let get_input_duration ?(format = `Second) i =
-  match _get_duration i (-1) format with Some 0L -> None | v -> v
+let get_input_duration ?(format = `Second) container =
+  input_duration container format
 
-external _get_metadata : input container -> int -> (string * string) list
-  = "ocaml_av_get_metadata"
+external metadata : _ container -> int -> (string * string) list
+  = "ocaml_av_metadata"
 
-let get_input_metadata i = List.rev (_get_metadata i (-1))
+let get_input_metadata container = metadata container (-1)
 
 external get_input_format : input container -> (input, _) format option
-  = "ocaml_av_get_input_format"
+  = "ocaml_av_input_format"
 
-external input_obj : input container -> 'a = "ocaml_av_input_obj"
+external input_obj : input container -> Options.obj = "ocaml_av_input_object"
 
-let input_obj c = Obj.magic (input_obj c, c)
+type ('line, 'media, 'mode) stream = {
+  container : 'line container;
+  index : int;
+}
 
-(* Input Stream *)
-type ('a, 'b, 'c) stream = { container : 'a container; index : int }
-type media_type = MT_audio | MT_video | MT_data | MT_subtitle
+let streams_of_kind kind container =
+  let streams = ref [] in
+  Array.iteri
+    (fun index stream_kind ->
+      if stream_kind = kind then
+        streams :=
+          (index, { container; index }, stream_parameters container index)
+          :: !streams)
+    (stream_kinds container);
+  List.rev !streams
 
-let mk_stream container index = { container; index }
+let get_audio_streams container = streams_of_kind Audio container
+let get_video_streams container = streams_of_kind Video container
+let get_subtitle_streams container = streams_of_kind Subtitle container
+let get_data_streams container = streams_of_kind Data container
 
-external get_codec_params : (_, 'm, _) stream -> 'm Avcodec.params
-  = "ocaml_av_get_stream_codec_parameters"
-
-external get_avg_frame_rate : (_, video, _) stream -> Avutil.rational option
-  = "ocaml_av_get_stream_avg_frame_rate"
-
-external set_avg_frame_rate :
-  (_, video, _) stream -> Avutil.rational option -> unit
-  = "ocaml_av_set_stream_avg_frame_rate"
-
-external get_container_stream_time_base :
-  index:int -> _ container -> Avutil.rational
-  = "ocaml_av_get_container_stream_time_base"
-
-external get_time_base : (_, _, _) stream -> Avutil.rational
-  = "ocaml_av_get_stream_time_base"
-
-external set_time_base : (_, _, _) stream -> Avutil.rational -> unit
-  = "ocaml_av_set_stream_time_base"
-
-external get_frame_size : (_, audio, _) stream -> int
-  = "ocaml_av_get_stream_frame_size"
-
-external get_pixel_aspect : (_, video, _) stream -> Avutil.rational option
-  = "ocaml_av_get_stream_pixel_aspect"
-
-external _get_streams : _ container -> media_type -> int list
-  = "ocaml_av_get_streams"
-
-let get_streams container media_type =
-  _get_streams container media_type
-  |> List.rev_map (fun i ->
-      let s = mk_stream container i in
-      (i, s, get_codec_params s))
-
-let get_audio_streams container = get_streams container MT_audio
-let get_video_streams container = get_streams container MT_video
-let get_subtitle_streams container = get_streams container MT_subtitle
-let get_data_streams container = get_streams container MT_data
-
-external _find_best_stream : input container -> media_type -> int
+external find_best_stream : input container -> kind -> int
   = "ocaml_av_find_best_stream"
 
-let find_best_stream c t =
-  let i = _find_best_stream c t in
-  let s = mk_stream c i in
-  (i, s, get_codec_params s)
+let find_best kind container =
+  let index = find_best_stream container kind in
+  (index, { container; index }, stream_parameters container index)
 
-let find_best_audio_stream c = find_best_stream c MT_audio
-let find_best_video_stream c = find_best_stream c MT_video
-let find_best_subtitle_stream c = find_best_stream c MT_subtitle
-let get_input s = s.container
-let get_index s = s.index
+let find_best_audio_stream container = find_best Audio container
+let find_best_video_stream container = find_best Video container
+let find_best_subtitle_stream container = find_best Subtitle container
+let get_input stream = stream.container
+let get_index stream = stream.index
+let get_output stream = stream.container
+let get_codec_params stream = stream_parameters stream.container stream.index
 
-let get_duration ?(format = `Second) s =
-  _get_duration s.container s.index format
+external stream_avg_frame_rate : _ container -> int -> rational option
+  = "ocaml_av_stream_avg_frame_rate"
 
-let get_metadata s = List.rev (_get_metadata s.container s.index)
+external stream_set_avg_frame_rate :
+  _ container -> int -> rational option -> unit
+  = "ocaml_av_stream_set_avg_frame_rate"
+
+external stream_time_base : _ container -> int -> rational
+  = "ocaml_av_stream_time_base"
+
+external stream_set_time_base : _ container -> int -> rational -> unit
+  = "ocaml_av_stream_set_time_base"
+
+external stream_frame_size : _ container -> int -> int
+  = "ocaml_av_stream_frame_size"
+
+external stream_pixel_aspect : _ container -> int -> rational option
+  = "ocaml_av_stream_pixel_aspect"
+
+external stream_duration : _ container -> int -> Time_format.t -> Int64.t option
+  = "ocaml_av_stream_duration"
+
+let get_avg_frame_rate stream =
+  stream_avg_frame_rate stream.container stream.index
+
+let set_avg_frame_rate stream rate =
+  stream_set_avg_frame_rate stream.container stream.index rate
+
+let get_time_base stream = stream_time_base stream.container stream.index
+
+let set_time_base stream time_base =
+  stream_set_time_base stream.container stream.index time_base
+
+let get_frame_size stream = stream_frame_size stream.container stream.index
+let get_pixel_aspect stream = stream_pixel_aspect stream.container stream.index
+
+let get_duration ?(format = `Second) stream =
+  stream_duration stream.container stream.index format
+
+let get_metadata stream = metadata stream.container stream.index
 
 type packet_result =
   [ `Audio_packet of int * audio Avcodec.Packet.t
@@ -240,43 +251,100 @@ type frame_result =
 
 type input_result = [ packet_result | frame_result ]
 
-(** Reads the selected streams if any or all streams otherwise. *)
-external read_input :
-  (packet_result -> unit) option ->
-  (int * Avutil.media_type) array ->
-  int array ->
-  input container ->
-  input_result = "ocaml_av_read_input"
+(* The steps of [read_input], spec/avformat.md §4.3. The C side keeps what
+   outlives a call: which decoder was last fed and may hold frames, and
+   whether the input ended. Packets and frames come tagged with the kind of
+   their stream, which the casts below turn into the result's type. *)
 
-let _get_packet media_type input =
-  List.map (fun { index; container } ->
-      if container != input then
-        raise (Failure "Inconsistent stream and input!");
-      (index, media_type))
+type untyped_packet
+type untyped_frame
 
-let _get_frame input =
-  List.map (fun { index; container } ->
-      if container != input then
-        raise (Failure "Inconsistent stream and input!");
-      index)
+external read_packet : input container -> (int * kind * untyped_packet) option
+  = "ocaml_av_read_packet"
+
+external receive_pending :
+  input container -> (int * kind * untyped_frame) option
+  = "ocaml_av_receive_pending"
+
+external drain_stream :
+  input container -> int -> (int * kind * untyped_frame) option
+  = "ocaml_av_drain_stream"
+
+external decode_packet : input container -> int -> untyped_packet -> unit
+  = "ocaml_av_decode_packet"
+
+external decode_subtitle :
+  input container -> int -> untyped_packet -> Subtitle.frame option
+  = "ocaml_av_decode_subtitle"
+
+external typed_packet : untyped_packet -> _ Avcodec.Packet.t = "%identity"
+external typed_frame : untyped_frame -> _ frame = "%identity"
+
+let packet_result index kind packet : packet_result option =
+  match kind with
+    | Audio -> Some (`Audio_packet (index, typed_packet packet))
+    | Video -> Some (`Video_packet (index, typed_packet packet))
+    | Subtitle -> Some (`Subtitle_packet (index, typed_packet packet))
+    | Data -> Some (`Data_packet (index, typed_packet packet))
+    | Other -> None
+
+let frame_result (index, kind, frame) : input_result option =
+  match kind with
+    | Audio -> Some (`Audio_frame (index, typed_frame frame))
+    | Video -> Some (`Video_frame (index, typed_frame frame))
+    | Subtitle | Data | Other -> None
+
+let indexes container streams =
+  List.map
+    (fun stream ->
+      if stream.container != container then
+        failure "the stream belongs to another container";
+      stream.index)
+    streams
 
 let read_input ?on_unhandled_packet ?(audio_packet = []) ?(audio_frame = [])
     ?(video_packet = []) ?(video_frame = []) ?(subtitle_packet = [])
-    ?(subtitle_frame = []) ?(data_packet = []) input =
-  let packet =
-    Array.of_list
-      (_get_packet `Audio input audio_packet
-      @ _get_packet `Video input video_packet
-      @ _get_packet `Subtitle input subtitle_packet
-      @ _get_packet `Data input data_packet)
+    ?(subtitle_frame = []) ?(data_packet = []) container =
+  let indexes streams = indexes container streams in
+  let packets =
+    indexes audio_packet @ indexes video_packet @ indexes subtitle_packet
+    @ indexes data_packet
   in
-  let frame =
-    Array.of_list
-      (_get_frame input audio_frame
-      @ _get_frame input video_frame
-      @ _get_frame input subtitle_frame)
+  let frames =
+    indexes audio_frame @ indexes video_frame @ indexes subtitle_frame
   in
-  read_input on_unhandled_packet packet frame input
+  let rec drain = function
+    | [] -> raise (Error `Eof)
+    | index :: rest -> (
+        match Option.bind (drain_stream container index) frame_result with
+          | Some result -> result
+          | None -> drain rest)
+  in
+  let rec read () =
+    match read_packet container with
+      | None -> drain frames
+      | Some (index, kind, packet) when List.mem index packets -> (
+          match packet_result index kind packet with
+            | Some result -> (result :> input_result)
+            | None -> read ())
+      | Some (index, Subtitle, packet) when List.mem index frames -> (
+          match decode_subtitle container index packet with
+            | Some subtitle -> `Subtitle_frame (index, subtitle)
+            | None -> read ())
+      | Some (index, _, packet) when List.mem index frames ->
+          decode_packet container index packet;
+          pending ()
+      | Some (index, kind, packet) ->
+          Option.iter
+            (fun handle -> Option.iter handle (packet_result index kind packet))
+            on_unhandled_packet;
+          read ()
+  and pending () =
+    match Option.bind (receive_pending container) frame_result with
+      | Some result -> result
+      | None -> read ()
+  in
+  pending ()
 
 type seek_flag =
   | Seek_flag_backward
@@ -284,203 +352,211 @@ type seek_flag =
   | Seek_flag_any
   | Seek_flag_frame
 
-external seek :
-  flags:seek_flag array ->
-  ?stream:(input, _, _) stream ->
-  ?min_ts:Int64.t ->
-  ?max_ts:Int64.t ->
-  fmt:Time_format.t ->
-  ts:Int64.t ->
+external seek_container :
   input container ->
-  unit = "ocaml_av_seek_bytecode" "ocaml_av_seek_native"
+  seek_flag list ->
+  int ->
+  Time_format.t ->
+  Int64.t option * Int64.t option * Int64.t ->
+  unit = "ocaml_av_seek"
 
-let seek ?(flags = []) = seek ~flags:(Array.of_list flags)
-
-(* Output *)
-external open_output :
-  ?interrupt:(unit -> bool) ->
-  ?format:(output, _) format ->
-  string ->
-  bool ->
-  (string * string) array ->
-  output container * string array = "ocaml_av_open_output"
-
-let open_output ?interrupt ?format ?(interleaved = true) ?opts fname =
-  let opts = opts_default opts in
-  let ret, unused =
-    open_output ?interrupt ?format fname interleaved (mk_opts_array opts)
+let seek ?(flags = []) ?stream ?min_ts ?max_ts ~fmt ~ts container =
+  let index =
+    match stream with
+      | None -> -1
+      | Some stream -> List.hd (indexes container [stream])
   in
-  filter_opts unused opts;
-  Gc.finalise ocaml_av_cleanup_av ret;
-  ret
+  seek_container container flags index fmt (min_ts, max_ts, ts)
 
-external ocaml_av_open_output_format :
-  (output, _) format ->
+external open_output_target :
+  output container ->
+  target ->
+  (output, _) format option ->
   bool ->
-  (string * string) array ->
-  output container * string array = "ocaml_av_open_output_format"
+  (string * value) array ->
+  string array = "ocaml_av_open_output"
 
-let open_output_format ?(interleaved = true) ?opts format =
-  let opts = opts_default opts in
-  let ret, unused =
-    ocaml_av_open_output_format format interleaved (mk_opts_array opts)
-  in
-  filter_opts unused opts;
-  Gc.finalise ocaml_av_cleanup_av ret;
-  ret
+let open_target ?format ?(interleaved = true) ?opts target =
+  let container = new_container () in
+  report_unused opts
+    (open_output_target container target format interleaved (bindings opts));
+  container
 
-external ocaml_av_open_output_stream :
-  (output, _) format ->
-  avio ->
-  bool ->
-  (string * string) array ->
-  output container * string array = "ocaml_av_open_output_stream"
+let open_output ?interrupt ?format ?interleaved ?opts url =
+  open_target ?format ?interleaved ?opts (To_url { url; interrupt })
 
-let open_output_stream ?opts ?(interleaved = true) ?seek write format =
-  let opts = opts_default opts in
-  let avio = ocaml_av_create_io None (Some write) (_seek_of_seek seek) in
-  let output, unused =
-    ocaml_av_open_output_stream format avio interleaved (mk_opts_array opts)
-  in
-  Gc.finalise ocaml_av_cleanup_av output;
-  filter_opts unused opts;
-  output
+let open_output_format ?interleaved ?opts format =
+  open_target ~format ?interleaved ?opts No_file
 
-external reopen_output_stream : output container -> unit
-  = "ocaml_av_reopen_output_stream"
+let open_output_stream ?opts ?interleaved ?seek write format =
+  open_target ~format ?interleaved ?opts (To_custom { write; seek })
 
-external output_started : output container -> bool = "ocaml_av_header_written"
+external output_started : output container -> bool = "ocaml_av_output_started"
 
-external _set_metadata : _ container -> int -> (string * string) array -> unit
-  = "ocaml_av_set_metadata"
+external set_container_metadata :
+  _ container -> int -> (string * string) list -> unit = "ocaml_av_set_metadata"
 
-let set_output_metadata o tags = _set_metadata o (-1) (Array.of_list tags)
-let set_input_metadata o tags = _set_metadata o (-1) (Array.of_list tags)
-let set_metadata s tags = _set_metadata s.container s.index (Array.of_list tags)
-let get_output s = s.container
+let set_output_metadata container metadata =
+  set_container_metadata container (-1) metadata
 
-type uninitialized_stream_copy = output container * int
+let set_metadata stream metadata =
+  set_container_metadata stream.container stream.index metadata
 
-external new_uninitialized_stream_copy : output container -> int
-  = "ocaml_av_new_uninitialized_stream_copy"
+type uninitialized_stream_copy = { output : output container; reserved : int }
 
-let new_uninitialized_stream_copy container =
-  (container, new_uninitialized_stream_copy container)
+external reserve_stream_copy : output container -> int
+  = "ocaml_av_reserve_stream_copy"
 
-external initialize_stream_copy :
+external initialize_reserved_copy :
   output container -> int -> _ Avcodec.params -> unit
   = "ocaml_av_initialize_stream_copy"
 
-let initialize_stream_copy ~params (container, index) =
-  initialize_stream_copy container index params;
-  mk_stream container index
+let new_uninitialized_stream_copy output =
+  { output; reserved = reserve_stream_copy output }
 
-let new_stream_copy ~params container =
-  initialize_stream_copy ~params (new_uninitialized_stream_copy container)
+let initialize_stream_copy ~params { output; reserved } =
+  initialize_reserved_copy output reserved params;
+  { container = output; index = reserved }
 
-external new_audio_stream :
-  _ container ->
-  int ->
+let new_stream_copy ~params output =
+  initialize_stream_copy ~params (new_uninitialized_stream_copy output)
+
+type audio_encoding = {
+  channel_layout : Channel_layout.t;
+  sample_rate : int;
+  sample_format : Sample_format.t;
+  audio_time_base : rational;
+}
+
+external add_audio_stream :
+  output container ->
+  (string * value) array ->
+  audio_encoding ->
   [ `Encoder ] Avcodec.Audio.t ->
-  Channel_layout.t ->
-  (string * string) array ->
   int * string array = "ocaml_av_new_audio_stream"
+
+type video_encoding = {
+  frame_rate : rational option;
+  hardware_context : Avcodec.Video.hardware_context option;
+  pixel_format : Pixel_format.t;
+  width : int;
+  height : int;
+  video_time_base : rational;
+}
+
+external add_video_stream :
+  output container ->
+  (string * value) array ->
+  video_encoding ->
+  [ `Encoder ] Avcodec.Video.t ->
+  int * string array = "ocaml_av_new_video_stream"
+
+external add_subtitle_stream :
+  output container ->
+  (string * value) array ->
+  string * rational ->
+  [ `Encoder ] Avcodec.Subtitle.t ->
+  int * string array = "ocaml_av_new_subtitle_stream"
+
+external add_data_stream :
+  output container -> rational -> Avcodec.Unknown.id -> int
+  = "ocaml_av_new_data_stream"
+
+let encoding_stream opts container (index, unused) =
+  report_unused opts unused;
+  { container; index }
 
 let new_audio_stream ?opts ~channel_layout ~sample_rate ~sample_format
     ~time_base ~codec container =
-  let all_opts =
-    mk_audio_opts ?opts ~channel_layout ~sample_rate ~sample_format ~time_base
-      ()
-  in
-  let ret, unused =
-    new_audio_stream container
-      (Sample_format.get_id sample_format)
-      codec channel_layout (mk_opts_array all_opts)
-  in
-  (* Report back on the caller's own options, not on the ones we derived. *)
-  (match opts with Some opts -> filter_opts unused opts | None -> ());
-  mk_stream container ret
-
-external new_video_stream :
-  ?device_context:Avutil.HwContext.device_context ->
-  ?frame_context:Avutil.HwContext.frame_context ->
-  _ container ->
-  [ `Encoder ] Avcodec.Video.t ->
-  (string * string) array ->
-  int * string array = "ocaml_av_new_video_stream"
+  encoding_stream opts container
+    (add_audio_stream container (bindings opts)
+       {
+         channel_layout;
+         sample_rate;
+         sample_format;
+         audio_time_base = time_base;
+       }
+       codec)
 
 let new_video_stream ?opts ?frame_rate ?hardware_context ~pixel_format ~width
     ~height ~time_base ~codec container =
-  let all_opts =
-    mk_video_opts ?opts ?frame_rate ~pixel_format ~width ~height ~time_base ()
-  in
-  let device_context, frame_context =
-    match hardware_context with
-      | None -> (None, None)
-      | Some (`Device_context hardware_context) -> (Some hardware_context, None)
-      | Some (`Frame_context frame_context) -> (None, Some frame_context)
-  in
-  let ret, unused =
-    new_video_stream ?device_context ?frame_context container codec
-      (mk_opts_array all_opts)
-  in
-  (match opts with Some opts -> filter_opts unused opts | None -> ());
-  let s = mk_stream container ret in
-  set_avg_frame_rate s frame_rate;
-  s
+  encoding_stream opts container
+    (add_video_stream container (bindings opts)
+       {
+         frame_rate;
+         hardware_context;
+         pixel_format;
+         width;
+         height;
+         video_time_base = time_base;
+       }
+       codec)
 
-external new_subtitle_stream :
-  _ container ->
-  [ `Encoder ] Avcodec.Subtitle.t ->
-  Avutil.rational ->
-  string option ->
-  (string * string) array ->
-  int * string array = "ocaml_av_new_subtitle_stream"
-
+(* An empty header is none: the C side gives the header to text codecs
+   only. *)
 let new_subtitle_stream ?opts ?header ~time_base ~codec container =
-  let header =
-    match header with
-      | Some _ -> header
-      | None ->
-          let id = Avcodec.Subtitle.get_id codec in
-          let has_text_sub =
-            match Avcodec.Subtitle.descriptor id with
-              | Some d -> List.mem `Text_sub d.Avcodec.properties
-              | None -> false
-          in
-          if has_text_sub then Some (Avutil.Subtitle.header_ass_default ())
-          else None
-  in
-  let opts = opts_default opts in
-  let ret, unused =
-    new_subtitle_stream container codec time_base header (mk_opts_array opts)
-  in
-  filter_opts unused opts;
-  mk_stream container ret
-
-external new_data_stream :
-  _ container -> Avcodec.Unknown.id -> Avutil.rational -> int
-  = "ocaml_av_new_data_stream"
+  let header = Option.value header ~default:(Subtitle.header_ass_default ()) in
+  encoding_stream opts container
+    (add_subtitle_stream container (bindings opts) (header, time_base) codec)
 
 let new_data_stream ~time_base ~codec container =
-  let ret = new_data_stream container codec time_base in
-  mk_stream container ret
+  { container; index = add_data_stream container time_base codec }
 
-external codec_attr : _ stream -> string option = "ocaml_av_codec_attr"
-external bitrate : _ stream -> int option = "ocaml_av_stream_bitrate"
+external stream_codec_attr : _ container -> int -> string option
+  = "ocaml_av_codec_attr"
 
-external write_packet :
-  (output, 'media, [ `Packet ]) stream ->
-  Avutil.rational ->
-  'media Avcodec.Packet.t ->
-  unit = "ocaml_av_write_stream_packet"
+external stream_bitrate : _ container -> int -> int option = "ocaml_av_bitrate"
 
-external write_frame :
-  ?on_keyframe:(unit -> unit) -> (output, _, [ `Frame ]) stream -> _ -> unit
-  = "ocaml_av_write_stream_frame"
+let codec_attr stream = stream_codec_attr stream.container stream.index
+let bitrate stream = stream_bitrate stream.container stream.index
 
-let write_subtitle_frame stream frame = write_frame stream frame
+external write_stream_packet :
+  output container -> int -> rational -> _ Avcodec.Packet.t -> unit
+  = "ocaml_av_write_packet"
+
+let write_packet stream time_base packet =
+  write_stream_packet stream.container stream.index time_base packet
+
+(* The steps of [write_frame]: a send answers [false] when the encoder wants
+   its output read first; a receive holds the packet on the C side until
+   [write_encoded], so that [on_keyframe] runs before the muxer gets it. *)
+
+type received = Nothing | Packet | Key_packet
+
+external send_frame : output container -> int -> _ frame option -> bool
+  = "ocaml_av_stream_send_frame"
+
+external receive_packet : output container -> int -> received
+  = "ocaml_av_stream_receive_packet"
+
+external write_encoded : output container -> int -> unit
+  = "ocaml_av_write_encoded"
+
+let rec write_available ?on_keyframe container index =
+  match receive_packet container index with
+    | Nothing -> ()
+    | Packet ->
+        write_encoded container index;
+        write_available ?on_keyframe container index
+    | Key_packet ->
+        Fun.protect
+          ~finally:(fun () -> write_encoded container index)
+          (fun () -> Option.iter (fun notify -> notify ()) on_keyframe);
+        write_available ?on_keyframe container index
+
+let write_frame ?on_keyframe { container; index } frame =
+  let rec send () =
+    write_available ?on_keyframe container index;
+    if not (send_frame container index (Some frame)) then send ()
+  in
+  send ();
+  write_available ?on_keyframe container index
+
+external write_subtitle : output container -> int -> Subtitle.frame -> unit
+  = "ocaml_av_write_subtitle"
+
+let write_subtitle_frame stream subtitle =
+  write_subtitle stream.container stream.index subtitle
 
 external flush : output container -> unit = "ocaml_av_flush"
 external tell : _ container -> int option = "ocaml_av_tell"
-external close : _ container -> unit = "ocaml_av_close"

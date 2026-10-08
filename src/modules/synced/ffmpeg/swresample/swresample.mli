@@ -1,45 +1,77 @@
-(** This module perform audio resampling, rematrixing and sample format
-    conversion operations. *)
+(** Bindings to libswresample. The interface is the one of spec/swresample.md
+    §4. *)
 
 open Avutil
-open Swresample_options
 
+(** The version of the libswresample loaded at run time, read once when the
+    module is loaded. *)
 val version : version
 
-(**/**)
+(** How a value of type ['a] holds audio samples: its layout (interleaved or
+    planar bytes, float arrays or bigarrays, or a frame) and either a sample
+    format or the fact that the format is given when a converter is created.
+    Only the data modules at the end of this interface provide values of this
+    type. *)
+type 'a kind
 
-type vector_kind = Str | P_Str | Fa | P_Fa | Ba | P_Ba | Frm
-
-(**/**)
-
-(** Audio data modules for Swresample module input and output parameterization.
-*)
+(** A data type a converter reads or writes. The modules of this type are the
+    ones at the end of this interface, from {!Bytes} to {!DblPlanarFrame}; a
+    program passes two of them to {!Make}. *)
 module type AudioData = sig
   type t
 
-  val vk : vector_kind
-  val sf : Avutil.Sample_format.t
+  val kind : t kind
 end
 
+(** The dithering method of the resampler. *)
+type dither_type = Swresample_options.dither_type
+
+(** The resampling engine. *)
+type engine = Swresample_options.engine
+
+(** The type of the resampling filter. *)
+type filter_type = Swresample_options.filter_type
+
+(** A setting of the resampler, given in the [?options] list of the creation
+    functions. *)
 type options = [ dither_type | engine | filter_type ]
+
+(** A converter from data of type ['i] to data of type ['o]: it resamples,
+    remixes channels and converts the sample format. It owns its native
+    resampler, released when the value is collected, and keeps nothing of the
+    values given to it or returned by it. Between calls it holds the samples the
+    resampler buffers. *)
 type ('i, 'o) ctx
 
-(** Functor building an implementation of the swresample structure with
-    parameterized input an output audio data types *)
+(** Converters that read values of type [I.t] and return values of type [O.t].
+*)
 module Make (I : AudioData) (O : AudioData) : sig
   type t = (I.t, O.t) ctx
 
-  (** [Swresample.create in_cl ~in_sample_format:in_sf in_sr out_cl
-       ~out_sample_format:out_sf out_sr] create a Swresample.t with [in_cl]
-      channel layout, [in_sf] sample format and [in_sr] sample rate as input
-      format and [out_cl] channel layout, [out_sf] sample format and [out_sr]
-      sample rate as output format. If a sample format parameter is not
-      provided, the sample format defined by the associated AudioData module is
-      used.
+  (** [create ?options in_layout ?in_sample_format in_rate out_layout
+       ?out_sample_format out_rate] creates a converter. The positional
+      arguments are, in order: the input channel layout, the input sample rate
+      in Hz, the output channel layout and the output sample rate in Hz.
 
-      Raise Error "Swresample input/output sample format undefined" if a sample
-      format parameter is not provided and the associated AudioData module does
-      not define a sample format as is the case for Bytes and Frame. *)
+      The sample format of each side comes from its data module. When the module
+      fixes a format, as {!S16Bytes} or {!FloatArray} do, the optional argument
+      is omitted, or equal to that format. When the module leaves the format
+      open, as {!Bytes} and {!Frame} do, the optional argument is required. With
+      {!Bytes} the format is a packed (interleaved) one.
+
+      Both layouts are copied. Every other setting of the resampler keeps
+      FFmpeg's default. The call releases the OCaml runtime lock while the
+      resampler is initialised.
+      @param options
+        Settings applied in list order, none by default. A later element of the
+        same type overrides an earlier one.
+      @param in_sample_format The sample format of the input values.
+      @param out_sample_format The sample format of the values returned.
+      @raise Avutil.Error
+        with [`Failure _] when a sample format is missing, differs from the one
+        the data module fixes or is planar for {!Bytes}, and when a sample rate
+        is below 1; with the FFmpeg error when FFmpeg rejects a setting or fails
+        to initialise the resampler. *)
   val create :
     ?options:options list ->
     Channel_layout.t ->
@@ -50,9 +82,10 @@ module Make (I : AudioData) (O : AudioData) : sig
     int ->
     t
 
-  (** [Swresample.from_codec in_ac out_cl ~out_sample_format:out_sf out_sr] do
-      the same as {!Swresample.create} with the [in_ac] audio codec properties
-      as input format. *)
+  (** [from_codec ?options params out_layout ?out_sample_format out_rate] is
+      {!create} with the input channel layout, sample format and sample rate
+      read from the codec parameters [params]. The format read is given as
+      [in_sample_format]: creation fails when [I] fixes another format. *)
   val from_codec :
     ?options:options list ->
     audio Avcodec.params ->
@@ -61,9 +94,10 @@ module Make (I : AudioData) (O : AudioData) : sig
     int ->
     t
 
-  (** [Swresample.to_codec in_cl ~in_sample_format:in_sf in_sr out_ac] do the
-      same as {!Swresample.create} with the [out_ac] audio codec properties as
-      output format. *)
+  (** [to_codec ?options in_layout ?in_sample_format in_rate params] is
+      {!create} with the output channel layout, sample format and sample rate
+      read from the codec parameters [params]. The format read is given as
+      [out_sample_format]: creation fails when [O] fixes another format. *)
   val to_codec :
     ?options:options list ->
     Channel_layout.t ->
@@ -72,303 +106,191 @@ module Make (I : AudioData) (O : AudioData) : sig
     audio Avcodec.params ->
     t
 
-  (** [Swresample.from_codec_to_codec in_ac out_ac] do the same as
-      {!Swresample.create} with the [in_ac] audio codec properties as input
-      format and the [out_ac] audio codec properties as output format. *)
+  (** [from_codec_to_codec ?options in_params out_params] is {!create} with the
+      channel layout, sample format and sample rate of the input read from
+      [in_params] and those of the output read from [out_params]. Creation fails
+      when a data module fixes a format other than the one read. *)
   val from_codec_to_codec :
     ?options:options list -> audio Avcodec.params -> audio Avcodec.params -> t
 
-  (** [Swresample.convert rsp iad] resample and convert the [iad] input audio
-      data to the output audio data according to the [rsp] resampler context
-      format.
+  (** [convert ?offset ?length converter input] converts samples of [input] and
+      returns the samples the resampler produces, as a new value.
 
-      Raise Error if the conversion failed. *)
+      The result holds exactly the samples produced. Their number is known only
+      after the conversion: the resampler keeps samples buffered between calls,
+      and {!flush} returns the ones it still holds. It can be 0, and the result
+      is then an empty value of the same shape: empty planes, or a frame of zero
+      samples. A frame returned has the output channel layout, sample format and
+      sample rate, and no timestamp.
+
+      [input] is checked against the input side of the converter. A planar value
+      has one plane per channel, all of the same length. A frame has the channel
+      count and the sample format of the converter; its sample rate and the
+      arrangement of its channel layout are the caller's to match. A trailing
+      partial sample group of an interleaved value is ignored.
+
+      Bytes and float arrays are copied in and out. A NaN read from a float
+      array, and a NaN written to one, becomes 0. Bigarrays and frames are read
+      in place while the OCaml runtime lock is released, without any NaN
+      replacement: what another thread writes to them during the call is visible
+      to the conversion.
+
+      The call excludes every other operation on the converter: a concurrent one
+      raises [Error (`Failure "Object in use!")] at once. After a failure the
+      converter stays usable.
+      @param offset
+        The first sample converted, counted in samples per channel. 0 by
+        default.
+      @param length
+        The number of samples per channel converted. By default, everything
+        after [offset].
+      @raise Avutil.Error
+        with [`Failure _] when [offset] or [length] is negative, when
+        [offset + length] exceeds the samples per channel [input] holds and when
+        [input] has not the shape described above; with the FFmpeg error when
+        the conversion fails. *)
   val convert : ?offset:int -> ?length:int -> t -> I.t -> O.t
 
-  (** [Swresample.convert rpsp] flushes the last remaining data. *)
+  (** [flush converter] returns the samples the resampler still holds: the tail
+      a rate conversion keeps back until it knows that no input follows. After
+      it, the samples returned by all the calls since creation are everything
+      the input produces.
+
+      A second [flush] with no conversion in between returns an empty value. The
+      converter stays usable: {!convert} may be called again. The call releases
+      the OCaml runtime lock and excludes other operations on the converter, as
+      {!convert} does.
+      @raise Avutil.Error when the conversion fails. *)
   val flush : t -> O.t
 end
 
-(** Byte string with undefined sample format for interleaved channels. The
-    sample format must be passed to the create function. *)
-module Bytes : sig
-  type t = bytes
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Unsigned 8 bit sample format byte string for interleaved channels. *)
-module U8Bytes : sig
-  type t = bytes
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Signed 16 bit sample format byte string for interleaved channels. *)
-module S16Bytes : sig
-  type t = bytes
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Signed 32 bit sample format byte string for interleaved channels. *)
-module S32Bytes : sig
-  type t = bytes
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 32 bit sample format byte string for interleaved channels. *)
-module FltBytes : sig
-  type t = bytes
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 64 bit sample format byte string for interleaved channels. *)
-module DblBytes : sig
-  type t = bytes
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Unsigned 8 bit sample format byte string for planar channels. *)
-module U8PlanarBytes : sig
-  type t = bytes array
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Signed 16 bit sample format byte string for planar channels. *)
-module S16PlanarBytes : sig
-  type t = bytes array
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Signed 32 bit sample format byte string for planar channels. *)
-module S32PlanarBytes : sig
-  type t = bytes array
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 32 bit sample format byte string for planar channels. *)
-module FltPlanarBytes : sig
-  type t = bytes array
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 64 bit sample format byte string for planar channels. *)
-module DblPlanarBytes : sig
-  type t = bytes array
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 64 bit sample format array for interleaved channels. *)
-module FloatArray : sig
-  type t = float array
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 64 bit sample format array for planar channels. *)
-module PlanarFloatArray : sig
-  type t = float array array
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
+(** Unsigned 8-bit samples. *)
 type u8ba =
   (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+(** Signed 16-bit samples. *)
 type s16ba =
   (int, Bigarray.int16_signed_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+(** Signed 32-bit samples. *)
 type s32ba = (int32, Bigarray.int32_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+(** 32-bit float samples. *)
 type f32ba = (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+(** 64-bit float samples. *)
 type f64ba = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-(** Unsigned 8 bit sample format bigarray for interleaved channels. *)
-module U8BigArray : sig
-  type t = u8ba
+(** Raw samples in [bytes], channels interleaved in the order of the channel
+    layout, each sample in the machine's native representation of the sample
+    format. The format is given at creation and is a packed one. With stereo
+    signed 16-bit samples, three samples per channel take 12 bytes:
+    [L0 R0 L1 R1 L2 R2]. *)
+module Bytes : AudioData with type t = bytes
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** Samples as OCaml floats, channels interleaved: [l0 r0 l1 r1 ...]. The sample
+    format is [`Dbl]. *)
+module FloatArray : AudioData with type t = float array
 
-(** Signed 16 bit sample format bigarray for interleaved channels. *)
-module S16BigArray : sig
-  type t = s16ba
+(** One [float array] of samples per channel, in the order of the channel
+    layout. The sample format is [`Dblp]. *)
+module PlanarFloatArray : AudioData with type t = float array array
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** Audio frames of the sample format given at creation, packed or planar. *)
+module Frame : AudioData with type t = audio frame
 
-(** Signed 32 bit sample format bigarray for interleaved channels. *)
-module S32BigArray : sig
-  type t = s32ba
+(** As {!Bytes}, with the sample format [`U8]. *)
+module U8Bytes : AudioData with type t = bytes
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!Bytes}, with the sample format [`S16]. *)
+module S16Bytes : AudioData with type t = bytes
 
-(** Float 32 bit sample format bigarray for interleaved channels. *)
-module FltBigArray : sig
-  type t = f32ba
+(** As {!Bytes}, with the sample format [`S32]. *)
+module S32Bytes : AudioData with type t = bytes
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!Bytes}, with the sample format [`Flt]. *)
+module FltBytes : AudioData with type t = bytes
 
-(** Float 64 bit sample format bigarray for interleaved channels. *)
-module DblBigArray : sig
-  type t = f64ba
+(** As {!Bytes}, with the sample format [`Dbl]. *)
+module DblBytes : AudioData with type t = bytes
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** One [bytes] of raw samples per channel, in the order of the channel layout,
+    each sample in the machine's native representation. The sample format is
+    [`U8p]. *)
+module U8PlanarBytes : AudioData with type t = bytes array
 
-(** Unsigned 8 bit sample format bigarray for planar channels. *)
-module U8PlanarBigArray : sig
-  type t = u8ba array
+(** As {!U8PlanarBytes}, with the sample format [`S16p]. *)
+module S16PlanarBytes : AudioData with type t = bytes array
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!U8PlanarBytes}, with the sample format [`S32p]. *)
+module S32PlanarBytes : AudioData with type t = bytes array
 
-(** Signed 16 bit sample format bigarray for planar channels. *)
-module S16PlanarBigArray : sig
-  type t = s16ba array
+(** As {!U8PlanarBytes}, with the sample format [`Fltp]. *)
+module FltPlanarBytes : AudioData with type t = bytes array
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!U8PlanarBytes}, with the sample format [`Dblp]. *)
+module DblPlanarBytes : AudioData with type t = bytes array
 
-(** Signed 32 bit sample format bigarray for planar channels. *)
-module S32PlanarBigArray : sig
-  type t = s32ba array
+(** One bigarray, one element per sample, channels interleaved. The sample
+    format is [`U8]. An input bigarray is read in place; a bigarray returned is
+    a new one. *)
+module U8BigArray : AudioData with type t = u8ba
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!U8BigArray}, with the sample format [`S16]. *)
+module S16BigArray : AudioData with type t = s16ba
 
-(** Float 32 bit sample format bigarray for planar channels. *)
-module FltPlanarBigArray : sig
-  type t = f32ba array
+(** As {!U8BigArray}, with the sample format [`S32]. *)
+module S32BigArray : AudioData with type t = s32ba
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!U8BigArray}, with the sample format [`Flt]. *)
+module FltBigArray : AudioData with type t = f32ba
 
-(** Float 64 bit sample format bigarray for planar channels. *)
-module DblPlanarBigArray : sig
-  type t = f64ba array
+(** As {!U8BigArray}, with the sample format [`Dbl]. *)
+module DblBigArray : AudioData with type t = f64ba
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** One bigarray per channel, in the order of the channel layout, one element
+    per sample. The sample format is [`U8p]. Input bigarrays are read in place;
+    the bigarrays returned are new ones. *)
+module U8PlanarBigArray : AudioData with type t = u8ba array
 
-(** Audio frame with undefined sample format. The sample format must be passed
-    to the create function. *)
-module Frame : sig
-  type t = audio frame
+(** As {!U8PlanarBigArray}, with the sample format [`S16p]. *)
+module S16PlanarBigArray : AudioData with type t = s16ba array
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!U8PlanarBigArray}, with the sample format [`S32p]. *)
+module S32PlanarBigArray : AudioData with type t = s32ba array
 
-(** Unsigned 8 bit sample format audio frame for interleaved channels. *)
-module U8Frame : sig
-  type t = audio frame
+(** As {!U8PlanarBigArray}, with the sample format [`Fltp]. *)
+module FltPlanarBigArray : AudioData with type t = f32ba array
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** As {!U8PlanarBigArray}, with the sample format [`Dblp]. *)
+module DblPlanarBigArray : AudioData with type t = f64ba array
 
-(** Signed 16 bit sample format audio frame for interleaved channels. *)
-module S16Frame : sig
-  type t = audio frame
+(** Audio frames of the sample format [`U8]. *)
+module U8Frame : AudioData with type t = audio frame
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** Audio frames of the sample format [`S16]. *)
+module S16Frame : AudioData with type t = audio frame
 
-(** Signed 32 bit sample format audio frame for interleaved channels. *)
-module S32Frame : sig
-  type t = audio frame
+(** Audio frames of the sample format [`S32]. *)
+module S32Frame : AudioData with type t = audio frame
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** Audio frames of the sample format [`Flt]. *)
+module FltFrame : AudioData with type t = audio frame
 
-(** Float 32 bit sample format audio frame for interleaved channels. *)
-module FltFrame : sig
-  type t = audio frame
+(** Audio frames of the sample format [`Dbl]. *)
+module DblFrame : AudioData with type t = audio frame
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** Audio frames of the sample format [`U8p]. *)
+module U8PlanarFrame : AudioData with type t = audio frame
 
-(** Float 64 bit sample format audio frame for interleaved channels. *)
-module DblFrame : sig
-  type t = audio frame
+(** Audio frames of the sample format [`S16p]. *)
+module S16PlanarFrame : AudioData with type t = audio frame
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** Audio frames of the sample format [`S32p]. *)
+module S32PlanarFrame : AudioData with type t = audio frame
 
-(** Unsigned 8 bit sample format audio frame for planar channels. *)
-module U8PlanarFrame : sig
-  type t = audio frame
+(** Audio frames of the sample format [`Fltp]. *)
+module FltPlanarFrame : AudioData with type t = audio frame
 
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Signed 16 bit sample format audio frame for planar channels. *)
-module S16PlanarFrame : sig
-  type t = audio frame
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Signed 32 bit sample format audio frame for planar channels. *)
-module S32PlanarFrame : sig
-  type t = audio frame
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 32 bit sample format audio frame for planar channels. *)
-module FltPlanarFrame : sig
-  type t = audio frame
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
-
-(** Float 64 bit sample format audio frame for planar channels. *)
-module DblPlanarFrame : sig
-  type t = audio frame
-
-  val vk : vector_kind
-  val sf : Sample_format.t
-end
+(** Audio frames of the sample format [`Dblp]. *)
+module DblPlanarFrame : AudioData with type t = audio frame
