@@ -268,12 +268,10 @@ let mk_bitmap_subtitle_decoder ~field ~width ~height =
       (Ffmpeg_utils.convert_time_base ~src:avutil_time_base
          ~dst:liq_main_ticks_time_base ts)
   in
-  (* A subtitle picture has four plane slots; a paletted image is the first
-     two, its plane and its palette. *)
-  let convert (x, y, w, h, (planes, linesizes)) =
+  let convert (x, y, w, h, sub) =
     let scaler = get_scaler w h in
     let img =
-      SubScaler.convert scaler (Array.sub planes 0 2, Array.sub linesizes 0 2)
+      SubScaler.convert scaler sub
       |> Ffmpeg_utils.unpack_image ~width:w ~height:h
     in
     Video.Canvas.Image.make ~width ~height ~x ~y img
