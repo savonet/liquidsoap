@@ -8,13 +8,20 @@ license="GPL-2.0-only"
 install="@APK_PACKAGE@.post-install"
 options="!check textrels"
 
-package() {
-        eval "$(opam env)"
+# abuild runs package() under fakeroot, whose stale inode cache can report a
+# recycled inode's old file type, which dune rejects when digesting targets.
+build() {
+        eval "$(opam config env)"
         cd /tmp/liquidsoap
 
         export LIQUIDSOAP_BUILD_TARGET=posix
-        eval "$(opam config env)"
         dune build @install --release
+}
+
+package() {
+        eval "$(opam config env)"
+        cd /tmp/liquidsoap
+
         dune install --relocatable --prefix "${pkgdir}/usr"
         rm -rf "${pkgdir}/usr/share/liquidsoap-lang/libs/extra"
 
