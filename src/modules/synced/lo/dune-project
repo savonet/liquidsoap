@@ -1,5 +1,5 @@
 (lang dune 3.23)
-(version 0.2.0)
+(version 0.2.1)
 (name lo)
 (source (github savonet/ocaml-lo))
 (license LGPL-2.1-or-later)
