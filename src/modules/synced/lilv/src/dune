@@ -1,0 +1,40 @@
+(library
+ (name lilv)
+ (public_name lilv)
+ (synopsis "OCaml bindings for lilv")
+ (enabled_if
+  (= %{read:./detect/lilv_available} true))
+ (libraries ctypes-foreign)
+ ; ctypes backward compatibility shims warn sometimes; suppress them
+ (flags
+  (:standard -w -9-27))
+ (ctypes
+  (external_library_name lilv-0)
+  (build_flags_resolver
+   (vendored
+    (c_flags
+     (:include ./detect/lilv_c_flags.sexp))
+    (c_library_flags
+     (:include ./detect/lilv_c_library_flags.sexp))))
+  (headers
+   (include "lilv/lilv.h"))
+  (type_description
+   (instance Types)
+   (functor Type_description))
+  (function_description
+   (concurrency unlocked)
+   (instance Functions)
+   (functor Function_description))
+  (generated_types Types_generated)
+  (generated_entry_point C)))
+
+(rule
+ (alias install)
+ (package lilv)
+ (enabled_if
+  (not
+   (= %{env:LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL=false} true)))
+ (action
+  (with-stdin-from
+   ./detect/lilv_available
+   (run ./detect/check.exe lilv))))
