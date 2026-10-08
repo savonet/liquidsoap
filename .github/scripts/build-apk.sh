@@ -2,7 +2,7 @@
 
 set -e
 
-cd /tmp/liquidsoap-full/liquidsoap
+cd /tmp/liquidsoap
 
 APK_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
 
@@ -37,14 +37,14 @@ collect_apk() {
 
 echo "::group:: build ${APK_PACKAGE}.."
 
-cd /tmp/liquidsoap-full
+cd /tmp
 
-sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" liquidsoap/.github/alpine/APKBUILD.in |
+sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}#" /tmp/liquidsoap/.github/alpine/APKBUILD.in |
   sed -e "s#@APK_VERSION@#${APK_VERSION}#" |
   sed -e "s#@APK_RELEASE@#${APK_RELEASE}#" \
     > APKBUILD
 
-cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-install"
+cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}.post-install"
 
 mkdir -p "$APKDEST"
 abuild -P "$APKDEST"
@@ -57,9 +57,7 @@ if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}.."
 
   eval "$(opam config env)"
-  OCAMLPATH=$(cat .ocamlpath)
-  export OCAMLPATH
-  cd liquidsoap && ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
+  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
 
   echo "::endgroup::"
 fi
@@ -73,24 +71,17 @@ opam remove -y --assume-depexts $MINIMAL_EXCLUDE_DEPS
 
 eval "$(opam config env)"
 
-cd /tmp/liquidsoap-full
-make clean
-cp PACKAGES.minimal-build PACKAGES
-
-cd liquidsoap
+cd /tmp/liquidsoap
 ./.github/scripts/build-posix.sh 1
 
-cd /tmp/liquidsoap-full
+cd /tmp
 
-OCAMLPATH=$(cat .ocamlpath)
-export OCAMLPATH
-
-sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" liquidsoap/.github/alpine/APKBUILD-minimal.in |
+sed -e "s#@APK_PACKAGE@#${APK_PACKAGE}-minimal#" /tmp/liquidsoap/.github/alpine/APKBUILD-minimal.in |
   sed -e "s#@APK_VERSION@#${APK_VERSION}#" |
   sed -e "s#@APK_RELEASE@#${APK_RELEASE}#" \
     > APKBUILD
 
-cp "liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-minimal.post-install"
+cp "/tmp/liquidsoap/.github/alpine/liquidsoap.post-install" "${APK_PACKAGE}-minimal.post-install"
 
 mkdir -p "$APKDEST"
 abuild -P "$APKDEST"
@@ -102,7 +93,7 @@ echo "::endgroup::"
 if [ "${ARCH}" = "amd64" ]; then
   echo "::group:: save build config for ${APK_PACKAGE}-minimal.."
 
-  cd liquidsoap && ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
+  /tmp/liquidsoap/liquidsoap --build-config > "${LIQ_TMP_DIR}/${APK_PACKAGE}-minimal-${APK_VERSION}-r${APK_RELEASE}-${APK_SUFFIX}.config"
 fi
 
 echo "::endgroup::"

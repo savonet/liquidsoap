@@ -68,7 +68,7 @@ else
   IS_SNAPSHOT=
 fi
 
-MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac flac frei0r gd graphics irc-client-unix ladspa lame lastfm lilv lo mad magic ogg opus osc-unix portaudio pulseaudio samplerate shine soundtouch speex srt tls theora tsdl sqlite3 vorbis sdl-liquidsoap"
+MINIMAL_EXCLUDE_DEPS="alsa ao bjack camlimages dssi faad fdkaac frei0r gd graphics irc-client-unix ladspa lame lastfm lilv lo mad magic osc-unix portaudio pulseaudio samplerate shine soundtouch speex tls theora tsdl sqlite3 sdl-liquidsoap"
 
 echo "Ocaml version to build: 4.14.2, 5.4.0"
 OCAML_VERSION='["4.14.2", "5.4.0"]'

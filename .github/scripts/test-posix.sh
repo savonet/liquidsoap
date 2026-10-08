@@ -6,10 +6,8 @@ TARGET=$1
 
 #export OPAMJOBS="$CPU_CORES"
 
-cd /tmp/liquidsoap-full/liquidsoap
+cd /tmp/liquidsoap
 eval "$(opam config env)"
-OCAMLPATH="$(cat ../.ocamlpath)"
-export OCAMLPATH
 
 export CLICOLOR_FORCE=1
 

@@ -14,28 +14,24 @@ jobs:
   build_js:
     runs-on: depot-ubuntu-24.04-4
     container:
-      image: savonet/liquidsoap-ci:debian_trixie@sha256:dc7cb6d629091da7cc938e7e3d2d88b3830894c85d0700065c73cceeca5cf5ab
+      image: ghcr.io/savonet/liquidsoap:ci-debian_trixie-5.4.0
       options: --user root
     env:
       HOME: /home/opam
     steps:
       - name: Checkout code
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
-          sudo -u opam -E git remote set-url origin https://github.com/savonet/liquidsoap.git
-          sudo -u opam -E git fetch origin ${{ inputs.sha }}
-          sudo -u opam -E git checkout ${{ inputs.sha }}
-          mv .git /tmp
-          rm -rf ./*
-          mv /tmp/.git .
-          sudo -u opam -E git reset --hard
+          sudo -u opam git clone --depth 1 https://github.com/savonet/liquidsoap.git /tmp/liquidsoap
+          cd /tmp/liquidsoap
+          sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
+          sudo -u opam git checkout ${{ inputs.sha }}
       - name: Install npm
         run: |
           apt-get update
           apt-get install -y npm
       - name: Build JS
         run: |
-          cd /tmp/liquidsoap-full/liquidsoap
+          cd /tmp/liquidsoap
           sudo -u opam -E opam update
           sudo -u opam -E opam upgrade -y
           sudo -u opam -E opam install domain_shims
@@ -45,7 +41,7 @@ jobs:
         with:
           name: liquidsoap-js-${{ inputs.branch }}
           path: |
-            /tmp/liquidsoap-full/liquidsoap/_build/default/src/js/interactive_js.bc.js
-            /tmp/liquidsoap-full/liquidsoap/_build/default/src/js/index.html
-            /tmp/liquidsoap-full/liquidsoap/_build/default/src/js/playground.bundle.js
+            /tmp/liquidsoap/_build/default/src/js/interactive_js.bc.js
+            /tmp/liquidsoap/_build/default/src/js/index.html
+            /tmp/liquidsoap/_build/default/src/js/playground.bundle.js
           if-no-files-found: error

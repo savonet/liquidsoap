@@ -2,10 +2,8 @@
 
 set -e
 
-cd /tmp/liquidsoap-full/liquidsoap
+cd /tmp/liquidsoap
 eval "$(opam config env)"
-OCAMLPATH="$(cat ../.ocamlpath)"
-export OCAMLPATH
 
 printf "Memory usage before loading all libraries: "
 dune exec --display=quiet -- src/bin/liquidsoap.exe --no-stdlib --check 'runtime.gc.full_major() print(runtime.memory.prettify_bytes(runtime.memory().process_private_memory))'

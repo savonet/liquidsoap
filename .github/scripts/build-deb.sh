@@ -10,11 +10,9 @@ export DEBFULLNAME="The Savonet Team"
 export DEBEMAIL="savonet-users@lists.sourceforge.net"
 export LIQUIDSOAP_BUILD_TARGET=posix
 
-cd /tmp/liquidsoap-full/liquidsoap
+cd /tmp/liquidsoap
 
 eval "$(opam config env)"
-OCAMLPATH="$(cat ../.ocamlpath)"
-export OCAMLPATH
 
 LIQ_VERSION=$(opam show -f version ./opam/liquidsoap.opam | cut -d'-' -f 1)
 LIQ_TAG=$(echo "${DOCKER_TAG}" | sed -e 's#_#-#g')
@@ -54,7 +52,7 @@ if [ "${PLATFORM}" = "amd64" ]; then
 
   ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
-  mv /tmp/liquidsoap-full/*.deb "${LIQ_TMP_DIR}"
+  mv /tmp/*.deb "${LIQ_TMP_DIR}"
 fi
 
 echo "::endgroup::"
@@ -64,14 +62,7 @@ echo "::group:: build ${LIQ_PACKAGE}-minimal.."
 # shellcheck disable=SC2086
 opam remove -y --verbose --assume-depexts $MINIMAL_EXCLUDE_DEPS
 
-cd /tmp/liquidsoap-full
-make clean
-cp PACKAGES.minimal-build PACKAGES
-rm .ocamlpath
-cd liquidsoap
 ./.github/scripts/build-posix.sh 1
-OCAMLPATH="$(cat ../.ocamlpath)"
-export OCAMLPATH
 
 rm -rf debian
 
@@ -99,7 +90,7 @@ if [ "${PLATFORM}" = "amd64" ]; then
   echo "::endgroup::"
 fi
 
-mv /tmp/liquidsoap-full/*.deb "${LIQ_TMP_DIR}"
+mv /tmp/*.deb "${LIQ_TMP_DIR}"
 
 {
   echo "basename=${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}_$ARCH"

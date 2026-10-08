@@ -11,11 +11,10 @@ depends="sdl2 sdl2_image sdl2_ttf"
 
 package() {
         eval "$(opam env)"
-        cd liquidsoap
+        cd /tmp/liquidsoap
 
         export LIQUIDSOAP_BUILD_TARGET=posix
         eval "$(opam config env)"
-        export OCAMLPATH=$(cat ../.ocamlpath)
         dune build @install --release
         dune install --relocatable --prefix "${pkgdir}/usr"
 

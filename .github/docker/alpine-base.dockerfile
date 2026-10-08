@@ -2,9 +2,10 @@ FROM alpine:edge AS base
 
 ENTRYPOINT bash
 
-MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
+MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
 ARG OCAML_VERSION=4.14.2
+ARG OCAML_PATCH_URL
 
 USER root
 
@@ -21,31 +22,16 @@ RUN adduser -D opam
 
 USER opam
 
-RUN \
-    opam init -y --disable-sandboxing --compiler=$OCAML_VERSION && \
-    opam update -y && \
-    opam clean
+COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
 
-WORKDIR /tmp
+RUN sh /tmp/setup-ocaml.sh ocaml-option-flambda
 
-RUN git clone https://github.com/savonet/liquidsoap-full.git
+COPY .github/docker/ext-packages /tmp/ext-packages
 
-WORKDIR /tmp/liquidsoap-full
+# Alpine packages gd and has no dssi.
+RUN (echo gd; grep -vx dssi /tmp/ext-packages) > /tmp/packages
 
-RUN make init && make update
-
-RUN cat PACKAGES.default | grep '^ocaml' | grep -v dssi > /tmp/modules && \
-    cat /tmp/modules | while read i; do find $i | grep '\.opam$'; done | while read i; do basename $i | cut -d'.' -f 1; done > /tmp/packages
-
-RUN \
-    cat /tmp/modules | while read module; do \
-        cd $module && opam pin add -y --no-action . && cd .. \
-      fi; \
-    done && cd liquidsoap && opam pin add -y --no-action .
-
-ENV EXT_PACKAGES="$EXTRA_PACKAGES camomile ocurl irc-client-unix osc-unix gd inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace mem_usage ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
-
-RUN eval $(opam env) && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
+RUN eval $(opam env) && opam list --short --external --resolve="$(xargs < /tmp/packages | tr ' ' ','),liquidsoap" > /tmp/deps
 
 USER root
 
@@ -55,10 +41,13 @@ USER opam
 
 RUN \
     eval $(opam config env) && \
-    PACKAGES=`cat /tmp/packages | xargs echo` && \
-    opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
-    opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
+    opam install --no-depexts -y liquidsoap $(xargs < /tmp/packages) && \
+    opam uninstall --no-depexts -y liquidsoap-lang && \
     opam clean
+
+USER root
+
+RUN echo 'Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' > /etc/sudoers.d/secure_path
 
 FROM alpine:edge
 COPY --from=base / /

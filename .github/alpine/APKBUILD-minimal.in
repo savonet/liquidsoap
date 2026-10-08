@@ -10,11 +10,10 @@ options="!check textrels"
 
 package() {
         eval "$(opam env)"
-        cd liquidsoap
+        cd /tmp/liquidsoap
 
         export LIQUIDSOAP_BUILD_TARGET=posix
         eval "$(opam config env)"
-        export OCAMLPATH=$(cat ../.ocamlpath)
         dune build @install --release
         dune install --relocatable --prefix "${pkgdir}/usr"
         rm -rf "${pkgdir}/usr/share/liquidsoap-lang/libs/extra"

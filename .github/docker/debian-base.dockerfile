@@ -1,40 +1,21 @@
 ARG BASE_IMAGE
-FROM $BASE_IMAGE AS base
 
-ENTRYPOINT bash
+# Stage 1: OCaml compiler
+FROM $BASE_IMAGE AS ocaml
 
-MAINTAINER The Savonet Team <savonet-users@lists.sourceforge.net>
+MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
-ARG OS
-ARG DISTRIBUTION
 ARG OCAML_VERSION=4.14.2
-ARG ARCHITECTURE
-ARG EXTRA_PACKAGES
+ARG OCAML_PATCH_URL
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 USER root
 
-# For libfdk-aac-dev
-RUN if [ "$OS" = "debian" ]; then \
-      echo "deb http://deb.$OS.org/$OS $DISTRIBUTION non-free" >> /etc/apt/sources.list; \
-    fi
-
-# We need an up-to date ffmpeg on all debian distributions
-RUN if [ "$OS" = "debian" ]; then \
-      apt-get update && apt install -y ca-certificates && \
-      echo "deb https://www.deb-multimedia.org $DISTRIBUTION main non-free" >> /etc/apt/sources.list && \
-      apt-get update -oAcquire::AllowInsecureRepositories=true && \
-      apt-get install -y --allow-unauthenticated deb-multimedia-keyring; \
-    fi
-
-RUN \
-    apt-get update && \
-    apt-get install -y --no-install-recommends aspcud autoconf automake rsync \
-            build-essential ca-certificates curl debhelper devscripts sudo \
-            ffmpeg pandoc fakeroot git openssh-client unzip gnupg dirmngr apt-transport-https && \
-    apt-get -y autoclean && \
-    apt-get -y clean
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+            build-essential ca-certificates curl git rsync unzip && \
+    apt-get -y autoclean && apt-get -y clean
 
 RUN printf "\ny\n" | bash -c "sh <(curl -fsSL https://raw.githubusercontent.com/ocaml/opam/master/shell/install.sh)"
 
@@ -42,50 +23,80 @@ RUN useradd -m opam
 
 USER opam
 
-RUN \
-    opam init -y --disable-sandboxing --bare && \
-    opam switch create $OCAML_VERSION ocaml-variants.$OCAML_VERSION+options ocaml-option-flambda && \
-    opam update -y && \
-    opam clean
+COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
 
-WORKDIR /tmp
+RUN sh /tmp/setup-ocaml.sh ocaml-option-flambda
 
-RUN git clone https://github.com/smimram/ocaml-pandoc.git ocaml-pandoc && \
-    opam pin -y add ocaml-pandoc
+# Stage 2: Install ffmpeg-liquidsoap and static opam packages
+FROM ocaml AS static-packages
 
-RUN git clone https://github.com/savonet/liquidsoap-full.git
-
-WORKDIR /tmp/liquidsoap-full
-
-RUN make init && make update
-
-RUN cat PACKAGES.default | grep '^ocaml' > /tmp/modules && \
-    cat /tmp/modules | while read i; do find $i | grep '\.opam$'; done | while read i; do basename $i | cut -d'.' -f 1; done > /tmp/packages
-
-RUN \
-    cat /tmp/modules | while read module; do \
-        cd $module && opam pin add -y --no-action . && cd .. \
-      fi; \
-    done && cd liquidsoap && opam pin add -y --no-action .
-
-ENV EXT_PACKAGES="$EXTRA_PACKAGES camomile ocurl irc-client-unix osc-unix inotify prometheus-liquidsoap tsdl sdl-liquidsoap tls-liquidsoap syslog memtrace mem_usage ssl posix-time2 yaml js_of_ocaml js_of_ocaml-ppx re sqlite3 pandoc-include odoc"
-
-RUN eval $(opam env) && opam list --short --external --resolve="`echo $EXT_PACKAGES | sed -e 's# #,#g'`,`cat /tmp/packages | while read i; do printf "$i,"; done`,liquidsoap" > /tmp/deps
+ENV STATIC_PACKAGES="fdkaac ffmpeg flac lame ogg opus shine srt vorbis"
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 USER root
 
-RUN \
-    cat /tmp/deps | xargs apt-get install -y --no-install-recommends && \
-    apt-get -y autoclean && apt-get -y clean
+# Static FFmpeg build for Liquidsoap
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg pkg-config && \
+    curl -fsSL https://liquidsoap.info/ffmpeg-static-build/key.asc \
+      | gpg --dearmor -o /etc/apt/trusted.gpg.d/liquidsoap-ffmpeg.gpg && \
+    echo "deb https://liquidsoap.info/ffmpeg-static-build stable main" \
+      > /etc/apt/sources.list.d/liquidsoap-ffmpeg.list && \
+    apt-get update && apt-get install -y libffi-dev ffmpeg-liquidsoap ffmpeg-liquidsoap-tools
+
+# Wrap ld to inject -Bsymbolic when building shared objects.
+# Needed on ARM64: FFmpeg/x265 NEON assembly uses non-GOT ADRP relocations
+# against globally-visible symbols, which ld rejects when making a .so.
+RUN mv /usr/bin/ld /usr/bin/ld.real && \
+    printf '#!/bin/sh\nfor a; do [ "$a" = "-shared" ] && exec /usr/bin/ld.real -Bsymbolic "$@"; done\nexec /usr/bin/ld.real "$@"\n' \
+      > /usr/bin/ld && \
+    chmod +x /usr/bin/ld
 
 USER opam
 
-RUN \
-    eval $(opam config env) && \
-    PACKAGES=`cat /tmp/packages | xargs echo` && \
-    opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
-    opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
+RUN eval $(opam env) && \
+    opam install --no-depexts -y $STATIC_PACKAGES && \
     opam clean
 
+USER root
+
+# Stage 3: Install remaining external and opam dependencies
+FROM static-packages AS build
+
+COPY .github/docker/ext-packages /tmp/ext-packages
+
+USER opam
+
+RUN eval $(opam env) && \
+    STATIC_RE=$(echo $STATIC_PACKAGES | tr ' ' '|') && \
+    PKGS=$(grep -Ev "^($STATIC_RE)$" /tmp/ext-packages | xargs | tr ' ' ',') && \
+    opam list --short --external --resolve="$PKGS,liquidsoap" > /tmp/deps
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends aspcud autoconf automake rsync \
+            build-essential ca-certificates curl debhelper devscripts sudo \
+            fakeroot git openssh-client pkg-config unzip \
+            gnupg dirmngr apt-transport-https && \
+    cat /tmp/deps | xargs apt-get install -y --no-install-recommends && \
+    apt-get -y autoclean && apt-get -y clean
+
+RUN arch=$(dpkg --print-architecture) && \
+    curl -fsSL "https://github.com/jgm/pandoc/releases/download/3.10/pandoc-3.10-1-${arch}.deb" -o /tmp/pandoc.deb && \
+    dpkg -i /tmp/pandoc.deb && \
+    rm /tmp/pandoc.deb
+
+USER opam
+
+RUN eval $(opam env) && \
+    opam install --no-depexts -y liquidsoap $(xargs < /tmp/ext-packages) && \
+    opam uninstall --no-depexts -y liquidsoap-lang && \
+    opam clean
+
+USER root
+
+RUN echo 'Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' > /etc/sudoers.d/secure_path
+
 FROM $BASE_IMAGE
-COPY --from=base / /
+ENTRYPOINT bash
+COPY --from=build / /
