@@ -20,10 +20,9 @@
     {2 Errors}
 
     A failure reported by FFmpeg raises [Avutil.Error] with the mapped code. A
-    condition the binding detects itself raises [Error (`Failure message)]. A
-    failed allocation raises [Out_of_memory]. An exception raised by a function
-    given to {!open_input}, {!read_input} or {!write_frame} propagates
-    unchanged.
+    condition the binding detects itself raises [Error (`Failure message)]. An
+    exception raised by a function given to {!open_input}, {!read_input} or
+    {!write_frame} propagates unchanged.
 
     {2 Threads}
 

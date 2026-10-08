@@ -160,8 +160,7 @@ type error =
 
     A negative code returned by an FFmpeg call raises it with the matching case
     of {!type:error}, and a condition the bindings detect themselves raises
-    [Error (`Failure msg)]. Besides it, an allocation of the bindings that fails
-    raises [Out_of_memory], and the lookups documented as such raise
+    [Error (`Failure msg)]. Besides it, the lookups documented as such raise
     [Not_found].
 
     An uncaught [Error e] prints as [Avutil.Error(...)] with the text of
@@ -249,7 +248,7 @@ module Log : sig
       prefix included, cut at a fixed length, and put on a queue by the thread
       that logs. That thread runs no OCaml code and does not wait for the
       delivery. There is one message per log call of FFmpeg, so a message may be
-      a part of a line. A message whose allocation fails is dropped.
+      a part of a line.
 
       Delivery. One thread of this library calls the callback, never the thread
       that logged. The first [set_callback] of the program starts it, in the
@@ -528,8 +527,7 @@ module Audio : sig
 
       @raise Error
         with [`Failure] when [nb_samples] is below 1, or when [sample_rate] or
-        [nb_samples] exceeds a C [int]; with FFmpeg's error when FFmpeg cannot
-        allocate the buffers. Nothing remains allocated. *)
+        [nb_samples] exceeds a C [int]. *)
   val create_frame :
     Sample_format.t -> Channel_layout.t -> int -> int -> audio frame
 
@@ -570,8 +568,7 @@ module Video : sig
 
       @raise Error
         with [`Failure] when [width] or [height] is below 1 or exceeds a C
-        [int]; with FFmpeg's error when FFmpeg cannot allocate the buffers.
-        Nothing remains allocated. *)
+        [int]. *)
   val create_frame : int -> int -> Pixel_format.t -> video frame
 
   (** [frame_get_linesize frame n] is the line size of plane [n] of [frame], in

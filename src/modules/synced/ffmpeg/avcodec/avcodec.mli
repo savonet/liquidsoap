@@ -243,8 +243,7 @@ module Packet : sig
 
       @raise Avutil.Error
         with [`Failure _] when a gain does not fit a signed 32-bit integer or a
-        peak an unsigned one.
-      @raise Out_of_memory when the entry cannot be allocated. *)
+        peak an unsigned one. *)
   val add_side_data : 'media t -> side_data -> unit
 
   (** [side_data packet] is the packet's side data of the three kinds of
@@ -330,9 +329,7 @@ module Packet : sig
       side data. The caller chooses ['media].
 
       @raise Avutil.Error
-        with [`Failure _] when [content] is longer than a C [int] can count, and
-        with the mapped FFmpeg code when FFmpeg fails to allocate the payload.
-  *)
+        with [`Failure _] when [content] is longer than a C [int] can count. *)
   val create : string -> 'media t
 end
 

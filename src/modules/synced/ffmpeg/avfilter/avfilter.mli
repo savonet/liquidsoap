@@ -264,8 +264,7 @@ val pad_name : _ pad -> string
 val filter_name : _ pad -> string
 
 (** A new, empty graph in the configuring phase. Every option of the graph keeps
-    FFmpeg's default.
-    @raise Out_of_memory when the graph cannot be allocated. *)
+    FFmpeg's default. *)
 val init : unit -> config
 
 (** [attach ?args ~name filter graph] creates an instance of [filter] in [graph]
