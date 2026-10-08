@@ -22,7 +22,7 @@ soundtouch
 srt
 vorbis
 camomile<2.1.0
-ocurl
+curl
 irc-client-unix
 osc-unix
 inotify
