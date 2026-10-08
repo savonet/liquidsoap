@@ -30,7 +30,7 @@ RUN sh /tmp/setup-ocaml.sh ocaml-option-flambda
 # Stage 2: Install ffmpeg-liquidsoap and static opam packages
 FROM ocaml AS static-packages
 
-ENV STATIC_PACKAGES="fdkaac ffmpeg flac lame ogg opus shine srt vorbis"
+ENV STATIC_RE="^(fdkaac|ffmpeg|flac|lame|ogg|opus|shine|srt|vorbis)(<.*)?\$"
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 USER root
@@ -51,10 +51,12 @@ RUN mv /usr/bin/ld /usr/bin/ld.real && \
       > /usr/bin/ld && \
     chmod +x /usr/bin/ld
 
+COPY .github/docker/ext-packages /tmp/ext-packages
+
 USER opam
 
 RUN eval $(opam env) && \
-    opam install --no-depexts -y $STATIC_PACKAGES && \
+    opam install --no-depexts -y $(grep -E "$STATIC_RE" /tmp/ext-packages | xargs) && \
     opam clean
 
 USER root
@@ -62,13 +64,11 @@ USER root
 # Stage 3: Install remaining external and opam dependencies
 FROM static-packages AS build
 
-COPY .github/docker/ext-packages /tmp/ext-packages
-
 USER opam
 
 RUN eval $(opam env) && \
-    STATIC_RE=$(echo $STATIC_PACKAGES | tr ' ' '|') && \
-    PKGS=$(grep -Ev "^($STATIC_RE)$" /tmp/ext-packages | xargs | tr ' ' ',') && \
+    opam pin add -n -y lo git+https://github.com/savonet/ocaml-lo.git && \
+    PKGS=$(grep -Ev "$STATIC_RE" /tmp/ext-packages | xargs | tr ' ' ',') && \
     opam list --short --external --resolve="$PKGS,liquidsoap" > /tmp/deps
 
 USER root

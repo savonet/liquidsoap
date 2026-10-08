@@ -4,7 +4,7 @@ bjack
 dssi
 faad
 fdkaac
-ffmpeg
+ffmpeg<1.4.0
 flac
 frei0r
 ladspa
@@ -21,7 +21,7 @@ shine
 soundtouch
 srt
 vorbis
-camomile
+camomile<2.1.0
 ocurl
 irc-client-unix
 osc-unix
@@ -37,7 +37,7 @@ posix-time2
 yaml
 js_of_ocaml
 js_of_ocaml-ppx
-re
+re<1.14.0
 sqlite3
 pandoc-include
 odoc

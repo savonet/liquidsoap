@@ -38,7 +38,7 @@ opam pin -y add tsdl-ttf 0.6
 if [ ! -d /tmp/ocaml-ssl ]; then
   cd /tmp
   git clone https://github.com/savonet/ocaml-ssl.git
-  cd ocaml-ssl && git checkout d4a65d7b0514859fc02647b6a8b9b2e2fb2358ca
+  cd ocaml-ssl && git checkout v0.8.0
   opam pin -ny .
   opam reinstall -y ssl
   cd /tmp/liquidsoap

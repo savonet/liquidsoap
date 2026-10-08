@@ -31,7 +31,9 @@ COPY .github/docker/ext-packages /tmp/ext-packages
 # Alpine packages gd and has no dssi.
 RUN (echo gd; grep -vx dssi /tmp/ext-packages) > /tmp/packages
 
-RUN eval $(opam env) && opam list --short --external --resolve="$(xargs < /tmp/packages | tr ' ' ','),liquidsoap" > /tmp/deps
+RUN eval $(opam env) && \
+    opam pin add -n -y lo git+https://github.com/savonet/ocaml-lo.git && \
+    opam list --short --external --resolve="$(xargs < /tmp/packages | tr ' ' ','),liquidsoap" > /tmp/deps
 
 USER root
 
