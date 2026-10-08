@@ -261,9 +261,10 @@ CAMLprim value ocaml_swresample_convert_to_frame(value _resampler, value _input,
       produced = av_frame_get_buffer(frame, 0);
   }
   if (produced >= 0) {
+    int flush = !Is_some(_input);
+
     caml_release_runtime_system();
-    produced =
-        run(record, frame->extended_data, bound, &input, !Is_some(_input));
+    produced = run(record, frame->extended_data, bound, &input, flush);
     caml_acquire_runtime_system();
   }
 
@@ -296,7 +297,7 @@ CAMLprim value ocaml_swresample_convert_to_planes(value _resampler,
                                   record->output.sample_format);
   uint8_t *output[MAX_CHANNELS] = {0};
   input_samples input;
-  int bound, produced;
+  int bound, produced, flush;
 
   record = exclusive(_resampler);
   read_input(record, _input, Long_val(_offset), Long_val(_length), &input);
@@ -313,8 +314,9 @@ CAMLprim value ocaml_swresample_convert_to_planes(value _resampler,
     output[i] = Caml_ba_data_val(Field(_planes, i));
 
   record = exclusive(_resampler);
+  flush = !Is_some(_input);
   caml_release_runtime_system();
-  produced = run(record, output, bound, &input, !Is_some(_input));
+  produced = run(record, output, bound, &input, flush);
   caml_acquire_runtime_system();
   ocaml_avutil_guard_release_exclusive(&record->guard);
   if (produced < 0)

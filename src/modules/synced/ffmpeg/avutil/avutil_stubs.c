@@ -1222,16 +1222,16 @@ CAMLprim value ocaml_avutil_video_frame_planes(value _frame,
   size_t sizes[4];
   int error;
 
-  for (int i = 0; i < 4; i++) {
-    if (i < plane_count && frame->linesize[i] < 0)
-      ocaml_avutil_raise_failure("plane %d has a negative line size", i);
-    linesizes[i] = frame->linesize[i];
-  }
-
   if (Bool_val(_make_writable)) {
     error = av_frame_make_writable(frame);
     if (error < 0)
       ocaml_avutil_raise_error(error);
+  }
+
+  for (int i = 0; i < 4; i++) {
+    if (i < plane_count && frame->linesize[i] < 0)
+      ocaml_avutil_raise_failure("plane %d has a negative line size", i);
+    linesizes[i] = frame->linesize[i];
   }
 
   error =

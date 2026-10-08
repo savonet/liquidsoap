@@ -1798,6 +1798,7 @@ CAMLprim value ocaml_av_write_packet(value _container, value _index,
   AVRational time_base = ocaml_avutil_rational_of_value(_time_base);
   container *record = output_stream(_container, _index, 0);
   AVPacket *reference = av_packet_alloc();
+  int index = Int_val(_index);
   int error = AVERROR(ENOMEM);
 
   if (reference)
@@ -1806,7 +1807,7 @@ CAMLprim value ocaml_av_write_packet(value _container, value _index,
     av_packet_free(&reference);
   } else {
     caml_release_runtime_system();
-    error = write_owned_packet(record, Int_val(_index), reference, time_base);
+    error = write_owned_packet(record, index, reference, time_base);
     caml_acquire_runtime_system();
   }
   done(record, error);
@@ -1873,15 +1874,15 @@ CAMLprim value ocaml_av_stream_receive_packet(value _container, value _index) {
 CAMLprim value ocaml_av_write_encoded(value _container, value _index) {
   CAMLparam2(_container, _index);
   container *record = output_stream(_container, _index, 1);
-  stream_state *stream = &record->streams[Int_val(_index)];
+  int index = Int_val(_index);
+  stream_state *stream = &record->streams[index];
   AVPacket *packet = stream->encoded;
   int error = 0;
 
   stream->encoded = NULL;
   if (packet) {
     caml_release_runtime_system();
-    error = write_owned_packet(record, Int_val(_index), packet,
-                               stream->codec->time_base);
+    error = write_owned_packet(record, index, packet, stream->codec->time_base);
     caml_acquire_runtime_system();
   }
   done(record, error);
