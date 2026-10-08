@@ -641,25 +641,22 @@ enc_write_callback(const FLAC__StreamEncoder *encoder,
                    unsigned current_frame, void *client_data)
 
 {
-  int pos, len;
   ocaml_flac_encoder_callbacks *callbacks =
       (ocaml_flac_encoder_callbacks *)client_data;
 
   ocaml_flac_register_thread();
   caml_acquire_runtime_system();
 
-  pos = 0;
-  while (pos < bytes) {
-    len = bytes - pos;
-
-    if (callbacks->buflen < len)
-      len = callbacks->buflen;
-
-    memcpy(Bytes_val(callbacks->buffer), buffer + pos, len);
-    caml_callback2(callbacks->write_cb, callbacks->buffer, Val_int(len));
-
-    pos += len;
+  /* Flac_ogg pairs consecutive writes as page header and page body, so each
+     libFLAC write reaches OCaml as a single call. */
+  if (callbacks->buflen < bytes) {
+    caml_modify_generational_global_root(&callbacks->buffer,
+                                         caml_alloc_string(bytes));
+    callbacks->buflen = bytes;
   }
+
+  memcpy(Bytes_val(callbacks->buffer), buffer, bytes);
+  caml_callback2(callbacks->write_cb, callbacks->buffer, Val_int(bytes));
 
   caml_release_runtime_system();
 

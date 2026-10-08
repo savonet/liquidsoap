@@ -13,6 +13,16 @@ let () =
  (modules encode)
  (libraries flac.ogg))
 
+(executable
+ (name ogg_pages)
+ (modules ogg_pages)
+ (libraries flac.ogg))
+
+(rule
+ (alias xiph_citest)
+ (action
+  (run ./ogg_pages.exe)))
+
 |};
     if has_ffmpeg then
       print_string
