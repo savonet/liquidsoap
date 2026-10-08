@@ -1,0 +1,14 @@
+(executable
+ (name test_close)
+ (libraries cry unix))
+
+(rule
+ (alias runtest)
+ (action
+  (run ./test_close.exe)))
+
+(rule
+ (alias citest)
+ (deps
+  (alias runtest))
+ (action (progn)))

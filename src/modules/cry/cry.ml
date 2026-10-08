@@ -332,12 +332,13 @@ let close x =
   try
     let c = get_connection_data x in
     Fun.protect
-      ~finally:(fun () -> c.socket#close)
-      (fun () ->
-        if x.chunked then write_data ~timeout:x.timeout c.socket "0\r\n\r\n";
+      ~finally:(fun () ->
         x.chunked <- false;
         x.icy_cap <- false;
-        x.status <- PrivDisconnected)
+        x.status <- PrivDisconnected;
+        c.socket#close)
+      (fun () ->
+        if x.chunked then write_data ~timeout:x.timeout c.socket "0\r\n\r\n")
   with
     | Error _ as e -> raise e
     | e -> raise (Error (Close e))
