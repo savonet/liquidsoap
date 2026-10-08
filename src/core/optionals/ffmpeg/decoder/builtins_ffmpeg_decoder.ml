@@ -37,8 +37,7 @@ let log = Log.make ["ffmpeg"; "internal"; "decoder"]
 
 let decode_audio_frame ~field ~mode generator =
   let internal_channel_layout =
-    Ffmpeg_utils.default_channel_layout
-      (Lazy.Mutexed.force Frame.audio_channels)
+    Avutil.Channel_layout.get_default (Lazy.Mutexed.force Frame.audio_channels)
   in
   let internal_samplerate = Lazy.Mutexed.force Frame.audio_rate in
 
@@ -65,7 +64,7 @@ let decode_audio_frame ~field ~mode generator =
 
     let mk_decoder ~time_base ~stream_idx params =
       let channels = Avcodec.Audio.get_nb_channels params in
-      let channel_layout = Ffmpeg_utils.default_channel_layout channels in
+      let channel_layout = Avutil.Channel_layout.get_default channels in
       let samplerate = Avcodec.Audio.get_sample_rate params in
 
       let codec_id = Avcodec.Audio.get_params_id params in

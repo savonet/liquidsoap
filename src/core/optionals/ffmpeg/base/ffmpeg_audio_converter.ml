@@ -26,7 +26,7 @@ module Resampler =
   Swresample.Make (Swresample.PlanarFloatArray) (Swresample.PlanarFloatArray)
 
 let samplerate_converter channels =
-  let chans = Ffmpeg_utils.default_channel_layout channels in
+  let chans = Avutil.Channel_layout.get_default channels in
   let in_freq = Lazy.Mutexed.force Frame.audio_rate in
   let rs = ref None in
   let rs_out_freq = ref 0 in

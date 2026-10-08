@@ -23,11 +23,6 @@
 open Mm
 
 val log : Log.t
-
-(** FFmpeg's default layout for a channel count. It raises [Failure] when FFmpeg
-    has no standard layout of that many channels. *)
-val default_channel_layout : int -> Avutil.Channel_layout.t
-
 val conf_ffmpeg : Dtools.Conf.ut
 val conf_log : Dtools.Conf.ut
 val conf_verbosity : string Dtools.Conf.t

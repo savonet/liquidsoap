@@ -175,7 +175,7 @@ module AFormat = struct
       | Some id -> `Int64 id
       | None ->
           let channel_layout =
-            Ffmpeg_utils.default_channel_layout
+            Avutil.Channel_layout.get_default
               (Avutil.Channel_layout.get_nb_channels channel_layout)
           in
           `Int64 (Option.get (Avutil.Channel_layout.get_mask channel_layout))
