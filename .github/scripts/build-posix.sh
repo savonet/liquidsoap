@@ -34,6 +34,12 @@ opam pin -y add re 1.13.2
 # libSDL2_ttf.so, which is only in the dev package on Alpine. Pin to 0.6
 # until https://github.com/sanette/tsdl-ttf/issues/14 is resolved.
 opam pin -y add tsdl-ttf 0.6
+# The minimal build has these removed on purpose.
+if [ -z "${LIQ_BUILD_MIN}" ]; then
+  for pkg in ogg flac vorbis opus; do
+    opam pin -y add "$pkg" https://github.com/savonet/ocaml-xiph.git
+  done
+fi
 
 echo "::endgroup::"
 
