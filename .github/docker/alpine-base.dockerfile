@@ -24,7 +24,7 @@ USER opam
 
 COPY .github/docker/setup-ocaml.sh /tmp/setup-ocaml.sh
 
-RUN sh /tmp/setup-ocaml.sh ocaml-option-flambda
+RUN sh /tmp/setup-ocaml.sh
 
 COPY .github/docker/ext-packages /tmp/ext-packages
 
