@@ -23,7 +23,7 @@
    (:include ../detect/avcodec_c_flags.sexp)))
  (c_library_flags
   (:include ../detect/avcodec_c_library_flags.sexp))
- (install_c_headers avcodec_stubs)
+ (public_headers avcodec_stubs.h)
  (libraries ffmpeg-avutil))
 
 (rule

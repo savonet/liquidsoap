@@ -23,10 +23,10 @@
    (:include ../detect/avutil_c_flags.sexp)))
  (c_library_flags
   (:include ../detect/avutil_c_library_flags.sexp))
- (install_c_headers
-  avutil_stubs
-  polymorphic_variant_values_stubs
-  media_types_stubs)
+ (public_headers
+  avutil_stubs.h
+  polymorphic_variant_values_stubs.h
+  media_types_stubs.h)
  (libraries threads))
 
 (rule
