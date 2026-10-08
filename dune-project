@@ -106,8 +106,11 @@
     (soundtouch (< 0.1.9))
     (speex (< 1.0.0))
     (srt (< 0.3.2))
-    (ssl (< 0.7.0))
+    (ssl (< 0.8.0))
     (tls (< 1.0.2))
+    ; 0.7 loads the unversioned libSDL2_ttf.so, which only development
+    ; packages ship: https://github.com/sanette/tsdl-ttf/issues/14
+    (tsdl-ttf (>= 0.7))
     (sdl-liquidsoap (< 2))
     (theora (< 1.0.0))
     (vorbis (< 1.0.0))

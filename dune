@@ -45,12 +45,6 @@
   (alias_rec src/libs/install)))
 
 (alias
- (name citest)
- (deps
-  (alias_rec perftest)
-  (alias_rec runtest)))
-
-(alias
  (name doctest)
  (deps
   (alias_rec doc)))
