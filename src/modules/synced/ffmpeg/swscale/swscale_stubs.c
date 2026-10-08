@@ -163,7 +163,7 @@ CAMLnoret static void fail(scaler *record, const char *message) {
 }
 
 /* The buffers an image of a format needs: its planes, and the palette of a
-   paletted format. */
+   paletted format. An image may hold more, which are ignored. */
 static int buffer_count(enum AVPixelFormat pixel_format) {
   const AVPixFmtDescriptor *descriptor = av_pix_fmt_desc_get(pixel_format);
   int planes = av_pix_fmt_count_planes(pixel_format);
@@ -193,8 +193,8 @@ static const char *read_planes(value _planes, const geometry *shape, int rows,
   int count = buffer_count(shape->pixel_format);
 
   memset(result, 0, sizeof(*result));
-  if (count < 0 || Wosize_val(_planes) != (mlsize_t)count)
-    return "the image does not hold the buffers its pixel format needs";
+  if (count < 0 || Wosize_val(_planes) < (mlsize_t)count)
+    return "the image holds fewer buffers than its pixel format needs";
   if (av_image_fill_linesizes(minimum_linesizes, shape->pixel_format,
                               shape->width) < 0)
     return "the pixel format has no line size";

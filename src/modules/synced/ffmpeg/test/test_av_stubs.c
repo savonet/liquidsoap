@@ -70,3 +70,26 @@ CAMLprim value test_image_plane_sizes(value _pixel_format, value _width,
 
   CAMLreturn(_sizes);
 }
+
+/* The services of av_stubs.h that no library of the tree calls. */
+CAMLprim value test_try_guard(value _container) {
+  return Val_bool(ocaml_av_try_guard(_container));
+}
+
+CAMLprim value test_release_guard(value _container) {
+  ocaml_av_release_guard(_container);
+  return Val_unit;
+}
+
+CAMLprim value test_rewrap_input_format(value _format) {
+  return ocaml_av_wrap_input_format(InputFormat_val(_format));
+}
+
+CAMLprim value test_rewrap_output_format(value _format) {
+  return ocaml_av_wrap_output_format(OutputFormat_val(_format));
+}
+
+CAMLprim value test_wrap_null_format(value _output) {
+  return Bool_val(_output) ? ocaml_av_wrap_output_format(NULL)
+                           : ocaml_av_wrap_input_format(NULL);
+}

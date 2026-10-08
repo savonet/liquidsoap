@@ -141,7 +141,7 @@ of the source image into the destination image (`sws_scale`).
 
 It raises a failure, before anything is read or written, when:
 
-- `src` or `dst` does not hold exactly the buffers its pixel format needs;
+- `src` or `dst` holds fewer buffers than its pixel format needs;
 - `y`, `h` or `off` is negative, or the slice lies outside the input height;
 - a line size is smaller than the format needs for the image width;
 - a plane is shorter than the rows libswscale will read from or write to it.
@@ -184,15 +184,16 @@ Converts one image.
 **Input value**, checked against the scaler's input side before anything is
 read:
 
-| Kind                                        | Failure when                                                                                                                                                 |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| frame                                       | its width, height or pixel format is not the scaler's                                                                                                        |
-| bigarray planes, packed planes, byte planes | it does not hold exactly the buffers the format needs; a line size is too small for the width; a buffer is shorter than its line size and the height require |
-| packed planes                               | the two arrays differ in length                                                                                                                              |
+| Kind                                        | Failure when                                                                                                                                        |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| frame                                       | its width, height or pixel format is not the scaler's                                                                                               |
+| bigarray planes, packed planes, byte planes | it holds fewer buffers than the format needs; a line size is too small for the width; a buffer is shorter than its line size and the height require |
+| packed planes                               | the two arrays differ in length                                                                                                                     |
 
-A paletted input format needs its palette as the buffer after the plane. A
-subtitle picture ([avutil.md](avutil.md) §4.14) has four plane slots: a caller
-that scales one passes its first two.
+A paletted input format needs its palette as the buffer after the plane.
+Buffers after the ones the format needs are ignored, as FFmpeg ignores them:
+a subtitle picture ([avutil.md](avutil.md) §4.14), which always has four
+plane slots, is scaled as it is.
 
 **Output value**: fresh on every call.
 

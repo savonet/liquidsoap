@@ -102,6 +102,12 @@ let requirement_7_1 () =
   equal 16
     (Video.frame_get_width frame)
     "a paletted input with its palette buffer";
+  let empty = create_data 0 in
+  equal 16
+    (Video.frame_get_width
+       (Planes_to_frame.convert from_palette
+          [| (indexes, 16); (palette, 0); (empty, 0); (empty, 0) |]))
+    "buffers after the ones the format needs are ignored";
   raises is_failure "a paletted input without its palette" (fun () ->
       Planes_to_frame.convert from_palette [| (indexes, 16) |]);
   raises is_failure "a paletted output for bigarrays" (fun () ->

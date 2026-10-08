@@ -576,6 +576,46 @@ let requirement_3_11 () =
   equal ["lowres"] (keys table) "the configuration table is not modified"
 
 external call_from_thread : _ container -> bool -> int = "test_call_from_thread"
+external try_guard : _ container -> bool = "test_try_guard"
+external release_guard : _ container -> unit = "test_release_guard"
+
+external rewrap_input_format : (input, 'a) format -> (input, 'a) format
+  = "test_rewrap_input_format"
+
+external rewrap_output_format : (output, 'a) format -> (output, 'a) format
+  = "test_rewrap_output_format"
+
+external wrap_null_format : bool -> (_, _) format = "test_wrap_null_format"
+
+let header_services () =
+  let input = Av.open_input (make_video "guarded.mkv") in
+  check (try_guard input) "the guard of a free container is taken from C";
+  check (not (try_guard input)) "a taken guard is not taken twice";
+  raises
+    (function Error (`Failure "Object in use!") -> true | _ -> false)
+    "an operation on a container guarded from C"
+    (fun () -> Av.get_input_metadata input);
+  release_guard input;
+  ignore (Av.get_input_metadata input);
+  Av.close input;
+  let matroska = Option.get (Av.Format.find_input_format "matroska") in
+  equal
+    (Av.Format.get_input_name matroska)
+    (Av.Format.get_input_name (rewrap_input_format matroska))
+    "an input format wrapped from C";
+  let mpegts =
+    Option.get (Av.Format.guess_output_format ~short_name:"mpegts" ())
+  in
+  equal "mpegts"
+    (Av.Format.get_output_name (rewrap_output_format mpegts))
+    "an output format wrapped from C";
+  List.iter
+    (fun output ->
+      raises
+        (function Error (`Failure _) -> true | _ -> false)
+        "a null format"
+        (fun () -> wrap_null_format output))
+    [false; true]
 
 let mpegts () =
   Option.get (Av.Format.guess_output_format ~short_name:"mpegts" ())
@@ -1167,6 +1207,7 @@ let requirement_3_25 () =
   Av.close output
 
 let requirement_3_26 () =
+  header_services ();
   let read, _, _ = reader (read_file (make_video "video.mkv")) in
   let input = Av.open_input_stream read in
   equal 16

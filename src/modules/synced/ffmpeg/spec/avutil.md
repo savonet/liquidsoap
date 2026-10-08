@@ -36,22 +36,28 @@ or `5.1` (rule I2).
 Through its installed C header ([build.md](build.md) §4) the library gives the
 stubs of its dependents:
 
-| Service                       | Contract                                                                                                                                                  |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| raise an FFmpeg error         | Takes a negative FFmpeg code and raises `Error e`, `e` per §5.1. Does not return. Needs the runtime lock.                                                 |
-| raise a binding failure       | Takes a formatted message and raises ``Error (`Failure msg)``. The message storage belongs to the call. Does not return. Needs the lock.                  |
-| option dictionary: fill       | §9.1 step 2. Allocates nothing on the OCaml heap.                                                                                                         |
-| option dictionary: report     | §9.1 step 4. Frees the dictionary.                                                                                                                        |
-| thread registration           | §6.3.                                                                                                                                                     |
-| rationals                     | Both directions between `rational` and `AVRational`.                                                                                                      |
-| time formats                  | Units per second of a `Time_format.t` (§3.2).                                                                                                             |
-| channel layouts               | The native layout of a `Channel_layout.t`; a constructor that wraps a **copy** of a native layout (§2.2).                                                 |
-| enumerations                  | Both conversions for sample format, pixel format, the five colour enumerations, hardware device type and media type, with the rules of the contract's §3. |
-| sample format to element kind | §3.2.                                                                                                                                                     |
-| frames                        | The native frame of a frame value; a constructor that wraps a native frame and **takes ownership** of it (§2.1).                                          |
-| subtitles                     | The native subtitle of a subtitle value; a constructor that wraps a native subtitle and takes ownership of it (§2.3).                                     |
-| hardware contexts             | The native buffer reference of a device or frame context value.                                                                                           |
-| option classes and objects    | Constructors for `Options.t` and `Options.obj` (§2.5).                                                                                                    |
+| Service                       | Contract                                                                                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| raise an FFmpeg error         | Takes a negative FFmpeg code and raises `Error e`, `e` per §5.1. Does not return. Needs the runtime lock.                                                                         |
+| raise a binding failure       | Takes a formatted message and raises ``Error (`Failure msg)``. The message storage belongs to the call. Does not return. Needs the lock.                                          |
+| option dictionary: fill       | §9.1 step 2. Allocates nothing on the OCaml heap.                                                                                                                                 |
+| option dictionary: report     | §9.1 step 4. Frees the dictionary.                                                                                                                                                |
+| thread registration           | §6.3.                                                                                                                                                                             |
+| rationals                     | Both directions between `rational` and `AVRational`.                                                                                                                              |
+| time formats                  | Units per second of a `Time_format.t` (§3.2).                                                                                                                                     |
+| channel layouts               | The native layout of a `Channel_layout.t`; a constructor that wraps a **copy** of a native layout (§2.2).                                                                         |
+| enumerations                  | Both conversions for sample format, pixel format, the five colour enumerations, hardware device type and media type, with the rules of the contract's §3.                         |
+| sample format to element kind | §3.2.                                                                                                                                                                             |
+| frames                        | The native frame of a frame value; a constructor that wraps a native frame and **takes ownership** of it (§2.1).                                                                  |
+| subtitles                     | The native subtitle of a subtitle value; a constructor that wraps a native subtitle and takes ownership of it (§2.3).                                                             |
+| hardware contexts             | The native buffer reference of a device or frame context value.                                                                                                                   |
+| option classes and objects    | Constructors for `Options.t` and `Options.obj` (§2.5).                                                                                                                            |
+| raise a state error           | Raises the closed, the failed or the in-use error of the contract's §5.3. Does not return. Needs the lock.                                                                        |
+| use guards                    | The guard of the contract's §6.2: try and release, exclusive and shared. Needs no lock, raises nothing and never waits.                                                           |
+| integers                      | The C `int` of an OCaml integer; raises a failure naming the argument when it does not fit.                                                                                       |
+| generated tables              | Lookup of a constructor by its C constant and of a C constant by its constructor, and both conversions between a flag list and a bit mask, for any generated table (contract §3). |
+| metadata dictionaries         | Both directions between a `(string * string) list` and a dictionary, a later pair replacing an earlier one of the same key.                                                       |
+| collection stress             | The hook every allocation, callback and lock release of a dependent's stubs goes through in the collection-at-every-allocation build ([tests.md](tests.md) §12).                  |
 
 The two wrapping constructors raise ``Error (`Failure msg)`` when given a null
 pointer.
