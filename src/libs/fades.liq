@@ -358,6 +358,7 @@ def fade.out(
     d.on_position(
       synchronous=true,
       remaining=true,
+      allow_partial=false,
       position=duration,
       start_fade
     )
