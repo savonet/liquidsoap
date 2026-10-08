@@ -346,3 +346,36 @@ CAMLprim value ocaml_swresample_bytes_of_data(value _data) {
   CAMLreturn(caml_alloc_initialized_string(Caml_ba_array_val(_data)->dim[0],
                                            Caml_ba_data_val(_data)));
 }
+
+static inline double sample_without_nan(double sample) {
+  return sample != sample ? 0. : sample;
+}
+
+CAMLprim value ocaml_swresample_plane_of_floats(value _samples, value _offset,
+                                                value _length) {
+  CAMLparam1(_samples);
+  CAMLlocal1(_plane);
+  intnat offset = Long_val(_offset);
+  intnat length = Long_val(_length);
+
+  _plane =
+      caml_ba_alloc_dims(CAML_BA_FLOAT64 | CAML_BA_C_LAYOUT, 1, NULL, length);
+  double *plane = Caml_ba_data_val(_plane);
+  for (intnat i = 0; i < length; i++)
+    plane[i] = sample_without_nan(Double_flat_field(_samples, offset + i));
+
+  CAMLreturn(_plane);
+}
+
+CAMLprim value ocaml_swresample_floats_of_plane(value _plane) {
+  CAMLparam1(_plane);
+  CAMLlocal1(_samples);
+  intnat length = Caml_ba_array_val(_plane)->dim[0];
+
+  _samples = caml_alloc_float_array(length);
+  double *plane = Caml_ba_data_val(_plane);
+  for (intnat i = 0; i < length; i++)
+    Store_double_flat_field(_samples, i, sample_without_nan(plane[i]));
+
+  CAMLreturn(_samples);
+}
