@@ -17,7 +17,7 @@ module Functions (F : Ctypes.FOREIGN) = struct
       field descriptor "instantiate" descriptor_instantiate_ptr_type
 
     let descriptor_connect_port =
-      field descriptor "instantiate" descriptor_connect_port_ptr_type
+      field descriptor "connect_port" descriptor_connect_port_ptr_type
 
     let descriptor_activate =
       field descriptor "activate" descriptor_activate_ptr_type

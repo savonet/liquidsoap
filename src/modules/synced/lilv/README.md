@@ -5,14 +5,15 @@
 > [savonet/liquidsoap](https://github.com/savonet/liquidsoap) under
 > `src/modules/synced/lilv/` and will be mirrored here automatically.
 
-OCaml bindings for [lilv](http://drobilla.net/software/lilv), a library to use [LV2 audio plugins](http://lv2plug.in/).
+OCaml bindings for [lilv](https://drobilla.net/software/lilv), a library to use [LV2 audio plugins](https://lv2plug.in/).
 
 Please read the COPYING file before using this software.
 
 ## Prerequisites
 
 - OCaml >= 4.14
-- lilv (e.g. `apt install liblilv-dev` or `brew install lilv`)
+- lilv and pkg-config (e.g. `apt install liblilv-dev pkg-config` or `brew install lilv pkg-config`)
+- ctypes and ctypes-foreign
 - dune >= 3.23
 
 ## Installation
@@ -28,6 +29,14 @@ $ opam install lilv
 ```
 $ dune build
 $ dune install
+```
+
+## Examples
+
+The `examples/bin` directory contains two programs: `inspect` lists the installed plugins with their ports, and `amp` instantiates and runs a plugin.
+
+```
+$ dune exec examples/bin/inspect.exe
 ```
 
 ## Contact

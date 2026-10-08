@@ -2,7 +2,7 @@
 (version 0.2.1)
 (name lilv)
 (source (github savonet/ocaml-lilv))
-(license LGPL-2.1)
+(license LGPL-2.1-or-later)
 (authors "The Savonet Team <contact@liquidsoap.info>")
 (maintainers "The Savonet Team <contact@liquidsoap.info>")
 
