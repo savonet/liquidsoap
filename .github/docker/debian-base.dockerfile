@@ -67,7 +67,7 @@ FROM static-packages AS build
 USER opam
 
 RUN eval $(opam env) && \
-    for p in lo lilv; do opam pin add -n -y $p git+https://github.com/savonet/ocaml-$p.git || exit 1; done && \
+    for p in lo lilv frei0r; do opam pin add -n -y $p git+https://github.com/savonet/ocaml-$p.git || exit 1; done && \
     PKGS=$(grep -Ev "$STATIC_RE" /tmp/ext-packages | xargs | tr ' ' ',') && \
     opam list --short --external --resolve="$PKGS,liquidsoap" > /tmp/deps
 

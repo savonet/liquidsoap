@@ -32,7 +32,7 @@ COPY .github/docker/ext-packages /tmp/ext-packages
 RUN (echo gd; grep -vx dssi /tmp/ext-packages) > /tmp/packages
 
 RUN eval $(opam env) && \
-    for p in lo lilv; do opam pin add -n -y $p git+https://github.com/savonet/ocaml-$p.git || exit 1; done && \
+    for p in lo lilv frei0r; do opam pin add -n -y $p git+https://github.com/savonet/ocaml-$p.git || exit 1; done && \
     opam list --short --external --resolve="$(xargs < /tmp/packages | tr ' ' ','),liquidsoap" > /tmp/deps
 
 USER root
