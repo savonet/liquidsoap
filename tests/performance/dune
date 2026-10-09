@@ -19,6 +19,7 @@
  (alias perftest)
  (deps
   (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (package liquidsoap)
   (source_tree ../../src/libs)
   (:small_record ./test_small-record.liq)
   (:big_record ./big-record.liq)

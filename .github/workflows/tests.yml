@@ -27,7 +27,7 @@ jobs:
     name: run_tests (${{ matrix.target }})
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:b33103ca76ca91986e3b4476d03131f0ce6523a74858caa0d8b3298ec841bd02
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:3ee4d052bac56daffa654abd09ccc48cdfbd929211bb19d11a4457083f9abd6b
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
