@@ -135,12 +135,12 @@ and through the [package repositories](#package-repositories) described above.
 ## Docker
 
 We provide production-ready docker images via [Docker hub](https://hub.docker.com/r/savonet/liquidsoap).
-Docker images are tagged with a release tag (e.g. `v2.4.5`) and with the sha of their git commit (e.g. `a24bf49`).
+Docker images are tagged with a release tag (e.g. `v2.4.6`) and with the sha of their git commit (e.g. `a24bf49`).
 
-For instance, to fetch release `2.4.5`, you would do:
+For instance, to fetch release `2.4.6`, you would do:
 
 ```shell
-docker pull savonet/liquidsoap:v2.4.5
+docker pull savonet/liquidsoap:v2.4.6
 ```
 
 Please note that images tagged with a release tag may change while images tagged with a commit sha will not.
