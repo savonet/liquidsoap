@@ -453,6 +453,10 @@ Which branches publish a rolling release, and under which version, is configured
 in-development line, so it rolls alongside the stable branches. That file also generates the
 release table in `README.md`.
 
+The package repository offers one channel per `latest_release` and rolling release. When bumping
+`latest_release`, move the old version to that line's `previous_releases` so its channel stays
+installable.
+
 ### Backporting PRs
 
 To backport a PR from `main` to a stable branch:

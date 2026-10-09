@@ -20,6 +20,9 @@ jq -r '
   (published | .[] | select(.branch != null)
     | ["rolling-release-v\(.version)", "rolling", .branch,
        "Liquidsoap \(.version) rolling release, rebuilt on every commit",
-       (.package_ocaml // "")])
+       (.package_ocaml // "")]),
+  (published | .[] | . as $line | (.previous_releases // [])[]
+    | ["v\(.)", "release", ($line.branch // "-"),
+       "Liquidsoap \(.)", ($line.package_ocaml // "")])
   | @tsv
 ' "${MATRIX}"
