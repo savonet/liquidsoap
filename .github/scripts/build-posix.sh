@@ -31,20 +31,12 @@ opam update
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/share/pkgconfig/pkgconfig
 
 opam pin -y add re 1.13.2
+opam pin -y add ssl 0.8.0
 if [ -z "${SKIP_SDL}" ]; then
   # tsdl-ttf 0.7 regressed the Linux dlopen path back to the unversioned
   # libSDL2_ttf.so, which is only in the dev package on Alpine. Pin to 0.6
   # until https://github.com/sanette/tsdl-ttf/issues/14 is resolved.
   opam pin -y add tsdl-ttf 0.6
-fi
-
-if [ ! -d /tmp/ocaml-ssl ]; then
-  cd /tmp
-  git clone https://github.com/savonet/ocaml-ssl.git
-  cd ocaml-ssl && git checkout dc834fffb543fe75fd1aa7dae5bc53ac3e1c14fe
-  opam pin -ny .
-  opam reinstall -y ssl
-  cd /tmp/liquidsoap
 fi
 
 echo "::endgroup::"
