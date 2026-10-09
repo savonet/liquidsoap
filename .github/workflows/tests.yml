@@ -15,20 +15,24 @@ on:
       save_traces:
         required: true
         type: string
+      test_targets:
+        required: true
+        type: string
     secrets:
       LIQUIDSOAP_TEST_REPO_TOKEN:
         required: false
 
 jobs:
   run_tests:
+    name: run_tests (${{ matrix.target }})
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:b33103ca76ca91986e3b4476d03131f0ce6523a74858caa0d8b3298ec841bd02
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:3ee4d052bac56daffa654abd09ccc48cdfbd929211bb19d11a4457083f9abd6b
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
       matrix:
-        target: ["@citest", "@doctest", "@mediatest"]
+        include: ${{ fromJson(inputs.test_targets) }}
     env:
       HOME: /home/opam
     steps:
@@ -42,8 +46,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.HOME }}/.cache/liquidsoap-test-fixtures
-          key: test-fixtures-${{ matrix.target }}-
-          restore-keys: test-fixtures-${{ matrix.target }}-
+          key: test-fixtures-${{ matrix.name }}-
+          restore-keys: test-fixtures-${{ matrix.name }}-
       - name: Make test fixture cache writable
         run: |
           mkdir -p ${{ env.HOME }}/.cache/liquidsoap-test-fixtures
@@ -71,7 +75,7 @@ jobs:
           apt-get -y install frei0r-plugins
           sudo -u opam -E opam install odoc
       - name: Install additional packages for @citest
-        if: matrix.target == '@citest'
+        if: startsWith(matrix.name, 'citest')
         run: |
           apt-get -y update
           apt-get -y install gnuplot
@@ -88,69 +92,88 @@ jobs:
         if: success() || failure()
         id: fixtures
         run: |
-          echo "key=test-fixtures-${{ matrix.target }}-$(cat ${{ env.HOME }}/.cache/liquidsoap-test-fixtures/*.url 2>/dev/null | sha256sum | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "key=test-fixtures-${{ matrix.name }}-$(cat ${{ env.HOME }}/.cache/liquidsoap-test-fixtures/*.url 2>/dev/null | sha256sum | cut -d' ' -f1)" >> $GITHUB_OUTPUT
       - name: Save test fixture cache
         if: success() || failure()
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.HOME }}/.cache/liquidsoap-test-fixtures
           key: ${{ steps.fixtures.outputs.key }}
-      - name: Finalize metrics
+      - name: Collect metrics
         run: |
-          cd /tmp/liquidsoap
           mkdir -p "/tmp/${{ github.run_number }}/metrics"
-          chown -R opam "/tmp/${{ github.run_number }}/metrics"
-          sudo -u opam -E ./.github/scripts/export-metrics.sh "${{ inputs.branch }}" "/tmp/${{ github.run_number }}/metrics"
+          touch /tmp/metrics.yaml
+          cp /tmp/metrics.yaml "/tmp/${{ github.run_number }}/metrics/"
       - name: Upload metrics artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: inputs.is_fork != 'true' && matrix.target == '@citest'
+        if: inputs.is_fork != 'true' && startsWith(matrix.name, 'citest')
         with:
-          name: metrics
+          name: metrics-${{ matrix.name }}
           path: ${{ github.workspace }}/${{ github.run_number }}/metrics
-      - name: Upload metrics
-        if: inputs.is_fork != 'true' && matrix.target == '@citest'
-        continue-on-error: true
-        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: metrics
-          publish_dir: ${{ github.workspace }}/${{ github.run_number }}/metrics
-          keep_files: true
       - name: Save traces
         if: (success() || failure()) && inputs.save_traces == 'true'
         run: |
-          mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.target }}
+          mkdir -p /tmp/${{ github.run_number }}/traces/${{ matrix.name }}
           cd /tmp/liquidsoap
-          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.target }}; done
+          find _build/default/tests | grep '\.trace$' | while read i; do mv "$i" /tmp/${{ github.run_number }}/traces/${{ matrix.name }}; done
       - name: Upload traces
         if: (success() || failure()) && inputs.save_traces == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: traces-${{ matrix.target }}
-          path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.target }}
+          name: traces-${{ matrix.name }}
+          path: ${{ github.workspace }}/${{ github.run_number }}/traces/${{ matrix.name }}
       - name: Prepare test artifacts
-        if: (success() || failure()) && matrix.target == '@citest'
+        if: (success() || failure()) && startsWith(matrix.name, 'citest')
         run: |
           mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/streams
           mkdir -p /tmp/${{ github.run_number }}/test-artifacts/tests/regression
           cd /tmp/liquidsoap
           for f in _build/default/tests/streams/*.gen; do
+            [ -e "$f" ] || continue
             cp -f "$f" "/tmp/${{ github.run_number }}/test-artifacts/tests/streams/$(basename "${f%.gen}")"
           done
           cp -f _build/default/tests/regression/GH5019.gen.png /tmp/${{ github.run_number }}/test-artifacts/tests/regression/GH5019.png || true
       - name: Upload test artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: (success() || failure()) && inputs.is_fork != 'true' && matrix.target == '@citest'
+        if: (success() || failure()) && inputs.is_fork != 'true' && startsWith(matrix.name, 'citest')
         with:
-          name: test-artifacts
+          name: test-artifacts-${{ matrix.name }}
           path: ${{ github.workspace }}/${{ github.run_number }}/test-artifacts
       - name: Export potential core dumps
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
-          name: core-dump-${{ matrix.target }}
+          name: core-dump-${{ matrix.name }}
           path: ${{ github.workspace }}/${{ github.run_number }}/core
       - name: Cleanup
         if: ${{ always() }}
         run: |
           rm -rf /tmp/${{ github.run_number }}/core
+
+  # One push for the whole run: the test jobs would race each other on the branch.
+  publish_metrics:
+    needs: run_tests
+    if: inputs.is_fork != 'true'
+    continue-on-error: true
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Download metrics
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: metrics-*
+          path: ${{ runner.temp }}/metrics-in
+      - name: Finalize metrics
+        run: |
+          git clone --depth 1 https://github.com/savonet/liquidsoap.git /tmp/liquidsoap
+          cd /tmp/liquidsoap
+          git fetch --depth 1 origin ${{ inputs.sha }}
+          git checkout ${{ inputs.sha }}
+          cat "${{ runner.temp }}"/metrics-in/*/metrics.yaml > /tmp/metrics.yaml
+          ./.github/scripts/export-metrics.sh "${{ inputs.branch }}" "${{ runner.temp }}/metrics"
+      - name: Upload metrics
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: metrics
+          publish_dir: ${{ runner.temp }}/metrics
+          keep_files: true

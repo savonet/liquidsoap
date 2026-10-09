@@ -42,8 +42,9 @@ let colorized_timeout = Console.colorize [`magenta; `bold] "[timeout]"
 let colorized_ok = Console.colorize [`green; `bold] "[ok]"
 let colorized_skipped = Console.colorize [`yellow; `bold] "[skipped]"
 let colorized_failed = Console.colorize [`red; `bold] "[failed]"
+let action = "Ran"
 
-let run_process ~action cmd args =
+let run_process cmd args =
   let start_time = Unix.time () in
   let logfile = Filename.temp_file "test" (Filename.basename test) in
   let errfile = Filename.temp_file "test_err" (Filename.basename test) in
@@ -152,16 +153,7 @@ let run () =
   (*
   Unix.putenv "MEMTRACE" (Printf.sprintf "%s.trace" test);
 *)
-  if String.starts_with ~prefix:"liquidsoap" cmd then
-    run_process ~action:"Cached" cmd
-      (Array.concat
-         [
-           [| args.(0) |];
-           [| "--cache-only" |];
-           Array.sub args 1 (Array.length args - 1);
-         ]);
-
-  run_process ~action:"Ran" cmd args
+  run_process cmd args
 
 let () =
   try run ()
