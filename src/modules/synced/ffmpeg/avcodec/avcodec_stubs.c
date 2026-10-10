@@ -19,6 +19,7 @@
 #include "codec_id_stubs.h"
 #include "codec_properties_stubs.h"
 #include "hw_config_method_stubs.h"
+#include "packet_side_data_type_stubs.h"
 
 #define TABLE_LENGTH(table) (sizeof(table) / sizeof((table)[0]))
 
@@ -655,173 +656,114 @@ PACKET_TIME(dts, AV_NOPTS_VALUE)
 PACKET_TIME(duration, 0)
 PACKET_TIME(pos, -1)
 
-/* The payload of a packed dictionary for a (string * string) list, in a
-   buffer of [*size] bytes the caller frees. Raises. */
-static uint8_t *pack_dictionary(value _pairs, size_t *size) {
-  AVDictionary *dictionary = ocaml_avutil_dictionary_of_pairs(_pairs);
-  uint8_t *payload = av_packet_pack_dictionary(dictionary, size);
+#define PacketSideDataType_val(v)                                              \
+  ((enum AVPacketSideDataType)ocaml_avutil_constant_of_variant(                \
+      packet_side_data_type_table(), (v)))
 
-  av_dict_free(&dictionary);
-  if (!payload && _pairs != Val_emptylist)
-    caml_raise_out_of_memory();
-  if (!payload)
-    *size = 0;
+CAMLprim value ocaml_avcodec_packet_side_data_name(value _kind) {
+  CAMLparam1(_kind);
+  const char *name = av_packet_side_data_name(PacketSideDataType_val(_kind));
 
-  return payload;
+  CAMLreturn(caml_copy_string(name ? name : ""));
 }
 
-static void add_side_data(AVPacket *packet, enum AVPacketSideDataType type,
-                          const uint8_t *payload, size_t size) {
-  uint8_t *data = av_packet_new_side_data(packet, type, size);
+/* The Packet_side_data.raw list of a native array, kinds with no constructor
+   left out. The array must stay valid across allocations. */
+static value side_data_entries(const AVPacketSideData *side_data, int count) {
+  CAMLparam0();
+  CAMLlocal4(_entries, _cell, _entry, _data);
+
+  _entries = Val_emptylist;
+
+  for (int i = count - 1; i >= 0; i--) {
+    value _kind;
+
+    if (!ocaml_avutil_find_variant(packet_side_data_type_table(),
+                                   side_data[i].type, &_kind))
+      continue;
+
+    _data = caml_alloc_initialized_string(side_data[i].size,
+                                          (const char *)side_data[i].data);
+    _entry = caml_alloc_tuple(2);
+    Store_field(_entry, 0, _kind);
+    Store_field(_entry, 1, _data);
+    _cell = caml_alloc_tuple(2);
+    Store_field(_cell, 0, _entry);
+    Store_field(_cell, 1, _entries);
+    _entries = _cell;
+  }
+
+  CAMLreturn(_entries);
+}
+
+CAMLprim value ocaml_avcodec_packet_raw_side_data(value _packet) {
+  CAMLparam1(_packet);
+  const AVPacket *packet = Packet_val(_packet);
+
+  CAMLreturn(side_data_entries(packet->side_data, packet->side_data_elems));
+}
+
+CAMLprim value ocaml_avcodec_packet_add_raw_side_data(value _packet,
+                                                      value _entry) {
+  CAMLparam2(_packet, _entry);
+  enum AVPacketSideDataType type = PacketSideDataType_val(Field(_entry, 0));
+  size_t size = caml_string_length(Field(_entry, 1));
+  uint8_t *data = av_packet_new_side_data(Packet_val(_packet), type, size);
 
   if (!data)
     caml_raise_out_of_memory();
-  if (size > 0)
-    memcpy(data, payload, size);
-}
-
-static uint32_t peak_of_value(value _peak) {
-  intnat peak = Long_val(_peak);
-
-  if (peak < 0 || (uintnat)peak > UINT32_MAX)
-    ocaml_avutil_raise_failure("peak out of range");
-  return (uint32_t)peak;
-}
-
-CAMLprim value ocaml_avcodec_packet_add_side_data(value _packet,
-                                                  value _side_data) {
-  CAMLparam2(_packet, _side_data);
-  AVPacket *packet = Packet_val(_packet);
-  value _tag = Field(_side_data, 0);
-  value _payload = Field(_side_data, 1);
-
-  if (_tag == PVV_Replaygain) {
-    AVReplayGain gain;
-
-    gain.track_gain = ocaml_avutil_int_of_value(Field(_payload, 0), "gain");
-    gain.track_peak = peak_of_value(Field(_payload, 1));
-    gain.album_gain = ocaml_avutil_int_of_value(Field(_payload, 2), "gain");
-    gain.album_peak = peak_of_value(Field(_payload, 3));
-    add_side_data(packet, AV_PKT_DATA_REPLAYGAIN, (const uint8_t *)&gain,
-                  sizeof(gain));
-  } else {
-    size_t size;
-    uint8_t *payload = pack_dictionary(_payload, &size);
-    uint8_t *data = av_packet_new_side_data(packet,
-                                            _tag == PVV_Strings_metadata
-                                                ? AV_PKT_DATA_STRINGS_METADATA
-                                                : AV_PKT_DATA_METADATA_UPDATE,
-                                            size);
-
-    if (data && size > 0)
-      memcpy(data, payload, size);
-    av_free(payload);
-    if (!data)
-      caml_raise_out_of_memory();
-  }
+  memcpy(data, String_val(Field(_entry, 1)), size);
 
   CAMLreturn(Val_unit);
 }
 
-/* The pairs of a packed dictionary; a final string with no terminator is
-   accepted. */
-static value unpack_dictionary(const uint8_t *payload, size_t size) {
-  CAMLparam0();
-  CAMLlocal4(_pairs, _last, _cell, _pair);
-  size_t position = 0;
+CAMLprim value ocaml_avcodec_packet_remove_side_data(value _packet,
+                                                     value _kind) {
+  CAMLparam2(_packet, _kind);
+  AVPacket *packet = Packet_val(_packet);
 
-  _pairs = Val_emptylist;
+  av_packet_side_data_remove(packet->side_data, &packet->side_data_elems,
+                             PacketSideDataType_val(_kind));
 
-  while (position < size) {
-    const uint8_t *key = payload + position;
-    const uint8_t *key_end = memchr(key, 0, size - position);
-    const uint8_t *content, *content_end;
-
-    if (!key_end)
-      break;
-    content = key_end + 1;
-    content_end = memchr(content, 0, payload + size - content);
-    if (!content_end)
-      content_end = payload + size;
-
-    _pair = caml_alloc_tuple(2);
-    Store_field(_pair, 0,
-                caml_alloc_initialized_string(key_end - key, (char *)key));
-    Store_field(
-        _pair, 1,
-        caml_alloc_initialized_string(content_end - content, (char *)content));
-    _cell = caml_alloc_tuple(2);
-    Store_field(_cell, 0, _pair);
-    Store_field(_cell, 1, Val_emptylist);
-    if (_pairs == Val_emptylist)
-      _pairs = _cell;
-    else
-      Store_field(_last, 1, _cell);
-    _last = _cell;
-
-    position = content_end - payload + 1;
-  }
-
-  CAMLreturn(_pairs);
+  CAMLreturn(Val_unit);
 }
 
-static int is_supported_side_data(const AVPacketSideData *side_data) {
-  switch (side_data->type) {
-  case AV_PKT_DATA_REPLAYGAIN:
-    return side_data->size >= sizeof(AVReplayGain);
-  case AV_PKT_DATA_STRINGS_METADATA:
-  case AV_PKT_DATA_METADATA_UPDATE:
-    return 1;
-  default:
-    return 0;
-  }
+CAMLprim value ocaml_avcodec_parameters_side_data(value _parameters) {
+  CAMLparam1(_parameters);
+  const AVCodecParameters *parameters = CodecParameters_val(_parameters);
+
+  CAMLreturn(side_data_entries(parameters->coded_side_data,
+                               parameters->nb_coded_side_data));
 }
 
-static value side_data_value(const AVPacketSideData *side_data) {
-  CAMLparam0();
-  CAMLlocal2(_side_data, _payload);
-  value _tag;
+CAMLprim value ocaml_avcodec_parameters_with_side_data(value _parameters,
+                                                       value _entries) {
+  CAMLparam2(_parameters, _entries);
+  CAMLlocal1(_copy);
+  AVCodecParameters *copy = alloc_parameters(&_copy);
+  int error = avcodec_parameters_copy(copy, CodecParameters_val(_parameters));
 
-  if (side_data->type == AV_PKT_DATA_REPLAYGAIN) {
-    AVReplayGain gain;
+  if (error < 0)
+    ocaml_avutil_raise_error(error);
+  av_packet_side_data_free(&copy->coded_side_data, &copy->nb_coded_side_data);
 
-    memcpy(&gain, side_data->data, sizeof(gain));
-    _tag = PVV_Replaygain;
-    _payload = caml_alloc_tuple(4);
-    Store_field(_payload, 0, Val_long(gain.track_gain));
-    Store_field(_payload, 1, Val_long(gain.track_peak));
-    Store_field(_payload, 2, Val_long(gain.album_gain));
-    Store_field(_payload, 3, Val_long(gain.album_peak));
-  } else {
-    _tag = side_data->type == AV_PKT_DATA_STRINGS_METADATA
-               ? PVV_Strings_metadata
-               : PVV_Metadata_update;
-    _payload = unpack_dictionary(side_data->data, side_data->size);
+  for (value _cell = _entries; _cell != Val_emptylist;
+       _cell = Field(_cell, 1)) {
+    value _entry = Field(_cell, 0);
+    enum AVPacketSideDataType type = PacketSideDataType_val(Field(_entry, 0));
+    size_t size = caml_string_length(Field(_entry, 1));
+    AVPacketSideData *added;
+
+    av_packet_side_data_remove(copy->coded_side_data, &copy->nb_coded_side_data,
+                               type);
+    added = av_packet_side_data_new(&copy->coded_side_data,
+                                    &copy->nb_coded_side_data, type, size, 0);
+    if (!added)
+      caml_raise_out_of_memory();
+    memcpy(added->data, String_val(Field(_entry, 1)), size);
   }
 
-  _side_data = caml_alloc_tuple(2);
-  Store_field(_side_data, 0, _tag);
-  Store_field(_side_data, 1, _payload);
-
-  CAMLreturn(_side_data);
-}
-
-CAMLprim value ocaml_avcodec_packet_side_data(value _packet) {
-  CAMLparam1(_packet);
-  CAMLlocal1(_entries);
-  const AVPacket *packet = Packet_val(_packet);
-  mlsize_t count = 0, index = 0;
-
-  for (int i = 0; i < packet->side_data_elems; i++)
-    count += is_supported_side_data(&packet->side_data[i]);
-
-  _entries = caml_alloc_tuple(count);
-  for (int i = 0; i < packet->side_data_elems; i++) {
-    if (is_supported_side_data(&packet->side_data[i]))
-      Store_field(_entries, index++, side_data_value(&packet->side_data[i]));
-  }
-
-  CAMLreturn(list_of_array(_entries));
+  CAMLreturn(_copy);
 }
 
 /* The states of spec/avcodec.md §2.4, in the order of Avcodec.state. */
@@ -929,21 +871,26 @@ int ocaml_avcodec_set_audio_encoding(AVCodecContext *context,
                                      const AVChannelLayout *layout,
                                      int sample_rate,
                                      enum AVSampleFormat sample_format,
-                                     AVRational time_base) {
+                                     AVRational time_base, value _side_data) {
+  int error;
+
   context->sample_fmt = sample_format;
   context->sample_rate = sample_rate;
   context->time_base = time_base;
 
-  return av_channel_layout_copy(&context->ch_layout, layout);
+  error = av_channel_layout_copy(&context->ch_layout, layout);
+  if (error < 0)
+    return error;
+
+  return ocaml_avutil_add_side_data(&context->decoded_side_data,
+                                    &context->nb_decoded_side_data, _side_data);
 }
 
-CAMLprim value ocaml_avcodec_create_audio_encoder(value _options, value _layout,
-                                                  value _sample_rate,
-                                                  value _sample_format,
-                                                  value _time_base,
-                                                  value _codec) {
-  CAMLparam5(_options, _layout, _sample_rate, _sample_format, _time_base);
-  CAMLxparam1(_codec);
+CAMLprim value ocaml_avcodec_create_audio_encoder(
+    value _options, value _side_data, value _layout, value _sample_rate,
+    value _sample_format, value _time_base, value _codec) {
+  CAMLparam5(_options, _side_data, _layout, _sample_rate, _sample_format);
+  CAMLxparam2(_time_base, _codec);
   CAMLlocal1(_encoder);
   const AVCodec *codec = Codec_val(_codec);
   enum AVSampleFormat sample_format = SampleFormat_val(_sample_format);
@@ -952,7 +899,7 @@ CAMLprim value ocaml_avcodec_create_audio_encoder(value _options, value _layout,
   codec_handle *handle = alloc_codec_handle(&_encoder, codec);
   int error = ocaml_avcodec_set_audio_encoding(
       handle->context, ChannelLayout_val(_layout), sample_rate, sample_format,
-      time_base);
+      time_base, _side_data);
 
   if (error < 0)
     ocaml_avutil_raise_error(error);
@@ -963,16 +910,17 @@ CAMLprim value ocaml_avcodec_create_audio_encoder(value _options, value _layout,
 CAMLprim value ocaml_avcodec_create_audio_encoder_bytecode(value *arguments,
                                                            int count) {
   (void)count;
-  return ocaml_avcodec_create_audio_encoder(arguments[0], arguments[1],
-                                            arguments[2], arguments[3],
-                                            arguments[4], arguments[5]);
+  return ocaml_avcodec_create_audio_encoder(
+      arguments[0], arguments[1], arguments[2], arguments[3], arguments[4],
+      arguments[5], arguments[6]);
 }
 
 int ocaml_avcodec_set_video_encoding(AVCodecContext *context,
                                      enum AVPixelFormat pixel_format, int width,
                                      int height, AVRational time_base,
                                      AVRational frame_rate,
-                                     value _hardware_context) {
+                                     value _hardware_context,
+                                     value _side_data) {
   context->pix_fmt = pixel_format;
   context->width = width;
   context->height = height;
@@ -992,15 +940,17 @@ int ocaml_avcodec_set_video_encoding(AVCodecContext *context,
       context->hw_frames_ctx = reference;
   }
 
-  return 0;
+  return ocaml_avutil_add_side_data(&context->decoded_side_data,
+                                    &context->nb_decoded_side_data, _side_data);
 }
 
 CAMLprim value ocaml_avcodec_create_video_encoder(
-    value _options, value _frame_rate, value _hardware_context,
-    value _pixel_format, value _width, value _height, value _time_base,
-    value _codec) {
-  CAMLparam5(_options, _frame_rate, _hardware_context, _pixel_format, _width);
-  CAMLxparam3(_height, _time_base, _codec);
+    value _options, value _side_data, value _frame_rate,
+    value _hardware_context, value _pixel_format, value _width, value _height,
+    value _time_base, value _codec) {
+  CAMLparam5(_options, _side_data, _frame_rate, _hardware_context,
+             _pixel_format);
+  CAMLxparam4(_width, _height, _time_base, _codec);
   CAMLlocal1(_encoder);
   const AVCodec *codec = Codec_val(_codec);
   enum AVPixelFormat pixel_format = PixelFormat_val(_pixel_format);
@@ -1017,7 +967,7 @@ CAMLprim value ocaml_avcodec_create_video_encoder(
   handle = alloc_codec_handle(&_encoder, codec);
   error = ocaml_avcodec_set_video_encoding(handle->context, pixel_format, width,
                                            height, time_base, frame_rate,
-                                           _hardware_context);
+                                           _hardware_context, _side_data);
   if (error < 0)
     ocaml_avutil_raise_error(error);
 
@@ -1029,7 +979,7 @@ CAMLprim value ocaml_avcodec_create_video_encoder_bytecode(value *arguments,
   (void)count;
   return ocaml_avcodec_create_video_encoder(
       arguments[0], arguments[1], arguments[2], arguments[3], arguments[4],
-      arguments[5], arguments[6], arguments[7]);
+      arguments[5], arguments[6], arguments[7], arguments[8]);
 }
 
 static codec_handle *shared_codec(value _codec) {

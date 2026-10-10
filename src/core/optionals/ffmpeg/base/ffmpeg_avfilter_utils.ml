@@ -20,6 +20,66 @@
 
  *****************************************************************************)
 
+module Display = struct
+  type t = Avfilter.Utils.display_converter option
+
+  let on_undecided = Atomic.make None
+  let set_on_undecided handler = Atomic.set on_undecided (Some handler)
+
+  let cropping params =
+    Avcodec.Packet_side_data.cropping (Avcodec.params_side_data params)
+
+  let stored_layout params =
+    {
+      Avfilter.Utils.width = Avcodec.Video.get_width params;
+      height = Avcodec.Video.get_height params;
+      pixel_aspect = Avcodec.Video.get_pixel_aspect params;
+      filters = [];
+    }
+
+  let layout params =
+    let { Avfilter.Utils.width; height; pixel_aspect; _ } =
+      stored_layout params
+    in
+    if not Ffmpeg_utils.conf_autorotate#get then Some (stored_layout params)
+    else (
+      match
+        Avfilter.Utils.display_layout ?cropping:(cropping params)
+          ?display_matrix:
+            (Avcodec.Packet_side_data.display_matrix
+               (Avcodec.params_side_data params))
+          ?pixel_aspect ~width ~height ()
+      with
+        | `Layout layout -> Some layout
+        | `Undecided _ -> None)
+
+  let expected_size params =
+    let { Avfilter.Utils.width; height; _ } =
+      Option.value (layout params) ~default:(stored_layout params)
+    in
+    (width, height)
+
+  let init ?params ~time_base () =
+    if Ffmpeg_utils.conf_autorotate#get then
+      Some
+        (Avfilter.Utils.init_display_converter
+           ?cropping:(Option.bind params cropping)
+           ?on_undecided:(Atomic.get on_undecided) ~time_base ())
+    else None
+
+  let convert display frame callback =
+    match display with
+      | None -> callback frame
+      | Some converter ->
+          Avfilter.Utils.convert_display converter callback (`Frame frame)
+
+  let eof display callback =
+    Option.iter
+      (fun converter ->
+        Avfilter.Utils.convert_display converter callback `Flush)
+      display
+end
+
 module Fps = struct
   type filter = {
     time_base : Avutil.rational;

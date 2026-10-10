@@ -1,6 +1,6 @@
 (executable
  (name tests)
- (modules harness test_avutil test_avcodec test_av test_avfilter test_swscale test_swresample tests)
+ (modules harness test_avutil test_avcodec test_av test_avfilter test_swscale test_swresample test_side_data tests)
  (foreign_stubs
   (language c)
   (names test_avutil_stubs test_avcodec_stubs test_av_stubs)
@@ -25,7 +25,7 @@
    --profile
    %{profile}
    --expect-pass
-   100
+   109
    --allow-skip
    2.13
    %{exe:tests.exe})))

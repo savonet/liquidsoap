@@ -22,6 +22,8 @@
 
 (** Decode raw ffmpeg frames. *)
 
+let log = Log.make ["decoder"; "ffmpeg"; "raw"]
+
 let mk_decoder ~stream_idx ~stream_time_base ~field ~lift_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~mode:`PTS ~src:stream_time_base
@@ -75,9 +77,48 @@ let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
             decoder ~buffer (`Frame frame))
 
 let mk_video_decoder ~stream_idx ~format ~stream ~field params =
+  let stream_time_base = Av.get_time_base stream in
+  let display =
+    Ffmpeg_avfilter_utils.Display.init ~params ~time_base:stream_time_base ()
+  in
   let params = Ffmpeg_raw_content.VideoSpecs.mk_params params in
   (* Video frames are passed through as they come, so the target format has to
      take on the source's parameters. *)
   ignore (Content.merge format (Ffmpeg_raw_content.Video.lift_params params));
-  mk_decoder ~stream_idx ~stream_time_base:(Av.get_time_base stream) ~field
-    ~lift_data:Ffmpeg_raw_content.Video.lift_data params
+  let decoder =
+    mk_decoder ~stream_idx ~stream_time_base ~field
+      ~lift_data:Ffmpeg_raw_content.Video.lift_data params
+  in
+  let last_frame_params = ref None in
+  (* Frames that left the declared format cannot be content of this track; a
+     change within it starts a new track. *)
+  let follow ~buffer frame =
+    let frame_params =
+      {
+        (Ffmpeg_raw_content.VideoSpecs.frame_params frame) with
+        pixel_aspect = None;
+      }
+    in
+    if not (Ffmpeg_raw_content.VideoSpecs.compatible params frame_params) then
+      raise
+        (Ffmpeg_decoder_common.Unsupported_change
+           (Printf.sprintf "decoded video is %s, the track was declared as %s"
+              (Ffmpeg_raw_content.VideoSpecs.to_string frame_params)
+              (Ffmpeg_raw_content.VideoSpecs.to_string params)));
+    (match !last_frame_params with
+      | Some last when last <> frame_params ->
+          log#important "Video format change: starting a new track.";
+          Generator.add_track_mark buffer.Decoder.generator
+      | _ -> ());
+    last_frame_params := Some frame_params
+  in
+  let decode ~buffer frame =
+    follow ~buffer frame;
+    decoder ~buffer (`Frame frame)
+  in
+  fun ~buffer -> function
+    | `Frame frame ->
+        Ffmpeg_avfilter_utils.Display.convert display frame (decode ~buffer)
+    | `Flush ->
+        Ffmpeg_avfilter_utils.Display.eof display (decode ~buffer);
+        decoder ~buffer `Flush

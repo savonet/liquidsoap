@@ -63,6 +63,18 @@ let conf_capture =
   Dtools.Conf.bool ~p:(conf_log#plug "capture")
     "Process logs through the main liquidsoap log facilities." ~d:true
 
+let conf_autorotate =
+  Dtools.Conf.bool
+    ~p:(conf_ffmpeg#plug "autorotate")
+    "Show decoded video upright" ~d:true
+    ~comments:
+      [
+        "Apply the rotation, the flip and the cropping a video stream asks for";
+        "when decoding it, as the `ffmpeg` command-line tool does. When";
+        "disabled, the picture is decoded as stored and `ffmpeg.raw` frames";
+        "keep their display matrix.";
+      ]
+
 let conf_scaling_algorithm =
   Dtools.Conf.string
     ~p:(conf_ffmpeg#plug "scaling_algorithm")
@@ -443,3 +455,9 @@ let find_pixel_format ?(alpha = false) codec =
 let pixel_format ?(alpha = false) codec = function
   | Some p -> Avutil.Pixel_format.of_string p
   | None -> find_pixel_format ~alpha codec
+
+let global_side_data frame =
+  List.filter
+    (fun { Avutil.Frame_side_data.kind; _ } ->
+      List.mem `Global (Avutil.Frame_side_data.props kind))
+    (Avutil.Frame.side_data frame)

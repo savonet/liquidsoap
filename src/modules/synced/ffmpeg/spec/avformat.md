@@ -632,12 +632,14 @@ source stream.
 
 ```ocaml
 val new_audio_stream :
-  ?opts:opts -> channel_layout:Channel_layout.t -> sample_rate:int ->
+  ?opts:opts -> ?side_data:Avutil.Frame_side_data.raw list ->
+  channel_layout:Channel_layout.t -> sample_rate:int ->
   sample_format:Avutil.Sample_format.t -> time_base:Avutil.rational ->
   codec:[ `Encoder ] Avcodec.Audio.t -> output container ->
   (output, audio, [ `Frame ]) stream
 val new_video_stream :
-  ?opts:opts -> ?frame_rate:Avutil.rational ->
+  ?opts:opts -> ?side_data:Avutil.Frame_side_data.raw list ->
+  ?frame_rate:Avutil.rational ->
   ?hardware_context:Avcodec.Video.hardware_context ->
   pixel_format:Avutil.Pixel_format.t -> width:int -> height:int ->
   time_base:Avutil.rational -> codec:[ `Encoder ] Avcodec.Video.t ->

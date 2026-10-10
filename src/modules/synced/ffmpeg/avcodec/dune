@@ -34,6 +34,8 @@
   codec_properties_stubs.h
   hw_config_method.ml
   hw_config_method_stubs.h
+  packet_side_data_type.ml
+  packet_side_data_type_stubs.h
   codec_id.ml
   codec_id_stubs.h)
  (deps ../detect/avcodec_versions)

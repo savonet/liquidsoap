@@ -128,6 +128,10 @@ let tables =
       "AV_HWDEVICE_TYPE_";
     avutil "media_types" "libavutil/avutil.h" (Enum "AVMediaType")
       "AVMEDIA_TYPE_";
+    avutil "frame_side_data_type" "libavutil/frame.h"
+      (Enum "AVFrameSideDataType") "AV_FRAME_DATA_";
+    avutil "side_data_prop" "libavutil/frame.h" (Enum "AVSideDataProps")
+      "AV_SIDE_DATA_PROP_";
     avutil "subtitle_type" avcodec (Enum "AVSubtitleType") "SUBTITLE_";
     avutil "subtitle_flag" avcodec Macros "AV_SUBTITLE_FLAG_";
     avcodec_table "codec_capabilities" "libavcodec/codec.h" Macros
@@ -136,6 +140,8 @@ let tables =
       "AV_CODEC_PROP_";
     avcodec_table "hw_config_method" "libavcodec/codec.h" Enumerators
       "AV_CODEC_HW_CONFIG_METHOD_";
+    avcodec_table "packet_side_data_type" "libavcodec/packet.h"
+      (Enum "AVPacketSideDataType") "AV_PKT_DATA_";
     codec_id;
     swresample_options;
   ]

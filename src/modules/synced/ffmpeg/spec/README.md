@@ -32,8 +32,9 @@ FFmpeg's C API.
 | 9   | [avdevice.md](avdevice.md)                   | Registration of capture and playback devices                                                                 |
 | 10  | [swresample.md](swresample.md)               | Audio resampling and sample-format conversion                                                                |
 | 11  | [swscale.md](swscale.md)                     | Image scaling and pixel-format conversion                                                                    |
-| 12  | [tests.md](tests.md)                         | Conformance: what a test suite must assert and what it must not depend on                                    |
-| 13  | [known-complexity.md](known-complexity.md)   | Pitfalls these bindings have already paid for, each with a check and the rule that answers it                |
+| 12  | [side-data.md](side-data.md)                 | Side data across the libraries: carriers, raw entries, the three levels of the interface                     |
+| 13  | [tests.md](tests.md)                         | Conformance: what a test suite must assert and what it must not depend on                                    |
+| 14  | [known-complexity.md](known-complexity.md)   | Pitfalls these bindings have already paid for, each with a check and the rule that answers it                |
 
 Every rule has one owner. Other files link to it.
 
@@ -86,6 +87,7 @@ Rules carry a letter and a number, unique within a file:
 | `build.md`             | P packages, D detection, G generation, H headers, T tests, K packaging                                                                   |
 | `cross-compilation.md` | X                                                                                                                                        |
 | `avutil.md`            | N logging                                                                                                                                |
+| `side-data.md`         | R                                                                                                                                        |
 | `tests.md`             | H harness; requirements are numbered `section.item`                                                                                      |
 
 "Contract L3" means rule L3 of `binding-contract.md`.

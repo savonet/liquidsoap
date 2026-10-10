@@ -245,6 +245,12 @@ let decode_video_frame ~field ~mode generator =
                       color_range,
                       stream_idx ) ->
             log#info "Video frame format change detected..";
+            (match !current_format with
+              | Some (w, h, p, _, _, _, idx)
+                when idx = stream_idx
+                     && (w, h, p) <> (width, height, pixel_format) ->
+                  Generator.add_track_mark generator
+              | _ -> ());
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
               ?color_range ~stream_idx ()
         | Some v -> v
@@ -289,6 +295,42 @@ let decode_video_frame ~field ~mode generator =
     let current_time_base = ref None in
     let current_params = ref None in
     let current_decoder = ref None in
+    let current_display = ref None in
+
+    (* What a decoder is built from: parameters that differ here need a new
+       one. *)
+    let stream_key (params : Ffmpeg_copy_content.video_params) =
+      let codec_params = params.Ffmpeg_copy_content.codec_params in
+      ( Avcodec.Video.get_params_id codec_params,
+        Avcodec.Video.get_width codec_params,
+        Avcodec.Video.get_height codec_params,
+        Avcodec.Video.get_pixel_format codec_params,
+        Avcodec.params_side_data codec_params )
+    in
+    let same_stream (params : Ffmpeg_copy_content.video_params) =
+      match !current_params with
+        | None -> false
+        | Some (current : Ffmpeg_copy_content.video_params) ->
+            current.codec_params == params.codec_params
+            || stream_key current = stream_key params
+    in
+
+    let flush_display ~time_base ~stream_idx =
+      Option.iter
+        (fun display ->
+          Ffmpeg_avfilter_utils.Display.eof display (fun frame ->
+              convert ~time_base ~stream_idx (`Frame frame)))
+        !current_display
+    in
+
+    let convert ~time_base ~stream_idx = function
+      | `Frame frame ->
+          Ffmpeg_avfilter_utils.Display.convert (Option.get !current_display)
+            frame (fun frame -> convert ~time_base ~stream_idx (`Frame frame))
+      | `Flush ->
+          flush_display ~time_base ~stream_idx;
+          convert ~time_base ~stream_idx `Flush
+    in
 
     let mk_decoder ~(params : Ffmpeg_copy_content.video_params) ~stream_idx
         ~time_base =
@@ -301,6 +343,10 @@ let decode_video_frame ~field ~mode generator =
           ~params:params.Ffmpeg_copy_content.codec_params codec
       in
       current_decoder := Some decoder;
+      current_display :=
+        Some
+          (Ffmpeg_avfilter_utils.Display.init
+             ~params:params.Ffmpeg_copy_content.codec_params ~time_base ());
       current_stream_idx := Some stream_idx;
       current_params := Some params;
       current_time_base := Some time_base;
@@ -312,18 +358,23 @@ let decode_video_frame ~field ~mode generator =
         | None -> mk_decoder ~params ~stream_idx ~time_base
         | Some decoder
           when !current_stream_idx <> Some stream_idx
-               || !current_time_base <> Some time_base ->
+               || !current_time_base <> Some time_base
+               || not (same_stream params) ->
             log#info "Video frame format change detected..";
+            let same_stream_idx = !current_stream_idx = Some stream_idx in
             ignore
               (Option.map
                  (fun stream_idx ->
+                   let time_base = Option.get !current_time_base in
                    Avcodec.flush_decoder decoder (fun frame ->
-                       convert
-                         ~time_base:(Option.get !current_time_base)
-                         ~stream_idx (`Frame frame)))
+                       convert ~time_base ~stream_idx (`Frame frame));
+                   flush_display ~time_base ~stream_idx)
                  !current_stream_idx);
+            if same_stream_idx then Generator.add_track_mark generator;
             mk_decoder ~params ~stream_idx ~time_base
-        | Some d -> d
+        | Some d ->
+            current_params := Some params;
+            d
     in
     function
     | `Frame frame ->

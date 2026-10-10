@@ -414,4 +414,308 @@ module Utils = struct
     deliver converter callback;
     converter.source input;
     deliver converter callback
+
+  type filter_spec = string * args list
+
+  let filter_of_transform : Display_matrix.transform -> filter_spec = function
+    | `Transpose direction ->
+        let direction =
+          match direction with
+            | `Clock -> "clock"
+            | `Cclock -> "cclock"
+            | `Clock_flip -> "clock_flip"
+            | `Cclock_flip -> "cclock_flip"
+        in
+        ("transpose", [`Pair ("dir", `String direction)])
+    | `Hflip -> ("hflip", [])
+    | `Vflip -> ("vflip", [])
+    | `Rotate angle ->
+        ("rotate", [`Pair ("angle", `String (Printf.sprintf "%f*PI/180" angle))])
+
+  let filter_of_cropping { top; bottom; left; right } : filter_spec option =
+    if top = 0 && bottom = 0 && left = 0 && right = 0 then None
+    else
+      Some
+        ( "crop",
+          [
+            `Pair ("w", `String (Printf.sprintf "iw-%d-%d" left right));
+            `Pair ("h", `String (Printf.sprintf "ih-%d-%d" top bottom));
+            `Pair ("x", `Int left);
+            `Pair ("y", `Int top);
+          ] )
+
+  (* spec/avfilter.md §11.4. *)
+  let display_filters ?cropping side_data =
+    let crop = Option.to_list (Option.bind cropping filter_of_cropping) in
+    let transforms =
+      match Frame_side_data.display_matrix side_data with
+        | None -> []
+        | Some matrix -> Display_matrix.transforms matrix
+    in
+    crop @ List.map filter_of_transform transforms
+
+  type display_layout = {
+    width : int;
+    height : int;
+    pixel_aspect : rational option;
+    filters : filter_spec list;
+  }
+
+  type undecided = [ `Invalid_cropping of cropping | `Odd_rotation of float ]
+
+  let cropped ~width ~height ({ top; bottom; left; right } as cropping) =
+    if
+      top < 0 || bottom < 0 || left < 0 || right < 0
+      || left + right >= width
+      || top + bottom >= height
+    then Result.Error (`Invalid_cropping cropping)
+    else Ok (width - left - right, height - top - bottom)
+
+  let transposed layout =
+    {
+      layout with
+      width = layout.height;
+      height = layout.width;
+      pixel_aspect =
+        Option.map
+          (fun { num; den } -> { num = den; den = num })
+          layout.pixel_aspect;
+    }
+
+  let transformed layout (transform : Display_matrix.transform) =
+    match transform with
+      | `Rotate angle -> Result.Error (`Odd_rotation angle)
+      | `Hflip | `Vflip -> Ok layout
+      | `Transpose _ -> Ok (transposed layout)
+
+  (* spec/avfilter.md §11.4. *)
+  let display_layout ?cropping ?display_matrix ?pixel_aspect ~width ~height () =
+    let ( let* ) = Result.bind in
+    let layout =
+      let* width, height =
+        match cropping with
+          | None -> Ok (width, height)
+          | Some cropping -> cropped ~width ~height cropping
+      in
+      let transforms =
+        Option.fold ~none:[] ~some:Display_matrix.transforms display_matrix
+      in
+      let* layout =
+        List.fold_left
+          (fun layout transform ->
+            Result.bind layout (fun l -> transformed l transform))
+          (Ok { width; height; pixel_aspect; filters = [] })
+          transforms
+      in
+      Ok
+        {
+          layout with
+          filters =
+            Option.to_list (Option.bind cropping filter_of_cropping)
+            @ List.map filter_of_transform transforms;
+        }
+    in
+    match layout with
+      | Ok layout -> `Layout layout
+      | Error (#undecided as undecided) -> `Undecided undecided
+
+  type undecided_frame = [ undecided | `Hardware_frame ]
+
+  let string_of_undecided : undecided_frame -> string = function
+    | `Hardware_frame -> "the frame is in a hardware pixel format"
+    | `Odd_rotation angle ->
+        Printf.sprintf "the rotation of %g degrees is not a quarter turn" angle
+    | `Invalid_cropping { top; bottom; left; right } ->
+        Printf.sprintf
+          "the cropping of %d, %d, %d and %d pixels (top, bottom, left, right) \
+           does not fit the picture"
+          top bottom left right
+
+  type frame_format = {
+    frame_width : int;
+    frame_height : int;
+    pixel_format : Pixel_format.t;
+    frame_pixel_aspect : rational option;
+    color_range : Color_range.t;
+  }
+
+  type display_graph = {
+    format : frame_format;
+    graph_filters : filter_spec list;
+    display_source : [ `Video ] input;
+    display_sink : [ `Video ] output;
+  }
+
+  type decision = {
+    undecided : undecided_frame;
+    decided : filter_spec list option;
+  }
+
+  type display_converter = {
+    cropping : cropping option;
+    display_time_base : rational;
+    on_undecided : undecided_frame -> filter_spec list option;
+    mutable last_decision : decision option;
+    mutable display_graph : display_graph option;
+  }
+
+  let warn_undecided undecided =
+    Log.log `Warning
+      (Printf.sprintf "Video left as stored, with its display matrix: %s."
+         (string_of_undecided undecided));
+    None
+
+  let init_display_converter ?cropping ?(on_undecided = warn_undecided)
+      ~time_base () =
+    {
+      cropping;
+      display_time_base = time_base;
+      on_undecided;
+      last_decision = None;
+      display_graph = None;
+    }
+
+  let frame_format frame =
+    {
+      frame_width = Video.frame_get_width frame;
+      frame_height = Video.frame_get_height frame;
+      pixel_format = Video.frame_get_pixel_format frame;
+      frame_pixel_aspect = Video.frame_get_pixel_aspect frame;
+      color_range = Video.frame_get_color_range frame;
+    }
+
+  let is_hardware pixel_format =
+    List.mem `Hwaccel (Pixel_format.descriptor pixel_format).flags
+
+  let frame_display_matrix frame =
+    Frame_side_data.display_matrix
+      (Option.to_list (Frame.find_side_data frame `Displaymatrix))
+
+  (* The caller is asked once per run of frames with the same question. *)
+  let decide converter undecided =
+    match converter.last_decision with
+      | Some decision when decision.undecided = undecided -> decision.decided
+      | _ ->
+          let decided = converter.on_undecided undecided in
+          converter.last_decision <- Some { undecided; decided };
+          decided
+
+  (* [None] when nothing is decided for the frame. *)
+  let frame_filters converter ~format ~display_matrix =
+    if is_hardware format.pixel_format then decide converter `Hardware_frame
+    else (
+      match
+        display_layout ?cropping:converter.cropping ?display_matrix
+          ~width:format.frame_width ~height:format.frame_height ()
+      with
+        | `Layout { filters; _ } -> Some filters
+        | `Undecided undecided ->
+            decide converter (undecided :> undecided_frame))
+
+  let display_source_args ~time_base format =
+    [
+      `Pair
+        ( "video_size",
+          `String
+            (Printf.sprintf "%dx%d" format.frame_width format.frame_height) );
+      `Pair ("pix_fmt", `Int (Pixel_format.get_id format.pixel_format));
+      `Pair ("time_base", `Rational time_base);
+    ]
+    @ (match format.frame_pixel_aspect with
+      | None -> []
+      | Some pixel_aspect -> [`Pair ("pixel_aspect", `Rational pixel_aspect)])
+    @
+      match format.color_range with
+      | `Unspecified -> []
+      | color_range -> [`Pair ("range", `String (Color_range.name color_range))]
+
+  let build_display_graph ~time_base ~format filters =
+    let graph = init () in
+    let source =
+      attach ~name:"source"
+        ~args:(display_source_args ~time_base format)
+        buffer graph
+    in
+    let last =
+      List.fold_left
+        (fun (index, previous) (name, args) ->
+          let filter =
+            match find_opt name with
+              | Some filter -> filter
+              | None -> raise (Error `Filter_not_found)
+          in
+          let filter =
+            attach ~name:(Printf.sprintf "display%d" index) ~args filter graph
+          in
+          link
+            (List.hd previous.io.outputs.video)
+            (List.hd filter.io.inputs.video);
+          (index + 1, filter))
+        (0, source) filters
+      |> snd
+    in
+    let sink = attach ~name:"sink" buffersink graph in
+    link (List.hd last.io.outputs.video) (List.hd sink.io.inputs.video);
+    let endpoints = launch graph in
+    {
+      format;
+      graph_filters = filters;
+      display_source = List.assoc "source" endpoints.inputs.video;
+      display_sink = List.assoc "sink" endpoints.outputs.video;
+    }
+
+  let rec deliver_display graph callback =
+    match graph.display_sink.handler () with
+      | frame ->
+          Frame.remove_side_data frame `Displaymatrix;
+          callback frame;
+          deliver_display graph callback
+      | exception Error (`Eagain | `Eof) -> ()
+
+  let flush_display converter callback =
+    Option.iter
+      (fun graph ->
+        converter.display_graph <- None;
+        graph.display_source `Flush;
+        deliver_display graph callback)
+      converter.display_graph
+
+  let without_display_matrix frame =
+    let frame = Frame.dup frame in
+    Frame.remove_side_data frame `Displaymatrix;
+    frame
+
+  let display_graph converter callback ~format filters =
+    match converter.display_graph with
+      | Some graph when graph.format = format && graph.graph_filters = filters
+        ->
+          graph
+      | _ ->
+          flush_display converter callback;
+          let graph =
+            build_display_graph ~time_base:converter.display_time_base ~format
+              filters
+          in
+          converter.display_graph <- Some graph;
+          graph
+
+  (* spec/avfilter.md §11.5. *)
+  let convert_display converter callback = function
+    | `Flush -> flush_display converter callback
+    | `Frame frame -> (
+        let format = frame_format frame in
+        let display_matrix = frame_display_matrix frame in
+        match frame_filters converter ~format ~display_matrix with
+          | None ->
+              flush_display converter callback;
+              callback frame
+          | Some [] ->
+              flush_display converter callback;
+              callback
+                (if display_matrix = None then frame
+                 else without_display_matrix frame)
+          | Some filters ->
+              let graph = display_graph converter callback ~format filters in
+              graph.display_source (`Frame frame);
+              deliver_display graph callback)
 end

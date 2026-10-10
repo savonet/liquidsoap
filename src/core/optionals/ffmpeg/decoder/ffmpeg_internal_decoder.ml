@@ -122,22 +122,29 @@ let mk_audio_decoder ~channels ~field ~pcm_kind codec =
           Generator.add_metadata buffer.Decoder.generator
             (Frame.Metadata.from_list metadata)
 
+type video_format = {
+  width : int;
+  height : int;
+  pixel_format : Avutil.Pixel_format.t;
+  pixel_aspect : Avutil.rational option;
+  color_range : Avutil.Color_range.t option;
+}
+
+type video_converter = {
+  format : video_format;
+  scale : Avutil.video Avutil.frame -> Video.Canvas.Image.t;
+  fps : Ffmpeg_avfilter_utils.Fps.t;
+}
+
 let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
-  let pixel_format =
-    match Avcodec.Video.get_pixel_format codec with
-      | None -> failwith "Pixel format unknown!"
-      | Some f -> f
-  in
   let target_width = width in
   let target_height = height in
-  let width = Avcodec.Video.get_width codec in
-  let height = Avcodec.Video.get_height codec in
   let target_fps = Lazy.Mutexed.force Frame.video_rate in
   let target_pixel_format =
     if alpha then Ffmpeg_utils.liq_frame_pixel_format_with_alpha
     else Ffmpeg_utils.liq_frame_pixel_format
   in
-  let scale =
+  let mk_scale { width; height; pixel_format; _ } =
     let scale_proportional (sw, sh) (tw, th) =
       if th * sw < tw * sh then (sw * th / sh, th) else (tw, sh * tw / sw)
     in
@@ -162,8 +169,11 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
       |> Video.Canvas.Image.viewport target_width target_height
   in
   let time_base = Av.get_time_base stream in
-  let pixel_aspect = Av.get_pixel_aspect stream in
-  let cb ~buffer frame =
+  let stream_pixel_aspect = Av.get_pixel_aspect stream in
+  let display =
+    Ffmpeg_avfilter_utils.Display.init ~params:codec ~time_base ()
+  in
+  let cb ~scale ~buffer frame =
     let img = scale frame in
     buffer.Decoder.put_yuva420p ~field
       ~fps:{ Decoder.num = target_fps; den = 1 }
@@ -173,31 +183,65 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
       Generator.add_metadata buffer.Decoder.generator
         (Frame.Metadata.from_list metadata)
   in
+  let frame_format frame =
+    {
+      width = Avutil.Video.frame_get_width frame;
+      height = Avutil.Video.frame_get_height frame;
+      pixel_format = Avutil.Video.frame_get_pixel_format frame;
+      pixel_aspect =
+        (match Avutil.Video.frame_get_pixel_aspect frame with
+          | None -> stream_pixel_aspect
+          | pixel_aspect -> pixel_aspect);
+      color_range =
+        (match Avutil.Video.frame_get_color_range frame with
+          | `Unspecified -> None
+          | color_range -> Some color_range);
+    }
+  in
   let converter = ref None in
-  let get_converter color_range =
+  let flush ~buffer =
+    Option.iter
+      (fun { scale; fps; _ } ->
+        Ffmpeg_avfilter_utils.Fps.eof fps (cb ~scale ~buffer))
+      !converter
+  in
+  (* A rotation that changes in the middle of a stream changes the size of
+     the frames. *)
+  let get_converter ~buffer format =
     match !converter with
-      | Some (cr, c) when cr = color_range -> c
-      | _ ->
-          let c =
+      | Some converter when converter.format = format -> converter
+      | previous ->
+          flush ~buffer;
+          Option.iter
+            (fun { format = { width; height; pixel_format; _ }; _ } ->
+              if
+                (width, height, pixel_format)
+                <> (format.width, format.height, format.pixel_format)
+              then (
+                log#important "Video format change: starting a new track.";
+                Generator.add_track_mark buffer.Decoder.generator))
+            previous;
+          let { width; height; pixel_format; pixel_aspect; color_range } =
+            format
+          in
+          let fps =
             Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format
               ~time_base ?pixel_aspect ?color_range ~target_fps ()
           in
-          converter := Some (color_range, c);
-          c
+          let created = { format; scale = mk_scale format; fps } in
+          converter := Some created;
+          created
+  in
+  let convert ~buffer frame =
+    let { scale; fps; _ } = get_converter ~buffer (frame_format frame) in
+    Ffmpeg_avfilter_utils.Fps.convert fps frame (cb ~scale ~buffer)
   in
   fun ~buffer -> function
     | `Frame frame ->
-        let color_range = Avutil.Video.frame_get_color_range frame in
-        let color_range =
-          match color_range with `Unspecified -> None | cr -> Some cr
-        in
-        Ffmpeg_avfilter_utils.Fps.convert
-          (get_converter color_range)
-          frame (cb ~buffer)
+        Ffmpeg_avfilter_utils.Display.convert display frame (convert ~buffer)
     | `Flush ->
-        Option.iter
-          (fun (_, c) -> Ffmpeg_avfilter_utils.Fps.eof c (cb ~buffer))
-          !converter
+        Ffmpeg_avfilter_utils.Display.eof display (convert ~buffer);
+        flush ~buffer
 
 let main_of_subtitle_time time = Frame.main_of_seconds (float time /. 1000.)
 

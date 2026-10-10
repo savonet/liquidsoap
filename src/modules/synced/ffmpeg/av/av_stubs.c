@@ -1651,7 +1651,8 @@ static AVCodecContext *alloc_encoder(container *record, const AVCodec *codec,
   return encoder;
 }
 
-/* [_settings] is (channel layout, sample rate, sample format, time base). */
+/* [_settings] is (channel layout, sample rate, sample format, time base,
+   side data). */
 CAMLprim value ocaml_av_new_audio_stream(value _container, value _options,
                                          value _settings, value _codec) {
   CAMLparam4(_container, _options, _settings, _codec);
@@ -1665,14 +1666,14 @@ CAMLprim value ocaml_av_new_audio_stream(value _container, value _options,
   AVCodecContext *encoder = alloc_encoder(record, codec, &options);
   int configured = ocaml_avcodec_set_audio_encoding(
       encoder, ChannelLayout_val(Field(_settings, 0)), sample_rate,
-      sample_format, time_base);
+      sample_format, time_base, Field(_settings, 4));
 
   CAMLreturn(add_encoding_stream(record, encoder, codec, configured, &options,
                                  (AVRational){0, 1}));
 }
 
 /* [_settings] is (frame rate option, hardware context option, pixel
-   format, width, height, time base). */
+   format, width, height, time base, side data). */
 CAMLprim value ocaml_av_new_video_stream(value _container, value _options,
                                          value _settings, value _codec) {
   CAMLparam4(_container, _options, _settings, _codec);
@@ -1693,9 +1694,9 @@ CAMLprim value ocaml_av_new_video_stream(value _container, value _options,
   options = ocaml_avutil_dictionary_of_options(_options);
   record = configurable_output(_container, &options);
   encoder = alloc_encoder(record, codec, &options);
-  configured = ocaml_avcodec_set_video_encoding(encoder, pixel_format, width,
-                                                height, time_base, frame_rate,
-                                                Field(_settings, 1));
+  configured = ocaml_avcodec_set_video_encoding(
+      encoder, pixel_format, width, height, time_base, frame_rate,
+      Field(_settings, 1), Field(_settings, 6));
 
   CAMLreturn(add_encoding_stream(record, encoder, codec, configured, &options,
                                  frame_rate));

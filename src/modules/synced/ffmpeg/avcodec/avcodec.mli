@@ -178,6 +178,88 @@ type hw_config = {
     a frame context when it has [`Hw_frames_ctx]. *)
 val hw_configs : ([< `Audio | `Video ], _) codec -> hw_config list
 
+(** Side data of packets and of codec parameters: the kinds FFmpeg defines, raw
+    entries and their typed content. A packet's side data applies to that
+    packet; the side data of codec parameters applies to the whole stream. *)
+module Packet_side_data : sig
+  type kind = Packet_side_data_type.t
+
+  (** One entry as its carrier holds it: its kind and a copy of its payload. The
+      record is private: an entry comes from reading a packet or parameters, or
+      from {!encode}, never from arbitrary bytes, because FFmpeg reads a payload
+      at the size its kind implies. For most kinds the payload is a C structure
+      of the FFmpeg build in use: it must not be stored or sent to another
+      process. *)
+  type raw = private { kind : kind; data : string }
+
+  (** ReplayGain information, FFmpeg's [AVReplayGain]. [track_gain] and
+      [album_gain] are in microbels: divide by 100000 to get decibels. FFmpeg's
+      "unknown" gain is [INT32_MIN], -2147483648. [track_peak] and [album_peak]
+      are peak amplitudes where 100000 is full scale, 0 when unknown. *)
+  type replaygain = {
+    track_gain : int;
+    track_peak : int;
+    album_gain : int;
+    album_peak : int;
+  }
+
+  type cropping = Avutil.cropping = {
+    top : int;
+    bottom : int;
+    left : int;
+    right : int;
+  }
+
+  (** The kinds whose content the bindings translate:
+      - [`Replaygain]: ReplayGain information of an audio stream;
+      - [`Strings_metadata]: a list of key and value pairs;
+      - [`Metadata_update]: a list of key and value pairs, the updated metadata
+        that appeared in the stream;
+      - [`Display_matrix]: the transformation to show the video upright;
+      - [`Frame_cropping]: the borders the container asks to discard. *)
+  type t =
+    [ `Replaygain of replaygain
+    | `Strings_metadata of (string * string) list
+    | `Metadata_update of (string * string) list
+    | `Display_matrix of Avutil.Display_matrix.t
+    | `Frame_cropping of cropping ]
+
+  (** FFmpeg's name of the kind, empty when it has none. *)
+  val name : kind -> string
+
+  (** The content of an entry. [None] for a kind outside {!t} and for a payload
+      too short for its kind. *)
+  val decode : raw -> t option
+
+  (** The entry holding a content. [decode (encode d)] is [Some d].
+
+      For [`Replaygain], each gain must fit a signed 32-bit integer and each
+      peak an unsigned 32-bit integer; each field of a [`Frame_cropping] an
+      unsigned 32-bit integer. For the two metadata kinds, each key and value
+      ends at its first NUL byte, and a later pair replaces an earlier pair of
+      the same key, whatever its case.
+
+      @raise Avutil.Error with [`Failure _] when a number is out of range. *)
+  val encode : t -> raw
+
+  (** The matrix of the first entry that holds one. *)
+  val display_matrix : raw list -> Avutil.Display_matrix.t option
+
+  (** The cropping of the first entry that holds one. *)
+  val cropping : raw list -> cropping option
+end
+
+(** The side data of the parameters, which applies to the whole stream, in
+    order. An entry whose kind the bindings have no constructor for is left out.
+*)
+val params_side_data : _ params -> Packet_side_data.raw list
+
+(** [params_with_side_data params l] is an independent copy of [params] whose
+    side data is exactly [l], in order. A kind that appears twice keeps its last
+    occurrence. [params] is unchanged. *)
+val params_with_side_data :
+  'media params -> Packet_side_data.raw list -> 'media params
+
 (** Packets: one unit of encoded data of a stream, with its timestamps, its
     flags and its side data. An encoder produces packets and a decoder consumes
     them; containers read and write them.
@@ -214,22 +296,27 @@ module Packet : sig
       [album_gain] are in microbels: divide by 100000 to get decibels. FFmpeg's
       "unknown" gain is [INT32_MIN], -2147483648. [track_peak] and [album_peak]
       are peak amplitudes where 100000 is full scale, 0 when unknown. *)
-  type replaygain = {
+  type replaygain = Packet_side_data.replaygain = {
     track_gain : int;
     track_peak : int;
     album_gain : int;
     album_peak : int;
   }
 
-  (** The side data the bindings read and write:
-      - [`Replaygain]: ReplayGain information of an audio stream;
-      - [`Strings_metadata]: a list of key and value pairs;
-      - [`Metadata_update]: a list of key and value pairs, the updated metadata
-        that appeared in the stream. *)
-  type side_data =
-    [ `Replaygain of replaygain
-    | `Strings_metadata of (string * string) list
-    | `Metadata_update of (string * string) list ]
+  (** The side data the bindings translate. *)
+  type side_data = Packet_side_data.t
+
+  (** Every side-data entry of the packet, in the packet's order. An entry whose
+      kind the bindings have no constructor for is left out. *)
+  val raw_side_data : 'media t -> Packet_side_data.raw list
+
+  (** [add_raw_side_data packet entry] attaches a copy of [entry]. A packet
+      holds one entry per kind: an entry of the same kind is replaced. On
+      failure the packet is unchanged. *)
+  val add_raw_side_data : 'media t -> Packet_side_data.raw -> unit
+
+  (** [remove_side_data packet kind] removes the entry of that kind. *)
+  val remove_side_data : 'media t -> Packet_side_data.kind -> unit
 
   (** [add_side_data packet data] attaches a copy of [data] to the packet.
 
@@ -246,10 +333,10 @@ module Packet : sig
         peak an unsigned one. *)
   val add_side_data : 'media t -> side_data -> unit
 
-  (** [side_data packet] is the packet's side data of the three kinds of
-      {!type-side_data}, in the packet's order. The pairs of a metadata entry
-      are in the order of the entry. An entry of any other kind, and a
-      ReplayGain entry too short to hold the four fields, are left out.
+  (** [side_data packet] is the packet's side data of the kinds of
+      {!type-side_data}, in the packet's order: the entries of {!raw_side_data}
+      that {!Packet_side_data.decode} translates. The pairs of a metadata entry
+      are in the order of the entry.
 
       On a packet with no side data, [side_data p] after [add_side_data p d] is
       [[d]]. *)
@@ -485,6 +572,11 @@ module Audio : sig
         The unit, in seconds, of the timestamps of the frames given to the
         encoder and of the packets it produces. [{ num = 1; den = sample_rate }]
         counts in samples.
+      @param side_data
+        side data that applies to all the frames the encoder will be given, such
+        as the global entries of the first one. FFmpeg writes those it knows a
+        stream-level form of, the display matrix among them, to the parameters
+        of the encoder.
       @raise Avutil.Error
         with the mapped FFmpeg code when the codec cannot be opened, for example
         when it rejects one of the arguments or the value of an option, and with
@@ -492,6 +584,7 @@ module Audio : sig
         a C [int]. *)
   val create_encoder :
     ?opts:opts ->
+    ?side_data:Avutil.Frame_side_data.raw list ->
     channel_layout:Channel_layout.t ->
     sample_rate:int ->
     sample_format:Avutil.Sample_format.t ->
@@ -716,6 +809,11 @@ module Video : sig
       @param time_base
         The unit, in seconds, of the timestamps of the frames given to the
         encoder and of the packets it produces.
+      @param side_data
+        side data that applies to all the frames the encoder will be given, such
+        as the global entries of the first one. FFmpeg writes those it knows a
+        stream-level form of, the display matrix among them, to the parameters
+        of the encoder.
       @raise Avutil.Error
         with the mapped FFmpeg code when the codec cannot be opened, for example
         when it rejects one of the arguments or the value of an option, and with
@@ -723,6 +821,7 @@ module Video : sig
         [time_base] does not fit a C [int]. *)
   val create_encoder :
     ?opts:opts ->
+    ?side_data:Avutil.Frame_side_data.raw list ->
     ?frame_rate:Avutil.rational ->
     ?hardware_context:hardware_context ->
     pixel_format:Avutil.Pixel_format.t ->

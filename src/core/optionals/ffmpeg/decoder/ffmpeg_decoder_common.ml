@@ -22,6 +22,10 @@
 
 (** Decode and read metadata using ffmpeg. *)
 
+(** Raised by a stream decoder when what it decodes changes in a way its content
+    cannot follow. The file decoder ends the track. *)
+exception Unsupported_change of string
+
 type 'a sparse_decoder = {
   decoder : buffer:Decoder.buffer -> 'a -> unit;
   advance : buffer:Decoder.buffer -> int -> unit;

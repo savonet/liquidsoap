@@ -56,9 +56,116 @@ let version = version ()
 let version_string { major; minor; micro } =
   Printf.sprintf "%d.%d.%d" major minor micro
 
+module Display_matrix = struct
+  type t = int32 array
+
+  type transform =
+    [ `Transpose of [ `Clock | `Cclock | `Clock_flip | `Cclock_flip ]
+    | `Hflip
+    | `Vflip
+    | `Rotate of float ]
+
+  let length = 9
+
+  let of_array matrix =
+    if Array.length matrix <> length then
+      failure "a display matrix has %d elements" length;
+    Array.copy matrix
+
+  let of_payload payload =
+    if String.length payload < 4 * length then None
+    else Some (Array.init length (fun i -> String.get_int32_ne payload (4 * i)))
+
+  let to_payload matrix =
+    let payload = Bytes.create (4 * length) in
+    Array.iteri (fun i v -> Bytes.set_int32_ne payload (4 * i) v) matrix;
+    Bytes.unsafe_to_string payload
+
+  external rotation_set : float -> bool -> bool -> t
+    = "ocaml_avutil_display_matrix"
+
+  external rotation_get : t -> float = "ocaml_avutil_display_rotation"
+
+  (* FFmpeg's setter counts clockwise, its getter counter-clockwise. *)
+  let make ?(hflip = false) ?(vflip = false) angle =
+    if not (Float.is_finite angle) then failure "rotation angle is not finite";
+    rotation_set (-.angle) hflip vflip
+
+  let rotation matrix =
+    let angle = rotation_get matrix in
+    if Float.is_nan angle then None else Some angle
+
+  let clockwise_angle matrix =
+    Option.map
+      (fun angle ->
+        let theta = -.Float.round angle in
+        theta -. (360. *. Float.floor ((theta /. 360.) +. (0.9 /. 360.))))
+      (rotation matrix)
+
+  let transforms matrix =
+    let near angle theta = Float.abs (theta -. angle) < 1. in
+    match clockwise_angle matrix with
+      | None -> []
+      | Some theta when near 90. theta ->
+          [`Transpose (if matrix.(3) > 0l then `Cclock_flip else `Clock)]
+      | Some theta when near 180. theta ->
+          (if matrix.(0) < 0l then [`Hflip] else [])
+          @ if matrix.(4) < 0l then [`Vflip] else []
+      | Some theta when near 270. theta ->
+          [`Transpose (if matrix.(3) < 0l then `Clock_flip else `Cclock)]
+      | Some theta when Float.abs theta > 1. -> [`Rotate theta]
+      | Some theta when Float.abs theta < 1. && matrix.(4) < 0l -> [`Vflip]
+      | Some _ -> []
+end
+
+type cropping = { top : int; bottom : int; left : int; right : int }
+
+module Frame_side_data = struct
+  type kind = Frame_side_data_type.t
+  type prop = Side_data_prop.t
+  type raw = { kind : kind; data : string }
+  type t = [ `Display_matrix of Display_matrix.t ]
+
+  external name : kind -> string = "ocaml_avutil_frame_side_data_name"
+  external props : kind -> prop list = "ocaml_avutil_frame_side_data_props"
+
+  let decode : raw -> t option = function
+    | { kind = `Displaymatrix; data } ->
+        Option.map
+          (fun matrix -> `Display_matrix matrix)
+          (Display_matrix.of_payload data)
+    | _ -> None
+
+  let encode : t -> raw = function
+    | `Display_matrix matrix ->
+        { kind = `Displaymatrix; data = Display_matrix.to_payload matrix }
+
+  let display_matrix entries =
+    List.find_map
+      (fun entry ->
+        match decode entry with
+          | Some (`Display_matrix matrix) -> Some matrix
+          | None -> None)
+      entries
+end
+
 module Frame = struct
   type 'media t
 
+  external side_data : _ t -> Frame_side_data.raw list
+    = "ocaml_avutil_frame_side_data"
+
+  external find_side_data :
+    _ t -> Frame_side_data.kind -> Frame_side_data.raw option
+    = "ocaml_avutil_frame_find_side_data"
+
+  external add_side_data : _ t -> Frame_side_data.raw -> unit
+    = "ocaml_avutil_frame_add_side_data"
+
+  external remove_side_data : _ t -> Frame_side_data.kind -> unit
+    = "ocaml_avutil_frame_remove_side_data"
+
+  external dup : 'media t -> 'media t = "ocaml_avutil_frame_dup"
   external pts : _ t -> Int64.t option = "ocaml_avutil_frame_pts"
 
   external set_pts : _ t -> Int64.t option -> unit
@@ -133,6 +240,7 @@ module Log = struct
     | `Trace ]
 
   external set_level : level -> unit = "ocaml_avutil_set_log_level"
+  external log : level -> string -> unit = "ocaml_avutil_log"
   external start_capture : unit -> int = "ocaml_avutil_log_start_capture"
   external stop_capture : unit -> int = "ocaml_avutil_log_stop_capture"
   external wait : unit -> string array = "ocaml_avutil_log_wait"

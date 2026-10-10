@@ -173,12 +173,15 @@ module VideoSpecs = struct
       pixel_aspect = Video.frame_get_pixel_aspect frame;
     }
 
+  (* The frames decoded from a stream come out upright. What is not decided
+     for the stream is left open. *)
   let mk_params p =
+    let layout = Ffmpeg_avfilter_utils.Display.layout p in
     {
-      width = Some (Avcodec.Video.get_width p);
-      height = Some (Avcodec.Video.get_height p);
+      width = Option.map (fun l -> l.Avfilter.Utils.width) layout;
+      height = Option.map (fun l -> l.Avfilter.Utils.height) layout;
       pixel_format = Avcodec.Video.get_pixel_format p;
-      pixel_aspect = Avcodec.Video.get_pixel_aspect p;
+      pixel_aspect = Option.bind layout (fun l -> l.Avfilter.Utils.pixel_aspect);
     }
 
   let default =

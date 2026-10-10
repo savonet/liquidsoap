@@ -484,6 +484,9 @@ let mk_decoder ~streams ~target_position ~state container =
     with
       | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> decode buffer
       | Avutil.Error `Exit | Avutil.Error `Eof -> raise End_of_file
+      | Ffmpeg_decoder_common.Unsupported_change reason ->
+          log#important "Ending the track: %s" reason;
+          raise End_of_file
       | exn ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace exn bt
@@ -641,13 +644,11 @@ let mk_streams ~ctype ~decode_first_metadata ~set_remaining container =
                    ~field params)
           | Some format when Content.Video.is_format format ->
               (* Offered as ideal size; the negotiated ones are read back below. *)
+              let width, height =
+                Ffmpeg_avfilter_utils.Display.expected_size params
+              in
               let ideal_size =
-                Frame.
-                  {
-                    width = Avcodec.Video.get_width params;
-                    height = Avcodec.Video.get_height params;
-                    source = "ffmpeg decoder";
-                  }
+                Frame.{ width; height; source = "ffmpeg decoder" }
               in
               ignore (Frame.video_dimensions ~ideal_size ());
               let width, height = Content.Video.dimensions_of_format format in

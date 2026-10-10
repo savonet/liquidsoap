@@ -216,6 +216,13 @@ value ocaml_avutil_copy_channel_layout(const AVChannelLayout *source);
    pointer. */
 value ocaml_avutil_wrap_frame(AVFrame *frame);
 
+/* Adds the entries of a Frame_side_data.raw list to a native side-data
+   array, each replacing the entry of its kind unless the kind allows several.
+   Allocates nothing on the OCaml heap, raises nothing, returns FFmpeg's code.
+ */
+int ocaml_avutil_add_side_data(AVFrameSideData ***side_data, int *count,
+                               value _entries);
+
 struct AVSubtitle;
 
 /* The AVSubtitle of a subtitle value; libavcodec declares the structure. */

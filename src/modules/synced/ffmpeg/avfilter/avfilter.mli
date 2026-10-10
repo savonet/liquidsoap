@@ -464,4 +464,113 @@ module Utils : sig
     (Avutil.audio Avutil.frame -> unit) ->
     [ `Frame of Avutil.audio Avutil.frame | `Flush ] ->
     unit
+
+  (** A filter to attach: its name and its arguments. *)
+  type filter_spec = string * args list
+
+  (** The filter that performs one step of {!Avutil.Display_matrix.transforms}:
+      [transpose], [hflip], [vflip] or [rotate]. *)
+  val filter_of_transform : Avutil.Display_matrix.transform -> filter_spec
+
+  (** The [crop] filter that discards the borders, [None] when there is nothing
+      to discard. *)
+  val filter_of_cropping : Avutil.cropping -> filter_spec option
+
+  (** [display_filters ?cropping side_data] is the chain of filters, in the
+      order to link them, that shows upright and cropped a picture whose frame
+      has the side data [side_data]: {!filter_of_cropping}, then
+      {!filter_of_transform} on each step the frame's display matrix asks for.
+      The empty list means there is nothing to do.
+
+      [cropping] is the container's, found in the stream parameters:
+      [Avcodec.Packet_side_data.cropping (Avcodec.params_side_data params)].
+
+      It is for a program that inserts the chain in a graph of its own;
+      {!convert_display} is the ready-made converter. *)
+  val display_filters :
+    ?cropping:Avutil.cropping ->
+    Avutil.Frame_side_data.raw list ->
+    filter_spec list
+
+  (** The picture a display chain produces: its size, its pixel aspect ratio,
+      and the filters that produce it. *)
+  type display_layout = {
+    width : int;
+    height : int;
+    pixel_aspect : Avutil.rational option;
+    filters : filter_spec list;
+  }
+
+  (** What the bindings do not decide in the caller's place:
+      - [`Invalid_cropping]: the cropping is negative or leaves no picture;
+      - [`Odd_rotation a]: the display matrix turns the picture by [a] degrees
+        clockwise, which is not a quarter turn, so the size of the result is a
+        choice. *)
+  type undecided =
+    [ `Invalid_cropping of Avutil.cropping | `Odd_rotation of float ]
+
+  (** [display_layout ?cropping ?display_matrix ?pixel_aspect ~width ~height ()]
+      is the layout of a [width]x[height] picture once shown upright and
+      cropped: {!display_filters} with the geometry of each filter applied. A
+      quarter turn swaps the width and the height and inverts the pixel aspect
+      ratio. It is [`Undecided] where there is no single right answer; the
+      caller then decides, for instance from {!filter_of_transform}. *)
+  val display_layout :
+    ?cropping:Avutil.cropping ->
+    ?display_matrix:Avutil.Display_matrix.t ->
+    ?pixel_aspect:Avutil.rational ->
+    width:int ->
+    height:int ->
+    unit ->
+    [ `Layout of display_layout | `Undecided of undecided ]
+
+  (** What {!convert_display} does not decide: {!undecided}, and a frame in a
+      hardware pixel format, which no software filter can transform. *)
+  type undecided_frame = [ undecided | `Hardware_frame ]
+
+  (** A sentence saying why nothing was decided. *)
+  val string_of_undecided : undecided_frame -> string
+
+  (** A converter that delivers decoded video frames upright and cropped. It
+      reads the display matrix of each frame and runs {!display_filters} on a
+      private graph, rebuilt when the matrix or the geometry of the frames
+      changes. Two threads must not use one at the same time. *)
+  type display_converter
+
+  (** [init_display_converter ?cropping ?on_undecided ~time_base ()] is a
+      converter for frames whose timestamps are in [time_base]. [cropping] is as
+      in {!display_filters}.
+
+      [on_undecided] is asked what to do with the frames the converter cannot
+      decide for, once per run of frames with the same question. [Some filters]
+      is a decision: the frames go through those filters and lose their display
+      matrix. [None] is no decision: the frames are delivered untouched, display
+      matrix included, for something downstream to act on. By default it logs a
+      warning through {!Avutil.Log.log} and answers [None]. *)
+  val init_display_converter :
+    ?cropping:Avutil.cropping ->
+    ?on_undecided:(undecided_frame -> filter_spec list option) ->
+    time_base:Avutil.rational ->
+    unit ->
+    display_converter
+
+  (** [convert_display converter callback input] pushes a frame, or the end of
+      the stream, and calls [callback] on every frame that becomes available, in
+      order.
+
+      A delivered frame has no display matrix and keeps the timestamp it came
+      with. A frame with nothing to apply goes through no filter: it is the
+      pushed frame itself when that one has no display matrix, a frame sharing
+      its data otherwise. A frame nothing is decided for (see
+      {!init_display_converter}) is the pushed frame itself, display matrix
+      included. The pushed frame is unchanged and stays usable.
+
+      After [`Flush] every remaining frame is delivered and the converter can be
+      used again. An exception raised by [callback] propagates unchanged.
+      @raise Avutil.Error when building the graph, pushing or pulling fails. *)
+  val convert_display :
+    display_converter ->
+    (Avutil.video Avutil.frame -> unit) ->
+    [ `Frame of Avutil.video Avutil.frame | `Flush ] ->
+    unit
 end

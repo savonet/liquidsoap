@@ -20,6 +20,45 @@
 
  *****************************************************************************)
 
+(** Shows decoded video upright: applies the rotation, the flip and the cropping
+    its side data asks for, when [settings.ffmpeg.autorotate] is set. Every
+    place that turns decoded frames into content goes through it. *)
+module Display : sig
+  type t
+
+  (** [params] are the parameters of the stream the frames are decoded from;
+      they hold the cropping. *)
+  val init :
+    ?params:Avutil.video Avcodec.params ->
+    time_base:Avutil.rational ->
+    unit ->
+    t
+
+  (** The picture {!convert} delivers for a stream, as far as its parameters
+      tell. [None] when that is not decided: see {!set_on_undecided}. *)
+  val layout :
+    Avutil.video Avcodec.params -> Avfilter.Utils.display_layout option
+
+  (** The size of {!layout}, and of the picture as stored when that is not
+      decided: a hint for sizing video before the first frame. *)
+  val expected_size : Avutil.video Avcodec.params -> int * int
+
+  (** Installs, for every decoder created afterwards, what answers the cases the
+      bindings do not decide. Without it they log a warning and leave the
+      picture as stored. *)
+  val set_on_undecided :
+    (Avfilter.Utils.undecided_frame -> Avfilter.Utils.filter_spec list option) ->
+    unit
+
+  val convert :
+    t ->
+    Avutil.video Avutil.frame ->
+    (Avutil.video Avutil.frame -> unit) ->
+    unit
+
+  val eof : t -> (Avutil.video Avutil.frame -> unit) -> unit
+end
+
 module Fps : sig
   type t
 

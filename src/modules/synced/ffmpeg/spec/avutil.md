@@ -164,6 +164,9 @@ parameters. `data` is a one-dimensional unsigned-8-bit C-layout bigarray.
 | subtitle flag           | `Subtitle.subtitle_flag` | both directions, bit mask           |
 | media type              | `media_type`             | C to OCaml, for dependent libraries |
 
+The tables `Frame_side_data_type` and `Side_data_prop` are generated too
+([build.md](build.md) §3.5); §4.20 uses them.
+
 ### 3.2 Hand-written tables
 
 **Log levels** (`Log.level` to FFmpeg's level):
@@ -300,9 +303,20 @@ module Frame : sig
   val metadata : _ t -> (string * string) list
   val set_metadata : _ t -> (string * string) list -> unit
   val best_effort_timestamp : _ t -> Int64.t option
+  val side_data : _ t -> Frame_side_data.raw list
+  val find_side_data : _ t -> Frame_side_data.kind -> Frame_side_data.raw option
+  val add_side_data : _ t -> Frame_side_data.raw -> unit
+  val remove_side_data : _ t -> Frame_side_data.kind -> unit
+  val dup : 'media t -> 'media t
 end
 type 'media frame = 'media Frame.t
 ```
+
+`side_data`, `find_side_data`, `add_side_data` and `remove_side_data`: §4.20. `dup frame` is a
+new frame with a copy of the properties, the metadata and the side data of
+`frame`, referencing the same data buffers (`av_frame_clone`). Changing the
+properties or the side data of one leaves the other unchanged. A failure
+raises `Out_of_memory` and returns no frame.
 
 | Function                | Behaviour                                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -384,12 +398,16 @@ module Log : sig
   type level = [ `Quiet | `Panic | `Fatal | `Error | `Warning | `Info
                | `Verbose | `Debug | `Trace ]
   val set_level : level -> unit
+  val log : level -> string -> unit
   val set_callback : (string -> unit) -> unit
   val clear_callback : unit -> unit
 end
 ```
 
 - `set_level l` sets FFmpeg's process-wide log level (§3.2).
+- `log l message` sends the message to FFmpeg's log at level `l` (`av_log`
+  with no context), followed by a newline. It is reported, filtered and
+  captured as FFmpeg's own messages are.
 - `set_callback`, `clear_callback`: §7.1.
 
 ### 4.8 Channel layout
@@ -855,6 +873,113 @@ device` creates and initialises a pool of hardware frames on `device`: frames
 of hardware format `dst_pixel_format` that carry software data of format
 `src_pixel_format`, of the given size. Every other parameter of the pool keeps
 FFmpeg's default. A failure releases the pool and raises.
+
+### 4.19 Display matrix and cropping
+
+These two items and §4.20 come before `Frame` in the interface. They are
+described here so that the numbers of the sections above stay what other
+files refer to. [side-data.md](side-data.md) places them among the levels of
+the side-data interface.
+
+```ocaml
+module Display_matrix : sig
+  type t = private int32 array
+  val of_array : int32 array -> t
+  val of_payload : string -> t option
+  val to_payload : t -> string
+  val make : ?hflip:bool -> ?vflip:bool -> float -> t
+  val rotation : t -> float option
+  type transform =
+    [ `Transpose of [ `Clock | `Cclock | `Clock_flip | `Cclock_flip ]
+    | `Hflip
+    | `Vflip
+    | `Rotate of float ]
+  val transforms : t -> transform list
+end
+type cropping = { top : int; bottom : int; left : int; right : int }
+```
+
+The 3×3 transformation of `libavutil/display.h`: nine fixed-point numbers,
+row-major.
+
+| Function     | Behaviour                                                                                                                                                                                                                  |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `of_array`   | A copy of the array. A length other than 9 raises ``Error (`Failure _)``.                                                                                                                                                  |
+| `of_payload` | The matrix of a side-data payload: nine `int32_t` in native byte order. `None` when the payload is shorter than 36 bytes. Frame and packet side data share this layout.                                                    |
+| `to_payload` | The 36 bytes `of_payload` reads back.                                                                                                                                                                                      |
+| `rotation`   | The angle, in degrees, by which the matrix rotates the picture **counter-clockwise**, in [-180, 180] (`av_display_rotation_get`). `None` when the matrix is singular.                                                      |
+| `make a`     | The matrix of a pure counter-clockwise rotation by `a` degrees, then flipped horizontally and vertically as asked (`av_display_rotation_set` with `-a`, then `av_display_matrix_flip`). A non-finite `a` raises a failure. |
+
+- **One direction.** Both functions count counter-clockwise. FFmpeg's setter
+  counts clockwise and its getter counter-clockwise; the binding negates in
+  `make`. For every finite `a` in (-180, 180), `rotation (make a)` equals
+  `Some a` within 1e-3. A half turn reads back as 180 or -180.
+
+`transforms m` is what must be done to a picture, in order, for it to be
+shown as `m` asks. It names no filter. An empty list means the picture is
+already upright. It cannot fail.
+
+Let `theta` be the opposite of `rotation m`, rounded to a degree and brought
+into [0, 360). `theta` is the clockwise angle. A singular matrix gives `[]`.
+
+| `theta`       | `transforms m`                                                  |
+| ------------- | --------------------------------------------------------------- |
+| 90 ± 1        | ``[`Transpose `Clock]``, or `` `Cclock_flip `` when `m[3] > 0`  |
+| 180 ± 1       | `` `Hflip `` when `m[0] < 0`, then `` `Vflip `` when `m[4] < 0` |
+| 270 ± 1       | ``[`Transpose `Cclock]``, or `` `Clock_flip `` when `m[3] < 0`  |
+| 0 ± 1         | ``[`Vflip]`` when `m[4] < 0`, else `[]`                         |
+| anything else | ``[`Rotate theta]``                                             |
+
+- `` `Transpose `Clock `` is a quarter turn clockwise, `` `Cclock `` one
+  counter-clockwise; the `_flip` variants add a vertical flip.
+- `` `Rotate a `` is a clockwise rotation by `a` degrees.
+
+This is the decision table of the `ffmpeg` command-line tool. It is owned
+here, once.
+
+`cropping` is the number of pixels to discard from each border of a picture.
+It lives here because `Avfilter` cannot name a type of `Avcodec`.
+
+### 4.20 Frame side data
+
+```ocaml
+module Frame_side_data : sig
+  type kind = Frame_side_data_type.t
+  type prop = Side_data_prop.t
+  type raw = private { kind : kind; data : string }
+  type t = [ `Display_matrix of Display_matrix.t ]
+  val name : kind -> string
+  val props : kind -> prop list
+  val decode : raw -> t option
+  val encode : t -> raw
+  val display_matrix : raw list -> Display_matrix.t option
+end
+```
+
+`raw` is the raw entry of [side-data.md](side-data.md) §2.1.
+
+| Function         | Behaviour                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `name`           | FFmpeg's name of the kind (`av_frame_side_data_name`), per A3.                                         |
+| `props`          | The properties of the kind's descriptor (`av_frame_side_data_desc`), per E6. Empty when it has none.   |
+| `decode`         | The typed content, per the table below. `None` for another kind and for a payload too short to decode. |
+| `encode`         | The raw entry holding the payload. It fails only by `Out_of_memory`. `decode (encode d)` is `Some d`.  |
+| `display_matrix` | The matrix of the first entry of the list that decodes to one, `None` when there is none.              |
+
+| Variant               | C kind                        | Payload                     |
+| --------------------- | ----------------------------- | --------------------------- |
+| `` `Display_matrix `` | `AV_FRAME_DATA_DISPLAYMATRIX` | `Display_matrix.to_payload` |
+
+The four operations of `Frame` (§4.3):
+
+| Function           | Behaviour                                                                                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `side_data`        | Every entry of the frame, in the frame's order (A2). An entry whose kind has no constructor is left out (E4).                                            |
+| `find_side_data`   | The first entry of the kind (`av_frame_get_side_data`), `None` when the frame has none. Only that entry is copied.                                       |
+| `add_side_data`    | Attaches a copy of the entry. An entry of the same kind is replaced, unless the kind has the `` `Multi `` property, in which case the entry is appended. |
+| `remove_side_data` | Removes every entry of the kind. A frame with none is unchanged.                                                                                         |
+
+On failure of `add_side_data` the frame is unchanged and nothing leaks.
 
 ## 5. Errors
 

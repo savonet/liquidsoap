@@ -27,6 +27,7 @@ val conf_ffmpeg : Dtools.Conf.ut
 val conf_log : Dtools.Conf.ut
 val conf_verbosity : string Dtools.Conf.t
 val conf_level : int Dtools.Conf.t
+val conf_autorotate : bool Dtools.Conf.t
 val conf_scaling_algorithm : string Dtools.Conf.t
 val conf_scaling_threads : int Dtools.Conf.t
 
@@ -97,3 +98,7 @@ module Duration : sig
   val push : 'a t -> 'a -> (int * (int * 'a) list) option
   val flush : 'a t -> int * (int * 'a) list
 end
+
+(** The side data of a frame that applies to its whole stream: what an encoder
+    is given so that it reaches the output stream. *)
+val global_side_data : _ Avutil.frame -> Avutil.Frame_side_data.raw list

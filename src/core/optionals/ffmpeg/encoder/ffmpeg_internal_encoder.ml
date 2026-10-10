@@ -381,8 +381,23 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
         ~hwaccel_device ~opts ~target_pixel_format ~target_width ~target_height
         codec
     in
+    let side_data =
+      match Frame.Fields.find_opt field (Frame.content_type frame) with
+        | Some fmt when Ffmpeg_raw_content.Video.is_format fmt ->
+            let { Ffmpeg_content_base.chunks; _ } =
+              Ffmpeg_raw_content.Video.get_data (Frame.get frame field)
+            in
+            List.find_map
+              (fun { Ffmpeg_content_base.data; _ } ->
+                Option.map
+                  (fun (_, frame) -> Ffmpeg_utils.global_side_data frame)
+                  (List.nth_opt data 0))
+              chunks
+            |> Option.value ~default:[]
+        | _ -> []
+    in
     let stream =
-      Av.new_video_stream ~time_base:target_video_frame_time_base
+      Av.new_video_stream ~side_data ~time_base:target_video_frame_time_base
         ~pixel_format:stream_pixel_format ?hardware_context
         ~frame_rate:{ Avutil.num = target_fps; den = 1 }
         ~width:target_width ~height:target_height ~opts ~codec output
