@@ -20,6 +20,49 @@
 
  *****************************************************************************)
 
+(** Shows decoded video upright: applies the rotation, the flip and the cropping
+    its side data asks for, when [settings.ffmpeg.autorotate] is set. Every
+    place that turns decoded frames into content goes through it. *)
+module Display : sig
+  type t
+
+  (** [params] are the parameters of the stream the frames are decoded from;
+      they hold the cropping. *)
+  val init :
+    ?params:Avutil.video Avcodec.params ->
+    time_base:Avutil.rational ->
+    unit ->
+    t
+
+  (** The size of the picture {!convert} delivers for a stream, as far as its
+      parameters tell, and of the picture as stored when that is not decided: a
+      hint for sizing video before the first frame. *)
+  val expected_size : Avutil.video Avcodec.params -> int * int
+
+  (** The pixel aspect of the frames {!convert} delivers for a stream whose
+      stored pixel aspect is [stored], the one of its parameters by default: a
+      quarter turn inverts it. *)
+  val pixel_aspect :
+    ?stored:Avutil.rational ->
+    Avutil.video Avcodec.params ->
+    Avutil.rational option
+
+  (** Installs, for every decoder created afterwards, what answers the cases the
+      bindings do not decide. Without it they log a warning and leave the
+      picture as stored. *)
+  val set_on_undecided :
+    (Avfilter.Utils.undecided_frame -> Avfilter.Utils.filter_spec list option) ->
+    unit
+
+  val convert :
+    t ->
+    Avutil.video Avutil.frame ->
+    (Avutil.video Avutil.frame -> unit) ->
+    unit
+
+  val eof : t -> (Avutil.video Avutil.frame -> unit) -> unit
+end
+
 module Fps : sig
   type t
 
@@ -34,6 +77,14 @@ module Fps : sig
     ?pixel_aspect:Avutil.rational ->
     ?source_fps:int ->
     ?color_range:Avutil.Color_range.t ->
+    target_fps:int ->
+    unit ->
+    t
+
+  (** A converter for frames of the given format. *)
+  val of_frame_format :
+    format:Avutil.Video.frame_format ->
+    time_base:Avutil.rational ->
     target_fps:int ->
     unit ->
     t
@@ -64,4 +115,39 @@ module AFormat : sig
     t -> [ `Audio ] Avutil.frame -> ([ `Audio ] Avutil.frame -> unit) -> unit
 
   val eof : t -> ([ `Audio ] Avutil.frame -> unit) -> unit
+end
+
+(** Fits video frames into a picture of another size and pixel format, keeping
+    their proportions and padding the rest. Timestamps are kept. *)
+module Fit : sig
+  type target = {
+    width : int;
+    height : int;
+    pixel_format : Avutil.Pixel_format.t;
+    pixel_aspect : Avutil.rational option;
+  }
+
+  type t
+
+  val init : unit -> t
+
+  (** The largest size inside [width] by [height] that shows a picture of the
+      given format with its proportions. [pixel_aspect] is the pixel aspect of
+      the destination, square by default. Everything that scales video into a
+      frame of another shape takes its size here. *)
+  val fitted_size :
+    ?pixel_aspect:Avutil.rational ->
+    width:int ->
+    height:int ->
+    Avutil.Video.frame_format ->
+    int * int
+
+  (** The graph is built for the format of the frames and the target, and built
+      again when either changes. *)
+  val convert :
+    t ->
+    target:target ->
+    Avutil.video Avutil.frame ->
+    (Avutil.video Avutil.frame -> unit) ->
+    unit
 end

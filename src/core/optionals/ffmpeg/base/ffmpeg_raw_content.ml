@@ -173,14 +173,6 @@ module VideoSpecs = struct
       pixel_aspect = Video.frame_get_pixel_aspect frame;
     }
 
-  let mk_params p =
-    {
-      width = Some (Avcodec.Video.get_width p);
-      height = Some (Avcodec.Video.get_height p);
-      pixel_format = Avcodec.Video.get_pixel_format p;
-      pixel_aspect = Avcodec.Video.get_pixel_aspect p;
-    }
-
   let default =
     { width = None; height = None; pixel_format = None; pixel_aspect = None }
 
@@ -280,3 +272,37 @@ module Video = struct
   include Content.MkDataBase (Video_format.Format) (Video_data)
   include Video_format
 end
+
+(* Every producer of raw video delivers its frames through this: the first
+   frame sets the format of the track, which stays open until then, and a later
+   frame in another format is fitted to it. *)
+let video_conformer format =
+  let fit = Ffmpeg_avfilter_utils.Fit.init () in
+  let merge params = ignore (Content.merge format (Video.lift_params params)) in
+  fun frame cb ->
+    let declared = Video.get_params format in
+    let params = VideoSpecs.frame_params frame in
+    if declared = params then cb frame
+    else if VideoSpecs.compatible declared params then (
+      merge params;
+      cb frame)
+    else (
+      let set declared frame =
+        match declared with Some value -> value | None -> Option.get frame
+      in
+      let target =
+        {
+          Ffmpeg_avfilter_utils.Fit.width = set declared.width params.width;
+          height = set declared.height params.height;
+          pixel_format = set declared.pixel_format params.pixel_format;
+          pixel_aspect = declared.pixel_aspect;
+        }
+      in
+      merge
+        {
+          declared with
+          width = Some target.width;
+          height = Some target.height;
+          pixel_format = Some target.pixel_format;
+        };
+      Ffmpeg_avfilter_utils.Fit.convert fit ~target frame cb)

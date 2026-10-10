@@ -64,7 +64,6 @@ end
 
 module RawResampler = Swresample.Make (Swresample.Frame) (Swresample.Frame)
 module InternalScaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
-module RawScaler = Swscale.Make (Swscale.Frame) (Swscale.Frame)
 
 let log = Log.make ["ffmpeg"; "encoder"; "internal"]
 
@@ -381,8 +380,23 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
         ~hwaccel_device ~opts ~target_pixel_format ~target_width ~target_height
         codec
     in
+    let side_data =
+      match Frame.Fields.find_opt field (Frame.content_type frame) with
+        | Some fmt when Ffmpeg_raw_content.Video.is_format fmt ->
+            let { Ffmpeg_content_base.chunks; _ } =
+              Ffmpeg_raw_content.Video.get_data (Frame.get frame field)
+            in
+            List.find_map
+              (fun { Ffmpeg_content_base.data; _ } ->
+                Option.map
+                  (fun (_, frame) -> Ffmpeg_utils.global_side_data frame)
+                  (List.nth_opt data 0))
+              chunks
+            |> Option.value ~default:[]
+        | _ -> []
+    in
     let stream =
-      Av.new_video_stream ~time_base:target_video_frame_time_base
+      Av.new_video_stream ~side_data ~time_base:target_video_frame_time_base
         ~pixel_format:stream_pixel_format ?hardware_context
         ~frame_rate:{ Avutil.num = target_fps; den = 1 }
         ~width:target_width ~height:target_height ~opts ~codec output
@@ -443,8 +457,14 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   let start_pts = ref 0L in
 
   let mk_converter ~pixel_format ~time_base ~stream_idx () =
+    (* [start_pts] counts encoded frames, the converter takes it in the time
+       base of the frames it is given. *)
+    let start_pts =
+      Ffmpeg_utils.convert_time_base ~src:target_video_frame_time_base
+        ~dst:time_base !start_pts
+    in
     let c =
-      Ffmpeg_avfilter_utils.Fps.init ~start_pts:!start_pts ~width:target_width
+      Ffmpeg_avfilter_utils.Fps.init ~start_pts ~width:target_width
         ~height:target_height ~pixel_format ~time_base ~pixel_aspect ~target_fps
         ()
     in
@@ -537,35 +557,22 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
   in
 
   let raw_converter cb =
-    let scaler = ref None in
-    let scale frame =
-      let scaler =
-        match !scaler with
-          | Some f -> f
-          | None ->
-              let src_width = Avutil.Video.frame_get_width frame in
-              let src_height = Avutil.Video.frame_get_height frame in
-              let src_pixel_format =
-                Avutil.Video.frame_get_pixel_format frame
-              in
-              let f =
-                if src_width <> target_width || src_height <> target_height then (
-                  let scaler =
-                    RawScaler.create
-                      ~threads:(Ffmpeg_utils.scaling_threads ())
-                      [flag] src_width src_height src_pixel_format target_width
-                      target_height src_pixel_format
-                  in
-                  fun frame ->
-                    let scaled = RawScaler.convert scaler frame in
-                    Avutil.Frame.set_pts scaled (Avutil.Frame.pts frame);
-                    scaled)
-                else fun f -> f
-              in
-              scaler := Some f;
-              f
+    let fit = Ffmpeg_avfilter_utils.Fit.init () in
+    let fitted frame cb =
+      let { Avutil.Video.width; height; pixel_format; _ } =
+        Avutil.Video.frame_format frame
       in
-      scaler frame
+      if width = target_width && height = target_height then cb frame
+      else
+        Ffmpeg_avfilter_utils.Fit.convert fit
+          ~target:
+            {
+              width = target_width;
+              height = target_height;
+              pixel_format;
+              pixel_aspect = Some pixel_aspect;
+            }
+          frame cb
     in
     fun frame ->
       let len = Frame.position frame in
@@ -578,7 +585,7 @@ let mk_video ~pos ~on_keyframe ~mode ~codec ~params ~options ~field output =
           List.iter
             (fun (pos, frame) ->
               if 0 <= pos && pos < len then
-                cb ~stream_idx ~time_base (scale frame))
+                fitted frame (cb ~stream_idx ~time_base))
             data)
         content.chunks
   in

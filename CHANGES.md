@@ -19,6 +19,8 @@
 - Video dimensions (`video.frame.width`/`height`) are now automatically detected
   from the first decoded video file. This can be disabled by setting `settings.video.detect_dimensions`
   to `false` or by explicitly setting the video dimensions.
+- Videos stored with a rotation, such as phone recordings, are now decoded upright, and their container cropping is applied. Set `settings.ffmpeg.autorotate` to `false` to decode the picture as stored. `track.ffmpeg.side_data` and `track.ffmpeg.raw.side_data` read and change the rotation of a track, and `ffmpeg.autorotate.on_undecided` decides the cases liquidsoap leaves alone, such as a rotation that is not a quarter turn.
+- Video whose size, pixel format or colour properties change in the middle of a stream now plays through `ffmpeg.raw` content, `ffmpeg.filter` graphs and raw encoders: raw frames are fitted to the format of the first one, and filter graphs are rebuilt with a warning. `settings.ffmpeg.format_change.color` and `settings.ffmpeg.format_change.pixel_aspect` select which changes count.
 - Added support for XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`,
   `file.nfo.metadata`) (#4910).
 - Added Icecast-compatible streaming server (`icecast.server`) with support for source

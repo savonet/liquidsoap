@@ -14,6 +14,7 @@
 #include "avutil_stubs.h"
 
 #include <libavcodec/avcodec.h>
+#include <libavutil/display.h>
 #include <libavutil/eval.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/log.h>
@@ -27,11 +28,13 @@
 #include "color_range_stubs.h"
 #include "color_space_stubs.h"
 #include "color_trc_stubs.h"
+#include "frame_side_data_type_stubs.h"
 #include "hw_device_type_stubs.h"
 #include "media_types_stubs.h"
 #include "pixel_format_flag_stubs.h"
 #include "pixel_format_stubs.h"
 #include "sample_format_stubs.h"
+#include "side_data_prop_stubs.h"
 #include "subtitle_flag_stubs.h"
 #include "subtitle_type_stubs.h"
 
@@ -682,6 +685,15 @@ CAMLprim value ocaml_avutil_set_log_level(value _level) {
   return Val_unit;
 }
 
+CAMLprim value ocaml_avutil_log(value _level, value _message) {
+  CAMLparam2(_level, _message);
+
+  av_log(NULL, (int)ocaml_avutil_constant_of_variant(&log_level_table, _level),
+         "%s\n", String_val(_message));
+
+  CAMLreturn(Val_unit);
+}
+
 /* A frame value: the native frame first, where Frame_val reads it, then
    references to the buffers a make-writable step took away from it, which
    the bigarrays of earlier visits still point into. */
@@ -827,6 +839,171 @@ CAMLprim value ocaml_avutil_frame_set_metadata(value _frame, value _metadata) {
   frame->metadata = metadata;
 
   CAMLreturn(Val_unit);
+}
+
+#define FrameSideDataType_val(v)                                               \
+  ((enum AVFrameSideDataType)ocaml_avutil_constant_of_variant(                 \
+      frame_side_data_type_table(), (v)))
+
+CAMLprim value ocaml_avutil_frame_side_data_name(value _kind) {
+  CAMLparam1(_kind);
+  const char *name = av_frame_side_data_name(FrameSideDataType_val(_kind));
+
+  CAMLreturn(caml_copy_string(name ? name : ""));
+}
+
+CAMLprim value ocaml_avutil_frame_side_data_props(value _kind) {
+  CAMLparam1(_kind);
+  const AVSideDataDescriptor *descriptor =
+      av_frame_side_data_desc(FrameSideDataType_val(_kind));
+
+  CAMLreturn(ocaml_avutil_flags_of_mask(side_data_prop_table(),
+                                        descriptor ? descriptor->props : 0));
+}
+
+CAMLprim value ocaml_avutil_frame_side_data(value _frame) {
+  CAMLparam1(_frame);
+  CAMLlocal4(_entries, _cell, _entry, _data);
+  const AVFrame *frame = Frame_val(_frame);
+
+  _entries = Val_emptylist;
+
+  for (int i = frame->nb_side_data - 1; i >= 0; i--) {
+    const AVFrameSideData *side_data = frame->side_data[i];
+    value _kind;
+
+    if (!ocaml_avutil_find_variant(frame_side_data_type_table(),
+                                   side_data->type, &_kind))
+      continue;
+
+    _data = caml_alloc_initialized_string(side_data->size,
+                                          (const char *)side_data->data);
+    _entry = caml_alloc_tuple(2);
+    Store_field(_entry, 0, _kind);
+    Store_field(_entry, 1, _data);
+    _cell = caml_alloc_tuple(2);
+    Store_field(_cell, 0, _entry);
+    Store_field(_cell, 1, _entries);
+    _entries = _cell;
+  }
+
+  CAMLreturn(_entries);
+}
+
+CAMLprim value ocaml_avutil_frame_find_side_data(value _frame, value _kind) {
+  CAMLparam2(_frame, _kind);
+  CAMLlocal2(_entry, _data);
+  const AVFrameSideData *side_data =
+      av_frame_get_side_data(Frame_val(_frame), FrameSideDataType_val(_kind));
+
+  if (!side_data)
+    CAMLreturn(Val_none);
+
+  _data = caml_alloc_initialized_string(side_data->size,
+                                        (const char *)side_data->data);
+  _entry = caml_alloc_tuple(2);
+  Store_field(_entry, 0, _kind);
+  Store_field(_entry, 1, _data);
+
+  CAMLreturn(caml_alloc_some(_entry));
+}
+
+static int add_side_data_entry(AVFrameSideData ***side_data, int *count,
+                               value _entry) {
+  const ocaml_ffmpeg_variant_table *table = frame_side_data_type_table();
+  size_t size = caml_string_length(Field(_entry, 1));
+  AVFrameSideData *added;
+
+  for (size_t i = 0; i < table->length; i++) {
+    if (table->entries[i].variant != Field(_entry, 0))
+      continue;
+
+    added = av_frame_side_data_new(
+        side_data, count, (enum AVFrameSideDataType)table->entries[i].constant,
+        size, AV_FRAME_SIDE_DATA_FLAG_REPLACE);
+    if (!added)
+      return AVERROR(ENOMEM);
+    memcpy(added->data, String_val(Field(_entry, 1)), size);
+    return 0;
+  }
+
+  return AVERROR(EINVAL);
+}
+
+int ocaml_avutil_add_side_data(AVFrameSideData ***side_data, int *count,
+                               value _entries) {
+  for (value _cell = _entries; _cell != Val_emptylist;
+       _cell = Field(_cell, 1)) {
+    int error = add_side_data_entry(side_data, count, Field(_cell, 0));
+
+    if (error < 0)
+      return error;
+  }
+
+  return 0;
+}
+
+CAMLprim value ocaml_avutil_frame_add_side_data(value _frame, value _entry) {
+  CAMLparam2(_frame, _entry);
+  AVFrame *frame = Frame_val(_frame);
+  int error =
+      add_side_data_entry(&frame->side_data, &frame->nb_side_data, _entry);
+
+  if (error < 0)
+    ocaml_avutil_raise_error(error);
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value ocaml_avutil_frame_remove_side_data(value _frame, value _kind) {
+  CAMLparam2(_frame, _kind);
+
+  av_frame_remove_side_data(Frame_val(_frame), FrameSideDataType_val(_kind));
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value ocaml_avutil_frame_dup(value _frame) {
+  CAMLparam1(_frame);
+  CAMLlocal1(_copy);
+  AVFrame *copy = av_frame_clone(Frame_val(_frame));
+
+  if (!copy)
+    caml_raise_out_of_memory();
+  /* The wrapper raises before it owns the frame. */
+  _copy = ocaml_avutil_wrap_frame(copy);
+
+  CAMLreturn(_copy);
+}
+
+#define DISPLAY_MATRIX_LENGTH 9
+
+CAMLprim value ocaml_avutil_display_matrix(value _clockwise_angle, value _hflip,
+                                           value _vflip) {
+  CAMLparam0();
+  CAMLlocal2(_matrix, _element);
+  int32_t matrix[DISPLAY_MATRIX_LENGTH];
+
+  av_display_rotation_set(matrix, Double_val(_clockwise_angle));
+  av_display_matrix_flip(matrix, Bool_val(_hflip), Bool_val(_vflip));
+
+  _matrix = caml_alloc_tuple(DISPLAY_MATRIX_LENGTH);
+  for (int i = 0; i < DISPLAY_MATRIX_LENGTH; i++) {
+    _element = caml_copy_int32(matrix[i]);
+    Store_field(_matrix, i, _element);
+  }
+
+  CAMLreturn(_matrix);
+}
+
+CAMLprim value ocaml_avutil_display_rotation(value _matrix) {
+  CAMLparam1(_matrix);
+  int32_t matrix[DISPLAY_MATRIX_LENGTH];
+
+  for (int i = 0; i < DISPLAY_MATRIX_LENGTH; i++)
+    matrix[i] = Int32_val(Field(_matrix, i));
+
+  CAMLreturn(caml_copy_double(av_display_rotation_get(matrix)));
 }
 
 static void finalize_channel_layout(value _layout) {

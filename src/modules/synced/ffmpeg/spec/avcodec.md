@@ -135,13 +135,19 @@ Packet flags (`Packet.flag`), both directions:
 | `` `Trusted ``    | `AV_PKT_FLAG_TRUSTED`    |
 | `` `Disposable `` | `AV_PKT_FLAG_DISPOSABLE` |
 
-Packet side data (`Packet.side_data`), both directions:
+Typed packet side data (`Packet_side_data.t`), both directions. The kinds
+themselves are the generated table `Packet_side_data_type`
+([build.md](build.md) §3.5).
 
-| Variant                 | C type                         | Payload                           |
-| ----------------------- | ------------------------------ | --------------------------------- |
-| `` `Replaygain ``       | `AV_PKT_DATA_REPLAYGAIN`       | the four fields of `AVReplayGain` |
-| `` `Strings_metadata `` | `AV_PKT_DATA_STRINGS_METADATA` | a packed dictionary (below)       |
-| `` `Metadata_update ``  | `AV_PKT_DATA_METADATA_UPDATE`  | a packed dictionary               |
+| Variant                 | C type                         | Payload                                                      | Decodes when         |
+| ----------------------- | ------------------------------ | ------------------------------------------------------------ | -------------------- |
+| `` `Replaygain ``       | `AV_PKT_DATA_REPLAYGAIN`       | the four fields of `AVReplayGain`                            | size ≥ the structure |
+| `` `Strings_metadata `` | `AV_PKT_DATA_STRINGS_METADATA` | a packed dictionary (below)                                  | always               |
+| `` `Metadata_update ``  | `AV_PKT_DATA_METADATA_UPDATE`  | a packed dictionary                                          | always               |
+| `` `Display_matrix ``   | `AV_PKT_DATA_DISPLAYMATRIX`    | `Avutil.Display_matrix.to_payload`                           | size ≥ 36            |
+| `` `Frame_cropping ``   | `AV_PKT_DATA_FRAME_CROPPING`   | four unsigned 32-bit little-endian: top, bottom, left, right | size ≥ 16            |
+
+Every C constant above exists in the floor release.
 
 **Packed dictionary.** FFmpeg's format (`av_packet_pack_dictionary`): for each
 pair in order, the key, a NUL byte, the value, a NUL byte. Every string is
@@ -266,32 +272,39 @@ format or device type has no constructor is left out (E4).
 ```ocaml
 type 'media t
 type flag = [ `Keyframe | `Corrupt | `Discard | `Trusted | `Disposable ]
-type replaygain = {
+type replaygain = Packet_side_data.replaygain = {
   track_gain : int; track_peak : int; album_gain : int; album_peak : int;
 }
-type side_data =
-  [ `Replaygain of replaygain
-  | `Strings_metadata of (string * string) list
-  | `Metadata_update of (string * string) list ]
+type side_data = Packet_side_data.t
 ```
+
+`Packet_side_data` is §4.11.
+
+```ocaml
+val raw_side_data : 'media t -> Packet_side_data.raw list
+val add_raw_side_data : 'media t -> Packet_side_data.raw -> unit
+val remove_side_data : 'media t -> Packet_side_data.kind -> unit
+```
+
+| Function            | Behaviour                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `raw_side_data`     | Every entry of the packet, in the packet's order. An entry whose kind has no constructor is left out. |
+| `add_raw_side_data` | Attaches a copy. A packet holds one entry per kind: an entry of the same kind is replaced.            |
+| `remove_side_data`  | Removes the entry of the kind. A packet without it is unchanged.                                      |
+
+A failed allocation raises `Out_of_memory`. On failure the packet is
+unchanged and nothing leaks.
 
 ```ocaml
 val add_side_data : 'media t -> side_data -> unit
-```
-
-Attaches the side data to the packet, encoded per §3.2. A packet holds one
-entry per side-data type: adding a type it already carries replaces that
-entry. A gain outside the range of a C `int`, or a peak outside 32 unsigned
-bits, raises ``Error (`Failure _)``; a failed allocation raises
-`Out_of_memory`. On failure the packet is unchanged and nothing leaks.
-
-```ocaml
 val side_data : 'media t -> side_data list
 ```
 
-The packet's side data of the three supported types, in the packet's order.
-The pairs of a metadata entry are in the payload's order. An entry of another
-type, and an entry too short for its type, are left out.
+The typed view, composite (§11): `add_side_data` encodes then adds;
+`side_data` is the entries of `raw_side_data` that `Packet_side_data.decode`
+translates, in the packet's order. The pairs of a metadata entry are in the
+payload's order. `add_side_data` raises as `Packet_side_data.encode`, and
+then leaves the packet unchanged.
 
 `side_data p` after `add_side_data p d` on a packet with no side data returns
 `[d]`.
@@ -410,7 +423,8 @@ The decoder's current sample format (E3).
 
 ```ocaml
 val create_encoder :
-  ?opts:opts -> channel_layout:Channel_layout.t -> sample_rate:int ->
+  ?opts:opts -> ?side_data:Avutil.Frame_side_data.raw list ->
+  channel_layout:Channel_layout.t -> sample_rate:int ->
   sample_format:Avutil.Sample_format.t -> time_base:Avutil.rational ->
   encode t -> audio encoder
 ```
@@ -495,7 +509,8 @@ type hardware_context =
   [ `Device_context of HwContext.device_context
   | `Frame_context of HwContext.frame_context ]
 val create_encoder :
-  ?opts:opts -> ?frame_rate:Avutil.rational ->
+  ?opts:opts -> ?side_data:Avutil.Frame_side_data.raw list ->
+  ?frame_rate:Avutil.rational ->
   ?hardware_context:hardware_context -> pixel_format:Avutil.Pixel_format.t ->
   width:int -> height:int -> time_base:Avutil.rational ->
   encode t -> video encoder
@@ -688,6 +703,77 @@ transfers the pixel data, and copies the frame's properties — its timestamps
 among them — onto the uploaded frame. A failure releases the pool frame and
 raises.
 
+### 4.11 Side data
+
+`Packet_side_data` comes before `Packet` in the interface, and the two
+parameter functions after it. They are described here so that the numbers of
+the sections above stay what other files refer to.
+
+```ocaml
+module Packet_side_data : sig
+  type kind = Packet_side_data_type.t
+  type raw = private { kind : kind; data : string }
+  type replaygain = {
+    track_gain : int; track_peak : int; album_gain : int; album_peak : int;
+  }
+  type cropping = Avutil.cropping =
+    { top : int; bottom : int; left : int; right : int }
+  type t =
+    [ `Replaygain of replaygain
+    | `Strings_metadata of (string * string) list
+    | `Metadata_update of (string * string) list
+    | `Display_matrix of Avutil.Display_matrix.t
+    | `Frame_cropping of cropping ]
+  val name : kind -> string
+  val decode : raw -> t option
+  val encode : t -> raw
+  val display_matrix : raw list -> Avutil.Display_matrix.t option
+  val cropping : raw list -> cropping option
+end
+```
+
+`raw` is the raw entry of [side-data.md](side-data.md) §2.1.
+
+| Function                     | Behaviour                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `name`                       | FFmpeg's name of the kind (`av_packet_side_data_name`), per A3.                                         |
+| `decode`                     | The typed content, per §3.2. `None` for a kind outside the table and for a payload too short to decode. |
+| `encode`                     | The raw entry holding the payload of §3.2. `decode (encode d)` is `Some d`.                             |
+| `display_matrix`, `cropping` | The content of the first entry of the list that decodes to that kind, `None` when there is none.        |
+
+`encode` raises ``Error (`Failure _)`` for a gain outside a C `int`, and for
+a peak or a cropping value outside 32 unsigned bits. In a dictionary, each
+key and value ends at its first NUL byte and a later pair replaces an earlier
+pair of the same key. Keys match as in FFmpeg's dictionaries, whatever their
+case.
+
+```ocaml
+val params_side_data : _ params -> Packet_side_data.raw list
+val params_with_side_data :
+  'media params -> Packet_side_data.raw list -> 'media params
+```
+
+The side data of codec parameters applies to the whole stream.
+
+| Function                | Behaviour                                                                                                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `params_side_data`      | The coded side data of the parameters, in order. An entry whose kind has no constructor is left out.                                                                             |
+| `params_with_side_data` | A fresh, independent copy of the parameters whose coded side data is exactly the list, in order. A kind that appears twice keeps its last occurrence. The argument is unchanged. |
+
+A failure of `params_with_side_data` releases the copy and raises (L2).
+
+**Encoders.** `?side_data` of `Audio.create_encoder` and
+`Video.create_encoder`:
+
+- The entries are set on the codec context as `decoded_side_data` before the
+  codec is opened. They describe the frames the encoder will be given.
+- libavcodec decides what it does with each: at the floor release it copies
+  the kinds it maps to a packet kind to the coded side data, from where they
+  reach `Avcodec.params`.
+- The argument takes effect or the creation fails (O2). An entry replaces an
+  earlier one of its kind, unless the kind is `` `Multi ``.
+- Omitted and `[]` are the same.
+
 ## 5. Errors
 
 | Raised                                                  | By                                                                                                  |
@@ -783,6 +869,13 @@ option getter or setter is offered on a decoder, encoder or filter instance.
 None.
 
 ## 11. Composite operations
+
+```ocaml
+let Packet.side_data p =
+  List.filter_map Packet_side_data.decode (Packet.raw_side_data p)
+let Packet.add_side_data p d =
+  Packet.add_raw_side_data p (Packet_side_data.encode d)
+```
 
 **Codec lists.** `Audio.encoders`, `Audio.decoders` and the `Video` and
 `Subtitle` equivalents hold, in FFmpeg's iteration order, every registered

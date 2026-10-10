@@ -39,12 +39,13 @@ int ocaml_avcodec_open(AVCodecContext *context, const AVCodec *codec,
                        AVDictionary **options);
 
 /* Assigns the typed arguments of Audio.create_encoder to a context that is
-   not opened. Needs no lock; returns FFmpeg's code and raises nothing. */
+   not opened. [_side_data] is a Frame_side_data.raw list. Needs no lock;
+   returns FFmpeg's code and raises nothing. */
 int ocaml_avcodec_set_audio_encoding(AVCodecContext *context,
                                      const AVChannelLayout *layout,
                                      int sample_rate,
                                      enum AVSampleFormat sample_format,
-                                     AVRational time_base);
+                                     AVRational time_base, value _side_data);
 
 /* The same for Video.create_encoder. [frame_rate] has a zero numerator when
    none is given; [_hardware_context] is a Video.hardware_context option, of
@@ -53,7 +54,7 @@ int ocaml_avcodec_set_video_encoding(AVCodecContext *context,
                                      enum AVPixelFormat pixel_format, int width,
                                      int height, AVRational time_base,
                                      AVRational frame_rate,
-                                     value _hardware_context);
+                                     value _hardware_context, value _side_data);
 
 /* Gives a frame to an opened encoder, through its hardware frame pool when
    it has one; a null frame signals the end of the stream. Touches no OCaml

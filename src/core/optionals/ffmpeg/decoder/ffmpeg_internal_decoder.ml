@@ -123,81 +123,49 @@ let mk_audio_decoder ~channels ~field ~pcm_kind codec =
             (Frame.Metadata.from_list metadata)
 
 let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
-  let pixel_format =
-    match Avcodec.Video.get_pixel_format codec with
-      | None -> failwith "Pixel format unknown!"
-      | Some f -> f
-  in
-  let target_width = width in
-  let target_height = height in
-  let width = Avcodec.Video.get_width codec in
-  let height = Avcodec.Video.get_height codec in
   let target_fps = Lazy.Mutexed.force Frame.video_rate in
-  let target_pixel_format =
+  let pixel_format =
     if alpha then Ffmpeg_utils.liq_frame_pixel_format_with_alpha
     else Ffmpeg_utils.liq_frame_pixel_format
   in
-  let scale =
-    let scale_proportional (sw, sh) (tw, th) =
-      if th * sw < tw * sh then (sw * th / sh, th) else (tw, sh * tw / sw)
-    in
-    (* Actual proportional width an height. *)
-    let aw, ah =
-      scale_proportional (width, height) (target_width, target_height)
-    in
-    let scaler =
-      Scaler.create
-        ~threads:(Ffmpeg_utils.scaling_threads ())
-        [] width height pixel_format aw ah target_pixel_format
-    in
-    fun frame : Video.Canvas.Image.t ->
-      let img =
-        Scaler.convert scaler frame
-        |> Ffmpeg_utils.unpack_image ~width:aw ~height:ah
-      in
-      let x = (target_width - aw) / 2 in
-      let y = (target_height - ah) / 2 in
-      Video.Canvas.Image.make img
-      |> Video.Canvas.Image.translate x y
-      |> Video.Canvas.Image.viewport target_width target_height
+  let { Ffmpeg_decoder_common.convert; flush } =
+    Ffmpeg_decoder_common.internal_video_converter ~width ~height
+      ~pixel_format:(fun _ -> pixel_format)
+      ()
   in
   let time_base = Av.get_time_base stream in
-  let pixel_aspect = Av.get_pixel_aspect stream in
-  let cb ~buffer frame =
-    let img = scale frame in
+  let stream_pixel_aspect =
+    Ffmpeg_avfilter_utils.Display.pixel_aspect
+      ?stored:(Av.get_pixel_aspect stream)
+      codec
+  in
+  let display =
+    Ffmpeg_avfilter_utils.Display.init ~params:codec ~time_base ()
+  in
+  let put ~buffer image frame =
     buffer.Decoder.put_yuva420p ~field
       ~fps:{ Decoder.num = target_fps; den = 1 }
-      img;
+      image;
     let metadata = Avutil.Frame.metadata frame in
     if metadata <> [] then
       Generator.add_metadata buffer.Decoder.generator
         (Frame.Metadata.from_list metadata)
   in
-  let converter = ref None in
-  let get_converter color_range =
-    match !converter with
-      | Some (cr, c) when cr = color_range -> c
-      | _ ->
-          let c =
-            Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format
-              ~time_base ?pixel_aspect ?color_range ~target_fps ()
-          in
-          converter := Some (color_range, c);
-          c
+  let frame_format frame =
+    let format = Avutil.Video.frame_format frame in
+    match format.pixel_aspect with
+      | None -> { format with pixel_aspect = stream_pixel_aspect }
+      | Some _ -> format
+  in
+  let convert ~buffer frame =
+    convert ~format:(frame_format frame) ~time_base ~put:(put ~buffer) frame
   in
   fun ~buffer -> function
     | `Frame frame ->
-        let color_range = Avutil.Video.frame_get_color_range frame in
-        let color_range =
-          match color_range with `Unspecified -> None | cr -> Some cr
-        in
-        Ffmpeg_avfilter_utils.Fps.convert
-          (get_converter color_range)
-          frame (cb ~buffer)
+        Ffmpeg_avfilter_utils.Display.convert display frame (convert ~buffer)
     | `Flush ->
-        Option.iter
-          (fun (_, c) -> Ffmpeg_avfilter_utils.Fps.eof c (cb ~buffer))
-          !converter
+        Ffmpeg_avfilter_utils.Display.eof display (convert ~buffer);
+        flush ~put:(put ~buffer) ()
 
 let main_of_subtitle_time time = Frame.main_of_seconds (float time /. 1000.)
 

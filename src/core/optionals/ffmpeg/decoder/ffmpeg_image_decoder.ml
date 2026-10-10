@@ -57,23 +57,31 @@ let decode_image fname =
     ~finally:(fun () -> Av.close container)
     (fun () ->
       let _, stream, codec = Av.find_best_video_stream container in
-      let pixel_format =
-        match Avcodec.Video.get_pixel_format codec with
-          | None -> failwith "Pixel format unknown!"
-          | Some f -> f
+      let display =
+        Ffmpeg_avfilter_utils.Display.init ~params:codec
+          ~time_base:(Av.get_time_base stream) ()
       in
-      let width = Avcodec.Video.get_width codec in
-      let height = Avcodec.Video.get_height codec in
-      let out_pixel_format = Ffmpeg_utils.liq_frame_pixel_format_with_alpha in
-      let scaler =
-        Scaler.create
-          ~threads:(Ffmpeg_utils.scaling_threads ())
-          [] width height pixel_format width height out_pixel_format
+      let unpack frame =
+        let width = Avutil.Video.frame_get_width frame in
+        let height = Avutil.Video.frame_get_height frame in
+        let scaler =
+          Scaler.create
+            ~threads:(Ffmpeg_utils.scaling_threads ())
+            [] width height
+            (Avutil.Video.frame_get_pixel_format frame)
+            width height Ffmpeg_utils.liq_frame_pixel_format_with_alpha
+        in
+        Ffmpeg_utils.unpack_image ~width ~height (Scaler.convert scaler frame)
       in
       match Av.read_input ~video_frame:[stream] container with
-        | `Video_frame (_, frame) ->
-            let frame = Scaler.convert scaler frame in
-            Ffmpeg_utils.unpack_image ~width ~height frame
+        | `Video_frame (_, frame) -> (
+            let image = ref None in
+            let keep frame =
+              if !image = None then image := Some (unpack frame)
+            in
+            Ffmpeg_avfilter_utils.Display.convert display frame keep;
+            Ffmpeg_avfilter_utils.Display.eof display keep;
+            match !image with Some image -> image | None -> raise Not_found)
         | _ -> raise Not_found)
 
 let () =

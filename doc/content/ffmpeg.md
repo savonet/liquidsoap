@@ -119,6 +119,38 @@ s = single("annotate:ffmpeg_options='format=s16le,ch_layout=stereo,sample_rate=4
 
 The same approach works with `playlist` or `request.dynamic`.
 
+### Rotation and cropping
+
+Phone recordings are often stored sideways, with a rotation written next to the video for the player to apply. Some containers also declare a border to crop. The ffmpeg decoder applies both, as the `ffmpeg` command-line tool does, so the picture comes out upright in internal content and in `ffmpeg.raw` content. Streams relayed as `ffmpeg.copy` keep their rotation, which the muxer writes to the output.
+
+Liquidsoap applies quarter turns, flips and valid croppings. It leaves the other cases alone, logs a warning and shows the picture as stored: a rotation that is not a quarter turn, a cropping that does not fit the picture, a hardware frame. A function installed with `ffmpeg.autorotate.on_undecided` decides those cases by returning the FFmpeg filters to apply:
+
+```{.liquidsoap include="ffmpeg-autorotate.liq"}
+
+```
+
+`track.ffmpeg.side_data` reads and changes the rotation of an `ffmpeg.copy` video track, and `track.ffmpeg.raw.side_data` does the same on a raw video track. The returned track has `rotation()` and `side_data()` methods:
+
+```{.liquidsoap include="ffmpeg-rotation.liq" from="BEGIN" to="END"}
+
+```
+
+### Format changes in the middle of a stream
+
+The size, the pixel format, the rotation or the colour properties of a video can change while it plays: a live stream that switches camera, a transport stream made of several recordings. The track continues across the change.
+
+- Internal content is scaled into the frame liquidsoap works with, so the change stops at the decoder.
+- An `ffmpeg.raw` video track takes the size and pixel format of its first frame. Frames that come later in another size or pixel format are fitted to it.
+- A filter graph created with `ffmpeg.filter.create` is built for the format of its inputs. When that format changes, the graph is flushed and built again, and liquidsoap logs a warning with both formats. Filters that keep a state, such as `loudnorm` or a fade, start over at that point.
+
+A picture that goes into a frame of another shape keeps its proportions as displayed, pixel aspect included: it is scaled to the largest size that fits, centred, and the rest is black. This holds when decoding to internal content, when fitting raw frames to the format of their track, and when a `%video.raw` encoder is given a size.
+
+A change of size or of pixel format always counts. Colour properties (space, range, primaries, transfer, chroma location) and the pixel aspect count by default. Two settings keep the values of the first frame instead, which avoids rebuilding filter graphs for streams whose colour tags vary without the picture changing:
+
+```{.liquidsoap include="ffmpeg-format-change.liq"}
+
+```
+
 ## Encoders
 
 See detailed [ffmpeg encoders](./ffmpeg_encoder.md) article.

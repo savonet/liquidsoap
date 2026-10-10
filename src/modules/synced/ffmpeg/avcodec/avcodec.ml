@@ -64,9 +64,9 @@ let bindings = function
 
 let report_unused opts unused = Option.iter (filter_opts unused) opts
 
-module Packet = struct
-  type 'media t
-  type flag = [ `Keyframe | `Corrupt | `Discard | `Trusted | `Disposable ]
+module Packet_side_data = struct
+  type kind = Packet_side_data_type.t
+  type raw = { kind : kind; data : string }
 
   type replaygain = {
     track_gain : int;
@@ -75,16 +75,208 @@ module Packet = struct
     album_peak : int;
   }
 
-  type side_data =
+  type cropping = Avutil.cropping = {
+    top : int;
+    bottom : int;
+    left : int;
+    right : int;
+  }
+
+  type t =
     [ `Replaygain of replaygain
     | `Strings_metadata of (string * string) list
-    | `Metadata_update of (string * string) list ]
+    | `Metadata_update of (string * string) list
+    | `Display_matrix of Avutil.Display_matrix.t
+    | `Frame_cropping of cropping ]
 
-  external add_side_data : 'media t -> side_data -> unit
-    = "ocaml_avcodec_packet_add_side_data"
+  external name : kind -> string = "ocaml_avcodec_packet_side_data_name"
 
-  external side_data : 'media t -> side_data list
-    = "ocaml_avcodec_packet_side_data"
+  let unsigned_32 payload offset =
+    Int32.to_int (String.get_int32_ne payload offset) land 0xFFFFFFFF
+
+  let unsigned_32_le payload offset =
+    Int32.to_int (String.get_int32_le payload offset) land 0xFFFFFFFF
+
+  let signed_32 payload offset =
+    Int32.to_int (String.get_int32_ne payload offset)
+
+  let check_unsigned_32 name number =
+    if number < 0 || number > 0xFFFFFFFF then
+      raise (Error (`Failure (name ^ " out of range")))
+
+  let check_signed_32 name number =
+    if
+      number < Int32.to_int Int32.min_int || number > Int32.to_int Int32.max_int
+    then raise (Error (`Failure (name ^ " out of range")))
+
+  (* AVReplayGain: track gain, track peak, album gain, album peak. *)
+  let replaygain_size = 16
+
+  let replaygain_of_payload payload =
+    {
+      track_gain = signed_32 payload 0;
+      track_peak = unsigned_32 payload 4;
+      album_gain = signed_32 payload 8;
+      album_peak = unsigned_32 payload 12;
+    }
+
+  let payload_of_replaygain { track_gain; track_peak; album_gain; album_peak } =
+    check_signed_32 "gain" track_gain;
+    check_unsigned_32 "peak" track_peak;
+    check_signed_32 "gain" album_gain;
+    check_unsigned_32 "peak" album_peak;
+    let payload = Bytes.create replaygain_size in
+    List.iteri
+      (fun i number -> Bytes.set_int32_ne payload (4 * i) (Int32.of_int number))
+      [track_gain; track_peak; album_gain; album_peak];
+    Bytes.unsafe_to_string payload
+
+  let cropping_size = 16
+
+  let cropping_of_payload payload =
+    {
+      top = unsigned_32_le payload 0;
+      bottom = unsigned_32_le payload 4;
+      left = unsigned_32_le payload 8;
+      right = unsigned_32_le payload 12;
+    }
+
+  let payload_of_cropping { top; bottom; left; right } =
+    let payload = Bytes.create cropping_size in
+    List.iteri
+      (fun i number ->
+        check_unsigned_32 "cropping" number;
+        Bytes.set_int32_le payload (4 * i) (Int32.of_int number))
+      [top; bottom; left; right];
+    Bytes.unsafe_to_string payload
+
+  let until_nul text =
+    match String.index_opt text '\000' with
+      | None -> text
+      | Some length -> String.sub text 0 length
+
+  (* A later pair replaces an earlier pair of the same key; keys match as in
+     FFmpeg's dictionaries, whatever their case. *)
+  let pack_dictionary pairs =
+    let same_key key (other, _) =
+      String.lowercase_ascii key = String.lowercase_ascii other
+    in
+    let pairs =
+      List.fold_left
+        (fun pairs (key, content) ->
+          let key = until_nul key in
+          List.filter (fun pair -> not (same_key key pair)) pairs
+          @ [(key, until_nul content)])
+        [] pairs
+    in
+    String.concat ""
+      (List.concat_map
+         (fun (key, content) -> [key; "\000"; content; "\000"])
+         pairs)
+
+  (* A final string with no terminator is accepted. *)
+  let unpack_dictionary payload =
+    let size = String.length payload in
+    let rec pairs position =
+      match
+        if position >= size then None
+        else String.index_from_opt payload position '\000'
+      with
+        | None -> []
+        | Some key_end ->
+            let content = key_end + 1 in
+            let content_end =
+              Option.value ~default:size
+                (String.index_from_opt payload content '\000')
+            in
+            ( String.sub payload position (key_end - position),
+              String.sub payload content (content_end - content) )
+            :: pairs (content_end + 1)
+    in
+    pairs 0
+
+  let decode : raw -> t option = function
+    | { kind = `Replaygain; data } when String.length data >= replaygain_size ->
+        Some (`Replaygain (replaygain_of_payload data))
+    | { kind = `Strings_metadata; data } ->
+        Some (`Strings_metadata (unpack_dictionary data))
+    | { kind = `Metadata_update; data } ->
+        Some (`Metadata_update (unpack_dictionary data))
+    | { kind = `Displaymatrix; data } ->
+        Option.map
+          (fun matrix -> `Display_matrix matrix)
+          (Avutil.Display_matrix.of_payload data)
+    | { kind = `Frame_cropping; data } when String.length data >= cropping_size
+      ->
+        Some (`Frame_cropping (cropping_of_payload data))
+    | _ -> None
+
+  let encode : t -> raw = function
+    | `Replaygain gain ->
+        { kind = `Replaygain; data = payload_of_replaygain gain }
+    | `Strings_metadata pairs ->
+        { kind = `Strings_metadata; data = pack_dictionary pairs }
+    | `Metadata_update pairs ->
+        { kind = `Metadata_update; data = pack_dictionary pairs }
+    | `Display_matrix matrix ->
+        {
+          kind = `Displaymatrix;
+          data = Avutil.Display_matrix.to_payload matrix;
+        }
+    | `Frame_cropping cropping ->
+        { kind = `Frame_cropping; data = payload_of_cropping cropping }
+
+  let display_matrix entries =
+    List.find_map
+      (fun entry ->
+        match decode entry with
+          | Some (`Display_matrix matrix) -> Some matrix
+          | _ -> None)
+      entries
+
+  let cropping entries =
+    List.find_map
+      (fun entry ->
+        match decode entry with
+          | Some (`Frame_cropping cropping) -> Some cropping
+          | _ -> None)
+      entries
+end
+
+external params_side_data : _ params -> Packet_side_data.raw list
+  = "ocaml_avcodec_parameters_side_data"
+
+external params_with_side_data :
+  'media params -> Packet_side_data.raw list -> 'media params
+  = "ocaml_avcodec_parameters_with_side_data"
+
+module Packet = struct
+  type 'media t
+  type flag = [ `Keyframe | `Corrupt | `Discard | `Trusted | `Disposable ]
+
+  type replaygain = Packet_side_data.replaygain = {
+    track_gain : int;
+    track_peak : int;
+    album_gain : int;
+    album_peak : int;
+  }
+
+  type side_data = Packet_side_data.t
+
+  external raw_side_data : 'media t -> Packet_side_data.raw list
+    = "ocaml_avcodec_packet_raw_side_data"
+
+  external add_raw_side_data : 'media t -> Packet_side_data.raw -> unit
+    = "ocaml_avcodec_packet_add_raw_side_data"
+
+  external remove_side_data : 'media t -> Packet_side_data.kind -> unit
+    = "ocaml_avcodec_packet_remove_side_data"
+
+  let add_side_data packet side_data =
+    add_raw_side_data packet (Packet_side_data.encode side_data)
+
+  let side_data packet =
+    List.filter_map Packet_side_data.decode (raw_side_data packet)
 
   external dup : 'media t -> 'media t = "ocaml_avcodec_packet_dup"
   external get_flags : 'media t -> flag list = "ocaml_avcodec_packet_flags"
@@ -216,6 +408,7 @@ module Audio = struct
 
   external create_encoder :
     (string * value) array ->
+    Frame_side_data.raw list ->
     Channel_layout.t ->
     int ->
     Sample_format.t ->
@@ -225,11 +418,11 @@ module Audio = struct
     = "ocaml_avcodec_create_audio_encoder_bytecode"
       "ocaml_avcodec_create_audio_encoder"
 
-  let create_encoder ?opts ~channel_layout ~sample_rate ~sample_format
-      ~time_base codec =
+  let create_encoder ?opts ?(side_data = []) ~channel_layout ~sample_rate
+      ~sample_format ~time_base codec =
     let encoder, unused =
-      create_encoder (bindings opts) channel_layout sample_rate sample_format
-        time_base codec
+      create_encoder (bindings opts) side_data channel_layout sample_rate
+        sample_format time_base codec
     in
     report_unused opts unused;
     encoder
@@ -315,6 +508,7 @@ module Video = struct
 
   external create_encoder :
     (string * value) array ->
+    Frame_side_data.raw list ->
     rational option ->
     hardware_context option ->
     Pixel_format.t ->
@@ -326,11 +520,11 @@ module Video = struct
     = "ocaml_avcodec_create_video_encoder_bytecode"
       "ocaml_avcodec_create_video_encoder"
 
-  let create_encoder ?opts ?frame_rate ?hardware_context ~pixel_format ~width
-      ~height ~time_base codec =
+  let create_encoder ?opts ?(side_data = []) ?frame_rate ?hardware_context
+      ~pixel_format ~width ~height ~time_base codec =
     let encoder, unused =
-      create_encoder (bindings opts) frame_rate hardware_context pixel_format
-        width height time_base codec
+      create_encoder (bindings opts) side_data frame_rate hardware_context
+        pixel_format width height time_base codec
     in
     report_unused opts unused;
     encoder

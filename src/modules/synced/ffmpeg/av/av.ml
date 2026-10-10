@@ -426,6 +426,7 @@ type audio_encoding = {
   sample_rate : int;
   sample_format : Sample_format.t;
   audio_time_base : rational;
+  audio_side_data : Frame_side_data.raw list;
 }
 
 external add_audio_stream :
@@ -442,6 +443,7 @@ type video_encoding = {
   width : int;
   height : int;
   video_time_base : rational;
+  video_side_data : Frame_side_data.raw list;
 }
 
 external add_video_stream :
@@ -466,8 +468,8 @@ let encoding_stream opts container (index, unused) =
   report_unused opts unused;
   { container; index }
 
-let new_audio_stream ?opts ~channel_layout ~sample_rate ~sample_format
-    ~time_base ~codec container =
+let new_audio_stream ?opts ?(side_data = []) ~channel_layout ~sample_rate
+    ~sample_format ~time_base ~codec container =
   encoding_stream opts container
     (add_audio_stream container (bindings opts)
        {
@@ -475,11 +477,12 @@ let new_audio_stream ?opts ~channel_layout ~sample_rate ~sample_format
          sample_rate;
          sample_format;
          audio_time_base = time_base;
+         audio_side_data = side_data;
        }
        codec)
 
-let new_video_stream ?opts ?frame_rate ?hardware_context ~pixel_format ~width
-    ~height ~time_base ~codec container =
+let new_video_stream ?opts ?(side_data = []) ?frame_rate ?hardware_context
+    ~pixel_format ~width ~height ~time_base ~codec container =
   encoding_stream opts container
     (add_video_stream container (bindings opts)
        {
@@ -489,6 +492,7 @@ let new_video_stream ?opts ?frame_rate ?hardware_context ~pixel_format ~width
          width;
          height;
          video_time_base = time_base;
+         video_side_data = side_data;
        }
        codec)
 

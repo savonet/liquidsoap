@@ -231,26 +231,29 @@ Examples: `AV_PIX_FMT_YUV420P` gives `` `Yuv420p ``; `AV_PIX_FMT_0RGB` gives
 macro family. The OCaml type is named `t` in a module named after the table
 unless stated.
 
-| Table                | Library      | Header                       | Source                               | C prefix                     |
-| -------------------- | ------------ | ---------------------------- | ------------------------------------ | ---------------------------- |
-| `Pixel_format`       | `avutil`     | `libavutil/pixfmt.h`         | enum `AVPixelFormat`                 | `AV_PIX_FMT_`                |
-| `Pixel_format_flag`  | `avutil`     | `libavutil/pixdesc.h`        | macros                               | `AV_PIX_FMT_FLAG_`           |
-| `Color_space`        | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorSpace`                  | `AVCOL_SPC_`                 |
-| `Color_range`        | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorRange`                  | `AVCOL_RANGE_`               |
-| `Color_primaries`    | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorPrimaries`              | `AVCOL_PRI_`                 |
-| `Color_trc`          | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorTransferCharacteristic` | `AVCOL_TRC_`                 |
-| `Chroma_location`    | `avutil`     | `libavutil/pixfmt.h`         | enum `AVChromaLocation`              | `AVCHROMA_LOC_`              |
-| `Sample_format`      | `avutil`     | `libavutil/samplefmt.h`      | enum `AVSampleFormat`                | `AV_SAMPLE_FMT_`             |
-| `Channel_layout`     | `avutil`     | `libavutil/channel_layout.h` | macros                               | `AV_CH_LAYOUT_`              |
-| `Hw_device_type`     | `avutil`     | `libavutil/hwcontext.h`      | enum `AVHWDeviceType`                | `AV_HWDEVICE_TYPE_`          |
-| `Media_types`        | `avutil`     | `libavutil/avutil.h`         | enum `AVMediaType`                   | `AVMEDIA_TYPE_`              |
-| `Subtitle_type`      | `avutil`     | `libavcodec/avcodec.h`       | enum `AVSubtitleType`                | `SUBTITLE_`                  |
-| `Subtitle_flag`      | `avutil`     | `libavcodec/avcodec.h`       | macros                               | `AV_SUBTITLE_FLAG_`          |
-| `Codec_capabilities` | `avcodec`    | `libavcodec/codec.h`         | macros                               | `AV_CODEC_CAP_`              |
-| `Codec_properties`   | `avcodec`    | `libavcodec/codec_desc.h`    | macros                               | `AV_CODEC_PROP_`             |
-| `Hw_config_method`   | `avcodec`    | `libavcodec/codec.h`         | enumerators with the prefix          | `AV_CODEC_HW_CONFIG_METHOD_` |
-| `Codec_id`           | `avcodec`    | `libavcodec/codec_id.h`      | enum `AVCodecID`, five types (below) | `AV_CODEC_ID_`               |
-| `Swresample_options` | `swresample` | `libswresample/swresample.h` | three enums, three types (below)     | `SWR_`                       |
+| Table                   | Library      | Header                       | Source                               | C prefix                     |
+| ----------------------- | ------------ | ---------------------------- | ------------------------------------ | ---------------------------- |
+| `Pixel_format`          | `avutil`     | `libavutil/pixfmt.h`         | enum `AVPixelFormat`                 | `AV_PIX_FMT_`                |
+| `Pixel_format_flag`     | `avutil`     | `libavutil/pixdesc.h`        | macros                               | `AV_PIX_FMT_FLAG_`           |
+| `Color_space`           | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorSpace`                  | `AVCOL_SPC_`                 |
+| `Color_range`           | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorRange`                  | `AVCOL_RANGE_`               |
+| `Color_primaries`       | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorPrimaries`              | `AVCOL_PRI_`                 |
+| `Color_trc`             | `avutil`     | `libavutil/pixfmt.h`         | enum `AVColorTransferCharacteristic` | `AVCOL_TRC_`                 |
+| `Chroma_location`       | `avutil`     | `libavutil/pixfmt.h`         | enum `AVChromaLocation`              | `AVCHROMA_LOC_`              |
+| `Sample_format`         | `avutil`     | `libavutil/samplefmt.h`      | enum `AVSampleFormat`                | `AV_SAMPLE_FMT_`             |
+| `Channel_layout`        | `avutil`     | `libavutil/channel_layout.h` | macros                               | `AV_CH_LAYOUT_`              |
+| `Hw_device_type`        | `avutil`     | `libavutil/hwcontext.h`      | enum `AVHWDeviceType`                | `AV_HWDEVICE_TYPE_`          |
+| `Media_types`           | `avutil`     | `libavutil/avutil.h`         | enum `AVMediaType`                   | `AVMEDIA_TYPE_`              |
+| `Subtitle_type`         | `avutil`     | `libavcodec/avcodec.h`       | enum `AVSubtitleType`                | `SUBTITLE_`                  |
+| `Subtitle_flag`         | `avutil`     | `libavcodec/avcodec.h`       | macros                               | `AV_SUBTITLE_FLAG_`          |
+| `Codec_capabilities`    | `avcodec`    | `libavcodec/codec.h`         | macros                               | `AV_CODEC_CAP_`              |
+| `Codec_properties`      | `avcodec`    | `libavcodec/codec_desc.h`    | macros                               | `AV_CODEC_PROP_`             |
+| `Hw_config_method`      | `avcodec`    | `libavcodec/codec.h`         | enumerators with the prefix          | `AV_CODEC_HW_CONFIG_METHOD_` |
+| `Frame_side_data_type`  | `avutil`     | `libavutil/frame.h`          | enum `AVFrameSideDataType`           | `AV_FRAME_DATA_`             |
+| `Side_data_prop`        | `avutil`     | `libavutil/frame.h`          | enum `AVSideDataProps`               | `AV_SIDE_DATA_PROP_`         |
+| `Packet_side_data_type` | `avcodec`    | `libavcodec/packet.h`        | enum `AVPacketSideDataType`          | `AV_PKT_DATA_`               |
+| `Codec_id`              | `avcodec`    | `libavcodec/codec_id.h`      | enum `AVCodecID`, five types (below) | `AV_CODEC_ID_`               |
+| `Swresample_options`    | `swresample` | `libswresample/swresample.h` | three enums, three types (below)     | `SWR_`                       |
 
 The first member of an enumeration is a member like any other: `` `None `` is
 a constructor of `Pixel_format.t`, `Sample_format.t`, `Hw_device_type.t` and

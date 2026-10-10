@@ -13,6 +13,16 @@
   count below 1.
 * `Swscale` ignores the buffers after the ones a pixel format needs.
 * Report native memory to the OCaml GC.
+* Add side data: every kind FFmpeg defines is readable and writable on
+  frames, packets and codec parameters (`Frame.side_data`,
+  `Packet.raw_side_data`, `Avcodec.params_side_data`), and encoders take
+  `?side_data`.
+* Add `Avutil.Display_matrix`, and `Avfilter.Utils.display_layout` and
+  `convert_display`, which show a video upright from its display matrix and
+  cropping.
+* Add `Avutil.Video.frame_format` and `Avutil.Audio.frame_format`: what a
+  consumer of frames is configured for, with `same_frame_format` to tell when
+  it needs setting up again, and `Avfilter.Utils.video_buffer_args`.
 * Add a conformance test suite, run with `dune build @ffmpeg_citest`.
 * Remove the examples.
 

@@ -591,12 +591,18 @@ val initialize_stream_copy :
       prevails over it. The encoder is opened with an automatic thread count
       unless a [threads] entry is given.
     @param sample_rate in Hz.
+    @param side_data
+      side data that applies to all the frames the encoder will be given, such
+      as the global entries of the first one. FFmpeg writes those it knows a
+      stream-level form of, the display matrix among them, to the parameters of
+      the encoder.
     @param time_base
       the time base of the encoder, in which the timestamps of the frames are
       expressed.
     @raise Error with [`Failure] once the header is written. *)
 val new_audio_stream :
   ?opts:opts ->
+  ?side_data:Avutil.Frame_side_data.raw list ->
   channel_layout:Channel_layout.t ->
   sample_rate:int ->
   sample_format:Avutil.Sample_format.t ->
@@ -614,9 +620,15 @@ val new_audio_stream :
       a hardware device context or hardware frame context for the encoder. With
       a frame context, {!write_frame} uploads each frame before encoding it.
     @param width in pixels.
+    @param side_data
+      side data that applies to all the frames the encoder will be given, such
+      as the global entries of the first one. FFmpeg writes those it knows a
+      stream-level form of, the display matrix among them, to the parameters of
+      the encoder.
     @param height in pixels. *)
 val new_video_stream :
   ?opts:opts ->
+  ?side_data:Avutil.Frame_side_data.raw list ->
   ?frame_rate:Avutil.rational ->
   ?hardware_context:Avcodec.Video.hardware_context ->
   pixel_format:Avutil.Pixel_format.t ->

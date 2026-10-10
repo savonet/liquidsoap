@@ -33,7 +33,11 @@ type 'a _duration_converter = {
 let track_mark_metadata = "liquidsoap_track_mark"
 
 (** Everything that differs between an audio and a video end of the graph, so
-    that each end is written once and applied to both. *)
+    that each end is written once and applied to both.
+
+    - [conform] is called once per generation of the graph and says how the
+      frames an output delivers become content of a track of the given format.
+*)
 type ('a, 'params) media = {
   get_data :
     Content.data -> ('params, 'a Avutil.frame) Ffmpeg_content_base.content;
@@ -41,7 +45,12 @@ type ('a, 'params) media = {
     ('params, 'a Avutil.frame) Ffmpeg_content_base.content -> Content.data;
   lift_params : 'params -> Content.format;
   frame_params : 'a Avutil.frame -> 'params;
-  context_params : 'a Avfilter.context -> 'params;
+  conform :
+    Content.format ->
+    'a Avfilter.context ->
+    'a Avutil.frame ->
+    ('a Avutil.frame -> unit) ->
+    unit;
 }
 
 let audio_media =
@@ -50,14 +59,18 @@ let audio_media =
     lift_data = Ffmpeg_raw_content.Audio.lift_data;
     lift_params = Ffmpeg_raw_content.Audio.lift_params;
     frame_params = Ffmpeg_raw_content.AudioSpecs.frame_params;
-    context_params =
-      (fun context ->
-        {
-          Ffmpeg_raw_content.AudioSpecs.channel_layout =
-            Some (Avfilter.channel_layout context);
-          sample_rate = Some (Avfilter.sample_rate context);
-          sample_format = Some (Avfilter.sample_format context);
-        });
+    conform =
+      (fun format context ->
+        ignore
+          (Content.merge format
+             (Ffmpeg_raw_content.Audio.lift_params
+                {
+                  Ffmpeg_raw_content.AudioSpecs.channel_layout =
+                    Some (Avfilter.channel_layout context);
+                  sample_rate = Some (Avfilter.sample_rate context);
+                  sample_format = Some (Avfilter.sample_format context);
+                }));
+        fun frame cb -> cb frame);
   }
 
 let video_media =
@@ -66,14 +79,7 @@ let video_media =
     lift_data = Ffmpeg_raw_content.Video.lift_data;
     lift_params = Ffmpeg_raw_content.Video.lift_params;
     frame_params = Ffmpeg_raw_content.VideoSpecs.frame_params;
-    context_params =
-      (fun context ->
-        {
-          Ffmpeg_raw_content.VideoSpecs.width = Some (Avfilter.width context);
-          height = Some (Avfilter.height context);
-          pixel_format = Some (Avfilter.pixel_format context);
-          pixel_aspect = Avfilter.pixel_aspect context;
-        });
+    conform = (fun format _ -> Ffmpeg_raw_content.video_conformer format);
   }
 
 (* Content holding data from more than one stream keeps a chunk per stream, so
@@ -182,12 +188,29 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
         self#frame_type <: frame_t;
         source#frame_type <: self#frame_type)
 
-    val mutable input : [ `Frame of 'a Avutil.frame | `Flush ] -> unit =
-      fun _ -> ()
+    (* [None] between two generations of the graph: frames wait in [held] for
+       the next one.
 
+       ponytail: [held] has no bound; cap it if a graph can wait on an input
+       that stays ready and delivers nothing. *)
+    val mutable input : ([ `Frame of 'a Avutil.frame | `Flush ] -> unit) option
+        =
+      None
+
+    val held : 'a Avutil.frame Stdlib.Queue.t = Stdlib.Queue.create ()
     method private self_sync = source#cached_self_sync
-    method set_input fn = input <- fn
-    val mutable init : 'a Avutil.frame -> unit = fun _ -> assert false
+
+    method set_input fn =
+      input <- Some fn;
+      Stdlib.Queue.iter (fun frame -> fn (`Frame frame)) held;
+      Stdlib.Queue.clear held
+
+    (* Called on the first frame of each buffer as it arrives, so that the graph
+       is built before the duration converter releases anything, then on every
+       frame as it is pushed. *)
+    val mutable init : pushed:bool -> 'a Avutil.frame -> unit =
+      fun ~pushed:_ _ -> assert false
+
     method set_init v = init <- v
     method start = ()
     method stop = ()
@@ -233,7 +256,10 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
         | metadata ->
             Avutil.Frame.set_metadata frame metadata;
             pending <- []);
-      input (`Frame frame)
+      init ~pushed:true frame;
+      match input with
+        | Some input -> input (`Frame frame)
+        | None -> Stdlib.Queue.push frame held
 
     method send_frame memo =
       self#queue_metadata memo;
@@ -241,7 +267,7 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
         | [] -> ()
         | chunks ->
             (match chunks with
-              | (_, _, (_, frame) :: _) :: _ -> init frame
+              | (_, _, (_, frame) :: _) :: _ -> init ~pushed:false frame
               | _ -> ());
             List.iter
               (fun (stream_idx, time_base, data) ->
@@ -257,23 +283,35 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
                   data)
               chunks
 
-    val mutable flushed = false
+    val mutable ended = false
 
     (* Ready to feed the next generation of the graph. The duration converter is
        deliberately left alone: its timestamps carry on across the seam, which is
        what keeps what we push monotonic. *)
     method reset_graph =
-      flushed <- false;
-      input <- (fun _ -> ())
+      ended <- false;
+      input <- None
 
-    (* Filters with internal delay only emit their tail once the graph sees end
-       of file. Sending it twice is an error, hence the flag. *)
+    (* Tells the graph nothing more is coming, which is what makes filters with
+       internal delay emit their tail. Sending it twice is an error, hence the
+       flag. *)
+    method end_input =
+      match input with
+        | Some input when not ended ->
+            ended <- true;
+            input `Flush
+        | _ -> ()
+
+    (* The source ran dry: the frames the duration converter was holding back
+       belong to this generation. *)
     method flush_input =
-      if not flushed then (
-        flushed <- true;
+      if not ended then (
         List.iter (fun (_, frame) -> self#push frame) (snd self#flush_duration);
-        input `Flush)
+        self#end_input)
 
+    (* Frames held for a graph that was never built are in a format no later
+       graph takes. *)
+    method drop_held = Stdlib.Queue.clear held
     initializer self#on_sleep (fun () -> self#flush_input)
   end
 
@@ -295,6 +333,7 @@ class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
     inherit ['a] duration_converter
     method log = log
     val mutable output = None
+    val mutable conform = fun frame cb -> cb frame
     method connected = output <> None
 
     (* A rebuilt graph starts its timestamps over. [convert_duration] only lines
@@ -303,15 +342,12 @@ class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
        backwards and the content is rejected as non-monotonic. *)
     val mutable stream_idx = Ffmpeg_content_base.new_stream_idx ()
 
-    (* The sink knows the format the graph settled on; give it to the content
-       type the script was type-checked against. *)
     method set_output v =
-      let media = (media : ('a, 'params) media) in
       (match Frame.Fields.find_opt field (content_type ()) with
         | None -> ()
         | Some format ->
-            Content.merge format
-              (media.lift_params (media.context_params v.Avfilter.context)));
+            conform <-
+              (media : ('a, 'params) media).conform format v.Avfilter.context);
       output <- Some v
 
     method private metadata_timestamps ~time_base frame =
@@ -374,13 +410,13 @@ class ['a, 'params] sink ~media ~field ~pass_metadata ~log ~content_type () =
 
     method private read_one ~generator output =
       let time_base = Avfilter.(time_base output.context) in
-      let frame = output.Avfilter.handler () in
-      match
-        self#convert_duration ~convert_ts:false ~stream_idx ~time_base frame
-      with
-        | None -> ()
-        | Some (length, frames) ->
-            self#emit ~generator ~time_base ~length frames
+      conform (output.Avfilter.handler ()) (fun frame ->
+          match
+            self#convert_duration ~convert_ts:false ~stream_idx ~time_base frame
+          with
+            | None -> ()
+            | Some (length, frames) ->
+                self#emit ~generator ~time_base ~length frames)
 
     (* [Duration] works out how long a frame lasted from the timestamp of the
        next one, so it is always holding the most recent frames back. At end of

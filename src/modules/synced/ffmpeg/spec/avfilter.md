@@ -368,6 +368,144 @@ converts it to another rate, layout and format. §11.3 gives its construction.
   - After `` `Flush `` every remaining frame is delivered.
   - An exception raised by `cb` propagates, whatever it is (§7.2).
 
+### 4.13 `Utils`: display
+
+The top level of the side-data interface ([side-data.md](side-data.md) §1.1):
+from what a display matrix and a cropping mean to the filters that apply
+them.
+
+```ocaml
+type filter_spec = string * args list
+val filter_of_transform : Avutil.Display_matrix.transform -> filter_spec
+val filter_of_cropping : Avutil.cropping -> filter_spec option
+```
+
+A `filter_spec` is a filter name and the `args` to attach it with. Neither
+function builds anything or fails.
+
+| Value                           | Filter                                                                      |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `` `Transpose d ``              | `transpose`, `dir` set to `clock`, `cclock`, `clock_flip` or `cclock_flip`  |
+| `` `Hflip ``                    | `hflip`                                                                     |
+| `` `Vflip ``                    | `vflip`                                                                     |
+| `` `Rotate a ``                 | `rotate`, `angle` set to `a` degrees in radians                             |
+| a cropping, some field non-zero | `crop`, `w=iw-<left>-<right>`, `h=ih-<top>-<bottom>`, `x=<left>`, `y=<top>` |
+| a cropping of four zeros        | `None`                                                                      |
+
+```ocaml
+type display_layout = {
+  width : int; height : int;
+  pixel_aspect : Avutil.rational option;
+  filters : filter_spec list;
+}
+type undecided = [ `Invalid_cropping of Avutil.cropping | `Odd_rotation of float ]
+val display_layout :
+  ?cropping:Avutil.cropping -> ?display_matrix:Avutil.Display_matrix.t ->
+  ?pixel_aspect:Avutil.rational -> width:int -> height:int -> unit ->
+  [ `Layout of display_layout | `Undecided of undecided ]
+```
+
+The picture a display chain produces from a `width`×`height` picture: its
+size, its pixel aspect ratio and the filters that produce it. §11.4 defines
+it. This is where the geometry of each filter is owned: a caller never
+derives a size from a display matrix or a cropping itself.
+
+- **Undecided.** The binding does not decide in the caller's place where
+  there is no single right answer. `display_layout` then returns
+  `` `Undecided ``:
+
+  | Value                     | When                                                                                           |
+  | ------------------------- | ---------------------------------------------------------------------------------------------- |
+  | `` `Invalid_cropping c `` | a field of `c` is negative, or `c` leaves no column or no row                                  |
+  | `` `Odd_rotation a ``     | the matrix asks for `` `Rotate a ``: not a quarter turn, so the size of the result is a choice |
+
+  The caller decides, for instance with `filter_of_transform`, or leaves the
+  picture as it is.
+
+```ocaml
+type undecided_frame = [ undecided | `Hardware_frame ]
+type display_converter
+val init_display_converter :
+  ?cropping:Avutil.cropping ->
+  ?on_undecided:(undecided_frame -> filter_spec list option) ->
+  ?ignore:Avutil.Video.frame_property list ->
+  time_base:Avutil.rational -> unit -> display_converter
+val convert_display :
+  display_converter -> (Avutil.video Avutil.frame -> unit) ->
+  [ `Frame of Avutil.video Avutil.frame | `Flush ] -> unit
+```
+
+For a caller with no graph: a converter that takes decoded video frames and
+delivers them upright and cropped. §11.5 defines it.
+
+- `cropping` is the stream's, as above. The display matrix is read from each
+  frame.
+- `time_base` is the time base of the frames' timestamps. Timestamps are
+  delivered unchanged.
+- `convert_display c cb input` calls `cb` on every frame that becomes
+  available, in order, as `convert_audio` does. An exception raised by `cb`
+  propagates.
+- **The converter decides nothing the binding does not.** For a frame whose
+  layout is undecided, and for a frame in a hardware pixel format that has a
+  display matrix or cropping to apply, which no software filter can
+  transform, it calls `on_undecided`, once per run of frames with the same
+  question:
+  - `Some filters` is the caller's decision: the frames go through those
+    filters and are delivered without their display matrix;
+  - `None` is no decision: the frames are delivered untouched, display matrix
+    included, for something downstream to act on.
+
+  The default `on_undecided` logs a description of the case at warning level
+  through `Avutil.Log.log` and answers `None`.
+
+- A delivered frame the converter decided for has no display-matrix entry.
+  The caller's frame is unchanged (A4).
+- A frame with nothing to apply goes through no filter. It is the pushed
+  frame itself when that one has no display matrix, and `Frame.dup` of it
+  without the matrix otherwise. A stream with no rotation and no cropping
+  costs one side-data lookup per frame and nothing else. This is the one
+  place where a result is not fresh (A5).
+- A display converter has no guard. Two threads MUST NOT use one at the same
+  time.
+
+```ocaml
+val video_buffer_args :
+  time_base:Avutil.rational -> Avutil.Video.frame_format -> args list
+```
+
+The arguments to attach a `buffer` source with, for frames of that format
+(`avutil.md` §4.13). It is the one place where a frame format becomes the
+configuration of a graph input, and the display converter uses it.
+
+| Argument       | Value                              | Present                    |
+| -------------- | ---------------------------------- | -------------------------- |
+| `video_size`   | `<width>x<height>`                 | always                     |
+| `pix_fmt`      | the identifier of the pixel format | always                     |
+| `time_base`    | `time_base`                        | always                     |
+| `pixel_aspect` | the pixel aspect                   | when it is known           |
+| `colorspace`   | FFmpeg's name of the colour space  | when the source accepts it |
+| `range`        | FFmpeg's name of the colour range  | when it is not unspecified |
+
+The `buffer` source accepts every colour space FFmpeg names except
+`reserved`. An unspecified, unnamed or reserved colour space is left out, so
+that a stream carrying one still builds a graph.
+
+```ocaml
+type video_chain = {
+  chain_source : [ `Video ] input;
+  chain_sink : [ `Video ] output;
+}
+val video_chain :
+  time_base:Avutil.rational -> Avutil.Video.frame_format ->
+  filter_spec list -> video_chain
+```
+
+A launched graph of its own: a `buffer` source attached with
+`video_buffer_args`, each filter attached and linked in order, a `buffersink`.
+An unknown filter name raises `` `Filter_not_found ``; any failure of FFmpeg
+raises (§5). It is the one builder of linear video graphs, and the display
+converter (§11.5) uses it.
+
 ## 5. Errors
 
 | Raised                                    | By                                                                                                                             |
@@ -494,3 +632,62 @@ Any failure raises the error of the step that failed.
 
 Only the sink's own "none ready" and "drained" answers end a delivery loop;
 the same errors raised by `cb` propagate.
+
+### 11.4 Display filter chain and layout
+
+`display_layout ?cropping ?display_matrix ?pixel_aspect ~width ~height ()`
+is the one place that turns a cropping and a display matrix into filters. It
+decides the geometry and the chain together, so that a caller is never handed
+filters for a picture whose layout is undecided:
+
+1. Cropping, when given: `` `Undecided (`Invalid_cropping c) `` when a field
+   is negative, `left + right ≥ width` or `top + bottom ≥ height`. Otherwise
+   the width loses `left + right` and the height `top + bottom`.
+2. Each transform of `Display_matrix.transforms`, in order:
+   - `` `Hflip `` and `` `Vflip `` change nothing;
+   - `` `Transpose _ `` swaps the width and the height and inverts the pixel
+     aspect ratio;
+   - `` `Rotate a `` gives `` `Undecided (`Odd_rotation a) ``.
+3. `filters` is `filter_of_cropping` of the cropping, when it gives a
+   filter, followed by `filter_of_transform` of each transform, in order.
+   Cropping comes first: the container states it in the coordinates of the
+   stored picture.
+
+### 11.5 Display converter
+
+The converter holds at most one private graph, with the chain it was built
+for: the frame format (`Avutil.Video.frame_format`, `avutil.md` §4.13) and
+the filters. Two chains are the same when `same_frame_format` holds, with
+the converter's `ignore` (none by default), and the filters are equal.
+
+`convert_display c cb (`Frame f)`:
+
+1. A frame with no display matrix, in a converter with no cropping, has
+   nothing to apply: flush and drop the current graph (step 7), then deliver
+   `f` itself. Nothing else is read from the frame.
+2. Find the filters for `f`. A hardware frame asks `on_undecided` with
+   `` `Hardware_frame ``. Any other frame takes the `filters` of
+   `display_layout` on its size, the converter's cropping and its display
+   matrix, or asks `on_undecided` with what is undecided.
+3. No decision (`None`): flush and drop the current graph, then deliver `f`
+   itself.
+4. No filter (`Some []`): flush and drop the current graph, then deliver `f`
+   itself when it has no display matrix, `Frame.dup f` without the matrix
+   otherwise.
+5. Otherwise, if there is no graph, or its chain differs: flush and drop the
+   current graph, then build one: a buffer source set from the frame format
+   and `time_base`, each filter attached and linked in order, a buffer sink.
+   A chain that fails to build is not a decision: the converter logs a
+   warning through `Avutil.Log.log`, remembers the chain, and delivers `f`
+   itself, as it does for every later frame asking for that chain. Filters
+   answered by `on_undecided` are the usual cause.
+6. Push `f` and deliver every frame the sink has ready, each with its
+   display-matrix entry removed.
+7. Flushing a graph signals the end of the stream to its source and delivers
+   every frame the sink still has, as in step 6.
+
+`convert_display c cb `Flush` flushes and drops the current graph. The
+converter is usable again afterwards.
+
+A change of rotation or of frame format in the middle of a stream rebuilds
+the graph: frames come out in order across the rebuild.

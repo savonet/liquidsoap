@@ -61,7 +61,11 @@
   subtitle_type.ml
   subtitle_type_stubs.h
   subtitle_flag.ml
-  subtitle_flag_stubs.h)
+  subtitle_flag_stubs.h
+  frame_side_data_type.ml
+  frame_side_data_type_stubs.h
+  side_data_prop.ml
+  side_data_prop_stubs.h)
  (deps ../detect/avutil_versions)
  (enabled_if
   (= %{read:../detect/avutil_available} "true"))

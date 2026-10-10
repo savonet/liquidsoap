@@ -92,14 +92,16 @@ class source ~name ~pull ~is_ready ~flush_inputs ~reset ~self_sync () =
                self#id max_buffer)
           "ffmpeg.filter"
 
+    (* Also called by an input that ends a generation while it is ticked. *)
+    method drain =
+      List.iter (fun sink -> sink.drain ~generator:self#buffer) sinks;
+      self#check_buffer
+
     (* Ticking the inputs is what makes the outputs produce, hence the
        alternation. *)
     method private fill_buffer =
       let size = Lazy.Mutexed.force Frame.size in
-      let drain () =
-        List.iter (fun sink -> sink.drain ~generator:self#buffer) sinks;
-        self#check_buffer
-      in
+      let drain () = self#drain in
       let done_ () = List.for_all (fun sink -> sink.eof ()) sinks in
       (* A generation of the graph is over once the inputs have been told so and
          every sink has handed back what it was holding. Tearing it down here

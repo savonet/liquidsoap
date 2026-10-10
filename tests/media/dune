@@ -123,6 +123,283 @@
    %{target})))
 
 (rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target upright.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=2:size=320x240:rate=25"
+   -c:v
+   mpeg4
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps upright.mp4)
+ (target rotated.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -display_rotation
+   90
+   -i
+   upright.mp4
+   -c
+   copy
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps upright.mp4)
+ (target odd.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -display_rotation
+   33
+   -i
+   upright.mp4
+   -c
+   copy
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps upright.mp4)
+ (target skewed.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -display_rotation
+   20
+   -i
+   upright.mp4
+   -c
+   copy
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target wide.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=1:size=320x240:rate=25"
+   -c:v
+   mpeg2video
+   -f
+   mpegts
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target tall.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=1:size=240x320:rate=25"
+   -c:v
+   mpeg2video
+   -f
+   mpegts
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps wide.ts tall.ts)
+ (target changing.ts)
+ (action
+  (with-stdout-to
+   %{target}
+   (cat wide.ts tall.ts))))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target bt601.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=1:size=320x240:rate=25"
+   -c:v
+   mpeg2video
+   -colorspace
+   bt470bg
+   -f
+   mpegts
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target bt709.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=1:size=320x240:rate=25"
+   -c:v
+   mpeg2video
+   -colorspace
+   bt709
+   -f
+   mpegts
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps bt601.ts bt709.ts)
+ (target color_change.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -i
+   "concat:bt601.ts|bt709.ts"
+   -c
+   copy
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (deps wide.ts tall.ts)
+ (target size_change.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -i
+   "concat:wide.ts|tall.ts"
+   -c
+   copy
+   %{target})))
+
+(rule
+ (alias test_ffmpeg_raw_format_change)
+ (package liquidsoap)
+ (deps
+  size_change.ts
+  test_ffmpeg_raw_format_change.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg raw video size change"
+   liquidsoap
+   test_ffmpeg_raw_format_change.liq
+   --
+   size_change.ts)))
+
+(rule
+ (alias test_ffmpeg_raw_format_change)
+ (package liquidsoap)
+ (deps
+  color_change.ts
+  test_ffmpeg_raw_format_change.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg raw video colour change"
+   liquidsoap
+   test_ffmpeg_raw_format_change.liq
+   --
+   color_change.ts)))
+
+(rule
+ (alias test_ffmpeg_video_format_change)
+ (package liquidsoap)
+ (deps
+  changing.ts
+  test_ffmpeg_video_format_change.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg video format change"
+   liquidsoap
+   test_ffmpeg_video_format_change.liq)))
+
+(rule
+ (alias test_ffmpeg_side_data)
+ (package liquidsoap)
+ (deps
+  odd.mp4
+  skewed.mp4
+  rotated.mp4
+  test_ffmpeg_side_data.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "FFmpeg side data" liquidsoap test_ffmpeg_side_data.liq)))
+
+(rule
  (alias test_ffmpeg_copy_concat)
  (package liquidsoap)
  (deps
@@ -590,6 +867,9 @@
   (alias test_ffmpeg_raw_implicit_conversion)
   (alias test_ffmpeg_complex_filter)
   (alias test_ffmpeg_copy_concat)
+  (alias test_ffmpeg_side_data)
+  (alias test_ffmpeg_video_format_change)
+  (alias test_ffmpeg_raw_format_change)
   (alias test_ffmpeg_copy_subtitle)
   (alias test_ffmpeg_hls_mp4)
   (alias test_ffmpeg_transparency_filter)

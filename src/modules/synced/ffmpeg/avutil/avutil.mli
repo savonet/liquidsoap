@@ -44,6 +44,94 @@ val version : version
 *)
 val version_string : version -> string
 
+(** The display matrix: the 3x3 transformation a container or a decoder attaches
+    to a video for it to be shown upright, as [libavutil/display.h] defines it.
+*)
+module Display_matrix : sig
+  (** Nine fixed-point numbers, row-major. *)
+  type t = private int32 array
+
+  (** [of_array a] is a copy of [a] as a matrix.
+
+      @raise Error with [`Failure] when [a] does not have 9 elements. *)
+  val of_array : int32 array -> t
+
+  (** [of_payload s] is the matrix a side-data payload holds: nine 32-bit
+      integers in native byte order. [None] when [s] is shorter than that. Frame
+      and packet side data share this layout. *)
+  val of_payload : string -> t option
+
+  (** The payload {!of_payload} reads back. *)
+  val to_payload : t -> string
+
+  (** [make a] is the matrix of a pure rotation by [a] degrees
+      counter-clockwise, then flipped horizontally and vertically as asked.
+      [rotation (make a)] is [Some a] for [a] in (-180, 180].
+
+      @raise Error with [`Failure] when [a] is not finite. *)
+  val make : ?hflip:bool -> ?vflip:bool -> float -> t
+
+  (** The angle, in degrees, by which the matrix rotates the picture
+      counter-clockwise, in \[-180, 180\]. [None] when the matrix is singular.
+  *)
+  val rotation : t -> float option
+
+  (** One step that brings a picture upright. It names no filter:
+      - [`Transpose `Clock] is a quarter turn clockwise, [`Cclock] one
+        counter-clockwise, and the [_flip] variants add a vertical flip;
+      - [`Hflip] and [`Vflip] mirror the picture;
+      - [`Rotate a] is a clockwise rotation by [a] degrees. *)
+  type transform =
+    [ `Transpose of [ `Clock | `Cclock | `Clock_flip | `Cclock_flip ]
+    | `Hflip
+    | `Vflip
+    | `Rotate of float ]
+
+  (** [transforms m] is what must be done to a picture, in order, for it to be
+      shown as [m] asks, following the decision table of the [ffmpeg]
+      command-line tool. The empty list means the picture is already upright; a
+      singular matrix gives the empty list. *)
+  val transforms : t -> transform list
+end
+
+(** The number of pixels to discard from each border of a picture. *)
+type cropping = { top : int; bottom : int; left : int; right : int }
+
+(** Side data of frames: the kinds FFmpeg defines, raw entries and their typed
+    content. *)
+module Frame_side_data : sig
+  type kind = Frame_side_data_type.t
+  type prop = Side_data_prop.t
+
+  (** One entry as a frame holds it: its kind and a copy of its payload. The
+      record is private: an entry comes from {!Frame.side_data} or from
+      {!encode}, never from arbitrary bytes, because FFmpeg reads a payload at
+      the size its kind implies. For most kinds the payload is a C structure of
+      the FFmpeg build in use: it must not be stored or sent to another process.
+  *)
+  type raw = private { kind : kind; data : string }
+
+  (** The kinds whose content the bindings translate. *)
+  type t = [ `Display_matrix of Display_matrix.t ]
+
+  (** FFmpeg's name of the kind, empty when it has none. *)
+  val name : kind -> string
+
+  (** The properties FFmpeg gives the kind, such as [`Global] for a kind that
+      applies to a whole stream. *)
+  val props : kind -> prop list
+
+  (** The content of an entry. [None] for a kind outside {!t} and for a payload
+      too short for its kind. *)
+  val decode : raw -> t option
+
+  (** The entry holding a content. [decode (encode d)] is [Some d]. *)
+  val encode : t -> raw
+
+  (** The matrix of the first entry that holds one. *)
+  val display_matrix : raw list -> Display_matrix.t option
+end
+
 (** Frames: the properties common to audio and video frames. *)
 module Frame : sig
   (** One decoded audio or video frame. ['media] is {!type:audio} or
@@ -105,6 +193,28 @@ module Frame : sig
       components read. [None] when the frame has none ([AV_NOPTS_VALUE]). FFmpeg
       fills it only when decoding; {!set_pts} writes it too. *)
   val best_effort_timestamp : _ t -> Int64.t option
+
+  (** Every side-data entry of the frame, in the frame's order. An entry whose
+      kind the bindings have no constructor for is left out. *)
+  val side_data : _ t -> Frame_side_data.raw list
+
+  (** [find_side_data frame kind] is the first entry of that kind, [None] when
+      the frame has none. It copies that entry only. *)
+  val find_side_data : _ t -> Frame_side_data.kind -> Frame_side_data.raw option
+
+  (** [add_side_data frame entry] attaches a copy of [entry]. An entry of the
+      same kind is replaced, unless the kind has the [`Multi] property, in which
+      case the entry is appended. On failure the frame is unchanged. *)
+  val add_side_data : _ t -> Frame_side_data.raw -> unit
+
+  (** [remove_side_data frame kind] removes every entry of that kind. *)
+  val remove_side_data : _ t -> Frame_side_data.kind -> unit
+
+  (** [dup frame] is a new frame with a copy of the properties, the metadata and
+      the side data of [frame]. Both frames reference the same data buffers: no
+      sample or pixel is copied. Changing the properties or the side data of one
+      leaves the other unchanged. *)
+  val dup : 'media t -> 'media t
 end
 
 (** Shorthand for {!Frame.t}. *)
@@ -237,6 +347,10 @@ module Log : sig
   (** [set_level l] sets FFmpeg's log level for the whole process: FFmpeg
       reports the messages of level [l] and of the less verbose levels. *)
   val set_level : level -> unit
+
+  (** [log l message] sends [message] to FFmpeg's log at level [l], where it is
+      reported, filtered and captured as FFmpeg's own messages are. *)
+  val log : level -> string -> unit
 
   (** [set_callback f] captures FFmpeg's log messages, for the whole process,
       and delivers them to [f]. It replaces a callback installed earlier.
@@ -549,6 +663,23 @@ module Audio : sig
 
   (** The number of samples per channel the frame holds. *)
   val frame_nb_samples : audio frame -> int
+
+  (** What a consumer of audio frames is configured for: a frame whose format
+      differs from the one before needs that consumer set up again. *)
+  type frame_format = {
+    sample_format : Sample_format.t;
+    sample_rate : int;
+    channel_layout : Channel_layout.t;
+  }
+
+  (** The format of the frame.
+
+      @raise Error as {!frame_get_sample_format}. *)
+  val frame_format : audio frame -> frame_format
+
+  (** Whether two formats are the same. Channel layouts are compared with
+      {!Channel_layout.compare}. *)
+  val same_frame_format : frame_format -> frame_format -> bool
 end
 
 (** Video frames. The timestamps and the metadata are in {!Frame}. *)
@@ -647,6 +778,36 @@ module Video : sig
 
   (** The location of the chroma samples of the frame. *)
   val frame_get_chroma_location : video frame -> Chroma_location.t
+
+  (** What a consumer of video frames is configured for: a frame whose format
+      differs from the one before needs that consumer set up again. This is the
+      one list of the properties that count. *)
+  type frame_format = {
+    width : int;
+    height : int;
+    pixel_format : Pixel_format.t;
+    pixel_aspect : rational option;
+    color_space : Color_space.t;
+    color_range : Color_range.t;
+    color_primaries : Color_primaries.t;
+    color_trc : Color_trc.t;
+    chroma_location : Chroma_location.t;
+  }
+
+  (** The format of the frame.
+
+      @raise Error as {!frame_get_pixel_format}. *)
+  val frame_format : video frame -> frame_format
+
+  (** The properties a caller may leave out of the comparison: [`Color] is the
+      colour space, range, primaries, transfer characteristic and chroma
+      location together. The size and the pixel format always count. *)
+  type frame_property = [ `Color | `Pixel_aspect ]
+
+  (** Whether two formats are the same, leaving out the properties in [ignore]
+      (none by default). *)
+  val same_frame_format :
+    ?ignore:frame_property list -> frame_format -> frame_format -> bool
 end
 
 (** Subtitles. *)
