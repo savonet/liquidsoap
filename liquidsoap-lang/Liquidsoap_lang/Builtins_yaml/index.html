@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Builtins_yaml (liquidsoap-lang.Liquidsoap_lang.Builtins_yaml)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../../odoc.support/odoc.css"/><meta name="generator" content="odoc 3.2.1"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../index.html">Index</a> &#x00BB; <a href="../../index.html">liquidsoap-lang</a> &#x00BB; <a href="../index.html">Liquidsoap_lang</a> &#x00BB; Builtins_yaml</nav><header class="odoc-preamble"><h1>Module <code><span>Liquidsoap_lang.Builtins_yaml</span></code></h1></header><div class="odoc-content"><div class="odoc-spec"><div class="spec value anchored" id="val-json_of_float"><a href="#val-json_of_float" class="anchor"></a><code><span><span class="keyword">val</span> json_of_float : <span>float <span class="arrow">&#45;&gt;</span></span> <span>[&gt; <span>`Float of float</span> <span><span>| `Int</span> of int</span> ]</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-json_of_yaml"><a href="#val-json_of_yaml" class="anchor"></a><code><span><span class="keyword">val</span> json_of_yaml : 
+  <span><a href="../../../miniyaml/Yaml/index.html#type-t">Yaml.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span>[&gt; <span>`Assoc of <span><span>(string * <span class="type-var">'a</span>)</span> list</span></span>
+  <span><span>| `Bool</span> of bool</span>
+  <span><span>| `Float</span> of float</span>
+  <span><span>| `Int</span> of int</span>
+  <span>| `Null</span>
+  <span><span>| `String</span> of string</span>
+  <span><span>| `Tuple</span> of <span><span class="type-var">'a</span> list</span></span> ]</span> <span class="keyword">as</span> 'a</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-yaml_parser"><a href="#val-yaml_parser" class="anchor"></a><code><span><span class="keyword">val</span> yaml_parser : 
+  <span>string <span class="arrow">&#45;&gt;</span></span>
+  <span>[&gt; <span>`Assoc of <span><span>(string * <span class="type-var">'a</span>)</span> list</span></span>
+  <span><span>| `Bool</span> of bool</span>
+  <span><span>| `Float</span> of float</span>
+  <span><span>| `Int</span> of int</span>
+  <span>| `Null</span>
+  <span><span>| `String</span> of string</span>
+  <span><span>| `Tuple</span> of <span><span class="type-var">'a</span> list</span></span> ]</span> <span class="keyword">as</span> 'a</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-yaml"><a href="#val-yaml" class="anchor"></a><code><span><span class="keyword">val</span> yaml : <a href="../Lang/index.html#type-module_name">Lang.module_name</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-yaml_of_json"><a href="#val-yaml_of_json" class="anchor"></a><code><span><span class="keyword">val</span> yaml_of_json : 
+  <span><span>(<span>[&lt; <span>`Assoc of <span><span>(string * <span class="type-var">'a</span>)</span> list</span></span>
+   <span><span>| `Bool</span> of bool</span>
+   <span><span>| `Float</span> of float</span>
+   <span><span>| `Int</span> of int</span>
+   <span>| `Null</span>
+   <span><span>| `String</span> of string</span>
+   <span><span>| `Tuple</span> of <span><span class="type-var">'a</span> list</span></span> ]</span> <span class="keyword">as</span> 'a)</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../../../miniyaml/Yaml/index.html#type-t">Yaml.t</a></span></code></div></div></div></body></html>
