@@ -205,9 +205,12 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
       Stdlib.Queue.iter (fun frame -> fn (`Frame frame)) held;
       Stdlib.Queue.clear held
 
-    (* Called on every frame before it is pushed: settles the format of the
-       graph input, and starts a new generation when the frame left it. *)
-    val mutable init : 'a Avutil.frame -> unit = fun _ -> assert false
+    (* Called on the first frame of each buffer as it arrives, so that the graph
+       is built before the duration converter releases anything, then on every
+       frame as it is pushed. *)
+    val mutable init : pushed:bool -> 'a Avutil.frame -> unit =
+      fun ~pushed:_ _ -> assert false
+
     method set_init v = init <- v
     method start = ()
     method stop = ()
@@ -253,7 +256,7 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
         | metadata ->
             Avutil.Frame.set_metadata frame metadata;
             pending <- []);
-      init frame;
+      init ~pushed:true frame;
       match input with
         | Some input -> input (`Frame frame)
         | None -> Stdlib.Queue.push frame held
@@ -263,6 +266,9 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
       match self#raw_ffmpeg_content (Frame.get memo field) with
         | [] -> ()
         | chunks ->
+            (match chunks with
+              | (_, _, (_, frame) :: _) :: _ -> init ~pushed:false frame
+              | _ -> ());
             List.iter
               (fun (stream_idx, time_base, data) ->
                 List.iter

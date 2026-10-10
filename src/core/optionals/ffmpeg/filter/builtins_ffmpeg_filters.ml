@@ -554,22 +554,25 @@ let input_format ~frame_format ~same ~describe graph s =
   Queue.push graph.resets (fun () ->
       format := None;
       s#reset_graph);
-  s#set_init (fun frame ->
+  let settle frame_format =
+    format := Some frame_format;
+    init_graph graph
+  in
+  (* A frame that arrives is behind the ones the duration converter still
+     holds: only a frame being pushed can end a generation. *)
+  s#set_init (fun ~pushed frame ->
       let frame_format = frame_format frame in
       match !format with
-        | Some format when same format frame_format -> ()
-        | previous ->
-            Option.iter
-              (fun previous ->
-                log#severe
-                  "The format of %s changed in the middle of a stream, from %s \
-                   to %s: rebuilding the filter graph. Its filters start over."
-                  s#id (describe previous) (describe frame_format);
-                s#drop_held;
-                restart graph)
-              previous;
-            format := Some frame_format;
-            init_graph graph);
+        | None -> settle frame_format
+        | Some format when (not pushed) || same format frame_format -> ()
+        | Some previous ->
+            log#severe
+              "The format of %s changed in the middle of a stream, from %s to \
+               %s: rebuilding the filter graph. Its filters start over."
+              s#id (describe previous) (describe frame_format);
+            s#drop_held;
+            restart graph;
+            settle frame_format);
   fun () -> Option.get !format
 
 let _ =
