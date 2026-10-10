@@ -393,20 +393,6 @@ function builds anything or fails.
 | a cropping of four zeros        | `None`                                                                      |
 
 ```ocaml
-val display_filters :
-  ?cropping:Avutil.cropping -> Avutil.Frame_side_data.raw list ->
-  filter_spec list
-```
-
-For a caller with a graph of its own: the chain of filters, in the order to
-link them, that shows upright and cropped a picture whose frame has this side
-data. An empty list means there is nothing to do. §11.4 defines it.
-
-`cropping` is a typed value because the container's cropping is stream side
-data of the packet family, which `Avfilter` cannot name. The caller obtains
-it with `Packet_side_data.cropping (Avcodec.params_side_data params)`.
-
-```ocaml
 type display_layout = {
   width : int; height : int;
   pixel_aspect : Avutil.rational option;
@@ -438,7 +424,6 @@ derives a size from a display matrix or a cropping itself.
 
 ```ocaml
 type undecided_frame = [ undecided | `Hardware_frame ]
-val string_of_undecided : undecided_frame -> string
 type display_converter
 val init_display_converter :
   ?cropping:Avutil.cropping ->
@@ -470,7 +455,7 @@ delivers them upright and cropped. §11.5 defines it.
   - `None` is no decision: the frames are delivered untouched, display matrix
     included, for something downstream to act on.
 
-  The default `on_undecided` logs `string_of_undecided` at warning level
+  The default `on_undecided` logs a description of the case at warning level
   through `Avutil.Log.log` and answers `None`.
 
 - A delivered frame the converter decided for has no display-matrix entry.
@@ -630,25 +615,10 @@ the same errors raised by `cb` propagate.
 
 ### 11.4 Display filter chain and layout
 
-```ocaml
-let display_filters ?cropping side_data =
-  let crop = Option.to_list (Option.bind cropping filter_of_cropping) in
-  let transforms =
-    match Avutil.Frame_side_data.display_matrix side_data with
-      | None -> []
-      | Some m -> Avutil.Display_matrix.transforms m
-  in
-  crop @ List.map filter_of_transform transforms
-```
-
-Cropping comes first: the container states it in the coordinates of the
-stored picture.
-
-`display_filters` holds no rule of its own. A caller that composes the
-translations by hand gets the same result.
-
 `display_layout ?cropping ?display_matrix ?pixel_aspect ~width ~height ()`
-follows the same chain and applies the geometry of each step:
+is the one place that turns a cropping and a display matrix into filters. It
+decides the geometry and the chain together, so that a caller is never handed
+filters for a picture whose layout is undecided:
 
 1. Cropping, when given: `` `Undecided (`Invalid_cropping c) `` when a field
    is negative, `left + right ≥ width` or `top + bottom ≥ height`. Otherwise
@@ -658,8 +628,10 @@ follows the same chain and applies the geometry of each step:
    - `` `Transpose _ `` swaps the width and the height and inverts the pixel
      aspect ratio;
    - `` `Rotate a `` gives `` `Undecided (`Odd_rotation a) ``.
-3. `filters` is what `display_filters` gives for the same cropping and
-   matrix.
+3. `filters` is `filter_of_cropping` of the cropping, when it gives a
+   filter, followed by `filter_of_transform` of each transform, in order.
+   Cropping comes first: the container states it in the coordinates of the
+   stored picture.
 
 ### 11.5 Display converter
 

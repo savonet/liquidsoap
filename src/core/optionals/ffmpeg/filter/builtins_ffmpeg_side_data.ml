@@ -187,6 +187,10 @@ class raw ~field ~edit source =
 
     method private generate_frame =
       let buf = source#get_frame in
+      let edit =
+        let rotation = edit.rotation () in
+        { edit with rotation = (fun () -> rotation) }
+      in
       let content = Ffmpeg_raw_content.Video.get_data (Frame.get buf field) in
       let keep_last data =
         List.iter (fun (_, frame) -> last_frame <- Some frame) data
@@ -320,27 +324,29 @@ let undecided_t =
     ]
 
 let undecided_value (undecided : Avfilter.Utils.undecided_frame) =
-  let reason, rotation, cropping =
-    match undecided with
-      | `Hardware_frame -> ("hardware_frame", Lang.null, Lang.null)
-      | `Odd_rotation angle -> ("odd_rotation", Lang.float angle, Lang.null)
-      | `Invalid_cropping { Avutil.top; bottom; left; right } ->
-          ( "invalid_cropping",
-            Lang.null,
-            Lang.record
-              [
-                ("top", Lang.int top);
-                ("bottom", Lang.int bottom);
-                ("left", Lang.int left);
-                ("right", Lang.int right);
-              ] )
+  let question ?(rotation = Lang.null) ?(cropping = Lang.null) reason =
+    Lang.record
+      [
+        ("reason", Lang.string reason);
+        ("rotation", rotation);
+        ("cropping", cropping);
+      ]
   in
-  Lang.record
-    [
-      ("reason", Lang.string reason);
-      ("rotation", rotation);
-      ("cropping", cropping);
-    ]
+  match undecided with
+    | `Hardware_frame -> question "hardware_frame"
+    | `Odd_rotation angle ->
+        question ~rotation:(Lang.float angle) "odd_rotation"
+    | `Invalid_cropping { Avutil.top; bottom; left; right } ->
+        question
+          ~cropping:
+            (Lang.record
+               [
+                 ("top", Lang.int top);
+                 ("bottom", Lang.int bottom);
+                 ("left", Lang.int left);
+                 ("right", Lang.int right);
+               ])
+          "invalid_cropping"
 
 let filter_spec_of_value filter : Avfilter.Utils.filter_spec =
   let name, args = Lang.to_product filter in

@@ -476,22 +476,6 @@ module Utils : sig
       to discard. *)
   val filter_of_cropping : Avutil.cropping -> filter_spec option
 
-  (** [display_filters ?cropping side_data] is the chain of filters, in the
-      order to link them, that shows upright and cropped a picture whose frame
-      has the side data [side_data]: {!filter_of_cropping}, then
-      {!filter_of_transform} on each step the frame's display matrix asks for.
-      The empty list means there is nothing to do.
-
-      [cropping] is the container's, found in the stream parameters:
-      [Avcodec.Packet_side_data.cropping (Avcodec.params_side_data params)].
-
-      It is for a program that inserts the chain in a graph of its own;
-      {!convert_display} is the ready-made converter. *)
-  val display_filters :
-    ?cropping:Avutil.cropping ->
-    Avutil.Frame_side_data.raw list ->
-    filter_spec list
-
   (** The picture a display chain produces: its size, its pixel aspect ratio,
       and the filters that produce it. *)
   type display_layout = {
@@ -511,7 +495,11 @@ module Utils : sig
 
   (** [display_layout ?cropping ?display_matrix ?pixel_aspect ~width ~height ()]
       is the layout of a [width]x[height] picture once shown upright and
-      cropped: {!display_filters} with the geometry of each filter applied. A
+      cropped. [filters] is the chain that does it, in the order to link them:
+      {!filter_of_cropping}, then {!filter_of_transform} on each step the
+      display matrix asks for. [cropping] is the container's, found in the
+      stream parameters:
+      [Avcodec.Packet_side_data.cropping (Avcodec.params_side_data params)]. A
       quarter turn swaps the width and the height and inverts the pixel aspect
       ratio. It is [`Undecided] where there is no single right answer; the
       caller then decides, for instance from {!filter_of_transform}. *)
@@ -528,9 +516,6 @@ module Utils : sig
       hardware pixel format, which no software filter can transform. *)
   type undecided_frame = [ undecided | `Hardware_frame ]
 
-  (** A sentence saying why nothing was decided. *)
-  val string_of_undecided : undecided_frame -> string
-
   (** The arguments of a [buffer] source that takes frames of the given format,
       with timestamps in [time_base]: the size, the pixel format, and the pixel
       aspect, colour space and colour range when the format has them. *)
@@ -538,14 +523,15 @@ module Utils : sig
     time_base:Avutil.rational -> Avutil.Video.frame_format -> args list
 
   (** A converter that delivers decoded video frames upright and cropped. It
-      reads the display matrix of each frame and runs {!display_filters} on a
-      private graph, rebuilt when the matrix or the {!Avutil.Video.frame_format}
-      of the frames changes. Two threads must not use one at the same time. *)
+      reads the display matrix of each frame and runs the filters of
+      {!display_layout} on a private graph, rebuilt when the matrix or the
+      {!Avutil.Video.frame_format} of the frames changes. Two threads must not
+      use one at the same time. *)
   type display_converter
 
   (** [init_display_converter ?cropping ?on_undecided ~time_base ()] is a
       converter for frames whose timestamps are in [time_base]. [cropping] is as
-      in {!display_filters}.
+      in {!display_layout}.
 
       [on_undecided] is asked what to do with the frames the converter cannot
       decide for, once per run of frames with the same question. [Some filters]

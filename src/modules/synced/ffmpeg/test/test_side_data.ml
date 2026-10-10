@@ -285,13 +285,6 @@ let requirement_13_8 () =
   equal None
     (filter_of_cropping { top = 0; bottom = 0; left = 0; right = 0 })
     "nothing to crop";
-  let side_data = [frame_matrix (Display_matrix.make 180.)] in
-  equal
-    (Option.to_list (filter_of_cropping cropping)
-    @ List.map filter_of_transform [`Hflip; `Vflip])
-    (display_filters ~cropping side_data)
-    "display_filters is the composition, cropping first";
-  equal [] (display_filters []) "nothing to do";
   let layout ?cropping ?display_matrix () =
     display_layout ?cropping ?display_matrix ~pixel_aspect:{ num = 4; den = 3 }
       ~width:320 ~height:240 ()

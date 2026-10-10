@@ -197,8 +197,34 @@ type video_converter = {
   format : Avutil.Video.frame_format;
   time_base : Avutil.rational;
   stream_idx : int64;
-  scaler : InternalScaler.t;
+  scale : Avutil.video Avutil.frame -> Video.Canvas.Image.t;
   fps : Ffmpeg_avfilter_utils.Fps.t;
+}
+
+(* What a video decoder is built from. *)
+type video_codec = {
+  codec_id : Avcodec.Video.id;
+  width : int;
+  height : int;
+  pixel_format : Avutil.Pixel_format.t option;
+}
+
+(* The stream being decoded. The display stage is built from the side data of
+   the stream, which can change while the codec stays: it is replaced alone. *)
+type video_stream = {
+  stream_idx : int64;
+  time_base : Avutil.rational;
+  codec : video_codec;
+  decoder : Avutil.video Avcodec.decoder;
+  mutable params : Ffmpeg_copy_content.video_params;
+  mutable display : Ffmpeg_avfilter_utils.Display.t;
+}
+
+(* The display stage of raw frames, which come with their own side data. *)
+type raw_video_stream = {
+  raw_stream_idx : int64;
+  raw_time_base : Avutil.rational;
+  raw_display : Ffmpeg_avfilter_utils.Display.t;
 }
 
 let decode_video_frame ~field ~mode generator =
@@ -212,19 +238,17 @@ let decode_video_frame ~field ~mode generator =
 
     let mk_converter ~time_base ~stream_idx (format : Avutil.Video.frame_format)
         =
-      let scaler =
-        InternalScaler.create
-          ~threads:(Ffmpeg_utils.scaling_threads ())
-          [] format.width format.height format.pixel_format internal_width
-          internal_height
-          (Ffmpeg_utils.liq_frame_pixel_format_for format.pixel_format)
-      in
       let created =
         {
           format;
           time_base;
           stream_idx;
-          scaler;
+          scale =
+            Ffmpeg_decoder_common.internal_scaler ~width:internal_width
+              ~height:internal_height
+              ~pixel_format:
+                (Ffmpeg_utils.liq_frame_pixel_format_for format.pixel_format)
+              format;
           fps =
             Ffmpeg_avfilter_utils.Fps.of_frame_format ~format ~time_base
               ~target_fps ();
@@ -247,121 +271,119 @@ let decode_video_frame ~field ~mode generator =
             mk_converter ~time_base ~stream_idx format
     in
 
-    let put ~scaler data =
-      let img =
-        Ffmpeg_utils.unpack_image ~width:internal_width ~height:internal_height
-          (InternalScaler.convert scaler data)
-      in
-      let data = Content.Video.lift_image (Video.Canvas.Image.make img) in
-      Generator.put generator field data
+    let put ~scale frame =
+      Generator.put generator field (Content.Video.lift_image (scale frame))
     in
 
     fun ~time_base ~stream_idx -> function
       | `Frame frame ->
-          let { scaler; fps; _ } =
+          let { scale; fps; _ } =
             get_converter ~time_base ~stream_idx
               (Avutil.Video.frame_format frame)
           in
-          Ffmpeg_avfilter_utils.Fps.convert fps frame (put ~scaler)
+          Ffmpeg_avfilter_utils.Fps.convert fps frame (put ~scale)
       | `Flush ->
           Option.iter
-            (fun { scaler; fps; _ } ->
-              Ffmpeg_avfilter_utils.Fps.eof fps (put ~scaler))
+            (fun { scale; fps; _ } ->
+              Ffmpeg_avfilter_utils.Fps.eof fps (put ~scale))
             !converter
   in
 
   let mk_copy_decoder () =
     let convert = mk_converter () in
+    let current = ref None in
 
-    let current_stream_idx = ref None in
-    let current_time_base = ref None in
-    let current_params = ref None in
-    let current_decoder = ref None in
-    let current_display = ref None in
-
-    (* What a decoder is built from: parameters that differ here need a new
-       one. *)
-    let stream_key (params : Ffmpeg_copy_content.video_params) =
+    let codec_of (params : Ffmpeg_copy_content.video_params) =
       let codec_params = params.Ffmpeg_copy_content.codec_params in
-      ( Avcodec.Video.get_params_id codec_params,
-        Avcodec.Video.get_width codec_params,
-        Avcodec.Video.get_height codec_params,
-        Avcodec.Video.get_pixel_format codec_params,
-        Avcodec.params_side_data codec_params )
+      {
+        codec_id = Avcodec.Video.get_params_id codec_params;
+        width = Avcodec.Video.get_width codec_params;
+        height = Avcodec.Video.get_height codec_params;
+        pixel_format = Avcodec.Video.get_pixel_format codec_params;
+      }
     in
-    let same_stream (params : Ffmpeg_copy_content.video_params) =
-      match !current_params with
-        | None -> false
-        | Some (current : Ffmpeg_copy_content.video_params) ->
-            current.codec_params == params.codec_params
-            || stream_key current = stream_key params
+    let side_data (params : Ffmpeg_copy_content.video_params) =
+      Avcodec.params_side_data params.Ffmpeg_copy_content.codec_params
     in
-
-    let flush_display ~time_base ~stream_idx =
-      Option.iter
-        (fun display ->
-          Ffmpeg_avfilter_utils.Display.eof display (fun frame ->
-              convert ~time_base ~stream_idx (`Frame frame)))
-        !current_display
+    let mk_display ~time_base (params : Ffmpeg_copy_content.video_params) =
+      Ffmpeg_avfilter_utils.Display.init
+        ~params:params.Ffmpeg_copy_content.codec_params ~time_base ()
     in
 
-    let convert ~time_base ~stream_idx = function
-      | `Frame frame ->
-          Ffmpeg_avfilter_utils.Display.convert (Option.get !current_display)
-            frame (fun frame -> convert ~time_base ~stream_idx (`Frame frame))
-      | `Flush ->
-          flush_display ~time_base ~stream_idx;
-          convert ~time_base ~stream_idx `Flush
+    let deliver { stream_idx; time_base; _ } frame =
+      convert ~time_base ~stream_idx (`Frame frame)
+    in
+    let display stream frame =
+      Ffmpeg_avfilter_utils.Display.convert stream.display frame
+        (deliver stream)
+    in
+    let flush_display stream =
+      Ffmpeg_avfilter_utils.Display.eof stream.display (deliver stream)
+    in
+    let flush stream =
+      Avcodec.flush_decoder stream.decoder (display stream);
+      flush_display stream
     in
 
-    let mk_decoder ~(params : Ffmpeg_copy_content.video_params) ~stream_idx
-        ~time_base =
-      let codec_id =
-        Avcodec.Video.get_params_id params.Ffmpeg_copy_content.codec_params
+    let mk_stream ~stream_idx ~time_base
+        (params : Ffmpeg_copy_content.video_params) =
+      let codec = codec_of params in
+      let stream =
+        {
+          stream_idx;
+          time_base;
+          codec;
+          decoder =
+            Avcodec.Video.create_decoder
+              ~params:params.Ffmpeg_copy_content.codec_params
+              (Avcodec.Video.find_decoder codec.codec_id);
+          params;
+          display = mk_display ~time_base params;
+        }
       in
-      let codec = Avcodec.Video.find_decoder codec_id in
-      let decoder =
-        Avcodec.Video.create_decoder
-          ~params:params.Ffmpeg_copy_content.codec_params codec
-      in
-      current_decoder := Some decoder;
-      current_display :=
-        Some
-          (Ffmpeg_avfilter_utils.Display.init
-             ~params:params.Ffmpeg_copy_content.codec_params ~time_base ());
-      current_stream_idx := Some stream_idx;
-      current_params := Some params;
-      current_time_base := Some time_base;
-      decoder
+      current := Some stream;
+      stream
     in
 
-    let get_decoder ~params ~stream_idx ~time_base =
-      match !current_decoder with
-        | None -> mk_decoder ~params ~stream_idx ~time_base
-        | Some decoder
-          when !current_stream_idx <> Some stream_idx
-               || !current_time_base <> Some time_base
-               || not (same_stream params) ->
-            log#info "Video frame format change detected..";
-            ignore
-              (Option.map
-                 (fun stream_idx ->
-                   let time_base = Option.get !current_time_base in
-                   Avcodec.flush_decoder decoder (fun frame ->
-                       convert ~time_base ~stream_idx (`Frame frame));
-                   flush_display ~time_base ~stream_idx)
-                 !current_stream_idx);
-            mk_decoder ~params ~stream_idx ~time_base
-        | Some d ->
-            current_params := Some params;
-            d
+    (* A decoder restarted in the middle of a group of pictures has no
+       reference to decode from, so a change of side data alone keeps it. *)
+    let follow_side_data stream (params : Ffmpeg_copy_content.video_params) =
+      if
+        stream.params.Ffmpeg_copy_content.codec_params
+        != params.Ffmpeg_copy_content.codec_params
+      then (
+        if side_data stream.params <> side_data params then (
+          flush_display stream;
+          stream.display <- mk_display ~time_base:stream.time_base params);
+        stream.params <- params)
+    in
+
+    let get_stream ~stream_idx ~time_base
+        (params : Ffmpeg_copy_content.video_params) =
+      match !current with
+        | Some stream
+          when stream.stream_idx = stream_idx
+               && stream.time_base = time_base
+               && (stream.params.Ffmpeg_copy_content.codec_params
+                   == params.Ffmpeg_copy_content.codec_params
+                  || stream.codec = codec_of params) ->
+            follow_side_data stream params;
+            stream
+        | previous ->
+            Option.iter
+              (fun stream ->
+                log#info "Video frame format change detected..";
+                flush stream)
+              previous;
+            mk_stream ~stream_idx ~time_base params
     in
     function
     | `Frame frame ->
         let content = Ffmpeg_copy_content.get_data frame in
-        let params = Ffmpeg_content_base.params content in
-        let video_params =
-          match params with Some (`Video p) -> p | _ -> assert false
+        let params =
+          match Ffmpeg_content_base.params content with
+            | Some (`Video p) -> p
+            | _ -> assert false
         in
         List.iter
           (fun chunk_data ->
@@ -374,39 +396,47 @@ let decode_video_frame ~field ~mode generator =
             List.iter
               (function
                 | _, `Video packet ->
-                    let decoder =
-                      get_decoder ~params:video_params ~time_base ~stream_idx
-                    in
-                    Avcodec.decode decoder
-                      (fun frame ->
-                        convert ~time_base ~stream_idx (`Frame frame))
-                      packet
+                    let stream = get_stream ~stream_idx ~time_base params in
+                    Avcodec.decode stream.decoder (display stream) packet
                 | _ -> assert false)
               data)
           content.chunks
     | `Flush ->
-        ignore
-          (Option.map
-             (fun stream_idx ->
-               let decoder =
-                 get_decoder
-                   ~params:(Option.get !current_params)
-                   ~time_base:(Option.get !current_time_base)
-                   ~stream_idx:(Option.get !current_stream_idx)
-               in
-               Avcodec.flush_decoder decoder (fun frame ->
-                   convert
-                     ~time_base:(Option.get !current_time_base)
-                     ~stream_idx (`Frame frame));
-               convert
-                 ~time_base:(Option.get !current_time_base)
-                 ~stream_idx `Flush)
-             !current_stream_idx)
+        Option.iter
+          (fun stream ->
+            flush stream;
+            convert ~time_base:stream.time_base ~stream_idx:stream.stream_idx
+              `Flush)
+          !current
   in
 
   let mk_raw_decoder () =
     let convert = mk_converter () in
-    let last_params = ref None in
+    let current = ref None in
+    let deliver { raw_stream_idx; raw_time_base; _ } frame =
+      convert ~time_base:raw_time_base ~stream_idx:raw_stream_idx (`Frame frame)
+    in
+    let flush_display stream =
+      Ffmpeg_avfilter_utils.Display.eof stream.raw_display (deliver stream)
+    in
+    let get_stream ~stream_idx ~time_base =
+      match !current with
+        | Some stream
+          when stream.raw_stream_idx = stream_idx
+               && stream.raw_time_base = time_base ->
+            stream
+        | previous ->
+            Option.iter flush_display previous;
+            let stream =
+              {
+                raw_stream_idx = stream_idx;
+                raw_time_base = time_base;
+                raw_display = Ffmpeg_avfilter_utils.Display.init ~time_base ();
+              }
+            in
+            current := Some stream;
+            stream
+    in
     function
     | `Frame frame ->
         let content = Ffmpeg_raw_content.Video.get_data frame in
@@ -418,18 +448,20 @@ let decode_video_frame ~field ~mode generator =
             let data =
               List.sort (fun (pos, _) (pos', _) -> compare pos pos') data
             in
+            let stream = get_stream ~stream_idx ~time_base in
             List.iter
               (fun (_, frame) ->
-                last_params := Some (time_base, stream_idx);
-                convert ~time_base ~stream_idx (`Frame frame))
+                Ffmpeg_avfilter_utils.Display.convert stream.raw_display frame
+                  (deliver stream))
               data)
           content.chunks
     | `Flush ->
-        ignore
-          (Option.map
-             (fun (time_base, stream_idx) ->
-               convert ~time_base ~stream_idx `Flush)
-             !last_params)
+        Option.iter
+          (fun stream ->
+            flush_display stream;
+            convert ~time_base:stream.raw_time_base
+              ~stream_idx:stream.raw_stream_idx `Flush)
+          !current
   in
 
   let convert ~decoder = function

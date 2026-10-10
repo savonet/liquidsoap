@@ -136,26 +136,9 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
     if alpha then Ffmpeg_utils.liq_frame_pixel_format_with_alpha
     else Ffmpeg_utils.liq_frame_pixel_format
   in
-  let mk_scale ({ Avutil.Video.width; height; pixel_format; _ } as format) =
-    let aw, ah =
-      Ffmpeg_avfilter_utils.Fit.fitted_size ~width:target_width
-        ~height:target_height format
-    in
-    let scaler =
-      Scaler.create
-        ~threads:(Ffmpeg_utils.scaling_threads ())
-        [] width height pixel_format aw ah target_pixel_format
-    in
-    fun frame : Video.Canvas.Image.t ->
-      let img =
-        Scaler.convert scaler frame
-        |> Ffmpeg_utils.unpack_image ~width:aw ~height:ah
-      in
-      let x = (target_width - aw) / 2 in
-      let y = (target_height - ah) / 2 in
-      Video.Canvas.Image.make img
-      |> Video.Canvas.Image.translate x y
-      |> Video.Canvas.Image.viewport target_width target_height
+  let mk_scale =
+    Ffmpeg_decoder_common.internal_scaler ~width:target_width
+      ~height:target_height ~pixel_format:target_pixel_format
   in
   let time_base = Av.get_time_base stream in
   let stream_pixel_aspect = Av.get_pixel_aspect stream in

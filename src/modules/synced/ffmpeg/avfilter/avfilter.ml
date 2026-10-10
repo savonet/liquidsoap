@@ -444,16 +444,6 @@ module Utils = struct
             `Pair ("y", `Int top);
           ] )
 
-  (* spec/avfilter.md §11.4. *)
-  let display_filters ?cropping side_data =
-    let crop = Option.to_list (Option.bind cropping filter_of_cropping) in
-    let transforms =
-      match Frame_side_data.display_matrix side_data with
-        | None -> []
-        | Some matrix -> Display_matrix.transforms matrix
-    in
-    crop @ List.map filter_of_transform transforms
-
   type display_layout = {
     width : int;
     height : int;

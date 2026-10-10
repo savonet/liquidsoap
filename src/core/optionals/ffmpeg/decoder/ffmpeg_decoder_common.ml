@@ -151,3 +151,27 @@ let mk_subtitle_decoder ~output ~process () =
     | `Subtitle subtitle -> process ~buffer subtitle
   in
   { decoder; advance }
+
+module Internal_scaler = Swscale.Make (Swscale.Frame) (Swscale.BigArray)
+
+(* Every decoder to internal content scales through this: the picture keeps its
+   proportions as displayed and is centred in the internal frame. *)
+let internal_scaler ~width ~height ~pixel_format
+    (format : Avutil.Video.frame_format) =
+  let fitted_width, fitted_height =
+    Ffmpeg_avfilter_utils.Fit.fitted_size ~width ~height format
+  in
+  let scaler =
+    Internal_scaler.create
+      ~threads:(Ffmpeg_utils.scaling_threads ())
+      [] format.width format.height format.pixel_format fitted_width
+      fitted_height pixel_format
+  in
+  fun frame : Mm.Video.Canvas.Image.t ->
+    Internal_scaler.convert scaler frame
+    |> Ffmpeg_utils.unpack_image ~width:fitted_width ~height:fitted_height
+    |> Mm.Video.Canvas.Image.make
+    |> Mm.Video.Canvas.Image.translate
+         ((width - fitted_width) / 2)
+         ((height - fitted_height) / 2)
+    |> Mm.Video.Canvas.Image.viewport width height

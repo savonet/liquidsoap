@@ -75,9 +75,13 @@ the pixel format always count.
   the change: frames decoded before it are delivered, and scaling is rebuilt
   for the new format. The picture is scaled into the same internal frame, so
   nothing downstream depends on the change and the track continues.
-- **C2.** `ffmpeg.decode.video` treats a change of the codec parameters of
-  its input on one stream (codec, size, pixel format, side data) as C1: the
-  decoder and its display stage are rebuilt.
+- **C2.** `ffmpeg.decode.video` builds its decoder from the codec, the size
+  and the pixel format of its input. A change of one of them on one stream is
+  treated as C1: the decoder and its display stage are rebuilt. A change of
+  side data alone rebuilds the display stage and keeps the decoder, which has
+  no reference to restart from in the middle of a group of pictures.
+  `ffmpeg.raw.decode.video` sends its frames through a display stage of its
+  own: a raw frame that still carries a display matrix comes out upright.
 - **C3.** The format of an `ffmpeg.raw` video track (width, height, pixel
   format, pixel aspect) is open until a first frame flows through, which sets
   it. Every producer of raw video, a decoder or a filter graph output,
@@ -97,12 +101,12 @@ the pixel format always count.
 - **C6.** The raw video encoder fits the frames it takes to the size of its
   stream, and rebuilds that conversion when their format changes.
 - **C7.** Nothing stretches a picture. Every conversion to a frame of another
-  shape (C1, C3, C6) takes its size from `Ffmpeg_avfilter_utils.Fit.fitted_size`:
-  the largest size that keeps the proportions of the picture as displayed,
-  the pixel aspect of the source and of the destination accounted for. The
-  picture is centred and the rest is black. `ffmpeg.decode.video` and
-  `ffmpeg.raw.decode.video` are the exception: they scale to the internal
-  frame without keeping proportions.
+  shape takes its size from `Ffmpeg_avfilter_utils.Fit.fitted_size`: the
+  largest size that keeps the proportions of the picture as displayed, the
+  pixel aspect of the source and of the destination accounted for. The
+  picture is centred and the rest is black. Decoders to internal content,
+  `ffmpeg.decode.video` and `ffmpeg.raw.decode.video` included, share
+  `Ffmpeg_decoder_common.internal_scaler` for it.
 
 ## 4. Passing through
 

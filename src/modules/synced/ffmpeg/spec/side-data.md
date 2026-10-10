@@ -57,14 +57,15 @@ stop at any level and compose the rest itself.
 | 1 → 2       | `Frame_side_data.decode`, `.display_matrix`; `Packet_side_data.decode`, `.display_matrix`, `.cropping`       | [avutil.md](avutil.md) §4.20, [avcodec.md](avcodec.md) §4.11        |
 | within 2    | `Display_matrix.rotation`, `Display_matrix.transforms`                                                       | [avutil.md](avutil.md) §4.19                                        |
 | 2 → 3       | `Avfilter.Utils.filter_of_transform`, `Avfilter.Utils.filter_of_cropping`                                    | [avfilter.md](avfilter.md) §4.13                                    |
-| 1 → 3       | `Avfilter.Utils.display_filters`, `display_layout`, the display converter                                    | [avfilter.md](avfilter.md) §4.13, §11.4, §11.5                      |
+| 1 → 3       | `Avfilter.Utils.display_layout`, the display converter                                                       | [avfilter.md](avfilter.md) §4.13, §11.4, §11.5                      |
 | 2 → 1       | `Frame_side_data.encode`, `Packet_side_data.encode`, `Display_matrix.make`                                   | [avutil.md](avutil.md) §4.19, §4.20, [avcodec.md](avcodec.md) §4.11 |
 | 1 → carrier | `Frame.add_side_data`, `Packet.add_raw_side_data`, `Avcodec.params_with_side_data`, `?side_data` of encoders | the same, and [avformat.md](avformat.md) §4.4                       |
 
-- **R0. Level 3 is a composition.** Every function of the "1 → 3" row is
-  defined as a composition of the functions above it, and MUST behave as that
-  composition. It holds no rule of its own: a program that composes the
-  translations by hand gets the same result.
+- **R0. Level 3 is a composition.** Where level 3 decides (R13), its
+  filters are the composition of the functions above it, and a program that
+  composes the translations by hand gets the same chain. What level 3 adds is
+  the decision itself: `display_layout` is the one place that says whether a
+  cropping and a display matrix have a single right answer.
 
 - **R13. Level 3 decides nothing that has no single right answer.** Where
   the meaning of an entry leaves a choice (a rotation that is not a quarter

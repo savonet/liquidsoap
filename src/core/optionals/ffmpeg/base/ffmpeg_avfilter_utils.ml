@@ -403,6 +403,8 @@ module Fit = struct
     if num * height <= width * den then (max 1 (height * num / den), height)
     else (width, max 1 (width * den / num))
 
+  (* TODO: [scale] drops the chroma location of the frame, so a consumer built
+     for the frames before the fit sees one more format change. *)
   let filters ~(source : Avutil.Video.frame_format) target =
     let known_aspect =
       match target.pixel_aspect with
