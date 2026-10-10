@@ -193,14 +193,6 @@ let decode_audio_frame ~field ~mode generator =
     | `Decode -> convert ~decoder:(mk_copy_decoder ())
     | `Raw -> convert ~decoder:(mk_raw_decoder ())
 
-type video_converter = {
-  format : Avutil.Video.frame_format;
-  time_base : Avutil.rational;
-  stream_idx : int64;
-  scale : Avutil.video Avutil.frame -> Video.Canvas.Image.t;
-  fps : Ffmpeg_avfilter_utils.Fps.t;
-}
-
 (* What a video decoder is built from. *)
 type video_codec = {
   codec_id : Avcodec.Video.id;
@@ -209,8 +201,9 @@ type video_codec = {
   pixel_format : Avutil.Pixel_format.t option;
 }
 
-(* The stream being decoded. The display stage is built from the side data of
-   the stream, which can change while the codec stays: it is replaced alone. *)
+(* The stream being decoded. Its side data can change while the codec stays:
+   the decoder is kept, the display stage is replaced, and [matrix] takes the
+   place of the display matrix the decoder puts on its frames. *)
 type video_stream = {
   stream_idx : int64;
   time_base : Avutil.rational;
@@ -218,6 +211,7 @@ type video_stream = {
   decoder : Avutil.video Avcodec.decoder;
   mutable params : Ffmpeg_copy_content.video_params;
   mutable display : Ffmpeg_avfilter_utils.Display.t;
+  mutable matrix : [ `Decoder | `Stream of Avutil.Display_matrix.t option ];
 }
 
 (* The display stage of raw frames, which come with their own side data. *)
@@ -231,62 +225,22 @@ let decode_video_frame ~field ~mode generator =
   let video_width, video_height = Frame.video_dimensions () in
   let internal_width = Lazy.Mutexed.force video_width in
   let internal_height = Lazy.Mutexed.force video_height in
-  let target_fps = Lazy.Mutexed.force Frame.video_rate in
 
   let mk_converter () =
-    let converter = ref None in
-
-    let mk_converter ~time_base ~stream_idx (format : Avutil.Video.frame_format)
-        =
-      let created =
-        {
-          format;
-          time_base;
-          stream_idx;
-          scale =
-            Ffmpeg_decoder_common.internal_scaler ~width:internal_width
-              ~height:internal_height
-              ~pixel_format:
-                (Ffmpeg_utils.liq_frame_pixel_format_for format.pixel_format)
-              format;
-          fps =
-            Ffmpeg_avfilter_utils.Fps.of_frame_format ~format ~time_base
-              ~target_fps ();
-        }
-      in
-      converter := Some created;
-      created
+    let { Ffmpeg_decoder_common.convert; flush } =
+      Ffmpeg_decoder_common.internal_video_converter ~width:internal_width
+        ~height:internal_height
+        ~pixel_format:(fun format ->
+          Ffmpeg_utils.liq_frame_pixel_format_for
+            format.Avutil.Video.pixel_format)
+        ()
     in
-
-    let get_converter ~time_base ~stream_idx format =
-      match !converter with
-        | Some built
-          when built.time_base = time_base
-               && built.stream_idx = stream_idx
-               && Ffmpeg_utils.same_video_format built.format format ->
-            built
-        | previous ->
-            if previous <> None then
-              log#info "Video frame format change detected..";
-            mk_converter ~time_base ~stream_idx format
+    let put image _ =
+      Generator.put generator field (Content.Video.lift_image image)
     in
-
-    let put ~scale frame =
-      Generator.put generator field (Content.Video.lift_image (scale frame))
-    in
-
     fun ~time_base ~stream_idx -> function
-      | `Frame frame ->
-          let { scale; fps; _ } =
-            get_converter ~time_base ~stream_idx
-              (Avutil.Video.frame_format frame)
-          in
-          Ffmpeg_avfilter_utils.Fps.convert fps frame (put ~scale)
-      | `Flush ->
-          Option.iter
-            (fun { scale; fps; _ } ->
-              Ffmpeg_avfilter_utils.Fps.eof fps (put ~scale))
-            !converter
+      | `Frame frame -> convert ~stream_idx ~time_base ~put frame
+      | `Flush -> flush ~put ()
   in
 
   let mk_copy_decoder () =
@@ -313,9 +267,22 @@ let decode_video_frame ~field ~mode generator =
     let deliver { stream_idx; time_base; _ } frame =
       convert ~time_base ~stream_idx (`Frame frame)
     in
+    let with_matrix stream frame =
+      match stream.matrix with
+        | `Decoder -> frame
+        | `Stream matrix ->
+            let frame = Avutil.Frame.dup frame in
+            Avutil.Frame.remove_side_data frame `Displaymatrix;
+            Option.iter
+              (fun matrix ->
+                Avutil.Frame.add_side_data frame
+                  (Avutil.Frame_side_data.encode (`Display_matrix matrix)))
+              matrix;
+            frame
+    in
     let display stream frame =
-      Ffmpeg_avfilter_utils.Display.convert stream.display frame
-        (deliver stream)
+      Ffmpeg_avfilter_utils.Display.convert stream.display
+        (with_matrix stream frame) (deliver stream)
     in
     let flush_display stream =
       Ffmpeg_avfilter_utils.Display.eof stream.display (deliver stream)
@@ -339,6 +306,7 @@ let decode_video_frame ~field ~mode generator =
               (Avcodec.Video.find_decoder codec.codec_id);
           params;
           display = mk_display ~time_base params;
+          matrix = `Decoder;
         }
       in
       current := Some stream;
@@ -354,7 +322,9 @@ let decode_video_frame ~field ~mode generator =
       then (
         if side_data stream.params <> side_data params then (
           flush_display stream;
-          stream.display <- mk_display ~time_base:stream.time_base params);
+          stream.display <- mk_display ~time_base:stream.time_base params;
+          stream.matrix <-
+            `Stream (Avcodec.Packet_side_data.display_matrix (side_data params)));
         stream.params <- params)
     in
 

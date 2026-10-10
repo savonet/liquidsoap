@@ -122,34 +122,30 @@ let mk_audio_decoder ~channels ~field ~pcm_kind codec =
           Generator.add_metadata buffer.Decoder.generator
             (Frame.Metadata.from_list metadata)
 
-type video_converter = {
-  format : Avutil.Video.frame_format;
-  scale : Avutil.video Avutil.frame -> Video.Canvas.Image.t;
-  fps : Ffmpeg_avfilter_utils.Fps.t;
-}
-
 let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
-  let target_width = width in
-  let target_height = height in
   let target_fps = Lazy.Mutexed.force Frame.video_rate in
-  let target_pixel_format =
+  let pixel_format =
     if alpha then Ffmpeg_utils.liq_frame_pixel_format_with_alpha
     else Ffmpeg_utils.liq_frame_pixel_format
   in
-  let mk_scale =
-    Ffmpeg_decoder_common.internal_scaler ~width:target_width
-      ~height:target_height ~pixel_format:target_pixel_format
+  let { Ffmpeg_decoder_common.convert; flush } =
+    Ffmpeg_decoder_common.internal_video_converter ~width ~height
+      ~pixel_format:(fun _ -> pixel_format)
+      ()
   in
   let time_base = Av.get_time_base stream in
-  let stream_pixel_aspect = Av.get_pixel_aspect stream in
+  let stream_pixel_aspect =
+    Ffmpeg_avfilter_utils.Display.pixel_aspect
+      ?stored:(Av.get_pixel_aspect stream)
+      codec
+  in
   let display =
     Ffmpeg_avfilter_utils.Display.init ~params:codec ~time_base ()
   in
-  let cb ~scale ~buffer frame =
-    let img = scale frame in
+  let put ~buffer image frame =
     buffer.Decoder.put_yuva420p ~field
       ~fps:{ Decoder.num = target_fps; den = 1 }
-      img;
+      image;
     let metadata = Avutil.Frame.metadata frame in
     if metadata <> [] then
       Generator.add_metadata buffer.Decoder.generator
@@ -161,41 +157,15 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
       | None -> { format with pixel_aspect = stream_pixel_aspect }
       | Some _ -> format
   in
-  let converter = ref None in
-  let flush ~buffer =
-    Option.iter
-      (fun { scale; fps; _ } ->
-        Ffmpeg_avfilter_utils.Fps.eof fps (cb ~scale ~buffer))
-      !converter
-  in
-  (* A rotation that changes in the middle of a stream changes the size of
-     the frames. *)
-  let get_converter ~buffer format =
-    match !converter with
-      | Some converter
-        when Ffmpeg_utils.same_video_format converter.format format ->
-          converter
-      | previous ->
-          flush ~buffer;
-          if previous <> None then log#important "Video format change.";
-          let fps =
-            Ffmpeg_avfilter_utils.Fps.of_frame_format ~format ~time_base
-              ~target_fps ()
-          in
-          let created = { format; scale = mk_scale format; fps } in
-          converter := Some created;
-          created
-  in
   let convert ~buffer frame =
-    let { scale; fps; _ } = get_converter ~buffer (frame_format frame) in
-    Ffmpeg_avfilter_utils.Fps.convert fps frame (cb ~scale ~buffer)
+    convert ~format:(frame_format frame) ~time_base ~put:(put ~buffer) frame
   in
   fun ~buffer -> function
     | `Frame frame ->
         Ffmpeg_avfilter_utils.Display.convert display frame (convert ~buffer)
     | `Flush ->
         Ffmpeg_avfilter_utils.Display.eof display (convert ~buffer);
-        flush ~buffer
+        flush ~put:(put ~buffer) ()
 
 let main_of_subtitle_time time = Frame.main_of_seconds (float time /. 1000.)
 

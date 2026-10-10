@@ -483,8 +483,28 @@ configuration of a graph input, and the display converter uses it.
 | `pix_fmt`      | the identifier of the pixel format | always                     |
 | `time_base`    | `time_base`                        | always                     |
 | `pixel_aspect` | the pixel aspect                   | when it is known           |
-| `colorspace`   | FFmpeg's name of the colour space  | when it is not unspecified |
+| `colorspace`   | FFmpeg's name of the colour space  | when the source accepts it |
 | `range`        | FFmpeg's name of the colour range  | when it is not unspecified |
+
+The `buffer` source accepts every colour space FFmpeg names except
+`reserved`. An unspecified, unnamed or reserved colour space is left out, so
+that a stream carrying one still builds a graph.
+
+```ocaml
+type video_chain = {
+  chain_source : [ `Video ] input;
+  chain_sink : [ `Video ] output;
+}
+val video_chain :
+  time_base:Avutil.rational -> Avutil.Video.frame_format ->
+  filter_spec list -> video_chain
+```
+
+A launched graph of its own: a `buffer` source attached with
+`video_buffer_args`, each filter attached and linked in order, a `buffersink`.
+An unknown filter name raises `` `Filter_not_found ``; any failure of FFmpeg
+raises (§5). It is the one builder of linear video graphs, and the display
+converter (§11.5) uses it.
 
 ## 5. Errors
 

@@ -29,14 +29,30 @@ end
 
 read_rotation = ref(fun () -> null)
 undecided = ref([])
-todo = ref(6)
+rotations = ref([])
+todo = ref(7)
 
-# odd.mp4 is stored with a rotation that is not a quarter turn.
+# Whether an angle is the expected one, in either direction.
+def near(angle, expected) =
+  angle = abs(angle)
+  abs(min(angle, 360. - angle) - expected) < 2.
+end
+
+# odd.mp4 and skewed.mp4 are stored with rotations of 33 and 20 degrees, which
+# are not quarter turns. The first is decided here, the second is left alone.
 ffmpeg.autorotate.on_undecided(
   fun (question) ->
     begin
       undecided := [...undecided(), question.reason]
-      [("transpose", [("dir", "clock")])]
+      rotation = question.rotation ?? 0.
+      rotations := [...rotations(), rotation]
+      if
+        near(rotation, 20.)
+      then
+        null
+      else
+        [("transpose", [("dir", "clock")])]
+      end
     end
 )
 
@@ -61,7 +77,17 @@ def check() =
     list.for_all(fun (reason) -> reason == "odd_rotation", undecided()),
     true
   )
+  test.equal(
+    list.for_all(
+      fun (rotation) -> near(rotation, 33.) or near(rotation, 20.),
+      rotations()
+    ),
+    true
+  )
   test.equal(probe("side-data-odd.mp4").rotation, 0)
+
+  # No decision: the video keeps its rotation.
+  test.equal(near(float(probe("side-data-skewed.mp4").rotation), 20.), true)
   test.pass()
 end
 
@@ -149,4 +175,10 @@ run(
   "odd",
   %ffmpeg(format = "mp4", %video.raw(codec = "mpeg4")),
   once(single("odd.mp4"))
+)
+
+run(
+  "skewed",
+  %ffmpeg(format = "mp4", %video.raw(codec = "mpeg4")),
+  once(single("skewed.mp4"))
 )

@@ -175,3 +175,78 @@ let internal_scaler ~width ~height ~pixel_format
          ((width - fitted_width) / 2)
          ((height - fitted_height) / 2)
     |> Mm.Video.Canvas.Image.viewport width height
+
+type internal_video_stage = {
+  format : Avutil.Video.frame_format;
+  time_base : Avutil.rational;
+  stream_idx : int64;
+  scale : Avutil.video Avutil.frame -> Mm.Video.Canvas.Image.t;
+  fps : Ffmpeg_avfilter_utils.Fps.t;
+}
+
+(** [convert] takes a decoded frame and [flush] the end of the stream; both call
+    [put] with each image and the frame it comes from. *)
+type internal_video_converter = {
+  convert :
+    ?stream_idx:int64 ->
+    ?format:Avutil.Video.frame_format ->
+    time_base:Avutil.rational ->
+    put:(Mm.Video.Canvas.Image.t -> Avutil.video Avutil.frame -> unit) ->
+    Avutil.video Avutil.frame ->
+    unit;
+  flush :
+    put:(Mm.Video.Canvas.Image.t -> Avutil.video Avutil.frame -> unit) ->
+    unit ->
+    unit;
+}
+
+(* Every decoder to internal content turns its frames into images through
+   this. Its scaler and frame rate conversion are built for one stream and one
+   frame format: a change of either delivers what they hold, then builds them
+   again. *)
+let internal_video_converter ~width ~height ~pixel_format () =
+  let target_fps = Lazy.Mutexed.force Frame.video_rate in
+  let current = ref None in
+  let flush ~put () =
+    Option.iter
+      (fun { scale; fps; _ } ->
+        Ffmpeg_avfilter_utils.Fps.eof fps (fun frame -> put (scale frame) frame))
+      !current
+  in
+  let stage ~put ~stream_idx ~time_base format =
+    match !current with
+      | Some stage
+        when stage.stream_idx = stream_idx
+             && stage.time_base = time_base
+             && Ffmpeg_utils.same_video_format stage.format format ->
+          stage
+      | previous ->
+          flush ~put ();
+          if previous <> None then log#important "Video format change.";
+          let stage =
+            {
+              format;
+              time_base;
+              stream_idx;
+              scale =
+                internal_scaler ~width ~height
+                  ~pixel_format:(pixel_format format) format;
+              fps =
+                Ffmpeg_avfilter_utils.Fps.of_frame_format ~format ~time_base
+                  ~target_fps ();
+            }
+          in
+          current := Some stage;
+          stage
+  in
+  let convert ?(stream_idx = 0L) ?format ~time_base ~put frame =
+    let format =
+      match format with
+        | Some format -> format
+        | None -> Avutil.Video.frame_format frame
+    in
+    let { scale; fps; _ } = stage ~put ~stream_idx ~time_base format in
+    Ffmpeg_avfilter_utils.Fps.convert fps frame (fun frame ->
+        put (scale frame) frame)
+  in
+  { convert; flush }

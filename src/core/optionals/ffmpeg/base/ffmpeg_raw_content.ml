@@ -273,9 +273,9 @@ module Video = struct
   include Video_format
 end
 
-(* The format of a raw video track is open until a first frame flows through,
-   which sets it. Every producer of raw video delivers its frames through this:
-   a later frame in another format is fitted to the one that was set. *)
+(* Every producer of raw video delivers its frames through this: the first
+   frame sets the format of the track, which stays open until then, and a later
+   frame in another format is fitted to it. *)
 let video_conformer format =
   let fit = Ffmpeg_avfilter_utils.Fit.init () in
   let merge params = ignore (Content.merge format (Video.lift_params params)) in
@@ -288,7 +288,7 @@ let video_conformer format =
       cb frame)
     else (
       let set declared frame =
-        Option.get (Option.fold ~none:frame ~some:Option.some declared)
+        match declared with Some value -> value | None -> Option.get frame
       in
       let target =
         {

@@ -33,7 +33,11 @@ type 'a _duration_converter = {
 let track_mark_metadata = "liquidsoap_track_mark"
 
 (** Everything that differs between an audio and a video end of the graph, so
-    that each end is written once and applied to both. *)
+    that each end is written once and applied to both.
+
+    - [conform] is called once per generation of the graph and says how the
+      frames an output delivers become content of a track of the given format.
+*)
 type ('a, 'params) media = {
   get_data :
     Content.data -> ('params, 'a Avutil.frame) Ffmpeg_content_base.content;
@@ -41,8 +45,6 @@ type ('a, 'params) media = {
     ('params, 'a Avutil.frame) Ffmpeg_content_base.content -> Content.data;
   lift_params : 'params -> Content.format;
   frame_params : 'a Avutil.frame -> 'params;
-  (* How the frames a graph output delivers become content of a track of the
-     given format. Called once per generation of the graph. *)
   conform :
     Content.format ->
     'a Avfilter.context ->
@@ -187,7 +189,10 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
         source#frame_type <: self#frame_type)
 
     (* [None] between two generations of the graph: frames wait in [held] for
-       the next one. *)
+       the next one.
+
+       ponytail: [held] has no bound; cap it if a graph can wait on an input
+       that stays ready and delivers nothing. *)
     val mutable input : ([ `Frame of 'a Avutil.frame | `Flush ] -> unit) option
         =
       None
@@ -285,9 +290,11 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
        internal delay emit their tail. Sending it twice is an error, hence the
        flag. *)
     method end_input =
-      if not ended then (
-        ended <- true;
-        Option.iter (fun input -> input `Flush) input)
+      match input with
+        | Some input when not ended ->
+            ended <- true;
+            input `Flush
+        | _ -> ()
 
     (* The source ran dry: the frames the duration converter was holding back
        belong to this generation. *)
@@ -296,6 +303,9 @@ class ['a, 'params] base_output ~owner ~media ~pass_metadata ~name ~frame_t
         List.iter (fun (_, frame) -> self#push frame) (snd self#flush_duration);
         self#end_input)
 
+    (* Frames held for a graph that was never built are in a format no later
+       graph takes. *)
+    method drop_held = Stdlib.Queue.clear held
     initializer self#on_sleep (fun () -> self#flush_input)
   end
 

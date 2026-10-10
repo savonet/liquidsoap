@@ -522,6 +522,26 @@ module Utils : sig
   val video_buffer_args :
     time_base:Avutil.rational -> Avutil.Video.frame_format -> args list
 
+  (** A launched graph that runs video frames through filters, one after the
+      other: [chain_source] takes the frames and the end of the stream,
+      [chain_sink] delivers them. *)
+  type video_chain = {
+    chain_source : [ `Video ] input;
+    chain_sink : [ `Video ] output;
+  }
+
+  (** [video_chain ~time_base format filters] is the chain of [filters], in
+      order, for frames of [format] with timestamps in [time_base].
+
+      @raise Avutil.Error
+        with [`Filter_not_found] when a filter is unknown, and with FFmpeg's
+        error when the graph cannot be built. *)
+  val video_chain :
+    time_base:Avutil.rational ->
+    Avutil.Video.frame_format ->
+    filter_spec list ->
+    video_chain
+
   (** A converter that delivers decoded video frames upright and cropped. It
       reads the display matrix of each frame and runs the filters of
       {!display_layout} on a private graph, rebuilt when the matrix or the

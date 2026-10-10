@@ -79,7 +79,9 @@ the pixel format always count.
   and the pixel format of its input. A change of one of them on one stream is
   treated as C1: the decoder and its display stage are rebuilt. A change of
   side data alone rebuilds the display stage and keeps the decoder, which has
-  no reference to restart from in the middle of a group of pictures.
+  no reference to restart from in the middle of a group of pictures. The
+  kept decoder still puts the display matrix it was created with on its
+  frames, so the matrix of the stream takes its place on each of them.
   `ffmpeg.raw.decode.video` sends its frames through a display stage of its
   own: a raw frame that still carries a display matrix comes out upright.
 - **C3.** The format of an `ffmpeg.raw` video track (width, height, pixel
@@ -100,6 +102,9 @@ the pixel format always count.
   whose format is the sample format, the rate and the channel layout.
 - **C6.** The raw video encoder fits the frames it takes to the size of its
   stream, and rebuilds that conversion when their format changes.
+- **C8.** Decoders to internal content share
+  `Ffmpeg_decoder_common.internal_video_converter`, which delivers the frames
+  its frame rate conversion holds before building it again for a new format.
 - **C7.** Nothing stretches a picture. Every conversion to a frame of another
   shape takes its size from `Ffmpeg_avfilter_utils.Fit.fitted_size`: the
   largest size that keeps the proportions of the picture as displayed, the

@@ -181,6 +181,25 @@
 (rule
  (alias mediatest)
  (package liquidsoap)
+ (deps upright.mp4)
+ (target skewed.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -display_rotation
+   20
+   -i
+   upright.mp4
+   -c
+   copy
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
  (target wide.ts)
  (action
   (run
@@ -369,6 +388,7 @@
  (package liquidsoap)
  (deps
   odd.mp4
+  skewed.mp4
   rotated.mp4
   test_ffmpeg_side_data.liq
   ../../src/bin/liquidsoap.exe

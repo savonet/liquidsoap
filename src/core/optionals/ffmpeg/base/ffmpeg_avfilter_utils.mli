@@ -39,6 +39,14 @@ module Display : sig
       hint for sizing video before the first frame. *)
   val expected_size : Avutil.video Avcodec.params -> int * int
 
+  (** The pixel aspect of the frames {!convert} delivers for a stream whose
+      stored pixel aspect is [stored], the one of its parameters by default: a
+      quarter turn inverts it. *)
+  val pixel_aspect :
+    ?stored:Avutil.rational ->
+    Avutil.video Avcodec.params ->
+    Avutil.rational option
+
   (** Installs, for every decoder created afterwards, what answers the cases the
       bindings do not decide. Without it they log a warning and leave the
       picture as stored. *)

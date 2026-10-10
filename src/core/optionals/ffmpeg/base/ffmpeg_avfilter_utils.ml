@@ -29,20 +29,22 @@ module Display = struct
   let cropping params =
     Avcodec.Packet_side_data.cropping (Avcodec.params_side_data params)
 
-  let stored_layout params =
+  let stored_layout ?pixel_aspect params =
     {
       Avfilter.Utils.width = Avcodec.Video.get_width params;
       height = Avcodec.Video.get_height params;
-      pixel_aspect = Avcodec.Video.get_pixel_aspect params;
+      pixel_aspect =
+        (match pixel_aspect with
+          | Some _ -> pixel_aspect
+          | None -> Avcodec.Video.get_pixel_aspect params);
       filters = [];
     }
 
-  let layout params =
-    let { Avfilter.Utils.width; height; pixel_aspect; _ } =
-      stored_layout params
-    in
-    if not Ffmpeg_utils.conf_autorotate#get then Some (stored_layout params)
+  (* [None] when the layout is not decided. *)
+  let layout ~stored params =
+    if not Ffmpeg_utils.conf_autorotate#get then Some stored
     else (
+      let { Avfilter.Utils.width; height; pixel_aspect; _ } = stored in
       match
         Avfilter.Utils.display_layout ?cropping:(cropping params)
           ?display_matrix:
@@ -53,11 +55,16 @@ module Display = struct
         | `Layout layout -> Some layout
         | `Undecided _ -> None)
 
+  let displayed ?pixel_aspect params =
+    let stored = stored_layout ?pixel_aspect params in
+    Option.value (layout ~stored params) ~default:stored
+
   let expected_size params =
-    let { Avfilter.Utils.width; height; _ } =
-      Option.value (layout params) ~default:(stored_layout params)
-    in
+    let { Avfilter.Utils.width; height; _ } = displayed params in
     (width, height)
+
+  let pixel_aspect ?stored params =
+    (displayed ?pixel_aspect:stored params).Avfilter.Utils.pixel_aspect
 
   let init ?params ~time_base () =
     if Ffmpeg_utils.conf_autorotate#get then
@@ -385,12 +392,6 @@ module Fit = struct
   type t = { mutable graph : graph option }
 
   let init () = { graph = None }
-
-  let find name =
-    match Avfilter.find_opt name with
-      | Some filter -> filter
-      | None -> failwith ("Could not find " ^ name ^ " ffmpeg filter!")
-
   let square = { Avutil.num = 1; den = 1 }
 
   (* The largest size inside the target that shows the source with its
@@ -447,37 +448,13 @@ module Fit = struct
         ] );
     ]
 
-  let build ~(source : Avutil.Video.frame_format) target =
-    let config = Avfilter.init () in
-    let buffer =
-      Avfilter.attach ~name:"buffer"
-        ~args:
-          (Avfilter.Utils.video_buffer_args
-             ~time_base:(Ffmpeg_utils.liq_main_ticks_time_base ())
-             source)
-        Avfilter.buffer config
+  let build ~source target =
+    let { Avfilter.Utils.chain_source; chain_sink } =
+      Avfilter.Utils.video_chain
+        ~time_base:(Ffmpeg_utils.liq_main_ticks_time_base ())
+        source (filters ~source target)
     in
-    let last =
-      List.fold_left
-        (fun previous (name, args) ->
-          let filter = Avfilter.attach ~name ~args (find name) config in
-          Avfilter.link
-            (List.hd Avfilter.(previous.io.outputs.video))
-            (List.hd Avfilter.(filter.io.inputs.video));
-          filter)
-        buffer (filters ~source target)
-    in
-    let sink = Avfilter.attach ~name:"buffersink" Avfilter.buffersink config in
-    Avfilter.link
-      (List.hd Avfilter.(last.io.outputs.video))
-      (List.hd Avfilter.(sink.io.inputs.video));
-    let graph = Avfilter.launch config in
-    {
-      source;
-      target;
-      input = snd (List.hd Avfilter.(graph.inputs.video));
-      output = snd (List.hd Avfilter.(graph.outputs.video));
-    }
+    { source; target; input = chain_source; output = chain_sink }
 
   let graph fit ~source target =
     match fit.graph with

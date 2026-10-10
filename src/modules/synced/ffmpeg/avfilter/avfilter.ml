@@ -532,25 +532,58 @@ module Utils = struct
     @ (match format.pixel_aspect with
       | None -> []
       | Some pixel_aspect -> [`Pair ("pixel_aspect", `Rational pixel_aspect)])
-    @ (match format.color_space with
-      | `Unspecified -> []
-      | color_space ->
-          [`Pair ("colorspace", `String (Color_space.name color_space))])
+    @ (match (format.color_space, Color_space.name format.color_space) with
+      | `Unspecified, _ | _, ("" | "reserved") -> []
+      | _, name -> [`Pair ("colorspace", `String name)])
     @
       match format.color_range with
       | `Unspecified -> []
       | color_range -> [`Pair ("range", `String (Color_range.name color_range))]
+
+  type video_chain = {
+    chain_source : [ `Video ] input;
+    chain_sink : [ `Video ] output;
+  }
+
+  let video_chain ~time_base format filters =
+    let graph = init () in
+    let source =
+      attach ~name:"source"
+        ~args:(video_buffer_args ~time_base format)
+        buffer graph
+    in
+    let last =
+      List.fold_left
+        (fun (index, previous) (name, args) ->
+          let filter =
+            match find_opt name with
+              | Some filter -> filter
+              | None -> raise (Error `Filter_not_found)
+          in
+          let filter =
+            attach ~name:(Printf.sprintf "filter%d" index) ~args filter graph
+          in
+          link
+            (List.hd previous.io.outputs.video)
+            (List.hd filter.io.inputs.video);
+          (index + 1, filter))
+        (0, source) filters
+      |> snd
+    in
+    let sink = attach ~name:"sink" buffersink graph in
+    link (List.hd last.io.outputs.video) (List.hd sink.io.inputs.video);
+    let endpoints = launch graph in
+    {
+      chain_source = List.assoc "source" endpoints.inputs.video;
+      chain_sink = List.assoc "sink" endpoints.outputs.video;
+    }
 
   type display_chain = {
     format : Video.frame_format;
     graph_filters : filter_spec list;
   }
 
-  type display_graph = {
-    chain : display_chain;
-    display_source : [ `Video ] input;
-    display_sink : [ `Video ] output;
-  }
+  type display_graph = { chain : display_chain; video_chain : video_chain }
 
   type decision = {
     undecided : undecided_frame;
@@ -613,42 +646,8 @@ module Utils = struct
         | `Undecided undecided ->
             decide converter (undecided :> undecided_frame))
 
-  let build_display_graph ~time_base chain =
-    let graph = init () in
-    let source =
-      attach ~name:"source"
-        ~args:(video_buffer_args ~time_base chain.format)
-        buffer graph
-    in
-    let last =
-      List.fold_left
-        (fun (index, previous) (name, args) ->
-          let filter =
-            match find_opt name with
-              | Some filter -> filter
-              | None -> raise (Error `Filter_not_found)
-          in
-          let filter =
-            attach ~name:(Printf.sprintf "display%d" index) ~args filter graph
-          in
-          link
-            (List.hd previous.io.outputs.video)
-            (List.hd filter.io.inputs.video);
-          (index + 1, filter))
-        (0, source) chain.graph_filters
-      |> snd
-    in
-    let sink = attach ~name:"sink" buffersink graph in
-    link (List.hd last.io.outputs.video) (List.hd sink.io.inputs.video);
-    let endpoints = launch graph in
-    {
-      chain;
-      display_source = List.assoc "source" endpoints.inputs.video;
-      display_sink = List.assoc "sink" endpoints.outputs.video;
-    }
-
   let rec deliver_display graph callback =
-    match graph.display_sink.handler () with
+    match graph.video_chain.chain_sink.handler () with
       | frame ->
           Frame.remove_side_data frame `Displaymatrix;
           callback frame;
@@ -659,7 +658,7 @@ module Utils = struct
     Option.iter
       (fun graph ->
         converter.display_graph <- None;
-        graph.display_source `Flush;
+        graph.video_chain.chain_source `Flush;
         deliver_display graph callback)
       converter.display_graph
 
@@ -683,9 +682,11 @@ module Utils = struct
       | _ -> (
           flush_display converter callback;
           match
-            build_display_graph ~time_base:converter.display_time_base chain
+            video_chain ~time_base:converter.display_time_base chain.format
+              chain.graph_filters
           with
-            | graph ->
+            | video_chain ->
+                let graph = { chain; video_chain } in
                 converter.display_graph <- Some graph;
                 Some graph
             | exception Error error ->
@@ -722,6 +723,6 @@ module Utils = struct
                 with
                   | None -> callback frame
                   | Some graph ->
-                      graph.display_source (`Frame frame);
+                      graph.video_chain.chain_source (`Frame frame);
                       deliver_display graph callback))
 end

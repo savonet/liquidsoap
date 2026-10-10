@@ -540,10 +540,11 @@ let restart graph =
   Option.iter (fun s -> s#drain) graph.graph_source;
   reset graph
 
-(* The buffer of a graph input is built for the format of the frames it takes.
-   The first frame of a generation settles it, and a frame that left it ends
-   the generation: avfilter cannot be trusted with a format that changes under
-   a running graph. Returns the format the buffer is to be built with. *)
+(* The first frame of a generation settles the format the buffer of an input is
+   built with, and a frame that left it ends the generation: avfilter cannot be
+   trusted with a format that changes under a running graph.
+
+   Returns the format to build the buffer with. *)
 let input_format ~frame_format ~same ~describe graph s =
   let format = ref None in
   Queue.push graph.graph_inputs (s :> Source.source);
@@ -564,6 +565,7 @@ let input_format ~frame_format ~same ~describe graph s =
                   "The format of %s changed in the middle of a stream, from %s \
                    to %s: rebuilding the filter graph. Its filters start over."
                   s#id (describe previous) (describe frame_format);
+                s#drop_held;
                 restart graph)
               previous;
             format := Some frame_format;
