@@ -328,7 +328,7 @@ static const AVOption child_options[] = {
      100,
      0,
      NULL},
-    {NULL},
+    {0},
 };
 
 static const AVClass child_class = {
@@ -524,7 +524,7 @@ static const AVOption owner_options[] = {
      100,
      0,
      NULL},
-    {NULL},
+    {0},
 };
 
 static void *owner_child_next(void *object, void *previous) {

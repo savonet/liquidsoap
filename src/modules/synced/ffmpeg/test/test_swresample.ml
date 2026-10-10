@@ -8,7 +8,6 @@ open Harness
 module S = Swresample
 
 let is_failure = function Error (`Failure _) -> true | _ -> false
-let is_error = function Error _ -> true | _ -> false
 
 (* A data kind, the sample format to give it when its own is open, and the
    precision of that format. *)
@@ -335,33 +334,23 @@ let requirement_6_7 () =
 
 let requirement_6_8 () =
   let layout = Channel_layout.stereo in
+  let module Ints = S.Make (S.PlanarFloatArray) (S.S16PlanarBigArray) in
+  let convert options =
+    Ints.convert (Ints.create ~options layout rate layout rate) (ramp layout)
+  in
+  let three = [`Filter_type_cubic; `Engine_swr; `Filter_type_kaiser] in
+  check
+    (convert (three @ [`Dither_triangular]) <> convert three)
+    "the fourth element of the options is applied";
   let module Floats = S.Make (S.PlanarFloatArray) (S.PlanarFloatArray) in
-  let create options = Floats.create ~options layout 44100 layout 48000 in
-  ignore
-    (create
-       [
-         `Dither_triangular; `Filter_type_cubic; `Engine_swr; `Dither_rectangular;
-       ]);
-  match create [`Engine_soxr] with
-    | _ ->
-        skip
-          "the alternative engine is available: its absence cannot show the \
-           fourth option"
-    | exception Error _ ->
-        raises is_error "the fourth element of the options is applied"
-          (fun () ->
-            create
-              [
-                `Dither_triangular; `Filter_type_cubic; `Engine_swr; `Engine_soxr;
-              ]);
-        equal 256
-          (Array.length
-             (Floats.convert
-                (Floats.create
-                   ~options:[`Engine_soxr; `Engine_swr]
-                   layout rate layout rate)
-                (ramp layout)).(0))
-          "a later element of a type overrides an earlier one"
+  equal 256
+    (Array.length
+       (Floats.convert
+          (Floats.create
+             ~options:[`Engine_soxr; `Engine_swr]
+             layout rate layout rate)
+          (ramp layout)).(0))
+    "a later element of a type overrides an earlier one"
 
 let requirement_6_9 () =
   let custom = Channel_layout.find "FR+FL" in

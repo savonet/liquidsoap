@@ -54,7 +54,7 @@ runs:
           EXTRA_CFLAGS="-I${LAME_PREFIX}/include -I${SOXR_PREFIX}/include -I${THEORA_PREFIX}/include -I${VPX_PREFIX}/include -I${VORBIS_PREFIX}/include -I${OGG_PREFIX}/include"
           EXTRA_LDFLAGS="-L${LAME_PREFIX}/lib -L${SOXR_PREFIX}/lib -L${THEORA_PREFIX}/lib -L${VPX_PREFIX}/lib -L${VORBIS_PREFIX}/lib -L${OGG_PREFIX}/lib"
         fi
-        ./configure --prefix=$PREFIX --disable-x86asm --enable-gpl \
+        ./configure --prefix=$PREFIX --enable-gpl \
                     --enable-nonfree --disable-doc --disable-xlib \
                     --enable-shared --enable-libtheora --enable-libvpx \
                     --enable-libmp3lame --enable-libvorbis --enable-libsoxr \
