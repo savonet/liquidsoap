@@ -245,12 +245,6 @@ let decode_video_frame ~field ~mode generator =
                       color_range,
                       stream_idx ) ->
             log#info "Video frame format change detected..";
-            (match !current_format with
-              | Some (w, h, p, _, _, _, idx)
-                when idx = stream_idx
-                     && (w, h, p) <> (width, height, pixel_format) ->
-                  Generator.add_track_mark generator
-              | _ -> ());
             mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
               ?color_range ~stream_idx ()
         | Some v -> v
@@ -361,7 +355,6 @@ let decode_video_frame ~field ~mode generator =
                || !current_time_base <> Some time_base
                || not (same_stream params) ->
             log#info "Video frame format change detected..";
-            let same_stream_idx = !current_stream_idx = Some stream_idx in
             ignore
               (Option.map
                  (fun stream_idx ->
@@ -370,7 +363,6 @@ let decode_video_frame ~field ~mode generator =
                        convert ~time_base ~stream_idx (`Frame frame));
                    flush_display ~time_base ~stream_idx)
                  !current_stream_idx);
-            if same_stream_idx then Generator.add_track_mark generator;
             mk_decoder ~params ~stream_idx ~time_base
         | Some d ->
             current_params := Some params;

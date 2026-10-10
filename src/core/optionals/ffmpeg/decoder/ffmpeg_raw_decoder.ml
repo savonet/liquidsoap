@@ -22,8 +22,6 @@
 
 (** Decode raw ffmpeg frames. *)
 
-let log = Log.make ["decoder"; "ffmpeg"; "raw"]
-
 let mk_decoder ~stream_idx ~stream_time_base ~field ~lift_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~mode:`PTS ~src:stream_time_base
@@ -89,10 +87,8 @@ let mk_video_decoder ~stream_idx ~format ~stream ~field params =
     mk_decoder ~stream_idx ~stream_time_base ~field
       ~lift_data:Ffmpeg_raw_content.Video.lift_data params
   in
-  let last_frame_params = ref None in
-  (* Frames that left the declared format cannot be content of this track; a
-     change within it starts a new track. *)
-  let follow ~buffer frame =
+  (* Frames that left the declared format cannot be content of this track. *)
+  let follow frame =
     let frame_params =
       {
         (Ffmpeg_raw_content.VideoSpecs.frame_params frame) with
@@ -104,16 +100,10 @@ let mk_video_decoder ~stream_idx ~format ~stream ~field params =
         (Ffmpeg_decoder_common.Unsupported_change
            (Printf.sprintf "decoded video is %s, the track was declared as %s"
               (Ffmpeg_raw_content.VideoSpecs.to_string frame_params)
-              (Ffmpeg_raw_content.VideoSpecs.to_string params)));
-    (match !last_frame_params with
-      | Some last when last <> frame_params ->
-          log#important "Video format change: starting a new track.";
-          Generator.add_track_mark buffer.Decoder.generator
-      | _ -> ());
-    last_frame_params := Some frame_params
+              (Ffmpeg_raw_content.VideoSpecs.to_string params)))
   in
   let decode ~buffer frame =
-    follow ~buffer frame;
+    follow frame;
     decoder ~buffer (`Frame frame)
   in
   fun ~buffer -> function

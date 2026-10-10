@@ -212,15 +212,7 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
       | Some converter when converter.format = format -> converter
       | previous ->
           flush ~buffer;
-          Option.iter
-            (fun { format = { width; height; pixel_format; _ }; _ } ->
-              if
-                (width, height, pixel_format)
-                <> (format.width, format.height, format.pixel_format)
-              then (
-                log#important "Video format change: starting a new track.";
-                Generator.add_track_mark buffer.Decoder.generator))
-            previous;
+          if previous <> None then log#important "Video format change.";
           let { width; height; pixel_format; pixel_aspect; color_range } =
             format
           in

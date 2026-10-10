@@ -66,19 +66,18 @@ With autorotate off, internal content shows the picture as stored, and
 The size, the pixel format, the rotation or the cropping of decoded video can
 change while a stream is decoded.
 
-- **C1.** A decoder to internal content, and `ffmpeg.decode.video`, MUST
-  start a new track at the change: frames decoded before it are delivered,
-  a track mark is added, and processing is rebuilt for the new format.
-  Downstream operators see a new track and reset what depends on the format.
+- **C1.** A decoder to internal content, and `ffmpeg.decode.video`, follow
+  the change: frames decoded before it are delivered, and scaling is rebuilt
+  for the new format. The picture is scaled into the same internal frame, so
+  nothing downstream depends on the change and the track continues.
 - **C2.** `ffmpeg.decode.video` treats a change of the codec parameters of
   its input on one stream (codec, size, pixel format, side data) as C1: the
   decoder and its display stage are rebuilt.
 - **C3.** A decoder to `ffmpeg.raw` content declares a format before the
   first frame. A frame outside that format cannot be content of the track:
   the decoder MUST end the track, with a log at level 3 naming both formats.
-  A change within the declared format is C1.
-- **C4.** Changes of audio parameters keep the handling they had: the
-  converter is rebuilt, with no track mark.
+- **C4.** No decoder adds a track mark at a change. A track mark makes
+  operators switch, fade or stop, and cuts the audio of the same source.
 
 ## 4. Passing through
 
@@ -179,7 +178,7 @@ rotation of 90:
   `ffmpeg.autorotate.on_undecided` with `"odd_rotation"`.
 
 `tests/media/test_ffmpeg_video_format_change.liq`: a stream whose size
-changes after one second is cut into two tracks at the change (C1).
+changes after one second plays through as one track (C1).
 
 Not covered: autorotate off, cropping, a JPEG with an EXIF orientation, C2
 and C3.

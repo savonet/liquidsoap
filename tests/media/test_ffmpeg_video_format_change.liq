@@ -13,8 +13,8 @@ def on_close(fname) =
   let [stream] = parsed.streams
   duration = float_of_string(stream.duration)
 
-  # The change of size starts a new track, which ends `once`.
-  if 0.5 < duration and duration < 1.5 then test.pass() else test.fail() end
+  # Both sizes play through as one track.
+  if 1.5 < duration and duration < 2.5 then test.pass() else test.fail() end
 end
 
 output.file(
