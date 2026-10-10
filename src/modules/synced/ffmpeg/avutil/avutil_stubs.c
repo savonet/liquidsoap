@@ -504,12 +504,22 @@ value ocaml_avutil_unused_options(AVDictionary **dictionary) {
   CAMLreturn(_keys);
 }
 
-static pthread_key_t registered_thread_key;
-
 static void unregister_thread(void *registered) {
   (void)registered;
   caml_c_thread_unregister();
 }
+
+#ifdef __APPLE__
+/* dyld frees the thread-local variables of an exiting thread before it calls
+   the destructor of a key created by a program, and unregistering reads the
+   runtime's: the functions of this list run while they are still valid. */
+extern void _tlv_atexit(void (*function)(void *), void *argument);
+
+static void unregister_at_thread_exit(void) {
+  _tlv_atexit(unregister_thread, NULL);
+}
+#else
+static pthread_key_t registered_thread_key;
 
 /* The key is created when the stubs are loaded, before the OCaml runtime
    creates the key of its thread descriptors: C libraries clear the values
@@ -518,9 +528,14 @@ __attribute__((constructor)) static void create_registered_thread_key(void) {
   pthread_key_create(&registered_thread_key, unregister_thread);
 }
 
+static void unregister_at_thread_exit(void) {
+  pthread_setspecific(registered_thread_key, (void *)1);
+}
+#endif
+
 void ocaml_avutil_register_thread(void) {
   if (caml_c_thread_register())
-    pthread_setspecific(registered_thread_key, (void *)1);
+    unregister_at_thread_exit();
 }
 
 CAMLprim value ocaml_avutil_version(value _unit) {

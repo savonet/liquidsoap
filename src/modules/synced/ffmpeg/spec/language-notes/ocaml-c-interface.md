@@ -129,6 +129,10 @@ check.
   the runtime's unregistration returns at once when its own value is gone.
   The thread is then never detached; nothing fails, a leak detector shows
   it. A function run when the stubs are loaded creates the key early enough.
+  macOS is the exception: dyld frees the thread-local variables of an exiting
+  thread before it calls the destructor of a key the program created, and the
+  runtime's unregistration reads them. There the function is given to
+  `_tlv_atexit`, whose list runs while those variables are still valid.
 - With several domains the runtime lock is per domain. It serialises nothing
   between domains: use atomics for state that two domains can reach.
 
