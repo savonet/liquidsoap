@@ -443,6 +443,7 @@ type display_converter
 val init_display_converter :
   ?cropping:Avutil.cropping ->
   ?on_undecided:(undecided_frame -> filter_spec list option) ->
+  ?ignore:Avutil.Video.frame_property list ->
   time_base:Avutil.rational -> unit -> display_converter
 val convert_display :
   display_converter -> (Avutil.video Avutil.frame -> unit) ->
@@ -460,9 +461,10 @@ delivers them upright and cropped. §11.5 defines it.
   available, in order, as `convert_audio` does. An exception raised by `cb`
   propagates.
 - **The converter decides nothing the binding does not.** For a frame whose
-  layout is undecided, and for a frame in a hardware pixel format, which no
-  software filter can transform, it calls `on_undecided`, once per run of
-  frames with the same question:
+  layout is undecided, and for a frame in a hardware pixel format that has a
+  display matrix or cropping to apply, which no software filter can
+  transform, it calls `on_undecided`, once per run of frames with the same
+  question:
   - `Some filters` is the caller's decision: the frames go through those
     filters and are delivered without their display matrix;
   - `None` is no decision: the frames are delivered untouched, display matrix
@@ -480,6 +482,24 @@ delivers them upright and cropped. §11.5 defines it.
   place where a result is not fresh (A5).
 - A display converter has no guard. Two threads MUST NOT use one at the same
   time.
+
+```ocaml
+val video_buffer_args :
+  time_base:Avutil.rational -> Avutil.Video.frame_format -> args list
+```
+
+The arguments to attach a `buffer` source with, for frames of that format
+(`avutil.md` §4.13). It is the one place where a frame format becomes the
+configuration of a graph input, and the display converter uses it.
+
+| Argument       | Value                              | Present                    |
+| -------------- | ---------------------------------- | -------------------------- |
+| `video_size`   | `<width>x<height>`                 | always                     |
+| `pix_fmt`      | the identifier of the pixel format | always                     |
+| `time_base`    | `time_base`                        | always                     |
+| `pixel_aspect` | the pixel aspect                   | when it is known           |
+| `colorspace`   | FFmpeg's name of the colour space  | when it is not unspecified |
+| `range`        | FFmpeg's name of the colour range  | when it is not unspecified |
 
 ## 5. Errors
 
@@ -643,28 +663,36 @@ follows the same chain and applies the geometry of each step:
 
 ### 11.5 Display converter
 
-The converter holds at most one private graph, with the frame format it was
-built for (width, height, pixel format, sample aspect ratio, colour range)
-and its filters.
+The converter holds at most one private graph, with the chain it was built
+for: the frame format (`Avutil.Video.frame_format`, `avutil.md` §4.13) and
+the filters. Two chains are the same when `same_frame_format` holds, with
+the converter's `ignore` (none by default), and the filters are equal.
 
 `convert_display c cb (`Frame f)`:
 
-1. Find the filters for `f`: `on_undecided `Hardware_frame`for a hardware
-frame; otherwise the`filters`of`display_layout`on the frame's size,
-the converter's cropping and the display matrix found with`Frame.find_side_data`, or `on_undecided` of what is undecided.
-2. No decision (`None`): flush and drop the current graph (step 6), then
-   deliver `f` itself.
-3. No filter (`Some []`): flush and drop the current graph, then deliver `f`
+1. A frame with no display matrix, in a converter with no cropping, has
+   nothing to apply: flush and drop the current graph (step 7), then deliver
+   `f` itself. Nothing else is read from the frame.
+2. Find the filters for `f`. A hardware frame asks `on_undecided` with
+   `` `Hardware_frame ``. Any other frame takes the `filters` of
+   `display_layout` on its size, the converter's cropping and its display
+   matrix, or asks `on_undecided` with what is undecided.
+3. No decision (`None`): flush and drop the current graph, then deliver `f`
+   itself.
+4. No filter (`Some []`): flush and drop the current graph, then deliver `f`
    itself when it has no display matrix, `Frame.dup f` without the matrix
    otherwise.
-4. Otherwise, if there is no graph, or its format or filters differ: flush
-   and drop the current graph, then build one: a buffer source set from the
-   frame format and `time_base`, each filter attached and linked in order, a
-   buffer sink.
-5. Push `f` and deliver every frame the sink has ready, each with its
+5. Otherwise, if there is no graph, or its chain differs: flush and drop the
+   current graph, then build one: a buffer source set from the frame format
+   and `time_base`, each filter attached and linked in order, a buffer sink.
+   A chain that fails to build is not a decision: the converter logs a
+   warning through `Avutil.Log.log`, remembers the chain, and delivers `f`
+   itself, as it does for every later frame asking for that chain. Filters
+   answered by `on_undecided` are the usual cause.
+6. Push `f` and deliver every frame the sink has ready, each with its
    display-matrix entry removed.
-6. Flushing a graph signals the end of the stream to its source and delivers
-   every frame the sink still has, as in step 5.
+7. Flushing a graph signals the end of the stream to its source and delivers
+   every frame the sink still has, as in step 6.
 
 `convert_display c cb `Flush` flushes and drops the current graph. The
 converter is usable again afterwards.

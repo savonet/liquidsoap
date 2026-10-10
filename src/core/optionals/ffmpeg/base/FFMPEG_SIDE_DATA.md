@@ -63,8 +63,13 @@ With autorotate off, internal content shows the picture as stored, and
 
 ### 3.1 Changes in the middle of a stream
 
-The size, the pixel format, the rotation or the cropping of decoded video can
-change while a stream is decoded.
+The format of decoded video can change while a stream is decoded. The format
+of a frame is `Avutil.Video.frame_format` in the bindings: size, pixel format,
+pixel aspect, colour space, range, primaries, transfer characteristic and
+chroma location. That record is the one list of what counts, and everything
+built for a format compares with `Ffmpeg_utils.same_video_format`, which
+leaves out what `settings.ffmpeg.format_change` disables (§5.1). The size and
+the pixel format always count.
 
 - **C1.** A decoder to internal content, and `ffmpeg.decode.video`, follow
   the change: frames decoded before it are delivered, and scaling is rebuilt
@@ -73,11 +78,31 @@ change while a stream is decoded.
 - **C2.** `ffmpeg.decode.video` treats a change of the codec parameters of
   its input on one stream (codec, size, pixel format, side data) as C1: the
   decoder and its display stage are rebuilt.
-- **C3.** A decoder to `ffmpeg.raw` content declares a format before the
-  first frame. A frame outside that format cannot be content of the track:
-  the decoder MUST end the track, with a log at level 3 naming both formats.
+- **C3.** The format of an `ffmpeg.raw` video track (width, height, pixel
+  format, pixel aspect) is open until a first frame flows through, which sets
+  it. Every producer of raw video, a decoder or a filter graph output,
+  delivers its frames through `Ffmpeg_raw_content.video_conformer`: a later
+  frame outside the set format is fitted to it, proportions kept and the rest
+  padded. The track continues.
 - **C4.** No decoder adds a track mark at a change. A track mark makes
   operators switch, fade or stop, and cuts the audio of the same source.
+- **C5.** An input of an `ffmpeg.filter` graph is built for the format of
+  the first frame it takes. A frame in another format ends the generation of
+  the graph: every input signals the end of its stream, the outputs are
+  drained, and the graph is built again from that frame. Frames arriving
+  while the next generation waits for its other inputs are held and pushed
+  once it is built. The graph logs a warning at level 2 naming the input and
+  both formats: its filters lose their state. This holds for audio inputs,
+  whose format is the sample format, the rate and the channel layout.
+- **C6.** The raw video encoder fits the frames it takes to the size of its
+  stream, and rebuilds that conversion when their format changes.
+- **C7.** Nothing stretches a picture. Every conversion to a frame of another
+  shape (C1, C3, C6) takes its size from `Ffmpeg_avfilter_utils.Fit.fitted_size`:
+  the largest size that keeps the proportions of the picture as displayed,
+  the pixel aspect of the source and of the destination accounted for. The
+  picture is centred and the rest is black. `ffmpeg.decode.video` and
+  `ffmpeg.raw.decode.video` are the exception: they scale to the internal
+  frame without keeping proportions.
 
 ## 4. Passing through
 
@@ -102,9 +127,11 @@ Raw audio encoders are not given side data.
 
 ### 5.1 Setting
 
-| Setting                      | Default | Effect |
-| ---------------------------- | ------- | ------ |
-| `settings.ffmpeg.autorotate` | `true`  | D1     |
+| Setting                                      | Default | Effect                                                     |
+| -------------------------------------------- | ------- | ---------------------------------------------------------- |
+| `settings.ffmpeg.autorotate`                 | `true`  | D1                                                         |
+| `settings.ffmpeg.format_change.color`        | `true`  | a change of colour properties is a change of format (§3.1) |
+| `settings.ffmpeg.format_change.pixel_aspect` | `true`  | a change of pixel aspect is a change of format (§3.1)      |
 
 ### 5.2 Deciding the undecided
 
@@ -182,3 +209,8 @@ changes after one second plays through as one track (C1).
 
 Not covered: autorotate off, cropping, a JPEG with an EXIF orientation, C2
 and C3.
+
+`tests/media/test_ffmpeg_raw_format_change.liq`, on two files with continuous
+timestamps, one changing size and one changing colour space after a second:
+decoded to raw content, sent through an `ffmpeg.filter` graph and encoded
+from raw frames, both halves are in the one output stream (C3, C5, C6).

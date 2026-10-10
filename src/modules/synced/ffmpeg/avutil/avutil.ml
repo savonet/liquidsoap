@@ -435,6 +435,24 @@ module Audio = struct
 
   external frame_nb_samples : audio frame -> int
     = "ocaml_avutil_audio_frame_nb_samples"
+
+  type frame_format = {
+    sample_format : Sample_format.t;
+    sample_rate : int;
+    channel_layout : Channel_layout.t;
+  }
+
+  let frame_format frame =
+    {
+      sample_format = frame_get_sample_format frame;
+      sample_rate = frame_get_sample_rate frame;
+      channel_layout = frame_get_channel_layout frame;
+    }
+
+  let same_frame_format format format' =
+    format.sample_format = format'.sample_format
+    && format.sample_rate = format'.sample_rate
+    && Channel_layout.compare format.channel_layout format'.channel_layout
 end
 
 module Video = struct
@@ -486,6 +504,46 @@ module Video = struct
 
   external frame_get_chroma_location : video frame -> Chroma_location.t
     = "ocaml_avutil_video_frame_chroma_location"
+
+  type frame_format = {
+    width : int;
+    height : int;
+    pixel_format : Pixel_format.t;
+    pixel_aspect : rational option;
+    color_space : Color_space.t;
+    color_range : Color_range.t;
+    color_primaries : Color_primaries.t;
+    color_trc : Color_trc.t;
+    chroma_location : Chroma_location.t;
+  }
+
+  let frame_format frame =
+    {
+      width = frame_get_width frame;
+      height = frame_get_height frame;
+      pixel_format = frame_get_pixel_format frame;
+      pixel_aspect = frame_get_pixel_aspect frame;
+      color_space = frame_get_color_space frame;
+      color_range = frame_get_color_range frame;
+      color_primaries = frame_get_color_primaries frame;
+      color_trc = frame_get_color_trc frame;
+      chroma_location = frame_get_chroma_location frame;
+    }
+
+  type frame_property = [ `Color | `Pixel_aspect ]
+
+  let same_frame_format ?(ignore = []) format format' =
+    let ignored (property : frame_property) = List.mem property ignore in
+    format.width = format'.width
+    && format.height = format'.height
+    && format.pixel_format = format'.pixel_format
+    && (ignored `Pixel_aspect || format.pixel_aspect = format'.pixel_aspect)
+    && (ignored `Color
+       || format.color_space = format'.color_space
+          && format.color_range = format'.color_range
+          && format.color_primaries = format'.color_primaries
+          && format.color_trc = format'.color_trc
+          && format.chroma_location = format'.chroma_location)
 end
 
 module Subtitle = struct

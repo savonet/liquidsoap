@@ -282,10 +282,7 @@ let build_video_content_type ~ctype content_type video_streams =
                        (`Video
                           { Ffmpeg_copy_content.avg_frame_rate; codec_params }))));
             Frame.Fields.add field format content_type
-        | p, Some format when Ffmpeg_raw_content.Video.is_format format ->
-            ignore
-              (Content.merge format
-                 Ffmpeg_raw_content.(Video.lift_params (VideoSpecs.mk_params p)));
+        | _, Some format when Ffmpeg_raw_content.Video.is_format format ->
             Frame.Fields.add field format content_type
         | codec_params, Some format ->
             Ffmpeg_utils.set_format_alpha ~codec_params format;

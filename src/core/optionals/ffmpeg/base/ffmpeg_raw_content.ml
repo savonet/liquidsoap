@@ -173,17 +173,6 @@ module VideoSpecs = struct
       pixel_aspect = Video.frame_get_pixel_aspect frame;
     }
 
-  (* The frames decoded from a stream come out upright. What is not decided
-     for the stream is left open. *)
-  let mk_params p =
-    let layout = Ffmpeg_avfilter_utils.Display.layout p in
-    {
-      width = Option.map (fun l -> l.Avfilter.Utils.width) layout;
-      height = Option.map (fun l -> l.Avfilter.Utils.height) layout;
-      pixel_format = Avcodec.Video.get_pixel_format p;
-      pixel_aspect = Option.bind layout (fun l -> l.Avfilter.Utils.pixel_aspect);
-    }
-
   let default =
     { width = None; height = None; pixel_format = None; pixel_aspect = None }
 
@@ -283,3 +272,37 @@ module Video = struct
   include Content.MkDataBase (Video_format.Format) (Video_data)
   include Video_format
 end
+
+(* The format of a raw video track is open until a first frame flows through,
+   which sets it. Every producer of raw video delivers its frames through this:
+   a later frame in another format is fitted to the one that was set. *)
+let video_conformer format =
+  let fit = Ffmpeg_avfilter_utils.Fit.init () in
+  let merge params = ignore (Content.merge format (Video.lift_params params)) in
+  fun frame cb ->
+    let declared = Video.get_params format in
+    let params = VideoSpecs.frame_params frame in
+    if declared = params then cb frame
+    else if VideoSpecs.compatible declared params then (
+      merge params;
+      cb frame)
+    else (
+      let set declared frame =
+        Option.get (Option.fold ~none:frame ~some:Option.some declared)
+      in
+      let target =
+        {
+          Ffmpeg_avfilter_utils.Fit.width = set declared.width params.width;
+          height = set declared.height params.height;
+          pixel_format = set declared.pixel_format params.pixel_format;
+          pixel_aspect = declared.pixel_aspect;
+        }
+      in
+      merge
+        {
+          declared with
+          width = Some target.width;
+          height = Some target.height;
+          pixel_format = Some target.pixel_format;
+        };
+      Ffmpeg_avfilter_utils.Fit.convert fit ~target frame cb)

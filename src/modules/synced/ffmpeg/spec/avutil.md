@@ -559,6 +559,13 @@ module Audio : sig
   val frame_get_channels : audio frame -> int
   val frame_get_channel_layout : audio frame -> Channel_layout.t
   val frame_nb_samples : audio frame -> int
+  type frame_format = {
+    sample_format : Sample_format.t;
+    sample_rate : int;
+    channel_layout : Channel_layout.t;
+  }
+  val frame_format : audio frame -> frame_format
+  val same_frame_format : frame_format -> frame_format -> bool
 end
 ```
 
@@ -575,6 +582,12 @@ failure. Any FFmpeg failure releases the frame and raises.
 | `frame_get_channels`       | the channel count of the frame's layout   |
 | `frame_get_channel_layout` | an independent copy of the frame's layout |
 | `frame_nb_samples`         | the number of samples per channel         |
+
+`frame_format` is the set of properties a consumer of audio frames is
+configured for. `frame_format frame` reads them with the getters above.
+`same_frame_format` compares the sample format and rate by value and the
+layouts with `Channel_layout.compare`. A consumer configured from one frame
+MUST be set up again before it takes a frame whose format differs (§4.13).
 
 ### 4.13 Video frames
 
@@ -594,6 +607,21 @@ module Video : sig
   val frame_get_color_primaries : video frame -> Color_primaries.t
   val frame_get_color_trc : video frame -> Color_trc.t
   val frame_get_chroma_location : video frame -> Chroma_location.t
+  type frame_format = {
+    width : int;
+    height : int;
+    pixel_format : Pixel_format.t;
+    pixel_aspect : rational option;
+    color_space : Color_space.t;
+    color_range : Color_range.t;
+    color_primaries : Color_primaries.t;
+    color_trc : Color_trc.t;
+    chroma_location : Chroma_location.t;
+  }
+  val frame_format : video frame -> frame_format
+  type frame_property = [ `Color | `Pixel_aspect ]
+  val same_frame_format :
+    ?ignore:frame_property list -> frame_format -> frame_format -> bool
 end
 ```
 
@@ -636,6 +664,22 @@ references. A caller that writes passes `~make_writable:true`.
 | `frame_get_color_primaries` | the frame's colour primaries (E3)                                     |
 | `frame_get_color_trc`       | the frame's transfer characteristic (E3)                              |
 | `frame_get_chroma_location` | the frame's chroma location (E3)                                      |
+
+`frame_format` is the set of properties a consumer of video frames (a filter
+graph, a scaler, an encoder) is configured for. `frame_format frame` reads
+each field with the getter of the same name. `same_frame_format` compares
+every field by value, except those the caller lists in `ignore`:
+`` `Pixel_aspect `` is the pixel aspect, and `` `Color `` is the colour space,
+range, primaries, transfer characteristic and chroma location together. The
+width, the height and the pixel format always count: a consumer configured
+for one size or layout of planes cannot read another.
+
+**This record is the one list of what counts as a format change.** A consumer
+configured from one frame MUST be set up again before it takes a frame whose
+format differs, and the binding's own converters (`avfilter.md` §11.5) compare
+with `same_frame_format`, with the `ignore` their caller gave. A property that comes to matter is added as a field
+here and nowhere else. Side data is not part of the format: a consumer that
+acts on a kind of side data keys on it separately.
 
 ### 4.14 Subtitles
 

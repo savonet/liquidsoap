@@ -22,6 +22,8 @@
 
 (** Decode raw ffmpeg frames. *)
 
+(* [params] is read when content is made: a video track learns its own from the
+   first frame. *)
 let mk_decoder ~stream_idx ~stream_time_base ~field ~lift_data params =
   let duration_converter =
     Ffmpeg_utils.Duration.init ~mode:`PTS ~src:stream_time_base
@@ -42,7 +44,8 @@ let mk_decoder ~stream_idx ~stream_time_base ~field ~lift_data params =
                 }
               in
               Generator.put buffer.Decoder.generator field
-                (lift_data { Ffmpeg_content_base.params; chunks = [chunk] })
+                (lift_data
+                   { Ffmpeg_content_base.params = params (); chunks = [chunk] })
           | None -> ())
 
 let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
@@ -59,11 +62,9 @@ let mk_audio_decoder ~stream_idx ~format ~stream ~field src_params =
       ?dst_sample_rate:dst_params.Ffmpeg_raw_content.AudioSpecs.sample_rate ()
   in
   let stream_time_base = Ffmpeg_avfilter_utils.AFormat.time_base converter in
-  (* No [Content.merge] here, unlike the video decoder below: the converter
-     already produces frames in the format the target asked for. *)
   let decoder =
     mk_decoder ~stream_idx ~stream_time_base ~field
-      ~lift_data:Ffmpeg_raw_content.Audio.lift_data dst_params
+      ~lift_data:Ffmpeg_raw_content.Audio.lift_data (fun () -> dst_params)
   in
   fun ~buffer -> function
     | `Flush ->
@@ -79,36 +80,16 @@ let mk_video_decoder ~stream_idx ~format ~stream ~field params =
   let display =
     Ffmpeg_avfilter_utils.Display.init ~params ~time_base:stream_time_base ()
   in
-  let params = Ffmpeg_raw_content.VideoSpecs.mk_params params in
-  (* Video frames are passed through as they come, so the target format has to
-     take on the source's parameters. *)
-  ignore (Content.merge format (Ffmpeg_raw_content.Video.lift_params params));
+  let conform = Ffmpeg_raw_content.video_conformer format in
   let decoder =
     mk_decoder ~stream_idx ~stream_time_base ~field
-      ~lift_data:Ffmpeg_raw_content.Video.lift_data params
-  in
-  (* Frames that left the declared format cannot be content of this track. *)
-  let follow frame =
-    let frame_params =
-      {
-        (Ffmpeg_raw_content.VideoSpecs.frame_params frame) with
-        pixel_aspect = None;
-      }
-    in
-    if not (Ffmpeg_raw_content.VideoSpecs.compatible params frame_params) then
-      raise
-        (Ffmpeg_decoder_common.Unsupported_change
-           (Printf.sprintf "decoded video is %s, the track was declared as %s"
-              (Ffmpeg_raw_content.VideoSpecs.to_string frame_params)
-              (Ffmpeg_raw_content.VideoSpecs.to_string params)))
+      ~lift_data:Ffmpeg_raw_content.Video.lift_data (fun () ->
+        Ffmpeg_raw_content.Video.get_params format)
   in
   let decode ~buffer frame =
-    follow frame;
-    decoder ~buffer (`Frame frame)
+    conform frame (fun frame -> decoder ~buffer (`Frame frame))
   in
   fun ~buffer -> function
     | `Frame frame ->
         Ffmpeg_avfilter_utils.Display.convert display frame (decode ~buffer)
-    | `Flush ->
-        Ffmpeg_avfilter_utils.Display.eof display (decode ~buffer);
-        decoder ~buffer `Flush
+    | `Flush -> Ffmpeg_avfilter_utils.Display.eof display (decode ~buffer)

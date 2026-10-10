@@ -122,16 +122,8 @@ let mk_audio_decoder ~channels ~field ~pcm_kind codec =
           Generator.add_metadata buffer.Decoder.generator
             (Frame.Metadata.from_list metadata)
 
-type video_format = {
-  width : int;
-  height : int;
-  pixel_format : Avutil.Pixel_format.t;
-  pixel_aspect : Avutil.rational option;
-  color_range : Avutil.Color_range.t option;
-}
-
 type video_converter = {
-  format : video_format;
+  format : Avutil.Video.frame_format;
   scale : Avutil.video Avutil.frame -> Video.Canvas.Image.t;
   fps : Ffmpeg_avfilter_utils.Fps.t;
 }
@@ -144,13 +136,10 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
     if alpha then Ffmpeg_utils.liq_frame_pixel_format_with_alpha
     else Ffmpeg_utils.liq_frame_pixel_format
   in
-  let mk_scale { width; height; pixel_format; _ } =
-    let scale_proportional (sw, sh) (tw, th) =
-      if th * sw < tw * sh then (sw * th / sh, th) else (tw, sh * tw / sw)
-    in
-    (* Actual proportional width an height. *)
+  let mk_scale ({ Avutil.Video.width; height; pixel_format; _ } as format) =
     let aw, ah =
-      scale_proportional (width, height) (target_width, target_height)
+      Ffmpeg_avfilter_utils.Fit.fitted_size ~width:target_width
+        ~height:target_height format
     in
     let scaler =
       Scaler.create
@@ -184,19 +173,10 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
         (Frame.Metadata.from_list metadata)
   in
   let frame_format frame =
-    {
-      width = Avutil.Video.frame_get_width frame;
-      height = Avutil.Video.frame_get_height frame;
-      pixel_format = Avutil.Video.frame_get_pixel_format frame;
-      pixel_aspect =
-        (match Avutil.Video.frame_get_pixel_aspect frame with
-          | None -> stream_pixel_aspect
-          | pixel_aspect -> pixel_aspect);
-      color_range =
-        (match Avutil.Video.frame_get_color_range frame with
-          | `Unspecified -> None
-          | color_range -> Some color_range);
-    }
+    let format = Avutil.Video.frame_format frame in
+    match format.pixel_aspect with
+      | None -> { format with pixel_aspect = stream_pixel_aspect }
+      | Some _ -> format
   in
   let converter = ref None in
   let flush ~buffer =
@@ -209,16 +189,15 @@ let mk_video_decoder ~width ~height ~alpha ~stream ~field codec =
      the frames. *)
   let get_converter ~buffer format =
     match !converter with
-      | Some converter when converter.format = format -> converter
+      | Some converter
+        when Ffmpeg_utils.same_video_format converter.format format ->
+          converter
       | previous ->
           flush ~buffer;
           if previous <> None then log#important "Video format change.";
-          let { width; height; pixel_format; pixel_aspect; color_range } =
-            format
-          in
           let fps =
-            Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format
-              ~time_base ?pixel_aspect ?color_range ~target_fps ()
+            Ffmpeg_avfilter_utils.Fps.of_frame_format ~format ~time_base
+              ~target_fps ()
           in
           let created = { format; scale = mk_scale format; fps } in
           converter := Some created;

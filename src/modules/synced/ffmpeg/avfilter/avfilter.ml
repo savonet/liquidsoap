@@ -531,17 +531,33 @@ module Utils = struct
            does not fit the picture"
           top bottom left right
 
-  type frame_format = {
-    frame_width : int;
-    frame_height : int;
-    pixel_format : Pixel_format.t;
-    frame_pixel_aspect : rational option;
-    color_range : Color_range.t;
+  let video_buffer_args ~time_base (format : Video.frame_format) : args list =
+    [
+      `Pair
+        ( "video_size",
+          `String (Printf.sprintf "%dx%d" format.width format.height) );
+      `Pair ("pix_fmt", `Int (Pixel_format.get_id format.pixel_format));
+      `Pair ("time_base", `Rational time_base);
+    ]
+    @ (match format.pixel_aspect with
+      | None -> []
+      | Some pixel_aspect -> [`Pair ("pixel_aspect", `Rational pixel_aspect)])
+    @ (match format.color_space with
+      | `Unspecified -> []
+      | color_space ->
+          [`Pair ("colorspace", `String (Color_space.name color_space))])
+    @
+      match format.color_range with
+      | `Unspecified -> []
+      | color_range -> [`Pair ("range", `String (Color_range.name color_range))]
+
+  type display_chain = {
+    format : Video.frame_format;
+    graph_filters : filter_spec list;
   }
 
   type display_graph = {
-    format : frame_format;
-    graph_filters : filter_spec list;
+    chain : display_chain;
     display_source : [ `Video ] input;
     display_sink : [ `Video ] output;
   }
@@ -553,10 +569,12 @@ module Utils = struct
 
   type display_converter = {
     cropping : cropping option;
+    ignore : Video.frame_property list;
     display_time_base : rational;
     on_undecided : undecided_frame -> filter_spec list option;
     mutable last_decision : decision option;
     mutable display_graph : display_graph option;
+    mutable unbuildable : display_chain option;
   }
 
   let warn_undecided undecided =
@@ -566,22 +584,15 @@ module Utils = struct
     None
 
   let init_display_converter ?cropping ?(on_undecided = warn_undecided)
-      ~time_base () =
+      ?(ignore = []) ~time_base () =
     {
       cropping;
+      ignore;
       display_time_base = time_base;
       on_undecided;
       last_decision = None;
       display_graph = None;
-    }
-
-  let frame_format frame =
-    {
-      frame_width = Video.frame_get_width frame;
-      frame_height = Video.frame_get_height frame;
-      pixel_format = Video.frame_get_pixel_format frame;
-      frame_pixel_aspect = Video.frame_get_pixel_aspect frame;
-      color_range = Video.frame_get_color_range frame;
+      unbuildable = None;
     }
 
   let is_hardware pixel_format =
@@ -601,39 +612,22 @@ module Utils = struct
           decided
 
   (* [None] when nothing is decided for the frame. *)
-  let frame_filters converter ~format ~display_matrix =
+  let frame_filters ~(format : Video.frame_format) ~display_matrix converter =
     if is_hardware format.pixel_format then decide converter `Hardware_frame
     else (
       match
         display_layout ?cropping:converter.cropping ?display_matrix
-          ~width:format.frame_width ~height:format.frame_height ()
+          ~width:format.width ~height:format.height ()
       with
         | `Layout { filters; _ } -> Some filters
         | `Undecided undecided ->
             decide converter (undecided :> undecided_frame))
 
-  let display_source_args ~time_base format =
-    [
-      `Pair
-        ( "video_size",
-          `String
-            (Printf.sprintf "%dx%d" format.frame_width format.frame_height) );
-      `Pair ("pix_fmt", `Int (Pixel_format.get_id format.pixel_format));
-      `Pair ("time_base", `Rational time_base);
-    ]
-    @ (match format.frame_pixel_aspect with
-      | None -> []
-      | Some pixel_aspect -> [`Pair ("pixel_aspect", `Rational pixel_aspect)])
-    @
-      match format.color_range with
-      | `Unspecified -> []
-      | color_range -> [`Pair ("range", `String (Color_range.name color_range))]
-
-  let build_display_graph ~time_base ~format filters =
+  let build_display_graph ~time_base chain =
     let graph = init () in
     let source =
       attach ~name:"source"
-        ~args:(display_source_args ~time_base format)
+        ~args:(video_buffer_args ~time_base chain.format)
         buffer graph
     in
     let last =
@@ -651,15 +645,14 @@ module Utils = struct
             (List.hd previous.io.outputs.video)
             (List.hd filter.io.inputs.video);
           (index + 1, filter))
-        (0, source) filters
+        (0, source) chain.graph_filters
       |> snd
     in
     let sink = attach ~name:"sink" buffersink graph in
     link (List.hd last.io.outputs.video) (List.hd sink.io.inputs.video);
     let endpoints = launch graph in
     {
-      format;
-      graph_filters = filters;
+      chain;
       display_source = List.assoc "source" endpoints.inputs.video;
       display_sink = List.assoc "sink" endpoints.outputs.video;
     }
@@ -685,37 +678,60 @@ module Utils = struct
     Frame.remove_side_data frame `Displaymatrix;
     frame
 
-  let display_graph converter callback ~format filters =
-    match converter.display_graph with
-      | Some graph when graph.format = format && graph.graph_filters = filters
-        ->
-          graph
-      | _ ->
+  let same_chain converter chain chain' =
+    Video.same_frame_format ~ignore:converter.ignore chain.format chain'.format
+    && chain.graph_filters = chain'.graph_filters
+
+  (* [None] when the chain cannot be built, which is remembered: the attempt is
+     made once per run of frames asking for it. *)
+  let display_graph converter callback chain =
+    match (converter.display_graph, converter.unbuildable) with
+      | Some graph, _ when same_chain converter graph.chain chain -> Some graph
+      | _, Some unbuildable when same_chain converter unbuildable chain ->
           flush_display converter callback;
-          let graph =
-            build_display_graph ~time_base:converter.display_time_base ~format
-              filters
-          in
-          converter.display_graph <- Some graph;
-          graph
+          None
+      | _ -> (
+          flush_display converter callback;
+          match
+            build_display_graph ~time_base:converter.display_time_base chain
+          with
+            | graph ->
+                converter.display_graph <- Some graph;
+                Some graph
+            | exception Error error ->
+                Log.log `Warning
+                  (Printf.sprintf
+                     "Video left as stored, with its display matrix: its \
+                      filters cannot be built (%s)."
+                     (string_of_error error));
+                converter.unbuildable <- Some chain;
+                None)
 
   (* spec/avfilter.md §11.5. *)
   let convert_display converter callback = function
     | `Flush -> flush_display converter callback
-    | `Frame frame -> (
-        let format = frame_format frame in
+    | `Frame frame ->
         let display_matrix = frame_display_matrix frame in
-        match frame_filters converter ~format ~display_matrix with
-          | None ->
-              flush_display converter callback;
-              callback frame
-          | Some [] ->
-              flush_display converter callback;
-              callback
-                (if display_matrix = None then frame
-                 else without_display_matrix frame)
-          | Some filters ->
-              let graph = display_graph converter callback ~format filters in
-              graph.display_source (`Frame frame);
-              deliver_display graph callback)
+        if display_matrix = None && converter.cropping = None then (
+          flush_display converter callback;
+          callback frame)
+        else (
+          let format = Video.frame_format frame in
+          match frame_filters ~format ~display_matrix converter with
+            | None ->
+                flush_display converter callback;
+                callback frame
+            | Some [] ->
+                flush_display converter callback;
+                callback
+                  (if display_matrix = None then frame
+                   else without_display_matrix frame)
+            | Some graph_filters -> (
+                match
+                  display_graph converter callback { format; graph_filters }
+                with
+                  | None -> callback frame
+                  | Some graph ->
+                      graph.display_source (`Frame frame);
+                      deliver_display graph callback))
 end

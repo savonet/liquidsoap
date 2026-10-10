@@ -86,6 +86,7 @@ type graph = {
   input_inits : (unit -> bool) Queue.t;
   graph_inputs : Source.source Queue.t;
   input_flushes : (unit -> unit) Queue.t;
+  input_ends : (unit -> unit) Queue.t;
   mutable graph_source : Ffmpeg_filter_graph.source option;
   mutable audio_outputs : int;
   mutable video_outputs : int;
@@ -510,39 +511,64 @@ let register_filters () =
 
 let () = Startup.time "FFmpeg filters registration" register_filters
 
-let abuffer_args frame =
-  let sample_rate = Avutil.Audio.frame_get_sample_rate frame in
-  let channel_layout = Avutil.Audio.frame_get_channel_layout frame in
-  let channel_layout_params =
+let abuffer_args { Avutil.Audio.sample_format; sample_rate; channel_layout } =
+  let channel_layout =
     match Avutil.Channel_layout.get_mask channel_layout with
-      | Some id -> ("channel_layout", `Int64 id)
+      | Some id -> id
       | None ->
-          let channel_layout =
-            Avutil.Channel_layout.get_default
-              (Avutil.Channel_layout.get_nb_channels channel_layout)
-          in
-          ( "channel_layout",
-            `Int64 (Option.get (Avutil.Channel_layout.get_mask channel_layout))
-          )
+          Option.get
+            (Avutil.Channel_layout.get_mask
+               (Avutil.Channel_layout.get_default
+                  (Avutil.Channel_layout.get_nb_channels channel_layout)))
   in
-  let sample_format = Avutil.Audio.frame_get_sample_format frame in
   [
     `Pair ("sample_rate", `Int sample_rate);
     `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
-    `Pair channel_layout_params;
+    `Pair ("channel_layout", `Int64 channel_layout);
     `Pair ("sample_fmt", `Int (Avutil.Sample_format.get_id sample_format));
   ]
 
-let buffer_args frame =
-  let width = Avutil.Video.frame_get_width frame in
-  let height = Avutil.Video.frame_get_height frame in
-  let pixel_format = Avutil.Video.frame_get_pixel_format frame in
-  [
-    `Pair ("time_base", `Rational (Ffmpeg_utils.liq_main_ticks_time_base ()));
-    `Pair ("width", `Int width);
-    `Pair ("height", `Int height);
-    `Pair ("pix_fmt", `Int Avutil.Pixel_format.(get_id pixel_format));
-  ]
+let buffer_args format =
+  Avfilter.Utils.video_buffer_args
+    ~time_base:(Ffmpeg_utils.liq_main_ticks_time_base ())
+    format
+
+(* Ends the current generation in the middle of a tick of the inputs. The
+   frames the inputs still hold are for the next one. *)
+let restart graph =
+  Queue.iter graph.input_ends (fun end_input -> end_input ());
+  Option.iter (fun s -> s#drain) graph.graph_source;
+  reset graph
+
+(* The buffer of a graph input is built for the format of the frames it takes.
+   The first frame of a generation settles it, and a frame that left it ends
+   the generation: avfilter cannot be trusted with a format that changes under
+   a running graph. Returns the format the buffer is to be built with. *)
+let input_format ~frame_format ~same ~describe graph s =
+  let format = ref None in
+  Queue.push graph.graph_inputs (s :> Source.source);
+  Queue.push graph.input_flushes (fun () -> s#flush_input);
+  Queue.push graph.input_ends (fun () -> s#end_input);
+  Queue.push graph.input_inits (fun () -> !format <> None);
+  Queue.push graph.resets (fun () ->
+      format := None;
+      s#reset_graph);
+  s#set_init (fun frame ->
+      let frame_format = frame_format frame in
+      match !format with
+        | Some format when same format frame_format -> ()
+        | previous ->
+            Option.iter
+              (fun previous ->
+                log#severe
+                  "The format of %s changed in the middle of a stream, from %s \
+                   to %s: rebuilding the filter graph. Its filters start over."
+                  s#id (describe previous) (describe frame_format);
+                restart graph)
+              previous;
+            format := Some frame_format;
+            init_graph graph);
+  fun () -> Option.get !format
 
 let _ =
   let raw_audio_format = `Kind Ffmpeg_raw_content.Audio.kind in
@@ -597,28 +623,18 @@ let _ =
          in
          s#set_stack (Lang.pos p);
          s#set_id id;
-         Queue.push graph.graph_inputs (s :> Source.source);
-         Queue.push graph.input_flushes (fun () -> s#flush_input);
-
-         (* Settled from the first frame of each generation: a source that comes
-            back at a different rate gets a buffer that says so. *)
-         let args = ref None in
+         let format =
+           input_format ~frame_format:Avutil.Audio.frame_format
+             ~same:Avutil.Audio.same_frame_format
+             ~describe:Ffmpeg_utils.string_of_audio_format graph s
+         in
          let input_node =
            cell (fun () ->
-               Avfilter.attach ~args:(Option.get !args) ~name Avfilter.abuffer
-                 (current_config graph))
+               Avfilter.attach
+                 ~args:(abuffer_args (format ()))
+                 ~name Avfilter.abuffer (current_config graph))
          in
-
          Avfilter.(Hashtbl.replace graph.entries.inputs.audio name s#set_input);
-         Queue.push graph.input_inits (fun () -> !args <> None);
-         Queue.push graph.resets (fun () ->
-             args := None;
-             s#reset_graph);
-
-         s#set_init (fun frame ->
-             if !args = None then (
-               args := Some (abuffer_args frame);
-               init_graph graph));
 
          Audio.to_value
            (`Output
@@ -729,27 +745,18 @@ let _ =
          in
          s#set_stack (Lang.pos p);
          s#set_id id;
-         Queue.push graph.graph_inputs (s :> Source.source);
-         Queue.push graph.input_flushes (fun () -> s#flush_input);
-
-         let args = ref None in
+         let format =
+           input_format ~frame_format:Avutil.Video.frame_format
+             ~same:Ffmpeg_utils.same_video_format
+             ~describe:Ffmpeg_utils.string_of_video_format graph s
+         in
          let input_node =
            cell (fun () ->
-               Avfilter.attach ~args:(Option.get !args) ~name Avfilter.buffer
-                 (current_config graph))
+               Avfilter.attach
+                 ~args:(buffer_args (format ()))
+                 ~name Avfilter.buffer (current_config graph))
          in
-
          Avfilter.(Hashtbl.replace graph.entries.inputs.video name s#set_input);
-         Queue.push graph.resets (fun () ->
-             args := None;
-             s#reset_graph);
-
-         Queue.push graph.input_inits (fun () -> !args <> None);
-
-         s#set_init (fun frame ->
-             if !args = None then (
-               args := Some (buffer_args frame);
-               init_graph graph));
 
          Video.to_value
            (`Output
@@ -831,6 +838,7 @@ let _ =
             input_inits = Queue.create ();
             graph_inputs = Queue.create ();
             input_flushes = Queue.create ();
+            input_ends = Queue.create ();
             resets = Queue.create ();
             graph_source = None;
             audio_outputs = 0;

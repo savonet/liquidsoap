@@ -484,9 +484,6 @@ let mk_decoder ~streams ~target_position ~state container =
     with
       | Avutil.Error `Eagain | Avutil.Error `Invalid_data -> decode buffer
       | Avutil.Error `Exit | Avutil.Error `Eof -> raise End_of_file
-      | Ffmpeg_decoder_common.Unsupported_change reason ->
-          log#important "Ending the track: %s" reason;
-          raise End_of_file
       | exn ->
           let bt = Printexc.get_raw_backtrace () in
           Printexc.raise_with_backtrace exn bt

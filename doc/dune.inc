@@ -832,6 +832,20 @@
    content/liq/fallback.liq)))
 
 (rule
+ (alias test-doc-ffmpeg-autorotate)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/ffmpeg-autorotate.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/ffmpeg-autorotate.liq)))
+
+(rule
  (alias test-doc-ffmpeg-filter-dynamic-volume)
  (package liquidsoap)
  (deps
@@ -902,6 +916,20 @@
    content/liq/ffmpeg-filter-parallel-flanger-highpass.liq)))
 
 (rule
+ (alias test-doc-ffmpeg-format-change)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/ffmpeg-format-change.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/ffmpeg-format-change.liq)))
+
+(rule
  (alias test-doc-ffmpeg-live-switch)
  (package liquidsoap)
  (deps
@@ -942,6 +970,20 @@
    --check
    --no-fallible-check
    content/liq/ffmpeg-relay.liq)))
+
+(rule
+ (alias test-doc-ffmpeg-rotation)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/ffmpeg-rotation.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/ffmpeg-rotation.liq)))
 
 (rule
  (alias test-doc-ffmpeg-shared-encoding-rtmp)
@@ -2502,14 +2544,17 @@
   (alias test-doc-enc-wav)
   (alias test-doc-external-output.file)
   (alias test-doc-fallback)
+  (alias test-doc-ffmpeg-autorotate)
   (alias test-doc-ffmpeg-filter-dynamic-volume)
   (alias test-doc-ffmpeg-filter-flanger-highpass)
   (alias test-doc-ffmpeg-filter-hflip)
   (alias test-doc-ffmpeg-filter-hflip2)
   (alias test-doc-ffmpeg-filter-parallel-flanger-highpass)
+  (alias test-doc-ffmpeg-format-change)
   (alias test-doc-ffmpeg-live-switch)
   (alias test-doc-ffmpeg-relay)
   (alias test-doc-ffmpeg-relay-ondemand)
+  (alias test-doc-ffmpeg-rotation)
   (alias test-doc-ffmpeg-shared-encoding)
   (alias test-doc-ffmpeg-shared-encoding-rtmp)
   (alias test-doc-fixed-time1)

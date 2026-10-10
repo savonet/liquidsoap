@@ -663,6 +663,23 @@ module Audio : sig
 
   (** The number of samples per channel the frame holds. *)
   val frame_nb_samples : audio frame -> int
+
+  (** What a consumer of audio frames is configured for: a frame whose format
+      differs from the one before needs that consumer set up again. *)
+  type frame_format = {
+    sample_format : Sample_format.t;
+    sample_rate : int;
+    channel_layout : Channel_layout.t;
+  }
+
+  (** The format of the frame.
+
+      @raise Error as {!frame_get_sample_format}. *)
+  val frame_format : audio frame -> frame_format
+
+  (** Whether two formats are the same. Channel layouts are compared with
+      {!Channel_layout.compare}. *)
+  val same_frame_format : frame_format -> frame_format -> bool
 end
 
 (** Video frames. The timestamps and the metadata are in {!Frame}. *)
@@ -761,6 +778,36 @@ module Video : sig
 
   (** The location of the chroma samples of the frame. *)
   val frame_get_chroma_location : video frame -> Chroma_location.t
+
+  (** What a consumer of video frames is configured for: a frame whose format
+      differs from the one before needs that consumer set up again. This is the
+      one list of the properties that count. *)
+  type frame_format = {
+    width : int;
+    height : int;
+    pixel_format : Pixel_format.t;
+    pixel_aspect : rational option;
+    color_space : Color_space.t;
+    color_range : Color_range.t;
+    color_primaries : Color_primaries.t;
+    color_trc : Color_trc.t;
+    chroma_location : Chroma_location.t;
+  }
+
+  (** The format of the frame.
+
+      @raise Error as {!frame_get_pixel_format}. *)
+  val frame_format : video frame -> frame_format
+
+  (** The properties a caller may leave out of the comparison: [`Color] is the
+      colour space, range, primaries, transfer characteristic and chroma
+      location together. The size and the pixel format always count. *)
+  type frame_property = [ `Color | `Pixel_aspect ]
+
+  (** Whether two formats are the same, leaving out the properties in [ignore]
+      (none by default). *)
+  val same_frame_format :
+    ?ignore:frame_property list -> frame_format -> frame_format -> bool
 end
 
 (** Subtitles. *)

@@ -28,6 +28,17 @@ val conf_log : Dtools.Conf.ut
 val conf_verbosity : string Dtools.Conf.t
 val conf_level : int Dtools.Conf.t
 val conf_autorotate : bool Dtools.Conf.t
+
+(** The frame properties [settings.ffmpeg.format_change] leaves out. *)
+val ignored_video_properties : unit -> Avutil.Video.frame_property list
+
+(** Whether a consumer built for one format takes frames of the other as it is.
+    Everything that is built for a video format compares with this. *)
+val same_video_format :
+  Avutil.Video.frame_format -> Avutil.Video.frame_format -> bool
+
+val string_of_video_format : Avutil.Video.frame_format -> string
+val string_of_audio_format : Avutil.Audio.frame_format -> string
 val conf_scaling_algorithm : string Dtools.Conf.t
 val conf_scaling_threads : int Dtools.Conf.t
 

@@ -531,10 +531,16 @@ module Utils : sig
   (** A sentence saying why nothing was decided. *)
   val string_of_undecided : undecided_frame -> string
 
+  (** The arguments of a [buffer] source that takes frames of the given format,
+      with timestamps in [time_base]: the size, the pixel format, and the pixel
+      aspect, colour space and colour range when the format has them. *)
+  val video_buffer_args :
+    time_base:Avutil.rational -> Avutil.Video.frame_format -> args list
+
   (** A converter that delivers decoded video frames upright and cropped. It
       reads the display matrix of each frame and runs {!display_filters} on a
-      private graph, rebuilt when the matrix or the geometry of the frames
-      changes. Two threads must not use one at the same time. *)
+      private graph, rebuilt when the matrix or the {!Avutil.Video.frame_format}
+      of the frames changes. Two threads must not use one at the same time. *)
   type display_converter
 
   (** [init_display_converter ?cropping ?on_undecided ~time_base ()] is a
@@ -546,10 +552,16 @@ module Utils : sig
       is a decision: the frames go through those filters and lose their display
       matrix. [None] is no decision: the frames are delivered untouched, display
       matrix included, for something downstream to act on. By default it logs a
-      warning through {!Avutil.Log.log} and answers [None]. *)
+      warning through {!Avutil.Log.log} and answers [None]. Filters that cannot
+      be built are no decision either: the converter logs a warning and delivers
+      the frames untouched.
+
+      [ignore] lists the properties of the frame format whose change does not
+      rebuild the graph, as in {!Avutil.Video.same_frame_format}. *)
   val init_display_converter :
     ?cropping:Avutil.cropping ->
     ?on_undecided:(undecided_frame -> filter_spec list option) ->
+    ?ignore:Avutil.Video.frame_property list ->
     time_base:Avutil.rational ->
     unit ->
     display_converter

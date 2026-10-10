@@ -25,7 +25,7 @@
    --profile
    %{profile}
    --expect-pass
-   109
+   110
    --allow-skip
    2.13
    %{exe:tests.exe})))

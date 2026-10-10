@@ -193,6 +193,14 @@ let decode_audio_frame ~field ~mode generator =
     | `Decode -> convert ~decoder:(mk_copy_decoder ())
     | `Raw -> convert ~decoder:(mk_raw_decoder ())
 
+type video_converter = {
+  format : Avutil.Video.frame_format;
+  time_base : Avutil.rational;
+  stream_idx : int64;
+  scaler : InternalScaler.t;
+  fps : Ffmpeg_avfilter_utils.Fps.t;
+}
+
 let decode_video_frame ~field ~mode generator =
   let video_width, video_height = Frame.video_dimensions () in
   let internal_width = Lazy.Mutexed.force video_width in
@@ -201,53 +209,42 @@ let decode_video_frame ~field ~mode generator =
 
   let mk_converter () =
     let converter = ref None in
-    let current_format = ref None in
 
-    let mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-        ?color_range ~stream_idx () =
-      current_format :=
-        Some
-          ( width,
-            height,
-            pixel_format,
-            time_base,
-            pixel_aspect,
-            color_range,
-            stream_idx );
+    let mk_converter ~time_base ~stream_idx (format : Avutil.Video.frame_format)
+        =
       let scaler =
         InternalScaler.create
           ~threads:(Ffmpeg_utils.scaling_threads ())
-          [] width height pixel_format internal_width internal_height
-          (Ffmpeg_utils.liq_frame_pixel_format_for pixel_format)
+          [] format.width format.height format.pixel_format internal_width
+          internal_height
+          (Ffmpeg_utils.liq_frame_pixel_format_for format.pixel_format)
       in
-      let fps_converter =
-        Ffmpeg_avfilter_utils.Fps.init ~width ~height ~pixel_format ~time_base
-          ?pixel_aspect ?color_range ~target_fps ()
+      let created =
+        {
+          format;
+          time_base;
+          stream_idx;
+          scaler;
+          fps =
+            Ffmpeg_avfilter_utils.Fps.of_frame_format ~format ~time_base
+              ~target_fps ();
+        }
       in
-      converter := Some (scaler, fps_converter);
-      (scaler, fps_converter)
+      converter := Some created;
+      created
     in
 
-    let get_converter ?pixel_aspect ?color_range ~pixel_format ~time_base ~width
-        ~height ~stream_idx () =
+    let get_converter ~time_base ~stream_idx format =
       match !converter with
-        | None ->
-            mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-              ?color_range ~stream_idx ()
-        | Some _
-          when !current_format
-               <> Some
-                    ( width,
-                      height,
-                      pixel_format,
-                      time_base,
-                      pixel_aspect,
-                      color_range,
-                      stream_idx ) ->
-            log#info "Video frame format change detected..";
-            mk_converter ~width ~height ~pixel_format ~time_base ?pixel_aspect
-              ?color_range ~stream_idx ()
-        | Some v -> v
+        | Some built
+          when built.time_base = time_base
+               && built.stream_idx = stream_idx
+               && Ffmpeg_utils.same_video_format built.format format ->
+            built
+        | previous ->
+            if previous <> None then
+              log#info "Video frame format change detected..";
+            mk_converter ~time_base ~stream_idx format
     in
 
     let put ~scaler data =
@@ -261,25 +258,16 @@ let decode_video_frame ~field ~mode generator =
 
     fun ~time_base ~stream_idx -> function
       | `Frame frame ->
-          let width = Avutil.Video.frame_get_width frame in
-          let height = Avutil.Video.frame_get_height frame in
-          let pixel_format = Avutil.Video.frame_get_pixel_format frame in
-          let pixel_aspect = Avutil.Video.frame_get_pixel_aspect frame in
-          let color_range = Avutil.Video.frame_get_color_range frame in
-          let color_range =
-            match color_range with `Unspecified -> None | cr -> Some cr
+          let { scaler; fps; _ } =
+            get_converter ~time_base ~stream_idx
+              (Avutil.Video.frame_format frame)
           in
-          let scaler, fps_converter =
-            get_converter ?pixel_aspect ?color_range ~pixel_format ~time_base
-              ~width ~height ~stream_idx ()
-          in
-          Ffmpeg_avfilter_utils.Fps.convert fps_converter frame (put ~scaler)
+          Ffmpeg_avfilter_utils.Fps.convert fps frame (put ~scaler)
       | `Flush ->
-          ignore
-            (Option.map
-               (fun (scaler, fps_converter) ->
-                 Ffmpeg_avfilter_utils.Fps.eof fps_converter (put ~scaler))
-               !converter)
+          Option.iter
+            (fun { scaler; fps; _ } ->
+              Ffmpeg_avfilter_utils.Fps.eof fps (put ~scaler))
+            !converter
   in
 
   let mk_copy_decoder () =

@@ -64,7 +64,9 @@ module Display = struct
       Some
         (Avfilter.Utils.init_display_converter
            ?cropping:(Option.bind params cropping)
-           ?on_undecided:(Atomic.get on_undecided) ~time_base ())
+           ?on_undecided:(Atomic.get on_undecided)
+           ~ignore:(Ffmpeg_utils.ignored_video_properties ())
+           ~time_base ())
     else None
 
   let convert display frame callback =
@@ -193,6 +195,17 @@ module Fps = struct
           `Filter
             (init ?start_pts ~width ~height ~pixel_format ~time_base
                ?pixel_aspect ?source_fps ?color_range ~target_fps ())
+
+  let of_frame_format ~(format : Avutil.Video.frame_format) ~time_base
+      ~target_fps () =
+    init ~width:format.width ~height:format.height
+      ~pixel_format:format.pixel_format ~time_base
+      ?pixel_aspect:format.pixel_aspect
+      ?color_range:
+        (match format.color_range with
+          | `Unspecified -> None
+          | color_range -> Some color_range)
+      ~target_fps ()
 
   let rec flush cb output =
     try
@@ -352,4 +365,140 @@ module AFormat = struct
       | `Filter { input; output } -> (
           input `Flush;
           try flush cb output with Avutil.Error `Eof -> ())
+end
+
+module Fit = struct
+  type target = {
+    width : int;
+    height : int;
+    pixel_format : Avutil.Pixel_format.t;
+    pixel_aspect : Avutil.rational option;
+  }
+
+  type graph = {
+    source : Avutil.Video.frame_format;
+    target : target;
+    input : [ `Video ] Avfilter.input;
+    output : [ `Video ] Avfilter.output;
+  }
+
+  type t = { mutable graph : graph option }
+
+  let init () = { graph = None }
+
+  let find name =
+    match Avfilter.find_opt name with
+      | Some filter -> filter
+      | None -> failwith ("Could not find " ^ name ^ " ffmpeg filter!")
+
+  let square = { Avutil.num = 1; den = 1 }
+
+  (* The largest size inside the target that shows the source with its
+     proportions, both pixel aspects accounted for. *)
+  let fitted_size ?(pixel_aspect = square) ~width ~height
+      (source : Avutil.Video.frame_format) =
+    let source_aspect = Option.value ~default:square source.pixel_aspect in
+    let num = source.width * source_aspect.num * pixel_aspect.Avutil.den in
+    let den = source.height * source_aspect.den * pixel_aspect.num in
+    if num * height <= width * den then (max 1 (height * num / den), height)
+    else (width, max 1 (width * den / num))
+
+  let filters ~(source : Avutil.Video.frame_format) target =
+    let known_aspect =
+      match target.pixel_aspect with
+        | Some _ as pixel_aspect -> pixel_aspect
+        | None -> source.pixel_aspect
+    in
+    let width, height =
+      fitted_size ?pixel_aspect:known_aspect ~width:target.width
+        ~height:target.height source
+    in
+    [
+      ( "scale",
+        [
+          `Pair ("w", `Int width);
+          `Pair ("h", `Int height);
+          `Pair ("flags", `String Ffmpeg_utils.conf_scaling_algorithm#get);
+        ] );
+      ( "pad",
+        [
+          `Pair ("w", `Int target.width);
+          `Pair ("h", `Int target.height);
+          `Pair ("x", `String "(ow-iw)/2");
+          `Pair ("y", `String "(oh-ih)/2");
+        ] );
+      ( "setsar",
+        [
+          `Pair
+            ( "sar",
+              `Rational
+                (Option.value ~default:{ Avutil.num = 0; den = 1 } known_aspect)
+            );
+        ] );
+      ( "format",
+        [
+          `Pair
+            ( "pix_fmts",
+              `String
+                (Option.get (Avutil.Pixel_format.to_string target.pixel_format))
+            );
+        ] );
+    ]
+
+  let build ~(source : Avutil.Video.frame_format) target =
+    let config = Avfilter.init () in
+    let buffer =
+      Avfilter.attach ~name:"buffer"
+        ~args:
+          (Avfilter.Utils.video_buffer_args
+             ~time_base:(Ffmpeg_utils.liq_main_ticks_time_base ())
+             source)
+        Avfilter.buffer config
+    in
+    let last =
+      List.fold_left
+        (fun previous (name, args) ->
+          let filter = Avfilter.attach ~name ~args (find name) config in
+          Avfilter.link
+            (List.hd Avfilter.(previous.io.outputs.video))
+            (List.hd Avfilter.(filter.io.inputs.video));
+          filter)
+        buffer (filters ~source target)
+    in
+    let sink = Avfilter.attach ~name:"buffersink" Avfilter.buffersink config in
+    Avfilter.link
+      (List.hd Avfilter.(last.io.outputs.video))
+      (List.hd Avfilter.(sink.io.inputs.video));
+    let graph = Avfilter.launch config in
+    {
+      source;
+      target;
+      input = snd (List.hd Avfilter.(graph.inputs.video));
+      output = snd (List.hd Avfilter.(graph.outputs.video));
+    }
+
+  let graph fit ~source target =
+    match fit.graph with
+      | Some graph
+        when graph.target = target
+             && Ffmpeg_utils.same_video_format graph.source source ->
+          graph
+      | _ ->
+          let graph = build ~source target in
+          fit.graph <- Some graph;
+          graph
+
+  let rec deliver cb output =
+    match output.Avfilter.handler () with
+      | frame ->
+          cb frame;
+          deliver cb output
+      | exception Avutil.Error (`Eagain | `Eof) -> ()
+
+  let convert fit ~target frame cb =
+    let { input; output; _ } =
+      graph fit ~source:(Avutil.Video.frame_format frame) target
+    in
+    input (`Frame frame);
+    deliver cb output
 end

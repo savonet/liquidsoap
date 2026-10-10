@@ -75,6 +75,82 @@ let conf_autorotate =
         "keep their display matrix.";
       ]
 
+let conf_format_change =
+  Dtools.Conf.void
+    ~p:(conf_ffmpeg#plug "format_change")
+    "Video format changes in the middle of a stream"
+    ~comments:
+      [
+        "Converters and filter graphs are built for the format of the frames";
+        "they take and are built again when it changes. A change of size or of";
+        "pixel format always counts. The settings below select the others.";
+      ]
+
+let conf_format_change_color =
+  Dtools.Conf.bool
+    ~p:(conf_format_change#plug "color")
+    "Follow colour changes" ~d:true
+    ~comments:
+      [
+        "Rebuild when the colour space, range, primaries, transfer";
+        "characteristic or chroma location of the video changes. When";
+        "disabled, the values of the first frame are kept.";
+      ]
+
+let conf_format_change_pixel_aspect =
+  Dtools.Conf.bool
+    ~p:(conf_format_change#plug "pixel_aspect")
+    "Follow pixel aspect changes" ~d:true
+    ~comments:
+      [
+        "Rebuild when the pixel aspect of the video changes. When disabled,";
+        "the value of the first frame is kept.";
+      ]
+
+let ignored_video_properties () =
+  (if conf_format_change_color#get then [] else [`Color])
+  @ if conf_format_change_pixel_aspect#get then [] else [`Pixel_aspect]
+
+let same_video_format format format' =
+  Avutil.Video.same_frame_format
+    ~ignore:(ignored_video_properties ())
+    format format'
+
+let string_of_video_format
+    {
+      Avutil.Video.width;
+      height;
+      pixel_format;
+      pixel_aspect;
+      color_space;
+      color_range;
+      color_primaries;
+      color_trc;
+      chroma_location;
+    } =
+  Printf.sprintf
+    "%dx%d %s, pixel aspect %s, colour space %s, range %s, primaries %s, \
+     transfer %s, chroma location %s"
+    width height
+    (Option.value ~default:"unknown"
+       (Avutil.Pixel_format.to_string pixel_format))
+    (match pixel_aspect with
+      | None -> "unknown"
+      | Some { Avutil.num; den } -> Printf.sprintf "%d/%d" num den)
+    (Avutil.Color_space.name color_space)
+    (Avutil.Color_range.name color_range)
+    (Avutil.Color_primaries.name color_primaries)
+    (Avutil.Color_trc.name color_trc)
+    (Avutil.Chroma_location.name chroma_location)
+
+let string_of_audio_format
+    { Avutil.Audio.sample_format; sample_rate; channel_layout } =
+  Printf.sprintf "%s, %d Hz, %s"
+    (Option.value ~default:"unknown"
+       (Avutil.Sample_format.get_name sample_format))
+    sample_rate
+    (Avutil.Channel_layout.get_description channel_layout)
+
 let conf_scaling_algorithm =
   Dtools.Conf.string
     ~p:(conf_ffmpeg#plug "scaling_algorithm")
@@ -387,7 +463,8 @@ module Duration = struct
       match (last_ts, get_ts packet) with
         | None, Some ts ->
             let ts = Int64.add ts offset in
-            set_ts packet (Some ts);
+            set_ts packet
+              (Some (if convert_ts then convert_time_base ~src ~dst ts else ts));
             t.last_ts <- Some ts;
             0
         | Some old_ts, Some ts ->

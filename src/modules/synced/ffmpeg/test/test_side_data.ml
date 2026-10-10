@@ -440,6 +440,52 @@ let requirement_13_9 () =
     [(height, width); (width, height); (height, width)]
     sizes "a change of matrix delivers every frame, in order"
 
+let requirement_13_10 () =
+  let unbuildable =
+    converted
+      ~on_undecided:(fun _ -> Some [("no_such_filter", [])])
+      [gray ~matrix:(Display_matrix.make (-33.)) 0]
+  in
+  equal [1]
+    (List.map (fun f -> List.length (Frame.side_data f)) unbuildable)
+    "filters that cannot be built leave the frame as it came";
+  let format = Video.frame_format (gray 0) in
+  equal (width, height) (format.width, format.height) "the size of the frame";
+  equal `Gray8 format.pixel_format "its pixel format";
+  check
+    (Video.same_frame_format format (Video.frame_format (gray 1)))
+    "two frames made alike have the same format";
+  check
+    (not
+       (Video.same_frame_format format
+          (Video.frame_format (Video.create_frame height width `Gray8))))
+    "another size is another format";
+  let wide = { format with pixel_aspect = Some { num = 4; den = 3 } } in
+  check
+    (not (Video.same_frame_format format wide))
+    "another pixel aspect is another format";
+  check
+    (Video.same_frame_format ~ignore:[`Pixel_aspect] format wide)
+    "unless the caller leaves the pixel aspect out";
+  equal
+    [
+      `Pair ("video_size", `String (Printf.sprintf "%dx%d" width height));
+      `Pair ("pix_fmt", `Int (Pixel_format.get_id `Gray8));
+      `Pair ("time_base", `Rational Test_av.video_time_base);
+      `Pair ("pixel_aspect", `Rational { num = 4; den = 3 });
+    ]
+    (Avfilter.Utils.video_buffer_args ~time_base:Test_av.video_time_base wide)
+    "the buffer arguments of a format with no colour information";
+  let audio rate =
+    Audio.frame_format (Audio.create_frame `S16 Channel_layout.stereo rate 16)
+  in
+  check
+    (Audio.same_frame_format (audio 44100) (audio 44100))
+    "two audio frames made alike have the same format";
+  check
+    (not (Audio.same_frame_format (audio 44100) (audio 48000)))
+    "another rate is another format"
+
 let requirements =
   [
     ("13.1", requirement_13_1);
@@ -451,4 +497,5 @@ let requirements =
     ("13.7", requirement_13_7);
     ("13.8", requirement_13_8);
     ("13.9", requirement_13_9);
+    ("13.10", requirement_13_10);
   ]
