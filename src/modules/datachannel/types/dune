@@ -1,0 +1,13 @@
+(library
+ (name datachannel_types)
+ (wrapped false)
+ (libraries datachannel_constants ctypes.stubs))
+
+(rule
+ (targets datachannel_generated_constants.ml)
+ (deps
+  (:gen ../generator/gen_constants_c_target.exe))
+ (action
+  (with-stdout-to
+   %{targets}
+   (run %{gen}))))

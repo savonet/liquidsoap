@@ -1,0 +1,30 @@
+(library
+ (optional)
+ (name datachannel)
+ (foreign_stubs
+  (language c)
+  (names datachannel_generated_stubs)
+  (flags
+   (:include c_flags.sexp)))
+ (c_library_flags
+  (:include c_library_flags.sexp))
+ (libraries datachannel_stubs ctypes.stubs ctypes.foreign))
+
+(rule
+ (targets c_flags.sexp c_library_flags.sexp)
+ (action
+  (run ./config/discover.exe)))
+
+(rule
+ (targets datachannel_generated_stubs.ml)
+ (deps
+  (:gen ./generator/gen_stubs.exe))
+ (action
+  (run %{gen} ml %{targets})))
+
+(rule
+ (targets datachannel_generated_stubs.c)
+ (deps
+  (:gen ./generator/gen_stubs.exe))
+ (action
+  (run %{gen} c %{targets})))
