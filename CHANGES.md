@@ -1,3 +1,11 @@
+# 2.4.7 (unreleased)
+
+## Fixed:
+
+- Fixed `fade.out` with `track_sensitive=true` playing the end of a track at
+  full volume when the track ends in the middle of a frame, e.g. with a
+  `liq_cue_out` that is not a multiple of the frame duration (#5527)
+
 # 2.4.6 (2026-10-08)
 
 ## Fixed:
