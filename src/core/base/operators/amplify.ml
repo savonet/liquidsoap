@@ -56,17 +56,13 @@ class amplify ~field ~override_field (source : source) coeff =
 
     method private coeff = match override with Some o -> o | None -> coeff ()
 
-    (* Track callbacks run while the source generates its frame and may
-       change the coefficient, e.g. [fade.out] resetting it on track change.
-       The source can be pulled by another operator before us, so the value
-       for the ending track's tail is taken before the source generates. *)
-    val mutable ending_track_coeff = None
-
-    initializer
-      source#on_frame
-        (`Before_frame (fun _ -> ending_track_coeff <- Some self#coeff))
+    (* Callbacks of the source run before any part of its frame reaches us, so
+       a coefficient change seen on a frame with a track mark only applies
+       from the mark: the ending track keeps the last applied value. *)
+    val mutable last_coeff = None
 
     method private process ?(k = self#coeff) buf =
+      last_coeff <- Some k;
       if k <> 1. then (
         let content = Frame.get buf field in
         self#amplify k content 0 (Frame.audio_of_main (Content.length content));
@@ -94,7 +90,7 @@ class amplify ~field ~override_field (source : source) coeff =
       match self#split_frame buf with
         | buf, None -> self#process buf
         | buf, Some new_track ->
-            let buf = self#process ?k:ending_track_coeff buf in
+            let buf = self#process ?k:last_coeff buf in
             self#set_override new_track;
             Frame.append buf (self#process new_track)
   end
