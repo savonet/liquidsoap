@@ -385,12 +385,17 @@ predicates are
 | `{12h}`       | between 12h00 and 12h59               |
 | `{12h00}`     | at 12h00                              |
 | `{00m}`       | on the first minute of every hour     |
-| `{00m-09m}`   | on the first 10 minutes of every hour |
+| `{00m-10m}`   | on the first 10 minutes of every hour |
 | `{2w}`        | on Tuesday                            |
-| `{6w-7w}`     | on weekends                           |
+| `{1w-6w}`     | from Monday to Friday                 |
+| `{6w or 7w}`  | on weekends                           |
 
 Above, `w` stands for weekday: 1 is Monday, 2 is Tuesday, and so on. Sunday is
 both 0 and 7.
+
+An interval includes its start and excludes its end: `{11h15-13h}` stops at
+13h00 and `{1w-6w}` stops when Saturday begins. A single value covers its whole
+unit: `{12h}` lasts until 12h59 and `{5w}` lasts all Friday.
 
 Time predicates can also be parsed at runtime, for instance if you want to create
 them dynamically. The syntax is:
