@@ -20,6 +20,6 @@
   conf-pkg-config
   conf-lilv
   dune
-  dune-configurator
-  ctypes
-  ctypes-foreign))
+  (dune-configurator (>= 3.24.2))
+  (ctypes (>= 0.24.0))
+  (ctypes-foreign (>= 0.24.0))))
