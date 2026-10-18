@@ -405,6 +405,11 @@ them dynamically. The syntax is:
 f : () -> bool = <fun>
 ```
 
+The string can combine predicates with `and`, `or`, `not` and parentheses, as in
+`time.predicate("(6w or 7w) and 8h-15h")`. These follow the same precedence as
+in scripts, where `and` binds less tightly than `or`: use parentheses when
+mixing them.
+
 Be aware that, if parsing fails, it will raise `error.string`:
 
 ```liquidsoap
