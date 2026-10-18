@@ -289,6 +289,9 @@
 - Added an `override` parameter to `insert_metadata`: when `false`, metadata the source
   provides itself takes precedence over the inserted one. The composition profiles use it
   so that replaying metadata on selection never overwrites a fresh track's own metadata.
+- Fixed a stall of the full connection timeout on Windows when a host's first address
+  refuses the connection, e.g. `output.icecast` to `localhost` with an IPv4-only server,
+  on connection and on every metadata update (#5484).
 
 ---
 
