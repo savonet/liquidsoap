@@ -91,7 +91,7 @@ jobs:
           IS_RELEASE: ${{ inputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
           BUILD_STAMP: ${{ inputs.build_stamp }}
-          DEB_RELEASE: 2
+          DEB_RELEASE: 3
         run: |
           mkdir -p "${LIQ_TMP_DIR}"
           chown -R opam "${LIQ_TMP_DIR}"
@@ -118,7 +118,7 @@ jobs:
           IS_RELEASE: ${{ inputs.is_release }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
           BUILD_STAMP: ${{ inputs.build_stamp }}
-          APK_RELEASE: 1
+          APK_RELEASE: 2
           REPO_ABUILD_KEY: ${{ secrets.REPO_ABUILD_KEY }}
         run: |
           cd /tmp/liquidsoap
