@@ -146,9 +146,9 @@ let connect_sockaddr ?bind_address ?timeout sockaddr =
   let do_timeout = timeout <> None in
   let check_timeout () =
     let timeout = Option.get timeout in
-    (* Block in a select call for [timeout] seconds. *)
-    let _, w, _ = select [] [socket] [] timeout in
-    if w = [] then raise Timeout;
+    (* Windows reports a failed connection in the exception set. *)
+    let _, w, e = select [] [socket] [socket] timeout in
+    if w = [] && e = [] then raise Timeout;
     match Unix.getsockopt_error socket with
       | Some err -> raise (Unix.Unix_error (err, "connect", ""))
       | None ->
