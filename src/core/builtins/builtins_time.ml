@@ -145,7 +145,8 @@ let _ =
 
 let _ =
   let processor =
-    MenhirLib.Convert.Simplified.traditional2revised Parser.time_predicate
+    MenhirLib.Convert.Simplified.traditional2revised
+      Parser.time_predicate_string
   in
   Lang.add_builtin ~category:`Time ~base:time "predicate"
     ~descr:"Parse a string as a time predicate"
