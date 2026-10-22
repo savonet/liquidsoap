@@ -143,17 +143,25 @@ val create :
   * taking only the tasks whose priority it accepts, and a [`Threaded] task runs
   * in place on the thread that took it. Nothing runs in parallel and
   * [Unix.fork] stays usable.
+  * With [`Growing (initial, n)], the pool starts as [`Domains initial] and
+  * adds a domain, up to [n], each time ready work has found every worker
+  * busy for [grow_after] seconds. It never shrinks.
+  *
   * @param pool Default: [`Domains (Domain.recommended_domain_count ())]
   * @param max_blocking the most [`Threaded] tasks that may be in flight at
   * once over the whole pool, whichever workers took them. Unused by a thread
   * pool. Default: [64]
+  * @param grow_after Seconds of saturation before a growing pool adds a
+  * domain. Default: [1.]
   * @param log Logging function. Default: no logging *)
 val start :
   ?pool:
     [ `Domains of int
+    | `Growing of int * int
     | `Selective_domains of ('a -> bool) list
     | `Threads of ('a -> bool) list ] ->
   ?max_blocking:int ->
+  ?grow_after:float ->
   ?log:(string -> unit) ->
   'a scheduler ->
   unit

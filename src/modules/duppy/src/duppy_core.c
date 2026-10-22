@@ -109,6 +109,9 @@ typedef struct {
   int took_batch;
   int running;
   int blocking;
+  /* Whether the worker is part of the pool: one it may still grow into is
+     never better placed than a running one. */
+  int active;
   queue pinned_immediate;
   queue pinned_direct[DUPPY_RANKS];
   queue pinned_threaded[DUPPY_RANKS];
@@ -151,7 +154,13 @@ struct duppy_core {
   uint64_t direct_ranks;
   uint64_t threaded_ranks;
   worker *workers;
+  /* Workers allocated, up to which the pool may grow. */
   int worker_count;
+  /* Workers handed out, running or about to. */
+  int spawned;
+  /* Since when ready work has found no idle worker, or 0. */
+  double starved_since;
+  pthread_cond_t growth_condition;
   int max_blocking;
   int reserved;
   int slots;
@@ -646,7 +655,7 @@ static int better_placed(const duppy_core *core, const task *entry,
   const worker *taker = &core->workers[worker_index];
   for (int i = 0; i < core->worker_count; i++) {
     const worker *other = &core->workers[i];
-    if (i != worker_index && !other->running &&
+    if (i != worker_index && other->active && !other->running &&
         other->blocking < taker->blocking && accepted_by(entry, i))
       return 1;
   }
@@ -685,12 +694,24 @@ static void wake_worker(worker *sleeper) {
   pthread_cond_signal(&sleeper->wake_condition);
 }
 
+/* Only work any new worker could take is a reason to grow: a pinned task waits
+   for its own worker, and a threaded one without a slot for a slot. */
+static void note_starved(duppy_core *core, const task *entry) {
+  if (core->spawned >= core->worker_count || core->starved_since > 0 ||
+      entry->pin != DUPPY_ANY_WORKER ||
+      (entry->task_class == DUPPY_THREADED && core->blocking >= core->slots))
+    return;
+  core->starved_since = duppy_core_now();
+  pthread_cond_signal(&core->growth_condition);
+}
+
 static void offer(duppy_core *core, const task *entry) {
   for (int i = 0; i < core->worker_count; i++)
     if (core->workers[i].idle && can_take(core, i, entry)) {
       wake_worker(&core->workers[i]);
       return;
     }
+  note_starved(core, entry);
 }
 
 static void make_ready(duppy_core *core, task *entry) {
@@ -882,8 +903,10 @@ duppy_work duppy_core_take(duppy_core *core, int worker_index, intptr_t *out,
         taker->running = 1;
         work = DUPPY_ONE_DIRECT;
       }
-    } else
+    } else {
       taker->idle = 1;
+      core->starved_since = 0;
+    }
     offer_remaining(core);
   }
   pthread_mutex_unlock(&core->mutex);
@@ -915,6 +938,54 @@ void duppy_core_blocking_done(duppy_core *core, int worker_index) {
 static void wake_every_worker(duppy_core *core) {
   for (int i = 0; i < core->worker_count; i++)
     wake_worker(&core->workers[i]);
+  pthread_cond_broadcast(&core->growth_condition);
+}
+
+static void deadline_after(struct timespec *deadline, double seconds) {
+  clock_gettime(CLOCK_REALTIME, deadline);
+  double whole = floor(seconds);
+  deadline->tv_sec += (time_t)whole;
+  deadline->tv_nsec += (long)((seconds - whole) * 1e9);
+  if (deadline->tv_nsec >= 1000000000L) {
+    deadline->tv_sec++;
+    deadline->tv_nsec -= 1000000000L;
+  }
+}
+
+/* Ready work that is not waiting for one worker in particular nor for a
+   blocking slot. */
+static int has_shared_work(const duppy_core *core) {
+  return core->immediate.head != NULL || core->direct_ranks != 0 ||
+         (core->threaded_ranks != 0 && core->blocking < core->slots);
+}
+
+int duppy_core_await_growth(duppy_core *core, double delay) {
+  int index = -1;
+  pthread_mutex_lock(&core->mutex);
+  while (!core->stopped && core->spawned < core->worker_count) {
+    if (core->starved_since == 0) {
+      pthread_cond_wait(&core->growth_condition, &core->mutex);
+      continue;
+    }
+    double remaining = core->starved_since + delay - duppy_core_now();
+    if (remaining <= 0) {
+      if (!has_shared_work(core)) {
+        core->starved_since = 0;
+        continue;
+      }
+      index = core->spawned++;
+      core->workers[index].active = 1;
+      /* Work still queued counts towards the next growth, unless a worker
+         idles in the meantime. */
+      core->starved_since = duppy_core_now();
+      break;
+    }
+    struct timespec deadline;
+    deadline_after(&deadline, remaining);
+    pthread_cond_timedwait(&core->growth_condition, &core->mutex, &deadline);
+  }
+  pthread_mutex_unlock(&core->mutex);
+  return index;
 }
 
 static void update_slots(duppy_core *core) {
@@ -1154,7 +1225,8 @@ duppy_core *duppy_core_create(duppy_fd wake_read, duppy_fd wake_write,
   core->fallback = core->native < 0;
   if (core->buckets == NULL ||
       (!core->fallback && native_set(core, wake_read, DUPPY_READ) != 0) ||
-      pthread_mutex_init(&core->mutex, NULL) != 0) {
+      pthread_mutex_init(&core->mutex, NULL) != 0 ||
+      pthread_cond_init(&core->growth_condition, NULL) != 0) {
     int failure = errno ? errno : ENOMEM;
 #ifndef _WIN32
     if (core->native >= 0)
@@ -1171,9 +1243,15 @@ duppy_core *duppy_core_create(duppy_fd wake_read, duppy_fd wake_write,
 }
 
 int duppy_core_start(duppy_core *core, int worker_count, int max_blocking) {
+  return duppy_core_start_growing(core, worker_count, worker_count,
+                                  max_blocking);
+}
+
+int duppy_core_start_growing(duppy_core *core, int worker_count, int initial,
+                             int max_blocking) {
   int failure = 0;
   pthread_mutex_lock(&core->mutex);
-  if (core->started || core->stopped || worker_count < 1)
+  if (core->started || core->stopped || initial < 1 || worker_count < initial)
     failure = EINVAL;
   else {
     core->workers = calloc(worker_count, sizeof(worker));
@@ -1181,9 +1259,12 @@ int duppy_core_start(duppy_core *core, int worker_count, int max_blocking) {
       failure = ENOMEM;
   }
   if (!failure) {
-    for (int i = 0; i < worker_count; i++)
+    for (int i = 0; i < worker_count; i++) {
       pthread_cond_init(&core->workers[i].wake_condition, NULL);
+      core->workers[i].active = i < initial;
+    }
     core->worker_count = worker_count;
+    core->spawned = initial;
     core->max_blocking = max_blocking;
     update_slots(core);
     failure = pthread_create(&core->event_thread, NULL, event_loop, core);
@@ -1231,6 +1312,7 @@ void duppy_core_free(duppy_core *core) {
   if (core->timer >= 0)
     close(core->timer);
 #endif
+  pthread_cond_destroy(&core->growth_condition);
   pthread_mutex_destroy(&core->mutex);
   free(core->workers);
   free(core->heap);

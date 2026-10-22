@@ -29,9 +29,10 @@ let conf_scheduler =
     ~comments:
       [
         "The scheduler is used to process various tasks in liquidsoap.";
-        "It runs one domain per core and dispatches ready tasks onto";
-        "whichever of them is free. A task is one of three kinds, named after";
-        "what it does to the domain running it:";
+        "It starts with two domains, adds one whenever ready tasks keep";
+        "finding every domain busy, up to `domains`, and dispatches ready";
+        "tasks onto whichever of them is free. A task is one of three kinds,";
+        "named after what it does to the domain running it:";
         "\"Non-blocking\" tasks are instantaneous, such as the server's";
         "internal processes; they run in batches directly on a domain.";
         "\"Blocking\" tasks keep a domain busy until they finish, such as a";
@@ -41,6 +42,21 @@ let conf_scheduler =
         "`thread.run`; each one runs on a thread inside a domain, so that";
         "waiting leaves the domain free for other work.";
       ]
+
+let domains =
+  Dtools.Conf.int
+    ~p:(conf_scheduler#plug "domains")
+    ~d:(Domain.recommended_domain_count ())
+    "Maximum scheduler domains"
+    ~comments:
+      [
+        "Most domains the scheduler grows to. Defaults to the number of cores;";
+        "a higher value is honoured, with a warning. Each domain has its own";
+        "OCaml minor heap and its own allocator arena, so a lower cap bounds";
+        "memory use at the cost of parallelism.";
+      ]
+
+let max_domains () = max 1 domains#get
 
 let blocking_tasks =
   Dtools.Conf.int
@@ -174,7 +190,14 @@ let start () =
             "settings.scheduler.generic_queues, fast_queues and \
              non_blocking_queues are deprecated and ignored unless \
              settings.scheduler.legacy is set.";
-        None)
+        let most = max_domains () in
+        let cores = Domain.recommended_domain_count () in
+        if most > cores then
+          log#important
+            "settings.scheduler.domains is %d, above the %d cores available: \
+             domains beyond that compete for the same cores."
+            most cores;
+        Some (`Growing (min 2 most, most)))
     in
     Duppy.start ?pool ~max_blocking:blocking_tasks#get
       ?log:(scheduler_logger ()) raw)

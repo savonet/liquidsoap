@@ -75,6 +75,18 @@ memory each cycle allocates:
 
 See the [settings reference](./settings.md) for all the frame settings.
 
+### Scheduler domains
+
+Liquidsoap runs its tasks on a pool of OCaml domains. The pool starts with two and adds one whenever ready tasks keep finding every
+domain busy, up to `settings.scheduler.domains`, the number of cores by default. It never shrinks. Each domain costs memory: it has its own minor heap and allocator arena, and
+the major collector completes its cycles less often as domains are added, so more freed memory waits to be reclaimed.
+
+Lower `settings.scheduler.domains` to bound memory when the script does not need every core:
+
+```{.liquidsoap include="scheduler_domains.liq" from=1}
+
+```
+
 ### Garbage collector parameters
 
 The OCaml garbage collector trades CPU for memory: _to minimize unused memory, more CPU cycles have to be dedicated to tracking it_.
@@ -92,6 +104,10 @@ Typically, to change the garbage collector parameters, one can do:
 ```{.liquidsoap include="space_overhead.liq" from=1}
 
 ```
+
+`runtime.gc.set` changes `minor_heap_size` for the calling domain only. To set it for every scheduler domain, use the `OCAMLRUNPARAM`
+environment variable when starting liquidsoap, for instance `OCAMLRUNPARAM=s=32k` for a minor heap of 32k words. A smaller minor heap
+makes the major collector run more often, which lowers memory usage on machines with many cores at a small CPU cost.
 
 Liquidsoap runs on OCaml 5. The OCaml 4 parameters `allocation_policy`, `major_heap_increment`, `window_size` and `max_overhead` are ignored.
 

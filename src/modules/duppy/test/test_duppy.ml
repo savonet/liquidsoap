@@ -91,6 +91,55 @@ let test_parallel () =
       count;
   ok "%d blocking tasks ran concurrently on %d domains" count distinct
 
+(* Each task holds its worker until all of them run, so they only finish once
+   the pool has grown a domain for each. *)
+let test_growing () =
+  let s = Duppy.create ~classify () in
+  let started = latch () in
+  let finished = latch () in
+  let count = 3 in
+  let domains = Array.make count (-1) in
+  for i = 0 to count - 1 do
+    Duppy.Task.add s
+      (task Direct (fun _ ->
+           domains.(i) <- domain_id ();
+           bump started;
+           await started count;
+           bump finished;
+           []))
+  done;
+  Duppy.start ~pool:(`Growing (1, count)) ~grow_after:0.05 s;
+  await finished count;
+  Duppy.stop s;
+  let distinct = ran_on domains in
+  if distinct <> count then
+    fail "a growing pool ran %d held tasks on %d domains, expected %d" count
+      distinct count;
+  ok "a growing pool grew to %d domains for %d held tasks" distinct count
+
+(* Work that never queues behind a busy worker is no reason to grow. *)
+let test_growing_idle () =
+  let s = Duppy.create ~classify () in
+  Duppy.start ~pool:(`Growing (1, 4)) ~grow_after:0.02 s;
+  let count = 20 in
+  let domains = Array.make count (-1) in
+  for i = 0 to count - 1 do
+    let l = latch () in
+    Duppy.Task.add s
+      (task Direct (fun _ ->
+           domains.(i) <- domain_id ();
+           bump l;
+           []));
+    await l 1;
+    Thread.delay 0.005
+  done;
+  Duppy.stop s;
+  let distinct = ran_on domains in
+  if distinct <> 1 then
+    fail "%d sequential tasks ran on %d domains of a growing pool" count
+      distinct;
+  ok "a growing pool stayed on one domain for %d sequential tasks" count
+
 let test_batch () =
   let s = Duppy.create ~classify () in
   let l = latch () in
@@ -831,6 +880,8 @@ let () =
   test_backend ();
   test_threads ();
   test_parallel ();
+  test_growing ();
+  test_growing_idle ();
   test_batch ();
   test_io ();
   test_blocking_cap ();

@@ -82,7 +82,7 @@
 - Removed optional `faad` decoder, superseded by `ffmpeg` (#5444)
 - The `prometheus.latency` metrics end in `_ratio` instead of `_seconds`: their values are ratios of the frame duration.
 - Deprecated `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
-  `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from the number of cores and there is
+  `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from its workload and there is
   nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
   warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
   resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to 64,
@@ -96,6 +96,9 @@
   a scheduler domain, one at a time, ahead of request resolution.
   A clock driving JACK input or output keeps a thread of its own, since it rests by waiting on the
   JACK server. `settings.clock.task := false` restores a thread per clock everywhere.
+- The scheduler starts with two domains and adds one whenever ready tasks keep finding every domain busy, up
+  to `settings.scheduler.domains`, the number of cores by default. Each domain costs memory, and most scripts
+  never need more than two (#5507).
 - When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
   long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
 

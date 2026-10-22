@@ -88,6 +88,14 @@ const char *duppy_core_backend(const duppy_core *core);
 /* max_blocking is how many threaded tasks the pool may have taken and not
    reported done. Returns 0, or -1 with errno set. */
 int duppy_core_start(duppy_core *core, int worker_count, int max_blocking);
+/* Allocates worker_count workers of which initial are running; the others are
+   handed out by duppy_core_await_growth. */
+int duppy_core_start_growing(duppy_core *core, int worker_count, int initial,
+                             int max_blocking);
+/* Blocks until ready work has found no idle worker for delay seconds, and
+   returns the index of the worker to start then. Returns -1 once the core is
+   stopped or every worker is handed out. */
+int duppy_core_await_growth(duppy_core *core, double delay);
 
 /* Drops every task not yet taken, wakes every worker and joins the event
    thread. */
