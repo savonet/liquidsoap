@@ -1,128 +1,123 @@
 # Inline encoding and decoding operators (Part B, OCaml)
 
-How [inline-codecs.md](../inline-codecs.md) is laid out in OCaml. It relies
-on the Lang track-operator API, `Child_support` and the FFmpeg bindings.
+Advice for implementing [inline-codecs.md](../inline-codecs.md) in OCaml on
+top of the FFmpeg bindings. Part A is complete without it.
 
-## 1. Files and registration
+## 1. Registration
 
-| File                                  | Holds                                                                                                  |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `base/builtins_ffmpeg_base.ml`        | Lang modules `ffmpeg`, `ffmpeg.filter`, `ffmpeg.raw`, `track.ffmpeg`, `track.ffmpeg.raw`               |
-| `base/ffmpeg_inline.ml`               | `relay_metadata`, `mk_producer` (§3 of Part A), shared with bitstream filters                          |
-| `encoder/builtins_ffmpeg_encoder.ml`  | `encode_audio_frame`, `encode_video_frame`, `mk_encoder`, `SourceIdx`                                  |
-| `decoder/builtins_ffmpeg_decoder.ml`  | `decode_audio_frame`, `decode_video_frame`, `mk_decoder`                                               |
-| `src/libs/ffmpeg.liq`                 | the twelve source wrappers, under `%ifdef track.ffmpeg.raw.encode.audio` / `track.ffmpeg.decode.audio` |
-| `src/core/operators/child_support.ml` | `child_output`, `base`, `producer` (generic)                                                           |
+The eight track operators are track operators of the Lang API, under the
+modules `track.ffmpeg.encode`, `track.ffmpeg.raw.encode`,
+`track.ffmpeg.decode` and `track.ffmpeg.raw.decode`. Each returns the input
+track's field and the producer source. Building all eight from one function
+over ``[ `Audio_encoded | `Audio_raw | `Video_encoded | `Video_raw ]`` keeps
+the typing rules of Part A §1 in one place.
 
-`ffmpeg_encode = Lang.add_module ~base:track_ffmpeg "encode"` and the like
-give the `track.ffmpeg.encode.*` names. Each file ends with
-`List.iter mk_encoder [`Audio_encoded; `Audio_raw; `Video_encoded; `Video_raw]`
-(same for `mk_decoder`), which calls `Lang.add_track_operator name proto
-~base ~return_t ~category:`Conversion`. The operator returns
-`(field, producer)`; `field` is the input track's field.
+The encoders' format argument is a format type over a frame type whose row
+is open (`Lang.univ_t ()` as the base) and holds only `audio` or `video`.
+The open row is what lets one format serve both halves of an `audio_video`
+wrapper.
 
-Prototype of the encoders: `[("", Lang.format_t (Lang.frame_t (Lang.univ_t ())
-(Fields.add format_field format_frame_t empty)), None, Some "Encoding
-format."); ("", input_frame_t, None, None)]`, where `format_frame_t` is
-`input_frame_t` (encoded) or `output_frame_t` (raw). `Lang.univ_t ()` as the
-frame base is what leaves the format's row open.
+The twelve source wrappers are script functions in the FFmpeg standard
+library file, guarded by `%ifdef` on the track operators.
 
 ## 2. Producer
 
-`Ffmpeg_inline.mk_producer ~stack ~name ~field ~input_frame_t
-~mk_process_frame source` creates `new Child_support.producer ~stack
-~child_frame_type ~check_self_sync:false ~name source` and calls
-`producer#child#set_process_frame process_frame`. The transform is a
-`ref None` captured by `process_frame`; `` `Flush `` sets it back to `None`.
+The clock spec asks for one reusable child-clock reader component
+([clock spec §15](../../../../clock/spec/clock.md#15-child-clocks)). Build
+the producer on it and declare only what is the producer's own: shared
+reader, the buffer limit, no self-sync refusal, and the transform hooks
+(convert a frame, drain, discard).
 
-`Child_support.child_output#output` is where the `Frame.position frame > 0`
-skip, the `process_frame` call and the `conf_max_buffer` check
-(`Runtime_error.raise … "clock"`) sit. `child_output#flush` is called only
-from the `base` class's `on_sleep` handler, after `child#sleep`. `on_wake_up`
-does `child_buffer <- Generator.create self#content_type` and
-`child#set_generator`.
-
-`Generator.add_metadata ?pos` and `add_track_mark ?pos` take absolute
-positions from the generator's head (`default_pos` is `length gen` only when
-`pos` is omitted). `relay_metadata` always passes `~pos`.
-
-## 3. Stream index
+Keep the transform state as one variant:
 
 ```ocaml
-type source_idx = { source : Source.source; idx : int64 }
-module SourceIdx = Weak.Make (struct
-  type t = source_idx
-  let equal x y = x.source == y.source
-  let hash x = Hashtbl.hash x.source#id
-end)
-let source_idx_map = SourceIdx.create 0
+type 'transform state = [ `Idle | `Running of 'transform ]
 ```
 
-`SourceIdx.merge source_idx_map { source; idx = new_stream_idx () }` runs in
-`mk_encode_frame`, i.e. per transform build. The returned record is captured
-by the transform closures (`source_idx.idx` in every chunk), which is what
-keeps the weak entry alive. Before the track split (commit `25f118689`,
-"Implement track-level ffmpeg inline encoder", #2869) the hash was
-`Obj.magic x.source`.
+The reading step of Part A §3.4 matches on it: input not ready and
+`` `Running t `` drains `t`, writes the result, and moves to `` `Idle ``.
+
+The placement of metadata and track marks (Part A §3.3) is a queue of
+`(input_time, entry)` owned by the producer. The transform hands each output
+item to a `put ~input_time item` function; `put` first writes every queued
+entry whose input time is at or before `input_time`, then the item. Ending a
+transform writes what is left in the queue. Encoders compute `input_time`
+from the packet or frame pts with the time-base conversion of common.md.
+Decoders keep a small map from input pts to input time, filled when a packet
+is sent and read when a frame comes out (`Avutil.Frame.pts`); entries older
+than the last frame out can go.
+
+## 3. Source-id records
+
+Use a table keyed by the input source's unique id string (a source keeps its
+id for its lifetime), with an explicit count of live transforms. Releasing a
+transform decrements the count and removes the entry at 0. This gives the
+exact lifetime of Part A §5 with no dependence on the garbage collector and
+no `Weak` table.
+
+```ocaml
+type record = {
+  id : int64;
+  mutable elapsed : int;
+  mutable is_open : bool;
+  mutable users : int;
+}
+```
+
+`elapsed` is in main ticks. Advance it once per child-clock tick, from the
+frame the child output receives, not once per producer: producers sharing
+the child clock see the same frame.
 
 ## 4. Encoder transform
 
-`mk_encode_frame generator` (inside the operator closure):
+Bindings used (see the bindings spec):
 
-1. `Type.fresh output_frame_t`, passed as `~type_t`; the encoders run
-   `Typing.(effective_t <: type_t)` with `effective_t` built from the
-   resolved parameters (`Format_type.descr (`Format (lift_params params))`).
-2. `List.assoc format_field format.streams`; the `` `Encode {opts} `` table
-   is `Hashtbl.copy`'d (the comment there speaks of "every track boundary";
-   the copy matters per build).
-3. Match on `` `Encode { mode; codec; options } ``; `_ -> assert false`
-   covers `codec = None` in internal mode and `` `Copy ``/`` `Drop ``.
-4. `encoded && Hashtbl.length opts > 0` raises `Error.Invalid_value`.
+- audio: `Avcodec.Audio.find_encoder_by_name`,
+  `Avcodec.Audio.find_best_sample_format`, `Avcodec.Audio.create_encoder`
+  with the options table, `Avcodec.capabilities` for the variable-frame-size
+  capability, `Avcodec.Audio.frame_size`, `Avcodec.encode`,
+  `Avcodec.flush_encoder`; `Swresample` from planar float arrays to frames;
+- video: `Swscale` from the packed YUV planes to frames, the Fps helper of
+  filters.md built on `Avfilter`, `Avcodec.Video.create_encoder` with the
+  hardware context of common.md;
+- `Avcodec.encode` delivers packets with timestamps in the encoder's time
+  base; `Avcodec.flush_encoder` signals end of stream and delivers the rest
+  (avcodec.md §4.10).
 
-Audio uses `Ffmpeg_internal_encoder.InternalResampler`
-(`Swresample.Make (PlanarFloatArray) (Frame)`) and
-`Ffmpeg_internal_encoder.write_audio_frame`. Only `Content_audio` input is
-supported; the pcm_s16/pcm_f32 resamplers of the internal encoder are not
-used here. Video uses `Ffmpeg_internal_encoder.InternalScaler`
-(`Swscale.Make (BigArray) (Frame)`), `Ffmpeg_avfilter_utils.Fps.init`
-without `?source_fps` or `?start_pts` (hence always the `` `Filter `` case
-and the `PTS-max(STARTPTS, 0)` expression), `Ffmpeg_utils.pixel_format`,
-`Ffmpeg_utils.mk_hardware_context`. Scaler and fps converter are `ref`s set
-by `mk_scaler`/`mk_fps_converter`; `chosen_pixel_format` is a `ref`
-initialised to `` `Yuv420p ``. The image counter is `nb_frames : int64 ref`.
+Codec options: pass a fresh copy of the stream's option table to each
+encoder creation. The bindings remove the options they consume; what is left
+is the "unrecognized options" error of Part A §4.
+
+The evaluation-time checks of Part A §4 (codec present, encoder found, raw
+options) need only the parsed format and `find_encoder_by_name`; no encoder
+is opened.
 
 ## 5. Chunker
 
-`Ffmpeg_utils.Duration`: record `{ mode; convert_ts; get_ts; set_ts;
-get_duration; src; dst; offset; mutable last_ts; mutable packets }`. Inline
-encoders call `init ~mode ~src ~convert_ts:false ~get_ts ~set_ts
-~get_duration ()` (no `?offset`, no `?last_ts`) and `push`; they never call
-`Duration.flush`, whose result is `(max(1, max packet duration), packets)`.
-`get_ts` is `Avcodec.Packet.get_dts` (encoded) or `Avutil.Frame.pts` (raw).
-`convert_time_base` is `Int64.div (Int64.mul pts (of_int (src.num *
-dst.den))) (of_int (src.den * dst.num))`; the products are OCaml `int`.
+Use the duration helper of common.md as specified there (lengths from
+absolute timestamps), and call its flush when the transform drains.
 
 ## 6. Decoder transforms
 
-Audio: `InternalResampler = Swresample.Make (Swresample.Frame)
-(Swresample.PlanarFloatArray)` (decoder side). Copy decoder state is three
-`ref`s (`current_converter`, `current_stream`, `current_params`); raw is one
-`ref` holding `(converter, time_base, stream_idx)`. Raw parameters are read
-with `Option.get`.
+- Audio: `Avcodec.Audio.find_decoder`, `Avcodec.Audio.create_decoder` with
+  the content's codec parameters, `Avcodec.decode`, `Avcodec.flush_decoder`,
+  and `Swresample` from frames to planar float arrays. The output channel
+  layout comes from the producer's resolved content type, read at the first
+  build.
+- Video: decoder as above, the display stage of side-data.md, the internal
+  video converter of decoder-internal.md.
+- Compare decoder parameters by value (codec id, extradata bytes and the
+  fields content.md compares), never by physical identity of the parameter
+  record: identical parameters may arrive in distinct records.
+- Raw parameters are optional fields of the content parameters; match on
+  them, and on a missing one drop the run as an item fault with a warning
+  naming it.
+- Never raise from the transform for a data fault: return a result the
+  producer turns into an item fault or a source fault (Part A §15). The one
+  raise is the hard error of an infallible producer whose source fault
+  persists.
 
-Video: records `video_codec`, `video_stream` (mutable `params`, `display`,
-`matrix : [ `Decoder | `Stream of Display_matrix.t option ]`),
-`raw_video_stream`. `Ffmpeg_decoder_common.internal_video_converter` provides
-`{ convert; flush }`; `Ffmpeg_avfilter_utils.Display` the display stage.
-Parameter identity uses `==` on `codec_params`; side data compared with `<>`
-on `Avcodec.params_side_data`. Logger `Log.make ["ffmpeg"; "internal";
-"decoder"]`.
+## 7. Tests
 
-## 7. Tests pinning behaviour
-
-- `tests/regression/GH5110.liq`: three AAC encoders on one source (shared
-  child clock, shared stream index).
-- `tests/regression/GH3944.liq`: raw encode → filter → raw decode across an
-  input running dry.
-- `tests/media/ffmpeg_inline_encode_decode*.liq`, `ffmpeg_raw_hls.liq`,
-  `test_ffmpeg_distributed_hls*.liq`, `tests/regression/GH2602.liq`.
+What the test suite pins for these operators is in
+[tests.md](../tests.md); the conformance items of Part A add to it.
