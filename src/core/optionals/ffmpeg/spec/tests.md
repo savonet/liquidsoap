@@ -1,363 +1,489 @@
-# Test suite of the FFmpeg layer
+# Conformance of the FFmpeg layer
 
-This file describes, by principle, what the existing test suite pins about the FFmpeg layer: for each subsystem, the invariants the tests assert, which part of each assertion is binding and which is incidental, the failure modes the tests simulate, and the fixtures and doubles a new harness needs to assert the same things. It relies on the behaviour described in the subsystem files it links to ([content.md](content.md), [encoder-format.md](encoder-format.md), [encoder.md](encoder.md), [encoder-copy.md](encoder-copy.md), [timestamps.md](timestamps.md), [decoder.md](decoder.md), [image-decoder.md](image-decoder.md), [inline-codecs.md](inline-codecs.md), [filters.md](filters.md), [bitstream-filters.md](bitstream-filters.md), [side-data.md](side-data.md), [converters.md](converters.md), [io.md](io.md)) and restates none of it. Test names appear only in the trailing "Trace:" list of each group. Findings on the tests: [findings/tests.md](findings/tests.md).
+This file owns the conformance specification of the layer: the rules a test harness MUST follow, the fixtures and doubles it needs, the failure modes it simulates, the scenarios that cross several subsystems, and the check each known-complexity entry gets. The conformance items of each subsystem are owned by that subsystem's file, at the section they check; this file links them by subsystem, in the reading order of [README.md](README.md), and adds only what a harness needs on top. A conforming implementation passes every linked item and every item of this file, under the harness rules of §1.
 
-## 1. Harness model
+## 1. Harness rules
 
-### 1.1 Outcome protocol
+These rules are binding. A suite that breaks one of them reports no conformance, whatever its tests say.
 
-A test is one script run as a separate process. Its outcome is its exit status:
+### 1.1 Outcomes and reporting
 
-| Outcome | How the script reaches it                                                                                               | Exit status    | Reported as                                  |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------------------------- |
-| pass    | an explicit "pass" call, which prints a line and requests a clean shutdown; later pass calls are ignored                | 0              | success                                      |
-| fail    | an explicit "fail" call, an equality or near-equality assertion that does not hold, or any uncaught error in any thread | 1              | failure, with the captured stdout and stderr |
-| skip    | an explicit "skip" call                                                                                                 | 123            | success, with a warning annotation           |
-| timeout | no exit within 10 minutes                                                                                               | process killed | failure                                      |
-| crash   | the process dies on a signal                                                                                            | —              | failure, naming the signal                   |
+Each test ends in exactly one outcome:
 
-An assertion that fails inside a callback raises an error and also schedules "fail" on a separate thread, so an assertion in a callback whose errors are swallowed still fails the test.
+| Outcome | Reached by                                                                                  | Counts as |
+| ------- | ------------------------------------------------------------------------------------------- | --------- |
+| pass    | the test's oracles ran on the produced data, every assertion held, and §1.2's count was met | pass      |
+| fail    | an assertion that does not hold, an uncaught error in any thread, the count of §1.2 not met | failure   |
+| skip    | a prerequisite the host lacks, detected at run time and named (a codec, a filter, a device) | skip      |
+| timeout | no outcome before the test's deadline                                                       | failure   |
+| crash   | the process dies on a signal or an abort                                                    | failure   |
 
-A test passes only by calling "pass". Reaching the end of input, closing a file or stopping a source does nothing by itself; each test calls "pass" from the event it is waiting for (file closed, output stopped, track started, metadata seen, segment named, file created, timer fired).
+- A run report lists the count of each outcome, and names every skipped test with its missing prerequisite. A skip is never reported or counted as a pass.
+- A test MUST NOT skip unconditionally. A test that cannot run anywhere is removed or fixed, not skipped.
+- A missing fixture is a skip when the fixture is fetched (§2.2) and the network is unavailable, and a failure in every other case.
+- A conformance claim lists the items that were not checked (skipped, or not applicable on the host). An item never run is unknown, not passed.
+- An assertion that fails inside a callback fails the test even where the callback's caller swallows errors.
+- One failing test or fixture never prevents an unrelated test from running. A fixture failure fails exactly the tests that use the fixture.
 
-### 1.2 Oracles
+### 1.2 A check that can say the opposite
 
-Almost every media assertion goes through an independent prober run on the produced file: the stream list as JSON, optionally with per-stream packet counts. The fields read are `codec_type`, `codec_name`, `channels`, `channel_layout`, `sample_rate`, `sample_fmt`, `pix_fmt`, `width`, `height`, `r_frame_rate`, `duration` (stream or container), the `DURATION` tag (Matroska, `H:M:S.frac`), `nb_read_packets` and the rotation entries of `side_data_list`. A separate transcoder extracts subtitle streams to SRT or ASS text for exact comparison, extracts a still frame, and computes SSIM against a reference image.
-
-The prober's output is parsed against a declared shape. A missing required field makes the parse raise, which fails the test.
-
-### 1.3 Clocks and pacing
-
-Most media tests run their sources on a clock with no synchronisation (CPU-paced), so a 10 s encode takes a fraction of that. Tests of live behaviour (HLS segment timing, buffer underrun, SRT, harbor) run on real time with a wall-clock deadline that calls "fail".
-
-### 1.4 The generated encoder and decoder matrix
-
-The media suite is generated from one list of encoder configurations, each a literal encoder expression. A configuration's escaped form is also the name of the file it produces: `%`→`@`, `"`→`'`, `(`→`[`, `)`→`]`, so `%ffmpeg(format="mp4",%video(codec="libx264")).mp4` produces `@ffmpeg[format='mp4',@video[codec='libx264']].mp4`.
-
-1. Each configuration is substituted into one of seven templates by the shape of its tracks: audio only, video only, audio+video, multitrack (two audio, two video), audio+subtitles, video+subtitles, audio+video+subtitles.
-2. The template builds the input from generators: a sine for audio, a test pattern for video, the 5-cue subtitle fixture for subtitles; 10 s, or 16 s when subtitles are present; played once.
-3. The template writes the file and, on close, probes it with packet counting.
-4. The pass condition, per declared track kind (every stream for multitrack): the stream exists, and its duration is at least 10 s **or** it holds at least one packet.
+A pass is evidence only when the same check would have failed on a broken implementation.
 
-The 33 configurations:
+1. **Count what ran.** Every test declares what it examines (packets, frames, samples, cues, segments, assertions) and asserts, before passing, that the count examined reaches the declared value. A test that examined nothing fails.
+2. **Pass after the oracle.** A test passes from the event that completes its oracles (output closed and probed, the last expected item seen), never from the first track, the first frame, a fixed delay, or any file close. A test whose subject is start-up states so and asserts on the start-up result (the type, the error, the first item's content).
+3. **Discriminating values.** Each asserted value is one the subsystem under test decides. The input differs from the expected output on that property, and no later stage forces the property on its own. Examples: a decoder's channel handling is asserted on the decoded content, or through an output whose parameters follow its input, never through an encoder configured to the asserted value; a filter's sample-format change is asserted through an encoder and container that keep that sample format.
+4. **Selected component.** A test of one implementation among several (a decoder, a resampler, a converter) asserts that this implementation ran, from the layer's own report of the chosen component. Raising another implementation's priority above it, or forcing another one, makes the test a test of something else.
+5. **Positive control.** A check that looks for an absence (no error logged, no gap, no warning) first sees the presence on a case built to have it, in the same harness.
 
-| Shape                 | Count | Configurations                                                                                                                                                                                                      |
-| --------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| audio only            | 20    | fdkaac (mono LC, stereo), shine (mono, stereo), flac, wav, mp3 (mono, stereo each), ogg with vorbis/flac/opus (mono, stereo each), `%ffmpeg` mp4 aac: default, `samplerate="48k"`, `pcm_s16` input, `pcm_f32` input |
-| video only            | 1     | mp4 libx264                                                                                                                                                                                                         |
-| audio+video           | 3     | mp4 aac mono + libx264; aac stereo + libx264; aac stereo + libx264 `r=12`                                                                                                                                           |
-| multitrack            | 1     | mp4 `audio` aac stereo, `audio_2` aac mono, `video` and `video_2` libx264                                                                                                                                           |
-| audio+subtitles       | 2     | matroska aac + subrip; aac + ass                                                                                                                                                                                    |
-| video+subtitles       | 3     | matroska libx264 + subrip; libx264 `b="500k"` + ass; webm libvpx + webvtt                                                                                                                                           |
-| audio+video+subtitles | 3     | matroska aac + libx264 + subrip; aac `b="128k"` + libx264 + ass; mp4 aac + libx264 + mov_text                                                                                                                       |
+### 1.3 Negative controls
 
-The produced files are then the inputs of the decoder tests:
+Every check of §23 (the known-complexity entries) and every timestamp check (§1.4) MUST be seen to fail against a deliberately broken build before its pass counts.
 
-| Decoder test family            | Input files                                              |
-| ------------------------------ | -------------------------------------------------------- |
-| audio decoding (3 tests)       | `%mp3(stereo)`, `%flac(mono)` outputs                    |
-| video decoding (2 tests)       | mp4 aac stereo + libx264 output                          |
-| audio+video decoding (9 tests) | mp4 aac stereo + libx264, mp4 aac mono + libx264 outputs |
+- The harness keeps, per such check, one or more named **mutations**: a minimal change to the implementation that breaks the rule the check protects (§23 names one per entry). A mutation is a build variant used only by the harness; it is not shipped and adds no surface.
+- The mutated build MUST fail the check, on the assertion that protects the rule, not on an unrelated error. The harness records which assertion failed.
+- The negative control is repeated whenever the check, its fixture, or the code under the rule changes. A check whose mutation passes is broken and counts as a failure of the suite.
 
-A further 12 standalone media tests and about 25 hand-wired media tests run outside the matrix. Every generated decoder and standalone test depends on every matrix file, as does the media suite itself, so one failing encoder configuration blocks all of them.
+### 1.4 Timestamps at packet level
 
-### 1.5 Suites
+A timestamp check asserts on individual packets. Aggregate values (a stream duration, a cue time, a segment sum) MAY be asserted in addition, never instead.
 
-| Suite               | Contents                                                                 | Runs in CI                                                               |
-| ------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| core unit tests     | OCaml executables asserting on content values, typing, encoder factories | yes, except four that no build rule runs ([findings](findings/tests.md)) |
-| type snapshots      | inferred types of short scripts diffed against expected text             | yes                                                                      |
-| language            | typing and encoder-expression acceptance and rejection                   | yes                                                                      |
-| regression, streams | one script per issue or behaviour                                        | yes                                                                      |
-| media               | the matrix of §1.4 and the hand-wired media tests                        | yes, separate job                                                        |
+The packet oracle lists, per output stream and in file order: stream index, DTS, PTS, duration, key flag, size, and the stream's time base. From it a check derives, as its subject requires:
 
-## 2. Fixtures and doubles
+- DTS strictly increasing per stream ([timestamps.md §10](timestamps.md#10-summary-how-order-is-kept));
+- PTS ≥ DTS for every packet;
+- for a copied stream, PTS − DTS of every packet equal to its source packet's value within one rounding of one time-base conversion;
+- the first packet of each stream, of each source and of each segment, its key flag and its timestamps;
+- packet counts per stream, compared with the inputs' counts;
+- gaps and overlaps at each join, as end of the previous packet (DTS + duration) against the next DTS.
 
-A new harness needs the following. Durations, sizes and offsets are binding where the group sections say so.
+Source packets for these comparisons are listed by the same oracle on the input fixtures. Tolerances are stated per check in units of a time base or of a codec frame, never in wall-clock time.
 
-| Fixture or double                       | Production                                                                                                            | Used to provoke                                                       |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| audio generator                         | sine, any frequency; silence                                                                                          | finite or infinite audio of known length                              |
-| video generator                         | test pattern via the FFmpeg layer's own source, default size and rate                                                 | finite video of known length                                          |
-| subtitle cue file                       | 5 SRT cues "First"…"Fifth subtitle line", at 1–3, 4–6, 7–9, 10–12, 13–15 s                                            | exact subtitle timing, track length 15 s                              |
-| three copy-concat files                 | 1280x720 30 fps H.264 mp4 of 20, 30, 10 s whose first frame PTS is 1235, 756 and 245 frames (41.17 s, 25.2 s, 8.17 s) | a copied stream whose timestamps jump backwards at each file boundary |
-| two mpeg-ts halves                      | 1 s mpeg2video, 320x240 and 240x320, 25 fps                                                                           | a mid-stream size change                                              |
-| byte concatenation of the two halves    | plain byte concatenation                                                                                              | a size change coinciding with a backward timestamp jump               |
-| remuxed concatenation of the two halves | concat then stream copy by the transcoder                                                                             | a size change with continuous timestamps                              |
-| colour change file                      | the same, with bt470bg then bt709 colourspace                                                                         | a mid-stream colourspace change with continuous timestamps            |
-| rotation files                          | 2 s 320x240 25 fps mpeg4, remuxed with display rotation 90, 33 and 20 degrees                                         | rotation side data, quarter and non-quarter turns                     |
-| long a/v file                           | 30 s 1920x1080 24 fps yuv420p + 440 Hz sine                                                                           | HLS segmenting, resume                                                |
-| a/v/subtitle mkv                        | 30 s 1280x720 mpeg4 + aac + srt                                                                                       | three-kind stream copy                                                |
-| still images                            | 1280x720 and 50x50 test pattern, written as JPEG; one PNG frame from the long file                                    | image decoding, overlay                                               |
-| 504x504 file                            | 2 s test pattern + sine                                                                                               | frame size taken from the first decoded file                          |
-| 5 s wav                                 | sine                                                                                                                  | filter argument types                                                 |
-| DVD bitmap subtitle file                | fetched from the FFmpeg sample suite                                                                                  | bitmap subtitle burn-in                                               |
-| VP9 with alpha                          | fetched from a public media archive                                                                                   | alpha-preserving decode and encode                                    |
-| SSIM reference image                    | committed                                                                                                             | burn-in output still frame                                            |
-| fetch cache                             | per-user cache keyed by URL stamp; a partial download is never stamped                                                | offline reruns                                                        |
-
-Behavioural doubles:
-
-- an in-memory content format with integer packets and a name-only parameter, built on the same chunk container as the copy and raw contents ([content.md](content.md)), to assert chunk arithmetic without libav;
-- hand-built encoder descriptions (the parsed form of an encoder expression) passed to the encoder factory, to assert derived values without a script;
-- a read-only byte callback with no seek, tell or length, to drive the stream decoder;
-- a child process running a one-line script, to observe startup rejection and its message;
-- a sender and a receiver in the same process (SRT on a fixed local port) to test a MIME-described raw stream.
-
-## 3. Content
-
-Content here is the chunked container behind copy and raw tracks: a list of chunks, each with a length in ticks, a stream index, a time base and packets at tick positions ([content.md](content.md)).
-
-### 3.1 Invariants
-
-1. The length of a content is the sum of its chunk lengths. A chunk keeps a positive length with no packets (a sparse stream) through copy, sub, truncate and blit.
-   Binding: lengths in ticks; empty-packet chunks survive.
-2. Extracting the range `[offset, offset+len)` keeps a packet at position `p` exactly when `offset ≤ p < offset+len`, moves it to `p − offset` relative to its chunk's start in the range, clips each chunk's length, and keeps each chunk's stream index and time base. Example: packets at 10, 30, 50, 70, range 20+40 → packets at 10 and 30. A packet at the end bound is excluded: packets at 50, 100, 150, range 50+100 → 0 and 50.
-   Binding: the half-open bound, the shifted positions, unchanged stream index and time base.
-3. A range spanning several chunks yields one chunk per overlapped chunk, in order, each clipped. Chunks of 50 and 50, range 25+50 → chunks of 25 and 25; a packet at 10 of the second chunk stays at 10. Ranges compose: a range of a range gives the same packets as the direct range.
-   Binding: chunk count, order, lengths, positions.
-4. Truncating the first `n` ticks equals the range `[n, length)`.
-5. Blitting into an empty destination adopts the source parameters. Adjacent source chunks with the same stream index merge into one chunk, packet positions offset by the preceding chunks' lengths (25+25 with a packet at 10 in the second → one chunk of 50 with that packet at 35). Non-adjacent chunks with the same stream index stay separate. Two successive blits that continue each other in the destination merge when their stream indices are equal and stay two chunks when they differ.
-   Binding: the merge rule keyed on stream index and adjacency, the shifted positions.
-6. Blitting over a range that overlaps an existing destination chunk removes that whole chunk: a 50-tick blit into the middle of a 200-tick chunk leaves a content of length 50.
-   Binding: the whole overlapped chunk goes, not only the overlapped ticks.
-7. Appending concatenates chunk lists in order, keeping each stream index and time base.
-8. A copy is independent of its original: emptying the original's chunk list leaves the copy's length unchanged.
-9. Different time bases on chunks of one content are kept per chunk through copy and range (1/48000, 1/44100, 1/90000).
-10. A fresh data value has length 0, stream index 0, time base 1/1 and no packets; making a content with a requested length still yields no chunks.
-11. The serialized form of each FFmpeg content format is its name and a colon with nothing after: `ffmpeg.copy:`, `ffmpeg.audio.raw:`, `ffmpeg.video.raw:`. Parsing that form gives back the same format.
-    Binding: the strings and the round trip. Incidental: column layout of the dump.
-12. A track of the internal media kind and a track of kind `ffmpeg.video.raw` do not unify in either direction.
-13. The type annotations `ffmpeg.copy`, `ffmpeg.audio.raw`, `ffmpeg.video.raw`, `ffmpeg.audio.raw(sample_rate=44100, channel_layout="5.1")`, `ffmpeg.video.raw(pixel_format=yuva420p)` are accepted on source tracks, and a copy track type accepts attached methods.
-
-Incidental: the dummy format's own compatibility and checksum rules (the tests only check that the generic operations delegate to them).
-
-### 3.2 Failure modes simulated
-
-None: these are pure value tests. Error paths of content (incompatible parameters on blit, the copy compatibility check) are not exercised ([findings](findings/tests.md)).
-
-Trace: ffmpeg_content_base_test, ffmpeg_dummy_content_test, format_dump_test, types.ml, typing.liq, type_errors.liq.
-
-## 4. Encoder format
-
-The encoder expression and its type ([encoder-format.md](encoder-format.md)).
-
-### 4.1 Invariants
-
-1. A track's kind comes from its name or an explicit content argument. A name containing `audio` or `video` as an underscore-separated part (`%foo_audio`, `%bla_video_gni`, `%audio_2`) sets the kind; `%foo(audio_content)` and `%bla(video_content)` set it explicitly. An encoded or raw track with neither (`%foo`, `%bla_gni`) is rejected. A copy track (`.copy`) accepts any name and rejects a content argument.
-   Binding: accepted versus rejected. Incidental: the error raised (any error counts as rejection).
-2. `channels` and `ac` take only literal values; a variable is rejected.
-3. `channel_layout=5.1` (bare or quoted) gives the track the type `pcm(5.1)`. From the implementation: `%ffmpeg(format="mp4", %audio(codec="aac", channel_layout="5.1"), %video.copy)` has type `format(audio=pcm(5.1), video=ffmpeg.copy)`, and `%ffmpeg(format="mp4", %audio(channel_layout=5.1))` has `format(audio=pcm(5.1))`.
-4. An inline encoder's type names the FFmpeg content types even where libav is not linked: `ffmpeg.encode.audio` takes `format(audio=pcm('C), 'B)` and `source(audio=pcm('C), 'D)` and returns `source(audio=ffmpeg.copy('A))`.
-   Binding: argument and result track types. Incidental: the list of source methods in the snapshot, the type-variable letters.
-5. `pcm_s16` and `pcm_f32` input kinds are accepted only by `%ffmpeg`; `%mp3(mono, pcm_s16)`, `%vorbis(pcm_f32)` and `%ogg(%vorbis(pcm_s16))` are rejected with error kind `encoder`.
-   Binding: the error kind.
-6. Accepted at typecheck: `metadata=[...]` at the top level; container options (`movflags`, `frag_duration`, `fflags`); codec options as strings or numbers; `hwaccel` and `hwaccel_device` on a hardware codec; `ignore_keyframe` and `wait_for_keyframe` on copy tracks; `.drop` tracks.
-7. The bitrate an encoder reports for HLS is absent when no track sets `b`, and is 128000 when one track sets `b="128k"`.
-   Binding: absent versus present, the integer in bits per second.
-
-Trace: type_errors.liq, encoders.liq, ffmpeg_encoder.liq (snapshot), ffmpeg_track.liq (snapshot), encoder_pcm_kind_test, ffmpeg_quality.
-
-## 5. Encoder
-
-Muxing, encoding and copying into a file or segment ([encoder.md](encoder.md), [encoder-copy.md](encoder-copy.md)).
-
-### 5.1 Invariants
-
-1. Every matrix configuration (§1.4) produces a file whose prober output lists each declared track kind with at least one packet.
-   Binding: stream presence by kind. Incidental: durations (the condition is a disjunction with the packet count).
-2. With video tracks declared last, output streams appear in the order the encoder declares them, whatever mix of copy and encode (video declared before a build-time stream comes after it: [encoder-internal.md §2.2](encoder-internal.md#22-video-at-mk_stream)). Declaring `en` (copy), `fr` (encode, 1 ch), `audio_fr` (2 ch), `encoded_fr` (1 ch), `director_cut_video`, `encoded_director_cut` gives streams with 2, 1, 2, 1 channels then two video streams. Declaring copy `audio` (stereo source) then encoded `audio_2` (1 ch) gives 2 then 1.
-   Binding: order and channel counts.
-3. Default encoded parameters, from generated inputs: aac gives `stereo`, `fltp`, `44100`; libx264 gives `h264`, `yuv420p`.
-   Binding: these four values; they are the oracle of most media tests.
-4. An encoded video stream's frame rate is the internal video frame rate, not the input's: with the internal rate at 45, a 25 fps input re-encoded has `r_frame_rate` `45/1`.
-5. Copy tracks taken from two different files into one output keep both codecs (mp3 audio from one file, H.264 video from another).
-6. A source with tracks the encoder does not declare is encoded with only the declared ones (a video-only encoder on an audio+video source runs).
-7. Dropping the metadata and track-mark fields of a muxed source before the output means metadata insertions and track marks upstream produce no metadata and no new track at the output; the file holds exactly the three declared streams (aac stereo, mp3 mono, copied h264 yuv420p).
-   Binding: zero tracks and zero metadata seen at the output, stream count 3.
-8. The output filename callback is called once for a file the encoder opens once.
-9. Three FFmpeg encoders on one shared source, with different bitrates, run to the end and all three files close.
-10. HLS variants built from libx264 report the codec string `avc1.64001f` for both an mpeg-ts and an mp4 variant.
-    Binding: that the codec string comes from the encoded stream and is the same across containers. Incidental: the exact profile/level digits, which depend on the host's x264.
-11. ID3 metadata: an mpeg-ts variant with `id3_version=4` and an adts variant with `id3_version=3` carry the title in-band; the first mpeg-ts segment's bytes contain the title text; an mpeg-ts variant with `id3=false` carries none.
-    Binding: present versus absent, the title bytes.
-12. Subtitles: subrip, ass, mov_text and webvtt tracks encode alongside audio and video; two subtitle tracks (subrip and ass) in one file; a copied and an encoded subtitle track in one file; subtitles decoded from a produced file re-encode to ass next to copied video. None of these raises an output error.
-13. A custom `text_to_ass` function receives the cue index and text and its return value becomes the cue's ASS event fields after the layer: returning `"<i>,0,CustomStyle,,0,0,0,,MARKER:<text>"` yields `Dialogue: 0,0:00:01.00,0:00:03.00,CustomStyle,,0,0,0,,MARKER:First subtitle line`, and so on for the five cues.
-    Binding: the full Dialogue lines, times included.
-14. A bitmap subtitle track added onto video is burned in: the output has audio and video and no subtitle stream, and its still frame at 4.00 s has SSIM ≥ 0.95 against the reference.
-15. VP9 with alpha re-encoded with libvpx-vp9 keeps `yuva420p` and a positive duration.
-16. One FFmpeg encode feeding copy variants into mpeg-ts and fragmented mp4 HLS, run once with persisted state and then resumed from that state with strict persistence, produces a playlist that probes as h264 + aac stereo fltp 44100.
-    Binding: the resumed run starts and produces a probeable playlist. Not asserted: timestamp continuity across the resume.
-
-### 5.2 Failure modes simulated
-
-- Output errors during a write: subtitle tests install an error handler that fails the test, so any reopen counts as a failure.
-- Several encoders on one source: concurrency on shared input frames.
-- Upstream metadata and track marks that must not reach the muxer.
-
-Trace: the encoder matrix (encoder\_\*.liq.in), ffmpeg-naming-convention.liq, ffmpeg-copy-encode.liq, multitrack.liq, ffmpeg_video_decoder.liq, GH3840.liq, video-only.liq, GH2842.liq, GH5110.liq, hls_global_headers.liq, hls_id3v2.liq, GH5084.liq, subtitle_multi.liq, subtitle_copy_encode.liq, subtitle_reencode.liq, test_subtitle_text_to_ass.liq, test_bitmap_subtitle_to_video.liq, test_ffmpeg_vp9_alpha.liq, test_ffmpeg_distributed_hls_setup.liq, test_ffmpeg_distributed_hls.liq, test_ffmpeg_hls_mp4.liq, test_ffmpeg_hls_copy_mp4.liq, ffmpeg_raw_hls.liq, GH2926.liq, GH5259.liq, GH5261.liq, hls_large_frame.liq.
-
-The HLS-specific tests (GH2926, GH5259, GH5261, hls_large_frame, the persistence and segment-naming parts of the distributed HLS tests) protect the HLS output; they use `%ffmpeg` only as a convenient segment encoder.
-
-## 6. Timestamps
-
-What the suite pins about timestamps, on both the encoding and decoding sides ([timestamps.md](timestamps.md) owns the rules). No test inspects individual packet timestamps: every timestamp assertion is on an aggregate (a stream duration, a cue time, a segment duration sum, a signal level after a seek).
-
-### 6.1 Invariants
-
-1. **Copy across files whose timestamps go backwards.** Three copied H.264 files of 20, 30 and 10 s, whose first frames are at 41.17 s, 25.2 s and 8.17 s, played in sequence into one copy output, give a single stream whose duration is exactly `60.0`.
-   Binding: exact equality with the sum of the inputs, so no gap, no overlap and no dropped tail at either boundary, although each new file starts earlier than the previous one ended. Incidental: where the output timeline starts (the prober's duration is relative to the stream's own start).
-   This run sets the copy compatibility check to relaxed, because the three files differ in reported frame rate.
-2. **Subtitle cue times across repeated tracks, encoded.** The 5-cue file repeated under a 32 s video, encoded to subrip in Matroska and extracted back, gives 11 cues: cues 1–5 at their own times, cues 6–10 shifted by 15 s, cue 11 at 31–33 s.
-   Binding: every cue time to the millisecond, so a repeated subtitle track restarts at the previous track's end, and that end is the last cue's end (15 s), not the file's length. A cue that starts before the video ends keeps its full end time.
-3. **The same, copied.** Two subtitle tracks in sequence into a copy subtitle output give the identical 11 cues.
-4. **Decoded subtitle absolute times.** With the FFmpeg decoder, the 5-cue file played twice reports its 7th cue at absolute start time `19.0` s (second pass offset 15 s plus 4 s).
-5. **Cue times into ASS.** The five cues re-encoded as ASS keep `0:00:01.00`…`0:00:15.00` exactly (§5.1 item 13).
-6. **Mid-stream video format change, decoded and re-encoded.** A 2 s mpeg-ts stream whose frame size changes at 1 s, with a backward timestamp jump at the change, decoded and encoded to mp4, has a duration strictly between 1.5 and 2.5 s.
-7. **Mid-stream format change through a filter.** A 2 s stream whose size, or colourspace, changes at 1 s with continuous timestamps, decoded to raw frames, sent through a filter and raw-encoded, has a duration strictly between 1.5 and 2.5 s.
-   Binding for 6 and 7: neither half is lost and neither is doubled. Incidental: the exact duration.
-8. **Raw audio across format changes.** Three 10 s files (48 kHz aac, mono wav, stereo wav) decoded to raw audio and raw-encoded to one aac stream at 44100 Hz give a duration above 29 s.
-   Binding: the lower bound only.
-9. **Segment durations sum to the grid.** An aac mpeg-ts HLS output with a 2 s segment duration: the durations of its first 10 segments sum to 20 s within one internal frame duration.
-   Binding: the total; a single segment may be off by one frame.
-10. **Encoder matrix durations.** Each matrix output has a duration of at least 10 s or at least one packet (§1.4).
-11. **Seek pre-roll.** Seeking to 2 s in a 4 s 32 kbps mono mp3 (decoded by whichever decoder ranks first), the RMS over the 0.1 s following the seek exceeds 0.1.
-    Binding: audio is present immediately after a seek, so the decoder is fed the packets before the seek point. Incidental: the threshold.
-12. **Remaining time known.** An FFmpeg-decoded flac reports a positive remaining time at position 0.1 s.
-13. **Image duration.** An image annotated with a 0.2 s duration ends its track: at least three tracks follow one another.
-14. **Content time bases.** Chunk time bases survive every content operation (§3.1 item 9), and chunks of different stream indices never merge (§3.1 item 5), which is what a per-stream timestamp offset relies on.
-
-Run but not asserted on timestamps: a filter fed alternately 25 fps and 12 fps files across nine tracks with a file reopen in the middle (asserts codec parameters only); inline encode then decode (codec parameters only); the HLS resume (codec parameters only); a skipped HLS discontinuity test whose expected playlists pin exact segment durations (2.000, 1.980, 1.960, 0.040) and a discontinuity tag.
-
-### 6.2 Failure modes simulated
-
-- Backward timestamp jumps at a file boundary in copy mode (item 1) and inside one decoded stream (item 6).
-- Format changes with and without a timestamp discontinuity (items 6, 7).
-- Repetition of a short subtitle track under a longer video (items 2–4).
-- A seek into a codec with a bit reservoir (item 11); the 32 kbps rate makes the silent window longest.
-
-Trace: test_ffmpeg_copy_concat.liq, subtitle_concat.liq, subtitle_concat_copy.liq, test_ffmpeg_on_subitles.liq, test_subtitle_text_to_ass.liq, test_ffmpeg_video_format_change.liq, test_ffmpeg_raw_format_change.liq, test_ffmpeg_raw_implicit_conversion.liq, GH5319.liq, encoder matrix, ffmpeg_seek_preroll.liq, GH-action-919422659.liq, test_image_decoder_duration.liq, ffmpeg_dummy_content_test, test_ffmpeg_filter_changing_rate.liq, hls_discontinuity.liq (skipped).
-
-## 7. Decoder
-
-The file and stream decoders ([decoder.md](decoder.md), [image-decoder.md](image-decoder.md)).
-
-### 7.1 Invariants
-
-1. Copy decoding preserves each stream's parameters as the prober sees them. Decoding the a/v matrix files with every track in copy mode and muxing them into Matroska gives, per kind, the same `channel_layout`, `sample_rate`, `sample_fmt`, `pix_fmt` and `codec_type` as the input. With an a/v/subtitle file, the same holds for audio, video and subtitles, and `codec_name` matches too.
-   Binding: equality with the input, per kind. Incidental: stream indices (removed before comparison).
-2. Mixed modes from one file work in every combination tested: copy audio + encoded video, encoded audio + copied video, copy audio + raw-encoded video, raw audio + raw video, encoded audio + raw video.
-3. The content type requested for each track decides decode versus copy per track: decoded audio only, decoded video only, both decoded, each mixed combination, both copied; audio + subtitles in the four decode/copy combinations. A track kind absent from the file (subtitles on an a/v file, video on an audio/subtitle file) is absent from the result. Opening with an explicit input format detects the same format as probing.
-4. The stream description of each matrix file pins: the container format name (`mp4`, `matroska,webm`, `ogg`, `wav`, `aac`, `mp3`, `flac`), and per stream the field name (`audio`, `audio_2`, `video`, `video_2`, `subtitles`), kind, codec name, time base, sample rate, channel count and layout, or width, height, pixel format and frame rate.
-   Binding: field names, kinds, codec names, audio and video parameters. Incidental: time-base values, which the host muxer chooses (for example 1/12800 for 25 fps H.264 in mp4, 1/1000 in Matroska).
-5. Decoding into `pcm_s16` or `pcm_f32` content succeeds on an mp3.
-6. Decoded video is scaled to the frame size the source's type annotation requests (47x52), and the internal frame size is taken from the first decoded file when not set (504x504).
-7. The stream decoder for MIME `application/ffmpeg` decodes wav and mp3 from a read-only callback until end of input; invalid-data errors from the decode step are skipped. The MIME parameters `format=s16le,ch_layout=mono,sample_rate=48000` describe a headerless PCM stream received over SRT, which then produces a track.
-8. A per-codec decoder override (`settings.decoder.ffmpeg.codecs.vp9` set to `libvpx-vp9`) selects the decoder that keeps the alpha plane.
-9. Demuxer options passed through a request annotation (`ffmpeg_options='fflags="+bitexact"'`) reach the input.
-10. Subtitles: an SRT file through the FFmpeg decoder yields cues with absolute and relative times, text, format and forced flag; a raw FFmpeg input on an SRT file yields copy subtitles; a DVD file yields bitmap subtitles usable as a video overlay.
-11. With `settings.decoder.decoders` set to `["ffmpeg"]`, an mp3 or flac is decoded and re-encoded to wav with the requested channel count and 48000 Hz.
-    Binding: none on the decoder itself; the output encoder fixes both values ([findings](findings/tests.md)).
+### 1.5 Rejections pin their reason
 
-### 7.2 Failure modes simulated
+A test that expects a rejection (a type error, an evaluation error, a start-up failure, a runtime error) asserts:
 
-- Input whose timestamps jump and whose format changes (§6.1 items 6, 7).
-- Seek (§6.1 item 11).
-- A read callback with no seek, tell or length.
+- the error kind;
+- every item the owning rule says the error names (the field, the option key, the codec, the parameter sets);
+- the place: type check, evaluation, output start, or switch time, as the owning rule states.
 
-Trace: ffmpeg_copy_decoder.liq, ffmpeg_copy_and_encode_decoder.liq, ffmpeg_raw_decoder.liq, ffmpeg_raw_and_encode_decoder.liq, ffmpeg_raw_and_copy_decoder.liq, test_ffmpeg_copy_subtitle.liq, ffmpeg_get_type_test, ffmpeg_stream_description_test (all_media_file_descriptions.json), pcm_s16_decode.liq, pcm_f32_decode.liq, video_size.liq, test_video_size_autodetect.liq, stream_decoder_test, srt_raw_pcm.liq, test_ffmpeg_vp9_alpha.liq, test_bitmap_subtitle_to_video.liq, test_ffmpeg_on_subitles.liq, subtitle_copy_encode.liq, ffmpeg_audio_decoder.liq, mono.liq, stereo.liq, ffmpeg_video_decoder.liq, test_image_decoder_duration.liq, GH-action-919422659.liq, ffmpeg_seek_preroll.liq.
+Any other error fails the test, a parse error in the test's own text first of all. An "expects an error" helper MUST fail when the call returns normally. Message wording is incidental unless the owning rule makes it binding.
 
-## 8. Inline codecs
+### 1.6 Oracles
 
-Encoding and decoding as source operators ([inline-codecs.md](inline-codecs.md)).
+- Media assertions use an oracle independent of the implementation under test: an external prober and transcoder for container, stream and packet properties, decoded sample and frame counts, extracted subtitle text, still frames and image similarity.
+- The prober's output is parsed against a declared shape; a missing required field fails the test.
+- Values the host's libraries choose and the layer does not decide are never pinned as literals: muxer-chosen time bases, codec-string profile and level digits, encoder-chosen frame sizes. Where such a value matters, the test computes the expected value from the produced file with the oracle (for example, the HLS `CODECS` entry against the codec string derived from the stream's own parameters) and asserts that the two agree.
+- Log lines are an oracle only for what the owning rule makes binding: that a warning or error was logged, at which level, naming which item. Wording is incidental.
 
-### 8.1 Invariants
+### 1.7 Snapshots
 
-1. Inline audio, video and audio+video encoders produce copy tracks that a copy output muxes as is, and inline decoders turn them back into decoded tracks that an encoding output re-encodes. Both files probe as aac stereo fltp 44100 and/or h264 yuv420p.
-   Binding: both outputs exist with those parameters.
-2. Three inline aac encoders at 48k, 96k and 192k on one shared source each feed an adts copy output to completion.
-3. An inline encoder on an external raw input produces a track.
-4. Raw inline encode, then a filter, then raw inline decode keeps producing frames after the filter graph has ended on input underrun: at least 25 frames in the 5 s after start, while the buffered input is empty for most of the first second.
-   Binding: the graph is rebuilt and output resumes. Incidental: 25 frames.
-5. An inline raw audio+video encode feeds an HLS output whose variant raw-encodes to aac 128k and libx264.
-6. An encoder after a `pcm_s16` decode of a silent source runs.
+A snapshot check (printed types, dumps, stream descriptions) fails the run on any difference. Accepting a new snapshot is a separate, manual step, never part of a conformance or CI run. Snapshots hold only values the layer decides (§1.6).
 
-Trace: ffmpeg_inline_encode_decode.liq, ffmpeg_inline_encode_decode_audio.liq, ffmpeg_inline_encode_decode_video.liq, GH5110.liq, GH2602.liq, GH3944.liq, ffmpeg_raw_hls.liq, unified-pcm-types.liq.
+### 1.8 Inventory and wiring
 
-## 9. Filters
+- Every test of the conformance suite is reachable from the entry point the CI runs. The harness enumerates the suite from one list and fails when a listed test has no runner, or when the count of tests run plus tests skipped differs from the list's length.
+- **Surface coverage.** Every operator, builtin and settings key of the frozen surface (README "Frozen") that this layer defines has at least one test that exercises it and asserts on its effect under §1.2. The harness lists that surface from the running program and fails on any item with no covering test. An item that needs hardware or a library the host lacks is a named skip (§1.1).
+- **Error paths.** Every row of every failure summary ([encoder.md §11](encoder.md#11-failure-behaviour-summary), [io.md §9](io.md#9-failure-summary-inputffmpeg-inputhttp), [filters.md §18](filters.md#18-failure-summary), [inline-codecs.md §15](inline-codecs.md#15-failure-behaviour), [bitstream-filters.md §7](bitstream-filters.md#7-failure), [decoder.md §13.2](decoder.md#132-errors), [content.md §4.3](content.md#43-invalid-content)) has a test that provokes it and asserts the outcome of its fault class ([faults.md §2](faults.md#2-classes), §6.1).
 
-Filter graphs and bitstream filters ([filters.md](filters.md), [bitstream-filters.md](bitstream-filters.md)).
+### 1.9 Pacing and deadlines
 
-### 9.1 Invariants
+- Media tests run on a clock without synchronisation (CPU-paced) unless their subject is real time. Long-run checks (hours of media) run CPU-paced on looped or generated input; what they count is joins, packets and ticks, not wall time.
+- Tests whose subject is real time (live inputs, `self_sync`, network retry delays, HLS segment publication) run on real time with a wall-clock deadline that fails the test. Their tolerances are the owning rule's.
+- Every test has a deadline; a deadline is a failure, never a skip.
+
+### 1.10 Repetition
+
+A check whose owning rule says "identical output" (stream declaration order, memory reclamation timing) runs the scenario in each variant and compares the packet oracles (§1.4) of the outputs: equal stream by stream, packet by packet, payload bytes included. Container-level bytes MAY differ where the container records wall-clock time.
+
+## 2. Fixtures
+
+Each fixture has stated properties. Before a test uses a fixture, the harness verifies those properties with the oracle (§1.6) and fails the fixture's tests when one does not hold. Generated fixtures come from a recorded command and are reproducible. Sizes, durations and offsets below are binding where a check depends on them; the production method is not.
+
+### 2.1 Generated media
+
+| Fixture                          | Properties (verified)                                                                                                                                                                          | Provokes                                                                             |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| audio and video generators       | a sine of known frequency, silence, a test pattern; finite (known length) or infinite                                                                                                          | inputs of known sample and frame count                                               |
+| subtitle cue file                | 5 SRT cues, distinct texts, at 1–3, 4–6, 7–9, 10–12, 13–15 s                                                                                                                                   | exact cue timing; a track whose media end (15 s) is the last cue's end               |
+| B-frame concat set               | three H.264 mp4 files of 20, 30, 10 s, 1280x720 30 fps with B-frames (PTS ≠ DTS on some packets), whose first DTS are about 41.17 s, 25.2 s and 8.17 s                                         | a copied stream whose timestamps jump backwards at each join; PTS − DTS preservation |
+| B-frame concat set, no durations | the same packets with every packet duration unset                                                                                                                                              | join end computed without packet durations                                           |
+| mid-GOP pair                     | two AAC + H.264 mp4 files, fixed GOP, B-frames; the second starts 0.6 s before a keyframe: its first video packet is not a key packet, its first key packet is at 0.6 s, its audio starts at 0 | keyframe wait, whole-output versus shared switch                                     |
+| A/V offset set                   | AAC + H.264 files whose audio ends 200 ms before their video                                                                                                                                   | one offset per source, aligned on the longest stream                                 |
+| incompatible H.264 pair          | the same H.264 picture content in mp4 (length-prefixed, extradata set) and in MPEG-TS (Annex B); a third mp4 whose extradata differs from the first                                            | copy parameter mismatch at type level and at the encoder                             |
+| codec-change pair                | an AAC file and an MP3 file of the same rate and layout; a Vorbis and an Opus file in Ogg                                                                                                      | another codec id under copy, strict and relaxed; a restart in a new Ogg link         |
+| frame-rate variants              | two H.264 files identical but for their reported average frame rate                                                                                                                            | a difference the strict check accepts                                                |
+| size-change stream               | 2 s MPEG-TS, mpeg2video 25 fps, 320x240 for 1 s then 240x320, continuous timestamps                                                                                                            | mid-stream resolution change                                                         |
+| size-change with jump            | the two halves byte-concatenated, so timestamps jump back at the change                                                                                                                        | a declared discontinuity coinciding with a format change                             |
+| colour-change stream             | the same with bt470bg then bt709                                                                                                                                                               | a change that counts only with `format_change.color`                                 |
+| pixel-format change stream       | a video whose pixel format changes twice                                                                                                                                                       | converter rebuild, frame-rate grid continuity                                        |
+| rate-change audio set            | 10 s files: 48 kHz AAC, 44.1 kHz mono wav, 44.1 kHz stereo wav; a single file whose sample rate changes mid-stream                                                                             | resampler rebuild and drain                                                          |
+| rotation files                   | 2 s 320x240 25 fps, display rotation 90, 33 and 20 degrees                                                                                                                                     | autorotate, undecided rotations, side-data edits                                     |
+| start-time stream                | MPEG-TS of 3.004 s whose container start time is 1.4 s, with subtitles                                                                                                                         | positions, remaining time and seek relative to the start time                        |
+| backward-packet Matroska         | one packet whose DTS goes back once mid-file                                                                                                                                                   | an invalid item dropped                                                              |
+| restarting Matroska              | timestamps that restart for good mid-file                                                                                                                                                      | an input ended after `max_consecutive_faults` drops                                  |
+| restarting copy source           | a copy producer whose DTS restarts at 0 mid-stream under one source id                                                                                                                         | rebase after `max_consecutive_faults` drops                                          |
+| raw content with gaps            | raw audio and raw video content with a 1 s gap in positions, from the synthetic producer                                                                                                       | timestamp gaps, no frame repeated across a gap                                       |
+| chained Ogg                      | two 3 s Vorbis links, the second with `title=two`                                                                                                                                              | discontinuity, metadata change, cue-in                                               |
+| late-video live stream           | a live feed whose audio starts 2 s before its first video frame                                                                                                                                | waiting for all streams                                                              |
+| silent-stream file               | a file with a selected stream that never yields an item, longer and shorter than `max_interleave_duration`                                                                                     | interleave wait bound                                                                |
+| sparse subtitle source           | a subtitle stream whose first cue is at 20 min, in a source whose other streams start at 0; a variant whose previous source's last cue ends 10 min before its end                              | sparse heads and tails at joins                                                      |
+| long A/V file                    | 30 s 1920x1080 24 fps yuv420p + 440 Hz sine                                                                                                                                                    | HLS segmenting and resume                                                            |
+| A/V/subtitle Matroska            | 30 s 1280x720 + AAC + SRT                                                                                                                                                                      | three-kind copy                                                                      |
+| keyframe-interval videos         | H.264 with keyframes every 4 s; H.264 with keyframes every segment duration                                                                                                                    | HLS segment starts                                                                   |
+| alpha image and video            | a PNG with an alpha plane holding fully transparent and opaque regions; a VP9 stream with alpha (`yuva420p`)                                                                                   | alpha through overlay, converters, decode and encode                                 |
+| still images                     | 1280x720 and 50x50 test patterns as JPEG; a PNG frame of the long file; the same PNG named `IMG.PNG` and `img.png`                                                                             | image decoding, overlay, extension case                                              |
+| first-file size file             | 2 s 504x504 test pattern + sine                                                                                                                                                                | frame size taken from the first decoded file                                         |
+| short codec inputs               | 1 s 44100 Hz stereo sine; 1 s 48000 Hz audio; 4 s 32 kbps mono mp3; 2 s AAC                                                                                                                    | packet and sample counts against the FFmpeg command line                             |
+| 10-hour relay input              | AAC at 44.1 kHz and 30 fps video in a 1/1000 time base (FLV), real or looped to 10 h of media                                                                                                  | drift of chunk lengths                                                               |
+| undecodable-turning source       | decodes normally, then yields only undecodable data for a set time, then recovers; served as a file and by the fake HTTP server                                                                | source fault, fallible versus infallible, recovery                                   |
+| corrupt packet file              | a copy-decodable file with one packet whose payload the codec rejects                                                                                                                          | data-fault containment                                                               |
+
+Every matrix output (§5) is also a fixture of the decoder tests.
+
+### 2.2 Fetched media
+
+- A DVD bitmap subtitle stream with a 720×576 canvas, for bitmap decoding, placement and burn-in.
+- A similarity reference image for the burn-in still frame.
+
+Fetched fixtures are cached per user, keyed by URL, verified by checksum; a partial download is never cached.
+
+### 2.3 Fixture checks binding on the harness
+
+- The B-frame concat set: the oracle reads each file's first DTS and start time and confirms they differ and decrease from file 1 to 3 as stated, and that each file holds packets with PTS ≠ DTS.
+- The mid-GOP pair: the oracle confirms the key flags and offsets stated.
+- The incompatible H.264 pair: the oracle confirms the two bitstream forms ([content.md §3.1](content.md#31-ffmpegcopy)).
+- The alpha image: the oracle confirms a pixel format with alpha.
+
+## 3. Doubles
+
+| Double                    | Behaviour                                                                                                                                                        | Used by                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| synthetic copy producer   | emits copy content with chosen codec parameters, source id, time base, and per packet DTS, PTS, duration and key flag, each settable to absent                   | §12, §13, §23 entries 1–5  |
+| recording muxer           | records every packet handed to the muxer, in call order, with stream, timestamps, key flag and size; can be told to reject one packet as invalid data            | §10, §12, §13              |
+| coarse time base          | a producer or container time base of 1/1000, and steps smaller than one unit of the output stream's time base                                                    | §6, §13, §23 entries 5, 13 |
+| fake HTTP server          | serves a file or a live feed; answers 404 then starts serving; closes every connection at once; accepts slowly; sends headers then nothing; changes content type | §21, §22                   |
+| fake ingest server        | accepts an `output.url` stream (HTTP, SRT or RTMP); refuses; is unreachable; drops the connection mid-stream; records received bytes                             | §21, §22                   |
+| harbor client             | sends a file as a source client, pauses, closes; sends a stream with fewer media than the source's type                                                          | §21                        |
+| read-only byte callback   | delivers bytes with no seek, tell or length                                                                                                                      | stream decoder (§14)       |
+| child process             | runs a one-line script and returns its exit status and messages                                                                                                  | start-up rejections (§1.5) |
+| content stand-in          | the content of [content.md §10](content.md#10-without-libav), with integer items, for chunk arithmetic without libav                                             | §7                         |
+| hand-built encoder format | the parsed form of an encoder expression handed to the encoder factory                                                                                           | §9, §10                    |
+| memory reclamation        | forces a full collection and compaction at a chosen point of a scenario                                                                                          | §12, §23 entry 4           |
+| live clock                | a clock with a hardware-like sync source and a CPU-paced one                                                                                                     | §21                        |
+
+A hand-built encoder format MUST have a shape the parser produces: a field appears once, each track has the mode and arguments its written form gives ([encoder-format.md §1](encoder-format.md#1-shape-of-a-format-value)).
+
+## 4. Failure modes the harness simulates
+
+| Failure                                     | How                                                                           | Checked in        |
+| ------------------------------------------- | ----------------------------------------------------------------------------- | ----------------- |
+| backward timestamps at a join               | B-frame concat set                                                            | §13, §22          |
+| backward timestamp inside one source        | backward-packet Matroska; synthetic producer                                  | §7, §13, §14      |
+| timestamps restarting for good              | restarting Matroska; restarting copy source                                   | §13, §14          |
+| declared discontinuity                      | size-change with jump; chained Ogg                                            | §14               |
+| packets with no DTS, no PTS, no duration    | synthetic producer; B-frame set without durations                             | §13               |
+| mid-GOP cut                                 | mid-GOP pair                                                                  | §12, §13, §22     |
+| incompatible copy source                    | incompatible H.264 pair; codec-change pair; strict and relaxed                | §7, §12, §22      |
+| mid-stream format change of decoded media   | size, colour, pixel-format and rate change fixtures                           | §11, §14, §17     |
+| source turning undecodable, then recovering | undecodable-turning source under a `fallback`, fallible and infallible        | §6, §22           |
+| corrupt packet                              | corrupt packet file; recording muxer rejecting a packet                       | §10, §22          |
+| network drop and reconnect                  | fake HTTP server closing; fake ingest server dropping                         | §21, §22          |
+| server 4xx then recovery                    | fake HTTP server answering 404 then serving                                   | §21               |
+| unreachable peer, slow peer, silent peer    | fake servers                                                                  | §21               |
+| input running dry                           | a `buffer` whose input stops for a few seconds                                | §17, §22          |
+| sleep and wake                              | an inline encoder or a producer put to sleep and woken                        | §16, §23          |
+| seek                                        | seek in decoded, raw and copied pipelines                                     | §14, §22          |
+| output stop and restart mid-stream          | stop while a switch waits; stop while an open is pending; restart on metadata | §10, §12, §21     |
+| unknown codec, format, option, filter       | configuration errors                                                          | §9, §10, §17, §21 |
+| missing file                                | a nonexistent path                                                            | §21               |
+| memory reclamation at an arbitrary moment   | memory reclamation double                                                     | §12, §23          |
+| host without a codec or filter              | named skip (§1.1)                                                             | every section     |
+
+## 5. Encoder matrix
+
+The matrix runs every encoder configuration of a list over generated input and checks each output. It is the widest encoder coverage and its pass condition is binding.
+
+The list MUST cover at least: every audio-only codec and container pair the layer documents (AAC in ADTS and mp4 at several rates and input sample formats including `pcm_s16` and `pcm_f32`, MP3, FLAC, WAV, Vorbis, FLAC and Opus in Ogg, mono and stereo); H.264 video alone; AAC + H.264 at several channel counts and a non-default frame rate; a multitrack output with two audio and two video fields; audio, video, and audio + video with each subtitle codec (subrip and ASS in Matroska, WebVTT in WebM, mov_text in mp4).
+
+Per configuration, the input is 10 s (16 s with subtitles) of generated media, and the output passes when, for every declared field:
+
+1. the stream exists with the codec and parameters the configuration declares;
+2. the decoded duration equals the input duration within one codec frame plus the priming the container signals, and the packet count is the one the codec's frame size gives for that duration;
+3. the packet oracle (§1.4) shows DTS strictly increasing and PTS ≥ DTS;
+4. an independent decoder decodes the whole stream without error;
+5. for subtitles, the extracted cues equal the input cues.
+
+Also per configuration: [encoder-format.md §10.2](encoder-format.md#102-conformance) (printed type equals instantiated type) and [§11.1](encoder-format.md#111-conformance) (print, parse, print round trip). A configuration whose codec the host lacks is a named skip. A failing configuration fails itself only (§1.1).
+
+## 6. Common, faults and draining
+
+### 6.1 Faults
+
+Items: [faults.md §6](faults.md#6-conformance).
+
+Every fault check names the class of [faults.md §2](faults.md#2-classes) it provokes and asserts that class's outcome, and only that outcome:
+
+| Class               | The check asserts                                                                                                                                                                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| configuration error | the error before any data of the stream it concerns is written: at evaluation, at start-up, or at the first build of a stage started later (a late output, a reopen, a restart), when the failure follows from the configuration and the host alone ([faults.md §2](faults.md#2-classes)); the script fails; the reason pinned (§1.5) |
+| item fault          | the item missing from the output and nothing else (packet oracle, §1.4); one warning for the first drop of the kind; repeats logged with their count at most once per `fault_log_interval`; the output still streaming                                                                                                                |
+| source fault        | end of track at the fault with the data before it drained; then not ready for a fallible source while the fault persists; for an infallible source that cannot produce content, a hard error that fails the script naming the source and the cause; one error-level log; the source's callbacks run                                   |
+| output fault        | only a byte-sink, header or peer failure, or an incompatible copy source with no clean restart (user rule D2): the output stops or restarts under its restart policy, its callbacks run, and another output on the same clock keeps producing. A data fault never produces this class.                                                |
+
+Additional checks:
+
+1. **Escalation** ([faults.md §4](faults.md#4-item-faults-escalate)): every dropping site counts against the one bound `max_consecutive_faults`. On the input side, a run of the bound minus one media-carrying faults stays item faults, a run of the bound becomes a source fault, and one delivered item in between resets the count. Faults on items without media (a raising `on_undecided` handler, an unparsable tag, an unhonoured seek) never escalate, however many.
+2. **Output-side escalation**: the recording muxer rejects every packet of a copied field for longer than the bound: the field's group restarts on its next keyframe, and again at each further run past the bound; the output never stops. The same on an encoded field: the drops stay item faults, logged at the bounded rate, and the other fields keep streaming.
+3. **Fallible and infallible** ([faults.md §3](faults.md#3-source-faults-reach-the-script)): the undecodable-turning source, once typed fallible under a `fallback` (the fallback switches to its other branch within the bound, and switches back when the fixture recovers) and once infallible with no `fallback` (the script fails with an error naming the source and the cause). A positive control (§1.2 item 5) checks that the same fixture behind `mksafe` keeps the output running, the filler coming from `mksafe`.
+4. **Nothing raises out of a fallible source**: in every scenario of §4 that injects a fault into input data of a fallible source (inline, bitstream-filter and side-data operators included, which follow their input's fallibility), the clock's error handler is never called and no source is detached.
+5. **No invented content** ([faults.md §3](faults.md#3-source-faults-reach-the-script)): in every fault scenario, each sample and frame a faulty source delivers is traced to data it received or computed. The oracle compares the source's output with its input, decoded independently: no silence, black or repeated frame appears where the input had undecodable data, and the source's output length during the fault is zero.
+6. **Bounded waits** ([faults.md §5](faults.md#5-waiting)): each named wait bound (keyframe wait, group members, interleave wait, split point) reached on a fixture that never meets its condition; the input-side wait becomes a source fault, the output-side wait proceeds with a warning.
+7. **Log rate**: a source producing faulty items for a long run logs a bounded number of lines, each repeat line carrying a count, and the counts sum to the items dropped.
+
+### 6.2 Common and draining
+
+Items: [common.md §1](common.md#1-settings), [§2](common.md#2-log-bridge), [§5](common.md#5-time-base-conversion), [§6.6](common.md#66-conformance), [§9](common.md#9-video-format-comparison), [§11](common.md#11-hardware-contexts); [draining.md §6](draining.md#6-conformance).
+
+Harness additions:
+
+- The duration-helper items of §6.6 run on the synthetic producer with the coarse time base; their 10-hour spans are pushed as data, not played.
+- Each settings key's default is read from a script that does not set it, through the surface inventory (§1.8).
+- The draining items run once per stage family of [draining.md §1](draining.md#1-stages): decoder, encoder, resampler, re-framer, frame-rate stage, filter graph, bitstream filter, interleaving queue, muxer. For each, the counts in equal the counts out, under each ending event of [draining.md §2](draining.md#2-the-rule): end of input, replacement mid-stream, end of stream, output stop. A seek and a stop by the reader discard instead ([draining.md §5](draining.md#5-discarded-on-purpose)); the check then asserts nothing reaches the output after the event from before it.
+- A partial final unit ([draining.md §4](draining.md#4-partial-final-units)) is checked with a sample count that is not a multiple of the codec frame size: decoded output trimmed as the container signals holds exactly the input samples.
+
+Binding: counts and the level of log lines. Incidental: log wording, the order of hardware candidates the host lists.
+
+## 7. Content
+
+Items: [content.md §2.1](content.md#21-annotation-syntax), [§2.6](content.md#26-dumps), [§3.1.1](content.md#311-where-copy-parameters-are-merged), [§4.3](content.md#43-invalid-content), [§5](content.md#5-stream_idx-and-time_base), [§6.9](content.md#69-consolidation-view-layer), [§9](content.md#9-raw-video-conformance), [§11](content.md#11-checksum), [§14](content.md#14-raw-audio-conformance).
+
+Additional checks, on the content stand-in and on real content:
+
+1. `sub_run` keeps an item at position `p` exactly when `offset ≤ p < offset + len`, at `p − offset` ([content.md §6.4](content.md#64-sub-of-a-run)): items at 10, 30, 50, 70, range 20+40 → 10 and 30; items at 50, 100, 150, range 50+100 → 0 and 50.
+2. Collapse merges exactly the pairs [content.md §6.5](content.md#65-collapse) lists: a pair differing only in source id, only in time base, or only in copy source parameters stays apart; a pair with a gap between stays apart.
+3. Time bases of runs survive copy, sub, blit and consolidation unchanged (1/48000, 1/44100, 1/90000 in one value).
+4. A copy is independent of its original: changing the original's runs leaves the copy's length and items unchanged.
+5. Every format's dump reloads to an equal format, for each kind with and without parameters.
+6. The type annotations `ffmpeg.copy`, `ffmpeg.audio.raw`, `ffmpeg.video.raw` with and without parameters are accepted on source tracks; a track of the internal media kind and a track of `ffmpeg.video.raw` do not unify in either direction.
+7. Strict compatibility ([content.md §3.1](content.md#31-ffmpegcopy)): for each compared property, two parameter sets that differ only in it are rejected, with an error naming the property; for each "when set" property, unset on one side is accepted. Relaxed: only media type and codec id are compared.
+8. The source-id items of §5 run with decoders opened concurrently on several domains; uniqueness is asserted over every id seen in the run.
+
+Binding: positions, lengths, run counts, the accepted and rejected sets, the property an error names. Incidental: dump layout, error wording.
+
+## 8. Stream description
+
+Items: [stream-description.md §3](stream-description.md#3-fields), [§6](stream-description.md#6-get_type-ctype-container).
+
+Harness additions:
+
+- The description of each matrix output is compared on the values the layer decides: container format name, per stream the field name, kind, codec name, sample rate, channel count and layout, or width, height, pixel format and frame rate. Time bases are compared with the oracle's reading of the same file, not with literals (§1.6).
+
+## 9. Encoder format
+
+Items: [encoder-format.md §1.1](encoder-format.md#11-conformance), [§10.2](encoder-format.md#102-conformance), [§11.1](encoder-format.md#111-conformance).
+
+Additional checks:
+
+1. Every row of [encoder-format.md §13](encoder-format.md#13-errors-summary) is provoked and rejected at the place the row states, with error kind `encoder` naming the offending argument (§1.5).
+2. The media type of an encoded track is found by each rule of [encoder-format.md §2.1](encoder-format.md#21-media-type-of-an-encoded-track) in turn: content argument, field name, literal codec; a track that matches none is rejected at run time and typed unconstrained at type check.
+3. Input sample formats `pcm_s16` and `pcm_f32` are accepted by `%ffmpeg` and rejected by every other encoder format with error kind `encoder`.
+4. HLS bit rate: absent when no stream reports one; with two fields each setting `b`, the sum of both.
+5. A field named twice, any argument on a `.drop` track, and a `.copy` argument other than `wait_for_keyframe` and `ignore_keyframe` are each rejected at type check (`liquidsoap --check`), not only at run time.
+
+## 10. Encoder: container, HLS, restart
+
+Items: [encoder.md §3.1](encoder.md#31-conformance), [§4.1](encoder.md#41-conformance), [§5.1](encoder.md#51-conformance), [§6.1](encoder.md#61-conformance), [§7.1](encoder.md#71-conformance), [§8.8](encoder.md#88-conformance), [§13.4](encoder.md#134-conformance).
+
+Additional checks:
+
+1. Item faults ([encoder.md §5.2](encoder.md#52-data-faults-and-output-faults), [faults.md §2](faults.md#2-classes)): the recording muxer rejects one packet, and a codec refuses one frame; each item is missing, one warning names the field, the other streams are complete, the output keeps streaming. Repeated faults on one field log at most one warning per `fault_log_interval`, with the count.
+2. Output faults: a byte sink that fails; the output stops or restarts under its restart policy and reports through its callbacks (§6.1). Late configuration errors: an output started late, reopened, or restarted whose first build fails for a reason that follows from configuration and host (a hardware device that cannot open, a codec that cannot create the configured format) fails the script before writing data of that stream.
+3. Restart at a source switch ([encoder.md §13](encoder.md#13-container-restart)): every member of the switching source's group moves to the new container and no packet of the new source is in the old one; the parameter sets are logged at warning on a restart and at error on a stop.
+4. HLS restart keeps user rule D5: on the variant timeline, the first DTS of the restarted stream is at or after the previous segment's end, the new codec's priming does not overlap it, and an Ogg restart starts a new timeline at 0.
+5. Media timeline: after a whole-output switch, timed ID3 timestamps, the segment grid and each `EXTINF` follow the media timeline (output position minus the skipped time, [timestamps.md §1.4](timestamps.md#14-the-output-timeline)); each `EXTINF` equals its segment's media duration from the packet oracle. The ID3 stream does not keep a switch from being whole-output.
+6. HLS properties: the codec string of each variant agrees with the produced stream (§1.6); timed ID3 is present in-band in MPEG-TS and ADTS variants when enabled, absent when disabled, and the first segment holds the first tag.
+7. HLS resume from persisted state: the resumed playlist probes as the original, and the packet oracle shows DTS continuing across the resume on every stream.
+8. Several `%ffmpeg` encoders on one shared source run to the end, each output passing §5's per-configuration condition.
+9. Metadata and track marks removed before an output do not reach it: no metadata and no new track in the produced file.
 
-1. A graph with one audio and one video input and output, built from named filter operators, processes a decoded a/v file into a file with aac and h264 streams.
-2. A textual graph description with named input and output pads (`[v_in]…[v_out];[a_in]…[a_out]`) is bound to the given inputs and its named outputs are returned by kind and name.
-3. Filter arguments of every scalar type (float, int, bool, string with units such as `-18dB`) and array arguments (`sample_fmts=["s32","fltp"]`) are accepted.
-4. A filter that sets frame metadata (`ametadata` add `tag=test`) with metadata passing enabled on input and output makes that metadata appear on the output source's metadata track.
-   Binding: the key and value seen by a metadata handler.
-5. Filters absent from the host FFmpeg are guarded by a definition check (`aexciter`, `loudnorm`); the graph builds without them.
-6. A two-input overlay graph produces h264 yuv420p video with aac audio.
-7. A graph rebuilt after its input ran dry produces output again (§8.1 item 4).
-8. A frame-size or colourspace change at the graph input passes through without losing either half (§6.1 item 7).
-9. A filter input declared with 2 channels on a mono-typed source is a typing error (this test is not run, [findings](findings/tests.md)).
-10. Bitstream filters `h264_mp4toannexb` and `aac_adtstoasc` on copy tracks leave the parameters a prober reports unchanged.
-11. A text overlay operator produces aac stereo and h264 yuv420p.
+## 11. Encoded streams
 
-Trace: ffmpeg_filter.liq, ffmpeg_filter_parse.liq, test_ffmpeg_filter_array_args.liq, test_ffmpeg_complex_filter.liq, test_ffmpeg_transparency_filter.liq, test_ffmpeg_filter_changing_rate.liq, test_ffmpeg_raw_format_change.liq, GH3944.liq, test_ctype.liq, ffmpeg_bitstream_filter.liq, ffmpeg_add_text.liq.
+Items: [encoder-internal.md §4.8](encoder-internal.md#48-conformance), [§8.1](encoder-internal.md#81-conformance); [timestamps.md §3](timestamps.md#3-audio-internal-and-raw), [§4.5](timestamps.md#45-encoder-output).
 
-## 10. Side data
+Additional checks:
 
-Rotation side data on video tracks ([side-data.md](side-data.md)). One test, seven outputs, all from 320x240 files stored with a display rotation.
+1. Defaults: an AAC stream from generated stereo input is stereo, `fltp`, at the output's sample rate; an H.264 stream is `yuv420p`.
+2. A re-encoded video stream's frame rate is the track's, not the input's (25 fps input, 45 fps track → `45/1`), and its frame count is the duration times that rate.
+3. Subtitles: subrip, ASS, mov_text and WebVTT encode beside audio and video; two subtitle fields in one file; a copied and an encoded subtitle field in one file. A custom `text_to_ass` receives each cue's index and text and its result becomes the cue's event fields, cue times unchanged.
+4. A bitmap subtitle track burned onto video: no subtitle stream in the output, and the still frame at a cue's time is similar to the reference above a stated threshold.
+5. Alpha: VP9 with alpha re-encoded with an alpha pixel format keeps `yuva420p`, and a transparent pixel of the input decodes transparent.
+6. Content gaps (raw content with gaps fixture): the re-encoded audio carries a PTS gap equal to the content gap within one codec frame ([timestamps.md §3](timestamps.md#3-audio-internal-and-raw)); the re-encoded video has no frame inside the gap and its frame count equals the input's, so the frame-rate converter repeats nothing across the gap ([faults.md §3](faults.md#3-source-faults-reach-the-script)).
 
-### 10.1 Invariants
+## 12. Copied streams and switching
 
-| Path               | Input rotation | Operation                                                    | Binding result                                                                           |
-| ------------------ | -------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| copy               | 90             | read side data, copy                                         | 320x240, rotation 90; the track's rotation reader returns 90.0                           |
-| copy               | 90             | set rotation 180                                             | rotation of absolute value 180                                                           |
-| copy               | 90             | remove the `Display Matrix` entry                            | rotation 0                                                                               |
-| decode, encode     | 90             | none                                                         | 240x320, rotation 0: decoding applies the rotation to the pixels and drops the side data |
-| decode, raw encode | 90             | set rotation 90 on the raw track                             | rotation 90 on the encoded stream                                                        |
-| decode, raw encode | 33             | the undecided-rotation handler returns a clockwise transpose | rotation 0                                                                               |
-| decode, raw encode | 20             | the handler returns no decision                              | rotation within 2° of 20                                                                 |
+Items: [encoder-copy.md §2](encoder-copy.md#2-stream-creation), [§8](encoder-copy.md#8-flush-and-end), [§12.3](encoder-copy.md#123-readiness-and-group-start), [§12.4](encoder-copy.md#124-sparse-sources), [§12.5](encoder-copy.md#125-lifetime-of-per-source-state), [§12.7](encoder-copy.md#127-parameters-across-sources).
 
-The undecided-rotation handler is called at least once, every call has reason `odd_rotation`, and every reported angle is within 2° of 33 or 20 (sign ignored).
+Harness additions:
 
-Binding: dimensions, the rotation values to the degree (to 2° for non-quarter turns), the reason string. Incidental: the sign of a rotation, the number of handler calls.
+- Every switching item runs on the packet oracle (§1.4), on file outputs and through the recording muxer.
+- "Identical output" items follow §1.10: fields declared in each order; memory reclamation forced before and after the switch.
+- Readiness (user rule D4 in [encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)): tracks from one source start together, at or after the new source's first key packet on every track; tracks from different sources each start on their own readiness. Checked on the mid-GOP pair: same source; audio from one file and video from another; audio and video from A, then audio from B and video from C.
+- Per-source state lifetime: the playlist of thousands of sources runs CPU-paced with memory reclamation forced between tracks; the check samples the memory held by per-source state at fixed intervals and asserts it bounded by a constant independent of the number of sources.
+- Stream creation: an output whose copy field starts with empty runs writes nothing for any stream until the first frame with known copy parameters ([encoder-copy.md §2](encoder-copy.md#2-stream-creation)).
+- Parameters across sources run once with the default strict check and once with `settings.ffmpeg.content.copy.relaxed_compatibility_check` on. Each run asserts the outcome its mode specifies; neither run is a substitute for the other. The type merge rejects incompatible files when they open ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)), so encoder-side checks feed the second source through a path with its own format: a pass-through bitstream filter or a `track.ffmpeg.side_data` output ([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources)). A check whose second source never reaches the encoder fails (§1.2 item 1).
+- Copy from two different files into one output keeps both codecs (MP3 audio from one, H.264 video from another).
 
-Trace: test_ffmpeg_side_data.liq.
+## 13. Timestamps
 
-## 11. Converters
+Items: [timestamps.md §1.4](timestamps.md#14-the-output-timeline), [§3](timestamps.md#3-audio-internal-and-raw), [§4.5](timestamps.md#45-encoder-output), [§6.2](timestamps.md#62-beginning-a-source-rebase), [§6.3](timestamps.md#63-monotonicity-check).
 
-Audio resampling and video scaling or pixel-format conversion through FFmpeg ([converters.md](converters.md)).
+Every check of this section is a packet-level check (§1.4) with a negative control (§1.3). Additional scenarios, each asserting DTS strictly increasing per output stream (user rule D5) and the behaviour its owning rule states:
 
-### 11.1 Invariants
+1. **Missing values** ([timestamps.md §6.4](timestamps.md#64-missing-values)): packets with no DTS, no PTS, neither, no duration, from the synthetic producer; each is written at the value the table gives.
+2. **B-frames across a join**: the B-frame concat set, three runs: strict check, relaxed check, and the set without durations. Exact equality: packet count equals the inputs' sum; the output duration equals the inputs' sum within one frame. The run under the strict check is binding: the files differ only in properties the strict check accepts.
+3. **Cross-stream interleaving**: in an interleaved container, packets of all streams are in non-decreasing DTS order after conversion to a common base, within the muxer's interleaving window.
+4. **New encoder instance and restarts**: output stop and restart, `reopen_on_metadata`, and a new link of an Ogg output each start a timeline near 0; an HLS restart keeps the variant's timeline, DTS strictly increasing across it ([timestamps.md §2](timestamps.md#2-lifetimes-what-resets-what), [§6.5](timestamps.md#65-restarts)).
+5. **Metadata with a new track** inserted into an output: timestamps are unaffected (no reset row in [timestamps.md §2](timestamps.md#2-lifetimes-what-resets-what)).
+6. **Reconnect**: a copied live input dropped by the fake HTTP server and reconnected ([io.md §13](io.md#13-timestamps-across-reconnects)).
+7. **Seek** in a copied pipeline: a source switch downstream ([content.md §5](content.md#5-stream_idx-and-time_base)).
+8. **Filter generation**: a graph rebuilt after its input runs dry; output timestamps continue.
+9. **Inline encoder rebuild**: a sleep and wake, with and without a sibling encoder awake.
+10. **Frame-rate changes through a filter**: input alternating 25 fps and 12 fps files across nine tracks with an output reopen; the output frame count equals duration times output rate within one frame per track.
+11. **Coarse steps**: copied DTS that differ by less than one unit of the output stream's time base keep the output running.
+12. **Subtitle cue times**: the cue file repeated under a 32 s video, encoded and copied, gives 11 cues: cues 1–5 at their times, cues 6–10 shifted by 15 s, cue 11 at 31–33 s, to the millisecond; the decoded seventh cue reports absolute start 19.0 s.
 
-1. Decoded video is scaled to an annotated frame size (47x52) and the result encodes at that size.
-2. Raw audio of different sample rates and layouts (48 kHz, mono, stereo) converts to one raw encoder's 44100 Hz stereo stream (§6.1 item 8).
-3. An alpha pixel format (`yuva420p`) survives decode and encode.
-4. An overlay of a 50x50 still over a 1280x720 still converts both to the graph's format and encodes `yuv420p`.
+Binding: strict DTS order, PTS − DTS preservation, packet counts, and the join rule of [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase): a copy-only output switching every stream to one source (whole-output switch) has no PTS/DTS gap at the join; an output with any continuing stream keeps the gap of the keyframe wait. Incidental: where the output timeline starts in the container (the oracle reads timestamps relative to the stream's first packet).
 
-Most decoder tests force the native resampler, and the others take the first available resampler in the default order (libsamplerate before FFmpeg), so the FFmpeg resampler runs only on hosts without libsamplerate.
+## 14. Decoder
 
-Trace: video_size.liq, test_ffmpeg_raw_implicit_conversion.liq, test_ffmpeg_vp9_alpha.liq, test_ffmpeg_transparency_filter.liq.
+Items: [decoder.md §3.1](decoder.md#31-files), [§4.3](decoder.md#43-image-options-and-unconsumed-options), [§6](decoder.md#6-stream-selection-and-field-mapping), [§8.3](decoder.md#83-positions-and-sparse-advance), [§8.4](decoder.md#84-waiting-for-all-streams), [§8.5](decoder.md#85-start-and-seek-threshold), [§9.2](decoder.md#92-discontinuities-and-invalid-timestamps), [§10.2](decoder.md#102-stream-metadata-during-decoding), [§10.4](decoder.md#104-tags-for-requests-metadata-resolver), [§11.2](decoder.md#112-remaining-time), [§12](decoder.md#12-seeking), [§13.1](decoder.md#131-end-of-input), [§16.1](decoder.md#161-internal-video-converter), [§16.2.1](decoder.md#1621-delay); [decoder-internal.md §4.4](decoder-internal.md#44-bitmap-subtitles), [§6](decoder-internal.md#6-flush); [decoder-raw.md §6](decoder-raw.md#6-flush); [decoder-copy.md §5](decoder-copy.md#5-timestamps).
 
-## 12. IO
+Harness additions:
 
-The raw input and its error reporting ([io.md](io.md)).
+- Every decoder test asserts that the FFmpeg decoder decoded the request (§1.2 item 4) and asserts on decoded content, not on an output that fixes the property (§1.2 item 3): channel count and sample rate are read on the decoded frames, or through a copy or raw output whose parameters follow the decoder.
+- Copy decoding preserves each stream's parameters: matrix outputs decoded with every field copied and muxed to Matroska give, per stream, the input's codec name and parameters and the input's packet count, last packet included.
+- Per-field mode selection: decode, raw and copy in every combination on one A/V file, and audio with subtitles in the four decode/copy combinations; a field absent from the file is absent from the result.
+- The stream decoder (`application/ffmpeg`) reads through the read-only byte callback and delivers every sample of a WAV and an MP3 input; each invalid-data error it skips is counted and logged ([decoder.md §13.2](decoder.md#132-errors)). The MIME parameters describing a headerless PCM stream produce a track of the described format.
+- Demuxer options from a request annotation reach the input: an option whose effect the oracle sees.
+- A per-codec decoder override selects the named decoder (`libvpx-vp9` for VP9 with alpha: alpha kept).
+- `pcm_s16` and `pcm_f32` decoding produce content of that sample format with the file's sample count.
+- Decoded video is scaled to an annotated frame size, and the internal frame size is taken from the first decoded file when unset (504x504 fixture).
+- Discontinuities ([decoder.md §9.2](decoder.md#92-discontinuities-and-invalid-timestamps)): an MPEG-TS input whose streams jump back a few packets apart produces one new stream index for the whole mapping; each stream moves to it at its own jump, and no item of one stream appears under the other id.
+- Copied items are positioned by DTS ([decoder.md §8.3](decoder.md#83-positions-and-sparse-advance)): a copied AAC stream whose first DTS is later than the video's starts with an empty run of the difference, and every copied field carries a run, empty when it has no packet, in every frame.
+- Equal DTS within one input are valid on the decoding side: a file with two successive packets of equal DTS decodes both.
+- Text subtitles: cues with absolute and relative times, text, format and forced flag. Bitmap subtitles: usable as a video overlay.
 
-### 12.1 Invariants
+## 15. Image decoder
 
-1. Opening a nonexistent input raises an error of kind `ffmpeg` to the source's error handler.
-   Binding: the kind; the cause is "no such file or directory". Incidental: the message wording (`Avutil.Error(No such file or directory)`) and the source file named by the last trace position.
-2. Leading and trailing whitespace around an input URL is trimmed: `" ./file1.mp3\n"` connects and the error handler is not called.
-3. A lavfi-format input started from a URL string produces audio. When it is replaced inside a dynamic source it is stopped, and then garbage-collected after a forced compaction on the domain that created it; stopping precedes collection.
-4. An HTTP input typed for copy feeds an SRT output with a copy audio encoder and the script starts.
+Items: [image-decoder.md §2](image-decoder.md#2-acceptance-check).
 
-### 12.2 Failure modes simulated
+Harness additions: an image annotated with a 0.2 s duration ends its track: at least three tracks of the right length follow one another.
 
-- A missing file (ENOENT).
-- A URL padded with whitespace.
-- An active input dropped while running.
+## 16. Inline codecs
 
-Trace: ffmpeg-errors.liq, ffmpeg-trim.liq, GH5389.liq, ffmpeg-copy-input-http.liq.
+Items: [inline-codecs.md §3.2](inline-codecs.md#32-transform-lifetime), [§3.3](inline-codecs.md#33-metadata-and-track-marks), [§4.2](inline-codecs.md#42-output-parameters), [§5](inline-codecs.md#5-stream-index), [§8](inline-codecs.md#8-chunker), [§10](inline-codecs.md#10-audio-decoding), [§10.1](inline-codecs.md#101-copy-trackffmpegdecodeaudio), [§13](inline-codecs.md#13-flush-and-end).
+
+Harness additions:
+
+- Every `track.ffmpeg.encode.*`, `track.ffmpeg.decode.*`, `ffmpeg.encode.*`, `ffmpeg.decode.*` and `ffmpeg.raw.*` operator runs at least once with a count assertion (§1.8).
+- Encode then decode inline, then re-encode: packet and sample counts match the direct path within the codec priming.
+- Several inline encoders at different bit rates on one shared source each feed a copy output to completion, each passing §5's per-configuration condition.
+- The one-hour chunker item runs CPU-paced.
+- `codec=` on a raw-mode inline encoder is rejected like any other non-media argument (§1.5).
+- An inline rebuild whose new parameters fail the merge is a source fault at the producer: end of track, nothing emitted for that source, both parameter sets logged; then not ready, or a hard error with an infallible input.
+- An `audio_video` wrapper is ready only when both producers are; a source fault on its video ends the wrapper's track.
+
+## 17. Filters
+
+Items: [filters.md §3](filters.md#3-script-values), [§5.4](filters.md#54-validation-and-rendering), [§7.4](filters.md#74-conformance), [§11.7](filters.md#117-draining-a-generation), [§12.3](filters.md#123-resource-limits), [§13.3](filters.md#133-decreasing-video-timestamps-from-a-filter), [§14.2](filters.md#142-out-of-the-graph).
+
+Harness additions:
+
+- Every filter test asserts the filter's effect (§1.2 item 3): `fps=30` gives `30/1` and the frame count for the duration; `aformat` with `sample_fmts=["s32","fltp"]` gives `s32` through a PCM encoder and container that keep it; text overlay changes the pixels of the text region against the same graph without the text; overlay of the alpha image leaves the background visible under the transparent region.
+- Filter arguments of every scalar type and array arguments are accepted; a value outside the option's range is rejected at the script position.
+- Frame metadata set by a filter, with metadata passing on, reaches the output source's metadata.
+- Filters the host lacks are named skips.
+- A filter input declared with 2 channels on a mono-typed source is a type error (§1.5).
+
+## 18. Bitstream filters
+
+Items: [bitstream-filters.md §6](bitstream-filters.md#6-drain).
+
+Harness additions: the oracle checks the bitstream form, not only codec parameters. After `h264_mp4toannexb`, the output extradata is empty or starts with a start code and every packet starts with a start code. After `aac_adtstoasc`, the output carries an AudioSpecificConfig in its extradata and no packet starts with an ADTS sync word. The input fixture is in the other form (§1.2 item 3).
+
+## 19. Side data
+
+Items: [side-data.md §3.2](side-data.md#32-converting-and-draining), [§3.4](side-data.md#34-undecided-cases), [§5.3](side-data.md#53-methods).
+
+Additional checks, on the rotation files:
+
+| Path               | Input rotation | Operation                                           | Binding result                                    |
+| ------------------ | -------------- | --------------------------------------------------- | ------------------------------------------------- |
+| copy               | 90             | read side data, copy                                | 320x240, rotation 90; the track reader returns 90 |
+| copy               | 90             | set rotation 180                                    | rotation of absolute value 180                    |
+| copy               | 90             | remove the display matrix                           | no display matrix in header or packets            |
+| decode, encode     | 90             | none                                                | 240x320, no rotation                              |
+| decode, raw encode | 90             | set rotation 90 on the raw track                    | rotation 90 on the encoded stream                 |
+| decode, raw encode | 33             | the undecided handler returns a clockwise transpose | no rotation                                       |
+| decode, raw encode | 20             | the handler returns no decision                     | rotation within 2° of 20                          |
+
+The undecided handler is called exactly once per run of frames with the same question ([side-data.md §3.4](side-data.md#34-undecided-cases)): once per decoder of each odd-rotation file in this scenario. Every call reports reason `odd_rotation` and the stored angle within 2°. Binding: dimensions, rotations, the reason, the call count. Incidental: the sign convention of a rotation.
+
+## 20. Converters
+
+Items: [converters.md §2](converters.md#2-the-ffmpeg-samplerate-converter), [§4](converters.md#4-the-ffmpeg-video-converter).
+
+Harness additions: the `ffmpeg` samplerate converter is selected explicitly by the test, whatever other converters the host has, and the test asserts it ran (§1.2 item 4). An alpha pixel format survives conversion; an overlay of a 50x50 still over a 1280x720 still converts both to the graph's format.
+
+## 21. IO
+
+Items: [io.md §1.1](io.md#11-inputffmpeg-and-inputhttp), [§1.2](io.md#12-script-wrappers), [§2.1](io.md#21-states), [§2.3](io.md#23-failure-of-an-attempt), [§2.5](io.md#25-end-of-a-connection), [§3](io.md#3-interrupting-blocking-libav-calls), [§6](io.md#6-metadata), [§7](io.md#7-clock-and-self_sync), [§10.2](io.md#102-per-client), [§10.6](io.md#106-feeding), [§11.3](io.md#113-errors), [§12](io.md#12-other-outputs-special-casing-ffmpeg).
+
+Harness additions:
+
+- Network items run against the fake HTTP and ingest servers (§3), never against a third-party service. Retry delays are measured on real time against the owning rule's parameters.
+- "No container left open" is measured by a count the harness can read (open containers, open sockets of the process), sampled after the event.
+- Leading and trailing whitespace around an input URL is trimmed: the padded URL connects and no error is reported.
+- An input replaced inside a dynamic source is stopped, then collected after forced memory reclamation; stopping precedes collection.
+- Copy input over HTTP feeding a copy output: the output receives the input's packets, counted.
+- Decoding never raises: a feeding error on an input becomes a source fault, with what the decoder drained delivered first.
+- A content-type mismatch backs off as a permanent failure would ([io.md §2.3](io.md#23-failure-of-an-attempt)).
+- A copy relay whose remote restarts with other codec parameters is rejected at reconnect and stays not ready until a compatible stream returns (user rule D2).
+- `output.url`: a stream parameter the codec or muxer rejects from configuration alone, an unknown option, codec or muxer, fail the script at open; a failure that depends on the source's data or the peer is an output fault and reconnects ([io.md §11.3](io.md#113-errors)).
+
+## 22. Cross-subsystem scenarios
+
+Each scenario runs end to end on the packet oracle (§1.4) and asserts, besides its own items, DTS strictly increasing per output stream and the stated counts.
+
+1. **Playlist of copied files into HLS.** A playlist of AAC + H.264 files (mid-GOP pair, A/V offset set, B-frame set) copied into an MPEG-TS and an fMP4 variant. Per variant: DTS monotonic across every join and segment; every segment's first video packet is a key packet; no `EXTINF` exceeds the target duration; the packet count per stream equals the inputs' sum less the packets the owning rules drop before a keyframe, no tail lost; group switching follows user rule D4; no PTS/DTS gap at any join, every join being a whole-output switch ([timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase)); `EXTINF` equal to each segment's media duration. Run strict and relaxed.
+2. **Copied video, re-encoded audio.** Fifty mid-GOP files: [timestamps.md §1.4](timestamps.md#14-the-output-timeline)'s item, plus audio PTS equal to the cumulative sample count.
+3. **Incompatible copy source** (user rule D2). Decoder side: the incompatible H.264 pair in one copy playlist is rejected when the second file opens, as a source fault (not ready under a `fallback`) ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)). Encoder side, the second source through a pass-through bitstream filter (§12): into an MPEG-TS file, the output stops with an error-level log naming both parameter sets and every earlier packet is in the file; into an HLS variant, a clean restart logged at warning, a new segment after a discontinuity that decodes alone, DTS strictly increasing across it; into `output.url`, a reconnect; the Vorbis then Opus pair into Ogg, a new link. With the relaxed setting, the codec-change pairs still restart or stop, and for one codec id the muxer's rejections are item faults and the output keeps streaming.
+4. **Live relay with drops.** `input.ffmpeg` from the fake HTTP server (live feed), copied to `output.url` on the fake ingest server; the server drops the input twice and the ingest once. The input reconnects, the output reconnects per `restart_delay`, each output connection is a new container with timestamps from 0, and within each connection DTS is strictly increasing. No error ends the process.
+5. **Fallback between live and file.** A fallback switching from a copied live input to a copied file and back, mid-GOP: switching per D4, no non-monotonic DTS reported by the muxer, playback decodable after each switch.
+6. **Format change through a filter into HLS.** The size-change stream decoded raw, through a filter, raw-encoded into HLS: no lost frame at the change, the warning logged once, no track mark, every segment starts on a key frame.
+7. **Seek in a pipeline.** Seek in a decoded, a raw and a copied pipeline feeding encoders: the decoder's held data is discarded, downstream sees a new source id, output DTS strictly increasing, audio present within the decoder's pre-roll after the seek.
+8. **Fault containment (input side).** A playlist under a `fallback` feeding a running output, holding the corrupt packet file and the backward-packet Matroska (item faults: the item dropped with one warning, the playlist continues), the restarting Matroska (source fault: the track ends with an error, the playlist moves on), and the undecodable-turning source (source fault: the `fallback` switches away and back on recovery). The output never stops and the clock's error handler is never called.
+9. **Inline encode, sleep, copy.** An inline encoder put to sleep and woken, with a copy encoder downstream, with and without a sibling encoder awake: no packet dropped as non-monotonic, ids per [inline-codecs.md §5](inline-codecs.md#5-stream-index), outputs identical under memory reclamation at different moments.
+10. **Ten-hour relay.** The 10-hour relay input copied, CPU-paced: each stream's content length equals its media duration within one tick, no buffer grows past a constant, the output never fails.
+11. **Stop with data held.** Stop an output while a copy switch waits for a keyframe, while the resampler, the re-framer and the frame-rate stage hold data, and while an inline encoder holds its tail: every held item reaches the output before the trailer ([draining.md §3](draining.md#3-order)).
+12. **Mixed mapping start.** A file decoded to PCM audio with copied H.264 video, played with a cue-in: both fields start at the first copied-video key packet at or after the cue-in, positions agreeing within one audio frame ([decoder.md §8.5](decoder.md#85-start-and-seek-threshold)), and a downstream copy-plus-encode output starts both streams together.
+
+## 23. Known-complexity checks
+
+Each entry of [known-complexity.md](known-complexity.md) is checked by the items listed, under the negative control of §1.3 with the mutation named. A mutation describes the broken behaviour, not a change to any particular code.
+
+| Entry | Checked by                                                                                                                                                                                                  | Mutation the check must fail on                                                                                                              |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | §13 items 1–2; [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase) first item                                                                                                                  | separate PTS and DTS offsets; a join end taken as the last DTS without its duration; DTS synthesised from positions                          |
+| 2     | [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase) last item; §1.10 declaration order                                                                                                         | one offset per stream; the offset taken from the first stream to switch                                                                      |
+| 3     | [encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start); §12 readiness; §22 item 5                                                                                                           | no keyframe wait; one readiness shared by tracks of different sources; offset taken from the first packet seen instead of accepted           |
+| 4     | [encoder-copy.md §12.5](encoder-copy.md#125-lifetime-of-per-source-state); [inline-codecs.md §5](inline-codecs.md#5-stream-index); §22 item 9                                                               | per-source state never released; state released while a track still uses it; readiness count decremented for a track that never became ready |
+| 5     | [timestamps.md §6.3](timestamps.md#63-monotonicity-check); §13 items 1, 11                                                                                                                                  | packets without DTS dropped; a non-increasing DTS written to the muxer                                                                       |
+| 6     | [timestamps.md §3](timestamps.md#3-audio-internal-and-raw), [§4.5](timestamps.md#45-encoder-output); [encoder-internal.md §8.1](encoder-internal.md#81-conformance)                                         | a rebuilt frame-rate stage restarting its timestamps at 0; a replaced stage released without draining; frames repeated across a content gap  |
+| 7     | [filters.md §11.7](filters.md#117-draining-a-generation), [§13.3](filters.md#133-decreasing-video-timestamps-from-a-filter); [common.md §6.6](common.md#66-conformance) (equal timestamps in arrival order) | items at one position reordered; the previous end not converted into the new time base                                                       |
+| 8     | [decoder.md §8.4](decoder.md#84-waiting-for-all-streams); [encoder-copy.md §12.4](encoder-copy.md#124-sparse-sources); [encoder.md §8.8](encoder.md#88-conformance)                                         | an interleaving writer waiting on a never-written metadata stream; a sparse stream's head length dropped                                     |
+| 9     | [encoder.md §8.8](encoder.md#88-conformance); §10 item 5                                                                                                                                                    | leftover codec samples moving the segment grid; a split without a key frame; `EXTINF` taken from output position instead of media timeline   |
+| 10    | [draining.md §6](draining.md#6-conformance); §6; [decoder.md §13.1](decoder.md#131-end-of-input); [inline-codecs.md §13](inline-codecs.md#13-flush-and-end); §22 item 11                                    | for each stage family, its final drain skipped                                                                                               |
+| 11    | [content.md §3.1.1](content.md#311-where-copy-parameters-are-merged); [encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources); §22 item 3                                                    | strict compatibility comparing codec id only                                                                                                 |
+| 12    | [timestamps.md §1.4](timestamps.md#14-the-output-timeline); §22 item 2                                                                                                                                      | a copied stream anchored on its previous end alone, ignoring the output position                                                             |
+| 13    | [common.md §6.6](common.md#66-conformance); [decoder-copy.md §5](decoder-copy.md#5-timestamps); [inline-codecs.md §8](inline-codecs.md#8-chunker); §22 item 10                                              | chunk lengths converted and truncated per step                                                                                               |

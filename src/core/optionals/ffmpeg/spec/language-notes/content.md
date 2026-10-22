@@ -1,105 +1,92 @@
 # Language notes: content
 
-OCaml structure behind [content.md](../content.md) and
-[stream-description.md](../stream-description.md).
+Advice for implementing [content.md](../content.md),
+[stream-description.md](../stream-description.md) and
+[side-data.md](../side-data.md) in OCaml on the FFmpeg bindings. Nothing here
+is binding; Part A is.
 
 ## 1. Libraries
 
-| Library                                                                            | Dir              | Links libav | Holds                                                                                                                                     |
-| ---------------------------------------------------------------------------------- | ---------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `liquidsoap_ffmpeg_formats` (`liquidsoap.ffmpeg_formats`), not optional, unwrapped | `formats/`       | no          | `Ffmpeg_content_type` (kind/name layer, implementation guard), `Ffmpeg_encoder_type`                                                      |
-| `liquidsoap_ffmpeg_formats_dummy` (`liquidsoap.ffmpeg_formats_dummy`), `-linkall`  | `formats/dummy/` | no          | stand-in params, registers the three kinds                                                                                                |
-| `liquidsoap_ffmpeg_base`, optional, unwrapped                                      | `base/`          | yes         | `Ffmpeg_content_base`, `Ffmpeg_copy_content`, `Ffmpeg_raw_content`, `Ffmpeg_frame_checksum`, `Ffmpeg_stream_description`, `Ffmpeg_inline` |
-| `liquidsoap_typecheck_dummy` (`src/core/typecheck/dummy`), `-linkall`, no modules  | —                | no          | links `liquidsoap.typecheck` + the stand-in; used by the playground and the language server analysis                                      |
+- Split the kinds into a library with no libav dependency (names, type
+  registration, printing, parser hook, merge and compatibility hooks, dump
+  form) and parameter implementations. The libav implementation links the
+  bindings; the stand-in does not.
+- The kind-and-name library must not be `(optional)` in dune: a machine
+  without the bindings still typechecks scripts that name FFmpeg tracks.
+- A library whose only effect is registration needs `-linkall`, or its
+  initialisers never run.
+- Guard double registration with one process-wide record of the registered
+  implementation name, set by the first kind that registers.
+- The stand-in's name lists (channel layouts, sample formats, pixel formats)
+  can be generated at build time from a libav-enabled build and committed,
+  so the stand-in stays libav-free.
 
-`formats/` is not `(optional)` so a machine without the FFmpeg bindings can
-still typecheck scripts that name FFmpeg tracks. The dummy needs `-linkall`
-because linking it is what runs the registering initialisers.
+## 2. Formats and merges
 
-## 2. Functors
+- A format that every unified holder sees change wants a union-find cell
+  (the core's `Unifier`), with the merged parameters stored at the root.
+- Make `merge` return a result naming the failing property instead of
+  raising a bare `Failure`; the error message of content.md §3 needs it.
+- Copy parameters: a polymorphic variant over the bindings' `Avcodec.params`
+  of each medium, plus the frame rate and the subtitle time base. Compare
+  extradata as `string`; derive the bitstream form with a small function of
+  codec id and the first bytes.
+- Read `relaxed_compatibility_check` at each comparison (a `Dtools.Conf.bool`
+  read is cheap); do not cache it.
 
-- `Ffmpeg_content_type.Make (P : Params) (N : Names)`: calls `implement
-P.implementation` (the guard, a global `string option ref`), builds a
-  `Content_base.FormatSpecs` (`serialize_params _ = ""`, `parse_params ""`
-  → default, `content_lang_typ = string_t`), applies
-  `Content_base.MkFormatBase`, and registers `Type.register_type N.kind_name`
-  with a `Format_type.kind_handler (kind, Lang.univ_t ())`.
-  `Params` = `implementation, default, to_string, parse, merge, compatible`.
-  `Names` = `kind` (polymorphic variant `` `Copy `` or `` `Raw ``), `name`
-  (content name), `kind_name`.
-- Libav side: `Ffmpeg_copy_content.Format = Make (Specs) (Names)`, then
-  `Content.MkDataBase (Format.Format) (Data)`; `Ffmpeg_raw_content.Audio` /
-  `.Video` = `MkDataBase (X_format.Format) (X_data)` with `include
-X_format` on top.
-- Stand-in: `Liquidsoap_ffmpeg_formats_dummy.{Copy, Raw_audio, Raw_video}` =
-  `Make (Params) (…)` only; no `MkDataBase`, so `format_make_fns` keeps its
-  default, which raises `Content_base.Invalid`.
-- `implementation` strings: `"libav"` (all three libav kinds) and
-  `"the stand-in for libav"`.
+## 3. Runs and positions
 
-`MkDataBase` ends with `include D`, so the exported `copy`, `blit`, `make`,
-`length`, `params` of e.g. `Ffmpeg_copy_content` are the run-layer ones
-(`Ffmpeg_content_base.*`); the view-layer versions are reached through the
-`Content` dispatch tables (`Content.copy`, `Content.sub`, …).
+- `data = { mutable params; mutable length; mutable runs : (int * run) list }`.
+  Keep runs sorted by start; blit and collapse are pure list functions over
+  `(start, run)` pairs, easy to test in isolation.
+- Port the blit examples of content.md §6.6 as unit tests first; they cover
+  the cutting, the gaps and the collapse rules.
+- Copy runs carry `source_params`; physical equality (`==`) is the fast path
+  for "same parameters", structural comparison of the compared properties
+  the slow one.
 
-## 3. Types
+## 4. Source ids
 
-- `Ffmpeg_content_base.data` / `content` are records with mutable `params`
-  and `chunks`; `blit` mutates `dst` in place.
-- `stream_idx` is `Int64.t`, counter a global `ref 0L`, not atomic.
-- Copy params type: `codec_params option` where `codec_params` is a
-  polymorphic variant over `Avcodec.params` of each media.
-- Raw param records use `option` per field; formats live in a
-  `Unifier.t`, which is what makes merges visible to every holder.
-- Formats are dispatched by an integer `_type` id into fixed arrays of size
-  `max_contents = 16` in `Content_base`.
-- `Content_base.merge` wraps any exception of the specs merge into
-  `Incompatible_format`; at type level `Format_type.FormatSpecs.subtype` is
-  `Content_base.merge`.
+- `Atomic.fetch_and_add` works on `int Atomic.t` only. A 63-bit `int`
+  counter (`Atomic.fetch_and_add next 1 + 1`) never wraps in practice;
+  convert to `Int64` at the edge if a consumer needs that type.
+- Do not keep a table from sources to ids. Store the id in the producer, or
+  in the reference-counted record of inline-codecs.md §5.
 
-## 4. Formats seen in the code
+## 5. Dumps and cache
 
-- Dump format string `"<kind>:<params>"` from `Content_base.serialize_format`,
-  with `""` params for all FFmpeg kinds. Seen in the code at
-  `Content_base.serialize_format` / `parse_format` and in
-  `tests/core/format_dump.expected` (`ffmpeg.copy:`, `ffmpeg.audio.raw:`,
-  `ffmpeg.video.raw:`).
-- The dump is written by the jsoo-safe environment stripper
-  (`src/lang/types/jsoo_safe_env.ml`, `handler.serialize`); a reader without
-  the kind keeps an opaque custom that prints its name.
-- Script cache: Marshal of the typed term; carries the `Unifier` cells with
-  libav params as values (cache round-trip of
-  `ffmpeg.audio.raw(sample_rate=48000)` checked).
+- Dump: serialise raw formats with the printer and read them back with the
+  parser; serialise copy as `""`.
+- The script cache marshals the typed term; formats inside it carry their
+  union-find cells. Bump the cache key when the parameter representation
+  changes.
 
-## 5. Logging and settings
+## 6. Logging
 
-- `Ffmpeg_content_base.conf_ffmpeg_content` = `settings.ffmpeg.content`
-  (void), child of `Ffmpeg_utils.conf_ffmpeg`;
-  `Ffmpeg_copy_content.conf_ffmpeg_copy_relaxed` is a `Dtools.Conf.bool`
-  read on every `compatible` call (no caching).
-- `Ffmpeg_stream_description` logger: `Log.make ["decoder"; "ffmpeg";
-"description"]`; failures logged through `Utils.log_exception` with the
-  raw backtrace.
+- Description logger: `Log.make ["decoder"; "ffmpeg"; "description"]`.
+- A stream whose parameters fail to read is logged at warning with the
+  exception; no backtrace is needed for an FFmpeg error.
 
-## 6. Stream description
+## 7. Documentation in the source tree
 
-- `container` folds with `List.fold_left` prepending, so the per-media lists
-  are reversed; `List.rev` restores order when building `streams`. The field
-  number is `List.length streams` of the accumulator, i.e. count of
-  successful streams so far.
-- Field names come from `Frame.Fields.{audio_n,video_n,subtitles_n,data_n}`,
-  which register `<base>_<n+1>` on first use.
-- `get_type` passes `codec_params` into
-  `Ffmpeg_copy_content.lift_params (Some (`Audio p))`etc.; the raw audio
-branch catches with`with \_ when Content.compatible …`.
-- `Ffmpeg_utils.set_format_alpha` is the video-internal branch.
+An in-tree Markdown note on FFmpeg content (and one on side data) drifted
+from the behaviour it described. Do not keep a second description next to
+the code: point to this spec instead.
 
-## 7. Tests that pin behaviour
+## 8. Tests to keep
 
-- `tests/core/ffmpeg_content_base_test.ml`: make/length/copy/sub/blit/collapse;
-  in particular "the original chunk overlaps so it gets entirely removed"
-  (blit drops a partially overlapped dst run whole).
-- `tests/core/ffmpeg_dummy_content_test.ml`: stand-in kinds.
-- `tests/core/ffmpeg_stream_description_test.ml` with
-  `all_media_file_descriptions.json`: description over media fixtures.
-- `tests/core/ffmpeg_get_type_test.ml`: `get_type`.
+- Unit tests of make, length, copy, sub, blit and collapse over the run
+  layer, including the cases of content.md §6.6 and §6.9.
+- Stand-in tests: every annotation of content.md §2.1 gives the same result
+  as with libav.
+- Stream description over a set of media fixtures, including a file with a
+  subtitle and a data stream, and one with a stream whose parameters fail.
+- `get_type` with a copy content type over two incompatible files.
+
+## 9. Faults
+
+- Run the conformers, the merges in producers and the side-data edits inside
+  a handler that turns an exception into the fault class of content.md §4.3;
+  no `raise` crosses a source's `get_frame` while it streams.
+- Count item faults in the producer's own state, keyed by nothing global:
+  a counter field reset on each successful item.

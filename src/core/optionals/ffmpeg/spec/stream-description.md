@@ -6,9 +6,9 @@ it, the specific container format name, and the content type the container
 yields for a requested content type (`get_type`). It relies on the FFmpeg
 bindings to read streams and codec parameters
 ([bindings spec](../../../../modules/synced/ffmpeg/spec/README.md)) and on the
-content kinds and their merge rules in [content.md](content.md). Its callers
-are the decoder ([decoder.md](decoder.md)) and `input.harbor.dynamic`'s FFmpeg
-path ([io.md](io.md)).
+content kinds and their merge rules of [content.md §3](content.md#3-parameters).
+Its callers are the decoder ([decoder.md](decoder.md)) and
+`input.harbor.dynamic`'s FFmpeg path ([io.md](io.md)).
 
 ## 1. Model
 
@@ -34,58 +34,76 @@ stream_params =
 | `pixel_format`    | name of the codec parameters' pixel format; `none` if the format has no name; `unknown` if the codec parameters have none |
 | `frame_rate`      | the stream's average frame rate, if known                                                                                 |
 
-Data streams have no time base.
+Data streams have no time base in the model.
 
 ## 2. `container ?format ~url input`
 
 1. `format` is the given input format, else the input format the bindings
    report for the opened container (possibly none).
-2. Log at level 3 (important), logger `decoder.ffmpeg.description`:
-   `Analyzing container for format: "<input format name>", uri: "<url>"`, or
-   `Analyzing container for "<url>"` with no format. Strings are quoted with
-   the language's string quoting.
-3. Collect streams per media, each in container order (§3).
-4. If no stream of any media was collected: raise
-   `Failure "No valid stream found in container."`.
+2. Log at info level that the container is being analysed, with the input
+   format name when known and the URL. Example (wording not binding):
+
+   ```
+   [decoder.ffmpeg.description:3] Analyzing container for format: "mov,mp4,m4a,3gp,3g2,mj2", uri: "test.mp4"
+   ```
+
+3. Describe the streams of each medium in container order (§3).
+4. If no stream of any medium was described: fail with an error saying that
+   the container has no valid stream. This is a source fault of that input
+   ([faults.md §3](faults.md#3-source-faults-reach-the-script)): the caller
+   does not decode it, and nothing downstream stops.
 5. `streams` = audio streams, then video, then subtitle, then data, each in
    container order.
 6. `format` = the specific format name (§4) of the input format, or none.
 
-Example (from the implementation, an MP4 with AAC and H.264):
-
-```
-[decoder.ffmpeg.description:3] Analyzing container for format: "mov,mp4,m4a,3gp,3g2,mj2", uri: "/var/tmp/claude-ffmpeg-spec/content/test.mp4"
-```
-
 ## 3. Fields
 
-Streams of each media are numbered from 0 among the streams of that media that
-were described successfully. Field names:
+Each stream gets a field name from its medium and its rank `n` among **all**
+the container's streams of that medium, in container order, counted from 0:
 
-| Media    | n = 0       | n ≥ 1             |
+| Medium   | n = 0       | n ≥ 1             |
 | -------- | ----------- | ----------------- |
 | audio    | `audio`     | `audio_<n+1>`     |
 | video    | `video`     | `video_<n+1>`     |
 | subtitle | `subtitles` | `subtitles_<n+1>` |
 | data     | `data`      | `data_<n+1>`      |
 
-For data streams, `n` is the stream's rank among data streams **plus the
-number of subtitle streams**: with one subtitle stream, the first data stream
-is `data_2`.
+Each medium is ranked on its own; data streams are ranked among data streams
+only. The first data stream is `data` whatever the number of subtitle
+streams.
 
-Reading a stream's parameters can raise an FFmpeg error. The stream is then
-skipped: the exception is logged (with backtrace) on the description logger
-as `Failed to get <audio|video|subtitle|data> stream info: <exn>`, and the
-next stream of that media takes the skipped stream's number.
+Reading a stream's parameters can fail with an FFmpeg error. The stream is
+then left out of `streams`, and the failure is logged at warning level with
+the medium and the error. This is an item fault
+([faults.md §2](faults.md#2-classes)) whose item is the stream. It needs no
+escalation bound: a container has finitely many streams, and a container
+with none left is a source fault (§2 step 4). The stream keeps its rank: the next stream of that
+medium gets the next name, not the failed stream's. The decoder maps fields
+to streams with the same ranking
+([decoder.md §6](decoder.md#6-stream-selection-and-field-mapping), owner of
+the mapping). So a field name in the content type returned by `get_type`
+always designates the stream the decoder fills under that name.
+
+Field names beyond the first (`audio_2`, `video_3`, …) are ordinary field
+names. A script MAY write them in annotations
+(`source(audio_2=ffmpeg.audio.raw)`); the type checker resolves them as it
+resolves `audio`. An unknown field name in an annotation is a configuration
+error ([faults.md §2](faults.md#2-classes)), never an internal exception. The type checker owns this; the decoder relies
+on it.
+
+Conformance:
+
+- A file with streams audio, subtitle, data: fields `audio`, `subtitles`,
+  `data`.
+- A file with two audio streams whose first fails to describe: the second is
+  `audio_2` in `get_type`, and the decoder fills `audio_2` from it.
 
 ## 4. Specific format name
 
 The input format name is a comma-separated list for some demuxers. It is
 narrowed as follows:
 
-1. Name starts with `matroska`: the container metadata `profile` if present,
-   else the name unchanged.
-2. Name starts with `mov`: map the container metadata `major_brand`:
+1. Name starts with `mov`: map the container metadata `major_brand`:
 
    | `major_brand`                                                                               | Format |
    | ------------------------------------------------------------------------------------------- | ------ |
@@ -100,88 +118,113 @@ narrowed as follows:
    | `MSNV` (Sony PSP)                                                                           | `mp4`  |
    | `NDAS` `NDSC` `NDSH` `NDSM` `NDSP` `NDSS` `NDXC` `NDXH` `NDXM` `NDXP` `NDXS` (Nero Digital) | `mp4`  |
 
-   An unknown brand logs at level 5 (debug)
-   `Unknown major_brand "<brand>", keeping full format list` and keeps the
-   name; no `major_brand` keeps the name.
+   An unknown brand is logged at debug level and keeps the name. No
+   `major_brand` keeps the name.
 
+2. Name starts with `matroska`: `webm` when the bindings expose the file's
+   EBML DocType and it is `webm`, `matroska` when it is `matroska`.
+   Otherwise the name is kept.
 3. Any other name is kept.
 
-Observed values over the in-tree media fixtures: `aac`, `flac`,
-`matroska,webm`, `mp3`, `mp4`, `ogg`, `wav`.
+Observed values over common media: `aac`, `flac`, `matroska,webm`, `mp3`,
+`mp4`, `ogg`, `wav`.
 
 ## 5. `describe`
 
 Each stream gives one string; strings are joined by `, `:
 
-| Media    | Form                                                                    |
+| Medium   | Form                                                                    |
 | -------- | ----------------------------------------------------------------------- |
 | audio    | `<field>: {codec: <codec_name>, <samplerate>Hz, <channels> channel(s)}` |
 | video    | `<field>: {codec: <codec_name>, <width>x<height>, <pixel_format>}`      |
 | subtitle | `<field>: {codec: <codec_name>, subtitle}`                              |
 | data     | `<field>: {codec: <codec_name>}`                                        |
 
-Example (from the implementation, logged by the decoder):
+Example, logged by the decoder (wording not binding):
 
 ```
-[decoder.ffmpeg:3] FFmpeg recognizes "/var/tmp/claude-ffmpeg-spec/content/test.mp4" as audio: {codec: aac, 44100Hz, 2 channel(s)}, video: {codec: h264, 320x240, yuv420p}
+[decoder.ffmpeg:3] FFmpeg recognizes "test.mp4" as audio: {codec: aac, 44100Hz, 2 channel(s)}, video: {codec: h264, 320x240, yuv420p}
 ```
 
 ## 6. `get_type ~ctype container`
 
 Maps the container onto a requested content type `ctype` (field → format).
-Logs at level 3 `Requested content-type: <ctype>` first and
-`Decoded content-type: <result>` last.
+`ctype` MUST be the consuming source's own content type, not a copy: the
+merges below are how a copy track's parameters are set and checked
+([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)).
+`get_type` logs the requested content type first and the decoded content
+type last, at info level.
 
-The result starts empty and holds only fields that are both in the container
-and in `ctype`. A container field absent from `ctype` is left out; a `ctype`
-field absent from the container is left out. Data streams never appear.
+The result holds exactly the fields that are both in the container and in
+`ctype`. A container field absent from `ctype` is left out; a `ctype` field
+absent from the container is left out. Data streams never appear. Every
+result field is the requested format `f` of that field, never a new format,
+except where the table names one.
 
-Audio streams, for a requested format `f` on the stream's field:
+Audio streams, for a requested format `f`:
 
-| `f`                | Result field                                                                             | Side effect                                                                                                                                                                   |
-| ------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ffmpeg.copy`      | `f`                                                                                      | `f` is merged with copy params `` `Audio codec_params `` ([content.md, ffmpeg.copy](content.md#31-ffmpegcopy)); a failed merge raises `Incompatible_format` out of `get_type` |
-| `ffmpeg.audio.raw` | a new raw audio format holding the codec's channel layout, sample format and sample rate | `f` is merged with it; if the merge raises and `compatible(f, new)` holds, the error is ignored; if not compatible the error propagates                                       |
-| any other          | a new PCM format of the kind of `f` with the codec's channel count                       | none; `f` is not consulted beyond its kind                                                                                                                                    |
+| `f`                | Result field                                                   | Side effect                                                                                   |
+| ------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `ffmpeg.copy`      | `f`                                                            | `f` is merged with the stream's copy parameters ([content.md §3.1](content.md#31-ffmpegcopy)) |
+| `ffmpeg.audio.raw` | `f`                                                            | none: the first decoded frame sets it ([content.md §14](content.md#14-raw-audio-conformance)) |
+| any other          | a PCM format of the kind of `f` with the codec's channel count | none                                                                                          |
 
 Video streams:
 
-| `f`                | Result field | Side effect                                                                                                                           |
-| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `ffmpeg.copy`      | `f`          | merged with `` `Video { avg_frame_rate = frame_rate; codec_params } ``; failure propagates                                            |
-| `ffmpeg.video.raw` | `f`          | none: the first decoded frame sets it ([content.md, Raw video conformance](content.md#9-raw-video-conformance))                       |
-| any other          | `f`          | the video format's alpha parameter is set from the codec if still unset ([common.md §7](common.md#7-pixel-formats), Set format alpha) |
+| `f`                | Result field | Side effect                                                                                                         |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `ffmpeg.copy`      | `f`          | `f` is merged with the stream's copy parameters, average frame rate included                                        |
+| `ffmpeg.video.raw` | `f`          | none: the first decoded frame sets it ([content.md §9](content.md#9-raw-video-conformance))                         |
+| any other          | `f`          | the video format's alpha parameter is set from the codec if still unset ([common.md §7](common.md#7-pixel-formats)) |
 
 Subtitle streams:
 
-| `f`                                                                                                                    | Result field                                                    | Side effect                                                                 |
-| ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `ffmpeg.copy`                                                                                                          | `f`                                                             | merged with `` `Subtitle { time_base; codec_params } ``; failure propagates |
-| the internal subtitle format, and the codec is a text subtitle codec (codec descriptor has the text-subtitle property) | the internal subtitle format                                    | none                                                                        |
-| any other                                                                                                              | the default internal video format (subtitles rendered as video) | none                                                                        |
+| `f`                                                                  | Result field                                                    | Side effect                                                         |
+| -------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `ffmpeg.copy`                                                        | `f`                                                             | `f` is merged with the stream's copy parameters, time base included |
+| the internal subtitle format, and the codec is a text subtitle codec | the internal subtitle format                                    | none                                                                |
+| any other                                                            | the default internal video format (subtitles rendered as video) | none                                                                |
 
-Merges mutate `f` in place ([content.md, Parameters](content.md#3-parameters)), so the
-requested content type itself now carries the container's parameters.
+A failed copy merge fails `get_type` with the incompatible-format error of
+[content.md §3](content.md#3-parameters): it names the property that differs
+and prints both parameter sets. The caller does not decode that container
+([decoder.md](decoder.md)); a source that was being opened is rejected, and
+nothing of it is produced. This is a source fault of that file or
+connection ([faults.md §3](faults.md#3-source-faults-reach-the-script)): a
+playlist moves on, a reconnecting input that keeps meeting it is not ready
+so a `fallback` moves on, and the output keeps streaming.
 
-Example (from the implementation): requested
-`{audio=ffmpeg.audio.raw,video=ffmpeg.video.raw}` on the AAC/H.264 MP4 gives
+Merges mutate `f` in place, so the consuming source's content type carries
+the container's copy parameters from then on.
+
+Examples, on an AAC/H.264 MP4. Requested
+`{audio=ffmpeg.audio.raw,video=ffmpeg.video.raw}` gives the requested
+formats unchanged until the first frames:
 
 ```
-Decoded content-type: {audio=ffmpeg.audio.raw(sample_rate=44100,sample_format=fltp,channel_layout=stereo),video=ffmpeg.video.raw}
+Decoded content-type: {audio=ffmpeg.audio.raw,video=ffmpeg.video.raw}
 ```
 
-and requested `{audio=ffmpeg.copy,video=ffmpeg.copy}` gives
+Requested `{audio=ffmpeg.copy,video=ffmpeg.copy}` gives
 
 ```
 Decoded content-type: {audio=ffmpeg.copy(codec="aac",channel_layout="stereo",sample_format=fltp,sample_rate=44100),video=ffmpeg.copy(codec="h264",width=320,height=240,aspect_ratio=1/1,framerate=25/1,pixel_format=yuv420p)}
 ```
+
+Conformance:
+
+- `get_type` twice on one copy content type, with an MP4 H.264 file then an
+  MPEG-TS H.264 file: the second call fails with the error above.
+- `get_type` with a requested `ffmpeg.audio.raw(sample_rate=48000)` on a
+  44.1 kHz file returns that requested format; the decoded audio is
+  delivered at 48 kHz.
 
 ## 7. Script-visible records
 
 `input.harbor.dynamic` exposes each stream as a record built from this model
 ([io.md](io.md)):
 
-| Media    | Fields                                                                                                                              |
+| Medium   | Fields                                                                                                                              |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | audio    | `field`, `type="audio"`, `codec`, `samplerate`, `channels`, `channel_layout`                                                        |
 | video    | `field`, `type="video"`, `codec`, `width`, `height`, `pixel_format`, `frame_rate` (float `num/den`, `null` if unknown or `den ≤ 0`) |
