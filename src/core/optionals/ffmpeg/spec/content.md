@@ -348,9 +348,13 @@ Conformance:
   error that names the bitstream form and prints both parameter sets. No
   packet of it reaches an encoder.
 - Two H.264 files whose extradata differ: rejected the same way.
+- A copy playlist whose second file differs from the first only in its
+  display matrix, its HDR metadata or an unspecified colour property: the
+  second file is rejected when it is opened, the playlist moves on to the
+  third, and the output keeps streaming without a gap in its timeline.
 - Two H.264 files that differ only in their average frame rate, or two AAC
   files that differ only in the reported sample format: accepted.
-- With the relaxed setting on, the first two cases are accepted at type
+- With the relaxed setting on, the first three cases are accepted at type
   level and at the encoder. A switch between AAC and MP3 is still rejected.
 
 ### 3.2 `ffmpeg.audio.raw`
