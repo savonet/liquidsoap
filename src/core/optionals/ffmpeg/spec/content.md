@@ -197,44 +197,45 @@ Equality is structural unless the property says otherwise.
 ### 3.1 `ffmpeg.copy`
 
 Copy parameters describe a coded stream. A muxer writes a stream header from
-them once, when the container starts, and cannot change it afterwards. Every
-packet later written to that stream must be valid under that header. The
-parameters therefore MUST carry every property a muxer's stream header
-depends on, so that the merge rejects a source whose packets the header
-cannot describe (user decision D2).
+them when the container starts. Whether a later source with other parameters
+can follow depends on the property and on the container: some differences
+no container survives, some only containers that store them in their header
+cannot follow, and some only describe the picture. Copy compatibility is
+therefore split in three (user decision D2, as refined by the user):
+
+| Class                  | Where it is judged                                                                                                          | On a difference                                                                                                                                                            |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type properties        | the type merge, when a source is opened (this section, §3.1.1)                                                              | the source is rejected at open, a source fault ([faults.md §3](faults.md#3-source-faults-reach-the-script)); a playlist moves on                                           |
+| header details         | the encoder's runtime check at a source switch, per container ([encoder.md §13.3](encoder.md#133-incompatible-copy-source)) | a container that carries them in band accepts the change; a container that stores them in its header restarts where it defines a clean restart, else the output stops (D2) |
+| descriptive properties | the encoder at a source switch                                                                                              | a warning naming both values; the stream keeps its first header. Never a restart, a stop or a rejection                                                                    |
 
 Parameters are unknown (the default) or known. Known parameters hold the
 bindings' codec parameters of one stream, read from the container or from
 the encoder that made the packets, plus the stream's average frame rate for
 video and the stream's time base for subtitles.
 
-**Compared properties.** Two known parameter sets are compatible when their
-media are equal and every property below is compatible. Strict compatibility
-compares the full stream header, side data and colour included (user
-decision). "Unspecified" is an ordinary value, equal only to itself, except
-for the properties marked "when set": demuxers routinely fail to probe those,
-so a side that leaves one unset is compatible with any value.
+**Type properties.** What no container survives: packets of another codec,
+form or geometry cannot be written under any header of the first source.
 
-| Medium | Property                                                                      | Comparison                                                            |
-| ------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| all    | codec id                                                                      | equal                                                                 |
-| all    | bitstream form (below)                                                        | equal                                                                 |
-| all    | extradata                                                                     | byte-equal; absent and empty are equal                                |
-| all    | header side data (below)                                                      | the same kinds, each with a byte-equal payload; order not significant |
-| all    | profile, level                                                                | equal, when set (often unprobed)                                      |
-| audio  | sample rate                                                                   | equal                                                                 |
-| audio  | channel layout                                                                | the bindings' layout comparison                                       |
-| audio  | block align, bits per coded sample                                            | equal; 0 (unused by the codec) equal only to 0                        |
-| video  | width, height                                                                 | equal                                                                 |
-| video  | sample aspect ratio                                                           | equal after reduction, `0/1` (undefined) equal to `1/1`               |
-| video  | pixel format                                                                  | equal, when set (often unprobed)                                      |
-| video  | field order, colour range, primaries, transfer, colour space, chroma location | equal; unspecified equal only to unspecified                          |
+| Medium | Property               | Comparison                      |
+| ------ | ---------------------- | ------------------------------- |
+| all    | media                  | equal                           |
+| all    | codec id               | equal                           |
+| all    | bitstream form (below) | equal                           |
+| audio  | sample rate            | equal                           |
+| audio  | channel layout         | the bindings' layout comparison |
+| audio  | sample format          | equal when both sides set it    |
+| video  | width, height          | equal                           |
+| video  | pixel format           | equal when both sides set it    |
+
+Pixel and sample formats are compared only when both sides set them, because
+demuxers routinely fail to probe them.
 
 **Bitstream form.** Some codecs carry their configuration either out of
 band (in the extradata, with length-prefixed packets) or in band (inside the
 packets). The two forms need different stream headers and different
-conversion filters in the muxer. The form is derived from the codec id and
-the extradata:
+conversion filters in the muxer, so no container follows a change of form.
+The form is derived from the codec id and the extradata:
 
 | Codecs           | Form                                                                                                                        |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
@@ -242,53 +243,61 @@ the extradata:
 | AAC              | `raw` when the extradata is non-empty (an AudioSpecificConfig); `in_band` (ADTS or LATM headers) otherwise                  |
 | any other        | `none`                                                                                                                      |
 
-The extradata comparison already covers the form. The form is compared
-first so that the error names the cause a user can act on, such as a
-bitstream filter to add.
+**Header details.** What a container may store in its header: extradata
+(byte-equal, absent and empty equal), profile and level (compared when both
+sides set them), block align and bits per coded sample (equal). The encoder
+judges a difference per container
+([encoder.md §13.3](encoder.md#133-incompatible-copy-source) owns the table
+of containers that store them and containers that carry them in band).
 
-**Header side data.** The coded side data kinds that muxers record in a
-stream header: display matrix, stereo 3D, spherical mapping, mastering
-display metadata, content light level, Dolby Vision configuration, ICC
-profile. Other coded side data (CPB properties, for instance) is carried and
-written, not compared.
+**Descriptive properties.** What describes the picture without changing how
+packets decode: sample aspect ratio (after reduction, `0/1` equal to `1/1`),
+field order, colour range, primaries, transfer, colour space, chroma
+location, and the header side data kinds (display matrix, stereo 3D,
+spherical mapping, mastering display metadata, content light level, Dolby
+Vision configuration, ICC profile). At a source switch the encoder logs a
+warning naming each differing property with both values, and muxes the new
+source under the first header.
 
 **Not compared, with reasons.**
 
 - Average frame rate: demuxers estimate it, and two files of one frame rate
-  routinely report different averages. Packets carry their own timestamps,
-  so no header value of it makes the output undecodable. Some muxers do
-  write it (Matroska `DefaultDuration`, the FLV `framerate` metadata): they
-  write the first source's value, and a later source with another rate is
-  muxed under that header. This is an accepted limit. The frame rate is
+  routinely report different averages. Packets carry their own timestamps.
+  Some muxers write it (Matroska `DefaultDuration`, the FLV `framerate`
+  metadata): they write the first source's value, an accepted limit. It is
   merged: an unset value is filled.
-- Subtitle time base, and the sample format of coded audio: they describe
-  the demuxer's timestamps and the decoder's output, not the coded stream.
-- Codec tag: the muxer chooses it for its own container.
+- Subtitle time base: it describes the demuxer's timestamps.
+- Other coded side data (CPB properties, for instance) and the codec tag:
+  carried, or chosen by the muxer for its own container.
 
 **Relaxed check.** With
-`settings.ffmpeg.content.copy.relaxed_compatibility_check` on (§13), two
-known parameter sets are compatible when their media and codec ids are
-equal, for all three media. Libav (the muxer) is then the judge of every
-other difference. One predicate serves the type-level merge and the
-encoder's runtime check, so the setting relaxes both at once.
+`settings.ffmpeg.content.copy.relaxed_compatibility_check` on (§13), both
+the type merge and the encoder's runtime check reduce to media and codec id.
+Libav (the muxer) judges every other difference. Descriptive differences are
+still logged.
 
-`compatible(p, p')`:
+`compatible(p, p')`, the type predicate:
 
 1. Either side unknown → true.
 2. Different media → false.
 3. Relaxed on → codec ids equal.
-4. Otherwise → every compared property is compatible.
+4. Otherwise → every type property is compatible.
 
 `merge(p, p')`:
 
 1. Either side unknown → the other side.
-2. Not `compatible(p, p')` → failure naming the first incompatible property
-   in table order, and printing both sides.
+2. Not `compatible(p, p')` → failure naming the first incompatible type
+   property in table order, and printing both sides.
 3. Otherwise → the left side, with every property the left side leaves unset
-   (frame rate and the "when set" properties) taken from the right side.
-   Under the relaxed check, a property set on both sides keeps the left
-   side's value: the left side is the established format, whose header is
-   the one written.
+   (frame rate, pixel format, sample format, profile, level) taken from the
+   right side. Header details and descriptive properties that both sides set
+   keep the left side's value: the left side is the established format.
+
+The encoder's runtime check uses two further predicates on the parameters
+its stream header was written from and the new source's run parameters
+(§4.2): **header-compatible** (every header detail compatible) and the list
+of **descriptive differences**. Both are defined by the tables of this
+section; the encoder owns what it does with them.
 
 Parser: rejects every label. Copy parameters come from a container or an
 encoder; there is nothing to build from a string.
@@ -316,30 +325,36 @@ Example, an AAC + H.264 MP4 decoded as copy:
 
 A copy format starts unknown at type level: scripts cannot write copy
 parameters. The first source opened for a track sets them, and every later
-source is merged into the same format. An incompatible source is therefore
-rejected when it is opened, before any of its packets is produced. The rule
-holds only if every path that brings packets into a track goes through a
-merge. Each path, and the rule that closes it:
+source is merged into the same format. A source that differs in a type
+property is therefore rejected when it is opened, before any of its packets
+is produced. The rule holds only if every path that brings packets into a
+track goes through a merge. Each path, and the rule that closes it:
 
-| Path                                                                                            | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A decoder, a reconnecting input, a seek                                                         | The producer merges each stream's parameters into the consuming source's own format before it produces content ([stream-description.md §6](stream-description.md#6-get_type-ctype-container)). It MUST pass that format itself, never a fresh or copied one. A failed merge is a source fault of that source only ([faults.md §3](faults.md#3-source-faults-reach-the-script)): the file is not decoded, the track ends, a playlist moves on; a reconnecting input that keeps failing is not ready. The output keeps streaming. |
-| A producer that makes its own packets (inline encoder, bitstream filter)                        | The producer merges its output parameters into its output format before it emits the first packet under each source id (§5). A failed merge is a source fault of that producer ([faults.md §3](faults.md#3-source-faults-reach-the-script)): it emits nothing for that source, logs both parameter sets at error level, ends its track, and while the fault persists is not ready (fallible) or raises a hard error (infallible). It never emits filler. With a fallible producer the output keeps streaming.                   |
-| A producer that edits parameters (side-data operator)                                           | The same rule, applied to each new edit result ([side-data.md §5.1](side-data.md#51-per-frame)).                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| Content arriving while the format is unknown                                                    | Cannot happen: content with packets carries known parameters (§4.2), and its producer merged them first.                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| A merge that keeps one side and drops the other                                                 | Closed by the merge of this section: properties are compared, unset ones are filled, nothing is dropped.                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Frame rate                                                                                      | Not compared, by design (above).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| Relaxed check on                                                                                | By design: libav judges.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Two formats that are never unified (an operator whose output format is separate from its input) | Each producer merges into the format it emits under; the encoder's runtime check compares each new source with the stream header.                                                                                                                                                                                                                                                                                                                                                                                               |
+| Path                                                                             | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A decoder, a reconnecting input, a seek                                          | The producer merges each stream's parameters into the consuming source's own format before it produces content ([stream-description.md §6](stream-description.md#6-get_type-ctype-container)). It MUST pass that format itself, never a fresh or copied one. A failed merge is a source fault of that source only ([faults.md §3](faults.md#3-source-faults-reach-the-script)): the file is not decoded, the track ends, a playlist moves on; a reconnecting input that keeps failing is not ready. The output keeps streaming. |
+| A producer that makes its own packets (inline encoder)                           | The producer merges its output parameters into its output format before it emits the first packet under each source id (§5). A failed merge is a source fault of that producer ([faults.md §3](faults.md#3-source-faults-reach-the-script)): it emits nothing for that source, logs both parameter sets at error level, ends its track, and while the fault persists is not ready (fallible) or raises a hard error (infallible). It never emits filler. With a fallible producer the output keeps streaming.                   |
+| An operator that rewrites parameters (bitstream filter, copy side-data operator) | The operator accepts any parameters on its input: its input format is merged with nothing of its own. Its output parameters are merged into its separate output format by the rule of the row above ([side-data.md §5.1](side-data.md#51-per-frame), [bitstream-filters.md](bitstream-filters.md)).                                                                                                                                                                                                                             |
+| Content arriving while the format is unknown                                     | Cannot happen: content with packets carries known parameters (§4.2), and its producer merged them first.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| A merge that keeps one side and drops the other                                  | Closed by the merge of this section: type properties are compared, unset ones are filled.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Header details and descriptive properties                                        | Not judged at the merge, by design: the encoder judges them per container at each source switch.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Relaxed check on                                                                 | By design: libav judges.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
-The encoder keeps a runtime check as the backstop: at each source switch it
-compares the new source's parameters (the run's source parameters, §4.2)
-with the parameters its stream header was written from, using `compatible`
-of this section. A failure there is an output fault
-([faults.md §2](faults.md#2-classes), user decision D2): the output restarts
-when the container defines a clean restart, else stops under its restart
-policy, and reports through its callbacks
-([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources)).
+The encoder's runtime check runs at each source switch on the new source's
+run parameters (§4.2) against the parameters its stream header was written
+from ([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources),
+[encoder.md §13.3](encoder.md#133-incompatible-copy-source)). It is
+reachable: header details and descriptive properties pass the type merge by
+design. A type-property mismatch that still reaches it (a path through an
+operator with its own output format under the relaxed setting, for
+instance) is handled like a header detail stored in the header. A failure is
+an output fault ([faults.md §2](faults.md#2-classes), user decision D2): the
+output restarts when the container defines a clean restart, else stops under
+its restart policy, and reports through its callbacks.
+
+Consequence: a live relay whose remote encoder restarts with new extradata
+keeps working. An output that carries extradata in band accepts the change;
+an output that stores it in its header restarts or stops by the rule above.
 
 Conformance:
 
@@ -347,15 +362,19 @@ Conformance:
   decoded as copy: the second file is rejected when it is opened, with an
   error that names the bitstream form and prints both parameter sets. No
   packet of it reaches an encoder.
-- Two H.264 files whose extradata differ: rejected the same way.
-- A copy playlist whose second file differs from the first only in its
-  display matrix, its HDR metadata or an unspecified colour property: the
-  second file is rejected when it is opened, the playlist moves on to the
-  third, and the output keeps streaming without a gap in its timeline.
-- Two H.264 files that differ only in their average frame rate, or two AAC
-  files that differ only in the reported sample format: accepted.
-- With the relaxed setting on, the first three cases are accepted at type
-  level and at the encoder. A switch between AAC and MP3 is still rejected.
+- A playlist of AAC then MP3: the second is rejected at open, with the
+  relaxed setting on or off.
+- Two H.264 files of the same form whose extradata differ: both are
+  accepted at open. Copied to MPEG-TS, the output keeps streaming. Copied to
+  MP4, the output stops at the switch (no clean restart); as an HLS variant,
+  it starts a new segment.
+- A copy playlist whose files differ in display matrix, HDR metadata or a
+  colour property: every file plays, and each switch logs a warning naming
+  both values.
+- Two H.264 files that differ only in their average frame rate: accepted,
+  with no warning.
+- With the relaxed setting on, the MP4-then-MPEG-TS playlist is accepted at
+  open and at the encoder; the muxer judges the packets.
 
 ### 3.2 `ffmpeg.audio.raw`
 
@@ -422,6 +441,7 @@ The data value a view points to is
 data = { params : P; length : ticks; runs : (start, run) list }
 run  = { length : ticks;
          stream_idx : source id;          (§5)
+         continues : bool;                (§5, continuing source)
          time_base : rational;            (§7)
          source_params : copy parameters; (ffmpeg.copy only)
          items : (position, item) list }  (positions relative to the run start)
@@ -550,6 +570,17 @@ transform built after its record closed restarts its timestamps, so it gets
 a new record and a new id. The record lives in the transforms that hold it
 and ends with the last of them, so it costs no permanent allocation (D6).
 
+**Continuing source.** A new source id MAY be marked **continuing**: the
+new source's bitstream continues the previous source's, so its packets stay
+decodable across the switch. The decoder marks the id it takes at a declared
+timestamp discontinuity when no stream's codec parameters change at the jump
+([decoder.md §9.2](decoder.md#92-discontinuities-and-invalid-timestamps)); an
+Ogg link is not continuing. Every run under that id carries the mark
+(`continues`, §4.2). A consumer treats a switch to a continuing id as a
+source switch for timestamps (rebase) without a keyframe wait
+([encoder-copy.md §12](encoder-copy.md#12-source-switching-and-per-source-state)).
+Every other producer emits ids unmarked.
+
 Within one source id, the runs of one field have one time base and
 compatible `source_params` (§3.1). A producer whose output time base changes
 takes a new id.
@@ -602,7 +633,7 @@ Run layer: the data value's `length`. View layer: `total_length`.
 ### 6.4 sub of a run
 
 `sub_run run offset len`: a run of length `len`, with the same source id,
-time base and source parameters, holding the items with
+continuing mark, time base and source parameters, holding the items with
 `offset <= pos < offset + len`, each at `pos - offset`, each passed through
 the kind's item copy (§6.7).
 
@@ -870,17 +901,18 @@ track-mark relay, transform lifetime) is owned by
 
 ## 13. Settings
 
-| Key                                                        | Type | Default | Effect                                                                                                                                         |
-| ---------------------------------------------------------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `settings.ffmpeg.content.copy.relaxed_compatibility_check` | bool | `false` | §3.1: copy parameters are compatible when media and codec ids are equal; relaxes the type-level merge and the encoder's runtime check together |
+| Key                                                        | Type  | Default | Effect                                                                                                        |
+| ---------------------------------------------------------- | ----- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `settings.ffmpeg.content.copy.relaxed_compatibility_check` | bool  | `false` | §3.1: the type merge and the encoder's runtime check both reduce to media and codec id; libav judges the rest |
+| `settings.ffmpeg.content.copy.max_keyframe_wait`           | float | `20.`   | seconds; owned by [encoder-copy.md](encoder-copy.md) (the bound on a copy track's keyframe wait)              |
 
 `settings.ffmpeg.content` is an empty section holding the above. The relaxed
 setting is read at each comparison, so a change applies from the next merge
 and the next source switch.
 
 The relaxed setting's documentation MUST say that it is an advanced setting,
-that it lets sources with different stream headers into one copied stream,
-and that the muxer then decides whether the output stays valid.
+that it lets sources of another codec form or geometry into one copied
+stream, and that the muxer then decides whether the output stays valid.
 
 ## 14. Raw audio conformance
 

@@ -195,7 +195,6 @@ media. Metadata and track marks stay with their data (§3.3).
 | a decoder meets a new source id, time base or decoder parameters (§10, §11) | the affected stage is drained, then replaced (§13)                                                                                                    |
 | the source-id record it uses is closed (encoders, §5)                       | as the event that closed the record                                                                                                                   |
 | the producer seeks its input (§3.4)                                         | discarded ([draining.md §5](draining.md#5-discarded-on-purpose))                                                                                      |
-| `abort_track` on the producer (§3.4)                                        | discarded: what it holds belongs to the aborted track                                                                                                 |
 | the producer goes to sleep                                                  | discarded: the producer has no reader any more, and the clock spec clears its buffer ([clock spec §15](../../../clock/spec/clock.md#15-child-clocks)) |
 | a source fault of the producer (§15)                                        | drained when its stages can still drain, else discarded ([draining.md §5](draining.md#5-discarded-on-purpose))                                        |
 
@@ -209,8 +208,8 @@ Conformance:
 - The transform that converts the frames before a track boundary of its
   input also converts the frames after it: the output carries no source
   switch at a track boundary.
-- Sleep, seek and `abort_track` release the transform; the next input frame
-  builds a new one.
+- Sleep and seek release the transform; the next input frame builds a new
+  one. `abort_track` keeps it (§3.4).
 
 ### 3.3 Metadata and track marks
 
@@ -297,6 +296,12 @@ the other readers of the child clock keep streaming. Example of the message
 (wording not binding): "Operator <producer> has buffered more than <n>s of
 data from <input>."
 
+A producer that nobody reads is not behind: a sibling on the same child
+clock keeps it filled while its own reader is idle, for example a `switch`
+branch that is not selected. A producer not read during the last cycle of
+its clock trims the oldest data beyond the limit instead, logged at debug
+level, and keeps its track.
+
 **Readiness during a source fault.** While a source fault persists (§15), a
 fallible producer is not ready. It recovers as
 [faults.md §3](faults.md#3-source-faults-reach-the-script) requires of a
@@ -314,7 +319,7 @@ Other source methods:
 | `self_sync`   | The input's static/dynamic flag, with no sync source reported across the child clock.                                                                                                                                       |
 | `remaining`   | Buffer remaining if known; else input remaining plus buffer length; `-1` if the input reports `-1`. Data held in the transform is not counted.                                                                              |
 | `seek len`    | Drop `min(buffer length, len)` from the buffer and seek the input by the rest. When the input moves by a non-zero amount, the transform is discarded and, for an encoder, its source-id record closed (§5). Return the sum. |
-| `abort_track` | Clear the buffer, discard the transform, close the source-id record (encoders, §5), add a track mark at the start of the buffer, abort the input's track.                                                                   |
+| `abort_track` | A track boundary: clear the buffer, add a track mark at the start of the buffer, abort the input's track. The transform keeps running and the source id is kept (§3.2).                                                     |
 
 ### 3.5 Buffer lifetime
 
@@ -379,12 +384,23 @@ In raw mode the stream's arguments are its media keys
 
 An encoded transform's content parameters are known only once its encoder is
 open: codec parameters, extradata, and the packetisation form they imply.
-Before the first chunk of a transform is written, the producer merges these
-parameters into its output format
-([content.md §3](content.md#3-parameters)):
+The start-up check (§4) opens the encoder, so its parameters are known then.
+The operator merges them into its output format at start-up, before the
+script streams. The merge compares the type-merge properties only (media,
+codec id, bitstream form, dimensions, sample rate, channel layout, pixel or
+sample format when both are set:
+[content.md §3.1](content.md#31-ffmpegcopy)); extradata, profile and level
+are judged by the output's container, and descriptive properties only warn.
 
-- The first build sets the parameters every reader of the producer's output
-  sees.
+- A conflict between two producers whose parameters follow from the
+  configuration alone (two inline encoders feeding one copy track with
+  different codecs or sizes) is a configuration error: the script fails
+  before it streams.
+- A conflict with a producer whose parameters depend on its data (a relay, a
+  file) is that producer's fault when it opens: it is rejected
+  ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)), and
+  a `fallback` that also holds the inline encoder stays on the inline
+  encoder.
 - A later build whose parameters fail the merge is a source fault of the
   producer ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged),
   [faults.md §3](faults.md#3-source-faults-reach-the-script)): it emits
@@ -393,8 +409,8 @@ parameters into its output format
   raises a hard error (infallible input) (§15). No packet of the rejected
   build reaches an output.
 - With `settings.ffmpeg.content.copy.relaxed_compatibility_check` on,
-  parameters of the same media type and codec id are compatible, and libav
-  judges the rest.
+  the merge compares media type and codec id only, and libav judges the
+  rest.
 
 Raw-mode parameters are set by the first frame, like those of every raw
 producer ([content.md §3](content.md#3-parameters)): the producer merges them
@@ -404,6 +420,8 @@ Conformance:
 
 - `%ffmpeg(%audio(b="128k"))` in `ffmpeg.encode.audio` fails at evaluation
   with the script position.
+- Two inline encoders with different codecs feeding one copy track fail the
+  script before it streams.
 - `%ffmpeg(%audio.raw(foo=12))` in `ffmpeg.raw.encode.audio` fails at
   evaluation, naming `foo`.
 - An encoded option unknown to the codec fails the script before its first
@@ -438,10 +456,11 @@ Rules:
 2. The elapsed time advances by the input media each child-clock tick
    delivers. The input belongs to one child clock (§3.1), so every transform
    of the record sees the same elapsed time.
-3. An input discontinuity closes the record: end of input (§3.4), a seek of
-   the input (§3.4), `abort_track`. A closed record gives its id to no new
-   transform. Each transform still using it ends at its producer's next
-   step: drained at end of input, discarded at a seek or an abort.
+3. An input discontinuity closes the record: end of input (§3.4) or a seek
+   of the input (§3.4). `abort_track` is a track boundary, not a
+   discontinuity. A closed record gives its id to no new transform. Each
+   transform still using it ends at its producer's next step: drained at end
+   of input, discarded at a seek.
 4. A record is released when its last transform ends. A producer going to
    sleep ends only its own transform: while a sibling transform lives, the
    record stays open and the woken producer joins it.
@@ -686,10 +705,14 @@ content.
 State: the current decoder with its resampler, and the key it was built for:
 the run's `(stream_idx, time_base)` and the decoder parameters.
 
-**Decoder parameters** are the codec parameters a decoder is created from,
-compared as [content.md §3.1](content.md#31-ffmpegcopy) compares them with
-the relaxed setting off, plus extradata. They are the parameters of the run
-being decoded. One content value never mixes runs whose parameters differ
+**Decoder parameters** are the type-merge properties of the codec
+parameters a decoder is created from
+([content.md §3.1](content.md#31-ffmpegcopy)), compared with the relaxed
+setting off. They are the parameters of the run being decoded. A change of
+extradata alone under one id does not rebuild the decoder: the new extradata
+is given to the current decoder with the next packet, for codecs that accept
+new extradata in band. For a codec that does not, an extradata change counts
+as a decoder parameter change. One content value never mixes runs whose parameters differ
 (content.md owns that guarantee), so the content-level parameters are the
 run's.
 
@@ -782,12 +805,14 @@ fault, dropped with a warning; the decoder is kept.
 A newly built decoder SHOULD receive packets from the first keyframe on:
 packets before it cannot be decoded without the references they need, and a
 decoder fed them produces damaged pictures. The skipped packets are counted
-and logged at warning level. The wait is bounded by `max_keyframe_wait`,
-measured in input time, with the recommended value of encoder-copy's
-parameter of the same name
-([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)):
-when no keyframe arrives within it, the wait is an input-side wait that
-failed ([faults.md §5](faults.md#5-waiting)), a source fault (§15).
+and logged at warning level. The wait is bounded by
+`settings.ffmpeg.content.copy.max_keyframe_wait` (default `20.` seconds),
+measured in input time
+([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)).
+When no keyframe arrives within it, decoding starts at the next packet with
+a warning naming the number of packets skipped. A decoder that recovers from
+a missing reference produces a damaged picture until the next keyframe;
+stopping the stream instead would cost more than that.
 
 Draining a stream: drain its decoder through step 3, then drain its display
 stage into the converter.
@@ -808,8 +833,8 @@ the display stage into the converter.
   frame-rate converter, timestamp counters and source id carry on (§3.2).
 - Decoders rebuild a stage only on a change of id, time base or decoder
   parameters (§10, §11), wherever it falls, and drain the old stage first.
-- `abort_track` on the producer clears its buffer, discards the transform
-  and marks a track (§3.4).
+- `abort_track` on the producer clears its buffer and marks a track; the
+  transform and the source id carry on (§3.4).
 
 ## 13. Flush and end
 
@@ -841,7 +866,7 @@ A transform is drained (§3.2):
   parameters, the old stage is drained into the output before the first
   output of its replacement.
 
-A transform is discarded at a seek, an `abort_track`, a sleep or a failure
+A transform is discarded at a seek, a sleep or a failure
 (§3.2). Its pending metadata and track marks are still written (§3.3).
 
 A drain that fails part-way is an item fault: what it could not deliver is
@@ -879,22 +904,22 @@ Every fault is placed in a class of [faults.md §2](faults.md#2-classes).
 Nothing is raised out of the producer while it streams, except the hard error
 of an infallible producer below.
 
-| Where      | What                                                                                                   | Class               | Outcome                                                                         |
-| ---------- | ------------------------------------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------- |
-| evaluation | §4 evaluation checks                                                                                   | configuration error | script error with position                                                      |
-| start-up   | §4 start-up check                                                                                      | configuration error | script fails before streaming                                                   |
-| build      | encoder parameters fail the output format's merge (§4.2)                                               | source fault        | nothing emitted for that source; both sets logged at error level; below         |
-| any frame  | DTS going back from an inline encoder (§9)                                                             | item fault          | packet dropped with a warning; bound `max_consecutive_faults`                   |
-| decode     | the decoder rejects a packet (§10.1, §11.1)                                                            | item fault          | packet dropped with a warning; bound `max_consecutive_faults`                   |
-| raw decode | raw parameter missing on a run (§10.2)                                                                 | item fault          | run dropped with a warning naming the parameter; bound `max_consecutive_faults` |
-| any frame  | an encode, resample, scale or filter call rejects a frame                                              | item fault          | frame dropped with a warning; bound `max_consecutive_faults`                    |
-| drain      | a drain fails part-way (§13)                                                                           | item fault          | the rest of the drain dropped with a warning                                    |
-| decode     | no decoder for a source's parameters, or its creation fails                                            | source fault        | below                                                                           |
-| decode     | no keyframe within `max_keyframe_wait` (§11.1)                                                         | source fault        | below                                                                           |
-| any frame  | an item-fault bound reached                                                                            | source fault        | below                                                                           |
-| rebuild    | a rebuild fails for a reason that follows from configuration and host (codec, hardware method, format) | configuration error | hard error whenever it shows                                                    |
-| rebuild    | a rebuild fails for a reason that depends on the input's data                                          | source fault        | below                                                                           |
-| any frame  | buffer above `settings.clock.child.max_buffer` (§3.4)                                                  | source fault        | buffer cleared, track ended, error log; the input goes on                       |
+| Where      | What                                                                                                   | Class               | Outcome                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| evaluation | §4 evaluation checks                                                                                   | configuration error | script error with position                                                                                    |
+| start-up   | §4 start-up check                                                                                      | configuration error | script fails before streaming                                                                                 |
+| build      | encoder parameters fail the output format's merge (§4.2)                                               | source fault        | nothing emitted for that source; both sets logged at error level; below                                       |
+| any frame  | DTS going back from an inline encoder (§9)                                                             | item fault          | packet dropped with a warning; bound `max_consecutive_faults`                                                 |
+| decode     | the decoder rejects a packet (§10.1, §11.1)                                                            | item fault          | packet dropped with a warning; bound `max_consecutive_faults`                                                 |
+| raw decode | raw parameter missing on a run (§10.2)                                                                 | item fault          | run dropped with a warning naming the parameter; bound `max_consecutive_faults`                               |
+| any frame  | an encode, resample, scale or filter call rejects a frame                                              | item fault          | frame dropped with a warning; bound `max_consecutive_faults`                                                  |
+| drain      | a drain fails part-way (§13)                                                                           | item fault          | the rest of the drain dropped with a warning                                                                  |
+| decode     | no decoder for a source's parameters, or its creation fails                                            | source fault        | below                                                                                                         |
+| decode     | no keyframe within `max_keyframe_wait` (§11.1)                                                         | none                | decoding starts with a warning                                                                                |
+| any frame  | an item-fault bound reached                                                                            | source fault        | below                                                                                                         |
+| rebuild    | a rebuild fails for a reason that follows from configuration and host (codec, hardware method, format) | configuration error | hard error whenever it shows                                                                                  |
+| rebuild    | a rebuild fails for a reason that depends on the input's data                                          | source fault        | below                                                                                                         |
+| any frame  | buffer above `settings.clock.child.max_buffer` (§3.4)                                                  | source fault        | read producer: buffer cleared, track ended, error log; unread producer: oldest data trimmed, debug log (§3.4) |
 
 **Item faults** ([faults.md §4](faults.md#4-item-faults-escalate)) are
 counted per producer against the one bound `max_consecutive_faults` of
@@ -933,9 +958,10 @@ the script's ways to keep streaming through it.
 
 ## 16. Settings read
 
-| Key                                                                                                                                     | Default                              | Used by                              |
-| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------ |
-| `settings.clock.child.max_buffer`                                                                                                       | `10.`                                | producer buffer limit (§3.4)         |
-| `settings.ffmpeg.content.copy.relaxed_compatibility_check`                                                                              | `false`                              | output parameters (§4.2)             |
-| `settings.ffmpeg.scaling_algorithm`, `settings.ffmpeg.scaling_threads`, `settings.ffmpeg.autorotate`, `settings.ffmpeg.format_change.*` | [common.md §1](common.md#1-settings) | video encode scaler and video decode |
-| `settings.frame.audio.samplerate`, `settings.frame.video.framerate`                                                                     | —                                    | internal rates on both sides         |
+| Key                                                                                                                                     | Default                              | Used by                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------- |
+| `settings.clock.child.max_buffer`                                                                                                       | `10.`                                | producer buffer limit (§3.4)             |
+| `settings.ffmpeg.content.copy.relaxed_compatibility_check`                                                                              | `false`                              | output parameters (§4.2)                 |
+| `settings.ffmpeg.content.copy.max_keyframe_wait`                                                                                        | `20.`                                | copy video decoder keyframe wait (§11.1) |
+| `settings.ffmpeg.scaling_algorithm`, `settings.ffmpeg.scaling_threads`, `settings.ffmpeg.autorotate`, `settings.ffmpeg.format_change.*` | [common.md §1](common.md#1-settings) | video encode scaler and video decode     |
+| `settings.frame.audio.samplerate`, `settings.frame.video.framerate`                                                                     | —                                    | internal rates on both sides             |

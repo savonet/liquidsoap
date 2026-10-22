@@ -163,11 +163,11 @@ except where the table names one.
 
 Audio streams, for a requested format `f`:
 
-| `f`                | Result field                                                   | Side effect                                                                                   |
-| ------------------ | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `ffmpeg.copy`      | `f`                                                            | `f` is merged with the stream's copy parameters ([content.md §3.1](content.md#31-ffmpegcopy)) |
-| `ffmpeg.audio.raw` | `f`                                                            | none: the first decoded frame sets it ([content.md §14](content.md#14-raw-audio-conformance)) |
-| any other          | a PCM format of the kind of `f` with the codec's channel count | none                                                                                          |
+| `f`                | Result field                                                   | Side effect                                                                                                                  |
+| ------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `ffmpeg.copy`      | `f`                                                            | `f` is merged with the stream's copy parameters; only type properties can fail ([content.md §3.1](content.md#31-ffmpegcopy)) |
+| `ffmpeg.audio.raw` | `f`                                                            | none: the first decoded frame sets it ([content.md §14](content.md#14-raw-audio-conformance))                                |
+| any other          | a PCM format of the kind of `f` with the codec's channel count | none                                                                                                                         |
 
 Video streams:
 
@@ -185,9 +185,13 @@ Subtitle streams:
 | the internal subtitle format, and the codec is a text subtitle codec | the internal subtitle format                                    | none                                                                |
 | any other                                                            | the default internal video format (subtitles rendered as video) | none                                                                |
 
-A failed copy merge fails `get_type` with the incompatible-format error of
-[content.md §3](content.md#3-parameters): it names the property that differs
-and prints both parameter sets. The caller does not decode that container
+A copy merge fails only on a type property (codec, bitstream form,
+geometry, sample rate, channel layout, and pixel or sample format when both
+are set; [content.md §3.1](content.md#31-ffmpegcopy)). Header details and
+descriptive properties never fail it: the encoder judges them at the source
+switch. A failed copy merge fails `get_type` with the incompatible-format
+error of [content.md §3](content.md#3-parameters): it names the property
+that differs and prints both parameter sets. The caller does not decode that container
 ([decoder.md](decoder.md)); a source that was being opened is rejected, and
 nothing of it is produced. This is a source fault of that file or
 connection ([faults.md §3](faults.md#3-source-faults-reach-the-script)): a
@@ -214,7 +218,10 @@ Decoded content-type: {audio=ffmpeg.copy(codec="aac",channel_layout="stereo",sam
 Conformance:
 
 - `get_type` twice on one copy content type, with an MP4 H.264 file then an
-  MPEG-TS H.264 file: the second call fails with the error above.
+  MPEG-TS H.264 file: the second call fails with the error above (bitstream
+  form).
+- The same with two MP4 H.264 files that differ only in extradata or in
+  their display matrix: both calls succeed.
 - `get_type` with a requested `ffmpeg.audio.raw(sample_rate=48000)` on a
   44.1 kHz file returns that requested format; the decoded audio is
   delivered at 48 kHz.

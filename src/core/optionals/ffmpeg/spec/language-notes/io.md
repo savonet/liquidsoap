@@ -69,9 +69,12 @@ shutdown flag.
 - `debug=true` only raises the log level of backtraces. Nothing raises out
   of `generate_frame`; an exception inside a scheduler task reaches the
   scheduler's own error handling, not the clock's, so catch it in the task.
-- `timeout`: record the start time of the blocking call in progress beside
+- `timeout`: record the start time of the read or write in progress beside
   the abort flag; the interrupt closure compares it with a monotonic now.
-  Clear it when the call returns, so an idle connection is not aborted.
+  Clear it when the call returns, so an idle connection is not aborted. Set
+  no start time during the open, nor on a listening input.
+- Listening is read from the option table before the open: a nonzero
+  `listen` entry or `mode` equal to `listener`.
 - Option validation at evaluation needs the set of option names that FFmpeg
   input components define: `AVFormatContext`'s class, every demuxer's
   private class, every protocol's class. If the bindings do not enumerate

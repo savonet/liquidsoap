@@ -390,7 +390,8 @@ A decoder receives, one call at a time:
 - items of one kind (decoded frames, packets, or subtitle frames), in the
   order the decode loop releases them (§8.4), which for one stream is
   demuxing order;
-- `switch i`: from now on the content carries the stream index `i` (§9.2);
+- `switch i`: from now on the content carries the stream index `i`, marked
+  continuing or not (§9.2);
 - for sparse decoders, `advance p` (§7.7);
 - a final `Flush` at end of input (§13.1).
 
@@ -541,7 +542,7 @@ started, to within one item. Before that, `U` is the target minus `O` when a
 target is set, else 0.
 
 A packet with no timestamp keeps its place in its stream's order and changes
-no position. A frame with no timestamp is an item fault (§9).
+no position. A decoded frame with no timestamp follows §9.
 
 Conformance:
 
@@ -577,12 +578,17 @@ than the following value, else that value:
 - cases 3 and 4: the earliest first timestamp among the decoded non-sparse
   streams seen.
 
-Case 2 is the bound of an input-side wait
-([faults.md §5](faults.md#5-waiting)): a selected stream that yields nothing
-leaves its field empty, and the source cannot produce frames. It is a source
-fault naming the streams not seen. The queued items are released and the
-input ends as §13.1 states, so the script's `fallback` or playlist decides
-what plays next.
+Case 2 does not start the mapping. A selected stream can start late (a live
+input whose video comes after its audio), so the decoder keeps waiting with a
+**sliding window**: while the queue spans more than
+`max_interleave_duration`, it drops the oldest queued items. This is an
+intended discard, not an item fault: it is logged once as a warning naming the
+streams not seen, and the dropped items are counted in that log at the
+interval of [faults.md §4](faults.md#4-item-faults-escalate). Meanwhile
+`decode` returns no data, so a live source is not ready until the stream
+appears; the mapping then starts as case 1. End of input (case 3) releases
+what the window holds: a file whose stream never appears plays the other
+streams from the window.
 
 When no non-sparse stream is selected, the mapping starts at once and `B` is
 the target when one is set, else `O`.
@@ -603,9 +609,11 @@ Conformance:
 
 - A live input whose audio starts 2 s before its video, both decoded: the
   first decoded audio and video positions match to within one audio frame.
-- A file with a selected stream that never yields an item: the input ends
-  with a source fault after `max_interleave_duration` of data, its queued
-  items drained, and a `fallback` above it switches away.
+- A live input whose video appears 8 s after its audio: no data for 8 s,
+  one warning, then both streams start together; the audio of the first 3 s
+  is counted as dropped.
+- A file with a selected stream that never yields an item: the last
+  `max_interleave_duration` of the other streams plays at end of input.
 - A file shorter than `max_interleave_duration` with such a stream: every
   item reaches the output at end of input.
 
@@ -617,8 +625,10 @@ starts:
 - no `T0` (§8.4; every non-sparse stream copied): none, and every item is
   released;
 - a mapping with decoded streams and a copied stream whose codec needs key
-  packets (video that is not intra-only): the first key packet of that
-  copied stream whose PTS is at or after `T0`. Every stream starts there:
+  packets (video that is not intra-only): the last key packet of that
+  copied stream whose PTS is at or before `T0` when `T0` minus its PTS is at
+  most `start_key_tolerance`, else the first key packet whose PTS is at or
+  after `T0`. Every stream starts there:
   the copied video from that key packet, decoded and other copied streams
   from their first item ending at or after its DTS, the items before
   trimmed. All share one origin, `B` = that DTS, so positions agree: copied
@@ -628,7 +638,11 @@ starts:
   reason is A/V sync without invented content. With several such copied
   streams, the start point is the latest of their first key packets at or
   after `T0`. Until the start point is known the items stay queued (§8.4),
-  within `max_interleave_duration`;
+  within `max_interleave_duration`. `start_key_tolerance` is a parameter,
+  recommended value one audio frame (1024 samples at the audio rate): a key
+  packet that close before `T0` costs less than a frame of decoded data
+  before the threshold, where the next one may cost a whole key-packet
+  interval;
 - otherwise: `T0`.
 
 Against a threshold `T`:
@@ -698,8 +712,10 @@ during a decode step takes effect when the step ends.
 
 The **frame timestamp** is the frame's PTS, or else its best-effort
 timestamp. This section owns that rule; the per-stream files link it. A
-decoded frame with neither is an item fault: dropped with a warning and
-counted toward `max_consecutive_faults`.
+decoded audio frame with neither takes the key of the item before it in its
+stream, since decoded audio is continuous; it is an item fault (dropped with a
+warning, counted toward `max_consecutive_faults`) only when it is the first
+of its stream. A decoded video frame with neither is an item fault.
 
 Every conversion uses the time base the value is expressed in, with the
 layer's `rescale` ([common.md §5](common.md#5-time-base-conversion)): rounded
@@ -770,6 +786,15 @@ timestamps at each link. A discontinuity is one event for the whole mapping:
 
 The same shift for all streams keeps their relative timing across the jump.
 
+The new stream index of a discontinuity is marked **continuing** when the
+bitstream itself goes on: the input format declares discontinuities
+(`AVFMT_TS_DISCONT`) and no stream's codec parameters change at the jump.
+A copied stream under a continuing index stays decodable without a new key
+packet, so the encoder rebases it without waiting for one
+([encoder-copy.md §12](encoder-copy.md#12-source-switching-and-per-source-state)).
+An Ogg link starts a new bitstream with its own headers: its index is not
+continuing.
+
 Any other decrease is an item fault. The decoder drops the item with a
 warning naming the stream and both timestamps, and decoding continues; the
 stream's last key stays the one before the dropped item. When
@@ -803,8 +828,12 @@ and the first list is news.
 At every decode step (§8.2, step 1) the container metadata (all key/value
 pairs FFmpeg holds for the container) is read. A non-empty list that differs
 from the last list of the container is a change. The decoder adds a change to
-the output at its current position, except the first one when
-`decode_first_metadata` is false.
+the output at its current position. When `decode_first_metadata` is false,
+the first list is added only when it holds a key, or a value for a key, that
+the request's metadata lacks; the file decoder is given the request's
+metadata for this comparison. The request's tags come from the resolvers,
+which may not be this decoder's (§10.4), so the file can carry tags they did
+not return.
 
 ### 10.2 Stream metadata during decoding
 
@@ -1006,26 +1035,26 @@ Conformance:
 
 Every fault is placed in a class of [faults.md §2](faults.md#2-classes).
 
-| Where                   | Fault                                                      | Class               | Effect                                                                  |
-| ----------------------- | ---------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------- |
-| settings (§2, §5.1)     | unknown preferred decoder, non-positive interleave span    | configuration error | error when the setting is set; the script does not start                |
-| option parsing (§4)     | invalid `ffmpeg_options`, unknown forced format            | source fault        | the request is rejected by the probe and both resolvers; it never plays |
-| opening (§4.3)          | remaining options                                          | source fault        | as above                                                                |
-| probe                   | no usable stream, open failure                             | source fault        | this decoder is rejected for the file; the next decoder is tried        |
-| decoder creation        | open failure, a stream unfit for its requested format      | source fault        | the track does not start                                                |
-| `read_input`            | `Eagain`                                                   | —                   | read again; the input's interrupt bounds the wait ([io.md](io.md))      |
-| `read_input`            | `Invalid_data`                                             | item fault          | warning, read again; counted (§8.2)                                     |
-| `read_input`            | `Eof`                                                      | —                   | end of input (§13.1)                                                    |
-| `read_input`            | `Exit`                                                     | —                   | abort reported to the caller (§8.2)                                     |
-| `read_input`            | any other error                                            | source fault        | end of track with the error                                             |
-| decode loop             | invalid decreasing timestamp (§9.2)                        | item fault          | item dropped with a warning; counted                                    |
-| decode loop             | `max_consecutive_faults` item faults in a row (§8.2)       | source fault        | end of track with the error                                             |
-| decode loop             | `max_interleave_duration` reached while waiting (§8.4)     | source fault        | queued items drained; end of track                                      |
-| per-stream decoder      | a stage fails on one item; a corrupt packet                | item fault          | item dropped with a warning; counted                                    |
-| per-stream decoder      | duration helper "discontinuity" (§9.1)                     | source fault        | helper flushed; end of track with the error                             |
-| per-stream decoder      | a frame with no timestamp; a timestamp that overflows (§9) | item fault          | item dropped with a warning; counted                                    |
-| metadata (§10.3, §10.4) | unparsable timed ID3 payload or `duration` tag             | item fault          | entry dropped with a warning; not counted                               |
-| `seek` (§12)            | container seek failure; seek after a discontinuity         | item fault          | warning, returns 0; not counted                                         |
+| Where                   | Fault                                                                                       | Class                | Effect                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------- |
+| settings (§2, §5.1)     | unknown preferred decoder, non-positive interleave span                                     | configuration error  | error when the setting is set; the script does not start                               |
+| option parsing (§4)     | invalid `ffmpeg_options`, unknown forced format                                             | source fault         | the request is rejected by the probe and both resolvers; it never plays                |
+| opening (§4.3)          | remaining options                                                                           | source fault         | as above                                                                               |
+| probe                   | no usable stream, open failure                                                              | source fault         | this decoder is rejected for the file; the next decoder is tried                       |
+| decoder creation        | open failure, a stream unfit for its requested format                                       | source fault         | the track does not start                                                               |
+| `read_input`            | `Eagain`                                                                                    | —                    | read again; the input's interrupt bounds the wait ([io.md](io.md))                     |
+| `read_input`            | `Invalid_data`                                                                              | item fault           | warning, read again; counted (§8.2)                                                    |
+| `read_input`            | `Eof`                                                                                       | —                    | end of input (§13.1)                                                                   |
+| `read_input`            | `Exit`                                                                                      | —                    | abort reported to the caller (§8.2)                                                    |
+| `read_input`            | any other error                                                                             | source fault         | end of track with the error                                                            |
+| decode loop             | invalid decreasing timestamp (§9.2)                                                         | item fault           | item dropped with a warning; counted                                                   |
+| decode loop             | `max_consecutive_faults` item faults in a row (§8.2)                                        | source fault         | end of track with the error                                                            |
+| decode loop             | `max_interleave_duration` reached while waiting (§8.4)                                      | — (intended discard) | oldest queued items dropped, warned once and counted; no data until the stream appears |
+| per-stream decoder      | a stage fails on one item; a corrupt packet                                                 | item fault           | item dropped with a warning; counted                                                   |
+| per-stream decoder      | duration helper "discontinuity" (§9.1)                                                      | source fault         | helper flushed; end of track with the error                                            |
+| per-stream decoder      | a video frame, or the first audio frame, with no timestamp; a timestamp that overflows (§9) | item fault           | item dropped with a warning; counted                                                   |
+| metadata (§10.3, §10.4) | unparsable timed ID3 payload or `duration` tag                                              | item fault           | entry dropped with a warning; not counted                                              |
+| `seek` (§12)            | container seek failure; seek after a discontinuity                                          | item fault           | warning, returns 0; not counted                                                        |
 
 Faults in the data are contained to the smallest unit that holds them: an
 item is dropped with a warning when decoding can continue without it; the

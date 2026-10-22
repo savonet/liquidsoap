@@ -181,18 +181,20 @@ are counted and logged at info or warning level (§11).
 The wording below is an example; the levels and the facts each message
 carries are binding.
 
-| Level   | Facts                                                                        | When                                                                                                          |
-| ------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| info    | track, source id, number of packets dropped before its keyframe              | a tenure becomes ready after dropping packets (§12.2)                                                         |
-| info    | source id, number of held packets dropped before the group start             | a group starts and trims held packets (§12.3)                                                                 |
-| info    | track, source id, number of packets dropped as join overlap                  | [timestamps.md §6.3](timestamps.md#63-monotonicity-check)                                                     |
-| warning | track, the two fixes                                                         | global headers wanted, no extradata (§2)                                                                      |
-| warning | source id, the tracks still waiting                                          | a group starts at the wait limit (§12.3)                                                                      |
-| warning | source id, the tracks                                                        | a group restarts after `max_consecutive_faults` drops (§12.3)                                                 |
-| warning | track, source id, number of held packets dropped                             | a group that never starts is discarded (§12.3)                                                                |
-| warning | track, both parameter sets                                                   | incompatible parameters at a switch, container restarted (§12.7)                                              |
-| error   | track, both parameter sets                                                   | incompatible parameters at a switch, output stopped (§12.7)                                                   |
-| warning | track, source id, the fault and its values, the count since the last warning | an item fault (§10), at most once per `fault_log_interval` ([faults.md §4](faults.md#4-item-faults-escalate)) |
+| Level   | Facts                                                                        | When                                                                                                                       |
+| ------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| info    | track, source id, number of packets dropped before its keyframe              | a tenure becomes ready after dropping packets (§12.2)                                                                      |
+| info    | source id, number of held packets dropped before the group start             | a group starts and trims held packets (§12.3)                                                                              |
+| info    | track, source id, number of packets dropped as join overlap                  | [timestamps.md §6.3](timestamps.md#63-monotonicity-check)                                                                  |
+| warning | track, the two fixes                                                         | global headers wanted, no extradata (§2)                                                                                   |
+| warning | source id, the tracks still waiting                                          | a group starts at the wait limit (§12.3)                                                                                   |
+| warning | source id, the tracks                                                        | a group restarts after `max_consecutive_faults` drops (§12.3)                                                              |
+| warning | track, source id, number of held packets dropped                             | a group that never starts is discarded (§12.3)                                                                             |
+| warning | track, both parameter sets                                                   | incompatible parameters at a switch, container restarted (§12.7)                                                           |
+| warning | track, the property, both values                                             | a descriptive property differs at a switch (§12.7)                                                                         |
+| warning | track, source id, the jump                                                   | a forward DTS jump within one source above `max_keyframe_wait` ([timestamps.md §6.3](timestamps.md#63-monotonicity-check)) |
+| error   | track, both parameter sets                                                   | incompatible parameters at a switch, output stopped (§12.7)                                                                |
+| warning | track, source id, the fault and its values, the count since the last warning | an item fault (§10), at most once per `fault_log_interval` ([faults.md §4](faults.md#4-item-faults-escalate))              |
 
 ## 12. Source switching and per-source state
 
@@ -299,9 +301,10 @@ when every member is ready. It also starts:
 - at output stop or container restart (§8), as at the wait limit.
 
 `max_keyframe_wait` protects memory (packets held by ready members) and
-bounds the delay a ready stream suffers for a sibling with no keyframe.
-Recommended value: 10 s, above the keyframe interval of common live and
-file sources.
+bounds the delay a ready stream suffers for a sibling with no keyframe. It
+is the setting `settings.ffmpeg.content.copy.max_keyframe_wait` (float,
+seconds, default 20.), above the keyframe interval of common live and file
+sources.
 
 **Trim.** When a group starts, `T` is the latest PTS among the key packets
 that made members ready (packets with no PTS use their DTS; converted to a
@@ -440,63 +443,91 @@ format that declares them (MPEG-TS-style, chained Ogg;
 filter graph generation and a new inline record each start a new source id,
 so each is a switch for
 every copy track it feeds: §12.2–§12.3 apply, and timestamps are rebased
-([timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase)). A seek
+([timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase)).
+
+A run whose source id carries the "continuing" mark
+([content.md §5](content.md#5-stream_idx-and-time_base); the decoder sets it
+on the new id of a discontinuity whose bitstream continues,
+[decoder.md §9.2](decoder.md#92-discontinuities-and-invalid-timestamps))
+is a switch without a keyframe wait: every tenure on the new id is ready
+when it opens, because its packets still decode against what the output
+already received. The group starts at the end of the frame and is rebased
+as usual. A seek
 discards the decoder's held data upstream and is not drained
 ([draining.md §5](draining.md#5-discarded-on-purpose)).
 
 ### 12.7 Parameters across sources
 
-Incompatible sources are rejected first by the content-format merge
-([content.md §3.1](content.md#31-ffmpegcopy)), which owns what the copy
-parameters contain and what "compatible" means. This section is the runtime
-backstop for a source that reaches the encoder anyway.
+Copy parameters split into three sets, owned by
+[content.md §3.1](content.md#31-ffmpegcopy):
+
+- **type-merge properties** (media, codec id, bitstream form, dimensions,
+  sample rate, channel layout, pixel and sample format when both are set):
+  no container survives a change; the content-format merge rejects a
+  mismatch when the source opens
+  ([§3.1.1](content.md#311-where-copy-parameters-are-merged));
+- **header properties** (extradata, profile, level): judged here, per
+  container;
+- **descriptive properties** (colour range, primaries, transfer, colour
+  space, chroma location, field order, header side data such as the display
+  matrix, HDR mastering and content light): never judged.
 
 At every switch, before any packet of the new tenure is accepted, the track
 compares the source parameters of the new run with the parameters of its
-stream header, by the `compatible` predicate of
-[content.md §3.1](content.md#31-ffmpegcopy) (where the type level merges
-them: [§3.1.1](content.md#311-where-copy-parameters-are-merged)). On
-incompatible parameters:
+stream header. Which containers store header properties in their header and
+which carry them in band is
+[encoder.md §13](encoder.md#13-container-restart)'s table.
 
-the track accepts no packet of the new tenure and reports the source to the
-instance ([encoder.md §13.3](encoder.md#133-incompatible-copy-source)):
+| Difference                  | Container                                                              | Outcome                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| a type-merge property       | any                                                                    | incompatible (below); reachable only through a path that bypasses the merge                        |
+| a header property           | carries it in band (MPEG-TS, HLS-TS, ADTS, Annex-B elementary streams) | accepted: packets are written, the new parameters travel with them                                 |
+| a header property           | stores it in its header (mp4/mov, Matroska/WebM, FLV, Ogg)             | incompatible (below)                                                                               |
+| a descriptive property only | any                                                                    | accepted; a warning names the property and both values; the stream keeps the first header's values |
+
+On an incompatible source the track accepts no packet of the new tenure and
+reports the source to the instance
+([encoder.md §13.3](encoder.md#133-incompatible-copy-source)):
 
 - when the container defines a clean restart (Ogg chaining, a new HLS
-  segment with its own initialisation), the instance restarts before the
-  first packet of the new source
-  ([encoder.md §13.2](encoder.md#132-what-a-restart-does)); the new stream
-  takes the new run's parameters;
+  segment with its own initialisation, an `output.url` reconnect), the
+  instance restarts before the first packet of the new source
+  ([encoder.md §13.2](encoder.md#132-what-a-restart-does),
+  [io.md §11.3](io.md#113-errors)); the new stream takes the new run's
+  parameters;
 - otherwise the instance fails with an error that names the track and prints
-  both parameter sets, and the output stops or restarts under the output's
-  policy (`output.url` reconnects, which is a clean restart,
-  [io.md §11.3](io.md#113-errors); MPEG-TS to a file has none and stops).
+  both parameter sets, and the output stops (MP4 to a file, for example).
   This is an output fault ([faults.md §2](faults.md#2-classes)), the one
-  data case that can stop an output (user decision).
+  data case that can stop an output (user decision, D2).
 
 A clean restart logs both parameter sets at warning level; a stop logs them
 at error level (§11).
 
+Consequence: a live relay whose remote encoder restarts with new extradata
+keeps working. An output whose container carries the header in band accepts
+the change; a header-storing container restarts or stops per the table.
+
 When `settings.ffmpeg.content.copy.relaxed_compatibility_check` is on, the
-check uses the relaxed form of the same predicate: same media and same codec
-id. Every other difference reaches the muxer, which judges the packets: a
-packet it rejects is an item fault, and a run of them restarts the group
-(§12.3). The
-setting is an advanced escape hatch ([content.md §13](content.md#13-settings)).
+type merge and this check both reduce to media and codec id. Every other
+difference reaches the muxer, which judges the packets: a packet it rejects
+is an item fault, and a run of them restarts the group (§12.3). The setting
+is an advanced escape hatch ([content.md §13](content.md#13-settings)).
 
 Conformance:
 
-The type merge rejects most incompatible sources when they are opened
-([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)). The
-tests below reach the encoder through a path that bypasses the merge: the
-output of a bitstream filter or of `track.ffmpeg.side_data`, which has its
-own format (content.md §3.1.1, last row).
-
-- Copy H.264 from an MP4 file, then from an MPEG-TS file, each through a
-  bitstream filter that passes it unchanged, to an MPEG-TS file: the output
-  stops at the switch with an error printing both parameter sets. The muxer
-  never receives packets in the wrong form. The same to an HLS output: a
+- Copy H.264 from two MPEG-TS files whose encoders used different
+  extradata, to an MPEG-TS file: every packet of both is written; the output
+  keeps streaming. The same to an MP4 file: the output stops at the switch
+  with an error printing both parameter sets. The same to an HLS output: a
   clean restart, logged at warning.
-- The same with an AAC source followed by an MP3 source: a codec change.
-- With the relaxed setting on, a codec change is still incompatible
-  (restart or stop, as above). For the same codec id, packets the muxer
-  rejects are dropped as item faults and the output keeps streaming.
+- A live relay whose remote encoder restarts with new extradata, copied to
+  `output.url` with FLV: the output reconnects with the new header.
+- Two files that differ only in colour primaries: both play; one warning
+  names both values.
+- A type-merge mismatch (AAC followed by MP3) reaching the encoder through a
+  path that bypasses the merge (the output of an operator with its own
+  format, content.md §3.1.1): incompatible, restart or stop as above. The
+  muxer never receives packets in the wrong form.
+- With the relaxed setting on, a codec change is still incompatible. For the
+  same codec id, packets the muxer rejects are dropped as item faults and
+  the output keeps streaming.

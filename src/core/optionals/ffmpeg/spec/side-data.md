@@ -22,8 +22,9 @@ the content model of [content.md](content.md), and on the settings of
   ([content.md §4.2](content.md#42-run-layer)). The stream-wide side data of
   a run is the coded side data of those parameters
   ([avcodec.md §4.11](../../../../modules/synced/ffmpeg/spec/avcodec.md#411-side-data)).
-  Header side data kinds take part in copy compatibility
-  ([content.md §3.1](content.md#31-ffmpegcopy)).
+  Header side data kinds are descriptive properties of copy compatibility
+  ([content.md §3.1](content.md#31-ffmpegcopy)): a difference between
+  sources is a warning, never a rejection.
 - Raw content holds frames. A frame's stream-wide side data is the subset of
   its entries whose kind's descriptor carries the `Global` property
   ([avutil.md §4.20](../../../../modules/synced/ffmpeg/spec/avutil.md#420-frame-side-data)),
@@ -234,9 +235,12 @@ a configuration error at operator creation
 ([content.md §5](content.md#5-stream_idx-and-time_base)).
 
 The output format is separate from the input format (`'b`, not `'a`). The
-edit changes header side data, which takes part in copy compatibility
-([content.md §3.1](content.md#31-ffmpegcopy)): an input and an edited output
-that shared one format would fail to merge.
+operator accepts any parameters on its input. Only its output is merged,
+into its own output format, with the split of
+[content.md §3.1](content.md#31-ffmpegcopy): an edit changes header side
+data, a descriptive property, which never fails a merge. A merge of the
+output fails only when a new input source differs from the established
+output in a type property (codec, bitstream form, geometry).
 
 ### 5.1 Per frame
 
@@ -252,18 +256,17 @@ For each frame produced by the input:
       (input parameters, `r`, result).
    3. A newly computed result is merged into the output format
       ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)).
-      When the merge fails and the input parameters are those of the last
-      accepted result (only `r` changed), the operator keeps the last
-      accepted result for this run and logs a warning once per rejected
-      value: a written stream header cannot change. When the input
-      parameters are new (a new source), the operator logs both parameter
-      sets at error level and ends that source's current track; a playlist
-      or fallback moves on and the output keeps streaming. With the relaxed
-      setting on, the merge succeeds and the muxer judges.
+      A changed rotation or a removed kind is a descriptive difference: it
+      never fails the merge. A downstream copy encoder logs it as a warning
+      at the next source switch and keeps its first header
+      ([content.md §3.1](content.md#31-ffmpegcopy)). When the merge fails
+      (a new input source that differs in a type property), the operator
+      logs both parameter sets at error level and ends that source's
+      current track; a playlist or fallback moves on and the output keeps
+      streaming. With the relaxed setting on, only codec id and media are
+      compared.
 
-      Classes ([faults.md §2](faults.md#2-classes)): the rejected rotation
-      is an item fault whose item is the edit; the data still flows, so it
-      does not escalate. The rejected source is a source fault
+      Classes ([faults.md §2](faults.md#2-classes)): the rejected source is a source fault
       ([faults.md §3](faults.md#3-source-faults-reach-the-script)): end of
       track; while it persists, the operator is not ready when its input is
       fallible, and raises a hard error naming the source and both
@@ -316,9 +319,13 @@ Conformance:
 
 - A getter whose value changes between two frames is applied with the value
   read for each frame; no frame mixes two values.
-- On a copy track already streaming to an output, a getter that changes its
-  rotation keeps the first accepted rotation, logs one warning, and the
-  output keeps streaming.
+- On a copy track already streaming to an output whose container stores the
+  matrix in its header, a getter that changes its rotation is applied to the
+  output parameters; the encoder keeps the first header, logs a warning
+  naming both values at the next source switch, and the output keeps
+  streaming.
+- An input source switch between files of different rotations, HDR metadata
+  or colour: accepted, with a warning; no rejection.
 - `remove=["Display Matrix"]` on a stream whose packets carry a display
   matrix: neither the output header nor any output packet carries one.
 - After a switch to a source without side data, `side_data()` returns `[]`.

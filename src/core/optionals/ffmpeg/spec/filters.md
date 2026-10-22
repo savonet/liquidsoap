@@ -324,9 +324,12 @@ Each link is made in the probe config at the call. At the call:
 
 `process_command` sends the command to the instance in the running
 generation, with FFmpeg's fast flag when `fast` is `true` (default `false`),
-and returns FFmpeg's answer. It is serialised with every push and pull of
-that generation, so it waits for the graph rather than failing on the
-bindings' in-use guard. When no generation runs it returns
+and returns FFmpeg's answer. Each bindings call on the generation (a push,
+a pull, a command) is serialised with the others, so a command waits for
+the call in progress rather than failing on the bindings' in-use guard. The
+serialisation covers one call at a time and is never held across an input
+tick: a command issued from inside a fill (a frame callback, §17.2) runs
+between two pushes. When no generation runs it returns
 `graph not started!` and sends nothing. When FFmpeg refuses the command,
 `process_command` logs a warning and returns FFmpeg's error message as its
 answer; it never raises. Reason: commands are typically sent from a
@@ -577,12 +580,15 @@ drained, the input takes the frame's format, the next generation is built in
 the same fill (the other inputs keep their formats), and the frame is pushed
 into it. No track mark is added: a format change is a mid-stream change.
 
-**Every sink at end.** With at least one graph input, the next generation is
-built on the next fill that needs data, from the inputs' following frames.
-A graph with no input is exhausted: its graph source is not ready until it
-goes to sleep and wakes up again. Reason: a graph with no input is a
-generator, and rebuilding it would repeat its generators endlessly, which
-the script did not ask for.
+**Every sink at end.** The graph source ends its track and is
+**exhausted**: it is not ready and builds nothing. With at least one graph
+input, the exhausted state clears when a readiness test (§12.1) finds some
+graph input's source not ready, that is when the inputs run dry; the next
+generation is then built when they are ready again. With or without inputs,
+it also clears when the graph source goes to sleep and wakes up again.
+Reason: the filters ended the stream on purpose (`atrim`, a generator with a
+duration); rebuilding at once would restart them on the same input, or
+repeat a generator endlessly, which the script did not ask for.
 
 A generation boundary adds no track mark; track marks travel through the
 graph as data (§14).
@@ -591,8 +597,15 @@ graph as data (§14).
 
 After a generation ends, its config is released: graph inputs forget their
 buffer source and their end-of-stream flag, sinks forget their buffer sink.
-Each graph input keeps its format (the format of its last pushed frame) and
-its timeline. Each sink keeps its timeline.
+Each graph input and each sink keeps its timeline. What happens to the
+inputs' formats depends on why the generation ended:
+
+- **format change**: every other input keeps its format (the format of its
+  last pushed frame), so the next generation is built at once (§11.4);
+- **input runs dry, every sink at end, sleep**: every input forgets its
+  format. The next generation is built when every input has delivered a
+  frame again, so each buffer source is configured from the data that
+  follows, not from the data before the pause.
 
 ### 11.6 Errors while streaming
 
@@ -686,16 +699,17 @@ output clock.
 1. **Read to need.** When a generation runs, read each sink while its field
    holds less than one frame and FFmpeg answers with frames (§13.2).
 2. When every field holds at least one frame, stop.
-3. When a generation runs and every sink is at end: end the generation
-   (§11.4) and go to 1.
+3. When a generation runs and every sink is at end: end the generation and
+   become exhausted (§11.4). Stop.
 4. When there is no generation and no graph input: build (§11.3) and go to 1.
 5. When some graph input's source is not ready: when a generation runs, end
    it (input runs dry, §11.4). Stop.
 6. Tick the input clock once. Each graph input that is ready takes a frame
    of its source and pushes or holds it (§13.1); a build may happen there
    (§11.3), or a format change (§11.4).
-7. **Read out.** When a generation runs, read every sink until FFmpeg
-   answers "none ready" or end of stream, within the limits of §12.3. Go to 2.
+7. **Read out.** When a generation runs, read every sink reached by a graph
+   input until FFmpeg answers "none ready" or end of stream, within the
+   limits of §12.3. Other sinks are read to need. Go to 2.
 
 Then the graph source takes up to one frame's worth from its buffer. A
 shorter result is a partial frame, as for any source.
@@ -706,6 +720,14 @@ Reading out after a tick moves what the tick released from FFmpeg's sink
 queues into the graph source's buffer, where its length is measured, so
 outputs consumed at diverging rates are detected (§12.3) instead of growing
 inside FFmpeg.
+
+A sink is **reached by a graph input** when the description has a path of
+links from some graph input to it. A parsed description (§15) counts as
+linking each of its given inputs to each of its returned outputs, since its
+inner wiring is not known. The set is computed once, from the description,
+when `ffmpeg.filter.create` returns. A sink fed only by generators is read
+to need: what a tick released is finite only for sinks reached by an
+input.
 
 ### 12.3 Resource limits
 

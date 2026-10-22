@@ -25,18 +25,19 @@ configurations) and on Liquidsoap's frame settings (`settings.frame.*`).
 
 Every key and default below is part of the compatibility surface.
 
-| Key                                                        | Type     | Default     | Owner                                                    |
-| ---------------------------------------------------------- | -------- | ----------- | -------------------------------------------------------- |
-| `settings.ffmpeg.log.verbosity`                            | `string` | `"warning"` | §2                                                       |
-| `settings.ffmpeg.log.level`                                | `int`    | `3`         | §2                                                       |
-| `settings.ffmpeg.log.capture`                              | `bool`   | `true`      | §2                                                       |
-| `settings.ffmpeg.autorotate`                               | `bool`   | `true`      | [side-data.md §3](side-data.md#3-autorotate-on-decoding) |
-| `settings.ffmpeg.format_change.color`                      | `bool`   | `true`      | §9                                                       |
-| `settings.ffmpeg.format_change.pixel_aspect`               | `bool`   | `true`      | §9                                                       |
-| `settings.ffmpeg.scaling_algorithm`                        | `string` | `"bicubic"` | §10                                                      |
-| `settings.ffmpeg.scaling_threads`                          | `int`    | `1`         | §10                                                      |
-| `settings.ffmpeg.filter_max_buffer`                        | `float`  | `10.`       | [filters.md §2](filters.md#2-settings)                   |
-| `settings.ffmpeg.content.copy.relaxed_compatibility_check` | `bool`   | see owner   | [content.md §13](content.md#13-settings)                 |
+| Key                                                        | Type     | Default     | Owner                                                                  |
+| ---------------------------------------------------------- | -------- | ----------- | ---------------------------------------------------------------------- |
+| `settings.ffmpeg.log.verbosity`                            | `string` | `"warning"` | §2                                                                     |
+| `settings.ffmpeg.log.level`                                | `int`    | `3`         | §2                                                                     |
+| `settings.ffmpeg.log.capture`                              | `bool`   | `true`      | §2                                                                     |
+| `settings.ffmpeg.autorotate`                               | `bool`   | `true`      | [side-data.md §3](side-data.md#3-autorotate-on-decoding)               |
+| `settings.ffmpeg.format_change.color`                      | `bool`   | `true`      | §9                                                                     |
+| `settings.ffmpeg.format_change.pixel_aspect`               | `bool`   | `true`      | §9                                                                     |
+| `settings.ffmpeg.scaling_algorithm`                        | `string` | `"bicubic"` | §10                                                                    |
+| `settings.ffmpeg.scaling_threads`                          | `int`    | `1`         | §10                                                                    |
+| `settings.ffmpeg.filter_max_buffer`                        | `float`  | `10.`       | [filters.md §2](filters.md#2-settings)                                 |
+| `settings.ffmpeg.content.copy.relaxed_compatibility_check` | `bool`   | see owner   | [content.md §13](content.md#13-settings)                               |
+| `settings.ffmpeg.content.copy.max_keyframe_wait`           | `float`  | `20.`       | [encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start) |
 
 `settings.ffmpeg`, `settings.ffmpeg.log`, `settings.ffmpeg.format_change`,
 `settings.ffmpeg.content` and `settings.ffmpeg.content.copy` are groups with

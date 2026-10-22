@@ -30,8 +30,9 @@ Three principles hold for every operator of this file:
    end of input.
 3. **No blocking call escapes a stop.** A connection is never opened on the
    streaming thread. Every blocking call on a connection is aborted when the
-   connection is stopped or the application shuts down, and is bounded by a
-   named timeout.
+   connection is stopped or the application shuts down. A read or write on
+   the streaming thread is also bounded by a named timeout, except a
+   listening input's read (§3).
 4. **Faults follow [faults.md](faults.md).** Every fault this file detects is
    placed in one of the classes of [faults.md §2](faults.md#2-classes):
    configuration errors fail the script before it streams; a lost or failed
@@ -77,25 +78,25 @@ input.http : (?id : string?, ?debug : bool, ?deduplicate_metadata : bool,
  ?trim_url : bool, ?user_agent : string, {string}) -> source('a)
 ```
 
-| Argument                | Type                | Default                      | Meaning                                                                                                             |
-| ----------------------- | ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `start`                 | `bool`              | `true`                       | Start connecting when the source wakes up (§2.1).                                                                   |
-| `int_args`              | `[string * int]`    | `[]`                         | FFmpeg options, each stored as an integer option.                                                                   |
-| `float_args`            | `[string * float]`  | `[]`                         | FFmpeg options, stored as float.                                                                                    |
-| `string_args`           | `[string * string]` | `[]`                         | FFmpeg options, stored as string.                                                                                   |
-| `metadata_filter`       | nullable function   | `null`                       | Replaces the default filter (§6).                                                                                   |
-| `deduplicate_metadata`  | `bool`              | `true`                       | Drop a metadata set equal to the previous kept one of the same connection (§6).                                     |
-| `new_track_on_metadata` | `bool`              | `true`                       | Kept metadata starts a new track at its position (§6).                                                              |
-| `max_buffer`            | `float` (seconds)   | `5.0`                        | Bound on decoded data held by the source (§5).                                                                      |
-| `self_sync`             | `{bool}`            | `false`                      | `input.ffmpeg`: pace the clock while connected; for live URLs only (§7).                                            |
-| `self_sync`             | `{bool?}`           | `null`                       | `input.http`: `null` means "true when ICY headers were received" (§8).                                              |
-| `debug`                 | `bool`              | `false`                      | Log every fault with its backtrace at error level (§2.3).                                                           |
-| `poll_delay`            | `float` (seconds)   | `2.0`                        | Delay before a retry after a transient failure; first back-off delay; interval of the URL check when failed (§2.3). |
-| `format`                | `string?`           | `null`                       | Input format short name, looked up when the operator is created.                                                    |
-| `trim_url`              | `bool`              | `true`                       | Strip leading/trailing whitespace from the URL on each read of it.                                                  |
-| unlabeled               | `{string}`          | required                     | URL getter, read once per connection attempt and by the URL check of §2.3.                                          |
-| `timeout`               | `float` (seconds)   | `10.0`                       | Longest a single blocking open or read may last (§3); `input.http` also passes it as `rw_timeout`.                  |
-| `user_agent`            | `string`            | Liquidsoap's HTTP user agent | `input.http` only.                                                                                                  |
+| Argument                | Type                | Default                      | Meaning                                                                                                                      |
+| ----------------------- | ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `start`                 | `bool`              | `true`                       | Start connecting when the source wakes up (§2.1).                                                                            |
+| `int_args`              | `[string * int]`    | `[]`                         | FFmpeg options, each stored as an integer option.                                                                            |
+| `float_args`            | `[string * float]`  | `[]`                         | FFmpeg options, stored as float.                                                                                             |
+| `string_args`           | `[string * string]` | `[]`                         | FFmpeg options, stored as string.                                                                                            |
+| `metadata_filter`       | nullable function   | `null`                       | Replaces the default filter (§6).                                                                                            |
+| `deduplicate_metadata`  | `bool`              | `true`                       | Drop a metadata set equal to the previous kept one of the same connection (§6).                                              |
+| `new_track_on_metadata` | `bool`              | `true`                       | Kept metadata starts a new track at its position (§6).                                                                       |
+| `max_buffer`            | `float` (seconds)   | `5.0`                        | Bound on decoded data held by the source (§5).                                                                               |
+| `self_sync`             | `{bool}`            | `false`                      | `input.ffmpeg`: pace the clock while connected; for live URLs only (§7).                                                     |
+| `self_sync`             | `{bool?}`           | `null`                       | `input.http`: `null` means "the generic sync source when ICY headers were received, else none" (§8).                         |
+| `debug`                 | `bool`              | `false`                      | Log every fault with its backtrace at error level (§2.3).                                                                    |
+| `poll_delay`            | `float` (seconds)   | `2.0`                        | Delay before a retry after a transient failure; interval of the URL check when failed (§2.3).                                |
+| `format`                | `string?`           | `null`                       | Input format short name, looked up when the operator is created.                                                             |
+| `trim_url`              | `bool`              | `true`                       | Strip leading/trailing whitespace from the URL on each read of it.                                                           |
+| unlabeled               | `{string}`          | required                     | URL getter, read once per connection attempt and by the URL check of §2.3.                                                   |
+| `timeout`               | `float` (seconds)   | `10.0`                       | Longest a single blocking read may last on an input that is not listening (§3); `input.http` also passes it as `rw_timeout`. |
+| `user_agent`            | `string`            | Liquidsoap's HTTP user agent | `input.http` only.                                                                                                           |
 
 Option tables: the three `*_args` lists are folded, in the order int, float,
 string, into one name→value table; a later entry with the same name replaces
@@ -242,7 +243,7 @@ output.url : (?id : string?, ?export_cover_metadata : bool, ?fallible : bool,
 | `url`                                                           | required                 | Output URL handed to the muxer.                                                                          |
 | `restart_delay`                                                 | `2.0`                    | Seconds before a retry after a transient failure; `null`: the output stops at its first failure (§11.3). |
 | `self_sync`                                                     | `false`                  | Declares a sync source (§11.4).                                                                          |
-| `timeout`                                                       | `10.0`                   | Longest a single blocking open or write may last (§3).                                                   |
+| `timeout`                                                       | `10.0`                   | Longest a single blocking write may last (§3); stream time held while connecting (§11.1).                |
 | `fallible`, `start`, `register_telnet`, `export_cover_metadata` | generic output arguments |                                                                                                          |
 
 The format must be `%ffmpeg`; any other is a script error raised on the
@@ -343,19 +344,24 @@ Attempt `a` runs on a scheduler task, never on the streaming thread:
    function "`a`'s abort flag or shutdown" (§3), `format` when given, the
    option copy, and the decoder's stream configuration callbacks
    ([decoder.md §5.1](decoder.md#51-opening)).
-4. If the option copy is not empty: permanent failure
+4. If the option copy is not empty: failure
    `Unrecognized options: <name>=<value>,...` (example:
    `Unrecognized options: bogus_opt=1`).
 5. Compute the container's content type against the source's content type
    ([decoder.md §5.2](decoder.md#52-container-description-and-content-type)).
    If the decoder registry cannot produce the source's type from it: a
-   probably-permanent failure (§2.3),
-   `url "<url>" cannot produce content of type <type>`. This covers a copy
-   relay whose remote restarts with new codec parameters: the content-format
-   merge rejects the new stream at reconnect
-   ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)), and the source stays
-   not ready, retrying on the back-off delay, until a compatible stream comes
-   back. A script that must follow such a change re-encodes, or turns on
+   transient failure (§2.3),
+   `url "<url>" cannot produce content of type <type>`. A copy relay whose
+   remote encoder restarts with new extradata, profile or level keeps
+   working: the content-format merge checks only the properties no container
+   survives ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)),
+   and the output's container judges the header details at the switch
+   (an in-band container accepts them; a header-storing one restarts or
+   stops, [encoder.md §13.3](encoder.md#133-incompatible-copy-source)). A remote that changes a merged
+   property (media, codec id, bitstream form, dimensions, sample rate,
+   channel layout) is rejected here and retried every `poll_delay` until a
+   compatible stream comes back; a script that must follow such a change
+   re-encodes, or turns on
    `settings.ffmpeg.content.copy.relaxed_compatibility_check`.
 6. Build a decoder record from the container with "decode first metadata"
    enabled, and a decoder buffer writing into the source's buffer
@@ -388,38 +394,25 @@ A failure in steps 2–8 is handled in this order:
 
 **Classes.**
 
-- **Permanent**: the failure follows from the operator's own options and
-  the URL value alone, so no change on the remote side can fix it. The only
-  such failure is the leftover options of step 4: which options the demuxer
-  and the protocol consume is fixed by the options and the URL. An option
-  name that no FFmpeg input component (generic container options, any
-  demuxer, any protocol) defines is a configuration error, reported at
-  evaluation before anything streams. An option some component defines but
-  the chosen URL leaves unused is known only at connect. It is a source
-  fault, not a hard error, because the URL is a getter: a later URL can use
-  the option. Transition `Polling a` → `Failed (u, e)`.
-- **Probably permanent**: the remote answered, and its answer would fail the
-  same way if it did not change, but a remote can change while a stream runs
-  for months. These are the content-type mismatch of step 5 (the remote
-  serves a stream without the media the source needs) and an HTTP client
-  error status (4xx: a mount not up yet, an expired token). Transition
-  `Polling a` → `Starting b`, `b` running after the **back-off delay**.
-- **Transient**: every other failure, the open's network errors
-  (unreachable, refused, timeout, a 5xx status) and an error raised by an
-  `on_connect` callback included. Transition `Polling a` → `Starting b`, `b`
+- **Permanent**: the leftover options of step 4 when `format` is set. The
+  forced format and the URL then fix which demuxer and protocol consume the
+  options, so no change on the remote side can fix it. Transition
+  `Polling a` → `Failed (u, e)`. An option name that no FFmpeg input
+  component (generic container options, any demuxer, any protocol) defines
+  is a configuration error, reported at evaluation before anything streams.
+  A leftover option is a source fault rather than a hard error because the
+  URL is a getter: a later URL can use the option.
+- **Transient**: every other failure. This includes leftover options when
+  `format` is not set (the remote's format decides which demuxer consumes
+  options, and it can change), the content-type mismatch of step 5, HTTP
+  client errors (4xx: a mount not up yet, an expired token), the open's
+  network errors (unreachable, refused, a 5xx status) and an error raised by
+  an `on_connect` callback. Transition `Polling a` → `Starting b`, `b`
   running `poll_delay` seconds later.
 
-**Back-off delay.** `poll_delay` at the first probably-permanent failure,
-doubled at each consecutive one, capped at the parameter
-`slow_retry_max_delay` (recommended 60 s). A successful connection and a URL
-change reset it. The cap protects the log, the error handlers and the remote
-from a reconnect flood while the source still recovers on its own within one
-cap of the remote being fixed.
-
 Rationale: a long-running stream recovers without a restart whenever the
-remote can fix the cause; only a failure that the script's own
-configuration fixes is given up on, and even that one is retried when the URL
-changes.
+remote can fix the cause. Only a failure that the script's own configuration
+fixes is given up on, and even that one is retried when the URL changes.
 
 Every failure of an attempt is a source fault
 ([faults.md §3](faults.md#3-source-faults-reach-the-script)): the source is
@@ -429,7 +422,10 @@ Reporting: log at error level (example: `Connection failed: <error>`), with
 the backtrace at debug level; build a runtime error of kind `"ffmpeg"` from
 the failure; run every `on_error` callback. Inside them `status()` is
 `"starting"` or `"failed"`. A permanent failure is reported once. A
-probably-permanent failure is reported at each attempt.
+transient failure runs `on_error` at each attempt; its log lines are
+rate-limited by `fault_log_interval`
+([faults.md §4](faults.md#4-item-faults-escalate)), so a remote down for
+hours does not flood the log.
 
 **Leaving `Failed`.** While `Failed (u, e)`, the source re-reads its URL
 getter every `poll_delay` seconds without connecting. When the getter returns
@@ -441,14 +437,15 @@ Nothing else changes: no fault raises out of the source.
 
 **Conformance.**
 
-- An option that some protocol defines but the URL's protocol does not
-  consume: `on_error` runs once, the state stays `failed`, and no further
-  connection is opened over ten `poll_delay`s.
+- With `format` set, an option that some protocol defines but the URL's
+  protocol does not consume: `on_error` runs once, the state stays
+  `failed`, and no further connection is opened over ten `poll_delay`s.
+  Without `format`, the same option is retried every `poll_delay`.
 - A permanent failure followed by `set_url` to a valid URL connects.
 - A server that answers 404 and then starts serving the mount is connected
-  within `slow_retry_max_delay` of the change, without a restart.
-- A content-type mismatch is retried with delays `poll_delay`,
-  `2 × poll_delay`, … up to `slow_retry_max_delay`.
+  within `poll_delay` of the change, without a restart.
+- A relay whose remote restarts with new extradata reconnects and keeps
+  streaming.
 - An unreachable URL is retried every `poll_delay` and runs `on_error` each
   time; each failed attempt leaves no container open.
 - `input.ffmpeg("invalid")` reports an error of kind `ffmpeg` whose cause is
@@ -515,14 +512,14 @@ runs `on_disconnect`, then `on_connect`, and plays again, without
 
 Every blocking call these operators make:
 
-| Call                                                     | Thread                           | Aborted by                                        | Bounded by                                             |
-| -------------------------------------------------------- | -------------------------------- | ------------------------------------------------- | ------------------------------------------------------ |
-| input open (§2.2 step 3)                                 | attempt task                     | interrupt: the attempt's abort flag or `shutdown` | `timeout`                                              |
-| input read inside `decode` (§4)                          | streaming thread                 | the same interrupt, for the connection's lifetime | `timeout`; `input.http` also passes it as `rw_timeout` |
-| decoder and container close                              | the thread ending the connection | the same interrupt                                | —                                                      |
-| harbor client read ([§10.3](#103-opening-the-container)) | client task                      | the client ending, `shutdown`                     | `timeout` per wait                                     |
-| `output.url` open ([§11.2](#112-start-encode-stop))      | connect task                     | interrupt: the attempt's abort flag or `shutdown` | `timeout`                                              |
-| `output.url` write inside `encode`                       | streaming thread                 | the same interrupt                                | `timeout`                                              |
+| Call                                                     | Thread                           | Aborted by                                        | Bounded by                                                              |
+| -------------------------------------------------------- | -------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------- |
+| input open (§2.2 step 3)                                 | attempt task                     | interrupt: the attempt's abort flag or `shutdown` | — (the protocol's own; a listener waits indefinitely)                   |
+| input read inside `decode` (§4)                          | streaming thread                 | the same interrupt, for the connection's lifetime | `timeout` unless listening; `input.http` also passes it as `rw_timeout` |
+| decoder and container close                              | the thread ending the connection | the same interrupt                                | —                                                                       |
+| harbor client read ([§10.3](#103-opening-the-container)) | client task                      | the client ending, `shutdown`                     | `timeout` per wait                                                      |
+| `output.url` open ([§11.2](#112-start-encode-stop))      | connect task                     | interrupt: the attempt's abort flag or `shutdown` | — (the protocol's own)                                                  |
+| `output.url` write inside `encode`                       | streaming thread                 | the same interrupt                                | `timeout`                                                               |
 
 The interrupt function is installed when the container is opened and covers
 every blocking call of that container ([avformat.md §7.1.4](../../../../modules/synced/ffmpeg/spec/avformat.md#714-interrupt--interrupt-)).
@@ -535,14 +532,22 @@ same flag aborts every later read or write of that connection.
 A read or write on the streaming thread blocks the clock for as long as it
 lasts. That is how a self-paced input or output paces its clock (§7, §11.4).
 Its bound against a stalled remote is the operator's `timeout`: the
-interrupt function also returns true once the blocking call in progress has
+interrupt function also returns true once the read or write in progress has
 lasted `timeout` seconds. The bound lives in the interrupt rather than in a
 protocol option because a device or a lavfi input consumes no protocol
 option. An input read past its bound is a source fault (§2.5); an
-`output.url` open or write past its bound is an output fault (§11.3). A stop
-or a shutdown ends the call at once. A connection open never runs on the streaming
-thread, because a connect to an unreachable host lasts the protocol's whole
-connect timeout.
+`output.url` write past its bound is an output fault (§11.3). A stop or a
+shutdown ends the call at once.
+
+An input is **listening** when its options ask the protocol to wait for a
+peer: `listen` set to a nonzero value (as `input.rtmp` does by default) or
+`mode=listener`. A listening input waits for a publisher for as long as
+none comes, and a publisher may pause; its reads carry no `timeout` bound.
+
+A connection open is not bounded by `timeout`: a listener's open waits for
+its publisher, and a connect to a remote lasts as long as the protocol's own
+connect timeout. The open never runs on the streaming thread, and a stop or
+a shutdown aborts it at once, so an unbounded open costs no tick.
 
 **Conformance.**
 
@@ -647,7 +652,22 @@ otherwise ([pacing.md §3](../../../clock/spec/pacing.md#3-finding-the-sync-sour
 
 - the state is `Connected`;
 - the source is ready;
-- the `self_sync` getter (for `input.http`, §8) returns true.
+- the `self_sync` getter returns true.
+
+`input.http` expects a source that is not real-time: an HTTP server MAY
+deliver data faster than its play rate (an on-demand file, a server's
+connect burst). With `self_sync` null and no ICY headers, the source reports
+no sync source and the clock paces the stream on its own time source. The
+input decodes on demand ([§4](#4-frame-generation)), so a server faster
+than the play rate is held back by the transport and the libav I/O buffer;
+the source's buffer stays within `max_buffer` ([§5](#5-buffering)).
+
+`input.http` with `self_sync` null and ICY headers received reports instead
+the generic sync source of a source declared self-sync (`timed`, default
+time source, [pacing.md §2](../../../clock/spec/pacing.md#2-sync-source)):
+it takes the clock's sync slot and the clock keeps pacing. ICY headers say
+the remote is a live stream, not that its delivery is steady enough to pace
+the clock; only the script turns on self-paced sync (§8).
 
 The getter is read each time the source prepares a streaming cycle, so a
 change takes effect at the next cycle. On connect, the source reports after
@@ -675,6 +695,12 @@ stream, a capture device); `video.testsrc.ffmpeg` (a generator) and
   followed sync source within two ticks.
 - `input.v4l2` and an `input.alsa` with `self_sync=true` in one clock raise
   the clock's sync error.
+- `input.http` on a server that delivers a file faster than real time, with
+  no ICY headers: the source reports no sync source, the clock keeps real
+  time, and the input's buffer stays within `max_buffer`.
+- `input.http` on an Icecast mount (ICY headers) with `self_sync` null: the
+  source reports the generic sync source; the connect burst is held back by
+  the transport and played at real time, not pushed through the clock faster.
 
 ## 8. `input.http` specifics
 
@@ -686,7 +712,9 @@ stream, a capture device); `video.testsrc.ffmpeg` (a generator) and
   logged as a warning (example: `Error while fetching icy headers: <error>`),
   it yields `[]` and the connection continues.
 - `is_icy` is "the list is non-empty", set at each connection.
-- `self_sync`: the user value when not null; else `is_icy`.
+- `self_sync`: the user value when not null. When null: the generic sync
+  source when `is_icy`, else none (§7). ICY detection never makes the input
+  self-paced.
 - `seek` returns `-1` when `is_icy`, else delegates.
 - `on_connect` callbacks receive the header list.
 
@@ -694,20 +722,21 @@ stream, a capture device); `video.testsrc.ffmpeg` (a generator) and
 
 Classes are those of [faults.md §2](faults.md#2-classes).
 
-| Failure                                                                                      | Class                | Logged           | Callbacks                                       | Next                                                       |
-| -------------------------------------------------------------------------------------------- | -------------------- | ---------------- | ----------------------------------------------- | ---------------------------------------------------------- |
-| Unknown `format` name                                                                        | configuration error  | —                | —                                               | script error at evaluation                                 |
-| Option no FFmpeg input component defines                                                     | configuration error  | —                | —                                               | script error at evaluation                                 |
-| Open fails (unreachable, refused, 5xx, `timeout`)                                            | source fault         | error            | `on_error`                                      | not ready; retry after `poll_delay`                        |
-| Option the URL's components leave unused                                                     | source fault         | error, once      | `on_error`, once                                | not ready; `Failed` until the URL changes or a restart     |
-| Content type mismatch, HTTP 4xx                                                              | source fault         | error            | `on_error`                                      | not ready; retry after the back-off delay                  |
-| Error raised by an `on_connect` callback                                                     | source fault         | error            | `on_disconnect`, `on_error`                     | not ready; retry after `poll_delay`                        |
-| Stop during an attempt                                                                       | none                 | —                | `on_disconnect` when `on_connect` ran           | `Stopped`                                                  |
-| End of input while connected                                                                 | none                 | info             | `on_disconnect`, then `on_connect` on reconnect | drain, end of track, reconnect                             |
-| Source fault returned by `decode` (decode error, escalated item faults, read past `timeout`) | source fault         | error            | `on_error`, `on_disconnect`                     | drained data delivered, end of track, not ready, reconnect |
-| Buffer overflow drop                                                                         | item fault           | warning, counted | —                                               | continue; `max_consecutive_faults` escalates               |
-| ICY header read failure                                                                      | item fault           | warning          | —                                               | continue with `[]`                                         |
-| Decoder close fails                                                                          | none (already ended) | error            | `on_disconnect` still runs                      | as the cause of the end                                    |
+| Failure                                                                                      | Class                | Logged              | Callbacks                                       | Next                                                       |
+| -------------------------------------------------------------------------------------------- | -------------------- | ------------------- | ----------------------------------------------- | ---------------------------------------------------------- |
+| Unknown `format` name                                                                        | configuration error  | —                   | —                                               | script error at evaluation                                 |
+| Option no FFmpeg input component defines                                                     | configuration error  | —                   | —                                               | script error at evaluation                                 |
+| Open fails (unreachable, refused, 4xx, 5xx)                                                  | source fault         | error, rate-limited | `on_error`                                      | not ready; retry after `poll_delay`                        |
+| Option the URL's components leave unused, `format` set                                       | source fault         | error, once         | `on_error`, once                                | not ready; `Failed` until the URL changes or a restart     |
+| Option the URL's components leave unused, no `format`                                        | source fault         | error, rate-limited | `on_error`                                      | not ready; retry after `poll_delay`                        |
+| Content type mismatch                                                                        | source fault         | error, rate-limited | `on_error`                                      | not ready; retry after `poll_delay`                        |
+| Error raised by an `on_connect` callback                                                     | source fault         | error               | `on_disconnect`, `on_error`                     | not ready; retry after `poll_delay`                        |
+| Stop during an attempt                                                                       | none                 | —                   | `on_disconnect` when `on_connect` ran           | `Stopped`                                                  |
+| End of input while connected                                                                 | none                 | info                | `on_disconnect`, then `on_connect` on reconnect | drain, end of track, reconnect                             |
+| Source fault returned by `decode` (decode error, escalated item faults, read past `timeout`) | source fault         | error               | `on_error`, `on_disconnect`                     | drained data delivered, end of track, not ready, reconnect |
+| Buffer overflow drop                                                                         | item fault           | warning, counted    | —                                               | continue; `max_consecutive_faults` escalates               |
+| ICY header read failure                                                                      | item fault           | warning             | —                                               | continue with `[]`                                         |
+| Decoder close fails                                                                          | none (already ended) | error               | `on_disconnect` still runs                      | as the cause of the end                                    |
 
 Example cause for a missing file: `No such file or directory`.
 
@@ -922,7 +951,7 @@ the client.
 | State                | Carries                                      | Frames  |
 | -------------------- | -------------------------------------------- | ------- |
 | `Stopped`            | nothing                                      | —       |
-| `Connecting a`       | attempt `a` and its abort flag               | dropped |
+| `Connecting a`       | attempt `a`, its abort flag, held frames     | held    |
 | `Connected (a, enc)` | the encoder instance `enc`, writing to `url` | encoded |
 | `Waiting t`          | the retry time `t`                           | dropped |
 
@@ -933,11 +962,14 @@ Transitions are compare-and-set as in §2.1, with the same ownership rule:
 the attempt owns the encoder it built until it moves the state into
 `Connected`; whoever moves the state out of `Connected` ends the encoder.
 
-Frames that arrive while the output is not connected are dropped. Rationale:
-a live output has no place to keep the stream while the URL is unreachable;
-holding it grows memory without bound and delivers stale data. When the
-output connects after dropping, it logs at warning level the stream time it
-dropped.
+Frames that arrive in `Connecting a` are held, up to `timeout` seconds of
+stream time, and encoded in order as soon as the output connects, so that
+the start of the stream reaches the server. Past the bound the oldest held
+frames are dropped with a warning. Frames that arrive in `Waiting` are
+dropped. Rationale: a live output has no place to keep the stream while the
+URL is unreachable for longer than an open takes; holding more grows memory
+without bound and delivers stale data. When the output connects after
+dropping, it logs at warning level the stream time it dropped.
 
 Times are read from a monotonic clock, so a wall-clock jump neither delays
 nor hastens a retry.
@@ -954,8 +986,10 @@ nor hastens a retry.
   nothing ([encoder.md §7](encoder.md#7-stop)).
 - **Encode a frame**: in `Connected`, pass the frame to `enc` on the
   streaming thread (a frame of length 0 is skipped); the encoder writes to the
-  URL itself. In `Waiting t` with now ≥ `t`: `Waiting t` → `Connecting a`,
-  then drop the frame. In any other state, drop the frame.
+  URL itself. In `Connecting a`, hold the frame (§11.1). In `Waiting t`
+  with now ≥ `t`: `Waiting t` → `Connecting a`, then hold the frame. In
+  `Waiting t` before `t`, drop the frame. On `Connecting a` →
+  `Connected (a, enc)`, the held frames are encoded first, in order.
 - **Metadata**: in `Connected`, pass it to `enc`'s metadata insertion; a
   failure there is handled as an encode failure (§11.3). In every state it
   becomes the current metadata.
@@ -978,28 +1012,28 @@ A failure of the attempt (§11.2 Start) or of an encode or metadata call in
    ([draining.md §5](draining.md#5-discarded-on-purpose)). When in
    `Connecting a`: the attempt releases what it built.
 2. Classify the failure ([faults.md §2](faults.md#2-classes)):
-   - **Configuration error**: the failure follows from the format value, the
-     fixed `url` and the host alone, so no later attempt can succeed: an
-     option no consumer recognised, a codec or muxer that does not exist, a
-     stream parameter the codec or the muxer rejects for the configured
-     format. Wherever the encoder can know it before streaming, it is raised
-     at evaluation or start-up ([encoder.md §4](encoder.md#4-option-handling)).
-     When it shows only at the open or at the first frame, it is a hard
-     error then: it is raised under the clock's source error rule
+   - **Configuration error**: only failures deterministic by construction,
+     which no later attempt can fix: a codec or muxer that the lookup does
+     not find, an option no consumer recognised, and a stream parameter the
+     codec or the muxer rejects for the configured format at the output's
+     first start. Wherever the encoder can know it before streaming, it is
+     raised at evaluation or start-up
+     ([encoder.md §4](encoder.md#4-option-handling)). When it shows only at
+     the first open or the first frame, it is a hard error then: it is raised
+     under the clock's source error rule
      ([clock.md §11](../../../clock/spec/clock.md#11-failure)) and the script
      fails, naming the output and the cause.
-   - **Probably permanent** (output fault): a stream parameter the codec or
-     the muxer rejects because of the source's data, and an HTTP 4xx answer
-     to the open. The first depends on the data the source delivers, which
-     changes; the second on the server.
-   - **Transient** (output fault): every other failure, the URL open's
-     network errors, every write and a call past `timeout` included.
-     An output fault restarts or stops the output under its policy and reports
-     through `on_error`; the clock and the other outputs go on.
-3. Probably permanent: → `Waiting t`, with `t`
-   after the back-off delay of §2.3, `restart_delay` taking the place of
-   `poll_delay`. Transient: → `Waiting (now + restart_delay)`. Log at
-   important level the delay (example: `Will try again in 2.00 seconds.`).
+   - **Output fault**: every other failure. This includes a stream parameter
+     rejected because of the source's data, an HTTP 4xx answer, the URL
+     open's network errors, every write and a write past `timeout`, and any
+     failure at a later open (a reconnect), hardware errors included: a
+     hardware session cap or a device reset is not known to be
+     unrecoverable. An output fault restarts or stops the output under its
+     policy and reports through `on_error`; the clock and the other outputs
+     go on.
+3. Output fault: → `Waiting (now + restart_delay)`. Log at important level
+   the delay (example: `Will try again in 2.00 seconds.`), rate-limited by
+   `fault_log_interval` ([faults.md §4](faults.md#4-item-faults-escalate)).
 4. With `restart_delay = null`, the script explicitly opts out of restarts
    (the default is `2.0`): instead of waiting, the output stops itself
    (`on_stop` runs) and stays stopped until its `start()` is called. The
