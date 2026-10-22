@@ -48,6 +48,11 @@ module Core = struct
   external create : fd -> fd -> bool -> t = "duppy_stub_create"
   external backend : t -> string = "duppy_stub_backend"
   external start : t -> int -> int -> unit = "duppy_stub_start"
+
+  external start_growing : t -> int -> int -> int -> unit
+    = "duppy_stub_start_growing"
+
+  external await_growth : t -> float -> int = "duppy_stub_await_growth"
   external stop : t -> unit = "duppy_stub_stop"
   external reserve : t -> int -> int = "duppy_stub_reserve" [@@noalloc]
   external slots : t -> int = "duppy_stub_slots" [@@noalloc]
@@ -236,8 +241,11 @@ type 'a scheduler = {
   stopped : bool Atomic.t;
   mutable threaded : bool;
   mutable selective : bool;
+  (* The running workers: a growing pool appends to it. *)
   mutable workers : 'a worker list;
   mutable members : member list;
+  (* Held while the pool grows, so that [stop] joins every member. *)
+  grow_m : Mutex.t;
 }
 
 let default_on_fatal exn bt =
@@ -276,6 +284,7 @@ let create ?(on_error = Printexc.raise_with_backtrace)
     selective = false;
     workers = [];
     members = [];
+    grow_m = Mutex.create ();
   }
 
 let started s = Atomic.get s.started
@@ -502,8 +511,10 @@ let run_task s fn =
     thread with work waiting never parks and is never counted idle in the window
     where a submission would pick it. *)
 let aux_loop s w =
-  let workers = List.length s.workers in
-  let kept () = (Core.slots s.core + workers - 1) / workers in
+  let kept () =
+    let workers = List.length s.workers in
+    (Core.slots s.core + workers - 1) / workers
+  in
   let rec loop () =
     while
       w.aux_pending = []
@@ -625,15 +636,20 @@ let reserve_blocking s =
   let released = Atomic.make false in
   fun () -> if Atomic.compare_and_set released false true then change (-1)
 
-let start ?pool ?(max_blocking = 64) ?log:logger s =
+let start ?pool ?(max_blocking = 64) ?(grow_after = 1.) ?log:logger s =
   if not (Atomic.compare_and_set s.started false true) then
     failwith "Duppy.start: scheduler already started";
   s.log <- logger;
-  let accepts =
+  let every n = List.init (max 1 n) (fun _ _ -> true) in
+  let accepts, initial =
     match pool with
-      | Some (`Threads accepts) | Some (`Selective_domains accepts) -> accepts
-      | Some (`Domains n) -> List.init (max 1 n) (fun _ _ -> true)
-      | None -> List.init (Domain.recommended_domain_count ()) (fun _ _ -> true)
+      | Some (`Threads accepts) | Some (`Selective_domains accepts) ->
+          (accepts, List.length accepts)
+      | Some (`Domains n) -> (every n, max 1 n)
+      | Some (`Growing (initial, n)) -> (every n, max 1 (min initial n))
+      | None ->
+          let n = Domain.recommended_domain_count () in
+          (every n, n)
   in
   s.threaded <- (match pool with Some (`Threads _) -> true | _ -> false);
   s.selective <-
@@ -661,8 +677,8 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
         })
       accepts
   in
-  s.workers <- workers;
-  Core.start s.core count max_blocking;
+  s.workers <- List.filteri (fun index _ -> index < initial) workers;
+  Core.start_growing s.core count initial max_blocking;
   (* What was submitted before the pool is ready before any worker looks. *)
   flush_pending s;
   let guard fn () =
@@ -688,14 +704,32 @@ let start ?pool ?(max_blocking = 64) ?log:logger s =
       w.domain <- (Domain.get_id d :> int);
       `Domain d)
   in
-  s.members <- List.map spawn workers;
+  s.members <- List.map spawn s.workers;
   Atomic.set s.running true;
   flush_pending s;
   log s (fun () ->
       if s.threaded then Printf.sprintf "Started %d dispatch threads." count
       else
-        Printf.sprintf "Started %d dispatch domains on %s, %d blocking tasks."
-          count (Core.backend s.core) (Core.slots s.core))
+        Printf.sprintf
+          "Started %d dispatch domains (up to %d) on %s, %d blocking tasks."
+          initial count (Core.backend s.core) (Core.slots s.core));
+  (* The core decides when to grow, from how long ready work found every worker
+     busy; spawning a domain needs the runtime, so a thread of ours does it. *)
+  let rec grow () =
+    let index = Core.await_growth s.core grow_after in
+    if index >= 0 then begin
+      Mutex.protect s.grow_m (fun () ->
+          if not (Atomic.get s.stopped) then begin
+            let w = List.nth workers index in
+            s.workers <- s.workers @ [w];
+            s.members <- spawn w :: s.members;
+            log s (fun () ->
+                Printf.sprintf "Grew to %d dispatch domains." (index + 1))
+          end);
+      grow ()
+    end
+  in
+  if initial < count then ignore (Thread.create (guard grow) ())
 
 let least_loaded load = function
   | [] -> None
@@ -758,8 +792,11 @@ let stop s =
       | `Domain d -> Domain.join d
       | `Thread t -> Thread.join t
     in
-    List.iter (fun m -> ignore (Thread.create (fun () -> join m) ())) s.members;
-    s.members <- [];
+    Mutex.protect s.grow_m (fun () ->
+        List.iter
+          (fun m -> ignore (Thread.create (fun () -> join m) ()))
+          s.members;
+        s.members <- []);
     List.iter
       (fun fd -> try Unix.close fd with _ -> ())
       [s.wake_read; s.wake_write]

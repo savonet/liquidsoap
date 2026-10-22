@@ -10,7 +10,7 @@ A **scheduler** owns a set of tasks and a pool of workers.
 
 A **task** is a set of events to wait for, a priority, and a handler to run once at least one of the events has occurred.
 
-A **worker** is an execution context that runs handlers. The **pool** is the set of workers, fixed between start and stop.
+A **worker** is an execution context that runs handlers. The **pool** is the set of workers. Between start and stop it only changes by growing (5.2).
 
 The **core** is the part of the scheduler that tracks waiting tasks, detects their events and hands ready tasks to workers. The **host** is the language runtime in which handlers run.
 
@@ -102,6 +102,14 @@ A caller MAY ask the pool for a thread of its own, for work that blocks for an u
 The thread MUST be placed on the domain of the worker that accepts the given priority and has the fewest such threads. The count includes a thread from the moment its place is chosen, so that two requests in a row go to two workers.
 
 Before the pool starts, and on a pool whose workers do not run in parallel, the thread is created where the request is made.
+
+### 5.2 Growing pool
+
+A pool MAY start with fewer workers than its **capacity** and grow towards it. Workers are only added, never removed, and every added worker accepts every priority.
+
+The pool MUST grow by one worker when, for a given delay, ready tasks eligible for any worker have been waiting while no worker became idle. Tasks pinned to a worker and Threaded tasks waiting for a slot of the budget (7) do not count: a new worker would not run them. A worker becoming idle restarts the delay. After growing, tasks still waiting start the delay again.
+
+A worker the pool has not grown into yet is never eligible for a task, and never counts as a worker a task is left to (7).
 
 ## 6. Dispatch
 

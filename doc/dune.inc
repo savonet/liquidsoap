@@ -1992,6 +1992,20 @@
    content/liq/samplerate3.liq)))
 
 (rule
+ (alias test-doc-scheduler_domains)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/scheduler_domains.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/scheduler_domains.liq)))
+
+(rule
  (alias test-doc-scheduling)
  (package liquidsoap)
  (deps
@@ -2628,6 +2642,7 @@
   (alias test-doc-request.dynamic)
   (alias test-doc-rtmp)
   (alias test-doc-samplerate3)
+  (alias test-doc-scheduler_domains)
   (alias test-doc-scheduling)
   (alias test-doc-scheduling_9am)
   (alias test-doc-scheduling_queue)

@@ -38,6 +38,12 @@ type priority =
     computation started here: {!Duppy.Io.handle}, {!Duppy.await}. *)
 val raw : priority Duppy.scheduler
 
+(** [settings.scheduler.domains]: the most domains the scheduler grows to. *)
+val domains : int Dtools.Conf.t
+
+(** The most domains the scheduler grows to: [domains], at least one. *)
+val max_domains : unit -> int
+
 (** Start the scheduler. Later calls do nothing. *)
 val start : unit -> unit
 

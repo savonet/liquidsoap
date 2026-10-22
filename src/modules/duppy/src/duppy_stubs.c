@@ -89,6 +89,23 @@ CAMLprim value duppy_stub_start(value _core, value _worker_count,
 
 /* The event thread never takes the runtime lock, but joining it is still a
    wait. */
+CAMLprim value duppy_stub_start_growing(value _core, value _worker_count,
+                                        value _initial, value _max_blocking) {
+  if (duppy_core_start_growing(Core_val(_core), Int_val(_worker_count),
+                               Int_val(_initial), Int_val(_max_blocking)) != 0)
+    caml_uerror("duppy_core_start_growing", Nothing);
+  return Val_unit;
+}
+
+CAMLprim value duppy_stub_await_growth(value _core, value _delay) {
+  duppy_core *core = Core_val(_core);
+  double delay = Double_val(_delay);
+  caml_enter_blocking_section();
+  int index = duppy_core_await_growth(core, delay);
+  caml_leave_blocking_section();
+  return Val_int(index);
+}
+
 CAMLprim value duppy_stub_stop(value _core) {
   duppy_core *core = Core_val(_core);
   caml_enter_blocking_section();

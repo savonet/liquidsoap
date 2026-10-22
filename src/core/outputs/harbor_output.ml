@@ -38,8 +38,9 @@ let conf_writers =
     ~comments:
       [
         "Listeners of an output are spread over this many writer tasks, each";
-        "running on its own core. Defaults to the number of cores; lower it on";
-        "a small machine that also has clocks to tick.";
+        "running on its own core. Defaults to the most domains the scheduler";
+        "may run, see `settings.scheduler.domains`; lower it on a small";
+        "machine that also has clocks to tick.";
       ]
 
 let () =
@@ -645,7 +646,11 @@ class virtual ['a] base p =
 
     method private start_write_tasks =
       if Array.length shards = 0 then begin
-        let count = max 1 conf_writers#get in
+        let count =
+          if conf_writers#is_set then conf_writers#get
+          else Scheduler.max_domains ()
+        in
+        let count = max 1 count in
         shards <-
           Array.init count (fun _ ->
               (* A socket pair rather than a pipe: on Windows only sockets
