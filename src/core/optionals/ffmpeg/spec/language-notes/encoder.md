@@ -72,8 +72,10 @@ into a list, not into a map whose `add` prepends: the order is binding
   ``[ `Built of container | `Started of container | `Failed of exn | `Stopped ]``;
   a restart replaces `Started c` by `Built c'`. The serialising mutex of the
   generic layer is the only lock needed.
-- The HLS split is ``[ `Idle | `Armed | `Candidate of int * held_bytes ]``,
-  not a flag plus a callback reset by `Fun.protect`.
+- The HLS split state is the held bytes since the last undecided candidate,
+  and the list of pieces (§8.4 of encoder.md) built for the current call.
+  The open segment's pending bytes and its split points live in the HLS
+  output.
 - Per video stream: ``[ `Waiting_first_frame | `Running of stream * converter ]``
   where `converter` carries its key (pixel format, time base, source id).
 - Per raw audio stream: the resampler with its input key, as for video.

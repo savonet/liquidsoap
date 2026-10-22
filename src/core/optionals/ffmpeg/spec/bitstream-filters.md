@@ -50,7 +50,10 @@ format variable differs between input and output.
 The filtered field of the result has a copy format of its own, separate from
 the input's: a bitstream filter changes codec parameters (for instance
 `h264_mp4toannexb` turns AVCC extradata into Annex B), so the output's
-parameters are the filter's, never the input's. They are set as §5 states.
+parameters are the filter's, never the input's. The operator accepts any
+parameters on its input: no merge applies there. Only the output format is
+merged, as §5 states, with the compatibility split of
+[content.md §3.1](content.md#31-ffmpegcopy).
 
 Examples (`liquidsoap -h`):
 
@@ -120,7 +123,9 @@ order:
 
 1. When there is no handler, or the run's source id differs from the
    handler's, drain the current handler (§6) and build a new one:
-   1. initialise the bitstream filter with the options (§3), the run's
+   1. initialise the bitstream filter with the options (§3), applied
+      afresh at every build (a handler never inherits option state from a
+      previous one), the run's
       source parameters and the run's time base as the filter's input time
       base; the bindings return the filter's output parameters and output
       time base (libav's `time_base_out`, often equal to the input's);
@@ -142,7 +147,11 @@ order:
    output side; downstream consumers handle it by the same rule.
 3. A packet whose DTS is below the last DTS pushed into the handler's
    helper is dropped with a warning naming both values, and is not sent to
-   the filter. Equal DTS are accepted.
+   the filter. Equal DTS are accepted. A packet without DTS is sent to the
+   filter and passed on without DTS; the helper groups it with its
+   neighbours ([common.md §6.2](common.md#62-push-t-item)). Filling a missing
+   DTS is the encoder's
+   ([timestamps.md §6.4](timestamps.md#64-missing-values)).
 4. Send the packet to the filter.
 5. Receive packets until the filter answers "again" or "end of stream".
    Each received packet is pushed into the duration helper; a received

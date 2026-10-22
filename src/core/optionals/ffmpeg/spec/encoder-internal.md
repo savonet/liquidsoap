@@ -15,11 +15,11 @@ draining rule of [draining.md](draining.md). Timestamps are in
 
 ## 1. Interface
 
-| Media    | `mk_stream`               | `flush`                                       | `request_keyframe`          | `video_size`                  |
-| -------- | ------------------------- | --------------------------------------------- | --------------------------- | ----------------------------- |
-| audio    | creates the stream (§2.1) | drains the resampler, then the re-framer (§8) | nothing                     | none                          |
-| video    | creates the stream (§2.2) | drains the frame-rate converter (§8)          | next image a key frame (§7) | the stream's width and height |
-| subtitle | creates the stream (§2.3) | nothing                                       | nothing                     | none                          |
+| Media    | `mk_stream`               | `flush`                                       | `request_keyframe`       | `video_size`                  |
+| -------- | ------------------------- | --------------------------------------------- | ------------------------ | ----------------------------- |
+| audio    | creates the stream (§2.1) | drains the resampler, then the re-framer (§8) | nothing                  | none                          |
+| video    | creates the stream (§2.2) | drains the frame-rate converter (§8)          | key frame at a time (§7) | the stream's width and height |
+| subtitle | creates the stream (§2.3) | nothing                                       | nothing                  | none                          |
 
 `codec_attr` and `bitrate` come from the stream (§9).
 
@@ -235,9 +235,11 @@ Every packet goes through the instance's hook with its key flag before it
 reaches the muxer ([encoder.md §8.2](encoder.md#82-keyframe-hooks)). Subtitle
 packets count as key packets.
 
-`request_keyframe` on a video stream marks the next image given to the codec
-as a key frame request; the codec makes that image a key frame. Audio and
-subtitle streams ignore it.
+`request_keyframe t` on a video stream marks the first image given to the
+codec at or after media time `t` as a key frame request; the codec makes that
+image a key frame. Under HLS the instance requests one at each grid boundary
+([encoder.md §8.4](encoder.md#84-split_encode-frame)). Audio and subtitle
+streams ignore it.
 
 ## 8. Flush and end
 
@@ -279,12 +281,15 @@ stream's codec parameters. All are none before `mk_stream`
 
 Options: every key of the track's `opts` must be consumed by the codec, the
 device context or FFmpeg's generic codec options
-([encoder.md §4](encoder.md#4-option-handling)). Errors of §2 are
-configuration errors ([faults.md §2](faults.md#2-classes)): raised at build,
-or, for what follows from the configuration and the host but shows only
-later (hardware device, a codec that cannot open with the configured format,
-alpha), whenever it shows, at the first frame or a rebuild. Each is a hard
-error: the script fails. Faults while encoding follow §6.
+([encoder.md §4](encoder.md#4-option-handling)). Errors of §2 are classed
+by [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults): a failure
+that follows deterministically from the configuration (codec lookup, a
+parameter rejected for the configured format), or any creation failure at
+the output's first start-up (a hardware device included), is a configuration
+error and fails the script. A creation failure at a later rebuild (a
+restart, a reopen, an HLS restart, a codec rebuild) is an output fault: the
+output restarts under its policy, since hardware session limits and device
+resets are not known to be unrecoverable. Faults while encoding follow §6.
 
 ## 11. Logs
 

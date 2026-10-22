@@ -328,17 +328,25 @@ Conformance:
 ### 6.3 Monotonicity check
 
 Every copied output stream has strictly increasing stored DTS, where the
-stored value is the written DTS rescaled to the stream time base (§1.3). Three
-cases can break it, each with its own rule:
+stored value is the written DTS rescaled to the stream time base (§1.3). The
+cases that can break it each have their own rule:
 
-| Case                                                                                                                                    | Class ([faults.md §2](faults.md#2-classes)) | Result                                                                                                  |
-| --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| within one tenure, after its first written packet, a packet whose `dts` is below the last written packet's `dts` (in the run time base) | item fault (invalid input)                  | dropped, logged at warning with the track, the source id and both values; counted; the output continues |
-| within one tenure, a packet whose `dts` equals the last written packet's `dts`                                                          | item fault                                  | dropped, logged as "equal DTS dropped"; counted; the output continues                                   |
-| a packet whose PTS is below its DTS                                                                                                     | item fault (invalid input)                  | the same                                                                                                |
-| a packet needing more than `max_rounding_shift`                                                                                         | item fault                                  | the same                                                                                                |
-| the first packets of a late member whose `dts'` falls below the track's end                                                             | none: join overlap                          | dropped, counted, logged at info                                                                        |
-| a stored DTS equal to the previous one although `dts` increased (rounding to a coarser stream time base)                                | none: container precision                   | stored as previous + 1 unit                                                                             |
+| Case                                                                                                                                | Class ([faults.md §2](faults.md#2-classes)) | Result                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| within one tenure, after its first written packet, a packet whose `dts` is below the last written packet's `dts`, compared as times | item fault (invalid input)                  | dropped, logged at warning with the track, the source id and both values; counted; the output continues |
+| within one tenure, a packet whose `dts` equals the last written packet's `dts`, compared as times                                   | item fault                                  | dropped, logged as "equal DTS dropped"; counted; the output continues                                   |
+| a packet whose PTS is below its DTS                                                                                                 | item fault (invalid input)                  | the same                                                                                                |
+| a packet needing more than `max_rounding_shift`                                                                                     | item fault                                  | the same                                                                                                |
+| the first packets of a late member whose `dts'` falls below the track's end                                                         | none: join overlap                          | dropped, counted, logged at info                                                                        |
+| a stored DTS equal to the previous one although `dts` increased (rounding to a coarser stream time base)                            | none: container precision                   | stored as previous + 1 unit                                                                             |
+
+DTS values within a tenure are compared as times: each value times its run's
+time base, exactly (or, equivalently for this rule, in main ticks before the
+offset). A change of time base within one tenure is legal. A DTS that jumps
+forward within one source by more than `max_keyframe_wait`
+([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)) is
+written as it is and logged at warning level with the jump; it is not
+corrected.
 
 Item faults are counted per tenure with the copy track's other item faults
 ([encoder-copy.md §10](encoder-copy.md#10-options-and-errors)); their
@@ -402,12 +410,19 @@ Conformance:
 
 ### 6.4 Missing values
 
-| Missing  | Filled with                                                             |
-| -------- | ----------------------------------------------------------------------- |
-| DTS      | the packet's PTS                                                        |
-| PTS      | the packet's DTS                                                        |
-| both     | its output position minus `O` (so that it is written at its position)   |
-| duration | written without duration; the extent of §6.1 step 4 is used for the end |
+| Missing  | Filled with                                                                    |
+| -------- | ------------------------------------------------------------------------------ |
+| DTS      | stream without reordering: the packet's PTS; stream with reordering: see below |
+| PTS      | the packet's DTS                                                               |
+| both     | its output position minus `O` (so that it is written at its position)          |
+| duration | written without duration; the extent of §6.1 step 4 is used for the end        |
+
+A stream **has reordering** when its codec parameters declare a reorder
+delay (B-frames). For such a stream a missing DTS is not filled from PTS,
+which would put DTS out of decode order. The packet is given to the muxer
+with DTS unset when the muxer derives DTS from the PTS sequence and that
+delay; it is then not checked by §6.3, the track's previous DTS and end are
+unchanged. Otherwise the packet is an item fault (§6.3).
 
 The filled value is checked by §6.3 like any other. Filling never clears the
 track's previous DTS, so the check after a packet without DTS is the same as
