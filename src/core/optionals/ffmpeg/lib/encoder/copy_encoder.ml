@@ -357,17 +357,48 @@ let member_offset (g : group) (tenure : tenure) =
         Some o
     | None, None -> None
 
+(* encoder-copy.md §12.3: held packets merged across members by output DTS,
+   each member's own order kept. *)
 let write_held t g members =
   ignore t;
-  List.iter
-    (fun (track, tenure, _) ->
-      match member_offset g tenure with
-        | None -> ()
-        | Some offset ->
-            let held = List.rev tenure.held in
-            tenure.held <- [];
-            List.iter (write track tenure ~offset) held)
-    members
+  let queues =
+    List.filter_map
+      (fun (track, tenure, _) ->
+        match member_offset g tenure with
+          | None -> None
+          | Some offset ->
+              let held = List.rev tenure.held in
+              tenure.held <- [];
+              Some (track, tenure, offset, ref held))
+      members
+  in
+  let key offset (h : held) =
+    offset
+    +
+      match (h.dts, h.pts) with
+      | Some d, _ | None, Some d -> d
+      | None, None -> h.position
+  in
+  let rec drain () =
+    let earliest =
+      List.fold_left
+        (fun best ((_, _, offset, held) as q) ->
+          match (!held, best) with
+            | [], _ -> best
+            | h :: _, None -> Some (key offset h, q)
+            | h :: _, Some (k, _) when key offset h < k -> Some (key offset h, q)
+            | _ -> best)
+        None queues
+    in
+    match earliest with
+      | None -> ()
+      | Some (_, (track, tenure, offset, held)) ->
+          let h = List.hd !held in
+          held := List.tl !held;
+          write track tenure ~offset h;
+          drain ()
+  in
+  drain ()
 
 let fix_offset t g members =
   let candidates =

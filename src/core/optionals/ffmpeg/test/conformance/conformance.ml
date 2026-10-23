@@ -938,16 +938,31 @@ let kc7 () =
   check "kc7: every sample of both sources reaches the output"
     (abs ((List.length audio * 1024) - (4 * 44100)) <= 2 * 1024)
 
-(* known-complexity.md §8: sparse streams and late streams. *)
+(* known-complexity.md §8: sparse streams, late streams and the muxer's first
+   write. *)
 let kc8 () =
   require
     [
+      "avoff.mp4";
       "latevideo.ts";
       "earlyaudio.ts";
       "sub_short.mkv";
       "sub_late.mkv";
       "sub_early.mkv";
     ];
+  Unix.mkdir "kc8_hls" 0o755;
+  let log =
+    run_ok "kc8_first_write"
+      {|audio.samplerate.set(48000)
+s = sequence([once(single("avoff.mp4"))])
+s = ffmpeg.encode.audio_video(%ffmpeg(%audio(codec="aac", ar=44100), %video(codec="libx264")), s)
+clock.assign_new(sync="none", [s])
+o = output.file.hls(fallible=true, segment_duration=2., "kc8_hls", [("v", %ffmpeg(format="mp4", movflags="+dash+skip_sidx+skip_trailer+frag_custom", frag_duration=2, %audio.copy, %video.copy))], s)
+o.on_stop(synchronous=true, shutdown)
+|}
+  in
+  check "kc8: the earliest packet reaches the muxer first"
+    (not (contains "avoid negative timestamp" log));
   let tracks = {|%audio(codec="aac"), %video(codec="libx264")|} in
   let log =
     run_ok "kc8_late" (live_script "latevideo.ts" tracks "kc8_late.nut")
