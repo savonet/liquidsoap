@@ -44,8 +44,40 @@
 
 open Liquidsoap_ffmpeg
 
+type scenario =
+  [ `Exact
+  | `Short
+  | `Nodur
+  | `Compressed
+  | `Continuing
+  | `Nodts_audio
+  | `Nodts_video
+  | `Equal_dts
+  | `Backward_dts
+  | `Restart_dts
+  | `Close_dts
+  | `Tb_change ]
+
+let scenarios =
+  [
+    ("exact", `Exact);
+    ("short", `Short);
+    ("nodur", `Nodur);
+    ("compressed", `Compressed);
+    ("continuing", `Continuing);
+    ("nodts_audio", `Nodts_audio);
+    ("nodts_video", `Nodts_video);
+    ("equal_dts", `Equal_dts);
+    ("backward_dts", `Backward_dts);
+    ("restart_dts", `Restart_dts);
+    ("close_dts", `Close_dts);
+    ("tb_change", `Tb_change);
+  ]
+
+let field_name = function `Audio -> "audio" | `Video -> "video"
+
 type stream = {
-  field : string;
+  media : [ `Audio | `Video ];
   params : Copy_params.t;
   time_base : Avutil.rational;
   packets : Ffmpeg_content.copy_packet list;
@@ -81,7 +113,7 @@ let read_file path =
     List.map
       (fun (i, s, p) ->
         {
-          field = "audio";
+          media = `Audio;
           params = Copy_params.make (`Audio p);
           time_base = Av.get_time_base s;
           packets =
@@ -91,7 +123,7 @@ let read_file path =
     @ List.map
         (fun (i, s, p) ->
           {
-            field = "video";
+            media = `Video;
             params =
               Copy_params.make ?frame_rate:(Av.get_avg_frame_rate s) (`Video p);
             time_base = Av.get_time_base s;
@@ -140,17 +172,15 @@ let pts : Ffmpeg_content.copy_packet -> Int64.t option = function
 
 (* Timestamp faults of timestamps.md §6.3–§6.4, on the packets of one field;
    positions stay those of the original timestamps. *)
-let retime ~scenario ~field packets i packet =
+let retime ~(scenario : scenario) ~media packets i packet =
   let nth j = List.nth packets j in
   let shift d p = Option.map (fun t -> Int64.sub t d) p in
-  match (scenario, field) with
-    | "nodts_audio", "audio" ->
-        with_timestamps ~dts:None ~pts:(pts packet) packet
-    | "nodts_video", "video" ->
-        with_timestamps ~dts:None ~pts:(pts packet) packet
-    | "equal_dts", "video" when i = 10 ->
+  match (scenario, media) with
+    | `Nodts_audio, `Audio -> with_timestamps ~dts:None ~pts:(pts packet) packet
+    | `Nodts_video, `Video -> with_timestamps ~dts:None ~pts:(pts packet) packet
+    | `Equal_dts, `Video when i = 10 ->
         with_timestamps ~dts:(dts (nth 9)) ~pts:(pts packet) packet
-    | "backward_dts", "video" when i >= 20 && i < 23 ->
+    | `Backward_dts, `Video when i >= 20 && i < 23 ->
         let step =
           Int64.sub (Option.get (dts (nth 20))) (Option.get (dts (nth 17)))
         in
@@ -158,13 +188,13 @@ let retime ~scenario ~field packets i packet =
           ~dts:(shift step (dts packet))
           ~pts:(shift step (pts packet))
           packet
-    | "restart_dts", "video" when i >= 30 ->
+    | `Restart_dts, `Video when i >= 30 ->
         let origin = Option.get (dts (nth 30)) in
         with_timestamps
           ~dts:(shift origin (dts packet))
           ~pts:(shift origin (pts packet))
           packet
-    | "close_dts", "video" when i = 10 ->
+    | `Close_dts, `Video when i = 10 ->
         with_timestamps
           ~dts:(Option.map (fun t -> Int64.add t 1L) (dts (nth 9)))
           ~pts:(pts packet) packet
@@ -193,7 +223,7 @@ let main_of tb ts =
 
 (* One play of the file: the content of each field, one run per field after
    an empty leading run where the stream starts after the earliest one. *)
-let source ?(continues = false) ~scenario streams =
+let source ?(continues = false) ~(scenario : scenario) streams =
   let source_id = Source_id.make () in
   let origin =
     List.fold_left min max_int
@@ -203,7 +233,7 @@ let source ?(continues = false) ~scenario streams =
   in
   List.map
     (fun s ->
-      let scale = if scenario = "compressed" then 2 else 1 in
+      let scale = if scenario = `Compressed then 2 else 1 in
       let positions =
         List.map
           (fun p -> (main_of s.time_base (Option.get (dts p)) - origin) / scale)
@@ -216,12 +246,12 @@ let source ?(continues = false) ~scenario streams =
       in
       let length =
         match scenario with
-          | "short" -> last - first + 1
+          | `Short -> last - first + 1
           | _ -> last - first + previous_step
       in
       let packets =
-        if scenario = "nodur" then List.map unset_duration s.packets
-        else List.mapi (retime ~scenario ~field:s.field s.packets) s.packets
+        if scenario = `Nodur then List.map unset_duration s.packets
+        else List.mapi (retime ~scenario ~media:s.media s.packets) s.packets
       in
       let items = List.map2 (fun pos p -> (pos - first, p)) positions packets in
       let data =
@@ -236,7 +266,7 @@ let source ?(continues = false) ~scenario streams =
           ~source_params:s.params ~length items
       in
       let body =
-        if scenario = "tb_change" && s.field = "video" then (
+        if scenario = `Tb_change && s.media = `Video then (
           let half = List.length items / 2 in
           let before = List.filteri (fun i _ -> i < half) items
           and after = List.filteri (fun i _ -> i >= half) items in
@@ -255,7 +285,7 @@ let source ?(continues = false) ~scenario streams =
         else [(first, run ~time_base:s.time_base ~length items)]
       in
       data.runs <- (if first > 0 then [(0, lead)] else []) @ body;
-      (s.field, s.params, data))
+      (field_name s.media, s.params, data))
     streams
 
 (* One file split mid-GOP at [at] seconds into two sources, the second's
@@ -283,8 +313,8 @@ let continuing ~at streams =
   in
   let halves = List.map split streams in
   [
-    source ~scenario:"exact" (List.map fst halves);
-    source ~continues:true ~scenario:"exact" (List.map snd halves);
+    source ~scenario:`Exact (List.map fst halves);
+    source ~continues:true ~scenario:`Exact (List.map snd halves);
   ]
 
 let () =
@@ -296,9 +326,19 @@ let () =
     Dtools.Init.exec Dtools.Log.start);
   match Array.to_list Sys.argv with
     | _ :: scenario :: format :: output :: files ->
+        let scenario =
+          match List.assoc_opt scenario scenarios with
+            | Some scenario -> scenario
+            | None ->
+                prerr_endline ("Unknown scenario: " ^ scenario);
+                exit 2
+        in
         let plays =
           match (scenario, files) with
-            | "continuing", [file] -> continuing ~at:3.4 (read_file file)
+            | `Continuing, [file] -> continuing ~at:3.4 (read_file file)
+            | `Continuing, _ ->
+                prerr_endline "The continuing scenario takes one file";
+                exit 2
             | _ -> List.map (fun f -> source ~scenario (read_file f)) files
         in
         let fields = List.map (fun (f, p, _) -> (f, p)) (List.hd plays) in
