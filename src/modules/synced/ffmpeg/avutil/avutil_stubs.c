@@ -1563,6 +1563,16 @@ CAMLprim value ocaml_avutil_video_frame_set_colors(value _frame,
   CAMLreturn(Val_unit);
 }
 
+CAMLprim value ocaml_avutil_video_frame_force_keyframe(value _frame) {
+  CAMLparam1(_frame);
+  AVFrame *frame = Frame_val(_frame);
+
+  frame->pict_type = AV_PICTURE_TYPE_I;
+  frame->flags |= AV_FRAME_FLAG_KEY;
+
+  CAMLreturn(Val_unit);
+}
+
 CAMLprim value ocaml_avutil_video_frame_chroma_location(value _frame) {
   return Val_ChromaLocation(Frame_val(_frame)->chroma_location);
 }

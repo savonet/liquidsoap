@@ -662,7 +662,8 @@ Against a threshold `T`:
   packets of such a stream from its latest key packet on, and replaces them
   at each new key packet;
 - any other item is released when its end is at or after `T` (inclusive: a
-  packet that ends exactly at `T` is kept).
+  packet that ends exactly at `T` is kept). An item with no duration, such
+  as a timed-ID3 packet, ends at its own timestamp.
 
 Once a stream has released an item, its threshold is cleared: later items of
 the stream are always released, since its timestamps only increase (§9.2).

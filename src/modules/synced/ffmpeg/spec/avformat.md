@@ -738,8 +738,12 @@ timestamps and duration; they are converted to the stream's time base. The
 header is written first when needed. The caller's packet is unchanged (A4).
 
 ```ocaml
+type encoded_packet = {
+  key : bool; pts : Int64.t option; dts : Int64.t option;
+  time_base : Avutil.rational;
+}
 val write_frame :
-  ?on_keyframe:(unit -> unit) -> (output, 'media, [ `Frame ]) stream ->
+  ?on_packet:(encoded_packet -> unit) -> (output, 'media, [ `Frame ]) stream ->
   'media frame -> unit
 ```
 
@@ -749,8 +753,10 @@ becomes available.
 - The header is written first when needed.
 - Packet timestamps are converted from the encoder's time base to the
   stream's.
-- `on_keyframe` is called before each key packet is given to the muxer
-  (§7.2). The muxer position at that moment is the start of that key packet.
+- `on_packet` is called before each packet is given to the muxer (§7.2),
+  with its key flag and its timestamps in the encoder's time base. The muxer
+  position at that moment is the start of that packet. A caller that cuts
+  the output at packet boundaries (HLS segments) reads both from it.
 - With a hardware frame context the frame is uploaded first, properties
   included ([avcodec.md](avcodec.md) §4.10).
 - A frame that produces no packet is not an error.
@@ -829,7 +835,7 @@ A container has one guard, shared by its streams (M9).
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
 
-The container is not in use while a function of §7.2 runs: `on_keyframe` may
+The container is not in use while a function of §7.2 runs: `on_packet` may
 call `flush` or `tell` on its own container.
 
 ### 6.3 Global state
@@ -891,11 +897,11 @@ hands over at a time.
 
 They follow the contract's §7.2.
 
-| Function              | Called from   | State when called, and after it raises                                                                                                                                                              |
-| --------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `configure_*_stream`  | `open_input`  | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                                |
-| `on_unhandled_packet` | `read_input`  | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                     |
-| `on_keyframe`         | `write_frame` | A key packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. Packets still in the encoder are written by the next write or by `close`. |
+| Function              | Called from   | State when called, and after it raises                                                                                                                                                          |
+| --------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `configure_*_stream`  | `open_input`  | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                            |
+| `on_unhandled_packet` | `read_input`  | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                 |
+| `on_packet`           | `write_frame` | A packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. Packets still in the encoder are written by the next write or by `close`. |
 
 ## 8. Data transfer
 

@@ -88,6 +88,7 @@ and track = {
   mutable closed : tenure list;
   mutable track_end : int option;
   mutable last_stored : int option;
+  on_packet : key:bool -> time:int option -> unit;
 }
 
 let create ~log ~whole_output ~stores_header container =
@@ -101,7 +102,7 @@ let create ~log ~whole_output ~stores_header container =
     skipped = 0;
   }
 
-let track t ~field ~keyframe =
+let track t ~field ~keyframe ~on_packet =
   let track =
     {
       shared = t;
@@ -115,6 +116,7 @@ let track t ~field ~keyframe =
       closed = [];
       track_end = None;
       last_stored = None;
+      on_packet;
     }
   in
   t.tracks <- t.tracks @ [track];
@@ -192,6 +194,9 @@ let write_packet track ~time_base ~dts ~pts ~duration packet =
     Avcodec.Packet.set_dts p (Some (Int64.of_int dts));
     Avcodec.Packet.set_pts p (Some (Int64.of_int pts));
     Avcodec.Packet.set_duration p (Option.map Int64.of_int duration);
+    track.on_packet
+      ~key:(List.mem `Keyframe (Avcodec.Packet.get_flags p))
+      ~time:(Time_base.rescale ~src:time_base ~dst:(main ()) pts);
     p
   in
   match (track.stream, packet) with

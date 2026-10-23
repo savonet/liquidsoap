@@ -807,6 +807,11 @@ module Video : sig
       only on a frame the caller owns. *)
   val frame_set_colors : video frame -> frame_format -> unit
 
+  (** [frame_force_keyframe frame] marks [frame] as an intra picture that the
+      encoder it is given to makes a key frame. A frame shared with others is
+      changed for all of them: mark only a frame the caller owns. *)
+  val frame_force_keyframe : video frame -> unit
+
   (** The format of the frame.
 
       @raise Error as {!frame_get_pixel_format}. *)

@@ -22,11 +22,10 @@ def hls.playlist.main(~extra_tags=[], ~prefix="", ~version=7, streams) =
               ""
             end
 
+          codecs = codecs == "" ? "" : ",CODECS=#{string.quote(codecs)}"
           [
             ...streams,
-            "#EXT-X-STREAM-INF:BANDWIDTH=#{bandwidth},CODECS=#{
-              string.quote(codecs)
-            }#{resolution}",
+            "#EXT-X-STREAM-INF:BANDWIDTH=#{bandwidth}#{codecs}#{resolution}",
             "#{prefix}#{s}.m3u8"
           ]
         end,

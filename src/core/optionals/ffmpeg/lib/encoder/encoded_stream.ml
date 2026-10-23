@@ -22,10 +22,20 @@
 
 module F = Liquidsoap_ffmpeg_formats.Encoder_format
 
+let report (on_packet : key:bool -> time:int option -> unit)
+    (packet : Av.encoded_packet) =
+  on_packet ~key:packet.key
+    ~time:
+      (Option.bind packet.pts
+         (Time_base.rescale_int64 ~src:packet.time_base ~dst:(Time_base.main ())))
+
+type on_packet = key:bool -> time:int option -> unit
+
 type t = {
   mk_stream : Frame.t -> unit;
   encode : position:int -> Frame.t -> unit;
   flush : unit -> unit;
+  request_keyframe : int -> unit;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;
@@ -199,7 +209,8 @@ let drop_front frame count =
     (Out.create layout rate layout ~out_sample_format:format.sample_format rate)
     (Array.map (fun c -> Array.sub c count (Array.length c - count)) planes)
 
-let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts output =
+let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
+    ~on_packet output =
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
   let state = ref None in
@@ -268,7 +279,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts output =
     state :=
       Some
         ( Audio_writer.create ~frame_size ~params ~start:0
-            (Av.write_frame stream),
+            (Av.write_frame ~on_packet:(report on_packet) stream),
           params );
     audio_stream := Some stream;
     match mode with
@@ -375,6 +386,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts output =
     mk_stream;
     encode;
     flush;
+    request_keyframe = (fun _ -> ());
     codec_attr = (fun () -> Option.bind (stream ()) Av.codec_attr);
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
     video_size = (fun () -> None);
@@ -389,10 +401,31 @@ module Video_writer = struct
     frame_rate : int;
     mutable next_slot : int;
     mutable stage : stage option;
+    on_packet : on_packet;
+    mutable keyframe_slots : int list;
+    mutable requested : int option;
   }
 
-  let create ~log ~frame_rate stream =
-    { log; stream; frame_rate; next_slot = 0; stage = None }
+  let create ~log ~frame_rate ~on_packet stream =
+    {
+      log;
+      stream;
+      frame_rate;
+      next_slot = 0;
+      stage = None;
+      on_packet;
+      keyframe_slots = [];
+      requested = None;
+    }
+
+  (* ffmpeg spec encoder.md §8.4: the first image at or after [time] is a key
+     frame. *)
+  let request_keyframe t time =
+    if t.requested <> Some time then (
+      t.requested <- Some time;
+      let main_rate = Lazy.Mutexed.force Frame.main_rate in
+      t.keyframe_slots <-
+        t.keyframe_slots @ [((time * t.frame_rate) + main_rate - 1) / main_rate])
 
   let write t fps frame =
     let slot =
@@ -410,7 +443,16 @@ module Video_writer = struct
     if slot >= t.next_slot then (
       Avutil.Frame.set_pts frame (Some (Int64.of_int slot));
       t.next_slot <- slot + 1;
-      Av.write_frame t.stream frame)
+      let due, later = List.partition (fun s -> s <= slot) t.keyframe_slots in
+      t.keyframe_slots <- later;
+      let frame =
+        if due = [] then frame
+        else (
+          let frame = Avutil.Frame.dup frame in
+          Avutil.Video.frame_force_keyframe frame;
+          frame)
+      in
+      Av.write_frame ~on_packet:(report t.on_packet) t.stream frame)
 
   let drain t =
     match t.stage with
@@ -487,7 +529,8 @@ let content_alpha ~mode frame field =
                   | None -> false)
         with _ -> false)
 
-let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts output =
+let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
+    ~on_packet output =
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
   let frame_rate = Lazy.Mutexed.force v.framerate in
@@ -544,7 +587,9 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts output =
       if Pixel_formats.is_hardware pixel_format then target else pixel_format
     in
     state :=
-      Some (Video_writer.create ~log ~frame_rate stream, frame_pixel_format)
+      Some
+        ( Video_writer.create ~log ~frame_rate ~on_packet stream,
+          frame_pixel_format )
   in
   let encode_image ~abs image =
     let gw, gh = Frame.video_dimensions () in
@@ -634,6 +679,9 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts output =
     mk_stream;
     encode;
     flush;
+    request_keyframe =
+      (fun time ->
+        Option.iter (fun (w, _) -> Video_writer.request_keyframe w time) !state);
     codec_attr = (fun () -> Option.bind (stream ()) Av.codec_attr);
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
     video_size = (fun () -> Option.map (fun _ -> (width, height)) (stream ()));
@@ -647,7 +695,8 @@ let text_to_ass (s : F.subtitle) =
           Lang.to_string
             (Lang.apply fn [("", Lang.int n); ("", Lang.string text)])
 
-let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts output =
+let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts
+    ~on_packet output =
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
   let text_to_ass = text_to_ass s in
@@ -704,6 +753,7 @@ let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts output =
         pts = Some (Int64.of_int pts);
       }
     in
+    on_packet ~key:true ~time:(Some abs);
     Av.write_subtitle_frame (Option.get !stream)
       (Avutil.Subtitle.create_frame content)
   in
@@ -720,6 +770,7 @@ let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts output =
     mk_stream;
     encode;
     flush = (fun () -> ());
+    request_keyframe = (fun _ -> ());
     codec_attr = (fun () -> Option.bind !stream Av.codec_attr);
     bitrate = (fun () -> Option.bind !stream Av.bitrate);
     video_size = (fun () -> None);
@@ -734,7 +785,7 @@ let find_codec ?pos find name =
           with it!"
          name)
 
-let create ~log ~pos ~field (encoded : F.encoded) output =
+let create ~log ~pos ~field ~on_packet (encoded : F.encoded) output =
   let name =
     match encoded.codec with
       | Some name -> name
@@ -747,12 +798,14 @@ let create ~log ~pos ~field (encoded : F.encoded) output =
   match encoded.options with
     | `Audio a ->
         let codec = find_codec ?pos Avcodec.Audio.find_encoder_by_name name in
-        audio ~log ~pos ~field ~mode:encoded.mode ~codec ~a ~opts output
+        audio ~log ~pos ~field ~mode:encoded.mode ~codec ~a ~opts ~on_packet
+          output
     | `Video v ->
         let codec = find_codec ?pos Avcodec.Video.find_encoder_by_name name in
-        video ~log ~pos ~field ~mode:encoded.mode ~codec ~v ~opts output
+        video ~log ~pos ~field ~mode:encoded.mode ~codec ~v ~opts ~on_packet
+          output
     | `Subtitle s ->
         let codec =
           find_codec ?pos Avcodec.Subtitle.find_encoder_by_name name
         in
-        subtitle ~log ~pos ~field ~codec ~s ~opts output
+        subtitle ~log ~pos ~field ~codec ~s ~opts ~on_packet output
