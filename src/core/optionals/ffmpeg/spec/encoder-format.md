@@ -154,7 +154,10 @@ the mode.
 Defaults: `pcm_kind` = the float PCM kind, `channels` = 2, `channel_layout` =
 none, `samplerate` = the global audio rate (`settings.frame.audio.samplerate`,
 read when first needed and kept for this format value), `sample_format` =
-none.
+none. On a raw track (`%audio.raw`), a channel count or sample rate the
+format does not write is taken from the first frame instead
+([encoder-internal.md §2.1](encoder-internal.md#21-audio)), and the printed
+form (§8) leaves it out.
 
 | Argument                              | Effect                                                                |
 | ------------------------------------- | --------------------------------------------------------------------- |

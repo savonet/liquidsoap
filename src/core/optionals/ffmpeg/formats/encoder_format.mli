@@ -40,12 +40,15 @@ type opts = (string * value) list
 type media = [ `Audio | `Video | `Subtitle ]
 type pcm_kind = [ `Pcm | `Pcm_s16 | `Pcm_f32 ]
 
+(** An audio track. [written] names the parameters the format sets itself: on a
+    raw track the others come from the first frame. *)
 type audio = {
   pcm_kind : pcm_kind;
   channels : int;
   channel_layout : string option;
   samplerate : int Lazy.Mutexed.t;
   sample_format : string option;
+  written : [ `Channels | `Samplerate ] list;
 }
 
 type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
