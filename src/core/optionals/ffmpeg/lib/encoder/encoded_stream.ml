@@ -218,6 +218,9 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
   let raw_stage = ref None in
   let coverage = { covered = 0; gap = false } in
   let next_main = ref 0 in
+  (* encoder.md §13.2: the sample counter starts at the container's position,
+     so a restarted HLS container keeps the variant's timeline. *)
+  let started = ref false in
   let writer () = Option.get !state in
   let audio_stream = ref None in
   let feed frame = Audio_writer.feed (fst (writer ())) frame in
@@ -373,6 +376,13 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
       | `Internal ->
           let length = Frame.audio_of_main (Frame.position frame) in
           let r = Option.get !resampler in
+          if not !started then (
+            started := true;
+            Audio_writer.jump
+              (fst (writer ()))
+              (rescale ~src:(Time_base.main ())
+                 ~dst:(per_unit (target ()).sample_rate)
+                 position));
           guarded faults ~kind (fun () ->
               feed (r.convert (Frame.get frame field) ~length))
       | `Raw -> iter_raw coverage ~position (audio_runs frame field) encode_raw

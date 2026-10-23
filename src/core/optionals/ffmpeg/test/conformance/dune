@@ -810,6 +810,44 @@
    copy
    %{target})))
 
+; Vorbis at two qualities: different codebooks in the extradata.
+
+(rule
+ (target vq2.ogg)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=2
+   -c:a
+   libvorbis
+   -q:a
+   2
+   %{target})))
+
+(rule
+ (target vq8.ogg)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=2
+   -c:a
+   libvorbis
+   -q:a
+   8
+   %{target})))
+
 (rule
  (target aac.mp4)
  (action
@@ -948,6 +986,8 @@
   c601.mp4
   r0.mp4
   r90.mp4
+  vq2.ogg
+  vq8.ogg
   aac.mp4
   mp3.mp3
   (package liquidsoap)

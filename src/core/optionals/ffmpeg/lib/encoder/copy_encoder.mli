@@ -63,6 +63,11 @@ val first_params : track -> Frame.t -> Copy_params.t option
 (** Creates the muxer stream from the field's first known parameters. *)
 val mk_stream : track -> Frame.t -> unit
 
+(** The position in the frame of the first run whose parameters cannot follow
+    its track's stream header, for an instance that restarts its container there
+    (encoder.md §13.3). *)
+val switch_position : t -> Frame.t -> int option
+
 (** [encode track ~position frame]: [position] is the output position of the
     frame's start, in main ticks. *)
 val encode : track -> position:int -> Frame.t -> unit

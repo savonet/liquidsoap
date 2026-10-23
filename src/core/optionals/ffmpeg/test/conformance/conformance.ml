@@ -860,6 +860,54 @@ s = ffmpeg.filter.create(mkfilter)|},
         aac_packets );
     ]
 
+(* The media segments of an HLS playlist, each with the init segment that
+   precedes it, and the count of discontinuities. *)
+let hls_segments dir playlist =
+  let lines =
+    List.map String.trim
+      (String.split_on_char '\n'
+         (In_channel.with_open_bin
+            (Filename.concat dir playlist)
+            In_channel.input_all))
+  in
+  let map_prefix = {|#EXT-X-MAP:URI="|} in
+  let _, segments, discontinuities =
+    List.fold_left
+      (fun (init, segments, discontinuities) line ->
+        if String.starts_with ~prefix:map_prefix line then (
+          let n = String.length map_prefix in
+          ( Some (String.sub line n (String.length line - n - 1)),
+            segments,
+            discontinuities ))
+        else if line = "#EXT-X-DISCONTINUITY" then
+          (init, segments, discontinuities + 1)
+        else if line <> "" && line.[0] <> '#' then
+          (init, (Option.get init, line) :: segments, discontinuities)
+        else (init, segments, discontinuities))
+      (None, [], 0) lines
+  in
+  (List.rev segments, discontinuities)
+
+let concat_files out files =
+  Out_channel.with_open_bin out (fun oc ->
+      List.iter
+        (fun f ->
+          output_string oc (In_channel.with_open_bin f In_channel.input_all))
+        files)
+
+let ogg_links path =
+  let data = In_channel.with_open_bin path In_channel.input_all in
+  let rec count i n =
+    match String.index_from_opt data i 'O' with
+      | Some j when j + 6 <= String.length data ->
+          if String.sub data j 4 = "OggS" then
+            count (j + 4)
+              (if Char.code data.[j + 5] land 2 <> 0 then n + 1 else n)
+          else count (j + 1) n
+      | _ -> n
+  in
+  count 0 0
+
 (* known-complexity.md §11: codec parameters across copied sources. *)
 let kc11 () =
   let log =
@@ -912,7 +960,51 @@ let kc11 () =
   check "kc11: files differing in their display matrix all play in Matroska"
     (List.length (packets "kc11_matrix.mkv" `Video) = 100);
   check "kc11: the display matrix difference is warned"
-    (contains "Display Matrix differs" log)
+    (contains "Display Matrix differs" log);
+  Unix.mkdir "kc11_hls" 0o755;
+  Unix.mkdir "kc11_keep" 0o755;
+  ignore
+    (run_ok "kc11_hls"
+       {|settings.decoder.decoders.set(["ffmpeg"])
+s = sequence([once(single("h264_high.mp4")), once(single("h264_main.mp4"))])
+clock.assign_new(sync="none", [s])
+o = output.file.hls(fallible=true, segment_duration=1., "kc11_hls", [("v", %ffmpeg(format="mp4", %video.copy))], s)
+o.on_file_change(synchronous=true, fun ({state, path}) -> if state != "deleted" then file.copy(force=true, path, "kc11_keep/") end)
+o.on_stop(synchronous=true, shutdown)
+|});
+  let segments, discontinuities = hls_segments "kc11_keep" "v.m3u8" in
+  let inits = List.sort_uniq compare (List.map fst segments) in
+  check
+    (Printf.sprintf
+       "kc11: an fMP4 HLS variant restarts after a discontinuity with a new \
+        init (%d discontinuities, %d inits, %d segments)"
+       discontinuities (List.length inits) (List.length segments))
+    (discontinuities = 1 && List.length inits = 2);
+  let starts =
+    List.map
+      (fun (init, segment) ->
+        concat_files "kc11_segment.mp4"
+          [
+            Filename.concat "kc11_keep" init; Filename.concat "kc11_keep" segment;
+          ];
+        let video = packets "kc11_segment.mp4" `Video in
+        check "kc11: every HLS segment starts on a key packet"
+          (List.hd video).key;
+        (pts (List.hd video), pts (last video)))
+      segments
+  in
+  check "kc11: HLS timestamps rise across the restart"
+    (List.for_all (fun ((_, a), (b, _)) -> b > a) (pairs starts));
+  let log =
+    run_ok "kc11_ogg"
+      (copy_script ["vq2.ogg"; "vq8.ogg"] "%audio.copy" "kc11_chain.ogg" "ogg")
+  in
+  check "kc11: an Ogg file output chains a new link at the switch"
+    (contains "restarting the container" log && ogg_links "kc11_chain.ogg" = 2);
+  check "kc11: every packet of both sources is in the chained file"
+    (List.length (packets "kc11_chain.ogg" `Audio)
+    = List.length (packets "vq2.ogg" `Audio)
+      + List.length (packets "vq8.ogg" `Audio))
 
 (* known-complexity.md §12: copied video, re-encoded audio, many joins. *)
 let kc12 () =

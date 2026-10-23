@@ -29,6 +29,7 @@ type track =
 
 type container = {
   output : Avutil.output Avutil.container;
+  appended : Unix.file_descr option;
   muxer : string;
   copy : Copy_encoder.t;
   tracks : (string * track) list;
@@ -58,6 +59,7 @@ type hls = {
     | `Timed of (Avutil.output, [ `Data ], [ `Packet ]) Av.stream * int
     | `Packed of int option ];
   mutable id3_queue : (unit -> unit) list;
+  mutable restart_at : int option;
 }
 
 type t = {
@@ -99,12 +101,31 @@ let non_drop format = List.filter (fun (_, t) -> t <> `Drop) format.F.streams
 let carries_header_in_band muxer =
   List.mem muxer ["mpegts"; "adts"; "h264"; "hevc"; "mp3"]
 
+(* FFmpeg's [file] protocol has no append mode: [truncate] = 0 writes from the
+   start of the file. An appending file output writes through a descriptor
+   opened for appending; [output.file] asks for it with [truncate] = 0. *)
+let appended_path ~append (format : F.t) =
+  match format.output with
+    | `Url u
+      when String.starts_with ~prefix:"file:" u
+           && (append || List.assoc_opt "truncate" format.opts = Some (`Int 0))
+      ->
+        Some (String.sub u 5 (String.length u - 5))
+    | _ -> None
+
+let close_output c =
+  Fun.protect
+    ~finally:(fun () -> Option.iter Unix.close c.appended)
+    (fun () -> Av.close c.output)
+
 let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
     ~(format : F.t) ~pos ~buffer ?(append = false) () =
+  let appended_path = appended_path ~append format in
   let opts =
     Opts.of_list
       (convert_container_opts pos
-         (if append then F.set format.opts "truncate" (`Int 0) else format.opts))
+         (if appended_path = None then format.opts
+          else List.remove_assoc "truncate" format.opts))
   in
   let interleaved =
     match format.interleaved with
@@ -117,9 +138,22 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
       ?filename:(match format.output with `Url u -> Some u | `Stream -> None)
       ?mime:format.mime_type ()
   in
+  let appended =
+    Option.map
+      (fun path ->
+        Unix.openfile path [Unix.O_WRONLY; Unix.O_APPEND; Unix.O_CREAT] 0o644)
+      appended_path
+  in
   let output =
-    match format.output with
-      | `Stream -> (
+    match (format.output, appended) with
+      | `Url _, Some fd -> (
+          match guess () with
+            | None -> error ?pos "No ffmpeg format could be found for this file"
+            | Some muxer ->
+                Av.open_output_stream ~opts ~interleaved
+                  (fun bytes offset length -> Unix.write fd bytes offset length)
+                  muxer)
+      | `Stream, _ -> (
           match (format.format, guess ()) with
             | None, _ -> error ?pos "Format is required!"
             | Some f, None ->
@@ -132,12 +166,13 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
                   length
                 in
                 Av.open_output_stream ~opts ~interleaved write muxer)
-      | `Url url ->
+      | `Url url, None ->
           Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
   in
   (match Opts.unused_message [("container", opts)] with
     | Some message ->
         (try Av.close output with _ -> ());
+        Option.iter Unix.close appended;
         error ?pos message
     | None -> ());
   let muxer =
@@ -172,10 +207,19 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
                        ~on_packet:(on_packet field) encoded output) )
               with exn ->
                 (try Av.close output with _ -> ());
+                Option.iter Unix.close appended;
                 raise exn))
       format.streams
   in
-  { output; muxer; copy; tracks; streams_created = false; wait_start = None }
+  {
+    output;
+    appended;
+    muxer;
+    copy;
+    tracks;
+    streams_created = false;
+    wait_start = None;
+  }
 
 let copy_tracks c =
   List.filter_map (function _, `Copy t -> Some t | _ -> None) c.tracks
@@ -215,6 +259,15 @@ let first_moof data =
   in
   scan 0
 
+(* encoder.md §8.4: a restart is returned once the new container's init
+   segment is known. *)
+let push_restart h =
+  Option.iter
+    (fun restart_time ->
+      h.restart_at <- None;
+      push h (`Restart { Encoder.restart_time; init = h.header }))
+    h.restart_at
+
 let bytes h data =
   match (h.mp4, h.header) with
     | true, None -> (
@@ -224,6 +277,7 @@ let bytes h data =
           | Some offset ->
               Buffer.clear h.pending_header;
               h.header <- Some (Strings.of_string (String.sub pending 0 offset));
+              push_restart h;
               push h (`Bytes (Strings.of_string styp));
               push h
                 (`Bytes
@@ -235,6 +289,9 @@ let bytes h data =
 
 let split t h ~time ~forced =
   Av.flush t.current.output;
+  (* With [delay_moov], the first flush writes [moov] alone and keeps the
+     samples for the next one. *)
+  if h.mp4 && h.header = None then Av.flush t.current.output;
   bytes h (take t);
   push h (`Split { Encoder.time; forced });
   if h.mp4 && h.header <> None then push h (`Bytes (Strings.of_string styp))
@@ -247,7 +304,9 @@ let on_packet t field ~key ~time =
     | Some h -> (
         if not h.started then (
           h.started <- true;
-          if h.header_format && not h.mp4 then h.header <- Some (take t));
+          if h.header_format && not h.mp4 then (
+            h.header <- Some (take t);
+            push_restart h));
         (* The reference's first key packet starts the first segment: a flush
            there would make the MP4 muxer write [moov] before that track's
            first timestamp. *)
@@ -289,45 +348,32 @@ let create_streams t frame =
            "Copy fields received no parameters within the keyframe wait: the \
             output cannot start"))
 
-let encode t frame =
-  match t.state with
-    | `Failed exn -> raise exn
-    | `Stopped -> failwith "Encoder used after stop"
-    | `Built | `Started ->
-        let c = t.current in
-        if not c.streams_created then create_streams t frame;
-        let length = Frame.position frame in
-        if c.streams_created && length > 0 then (
-          try
-            List.iter
-              (fun track ->
-                track.Encoded_stream.encode ~position:t.position frame)
-              (encoded_tracks c);
-            List.iter
-              (fun track ->
-                Copy_encoder.encode track ~position:t.position frame)
-              (copy_tracks c);
-            Copy_encoder.end_of_frame c.copy ~position:t.position
-          with
-            | Copy_encoder.Incompatible { field; header; source } ->
-                let message =
-                  Printf.sprintf
-                    "Track %s: a source with parameters %s cannot follow the \
-                     stream header %s in this container"
-                    (Frame.Fields.string_of_field field)
-                    source header
-                in
-                t.log#severe "%s" message;
-                fail t (Failure message)
-            | Avutil.Error _ as exn -> fail t exn);
-        if length > 0 then t.position <- t.position + length;
-        Option.iter
-          (fun h ->
-            if h.started && h.id3_queue <> [] then (
-              List.iter (fun write -> write ()) (List.rev h.id3_queue);
-              h.id3_queue <- []))
-          t.hls;
-        take t
+let encode_frame t frame =
+  let c = t.current in
+  if not c.streams_created then create_streams t frame;
+  let length = Frame.position frame in
+  if c.streams_created && length > 0 then (
+    try
+      List.iter
+        (fun track -> track.Encoded_stream.encode ~position:t.position frame)
+        (encoded_tracks c);
+      List.iter
+        (fun track -> Copy_encoder.encode track ~position:t.position frame)
+        (copy_tracks c);
+      Copy_encoder.end_of_frame c.copy ~position:t.position
+    with
+      | Copy_encoder.Incompatible { field; header; source } ->
+          let message =
+            Printf.sprintf
+              "Track %s: a source with parameters %s cannot follow the stream \
+               header %s in this container"
+              (Frame.Fields.string_of_field field)
+              source header
+          in
+          t.log#severe "%s" message;
+          fail t (Failure message)
+      | Avutil.Error _ as exn -> fail t exn);
+  if length > 0 then t.position <- t.position + length
 
 let close_container t =
   let c = t.current in
@@ -336,15 +382,83 @@ let close_container t =
        List.iter (fun track -> track.Encoded_stream.flush ()) (encoded_tracks c);
        Copy_encoder.flush c.copy ~position:t.position)
    with exn -> t.log#severe "Draining failed: %s" (Printexc.to_string exn));
-  try Av.close c.output
+  try close_output c
   with exn -> t.log#severe "Closing failed: %s" (Printexc.to_string exn)
 
-let restartable t =
+(* encoder.md §13.1: Ogg chains, into a stream or by reopening the file. *)
+let chains t =
   t.current.muxer = "ogg"
   &&
     match t.format.output with
     | `Stream -> true
     | `Url u -> String.length u > 5 && String.sub u 0 5 = "file:"
+
+(* encoder.md §13.2: an Ogg link starts its own timeline; an HLS variant keeps
+   its timeline across segments. *)
+let restart t =
+  close_container t;
+  Option.iter
+    (fun h ->
+      bytes h (take t);
+      h.header <- None;
+      Buffer.clear h.pending_header;
+      h.started <- false;
+      h.reference_started <- false;
+      h.split_boundary <- None;
+      h.awaited_key <- None;
+      h.restart_at <- Some t.position)
+    t.hls;
+  t.current <-
+    open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
+      ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:(t.hls = None) ();
+  if t.hls = None then t.position <- 0;
+  t.state <- `Built;
+  Av.set_output_metadata t.current.output t.metadata;
+  Option.iter
+    (fun h ->
+      (match h.id3 with
+        | `Timed (_, version) ->
+            let audio_rate = Lazy.Mutexed.force Frame.audio_rate in
+            h.id3 <-
+              `Timed
+                ( Av.new_data_stream
+                    ~time_base:{ Avutil.num = 1; den = audio_rate }
+                    ~codec:`Timed_id3 t.current.output,
+                  version )
+        | _ -> ());
+      if not h.header_format then push_restart h)
+    t.hls
+
+(* encoder.md §13.3: a source whose header properties the container cannot
+   follow restarts it where the target defines a restart; the frame is cut at
+   the switch, the part before it written to the old container. *)
+let rec encode_frames t frame =
+  let switch =
+    if t.current.streams_created && (t.hls <> None || chains t) then
+      Copy_encoder.switch_position t.current.copy frame
+    else None
+  in
+  match switch with
+    | Some position ->
+        if position > 0 then encode_frame t (Frame.slice frame position);
+        t.log#important "Source parameters changed: restarting the container";
+        restart t;
+        encode_frames t (Frame.after frame position)
+    | None -> encode_frame t frame
+
+let encode t frame =
+  match t.state with
+    | `Failed exn -> raise exn
+    | `Stopped -> failwith "Encoder used after stop"
+    | `Built | `Started ->
+        encode_frames t frame;
+        Option.iter
+          (fun h ->
+            if h.started && h.id3_queue <> [] then (
+              List.iter (fun write -> write ()) (List.rev h.id3_queue);
+              h.id3_queue <- []))
+          t.hls;
+        take t
 
 let encode_metadata t m =
   let m = Frame.Metadata.Export.to_list m in
@@ -355,22 +469,14 @@ let encode_metadata t m =
     | _ ->
         if not (Av.output_started t.current.output) then
           Av.set_output_metadata t.current.output t.metadata
-        else if restartable t then (
-          close_container t;
-          t.current <-
-            open_container ?interrupt:t.interrupt ~on_packet:(on_packet t)
-              ~log:t.log ~format:t.format ~pos:t.pos ~buffer:t.buffer
-              ~append:true ();
-          t.position <- 0;
-          t.state <- `Built;
-          Av.set_output_metadata t.current.output t.metadata)
+        else if chains t then restart t
         else t.log#debug "Metadata update not carried by this container"
 
 let stop t =
   match t.state with
     | `Stopped -> Strings.empty
     | `Failed _ ->
-        (try Av.close t.current.output with _ -> ());
+        (try close_output t.current with _ -> ());
         t.state <- `Stopped;
         Strings.empty
     | `Built | `Started ->
@@ -405,6 +511,7 @@ let hls_state t =
     reference_started = false;
     id3 = `None;
     id3_queue = [];
+    restart_at = None;
   }
 
 (* encoder.md §8.1. *)
@@ -474,7 +581,7 @@ let hls_encode t h ~boundary ~force frame =
               h.awaited_key <- Some boundary)
         | _ -> ())
     t.current.tracks;
-  if force && h.started && h.awaited_key = None then
+  if force && h.started && h.awaited_key = None && h.restart_at = None then
     split t h ~time:t.position ~forced:true
   else (
     match h.seen_boundary with
