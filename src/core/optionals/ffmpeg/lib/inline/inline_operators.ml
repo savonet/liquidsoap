@@ -28,7 +28,7 @@ let encode_module = Lang.add_module ~base:track_ffmpeg "encode"
 let raw_encode_module = Lang.add_module ~base:track_ffmpeg_raw "encode"
 let decode_module = Lang.add_module ~base:track_ffmpeg "decode"
 let raw_decode_module = Lang.add_module ~base:track_ffmpeg_raw "decode"
-let ffmpeg_module = Lang.add_module "ffmpeg"
+let ffmpeg_module = Lang_modules.ffmpeg
 let ffmpeg_raw = Lang.add_module ~base:ffmpeg_module "raw"
 
 let () =

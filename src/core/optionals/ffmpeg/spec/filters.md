@@ -740,14 +740,16 @@ data (held input, fill input) are input-side waits
 ([faults.md §5](faults.md#5-waiting)): at their bound they become a source
 fault of the graph source (§11.6). The generation is drained first (§11.7);
 the held frames, which no generation has taken yet, are dropped. The two
-others are item faults.
+others are item faults that never escalate: what they drop is the excess of
+one consumer's pace over another's, not invalid data, and a graph that keeps
+producing keeps streaming.
 
-| Limit         | Measured                                                         | Protects                                    | Typical cause                                                               | When reached                                                                                                                                          |
-| ------------- | ---------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| output buffer | the longest field of the graph source's buffer, after a read out | memory                                      | outputs consumed at diverging rates; a generator feeding one output only    | item fault: the oldest data of that field beyond the limit is dropped; drops in `max_consecutive_faults` consecutive fills escalate to a source fault |
-| held input    | frames one graph input holds for a generation not yet built      | memory                                      | one input never delivers its first frame while the others do                | source fault (§11.6); the generation is drained, the held frames dropped                                                                              |
-| fill input    | media one graph input pushes within one fill                     | memory inside FFmpeg, and the tick duration | a filter that needs more lookahead than the limit before producing anything | source fault (§11.6), after the generation is drained (§11.7)                                                                                         |
-| drain read    | media read from one sink during a drain (§11.7)                  | the tick duration                           | a sink fed by a generator with no end                                       | item fault: reading that sink stops; the rest is released with the generation                                                                         |
+| Limit         | Measured                                                         | Protects                                    | Typical cause                                                               | When reached                                                                  |
+| ------------- | ---------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| output buffer | the longest field of the graph source's buffer, after a read out | memory                                      | outputs consumed at diverging rates; a generator feeding one output only    | item fault: the oldest data of that field beyond the limit is dropped         |
+| held input    | frames one graph input holds for a generation not yet built      | memory                                      | one input never delivers its first frame while the others do                | source fault (§11.6); the generation is drained, the held frames dropped      |
+| fill input    | media one graph input pushes within one fill                     | memory inside FFmpeg, and the tick duration | a filter that needs more lookahead than the limit before producing anything | source fault (§11.6), after the generation is drained (§11.7)                 |
+| drain read    | media read from one sink during a drain (§11.7)                  | the tick duration                           | a sink fed by a generator with no end                                       | item fault: reading that sink stops; the rest is released with the generation |
 
 Example message (wording not binding):
 `Filter graph <id> has buffered more than <max>s of data for one of its outputs and dropped <n>s. This happens when the graph's outputs are consumed at diverging rates. Raise settings.ffmpeg.filter_max_buffer if the graph legitimately produces that much on a single pass.`
