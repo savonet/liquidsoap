@@ -417,7 +417,7 @@ Harness additions:
 - Filter arguments of every scalar type and array arguments are accepted; a value outside the option's range is rejected at the script position.
 - Frame metadata set by a filter, with metadata passing on, reaches the output source's metadata.
 - Filters the host lacks are named skips.
-- A filter input declared with 2 channels on a mono-typed source is a type error (§1.5).
+- A filter input takes its format from its track: a mono raw track goes through the graph as mono, with no argument naming its parameters.
 - Read-out: a sink reached by a graph input is read out at each tick; a generator-only sink is read only as far as it is pulled.
 - A generation ended by dry input, by every sink at end, or by sleep forgets every input's format: the next generation takes the formats of the frames that arrive. A format-change rebuild keeps the other inputs' formats.
 - Every sink at end while inputs still produce: the graph source ends its track and stays exhausted until its inputs run dry or it sleeps and wakes; it does not rebuild.

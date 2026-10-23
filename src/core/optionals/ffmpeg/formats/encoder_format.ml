@@ -33,6 +33,7 @@ type audio = {
   channel_layout : string option;
   samplerate : int Lazy.Mutexed.t;
   sample_format : string option;
+  written : [ `Channels | `Samplerate ] list;
 }
 
 type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
@@ -261,10 +262,13 @@ let string_of_track (field, track) =
                   | `Pcm_s16 -> ["pcm_s16"]
                   | `Pcm_f32 -> ["pcm_f32"])
                 @ opt "codec" codec
-                @ (match a.channel_layout with
-                  | Some l -> opt "channel_layout" (Some l)
-                  | None -> [Printf.sprintf "channels=%d" a.channels])
-                @ [Printf.sprintf "samplerate=%d" (force a.samplerate)]
+                @ (match (a.channel_layout, mode) with
+                  | Some l, _ -> opt "channel_layout" (Some l)
+                  | None, `Raw when not (List.mem `Channels a.written) -> []
+                  | None, _ -> [Printf.sprintf "channels=%d" a.channels])
+                @ (match mode with
+                  | `Raw when not (List.mem `Samplerate a.written) -> []
+                  | _ -> [Printf.sprintf "samplerate=%d" (force a.samplerate)])
                 @ opt "sample_format" a.sample_format
             | `Video v ->
                 marker `Video @ opt "codec" codec

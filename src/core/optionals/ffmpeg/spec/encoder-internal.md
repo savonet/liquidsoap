@@ -43,6 +43,11 @@ Target parameters:
   FFmpeg's default layout for `channels`
   ([encoder-format.md §5](encoder-format.md#5-audio-tracks)); a count with no
   default layout is an error of kind `encoder`;
+- on a raw track, a sample rate or a channel count the format does not write
+  is the first frame's, read at `mk_stream frame` from the first frame of the
+  field; the defaults of encoder-format.md §5 apply only when that frame
+  carries no audio. Reason: raw frames carry their own parameters, so a
+  script names only what it wants changed, and a mono input stays mono;
 - sample format = FFmpeg's best sample format of the codec for the requested
   one (`sample_format`, default `dbl`).
 

@@ -88,6 +88,9 @@ let has_alpha format =
   try List.mem `Alpha (Avutil.Pixel_format.descriptor format).flags
   with _ -> false
 
+let writes parameter (a : F.audio) =
+  if List.mem parameter a.written then a.written else parameter :: a.written
+
 let audio_option (a : F.audio) = function
   | `Anonymous "pcm" -> Some { a with pcm_kind = `Pcm }
   | `Anonymous "pcm_s16" -> Some { a with pcm_kind = `Pcm_s16 }
@@ -103,11 +106,23 @@ let audio_option (a : F.audio) = function
           a with
           channel_layout = Some name;
           channels = channels_of_layout v name;
+          written = writes `Channels a;
         }
   | `Labelled (("channels" | "ac"), v) ->
-      Some { a with channels = positive v; channel_layout = None }
+      Some
+        {
+          a with
+          channels = positive v;
+          channel_layout = None;
+          written = writes `Channels a;
+        }
   | `Labelled (("samplerate" | "ar"), v) ->
-      Some { a with samplerate = Lazy.Mutexed.from_val (positive v) }
+      Some
+        {
+          a with
+          samplerate = Lazy.Mutexed.from_val (positive v);
+          written = writes `Samplerate a;
+        }
   | `Labelled ("sample_format", v) ->
       Some { a with sample_format = Some (string v) }
   | _ -> None
@@ -162,6 +177,7 @@ let default_options : F.media -> F.options = function
             Lazy.Mutexed.from_fun (fun () ->
                 Lazy.Mutexed.force Frame.audio_rate);
           sample_format = None;
+          written = [];
         }
   | `Video ->
       let width, height = Frame.video_dimensions () in

@@ -100,6 +100,17 @@ let iter_raw coverage ~position runs f =
       List.iter (fun (p, item) -> f ~time_base ~abs:(start + p) item) items)
     runs
 
+(* encoder-internal.md §2.1: what a raw track does not write comes from its
+   first frame. *)
+let first_raw_audio frame field =
+  match Frame.get frame field with
+    | data ->
+        List.find_map
+          (fun (_, (run : Ffmpeg_content.Audio.Data.run)) ->
+            match run.items with (_, f) :: _ -> Some f | [] -> None)
+          (Ffmpeg_content.Audio.get_data data).runs
+    | exception _ -> None
+
 let audio_layout ?pos (a : F.audio) =
   match a.channel_layout with
     | Some name -> (
@@ -199,9 +210,23 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts output =
   let writer () = Option.get !state in
   let audio_stream = ref None in
   let feed frame = Audio_writer.feed (fst (writer ())) frame in
-  let mk_stream _ =
-    let rate = Lazy.Mutexed.force a.samplerate in
-    let layout = audio_layout ?pos a in
+  let mk_stream frame =
+    let first =
+      match mode with `Raw -> first_raw_audio frame field | `Internal -> None
+    in
+    let inferred parameter =
+      if List.mem parameter a.written then None else first
+    in
+    let rate =
+      match inferred `Samplerate with
+        | Some f -> (Avutil.Audio.frame_format f).sample_rate
+        | None -> Lazy.Mutexed.force a.samplerate
+    in
+    let layout =
+      match inferred `Channels with
+        | Some f -> (Avutil.Audio.frame_format f).channel_layout
+        | None -> audio_layout ?pos a
+    in
     let requested =
       match a.sample_format with
         | Some name -> (
