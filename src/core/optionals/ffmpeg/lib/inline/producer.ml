@@ -181,8 +181,9 @@ class producer ~name ~field ~check ~builder ~child_frame_type input_val =
       while self#child#is_ready && Generator.length self#child_buffer < size do
         self#child_tick
       done;
-      if (not self#child#is_ready) && running <> None then
-        self#end_running ~drain:true;
+      if not self#child#is_ready then (
+        if running <> None then self#end_running ~drain:true;
+        self#child_tick);
       Generator.slice self#child_buffer size
 
     method! seek len =
