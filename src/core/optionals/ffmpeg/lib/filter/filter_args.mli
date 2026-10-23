@@ -33,6 +33,10 @@ type arg = {
   render : Lang.value -> Avfilter.args;
 }
 
+(** The arguments of an option class: one per distinct name, the first listed
+    winning. *)
+val of_options : Avutil.Options.t -> arg list
+
 val of_filter : [ `Unattached ] Avfilter.filter -> arg list
 
 (** The pairs of the non-null arguments in [values], the builtin's environment.

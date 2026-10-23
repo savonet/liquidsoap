@@ -60,8 +60,11 @@ type transform = {
 type builder = output -> input:Source.source -> transform
 
 (** [input_t] is the type of the input track: the child is typed
-    [{field = input_t}] with an open row. *)
+    [{field = input_t}] with an open row, unless [child_frame_type] is given.
+    With [passthrough], the input's other fields go into the buffer verbatim. *)
 val create :
+  ?passthrough:bool ->
+  ?child_frame_type:Type.t ->
   name:string ->
   field:Frame.field ->
   input_t:Type.t ->

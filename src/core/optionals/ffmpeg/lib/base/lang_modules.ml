@@ -21,3 +21,6 @@
  *****************************************************************************)
 
 let ffmpeg = Lang.add_module "ffmpeg"
+let ffmpeg_filter = Lang.add_module ~base:ffmpeg "filter"
+let track_ffmpeg = Lang.add_module ~base:Modules.track "ffmpeg"
+let track_ffmpeg_raw = Lang.add_module ~base:track_ffmpeg "raw"

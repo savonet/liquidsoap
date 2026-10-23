@@ -122,6 +122,9 @@ type cropping = { top : int; bottom : int; left : int; right : int }
 
 module Frame_side_data = struct
   type kind = Frame_side_data_type.t
+
+  let kinds : kind list = Frame_side_data_type.t
+
   type prop = Side_data_prop.t
   type raw = { kind : kind; data : string }
   type t = [ `Display_matrix of Display_matrix.t ]

@@ -114,6 +114,9 @@ module Frame_side_data : sig
   (** The kinds whose content the bindings translate. *)
   type t = [ `Display_matrix of Display_matrix.t ]
 
+  (** Every kind of the installed headers, in FFmpeg's enumeration order. *)
+  val kinds : kind list
+
   (** FFmpeg's name of the kind, empty when it has none. *)
   val name : kind -> string
 

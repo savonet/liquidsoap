@@ -22,8 +22,8 @@
 
 module F = Liquidsoap_ffmpeg_formats.Encoder_format
 
-let track_ffmpeg = Lang.add_module ~base:Modules.track "ffmpeg"
-let track_ffmpeg_raw = Lang.add_module ~base:track_ffmpeg "raw"
+let track_ffmpeg = Lang_modules.track_ffmpeg
+let track_ffmpeg_raw = Lang_modules.track_ffmpeg_raw
 let encode_module = Lang.add_module ~base:track_ffmpeg "encode"
 let raw_encode_module = Lang.add_module ~base:track_ffmpeg_raw "encode"
 let decode_module = Lang.add_module ~base:track_ffmpeg "decode"

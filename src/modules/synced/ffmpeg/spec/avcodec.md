@@ -645,7 +645,9 @@ empty when it accepts any (E4). `options` is the filter's private option
 class, with no class when the filter has no option.
 
 ```ocaml
-val init : ?opts:opts -> filter -> 'a params -> 'a t * 'a params
+val init :
+  ?opts:opts -> ?time_base:Avutil.rational -> filter -> 'a params ->
+  'a t * 'a params
 ```
 
 Creates and initialises an instance of the filter for input of the given
@@ -654,10 +656,19 @@ parameters, and returns it with a copy of its output parameters.
 - `opts` follows [avutil.md](avutil.md) §9.1. The entries are applied to the
   filter with child search, so that the filter's private options, the ones
   `filter.options` lists, are reached.
-- The input parameters value is not modified. The input time base keeps
+- The input parameters value is not modified. `time_base` is the time base
+  of the packets sent to the instance; without it, the input time base keeps
   FFmpeg's default.
 - A filter FFmpeg does not know raises ``Error `Bsf_not_found``.
 - Any failure releases the instance and raises the mapped error.
+
+```ocaml
+val time_base_out : 'a t -> Avutil.rational
+```
+
+The time base of the packets the instance outputs, fixed by its
+initialisation: often the input time base, a filter that retimes packets
+chooses its own.
 
 ```ocaml
 val send_packet : 'a t -> 'a Packet.t -> unit

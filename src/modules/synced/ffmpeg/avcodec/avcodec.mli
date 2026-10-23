@@ -229,6 +229,9 @@ module Packet_side_data : sig
     | `Display_matrix of Avutil.Display_matrix.t
     | `Frame_cropping of cropping ]
 
+  (** Every kind of the installed headers, in FFmpeg's enumeration order. *)
+  val kinds : kind list
+
   (** FFmpeg's name of the kind, empty when it has none. *)
   val name : kind -> string
 
@@ -1076,25 +1079,38 @@ module BitstreamFilter : sig
       built once, when this module is loaded. *)
   val filters : filter list
 
-  (** [init ?opts filter params] creates and initialises an instance of [filter]
-      for a stream of parameters [params]. It returns the instance and the
-      parameters of the stream the instance outputs.
+  (** [init ?opts ?time_base filter params] creates and initialises an instance
+      of [filter] for a stream of parameters [params]. It returns the instance
+      and the parameters of the stream the instance outputs.
 
       [params] is copied into the instance and is not modified. The returned
-      parameters are an independent copy. The input time base keeps FFmpeg's
-      default. Initialisation releases the OCaml runtime lock. On failure
-      everything allocated is released and [opts] is untouched.
+      parameters are an independent copy. Initialisation releases the OCaml
+      runtime lock. On failure everything allocated is released and [opts] is
+      untouched.
 
       @param opts
         Options for the filter, among those [filter.options] lists. After a
         successful call the table holds exactly the entries the filter did not
         consume, so a key still in it was not used. No table means no option and
         nothing reported.
+      @param time_base
+        The time base of the packets sent to the instance. FFmpeg's default
+        without it.
       @raise Avutil.Error
         with [`Bsf_not_found] when FFmpeg has no filter of that name, and with
         the mapped FFmpeg code when an option value is rejected or the filter
         fails to initialise. *)
-  val init : ?opts:opts -> filter -> 'a params -> 'a t * 'a params
+  val init :
+    ?opts:opts ->
+    ?time_base:Avutil.rational ->
+    filter ->
+    'a params ->
+    'a t * 'a params
+
+  (** The time base of the packets the instance outputs, fixed by its
+      initialisation: often the input time base; a filter that retimes packets
+      chooses its own. *)
+  val time_base_out : 'a t -> Avutil.rational
 
   (** [send_packet filter packet] gives [packet] to the filter. The filter takes
       a reference of its own to the payload: [packet] is unchanged and stays

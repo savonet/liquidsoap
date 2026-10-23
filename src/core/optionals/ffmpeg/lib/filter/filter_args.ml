@@ -325,7 +325,7 @@ let of_opt (opt : O.opt) =
                 | None -> `Pair (name, (arg :> Avfilter.valued_arg)));
         }
 
-let of_filter (filter : [ `Unattached ] Avfilter.filter) =
+let of_options options =
   let seen = Hashtbl.create 10 in
   List.filter_map
     (fun (opt : O.opt) ->
@@ -333,7 +333,10 @@ let of_filter (filter : [ `Unattached ] Avfilter.filter) =
       else (
         Hashtbl.replace seen opt.name ();
         Some (of_opt opt)))
-    (O.opts filter.options)
+    (O.opts options)
+
+let of_filter (filter : [ `Unattached ] Avfilter.filter) =
+  of_options filter.options
 
 let render args values =
   List.filter_map
