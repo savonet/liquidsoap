@@ -169,7 +169,10 @@ let kind name =
 
 let type_of_shape : shape -> Type.t = function
   | `Untyped -> Type.var ~constraints:[Format_type.track] ()
-  | `Copy -> Type.make (Format_type.descr (`Kind (kind Kinds.copy_name)))
+  | `Copy ->
+      Type.make
+        (Format_type.descr
+           (`Format (Content_base.default_format (kind Kinds.copy_name))))
   | `Raw_audio ->
       Type.make (Format_type.descr (`Kind (kind Kinds.raw_audio_name)))
   | `Raw_video ->
