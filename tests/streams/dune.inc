@@ -678,68 +678,6 @@
    fades-persistent-override.liq)))
 
 (rule
- (alias test_ffmpeg-errors)
- (package liquidsoap)
- (deps
-  ffmpeg-errors.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} ffmpeg-errors.liq liquidsoap ffmpeg-errors.liq)))
-
-(rule
- (alias test_ffmpeg-trim)
- (package liquidsoap)
- (deps
-  ffmpeg-trim.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} ffmpeg-trim.liq liquidsoap ffmpeg-trim.liq)))
-
-(rule
  (alias test_file_output)
  (package liquidsoap)
  (deps
@@ -1033,161 +971,6 @@
    harbor_unknown_codec.liq
    liquidsoap
    harbor_unknown_codec.liq)))
-
-(rule
- (alias test_hls_custom_tags)
- (package liquidsoap)
- (deps
-  hls_custom_tags.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} hls_custom_tags.liq liquidsoap hls_custom_tags.liq)))
-
-(rule
- (alias test_hls_discontinuity)
- (package liquidsoap)
- (deps
-  hls_discontinuity.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} hls_discontinuity.liq liquidsoap hls_discontinuity.liq)))
-
-(rule
- (alias test_hls_global_headers)
- (package liquidsoap)
- (deps
-  hls_global_headers.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} hls_global_headers.liq liquidsoap hls_global_headers.liq)))
-
-(rule
- (alias test_hls_id3v2)
- (package liquidsoap)
- (deps
-  hls_id3v2.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} hls_id3v2.liq liquidsoap hls_id3v2.liq)))
-
-(rule
- (alias test_hls_large_frame)
- (package liquidsoap)
- (deps
-  hls_large_frame.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} hls_large_frame.liq liquidsoap hls_large_frame.liq)))
 
 (rule
  (alias test_hls_main_playlist)
@@ -2361,37 +2144,6 @@
   (run %{run_test} srt_passphrase.liq liquidsoap srt_passphrase.liq)))
 
 (rule
- (alias test_srt_raw_pcm)
- (package liquidsoap)
- (deps
-  srt_raw_pcm.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} srt_raw_pcm.liq liquidsoap srt_raw_pcm.liq)))
-
-(rule
  (alias test_stretch-clock-propagation)
  (package liquidsoap)
  (deps
@@ -2425,41 +2177,6 @@
    stretch-clock-propagation.liq
    liquidsoap
    stretch-clock-propagation.liq)))
-
-(rule
- (alias test_test_ffmpeg_on_subitles)
- (package liquidsoap)
- (deps
-  test_ffmpeg_on_subitles.liq
-  ./file1.mp3
-  ./file2.mp3
-  ./file3.mp3
-  ./jingle1.mp3
-  ./jingle2.mp3
-  ./jingle3.mp3
-  ./file1.png
-  ./file2.png
-  ./jingles
-  ./playlist
-  ./huge_playlist
-  ./replaygain_track_gain.mp3
-  ./r128_track_gain.mp3
-  ./replaygain_r128_track_gain.mp3
-  ./replaygain_track_gain.opus
-  ./r128_track_gain.opus
-  ./replaygain_r128_track_gain.opus
-  ./without_replaygain_track_gain.mp3
-  ../media/test-subtitle.srt
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   test_ffmpeg_on_subitles.liq
-   liquidsoap
-   test_ffmpeg_on_subitles.liq)))
 
 (rule
  (alias test_test_on_subtitle)
@@ -2617,8 +2334,6 @@
   (alias test_dtmf_pcm_s16)
   (alias test_fades-overrides)
   (alias test_fades-persistent-override)
-  (alias test_ffmpeg-errors)
-  (alias test_ffmpeg-trim)
   (alias test_file_output)
   (alias test_harbor_dynamic_failed_connect)
   (alias test_harbor_kick_client)
@@ -2628,11 +2343,6 @@
   (alias test_harbor_metadata_3)
   (alias test_harbor_stop_during_relay)
   (alias test_harbor_unknown_codec)
-  (alias test_hls_custom_tags)
-  (alias test_hls_discontinuity)
-  (alias test_hls_global_headers)
-  (alias test_hls_id3v2)
-  (alias test_hls_large_frame)
   (alias test_hls_main_playlist)
   (alias test_huge-playlist)
   (alias test_icecast_last_meta)
@@ -2670,9 +2380,7 @@
   (alias test_srt_listen_callback)
   (alias test_srt_multiple_outputs)
   (alias test_srt_passphrase)
-  (alias test_srt_raw_pcm)
   (alias test_stretch-clock-propagation)
-  (alias test_test_ffmpeg_on_subitles)
   (alias test_test_on_subtitle)
   (alias test_test_subtitles_insert)
   (alias test_test_subtitles_map)
