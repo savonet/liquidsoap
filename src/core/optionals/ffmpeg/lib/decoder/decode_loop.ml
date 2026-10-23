@@ -448,7 +448,7 @@ let release t entry q =
                 List.iter (deliver t entry) held
             | false, _ -> entry.held <- q :: entry.held)
         else (
-          match q.item_end with
+          match match q.item_end with Some e -> Some e | None -> pts with
             | Some e when e >= threshold ->
                 clear ();
                 deliver t entry q

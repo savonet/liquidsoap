@@ -77,7 +77,9 @@ let hls_proto frame_t =
                (Lang.method_t Lang.string_t
                   [
                     ("bandwidth", ([], Lang.int_t), "Stream bandwidth");
-                    ("codecs", ([], Lang.string_t), "Stream codecs");
+                    ( "codecs",
+                      ([], Lang.string_t),
+                      "Stream codecs, empty when unknown." );
                   ])
                [
                  ( "video_size",
@@ -227,10 +229,11 @@ type segment = {
   mutable out_channel : atomic_out_channel option;
   (* Segment length in main ticks. *)
   mutable len : int;
-  (* Part of [len] carried over from the previous segment: excluded from the
-     split decision so that boundaries stay on the [segment_duration] grid. *)
-  mutable carried_len : int;
-  mutable last_segmentable_position : (int * int) option;
+  (* Media time of the segment's first byte, and its split points as (media
+     time, byte offset), latest first (ffmpeg spec encoder.md §8.7). Neither is
+     persisted: a restored segment is closed. *)
+  start : int;
+  mutable splits : (int * int) list;
 }
 
 (* We used to encode optional entries with null but
@@ -264,8 +267,6 @@ let json_of_segment
       filename;
       segment_extra_tags;
       len;
-      carried_len;
-      last_segmentable_position;
     } =
   `Assoc
     ([
@@ -278,11 +279,7 @@ let json_of_segment
     @ [
         ("extra_tags", `Tuple (List.map (fun s -> `String s) segment_extra_tags));
         ("len", `Int len);
-        ("carried_len", `Int carried_len);
-      ]
-    @ json_optional "last_segmentable_position"
-        (fun (len, offset) -> `Tuple [`Int len; `Int offset])
-        last_segmentable_position)
+      ])
 
 let segment_of_json = function
   | `Assoc l ->
@@ -300,9 +297,6 @@ let segment_of_json = function
           l
       in
       let len = parse_json_int "len" l in
-      let carried_len =
-        match List.assoc_opt "carried_len" l with Some (`Int i) -> i | _ -> 0
-      in
       let init_filename =
         parse_json_optional "init_filename"
           (function `String s -> s | _ -> raise Invalid_state)
@@ -313,24 +307,17 @@ let segment_of_json = function
           (function `String s -> s | _ -> raise Invalid_state)
           l
       in
-      let last_segmentable_position =
-        parse_json_optional "last_segmentable_position"
-          (function
-            | `Tuple [`Int len; `Int offset] -> (len, offset)
-            | _ -> raise Invalid_state)
-          l
-      in
       {
         id;
         discontinuous;
         current_discontinuity;
         init_filename;
         len;
-        carried_len;
         segment_extra_tags;
         filename;
         out_channel = None;
-        last_segmentable_position;
+        start = 0;
+        splits = [];
       }
   | _ -> raise Invalid_state
 
@@ -373,6 +360,10 @@ type stream = {
   mutable current_segment : segment option;
   mutable discontinuity_count : int;
   mutable needs_discontinuity : bool;
+  (* Media time given to the encoder, and the grid boundary the open segment
+     ends at (ffmpeg spec encoder.md §8.7). *)
+  mutable media_time : int;
+  mutable boundary : int;
 }
 
 open Extralib
@@ -580,15 +571,12 @@ class hls_output p =
                 | None -> (
                     try Encoder.iso_base_file_media_file_format format
                     with Not_found ->
-                      raise
-                        (Error.Invalid_value
-                           ( fmt,
-                             Printf.sprintf
-                               "Stream info for stream %S cannot be inferred \
-                                from codec, please specify it with: \
-                                `%%encoder(...).{codecs = \"...\", ...}`"
-                               name,
-                             [] )))))
+                      log#important
+                        "Stream %s: codecs cannot be inferred, CODECS is \
+                         omitted from the main playlist. Specify them with \
+                         `%%encoder(...).{codecs = \"...\", ...}`."
+                        name;
+                      "")))
       in
       let extname =
         try Lang.to_string (List.assoc "extname" stream_info)
@@ -619,14 +607,13 @@ class hls_output p =
                 | None -> Encoder.video_size format))
       in
       let id3_enabled =
+        let id3_version =
+          try Some (Lang.to_int (List.assoc "id3_version" stream_info))
+          with Not_found -> None
+        in
         match Lang.to_bool (List.assoc "id3" stream_info) with
-          | id3_enabled ->
-              let id3_version =
-                try Some (Lang.to_int (List.assoc "id3_version" stream_info))
-                with Not_found -> None
-              in
-              encoder.hls.init ~id3_enabled ?id3_version ()
-          | exception Not_found -> encoder.hls.init ()
+          | id3_enabled -> encoder.hls.init ~id3_enabled ?id3_version ()
+          | exception Not_found -> encoder.hls.init ?id3_version ()
       in
       let replay_id3 =
         match Lang.to_bool (List.assoc "replay_id3" stream_info) with
@@ -661,6 +648,8 @@ class hls_output p =
         current_segment = None;
         discontinuity_count = 0;
         needs_discontinuity = false;
+        media_time = 0;
+        boundary = segment_main_duration;
       }
     in
     let mk_streams () = List.map f streams in
@@ -688,7 +677,7 @@ class hls_output p =
   in
   object (self)
     inherit
-      [(int * Strings.t option * Strings.t) list] Output.encoded
+      [(int * Encoder.hls_piece list) list] Output.encoded
         ~infallible ~register_telnet ~autostart ~export_cover_metadata:false
           ~output_kind:"output.file" ~name:main_playlist_filename source_val as super
 
@@ -829,7 +818,7 @@ class hls_output p =
           | None -> ()
           | Some s -> out_channel#output_string s)
 
-    method private open_segment s =
+    method private open_segment ~start s =
       self#log#debug "Opening segment %d for stream %s." s.position s.name;
       let discontinuous, current_discontinuity =
         if s.needs_discontinuity then (true, s.discontinuity_count + 1)
@@ -843,13 +832,13 @@ class hls_output p =
           discontinuous;
           current_discontinuity;
           len = 0;
-          carried_len = 0;
           segment_extra_tags;
           init_filename =
             (match s.init_state with `Has_init f -> Some f | _ -> None);
           filename = None;
           out_channel = None;
-          last_segmentable_position = None;
+          start;
+          splits = [];
         }
       in
       let { position; extname } = s in
@@ -859,31 +848,35 @@ class hls_output p =
         segment_name ~position ~extname ~duration ~ticks s.name
       in
       let out_channel = self#open_out filename in
-      self#write_metadata ~s ~current_position out_channel;
+      let frame_size = Lazy.Mutexed.force Frame.size in
+      self#write_metadata ~s
+        ~current_position:(start / frame_size, start mod frame_size)
+        out_channel;
       Strings.iter out_channel#output_substring (s.encoder.Encoder.header ());
       segment.out_channel <- Some out_channel;
       s.current_segment <- Some segment;
       s.discontinuity_count <- current_discontinuity;
       s.position <- s.position + 1
 
-    method reopen_segment ~position:(len, offset) =
-      function
-      | {
-          current_segment =
-            Some
-              ({ len = current_len; out_channel = Some oc } as current_segment);
-        } as s ->
-          let rem = oc#read offset (oc#position - offset) in
-          current_segment.len <- len;
-          oc#truncate offset;
-          self#close_segment s;
-          self#open_segment s;
-          let segment = Option.get s.current_segment in
-          let oc = Option.get segment.out_channel in
-          oc#output_string rem;
-          segment.len <- current_len - len;
-          segment.carried_len <- current_len - len
-      | _ -> assert false
+    (* Ends the open segment at a split point: the bytes after it start the
+       next segment, with the split points they hold. *)
+    method private cut s (time, offset) =
+      match s.current_segment with
+        | Some ({ out_channel = Some oc } as segment) ->
+            let rem = oc#read offset (oc#position - offset) in
+            let later = List.filter (fun (t, _) -> t > time) segment.splits in
+            segment.len <- time - segment.start;
+            oc#truncate offset;
+            self#close_segment s;
+            self#open_segment ~start:time s;
+            let segment = Option.get s.current_segment in
+            let oc = Option.get segment.out_channel in
+            let base = oc#position in
+            oc#output_string rem;
+            segment.splits <-
+              List.map (fun (t, o) -> (t, o - offset + base)) later;
+            segment.len <- s.media_time - time
+        | _ -> assert false
 
     method private cleanup_streams =
       List.iter
@@ -1047,7 +1040,7 @@ class hls_output p =
       stopped <- true;
       (try
          let data =
-           List.map (fun s -> (0, None, s.encoder.Encoder.stop ())) streams
+           List.map (fun s -> (0, [`Bytes (s.encoder.Encoder.stop ())])) streams
          in
          self#send data
        with _ -> ());
@@ -1155,30 +1148,34 @@ class hls_output p =
               (fun () -> Strings.iter oc#output_substring data);
             segment.init_filename <- Some init_filename;
             s.init_state <- `Has_init init_filename
-        | Some _ -> raise Encoder.Not_enough_data
+        | Some _ ->
+            self#log#important "Stream %s: empty init segment ignored." name;
+            s.init_state <- `No_init
 
-    method private should_reopen ~segment ~len s =
-      if segment.len - segment.carried_len + len > segment_main_duration then
-        ( true,
-          Printf.sprintf
-            "Terminating current segment %d on stream %s to make expected \
-             length"
-            segment.id s.name,
-          true )
-      else if s.id3_enabled && pending_metadata s.metadata then
-        ( true,
-          Printf.sprintf
-            "Terminating current segment %d on stream %s to insert new metadata"
-            segment.id s.name,
-          false )
+    (* ffmpeg spec encoder.md §8.7 item 5: cuts that open a segment for
+       pending metadata or tags, at any split point. *)
+    method private extra_cut s =
+      if s.id3_enabled && pending_metadata s.metadata then
+        Some "to insert new metadata"
       else if Atomic.get s.pending_extra_tags <> [] then
-        ( true,
-          Printf.sprintf
-            "Terminating current segment %d on stream %s to insert pending \
-             extra tags"
-            segment.id s.name,
-          false )
-      else (false, "", false)
+        Some "to insert pending extra tags"
+      else None
+
+    (* The next boundary on the grid after [time]: boundaries are counted from
+       the variant's start, never from a segment's actual end. *)
+    method private next_boundary time =
+      ((time / segment_main_duration) + 1) * segment_main_duration
+
+    (* §8.7 item 6: the wait for a split point ends before the open segment's
+       rounded duration would pass the target duration. *)
+    method private must_force s ~len =
+      match s.current_segment with
+        | Some segment ->
+            segment.splits = []
+            && Float.round
+                 (Frame.seconds_of_main (s.media_time + len - segment.start))
+               > ceil segment_duration
+        | None -> false
 
     method encode frame =
       let len = Frame.position frame in
@@ -1189,55 +1186,96 @@ class hls_output p =
         (frame_pos + (samples_pos / frame_size), samples_pos mod frame_size);
       List.map
         (fun s ->
-          let segment =
-            if s.current_segment = None then self#open_segment s;
-            Option.get s.current_segment
-          in
-          let b =
+          if s.current_segment = None then
+            self#open_segment ~start:s.media_time s;
+          let boundary = self#next_boundary s.media_time in
+          let pieces =
             if s.init_state = `Todo then (
-              try
-                let init, encoded = Encoder.(s.encoder.hls.init_encode frame) in
-                self#process_init ~init ~segment s;
-                (len, None, encoded)
-              with Encoder.Not_enough_data -> (len, None, Strings.empty))
+              match Encoder.(s.encoder.hls.init_encode ~boundary frame) with
+                | `Pending -> []
+                | `Init (init, pieces) ->
+                    self#process_init ~init
+                      ~segment:(Option.get s.current_segment)
+                      s;
+                    pieces)
             else (
-              match Encoder.(s.encoder.hls.split_encode frame) with
-                | `Ok (flushed, encoded) -> (len, Some flushed, encoded)
-                | `Nope encoded -> (len, None, encoded))
+              let force = self#must_force s ~len in
+              Encoder.(s.encoder.hls.split_encode ~boundary ~force frame))
           in
-          let segment = Option.get s.current_segment in
-          segment.len <- segment.len + len;
-          b)
+          (len, pieces))
         streams
 
-    method private write_pipe s (len, flushed, data) =
-      let ({ out_channel } as segment) = Option.get s.current_segment in
-      let oc = Option.get out_channel in
-      (match flushed with
-        | None -> ()
-        | Some b ->
-            Strings.iter oc#output_substring b;
-            segment.last_segmentable_position <- Some (segment.len, oc#position));
-      (match
-         (self#should_reopen ~segment ~len s, segment.last_segmentable_position)
-       with
-        | (false, _, _), _ | (true, _, false), None -> ()
-        | (true, reason, _), position ->
-            let position =
-              match position with
-                | None ->
-                    self#log#important
-                      "Splitting segment without a new keyframe! You might \
-                       want to adjust your encoder's parameters to increase \
-                       the keyframe frequency!";
-                    (segment.len, oc#position)
-                | Some p -> p
-            in
-            self#log#info "%s" reason;
-            self#reopen_segment ~position s);
-      let { out_channel } = Option.get s.current_segment in
-      let oc = Option.get out_channel in
-      Strings.iter oc#output_substring data
+    (* §8.7 items 3 and 4: a split after the boundary cuts the segment at its
+       last split at or before the boundary, else at the first one after. *)
+    method private split s (time, offset) =
+      let segment = Option.get s.current_segment in
+      if time > segment.start then
+        segment.splits <- (time, offset) :: segment.splits;
+      let rec cut_due () =
+        let segment = Option.get s.current_segment in
+        if time >= s.boundary then (
+          let inside =
+            List.filter (fun (t, _) -> t > segment.start) segment.splits
+          in
+          let before = List.filter (fun (t, _) -> t <= s.boundary) inside in
+          let target =
+            match before with
+              | point :: _ -> Some point
+              | [] -> (
+                  match
+                    List.rev (List.filter (fun (t, _) -> t > s.boundary) inside)
+                  with
+                    | point :: _ -> Some point
+                    | [] -> None)
+          in
+          match target with
+            | Some (t, o) ->
+                self#log#info
+                  "Terminating current segment %d on stream %s at its split \
+                   point"
+                  segment.id s.name;
+                s.boundary <- self#next_boundary t;
+                self#cut s (t, o);
+                cut_due ()
+            | None -> s.boundary <- self#next_boundary time)
+        else (
+          match self#extra_cut s with
+            | Some reason when time > segment.start ->
+                self#log#info "Terminating current segment %d on stream %s %s"
+                  segment.id s.name reason;
+                self#cut s (time, offset)
+            | _ -> ())
+      in
+      cut_due ()
+
+    method private write_pipe s (len, pieces) =
+      s.media_time <- s.media_time + len;
+      List.iter
+        (fun piece ->
+          let segment = Option.get s.current_segment in
+          let oc = Option.get segment.out_channel in
+          match piece with
+            | `Bytes data -> Strings.iter oc#output_substring data
+            | `Split { Encoder.time; forced } ->
+                if forced then
+                  self#log#important
+                    "Stream %s: no split point within the target duration, \
+                     segment cut at %.3fs without a key packet of every \
+                     stream."
+                    s.name
+                    (Frame.seconds_of_main time);
+                self#split s (time, oc#position)
+            | `Restart { Encoder.restart_time; init } ->
+                s.boundary <- self#next_boundary restart_time;
+                s.needs_discontinuity <- true;
+                self#cut s (restart_time, oc#position);
+                s.init_position <- s.init_position + 1;
+                self#process_init ~init
+                  ~segment:(Option.get s.current_segment)
+                  s)
+        pieces;
+      let segment = Option.get s.current_segment in
+      segment.len <- s.media_time - segment.start
 
     method send b = List.iter2 self#write_pipe streams b
 

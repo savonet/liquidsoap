@@ -28,12 +28,19 @@
 
     [create] raises the [encoder] error of a configuration it cannot build;
     [mk_stream] raises it for a stream the codec or the muxer rejects. [encode]
-    raises [Failure] once a field reaches the fault bound. *)
+    raises [Failure] once a field reaches the fault bound. The [on_packet] hook
+    is called before each packet reaches the muxer, with its key flag and its
+    media time in main ticks (encoder.md §8.2). *)
 
+type on_packet = key:bool -> time:int option -> unit
+
+(** [request_keyframe time] makes the first image at or after media time [time]
+    a key frame; a no-op on audio and subtitle streams (encoder.md §8.4). *)
 type t = {
   mk_stream : Frame.t -> unit;
   encode : position:int -> Frame.t -> unit;
   flush : unit -> unit;
+  request_keyframe : int -> unit;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;
@@ -43,6 +50,7 @@ val create :
   log:Log.t ->
   pos:Pos.t option ->
   field:Frame.field ->
+  on_packet:on_packet ->
   Liquidsoap_ffmpeg_formats.Encoder_format.encoded ->
   Avutil.output Avutil.container ->
   t

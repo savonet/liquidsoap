@@ -56,30 +56,28 @@ val video_size : format -> (int * int) option
 (** Bitrate estimation in bits per second. *)
 val bitrate : format -> int
 
-(** An encoder, once initialized, is something that consumes frames, insert
-    metadata and that you eventually close (triggers flushing). Insert metadata
-    is really meant for inline metadata, i.e. in most cases, stream sources.
-    Otherwise, metadata are passed when creating the encoder. For instance, the
-    mp3 encoder may accept metadata initially and write them as id3 tags but
-    does not support inline metadata. Also, the ogg encoder supports inline
-    metadata but restarts its stream. This is ok, though, because the ogg
-    container/streams is meant to be sequentialized but not the mp3 format.
-    header contains data that should be sent first to streaming client. *)
+(** HLS output of an encoder (ffmpeg spec encoder.md §8.4), times in main ticks
+    of media time: bytes, an accepted split point, or a container restart, which
+    is a split point that also starts a new container with its init segment.
+    [forced] marks a split made without its key-packet condition. *)
+type hls_split = { time : int; forced : bool }
 
-type split_result =
-  [ (* Returns (flushed, first_bytes_for_next_segment) *)
-    `Ok of Strings.t * Strings.t
-  | `Nope of Strings.t ]
+type hls_restart = { restart_time : int; init : Strings.t option }
 
-(* Raised by [init_encode] if more data is needed. *)
-exception Not_enough_data
+type hls_piece =
+  [ `Bytes of Strings.t | `Split of hls_split | `Restart of hls_restart ]
 
+(** [`Pending] keeps the bytes for the next call; [`Init (init, pieces)] gives
+    the init segment, none for a format without one, and every byte after it. *)
+type hls_init = [ `Pending | `Init of Strings.t option * hls_piece list ]
+
+(** The HLS output calls [init], then [init_encode] until it returns [`Init],
+    then [split_encode] for each later frame, with the next grid boundary;
+    [force] asks for a split before the frame whatever its packets. *)
 type hls = {
-  (* Returns true if id3 is enabled. *)
   init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
-  (* Returns (init_segment, first_bytes) *)
-  init_encode : Frame.t -> Strings.t option * Strings.t;
-  split_encode : Frame.t -> split_result;
+  init_encode : boundary:int -> Frame.t -> hls_init;
+  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   codec_attrs : unit -> string option;
   insert_id3 :
     frame_position:int ->
@@ -93,6 +91,15 @@ type hls = {
 
 val dummy_hls : (Frame.t -> Strings.t) -> hls
 
+(** An encoder, once initialized, is something that consumes frames, insert
+    metadata and that you eventually close (triggers flushing). Insert metadata
+    is really meant for inline metadata, i.e. in most cases, stream sources.
+    Otherwise, metadata are passed when creating the encoder. For instance, the
+    mp3 encoder may accept metadata initially and write them as id3 tags but
+    does not support inline metadata. Also, the ogg encoder supports inline
+    metadata but restarts its stream. This is ok, though, because the ogg
+    container/streams is meant to be sequentialized but not the mp3 format.
+    header contains data that should be sent first to streaming client. *)
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;

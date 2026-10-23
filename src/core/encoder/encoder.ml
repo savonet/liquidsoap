@@ -144,30 +144,28 @@ let bitrate = function
   | FdkAacEnc w -> Fdkaac_format.bitrate w
   | _ -> raise Not_found
 
-(** An encoder, once initialized, is something that consumes frames, insert
-    metadata and that you eventually close (triggers flushing). Insert metadata
-    is really meant for inline metadata, i.e. in most cases, stream sources.
-    Otherwise, metadata are passed when creating the encoder. For instance, the
-    mp3 encoder may accept metadata initially and write them as id3 tags but
-    does not support inline metadata. Also, the ogg encoder supports inline
-    metadata but restarts its stream. This is ok, though, because the ogg
-    container/streams is meant to be sequentialized but not the mp3 format.
-    header contains data that should be sent first to streaming client. *)
+(** HLS output of an encoder (ffmpeg spec encoder.md §8.4), times in main ticks
+    of media time: bytes, an accepted split point, or a container restart, which
+    is a split point that also starts a new container with its init segment.
+    [forced] marks a split made without its key-packet condition. *)
+type hls_split = { time : int; forced : bool }
 
-type split_result =
-  [ (* Returns (flushed, first_bytes_for_next_segment) *)
-    `Ok of Strings.t * Strings.t
-  | `Nope of Strings.t ]
+type hls_restart = { restart_time : int; init : Strings.t option }
 
-(* Raised by [init_encode] if more data is needed. *)
-exception Not_enough_data
+type hls_piece =
+  [ `Bytes of Strings.t | `Split of hls_split | `Restart of hls_restart ]
 
+(** [`Pending] keeps the bytes for the next call; [`Init (init, pieces)] gives
+    the init segment, none for a format without one, and every byte after it. *)
+type hls_init = [ `Pending | `Init of Strings.t option * hls_piece list ]
+
+(** The HLS output calls [init], then [init_encode] until it returns [`Init],
+    then [split_encode] for each later frame, with the next grid boundary;
+    [force] asks for a split before the frame whatever its packets. *)
 type hls = {
-  (* Returns true if id3 is enabled. *)
   init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
-  (* Returns (init_segment, first_bytes) *)
-  init_encode : Frame.t -> Strings.t option * Strings.t;
-  split_encode : Frame.t -> split_result;
+  init_encode : boundary:int -> Frame.t -> hls_init;
+  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   codec_attrs : unit -> string option;
   insert_id3 :
     frame_position:int ->
@@ -179,17 +177,37 @@ type hls = {
   video_size : unit -> (int * int) option;
 }
 
+(* Every frame start is a split point: the encoders using it write
+   self-contained units. *)
 let dummy_hls encode =
+  let time = ref 0 in
+  let encode f =
+    let data = encode f in
+    time := !time + Frame.position f;
+    data
+  in
   {
     init = (fun ?id3_enabled:_ ?id3_version:_ _ -> false);
-    init_encode = (fun f -> (None, encode f));
-    split_encode = (fun f -> `Ok (Strings.empty, encode f));
+    init_encode = (fun ~boundary:_ f -> `Init (None, [`Bytes (encode f)]));
+    split_encode =
+      (fun ~boundary:_ ~force f ->
+        let split = `Split { time = !time; forced = force } in
+        [split; `Bytes (encode f)]);
     codec_attrs = (fun () -> None);
     insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
     bitrate = (fun () -> None);
     video_size = (fun () -> None);
   }
 
+(** An encoder, once initialized, is something that consumes frames, insert
+    metadata and that you eventually close (triggers flushing). Insert metadata
+    is really meant for inline metadata, i.e. in most cases, stream sources.
+    Otherwise, metadata are passed when creating the encoder. For instance, the
+    mp3 encoder may accept metadata initially and write them as id3 tags but
+    does not support inline metadata. Also, the ogg encoder supports inline
+    metadata but restarts its stream. This is ok, though, because the ogg
+    container/streams is meant to be sequentialized but not the mp3 format.
+    header contains data that should be sent first to streaming client. *)
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
@@ -246,8 +264,12 @@ let get_factory fmt =
       let init ?id3_enabled ?id3_version () =
         Mutex.protect m (fun () -> init ?id3_enabled ?id3_version ())
       in
-      let init_encode frame = Mutex.protect m (fun () -> init_encode frame) in
-      let split_encode frame = Mutex.protect m (fun () -> split_encode frame) in
+      let init_encode ~boundary frame =
+        Mutex.protect m (fun () -> init_encode ~boundary frame)
+      in
+      let split_encode ~boundary ~force frame =
+        Mutex.protect m (fun () -> split_encode ~boundary ~force frame)
+      in
       let codec_attrs () = Mutex.protect m codec_attrs in
       let insert_id3 ~frame_position ~sample_position meta =
         Mutex.protect m (fun () ->

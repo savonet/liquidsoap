@@ -47,10 +47,13 @@ val create :
   Avutil.output Avutil.container ->
   t
 
+(** [on_packet] is called before each packet reaches the muxer, with its key
+    flag and media time (encoder.md §8.2). *)
 val track :
   t ->
   field:Frame.field ->
   keyframe:Liquidsoap_ffmpeg_formats.Encoder_format.keyframe ->
+  on_packet:(key:bool -> time:int option -> unit) ->
   track
 
 (** The known parameters of the field's first run that has them, in this frame.

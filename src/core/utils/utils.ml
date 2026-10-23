@@ -496,6 +496,8 @@ let frame_id_of_string = function
   | "url" -> Some `WXXX
   | v -> Metadata.ID3v2.frame_id_of_string v
 
+(* UTF-8 text frames exist from ID3v2.4: earlier versions get UTF-16 with a
+   byte order mark. *)
 let id3v2_of_metadata ~version m =
   let frames =
     List.fold_left
@@ -506,6 +508,10 @@ let id3v2_of_metadata ~version m =
                 Metadata.ID3v2.id;
                 data =
                   (if Metadata.ID3v2.binary_frame id then `Binary v
+                   else if version < 4 then
+                     `Text
+                       ( `UTF_16,
+                         Metadata.recode ~source:`UTF_8 ~target:`UTF_16 v )
                    else `Text (`UTF_8, v));
                 flags = Metadata.ID3v2.default_flags id;
               }

@@ -541,6 +541,9 @@ module Video = struct
   external frame_set_colors : video frame -> frame_format -> unit
     = "ocaml_avutil_video_frame_set_colors"
 
+  external frame_force_keyframe : video frame -> unit
+    = "ocaml_avutil_video_frame_force_keyframe"
+
   let frame_format frame =
     {
       width = frame_get_width frame;

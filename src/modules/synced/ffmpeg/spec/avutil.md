@@ -625,6 +625,7 @@ module Video : sig
     chroma_location : Chroma_location.t;
   }
   val frame_set_colors : video frame -> frame_format -> unit
+  val frame_force_keyframe : video frame -> unit
   val frame_format : video frame -> frame_format
   type frame_property = [ `Color | `Pixel_aspect ]
   val same_frame_format :
@@ -636,6 +637,11 @@ end
 primaries, transfer characteristic and chroma location to those of
 `format`; the other fields of `format` are not read. It writes the frame in
 place: a caller sets it only on a frame it owns.
+
+`frame_force_keyframe frame` sets the frame's picture type to intra and its
+key flag, so that an encoder given the frame encodes it as a key frame (an
+IDR picture for H.264 unless the encoder is set for open GOPs). It writes
+the frame in place, as `frame_set_colors` does.
 
 `create_frame width height pixel_format` returns a new frame of that geometry
 and format, with buffers allocated by FFmpeg with alignment
