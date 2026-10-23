@@ -61,6 +61,21 @@ let make ?frame_rate ?time_base media =
     level;
   }
 
+let with_side_data t side_data =
+  let media =
+    match t.media with
+      | `Audio p -> `Audio (Avcodec.params_with_side_data p side_data)
+      | `Video p -> `Video (Avcodec.params_with_side_data p side_data)
+      | `Subtitle p -> `Subtitle (Avcodec.params_with_side_data p side_data)
+  in
+  { t with media }
+
+let side_data t =
+  match t.media with
+    | `Audio p -> Avcodec.params_side_data p
+    | `Video p -> Avcodec.params_side_data p
+    | `Subtitle p -> Avcodec.params_side_data p
+
 let media_name t =
   match t.media with
     | `Audio _ -> "audio"

@@ -34,6 +34,10 @@ val mime_types : string list Dtools.Conf.t
 val image_mime_types : string list Dtools.Conf.t
 val file_extensions : string list Dtools.Conf.t
 val image_file_extensions : string list Dtools.Conf.t
+
+(** The file's extension, lowercased, is in {!image_file_extensions}. *)
+val is_image_extension : string -> bool
+
 val priority : int Dtools.Conf.t
 val image_priority : int Dtools.Conf.t
 val metadata_priority : int Dtools.Conf.t

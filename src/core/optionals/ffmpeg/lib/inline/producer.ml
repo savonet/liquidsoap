@@ -49,7 +49,8 @@ type running = {
   mutable received : bool;
 }
 
-class producer ~name ~field ~check ~builder ~child_frame_type input_val =
+class producer ~name ~field ~passthrough ~check ~builder ~child_frame_type
+  input_val =
   let input = Lang.to_source input_val in
   object (self)
     inherit
@@ -160,13 +161,23 @@ class producer ~name ~field ~check ~builder ~child_frame_type input_val =
           let length = Frame.position frame in
           if length > 0 then (
             r.received <- true;
-            r.transform.push ~input_time:r.input_time (Frame.get frame field));
+            r.transform.push ~input_time:r.input_time (Frame.get frame field);
+            if passthrough then self#pass frame);
           r.input_time <- r.input_time + length;
           if length = 0 then self#place r r.input_time
         with
           | Source_fault message -> self#source_fault message
           | Failure message -> self#source_fault message
           | Avutil.Error e -> self#source_fault (Avutil.string_of_error e))
+
+    method private pass frame =
+      Frame.Fields.iter
+        (fun f _ ->
+          if
+            f <> field && f <> Frame.Fields.metadata
+            && f <> Frame.Fields.track_marks
+          then Generator.put self#child_buffer f (Frame.get frame f))
+        self#content_type
 
     method! private can_generate_frame =
       Generator.length self#child_buffer > 0
@@ -197,10 +208,15 @@ class producer ~name ~field ~check ~builder ~child_frame_type input_val =
     initializer self#on_sleep (fun () -> self#discard)
   end
 
-let create ~name ~field ~input_t ~check ~builder input_val =
+let create ?(passthrough = false) ?child_frame_type ~name ~field ~input_t ~check
+    ~builder input_val =
   let child_frame_type =
-    Lang.frame_t (Lang.univ_t ())
-      (Frame.Fields.add field input_t Frame.Fields.empty)
+    match child_frame_type with
+      | Some t -> t
+      | None ->
+          Lang.frame_t (Lang.univ_t ())
+            (Frame.Fields.add field input_t Frame.Fields.empty)
   in
-  (new producer ~name ~field ~check ~builder ~child_frame_type input_val
+  (new producer
+     ~name ~field ~passthrough ~check ~builder ~child_frame_type input_val
     :> Source.source)

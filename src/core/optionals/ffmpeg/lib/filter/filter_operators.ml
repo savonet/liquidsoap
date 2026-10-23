@@ -23,7 +23,7 @@
 module V = Filter_values
 module D = Description
 
-let filter_module = Lang.add_module ~base:Lang_modules.ffmpeg "filter"
+let filter_module = Lang_modules.ffmpeg_filter
 let audio_module = Lang.add_module ~base:filter_module "audio"
 let video_module = Lang.add_module ~base:filter_module "video"
 let category = `Source `FFmpegFilter

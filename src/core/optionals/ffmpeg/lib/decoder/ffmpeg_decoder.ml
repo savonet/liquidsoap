@@ -25,11 +25,7 @@ let log = Log.make ["decoder"; "ffmpeg"]
 let extension filename =
   try Some (String.lowercase_ascii (Utils.get_ext filename)) with _ -> None
 
-let is_image_extension filename =
-  match extension filename with
-    | Some ext -> List.mem ext Decoder_settings.image_file_extensions#get
-    | None -> false
-
+let is_image_extension = Decoder_settings.is_image_extension
 let mime_base mime = List.hd (String.split_on_char ';' mime)
 
 let is_image_mime mime =

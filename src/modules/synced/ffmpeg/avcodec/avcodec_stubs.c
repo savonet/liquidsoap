@@ -1320,9 +1320,11 @@ CAMLprim value ocaml_avcodec_bitstream_filters(value _unit) {
 }
 
 /* Returns (instance, output parameters, unused option keys). */
-CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options, value _name,
+CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options,
+                                                   value _time_base,
+                                                   value _name,
                                                    value _parameters) {
-  CAMLparam3(_options, _name, _parameters);
+  CAMLparam4(_options, _time_base, _name, _parameters);
   CAMLlocal4(_result, _filter, _output, _unused);
   const AVBitStreamFilter *filter = av_bsf_get_by_name(String_val(_name));
   AVCodecParameters *output = alloc_parameters(&_output);
@@ -1348,6 +1350,10 @@ CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options, value _name,
   if (error < 0)
     ocaml_avutil_raise_error(error);
 
+  if (Is_some(_time_base))
+    handle->context->time_base_in =
+        ocaml_avutil_rational_of_value(Some_val(_time_base));
+
   options = ocaml_avutil_dictionary_of_options(_options);
   error = av_opt_set_dict2(handle->context, &options, AV_OPT_SEARCH_CHILDREN);
   if (error >= 0) {
@@ -1369,6 +1375,12 @@ CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options, value _name,
   Store_field(_result, 2, _unused);
 
   CAMLreturn(_result);
+}
+
+CAMLprim value ocaml_avcodec_bitstream_filter_time_base_out(value _filter) {
+  CAMLparam1(_filter);
+  CAMLreturn(ocaml_avutil_value_of_rational(
+      FilterHandle_val(_filter)->context->time_base_out));
 }
 
 static filter_handle *exclusive_filter(value _filter) {

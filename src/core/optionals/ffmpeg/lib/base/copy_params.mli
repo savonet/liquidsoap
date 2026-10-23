@@ -47,6 +47,10 @@ type t = private {
 val make :
   ?frame_rate:Avutil.rational -> ?time_base:Avutil.rational -> media -> t
 
+(** The same parameters with that coded side data, a new value. *)
+val with_side_data : t -> Avcodec.Packet_side_data.raw list -> t
+
+val side_data : t -> Avcodec.Packet_side_data.raw list
 val media_name : t -> string
 val codec_name : t -> string
 

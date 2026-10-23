@@ -70,6 +70,9 @@ let report_unused opts unused = Option.iter (filter_opts unused) opts
 
 module Packet_side_data = struct
   type kind = Packet_side_data_type.t
+
+  let kinds : kind list = Packet_side_data_type.t
+
   type raw = { kind : kind; data : string }
 
   type replaygain = {
@@ -645,12 +648,18 @@ module BitstreamFilter = struct
 
   external init :
     (string * value) array ->
+    Avutil.rational option ->
     string ->
     'a params ->
     'a t * 'a params * string array = "ocaml_avcodec_bitstream_filter_init"
 
-  let init ?opts filter params =
-    let instance, output, unused = init (bindings opts) filter.name params in
+  external time_base_out : 'a t -> Avutil.rational
+    = "ocaml_avcodec_bitstream_filter_time_base_out"
+
+  let init ?opts ?time_base filter params =
+    let instance, output, unused =
+      init (bindings opts) time_base filter.name params
+    in
     report_unused opts unused;
     (instance, output)
 

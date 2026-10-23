@@ -20,5 +20,10 @@
 
  *****************************************************************************)
 
-(** The [ffmpeg] script module, declared once for every builtin under it. *)
+(** The [ffmpeg], [ffmpeg.filter], [track.ffmpeg] and [track.ffmpeg.raw] script
+    modules, each declared once for every builtin under it. *)
+
 val ffmpeg : Lang.module_name
+val ffmpeg_filter : Lang.module_name
+val track_ffmpeg : Lang.module_name
+val track_ffmpeg_raw : Lang.module_name

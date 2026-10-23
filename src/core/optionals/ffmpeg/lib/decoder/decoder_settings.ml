@@ -570,3 +570,8 @@ let metadata_priority =
   Dtools.Conf.int
     ~p:(Request.conf_metadata_decoder_priorities#plug "ffmpeg")
     "Priority of the FFmpeg metadata decoder" ~d:1
+
+let is_image_extension filename =
+  match String.lowercase_ascii (Utils.get_ext filename) with
+    | ext -> List.mem ext image_file_extensions#get
+    | exception _ -> false
