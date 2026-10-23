@@ -22,11 +22,7 @@
 
 let accessors () =
   {
-    Duration.get_ts =
-      (fun frame ->
-        match Avutil.Frame.pts frame with
-          | Some _ as pts -> pts
-          | None -> Avutil.Frame.best_effort_timestamp frame);
+    Duration.get_ts = Avutil.Frame.pts;
     set_ts = (fun frame ts -> Avutil.Frame.set_pts frame ts);
     get_duration = Avutil.Frame.duration;
   }

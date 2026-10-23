@@ -307,6 +307,33 @@
     (cat fc2.ts)
     (cat fc1.ts)))))
 
+; H.264 with B-frames in AVI: packets carry a DTS and no PTS, so decoded
+; frames carry only a best-effort timestamp.
+
+(rule
+ (target besteffort.avi)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=4:rate=25:size=320x240
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   25
+   %{target})))
+
 (rule
  (target a44.wav)
  (action
@@ -731,6 +758,7 @@
  (package liquidsoap)
  (deps
   fmtchange.ts
+  besteffort.avi
   a44.wav
   a48.wav
   (package liquidsoap)

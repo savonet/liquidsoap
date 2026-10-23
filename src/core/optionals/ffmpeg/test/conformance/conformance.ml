@@ -167,6 +167,25 @@ let markers path =
   Av.close input;
   (List.rev !(fst beeps), List.rev !(fst flashes))
 
+(* Decoded video frames that carry a PTS or a best-effort timestamp. *)
+let timed_frames path =
+  let input = Av.open_input path in
+  let _, video, _ = Av.find_best_video_stream input in
+  let rec count n =
+    match Av.read_input ~video_frame:[video] input with
+      | `Video_frame (_, f) ->
+          let timed =
+            Avutil.Frame.pts f <> None
+            || Avutil.Frame.best_effort_timestamp f <> None
+          in
+          count (if timed then n + 1 else n)
+      | _ -> count n
+      | exception Avutil.Error `Eof -> n
+  in
+  let n = count 0 in
+  Av.close input;
+  n
+
 let wait name pid =
   match snd (Unix.waitpid [] pid) with
     | Unix.WEXITED 0 -> `Ok
@@ -349,6 +368,12 @@ let fixture_properties name =
               ]
           | None -> [("has a keyframe", false)])
     | "fmtchange.ts" -> [("180 frames", List.length v = 180)]
+    | "besteffort.avi" ->
+        [
+          ( "video packets without PTS",
+            v <> [] && List.for_all (fun p -> p.pts = None) v );
+          ("B-frames", timed_frames name >= 90);
+        ]
     | "latevideo.ts" ->
         [("video 8 s after audio", near ~within:0.1 8. (start v -. start a))]
     | "earlyaudio.ts" ->
@@ -659,7 +684,7 @@ let kc5 () =
 
 (* known-complexity.md §6: re-encoding across format and track changes. *)
 let kc6 () =
-  require ["fmtchange.ts"];
+  require ["fmtchange.ts"; "besteffort.avi"];
   ignore
     (run_ok "kc6"
        (copy_script ["fmtchange.ts"] {|%video(codec="libx264", g=250)|}
@@ -668,6 +693,19 @@ let kc6 () =
   check "kc6: every input frame reaches the output across two format changes"
     (List.length times = 6 * 25);
   check "kc6: PTS step by one frame across the changes"
+    (List.for_all
+       (fun (a, b) -> Float.abs (b -. a -. 0.04) < 1e-6)
+       (pairs times));
+  ignore
+    (run_ok "kc6_besteffort"
+       (copy_script ["besteffort.avi"] {|%video(codec="libx264")|}
+          "kc6_besteffort.nut" "nut"));
+  let times =
+    List.sort compare (List.map pts (packets "kc6_besteffort.nut" `Video))
+  in
+  check "kc6: frames timed by their best-effort timestamp are all kept"
+    (List.length times = timed_frames "besteffort.avi");
+  check "kc6: best-effort frames are one frame apart"
     (List.for_all
        (fun (a, b) -> Float.abs (b -. a -. 0.04) < 1e-6)
        (pairs times));
