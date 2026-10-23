@@ -328,6 +328,14 @@ Otherwise:
 
 The trimmed packets are counted and logged (§11).
 
+**Writing the held packets.** When a group starts, the held packets of its
+members are written merged across members in order of output DTS (a packet
+with no DTS takes its PTS, then its position), each member's own order kept.
+Reason: a muxer fixes its shift of negative timestamps from the first packet
+it receives; written member by member, a later member's earlier packet (the
+leading audio of a codec delay) falls below that shift, and the MP4 muxer
+aborts on it.
+
 **Gap at the switch.** When the group's members are every stream of the
 output (a **whole-output switch**), the time the group waited for its
 keyframe is removed from the copy timeline: its first packet lands at the

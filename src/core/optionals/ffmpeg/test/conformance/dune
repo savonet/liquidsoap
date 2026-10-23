@@ -972,6 +972,7 @@
  (alias ffmpeg_conformance_kc8)
  (package liquidsoap)
  (deps
+  avoff.mp4
   latevideo.ts
   earlyaudio.ts
   sub_short.mkv
