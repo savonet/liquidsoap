@@ -34,7 +34,8 @@
 %include "icecast.liq"
 %include "hls.liq"
 %include "video.liq"
-%include "ffmpeg.liq"
+
+# pass3: removed ffmpeg stdlib include
 %include "profiler.liq"
 %include "io.liq"
 %include "jack.liq"

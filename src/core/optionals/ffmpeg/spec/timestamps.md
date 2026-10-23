@@ -267,7 +267,7 @@ late members included.
 and grows only at a **whole-output switch**, a group whose members, when it
 starts, are every stream of the output: every stream is a copy track and
 every one switches to this source. At a whole-output switch where a member
-waited for a keyframe, `skipped` grows, before the candidates are computed,
+waited for a keyframe ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)), `skipped` grows, before the candidates are computed,
 by the output position of the key packet that set the group's start time
 `T` ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start))
 minus the group's wait start. In every other case `skipped` is unchanged. It

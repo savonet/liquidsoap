@@ -246,6 +246,21 @@ end
 external params_side_data : _ params -> Packet_side_data.raw list
   = "ocaml_avcodec_parameters_side_data"
 
+external params_extradata : _ params -> string
+  = "ocaml_avcodec_parameters_extradata"
+
+external params_profile : _ params -> int option
+  = "ocaml_avcodec_parameters_profile"
+
+external params_level : _ params -> int option
+  = "ocaml_avcodec_parameters_level"
+
+external params_block_align : _ params -> int
+  = "ocaml_avcodec_parameters_block_align"
+
+external params_bits_per_coded_sample : _ params -> int
+  = "ocaml_avcodec_parameters_bits_per_coded_sample"
+
 external params_with_side_data :
   'media params -> Packet_side_data.raw list -> 'media params
   = "ocaml_avcodec_parameters_with_side_data"
@@ -550,6 +565,24 @@ module Video = struct
       | ratio -> Some ratio
 
   let get_bit_rate (params : video params) = params_bit_rate params
+
+  external get_video_delay : video params -> int
+    = "ocaml_avcodec_parameters_video_delay"
+
+  type field_order = [ `Unknown | `Progressive | `Tt | `Bb | `Tb | `Bt ]
+
+  external get_field_order : video params -> field_order
+    = "ocaml_avcodec_parameters_field_order"
+
+  type color = {
+    color_range : Avutil.Color_range.t;
+    color_primaries : Avutil.Color_primaries.t;
+    color_trc : Avutil.Color_trc.t;
+    color_space : Avutil.Color_space.t;
+    chroma_location : Avutil.Chroma_location.t;
+  }
+
+  external get_color : video params -> color = "ocaml_avcodec_parameters_color"
 end
 
 module Subtitle = struct

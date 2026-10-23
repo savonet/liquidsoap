@@ -30,7 +30,7 @@ type format =
   | MP3 of Mp3_format.t
   | Shine of Shine_format.t
   | Flac of Flac_format.t
-  | Ffmpeg of Ffmpeg_format.t
+  | Ffmpeg of Liquidsoap_ffmpeg_formats.Encoder_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
 
@@ -56,15 +56,7 @@ val video_size : format -> (int * int) option
 (** Bitrate estimation in bits per second. *)
 val bitrate : format -> int
 
-(** Encoders that can output to a file. *)
-val file_output : format -> bool
-
-val with_file_output : ?append:bool -> format -> string -> format
-
-(** Encoders that can output to a arbitrary url. *)
-val url_output : format -> bool
-
-val with_url_output : format -> string -> format
+(* pass3: removed encoder-driven file and url output functions *)
 
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata

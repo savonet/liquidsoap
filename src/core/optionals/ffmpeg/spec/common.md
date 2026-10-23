@@ -342,9 +342,13 @@ helper without flushing it.
 ### 6.6 Conformance
 
 - Packets of a 10-hour stream with time base `1/1000` and steps of 23 and
-  24 ms (AAC at 44.1 kHz), pushed then flushed: the total length differs from
+  24 ms (AAC at 44.1 kHz): the lengths of the chunks `push` emits add up to
+  `rescale(last_ts, 1/1000, 1/44100) − rescale(first_ts, 1/1000, 1/44100)`
+  within one tick, and with the flushed chunk to
   `rescale(last_ts + last duration, 1/1000, 1/44100) − rescale(first_ts, 1/1000, 1/44100)`
-  by at most one tick.
+  within one tick. The first sum is the discriminating one: `flush` measures
+  from an absolute end, so a total that includes it hides drift in the
+  chunks before it.
 - Two streams of one source (audio as above, 30 fps video, both in `1/1000`):
   after 10 hours the difference of their total lengths equals the difference
   of their timestamp spans to within two ticks.

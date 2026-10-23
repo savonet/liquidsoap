@@ -219,6 +219,13 @@ The format's name and long name (A3). A name may be a comma-separated list of
 aliases.
 
 ```ocaml
+val input_ts_discont : (input, _) format -> bool
+```
+
+Whether the input format's flags hold `AVFMT_TS_DISCONT`: the format
+declares timestamp discontinuities legitimate (MPEG-TS, for instance).
+
+```ocaml
 val find_input_format : string -> (input, 'a) format option
 ```
 
@@ -316,6 +323,14 @@ val get_input_duration :
 
 The duration of the input in units of `format`. `None` when FFmpeg does not
 know it, and when it converts to 0. See "Time conversion" below.
+
+```ocaml
+val get_input_start_time :
+  ?format:Time_format.t -> input container -> Int64.t option
+```
+
+The input's start time (`start_time`) in units of `format`, as
+`get_input_duration` converts.
 
 ```ocaml
 val get_input_metadata : input container -> (string * string) list

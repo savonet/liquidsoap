@@ -589,6 +589,7 @@ CAMLprim value ocaml_avutil_expr_parse_and_eval(value _expression) {
 
 typedef struct log_message {
   struct log_message *next;
+  int level;
   char text[];
 } log_message;
 
@@ -622,6 +623,7 @@ static void log_callback(void *logging_context, int level, const char *format,
   if (!message)
     return;
   memcpy(message->text, line, length + 1);
+  message->level = level;
   message->next = NULL;
 
   pthread_mutex_lock(&log_mutex);
@@ -661,10 +663,11 @@ CAMLprim value ocaml_avutil_log_stop_capture(value _unit) {
   return Val_long(set_log_capture(0));
 }
 
-/* Blocks until messages are queued and returns them all, in order. */
+/* Blocks until messages are queued and returns them all, in order, each as
+   its FFmpeg level and its text. */
 CAMLprim value ocaml_avutil_log_wait(value _unit) {
   CAMLparam1(_unit);
-  CAMLlocal1(_messages);
+  CAMLlocal2(_messages, _message);
   log_message *messages;
   mlsize_t count = 0;
 
@@ -687,7 +690,10 @@ CAMLprim value ocaml_avutil_log_wait(value _unit) {
     log_message *message = messages;
 
     messages = message->next;
-    Store_field(_messages, i, caml_copy_string(message->text));
+    _message = caml_alloc_tuple(2);
+    Store_field(_message, 0, Val_int(message->level));
+    Store_field(_message, 1, caml_copy_string(message->text));
+    Store_field(_messages, i, _message);
     av_free(message);
   }
 
