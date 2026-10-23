@@ -822,7 +822,27 @@ o.on_stop(synchronous=true, shutdown)
       [("kc4_ogg_reclaimed", true); ("kc4_ogg_plain", false)]
   in
   check "kc4: the Ogg restart does not depend on when memory is reclaimed"
-    (List.nth chains 0 = List.nth chains 1)
+    (List.nth chains 0 = List.nth chains 1);
+  let log =
+    run_ok "kc4_sleep"
+      {|log.level.set(4)
+current = ref(true)
+e = ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), sine())
+f = ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), sine(880.))
+d = source.dynamic(track_sensitive=false, fun () -> current() ? e : f)
+thread.run(every=1., fun () -> current := not current())
+o = output.file(fallible=true, %ffmpeg(format="adts", %audio.copy), "kc4_sleep.aac", d)
+thread.run(delay=6.5, shutdown)
+|}
+  in
+  check "kc4: the inline encoders went to sleep and woke up"
+    (occurrences "Source ffmpeg_encode_audio gets down" log >= 2
+    && occurrences "Source ffmpeg_encode_audio gets up" log >= 3);
+  let audio = packets "kc4_sleep.aac" `Audio in
+  assert_monotonic "kc4 sleep" audio;
+  check "kc4: no packet dropped across sleeps and wake-ups"
+    ((not (contains "DTS dropped" log || contains "decreasing DTS" log))
+    && List.length audio > 6 * 43)
 
 (* known-complexity.md §5: packets with no DTS or a non-increasing DTS. *)
 let kc5 () =
