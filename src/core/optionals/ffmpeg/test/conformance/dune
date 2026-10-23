@@ -334,6 +334,48 @@
    25
    %{target})))
 
+; Known counts: 75 frames of H.264 with B-frames, one second of audio.
+
+(rule
+ (target count.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=3:rate=25:size=320x240
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   25
+   %{target})))
+
+(rule
+ (target count.wav)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=1:sample_rate=44100
+   -ac
+   2
+   %{target})))
+
 (rule
  (target a44.wav)
  (action
@@ -677,6 +719,97 @@
    main
    %{target})))
 
+; Colour properties and display matrix only.
+
+(rule
+ (target c709.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   -color_primaries
+   bt709
+   -color_trc
+   bt709
+   -colorspace
+   bt709
+   %{target})))
+
+(rule
+ (target c601.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   -color_primaries
+   bt470bg
+   -color_trc
+   gamma28
+   -colorspace
+   bt470bg
+   %{target})))
+
+(rule
+ (target r0.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   %{target})))
+
+(rule
+ (target r90.mp4)
+ (deps r0.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -display_rotation
+   90
+   -i
+   r0.mp4
+   -c
+   copy
+   %{target})))
+
 (rule
  (target aac.mp4)
  (action
@@ -792,6 +925,17 @@
   (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc8)))
 
 (rule
+ (alias ffmpeg_conformance_kc10)
+ (package liquidsoap)
+ (deps
+  count.mp4
+  count.wav
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc10)))
+
+(rule
  (alias ffmpeg_conformance_kc11)
  (package liquidsoap)
  (deps
@@ -800,6 +944,10 @@
   h264_c.mp4
   h264_high.mp4
   h264_main.mp4
+  c709.mp4
+  c601.mp4
+  r0.mp4
+  r90.mp4
   aac.mp4
   mp3.mp3
   (package liquidsoap)
@@ -827,5 +975,6 @@
   (alias ffmpeg_conformance_kc6)
   (alias ffmpeg_conformance_kc7)
   (alias ffmpeg_conformance_kc8)
+  (alias ffmpeg_conformance_kc10)
   (alias ffmpeg_conformance_kc11)
   (alias ffmpeg_conformance_kc12)))

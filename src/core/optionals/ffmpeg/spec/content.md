@@ -369,8 +369,8 @@ Conformance:
   MP4, the output stops at the switch (no clean restart); as an HLS variant,
   it starts a new segment.
 - A copy playlist whose files differ in display matrix, HDR metadata or a
-  colour property: every file plays, and each switch logs a warning naming
-  both values.
+  colour property: every file plays, and each switch to a file whose value
+  differs from the stream header logs a warning naming both values.
 - Two H.264 files that differ only in their average frame rate: accepted,
   with no warning.
 - With the relaxed setting on, the MP4-then-MPEG-TS playlist is accepted at
