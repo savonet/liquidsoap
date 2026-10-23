@@ -661,6 +661,9 @@ let kc5 () =
     assert_monotonic ("kc5 " ^ scenario) (pkts `Video);
     pkts
   in
+  let pkts = run "tb_change" in
+  check "kc5: a time base change within one source drops no packet"
+    (List.length (pkts `Video) = n_v * plays);
   let pkts = run "nodts_audio" in
   check "kc5: audio packets without DTS are written"
     (List.length (pkts `Audio) = n_a * plays);
