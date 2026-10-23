@@ -647,6 +647,183 @@ o.on_stop(synchronous=true, shutdown)
     (List.length (pkts `Video) = n `Video
     && List.length (pkts `Audio) = n `Audio)
 
+(* The media segments of an HLS playlist, each with the init segment that
+   precedes it, and the count of discontinuities. *)
+let hls_segments dir playlist =
+  let lines =
+    List.map String.trim
+      (String.split_on_char '\n'
+         (In_channel.with_open_bin
+            (Filename.concat dir playlist)
+            In_channel.input_all))
+  in
+  let map_prefix = {|#EXT-X-MAP:URI="|} in
+  let _, segments, discontinuities =
+    List.fold_left
+      (fun (init, segments, discontinuities) line ->
+        if String.starts_with ~prefix:map_prefix line then (
+          let n = String.length map_prefix in
+          ( Some (String.sub line n (String.length line - n - 1)),
+            segments,
+            discontinuities ))
+        else if line = "#EXT-X-DISCONTINUITY" then
+          (init, segments, discontinuities + 1)
+        else if line <> "" && line.[0] <> '#' then
+          (init, (Option.get init, line) :: segments, discontinuities)
+        else (init, segments, discontinuities))
+      (None, [], 0) lines
+  in
+  (List.rev segments, discontinuities)
+
+let concat_files out files =
+  Out_channel.with_open_bin out (fun oc ->
+      List.iter
+        (fun f ->
+          output_string oc (In_channel.with_open_bin f In_channel.input_all))
+        files)
+
+let ogg_links path =
+  let data = In_channel.with_open_bin path In_channel.input_all in
+  let rec count i n =
+    match String.index_from_opt data i 'O' with
+      | Some j when j + 6 <= String.length data ->
+          if String.sub data j 4 = "OggS" then
+            count (j + 4)
+              (if Char.code data.[j + 5] land 2 <> 0 then n + 1 else n)
+          else count (j + 1) n
+      | _ -> n
+  in
+  count 0 0
+
+(* known-complexity.md §4: lifetime of the per-source state. Live words are
+   read after a compaction, so the bound is on retained state, not on heap
+   slack. *)
+let kc4 () =
+  require ["gop.mp4"; "midgop.mp4"; "avoff.mp4"];
+  let log =
+    run_ok "kc4_memory"
+      {|settings.decoder.decoders.set(["ffmpeg"])
+s = single("short.mp4")
+clock.assign_new(sync="none", [s])
+plays = ref(0)
+marks = ref([])
+s.on_track(synchronous=true, fun (_) -> begin
+  plays := plays() + 1
+  if plays() == 100 or plays() == 1000 then
+    runtime.gc.compact()
+    marks := [...marks(), runtime.gc.stat().live_words]
+  end
+  if plays() == 1000 then
+    print("LIVE #{marks()}")
+    shutdown()
+  end
+end)
+output.file(fallible=true, %ffmpeg(format="mpegts", %audio.copy, %video.copy), "kc4_memory.ts", s)
+|}
+  in
+  (match
+     Scanf.sscanf_opt
+       (List.find
+          (String.starts_with ~prefix:"LIVE")
+          (String.split_on_char '\n' log))
+       "LIVE [%d, %d]"
+       (fun a b -> (a, b))
+   with
+    | Some (early, late) ->
+        check
+          (Printf.sprintf
+             "kc4: live words flat over 900 copied sources (%d then %d)" early
+             late)
+          (abs (late - early) * 200 < early)
+    | None -> fail "kc4: no live-word measurement in the log");
+  let runs =
+    List.map
+      (fun (name, reclaim) ->
+        let out = name ^ ".ts" in
+        ignore
+          (run_ok name
+             (Printf.sprintf
+                {|settings.decoder.decoders.set(["ffmpeg"])
+s = sequence([once(single("gop.mp4")), once(single("midgop.mp4"))])
+s.on_track(synchronous=true, fun (_) -> %s)
+clock.assign_new(sync="none", [s])
+o = output.file(fallible=true, %%ffmpeg(format="mpegts", %%audio.copy, %%video.copy), "%s", s)
+o.on_stop(synchronous=true, shutdown)
+|}
+                (if reclaim then "runtime.gc.compact()" else "()")
+                out));
+        packets out)
+      [("kc4_reclaimed", true); ("kc4_plain", false)]
+  in
+  List.iter
+    (fun kind ->
+      check "kc4: the output does not depend on when memory is reclaimed"
+        (timestamps ((List.nth runs 0) kind)
+        = timestamps ((List.nth runs 1) kind)))
+    [`Audio; `Video];
+  let sources =
+    {|s = sequence([once(single("avoff.mp4")), once(single("avoff.mp4")), once(single("avoff.mp4"))])|}
+  in
+  let av = {|%audio(codec="aac"), %video(codec="libx264")|} in
+  ignore
+    (run_ok "kc4_inline"
+       (Printf.sprintf
+          {|settings.decoder.decoders.set(["ffmpeg"])
+%s
+s = ffmpeg.encode.audio_video(%%ffmpeg(%s), s)
+clock.assign_new(sync="none", [s])
+o = output.file(fallible=true, %%ffmpeg(format="mpegts", %%audio.copy, %%video.copy), "kc4_inline.ts", s)
+o.on_stop(synchronous=true, shutdown)
+|}
+          sources av));
+  ignore
+    (run_ok "kc4_direct"
+       (Printf.sprintf
+          {|settings.decoder.decoders.set(["ffmpeg"])
+%s
+clock.assign_new(sync="none", [s])
+o = output.file(fallible=true, %%ffmpeg(format="mpegts", %s), "kc4_direct.ts", s)
+o.on_stop(synchronous=true, shutdown)
+|}
+          sources av));
+  let inline = packets "kc4_inline.ts" and direct = packets "kc4_direct.ts" in
+  assert_monotonic "kc4 inline audio" (inline `Audio);
+  assert_monotonic "kc4 inline video" (inline `Video);
+  let relation pkts =
+    pts (List.hd (pkts `Audio)) -. pts (List.hd (pkts `Video))
+  in
+  check "kc4: inline audio and video then copied start as a direct encode"
+    (Float.abs (relation inline -. relation direct) < 1e-3);
+  check "kc4: inline video then copied keeps every packet"
+    (List.length (inline `Video) = List.length (direct `Video));
+  (* The source ends with its video track, which cuts the audio encoder's
+     tail packet where it reaches past the video's end. *)
+  check "kc4: inline audio then copied keeps every packet but the tail"
+    (List.length (direct `Audio) - List.length (inline `Audio) <= 1);
+  let chains =
+    List.map
+      (fun (name, reclaim) ->
+        let out = name ^ ".ogg" in
+        ignore
+          (run_ok name
+             (Printf.sprintf
+                {|settings.decoder.decoders.set(["ffmpeg"])
+s = sequence([once(single("vq2.ogg")), once(single("vq2.ogg"))])
+s.on_track(synchronous=true, fun (_) -> %s)
+clock.assign_new(sync="none", [s])
+o = output.file(fallible=true, %%ffmpeg(format="ogg", %%audio.copy), "%s", s)
+o.on_stop(synchronous=true, shutdown)
+|}
+                (if reclaim then "runtime.gc.compact()" else "()")
+                out));
+        check "kc4: a metadata restart with copied audio chains a link"
+          (ogg_links out = 2);
+        timestamps (packets out `Audio))
+      [("kc4_ogg_reclaimed", true); ("kc4_ogg_plain", false)]
+  in
+  check "kc4: the Ogg restart does not depend on when memory is reclaimed"
+    (List.nth chains 0 = List.nth chains 1)
+
 (* known-complexity.md §5: packets with no DTS or a non-increasing DTS. *)
 let kc5 () =
   require ["gop.mp4"];
@@ -863,54 +1040,6 @@ s = ffmpeg.filter.create(mkfilter)|},
         aac_packets );
     ]
 
-(* The media segments of an HLS playlist, each with the init segment that
-   precedes it, and the count of discontinuities. *)
-let hls_segments dir playlist =
-  let lines =
-    List.map String.trim
-      (String.split_on_char '\n'
-         (In_channel.with_open_bin
-            (Filename.concat dir playlist)
-            In_channel.input_all))
-  in
-  let map_prefix = {|#EXT-X-MAP:URI="|} in
-  let _, segments, discontinuities =
-    List.fold_left
-      (fun (init, segments, discontinuities) line ->
-        if String.starts_with ~prefix:map_prefix line then (
-          let n = String.length map_prefix in
-          ( Some (String.sub line n (String.length line - n - 1)),
-            segments,
-            discontinuities ))
-        else if line = "#EXT-X-DISCONTINUITY" then
-          (init, segments, discontinuities + 1)
-        else if line <> "" && line.[0] <> '#' then
-          (init, (Option.get init, line) :: segments, discontinuities)
-        else (init, segments, discontinuities))
-      (None, [], 0) lines
-  in
-  (List.rev segments, discontinuities)
-
-let concat_files out files =
-  Out_channel.with_open_bin out (fun oc ->
-      List.iter
-        (fun f ->
-          output_string oc (In_channel.with_open_bin f In_channel.input_all))
-        files)
-
-let ogg_links path =
-  let data = In_channel.with_open_bin path In_channel.input_all in
-  let rec count i n =
-    match String.index_from_opt data i 'O' with
-      | Some j when j + 6 <= String.length data ->
-          if String.sub data j 4 = "OggS" then
-            count (j + 4)
-              (if Char.code data.[j + 5] land 2 <> 0 then n + 1 else n)
-          else count (j + 1) n
-      | _ -> n
-  in
-  count 0 0
-
 (* known-complexity.md §11: codec parameters across copied sources. *)
 let kc11 () =
   let log =
@@ -1028,6 +1157,7 @@ let checks =
     ("kc1", kc1);
     ("kc2", kc2);
     ("kc3", kc3);
+    ("kc4", kc4);
     ("kc5", kc5);
     ("kc6", kc6);
     ("kc7", kc7);

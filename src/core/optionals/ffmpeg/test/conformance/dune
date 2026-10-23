@@ -918,6 +918,26 @@
   (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc3)))
 
 (rule
+ (target short.mp4)
+ (deps gop.mp4)
+ (action
+  (run ffmpeg -nostdin -loglevel error -i gop.mp4 -t 0.5 -c copy %{target})))
+
+(rule
+ (alias ffmpeg_conformance_kc4)
+ (package liquidsoap)
+ (deps
+  gop.mp4
+  midgop.mp4
+  short.mp4
+  avoff.mp4
+  vq2.ogg
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc4)))
+
+(rule
  (alias ffmpeg_conformance_kc5)
  (package liquidsoap)
  (deps gop.mp4)
@@ -1011,6 +1031,7 @@
   (alias ffmpeg_conformance_kc1)
   (alias ffmpeg_conformance_kc2)
   (alias ffmpeg_conformance_kc3)
+  (alias ffmpeg_conformance_kc4)
   (alias ffmpeg_conformance_kc5)
   (alias ffmpeg_conformance_kc6)
   (alias ffmpeg_conformance_kc7)
