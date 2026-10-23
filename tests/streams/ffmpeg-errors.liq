@@ -1,0 +1,25 @@
+%include "../test.liq"
+
+def f() =
+  def on_error(e) =
+    e = error.methods(e)
+    test.equal(e.kind, "ffmpeg")
+    test.equal(
+      e.message,
+      "Avutil.Error(No such file or directory)"
+    )
+    let [..._, {filename}] = e.trace
+    test.equal(
+      string.contains(prefix="src/core/optionals/ffmpeg/", filename)
+      and string.contains(suffix=".ml", filename),
+      true
+    )
+    test.pass()
+  end
+
+  s = input.ffmpeg("invalid")
+  s.on_error(synchronous=true, on_error)
+  output.dummy(s, fallible=true)
+end
+
+test.check(f)

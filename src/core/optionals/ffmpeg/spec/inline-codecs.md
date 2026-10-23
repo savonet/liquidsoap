@@ -271,11 +271,14 @@ drained.
 
 To produce a frame:
 
-1. When the input is not ready and a transform exists, drain the transform
-   into the buffer (§13). This is the end of input of
-   [draining.md](draining.md#2-the-rule).
-2. While the input is ready and the buffer holds less than one frame (the
+1. While the input is ready and the buffer holds less than one frame (the
    minimum length over the buffer's media fields), tick the child clock.
+2. When the input is not ready, drain the transform into the buffer if one
+   exists (§13), then tick the child clock once. The drain is the end of
+   input of [draining.md](draining.md#2-the-rule). The tick is the one on
+   which the other readers of the child clock (§3.1) observe the end of the
+   input, as they would on a clock of their own: an output reading the same
+   input ends its track and, when fallible, stops.
 3. Take up to one frame from the buffer.
 
 When the input stops being ready the producer delivers what it has, then

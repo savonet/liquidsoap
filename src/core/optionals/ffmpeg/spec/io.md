@@ -138,6 +138,10 @@ Callbacks (each `(synchronous : bool, fn) -> {release}`):
 | `on_error`            | `error`                                                             | Each source fault: each failed attempt (§2.3), each feeding error (§4). Error kind `"ffmpeg"`. Never for a clean end of input (§2.5) nor for an item fault. |
 | `on_start`, `on_stop` | none                                                                | Generic start/stop transitions.                                                                                                                             |
 
+`on_connect`, `on_disconnect` and `on_error` are also accepted as the
+generic deprecated callback arguments of the same names, which register the
+function as a synchronous callback.
+
 For one connection, `on_disconnect` runs after its `on_connect` callbacks
 returned. A synchronous callback runs on the thread that makes the transition
 it belongs to.

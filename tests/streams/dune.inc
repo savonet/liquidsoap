@@ -678,6 +678,37 @@
    fades-persistent-override.liq)))
 
 (rule
+ (alias test_ffmpeg-errors)
+ (package liquidsoap)
+ (deps
+  ffmpeg-errors.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} ffmpeg-errors.liq liquidsoap ffmpeg-errors.liq)))
+
+(rule
  (alias test_file_output)
  (package liquidsoap)
  (deps
@@ -2334,6 +2365,7 @@
   (alias test_dtmf_pcm_s16)
   (alias test_fades-overrides)
   (alias test_fades-persistent-override)
+  (alias test_ffmpeg-errors)
   (alias test_file_output)
   (alias test_harbor_dynamic_failed_connect)
   (alias test_harbor_kick_client)
