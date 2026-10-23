@@ -34,13 +34,16 @@ val join : Source.source -> t
 
 val id : t -> Source_id.t
 
-(** Input time elapsed since the record's origin, in main ticks. *)
-val elapsed : t -> int
+(** Where a transform joining at child-clock tick [tick] starts, in main ticks
+    since the record's origin: the start of that tick's frame when a sibling has
+    already consumed it, else the elapsed time (inline-codecs.md §9). *)
+val start_time : t -> tick:int option -> int
 
-(** [advance t ~until] sets the elapsed time to [until] when it is later: every
-    transform of the record sees the same input frames, so each reports its own
-    end and the latest wins. *)
-val advance : t -> until:int -> unit
+(** [advance t ~tick ~from ~until] records the frame of tick [tick] spanning
+    [from] to [until] when it ends later than the elapsed time: every transform
+    of the record sees the same input frames, so each reports its own and the
+    latest wins. *)
+val advance : t -> tick:int option -> from:int -> until:int -> unit
 
 val close : t -> unit
 val is_open : t -> bool

@@ -487,7 +487,9 @@ Bitstream filters keep the incoming run's id
 
 Conformance:
 
-- `ffmpeg.encode.audio_video` produces audio and video chunks with one id.
+- `ffmpeg.encode.audio_video` produces audio and video chunks with one id,
+  and copying both keeps the audio and video start relation of a direct
+  encode of the same input.
 - Put an inline encoder to sleep and wake it, with no other encoder on its
   input: the chunks after the wake-up carry a new id, every time.
 - Same, with a second encoder on the same input that stays awake: the woken
@@ -663,10 +665,15 @@ What the stream encoders and muxers do with these timestamps is in
 **Timeline.** Every transform of one source-id record (§5) shares one
 timeline: time 0 is the record's origin. A transform built when the record
 opens starts its counters at 0. A transform that joins an open record starts
-its counters at the record's elapsed time, converted from main ticks to the
+its counters at the record time of the first input frame it receives: the
+record's elapsed time before that frame, so a transform built during a
+child-clock tick whose frame a sibling has already consumed starts at that
+frame's start, not after it. The time is converted from main ticks to the
 counter's unit with [common.md §5](common.md#5-time-base-conversion): the
 audio sample count at `elapsed × R / main rate`, the image counter at
-`elapsed × F / main rate`.
+`elapsed × F / main rate`. Reason: the transforms of one input are built in
+turn within a tick, and starting a later one at the end of the frame it is
+about to encode shifts its stream by one frame against its siblings.
 
 - Counters never reset inside a transform: not at track boundaries, not on
   source changes upstream.

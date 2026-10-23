@@ -68,9 +68,11 @@ let requested_sample_format (a : F.audio) =
 
 (* The record and its counters: every transform of a record shares its
    timeline (inline-codecs.md §9). *)
+let tick input = Clock.ticks input#clock
+
 let join input ~unit =
   let record = Source_ids.join input in
-  let base = Source_ids.elapsed record in
+  let base = Source_ids.start_time record ~tick:(tick input) in
   (record, base, rescale ~src:(Time_base.main ()) ~dst:unit base)
 
 let ends record =
@@ -184,7 +186,8 @@ let audio ~(log : Log.t) ~(encoded : F.encoded) ~(a : F.audio) :
                  ~length:(Frame.audio_of_main length)
                  resampler
                  (Content.Audio.get_data data)));
-        Source_ids.advance record ~until:(input_time + length));
+        Source_ids.advance record ~tick:(tick input) ~from:input_time
+          ~until:(input_time + length));
     drain =
       (fun () ->
         Fun.protect ~finally:close (fun () ->
@@ -350,7 +353,8 @@ let video ~(log : Log.t) ~(encoded : F.encoded) ~(v : F.video) :
           (fun (_, image) ->
             item_fault faults ~kind (fun () -> push_image image))
           (Content.Video.get_data data).data;
-        Source_ids.advance record ~until:(input_time + Content.length data));
+        Source_ids.advance record ~tick:(tick input) ~from:input_time
+          ~until:(input_time + Content.length data));
     drain =
       (fun () ->
         Fun.protect ~finally:close (fun () ->

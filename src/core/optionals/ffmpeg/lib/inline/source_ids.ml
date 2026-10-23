@@ -24,6 +24,7 @@ type t = {
   input : Source.source;
   id : Source_id.t;
   mutable elapsed : int;
+  mutable last_frame : (int option * int) option;
   mutable is_open : bool;
   mutable users : int;
 }
@@ -43,6 +44,7 @@ let join input =
                 input;
                 id = Source_id.make ();
                 elapsed = 0;
+                last_frame = None;
                 is_open = true;
                 users = 1;
               }
@@ -51,8 +53,17 @@ let join input =
             r)
 
 let id t = t.id
-let elapsed t = t.elapsed
-let advance t ~until = if until > t.elapsed then t.elapsed <- until
+
+let start_time t ~tick =
+  match t.last_frame with
+    | Some (frame_tick, start) when frame_tick = tick -> start
+    | _ -> t.elapsed
+
+let advance t ~tick ~from ~until =
+  if until > t.elapsed then (
+    t.last_frame <- Some (tick, from);
+    t.elapsed <- until)
+
 let close t = t.is_open <- false
 let is_open t = t.is_open
 
