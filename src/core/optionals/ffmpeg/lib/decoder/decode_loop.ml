@@ -301,13 +301,20 @@ let build_mapping t =
 let entry t index =
   List.find_opt (fun e -> e.stream.Stream_description.index = index) t.entries
 
+(* Every stage after the loop reads the frame timestamp (decoder.md §9) as
+   the frame's PTS. *)
+let with_frame_timestamp f =
+  if Avutil.Frame.pts f = None then
+    Avutil.Frame.set_pts f (Avutil.Frame.best_effort_timestamp f);
+  f
+
 let item_of_result : Av.input_result -> int * Per_stream.item = function
   | `Audio_packet (i, p) -> (i, `Packet (`Audio p))
   | `Video_packet (i, p) -> (i, `Packet (`Video p))
   | `Subtitle_packet (i, p) -> (i, `Packet (`Subtitle p))
   | `Data_packet (i, p) -> (i, `Data_packet p)
-  | `Audio_frame (i, f) -> (i, `Audio_frame f)
-  | `Video_frame (i, f) -> (i, `Video_frame f)
+  | `Audio_frame (i, f) -> (i, `Audio_frame (with_frame_timestamp f))
+  | `Video_frame (i, f) -> (i, `Video_frame (with_frame_timestamp f))
   | `Subtitle_frame (i, f) -> (i, `Subtitle_frame f)
 
 let packet_times p =
@@ -317,11 +324,7 @@ let packet_times p =
     List.mem `Keyframe (Avcodec.Packet.get_flags p) )
 
 let frame_times f =
-  let key =
-    match Avutil.Frame.pts f with
-      | Some _ as pts -> pts
-      | None -> Avutil.Frame.best_effort_timestamp f
-  in
+  let key = Avutil.Frame.pts f in
   (key, key, Avutil.Frame.duration f, true)
 
 let queued t entry item =
@@ -390,7 +393,15 @@ let advance_sparse t =
           t.entries
     | _ -> ()
 
-let push t entry q =
+let rec push t entry q =
+  match (q.item, q.key) with
+    | `Video_frame _, None ->
+        item_fault t
+          (Printf.sprintf "Stream %s: video frame without timestamp dropped"
+             (field_name entry))
+    | _ -> push_item t entry q
+
+and push_item t entry q =
   let position =
     if entry.per_stream.Per_stream.sparse then
       Option.map (fun pts -> pts - entry.origin) q.pts
