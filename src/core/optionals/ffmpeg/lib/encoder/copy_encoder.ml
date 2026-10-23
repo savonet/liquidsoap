@@ -520,16 +520,44 @@ let flush t ~position =
     (Hashtbl.copy t.groups);
   ignore position
 
+let incompatible track header (source : Copy_params.t) =
+  Copy_params.incompatibility header source <> None
+  || track.shared.stores_header
+     && not (Copy_params.header_compatible header source)
+
+let switch_position t frame =
+  let track_switch track =
+    match track.header with
+      | None -> None
+      | Some header ->
+          let current =
+            ref (Option.map (fun tenure -> tenure.source_id) track.tenure)
+          in
+          List.find_map
+            (fun (start, (r : Ffmpeg_content.Copy.Data.run)) ->
+              if r.source_id = Source_id.none || Some r.source_id = !current
+              then None
+              else (
+                current := Some r.source_id;
+                match r.source_params with
+                  | Some params when incompatible track header params ->
+                      Some start
+                  | _ -> None))
+            (data track frame).runs
+  in
+  List.fold_left
+    (fun found track ->
+      match (found, track_switch track) with
+        | Some a, Some b -> Some (min a b)
+        | None, b -> b
+        | a, None -> a)
+    None t.tracks
+
 let check_params track (source : Copy_params.t) =
   match track.header with
     | None -> ()
     | Some header ->
-        let incompatible =
-          Copy_params.incompatibility header source <> None
-          || track.shared.stores_header
-             && not (Copy_params.header_compatible header source)
-        in
-        if incompatible then
+        if incompatible track header source then
           raise
             (Incompatible
                {

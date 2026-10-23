@@ -396,7 +396,9 @@ image at `boundary` a key frame and has not yet seen that key packet ignores
 only holds it back. Reason: `force` is decided on the media time given to the
 encoder, which runs ahead of the packets by the codec's delay (lookahead,
 B-frames), and a split at the boundary keeps the segment within the target
-duration whatever that delay.
+duration whatever that delay. An instance with a restart whose `Restart` piece
+is not yet returned ignores `force` as well: the restart is the split point,
+at the switch, and the segment before it ends there.
 
 Holding (§8.2 step 3) only delays bytes, and never beyond a forced split.
 
@@ -508,9 +510,9 @@ encoder, because the grid is only correct together with §8.4.
 
 ## 9. Outputs with a URL or file target
 
-| Output        | Effect on the format                                                                                                                                                                    |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `output.file` | `output = Url "file:<path>"`, container option `truncate` = 0 when `append=true`, else 1. The output itself creates the file with its permissions and closes it; the encoder writes it. |
+| Output        | Effect on the format                                                                                                                                                                                                                                                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `output.file` | `output = Url "file:<path>"`, container option `truncate` = 0 when `append=true`, else 1. The output itself creates the file with its permissions and closes it; the encoder writes it, appending when `truncate` = 0 (FFmpeg's `file` protocol has no append mode: `truncate` = 0 alone writes from the start of the file). |
 
 With a `Url` target the encoder returns empty bytes; the output writes nothing
 itself. `output.file` with `reopen_*` builds a new instance per file.
@@ -635,7 +637,7 @@ in-stream metadata update in Ogg (§6) or by an incompatible copy source
 | Container and target                                     | Restart                                                                                                                                                |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Ogg, `Stream` output                                     | chaining: the new container's logical bitstreams follow in the same buffer                                                                             |
-| Ogg, `Url` output with a `file:` URL (`output.file`)     | chaining: the file is reopened with `truncate` = 0 and the new container appends to it                                                                 |
+| Ogg, `Url` output with a `file:` URL (`output.file`)     | chaining: the file is reopened for appending and the new container appends to it                                                                       |
 | any muxer under HLS (`hls=true`)                         | a new segment that starts a new container, after a discontinuity, with its own init segment when the format has one (§8.4, §8.7)                       |
 | any muxer of `output.url`                                | a reconnect: the instance fails with an output fault and `output.url` builds a new instance under its restart policy ([io.md §11.3](io.md#113-errors)) |
 | anything else (MP4, Matroska, MPEG-TS, FLV to a file, …) | none                                                                                                                                                   |
@@ -658,16 +660,13 @@ output stays conformant, and players are expected to support it.
    logged at info level. Each encoded stream starts from a new codec, so with
    a key frame.
 
-A restart at a source switch takes effect at the end of the frame in which
-the switch is detected, after the field loop. Up to the switch position every
-track writes into the old container. The copy track that detected the
-incompatible source writes none of the new source's packets there: it hands
-them, in order, to its counterpart in the new container, which writes them
-first. Every other member of the switching source's group
-([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start))
-does the same: no packet of the new source goes into the old container. The
-other tracks finish the frame in the old container. No packet of the
-switching frame is lost.
+A restart at a source switch cuts the frame at the switch position: the
+first run whose parameters the container cannot follow, over every copy
+track, found before the frame is encoded. Every track writes the part before
+it into the old container and the part after it into the new one, so no
+packet of the new source goes into the old container, every stream of the
+new container starts at the switch, and no packet of the switching frame is
+lost.
 
 **Timelines.** An Ogg link starts its own timeline: the new stream encoders
 count from 0. An HLS restart keeps the variant's timeline
