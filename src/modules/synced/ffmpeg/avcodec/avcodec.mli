@@ -254,6 +254,23 @@ end
 *)
 val params_side_data : _ params -> Packet_side_data.raw list
 
+(** The codec's extradata (for instance an AudioSpecificConfig or an H.264
+    [avcC] record, or Annex-B parameter sets), byte for byte. The empty string
+    when the parameters have none. *)
+val params_extradata : _ params -> string
+
+(** The codec profile, an [AV_PROFILE_*] value; [None] when unknown. *)
+val params_profile : _ params -> int option
+
+(** The codec level; [None] when unknown. *)
+val params_level : _ params -> int option
+
+(** The block alignment, in bytes; 0 when unset. *)
+val params_block_align : _ params -> int
+
+(** The number of bits per coded sample; 0 when unset. *)
+val params_bits_per_coded_sample : _ params -> int
+
 (** [params_with_side_data params l] is an independent copy of [params] whose
     side data is exactly [l], in order. A kind that appears twice keeps its last
     occurrence. [params] is unchanged. *)
@@ -880,6 +897,29 @@ module Video : sig
   (** [get_bit_rate params] is the average bit rate of the encoded stream, in
       bits per second. *)
   val get_bit_rate : video params -> int
+
+  (** The number of frames the decoder outputs late because of reordering
+      (B-frames); 0 for a stream without reordering. *)
+  val get_video_delay : video params -> int
+
+  (** The field order of interlaced video; [`Unknown] when unset. [`Tt]: top
+      field coded and displayed first; [`Bb]: bottom first; [`Tb]: top coded
+      first, bottom displayed first; [`Bt]: the reverse. *)
+  type field_order = [ `Unknown | `Progressive | `Tt | `Bb | `Tb | `Bt ]
+
+  val get_field_order : video params -> field_order
+
+  (** The colour properties of the stream, as the codec parameters store them.
+  *)
+  type color = {
+    color_range : Avutil.Color_range.t;
+    color_primaries : Avutil.Color_primaries.t;
+    color_trc : Avutil.Color_trc.t;
+    color_space : Avutil.Color_space.t;
+    chroma_location : Avutil.Chroma_location.t;
+  }
+
+  val get_color : video params -> color
 end
 
 (** Subtitle codecs: lookup only. This module builds no subtitle decoder or

@@ -30,7 +30,7 @@ type format =
   | MP3 of Mp3_format.t
   | Shine of Shine_format.t
   | Flac of Flac_format.t
-  | Ffmpeg of Ffmpeg_format.t
+  | Ffmpeg of Liquidsoap_ffmpeg_formats.Encoder_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
 
@@ -54,67 +54,7 @@ let type_of_format f =
         audio_video_type (Lazy.Mutexed.force Frame.audio_channels)
     | NDI { audio = false; video = true } -> video_type ()
     | Flac m -> audio_type m.Flac_format.channels
-    | Ffmpeg m ->
-        List.fold_left
-          (fun ctype (field, c) ->
-            Frame.Fields.add field
-              (match c with
-                | `Drop -> Type.var ~constraints:[Format_type.track] ()
-                | `Copy _ ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.copy"))))
-                | `Encode { Ffmpeg_format.mode = `Raw; options = `Audio _ } ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.audio.raw"))))
-                | `Encode { Ffmpeg_format.mode = `Raw; options = `Video _ } ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.video.raw"))))
-                | `Encode
-                    Ffmpeg_format.
-                      {
-                        mode = `Internal;
-                        options = `Audio { pcm_kind; channels };
-                      } ->
-                    assert (channels > 0);
-                    let params =
-                      {
-                        Content.Audio.channel_layout =
-                          Lazy.Mutexed.from_val
-                            (Audio_converter.Channel_layout.layout_of_channels
-                               channels);
-                      }
-                    in
-                    Type.make
-                      (Format_type.descr
-                         (`Format (Frame_base.audio_format ~pcm_kind params)))
-                | `Encode
-                    {
-                      Ffmpeg_format.mode = `Internal;
-                      options = `Video { Ffmpeg_format.alpha };
-                    } ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (Content_video.lift_params
-                               {
-                                 Content_video.Specs.width = None;
-                                 height = None;
-                                 alpha = Unifier.make alpha;
-                               })))
-                | `Encode { Ffmpeg_format.options = `Subtitle _; _ } ->
-                    Type.make
-                      (Format_type.descr (`Format Subtitle_content.format)))
-              ctype)
-          Frame.Fields.empty m.streams
+    | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.type_of_format m
     | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
     | Ogg { Ogg_format.audio; video } -> (
         let channels =
@@ -145,26 +85,14 @@ let string_of_format = function
   | NDI w -> Ndi_format.to_string w
   | Shine w -> Shine_format.to_string w
   | Flac w -> Flac_format.to_string w
-  | Ffmpeg w -> Ffmpeg_format.to_string w
+  | Ffmpeg w -> Liquidsoap_ffmpeg_formats.Encoder_format.to_string w
   | FdkAacEnc w -> Fdkaac_format.to_string w
   | External w -> External_encoder_format.to_string w
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
       Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
-  | Ffmpeg m -> (
-      match
-        List.fold_left
-          (fun cur (_, stream) ->
-            match stream with
-              | `Encode Ffmpeg_format.{ options = `Video { width; height } } ->
-                  (width, height) :: cur
-              | _ -> cur)
-          [] m.Ffmpeg_format.streams
-      with
-        | (width, height) :: [] ->
-            Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
-        | _ -> None)
+  | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.video_size m
   | _ -> None
 
 (** ISO Base Media File Format, see RFC 6381 section 3.3. *)
@@ -180,8 +108,6 @@ let iso_base_file_media_file_format = function
         | `Mpeg_2 `AAC_LC -> "mp4a.67"
         | `Mpeg_2 `HE_AAC -> "mp4a.67" (* TODO: check this *)
         | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *))
-  | Ffmpeg { Ffmpeg_format.format = Some "libmp3lame" } -> "mp4a.40.34"
-  | Ffmpeg { Ffmpeg_format.format = Some "aac" } -> "mp4a.40.2"
   | _ -> raise Not_found
 
 (** Proposed extension for files. *)
@@ -193,22 +119,10 @@ let extension = function
   | Shine _ -> "mp3"
   | Flac _ -> "flac"
   | FdkAacEnc _ -> "aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "ogg" } -> "ogg"
-  | Ffmpeg { Ffmpeg_format.format = Some "opus" } -> "opus"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp3" } -> "mp3"
-  | Ffmpeg { Ffmpeg_format.format = Some "matroska" } -> "mkv"
-  | Ffmpeg { Ffmpeg_format.format = Some "mpegts" } -> "ts"
-  | Ffmpeg { Ffmpeg_format.format = Some "ac3" } -> "ac3"
-  | Ffmpeg { Ffmpeg_format.format = Some "eac3" } -> "eac3"
-  | Ffmpeg
-      {
-        Ffmpeg_format.format = Some "adts";
-        streams = [(_, `Encode { Ffmpeg_format.codec = Some "aac" })];
-      } ->
-      "aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "adts" } -> "adts"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp4" } -> "mp4"
-  | Ffmpeg { Ffmpeg_format.format = Some "wav" } -> "wav"
+  | Ffmpeg m -> (
+      match Liquidsoap_ffmpeg_formats.Encoder_format.extension m with
+        | Some ext -> ext
+        | None -> raise Not_found)
   | _ -> raise Not_found
 
 (** Mime types *)
@@ -220,20 +134,7 @@ let mime = function
   | Shine _ -> "audio/mpeg"
   | Flac _ -> "audio/flex"
   | FdkAacEnc _ -> "audio/aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "ogg" } -> "application/ogg"
-  | Ffmpeg { Ffmpeg_format.format = Some "opus" } -> "application/ogg"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp3" } -> "audio/mpeg"
-  | Ffmpeg { Ffmpeg_format.format = Some "matroska" } -> "video/x-matroska"
-  | Ffmpeg { Ffmpeg_format.format = Some "ac3" } -> "audio/ac3"
-  | Ffmpeg { Ffmpeg_format.format = Some "eac3" } -> "audio/eac3"
-  | Ffmpeg
-      {
-        Ffmpeg_format.format = Some "adts";
-        streams = [(_, `Encode { Ffmpeg_format.codec = Some "aac" })];
-      } ->
-      "audio/aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp4" } -> "video/mp4"
-  | Ffmpeg { Ffmpeg_format.format = Some "wav" } -> "audio/wav"
+  | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.mime m
   | _ -> "application/octet-stream"
 
 (** Bitrate estimation in kbits per second. *)
@@ -241,32 +142,9 @@ let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
-  (* For Ffmpeg we rely on hls.bitrate *)
   | _ -> raise Not_found
 
-(** Encoders that can output to a file. *)
-let file_output = function Ffmpeg _ -> true | _ -> false
-
-let with_file_output ?(append = false) encoder file =
-  match encoder with
-    | Ffmpeg params ->
-        let opts = Hashtbl.copy params.Ffmpeg_format.opts in
-        Hashtbl.replace opts "truncate" (`Int (if append then 0 else 1));
-        Ffmpeg
-          {
-            params with
-            Ffmpeg_format.output = `Url (Printf.sprintf "file:%s" file);
-            opts;
-          }
-    | _ -> failwith "No file output!"
-
-(** Encoders that can output to a arbitrary url. *)
-let url_output = function Ffmpeg _ -> true | _ -> false
-
-let with_url_output encoder file =
-  match encoder with
-    | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
-    | _ -> failwith "No file output!"
+(* pass3: removed encoder-driven file and url output functions *)
 
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata

@@ -49,7 +49,9 @@ any stream.
    descriptor's intra-only property. A codec with no descriptor counts as
    intra-only, so that a track never waits for a key flag its codec may never
    set. A subtitle track counts as intra-only: each subtitle packet stands
-   alone.
+   alone. An audio track counts as intra-only too: every audio packet starts
+   a decodable unit as far as a switch is concerned, and FFmpeg's descriptors
+   do not flag every audio codec so (AAC, for instance).
 4. When the muxer wants codec headers out of band (FFmpeg's global-header
    format flag) and the parameters carry no extradata, the track logs a
    warning naming the track and the fixes: `flags="+global_header"` on the
@@ -306,15 +308,23 @@ is the setting `settings.ffmpeg.content.copy.max_keyframe_wait` (float,
 seconds, default 20.), above the keyframe interval of common live and file
 sources.
 
-**Trim.** When a group starts, `T` is the latest PTS among the key packets
-that made members ready (packets with no PTS use their DTS; converted to a
-common unit, [timestamps.md §1.2](timestamps.md#12-encoder-side-conversion)).
-When no member needed a keyframe, nothing is trimmed. Otherwise:
+**Trim.** A member **waited** when it dropped packets before the key packet
+that made it ready (§12.2 step 1); a tenure whose first packet is a key packet
+did not wait. When a group starts, `T` is the latest PTS among the key packets
+that made waiting members ready (packets with no PTS use their DTS; converted
+to a common unit, [timestamps.md §1.2](timestamps.md#12-encoder-side-conversion)).
+When no member waited, nothing is trimmed: a source that starts on a key
+packet keeps every packet, the leading audio of its codec delay included.
+Otherwise:
 
-- a member that needed a keyframe drops its held packets before its last
-  held key packet whose PTS is at most `T`, so that its first written packet
-  is a key packet;
-- every other member drops its held packets whose PTS is below `T`.
+- a member that waited drops its held packets before its last held key
+  packet whose PTS is at most `T`, so that its first written packet is a key
+  packet;
+- every other member drops its held packets whose PTS is below `T`, and
+  keeps dropping the packets of its tenure that arrive after the start with
+  a PTS below `T`, until its first packet at or after `T`. Reason: packets are
+  delivered in decode order, so a key packet with a reordering delay arrives
+  before the packets of the other streams that precede its PTS.
 
 The trimmed packets are counted and logged (§11).
 

@@ -381,6 +381,10 @@ module Log : sig
       delivered. *)
   val set_callback : (string -> unit) -> unit
 
+  (** As {!set_callback}, with each message's level: FFmpeg's numeric level
+      mapped to the named level at or above it in severity. *)
+  val set_callback_with_level : (level -> string -> unit) -> unit
+
   (** [clear_callback ()] restores FFmpeg's default logging and drops the
       installed callback.
 

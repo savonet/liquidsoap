@@ -225,6 +225,19 @@ val descriptor : 'media params -> descriptor option
 The descriptor of the parameters' codec identifier; see "Descriptors" below.
 
 ```ocaml
+val params_extradata : _ params -> string
+val params_profile : _ params -> int option
+val params_level : _ params -> int option
+val params_block_align : _ params -> int
+val params_bits_per_coded_sample : _ params -> int
+```
+
+The header fields of the parameters, as `AVCodecParameters` stores them:
+`extradata` byte for byte (empty when absent or of size 0); `profile` and
+`level`, `None` for `AV_PROFILE_UNKNOWN` and `AV_LEVEL_UNKNOWN`;
+`block_align` and `bits_per_coded_sample`, 0 when unset.
+
+```ocaml
 val time_base : 'media encoder -> Avutil.rational
 ```
 
@@ -545,6 +558,26 @@ val get_bit_rate : video params -> int
 | `get_pixel_format`        | the pixel format; `None` when unset                   |
 | `get_pixel_aspect`        | the same ratio as an option: `None` when unknown      |
 | `get_bit_rate`            | the bit rate                                          |
+
+```ocaml
+val get_video_delay : video params -> int
+type field_order = [ `Unknown | `Progressive | `Tt | `Bb | `Tb | `Bt ]
+val get_field_order : video params -> field_order
+type color = {
+  color_range : Avutil.Color_range.t;
+  color_primaries : Avutil.Color_primaries.t;
+  color_trc : Avutil.Color_trc.t;
+  color_space : Avutil.Color_space.t;
+  chroma_location : Avutil.Chroma_location.t;
+}
+val get_color : video params -> color
+```
+
+| Getter            | Returns                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `get_video_delay` | the reorder delay in frames (`video_delay`); 0 without reordering                  |
+| `get_field_order` | `field_order`, one constructor per `AV_FIELD_*` value; `` `Unknown`` for any other |
+| `get_color`       | the five colour fields of the parameters, per E4                                   |
 
 ### 4.5 `Subtitle`
 

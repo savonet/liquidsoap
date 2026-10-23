@@ -400,6 +400,7 @@ module Log : sig
   val set_level : level -> unit
   val log : level -> string -> unit
   val set_callback : (string -> unit) -> unit
+  val set_callback_with_level : (level -> string -> unit) -> unit
   val clear_callback : unit -> unit
 end
 ```
@@ -408,7 +409,12 @@ end
 - `log l message` sends the message to FFmpeg's log at level `l` (`av_log`
   with no context), followed by a newline. It is reported, filtered and
   captured as FFmpeg's own messages are.
-- `set_callback`, `clear_callback`: §7.1.
+- `set_callback`, `set_callback_with_level`, `clear_callback`: §7.1.
+  `set_callback_with_level` delivers each message with its level: FFmpeg's
+  numeric level mapped to the named level at or above it in severity
+  (`<= 0` panic, `<= 8` fatal, `<= 16` error, `<= 24` warning, `<= 32` info,
+  `<= 40` verbose, `<= 48` debug, trace above). `set_callback f` is
+  `set_callback_with_level (fun _ m -> f m)`.
 
 ### 4.8 Channel layout
 

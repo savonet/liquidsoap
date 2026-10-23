@@ -521,6 +521,11 @@ CAMLprim value ocaml_av_input_format_name(value _format) {
   CAMLreturn(copy_text(InputFormat_val(_format)->name));
 }
 
+CAMLprim value ocaml_av_input_format_ts_discont(value _format) {
+  CAMLparam1(_format);
+  CAMLreturn(Val_bool(InputFormat_val(_format)->flags & AVFMT_TS_DISCONT));
+}
+
 CAMLprim value ocaml_av_input_format_long_name(value _format) {
   CAMLparam1(_format);
   CAMLreturn(copy_text(InputFormat_val(_format)->long_name));
@@ -810,6 +815,16 @@ CAMLprim value ocaml_av_input_duration(value _container, value _time_format) {
   ocaml_avutil_guard_release_shared(&record->guard);
 
   CAMLreturn(rescaled_option(duration, AV_TIME_BASE_Q, _time_format));
+}
+
+CAMLprim value ocaml_av_input_start_time(value _container, value _time_format) {
+  CAMLparam2(_container, _time_format);
+  container *record = shared(_container);
+  int64_t start_time = record->context->start_time;
+
+  ocaml_avutil_guard_release_shared(&record->guard);
+
+  CAMLreturn(rescaled_option(start_time, AV_TIME_BASE_Q, _time_format));
 }
 
 /* A copy of a dictionary of the container taken under the guard; [index] is

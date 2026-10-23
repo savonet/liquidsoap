@@ -26,6 +26,9 @@ module Format = struct
   external get_input_long_name : (input, _) format -> string
     = "ocaml_av_input_format_long_name"
 
+  external input_ts_discont : (input, _) format -> bool
+    = "ocaml_av_input_format_ts_discont"
+
   external get_output_name : (output, _) format -> string
     = "ocaml_av_output_format_name"
 
@@ -150,6 +153,12 @@ external input_duration : input container -> Time_format.t -> Int64.t option
 
 let get_input_duration ?(format = `Second) container =
   input_duration container format
+
+external input_start_time : input container -> Time_format.t -> Int64.t option
+  = "ocaml_av_input_start_time"
+
+let get_input_start_time ?(format = `Second) container =
+  input_start_time container format
 
 external metadata : _ container -> int -> (string * string) list
   = "ocaml_av_metadata"

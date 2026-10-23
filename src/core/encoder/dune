@@ -29,6 +29,7 @@
   liquidsoap-lang.types
   liquidsoap-lang.values
   encoder_types
+  liquidsoap_ffmpeg_formats
   liquidsoap_core_stream
   liquidsoap_core_utils
   metadata

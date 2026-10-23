@@ -63,6 +63,10 @@ module Format : sig
   (** The descriptive name of an input format. *)
   val get_input_long_name : (input, _) format -> string
 
+  (** Whether the input format declares timestamp discontinuities legitimate
+      (FFmpeg's [AVFMT_TS_DISCONT] flag), as MPEG-TS does. *)
+  val input_ts_discont : (input, _) format -> bool
+
   (** The name of an output format. It may be a comma-separated list of aliases.
   *)
   val get_output_name : (output, _) format -> string
@@ -220,6 +224,14 @@ val open_input_stream :
 
     @param format defaults to [`Second]. *)
 val get_input_duration :
+  ?format:Time_format.t -> input container -> Int64.t option
+
+(** The start time of the input (the timestamp of its first frame, as FFmpeg
+    reports it) in units of [format], rounded to the nearest unit. [None] when
+    FFmpeg does not know it, and when it rounds to 0.
+
+    @param format defaults to [`Second]. *)
+val get_input_start_time :
   ?format:Time_format.t -> input container -> Int64.t option
 
 (** The metadata of the container, as key and value pairs in the order FFmpeg
