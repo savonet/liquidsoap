@@ -1,0 +1,791 @@
+; Known-complexity checks that need media (spec/tests.md §23): fixtures
+; generated with the FFmpeg command line, one rule per check. Run one with
+; dune build @ffmpeg_conformance_kc<N>; all of them run in @mediatest.
+
+(executable
+ (name conformance)
+ (modules conformance)
+ (libraries ffmpeg-av ffmpeg-avcodec ffmpeg-avutil ffmpeg-swresample unix))
+
+; B-frame concat set: video only, first DTS about 41.17, 25.2 and 8.17 s.
+
+(rule
+ (target bf1.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=20:size=320x180:rate=30
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   -output_ts_offset
+   41.25
+   %{target})))
+
+(rule
+ (target bf2.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=30:size=320x180:rate=30
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   -output_ts_offset
+   25.267
+   %{target})))
+
+(rule
+ (target bf3.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=10:size=320x180:rate=30
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   -output_ts_offset
+   8.25
+   %{target})))
+
+; Mid-GOP pair: AAC + H.264, a keyframe every second; the second file starts
+; 0.6 s before a keyframe.
+
+(rule
+ (target gop.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=6:size=320x180:rate=30
+   -f
+   lavfi
+   -i
+   sine=frequency=440:duration=6
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   -c:a
+   aac
+   %{target})))
+
+(rule
+ (target midgop.mp4)
+ (deps gop.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -i
+   gop.mp4
+   -ss
+   0.4
+   -c
+   copy
+   -copyinkf
+   %{target})))
+
+; Audio ends 200 ms before video.
+
+(rule
+ (target avoff.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=3:size=320x180:rate=30
+   -f
+   lavfi
+   -i
+   sine=frequency=440:duration=2.8
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   -c:a
+   aac
+   %{target})))
+
+; Video that ends before its first keyframe.
+
+(rule
+ (target nokey.mp4)
+ (deps midgop.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -i
+   midgop.mp4
+   -t
+   0.4
+   -c
+   copy
+   -copyinkf
+   %{target})))
+
+; First keyframe 25 s in, beyond the keyframe wait bound.
+
+(rule
+ (target longgop_full.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=60:size=160x90:rate=30
+   -f
+   lavfi
+   -i
+   sine=frequency=440:duration=60
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   900
+   -keyint_min
+   900
+   -sc_threshold
+   0
+   -pix_fmt
+   yuv420p
+   -c:a
+   aac
+   %{target})))
+
+(rule
+ (target latekey.mp4)
+ (deps longgop_full.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -i
+   longgop_full.mp4
+   -ss
+   5
+   -t
+   30
+   -c
+   copy
+   -copyinkf
+   %{target})))
+
+; One MPEG-TS stream at 30 fps whose size changes twice.
+
+(rule
+ (target fc1.ts)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=30:size=320x240
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
+ (target fc2.ts)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=30:size=640x480
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
+ (target fmtchange.ts)
+ (deps fc1.ts fc2.ts)
+ (action
+  (with-stdout-to
+   %{target}
+   (progn
+    (cat fc1.ts)
+    (cat fc2.ts)
+    (cat fc1.ts)))))
+
+(rule
+ (target a44.wav)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=2:sample_rate=44100
+   -ac
+   2
+   %{target})))
+
+(rule
+ (target a48.wav)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=2:sample_rate=48000
+   -ac
+   2
+   %{target})))
+
+; A/V markers: a white frame and a beep at the same instant.
+
+(rule
+ (target marked.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "color=c=black:s=320x240:r=25:d=4,drawbox=x=0:y=0:w=320:h=240:color=white:t=fill:enable='between(t,1.6,1.639)'"
+   -f
+   lavfi
+   -i
+   "aevalsrc='if(between(t,1.6,1.65),0.8*sin(2*PI*1000*t),0)':s=44100:d=4"
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   -bf
+   0
+   -c:a
+   aac
+   %{target})))
+
+(rule
+ (target marked_midgop.mp4)
+ (deps marked.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -ss
+   0.5
+   -i
+   marked.mp4
+   -t
+   2
+   -c
+   copy
+   %{target})))
+
+; Live inputs: video 8 s after audio, with markers 2 s into the video; audio
+; 2 s before video.
+
+(rule
+ (target latevideo.ts)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "aevalsrc='if(between(t,10,10.05),0.8*sin(2*PI*1000*t),0)':s=44100:d=12"
+   -f
+   lavfi
+   -i
+   "color=c=black:s=320x240:r=25:d=4,drawbox=x=0:y=0:w=320:h=240:color=white:t=fill:enable='between(t,2,2.039)'"
+   -filter:v
+   setpts=PTS+8/TB
+   -map
+   0:a
+   -map
+   1:v
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -c:a
+   aac
+   -f
+   mpegts
+   %{target})))
+
+(rule
+ (target earlyaudio.ts)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=8
+   -f
+   lavfi
+   -i
+   testsrc=duration=4:rate=25
+   -filter:v
+   setpts=PTS+2/TB
+   -map
+   0:a
+   -map
+   1:v
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -c:a
+   aac
+   -f
+   mpegts
+   %{target})))
+
+; Subtitles with one cue each, at 1 s, 20 min and 30 s.
+
+(rule
+ (target sub_short.mkv)
+ (deps sub_short.srt)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   anullsrc=r=44100:cl=mono
+   -i
+   sub_short.srt
+   -t
+   2
+   -map
+   0:a
+   -map
+   1:s
+   -c:a
+   aac
+   -b:a
+   32k
+   -c:s
+   srt
+   %{target})))
+
+(rule
+ (target sub_late.mkv)
+ (deps sub_late.srt)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   anullsrc=r=44100:cl=mono
+   -i
+   sub_late.srt
+   -t
+   1260
+   -map
+   0:a
+   -map
+   1:s
+   -c:a
+   aac
+   -b:a
+   32k
+   -c:s
+   srt
+   %{target})))
+
+(rule
+ (target sub_early.mkv)
+ (deps sub_early.srt)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   anullsrc=r=44100:cl=mono
+   -i
+   sub_early.srt
+   -t
+   660
+   -map
+   0:a
+   -map
+   1:s
+   -c:a
+   aac
+   -b:a
+   32k
+   -c:s
+   srt
+   %{target})))
+
+; H.264 length-prefixed, Annex B and two profiles; AAC and MP3.
+
+(rule
+ (target h264_a.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   %{target})))
+
+(rule
+ (target h264_b.ts)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   %{target})))
+
+(rule
+ (target h264_c.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   %{target})))
+
+(rule
+ (target h264_high.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   -profile:v
+   high
+   %{target})))
+
+(rule
+ (target h264_main.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:rate=25
+   -pix_fmt
+   yuv420p
+   -c:v
+   libx264
+   -g
+   25
+   -profile:v
+   main
+   %{target})))
+
+(rule
+ (target aac.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=2
+   -c:a
+   aac
+   %{target})))
+
+(rule
+ (target mp3.mp3)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=duration=2
+   -c:a
+   libmp3lame
+   %{target})))
+
+(rule
+ (alias ffmpeg_conformance_kc1)
+ (package liquidsoap)
+ (deps
+  bf1.mp4
+  bf2.mp4
+  bf3.mp4
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc1)))
+
+(rule
+ (alias ffmpeg_conformance_kc2)
+ (package liquidsoap)
+ (deps
+  avoff.mp4
+  gop.mp4
+  midgop.mp4
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc2)))
+
+(rule
+ (alias ffmpeg_conformance_kc3)
+ (package liquidsoap)
+ (deps
+  gop.mp4
+  midgop.mp4
+  nokey.mp4
+  latekey.mp4
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc3)))
+
+(rule
+ (alias ffmpeg_conformance_kc5)
+ (package liquidsoap)
+ (deps gop.mp4)
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc5)))
+
+(rule
+ (alias ffmpeg_conformance_kc6)
+ (package liquidsoap)
+ (deps
+  fmtchange.ts
+  a44.wav
+  a48.wav
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc6)))
+
+(rule
+ (alias ffmpeg_conformance_kc8)
+ (package liquidsoap)
+ (deps
+  latevideo.ts
+  earlyaudio.ts
+  sub_short.mkv
+  sub_late.mkv
+  sub_early.mkv
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc8)))
+
+(rule
+ (alias ffmpeg_conformance_kc11)
+ (package liquidsoap)
+ (deps
+  h264_a.mp4
+  h264_b.ts
+  h264_c.mp4
+  h264_high.mp4
+  h264_main.mp4
+  aac.mp4
+  mp3.mp3
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc11)))
+
+(rule
+ (alias ffmpeg_conformance_kc12)
+ (package liquidsoap)
+ (deps
+  marked_midgop.mp4
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc12)))
+
+(alias
+ (name mediatest)
+ (deps
+  (alias ffmpeg_conformance_kc1)
+  (alias ffmpeg_conformance_kc2)
+  (alias ffmpeg_conformance_kc3)
+  (alias ffmpeg_conformance_kc5)
+  (alias ffmpeg_conformance_kc6)
+  (alias ffmpeg_conformance_kc8)
+  (alias ffmpeg_conformance_kc11)
+  (alias ffmpeg_conformance_kc12)))

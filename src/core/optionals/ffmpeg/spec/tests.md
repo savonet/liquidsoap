@@ -39,9 +39,9 @@ A pass is evidence only when the same check would have failed on a broken implem
 
 Every check of §23 (the known-complexity entries) and every timestamp check (§1.4) MUST be seen to fail against a deliberately broken build before its pass counts.
 
-- The harness keeps, per such check, one or more named **mutations**: a minimal change to the implementation that breaks the rule the check protects (§23 names one per entry). A mutation is a build variant used only by the harness; it is not shipped and adds no surface.
-- The mutated build MUST fail the check, on the assertion that protects the rule, not on an unrelated error. The harness records which assertion failed.
-- The negative control is repeated whenever the check, its fixture, or the code under the rule changes. A check whose mutation passes is broken and counts as a failure of the suite.
+- A negative control applies a **mutation**: a minimal change to the implementation that breaks the rule the check protects (§23 names one per entry). It is a development step, applied by hand, built, run and reverted. No mutation stays in the tree: a mutation patches source text, so it breaks as the code moves.
+- The mutated build MUST fail the check, on the assertion that protects the rule, not on an unrelated error.
+- The negative control is repeated whenever the check, its fixture, or the code under the rule changes. A check whose mutation passes is broken.
 
 ### 1.4 Timestamps at packet level
 

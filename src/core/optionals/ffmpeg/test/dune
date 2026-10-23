@@ -1,6 +1,6 @@
 ; Conformance checks of the FFmpeg layer (spec/tests.md). Each test asserts
 ; the number of checks it ran before reporting a pass; copy_producer is the
-; synthetic copy producer the media checks of conformance/run.py drive.
+; synthetic copy producer driven by the media checks of conformance/.
 
 (tests
  (names base_test converters_test)
