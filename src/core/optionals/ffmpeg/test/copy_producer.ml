@@ -38,7 +38,9 @@
      marked continuing;
    - [nodts_audio], [nodts_video], [equal_dts], [backward_dts],
      [restart_dts], [close_dts]: as [exact], with the timestamps of some
-     packets altered as named. *)
+     packets altered as named;
+   - [tb_change]: as [exact], with the second half of each play's video in a
+     run of the same source whose time base is 1/1000. *)
 
 open Liquidsoap_ffmpeg
 
@@ -168,6 +170,24 @@ let retime ~scenario ~field packets i packet =
           ~pts:(pts packet) packet
     | _ -> packet
 
+let in_milliseconds ~src packet =
+  let ms = { Avutil.num = 1; den = 1000 } in
+  let rescale =
+    Option.map (fun t ->
+        Int64.of_int (Option.get (Time_base.rescale_int64 ~src ~dst:ms t)))
+  in
+  let set p =
+    let p = Avcodec.Packet.dup p in
+    Avcodec.Packet.set_dts p (rescale (Avcodec.Packet.get_dts p));
+    Avcodec.Packet.set_pts p (rescale (Avcodec.Packet.get_pts p));
+    Avcodec.Packet.set_duration p (rescale (Avcodec.Packet.get_duration p));
+    p
+  in
+  match packet with
+    | `Audio p -> `Audio (set p)
+    | `Video p -> `Video (set p)
+    | `Subtitle p -> `Subtitle (set p)
+
 let main_of tb ts =
   Option.get (Time_base.rescale_int64 ~src:tb ~dst:(Time_base.main ()) ts)
 
@@ -211,11 +231,30 @@ let source ?(continues = false) ~scenario streams =
         Ffmpeg_content.Copy.Data.run ~continues ~source_id
           ~time_base:s.time_base ~source_params:s.params ~length:first []
       in
-      let body =
-        Ffmpeg_content.Copy.Data.run ~continues ~source_id
-          ~time_base:s.time_base ~source_params:s.params ~length items
+      let run ~time_base ~length items =
+        Ffmpeg_content.Copy.Data.run ~continues ~source_id ~time_base
+          ~source_params:s.params ~length items
       in
-      data.runs <- (if first > 0 then [(0, lead)] else []) @ [(first, body)];
+      let body =
+        if scenario = "tb_change" && s.field = "video" then (
+          let half = List.length items / 2 in
+          let before = List.filteri (fun i _ -> i < half) items
+          and after = List.filteri (fun i _ -> i >= half) items in
+          let split = fst (List.hd after) in
+          [
+            (first, run ~time_base:s.time_base ~length:split before);
+            ( first + split,
+              run
+                ~time_base:{ Avutil.num = 1; den = 1000 }
+                ~length:(length - split)
+                (List.map
+                   (fun (pos, p) ->
+                     (pos - split, in_milliseconds ~src:s.time_base p))
+                   after) );
+          ])
+        else [(first, run ~time_base:s.time_base ~length items)]
+      in
+      data.runs <- (if first > 0 then [(0, lead)] else []) @ body;
       (s.field, s.params, data))
     streams
 
