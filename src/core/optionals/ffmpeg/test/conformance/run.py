@@ -16,12 +16,14 @@ import os
 import subprocess
 import sys
 import tempfile
+from collections import defaultdict
 from fractions import Fraction
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, *[".."] * 6))
 FIXTURES = os.environ.get("LIQ_FFMPEG_FIXTURES", "/var/tmp/liquidsoap-ffmpeg-fixtures")
 LIQUIDSOAP = os.path.join(ROOT, "liquidsoap")
+PRODUCER = os.path.join(ROOT, "_build/default/src/core/optionals/ffmpeg/test/copy_producer.exe")
 
 
 class CheckFailed(Exception):
@@ -61,6 +63,14 @@ def run_script(script, timeout=300):
     return p.stdout + p.stderr
 
 
+def produce(scenario, fmt, out, sources):
+    """The synthetic copy producer (tests.md §3) into a copy encoder."""
+    p = subprocess.run([PRODUCER, scenario, fmt, out] + [fixture(f) for f in sources],
+                       capture_output=True, text=True, timeout=300)
+    if p.returncode != 0:
+        raise CheckFailed("copy producer exited with %d: %s" % (p.returncode, p.stderr[-2000:]))
+
+
 def packets(path):
     """Per stream type: the packets in file order, times as Fractions of a
     second, and the stream time base."""
@@ -70,7 +80,7 @@ def packets(path):
     data = json.loads(out)
     tb = {s["index"]: Fraction(s["time_base"]) for s in data["streams"]}
     kind = {s["index"]: s["codec_type"] for s in data["streams"]}
-    streams = {}
+    streams = defaultdict(list)
     for p in data.get("packets", []):
         i = p["stream_index"]
 
@@ -78,9 +88,9 @@ def packets(path):
             v = p.get(k)
             return None if v is None else int(v) * tb[i]
 
-        streams.setdefault(kind[i], []).append({
+        streams[kind[i]].append({
             "dts": t("dts"), "pts": t("pts"), "duration": t("duration"),
-            "key": "K" in p["flags"], "tb": tb[i]})
+            "key": "K" in p["flags"], "tb": tb[i], "size": int(p["size"])})
     return streams
 
 
@@ -105,32 +115,39 @@ o.on_stop(synchronous=true, shutdown)
 
 
 # known-complexity.md §1: rebasing a sequence of copied sources.
+def kc1_assertions(c, name, pkts, sources):
+    c.check("%s: packet count" % name, len(pkts) == sum(len(s) for s in sources))
+    assert_monotonic(c, name, pkts)
+    tolerance = pkts[0]["tb"] + max(s[0]["tb"] for s in sources)
+    i = 0
+    previous_end = None
+    for s in sources:
+        out_segment = pkts[i:i + len(s)]
+        for o, p in zip(out_segment, s):
+            c.check("%s: PTS - DTS kept" % name,
+                    abs((o["pts"] - o["dts"]) - (p["pts"] - p["dts"])) <= tolerance)
+        if previous_end is not None:
+            c.check("%s: join after previous end" % name,
+                    out_segment[0]["dts"] >= previous_end - tolerance)
+        previous_end = out_segment[-1]["dts"] + s[-1]["duration"]
+        i += len(s)
+    span = pkts[-1]["dts"] + sources[-1][-1]["duration"] - pkts[0]["dts"]
+    expected = sum(s[-1]["dts"] + s[-1]["duration"] - s[0]["dts"] for s in sources)
+    c.check("%s: total duration" % name, abs(span - expected) <= Fraction(1, 30))
+
+
 def kc1(c, tmp):
     inputs = ["bf1.mp4", "bf2.mp4", "bf3.mp4"]
     sources = [packets(fixture(f))["video"] for f in inputs]
     for fmt, ext in [("mp4", "mp4"), ("mpegts", "ts")]:
         out = os.path.join(tmp, "kc1." + ext)
         run_script(copy_script(inputs, "%video.copy", out, fmt))
-        pkts = packets(out)["video"]
-        c.check("kc1 %s: packet count" % fmt, len(pkts) == sum(len(s) for s in sources))
-        assert_monotonic(c, "kc1 " + fmt, pkts)
-        tolerance = pkts[0]["tb"] + max(s[0]["tb"] for s in sources)
-        i = 0
-        previous_end = None
-        for s in sources:
-            out_segment = pkts[i:i + len(s)]
-            for o, p in zip(out_segment, s):
-                c.check("kc1 %s: PTS - DTS kept" % fmt,
-                        abs((o["pts"] - o["dts"]) - (p["pts"] - p["dts"])) <= tolerance)
-            if previous_end is not None:
-                c.check("kc1 %s: join after previous end" % fmt,
-                        out_segment[0]["dts"] >= previous_end - tolerance)
-            last = out_segment[-1]
-            previous_end = last["dts"] + last["duration"]
-            i += len(s)
-        span = pkts[-1]["dts"] + pkts[-1]["duration"] - pkts[0]["dts"]
-        expected = sum(s[-1]["dts"] + s[-1]["duration"] - s[0]["dts"] for s in sources)
-        c.check("kc1 %s: total duration" % fmt, abs(span - expected) <= Fraction(1, 30))
+        kc1_assertions(c, "kc1 " + fmt, packets(out)["video"], sources)
+    # Positions that fall short of timestamps, and packets with no duration.
+    for scenario in ["short", "nodur"]:
+        out = os.path.join(tmp, "kc1_%s.ts" % scenario)
+        produce(scenario, "mpegts", out, inputs)
+        kc1_assertions(c, "kc1 " + scenario, packets(out)["video"], sources)
 
 
 def steps(pkts):
@@ -168,6 +185,24 @@ def kc2(c, tmp):
         same = [(p["dts"], p["pts"]) for p in results[0][kind]] == \
                [(p["dts"], p["pts"]) for p in results[1][kind]]
         c.check("kc2: %s identical in both declaration orders" % kind, same)
+    # Producer positions far behind timestamps: each source must be anchored
+    # after the latest end of the previous one, with one offset.
+    out = os.path.join(tmp, "kc2_compressed.ts")
+    produce("compressed", "mpegts", out, ["avoff.mp4"] * (joins + 1))
+    pkts = packets(out)
+    n_a, n_v = len(src["audio"]), len(src["video"])
+    for kind in ["audio", "video"]:
+        assert_monotonic(c, "kc2 compressed " + kind, pkts[kind])
+        c.check("kc2 compressed: %s count" % kind,
+                len(pkts[kind]) == len(src[kind]) * (joins + 1))
+    for j in range(1, joins + 1):
+        new_a, new_v = pkts["audio"][j * n_a], pkts["video"][j * n_v]
+        ends = [pkts[k][j * n - 1]["dts"] + src[k][-1]["duration"]
+                for k, n in [("audio", n_a), ("video", n_v)]]
+        c.check("kc2 compressed: no first packet before the latest previous end",
+                min(new_a["dts"], new_v["dts"]) >= max(ends) - Fraction(1, 1000))
+        c.check("kc2 compressed: A/V relation kept at each join",
+                abs((new_a["pts"] - new_v["pts"]) - expected) <= Fraction(1, 100))
     # A join whose previous source's audio ends after its video: the offset
     # must account for the latest end and keep the new source's own A/V
     # relation, whatever the declaration order.
@@ -230,8 +265,97 @@ def kc3(c, tmp):
     c.check("kc3: audio-only copy discards nothing",
             len(audio) == len(first["audio"]) + len(second["audio"]))
 
+    # Audio from one source, video from another: no shared readiness.
+    out = os.path.join(tmp, "kc3_mux.ts")
+    run_script("""
+a = once(single("%s"))
+v = once(single("%s"))
+let {audio} = source.tracks(a)
+let {video} = source.tracks(v)
+s = source({audio=audio, video=video})
+clock.assign_new(sync="none", [s])
+o = output.file(fallible=true, %%ffmpeg(format="mpegts", %%audio.copy, %%video.copy), "%s", s)
+o.on_stop(synchronous=true, shutdown)
+""" % (fixture("gop.mp4"), fixture("midgop.mp4"), out))
+    pkts = packets(out)
+    c.check("kc3: different sources, both streams present",
+            len(pkts["audio"]) > 0 and len(pkts["video"]) > 0)
+    c.check("kc3: different sources, video starts on a keyframe", pkts["video"][0]["key"])
+    c.check("kc3: different sources, audio not delayed by the video's wait",
+            pkts["audio"][0]["dts"] < pkts["video"][0]["dts"] - Fraction(3, 10))
 
-CHECKS = {"kc1": kc1, "kc2": kc2, "kc3": kc3}
+    # A source whose video ends before its first keyframe, then a normal one.
+    out = os.path.join(tmp, "kc3_nokey.ts")
+    run_script(copy_script(["nokey.mp4", "gop.mp4"], "%audio.copy, %video.copy", out, "mpegts"))
+    pkts = packets(out)
+    c.check("kc3: the output resumes on the next source",
+            len(pkts["video"]) == len(first["video"]) and pkts["video"][0]["key"])
+
+    # A keyframe that comes after the wait bound: the ready members start at
+    # the bound and keep what they held.
+    late = packets(fixture("latekey.mp4"))
+    out = os.path.join(tmp, "kc3_latekey.ts")
+    run_script(copy_script(["latekey.mp4"], "%audio.copy, %video.copy", out, "mpegts"))
+    pkts = packets(out)
+    c.check("kc3: audio starts at the wait bound",
+            len(pkts["audio"]) >= len(late["audio"]) * 9 // 10)
+    c.check("kc3: video starts later on its own keyframe",
+            len(pkts["video"]) > 0 and pkts["video"][0]["key"])
+
+    # A switch to a continuing source waits for no keyframe.
+    out = os.path.join(tmp, "kc3_continuing.ts")
+    produce("continuing", "mpegts", out, ["gop.mp4"])
+    pkts = packets(out)
+    c.check("kc3: no packet discarded at a continuing switch",
+            len(pkts["video"]) == len(first["video"])
+            and len(pkts["audio"]) == len(first["audio"]))
+
+
+# known-complexity.md §5: packets with no DTS or a non-increasing DTS.
+def kc5(c, tmp):
+    plays = 2
+    src = packets(fixture("gop.mp4"))
+    n_a, n_v = len(src["audio"]), len(src["video"])
+
+    def run(scenario, fmt="mpegts"):
+        out = os.path.join(tmp, "kc5_%s.%s" % (scenario, fmt))
+        produce(scenario, fmt, out, ["gop.mp4"] * plays)
+        pkts = packets(out)
+        for kind in pkts:
+            assert_monotonic(c, "kc5 %s %s" % (scenario, kind), pkts[kind])
+        return pkts
+
+    pkts = run("nodts_audio")
+    c.check("kc5: audio packets without DTS are written",
+            len(pkts["audio"]) == n_a * plays)
+    # Each video packet is an item fault and each run of them restarts the
+    # group: what is binding is that nothing goes out of decode order and
+    # that the output keeps streaming to the end of its input.
+    pkts = run("nodts_video")
+    # Size differences, since the container may add a constant header
+    # (ADTS in MPEG-TS) to each packet.
+    def shape(pkts):
+        return [b["size"] - a["size"] for a, b in zip(pkts, pkts[1:])]
+
+    c.check("kc5: the output keeps running to the end without video DTS",
+            shape(pkts["audio"][-20:]) == shape(src["audio"][-20:]))
+    c.check("kc5: no DTS taken from PTS on a stream with reordering",
+            not any(p["pts"] == p["dts"] for p in pkts["video"]))
+    pkts = run("equal_dts")
+    c.check("kc5: an equal DTS drops that packet only",
+            len(pkts["video"]) == (n_v - 1) * plays)
+    pkts = run("backward_dts")
+    c.check("kc5: backward DTS drop those packets only",
+            len(pkts["video"]) == (n_v - 3) * plays)
+    pkts = run("restart_dts")
+    c.check("kc5: a source whose DTS restarts is carried again",
+            len(pkts["video"]) >= plays * (30 + 20))
+    pkts = run("close_dts", "flv")
+    c.check("kc5: DTS closer than one container unit are written",
+            len(pkts["video"]) == n_v * plays)
+
+
+CHECKS = {"kc1": kc1, "kc2": kc2, "kc3": kc3, "kc5": kc5}
 
 ENCODER = "src/core/optionals/ffmpeg/lib/encoder/copy_encoder.ml"
 
@@ -243,12 +367,34 @@ MUTATIONS = [
     ("kc1", "separate PTS and DTS offsets", ENCODER,
      "    let dts' = dts + offset and pts' = pts + offset in",
      "    let dts' = dts + offset and pts' = pts + offset + (offset mod 7919) in"),
+    ("kc1", "a join end taken as the last DTS without its duration", ENCODER,
+     "    let extent = Option.value ~default:h.extent h.duration in",
+     "    let extent = 0 in"),
     ("kc2", "one offset per stream", ENCODER,
-     "  fix_offset t g ready;\n  write_held t g ready",
-     "  List.iter (fun m -> g.offset <- None; fix_offset t g [m]; write_held t g [m]) ready"),
+     "          (fun ((tenure : tenure), _) -> tenure.offset <- Some offset)",
+     "          (fun ((tenure : tenure), c) -> ignore offset; tenure.offset <- Some c)"),
     ("kc2", "offset taken from the first stream to switch", ENCODER,
-     "    | c :: l -> g.offset <- Some (List.fold_left max c l)",
-     "    | c :: _ -> g.offset <- Some c"),
+     "        let offset = List.fold_left (fun o (_, c) -> max o c) c l in",
+     "        let offset = ignore l; c in"),
+    ("kc5", "packets without DTS dropped", ENCODER,
+     "        | None, Some p -> (p, p)",
+     "        | None, Some _ -> raise (Dropped \"no DTS\")"),
+    ("kc5", "a non-increasing DTS written to the muxer", ENCODER,
+     '      | Some last when dts = last -> raise (Dropped "equal DTS dropped")',
+     "      | Some last when dts = last -> ()"),
+    ("kc5", "a missing DTS filled from PTS on a reordering stream", ENCODER,
+     "        | None, Some _ when track.reordering ->",
+     "        | None, Some _ when false ->"),
+    ("kc3", "one readiness shared by tracks of different sources", ENCODER,
+     "        | Some tenure when tenure.source_id = g.id -> Some (track, tenure, true)",
+     "        | Some tenure -> Some (track, tenure, true)"),
+    ("kc3", "a keyframe wait on a declared discontinuity whose bitstream continues",
+     ENCODER,
+     "    track.keyframe = `Wait_for_keyframe && (not track.intra) && not continues",
+     "    track.keyframe = `Wait_for_keyframe && (not track.intra) && ignore continues = ()"),
+    ("kc3", "a keyframe wait with no bound", ENCODER,
+     "        else if members <> [] && waited then (",
+     "        else if members <> [] && waited && false then ("),
     ("kc3", "no keyframe wait", ENCODER,
      "    track.keyframe = `Wait_for_keyframe && (not track.intra) && not continues",
      "    false"),
@@ -265,8 +411,9 @@ def run_check(name):
 
 
 def build():
-    subprocess.run(["dune", "build", "src/bin/liquidsoap.exe"], cwd=ROOT, check=True,
-                   capture_output=True)
+    subprocess.run(["dune", "build", "src/bin/liquidsoap.exe",
+                    "src/core/optionals/ffmpeg/test/copy_producer.exe"],
+                   cwd=ROOT, check=True, capture_output=True)
 
 
 def with_mutation(path, old, new, f):

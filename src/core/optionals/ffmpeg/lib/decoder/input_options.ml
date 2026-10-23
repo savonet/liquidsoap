@@ -33,10 +33,16 @@ let find_format name =
 
 let parse ~what s =
   let invalid () = error (Printf.sprintf "Invalid %s value: %S" what s) in
+  (* The parser wraps a script in the bindings it predefines. *)
+  let rec encoder (tm : Term.t) =
+    match tm.Term.term with
+      | `Encoder (_, params) -> params
+      | `Let { body } | `Seq (_, body) -> encoder body
+      | _ -> invalid ()
+  in
   let params =
     match Runtime.parse ("%ffmpeg(" ^ s ^ ")") with
-      | _, { Term.term = `Encoder (_, params) } -> params
-      | _ -> invalid ()
+      | _, tm -> encoder tm
       | exception _ -> invalid ()
   in
   let opts = Hashtbl.create 4 in

@@ -53,6 +53,7 @@ type tenure = {
   mutable dropped_before_key : int;
   mutable held : held list;
   mutable trim_below : int option;
+  mutable offset : int option;
   mutable last_dts : int option;
   mutable written : int;
   faults : Faults.t;
@@ -162,6 +163,7 @@ let new_tenure track ~source_id ~continues =
     dropped_before_key = 0;
     held = [];
     trim_below = None;
+    offset = None;
     last_dts = None;
     written = 0;
     faults = Faults.create track.shared.log;
@@ -340,28 +342,45 @@ let members t g =
               | None -> None))
     t.tracks
 
+(* The offset a member writes with: its group's, copied when the group's is
+   fixed or when a late member joins. *)
+let member_offset (g : group) (tenure : tenure) =
+  match (tenure.offset, g.offset) with
+    | Some o, _ -> Some o
+    | None, Some o ->
+        tenure.offset <- Some o;
+        Some o
+    | None, None -> None
+
 let write_held t g members =
-  match g.offset with
-    | None -> ()
-    | Some offset ->
-        List.iter
-          (fun (track, tenure, _) ->
+  ignore t;
+  List.iter
+    (fun (track, tenure, _) ->
+      match member_offset g tenure with
+        | None -> ()
+        | Some offset ->
             let held = List.rev tenure.held in
             tenure.held <- [];
             List.iter (write track tenure ~offset) held)
-          members
+    members
 
 let fix_offset t g members =
-  match
+  let candidates =
     List.filter_map
       (fun (track, tenure, _) ->
         match List.rev tenure.held with
-          | f :: _ -> Some (candidate t track f)
+          | f :: _ -> Some (tenure, candidate t track f)
           | [] -> None)
       members
-  with
+  in
+  match candidates with
     | [] -> ()
-    | c :: l -> g.offset <- Some (List.fold_left max c l)
+    | (_, c) :: l ->
+        let offset = List.fold_left (fun o (_, c) -> max o c) c l in
+        g.offset <- Some offset;
+        List.iter
+          (fun ((tenure : tenure), _) -> tenure.offset <- Some offset)
+          candidates
 
 let pts_of (h : held) = match h.pts with Some p -> Some p | None -> h.dts
 
@@ -401,7 +420,27 @@ let trim t g members ~threshold =
     t.log#info "Source %d: %d held packets dropped before the group start" g.id
       !trimmed
 
-let start_group t g members =
+let sparse track =
+  match track.header with
+    | Some { Copy_params.media = `Subtitle _ } -> true
+    | _ -> false
+
+(* The offset waits for every non-sparse member's first packet, or for
+   [force] (wait limit, flush): encoder-copy.md §12.3, Writing. *)
+let settle_offset t g members ~force =
+  let ready = List.filter (fun (_, tenure, _) -> tenure.ready) members in
+  let holds (_, tenure, _) = tenure.held <> [] in
+  let fixable =
+    force
+    ||
+      match List.filter (fun (track, _, _) -> not (sparse track)) ready with
+      | [] -> List.exists holds ready
+      | non_sparse -> List.for_all holds non_sparse
+  in
+  if g.offset = None && fixable then fix_offset t g ready;
+  write_held t g ready
+
+let start_group t g members ~force =
   g.started <- true;
   let ready = List.filter (fun (_, tenure, _) -> tenure.ready) members in
   let keyed =
@@ -423,8 +462,7 @@ let start_group t g members =
         trim t g ready ~threshold;
         if t.whole_output && List.length members = List.length t.tracks then
           t.skipped <- t.skipped + max 0 (key_position - g.wait_start));
-  fix_offset t g ready;
-  write_held t g ready
+  settle_offset t g members ~force
 
 let end_of_frame t ~position =
   Hashtbl.iter
@@ -439,7 +477,7 @@ let end_of_frame t ~position =
           position - g.wait_start
           >= Frame.main_of_seconds Settings.max_keyframe_wait#get
         in
-        if members <> [] && all_ready then start_group t g members
+        if members <> [] && all_ready then start_group t g members ~force:waited
         else if members <> [] && waited then (
           t.log#important "Source %d: starting without the keyframe of %s" g.id
             (String.concat ", "
@@ -447,7 +485,7 @@ let end_of_frame t ~position =
                   (fun (track, tenure, _) ->
                     if tenure.ready then None else Some (name track))
                   members));
-          start_group t g members)
+          start_group t g members ~force:true)
         else if not open_tenure then (
           List.iter
             (fun (track, tenure, _) ->
@@ -459,9 +497,11 @@ let end_of_frame t ~position =
               tenure.held <- [])
             members;
           Hashtbl.remove t.groups g.id))
-      else if g.offset = None then (
-        fix_offset t g members;
-        write_held t g members);
+      else if g.offset = None then
+        settle_offset t g members
+          ~force:
+            (position - g.wait_start
+            >= Frame.main_of_seconds Settings.max_keyframe_wait#get);
       if members = [] then Hashtbl.remove t.groups g.id)
     (Hashtbl.copy t.groups);
   List.iter (fun track -> track.closed <- []) t.tracks
@@ -470,10 +510,8 @@ let flush t ~position =
   Hashtbl.iter
     (fun _ g ->
       let members = members t g in
-      if not g.started then start_group t g members
-      else (
-        if g.offset = None then fix_offset t g members;
-        write_held t g members))
+      if not g.started then start_group t g members ~force:true
+      else settle_offset t g members ~force:true)
     (Hashtbl.copy t.groups);
   ignore position
 
@@ -526,7 +564,7 @@ let accept track tenure g h =
       | None, _ -> false
   in
   if tenure.ready && not trimmed then (
-    match (g.started, g.offset) with
+    match (g.started, member_offset g tenure) with
       | true, Some offset -> write track tenure ~offset h
       | _ -> tenure.held <- h :: tenure.held)
 

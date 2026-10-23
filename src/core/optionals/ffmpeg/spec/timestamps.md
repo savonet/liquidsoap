@@ -294,8 +294,9 @@ is a sum of whole ticks, so it carries no rounding.
   the source on that stream is at least its previous end, so a join neither
   overlaps the previous packet nor repeats a DTS.
 - The maximum over members, decided once when every member's first packet is
-  known, keeps the source's own relation between its streams and never moves
-  a stream after it has begun.
+  known (every non-sparse member's, [encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)),
+  keeps the source's own relation between its streams and never moves a
+  stream after it has begun.
 
 Each candidate uses its own member's end, not the latest end of every member:
 when a producer's positions and timestamps disagree by a constant, the
