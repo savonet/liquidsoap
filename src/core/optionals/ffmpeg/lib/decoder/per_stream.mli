@@ -37,9 +37,12 @@ type item =
 
 type outcome = [ `Ok | `Item_fault of string | `Source_fault of string ]
 
-(** Where a per-stream decoder writes: its field of the decoder's buffer. *)
+(** Where a per-stream decoder writes: its field of the decoder's buffer.
+    [put_image] goes through the buffer's video entry, which keeps one image per
+    video frame at the given rate. *)
 type output = {
   put : Content.data -> unit;
+  put_image : fps:Decoder.fps -> Mm.Video.Canvas.image -> unit;
   add_metadata : Frame.metadata -> unit;
 }
 

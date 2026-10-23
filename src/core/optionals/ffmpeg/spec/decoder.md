@@ -423,8 +423,8 @@ previous stream index, when the decoder holds any.
 ### 7.7 Sparse advance
 
 Sparse decoders (subtitles, timed ID3) receive, besides items, `advance p`
-with `p` the position, in main ticks, reached by every non-sparse stream
-(§8.3). It lets them fill their field up to `p` when no item arrives.
+with `p` the sparse bound of §8.3, in main ticks: the latest start reached
+by every non-sparse stream. It lets them fill their field up to `p` when no item arrives.
 
 ### 7.8 Errors and logs
 
@@ -535,7 +535,14 @@ plus its duration (the PTS alone when it has no duration).
 - Per non-sparse stream, the progress `p_s = rescale(end) − o_s` of its
   latest released item. The decoder position `P` is the minimum `p_s` over
   the non-sparse streams that have released an item; before any release, 0.
-- When `P` grows, every sparse stream receives `advance P` (§7.7).
+- Per non-sparse stream, the start `q_s = rescale(key) − o_s` of its latest
+  released item. The **sparse bound** `S` is the minimum `q_s` over the same
+  streams. When `S` grows, every sparse stream receives `advance S` (§7.7).
+  Reason: containers interleave by decode timestamp, so a sparse item read
+  just after an item starting at `q` starts at or after `q`, and can still
+  start before that item's end. Advancing to `P` would delay such a cue by
+  up to one item; the sparse field instead lags by at most one item, which
+  `Flush` (§13.1) closes.
 
 The position the caller sees is `U = (B − O) + P` once the mapping has
 started, to within one item. Before that, `U` is the target minus `O` when a

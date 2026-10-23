@@ -56,8 +56,6 @@ val video_size : format -> (int * int) option
 (** Bitrate estimation in bits per second. *)
 val bitrate : format -> int
 
-(* pass3: removed encoder-driven file and url output functions *)
-
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
     is really meant for inline metadata, i.e. in most cases, stream sources.
@@ -103,8 +101,15 @@ type encoder = {
   stop : unit -> Strings.t;
 }
 
+(** [interrupt] aborts the blocking I/O of an encoder that writes to a target of
+    its own (an [%ffmpeg] URL); the other encoders ignore it. *)
 type factory =
-  ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
+  ?hls:bool ->
+  ?interrupt:(unit -> bool) ->
+  pos:Pos.t option ->
+  string ->
+  Frame.Metadata.Export.t ->
+  encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)

@@ -125,5 +125,5 @@ let () =
   in
   Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function
     | Encoder.MP3 mp3 ->
-        Some (fun ?hls:_ ~pos _ meta -> mp3_encoder ~pos mp3 meta)
+        Some (fun ?hls:_ ?interrupt:_ ~pos _ meta -> mp3_encoder ~pos mp3 meta)
     | _ -> None)

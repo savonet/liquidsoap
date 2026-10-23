@@ -30,3 +30,11 @@ val of_list : Liquidsoap_ffmpeg_formats.Encoder_format.opts -> Avutil.opts
 val unused_message : (string * Avutil.opts) list -> string option
 
 val string_of_value : Avutil.value -> string
+
+(** [add_flag opts ~name flag] combines [flag] into the [flags] option: OR-ed
+    into a number, [+name] appended to a string (encoder-format.md §8). *)
+val add_flag :
+  Liquidsoap_ffmpeg_formats.Encoder_format.opts ->
+  name:string ->
+  int ->
+  Liquidsoap_ffmpeg_formats.Encoder_format.opts

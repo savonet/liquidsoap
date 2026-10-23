@@ -51,6 +51,7 @@ type entry = {
   mutable held : queued list;
   mutable released : bool;
   mutable progress : int option;
+  mutable latest_start : int option;
   mutable previous_key : int option;
   mutable skipped : int;
   queue : queued Queue.t;
@@ -78,6 +79,7 @@ type t = {
   mutable had_discontinuity : bool;
   mutable early_sparse : (entry * queued) list;
   mutable reached : int;
+  mutable sparse_reached : int;
   mutable window_warned : bool;
   mutable window_dropped : int;
   mutable buffer : Decoder.buffer option;
@@ -106,48 +108,128 @@ let output t field =
   in
   {
     Per_stream.put = (fun data -> Generator.put (generator ()) field data);
+    put_image =
+      (fun ~fps image ->
+        match t.buffer with
+          | Some b -> b.Decoder.put_yuva420p ~field ~fps image
+          | None -> failwith "FFmpeg decoder used without a buffer");
     add_metadata = (fun m -> Generator.add_metadata (generator ()) m);
   }
 
-(* The per-stream decoder of §6's table; [None] for a field this build cannot
-   decode. *)
-let per_stream_decoder ~output ~faults ~source_id ~ctype
-    (stream : Stream_description.stream) =
+(* The row of decoder.md §6's table a stream maps to, from the requested
+   format alone. *)
+type choice =
+  [ `Copy of Copy_params.t
+  | `Timed_id3
+  | `Internal_audio of Content_base.kind * int
+  | `Internal_video of Content.format
+  | `Raw_audio of Content.format
+  | `Raw_video of Content.format
+  | `Text_subtitles
+  | `Bitmap_subtitles of Content.format ]
+
+let unsupported (stream : Stream_description.stream) =
+  failwith
+    (Printf.sprintf "Field %s: no FFmpeg decoder for the requested content"
+       (Frame.Fields.string_of_field stream.field))
+
+let choose ~ctype (stream : Stream_description.stream) : choice option =
   match stream.media with
     | `Data p -> (
         match Avcodec.Unknown.get_params_id p with
-          | `Timed_id3 -> Some (`Data, Timed_id3_decoder.create ~output ~faults)
+          | `Timed_id3 -> Some `Timed_id3
           | _ -> None)
     | _ -> (
         match Frame.Fields.find_opt stream.field ctype with
           | None -> None
-          | Some format when Ffmpeg_content.Copy.is_format format -> (
-              match Stream_description.copy_params stream with
-                | Some params ->
+          | Some format when Ffmpeg_content.Copy.is_format format ->
+              Option.map
+                (fun p -> `Copy p)
+                (Stream_description.copy_params stream)
+          | Some format when Ffmpeg_content.Audio.is_format format -> (
+              match stream.media with
+                | `Audio _ -> Some (`Raw_audio format)
+                | _ -> unsupported stream)
+          | Some format when Ffmpeg_content.Video.is_format format -> (
+              match stream.media with
+                | `Video _ -> Some (`Raw_video format)
+                | _ -> unsupported stream)
+          | Some format -> (
+              match stream.media with
+                | `Audio _ when Content.Audio.is_format format ->
                     Some
-                      ( `Copy,
-                        Copy_decoder.create ~output ~faults ~source_id stream
-                          params )
-                | None -> None)
-          | Some _ ->
-              raise
-                (Failure
-                   (Printf.sprintf
-                      "Field %s: only copy decoding is available in this build"
-                      (Frame.Fields.string_of_field stream.field))))
+                      (`Internal_audio
+                         ( Content.kind format,
+                           Content.Audio.channels_of_format format ))
+                | `Audio _
+                  when Content_pcm_s16.is_format format
+                       || Content_pcm_f32.is_format format ->
+                    Some
+                      (`Internal_audio
+                         ( Content.kind format,
+                           Pcm_format.channels_of_format
+                             ~get_params:Content_pcm_s16.get_params format ))
+                | `Video _ when Content.Video.is_format format ->
+                    Some (`Internal_video format)
+                | `Subtitle _ when Subtitle_content.is_format format ->
+                    Some `Text_subtitles
+                | `Subtitle _ when Content.Video.is_format format ->
+                    Some (`Bitmap_subtitles format)
+                | _ -> unsupported stream))
+
+let kind_of_choice : choice -> kind = function
+  | `Copy _ -> `Copy
+  | `Timed_id3 -> `Data
+  | `Internal_audio _ | `Internal_video _ | `Raw_audio _ | `Raw_video _
+  | `Text_subtitles | `Bitmap_subtitles _ ->
+      `Decoded
+
+let create_decoder ~output ~faults ~source_id
+    (stream : Stream_description.stream) : choice -> Per_stream.t = function
+  | `Copy params -> Copy_decoder.create ~output ~faults ~source_id stream params
+  | `Timed_id3 -> Timed_id3_decoder.create ~output ~faults
+  | `Internal_audio (pcm_kind, channels) -> (
+      match stream.media with
+        | `Audio params ->
+            Internal_audio_decoder.create ~output ~faults ~log ~pcm_kind
+              ~channels params
+        | _ -> unsupported stream)
+  | `Internal_video format -> (
+      match stream.media with
+        | `Video (params, _) ->
+            let width, height = Display.expected_size params in
+            ignore
+              (Frame.video_dimensions
+                 ~ideal_size:{ Frame.width; height; source = "ffmpeg decoder" }
+                 ());
+            let width, height = Content.Video.dimensions_of_format format in
+            Internal_video_decoder.create ~output ~faults ~log ~source_id ~width
+              ~height
+              ~alpha:
+                (try Content.Video.alpha_of_format format with _ -> false)
+              stream params
+        | _ -> unsupported stream)
+  | `Text_subtitles ->
+      Internal_subtitle_decoder.create ~output ~faults ~field:stream.field
+  | `Bitmap_subtitles format -> (
+      match stream.media with
+        | `Subtitle params ->
+            let width, height = Content.Video.dimensions_of_format format in
+            Bitmap_subtitle_decoder.create ~output ~faults ~field:stream.field
+              ~width ~height params
+        | _ -> unsupported stream)
+  | `Raw_audio format ->
+      Raw_decoder.audio ~output ~faults ~log ~source_id ~format stream
+  | `Raw_video format -> (
+      match stream.media with
+        | `Video (params, _) ->
+            Raw_decoder.video ~output ~faults ~log ~source_id ~format stream
+              params
+        | _ -> unsupported stream)
 
 let can_map ~ctype (description : Stream_description.t) =
-  let faults = Faults.create log in
-  let output =
-    { Per_stream.put = (fun _ -> ()); add_metadata = (fun _ -> ()) }
-  in
   try
-    List.iter
-      (fun stream ->
-        ignore
-          (per_stream_decoder ~output ~faults ~source_id:Source_id.none ~ctype
-             stream))
-      description.streams;
+    List.iter (fun stream -> ignore (choose ~ctype stream)) description.streams;
     true
   with Failure _ -> false
 
@@ -167,12 +249,14 @@ let build_mapping t =
   t.entries <-
     List.filter_map
       (fun (stream : Stream_description.stream) ->
-        match
-          per_stream_decoder ~output:(output t stream.field) ~faults:t.faults
-            ~source_id ~ctype:t.ctype stream
-        with
+        match choose ~ctype:t.ctype stream with
           | None -> None
-          | Some (kind, per_stream) ->
+          | Some choice ->
+              let kind = kind_of_choice choice in
+              let per_stream =
+                create_decoder ~output:(output t stream.field) ~faults:t.faults
+                  ~source_id stream choice
+              in
               Some
                 {
                   stream;
@@ -186,6 +270,7 @@ let build_mapping t =
                   held = [];
                   released = false;
                   progress = None;
+                  latest_start = None;
                   previous_key = None;
                   skipped = 0;
                   queue = Queue.create ();
@@ -195,7 +280,8 @@ let build_mapping t =
   t.mapping_start <- None;
   t.event <- None;
   t.early_sparse <- [];
-  t.reached <- 0
+  t.reached <- 0;
+  t.sparse_reached <- 0
 
 let entry t index =
   List.find_opt (fun e -> e.stream.Stream_description.index = index) t.entries
@@ -267,21 +353,27 @@ let item_fault t message =
              (Printf.sprintf "%d consecutive invalid items"
                 Faults.max_consecutive_faults))
 
-let advance_sparse t =
+let minimum_released t field =
   match
     List.filter_map
-      (fun e -> if e.released then e.progress else None)
+      (fun e -> if e.released then field e else None)
       (non_sparse t)
   with
-    | [] -> ()
-    | progresses ->
-        let p = List.fold_left min max_int progresses in
-        if p > t.reached then (
-          t.reached <- p;
-          List.iter
-            (fun e ->
-              if e.per_stream.Per_stream.sparse then e.per_stream.advance p)
-            t.entries)
+    | [] -> None
+    | l -> Some (List.fold_left min max_int l)
+
+let advance_sparse t =
+  Option.iter
+    (fun p -> t.reached <- max t.reached p)
+    (minimum_released t (fun e -> e.progress));
+  match minimum_released t (fun e -> e.latest_start) with
+    | Some s when s > t.sparse_reached ->
+        t.sparse_reached <- s;
+        List.iter
+          (fun e ->
+            if e.per_stream.Per_stream.sparse then e.per_stream.advance s)
+          t.entries
+    | _ -> ()
 
 let push t entry q =
   let position =
@@ -300,6 +392,12 @@ let push t entry q =
           entry.progress <-
             Some (match entry.progress with Some p' -> max p p' | None -> p)
       | None -> ());
+    Option.iter
+      (fun key ->
+        let s = key - entry.origin in
+        entry.latest_start <-
+          Some (match entry.latest_start with Some s' -> max s s' | None -> s))
+      q.key;
     advance_sparse t)
 
 (* The mapping origin is fixed by the first item a non-sparse stream
@@ -382,16 +480,58 @@ let merged_queue t =
     all
 
 let first_key e = Seq.find_map (fun q -> q.key) (Queue.to_seq e.queue)
+let start_key_tolerance () = Frame.main_of_audio 1024
+
+(* The key packet a copied video stream starts from (decoder.md §8.5, mixed
+   case): its PTS and DTS, [None] while no queued key packet decides it. *)
+let start_key ~t0 e =
+  let keys =
+    List.filter_map
+      (fun q ->
+        match (q.key_packet, q.pts, q.key) with
+          | true, Some pts, Some dts -> Some (pts, dts)
+          | _ -> None)
+      (List.of_seq (Queue.to_seq e.queue))
+  in
+  let before =
+    List.fold_left
+      (fun found (pts, dts) -> if pts <= t0 then Some (pts, dts) else found)
+      None keys
+  in
+  match before with
+    | Some (pts, _) as found when t0 - pts <= start_key_tolerance () -> found
+    | _ -> List.find_opt (fun (pts, _) -> pts >= t0) keys
+
+let start_point t ~t0 =
+  let copied_video =
+    List.filter (fun e -> e.kind = `Copy && e.needs_key) (non_sparse t)
+  in
+  match (copied_video, t0) with
+    | [], _ | _, None -> `Threshold t0
+    | l, Some t0 ->
+        let keys = List.map (start_key ~t0) l in
+        if List.mem None keys then `Unknown
+        else (
+          match
+            List.fold_left
+              (fun latest k ->
+                match (latest, k) with
+                  | Some (pts, _), Some (pts', _) when pts' <= pts -> latest
+                  | _, k -> k)
+              None keys
+          with
+            | Some (pts, dts) -> `Start_point (pts, dts)
+            | None -> `Threshold (Some t0))
 
 let start t ~case =
-  t.started <- true;
   let decoded = List.filter (fun e -> e.kind = `Decoded) (non_sparse t) in
   let firsts = List.filter_map first_key decoded in
   let t0 =
     match (case, firsts) with
       | _, [] -> None
       | `All_seen, l -> Some (List.fold_left max min_int l)
-      | (`End | `Discontinuity), l -> Some (List.fold_left min max_int l)
+      | (`End | `Discontinuity | `Window), l ->
+          Some (List.fold_left min max_int l)
   in
   let t0 =
     match (t.target, t0) with
@@ -399,12 +539,30 @@ let start t ~case =
       | Some target, None -> Some target
       | None, t0 -> t0
   in
-  List.iter (fun e -> e.threshold <- t0) t.entries;
-  if non_sparse t = [] then (
-    let b = Option.value ~default:t.container_origin t.target in
-    t.mapping_start <- Some b;
-    List.iter (fun e -> e.origin <- b) t.entries);
-  List.iter (fun (e, q, _) -> release t e q) (merged_queue t)
+  let point =
+    match (start_point t ~t0, case) with
+      | `Unknown, `All_seen -> `Unknown
+      | `Unknown, _ -> `Threshold t0
+      | point, _ -> point
+  in
+  match point with
+    | `Unknown -> ()
+    | (`Threshold _ | `Start_point _) as point ->
+        t.started <- true;
+        (match point with
+          | `Threshold t0 -> List.iter (fun e -> e.threshold <- t0) t.entries
+          | `Start_point (pts, dts) ->
+              List.iter
+                (fun e ->
+                  e.threshold <- Some (if e.needs_key then pts else dts))
+                t.entries;
+              t.mapping_start <- Some dts;
+              List.iter (fun e -> e.origin <- dts) t.entries);
+        if non_sparse t = [] then (
+          let b = Option.value ~default:t.container_origin t.target in
+          t.mapping_start <- Some b;
+          List.iter (fun e -> e.origin <- b) t.entries);
+        List.iter (fun (e, q, _) -> release t e q) (merged_queue t)
 
 let queue_span t =
   let keys =
@@ -444,8 +602,10 @@ let drop_oldest t =
 let enqueue t entry q =
   Queue.push q entry.queue;
   let seen e = e.per_stream.Per_stream.sparse || first_key e <> None in
-  if List.for_all seen t.entries then start t ~case:`All_seen
-  else
+  if List.for_all seen t.entries then start t ~case:`All_seen;
+  if (not t.started) && List.for_all seen t.entries then (
+    if queue_span t > max_span () then start t ~case:`Window)
+  else if not t.started then
     while queue_span t > max_span () do
       if not t.window_warned then (
         t.window_warned <- true;
@@ -760,6 +920,7 @@ let create ?(request_metadata = Frame.Metadata.empty) ~decode_first_metadata
       had_discontinuity = false;
       early_sparse = [];
       reached = 0;
+      sparse_reached = 0;
       window_warned = false;
       window_dropped = 0;
       buffer = None;

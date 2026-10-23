@@ -23,7 +23,26 @@
 (** The FFmpeg media decoder, duration resolver and metadata resolver
     (decoder.md §1, §3, §5, §10.4, §11.1), registered when the layer is linked.
     [file_type] is the probe of §5; [tags] the resolver's tags of §10.4, before
-    the request layer lowercases them. *)
+    the request layer lowercases them.
+
+    [input.ffmpeg] reuses the opening of §5 (decoder.md §15):
+    [stream_configuration], the preferred decoder per codec given to the
+    bindings' open, and [describe], the container's description logged as FFmpeg
+    recognizes it. *)
+
+type stream_configuration = {
+  audio : Avutil.audio Avcodec.params -> Avutil.audio Av.stream_config;
+  video : Avutil.video Avcodec.params -> Avutil.video Av.stream_config;
+  subtitle : Avutil.subtitle Avcodec.params -> Avutil.subtitle Av.stream_config;
+}
+
+val stream_configuration : unit -> stream_configuration
+
+val describe :
+  options:Input_options.t ->
+  url:string ->
+  Avutil.input Avutil.container ->
+  Stream_description.t
 
 val file_type :
   metadata:Frame.metadata ->

@@ -535,6 +535,9 @@ module Video = struct
     chroma_location : Chroma_location.t;
   }
 
+  external frame_set_colors : video frame -> frame_format -> unit
+    = "ocaml_avutil_video_frame_set_colors"
+
   let frame_format frame =
     {
       width = frame_get_width frame;

@@ -35,7 +35,7 @@
 %include "hls.liq"
 %include "video.liq"
 
-# pass3: removed ffmpeg stdlib include
+%include "ffmpeg.liq"
 %include "profiler.liq"
 %include "io.liq"
 %include "jack.liq"

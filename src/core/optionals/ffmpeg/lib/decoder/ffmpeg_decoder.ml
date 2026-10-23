@@ -45,27 +45,36 @@ let configure_stream (type media) ~find ~string_of_id ~get_params_id :
         log#info "Trying preferred decoder %s for codec %s" decoder name;
         { Av.codec = Some (find decoder); opts = None }
 
+type stream_configuration = {
+  audio : Avutil.audio Avcodec.params -> Avutil.audio Av.stream_config;
+  video : Avutil.video Avcodec.params -> Avutil.video Av.stream_config;
+  subtitle : Avutil.subtitle Avcodec.params -> Avutil.subtitle Av.stream_config;
+}
+
+let stream_configuration () =
+  {
+    audio =
+      configure_stream ~find:Avcodec.Audio.find_decoder_by_name
+        ~string_of_id:Avcodec.Audio.string_of_id
+        ~get_params_id:Avcodec.Audio.get_params_id;
+    video =
+      configure_stream ~find:Avcodec.Video.find_decoder_by_name
+        ~string_of_id:Avcodec.Video.string_of_id
+        ~get_params_id:Avcodec.Video.get_params_id;
+    subtitle =
+      configure_stream ~find:Avcodec.Subtitle.find_decoder_by_name
+        ~string_of_id:Avcodec.Subtitle.string_of_id
+        ~get_params_id:Avcodec.Subtitle.get_params_id;
+  }
+
 let open_file ?(configure = true) ~options filename =
-  let configure_audio_stream =
-    configure_stream ~find:Avcodec.Audio.find_decoder_by_name
-      ~string_of_id:Avcodec.Audio.string_of_id
-      ~get_params_id:Avcodec.Audio.get_params_id
-  in
-  let configure_video_stream =
-    configure_stream ~find:Avcodec.Video.find_decoder_by_name
-      ~string_of_id:Avcodec.Video.string_of_id
-      ~get_params_id:Avcodec.Video.get_params_id
-  in
-  let configure_subtitle_stream =
-    configure_stream ~find:Avcodec.Subtitle.find_decoder_by_name
-      ~string_of_id:Avcodec.Subtitle.string_of_id
-      ~get_params_id:Avcodec.Subtitle.get_params_id
-  in
   let { Input_options.format; opts } = options in
   let container =
-    if configure then
-      Av.open_input ?format ~opts ~configure_audio_stream
-        ~configure_video_stream ~configure_subtitle_stream filename
+    if configure then (
+      let c = stream_configuration () in
+      Av.open_input ?format ~opts ~configure_audio_stream:c.audio
+        ~configure_video_stream:c.video ~configure_subtitle_stream:c.subtitle
+        filename)
     else Av.open_input ?format ~opts filename
   in
   (match Input_options.check_unused options with
@@ -109,7 +118,7 @@ let file_type ~metadata ~ctype filename =
           (fun () ->
             let description = describe ~options ~url:filename container in
             let decoded = Stream_description.get_type ~ctype description in
-            if not (Decode_loop.can_map ~ctype:decoded description) then
+            if not (Decode_loop.can_map ~ctype description) then
               failwith "Content type not decodable by this build";
             Some decoded)
 
@@ -121,9 +130,9 @@ let create_file_decoder ~metadata ~ctype filename =
       Stream_description.container ?format:options.Input_options.format
         ~url:filename container
     in
-    let decoded = Stream_description.get_type ~ctype description in
+    ignore (Stream_description.get_type ~ctype description);
     Decode_loop.create ~request_metadata:metadata ~decode_first_metadata:false
-      ~ctype:decoded ~description container
+      ~ctype ~description container
   with
     | loop ->
         Decoder.file_decoder ~filename
@@ -174,9 +183,9 @@ let create_stream_decoder ~ctype mime input =
   let container = Av.open_input_stream ?format ~opts ?seek read in
   Input_options.check_unused options;
   let description = describe ~options ~url:mime container in
-  let decoded = Stream_description.get_type ~ctype description in
+  ignore (Stream_description.get_type ~ctype description);
   Decode_loop.decoder
-    (Decode_loop.create ~decode_first_metadata:true ~ctype:decoded ~description
+    (Decode_loop.create ~decode_first_metadata:true ~ctype ~description
        container)
 
 let duration ~metadata filename =

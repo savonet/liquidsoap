@@ -23,8 +23,8 @@
 (** FFmpeg's log in Liquidsoap's (common.md §2) and the layer's start-up actions
     (§3). Installed when the layer is loaded: the defaults apply at once, the
     script's values at the start phase, and the callback is cleared before
-    Liquidsoap's log stops. *)
+    Liquidsoap's log stops. [liquidsoap_level] is the level a captured message
+    is logged at: the more severe of [level] and the level its FFmpeg severity
+    maps to. *)
 
-(** Liquidsoap level of a captured message: the more severe of [level] and the
-    level its FFmpeg severity maps to. *)
 val liquidsoap_level : level:int -> Avutil.Log.level -> int

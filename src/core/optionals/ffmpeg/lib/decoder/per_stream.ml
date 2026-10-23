@@ -31,6 +31,7 @@ type outcome = [ `Ok | `Item_fault of string | `Source_fault of string ]
 
 type output = {
   put : Content.data -> unit;
+  put_image : fps:Decoder.fps -> Mm.Video.Canvas.image -> unit;
   add_metadata : Frame.metadata -> unit;
 }
 

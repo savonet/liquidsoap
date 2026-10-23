@@ -24,7 +24,8 @@ module F = Liquidsoap_ffmpeg_formats.Encoder_format
 
 let error ?pos message = Lang_encoder.raise_error ~pos message
 
-type track = [ `Copy of Copy_encoder.track | `Drop ]
+type track =
+  [ `Copy of Copy_encoder.track | `Encoded of Encoded_stream.t | `Drop ]
 
 type container = {
   output : Avutil.output Avutil.container;
@@ -41,6 +42,7 @@ type t = {
   log : Log.t;
   format : F.t;
   pos : Pos.t option;
+  interrupt : (unit -> bool) option;
   buffer : Buffer.t;
   mutable metadata : (string * string) list;
   mutable current : container;
@@ -74,7 +76,8 @@ let non_drop format = List.filter (fun (_, t) -> t <> `Drop) format.F.streams
 let carries_header_in_band muxer =
   List.mem muxer ["mpegts"; "adts"; "h264"; "hevc"; "mp3"]
 
-let open_container ~log ~(format : F.t) ~pos ~buffer ?(append = false) () =
+let open_container ?interrupt ~log ~(format : F.t) ~pos ~buffer
+    ?(append = false) () =
   let opts =
     Opts.of_list
       (convert_container_opts pos
@@ -106,7 +109,8 @@ let open_container ~log ~(format : F.t) ~pos ~buffer ?(append = false) () =
                   length
                 in
                 Av.open_output_stream ~opts ~interleaved write muxer)
-      | `Url url -> Av.open_output ?format:(guess ()) ~interleaved ~opts url
+      | `Url url ->
+          Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
   in
   (match Opts.unused_message [("container", opts)] with
     | Some message ->
@@ -136,18 +140,25 @@ let open_container ~log ~(format : F.t) ~pos ~buffer ?(append = false) () =
                   (Copy_encoder.track copy
                      ~field:(Frame.Fields.register field)
                      ~keyframe) )
-          | `Encode _ ->
-              (try Av.close output with _ -> ());
-              error ?pos
-                (Printf.sprintf
-                   "Track %s: encoded tracks are not available in this build"
-                   field))
+          | `Encode encoded -> (
+              try
+                ( field,
+                  `Encoded
+                    (Encoded_stream.create ~log ~pos
+                       ~field:(Frame.Fields.register field)
+                       encoded output) )
+              with exn ->
+                (try Av.close output with _ -> ());
+                raise exn))
       format.streams
   in
   { output; muxer; copy; tracks; streams_created = false; wait_start = None }
 
 let copy_tracks c =
   List.filter_map (function _, `Copy t -> Some t | _ -> None) c.tracks
+
+let encoded_tracks c =
+  List.filter_map (function _, `Encoded t -> Some t | _ -> None) c.tracks
 
 let take t =
   let s = Buffer.contents t.buffer in
@@ -165,7 +176,12 @@ let create_streams t frame =
       (fun track -> Copy_encoder.first_params track frame <> None)
       (copy_tracks c)
   then (
-    List.iter (fun track -> Copy_encoder.mk_stream track frame) (copy_tracks c);
+    List.iter
+      (function
+        | _, `Copy track -> Copy_encoder.mk_stream track frame
+        | _, `Encoded track -> track.Encoded_stream.mk_stream frame
+        | _, `Drop -> ())
+      c.tracks;
     c.streams_created <- true;
     t.state <- `Started)
   else (
@@ -190,6 +206,10 @@ let encode t frame =
           try
             List.iter
               (fun track ->
+                track.Encoded_stream.encode ~position:t.position frame)
+              (encoded_tracks c);
+            List.iter
+              (fun track ->
                 Copy_encoder.encode track ~position:t.position frame)
               (copy_tracks c);
             Copy_encoder.end_of_frame c.copy ~position:t.position
@@ -210,7 +230,10 @@ let encode t frame =
 
 let close_container t =
   let c = t.current in
-  (try if c.streams_created then Copy_encoder.flush c.copy ~position:t.position
+  (try
+     if c.streams_created then (
+       List.iter (fun track -> track.Encoded_stream.flush ()) (encoded_tracks c);
+       Copy_encoder.flush c.copy ~position:t.position)
    with exn -> t.log#severe "Draining failed: %s" (Printexc.to_string exn));
   try Av.close c.output
   with exn -> t.log#severe "Closing failed: %s" (Printexc.to_string exn)
@@ -234,8 +257,8 @@ let encode_metadata t m =
         else if restartable t then (
           close_container t;
           t.current <-
-            open_container ~log:t.log ~format:t.format ~pos:t.pos
-              ~buffer:t.buffer ~append:true ();
+            open_container ?interrupt:t.interrupt ~log:t.log ~format:t.format
+              ~pos:t.pos ~buffer:t.buffer ~append:true ();
           t.position <- 0;
           t.state <- `Built;
           Av.set_output_metadata t.current.output t.metadata)
@@ -253,7 +276,7 @@ let stop t =
         t.state <- `Stopped;
         take t
 
-let create ?(hls = false) ~pos ~name metadata format =
+let create ?(hls = false) ?interrupt ~pos ~name metadata format =
   ignore hls;
   let log = Log.make ["ffmpeg"; "encoder"; name] in
   let buffer = Buffer.create 4096 in
@@ -262,9 +285,10 @@ let create ?(hls = false) ~pos ~name metadata format =
       log;
       format;
       pos;
+      interrupt;
       buffer;
       metadata = format.F.metadata;
-      current = open_container ~log ~format ~pos ~buffer ();
+      current = open_container ?interrupt ~log ~format ~pos ~buffer ();
       state = `Built;
       position = 0;
     }
@@ -283,6 +307,6 @@ let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder." (function
     | Encoder.Ffmpeg format ->
         Some
-          (fun ?hls ~pos name metadata ->
-            create ?hls ~pos ~name metadata format)
+          (fun ?hls ?interrupt ~pos name metadata ->
+            create ?hls ?interrupt ~pos ~name metadata format)
     | _ -> None)

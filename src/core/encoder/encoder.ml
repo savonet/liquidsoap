@@ -144,8 +144,6 @@ let bitrate = function
   | FdkAacEnc w -> Fdkaac_format.bitrate w
   | _ -> raise Not_found
 
-(* pass3: removed encoder-driven file and url output functions *)
-
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
     is really meant for inline metadata, i.e. in most cases, stream sources.
@@ -201,7 +199,12 @@ type encoder = {
 }
 
 type factory =
-  ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
+  ?hls:bool ->
+  ?interrupt:(unit -> bool) ->
+  pos:Pos.t option ->
+  string ->
+  Frame.Metadata.Export.t ->
+  encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)
@@ -219,9 +222,9 @@ let get_factory fmt =
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory ->
-    fun ?hls ~pos name m ->
+    fun ?hls ?interrupt ~pos name m ->
       let { encode_metadata; hls; encode; stop; header } =
-        factory ?hls ~pos name m
+        factory ?hls ?interrupt ~pos name m
       in
       (* Protect all functions with a mutex. *)
       let m = Mutex.create () in

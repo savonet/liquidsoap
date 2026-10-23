@@ -188,7 +188,9 @@ end
 
 let replaces input.hls = input.hls.native
 
-# pass3: removed ffmpeg-backed hls input override
+%ifdef input.ffmpeg
+let replaces input.hls = fun (~id=null, uri) -> input.ffmpeg(id=id, uri)
+%endif
 
 # Play an HLS stream.
 # @category Source / Input / Active

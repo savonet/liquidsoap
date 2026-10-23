@@ -67,15 +67,10 @@ let option_value v : F.value =
 
 let qscale opts v =
   let q = float v in
-  let flag = Avcodec.flag_qscale in
-  let flags : F.value =
-    match List.assoc_opt "flags" opts with
-      | Some (`Int i) -> `Int (i lor flag)
-      | Some (`Int64 i) -> `Int64 (Int64.logor i (Int64.of_int flag))
-      | Some (`String s) -> `String (s ^ "+qscale")
-      | Some (`Float _) | None -> `Int flag
-  in
-  F.set (F.set opts "flags" flags) "global_quality" (`Float (118. *. q))
+  F.set
+    (Opts.add_flag opts ~name:"qscale" Avcodec.flag_qscale)
+    "global_quality"
+    (`Float (118. *. q))
 
 let channels_of_layout v name =
   match Avutil.Channel_layout.find name with
