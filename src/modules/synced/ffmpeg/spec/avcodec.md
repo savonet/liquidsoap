@@ -170,7 +170,8 @@ Absent values:
 These are FFmpeg's own sentinels: a duration of 0 and a position of -1 mean
 "unknown" to FFmpeg too, so `Some 0L` and `Some (-1L)` read back as `None`.
 
-`flag_qscale` is `AV_CODEC_FLAG_QSCALE`.
+`flag_qscale` is `AV_CODEC_FLAG_QSCALE`; `flag_global_header` is
+`AV_CODEC_FLAG_GLOBAL_HEADER`.
 
 ## 4. Operations
 
@@ -207,6 +208,7 @@ type descriptor = {
 
 ```ocaml
 val flag_qscale : int
+val flag_global_header : int
 ```
 
 §3.2.
@@ -597,9 +599,13 @@ val get_description : _ codec -> string
 val string_of_id : id -> string
 val get_id : _ t -> id
 val get_params_id : subtitle params -> id
+val get_width : subtitle params -> int
+val get_height : subtitle params -> int
 ```
 
 As in `Audio`, for subtitle codecs and the subtitle identifier family.
+`get_width` and `get_height` are the size of the canvas a bitmap subtitle
+codec draws on, 0 when unset.
 Subtitle encoding and decoding go through containers
 ([avformat.md](avformat.md) §4).
 
@@ -847,7 +853,7 @@ Codecs, parameters and filter descriptors are immutable.
 
 ### 6.3 Global state
 
-The codec lists, the filter list, `version` and `flag_qscale`: computed at
+The codec lists, the filter list, `version` and the two flags: computed at
 module load, immutable afterwards. The library registers no thread; FFmpeg's
 codec worker threads never enter OCaml.
 

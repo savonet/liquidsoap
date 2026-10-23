@@ -26,9 +26,13 @@ let output = Modules.output
 
 let encoder_factory format_val =
   let format = Lang.to_format format_val in
-  try (Encoder.get_factory format) ~hls:false ~pos:(Value.pos format_val)
-  with Not_found ->
-    raise (Error.Invalid_value (format_val, "Unsupported encoding format", []))
+  match Encoder.get_factory format with
+    | factory ->
+        fun name metadata ->
+          factory ~hls:false ~pos:(Value.pos format_val) name metadata
+    | exception Not_found ->
+        raise
+          (Error.Invalid_value (format_val, "Unsupported encoding format", []))
 
 let base_proto =
   ( "export_cover_metadata",
@@ -108,8 +112,6 @@ class virtual base ?clock ~source:source_val ~name p =
           | None -> ()
           | Some encoder -> encoder.Encoder.encode_metadata m)
   end
-
-(* pass3: removed encoder-driven url output operator *)
 
 (** Piped virtual class: open/close pipe, implements metadata interpolation and
     takes care of the various reload mechanisms. *)

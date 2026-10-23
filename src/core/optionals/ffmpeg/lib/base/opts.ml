@@ -29,7 +29,7 @@ let string_of_value : Avutil.value -> string = function
   | `String s -> Lang_string.quote_string s
   | `Int i -> string_of_int i
   | `Int64 i -> Int64.to_string i
-  | `Float f -> Utils_base.string_of_float f
+  | `Float f -> Utils.string_of_float f
 
 let unused_message scopes =
   let scopes =
@@ -50,3 +50,13 @@ let unused_message scopes =
   match scopes with
     | [] -> None
     | l -> Some ("Unrecognized options: " ^ String.concat "; " l)
+
+let add_flag opts ~name flag =
+  let flags : Liquidsoap_ffmpeg_formats.Encoder_format.value =
+    match List.assoc_opt "flags" opts with
+      | Some (`Int i) -> `Int (i lor flag)
+      | Some (`Int64 i) -> `Int64 (Int64.logor i (Int64.of_int flag))
+      | Some (`String s) -> `String (s ^ "+" ^ name)
+      | Some (`Float _) | None -> `Int flag
+  in
+  Liquidsoap_ffmpeg_formats.Encoder_format.set opts "flags" flags

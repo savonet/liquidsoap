@@ -263,7 +263,6 @@ end
 let output.youtube = ()
 let output.youtube.live = ()
 
-%ifdef output.url
 # Stream to youtube using RTMP.
 # @category Source / Output
 # @param ~id Force the value of the source ID.
@@ -290,7 +289,6 @@ def output.youtube.live.rtmp(
     s
   )
 end
-%endif
 
 # Stream to youtube using HLS.
 # @category Source / Output

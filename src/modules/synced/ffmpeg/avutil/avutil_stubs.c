@@ -1547,6 +1547,22 @@ CAMLprim value ocaml_avutil_video_frame_color_trc(value _frame) {
   return Val_ColorTrc(Frame_val(_frame)->color_trc);
 }
 
+/* Sets the five colour properties of a frame from a frame_format record:
+   fields 4 to 8, in the order of the OCaml type. */
+CAMLprim value ocaml_avutil_video_frame_set_colors(value _frame,
+                                                   value _format) {
+  CAMLparam2(_frame, _format);
+  AVFrame *frame = Frame_val(_frame);
+
+  frame->colorspace = ColorSpace_val(Field(_format, 4));
+  frame->color_range = ColorRange_val(Field(_format, 5));
+  frame->color_primaries = ColorPrimaries_val(Field(_format, 6));
+  frame->color_trc = ColorTrc_val(Field(_format, 7));
+  frame->chroma_location = ChromaLocation_val(Field(_format, 8));
+
+  CAMLreturn(Val_unit);
+}
+
 CAMLprim value ocaml_avutil_video_frame_chroma_location(value _frame) {
   return Val_ChromaLocation(Frame_val(_frame)->chroma_location);
 }

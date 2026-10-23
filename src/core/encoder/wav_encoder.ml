@@ -81,5 +81,5 @@ let encoder ~pos wav =
 
 let () =
   Plug.register Encoder.plug "wav" ~doc:"Native wav encoder." (function
-    | Encoder.WAV w -> Some (fun ?hls:_ ~pos _ _ -> encoder ~pos w)
+    | Encoder.WAV w -> Some (fun ?hls:_ ?interrupt:_ ~pos _ _ -> encoder ~pos w)
     | _ -> None)

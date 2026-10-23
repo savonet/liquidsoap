@@ -624,12 +624,18 @@ module Video : sig
     color_trc : Color_trc.t;
     chroma_location : Chroma_location.t;
   }
+  val frame_set_colors : video frame -> frame_format -> unit
   val frame_format : video frame -> frame_format
   type frame_property = [ `Color | `Pixel_aspect ]
   val same_frame_format :
     ?ignore:frame_property list -> frame_format -> frame_format -> bool
 end
 ```
+
+`frame_set_colors frame format` sets the frame's colour space, range,
+primaries, transfer characteristic and chroma location to those of
+`format`; the other fields of `format` are not read. It writes the frame in
+place: a caller sets it only on a frame it owns.
 
 `create_frame width height pixel_format` returns a new frame of that geometry
 and format, with buffers allocated by FFmpeg with alignment

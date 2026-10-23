@@ -67,7 +67,10 @@ At `mk_stream frame`:
    [common.md §7](common.md#7-pixel-formats), from the track's `pixel_format`
    and `alpha`.
 3. Hardware context and stream pixel format:
-   [common.md §11](common.md#11-hardware-contexts).
+   [common.md §11](common.md#11-hardware-contexts). The **frame pixel
+   format**, the one every frame given to the codec carries, is the stream
+   pixel format when it is a software format (no `Hwaccel` flag), else the
+   target pixel format (a frame context uploads from it).
 4. Side data: [side-data.md §7](side-data.md#7-side-data-given-to-encoders).
 5. The stream is added: time base `1/framerate`, frame rate `framerate/1`,
    the chosen pixel format and hardware context, width and height, a copy of
@@ -148,17 +151,19 @@ converter). The re-framer holds up to one partial frame.
 
 One scaler, built on the first image: from the global video size and
 `yuva420p`/`yuv420p` (alpha when the target pixel format has alpha) to the
-target size and pixel format, with the scaling threads of
+target size and the frame pixel format (§2.2), with the scaling threads of
 [common.md §10](common.md#10-scaling). Each image is first cut to the global
 video size and rendered onto an opaque canvas unless `alpha`, then packed and
 scaled. The scaler holds nothing.
 
 ### 4.5 Video raw
 
-A frame of the target width and height passes as is. Any other is fitted:
-scaled into the target size keeping its proportions, square target pixels,
-padded, same pixel format, timestamps kept
-([filters.md §16.4](filters.md#164-fit)). Frames of different sizes,
+A frame of the target width, height and frame pixel format (§2.2) passes as
+is. Any other is fitted: scaled into the target size keeping its
+proportions, square target pixels, padded, converted to the frame pixel
+format, timestamps kept ([filters.md §16.4](filters.md#164-fit)). Reason: the
+codec encodes one pixel format, fixed when the stream is created; a frame in
+another one would be rejected or misread. Frames of different sizes,
 pixel formats or colour properties mid-stream are each fitted; none ends the
 track.
 

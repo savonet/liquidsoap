@@ -3,8 +3,8 @@
 ; synthetic copy producer the media checks of conformance/run.py drive.
 
 (tests
- (names base_test)
- (modules base_test)
+ (names base_test converters_test)
+ (modules base_test converters_test)
  (libraries ffmpeg-avutil liquidsoap_ffmpeg liquidsoap_core))
 
 (executable

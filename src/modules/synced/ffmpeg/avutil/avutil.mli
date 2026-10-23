@@ -798,6 +798,12 @@ module Video : sig
     chroma_location : Chroma_location.t;
   }
 
+  (** [frame_set_colors frame format] sets the colour space, range, primaries,
+      transfer characteristic and chroma location of [frame] to those of
+      [format]. A frame shared with others is changed for all of them: set it
+      only on a frame the caller owns. *)
+  val frame_set_colors : video frame -> frame_format -> unit
+
   (** The format of the frame.
 
       @raise Error as {!frame_get_pixel_format}. *)

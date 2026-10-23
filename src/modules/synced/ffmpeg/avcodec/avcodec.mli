@@ -110,6 +110,11 @@ type descriptor = {
     qscale"). It is read once, when this module is loaded. *)
 val flag_qscale : int
 
+(** The integer value of FFmpeg's [AV_CODEC_FLAG_GLOBAL_HEADER] codec flag
+    ("place global headers in extradata"). It is read once, when this module is
+    loaded. *)
+val flag_global_header : int
+
 (** [params encoder] is a fresh, independent snapshot of the encoder's
     parameters, as FFmpeg derives them from the opened codec context. It is what
     a container needs to declare the stream the encoder produces.
@@ -998,6 +1003,11 @@ module Subtitle : sig
       @raise Avutil.Error
         with [`Failure _] when the identifier is outside {!id}. *)
   val get_params_id : subtitle params -> id
+
+  (** The size of the canvas a bitmap subtitle codec draws on, 0 when unset. *)
+  val get_width : subtitle params -> int
+
+  val get_height : subtitle params -> int
 end
 
 (** The formats FFmpeg places in none of the audio, video and subtitle families.

@@ -23,10 +23,12 @@
 (** One [%ffmpeg] encoder instance (encoder.md): the container, its streams in
     track order, options, encoding, metadata, stop and container restarts. It is
     registered as the encoder plug-in of [%ffmpeg] formats when the layer is
-    linked. *)
+    linked. The factory's [interrupt] covers every blocking I/O of a [`Url]
+    target (encoder.md §1). *)
 
 val create :
   ?hls:bool ->
+  ?interrupt:(unit -> bool) ->
   pos:Pos.t option ->
   name:string ->
   Frame.Metadata.Export.t ->

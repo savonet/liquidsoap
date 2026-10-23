@@ -139,6 +139,11 @@ CAMLprim value ocaml_avcodec_flag_qscale(value _unit) {
   return Val_int(AV_CODEC_FLAG_QSCALE);
 }
 
+CAMLprim value ocaml_avcodec_flag_global_header(value _unit) {
+  (void)_unit;
+  return Val_int(AV_CODEC_FLAG_GLOBAL_HEADER);
+}
+
 value ocaml_avcodec_wrap_codec(const AVCodec *codec) {
   value _codec;
 

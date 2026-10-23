@@ -27,6 +27,10 @@ external flag_qscale : unit -> int = "ocaml_avcodec_flag_qscale"
 
 let flag_qscale = flag_qscale ()
 
+external flag_global_header : unit -> int = "ocaml_avcodec_flag_global_header"
+
+let flag_global_header = flag_global_header ()
+
 external params : 'media encoder -> 'media params
   = "ocaml_avcodec_encoder_parameters"
 
@@ -609,6 +613,11 @@ module Subtitle = struct
   let string_of_id (id : id) = id_name family id
   let get_id (codec : _ t) : id = codec_id family codec
   let get_params_id (params : subtitle params) : id = params_id family params
+
+  external get_width : subtitle params -> int = "ocaml_avcodec_parameters_width"
+
+  external get_height : subtitle params -> int
+    = "ocaml_avcodec_parameters_height"
 end
 
 module Unknown = struct

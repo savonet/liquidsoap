@@ -153,7 +153,11 @@ Conformance:
 ### 4.1 Frame timestamps entering the converter
 
 Every frame enters the frame-rate converter with its **output position** as
-its timestamp, in main ticks, internal and raw alike. Raw frames' own pts are
+its timestamp, in main ticks, internal and raw alike. Its duration is its
+extent in main ticks: one video frame for an internal image; for a raw
+frame, its own duration rescaled from its run's time base, else one video
+frame. The end of the last frame bounds what a drain writes: the grid slots
+it covers reach the output. Raw frames' own pts are
 not read by the encoder: the producer already turned them into positions
 ([common.md §6.0](common.md#60-absolute-origin)). Frames at equal positions
 keep their order.
