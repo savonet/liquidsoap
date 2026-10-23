@@ -739,6 +739,17 @@
   (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc6)))
 
 (rule
+ (alias ffmpeg_conformance_kc7)
+ (package liquidsoap)
+ (deps
+  a44.wav
+  a48.wav
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} kc7)))
+
+(rule
  (alias ffmpeg_conformance_kc8)
  (package liquidsoap)
  (deps
@@ -786,6 +797,7 @@
   (alias ffmpeg_conformance_kc3)
   (alias ffmpeg_conformance_kc5)
   (alias ffmpeg_conformance_kc6)
+  (alias ffmpeg_conformance_kc7)
   (alias ffmpeg_conformance_kc8)
   (alias ffmpeg_conformance_kc11)
   (alias ffmpeg_conformance_kc12)))

@@ -235,7 +235,10 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     in
     let layout =
       match inferred `Channels with
-        | Some f -> (Avutil.Audio.frame_format f).channel_layout
+        | Some f ->
+            let layout = (Avutil.Audio.frame_format f).channel_layout in
+            audio_layout ?pos
+              { a with channels = Avutil.Channel_layout.get_nb_channels layout }
         | None -> audio_layout ?pos a
     in
     let requested =
