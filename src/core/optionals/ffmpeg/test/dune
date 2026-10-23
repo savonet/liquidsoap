@@ -1,6 +1,21 @@
-; Conformance checks of the FFmpeg layer (spec/tests.md). Each executable
-; asserts the number of checks it ran before reporting a pass.
+; Conformance checks of the FFmpeg layer (spec/tests.md). Each test asserts
+; the number of checks it ran before reporting a pass; copy_producer is the
+; synthetic copy producer the media checks of conformance/run.py drive.
 
 (tests
  (names base_test)
+ (modules base_test)
  (libraries ffmpeg-avutil liquidsoap_ffmpeg liquidsoap_core))
+
+(executable
+ (name copy_producer)
+ (modules copy_producer)
+ (libraries
+  dtools
+  ffmpeg-av
+  ffmpeg-avcodec
+  ffmpeg-avutil
+  liquidsoap_ffmpeg
+  liquidsoap_ffmpeg_formats
+  liquidsoap_core
+  liquidsoap_optionals))

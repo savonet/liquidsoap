@@ -1,0 +1,28 @@
+; FFmpeg's content kinds where libav is not: parameters are the names a script
+; wrote. Linking it is what registers the kinds, so its initialisers must run;
+; a process that links the libav parameters must not link this.
+
+(library
+ (name liquidsoap_ffmpeg_formats_dummy)
+ (public_name liquidsoap.ffmpeg_formats_dummy)
+ (library_flags (-linkall))
+ (flags
+  (:standard
+   -open
+   Liquidsoap_lang_prelude
+   -open
+   Liquidsoap_lang_types
+   -open
+   Liquidsoap_lang_data
+   -open
+   Liquidsoap_lang_values
+   -open
+   Liquidsoap_lang))
+ (libraries
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap-lang.prelude
+  liquidsoap-lang.types
+  liquidsoap-lang.values
+  liquidsoap_core_formats
+  liquidsoap_ffmpeg_formats))

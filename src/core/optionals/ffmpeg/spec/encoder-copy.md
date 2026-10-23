@@ -337,12 +337,21 @@ re-encoded stream), that time stays in the timeline as a gap, which keeps
 the switched streams in sync with the continuing ones. The arithmetic is
 [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase).
 
-**Writing.** The group's offset is then fixed
+**Writing.** The group's offset is fixed
 ([timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase)) from the
-members' first held packets, and each member writes its held packets in
-order. A group that starts with no held packet (a sparse source, §12.4)
-fixes its offset at the end of the first frame in which a member holds a
-packet. Once fixed, the offset never changes.
+members' first held packets at the end of the first frame, at or after the
+start, in which every member that is not sparse (an audio or video track)
+holds a packet; then each member writes its held packets in order. Until
+then the started group's members keep holding. Reason: the offset is the
+maximum over the members' candidates, so it is decided only once each
+candidate is known; a member whose first packet comes a frame later than
+its sibling's would otherwise inherit an offset that ignores its own end. A
+sparse member (subtitles, §12.4) never holds the offset back, and a group
+whose members are all sparse fixes its offset at the end of the first frame
+in which one holds a packet. The wait is bounded by `max_keyframe_wait`
+from the group's wait start; at that bound, and at a flush (§8), the offset
+is fixed from the members that hold packets. Once fixed, the offset never
+changes.
 
 **Late members.** A tenure that opens on a group that has already started,
 and a member still waiting when the group started at the wait limit, is a
