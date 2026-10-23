@@ -680,6 +680,19 @@ let kc6 () =
     "kc6: 44.1 then 48 kHz re-encoded to the input duration within one frame"
     (abs ((n * 1024) - (4 * 44100)) <= 2 * 1024)
 
+(* known-complexity.md §7: a raw stream across a time base change; the
+   inputs carry a layout with no channel order, as a WAV file without a
+   channel mask decodes. *)
+let kc7 () =
+  ignore
+    (run_ok "kc7"
+       (copy_script ["a44.wav"; "a48.wav"] {|%audio.raw(codec="aac")|} "kc7.nut"
+          "nut"));
+  let audio = packets "kc7.nut" `Audio in
+  assert_monotonic "kc7" audio;
+  check "kc7: every sample of both sources reaches the output"
+    (abs ((List.length audio * 1024) - (4 * 44100)) <= 2 * 1024)
+
 (* known-complexity.md §8: sparse streams and late streams. *)
 let kc8 () =
   require
@@ -787,6 +800,7 @@ let checks =
     ("kc3", kc3);
     ("kc5", kc5);
     ("kc6", kc6);
+    ("kc7", kc7);
     ("kc8", kc8);
     ("kc11", kc11);
     ("kc12", kc12);
