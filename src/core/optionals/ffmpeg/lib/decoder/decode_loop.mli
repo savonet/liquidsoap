@@ -62,5 +62,9 @@ val remaining : t -> int
 
 val decoder : t -> Decoder.decoder
 
-(** Whether every field [ctype] holds can be mapped. *)
+(** Whether every stream of the container maps onto [ctype]. *)
 val can_map : ctype:Frame.content_type -> Stream_description.t -> bool
+
+(** [can_map], and every media field of [ctype] gets a stream: the check of a
+    live input (io.md §2.2 step 5, §10.6). *)
+val can_produce : ctype:Frame.content_type -> Stream_description.t -> bool

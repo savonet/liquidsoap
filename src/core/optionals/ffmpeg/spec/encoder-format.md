@@ -372,6 +372,7 @@ for `adts`, the single track's codec) decides:
 | `adts`, exactly one track, encoded with `codec="aac"` | `aac`     | `audio/aac`                |
 | `adts`, otherwise                                     | `adts`    | `application/octet-stream` |
 | `mp4`                                                 | `mp4`     | `video/mp4`                |
+| `webm`                                                | `webm`    | `video/webm`               |
 | `wav`                                                 | `wav`     | `audio/wav`                |
 | other                                                 | none      | `application/octet-stream` |
 

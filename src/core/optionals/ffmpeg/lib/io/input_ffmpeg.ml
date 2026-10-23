@@ -258,14 +258,11 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
         let options = { Input_options.format; opts = Hashtbl.create 0 } in
         let description = Ffmpeg_decoder.describe ~options ~url c in
         let ctype = self#content_type in
-        (match Stream_description.get_type ~ctype description with
-          | _ when Decode_loop.can_map ~ctype description -> ()
-          | _ | (exception Failure _) ->
-              raise
-                (Content_mismatch
-                   (Printf.sprintf "url %S cannot produce content of type %s"
-                      url
-                      (Frame.string_of_content_type ctype))));
+        if not (Decode_loop.can_produce ~ctype description) then
+          raise
+            (Content_mismatch
+               (Printf.sprintf "url %S cannot produce content of type %s" url
+                  (Frame.string_of_content_type ctype)));
         let l =
           Decode_loop.create ~decode_first_metadata:true ~ctype ~description c
         in

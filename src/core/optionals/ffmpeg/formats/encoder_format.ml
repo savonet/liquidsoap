@@ -335,6 +335,7 @@ let extension_and_mime f =
         let extension, mime = adts_extension f in
         (Some extension, mime)
     | Some "mp4" -> (Some "mp4", "video/mp4")
+    | Some "webm" -> (Some "webm", "video/webm")
     | Some "wav" -> (Some "wav", "audio/wav")
     | _ -> (None, "application/octet-stream")
 

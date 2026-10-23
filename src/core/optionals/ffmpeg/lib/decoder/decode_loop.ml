@@ -233,6 +233,21 @@ let can_map ~ctype (description : Stream_description.t) =
     true
   with Failure _ -> false
 
+(* A live input must fill every media field of its source: a missing one
+   would leave the source waiting for content that never comes. *)
+let can_produce ~ctype (description : Stream_description.t) =
+  can_map ~ctype description
+  &&
+    match Stream_description.get_type ~ctype description with
+    | produced ->
+        Frame.Fields.for_all
+          (fun field _ ->
+            field = Frame.Fields.metadata
+            || field = Frame.Fields.track_marks
+            || Frame.Fields.mem field produced)
+          ctype
+    | exception Failure _ -> false
+
 let needs_key kind (stream : Stream_description.stream) =
   kind = `Copy
   &&
