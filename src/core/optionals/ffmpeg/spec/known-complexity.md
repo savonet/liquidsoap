@@ -434,8 +434,9 @@ setting on as well. Copy two H.264 files of the same form whose extradata
 differ: both are accepted at open; an MPEG-TS output keeps streaming, an MP4
 file output stops at the switch with an error printing both parameter sets,
 and an HLS variant starts a new segment. Copy files that differ only in a
-colour property or HDR metadata: every file plays, and each switch logs a
-warning naming both values. The muxer never receives packets in the wrong
+colour property or HDR metadata: every file plays, and each switch to a
+file whose value differs from the stream header logs a warning naming both
+values. The muxer never receives packets in the wrong
 form.
 
 **Checked by.** [tests.md §23](tests.md#23-known-complexity-checks), row 11.

@@ -368,6 +368,13 @@ let fixture_properties name =
               ]
           | None -> [("has a keyframe", false)])
     | "fmtchange.ts" -> [("180 frames", List.length v = 180)]
+    | "count.mp4" -> [("75 frames", List.length v = 75)]
+    | "count.wav" ->
+        [
+          ( "one second",
+            near ~within:0.001 1.
+              (List.fold_left (fun t p -> t +. duration p) 0. a) );
+        ]
     | "besteffort.avi" ->
         [
           ( "video packets without PTS",
@@ -783,6 +790,76 @@ let kc8 () =
         1860. );
     ]
 
+(* known-complexity.md §10: data held back at the end of a stream, one run per
+   path; AAC writes one frame of priming ahead of the samples. *)
+let kc10 () =
+  require ["count.mp4"; "count.wav"];
+  let frames = List.length (packets "count.mp4" `Video) in
+  let samples =
+    int_of_float
+      (Float.round
+         (List.fold_left
+            (fun t p -> t +. duration p)
+            0.
+            (packets "count.wav" `Audio)
+         *. 44100.))
+  in
+  let aac_packets = (samples + 1024 + 1023) / 1024 in
+  let video = {|s = sequence([once(single("count.mp4"))])|}
+  and audio = {|s = sequence([once(single("count.wav"))])|} in
+  List.iter
+    (fun (name, source, format, tracks, kind, expected) ->
+      ignore
+        (run_ok name
+           (Printf.sprintf
+              {|settings.decoder.decoders.set(["ffmpeg"])
+%s
+clock.assign_new(sync="none", [s])
+o = output.file(fallible=true, %%ffmpeg(format="%s", %s), "%s.out", s)
+o.on_stop(synchronous=true, shutdown)
+|}
+              source format tracks name));
+      check
+        (Printf.sprintf "%s: %d packets" name expected)
+        (List.length (packets (name ^ ".out") kind) = expected))
+    [
+      ("kc10_copy", video, "nut", "%video.copy", `Video, frames);
+      ( "kc10_internal",
+        video,
+        "nut",
+        {|%video(codec="libx264")|},
+        `Video,
+        frames );
+      ("kc10_raw", video, "nut", {|%video.raw(codec="libx264")|}, `Video, frames);
+      ( "kc10_reencode",
+        audio,
+        "adts",
+        {|%audio(codec="aac")|},
+        `Audio,
+        aac_packets );
+      ( "kc10_inline",
+        audio ^ {|
+s = ffmpeg.encode.audio(%ffmpeg(%audio(codec="aac")), s)|},
+        "adts",
+        "%audio.copy",
+        `Audio,
+        aac_packets );
+      ( "kc10_filter",
+        audio
+        ^ {|
+def mkfilter(graph) =
+  a = ffmpeg.filter.audio.input(graph, source.tracks(s).audio)
+  a = ffmpeg.filter.anull(graph, a)
+  s = ffmpeg.filter.audio.output(graph, a)
+  source({audio=s})
+end
+s = ffmpeg.filter.create(mkfilter)|},
+        "adts",
+        {|%audio.raw(codec="aac")|},
+        `Audio,
+        aac_packets );
+    ]
+
 (* known-complexity.md §11: codec parameters across copied sources. *)
 let kc11 () =
   let log =
@@ -815,7 +892,27 @@ let kc11 () =
   in
   check "kc11: differing extradata stops an MP4 output at the switch"
     (contains "cannot follow" log
-    && List.length (packets "kc11_extradata.mp4" `Video) = 50)
+    && List.length (packets "kc11_extradata.mp4" `Video) = 50);
+  let log =
+    run_ok "kc11_colour"
+      (copy_script
+         ["c709.mp4"; "c601.mp4"; "c709.mp4"]
+         "%video.copy" "kc11_colour.ts" "mpegts")
+  in
+  check "kc11: files differing in a colour property all play"
+    (List.length (packets "kc11_colour.ts" `Video) = 150);
+  check "kc11: one warning, at the switch away from the stream header"
+    (occurrences "colour space differs (bt709 against bt470bg)" log = 1
+    && occurrences "differs" log = 1);
+  let log =
+    run_ok "kc11_matrix"
+      (copy_script ["r0.mp4"; "r90.mp4"] "%video.copy" "kc11_matrix.mkv"
+         "matroska")
+  in
+  check "kc11: files differing in their display matrix all play in Matroska"
+    (List.length (packets "kc11_matrix.mkv" `Video) = 100);
+  check "kc11: the display matrix difference is warned"
+    (contains "Display Matrix differs" log)
 
 (* known-complexity.md §12: copied video, re-encoded audio, many joins. *)
 let kc12 () =
@@ -840,6 +937,7 @@ let checks =
     ("kc6", kc6);
     ("kc7", kc7);
     ("kc8", kc8);
+    ("kc10", kc10);
     ("kc11", kc11);
     ("kc12", kc12);
   ]
