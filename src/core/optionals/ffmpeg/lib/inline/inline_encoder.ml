@@ -172,7 +172,7 @@ let audio ~(log : Log.t) ~(encoded : F.encoded) ~(a : F.audio) :
   let writer =
     Audio_writer.create ~frame_size
       ~params:{ sample_rate = rate; channel_layout = layout; sample_format }
-      ~start push_item
+      ~priming:0 ~start push_item
   in
   let close, leave = ends record in
   {

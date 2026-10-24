@@ -23,11 +23,13 @@
 type t = {
   write : Avutil.audio Avutil.frame -> unit;
   reframer : Avfilter.Utils.audio_converter option;
+  priming : int;
   mutable written : int;
   mutable fed : int;
 }
 
-let create ~frame_size ~(params : Avfilter.Utils.audio_params) ~start write =
+let create ~frame_size ~(params : Avfilter.Utils.audio_params) ~priming ~start
+    write =
   let reframer =
     Option.map
       (fun size ->
@@ -36,7 +38,7 @@ let create ~frame_size ~(params : Avfilter.Utils.audio_params) ~start write =
           ~in_params:params ())
       frame_size
   in
-  { write; reframer; written = start; fed = start }
+  { write; reframer; priming; written = start; fed = start }
 
 let write t frame =
   Avutil.Frame.set_pts frame (Some (Int64.of_int t.written));
@@ -54,6 +56,7 @@ let feed t frame =
 
 (* The partial frame the re-framer holds ends where the jump lands. *)
 let jump t target =
+  let target = if t.fed = 0 && target > 0 then target + t.priming else target in
   if target > t.fed then (
     t.written <- target - (t.fed - t.written);
     t.fed <- target)

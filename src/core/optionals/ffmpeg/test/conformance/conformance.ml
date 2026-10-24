@@ -1257,7 +1257,59 @@ let hls () =
   check "hls encode: EXT-X-INDEPENDENT-SEGMENTS is announced" independent;
   check "hls encode: every segment starts with a key frame"
     (List.length segments >= 10
-    && List.for_all (fun v -> v <> [] && (List.hd v).key) segments)
+    && List.for_all (fun v -> v <> [] && (List.hd v).key) segments);
+  Unix.mkdir "hls_restart" 0o755;
+  Unix.mkdir "hls_restart_keep" 0o755;
+  ignore
+    (run_ok "hls_restart"
+       {|settings.decoder.decoders.set(["ffmpeg"])
+v = sequence([once(single("h264_high.mp4")), once(single("h264_main.mp4"))])
+s = source({audio = source.tracks(once(sine(duration=4.))).audio, video = source.tracks(v).video})
+clock.assign_new(sync="none", [s])
+o = output.file.hls(fallible=true, segment_duration=1., "hls_restart", [("v", %ffmpeg(format="mp4", %audio(codec="aac"), %video.copy))], s)
+o.on_file_change(synchronous=true, fun ({state, path}) -> if state != "deleted" then file.copy(force=true, path, "hls_restart_keep/") end)
+o.on_stop(synchronous=true, shutdown)
+|});
+  let segments, _ = hls_segments "hls_restart_keep" "v.m3u8" in
+  let first_init = fst (List.hd segments) in
+  let before, after = List.partition (fun (i, _) -> i = first_init) segments in
+  let audio (init, segment) =
+    concat_files "hls_restart.mp4"
+      [
+        Filename.concat "hls_restart_keep" init;
+        Filename.concat "hls_restart_keep" segment;
+      ];
+    packets "hls_restart.mp4" `Audio
+  in
+  let rec until_discontinuity = function
+    | line :: rest when line <> "#EXT-X-DISCONTINUITY" ->
+        line :: until_discontinuity rest
+    | _ -> []
+  in
+  let boundary =
+    List.fold_left ( +. ) 0.
+      (List.filter_map
+         (fun line ->
+           if String.starts_with ~prefix:"#EXTINF:" line then
+             Some (Scanf.sscanf line "#EXTINF:%f," Fun.id)
+           else None)
+         (until_discontinuity
+            (List.map String.trim
+               (String.split_on_char '\n'
+                  (In_channel.with_open_bin
+                     (Filename.concat "hls_restart_keep" "v.m3u8")
+                     In_channel.input_all)))))
+  in
+  let last_before = last (audio (last before))
+  and first_after = List.hd (audio (List.hd after)) in
+  check
+    (Printf.sprintf
+       "hls restart: re-encoded audio continues the variant timeline (%.4f at \
+        a %.4f boundary)"
+       (pts first_after) boundary)
+    (after <> []
+    && near ~within:0.001 boundary (pts first_after)
+    && dts first_after > dts last_before)
 
 let checks =
   [
