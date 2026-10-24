@@ -65,9 +65,7 @@ let stream_opts (opts : F.opts) =
         opts
     | _ -> Opts.add_flag opts ~name:"global_header" Avcodec.flag_global_header
 
-(* ponytail: past the fault bound the output fails and restarts; encoder.md
-   §5.2 rebuilds the codec instead, which needs a bindings call that replaces
-   a stream's encoder. *)
+(* encoder.md §5.2: past the fault bound, an output fault. *)
 let item_fault faults ~kind message =
   match Faults.item faults ~kind message with
     | `Item_fault -> ()
