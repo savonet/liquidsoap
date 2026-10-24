@@ -1061,6 +1061,8 @@
  (package liquidsoap)
  (deps
   gop4.mp4
+  h264_high.mp4
+  h264_main.mp4
   (package liquidsoap)
   (source_tree ../../../../../libs))
  (action

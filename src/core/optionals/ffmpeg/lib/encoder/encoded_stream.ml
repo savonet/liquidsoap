@@ -293,7 +293,10 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     in
     state :=
       Some
-        ( Audio_writer.create ~frame_size ~params ~start:0
+        ( Audio_writer.create ~frame_size ~params
+            ~priming:
+              (Avcodec.Audio.get_initial_padding (Av.get_codec_params stream))
+            ~start:0
             (Av.write_frame ~on_packet:(report on_packet) stream),
           params );
     audio_stream := Some stream;
