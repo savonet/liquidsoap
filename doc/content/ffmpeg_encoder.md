@@ -104,19 +104,25 @@ Where:
 - `<codec>` is a string value (e.g. `"libmp3lame"`), as returned by the `ffmpeg -codecs` command.
 - `<option_name>` is any syntactically valid variable name or string. Strings are used for option names of the form `foo-bar`.
 - `%audio(...)` sets options for the audio codec. Unused options raise an exception. Any option supported by `ffmpeg` may be passed. Streams encoded with `%audio` use liquidsoap's internal frame format.
-- `%audio.raw(...)` behaves like `%audio` but keeps audio data in ffmpeg's internal format. This avoids data copies and is required for [ffmpeg filters](./ffmpeg_filters.md).
-- `%audio.copy` passes data through without decoding or re-encoding. This avoids CPU usage but the data cannot be processed by operators like `fade.{in,out}` or `smart_cross`. All streams must share the same data format.
+- `%audio.raw(...)` behaves like `%audio` but keeps audio data in ffmpeg's internal format. This avoids data copies and is required for [ffmpeg filters](./ffmpeg_filters.md). The parameters it does not set, such as the channel count and the sample rate, are taken from the first frame: a mono input stays mono unless `channels=2` is given.
+- `%audio.copy` passes data through without decoding or re-encoding. This avoids CPU usage but the data cannot be processed by operators like `fade.{in,out}` or `smart_cross`. Every source of a copied stream must share its data format: see [switching between copied sources](./ffmpeg.md#switching-between-copied-sources).
 - `%video(...)` sets options for the video codec. Unused options raise an exception. Any option supported by `ffmpeg` may be passed.
 - `%video.raw` and `%video.copy` behave like their `%audio` counterparts.
 - Generic options are passed to audio, video, and format (container) setup. Unused options raise an exception.
+
+The streams of the container are created in the order of the tracks in the encoder.
 
 ### HLS output
 
 The `%ffmpeg` encoder is the primary encoder for HLS output, as it is the only encoder that produces MPEG-TS muxed data, which most HLS clients require.
 
+Segments are cut at a keyframe of every stream at or before each segment boundary. A copied video whose keyframes are too far apart is cut without one, with a warning, so that no segment exceeds the target duration; a playlist announces `EXT-X-INDEPENDENT-SEGMENTS` only when no copied stream can be cut that way. When a copied source brings codec headers an MP4 segment cannot carry, the variant starts a new segment after a discontinuity, with its own init segment, and re-encoded streams continue their timeline across it.
+
 ### File output
 
 Some formats, such as `mp4`, require rewinding the stream to write a header after encoding finishes. With the `%ffmpeg` encoder, `output.file` and `output.url` let FFmpeg control the output file, so FFmpeg can write headers at the end. These formats can be written to files but cannot be streamed, for instance with `output.icecast`.
+
+An Ogg output carries a metadata change by chaining a new logical stream after the current one, which players read as a new track. Players without support for chained Ogg stop after the first link. With `output.file(append=true)`, the encoder appends to an existing file.
 
 ### Copy options
 
@@ -128,11 +134,11 @@ The `%audio.copy` and `%video.copy` encoders have two mutually exclusive options
 
 These options are useful when switching between encoded streams.
 
-With `wait_for_keyframe`, the encoder discards packets at the start of a new stream until a keyframe is received. Playback pauses until it can resume cleanly without decoding glitches. This option is applied globally when possible: if a video track has keyframes but an audio track does not, the audio track discards packets until a video keyframe is received. This is the default.
+With `wait_for_keyframe`, the encoder discards packets at the start of a new stream until a keyframe is received. Playback pauses until it can resume cleanly without decoding glitches. The tracks of one source start together: the audio of a source is held until its video reaches a keyframe, and starts with it. The wait is bounded by `settings.ffmpeg.content.copy.max_keyframe_wait` (20 seconds by default); past it, the ready tracks start with a warning and the video joins at its next keyframe. This is the default.
 
 With `ignore_keyframe`, encoded data is passed through immediately. Content starts right away but playback may stall until a keyframe is received.
 
-Note that some audio encoders also produce keyframes.
+Audio and subtitle tracks never wait for a keyframe of their own: every packet of theirs can start a stream.
 
 ### Hardware acceleration
 

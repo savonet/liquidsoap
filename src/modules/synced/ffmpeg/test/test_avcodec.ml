@@ -525,6 +525,11 @@ let requirement_2_12 () =
        (Audio.get_channel_layout parameters))
     "audio layout";
   check (Audio.get_bit_rate parameters > 0) "audio bit rate";
+  equal 1024 (Audio.get_initial_padding parameters) "AAC priming";
+  equal 0
+    (Audio.get_initial_padding
+       (params (audio_encoder ~sample_format:`S16 "pcm_s16le")))
+    "no priming";
   let decoder =
     Audio.create_decoder ~params:parameters (Audio.find_decoder_by_name "aac")
   in

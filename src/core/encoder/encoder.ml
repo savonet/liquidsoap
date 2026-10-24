@@ -30,7 +30,7 @@ type format =
   | MP3 of Mp3_format.t
   | Shine of Shine_format.t
   | Flac of Flac_format.t
-  | Ffmpeg of Ffmpeg_format.t
+  | Ffmpeg of Liquidsoap_ffmpeg_formats.Encoder_format.t
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
 
@@ -54,67 +54,7 @@ let type_of_format f =
         audio_video_type (Lazy.Mutexed.force Frame.audio_channels)
     | NDI { audio = false; video = true } -> video_type ()
     | Flac m -> audio_type m.Flac_format.channels
-    | Ffmpeg m ->
-        List.fold_left
-          (fun ctype (field, c) ->
-            Frame.Fields.add field
-              (match c with
-                | `Drop -> Type.var ~constraints:[Format_type.track] ()
-                | `Copy _ ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.copy"))))
-                | `Encode { Ffmpeg_format.mode = `Raw; options = `Audio _ } ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.audio.raw"))))
-                | `Encode { Ffmpeg_format.mode = `Raw; options = `Video _ } ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            Content.(
-                              default_format (kind_of_string "ffmpeg.video.raw"))))
-                | `Encode
-                    Ffmpeg_format.
-                      {
-                        mode = `Internal;
-                        options = `Audio { pcm_kind; channels };
-                      } ->
-                    assert (channels > 0);
-                    let params =
-                      {
-                        Content.Audio.channel_layout =
-                          Lazy.Mutexed.from_val
-                            (Audio_converter.Channel_layout.layout_of_channels
-                               channels);
-                      }
-                    in
-                    Type.make
-                      (Format_type.descr
-                         (`Format (Frame_base.audio_format ~pcm_kind params)))
-                | `Encode
-                    {
-                      Ffmpeg_format.mode = `Internal;
-                      options = `Video { Ffmpeg_format.alpha };
-                    } ->
-                    Type.make
-                      (Format_type.descr
-                         (`Format
-                            (Content_video.lift_params
-                               {
-                                 Content_video.Specs.width = None;
-                                 height = None;
-                                 alpha = Unifier.make alpha;
-                               })))
-                | `Encode { Ffmpeg_format.options = `Subtitle _; _ } ->
-                    Type.make
-                      (Format_type.descr (`Format Subtitle_content.format)))
-              ctype)
-          Frame.Fields.empty m.streams
+    | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.type_of_format m
     | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
     | Ogg { Ogg_format.audio; video } -> (
         let channels =
@@ -145,26 +85,14 @@ let string_of_format = function
   | NDI w -> Ndi_format.to_string w
   | Shine w -> Shine_format.to_string w
   | Flac w -> Flac_format.to_string w
-  | Ffmpeg w -> Ffmpeg_format.to_string w
+  | Ffmpeg w -> Liquidsoap_ffmpeg_formats.Encoder_format.to_string w
   | FdkAacEnc w -> Fdkaac_format.to_string w
   | External w -> External_encoder_format.to_string w
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
       Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
-  | Ffmpeg m -> (
-      match
-        List.fold_left
-          (fun cur (_, stream) ->
-            match stream with
-              | `Encode Ffmpeg_format.{ options = `Video { width; height } } ->
-                  (width, height) :: cur
-              | _ -> cur)
-          [] m.Ffmpeg_format.streams
-      with
-        | (width, height) :: [] ->
-            Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
-        | _ -> None)
+  | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.video_size m
   | _ -> None
 
 (** ISO Base Media File Format, see RFC 6381 section 3.3. *)
@@ -180,8 +108,6 @@ let iso_base_file_media_file_format = function
         | `Mpeg_2 `AAC_LC -> "mp4a.67"
         | `Mpeg_2 `HE_AAC -> "mp4a.67" (* TODO: check this *)
         | `Mpeg_2 `HE_AAC_v2 -> "mp4a.67" (* TODO: check this *))
-  | Ffmpeg { Ffmpeg_format.format = Some "libmp3lame" } -> "mp4a.40.34"
-  | Ffmpeg { Ffmpeg_format.format = Some "aac" } -> "mp4a.40.2"
   | _ -> raise Not_found
 
 (** Proposed extension for files. *)
@@ -193,22 +119,10 @@ let extension = function
   | Shine _ -> "mp3"
   | Flac _ -> "flac"
   | FdkAacEnc _ -> "aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "ogg" } -> "ogg"
-  | Ffmpeg { Ffmpeg_format.format = Some "opus" } -> "opus"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp3" } -> "mp3"
-  | Ffmpeg { Ffmpeg_format.format = Some "matroska" } -> "mkv"
-  | Ffmpeg { Ffmpeg_format.format = Some "mpegts" } -> "ts"
-  | Ffmpeg { Ffmpeg_format.format = Some "ac3" } -> "ac3"
-  | Ffmpeg { Ffmpeg_format.format = Some "eac3" } -> "eac3"
-  | Ffmpeg
-      {
-        Ffmpeg_format.format = Some "adts";
-        streams = [(_, `Encode { Ffmpeg_format.codec = Some "aac" })];
-      } ->
-      "aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "adts" } -> "adts"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp4" } -> "mp4"
-  | Ffmpeg { Ffmpeg_format.format = Some "wav" } -> "wav"
+  | Ffmpeg m -> (
+      match Liquidsoap_ffmpeg_formats.Encoder_format.extension m with
+        | Some ext -> ext
+        | None -> raise Not_found)
   | _ -> raise Not_found
 
 (** Mime types *)
@@ -220,20 +134,7 @@ let mime = function
   | Shine _ -> "audio/mpeg"
   | Flac _ -> "audio/flex"
   | FdkAacEnc _ -> "audio/aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "ogg" } -> "application/ogg"
-  | Ffmpeg { Ffmpeg_format.format = Some "opus" } -> "application/ogg"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp3" } -> "audio/mpeg"
-  | Ffmpeg { Ffmpeg_format.format = Some "matroska" } -> "video/x-matroska"
-  | Ffmpeg { Ffmpeg_format.format = Some "ac3" } -> "audio/ac3"
-  | Ffmpeg { Ffmpeg_format.format = Some "eac3" } -> "audio/eac3"
-  | Ffmpeg
-      {
-        Ffmpeg_format.format = Some "adts";
-        streams = [(_, `Encode { Ffmpeg_format.codec = Some "aac" })];
-      } ->
-      "audio/aac"
-  | Ffmpeg { Ffmpeg_format.format = Some "mp4" } -> "video/mp4"
-  | Ffmpeg { Ffmpeg_format.format = Some "wav" } -> "audio/wav"
+  | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.mime m
   | _ -> "application/octet-stream"
 
 (** Bitrate estimation in kbits per second. *)
@@ -241,58 +142,32 @@ let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
-  (* For Ffmpeg we rely on hls.bitrate *)
   | _ -> raise Not_found
 
-(** Encoders that can output to a file. *)
-let file_output = function Ffmpeg _ -> true | _ -> false
+(** HLS output of an encoder (ffmpeg spec encoder.md §8.4), times in main ticks
+    of media time: bytes, an accepted split point, or a container restart, which
+    is a split point that also starts a new container with its init segment.
+    [forced] marks a split made without its key-packet condition. *)
+type hls_split = { time : int; forced : bool }
 
-let with_file_output ?(append = false) encoder file =
-  match encoder with
-    | Ffmpeg params ->
-        let opts = Hashtbl.copy params.Ffmpeg_format.opts in
-        Hashtbl.replace opts "truncate" (`Int (if append then 0 else 1));
-        Ffmpeg
-          {
-            params with
-            Ffmpeg_format.output = `Url (Printf.sprintf "file:%s" file);
-            opts;
-          }
-    | _ -> failwith "No file output!"
+type hls_restart = { restart_time : int; init : Strings.t option }
 
-(** Encoders that can output to a arbitrary url. *)
-let url_output = function Ffmpeg _ -> true | _ -> false
+type hls_piece =
+  [ `Bytes of Strings.t | `Split of hls_split | `Restart of hls_restart ]
 
-let with_url_output encoder file =
-  match encoder with
-    | Ffmpeg opts -> Ffmpeg { opts with Ffmpeg_format.output = `Url file }
-    | _ -> failwith "No file output!"
+(** [`Pending] keeps the bytes for the next call; [`Init (init, pieces)] gives
+    the init segment, none for a format without one, and every byte after it. *)
+type hls_init = [ `Pending | `Init of Strings.t option * hls_piece list ]
 
-(** An encoder, once initialized, is something that consumes frames, insert
-    metadata and that you eventually close (triggers flushing). Insert metadata
-    is really meant for inline metadata, i.e. in most cases, stream sources.
-    Otherwise, metadata are passed when creating the encoder. For instance, the
-    mp3 encoder may accept metadata initially and write them as id3 tags but
-    does not support inline metadata. Also, the ogg encoder supports inline
-    metadata but restarts its stream. This is ok, though, because the ogg
-    container/streams is meant to be sequentialized but not the mp3 format.
-    header contains data that should be sent first to streaming client. *)
-
-type split_result =
-  [ (* Returns (flushed, first_bytes_for_next_segment) *)
-    `Ok of Strings.t * Strings.t
-  | `Nope of Strings.t ]
-
-(* Raised by [init_encode] if more data is needed. *)
-exception Not_enough_data
-
+(** The HLS output calls [init], then [init_encode] until it returns [`Init],
+    then [split_encode] for each later frame, with the next grid boundary;
+    [force] asks for a split before the frame whatever its packets. *)
 type hls = {
-  (* Returns true if id3 is enabled. *)
   init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
-  (* Returns (init_segment, first_bytes) *)
-  init_encode : Frame.t -> Strings.t option * Strings.t;
-  split_encode : Frame.t -> split_result;
+  init_encode : boundary:int -> Frame.t -> hls_init;
+  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   codec_attrs : unit -> string option;
+  independent_segments : unit -> bool;
   insert_id3 :
     frame_position:int ->
     sample_position:int ->
@@ -303,17 +178,38 @@ type hls = {
   video_size : unit -> (int * int) option;
 }
 
+(* Every frame start is a split point: the encoders using it write
+   self-contained units. *)
 let dummy_hls encode =
+  let time = ref 0 in
+  let encode f =
+    let data = encode f in
+    time := !time + Frame.position f;
+    data
+  in
   {
     init = (fun ?id3_enabled:_ ?id3_version:_ _ -> false);
-    init_encode = (fun f -> (None, encode f));
-    split_encode = (fun f -> `Ok (Strings.empty, encode f));
+    init_encode = (fun ~boundary:_ f -> `Init (None, [`Bytes (encode f)]));
+    split_encode =
+      (fun ~boundary:_ ~force f ->
+        let split = `Split { time = !time; forced = force } in
+        [split; `Bytes (encode f)]);
     codec_attrs = (fun () -> None);
+    independent_segments = (fun () -> false);
     insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
     bitrate = (fun () -> None);
     video_size = (fun () -> None);
   }
 
+(** An encoder, once initialized, is something that consumes frames, insert
+    metadata and that you eventually close (triggers flushing). Insert metadata
+    is really meant for inline metadata, i.e. in most cases, stream sources.
+    Otherwise, metadata are passed when creating the encoder. For instance, the
+    mp3 encoder may accept metadata initially and write them as id3 tags but
+    does not support inline metadata. Also, the ogg encoder supports inline
+    metadata but restarts its stream. This is ok, though, because the ogg
+    container/streams is meant to be sequentialized but not the mp3 format.
+    header contains data that should be sent first to streaming client. *)
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
@@ -334,6 +230,56 @@ let plug : plugin Plug.t =
 
 exception Found of factory
 
+let protect { encode_metadata; hls; encode; stop; header } =
+  let m = Mutex.create () in
+  let encode_metadata metadata =
+    Mutex.protect m (fun () -> encode_metadata metadata)
+  in
+  let header () = Mutex.protect m header in
+  let {
+    init;
+    init_encode;
+    split_encode;
+    codec_attrs;
+    independent_segments;
+    insert_id3;
+    bitrate;
+    video_size;
+  } =
+    hls
+  in
+  let init ?id3_enabled ?id3_version () =
+    Mutex.protect m (fun () -> init ?id3_enabled ?id3_version ())
+  in
+  let init_encode ~boundary frame =
+    Mutex.protect m (fun () -> init_encode ~boundary frame)
+  in
+  let split_encode ~boundary ~force frame =
+    Mutex.protect m (fun () -> split_encode ~boundary ~force frame)
+  in
+  let codec_attrs () = Mutex.protect m codec_attrs in
+  let independent_segments () = Mutex.protect m independent_segments in
+  let insert_id3 ~frame_position ~sample_position meta =
+    Mutex.protect m (fun () -> insert_id3 ~frame_position ~sample_position meta)
+  in
+  let bitrate () = Mutex.protect m bitrate in
+  let video_size () = Mutex.protect m video_size in
+  let hls =
+    {
+      init;
+      init_encode;
+      split_encode;
+      codec_attrs;
+      independent_segments;
+      insert_id3;
+      bitrate;
+      video_size;
+    }
+  in
+  let encode frame = Mutex.protect m (fun () -> encode frame) in
+  let stop () = Mutex.protect m stop in
+  { encode_metadata; hls; encode; stop; header }
+
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =
   try
@@ -341,50 +287,4 @@ let get_factory fmt =
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory ->
-    fun ?hls ~pos name m ->
-      let { encode_metadata; hls; encode; stop; header } =
-        factory ?hls ~pos name m
-      in
-      (* Protect all functions with a mutex. *)
-      let m = Mutex.create () in
-      let encode_metadata metadata =
-        Mutex.protect m (fun () -> encode_metadata metadata)
-      in
-      let header () = Mutex.protect m header in
-      let {
-        init;
-        init_encode;
-        split_encode;
-        codec_attrs;
-        insert_id3;
-        bitrate;
-        video_size;
-      } =
-        hls
-      in
-      let init ?id3_enabled ?id3_version () =
-        Mutex.protect m (fun () -> init ?id3_enabled ?id3_version ())
-      in
-      let init_encode frame = Mutex.protect m (fun () -> init_encode frame) in
-      let split_encode frame = Mutex.protect m (fun () -> split_encode frame) in
-      let codec_attrs () = Mutex.protect m codec_attrs in
-      let insert_id3 ~frame_position ~sample_position meta =
-        Mutex.protect m (fun () ->
-            insert_id3 ~frame_position ~sample_position meta)
-      in
-      let bitrate () = Mutex.protect m bitrate in
-      let video_size () = Mutex.protect m video_size in
-      let hls =
-        {
-          init;
-          init_encode;
-          split_encode;
-          codec_attrs;
-          insert_id3;
-          bitrate;
-          video_size;
-        }
-      in
-      let encode frame = Mutex.protect m (fun () -> encode frame) in
-      let stop () = Mutex.protect m stop in
-      { encode_metadata; hls; encode; stop; header }
+    fun ?hls ~pos name m -> protect (factory ?hls ~pos name m)

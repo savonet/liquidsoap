@@ -511,15 +511,20 @@ let mk_decoder ~filename ~remaining ~buffer decoder =
         while Generator.length buffer.generator < size do
           decoder.decode buffer
         done
-      with e ->
-        let bt = Printexc.get_backtrace () in
-        Utils.log_exception ~log ~bt
-          (Printf.sprintf "Decoding %s ended: %s."
-             (Lang_string.quote_string filename)
-             (Printexc.to_string e));
-        decoding_done := true;
-        decoder.eof buffer;
-        if conf_debug#get then raise e);
+      with
+        | End_of_file ->
+            log#info "Decoding %s ended." (Lang_string.quote_string filename);
+            decoding_done := true;
+            decoder.eof buffer
+        | e ->
+            let bt = Printexc.get_backtrace () in
+            Utils.log_exception ~log ~bt
+              (Printf.sprintf "Decoding %s ended: %s."
+                 (Lang_string.quote_string filename)
+                 (Printexc.to_string e));
+            decoding_done := true;
+            decoder.eof buffer;
+            if conf_debug#get then raise e);
 
     Generator.slice buffer.generator size
   in

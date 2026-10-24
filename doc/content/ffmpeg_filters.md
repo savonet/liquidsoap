@@ -35,7 +35,7 @@ Arguments:
  * (unlabeled) : ffmpeg.filter.audio
 ```
 
-Filter inputs and outputs are abstract values of type `ffmpeg.filter.audio` and `ffmpeg.filter.video`. Create them with `ffmpeg.filter.audio.input` and `ffmpeg.filter.video.input`, which take [media tracks](./multitrack.md) as input. Convert them back to tracks with `ffmpeg.filter.audio.output` and `ffmpeg.filter.video.output`.
+Filter inputs and outputs are abstract values of type `ffmpeg.filter.audio` and `ffmpeg.filter.video`. Create them with `ffmpeg.filter.audio.input` and `ffmpeg.filter.video.input`, which take [media tracks](./multitrack.md) as input. Convert them back to tracks with `ffmpeg.filter.audio.output` and `ffmpeg.filter.video.output`. A filter input takes its format from its track: a mono track goes through the graph as mono, and the graph is built for the formats of the first frames that arrive.
 
 Filters are configured inside a function closure. Here is an example:
 
@@ -59,9 +59,11 @@ When applying a filter, the input is placed in a clock driven by the output. Thi
 
 When applying FFmpeg filters to sources with both audio and video, pass all tracks through the filter even if some are simply copied.
 
-A filter graph is a single source, whatever its number of outputs. All outputs of a graph are produced together and share one buffer, one set of track marks and one readiness state. A track boundary on any output ends the current track on every output of the graph. You must therefore consume all outputs of a graph at the same rate: liquidsoap waits for the slowest output while data accumulates on the others. When one output holds more than `settings.ffmpeg.filter_max_buffer` seconds of data (10 by default), liquidsoap raises an error. For the same reason, the `id` argument of any output sets the id of the graph itself. If you set `id` on several outputs of the same graph, the last one is used.
+A filter graph is a single source, whatever its number of outputs. All outputs of a graph are produced together and share one buffer, one set of track marks and one readiness state. A track boundary on any output ends the current track on every output of the graph. You must therefore consume all outputs of a graph at the same rate: liquidsoap waits for the slowest output while data accumulates on the others. When one output holds more than `settings.ffmpeg.filter_max_buffer` seconds of data (10 by default), liquidsoap drops the oldest data of that output beyond the limit, logs a warning, and the graph keeps streaming. For the same reason, the `id` argument of any output sets the id of the graph itself. If you set `id` on several outputs of the same graph, the last one is used.
 
 A graph runs as long as its inputs are ready. When an input stops producing data, for instance a `buffer` running empty, a request queue waiting for a request to resolve or a file reaching its end, liquidsoap signals the end of the stream to the graph, collects the data its filters still hold and tears the graph down. When the input becomes ready again, liquidsoap builds a new graph. The new graph starts with fresh filter state: `loudnorm`, for instance, measures loudness from zero, as it would on a new stream. If your sources often stop producing data and your filters need time to settle, give the graph an input that is always available, for instance with `mksafe`.
+
+When a graph cannot be built, for instance because a filter rejects the format of its input, the graph ends its track and logs an error, and a `fallback` above it takes over. The graph is tried again a few seconds later.
 
 Here is an example:
 

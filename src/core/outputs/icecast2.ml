@@ -108,26 +108,22 @@ module Icecast = struct
             channels = Some m.Flac_format.channels;
           }
       | Encoder.Ffmpeg m ->
-          let bitrate =
-            Option.map (fun v -> v / 1000) Encoder.(encoder.hls.bitrate ())
-          in
-          let audio_stream =
-            match List.assoc_opt Frame.Fields.audio m.Ffmpeg_format.streams with
-              | Some (`Encode { options = `Audio options }) -> Some options
-              | _ -> None
+          let samplerate, channels =
+            match
+              List.assoc_opt "audio"
+                m.Liquidsoap_ffmpeg_formats.Encoder_format.streams
+            with
+              | Some (`Encode { options = `Audio a }) ->
+                  ( Some (Lazy.Mutexed.force a.samplerate),
+                    Some a.Liquidsoap_ffmpeg_formats.Encoder_format.channels )
+              | _ -> (None, None)
           in
           {
             quality = None;
-            bitrate;
-            samplerate =
-              Option.map
-                (fun stream ->
-                  Lazy.Mutexed.force stream.Ffmpeg_format.samplerate)
-                audio_stream;
-            channels =
-              Option.map
-                (fun stream -> stream.Ffmpeg_format.channels)
-                audio_stream;
+            bitrate =
+              Option.map (fun b -> b / 1000) (encoder.Encoder.hls.bitrate ());
+            samplerate;
+            channels;
           }
       | Encoder.WAV m ->
           {

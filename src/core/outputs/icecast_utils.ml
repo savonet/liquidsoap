@@ -29,6 +29,20 @@ let avi_mime = "video/avi"
 let aac_mime = "audio/aac"
 let flac_mime = "audio/flac"
 
+(* A listener joining mid-stream must not receive an ID3v2 header or a Xing
+   frame: an mp3 %ffmpeg stream gets a copy of its format without them. *)
+let streaming_format = function
+  | Encoder.Ffmpeg
+      ({ Liquidsoap_ffmpeg_formats.Encoder_format.format = Some "mp3"; opts } as
+       m) ->
+      let default key opts =
+        if List.mem_assoc key opts then opts
+        else Liquidsoap_ffmpeg_formats.Encoder_format.set opts key (`Int 0)
+      in
+      Encoder.Ffmpeg
+        { m with opts = default "write_xing" (default "id3v2_version" opts) }
+  | format -> format
+
 let base_proto kind =
   [
     ( "format",
@@ -70,12 +84,12 @@ module Icecast_v (M : Icecast_t) = struct
   let format_of_encoder = function
     | Encoder.MP3 _ -> Some mpeg
     | Encoder.Shine _ -> Some mpeg
-    | Encoder.Ffmpeg e ->
-        Option.map M.format_of_content
-          (match (e.Ffmpeg_format.mime_type, e.Ffmpeg_format.format) with
-            | Some m, _ -> Some m
-            | None, Some v -> Utils.mime_of_container_format v
-            | _ -> None)
+    | Encoder.Ffmpeg
+        { Liquidsoap_ffmpeg_formats.Encoder_format.mime_type = Some m } ->
+        Some (M.format_of_content m)
+    | Encoder.Ffmpeg { format = Some f } ->
+        Option.map M.format_of_content (Utils.mime_of_container_format f)
+    | Encoder.Ffmpeg _ -> None
     | Encoder.FdkAacEnc _ -> Some aac
     | Encoder.External _ -> None
     | Encoder.NDI _ -> None
@@ -84,18 +98,9 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.AVI _ -> Some avi
     | Encoder.Ogg _ -> Some ogg
 
-  let encoder_overrides = function
-    | Encoder.Ffmpeg { Ffmpeg_format.format = Some "mp3"; opts } as e ->
-        if not (Hashtbl.mem opts "id3v2_version") then
-          Hashtbl.replace opts "id3v2_version" (`Int 0);
-        if not (Hashtbl.mem opts "write_xing") then
-          Hashtbl.replace opts "write_xing" (`Int 0);
-        e
-    | e -> e
-
   let encoder_data p =
     let v = Lang.assoc "" 1 p in
-    let enc = encoder_overrides (Lang.to_format v) in
+    let enc = streaming_format (Lang.to_format v) in
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
     let encoder_factory =
       try Encoder.get_factory enc

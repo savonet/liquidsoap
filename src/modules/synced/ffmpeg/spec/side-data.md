@@ -117,6 +117,9 @@ No new handle. Packets, frames and codec parameters are the objects of
 - **R7.** The kinds a program can name are those of the installed headers
   (G1). An entry whose kind has no constructor is left out of every list
   (E4).
+  `Packet_side_data.kinds` and `Frame_side_data.kinds` list them, in the
+  order of FFmpeg's enumeration, so that a program can look a kind up by its
+  `name`.
 - **R8. Parameters carry their side data everywhere.** Every operation that
   copies codec parameters copies their coded side data: `Av.get_codec_params`,
   `Av.new_stream_copy`, `Avcodec.params`, `BitstreamFilter.init`, and decoder

@@ -71,7 +71,7 @@ settings.ffmpeg.log.verbosity := "warning"
 
 This sets the verbosity of `ffmpeg` logs. Values from least to most verbose: `"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"`, `"debug"`, `"trace"`.
 
-By default, `ffmpeg` log messages are forwarded to liquidsoap's logger at the level set by `settings.ffmpeg.log.level`. To print them directly to standard error instead, disable log capture:
+By default, `ffmpeg` log messages are forwarded to liquidsoap's logger at the level set by `settings.ffmpeg.log.level`, or at the level of their own severity when it is more severe: FFmpeg errors show at level 2 and warnings at level 3. To print them directly to standard error instead, disable log capture:
 
 ```liquidsoap
 settings.ffmpeg.log.capture := false
@@ -179,8 +179,8 @@ All bitstream filters are listed in the [FFmpeg documentation](https://www.ffmpe
 FFmpeg h264_mp4toannexb bitstream filter. See ffmpeg documentation for more
 details.
 
-Type: (?id : string?, source(video=ffmpeg.copy, 'a)) ->
-source(video=ffmpeg.copy, 'a)
+Type: (?id : string?, source(video=ffmpeg.copy('a), 'b)) ->
+source(video=ffmpeg.copy('c), 'b)
 
 Category: Source / FFmpeg filter
 
@@ -189,7 +189,7 @@ Arguments:
  * id : string? (default: null)
      Force the value of the source ID.
 
- * (unlabeled) : source(video=ffmpeg.copy, 'a)
+ * (unlabeled) : source(video=ffmpeg.copy('a), 'b)
 
 Methods:
 ...
@@ -201,11 +201,19 @@ Consult the FFmpeg documentation for details on what each filter does and how to
 
 Manipulating encoded content requires knowledge of the internal aspects of media codecs and containers. This section covers specific cases.
 
+### Switching between copied sources
+
+A copied stream keeps the parameters of its first source. When a playlist or a switch moves to another source, liquidsoap compares the new source with them:
+
+- A file whose codec, bitstream form (for instance H.264 in MP4 against MPEG-TS form, or raw AAC against ADTS), video size, sample rate or channel layout differs is skipped when it is opened, and the playlist moves on.
+- A file that differs only in codec headers (extradata, profile, level) is accepted, and the output's container decides. MPEG-TS, HLS with MPEG-TS segments and ADTS take the change. HLS with MP4 segments starts a new segment after a discontinuity, with its own init segment, and an Ogg output chains a new link. Other containers, such as MP4 or Matroska files, stop the output at the switch with an error naming both parameter sets.
+- A file that differs only in its rotation, HDR metadata or colour properties is played, with a warning naming each difference.
+
+The tracks of a copied source start together, at the video's first keyframe. A source that switches in the middle of a group of pictures waits for its next keyframe, at most `settings.ffmpeg.content.copy.max_keyframe_wait` seconds (20 by default); past that, the tracks that are ready start without it, with a warning.
+
 ### Relaxed copy content compatibility check
 
-By default, liquidsoap tracks the content in `ffmpeg.copy` streams and only allows decoders to return strictly compatible content, such as matching video resolution or audio sample rate.
-
-Some containers like `mp4` allow streams where these parameters change between tracks. To permit this, relax the compatibility check:
+This is an advanced setting. When it is on, sources of another bitstream form or geometry are accepted into one copied stream, as long as the codec is the same, and the muxer decides whether the output stays valid:
 
 ```liquidsoap
 settings.ffmpeg.content.copy.relaxed_compatibility_check := true
@@ -258,7 +266,7 @@ output.file.hls(
 )
 ```
 
-Working with encoded data requires some knowledge of ffmpeg internals and media codecs and containers. In this example, the stream will have issues because the `flv` format requires global data, called `extradata` in ffmpeg terms.
+Working with encoded data requires some knowledge of ffmpeg internals and media codecs and containers. In this example, the stream will have issues because the `flv` format requires global data, called `extradata` in ffmpeg terms. Liquidsoap logs a warning naming the track and the two fixes below.
 
 When working with a single encoder such as:
 

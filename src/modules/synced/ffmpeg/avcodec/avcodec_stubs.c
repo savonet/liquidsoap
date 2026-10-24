@@ -139,6 +139,11 @@ CAMLprim value ocaml_avcodec_flag_qscale(value _unit) {
   return Val_int(AV_CODEC_FLAG_QSCALE);
 }
 
+CAMLprim value ocaml_avcodec_flag_global_header(value _unit) {
+  (void)_unit;
+  return Val_int(AV_CODEC_FLAG_GLOBAL_HEADER);
+}
+
 value ocaml_avcodec_wrap_codec(const AVCodec *codec) {
   value _codec;
 
@@ -530,6 +535,88 @@ CAMLprim value ocaml_avcodec_parameters_height(value _parameters) {
 CAMLprim value ocaml_avcodec_parameters_sample_aspect_ratio(value _parameters) {
   return ocaml_avutil_value_of_rational(
       CodecParameters_val(_parameters)->sample_aspect_ratio);
+}
+
+CAMLprim value ocaml_avcodec_parameters_extradata(value _parameters) {
+  CAMLparam1(_parameters);
+  CAMLlocal1(_extradata);
+  AVCodecParameters *parameters = CodecParameters_val(_parameters);
+  int size = parameters->extradata ? parameters->extradata_size : 0;
+
+  _extradata = caml_alloc_string(size);
+  if (size > 0)
+    memcpy(Bytes_val(_extradata), parameters->extradata, size);
+
+  CAMLreturn(_extradata);
+}
+
+CAMLprim value ocaml_avcodec_parameters_profile(value _parameters) {
+  CAMLparam1(_parameters);
+  int profile = CodecParameters_val(_parameters)->profile;
+
+  if (profile == AV_PROFILE_UNKNOWN)
+    CAMLreturn(Val_none);
+
+  CAMLreturn(caml_alloc_some(Val_int(profile)));
+}
+
+CAMLprim value ocaml_avcodec_parameters_level(value _parameters) {
+  CAMLparam1(_parameters);
+  int level = CodecParameters_val(_parameters)->level;
+
+  if (level == AV_LEVEL_UNKNOWN)
+    CAMLreturn(Val_none);
+
+  CAMLreturn(caml_alloc_some(Val_int(level)));
+}
+
+CAMLprim value ocaml_avcodec_parameters_initial_padding(value _parameters) {
+  return Val_int(CodecParameters_val(_parameters)->initial_padding);
+}
+
+CAMLprim value ocaml_avcodec_parameters_block_align(value _parameters) {
+  return Val_int(CodecParameters_val(_parameters)->block_align);
+}
+
+CAMLprim value
+ocaml_avcodec_parameters_bits_per_coded_sample(value _parameters) {
+  return Val_int(CodecParameters_val(_parameters)->bits_per_coded_sample);
+}
+
+CAMLprim value ocaml_avcodec_parameters_video_delay(value _parameters) {
+  return Val_int(CodecParameters_val(_parameters)->video_delay);
+}
+
+CAMLprim value ocaml_avcodec_parameters_field_order(value _parameters) {
+  switch (CodecParameters_val(_parameters)->field_order) {
+  case AV_FIELD_PROGRESSIVE:
+    return caml_hash_variant("Progressive");
+  case AV_FIELD_TT:
+    return caml_hash_variant("Tt");
+  case AV_FIELD_BB:
+    return caml_hash_variant("Bb");
+  case AV_FIELD_TB:
+    return caml_hash_variant("Tb");
+  case AV_FIELD_BT:
+    return caml_hash_variant("Bt");
+  default:
+    return caml_hash_variant("Unknown");
+  }
+}
+
+CAMLprim value ocaml_avcodec_parameters_color(value _parameters) {
+  CAMLparam1(_parameters);
+  CAMLlocal1(_color);
+  AVCodecParameters *parameters = CodecParameters_val(_parameters);
+
+  _color = caml_alloc_tuple(5);
+  Store_field(_color, 0, Val_ColorRange(parameters->color_range));
+  Store_field(_color, 1, Val_ColorPrimaries(parameters->color_primaries));
+  Store_field(_color, 2, Val_ColorTrc(parameters->color_trc));
+  Store_field(_color, 3, Val_ColorSpace(parameters->color_space));
+  Store_field(_color, 4, Val_ChromaLocation(parameters->chroma_location));
+
+  CAMLreturn(_color);
 }
 
 CAMLprim value ocaml_avcodec_parameters_pixel_format(value _parameters) {
@@ -1237,9 +1324,11 @@ CAMLprim value ocaml_avcodec_bitstream_filters(value _unit) {
 }
 
 /* Returns (instance, output parameters, unused option keys). */
-CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options, value _name,
+CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options,
+                                                   value _time_base,
+                                                   value _name,
                                                    value _parameters) {
-  CAMLparam3(_options, _name, _parameters);
+  CAMLparam4(_options, _time_base, _name, _parameters);
   CAMLlocal4(_result, _filter, _output, _unused);
   const AVBitStreamFilter *filter = av_bsf_get_by_name(String_val(_name));
   AVCodecParameters *output = alloc_parameters(&_output);
@@ -1265,6 +1354,10 @@ CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options, value _name,
   if (error < 0)
     ocaml_avutil_raise_error(error);
 
+  if (Is_some(_time_base))
+    handle->context->time_base_in =
+        ocaml_avutil_rational_of_value(Some_val(_time_base));
+
   options = ocaml_avutil_dictionary_of_options(_options);
   error = av_opt_set_dict2(handle->context, &options, AV_OPT_SEARCH_CHILDREN);
   if (error >= 0) {
@@ -1286,6 +1379,12 @@ CAMLprim value ocaml_avcodec_bitstream_filter_init(value _options, value _name,
   Store_field(_result, 2, _unused);
 
   CAMLreturn(_result);
+}
+
+CAMLprim value ocaml_avcodec_bitstream_filter_time_base_out(value _filter) {
+  CAMLparam1(_filter);
+  CAMLreturn(ocaml_avutil_value_of_rational(
+      FilterHandle_val(_filter)->context->time_base_out));
 }
 
 static filter_handle *exclusive_filter(value _filter) {

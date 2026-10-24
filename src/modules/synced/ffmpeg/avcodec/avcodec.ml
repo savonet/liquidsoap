@@ -27,6 +27,10 @@ external flag_qscale : unit -> int = "ocaml_avcodec_flag_qscale"
 
 let flag_qscale = flag_qscale ()
 
+external flag_global_header : unit -> int = "ocaml_avcodec_flag_global_header"
+
+let flag_global_header = flag_global_header ()
+
 external params : 'media encoder -> 'media params
   = "ocaml_avcodec_encoder_parameters"
 
@@ -66,6 +70,9 @@ let report_unused opts unused = Option.iter (filter_opts unused) opts
 
 module Packet_side_data = struct
   type kind = Packet_side_data_type.t
+
+  let kinds : kind list = Packet_side_data_type.t
+
   type raw = { kind : kind; data : string }
 
   type replaygain = {
@@ -245,6 +252,21 @@ end
 
 external params_side_data : _ params -> Packet_side_data.raw list
   = "ocaml_avcodec_parameters_side_data"
+
+external params_extradata : _ params -> string
+  = "ocaml_avcodec_parameters_extradata"
+
+external params_profile : _ params -> int option
+  = "ocaml_avcodec_parameters_profile"
+
+external params_level : _ params -> int option
+  = "ocaml_avcodec_parameters_level"
+
+external params_block_align : _ params -> int
+  = "ocaml_avcodec_parameters_block_align"
+
+external params_bits_per_coded_sample : _ params -> int
+  = "ocaml_avcodec_parameters_bits_per_coded_sample"
 
 external params_with_side_data :
   'media params -> Packet_side_data.raw list -> 'media params
@@ -449,6 +471,9 @@ module Audio = struct
 
   external get_sample_rate : audio params -> int
     = "ocaml_avcodec_parameters_sample_rate"
+
+  external get_initial_padding : audio params -> int
+    = "ocaml_avcodec_parameters_initial_padding"
 end
 
 module Video = struct
@@ -550,6 +575,24 @@ module Video = struct
       | ratio -> Some ratio
 
   let get_bit_rate (params : video params) = params_bit_rate params
+
+  external get_video_delay : video params -> int
+    = "ocaml_avcodec_parameters_video_delay"
+
+  type field_order = [ `Unknown | `Progressive | `Tt | `Bb | `Tb | `Bt ]
+
+  external get_field_order : video params -> field_order
+    = "ocaml_avcodec_parameters_field_order"
+
+  type color = {
+    color_range : Avutil.Color_range.t;
+    color_primaries : Avutil.Color_primaries.t;
+    color_trc : Avutil.Color_trc.t;
+    color_space : Avutil.Color_space.t;
+    chroma_location : Avutil.Chroma_location.t;
+  }
+
+  external get_color : video params -> color = "ocaml_avcodec_parameters_color"
 end
 
 module Subtitle = struct
@@ -576,6 +619,11 @@ module Subtitle = struct
   let string_of_id (id : id) = id_name family id
   let get_id (codec : _ t) : id = codec_id family codec
   let get_params_id (params : subtitle params) : id = params_id family params
+
+  external get_width : subtitle params -> int = "ocaml_avcodec_parameters_width"
+
+  external get_height : subtitle params -> int
+    = "ocaml_avcodec_parameters_height"
 end
 
 module Unknown = struct
@@ -603,12 +651,18 @@ module BitstreamFilter = struct
 
   external init :
     (string * value) array ->
+    Avutil.rational option ->
     string ->
     'a params ->
     'a t * 'a params * string array = "ocaml_avcodec_bitstream_filter_init"
 
-  let init ?opts filter params =
-    let instance, output, unused = init (bindings opts) filter.name params in
+  external time_base_out : 'a t -> Avutil.rational
+    = "ocaml_avcodec_bitstream_filter_time_base_out"
+
+  let init ?opts ?time_base filter params =
+    let instance, output, unused =
+      init (bindings opts) time_base filter.name params
+    in
     report_unused opts unused;
     (instance, output)
 

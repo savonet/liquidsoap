@@ -5,8 +5,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -34,8 +33,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -63,8 +61,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -92,8 +89,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -121,8 +117,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -150,8 +145,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -179,8 +173,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -202,101 +195,13 @@
   (run %{encoder_pcm_kind_test})))
 
 (executable
- (name ffmpeg_content_base_test)
- (modules ffmpeg_content_base_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias ffmpeg_content_base_test)
- (package liquidsoap)
- (deps
-  (:ffmpeg_content_base_test ffmpeg_content_base_test.exe))
- (action
-  (run %{ffmpeg_content_base_test})))
-
-(executable
- (name ffmpeg_dummy_content_test)
- (modules ffmpeg_dummy_content_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias ffmpeg_dummy_content_test)
- (package liquidsoap)
- (deps
-  (:ffmpeg_dummy_content_test ffmpeg_dummy_content_test.exe))
- (action
-  (run %{ffmpeg_dummy_content_test})))
-
-(executable
- (name ffmpeg_quality)
- (modules ffmpeg_quality)
- (libraries
-  liquidsoap_core
-  liquidsoap_builtins
-  liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  dtools
-  duppy.stdlib_utils
-  threads.posix
-  unix))
-
-(rule
- (alias ffmpeg_quality)
- (package liquidsoap)
- (deps
-  (:ffmpeg_quality ffmpeg_quality.exe))
- (action
-  (run %{ffmpeg_quality})))
-
-(executable
  (name flush_test)
  (modules flush_test)
  (libraries
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -324,8 +229,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -353,8 +257,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -382,8 +285,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -411,8 +313,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -440,8 +341,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -469,8 +369,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -498,8 +397,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -530,8 +428,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -559,8 +456,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -588,8 +484,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -617,8 +512,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -646,8 +540,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -675,8 +568,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -705,8 +597,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -734,8 +625,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -763,8 +653,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -792,8 +681,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -821,8 +709,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -850,8 +737,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -883,8 +769,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -912,8 +797,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -941,8 +825,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -970,8 +853,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -999,8 +881,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -1028,8 +909,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -1057,8 +937,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -1086,8 +965,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -1115,8 +993,7 @@
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -1147,9 +1024,6 @@
   (alias content_test)
   (alias decoder_test)
   (alias encoder_pcm_kind_test)
-  (alias ffmpeg_content_base_test)
-  (alias ffmpeg_dummy_content_test)
-  (alias ffmpeg_quality)
   (alias flush_test)
   (alias frame_checksum_test)
   (alias frame_test)

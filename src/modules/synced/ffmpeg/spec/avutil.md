@@ -400,6 +400,7 @@ module Log : sig
   val set_level : level -> unit
   val log : level -> string -> unit
   val set_callback : (string -> unit) -> unit
+  val set_callback_with_level : (level -> string -> unit) -> unit
   val clear_callback : unit -> unit
 end
 ```
@@ -408,7 +409,12 @@ end
 - `log l message` sends the message to FFmpeg's log at level `l` (`av_log`
   with no context), followed by a newline. It is reported, filtered and
   captured as FFmpeg's own messages are.
-- `set_callback`, `clear_callback`: §7.1.
+- `set_callback`, `set_callback_with_level`, `clear_callback`: §7.1.
+  `set_callback_with_level` delivers each message with its level: FFmpeg's
+  numeric level mapped to the named level at or above it in severity
+  (`<= 0` panic, `<= 8` fatal, `<= 16` error, `<= 24` warning, `<= 32` info,
+  `<= 40` verbose, `<= 48` debug, trace above). `set_callback f` is
+  `set_callback_with_level (fun _ m -> f m)`.
 
 ### 4.8 Channel layout
 
@@ -618,12 +624,24 @@ module Video : sig
     color_trc : Color_trc.t;
     chroma_location : Chroma_location.t;
   }
+  val frame_set_colors : video frame -> frame_format -> unit
+  val frame_force_keyframe : video frame -> unit
   val frame_format : video frame -> frame_format
   type frame_property = [ `Color | `Pixel_aspect ]
   val same_frame_format :
     ?ignore:frame_property list -> frame_format -> frame_format -> bool
 end
 ```
+
+`frame_set_colors frame format` sets the frame's colour space, range,
+primaries, transfer characteristic and chroma location to those of
+`format`; the other fields of `format` are not read. It writes the frame in
+place: a caller sets it only on a frame it owns.
+
+`frame_force_keyframe frame` sets the frame's picture type to intra and its
+key flag, so that an encoder given the frame encodes it as a key frame (an
+IDR picture for H.264 unless the encoder is set for open GOPs). It writes
+the frame in place, as `frame_set_colors` does.
 
 `create_frame width height pixel_format` returns a new frame of that geometry
 and format, with buffers allocated by FFmpeg with alignment

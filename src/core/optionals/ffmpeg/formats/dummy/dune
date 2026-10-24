@@ -1,13 +1,10 @@
-; FFmpeg's content types where libav is not.
-;
-; Registers ffmpeg.copy and the raw kinds over parameters that are the names a
-; script wrote. Only a process that cannot link the real ones wants this:
-; linking both raises, since they register the same kinds.
+; FFmpeg's content kinds where libav is not: parameters are the names a script
+; wrote. Linking it is what registers the kinds, so its initialisers must run;
+; a process that links the libav parameters must not link this.
 
 (library
  (name liquidsoap_ffmpeg_formats_dummy)
  (public_name liquidsoap.ffmpeg_formats_dummy)
- ; Linking it is what registers the kinds, so its initialisers must run.
  (library_flags (-linkall))
  (flags
   (:standard
