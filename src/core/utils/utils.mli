@@ -148,6 +148,11 @@ val float_of_extended_float : string -> float
 
 (** {1 Media} *)
 
+(** MIME type of an ffmpeg container format name. Note that this is a different
+    table from the one in {!Icecast_utils}, which answers the same question for
+    the Icecast source protocol and does not always give the same answer. *)
+val mime_of_container_format : string -> string option
+
 val id3v2_of_metadata : version:int -> (string * string) list -> string
 
 (** {1 Miscellaneous} *)
