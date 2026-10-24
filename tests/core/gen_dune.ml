@@ -59,8 +59,7 @@ let () =
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
-  liquidsoap_ffmpeg_decoder
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm

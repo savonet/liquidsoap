@@ -340,7 +340,8 @@ let () =
          Frame.Fields.(
            add video
              (Type.make
-                (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+                (Format_type.descr
+                   (`Kind Liquidsoap_ffmpeg.Ffmpeg_content.Video.kind)))
              empty))
   in
 
@@ -362,7 +363,8 @@ let () =
          Frame.Fields.(
            add video
              (Type.make
-                (Format_type.descr (`Kind Ffmpeg_raw_content.Video.kind)))
+                (Format_type.descr
+                   (`Kind Liquidsoap_ffmpeg.Ffmpeg_content.Video.kind)))
              empty))
   in
 

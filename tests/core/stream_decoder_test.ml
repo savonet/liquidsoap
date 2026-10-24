@@ -50,7 +50,7 @@ let () =
         write (encoder.Encoder.encode frame)
       with Avutil.Error `Invalid_data -> ()
     done
-  with Ffmpeg_decoder.End_of_file ->
+  with End_of_file ->
     write (encoder.Encoder.stop ());
     close_out out_fd;
     close_in in_fd
