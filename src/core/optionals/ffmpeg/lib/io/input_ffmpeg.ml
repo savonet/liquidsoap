@@ -26,12 +26,13 @@ let () =
   Lifecycle.before_core_shutdown ~name:"ffmpeg inputs shutdown" (fun () ->
       Atomic.set shutdown true)
 
-type attempt = { abort : bool Atomic.t; read_since : float option Atomic.t }
+type attempt = { abort : bool Atomic.t; read : Blocking_call.t }
 
 type connection = {
   loop : Decode_loop.t;
   decoder_buffer : Decoder.buffer;
   mutable delivered : bool;
+  buffer_faults : Faults.t;
 }
 
 (* Every state value is freshly allocated, so physical equality of the whole
@@ -61,7 +62,7 @@ type http = {
 type kind = [ `Ffmpeg of unit -> bool | `Http of http ]
 
 let new_attempt () =
-  { abort = Atomic.make false; read_since = Atomic.make None }
+  { abort = Atomic.make false; read = Blocking_call.create () }
 
 let is_listening (opts : Avutil.opts) =
   let nonzero = function
@@ -107,7 +108,6 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
     val on_disconnect = Callbacks.create ()
     val on_error = Callbacks.create ()
     val mutable last_metadata = None
-    val mutable dropping_cycles = 0
     val mutable sync_source = None
     method register_on_connect fn = Callbacks.register on_connect fn
     method register_on_disconnect fn = Callbacks.register on_disconnect fn
@@ -148,11 +148,7 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
 
     method private interrupt attempt () =
       Atomic.get attempt.abort || Atomic.get shutdown
-      || (not listening)
-         &&
-           match Atomic.get attempt.read_since with
-           | Some since -> Unix.gettimeofday () -. since > timeout
-           | None -> false
+      || ((not listening) && Blocking_call.exceeded attempt.read ~timeout)
 
     method private run_callbacks : 'a. 'a Callbacks.t -> ('a -> unit) -> unit =
       fun callbacks apply -> List.iter apply (Callbacks.elements callbacks)
@@ -272,6 +268,7 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
             loop = l;
             decoder_buffer = Decoder.mk_buffer ~ctype self#buffer;
             delivered = false;
+            buffer_faults = Faults.create self#log;
           }
         in
         last_metadata <- None;
@@ -407,38 +404,40 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
       let length = Generator.length self#buffer in
       if length > max then (
         Generator.truncate self#buffer (length - max);
-        self#log#important
-          "Generator max buffered length exceeded (%d < %d)! Dropping content.."
-          max length;
-        true)
-      else false
+        Some
+          (Printf.sprintf "%.2fs dropped past max_buffer"
+             (Frame.seconds_of_main (length - max))))
+      else None
 
     method private feed =
       let size = Lazy.Mutexed.force Frame.size in
       match Atomic.get connection_state with
         | `Connected (attempt, _, connection) as current -> (
-            let dropped = ref false in
+            let dropped = ref None in
             try
               while
                 Generator.length self#buffer < size
                 && (not (Atomic.get attempt.abort))
                 && not (Atomic.get shutdown)
               do
-                Atomic.set attempt.read_since (Some (Unix.gettimeofday ()));
-                Fun.protect
-                  ~finally:(fun () -> Atomic.set attempt.read_since None)
-                  (fun () ->
+                Blocking_call.run attempt.read (fun () ->
                     Decode_loop.decode connection.loop connection.decoder_buffer);
                 if Generator.length self#buffer > 0 then
                   connection.delivered <- true;
-                if self#bound_buffer then dropped := true
+                Option.iter (fun d -> dropped := Some d) self#bound_buffer
               done;
-              dropping_cycles <- (if !dropped then dropping_cycles + 1 else 0);
-              if dropping_cycles >= Faults.max_consecutive_faults then (
-                dropping_cycles <- 0;
-                raise
-                  (Decode_loop.Source_fault
-                     "Streams too far apart: buffer bound exceeded"))
+              match !dropped with
+                | None -> Faults.delivered connection.buffer_faults
+                | Some message -> (
+                    match
+                      Faults.item connection.buffer_faults ~kind:"buffer"
+                        message
+                    with
+                      | `Item_fault -> ()
+                      | `Source_fault ->
+                          raise
+                            (Decode_loop.Source_fault
+                               "Streams too far apart: buffer bound exceeded"))
             with
               | End_of_file ->
                   self#end_connection current connection ~cause:`End_of_input

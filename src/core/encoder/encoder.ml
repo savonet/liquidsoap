@@ -219,12 +219,7 @@ type encoder = {
 }
 
 type factory =
-  ?hls:bool ->
-  ?interrupt:(unit -> bool) ->
-  pos:Pos.t option ->
-  string ->
-  Frame.Metadata.Export.t ->
-  encoder
+  ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)
@@ -235,6 +230,56 @@ let plug : plugin Plug.t =
 
 exception Found of factory
 
+let protect { encode_metadata; hls; encode; stop; header } =
+  let m = Mutex.create () in
+  let encode_metadata metadata =
+    Mutex.protect m (fun () -> encode_metadata metadata)
+  in
+  let header () = Mutex.protect m header in
+  let {
+    init;
+    init_encode;
+    split_encode;
+    codec_attrs;
+    independent_segments;
+    insert_id3;
+    bitrate;
+    video_size;
+  } =
+    hls
+  in
+  let init ?id3_enabled ?id3_version () =
+    Mutex.protect m (fun () -> init ?id3_enabled ?id3_version ())
+  in
+  let init_encode ~boundary frame =
+    Mutex.protect m (fun () -> init_encode ~boundary frame)
+  in
+  let split_encode ~boundary ~force frame =
+    Mutex.protect m (fun () -> split_encode ~boundary ~force frame)
+  in
+  let codec_attrs () = Mutex.protect m codec_attrs in
+  let independent_segments () = Mutex.protect m independent_segments in
+  let insert_id3 ~frame_position ~sample_position meta =
+    Mutex.protect m (fun () -> insert_id3 ~frame_position ~sample_position meta)
+  in
+  let bitrate () = Mutex.protect m bitrate in
+  let video_size () = Mutex.protect m video_size in
+  let hls =
+    {
+      init;
+      init_encode;
+      split_encode;
+      codec_attrs;
+      independent_segments;
+      insert_id3;
+      bitrate;
+      video_size;
+    }
+  in
+  let encode frame = Mutex.protect m (fun () -> encode frame) in
+  let stop () = Mutex.protect m stop in
+  { encode_metadata; hls; encode; stop; header }
+
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =
   try
@@ -242,57 +287,4 @@ let get_factory fmt =
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory ->
-    fun ?hls ?interrupt ~pos name m ->
-      let { encode_metadata; hls; encode; stop; header } =
-        factory ?hls ?interrupt ~pos name m
-      in
-      (* Protect all functions with a mutex. *)
-      let m = Mutex.create () in
-      let encode_metadata metadata =
-        Mutex.protect m (fun () -> encode_metadata metadata)
-      in
-      let header () = Mutex.protect m header in
-      let {
-        init;
-        init_encode;
-        split_encode;
-        codec_attrs;
-        independent_segments;
-        insert_id3;
-        bitrate;
-        video_size;
-      } =
-        hls
-      in
-      let init ?id3_enabled ?id3_version () =
-        Mutex.protect m (fun () -> init ?id3_enabled ?id3_version ())
-      in
-      let init_encode ~boundary frame =
-        Mutex.protect m (fun () -> init_encode ~boundary frame)
-      in
-      let split_encode ~boundary ~force frame =
-        Mutex.protect m (fun () -> split_encode ~boundary ~force frame)
-      in
-      let codec_attrs () = Mutex.protect m codec_attrs in
-      let independent_segments () = Mutex.protect m independent_segments in
-      let insert_id3 ~frame_position ~sample_position meta =
-        Mutex.protect m (fun () ->
-            insert_id3 ~frame_position ~sample_position meta)
-      in
-      let bitrate () = Mutex.protect m bitrate in
-      let video_size () = Mutex.protect m video_size in
-      let hls =
-        {
-          init;
-          init_encode;
-          split_encode;
-          codec_attrs;
-          independent_segments;
-          insert_id3;
-          bitrate;
-          video_size;
-        }
-      in
-      let encode frame = Mutex.protect m (fun () -> encode frame) in
-      let stop () = Mutex.protect m stop in
-      { encode_metadata; hls; encode; stop; header }
+    fun ?hls ~pos name m -> protect (factory ?hls ~pos name m)
