@@ -93,8 +93,12 @@ def video.testsrc.ffmpeg(
       src
     end
 
-  (input.ffmpeg(id=id, max_buffer=max_buffer, format="lavfi", src) :
-    source(video=yuv420p)
-  )
+  s =
+    (input.ffmpeg(id=id, max_buffer=max_buffer, format="lavfi", src) :
+      source(video=yuv420p)
+    )
+
+  # input.ffmpeg reconnects at the end of its input: once makes it finite.
+  null.defined(duration) ? once(s) : s
 end
 %endif
