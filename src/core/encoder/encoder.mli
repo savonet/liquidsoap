@@ -117,21 +117,18 @@ type encoder = {
   restart_offset : unit -> int option;
 }
 
-(** [interrupt] aborts the blocking I/O of an encoder that writes to a target of
-    its own (an [%ffmpeg] URL); the other encoders ignore it. *)
 type factory =
-  ?hls:bool ->
-  ?interrupt:(unit -> bool) ->
-  pos:Pos.t option ->
-  string ->
-  Frame.Metadata.Export.t ->
-  encoder
+  ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)
 type plugin = format -> factory option
 
 val plug : plugin Plug.t
+
+(** [protect encoder] serialises the calls to [encoder] with a mutex, as every
+    encoder from {!get_factory} is. *)
+val protect : encoder -> encoder
 
 (** Return the first available encoder factory for that format. *)
 val get_factory : format -> factory

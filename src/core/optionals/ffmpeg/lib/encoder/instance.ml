@@ -730,6 +730,6 @@ let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder." (function
     | Encoder.Ffmpeg format ->
         Some
-          (fun ?hls ?interrupt ~pos name metadata ->
-            create ?hls ?interrupt ~pos ~name metadata format)
+          (fun ?hls ~pos name metadata ->
+            create ?hls ~pos ~name metadata format)
     | _ -> None)
