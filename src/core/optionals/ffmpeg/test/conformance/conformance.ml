@@ -293,6 +293,12 @@ let rec zip_short a b =
 let latest l = List.fold_left max neg_infinity l
 let timestamps l = List.map (fun p -> (p.dts, p.pts)) l
 let end_of p = dts p +. duration p
+
+(* MPEG-TS stores no packet duration: the end of [src] copied into [out] takes
+   the duration of its last source packet. *)
+let copied_end ~src out =
+  dts (List.nth out (List.length src - 1)) +. duration (last src)
+
 let both_orders = ["%audio.copy, %video.copy"; "%video.copy, %audio.copy"]
 let repeat n file = List.init n (fun _ -> file)
 
@@ -551,7 +557,7 @@ let kc2 () =
         let n kind = List.length (first kind) in
         let ends =
           List.map
-            (fun kind -> end_of (List.nth (pkts kind) (n kind - 1)))
+            (fun kind -> copied_end ~src:(first kind) (pkts kind))
             [`Audio; `Video]
         in
         let new_a = List.nth (pkts `Audio) (n `Audio)
@@ -593,7 +599,7 @@ let kc3 () =
     (List.length new_v = List.length (second `Video) - dropped);
   let ends =
     List.map
-      (fun kind -> end_of (List.nth (pkts kind) (n kind - 1)))
+      (fun kind -> copied_end ~src:(first kind) (pkts kind))
       [`Video; `Audio]
   in
   let gap = min (dts (List.hd new_v)) (dts (List.hd new_a)) -. latest ends in
