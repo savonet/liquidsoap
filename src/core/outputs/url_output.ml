@@ -4,7 +4,7 @@ let () =
   Lifecycle.before_core_shutdown ~name:"output.url shutdown" (fun () ->
       Atomic.set shutdown true)
 
-type attempt = { abort : bool Atomic.t }
+type attempt = { abort : bool Atomic.t; write_since : float option Atomic.t }
 
 (* Every state value is freshly allocated, so physical equality of the whole
    state is attempt identity (io.md §11.1). *)
@@ -48,13 +48,31 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
     val mutable dropped = 0
     val mutable ever_connected = false
     val mutable metadata = Frame.Metadata.Export.empty
+
+    (* The metadata an encoder was built with: a change during the connect is
+       sent once connected. *)
+    val built_metadata = Atomic.make Frame.Metadata.Export.empty
     val on_error = Callbacks.create ()
     val mutable last_fault_log = neg_infinity
+
+    (* A failure with no restart stops the output; a failed connect runs on a
+       scheduler task, so the streaming thread enacts the stop. *)
+    val stop_requested = Atomic.make false
     method register_on_error fn = Callbacks.register on_error fn
     method private self_sync = (`Static, self#source_sync self_sync)
 
+    (* io.md §3: a write in progress is bounded by [timeout]; the open is not. *)
     method private interrupt attempt () =
       Atomic.get attempt.abort || Atomic.get shutdown
+      ||
+        match Atomic.get attempt.write_since with
+        | Some since -> now () -. since > timeout
+        | None -> false
+
+    method private timed : 'a. attempt -> (unit -> 'a) -> 'a =
+      fun attempt f ->
+        Atomic.set attempt.write_since (Some (now ()));
+        Fun.protect ~finally:(fun () -> Atomic.set attempt.write_since None) f
 
     method private build attempt =
       let format =
@@ -63,12 +81,16 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
           Liquidsoap_ffmpeg_formats.Encoder_format.output = `Url url;
         }
       in
+      let m = metadata in
+      Atomic.set built_metadata m;
       (Encoder.get_factory (Encoder.Ffmpeg format))
         ~hls:false ~interrupt:(self#interrupt attempt)
-        ~pos:(Value.pos format_val) self#id metadata
+        ~pos:(Value.pos format_val) self#id m
 
     method private start_attempt ~from =
-      let attempt = { abort = Atomic.make false } in
+      let attempt =
+        { abort = Atomic.make false; write_since = Atomic.make None }
+      in
       let connecting = `Connecting attempt in
       if Atomic.compare_and_set connection from connecting then
         Scheduler.Task.add
@@ -117,7 +139,7 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
               restart_delay);
           let error = Lang.runtime_error_of_exception ~bt ~kind:"output" exn in
           List.iter (fun fn -> fn error) (Callbacks.elements on_error);
-          if restart_delay = None then self#transition_to `Stopped))
+          if restart_delay = None then Atomic.set stop_requested true))
 
     method private hold frame =
       Queue.push frame held;
@@ -131,8 +153,8 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
 
     (* An encoder in error releases its container without draining at
        [stop] (encoder.md §1). *)
-    method private encode_with ~from encoder frame =
-      try ignore (encoder.Encoder.encode frame)
+    method private encode_with ~from attempt encoder frame =
+      try self#timed attempt (fun () -> ignore (encoder.Encoder.encode frame))
       with exn ->
         let bt = Printexc.get_raw_backtrace () in
         (try ignore (encoder.Encoder.stop ()) with _ -> ());
@@ -142,31 +164,41 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
       if Frame.position frame > 0 then (
         match Atomic.get connection with
           | `Fatal (exn, bt) -> Printexc.raise_with_backtrace exn bt
-          | `Connected (_, encoder) as current ->
+          | `Connected (attempt, encoder) as current ->
+              let m = metadata in
+              if Atomic.exchange built_metadata m != m then
+                self#encode_metadata m;
               if dropped > 0 then (
                 self#log#important
                   "Dropped %.2fs of stream while the output was not connected."
                   (Frame.seconds_of_main dropped);
                 dropped <- 0);
-              Queue.iter (self#encode_with ~from:current encoder) held;
+              Queue.iter
+                (fun held_frame ->
+                  if Atomic.get connection == current then
+                    self#encode_with ~from:current attempt encoder held_frame)
+                held;
               Queue.clear held;
               held_length <- 0;
               if Atomic.get connection == current then
-                self#encode_with ~from:current encoder frame
+                self#encode_with ~from:current attempt encoder frame
           | `Connecting _ -> self#hold frame
           | `Waiting t as current when now () >= t ->
               self#start_attempt ~from:current;
               self#hold frame
           | `Waiting _ -> dropped <- dropped + Frame.position frame
-          | `Stopped -> ())
+          | `Stopped ->
+              if Atomic.exchange stop_requested false then
+                self#transition_to `Stopped)
 
     method private send () = ()
 
     method private encode_metadata m =
       metadata <- m;
       match Atomic.get connection with
-        | `Connected (_, encoder) as current -> (
-            try encoder.Encoder.encode_metadata m
+        | `Connected (attempt, encoder) as current -> (
+            Atomic.set built_metadata m;
+            try self#timed attempt (fun () -> encoder.Encoder.encode_metadata m)
             with exn ->
               let bt = Printexc.get_raw_backtrace () in
               (try ignore (encoder.Encoder.stop ()) with _ -> ());
