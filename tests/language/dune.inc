@@ -125,6 +125,20 @@
   (run %{run_test} doc.liq liquidsoap doc.liq)))
 
 (rule
+ (alias test_encoders)
+ (package liquidsoap)
+ (deps
+  encoders.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} encoders.liq liquidsoap encoders.liq)))
+
+(rule
  (alias test_error)
  (package liquidsoap)
  (deps
@@ -743,6 +757,34 @@
   (run %{run_test} time.liq liquidsoap time.liq)))
 
 (rule
+ (alias test_type_errors)
+ (package liquidsoap)
+ (deps
+  type_errors.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} type_errors.liq liquidsoap type_errors.liq)))
+
+(rule
+ (alias test_typing)
+ (package liquidsoap)
+ (deps
+  typing.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} typing.liq liquidsoap typing.liq)))
+
+(rule
  (alias test_url)
  (package liquidsoap)
  (deps
@@ -810,6 +852,7 @@
   (alias test_cron)
   (alias test_cue_test)
   (alias test_doc)
+  (alias test_encoders)
   (alias test_error)
   (alias test_eval)
   (alias test_file)
@@ -853,6 +896,8 @@
   (alias test_string)
   (alias test_thread)
   (alias test_time)
+  (alias test_type_errors)
+  (alias test_typing)
   (alias test_url)
   (alias test_various)
   (alias test_xml_test)
