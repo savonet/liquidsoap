@@ -121,6 +121,15 @@ let first_raw_audio frame field =
           (Ffmpeg_content.Audio.get_data data).runs
     | exception _ -> None
 
+(* encoder.md §8.6: codec id fallback when the bindings give no string. *)
+let audio_codec_attr stream =
+  match Av.codec_attr stream with
+    | Some attr -> Some attr
+    | None -> (
+        match Avcodec.Audio.get_params_id (Av.get_codec_params stream) with
+          | `Aac -> Some "mp4a.40.2"
+          | _ -> None)
+
 let audio_layout ?pos (a : F.audio) =
   match a.channel_layout with
     | Some name -> (
@@ -400,7 +409,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     encode;
     flush;
     request_keyframe = (fun _ -> ());
-    codec_attr = (fun () -> Option.bind (stream ()) Av.codec_attr);
+    codec_attr = (fun () -> Option.bind (stream ()) audio_codec_attr);
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
     video_size = (fun () -> None);
   }

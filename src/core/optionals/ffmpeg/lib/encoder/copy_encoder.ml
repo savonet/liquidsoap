@@ -705,9 +705,11 @@ let encode track ~position frame =
     (fun (start, r) -> read_run track ~position ~start r)
     (data track frame).runs
 
+let intra_only track = track.intra
+
 let codec_attr track =
   match track.stream with
-    | Some (`Audio s) -> Av.codec_attr s
+    | Some (`Audio s) -> Encoded_stream.audio_codec_attr s
     | Some (`Video s) -> Av.codec_attr s
     | Some (`Subtitle s) -> Av.codec_attr s
     | None -> None

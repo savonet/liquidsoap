@@ -78,6 +78,7 @@ val end_of_frame : t -> position:int -> unit
 *)
 val flush : t -> position:int -> unit
 
+val intra_only : track -> bool
 val codec_attr : track -> string option
 val bitrate : track -> int option
 val video_size : track -> (int * int) option

@@ -46,6 +46,8 @@ type t = {
   video_size : unit -> (int * int) option;
 }
 
+val audio_codec_attr : (_, Avutil.audio, _) Av.stream -> string option
+
 val create :
   log:Log.t ->
   pos:Pos.t option ->

@@ -622,6 +622,13 @@ let codec_attrs t =
         None
     | None -> Some (String.concat "," (List.filter_map snd attrs))
 
+(* encoder.md §8.7 item 6: a copied stream that is not intra-only can be cut by
+   a forced split. *)
+let independent_segments t =
+  List.for_all
+    (function _, `Copy track -> Copy_encoder.intra_only track | _ -> true)
+    t.current.tracks
+
 let bitrate t =
   match
     List.filter_map
@@ -694,6 +701,7 @@ let create ?(hls = false) ?interrupt ~pos ~name metadata format =
         split_encode =
           (fun ~boundary ~force frame -> hls_encode t h ~boundary ~force frame);
         codec_attrs = (fun () -> codec_attrs t);
+        independent_segments = (fun () -> independent_segments t);
         insert_id3 = hls_insert_id3 t h;
         bitrate = (fun () -> bitrate t);
         video_size = (fun () -> video_size t);
