@@ -34,7 +34,8 @@
   kind of the installed headers, to look a kind up by name.
 * Add codec parameter readers: `Avcodec.params_extradata`, `params_profile`,
   `params_level`, `params_block_align`, `params_bits_per_coded_sample`,
-  `Video.get_video_delay`, `get_field_order` and `get_color`, and
+  `Video.get_video_delay`, `get_field_order` and `get_color`,
+  `Audio.get_initial_padding`, and
   `Subtitle.get_width` and `get_height`.
 * Add `Avcodec.flag_global_header`, `Av.get_input_start_time`,
   `Av.Format.input_ts_discont` and `Avutil.Log.set_callback_with_level`.

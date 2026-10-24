@@ -471,6 +471,9 @@ module Audio = struct
 
   external get_sample_rate : audio params -> int
     = "ocaml_avcodec_parameters_sample_rate"
+
+  external get_initial_padding : audio params -> int
+    = "ocaml_avcodec_parameters_initial_padding"
 end
 
 module Video = struct

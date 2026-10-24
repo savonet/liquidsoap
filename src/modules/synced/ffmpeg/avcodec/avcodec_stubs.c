@@ -570,6 +570,10 @@ CAMLprim value ocaml_avcodec_parameters_level(value _parameters) {
   CAMLreturn(caml_alloc_some(Val_int(level)));
 }
 
+CAMLprim value ocaml_avcodec_parameters_initial_padding(value _parameters) {
+  return Val_int(CodecParameters_val(_parameters)->initial_padding);
+}
+
 CAMLprim value ocaml_avcodec_parameters_block_align(value _parameters) {
   return Val_int(CodecParameters_val(_parameters)->block_align);
 }

@@ -473,16 +473,18 @@ val get_nb_channels : audio params -> int
 val get_sample_format : audio params -> Avutil.Sample_format.t
 val get_bit_rate : audio params -> int
 val get_sample_rate : audio params -> int
+val get_initial_padding : audio params -> int
 ```
 
-| Getter               | Returns                           |
-| -------------------- | --------------------------------- |
-| `get_params_id`      | the codec identifier (E3)         |
-| `get_channel_layout` | an independent copy of the layout |
-| `get_nb_channels`    | the channel count of the layout   |
-| `get_sample_format`  | the sample format (E3)            |
-| `get_bit_rate`       | the bit rate                      |
-| `get_sample_rate`    | the sample rate                   |
+| Getter                | Returns                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `get_params_id`       | the codec identifier (E3)                                                                               |
+| `get_channel_layout`  | an independent copy of the layout                                                                       |
+| `get_nb_channels`     | the channel count of the layout                                                                         |
+| `get_sample_format`   | the sample format (E3)                                                                                  |
+| `get_bit_rate`        | the bit rate                                                                                            |
+| `get_sample_rate`     | the sample rate                                                                                         |
+| `get_initial_padding` | the samples of priming the encoder puts before the first input sample (`initial_padding`); 0 when unset |
 
 ### 4.4 `Video`
 

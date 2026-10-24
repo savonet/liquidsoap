@@ -671,6 +671,10 @@ module Audio : sig
 
   (** [get_sample_rate params] is the sample rate of the stream, in Hz. *)
   val get_sample_rate : audio params -> int
+
+  (** [get_initial_padding params] is the number of priming samples per channel
+      the encoder puts before the first input sample; 0 when unset. *)
+  val get_initial_padding : audio params -> int
 end
 
 (** Video codecs: lookup, supported configurations, decoders, encoders and the
