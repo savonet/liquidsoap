@@ -930,6 +930,8 @@ class hls_output p =
             (Printf.sprintf "#EXT-X-TARGETDURATION:%d\r\n"
                (int_of_float (ceil segment_duration)));
           oc#output_string (Printf.sprintf "#EXT-X-VERSION:%d\r\n" x_version);
+          if s.encoder.Encoder.hls.independent_segments () then
+            oc#output_string "#EXT-X-INDEPENDENT-SEGMENTS\r\n";
           oc#output_string
             (Printf.sprintf "#EXT-X-MEDIA-SEQUENCE:%d\r\n" media_sequence);
           oc#output_string

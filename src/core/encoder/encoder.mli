@@ -73,12 +73,15 @@ type hls_init = [ `Pending | `Init of Strings.t option * hls_piece list ]
 
 (** The HLS output calls [init], then [init_encode] until it returns [`Init],
     then [split_encode] for each later frame, with the next grid boundary;
-    [force] asks for a split before the frame whatever its packets. *)
+    [force] asks for a split before the frame whatever its packets.
+    [independent_segments] tells, once [`Init] is returned, that every segment
+    starts with a key packet of every stream. *)
 type hls = {
   init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
   init_encode : boundary:int -> Frame.t -> hls_init;
   split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   codec_attrs : unit -> string option;
+  independent_segments : unit -> bool;
   insert_id3 :
     frame_position:int ->
     sample_position:int ->

@@ -419,11 +419,12 @@ prepended).
 
 ### 8.6 Properties
 
-| Query            | Answer                                                                                                      |
-| ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| `codec_attrs ()` | the codec strings of the participating streams, joined by `,` in track order; none when any stream has none |
-| `bitrate ()`     | the sum of the bit rates the streams report; none if none                                                   |
-| `video_size ()`  | the single stream that reports a size; none with zero or several                                            |
+| Query                     | Answer                                                                                                      |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `codec_attrs ()`          | the codec strings of the participating streams, joined by `,` in track order; none when any stream has none |
+| `independent_segments ()` | true when no participating stream is a copied stream whose codec is not intra-only (§8.7 item 6)            |
+| `bitrate ()`              | the sum of the bit rates the streams report; none if none                                                   |
+| `video_size ()`           | the single stream that reports a size; none with zero or several                                            |
 
 A stream's codec string is the bindings' `codec_attr` of the stream
 ([avformat.md §4.4](../../../../modules/synced/ffmpeg/spec/avformat.md#44-output)).

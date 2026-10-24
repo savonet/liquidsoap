@@ -167,6 +167,7 @@ type hls = {
   init_encode : boundary:int -> Frame.t -> hls_init;
   split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   codec_attrs : unit -> string option;
+  independent_segments : unit -> bool;
   insert_id3 :
     frame_position:int ->
     sample_position:int ->
@@ -194,6 +195,7 @@ let dummy_hls encode =
         let split = `Split { time = !time; forced = force } in
         [split; `Bytes (encode f)]);
     codec_attrs = (fun () -> None);
+    independent_segments = (fun () -> false);
     insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
     bitrate = (fun () -> None);
     video_size = (fun () -> None);
@@ -255,6 +257,7 @@ let get_factory fmt =
         init_encode;
         split_encode;
         codec_attrs;
+        independent_segments;
         insert_id3;
         bitrate;
         video_size;
@@ -271,6 +274,7 @@ let get_factory fmt =
         Mutex.protect m (fun () -> split_encode ~boundary ~force frame)
       in
       let codec_attrs () = Mutex.protect m codec_attrs in
+      let independent_segments () = Mutex.protect m independent_segments in
       let insert_id3 ~frame_position ~sample_position meta =
         Mutex.protect m (fun () ->
             insert_id3 ~frame_position ~sample_position meta)
@@ -283,6 +287,7 @@ let get_factory fmt =
           init_encode;
           split_encode;
           codec_attrs;
+          independent_segments;
           insert_id3;
           bitrate;
           video_size;

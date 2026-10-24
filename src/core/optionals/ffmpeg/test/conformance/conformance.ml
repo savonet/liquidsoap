@@ -1187,6 +1187,78 @@ let kc12 () =
   check "kc12: audio and video of every file within one video frame"
     (List.for_all2 (fun b f -> Float.abs (b -. f) <= 0.04) beeps flashes)
 
+(* encoder.md §8.8: segment grid and playlist announcements of an MPEG-TS
+   variant over a video with a keyframe every 4 s and 1 s segments. *)
+let hls_variant name tracks =
+  Unix.mkdir name 0o755;
+  let keep = name ^ "_keep" in
+  Unix.mkdir keep 0o755;
+  let log =
+    run_ok name
+      (Printf.sprintf
+         {|settings.decoder.decoders.set(["ffmpeg"])
+s = once(single("gop4.mp4"))
+clock.assign_new(sync="none", [s])
+o = output.file.hls(fallible=true, segment_duration=1., %S, [("v", %%ffmpeg(format="mpegts", %s))], s)
+o.on_file_change(synchronous=true, fun ({state, path}) -> if state != "deleted" then file.copy(force=true, path, %S) end)
+o.on_stop(synchronous=true, shutdown)
+|}
+         name tracks (keep ^ "/"))
+  in
+  let lines =
+    List.map String.trim
+      (String.split_on_char '\n'
+         (In_channel.with_open_bin
+            (Filename.concat keep "v.m3u8")
+            In_channel.input_all))
+  in
+  let value prefix =
+    List.filter_map
+      (fun line ->
+        if String.starts_with ~prefix line then
+          Some
+            (String.sub line (String.length prefix)
+               (String.length line - String.length prefix))
+        else None)
+      lines
+  in
+  let target = int_of_string (List.hd (value "#EXT-X-TARGETDURATION:")) in
+  let durations =
+    List.map
+      (fun d -> float_of_string (List.hd (String.split_on_char ',' d)))
+      (value "#EXTINF:")
+  in
+  let segments =
+    List.filter (fun line -> line <> "" && line.[0] <> '#') lines
+  in
+  check
+    (Printf.sprintf "hls %s: no EXTINF exceeds the target duration" name)
+    (durations <> []
+    && List.for_all (fun d -> Float.to_int (Float.round d) <= target) durations
+    );
+  ( log,
+    List.mem "#EXT-X-INDEPENDENT-SEGMENTS" lines,
+    List.map (fun f -> packets (Filename.concat keep f) `Video) segments )
+
+let hls () =
+  let log, independent, segments =
+    hls_variant "hls_copy" "%audio.copy, %video.copy"
+  in
+  check "hls copy: forced cuts are warned" (contains "segment cut at" log);
+  check "hls copy: EXT-X-INDEPENDENT-SEGMENTS is not announced"
+    (not independent);
+  check "hls copy: some segment starts without a key packet"
+    (List.exists (fun v -> v <> [] && not (List.hd v).key) segments);
+  let log, independent, segments =
+    hls_variant "hls_encode"
+      {|%audio(codec="aac"), %video(codec="libx264", preset="ultrafast")|}
+  in
+  check "hls encode: no forced cut" (not (contains "segment cut at" log));
+  check "hls encode: EXT-X-INDEPENDENT-SEGMENTS is announced" independent;
+  check "hls encode: every segment starts with a key frame"
+    (List.length segments >= 10
+    && List.for_all (fun v -> v <> [] && (List.hd v).key) segments)
+
 let checks =
   [
     ("kc1", kc1);
@@ -1200,6 +1272,7 @@ let checks =
     ("kc10", kc10);
     ("kc11", kc11);
     ("kc12", kc12);
+    ("hls", hls);
   ]
 
 (* The known-complexity checks of spec/tests.md §23 that need media, run by
