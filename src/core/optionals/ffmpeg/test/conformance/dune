@@ -151,6 +151,30 @@
    %{target})))
 
 (rule
+ (target irrgop.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=12:size=160x120:rate=25
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -g
+   1000
+   -force_key_frames
+   0,0.5,10
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
  (target gop4.mp4)
  (action
   (run
@@ -1093,6 +1117,7 @@
  (package liquidsoap)
  (deps
   gop4.mp4
+  irrgop.mp4
   h264_high.mp4
   h264_main.mp4
   (package liquidsoap)
