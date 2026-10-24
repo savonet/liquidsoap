@@ -40,13 +40,17 @@ let verbosities =
   ]
 
 let log_verbosity =
-  Dtools.Conf.string ~p:(log#plug "verbosity") "Verbosity" ~d:"warning"
-    ~comments:
-      [
-        "FFmpeg's own log level: messages less severe are discarded. One of: "
-        ^ String.concat ", " (List.map (Printf.sprintf "`%S`") verbosities)
-        ^ ".";
-      ]
+  let key =
+    Dtools.Conf.string ~p:(log#plug "verbosity") "Verbosity" ~d:"warning"
+      ~comments:
+        [
+          "FFmpeg's own log level: messages less severe are discarded. One of: "
+          ^ String.concat ", " (List.map (Printf.sprintf "`%S`") verbosities)
+          ^ ".";
+        ]
+  in
+  key#validate (fun v -> List.mem v verbosities);
+  key
 
 let log_level =
   Dtools.Conf.int ~p:(log#plug "level") "Level" ~d:3
