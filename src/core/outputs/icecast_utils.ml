@@ -29,20 +29,6 @@ let avi_mime = "video/avi"
 let aac_mime = "audio/aac"
 let flac_mime = "audio/flac"
 
-(* MIME types of %ffmpeg container names for streaming outputs. *)
-let container_mimes =
-  [
-    ("mp3", mpeg_mime);
-    ("adts", aac_mime);
-    ("ogg", ogg_application_mime);
-    ("opus", ogg_application_mime);
-    ("flac", flac_mime);
-    ("wav", wav_mime);
-    ("avi", avi_mime);
-    ("ac3", "audio/x-ac3");
-    ("eac3", "audio/x-eac3");
-  ]
-
 (* A listener joining mid-stream must not receive an ID3v2 header or a Xing
    frame: an mp3 %ffmpeg stream gets a copy of its format without them. *)
 let streaming_format = function
@@ -102,7 +88,7 @@ module Icecast_v (M : Icecast_t) = struct
         { Liquidsoap_ffmpeg_formats.Encoder_format.mime_type = Some m } ->
         Some (M.format_of_content m)
     | Encoder.Ffmpeg { format = Some f } ->
-        Option.map M.format_of_content (List.assoc_opt f container_mimes)
+        Option.map M.format_of_content (Utils.mime_of_container_format f)
     | Encoder.Ffmpeg _ -> None
     | Encoder.FdkAacEnc _ -> Some aac
     | Encoder.External _ -> None
