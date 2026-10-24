@@ -144,82 +144,91 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
         Unix.openfile path [Unix.O_WRONLY; Unix.O_APPEND; Unix.O_CREAT] 0o644)
       appended_path
   in
+  let close_appended () = Option.iter Unix.close appended in
   let output =
-    match (format.output, appended) with
-      | `Url _, Some fd -> (
-          match guess () with
-            | None -> error ?pos "No ffmpeg format could be found for this file"
-            | Some muxer ->
-                Av.open_output_stream ~opts ~interleaved
-                  (fun bytes offset length -> Unix.write fd bytes offset length)
-                  muxer)
-      | `Stream, _ -> (
-          match (format.format, guess ()) with
-            | None, _ -> error ?pos "Format is required!"
-            | Some f, None ->
-                error ?pos
-                  (Printf.sprintf
-                     "No ffmpeg format could be found for format=%S" f)
-            | Some _, Some muxer ->
-                let write bytes offset length =
-                  Buffer.add_subbytes buffer bytes offset length;
-                  length
-                in
-                Av.open_output_stream ~opts ~interleaved write muxer)
-      | `Url url, None ->
-          Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
+    try
+      match (format.output, appended) with
+        | `Url _, Some fd -> (
+            match guess () with
+              | None ->
+                  error ?pos "No ffmpeg format could be found for this file"
+              | Some muxer ->
+                  Av.open_output_stream ~opts ~interleaved
+                    (fun bytes offset length ->
+                      Unix.write fd bytes offset length)
+                    muxer)
+        | `Stream, _ -> (
+            match (format.format, guess ()) with
+              | None, _ -> error ?pos "Format is required!"
+              | Some f, None ->
+                  error ?pos
+                    (Printf.sprintf
+                       "No ffmpeg format could be found for format=%S" f)
+              | Some _, Some muxer ->
+                  let write bytes offset length =
+                    Buffer.add_subbytes buffer bytes offset length;
+                    length
+                  in
+                  Av.open_output_stream ~opts ~interleaved write muxer)
+        | `Url url, None ->
+            Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
+    with exn ->
+      close_appended ();
+      raise exn
   in
   (match Opts.unused_message [("container", opts)] with
     | Some message ->
         (try Av.close output with _ -> ());
-        Option.iter Unix.close appended;
+        close_appended ();
         error ?pos message
     | None -> ());
   let muxer =
     match guess () with Some f -> Av.Format.get_output_name f | None -> ""
   in
-  let copy =
-    Copy_encoder.create ~log
-      ~whole_output:
-        (List.for_all
-           (function _, `Copy _ -> true | _ -> false)
-           (non_drop format))
-      ~stores_header:(not (carries_header_in_band muxer))
-      output
+  let release_and_raise exn =
+    (try Av.close output with _ -> ());
+    close_appended ();
+    raise exn
   in
-  let tracks =
-    List.map
-      (fun (field, track) ->
-        match track with
-          | `Drop -> (field, `Drop)
-          | `Copy keyframe ->
-              ( field,
-                `Copy
-                  (Copy_encoder.track copy
-                     ~field:(Frame.Fields.register field)
-                     ~keyframe ~on_packet:(on_packet field)) )
-          | `Encode encoded -> (
-              try
+  try
+    let copy =
+      Copy_encoder.create ~log
+        ~whole_output:
+          (List.for_all
+             (function _, `Copy _ -> true | _ -> false)
+             (non_drop format))
+        ~stores_header:(not (carries_header_in_band muxer))
+        output
+    in
+    let tracks =
+      List.map
+        (fun (field, track) ->
+          match track with
+            | `Drop -> (field, `Drop)
+            | `Copy keyframe ->
+                ( field,
+                  `Copy
+                    (Copy_encoder.track copy
+                       ~field:(Frame.Fields.register field)
+                       ~keyframe ~on_packet:(on_packet field)) )
+            | `Encode encoded ->
                 ( field,
                   `Encoded
                     (Encoded_stream.create ~log ~pos
                        ~field:(Frame.Fields.register field)
-                       ~on_packet:(on_packet field) encoded output) )
-              with exn ->
-                (try Av.close output with _ -> ());
-                Option.iter Unix.close appended;
-                raise exn))
-      format.streams
-  in
-  {
-    output;
-    appended;
-    muxer;
-    copy;
-    tracks;
-    streams_created = false;
-    wait_start = None;
-  }
+                       ~on_packet:(on_packet field) encoded output) ))
+        format.streams
+    in
+    {
+      output;
+      appended;
+      muxer;
+      copy;
+      tracks;
+      streams_created = false;
+      wait_start = None;
+    }
+  with exn -> release_and_raise exn
 
 let copy_tracks c =
   List.filter_map (function _, `Copy t -> Some t | _ -> None) c.tracks
