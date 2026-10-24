@@ -1209,8 +1209,9 @@ let kc12 () =
     (List.for_all2 (fun b f -> Float.abs (b -. f) <= 0.04) beeps flashes)
 
 (* encoder.md §8.8: segment grid and playlist announcements of an MPEG-TS
-   variant over a video with a keyframe every 4 s and 1 s segments. *)
-let hls_variant name tracks =
+   variant, by default over a video with a keyframe every 4 s and 1 s
+   segments. *)
+let hls_variant ?(file = "gop4.mp4") ?(segment = 1.) name tracks =
   Unix.mkdir name 0o755;
   let keep = name ^ "_keep" in
   Unix.mkdir keep 0o755;
@@ -1218,13 +1219,13 @@ let hls_variant name tracks =
     run_ok name
       (Printf.sprintf
          {|settings.decoder.decoders.set(["ffmpeg"])
-s = once(single("gop4.mp4"))
+s = once(single(%S))
 clock.assign_new(sync="none", [s])
-o = output.file.hls(fallible=true, segment_duration=1., %S, [("v", %%ffmpeg(format="mpegts", %s))], s)
+o = output.file.hls(fallible=true, segment_duration=%g, %S, [("v", %%ffmpeg(format="mpegts", %s))], s)
 o.on_file_change(synchronous=true, fun ({state, path}) -> if state != "deleted" then file.copy(force=true, path, %S) end)
 o.on_stop(synchronous=true, shutdown)
 |}
-         name tracks (keep ^ "/"))
+         file segment name tracks (keep ^ "/"))
   in
   let lines =
     List.map String.trim
@@ -1262,6 +1263,10 @@ o.on_stop(synchronous=true, shutdown)
     List.map (fun f -> packets (Filename.concat keep f) `Video) segments )
 
 let hls () =
+  (* A segment holding a split point is cut there before the bound, not at the
+     next keyframe ten seconds later. *)
+  ignore
+    (hls_variant ~file:"irrgop.mp4" ~segment:2. "hls_irregular" "%video.copy");
   let log, independent, segments =
     hls_variant "hls_copy" "%audio.copy, %video.copy"
   in

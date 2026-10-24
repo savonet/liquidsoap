@@ -1168,16 +1168,42 @@ class hls_output p =
     method private next_boundary time =
       ((time / segment_main_duration) + 1) * segment_main_duration
 
+    method private passes_bound s segment ~len =
+      Float.round (Frame.seconds_of_main (s.media_time + len - segment.start))
+      > ceil segment_duration
+
+    (* §8.7 items 3 and 4: the open segment's last split point at or before the
+       boundary, else its first one after. *)
+    method private split_target s segment =
+      let inside =
+        List.filter (fun (t, _) -> t > segment.start) segment.splits
+      in
+      match List.filter (fun (t, _) -> t <= s.boundary) inside with
+        | point :: _ -> Some point
+        | [] -> (
+            match
+              List.rev (List.filter (fun (t, _) -> t > s.boundary) inside)
+            with
+              | point :: _ -> Some point
+              | [] -> None)
+
     (* §8.7 item 6: the wait for a split point ends before the open segment's
-       rounded duration would pass the target duration. *)
+       rounded duration would pass the target duration. A segment holding split
+       points is cut at one; one holding none asks for a forced split. *)
     method private must_force s ~len =
       match s.current_segment with
-        | Some segment ->
-            segment.splits = []
-            && Float.round
-                 (Frame.seconds_of_main (s.media_time + len - segment.start))
-               > ceil segment_duration
-        | None -> false
+        | Some segment when self#passes_bound s segment ~len -> (
+            match self#split_target s segment with
+              | Some (t, o) ->
+                  self#log#info
+                    "Terminating current segment %d on stream %s at its split \
+                     point before the target duration"
+                    segment.id s.name;
+                  s.boundary <- self#next_boundary t;
+                  self#cut s (t, o);
+                  self#must_force s ~len
+              | None -> true)
+        | _ -> false
 
     method encode frame =
       let len = Frame.position frame in
@@ -1216,21 +1242,7 @@ class hls_output p =
       let rec cut_due () =
         let segment = Option.get s.current_segment in
         if time >= s.boundary then (
-          let inside =
-            List.filter (fun (t, _) -> t > segment.start) segment.splits
-          in
-          let before = List.filter (fun (t, _) -> t <= s.boundary) inside in
-          let target =
-            match before with
-              | point :: _ -> Some point
-              | [] -> (
-                  match
-                    List.rev (List.filter (fun (t, _) -> t > s.boundary) inside)
-                  with
-                    | point :: _ -> Some point
-                    | [] -> None)
-          in
-          match target with
+          match self#split_target s segment with
             | Some (t, o) ->
                 self#log#info
                   "Terminating current segment %d on stream %s at its split \
@@ -1245,6 +1257,12 @@ class hls_output p =
             | Some reason when time > segment.start ->
                 self#log#info "Terminating current segment %d on stream %s %s"
                   segment.id s.name reason;
+                (* An earlier cut of this call moved the split into the new
+                   segment, at a remapped offset. *)
+                let offset =
+                  Option.value ~default:offset
+                    (List.assoc_opt time segment.splits)
+                in
                 self#cut s (time, offset)
             | _ -> ())
       in
