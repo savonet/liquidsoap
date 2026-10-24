@@ -90,7 +90,7 @@
  (libraries
   liquidsoap_core
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
