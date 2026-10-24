@@ -4,7 +4,11 @@ let () =
   Lifecycle.before_core_shutdown ~name:"output.url shutdown" (fun () ->
       Atomic.set shutdown true)
 
-type attempt = { abort : bool Atomic.t; write : Blocking_call.t }
+type attempt = {
+  abort : bool Atomic.t;
+  write : Blocking_call.t;
+  closing : bool Atomic.t;
+}
 
 (* Every state value is freshly allocated, so physical equality of the whole
    state is attempt identity (io.md §11.1). *)
@@ -59,8 +63,11 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
     method private self_sync = (`Static, self#source_sync self_sync)
 
     (* io.md §3: a write in progress is bounded by [timeout]; the open is not. *)
+    (* The trailer written at a stop survives a shutdown: only [timeout] bounds
+       it. *)
     method private interrupt attempt () =
-      Atomic.get attempt.abort || Atomic.get shutdown
+      Atomic.get attempt.abort
+      || (Atomic.get shutdown && not (Atomic.get attempt.closing))
       || Blocking_call.exceeded attempt.write ~timeout
 
     method private build attempt =
@@ -78,7 +85,11 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
 
     method private start_attempt ~from =
       let attempt =
-        { abort = Atomic.make false; write = Blocking_call.create () }
+        {
+          abort = Atomic.make false;
+          write = Blocking_call.create ();
+          closing = Atomic.make false;
+        }
       in
       let connecting = `Connecting attempt in
       if Atomic.compare_and_set connection from connecting then
@@ -208,7 +219,11 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
         match Atomic.get connection with
           | `Connected (attempt, encoder) as current ->
               if Atomic.compare_and_set connection current `Stopped then (
-                (try ignore (encoder.Encoder.stop ())
+                Atomic.set attempt.closing true;
+                (try
+                   ignore
+                     (Blocking_call.run attempt.write (fun () ->
+                          encoder.Encoder.stop ()))
                  with exn ->
                    self#log#severe "Error while stopping: %s"
                      (Printexc.to_string exn));
