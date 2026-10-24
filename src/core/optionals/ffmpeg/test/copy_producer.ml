@@ -40,7 +40,10 @@
      [restart_dts], [close_dts]: as [exact], with the timestamps of some
      packets altered as named;
    - [tb_change]: as [exact], with the second half of each play's video in a
-     run of the same source whose time base is 1/1000. *)
+     run of the same source whose time base is 1/1000;
+   - [audio_switch]: as [exact] for every file but the last two; of those,
+     the first one's audio is cut at 0.3 s and followed by the second's while
+     the first one's video plays on, with a keyframe wait of 0.1 s. *)
 
 open Liquidsoap_ffmpeg
 
@@ -56,7 +59,8 @@ type scenario =
   | `Backward_dts
   | `Restart_dts
   | `Close_dts
-  | `Tb_change ]
+  | `Tb_change
+  | `Audio_switch ]
 
 let scenarios =
   [
@@ -72,6 +76,7 @@ let scenarios =
     ("restart_dts", `Restart_dts);
     ("close_dts", `Close_dts);
     ("tb_change", `Tb_change);
+    ("audio_switch", `Audio_switch);
   ]
 
 let field_name = function `Audio -> "audio" | `Video -> "video"
@@ -288,17 +293,17 @@ let source ?(continues = false) ~(scenario : scenario) streams =
       (field_name s.media, s.params, data))
     streams
 
+let seconds s p =
+  Int64.to_float (Option.get (dts p))
+  *. float s.time_base.Avutil.num
+  /. float s.time_base.Avutil.den
+
 (* One file split mid-GOP at [at] seconds into two sources, the second's
    timestamps restarting [at] seconds lower and its id marked continuing, as
    a decoder does at a declared discontinuity whose bitstream goes on. *)
 let continuing ~at streams =
   let split s =
-    let seconds p =
-      Int64.to_float (Option.get (dts p))
-      *. float s.time_base.Avutil.num
-      /. float s.time_base.Avutil.den
-    in
-    let before, after = List.partition (fun p -> seconds p < at) s.packets in
+    let before, after = List.partition (fun p -> seconds s p < at) s.packets in
     let shift =
       Int64.of_float
         (at *. float s.time_base.Avutil.den /. float s.time_base.Avutil.num)
@@ -317,6 +322,37 @@ let continuing ~at streams =
     source ~continues:true ~scenario:`Exact (List.map snd halves);
   ]
 
+(* The fields of the plays in the order they are put, each play's fields
+   padded to its longest. *)
+let sequential plays =
+  List.concat_map
+    (fun play ->
+      let longest =
+        List.fold_left
+          (fun l (_, _, (d : Ffmpeg_content.Copy.Data.data)) -> max l d.length)
+          0 play
+      in
+      List.iter
+        (fun (_, _, (d : Ffmpeg_content.Copy.Data.data)) -> d.length <- longest)
+        play;
+      play)
+    plays
+
+(* known-complexity.md §4: the first source's audio switches to the second
+   source at [at] seconds while the first source's video, a late member of a
+   group started at the wait limit, waits for its first keyframe. *)
+let audio_switch ~at first second =
+  let cut s =
+    if s.media = `Audio then
+      { s with packets = List.filter (fun p -> seconds s p < at) s.packets }
+    else s
+  in
+  let first = source ~scenario:`Exact (List.map cut first)
+  and second = source ~scenario:`Exact second in
+  let field name = List.filter (fun (f, _, _) -> f = name) in
+  field "audio" first @ field "audio" second @ field "video" first
+  @ field "video" second
+
 let () =
   Frame_settings.lazy_config_eval := true;
   if Sys.getenv_opt "COPY_PRODUCER_LOG" <> None then (
@@ -333,15 +369,34 @@ let () =
                 prerr_endline ("Unknown scenario: " ^ scenario);
                 exit 2
         in
-        let plays =
+        let puts =
           match (scenario, files) with
-            | `Continuing, [file] -> continuing ~at:3.4 (read_file file)
-            | `Continuing, _ ->
-                prerr_endline "The continuing scenario takes one file";
+            | `Continuing, [file] ->
+                sequential (continuing ~at:3.4 (read_file file))
+            | `Audio_switch, (_ :: _ :: _ as files) -> (
+                Settings.max_keyframe_wait#set 0.1;
+                match List.rev files with
+                  | second :: first :: prefix ->
+                      sequential
+                        (List.map
+                           (fun f -> source ~scenario:`Exact (read_file f))
+                           (List.rev prefix))
+                      @ audio_switch ~at:0.3 (read_file first)
+                          (read_file second)
+                  | _ -> assert false)
+            | (`Continuing | `Audio_switch), _ ->
+                prerr_endline "Wrong number of files for this scenario";
                 exit 2
-            | _ -> List.map (fun f -> source ~scenario (read_file f)) files
+            | _ ->
+                sequential
+                  (List.map (fun f -> source ~scenario (read_file f)) files)
         in
-        let fields = List.map (fun (f, p, _) -> (f, p)) (List.hd plays) in
+        let fields =
+          List.fold_left
+            (fun fields (f, p, _) ->
+              if List.mem_assoc f fields then fields else fields @ [(f, p)])
+            [] puts
+        in
         let ctype =
           List.fold_left
             (fun ctype (field, params) ->
@@ -353,21 +408,11 @@ let () =
         in
         let generator = Generator.create ctype in
         List.iter
-          (fun play ->
-            let longest =
-              List.fold_left
-                (fun l (_, _, (d : Ffmpeg_content.Copy.Data.data)) ->
-                  max l d.length)
-                0 play
-            in
-            List.iter
-              (fun (field, _, (d : Ffmpeg_content.Copy.Data.data)) ->
-                d.length <- longest;
-                Generator.put generator
-                  (Frame.Fields.register field)
-                  (Ffmpeg_content.Copy.lift_data d))
-              play)
-          plays;
+          (fun (field, _, d) ->
+            Generator.put generator
+              (Frame.Fields.register field)
+              (Ffmpeg_content.Copy.lift_data d))
+          puts;
         let format =
           {
             Liquidsoap_ffmpeg_formats.Encoder_format.format = Some format;

@@ -121,6 +121,36 @@
    %{target})))
 
 (rule
+ (target avlong.mp4)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   testsrc=duration=2:size=320x180:rate=30
+   -f
+   lavfi
+   -i
+   sine=frequency=440:duration=2.3
+   -c:v
+   libx264
+   -preset
+   ultrafast
+   -bf
+   2
+   -g
+   30
+   -pix_fmt
+   yuv420p
+   -c:a
+   aac
+   %{target})))
+
+(rule
  (target gop4.mp4)
  (action
   (run
@@ -957,8 +987,10 @@
  (alias ffmpeg_conformance_kc4)
  (package liquidsoap)
  (deps
+  avlong.mp4
   gop.mp4
   midgop.mp4
+  nokey.mp4
   short.mp4
   avoff.mp4
   vq2.ogg
@@ -1068,6 +1100,26 @@
  (action
   (run %{exe:conformance.exe} %{exe:../copy_producer.exe} hls)))
 
+(rule
+ (alias ffmpeg_conformance_filters)
+ (package liquidsoap)
+ (deps
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} filters)))
+
+(rule
+ (alias ffmpeg_conformance_ogg_stream)
+ (package liquidsoap)
+ (deps
+  vq2.ogg
+  vq8.ogg
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} ogg_stream)))
+
 (alias
  (name mediatest)
  (deps
@@ -1082,4 +1134,6 @@
   (alias ffmpeg_conformance_kc10)
   (alias ffmpeg_conformance_kc11)
   (alias ffmpeg_conformance_kc12)
-  (alias ffmpeg_conformance_hls)))
+  (alias ffmpeg_conformance_hls)
+  (alias ffmpeg_conformance_filters)
+  (alias ffmpeg_conformance_ogg_stream)))
