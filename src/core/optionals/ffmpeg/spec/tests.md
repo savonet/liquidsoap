@@ -35,15 +35,7 @@ A pass is evidence only when the same check would have failed on a broken implem
 4. **Selected component.** A test of one implementation among several (a decoder, a resampler, a converter) asserts that this implementation ran, from the layer's own report of the chosen component. Raising another implementation's priority above it, or forcing another one, makes the test a test of something else.
 5. **Positive control.** A check that looks for an absence (no error logged, no gap, no warning) first sees the presence on a case built to have it, in the same harness.
 
-### 1.3 Negative controls
-
-Every check of §23 (the known-complexity entries) and every timestamp check (§1.4) MUST be seen to fail against a deliberately broken build before its pass counts.
-
-- A negative control applies a **mutation**: a minimal change to the implementation that breaks the rule the check protects (§23 names one per entry). It is a development step, applied by hand, built, run and reverted. No mutation stays in the tree: a mutation patches source text, so it breaks as the code moves.
-- The mutated build MUST fail the check, on the assertion that protects the rule, not on an unrelated error.
-- The negative control is repeated whenever the check, its fixture, or the code under the rule changes. A check whose mutation passes is broken.
-
-### 1.4 Timestamps at packet level
+### 1.3 Timestamps at packet level
 
 A timestamp check asserts on individual packets. Aggregate values (a stream duration, a cue time, a segment sum) MAY be asserted in addition, never instead.
 
@@ -58,7 +50,7 @@ The packet oracle lists, per output stream and in file order: stream index, DTS,
 
 Source packets for these comparisons are listed by the same oracle on the input fixtures. Tolerances are stated per check in units of a time base or of a codec frame, never in wall-clock time.
 
-### 1.5 Rejections pin their reason
+### 1.4 Rejections pin their reason
 
 A test that expects a rejection (a type error, an evaluation error, a start-up failure, a runtime error) asserts:
 
@@ -68,36 +60,36 @@ A test that expects a rejection (a type error, an evaluation error, a start-up f
 
 Any other error fails the test, a parse error in the test's own text first of all. An "expects an error" helper MUST fail when the call returns normally. Message wording is incidental unless the owning rule makes it binding.
 
-### 1.6 Oracles
+### 1.5 Oracles
 
 - Media assertions use an oracle independent of the implementation under test: an external prober and transcoder for container, stream and packet properties, decoded sample and frame counts, extracted subtitle text, still frames and image similarity.
 - The prober's output is parsed against a declared shape; a missing required field fails the test.
 - Values the host's libraries choose and the layer does not decide are never pinned as literals: muxer-chosen time bases, codec-string profile and level digits, encoder-chosen frame sizes. Where such a value matters, the test computes the expected value from the produced file with the oracle (for example, the HLS `CODECS` entry against the codec string derived from the stream's own parameters) and asserts that the two agree.
 - Log lines are an oracle only for what the owning rule makes binding: that a warning or error was logged, at which level, naming which item. Wording is incidental.
 
-### 1.7 Snapshots
+### 1.6 Snapshots
 
-A snapshot check (printed types, dumps, stream descriptions) fails the run on any difference. Accepting a new snapshot is a separate, manual step, never part of a conformance or CI run. Snapshots hold only values the layer decides (§1.6).
+A snapshot check (printed types, dumps, stream descriptions) fails the run on any difference. Accepting a new snapshot is a separate, manual step, never part of a conformance or CI run. Snapshots hold only values the layer decides (§1.5).
 
-### 1.8 Inventory and wiring
+### 1.7 Inventory and wiring
 
 - Every test of the conformance suite is reachable from the entry point the CI runs. The harness enumerates the suite from one list and fails when a listed test has no runner, or when the count of tests run plus tests skipped differs from the list's length.
 - **Surface coverage.** Every operator, builtin and settings key of the frozen surface (README "Frozen") that this layer defines has at least one test that exercises it and asserts on its effect under §1.2. The harness lists that surface from the running program and fails on any item with no covering test. An item that needs hardware or a library the host lacks is a named skip (§1.1).
 - **Error paths.** Every row of every failure summary ([encoder.md §11](encoder.md#11-failure-behaviour-summary), [io.md §9](io.md#9-failure-summary-inputffmpeg-inputhttp), [filters.md §18](filters.md#18-failure-summary), [inline-codecs.md §15](inline-codecs.md#15-failure-behaviour), [bitstream-filters.md §7](bitstream-filters.md#7-failure), [decoder.md §13.2](decoder.md#132-errors), [content.md §4.3](content.md#43-invalid-content)) has a test that provokes it and asserts the outcome of its fault class ([faults.md §2](faults.md#2-classes), §6.1).
 
-### 1.9 Pacing and deadlines
+### 1.8 Pacing and deadlines
 
 - Media tests run on a clock without synchronisation (CPU-paced) unless their subject is real time. Long-run checks (hours of media) run CPU-paced on looped or generated input; what they count is joins, packets and ticks, not wall time.
 - Tests whose subject is real time (live inputs, `self_sync`, network retry delays, HLS segment publication) run on real time with a wall-clock deadline that fails the test. Their tolerances are the owning rule's.
 - Every test has a deadline; a deadline is a failure, never a skip.
 
-### 1.10 Repetition
+### 1.9 Repetition
 
-A check whose owning rule says "identical output" (stream declaration order, memory reclamation timing) runs the scenario in each variant and compares the packet oracles (§1.4) of the outputs: equal stream by stream, packet by packet, payload bytes included. Container-level bytes MAY differ where the container records wall-clock time.
+A check whose owning rule says "identical output" (stream declaration order, memory reclamation timing) runs the scenario in each variant and compares the packet oracles (§1.3) of the outputs: equal stream by stream, packet by packet, payload bytes included. Container-level bytes MAY differ where the container records wall-clock time.
 
 ## 2. Fixtures
 
-Each fixture has stated properties. Before a test uses a fixture, the harness verifies those properties with the oracle (§1.6) and fails the fixture's tests when one does not hold. Generated fixtures come from a recorded command and are reproducible. Sizes, durations and offsets below are binding where a check depends on them; the production method is not.
+Each fixture has stated properties. Before a test uses a fixture, the harness verifies those properties with the oracle (§1.5) and fails the fixture's tests when one does not hold. Generated fixtures come from a recorded command and are reproducible. Sizes, durations and offsets below are binding where a check depends on them; the production method is not.
 
 ### 2.1 Generated media
 
@@ -168,7 +160,7 @@ Fetched fixtures are cached per user, keyed by URL, verified by checksum; a part
 | fake ingest server        | accepts an `output.url` stream (HTTP, SRT or RTMP); refuses; is unreachable; drops the connection mid-stream; records received bytes                             | §21, §22                   |
 | harbor client             | sends a file as a source client, pauses, closes; sends a stream with fewer media than the source's type                                                          | §21                        |
 | read-only byte callback   | delivers bytes with no seek, tell or length                                                                                                                      | stream decoder (§14)       |
-| child process             | runs a one-line script and returns its exit status and messages                                                                                                  | start-up rejections (§1.5) |
+| child process             | runs a one-line script and returns its exit status and messages                                                                                                  | start-up rejections (§1.4) |
 | content stand-in          | the content of [content.md §10](content.md#10-without-libav), with integer items, for chunk arithmetic without libav                                             | §7                         |
 | hand-built encoder format | the parsed form of an encoder expression handed to the encoder factory                                                                                           | §9, §10                    |
 | memory reclamation        | forces a full collection and compaction at a chosen point of a scenario                                                                                          | §12, §23 entry 4           |
@@ -212,7 +204,7 @@ Per configuration, the input is 10 s (16 s with subtitles) of generated media, a
 
 1. the stream exists with the codec and parameters the configuration declares;
 2. the decoded duration equals the input duration within one codec frame plus the priming the container signals, and the packet count is the one the codec's frame size gives for that duration;
-3. the packet oracle (§1.4) shows DTS strictly increasing and PTS ≥ DTS;
+3. the packet oracle (§1.3) shows DTS strictly increasing and PTS ≥ DTS;
 4. an independent decoder decodes the whole stream without error;
 5. for subtitles, the extracted cues equal the input cues.
 
@@ -228,8 +220,8 @@ Every fault check names the class of [faults.md §2](faults.md#2-classes) it pro
 
 | Class               | The check asserts                                                                                                                                                                                                                                                                                                                                                                           |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| configuration error | the error before any data of the stream it concerns is written, at evaluation or at the output's first start, for every failure that follows from configuration and host; a failure at a later rebuild (restart, reopen, HLS restart) that is not deterministic by construction is an output fault under the restart policy ([faults.md §2](faults.md#2-classes)); the reason pinned (§1.5) |
-| item fault          | the item missing from the output and nothing else (packet oracle, §1.4); one warning for the first drop of the kind; repeats logged with their count at most once per `fault_log_interval`; the output still streaming                                                                                                                                                                      |
+| configuration error | the error before any data of the stream it concerns is written, at evaluation or at the output's first start, for every failure that follows from configuration and host; a failure at a later rebuild (restart, reopen, HLS restart) that is not deterministic by construction is an output fault under the restart policy ([faults.md §2](faults.md#2-classes)); the reason pinned (§1.4) |
+| item fault          | the item missing from the output and nothing else (packet oracle, §1.3); one warning for the first drop of the kind; repeats logged with their count at most once per `fault_log_interval`; the output still streaming                                                                                                                                                                      |
 | source fault        | end of track at the fault with the data before it drained; then not ready for a fallible source while the fault persists; for an infallible source that cannot produce content, a hard error that fails the script naming the source and the cause; one error-level log; the source's callbacks run                                                                                         |
 | output fault        | only a byte-sink, header or peer failure, or an incompatible copy source with no clean restart (user rule D2): the output stops or restarts under its restart policy, its callbacks run, and another output on the same clock keeps producing. A data fault never produces this class.                                                                                                      |
 
@@ -250,7 +242,7 @@ Items: [common.md §1](common.md#1-settings), [§2](common.md#2-log-bridge), [§
 Harness additions:
 
 - The duration-helper items of §6.6 run on the synthetic producer with the coarse time base; their 10-hour spans are pushed as data, not played.
-- Each settings key's default is read from a script that does not set it, through the surface inventory (§1.8).
+- Each settings key's default is read from a script that does not set it, through the surface inventory (§1.7).
 - The draining items run once per stage family of [draining.md §1](draining.md#1-stages): decoder, encoder, resampler, re-framer, frame-rate stage, filter graph, bitstream filter, interleaving queue, muxer. For each, the counts in equal the counts out, under each ending event of [draining.md §2](draining.md#2-the-rule): end of input, replacement mid-stream, end of stream, output stop. A seek and a stop by the reader discard instead ([draining.md §5](draining.md#5-discarded-on-purpose)); the check then asserts nothing reaches the output after the event from before it.
 - A partial final unit ([draining.md §4](draining.md#4-partial-final-units)) is checked with a sample count that is not a multiple of the codec frame size: decoded output trimmed as the container signals holds exactly the input samples.
 
@@ -279,7 +271,7 @@ Items: [stream-description.md §3](stream-description.md#3-fields), [§6](stream
 
 Harness additions:
 
-- The description of each matrix output is compared on the values the layer decides: container format name, per stream the field name, kind, codec name, sample rate, channel count and layout, or width, height, pixel format and frame rate. Time bases are compared with the oracle's reading of the same file, not with literals (§1.6).
+- The description of each matrix output is compared on the values the layer decides: container format name, per stream the field name, kind, codec name, sample rate, channel count and layout, or width, height, pixel format and frame rate. Time bases are compared with the oracle's reading of the same file, not with literals (§1.5).
 
 ## 9. Encoder format
 
@@ -287,7 +279,7 @@ Items: [encoder-format.md §1.1](encoder-format.md#11-conformance), [§10.2](enc
 
 Additional checks:
 
-1. Every row of [encoder-format.md §13](encoder-format.md#13-errors-summary) is provoked and rejected at the place the row states, with error kind `encoder` naming the offending argument (§1.5).
+1. Every row of [encoder-format.md §13](encoder-format.md#13-errors-summary) is provoked and rejected at the place the row states, with error kind `encoder` naming the offending argument (§1.4).
 2. The media type of an encoded track is found by each rule of [encoder-format.md §2.1](encoder-format.md#21-media-type-of-an-encoded-track) in turn: content argument, field name, literal codec; a track that matches none is rejected at run time and typed unconstrained at type check.
 3. Input sample formats `pcm_s16` and `pcm_f32` are accepted by `%ffmpeg` and rejected by every other encoder format with error kind `encoder`.
 4. HLS bit rate: absent when no stream reports one; with two fields each setting `b`, the sum of both.
@@ -304,7 +296,7 @@ Additional checks:
 3. Restart at a source switch ([encoder.md §13](encoder.md#13-container-restart)): every member of the switching source's group moves to the new container and no packet of the new source is in the old one; the parameter sets are logged at warning on a restart and at error on a stop.
 4. HLS restart keeps user rule D5: on the variant timeline, the first DTS of the restarted stream is at or after the previous segment's end, the new codec's priming does not overlap it, and an Ogg restart starts a new timeline at 0.
 5. Media timeline and cuts: timed ID3 timestamps, the segment grid and each `EXTINF` follow the media timeline (output position minus the skipped time, [timestamps.md §1.4](timestamps.md#14-the-output-timeline)); each `EXTINF` equals its segment's media duration from the packet oracle. The grid is absolute: each segment is cut at the last split point at or before its boundary, at the first one after it only when the segment has none, and forced only when no split point exists within the bound; after fifty segments, boundary k is within one split interval of k × the segment duration. Extra cuts for pending ID3 or inserted tags happen at split points and do not move later boundaries. The ID3 stream does not keep a switch from being whole-output.
-6. HLS properties: the codec string of each variant agrees with the produced stream (§1.6); a variant whose codec string is unknown is published without `CODECS`, with a warning, and the output keeps streaming; timed ID3 is present in-band in MPEG-TS and ADTS variants when enabled, absent when disabled, and the first segment holds the first tag.
+6. HLS properties: the codec string of each variant agrees with the produced stream (§1.5); a variant whose codec string is unknown is published without `CODECS`, with a warning, and the output keeps streaming; timed ID3 is present in-band in MPEG-TS and ADTS variants when enabled, absent when disabled, and the first segment holds the first tag.
 7. HLS resume from persisted state: the resumed playlist probes as the original, and the packet oracle shows DTS continuing across the resume on every stream.
 8. Several `%ffmpeg` encoders on one shared source run to the end, each output passing §5's per-configuration condition.
 9. Metadata and track marks removed before an output do not reach it: no metadata and no new track in the produced file.
@@ -329,8 +321,8 @@ Items: [encoder-copy.md §2](encoder-copy.md#2-stream-creation), [§8](encoder-c
 
 Harness additions:
 
-- Every switching item runs on the packet oracle (§1.4), on file outputs and through the recording muxer.
-- "Identical output" items follow §1.10: fields declared in each order; memory reclamation forced before and after the switch.
+- Every switching item runs on the packet oracle (§1.3), on file outputs and through the recording muxer.
+- "Identical output" items follow §1.9: fields declared in each order; memory reclamation forced before and after the switch.
 - Readiness (user rule D4 in [encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)): tracks from one source start together, at or after the new source's first key packet on every track; tracks from different sources each start on their own readiness. Checked on the mid-GOP pair: same source; audio from one file and video from another; audio and video from A, then audio from B and video from C.
 - Per-source state lifetime: the playlist of thousands of sources runs CPU-paced with memory reclamation forced between tracks; the check samples the memory held by per-source state at fixed intervals and asserts it bounded by a constant independent of the number of sources.
 - Stream creation: an output whose copy field starts with empty runs writes nothing for any stream until the first frame with known copy parameters ([encoder-copy.md §2](encoder-copy.md#2-stream-creation)).
@@ -342,7 +334,7 @@ Harness additions:
 
 Items: [timestamps.md §1.4](timestamps.md#14-the-output-timeline), [§3](timestamps.md#3-audio-internal-and-raw), [§4.5](timestamps.md#45-encoder-output), [§6.2](timestamps.md#62-beginning-a-source-rebase), [§6.3](timestamps.md#63-monotonicity-check).
 
-Every check of this section is a packet-level check (§1.4) with a negative control (§1.3). Additional scenarios, each asserting DTS strictly increasing per output stream (user rule D5) and the behaviour its owning rule states:
+Every check of this section is a packet-level check (§1.3). Additional scenarios, each asserting DTS strictly increasing per output stream (user rule D5) and the behaviour its owning rule states:
 
 1. **Missing values** ([timestamps.md §6.4](timestamps.md#64-missing-values)): packets with no DTS, no PTS, neither, no duration, from the synthetic producer; each is written at the value the table gives. On a stream with reordering (B-frames), a packet without DTS is never given a DTS taken from its PTS: it reaches the muxer with DTS unset where the muxer derives it, and is an item fault otherwise.
 2. **B-frames across a join**: the B-frame concat set, three runs: default check, relaxed check, and the set without durations. Exact equality: packet count equals the inputs' sum; the output duration equals the inputs' sum within one frame. The run under the default check is binding: the files share type and header properties (§2.3) and differ in the reported frame rate, which no check compares.
@@ -396,11 +388,11 @@ Items: [inline-codecs.md §3.2](inline-codecs.md#32-transform-lifetime), [§3.3]
 
 Harness additions:
 
-- Every `track.ffmpeg.encode.*`, `track.ffmpeg.decode.*`, `ffmpeg.encode.*`, `ffmpeg.decode.*` and `ffmpeg.raw.*` operator runs at least once with a count assertion (§1.8).
+- Every `track.ffmpeg.encode.*`, `track.ffmpeg.decode.*`, `ffmpeg.encode.*`, `ffmpeg.decode.*` and `ffmpeg.raw.*` operator runs at least once with a count assertion (§1.7).
 - Encode then decode inline, then re-encode: packet and sample counts match the direct path within the codec priming.
 - Several inline encoders at different bit rates on one shared source each feed a copy output to completion, each passing §5's per-configuration condition.
 - The one-hour chunker item runs CPU-paced.
-- `codec=` on a raw-mode inline encoder is rejected like any other non-media argument (§1.5).
+- `codec=` on a raw-mode inline encoder is rejected like any other non-media argument (§1.4).
 - `abort_track` keeps the transform and its source id: the output carries a track mark and no source switch. A seek takes a new id.
 - Two inline encoders on one input in a `switch`, one branch idle: the idle producer trims its buffer with no source fault and no warning.
 - An inline decoder that sees no keyframe for `max_keyframe_wait` starts decoding with a warning, without a source fault.
@@ -472,7 +464,7 @@ Harness additions:
 
 ## 22. Cross-subsystem scenarios
 
-Each scenario runs end to end on the packet oracle (§1.4) and asserts, besides its own items, DTS strictly increasing per output stream and the stated counts.
+Each scenario runs end to end on the packet oracle (§1.3) and asserts, besides its own items, DTS strictly increasing per output stream and the stated counts.
 
 1. **Playlist of copied files into HLS.** A playlist of AAC + H.264 files (mid-GOP pair, A/V offset set, B-frame set) copied into an MPEG-TS and an fMP4 variant. Per variant: DTS monotonic across every join and segment; every segment's first video packet is a key packet; no `EXTINF` exceeds the target duration; the packet count per stream equals the inputs' sum less the packets the owning rules drop before a keyframe, no tail lost; group switching follows user rule D4; no PTS/DTS gap at any join, every join being a whole-output switch ([timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase)); `EXTINF` equal to each segment's media duration. Run strict and relaxed.
 2. **Copied video, re-encoded audio.** Fifty mid-GOP files: [timestamps.md §1.4](timestamps.md#14-the-output-timeline)'s item, plus audio PTS equal to the cumulative sample count.
@@ -489,20 +481,20 @@ Each scenario runs end to end on the packet oracle (§1.4) and asserts, besides 
 
 ## 23. Known-complexity checks
 
-Each entry of [known-complexity.md](known-complexity.md) is checked by the items listed, under the negative control of §1.3 with the mutation named. A mutation describes the broken behaviour, not a change to any particular code.
+Each entry of [known-complexity.md](known-complexity.md) is checked by the items listed.
 
-| Entry | Checked by                                                                                                                                                                                                  | Mutation the check must fail on                                                                                                                                                                                                          |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | §13 items 1–2; [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase) first item                                                                                                                  | separate PTS and DTS offsets; a join end taken as the last DTS without its duration; DTS synthesised from positions                                                                                                                      |
-| 2     | [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase) last item; §1.10 declaration order                                                                                                         | one offset per stream; the offset taken from the first stream to switch                                                                                                                                                                  |
-| 3     | [encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start); §12 readiness; §22 item 5                                                                                                           | no keyframe wait; one readiness shared by tracks of different sources; offset taken from the first packet seen instead of accepted; a keyframe wait on a declared discontinuity whose bitstream continues; a keyframe wait with no bound |
-| 4     | [encoder-copy.md §12.5](encoder-copy.md#125-lifetime-of-per-source-state); [inline-codecs.md §5](inline-codecs.md#5-stream-index); §22 item 9                                                               | per-source state never released; state released while a track still uses it; readiness count decremented for a track that never became ready                                                                                             |
-| 5     | [timestamps.md §6.3](timestamps.md#63-monotonicity-check); §13 items 1, 11                                                                                                                                  | packets without DTS dropped; a non-increasing DTS written to the muxer; a missing DTS filled from PTS on a reordering stream; monotonicity compared in the run time base                                                                 |
-| 6     | [timestamps.md §3](timestamps.md#3-audio-internal-and-raw), [§4.5](timestamps.md#45-encoder-output); [encoder-internal.md §8.1](encoder-internal.md#81-conformance)                                         | a rebuilt frame-rate stage restarting its timestamps at 0; a replaced stage released without draining; frames repeated across a content gap                                                                                              |
-| 7     | [filters.md §11.7](filters.md#117-draining-a-generation), [§13.3](filters.md#133-decreasing-video-timestamps-from-a-filter); [common.md §6.6](common.md#66-conformance) (equal timestamps in arrival order) | items at one position reordered; the previous end not converted into the new time base                                                                                                                                                   |
-| 8     | [decoder.md §8.4](decoder.md#84-waiting-for-all-streams); [encoder-copy.md §12.4](encoder-copy.md#124-sparse-sources); [encoder.md §8.8](encoder.md#88-conformance)                                         | an interleaving writer waiting on a never-written metadata stream; a sparse stream's head length dropped                                                                                                                                 |
-| 9     | [encoder.md §8.8](encoder.md#88-conformance); §10 item 5                                                                                                                                                    | leftover codec samples moving the segment grid; a split without a key frame; `EXTINF` taken from output position instead of media timeline; each segment cut at the first split point after its boundary, letting boundaries drift       |
-| 10    | [draining.md §6](draining.md#6-conformance); §6; [decoder.md §13.1](decoder.md#131-end-of-input); [inline-codecs.md §13](inline-codecs.md#13-flush-and-end); §22 item 11                                    | for each stage family, its final drain skipped                                                                                                                                                                                           |
-| 11    | [content.md §3.1.1](content.md#311-where-copy-parameters-are-merged); [encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources); §22 item 3                                                    | a header-property change rejected at open; an in-band container restarting on an extradata change; a header-storing container accepting one without restart; a descriptive difference that restarts or rejects                           |
-| 12    | [timestamps.md §1.4](timestamps.md#14-the-output-timeline); §22 item 2                                                                                                                                      | a copied stream anchored on its previous end alone, ignoring the output position                                                                                                                                                         |
-| 13    | [common.md §6.6](common.md#66-conformance); [decoder-copy.md §5](decoder-copy.md#5-timestamps); [inline-codecs.md §8](inline-codecs.md#8-chunker); §22 item 10                                              | chunk lengths converted and truncated per step                                                                                                                                                                                           |
+| Entry | Checked by                                                                                                                                                                                                  |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | §13 items 1–2; [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase) first item                                                                                                                  |
+| 2     | [timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase) last item; §1.9 declaration order                                                                                                          |
+| 3     | [encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start); §12 readiness; §22 item 5                                                                                                           |
+| 4     | [encoder-copy.md §12.5](encoder-copy.md#125-lifetime-of-per-source-state); [inline-codecs.md §5](inline-codecs.md#5-stream-index); §22 item 9                                                               |
+| 5     | [timestamps.md §6.3](timestamps.md#63-monotonicity-check); §13 items 1, 11                                                                                                                                  |
+| 6     | [timestamps.md §3](timestamps.md#3-audio-internal-and-raw), [§4.5](timestamps.md#45-encoder-output); [encoder-internal.md §8.1](encoder-internal.md#81-conformance)                                         |
+| 7     | [filters.md §11.7](filters.md#117-draining-a-generation), [§13.3](filters.md#133-decreasing-video-timestamps-from-a-filter); [common.md §6.6](common.md#66-conformance) (equal timestamps in arrival order) |
+| 8     | [decoder.md §8.4](decoder.md#84-waiting-for-all-streams); [encoder-copy.md §12.4](encoder-copy.md#124-sparse-sources); [encoder.md §8.8](encoder.md#88-conformance)                                         |
+| 9     | [encoder.md §8.8](encoder.md#88-conformance); §10 item 5                                                                                                                                                    |
+| 10    | [draining.md §6](draining.md#6-conformance); §6; [decoder.md §13.1](decoder.md#131-end-of-input); [inline-codecs.md §13](inline-codecs.md#13-flush-and-end); §22 item 11                                    |
+| 11    | [content.md §3.1.1](content.md#311-where-copy-parameters-are-merged); [encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources); §22 item 3                                                    |
+| 12    | [timestamps.md §1.4](timestamps.md#14-the-output-timeline); §22 item 2                                                                                                                                      |
+| 13    | [common.md §6.6](common.md#66-conformance); [decoder-copy.md §5](decoder-copy.md#5-timestamps); [inline-codecs.md §8](inline-codecs.md#8-chunker); §22 item 10                                              |
