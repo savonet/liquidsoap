@@ -97,8 +97,9 @@ never stops an output. There, a run of item faults past the bound restarts
 the copied source's group on its next keyframe
 ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)).
 Further faults stay item faults: dropped and logged at the bounded rate, with
-another group restart at each further run past the bound. An encoded field
-whose items keep being rejected is logged the same way and keeps streaming.
+another group restart at each further run past the bound. On an encoded
+field, a run past the bound is an output fault: the output restarts under its
+policy ([encoder.md §5.2](encoder.md#52-data-faults-and-output-faults)).
 
 A fault whose item carries no media content does not count toward the bound.
 An item that carries media (a packet, a frame, a subtitle) always counts.

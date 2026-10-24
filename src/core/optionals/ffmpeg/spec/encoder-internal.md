@@ -297,7 +297,7 @@ that follows deterministically from the configuration (codec lookup, a
 parameter rejected for the configured format), or any creation failure at
 the output's first start-up (a hardware device included), is a configuration
 error and fails the script. A creation failure at a later rebuild (a
-restart, a reopen, an HLS restart, a codec rebuild) is an output fault: the
+restart, a reopen, an HLS restart) is an output fault: the
 output restarts under its policy, since hardware session limits and device
 resets are not known to be unrecoverable. Faults while encoding follow §6.
 
