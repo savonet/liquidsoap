@@ -614,7 +614,37 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   add(normalize=false, [normal, special])
 end
 
-# pass3: removed %ffmpeg dash file output wrapper
+%ifencoder %ffmpeg
+# Output an MPEG-DASH playlist.
+# @category Source / Output
+# @flag extra
+# @param ~id Force the value of the source ID.
+# @param ~codec Codec to use for audio (following FFmpeg's conventions).
+# @param ~fallible Allow the child source to fail, in which case the output will be (temporarily) stopped.
+# @param ~start Automatically start outputting whenever possible. If true, an infallible (normal) output will start outputting as soon as it is created, and a fallible output will (re)start as soon as its source becomes available for streaming.
+# @param ~playlist Playlist name
+# @param ~directory Directory to write to
+def output.file.dash(
+  ~id=null,
+  ~fallible=false,
+  ~codec="libmp3lame",
+  ~bitrate=128,
+  ~start=true,
+  ~playlist="stream.mpd",
+  ~directory,
+  s
+) =
+  enc = %ffmpeg(format = "dash", %audio(codec = codec, b = "#{bitrate}k"))
+  output.file(
+    id=id,
+    fallible=fallible,
+    start=start,
+    enc,
+    "#{(directory : string)}/#{playlist}",
+    s
+  )
+end
+%endif
 
 # Return a source with a `set_volume` method.
 # This method takes the same arguments as `mkfade`
