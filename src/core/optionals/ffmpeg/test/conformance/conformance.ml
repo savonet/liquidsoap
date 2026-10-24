@@ -842,7 +842,28 @@ thread.run(delay=6.5, shutdown)
   assert_monotonic "kc4 sleep" audio;
   check "kc4: no packet dropped across sleeps and wake-ups"
     ((not (contains "DTS dropped" log || contains "decreasing DTS" log))
-    && List.length audio > 6 * 43)
+    && List.length audio > 6 * 43);
+  produce "exact" "mpegts" "kc4_removed.ts"
+    (List.init 20 (fun _ -> "nokey.mp4") @ ["gop.mp4"]);
+  let removed = packets "kc4_removed.ts" in
+  let gop = packets "gop.mp4" in
+  check "kc4: after many streams removed before ready, the next set starts"
+    (List.length (removed `Video) = List.length (gop `Video)
+    && (List.hd (removed `Video)).key);
+  (* The first file's audio ends after its video, so the second file's audio
+     offset differs from the one its video alone would take. *)
+  produce "audio_switch" "mpegts" "kc4_audio_switch.ts"
+    ["avlong.mp4"; "midgop.mp4"; "gop.mp4"];
+  let output = packets "kc4_audio_switch.ts" in
+  let before = packets "avlong.mp4" in
+  let after media = List.nth (output media) (List.length (before media)) in
+  let input = packets "midgop.mp4" in
+  let key = Option.get (first_key (input `Video)) in
+  check "kc4: a late video gets the offset its audio used after the audio left"
+    ((after `Video).key
+    && near ~within:0.002
+         (pts key -. pts (List.hd (input `Audio)))
+         (pts (after `Video) -. pts (after `Audio)))
 
 (* known-complexity.md §5: packets with no DTS or a non-increasing DTS. *)
 let kc5 () =
@@ -1311,6 +1332,134 @@ o.on_stop(synchronous=true, shutdown)
     && near ~within:0.001 boundary (pts first_after)
     && dts first_after > dts last_before)
 
+(* filters.md §12.3: a graph whose build fails ends its track, the output
+   streams from a fallback above it, and the graph is tried again after the
+   fault retry delay. *)
+let filters () =
+  let log =
+    run_ok "filters_build"
+      {|def mkfilter(graph) =
+  a = ffmpeg.filter.audio.input(graph, source.tracks(ffmpeg.raw.encode.audio(%ffmpeg(%audio.raw), sine())).audio)
+  v = ffmpeg.filter.video.input(graph, source.tracks(ffmpeg.raw.encode.video(%ffmpeg(%video.raw), video.testsrc.ffmpeg())).video)
+  let {audio = ao, video = vo} =
+    ffmpeg.filter.parse(graph, description="[a]anull[ao];[v]crop=w=4000:h=4000[vo]", inputs={audio = [("a", a)], video = [("v", v)]}, outputs={audio = ["ao"], video = ["vo"]})
+  source({audio = ffmpeg.filter.audio.output(graph, list.assoc("ao", ao)), video = ffmpeg.filter.video.output(graph, list.assoc("vo", vo))})
+end
+g = ffmpeg.filter.create(mkfilter)
+backup = source({audio = source.tracks(sine()).audio, video = source.tracks(video.testsrc()).video})
+s = fallback([ffmpeg.raw.decode.audio_video(g), backup.{track_sensitive = {false}}])
+o = output.dummy(s)
+thread.run(delay=12., {print("output time: #{o.time()}"); shutdown()})
+|}
+  in
+  let failures =
+    List.filter_map
+      (fun line ->
+        if contains "failed: Build failed" line then
+          Scanf.sscanf line "%_s %d:%d:%d" (fun h m s ->
+              Some ((((h * 60) + m) * 60) + s))
+        else None)
+      (String.split_on_char '\n' log)
+  in
+  check
+    (Printf.sprintf "filters: the failed build is retried (%d failures)"
+       (List.length failures))
+    (List.length failures >= 2);
+  check "filters: retries wait for the fault retry delay"
+    (List.for_all (fun (a, b) -> b - a >= 4) (pairs failures));
+  check "filters: the output streams from the fallback"
+    (match
+       List.find_opt
+         (String.starts_with ~prefix:"output time: ")
+         (String.split_on_char '\n' log)
+     with
+      | Some line -> Scanf.sscanf line "output time: %f" (fun t -> t >= 11.)
+      | None -> false)
+
+(* The links of a chained Ogg file, each written to [<path>.<n>]. *)
+let ogg_split path =
+  let data = In_channel.with_open_bin path In_channel.input_all in
+  let rec starts i acc =
+    match String.index_from_opt data i 'O' with
+      | Some j when j + 6 <= String.length data ->
+          if String.sub data j 4 = "OggS" && Char.code data.[j + 5] land 2 <> 0
+          then starts (j + 4) (j :: acc)
+          else starts (j + 1) acc
+      | _ -> List.rev acc
+  in
+  let starts = starts 0 [] in
+  List.mapi
+    (fun n (a, b) ->
+      let part = Printf.sprintf "%s.%d" path n in
+      Out_channel.with_open_bin part (fun oc ->
+          output_string oc (String.sub data a (b - a)));
+      part)
+    (List.combine starts (List.tl starts @ [String.length data]))
+
+(* encoder.md §13.4: Ogg restarts through a [Stream] output. *)
+let ogg_stream () =
+  let switch out output =
+    ignore
+      (run_ok out
+         (Printf.sprintf
+            {|settings.decoder.decoders.set(["ffmpeg"])
+s = sequence([once(single("vq2.ogg")), once(single("vq8.ogg"))])
+clock.assign_new(sync="none", [s])
+o = %s
+o.on_stop(synchronous=true, shutdown)
+|}
+            output));
+    match ogg_split out with
+      | [first; second] ->
+          check
+            (out ^ ": every packet of the new source is in the new link")
+            (List.length (packets first `Audio)
+             = List.length (packets "vq2.ogg" `Audio)
+            && List.length (packets second `Audio)
+               = List.length (packets "vq8.ogg" `Audio))
+      | links -> fail "%s: %d links" out (List.length links)
+  in
+  switch "ogg_switch_stream.ogg"
+    {|output.external(fallible=true, %ffmpeg(format="ogg", %audio.copy), "cat > ogg_switch_stream.ogg", s)|};
+  switch "ogg_switch_file.ogg"
+    {|output.file(fallible=true, %ffmpeg(format="ogg", %audio.copy), "ogg_switch_file.ogg", s)|};
+  let metadata out output =
+    ignore
+      (run_ok out
+         (Printf.sprintf
+            {|settings.decoder.decoders.set(["ffmpeg"])
+s = sequence([once(single("annotate:title=\"a\":vq2.ogg")), once(single("annotate:title=\"b\":vq2.ogg"))])
+clock.assign_new(sync="none", [s])
+o = %s
+o.on_stop(synchronous=true, shutdown)
+|}
+            output));
+    let links = ogg_split out in
+    check
+      (Printf.sprintf "%s: a metadata change chains a link (%d links)" out
+         (List.length links))
+      (List.length links = 2);
+    let spans =
+      List.map
+        (fun link ->
+          let audio = packets link `Audio in
+          check (out ^ ": every link decodes on its own") (audio <> []);
+          (pts (List.hd audio), pts (last audio)))
+        links
+    in
+    check
+      (out ^ ": the links are in order")
+      (List.for_all (fun ((_, a), (b, _)) -> b <= a +. 1.) (pairs spans))
+  in
+  let encoded = {|%ffmpeg(format="ogg", %audio(codec="libvorbis"))|} in
+  metadata "ogg_meta_stream.ogg"
+    (Printf.sprintf
+       {|output.external(fallible=true, %s, "cat > ogg_meta_stream.ogg", s)|}
+       encoded);
+  metadata "ogg_meta_file.ogg"
+    (Printf.sprintf {|output.file(fallible=true, %s, "ogg_meta_file.ogg", s)|}
+       encoded)
+
 let checks =
   [
     ("kc1", kc1);
@@ -1325,6 +1474,8 @@ let checks =
     ("kc11", kc11);
     ("kc12", kc12);
     ("hls", hls);
+    ("filters", filters);
+    ("ogg_stream", ogg_stream);
   ]
 
 (* The known-complexity checks of spec/tests.md §23 that need media, run by
