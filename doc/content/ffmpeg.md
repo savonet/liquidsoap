@@ -1,0 +1,346 @@
+# FFmpeg Support
+
+Since the `2.0.x` release cycle, liquidsoap includes tight FFmpeg integration. This covers:
+
+- [Decoders](#decoders)
+- [Encoders](#encoders)
+- [Filters](#filters)
+- [Subtitles](#subtitles)
+- [Multitrack](#multitrack)
+- [Bitstream filters](#bitstream-filters)
+- [Encoded data tweaks](#encoded-data-tweaks)
+- [Examples](#examples)
+
+FFmpeg support includes 3 types of content:
+
+- **Internal content**, that is content available to all liquidsoap operators: `PCM` audio and `YUV420p` video
+- **Raw content**, that is decoded content stored as ffmpeg internal frames.
+  Only available to ffmpeg filters and raw encoders. Avoids data copies between liquidsoap and ffmpeg.
+- **Copy content**, that is encoded content stored as ffmpeg internal packets.
+  Only available to the ffmpeg copy encoder and bitstream filters. Requires solid knowledge of media codecs and containers.
+  Avoids transcoding by passing encoded data end-to-end inside liquidsoap scripts.
+
+## Enabling ffmpeg support
+
+FFmpeg support is available via the external [ocaml-ffmpeg](https://github.com/savonet/ocaml-ffmpeg) binding package. Binary releases and Docker images include it by default.
+
+If you are installing via [opam](https://opam.ocaml.org/), installing the `ffmpeg` package should do the trick:
+
+```sh
+% opam install ffmpeg
+```
+
+### fdk-aac support in ffmpeg
+
+Since `2.4.6`, all binary releases and Docker images ship with a static FFmpeg build that includes `fdk-aac`.
+
+For releases prior to `2.4.6`, `fdk-aac` support requires the FFmpeg shared libraries compiled with `libfdk-aac`. On Debian, [deb-multimedia.org](https://www.deb-multimedia.org/) provided such a build. See also [this discussion](https://github.com/savonet/liquidsoap/discussions/3027#discussioncomment-6072338).
+
+## Decoders
+
+In most cases, the `ffmpeg` decoder requires no configuration. When enabled, it is the preferred decoder for all supported media. When using raw or copied content, it produces the required format automatically.
+
+If you need to adjust its behavior:
+
+`settings.decoder.decoders` controls which decoders are tried when decoding media files. Use it to restrict decoders, for instance to use only ffmpeg:
+
+```liquidsoap
+settings.decoder.decoders := ["FFMPEG"]
+```
+
+Priority for the decoder is set via:
+
+```liquidsoap
+settings.decoder.priorities.ffmpeg := 10
+```
+
+Use this to control whether ffmpeg is tried first, in combination with the other `settings.decoder.priorities.*` settings.
+
+The `settings.decoder.ffmpeg.codecs.*` settings specify which decoder ffmpeg should use for each codec (there may be more than one available).
+
+For instance, for the `aac` codec:
+
+- `settings.decoder.ffmpeg.codecs.aac.available()` returns the list of available decoders, typically `["aac", "aac_fixed"]`.
+- `settings.decoder.ffmpeg.codecs.aac` can be used to choose which decoder should be used, typically: `settings.decoder.ffmpeg.codecs.aac := "aac"`
+
+When debugging issues with `ffmpeg`, it can be useful to increase the log verbosity.
+
+```liquidsoap
+settings.ffmpeg.log.verbosity := "warning"
+```
+
+This sets the verbosity of `ffmpeg` logs. Values from least to most verbose: `"quiet"`, `"panic"`, `"fatal"`, `"error"`, `"warning"`, `"info"`, `"verbose"`, `"debug"`, `"trace"`.
+
+By default, `ffmpeg` log messages are forwarded to liquidsoap's logger at the level set by `settings.ffmpeg.log.level`, or at the level of their own severity when it is more severe: FFmpeg errors show at level 2 and warnings at level 3. To print them directly to standard error instead, disable log capture:
+
+```liquidsoap
+settings.ffmpeg.log.capture := false
+```
+
+### Decoder arguments
+
+In some cases, such as sending raw PCM data, the ffmpeg decoder needs additional arguments to know the format, codec, and other parameters.
+
+There are two ways to provide them:
+
+- For _streams_, the `content_type` argument can be used. The convention is to use `"application/ffmpeg;<arguments>"`.
+- For _files_, the `ffmpeg_options` metadata can be used, for instance using the `annotate` protocol: `annotate:ffmpeg_options="<arguments>":/path/to/file.raw`
+
+Here is an example of an SRT input and output for sending raw PCM data between two instances:
+
+Sender:
+
+```liquidsoap
+enc = %ffmpeg(
+  format="s16le",
+  %audio(
+    codec="pcm_s16le",
+    ac=2,
+    ar=48000
+  )
+)
+
+output.srt(enc, s)
+```
+
+Receiver:
+
+```liquidsoap
+s = input.srt(
+  content_type="application/ffmpeg;format=s16le,ch_layout=stereo,sample_rate=48000"
+)
+```
+
+If `output.file` were used instead, saving to `bla.raw`, the file can be read with a `single` source:
+
+```liquidsoap
+s = single("annotate:ffmpeg_options='format=s16le,ch_layout=stereo,sample_rate=44100':/tmp/bla.raw")
+```
+
+The same approach works with `playlist` or `request.dynamic`.
+
+### Rotation and cropping
+
+Phone recordings are often stored sideways, with a rotation written next to the video for the player to apply. Some containers also declare a border to crop. The ffmpeg decoder applies both, as the `ffmpeg` command-line tool does, so the picture comes out upright in internal content and in `ffmpeg.raw` content. Streams relayed as `ffmpeg.copy` keep their rotation, which the muxer writes to the output.
+
+Liquidsoap applies quarter turns, flips and valid croppings. It leaves the other cases alone, logs a warning and shows the picture as stored: a rotation that is not a quarter turn, a cropping that does not fit the picture, a hardware frame. A function installed with `ffmpeg.autorotate.on_undecided` decides those cases by returning the FFmpeg filters to apply:
+
+```{.liquidsoap include="ffmpeg-autorotate.liq"}
+
+```
+
+`track.ffmpeg.side_data` reads and changes the rotation of an `ffmpeg.copy` video track, and `track.ffmpeg.raw.side_data` does the same on a raw video track. The returned track has `rotation()` and `side_data()` methods:
+
+```{.liquidsoap include="ffmpeg-rotation.liq" from="BEGIN" to="END"}
+
+```
+
+### Format changes in the middle of a stream
+
+The size, the pixel format, the rotation or the colour properties of a video can change while it plays: a live stream that switches camera, a transport stream made of several recordings. The track continues across the change.
+
+- Internal content is scaled into the frame liquidsoap works with, so the change stops at the decoder.
+- An `ffmpeg.raw` video track takes the size and pixel format of its first frame. Frames that come later in another size or pixel format are fitted to it.
+- A filter graph created with `ffmpeg.filter.create` is built for the format of its inputs. When that format changes, the graph is flushed and built again, and liquidsoap logs a warning with both formats. Filters that keep a state, such as `loudnorm` or a fade, start over at that point.
+
+A picture that goes into a frame of another shape keeps its proportions as displayed, pixel aspect included: it is scaled to the largest size that fits, centred, and the rest is black. This holds when decoding to internal content, when fitting raw frames to the format of their track, and when a `%video.raw` encoder is given a size.
+
+A change of size or of pixel format always counts. Colour properties (space, range, primaries, transfer, chroma location) and the pixel aspect count by default. Two settings keep the values of the first frame instead, which avoids rebuilding filter graphs for streams whose colour tags vary without the picture changing:
+
+```{.liquidsoap include="ffmpeg-format-change.liq"}
+
+```
+
+## Encoders
+
+See detailed [ffmpeg encoders](./ffmpeg_encoder.md) article.
+
+## Filters
+
+See detailed [ffmpeg filters](./ffmpeg_filters.md) article.
+
+## Subtitles
+
+See the [FFmpeg subtitles](./subtitles.md#ffmpeg-subtitles) section of the subtitles page.
+
+## Multitrack
+
+See the [multitrack](./multitrack.md) page to decode, process and encode sources with several audio, video or subtitle tracks.
+
+## Bitstream filters
+
+FFmpeg bitstream filters modify the binary content of _encoded data_. They adjust codec and container aspects for specific uses, such as rtmp/flv output. They are particularly important for live switches on encoded content (see the [Examples](#examples) section).
+
+All bitstream filters are listed in the [FFmpeg documentation](https://www.ffmpeg.org/ffmpeg-bitstream-filters.html) and our [extra API reference](./reference-extras.md). Here is an example:
+
+```liquidsoap
+% liquidsoap -h ffmpeg.filter.bitstream.h264_mp4toannexb
+
+FFmpeg h264_mp4toannexb bitstream filter. See ffmpeg documentation for more
+details.
+
+Type: (?id : string?, source(video=ffmpeg.copy('a), 'b)) ->
+source(video=ffmpeg.copy('c), 'b)
+
+Category: Source / FFmpeg filter
+
+Arguments:
+
+ * id : string? (default: null)
+     Force the value of the source ID.
+
+ * (unlabeled) : source(video=ffmpeg.copy('a), 'b)
+
+Methods:
+...
+```
+
+Consult the FFmpeg documentation for details on what each filter does and how to use it.
+
+## Encoded data tweaks
+
+Manipulating encoded content requires knowledge of the internal aspects of media codecs and containers. This section covers specific cases.
+
+### Switching between copied sources
+
+A copied stream keeps the parameters of its first source. When a playlist or a switch moves to another source, liquidsoap compares the new source with them:
+
+- A file whose codec, bitstream form (for instance H.264 in MP4 against MPEG-TS form, or raw AAC against ADTS), video size, sample rate or channel layout differs is skipped when it is opened, and the playlist moves on.
+- A file that differs only in codec headers (extradata, profile, level) is accepted, and the output's container decides. MPEG-TS, HLS with MPEG-TS segments and ADTS take the change. HLS with MP4 segments starts a new segment after a discontinuity, with its own init segment, and an Ogg output chains a new link. Other containers, such as MP4 or Matroska files, stop the output at the switch with an error naming both parameter sets.
+- A file that differs only in its rotation, HDR metadata or colour properties is played, with a warning naming each difference.
+
+The tracks of a copied source start together, at the video's first keyframe. A source that switches in the middle of a group of pictures waits for its next keyframe, at most `settings.ffmpeg.content.copy.max_keyframe_wait` seconds (20 by default); past that, the tracks that are ready start without it, with a warning.
+
+### Relaxed copy content compatibility check
+
+This is an advanced setting. When it is on, sources of another bitstream form or geometry are accepted into one copied stream, as long as the codec is the same, and the muxer decides whether the output stays valid:
+
+```liquidsoap
+settings.ffmpeg.content.copy.relaxed_compatibility_check := true
+```
+
+This is currently a global setting and may be refined per-stream in the future.
+
+### Shared encoders
+
+Liquidsoap provides operators to encode data using `%ffmpeg` and share it across multiple outputs. This is called _inline encoding_. Here is an example:
+
+```liquidsoap
+audio_source = single(audio_url)
+video_source = single(image)
+
+stream = source.mux.video(video=video_source, audio_source)
+
+stream = ffmpeg.encode.audio_video(
+    %ffmpeg(
+        %audio(codec="aac", b="128k"),
+        %video(codec="libx264", b="4000k")
+    ),
+    stream
+)
+
+flv = %ffmpeg(
+    format="flv",
+    %audio.copy,
+    %video.copy,
+)
+
+# Send to one youtube output:
+output.youtube.live.rtmp(
+    encoder = flv,
+    stream,
+    ...
+)
+
+mpegts = %ffmpeg(
+    format="mpegts",
+    %audio.copy,
+    %video.copy,
+)
+
+# And to a hls one:
+output.file.hls(
+  ["mpegts", mpegts],
+  stream,
+  ...
+)
+```
+
+Working with encoded data requires some knowledge of ffmpeg internals and media codecs and containers. In this example, the stream will have issues because the `flv` format requires global data, called `extradata` in ffmpeg terms. Liquidsoap logs a warning naming the track and the two fixes below.
+
+When working with a single encoder such as:
+
+```liquidsoap
+%ffmpeg(
+  format="flv",
+  %audio(codec="aac", b="128k"),
+  %video(codec="libx264", b="4000k")
+)
+```
+
+When initializing the encoders, liquidsoap knows the target container is `flv` and implicitly enables the global header for each encoder.
+
+With inline encoding, the target container is not known at encode time, and the encoded stream may be sent to multiple containers with different requirements.
+
+There are two ways to solve this:
+
+If all containers accept global headers, enable the flag in the encoder:
+
+```liquidsoap
+stream = ffmpeg.encode.audio_video(
+    %ffmpeg(
+        %audio(codec="aac", b="128k", flags="+global_header"),
+        %video(codec="libx264", b="4000k", flags="+global_header")
+    ),
+    stream
+)
+```
+
+If only one container needs global headers (`flv` here), apply the `ffmpeg.filter.bitstream.extract_extradata` bitstream filter to the stream sent to that container only:
+
+```liquidsoap
+audio_source = single(audio_url)
+video_source = single(image)
+
+stream = source.mux.video(video=video_source, audio_source)
+
+stream = ffmpeg.encode.audio_video(
+    %ffmpeg(
+        %audio(codec="aac", b="128k"),
+        %video(codec="libx264", b="4000k")
+    ),
+    stream
+)
+
+flv = %ffmpeg(
+    format="flv",
+    %audio.copy,
+    %video.copy,
+)
+
+flv_stream = ffmpeg.filter.bitstream.extract_extradata(stream)
+
+# Send to one youtube output:
+output.youtube.live.rtmp(
+    encoder = flv,
+    flv_stream,
+    ...
+)
+
+mpegts = %ffmpeg(
+    format="mpegts",
+    %audio.copy,
+    %video.copy,
+)
+
+# And to a hls one:
+output.file.hls(
+  ["mpegts", mpegts],
+  stream,
+  ...
+)
+```
+
+## Examples
+
+See detailed [ffmpeg cookbook](./ffmpeg_cookbook.md) article.
