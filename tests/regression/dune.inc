@@ -233,6 +233,24 @@
   (run %{run_test} GH2585 liquidsoap GH2585.liq)))
 
 (rule
+ (alias test_GH2602)
+ (package liquidsoap)
+ (deps
+  GH2602.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH2602 liquidsoap GH2602.liq)))
+
+(rule
  (alias test_GH2756-2)
  (package liquidsoap)
  (deps
@@ -285,6 +303,42 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} GH2758 liquidsoap GH2758.liq)))
+
+(rule
+ (alias test_GH2842)
+ (package liquidsoap)
+ (deps
+  GH2842.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH2842 liquidsoap GH2842.liq)))
+
+(rule
+ (alias test_GH2850)
+ (package liquidsoap)
+ (deps
+  GH2850.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH2850 liquidsoap GH2850.liq)))
 
 (rule
  (alias test_GH2867)
@@ -375,6 +429,24 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} GH2902 liquidsoap GH2902.liq)))
+
+(rule
+ (alias test_GH2926)
+ (package liquidsoap)
+ (deps
+  GH2926.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH2926 liquidsoap GH2926.liq)))
 
 (rule
  (alias test_GH3093)
@@ -611,6 +683,24 @@
   (run %{run_test} GH3813 liquidsoap GH3813.liq)))
 
 (rule
+ (alias test_GH3840)
+ (package liquidsoap)
+ (deps
+  GH3840.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH3840 liquidsoap GH3840.liq)))
+
+(rule
  (alias test_GH3881)
  (package liquidsoap)
  (deps
@@ -627,6 +717,24 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} GH3881 liquidsoap GH3881.liq)))
+
+(rule
+ (alias test_GH3944)
+ (package liquidsoap)
+ (deps
+  GH3944.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH3944 liquidsoap GH3944.liq)))
 
 (rule
  (alias test_GH3960)
@@ -1103,6 +1211,42 @@
   (run %{run_test} GH5019 liquidsoap GH5019.liq)))
 
 (rule
+ (alias test_GH5084)
+ (package liquidsoap)
+ (deps
+  GH5084.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5084 liquidsoap GH5084.liq)))
+
+(rule
+ (alias test_GH5110)
+ (package liquidsoap)
+ (deps
+  GH5110.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5110 liquidsoap GH5110.liq)))
+
+(rule
  (alias test_GH5148)
  (package liquidsoap)
  (deps
@@ -1119,6 +1263,24 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} GH5148 liquidsoap GH5148.liq)))
+
+(rule
+ (alias test_GH5259)
+ (package liquidsoap)
+ (deps
+  GH5259.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5259 liquidsoap GH5259.liq)))
 
 (rule
  (alias test_GH5260)
@@ -1139,6 +1301,24 @@
   (run %{run_test} GH5260 liquidsoap GH5260.liq)))
 
 (rule
+ (alias test_GH5261)
+ (package liquidsoap)
+ (deps
+  GH5261.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5261 liquidsoap GH5261.liq)))
+
+(rule
  (alias test_GH5287)
  (package liquidsoap)
  (deps
@@ -1155,6 +1335,24 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} GH5287 liquidsoap GH5287.liq)))
+
+(rule
+ (alias test_GH5319)
+ (package liquidsoap)
+ (deps
+  GH5319.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5319 liquidsoap GH5319.liq)))
 
 (rule
  (alias test_GH5348)
@@ -1750,6 +1948,86 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} fallible_ogg liquidsoap fallible_ogg.liq)))
+
+(rule
+ (alias test_ffmpeg-copy-encode)
+ (package liquidsoap)
+ (deps
+  ffmpeg-copy-encode.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} ffmpeg-copy-encode liquidsoap ffmpeg-copy-encode.liq)))
+
+(rule
+ (alias test_ffmpeg-copy-input-http)
+ (package liquidsoap)
+ (deps
+  ffmpeg-copy-input-http.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   ffmpeg-copy-input-http
+   liquidsoap
+   ffmpeg-copy-input-http.liq)))
+
+(rule
+ (alias test_ffmpeg-naming-convention)
+ (package liquidsoap)
+ (deps
+  ffmpeg-naming-convention.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   ffmpeg-naming-convention
+   liquidsoap
+   ffmpeg-naming-convention.liq)))
+
+(rule
+ (alias test_ffmpeg_seek_preroll)
+ (package liquidsoap)
+ (deps
+  ffmpeg_seek_preroll.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} ffmpeg_seek_preroll liquidsoap ffmpeg_seek_preroll.liq)))
 
 (rule
  (alias test_harbor_source_relay)
@@ -2415,6 +2693,42 @@
    liquidsoap
    type_printing_from_task.liq)))
 
+(rule
+ (alias test_unified-pcm-types)
+ (package liquidsoap)
+ (deps
+  unified-pcm-types.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} unified-pcm-types liquidsoap unified-pcm-types.liq)))
+
+(rule
+ (alias test_video-only)
+ (package liquidsoap)
+ (deps
+  video-only.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} video-only liquidsoap video-only.liq)))
+
 (alias
  (name citest)
  (deps
@@ -2431,14 +2745,18 @@
   (alias test_GH1279)
   (alias test_GH1327)
   (alias test_GH2585)
+  (alias test_GH2602)
   (alias test_GH2756)
   (alias test_GH2756-2)
   (alias test_GH2758)
+  (alias test_GH2842)
+  (alias test_GH2850)
   (alias test_GH2867)
   (alias test_GH2871)
   (alias test_GH2872)
   (alias test_GH2897)
   (alias test_GH2902)
+  (alias test_GH2926)
   (alias test_GH3093)
   (alias test_GH3132)
   (alias test_GH3134)
@@ -2452,7 +2770,9 @@
   (alias test_GH3645)
   (alias test_GH3675)
   (alias test_GH3813)
+  (alias test_GH3840)
   (alias test_GH3881)
+  (alias test_GH3944)
   (alias test_GH3960)
   (alias test_GH4071)
   (alias test_GH4090)
@@ -2479,9 +2799,14 @@
   (alias test_GH4922)
   (alias test_GH4995)
   (alias test_GH5019)
+  (alias test_GH5084)
+  (alias test_GH5110)
   (alias test_GH5148)
+  (alias test_GH5259)
   (alias test_GH5260)
+  (alias test_GH5261)
   (alias test_GH5287)
+  (alias test_GH5319)
   (alias test_GH5348)
   (alias test_GH5360)
   (alias test_GH5361)
@@ -2514,6 +2839,10 @@
   (alias test_external-encoder)
   (alias test_fade-zero-duration-delay)
   (alias test_fallible_ogg)
+  (alias test_ffmpeg-copy-encode)
+  (alias test_ffmpeg-copy-input-http)
+  (alias test_ffmpeg-naming-convention)
+  (alias test_ffmpeg_seek_preroll)
   (alias test_harbor_source_relay)
   (alias test_infallible-shutdown)
   (alias test_init-error)
@@ -2546,4 +2875,6 @@
   (alias test_switch_reselect_after_idle)
   (alias test_switch_skipped_track_metadata)
   (alias test_track_sensitive)
-  (alias test_type_printing_from_task)))
+  (alias test_type_printing_from_task)
+  (alias test_unified-pcm-types)
+  (alias test_video-only)))
