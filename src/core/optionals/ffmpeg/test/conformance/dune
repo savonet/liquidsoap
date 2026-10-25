@@ -1163,7 +1163,8 @@
   (alias ffmpeg_conformance_filters)
   (alias ffmpeg_conformance_ogg_stream)
   (alias ffmpeg_conformance_io)
-  (alias ffmpeg_conformance_pcm_kinds)))
+  (alias ffmpeg_conformance_pcm_kinds)
+  (alias ffmpeg_conformance_harbor)))
 
 ; Two seconds of MPEG-TS audio, sent by the stalled peer of the io check.
 
@@ -1224,3 +1225,12 @@
   (source_tree ../../../../../libs))
  (action
   (run %{exe:conformance.exe} %{exe:../copy_producer.exe} pcm_kinds)))
+
+(rule
+ (alias ffmpeg_conformance_harbor)
+ (package liquidsoap)
+ (deps
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} harbor)))

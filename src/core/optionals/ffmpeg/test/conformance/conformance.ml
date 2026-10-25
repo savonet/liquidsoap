@@ -1655,6 +1655,93 @@ thread.run(delay=3., shutdown)
       check "io: a shutdown ends a stalled write without an error"
         (marks ~prefix:"io: " log = []))
 
+let index_of sub s =
+  let length = String.length sub in
+  let rec find from =
+    if from + length > String.length s then None
+    else if String.sub s from length = sub then Some from
+    else find (from + 1)
+  in
+  find 0
+
+let free_port () =
+  let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+  Unix.bind socket (Unix.ADDR_INET (Unix.inet_addr_loopback, 0));
+  let port =
+    match Unix.getsockname socket with
+      | Unix.ADDR_INET (_, port) -> port
+      | _ -> fail "no free port"
+  in
+  Unix.close socket;
+  port
+
+(* A listener in a child process: [after] seconds after [port] first accepts
+   a connection, it fetches [/<mount>] for [seconds] and writes the body to
+   [path]. *)
+let listen_later ~port ~mount ~after ~seconds path =
+  match Unix.fork () with
+    | 0 ->
+        let body =
+          try
+            let address = Unix.ADDR_INET (Unix.inet_addr_loopback, port) in
+            let rec wait_for_server tries =
+              let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+              match Unix.connect socket address with
+                | () -> Unix.close socket
+                | exception Unix.Unix_error _ when tries > 0 ->
+                    Unix.close socket;
+                    Unix.sleepf 0.2;
+                    wait_for_server (tries - 1)
+            in
+            wait_for_server 300;
+            Unix.sleepf after;
+            let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+            Unix.connect socket address;
+            let request = Printf.sprintf "GET /%s HTTP/1.0\r\n\r\n" mount in
+            ignore
+              (Unix.write_substring socket request 0 (String.length request));
+            Unix.setsockopt_float socket Unix.SO_RCVTIMEO 1.;
+            let received = Buffer.create 65536 and chunk = Bytes.create 4096 in
+            let deadline = Unix.gettimeofday () +. seconds in
+            (try
+               while Unix.gettimeofday () < deadline do
+                 match Unix.read socket chunk 0 4096 with
+                   | 0 -> raise Exit
+                   | n -> Buffer.add_subbytes received chunk 0 n
+               done
+             with _ -> ());
+            let data = Buffer.contents received in
+            match index_of "\r\n\r\n" data with
+              | Some i -> String.sub data (i + 4) (String.length data - i - 4)
+              | None -> ""
+          with _ -> ""
+        in
+        Out_channel.with_open_bin path (fun oc -> output_string oc body);
+        Unix._exit 0
+    | pid -> pid
+
+(* encoder.md §10: a listener joining after the burst gets the stream's header
+   first. *)
+let harbor () =
+  let port = free_port () in
+  let listener =
+    listen_later ~port ~mount:"late" ~after:12. ~seconds:3. "harbor_late.ogg"
+  in
+  ignore
+    (run_ok "harbor_late"
+       (Printf.sprintf
+          {|output.harbor(%%ffmpeg(format="ogg", %%audio(codec="libopus", samplerate=48000)), port=%d, mount="late", sine())
+thread.run(delay=30., shutdown)
+|}
+          port));
+  ignore (Unix.waitpid [] listener);
+  let late = In_channel.with_open_bin "harbor_late.ogg" In_channel.input_all in
+  check "harbor: a late listener gets the stream's OpusHead first"
+    (String.starts_with ~prefix:"OggS" late
+    && match index_of "OpusHead" late with Some i -> i < 100 | None -> false);
+  check "harbor: the late listener's stream decodes"
+    (packets "harbor_late.ogg" `Audio <> [])
+
 (* decoder.md §6: the FFmpeg decoder produces each pcm content kind. *)
 let pcm_kinds () =
   List.iter
@@ -1697,6 +1784,7 @@ let checks =
     ("ogg_stream", ogg_stream);
     ("io", io);
     ("pcm_kinds", pcm_kinds);
+    ("harbor", harbor);
   ]
 
 (* The known-complexity checks of spec/tests.md §23 that need media, run by

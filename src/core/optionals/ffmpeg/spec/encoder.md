@@ -534,6 +534,11 @@ are in [io.md §1.4](io.md#14-outputurl) and [io.md §11](io.md#11-outputurl).
   boundary, which the encoder does not mark;
   `dedicated_encoder=true` gives each listener its own container.
 
+**Conformance.**
+
+- An Ogg/Opus `output.harbor` listener connecting after the burst no longer
+  holds the stream's start receives `OpusHead` first, and its stream decodes.
+
 ## 11. Failure behaviour summary
 
 Classes as in §5.2 and [faults.md §2](faults.md#2-classes).

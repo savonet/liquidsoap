@@ -62,6 +62,9 @@ type hls = {
   mutable restart_at : int option;
 }
 
+(* [header] is the current container's header (encoder.md §10): [`Pending
+   start] until its first packet, [start] being where its bytes begin in
+   [buffer]. *)
 type t = {
   log : Log.t;
   format : F.t;
@@ -73,6 +76,7 @@ type t = {
   mutable state : state;
   mutable position : int;
   mutable hls : hls option;
+  mutable header : [ `Pending of int | `Captured of Strings.t ];
 }
 
 let convert_container_opts pos opts =
@@ -239,6 +243,9 @@ let encoded_tracks c =
 let take t =
   let s = Buffer.contents t.buffer in
   Buffer.clear t.buffer;
+  (match t.header with
+    | `Pending _ -> t.header <- `Pending 0
+    | `Captured _ -> ());
   Strings.of_string s
 
 (* encoder.md §8.3: the box that starts every MP4 media segment. *)
@@ -308,6 +315,14 @@ let split t h ~time ~forced =
 (* encoder.md §8.2: the hook every stream calls before a packet reaches the
    muxer. The bytes before the first packet are the header. *)
 let on_packet t field ~key ~time =
+  (match t.header with
+    | `Pending start when t.hls = None ->
+        Av.flush t.current.output;
+        t.header <-
+          `Captured
+            (Strings.of_string
+               (Buffer.sub t.buffer start (Buffer.length t.buffer - start)))
+    | _ -> ());
   match t.hls with
     | None -> ()
     | Some h -> (
@@ -420,6 +435,7 @@ let restart t =
   t.current <-
     open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
       ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:(t.hls = None) ();
+  t.header <- `Pending (Buffer.length t.buffer);
   if t.hls = None then t.position <- 0;
   t.state <- `Built;
   Av.set_output_metadata t.current.output t.metadata;
@@ -695,6 +711,7 @@ let create ?(hls = false) ?interrupt ~pos ~name metadata format =
       state = `Built;
       position = 0;
       hls = None;
+      header = `Pending 0;
     }
   in
   self := Some t;
@@ -719,7 +736,9 @@ let create ?(hls = false) ?interrupt ~pos ~name metadata format =
   in
   {
     Encoder.encode_metadata = encode_metadata t;
-    header = (fun () -> Strings.empty);
+    header =
+      (fun () ->
+        match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
     hls = hls_value;
     encode = encode t;
     stop = (fun () -> stop t);
