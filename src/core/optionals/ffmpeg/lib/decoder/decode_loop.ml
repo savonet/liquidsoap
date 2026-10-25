@@ -161,14 +161,18 @@ let choose ~ctype (stream : Stream_description.stream) : choice option =
                       (`Internal_audio
                          ( Content.kind format,
                            Content.Audio.channels_of_format format ))
-                | `Audio _
-                  when Content_pcm_s16.is_format format
-                       || Content_pcm_f32.is_format format ->
+                | `Audio _ when Content_pcm_s16.is_format format ->
                     Some
                       (`Internal_audio
                          ( Content.kind format,
                            Pcm_format.channels_of_format
                              ~get_params:Content_pcm_s16.get_params format ))
+                | `Audio _ when Content_pcm_f32.is_format format ->
+                    Some
+                      (`Internal_audio
+                         ( Content.kind format,
+                           Pcm_format.channels_of_format
+                             ~get_params:Content_pcm_f32.get_params format ))
                 | `Video _ when Content.Video.is_format format ->
                     Some (`Internal_video format)
                 | `Subtitle _ when Subtitle_content.is_format format ->
