@@ -214,6 +214,28 @@ let run_ok name script =
         fail "%s: liquidsoap exited with %d: %s" name n
           (String.sub log (String.length log - length) length)
 
+(* The [<prefix...>] marks a script printed, in order. A mark is found
+   wherever it lands: the log shares the script's output and can cut a line. *)
+let marks ~prefix log =
+  let opening = "<" ^ prefix in
+  let length = String.length opening in
+  let rec find from =
+    if from + length > String.length log then None
+    else if String.sub log from length = opening then Some from
+    else find (from + 1)
+  in
+  let rec scan from acc =
+    match find from with
+      | Some start -> (
+          match String.index_from_opt log start '>' with
+            | Some stop ->
+                scan (stop + 1)
+                  (String.sub log (start + 1) (stop - start - 1) :: acc)
+            | None -> List.rev acc)
+      | None -> List.rev acc
+  in
+  scan 0 []
+
 let producer = ref ""
 
 let produce scenario format out sources =
@@ -1478,7 +1500,7 @@ o.on_stop(synchronous=true, shutdown)
         (Printf.sprintf
            {|settings.decoder.decoders.set(["ffmpeg"])
 s = %s
-s.on_metadata(synchronous=true, fun (m) -> print("title: #{m["title"]}"))
+s.on_metadata(synchronous=true, fun (m) -> print("<title: #{m["title"]}>"))
 clock.assign_new(sync="none", [s])
 o = output.dummy(fallible=true, s)
 o.on_stop(synchronous=true, shutdown)
@@ -1486,11 +1508,11 @@ o.on_stop(synchronous=true, shutdown)
            source)
     in
     List.filter_map
-      (fun line ->
-        match String.split_on_char ' ' line with
+      (fun mark ->
+        match String.split_on_char ' ' mark with
           | ["title:"; title] when title <> "" -> Some title
           | _ -> None)
-      (String.split_on_char '\n' log)
+      (marks ~prefix:"title: " log)
   in
   List.iter
     (fun (name, source) ->
@@ -1544,22 +1566,19 @@ let with_stalled_peer ~send f =
       ignore (Unix.waitpid [] pid))
     (fun () -> f port)
 
-let lines_with ~prefix log =
-  List.filter (String.starts_with ~prefix) (String.split_on_char '\n' log)
-
 (* io.md §11: output.url's start/stop methods and restart policy; io.md §3: a
    blocking read or write that outlasts [timeout] on a stalled peer. *)
 let io () =
   let log =
     run_ok "url_lifecycle"
       {|o = output.url(start=false, url="url_lifecycle.ts", %ffmpeg(format="mpegts", %audio(codec="aac")), sine())
-thread.run(delay=0.5, fun () -> begin print("io: before start #{o.is_started()}"); o.start() end)
-thread.run(delay=2., fun () -> begin print("io: after start #{o.is_started()}"); o.stop() end)
-thread.run(delay=3., fun () -> begin print("io: after stop #{o.is_started()}"); shutdown() end)
+thread.run(delay=0.5, fun () -> begin print("<io: before start #{o.is_started()}>"); o.start() end)
+thread.run(delay=2., fun () -> begin print("<io: after start #{o.is_started()}>"); o.stop() end)
+thread.run(delay=3., fun () -> begin print("<io: after stop #{o.is_started()}>"); shutdown() end)
 |}
   in
   check "io: is_started follows start and stop"
-    (lines_with ~prefix:"io: " log
+    (marks ~prefix:"io: " log
     = ["io: before start false"; "io: after start true"; "io: after stop false"]
     );
   check "io: a stopped output.url leaves a complete file"
@@ -1568,13 +1587,13 @@ thread.run(delay=3., fun () -> begin print("io: after stop #{o.is_started()}"); 
     run_ok "url_no_restart"
       {|s = sine()
 o = output.url(restart_delay=null, url="tcp://127.0.0.1:1", %ffmpeg(format="mpegts", %audio(codec="aac")), s)
-o.on_error(synchronous=true, fun (_) -> print("io: error"))
-o.on_stop(synchronous=true, fun () -> print("io: stopped"))
+o.on_error(synchronous=true, fun (_) -> print("<io: error>"))
+o.on_stop(synchronous=true, fun () -> print("<io: stopped>"))
 output.file(%ffmpeg(format="mpegts", %audio(codec="aac")), "url_no_restart.ts", s)
-thread.run(delay=4., fun () -> begin print("io: started #{o.is_started()}"); shutdown() end)
+thread.run(delay=4., fun () -> begin print("<io: started #{o.is_started()}>"); shutdown() end)
 |}
   in
-  let lines = lines_with ~prefix:"io: " log in
+  let lines = marks ~prefix:"io: " log in
   check
     (Printf.sprintf
        "io: with restart_delay=null, a failing output.url stops once (%s)"
@@ -1593,18 +1612,18 @@ thread.run(delay=4., fun () -> begin print("io: started #{o.is_started()}"); shu
 def on_connect() =
   ref.incr(connections)
   if connections() == 2 then
-    print("io: reconnected")
+    print("<io: reconnected>")
     shutdown()
   end
 end
 s = input.ffmpeg(timeout=1., on_connect=on_connect, format="mpegts", "tcp://127.0.0.1:%d")
 output.dummy(fallible=true, s)
-thread.run(delay=20., fun () -> begin print("io: no reconnect"); shutdown() end)
+thread.run(delay=20., fun () -> begin print("<io: no reconnect>"); shutdown() end)
 |}
              port)
       in
       check "io: input.ffmpeg reconnects after a read stalls past its timeout"
-        (lines_with ~prefix:"io: " log = ["io: reconnected"]));
+        (marks ~prefix:"io: " log = ["io: reconnected"]));
   with_stalled_peer ~send:"" (fun port ->
       let log =
         run_ok "output_stall"
@@ -1612,15 +1631,29 @@ thread.run(delay=20., fun () -> begin print("io: no reconnect"); shutdown() end)
              {|s = sine()
 clock.assign_new(sync="none", [s])
 o = output.url(timeout=1., restart_delay=0.5, url="tcp://127.0.0.1:%d", %%ffmpeg(format="wav", %%audio(codec="pcm_s16le")), s)
-o.on_error(synchronous=true, fun (_) -> begin print("io: write timed out"); shutdown() end)
-thread.run(delay=20., fun () -> begin print("io: no timeout"); shutdown() end)
+o.on_error(synchronous=true, fun (_) -> begin print("<io: write timed out>"); shutdown() end)
+thread.run(delay=20., fun () -> begin print("<io: no timeout>"); shutdown() end)
 |}
              port)
       in
       check "io: output.url gives up a write that stalls past its timeout"
-        (match lines_with ~prefix:"io: " log with
+        (match marks ~prefix:"io: " log with
           | "io: write timed out" :: _ -> true
-          | _ -> false))
+          | _ -> false));
+  with_stalled_peer ~send:"" (fun port ->
+      let log =
+        run_ok "output_stall_shutdown"
+          (Printf.sprintf
+             {|s = sine()
+clock.assign_new(sync="none", [s])
+o = output.url(timeout=1000., url="tcp://127.0.0.1:%d", %%ffmpeg(format="wav", %%audio(codec="pcm_s16le")), s)
+o.on_error(synchronous=true, fun (_) -> print("<io: error>"))
+thread.run(delay=3., shutdown)
+|}
+             port)
+      in
+      check "io: a shutdown ends a stalled write without an error"
+        (marks ~prefix:"io: " log = []))
 
 (* decoder.md §6: the FFmpeg decoder produces each pcm content kind. *)
 let pcm_kinds () =
@@ -1633,13 +1666,13 @@ let pcm_kinds () =
 s = once((single("pcm_src.mp3") : source(audio=%s(stereo))))
 clock.assign_new(sync="none", [s])
 o = output.dummy(fallible=true, s)
-o.on_stop(synchronous=true, fun () -> begin print("decoded: #{s.time()}"); shutdown() end)
+o.on_stop(synchronous=true, fun () -> begin print("<decoded: #{s.time()}>"); shutdown() end)
 |}
              kind)
       in
       check
         (Printf.sprintf "pcm_kinds: %s decodes the whole file" kind)
-        (match lines_with ~prefix:"decoded: " log with
+        (match marks ~prefix:"decoded: " log with
           | [line] ->
               Scanf.sscanf line "decoded: %f" (fun t ->
                   Float.abs (t -. 3.) < 0.1)

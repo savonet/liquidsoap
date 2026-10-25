@@ -541,7 +541,7 @@ lasted `timeout` seconds. The bound lives in the interrupt rather than in a
 protocol option because a device or a lavfi input consumes no protocol
 option. An input read past its bound is a source fault (§2.5); an
 `output.url` write past its bound is an output fault (§11.3). A stop or a
-shutdown ends the call at once.
+shutdown ends the call at once, without a fault: no `on_error` runs.
 
 An input is **listening** when its options ask the protocol to wait for a
 peer: `listen` set to a nonzero value (as `input.rtmp` does by default) or
@@ -559,6 +559,8 @@ a shutdown aborts it at once, so an unbounded open costs no tick.
   nothing returns within the interrupt's polling interval.
 - `output.url` to an unreachable host leaves the clock ticking: other outputs
   of the same clock keep producing while the open is pending.
+- A shutdown during an `output.url` write blocked on a peer that never reads
+  ends the write and runs no `on_error`.
 
 ## 4. Frame generation
 

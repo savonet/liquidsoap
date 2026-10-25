@@ -117,8 +117,11 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
             if Atomic.get connection == connecting then
               self#failed ~from:connecting ~bt exn
 
+    (* io.md §3: a shutdown ends a pending call without a fault. *)
     method private failed ~from ~bt exn =
-      if is_configuration_error exn && not ever_connected then
+      if Atomic.get shutdown then
+        ignore (Atomic.compare_and_set connection from `Stopped)
+      else if is_configuration_error exn && not ever_connected then
         ignore (Atomic.compare_and_set connection from (`Fatal (exn, bt)))
       else (
         let next =
