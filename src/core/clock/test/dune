@@ -34,7 +34,8 @@
    (run ./conformance.exe two_workers)
    (run ./conformance.exe one_worker)
    (run ./conformance.exe shutdown)
-   (run ./conformance.exe stuck))))
+   (run ./conformance.exe stuck)
+   (run ./conformance.exe stop_during_start))))
 
 (rule
  (alias citest)
