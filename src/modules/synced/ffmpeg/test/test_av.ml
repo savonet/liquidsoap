@@ -911,7 +911,24 @@ let requirement_3_16 () =
   done;
   Av.close output;
   equal [0L; 10L] (List.rev !keys)
-    "frame_force_keyframe makes the encoder start a key frame at that picture"
+    "frame_force_keyframe makes the encoder start a key frame at that picture";
+  let failing = ref false in
+  let write _ _ length = if !failing then -5 else length in
+  let output = Av.open_output_stream write (mpegts ()) in
+  let stream = video_stream ~bindings:[("g", `Int 5); ("bf", `Int 0)] output in
+  Av.write_frame stream (picture 0);
+  failing := true;
+  (* Packets reach the write callback once the I/O buffer fills. *)
+  let rec until_a_write_fails index =
+    if index < 300 then (
+      match
+        Av.write_frame ~on_packet:(fun _ -> raise Exit) stream (picture index)
+      with
+        | () | (exception Exit) -> until_a_write_fails (index + 1))
+  in
+  raises is_error "a failed write raises its own error, over on_packet's"
+    (fun () -> until_a_write_fails 1);
+  try Av.close output with Error _ -> ()
 
 let requirement_3_17 () =
   let write_to ?opts path =

@@ -25,7 +25,8 @@
   it needs setting up again, and `Avfilter.Utils.video_buffer_args`.
 * `Av.write_frame` takes `?on_packet`, called before each packet reaches the
   muxer with its key flag and timestamps, in place of `?on_keyframe`, which
-  reported key packets only and without their time.
+  reported key packets only and without their time. A packet whose write
+  fails raises the write's `Error`, also when `on_packet` raised.
 * Add `Avutil.Video.frame_force_keyframe`, which makes the encoder start a key
   frame at that picture, and `Avutil.Video.frame_set_colors`.
 * Add `BitstreamFilter.init ?time_base`, the input time base of the filter,

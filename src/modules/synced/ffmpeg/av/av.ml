@@ -558,12 +558,19 @@ let rec write_available ?on_packet container index =
   match receive_packet container index with
     | Nothing -> ()
     | Packet (key, pts, dts, time_base) ->
-        Fun.protect
-          ~finally:(fun () -> write_encoded container index)
-          (fun () ->
+        let notified =
+          match
             Option.iter
               (fun notify -> notify { key; pts; dts; time_base })
-              on_packet);
+              on_packet
+          with
+            | () -> None
+            | exception exn -> Some (exn, Printexc.get_raw_backtrace ())
+        in
+        write_encoded container index;
+        Option.iter
+          (fun (exn, bt) -> Printexc.raise_with_backtrace exn bt)
+          notified;
         write_available ?on_packet container index
 
 let write_frame ?on_packet { container; index } frame =

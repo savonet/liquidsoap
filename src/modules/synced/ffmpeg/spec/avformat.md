@@ -757,6 +757,8 @@ becomes available.
   with its key flag and its timestamps in the encoder's time base. The muxer
   position at that moment is the start of that packet. A caller that cuts
   the output at packet boundaries (HLS segments) reads both from it.
+- A packet whose write fails raises the write's mapped error, as `Error`,
+  never wrapped in an exception of the callback machinery.
 - With a hardware frame context the frame is uploaded first, properties
   included ([avcodec.md](avcodec.md) §4.10).
 - A frame that produces no packet is not an error.
@@ -897,11 +899,11 @@ hands over at a time.
 
 They follow the contract's §7.2.
 
-| Function              | Called from   | State when called, and after it raises                                                                                                                                                          |
-| --------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `configure_*_stream`  | `open_input`  | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                            |
-| `on_unhandled_packet` | `read_input`  | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                 |
-| `on_packet`           | `write_frame` | A packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. Packets still in the encoder are written by the next write or by `close`. |
+| Function              | Called from   | State when called, and after it raises                                                                                                                                                                                                                                       |
+| --------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `configure_*_stream`  | `open_input`  | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                                                                                                         |
+| `on_unhandled_packet` | `read_input`  | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                                                                                              |
+| `on_packet`           | `write_frame` | A packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. A write that fails raises its own error, whether or not the function raised. Packets still in the encoder are written by the next write or by `close`. |
 
 ## 8. Data transfer
 
