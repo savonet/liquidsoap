@@ -433,7 +433,7 @@ let rec start_clock ~force c =
 (* Starts a sub-clock that can start, and counts it on the parent's run if it
    blocks. *)
 and start_sub ~force parent sub =
-  if cannot_start ~force sub = None then start_clock ~force sub;
+  (try start_clock ~force sub with Cannot_start _ -> ());
   match streaming sub with
     | Some st when Atomic.get st.blocking ->
         Atomic.incr parent.sub_blocking;
@@ -455,10 +455,8 @@ let start_pass () =
   let waiting = Registry.waiting_clocks () in
   List.iter
     (fun c ->
-      if c.sync_mode <> `Passive && starts_by_itself c then
-        Transition.run (fun () ->
-            if cannot_start ~force:false c = None then
-              start_clock ~force:false c))
+      if c.sync_mode <> `Passive && starts_by_itself c then (
+        try start_clock ~force:false c with Cannot_start _ -> ()))
     waiting;
   List.length waiting
 

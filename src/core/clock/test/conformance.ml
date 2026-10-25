@@ -9,6 +9,7 @@ let groups =
     ("one_worker", Pool_checks.one_worker);
     ("shutdown", Shutdown_checks.orderly);
     ("stuck", Shutdown_checks.stuck);
+    ("stop_during_start", Shutdown_checks.during_start_pass);
     ("report", Report_checks.run);
   ]
 

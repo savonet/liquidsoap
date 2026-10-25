@@ -148,7 +148,9 @@ MUST NOT have the side effect of starting clocks.
 **Start pass.** For each non-passive clock in `waiting` that can start, and
 whose stop reason is `never started` or `no sources`: start it. A start pass
 also runs once when the application starts. A clock stopped for any other
-reason starts again by an explicit start only, so that a stop holds.
+reason starts again by an explicit start only, so that a stop holds. A start
+pass MUST NOT fail: a clock that cannot start when the pass reaches it,
+including because the global stop was set meanwhile, stays as it is.
 
 - A pass MUST cost at most a time proportional to the number of waiting
   clocks.
@@ -175,7 +177,8 @@ leave the clock exactly as it was. In order:
 4. Set the state to `started`. A top-level clock moves from `waiting` to
    `running`.
 5. Log the start ([observability.md §2](observability.md#2-log-events)).
-6. Start each registered sub-clock that can start, with the same force flag.
+6. Start each registered sub-clock that can start, with the same force flag;
+   one that cannot is left stopped and does not fail the start.
 7. Unless passive: choose and start the animator
    ([pacing.md §8](pacing.md#8-animator)). No source is tracked yet: the
    choice is revised at the first tick.

@@ -234,6 +234,9 @@ K10, with the blocking time source double as the server:
   that or before the shutdown wait. A failed clock is not waited for.
   Binding: the order of the events and the bound.
 - The shutdown wait does not change with the maximum latency.
+- A start pass during which the global stop is set does not fail, and a
+  clock it started winds down. Binding: no error from the pass, and the
+  clock stopped.
 
 ## Observability
 

@@ -75,3 +75,34 @@ let stuck () =
          | Clock.Event.Still_running { activity = `Ticking _ } -> true
          | _ -> false)
        (events_of clock))
+
+(* The output's role is read by the start pass's checks, so querying it can set
+   the global stop between them. *)
+let during_start_pass () =
+  Scheduler.start ();
+  Clock.Settings.conf_shutdown_wait#set 0.1;
+  Clock.application_start ();
+  let armed = Atomic.make false in
+  let output =
+    object
+      inherit source ~id:"late.output" `Output as super
+
+      method! source_type =
+        if Atomic.exchange armed false then Clock.shutdown ();
+        super#source_type
+    end
+  in
+  let clock = Clock.create ~id:"late" ~sync:`Cpu () in
+  attach clock output;
+  Atomic.set armed true;
+  match Clock.start_pass () with
+    | _ ->
+        check "a start pass that meets the global stop does not fail"
+          (Atomic.get armed = false);
+        check "a clock started as the global stop is set winds down"
+          (wait_until (fun () -> not (Clock.started clock)))
+    | exception exn ->
+        check
+          (Printf.sprintf "a start pass that meets the global stop fails: %s"
+             (Printexc.to_string exn))
+          false
