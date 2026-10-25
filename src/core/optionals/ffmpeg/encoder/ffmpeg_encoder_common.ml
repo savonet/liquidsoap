@@ -407,4 +407,5 @@ let encoder ~pos ~hls_utils ~mk_streams ffmpeg meta =
     hls;
     encode;
     stop;
+    restart_offset = (fun () -> None);
   }

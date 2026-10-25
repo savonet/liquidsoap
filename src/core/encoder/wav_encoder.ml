@@ -76,6 +76,7 @@ let encoder ~pos wav =
     encode;
     header = (fun () -> Strings.of_string header);
     stop = (fun () -> Strings.empty);
+    restart_offset = (fun () -> None);
   }
 
 let () =

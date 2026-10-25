@@ -121,6 +121,7 @@ let () =
       encode;
       header = (fun () -> Strings.empty);
       stop;
+      restart_offset = (fun () -> None);
     }
   in
   Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function

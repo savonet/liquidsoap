@@ -129,6 +129,10 @@ val state : t -> state
 (** Get and remove encoded data.. *)
 val get_data : t -> Strings.t
 
+(** Offset, in the data the latest [get_data] returned, of the first page of a
+    new link; [None] when that data starts none. *)
+val last_link_start : t -> int option
+
 (** Get header of a stream. *)
 val get_header : t -> Strings.t
 

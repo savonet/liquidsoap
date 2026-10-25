@@ -69,6 +69,7 @@ let encoder flac meta =
     hls = Encoder.dummy_hls encode;
     encode;
     stop;
+    restart_offset = (fun () -> None);
   }
 
 let () =

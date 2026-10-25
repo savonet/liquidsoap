@@ -169,6 +169,9 @@
 
 ## Fixed:
 
+- A listener joining an Ogg `output.harbor` stream after a metadata change starts at the
+  current link, with its header pages, and can decode the stream. It used to receive the
+  current link's header followed by pages of earlier links (#5546).
 - `time.predicate` now parses predicates combined with `and`, `or`, `not` and parentheses. It used to read only the first predicate of the string and silently ignore the rest, so `"0w and 3h"` held all Sunday (#5532).
 - Active inputs such as `input.ffmpeg` replaced through `source.dynamic` are now stopped and
   released. They used to keep their connection, decoder and threads alive for the lifetime of
