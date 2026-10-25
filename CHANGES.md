@@ -75,7 +75,10 @@
   - Copied streams start each source on a keyframe of every track together. The wait is bounded by the new
     `settings.ffmpeg.content.copy.max_keyframe_wait` (20 s), after which the ready tracks start with a warning;
     audio is no longer withheld indefinitely. In outputs mixing copied and re-encoded streams, a source switched
-    in the middle of a GOP keeps a gap the length of its wait and stays in sync instead of drifting.
+    in the middle of a GOP keeps a gap the length of its wait and stays in sync instead of drifting (#2333).
+  - Copied and raw tracks keep a length equal to the media they carry, so a copy relay keeps audio and video
+    together over hours of streaming instead of dropping content when one track's buffer fills (#4502).
+    `%audio.raw` and `%video.raw` streams keep continuous timestamps across a source switch (#3329).
   - A copied file whose codec, bitstream form (AVCC or Annex B, raw AAC or ADTS), size, sample rate or channel
     layout differs from the stream is skipped when opened. A file that differs only in its codec headers is
     accepted: MPEG-TS and ADTS outputs take it, HLS with MP4 segments starts a new segment after a
@@ -88,7 +91,7 @@
   - Script errors are caught earlier: a field named twice, unused `%ffmpeg` or inline encoder options, unknown
     FFmpeg option names, invalid `settings.ffmpeg.log.verbosity` or `scaling_algorithm`, and configuration
     errors of `output.url` fail at evaluation or at the first start instead of retrying forever.
-  - `input.ffmpeg` takes a `timeout` (10 s): a read stalled longer reconnects.
+  - `input.ffmpeg` takes a `timeout` (10 s): a read stalled longer reconnects (#2358).
   - HLS playlists announce `EXT-X-INDEPENDENT-SEGMENTS` when no copied stream can be cut off a keyframe, and
     re-encoded audio continues the variant's timeline across a restart.
   - FFmpeg errors and warnings show at log levels 2 and 3 whatever `settings.ffmpeg.log.level`;
