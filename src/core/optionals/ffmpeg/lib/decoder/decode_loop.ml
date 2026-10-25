@@ -100,11 +100,29 @@ let non_sparse t =
 let field_name e =
   Frame.Fields.string_of_field e.stream.Stream_description.field
 
-let output t field =
+(* decoder.md §10.2: an audio or video stream's tags reach the output once,
+   whether FFmpeg reports them on the stream or on its decoded frames. *)
+let is_stream_change t (stream : Stream_description.stream) list =
+  let list = List.sort compare list in
+  match Hashtbl.find_opt t.stream_metadata stream.index with
+    | Some last when last = list -> false
+    | _ ->
+        Hashtbl.replace t.stream_metadata stream.index list;
+        true
+
+let output t (stream : Stream_description.stream) =
+  let field = stream.field in
   let generator () =
     match t.buffer with
       | Some b -> b.Decoder.generator
       | None -> failwith "FFmpeg decoder used without a buffer"
+  in
+  let add_metadata m =
+    match stream.media with
+      | (`Audio _ | `Video _)
+        when not (is_stream_change t stream (Frame.Metadata.to_list m)) ->
+          ()
+      | _ -> Generator.add_metadata (generator ()) m
   in
   {
     Per_stream.put = (fun data -> Generator.put (generator ()) field data);
@@ -113,7 +131,7 @@ let output t field =
         match t.buffer with
           | Some b -> b.Decoder.put_yuva420p ~field ~fps image
           | None -> failwith "FFmpeg decoder used without a buffer");
-    add_metadata = (fun m -> Generator.add_metadata (generator ()) m);
+    add_metadata;
   }
 
 (* The row of decoder.md §6's table a stream maps to, from the requested
@@ -273,7 +291,7 @@ let build_mapping t =
           | Some choice ->
               let kind = kind_of_choice choice in
               let per_stream =
-                create_decoder ~output:(output t stream.field) ~faults:t.faults
+                create_decoder ~output:(output t stream) ~faults:t.faults
                   ~source_id stream choice
               in
               Some
@@ -757,7 +775,7 @@ let stream_metadata t entry =
   let read stream =
     let list = Av.get_metadata stream in
     if list <> [] then Av.set_metadata stream [];
-    list
+    List.sort compare list
   in
   let list =
     match entry.stream.media with

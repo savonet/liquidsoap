@@ -1469,7 +1469,43 @@ o.on_stop(synchronous=true, shutdown)
        encoded);
   metadata "ogg_meta_file.ogg"
     (Printf.sprintf {|output.file(fallible=true, %s, "ogg_meta_file.ogg", s)|}
-       encoded)
+       encoded);
+  (* decoder.md §10.2: FFmpeg reports a link's tags on the stream and on its
+     decoded frames. *)
+  let titles name source =
+    let log =
+      run_ok name
+        (Printf.sprintf
+           {|settings.decoder.decoders.set(["ffmpeg"])
+s = %s
+s.on_metadata(synchronous=true, fun (m) -> print("title: #{m["title"]}"))
+clock.assign_new(sync="none", [s])
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, shutdown)
+|}
+           source)
+    in
+    List.filter_map
+      (fun line ->
+        match String.split_on_char ' ' line with
+          | ["title:"; title] when title <> "" -> Some title
+          | _ -> None)
+      (String.split_on_char '\n' log)
+  in
+  List.iter
+    (fun (name, source) ->
+      let titles = titles name source in
+      check
+        (Printf.sprintf "%s: each link's title reaches the output once (%s)"
+           name
+           (String.concat ", " titles))
+        (titles = ["a"; "b"]))
+    [
+      ("ogg_meta_decode_file", {|once(single("ogg_meta_file.ogg"))|});
+      ( "ogg_meta_decode_stream",
+        {|once(input.ffmpeg(new_track_on_metadata=false, "ogg_meta_file.ogg"))|}
+      );
+    ]
 
 let checks =
   [

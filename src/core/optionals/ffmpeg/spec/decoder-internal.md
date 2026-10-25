@@ -81,7 +81,8 @@ For each frame:
    important level, takes the frame's description and rebuilds the
    resampler.
 2. Converts the whole frame and puts the result on the field.
-3. When the frame carries metadata, adds it to the output.
+3. When the frame carries metadata, adds it to the output under the stream
+   metadata rule ([decoder.md §10.2](decoder.md#102-stream-metadata-during-decoding)).
 
 The output goes straight onto the field, not through the generic decoding
 buffer's resampler.
@@ -99,7 +100,8 @@ For each frame:
    field, declared at the video rate setting. Since the rate matches, the
    buffer keeps one image per frame and puts it with a length of one video
    frame (ticks per second / video rate; 1764 with defaults).
-4. When the frame carries metadata, adds it to the output.
+4. When the frame carries metadata, adds it to the output under the stream
+   metadata rule ([decoder.md §10.2](decoder.md#102-stream-metadata-during-decoding)).
 
 ### 4.3 Text subtitles
 

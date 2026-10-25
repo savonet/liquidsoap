@@ -849,15 +849,19 @@ Before each item of an audio or video stream, that stream's metadata is read
 and then cleared in FFmpeg. Clearing avoids memory growth in FFmpeg with
 chained Ogg streams, which append each link's tags. A non-empty list that
 differs from the last list of that stream is a change, emitted under the rule
-of §10.1.
+of §10.1. Lists are compared as sets of key/value pairs.
 
 Decoded audio and video frames may carry metadata of their own; the internal
-decoders add it ([decoder-internal.md §4](decoder-internal.md#4-output)).
+decoders add it ([decoder-internal.md §4](decoder-internal.md#4-output)) as a
+list of the same stream: it is emitted only when it differs from that
+stream's last list, and becomes its last list. FFmpeg reports the tags of a
+new chained Ogg link both on the stream and on its decoded frames, and the
+change reaches the output once.
 
 Conformance:
 
 - A chained Ogg file whose second link has `title=two`: the title change
-  reaches the output at the join, once.
+  reaches the output at the join, once, decoded as a file and as a stream.
 - For a file, a tag list identical to the request's file tags is not
   emitted again at position 0.
 
