@@ -1507,6 +1507,145 @@ o.on_stop(synchronous=true, shutdown)
       );
     ]
 
+(* A peer on a loopback port, in a child process: it accepts every connection,
+   sends [send] and then stalls, never reading. Returns the port and the
+   child's pid. *)
+let stalled_peer ~send () =
+  let socket = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+  Unix.setsockopt socket Unix.SO_REUSEADDR true;
+  Unix.setsockopt_int socket Unix.SO_RCVBUF 4096;
+  Unix.bind socket (Unix.ADDR_INET (Unix.inet_addr_loopback, 0));
+  Unix.listen socket 8;
+  let port =
+    match Unix.getsockname socket with
+      | Unix.ADDR_INET (_, port) -> port
+      | _ -> fail "stalled peer: no port"
+  in
+  match Unix.fork () with
+    | 0 ->
+        let clients = ref [] in
+        (try
+           while true do
+             let client, _ = Unix.accept socket in
+             clients := client :: !clients;
+             ignore (Unix.write_substring client send 0 (String.length send))
+           done
+         with _ -> ());
+        Unix._exit 0
+    | pid ->
+        Unix.close socket;
+        (port, pid)
+
+let with_stalled_peer ~send f =
+  let port, pid = stalled_peer ~send () in
+  Fun.protect
+    ~finally:(fun () ->
+      Unix.kill pid Sys.sigkill;
+      ignore (Unix.waitpid [] pid))
+    (fun () -> f port)
+
+let lines_with ~prefix log =
+  List.filter (String.starts_with ~prefix) (String.split_on_char '\n' log)
+
+(* io.md §11: output.url's start/stop methods and restart policy; io.md §3: a
+   blocking read or write that outlasts [timeout] on a stalled peer. *)
+let io () =
+  let log =
+    run_ok "url_lifecycle"
+      {|o = output.url(start=false, url="url_lifecycle.ts", %ffmpeg(format="mpegts", %audio(codec="aac")), sine())
+thread.run(delay=0.5, fun () -> begin print("io: before start #{o.is_started()}"); o.start() end)
+thread.run(delay=2., fun () -> begin print("io: after start #{o.is_started()}"); o.stop() end)
+thread.run(delay=3., fun () -> begin print("io: after stop #{o.is_started()}"); shutdown() end)
+|}
+  in
+  check "io: is_started follows start and stop"
+    (lines_with ~prefix:"io: " log
+    = ["io: before start false"; "io: after start true"; "io: after stop false"]
+    );
+  check "io: a stopped output.url leaves a complete file"
+    (packets "url_lifecycle.ts" `Audio <> []);
+  let log =
+    run_ok "url_no_restart"
+      {|s = sine()
+o = output.url(restart_delay=null, url="tcp://127.0.0.1:1", %ffmpeg(format="mpegts", %audio(codec="aac")), s)
+o.on_error(synchronous=true, fun (_) -> print("io: error"))
+o.on_stop(synchronous=true, fun () -> print("io: stopped"))
+output.file(%ffmpeg(format="mpegts", %audio(codec="aac")), "url_no_restart.ts", s)
+thread.run(delay=4., fun () -> begin print("io: started #{o.is_started()}"); shutdown() end)
+|}
+  in
+  let lines = lines_with ~prefix:"io: " log in
+  check
+    (Printf.sprintf
+       "io: with restart_delay=null, a failing output.url stops once (%s)"
+       (String.concat "; " lines))
+    (lines = ["io: error"; "io: stopped"; "io: started false"]);
+  check "io: the other output on the clock keeps streaming"
+    (match packets "url_no_restart.ts" `Audio with
+      | [] -> false
+      | audio -> pts (last audio) -. pts (List.hd audio) >= 3.);
+  let stream = In_channel.with_open_bin "stall.ts" In_channel.input_all in
+  with_stalled_peer ~send:stream (fun port ->
+      let log =
+        run_ok "input_stall"
+          (Printf.sprintf
+             {|connections = ref(0)
+def on_connect() =
+  ref.incr(connections)
+  if connections() == 2 then
+    print("io: reconnected")
+    shutdown()
+  end
+end
+s = input.ffmpeg(timeout=1., on_connect=on_connect, format="mpegts", "tcp://127.0.0.1:%d")
+output.dummy(fallible=true, s)
+thread.run(delay=20., fun () -> begin print("io: no reconnect"); shutdown() end)
+|}
+             port)
+      in
+      check "io: input.ffmpeg reconnects after a read stalls past its timeout"
+        (lines_with ~prefix:"io: " log = ["io: reconnected"]));
+  with_stalled_peer ~send:"" (fun port ->
+      let log =
+        run_ok "output_stall"
+          (Printf.sprintf
+             {|s = sine()
+clock.assign_new(sync="none", [s])
+o = output.url(timeout=1., restart_delay=0.5, url="tcp://127.0.0.1:%d", %%ffmpeg(format="wav", %%audio(codec="pcm_s16le")), s)
+o.on_error(synchronous=true, fun (_) -> begin print("io: write timed out"); shutdown() end)
+thread.run(delay=20., fun () -> begin print("io: no timeout"); shutdown() end)
+|}
+             port)
+      in
+      check "io: output.url gives up a write that stalls past its timeout"
+        (match lines_with ~prefix:"io: " log with
+          | "io: write timed out" :: _ -> true
+          | _ -> false))
+
+(* decoder.md §6: the FFmpeg decoder produces each pcm content kind. *)
+let pcm_kinds () =
+  List.iter
+    (fun kind ->
+      let log =
+        run_ok ("pcm_kind_" ^ kind)
+          (Printf.sprintf
+             {|settings.decoder.decoders.set(["ffmpeg"])
+s = once((single("pcm_src.mp3") : source(audio=%s(stereo))))
+clock.assign_new(sync="none", [s])
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, fun () -> begin print("decoded: #{s.time()}"); shutdown() end)
+|}
+             kind)
+      in
+      check
+        (Printf.sprintf "pcm_kinds: %s decodes the whole file" kind)
+        (match lines_with ~prefix:"decoded: " log with
+          | [line] ->
+              Scanf.sscanf line "decoded: %f" (fun t ->
+                  Float.abs (t -. 3.) < 0.1)
+          | _ -> false))
+    ["pcm"; "pcm_s16"; "pcm_f32"]
+
 let checks =
   [
     ("kc1", kc1);
@@ -1523,6 +1662,8 @@ let checks =
     ("hls", hls);
     ("filters", filters);
     ("ogg_stream", ogg_stream);
+    ("io", io);
+    ("pcm_kinds", pcm_kinds);
   ]
 
 (* The known-complexity checks of spec/tests.md §23 that need media, run by

@@ -441,7 +441,19 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
             with
               | End_of_file ->
                   self#end_connection current connection ~cause:`End_of_input
-              | Decode_loop.Aborted -> ()
+              | Decode_loop.Aborted
+                when Atomic.get attempt.abort || Atomic.get shutdown ->
+                  ()
+              (* io.md §3: with neither a stop nor a shutdown, the interrupt
+                 fired on [timeout]. *)
+              | Decode_loop.Aborted ->
+                  let bt = Printexc.get_raw_backtrace () in
+                  self#end_connection current connection
+                    ~cause:
+                      (`Fault
+                         ( Failure
+                             (Printf.sprintf "No data for %.2f seconds" timeout),
+                           bt ))
               | exn ->
                   let bt = Printexc.get_raw_backtrace () in
                   self#end_connection current connection

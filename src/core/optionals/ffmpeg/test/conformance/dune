@@ -1161,4 +1161,66 @@
   (alias ffmpeg_conformance_kc12)
   (alias ffmpeg_conformance_hls)
   (alias ffmpeg_conformance_filters)
-  (alias ffmpeg_conformance_ogg_stream)))
+  (alias ffmpeg_conformance_ogg_stream)
+  (alias ffmpeg_conformance_io)
+  (alias ffmpeg_conformance_pcm_kinds)))
+
+; Two seconds of MPEG-TS audio, sent by the stalled peer of the io check.
+
+(rule
+ (target stall.ts)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=frequency=440:duration=2
+   -c:a
+   aac
+   -f
+   mpegts
+   %{target})))
+
+(rule
+ (alias ffmpeg_conformance_io)
+ (package liquidsoap)
+ (deps
+  stall.ts
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} io)))
+
+; Three seconds of stereo MP3, decoded into each pcm kind.
+
+(rule
+ (target pcm_src.mp3)
+ (action
+  (run
+   ffmpeg
+   -nostdin
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   sine=frequency=440:duration=3
+   -ac
+   2
+   -c:a
+   libmp3lame
+   %{target})))
+
+(rule
+ (alias ffmpeg_conformance_pcm_kinds)
+ (package liquidsoap)
+ (deps
+  pcm_src.mp3
+  (package liquidsoap)
+  (source_tree ../../../../../libs))
+ (action
+  (run %{exe:conformance.exe} %{exe:../copy_producer.exe} pcm_kinds)))
