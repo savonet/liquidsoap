@@ -274,7 +274,7 @@ let _ =
         ("", Lang.format_t return_t, None, Some "Encoding format (`%ffmpeg`).");
         ("", Lang.source_t return_t, None, None);
       ])
-    ~return_t ~category:`Output
+    ~return_t ~category:`Output ~meth:(Start_stop.meth ())
     ~callbacks:
       (Lang_source.
          [
@@ -282,7 +282,7 @@ let _ =
              name = "on_error";
              params = [];
              descr = "on each connection or streaming failure.";
-             register_deprecated_argument = false;
+             register_deprecated_argument = true;
              arg_t = [(false, "", Lang.error_t)];
              register =
                (fun ~params:_ s f ->
