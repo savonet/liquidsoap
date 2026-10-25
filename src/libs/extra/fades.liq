@@ -146,23 +146,26 @@ def autocue.plot(
     "annotate:#{meta}:#{uri}"
   end
 
-  old_uri =
-    process.uri(
-      extname="wav",
-      "ffmpeg -f lavfi -i \"sine=frequency=1000:duration=10\" -y $(output) < \
-       /dev/null"
-    )
-  old_uri = autocue_annotate(old_autocue, old_uri)
-  old_source = request.once(request.create(old_uri))
+  # Static files are ready when the sources wake up: a request resolved in the
+  # background would race the unsynced clock.
+  def sine_track(frequency, autocue) =
+    wav = file.temp(cleanup=true, "autocue", ".wav")
+    sine = process.quote("sine=frequency=#{frequency}:duration=10")
+    if
+      not process.test(
+        "ffmpeg -f lavfi -i #{sine} -y #{process.quote(wav)} < /dev/null"
+      )
+    then
+      error.raise(
+        error.failure,
+        "Could not generate #{wav}"
+      )
+    end
+    once(single(autocue_annotate(autocue, wav)))
+  end
 
-  new_uri =
-    process.uri(
-      extname="wav",
-      "ffmpeg -f lavfi -i \"sine=frequency=500:duration=10\" -y $(output) < \
-       /dev/null"
-    )
-  new_uri = autocue_annotate(new_autocue, new_uri)
-  new_source = request.once(request.create(new_uri))
+  old_source = sine_track(1000, old_autocue)
+  new_source = sine_track(500, new_autocue)
 
   s = sequence([old_source, new_source])
 
