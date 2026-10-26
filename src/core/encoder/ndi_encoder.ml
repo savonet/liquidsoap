@@ -35,6 +35,7 @@ let encoder ~pos _ =
     hls = Encoder.dummy_hls (fun _ -> error ());
     encode = (fun _ -> error ());
     stop = error;
+    restart_offset = (fun () -> None);
   }
 
 let () =

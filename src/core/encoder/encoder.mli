@@ -103,12 +103,17 @@ type hls = {
 
 val dummy_hls : (Frame.t -> Strings.t) -> hls
 
+(** [restart_offset ()] is the offset, in the bytes the latest [encode] or
+    [stop] returned, at which a new stream starts with its header pages (an Ogg
+    link after a metadata change); [None] when those bytes start none. A
+    streaming output starts a late listener there rather than before it. *)
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   hls : hls;
   encode : Frame.t -> Strings.t;
   stop : unit -> Strings.t;
+  restart_offset : unit -> int option;
 }
 
 type factory =

@@ -63,11 +63,15 @@ type track = Audio_track of audio stream | Video_track of video stream
     single track is registered. However, this is not recommended. *)
 type state = Eos | Streaming | Bos
 
+(* [link_start] is where the latest link's first page sits in [encoded], until
+   [get_data] hands it over as [flushed_link_start]. *)
 type t = {
   id : string;
   mutable skeleton : Ogg.Stream.stream option;
   header : Strings.Mutable.t;
   encoded : Strings.Mutable.t;
+  mutable link_start : int option;
+  mutable flushed_link_start : int option;
   mutable position : float;
   tracks : (nativeint, track) Hashtbl.t;
   mutable state : state;
@@ -115,7 +119,12 @@ let get_serial () =
 let state encoder = encoder.state
 
 (** Get and remove encoded data.. *)
-let get_data encoder = Strings.Mutable.flush encoder.encoded
+let get_data encoder =
+  encoder.flushed_link_start <- encoder.link_start;
+  encoder.link_start <- None;
+  Strings.Mutable.flush encoder.encoded
+
+let last_link_start encoder = encoder.flushed_link_start
 
 (** Peek encoded data without removing it. *)
 let peek_data encoder = Strings.Mutable.to_strings encoder.encoded
@@ -159,6 +168,8 @@ let create ~skeleton id =
       skeleton = None;
       header = Strings.Mutable.empty ();
       encoded = Strings.Mutable.empty ();
+      link_start = Some 0;
+      flushed_link_start = None;
       position = 0.;
       tracks = Hashtbl.create 10;
       state = Bos;
@@ -173,6 +184,7 @@ let register_track ?fill encoder track_encoder =
     raise Invalid_usage);
   if encoder.state = Eos then (
     log#info "%s: Starting new sequentialized ogg stream." encoder.id;
+    encoder.link_start <- Some (Strings.Mutable.length encoder.encoded);
     if encoder.skeleton <> None then
       encoder.skeleton <- Some (init_skeleton encoder);
     encoder.state <- Bos);

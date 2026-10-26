@@ -860,6 +860,10 @@ class shared_output p =
     val ring =
       ByteRing.create ~capacity:(2 * Lang.to_int (List.assoc "buffer" p))
 
+    (* Where, in [ring], the encoder's current stream starts with its own
+       header pages; a burst starting before it would mix two streams. *)
+    val stream_start = Atomic.make None
+
     method private create_listener ~protocol ~id ~client ~socket ~close
         ~metadata_interval ~stream_url ~timeout =
       match enc with
@@ -873,17 +877,23 @@ class shared_output p =
 
     method private connect_listener ~http_response listener =
       let e = Option.get enc in
+      let tail = ByteRing.tail ring in
+      let offset =
+        match burst_size with
+          | Some burst -> max 0 (tail - burst)
+          | None -> tail
+      in
+      let offset, header =
+        match Atomic.get stream_start with
+          | Some start when start >= offset -> (start, Strings.empty)
+          | _ -> (offset, e.Encoder.header ())
+      in
       let header =
-        insert_icy_metadata ~metadata:self#get_metadata listener
-          (e.Encoder.header ())
+        insert_icy_metadata ~metadata:self#get_metadata listener header
       in
       listener.state.carry <- http_response ^ Strings.to_string header;
       listener.state.carry_ofs <- 0;
-      let tail = ByteRing.tail ring in
-      listener.state.offset <-
-        (match burst_size with
-          | Some burst -> max 0 (tail - burst)
-          | None -> tail)
+      listener.state.offset <- offset
 
     method private stop_listener_encoder _ = ()
     method private staging_size = buffer_limit + max_icy_block
@@ -1013,6 +1023,10 @@ class shared_output p =
         enc
 
     method send data =
+      Option.iter
+        (fun offset ->
+          Atomic.set stream_start (Some (ByteRing.tail ring + offset)))
+        (Option.bind enc (fun e -> e.Encoder.restart_offset ()));
       if Strings.length data > 0 then begin
         ByteRing.append ring data;
         Option.iter

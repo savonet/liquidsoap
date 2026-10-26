@@ -320,6 +320,7 @@ type encoder = {
   hls : hls;
   encode : Frame.t -> Strings.t;
   stop : unit -> Strings.t;
+  restart_offset : unit -> int option;
 }
 
 type factory =
@@ -342,7 +343,7 @@ let get_factory fmt =
     raise Not_found
   with Found factory ->
     fun ?hls ~pos name m ->
-      let { encode_metadata; hls; encode; stop; header } =
+      let { encode_metadata; hls; encode; stop; header; restart_offset } =
         factory ?hls ~pos name m
       in
       (* Protect all functions with a mutex. *)
@@ -387,4 +388,5 @@ let get_factory fmt =
       in
       let encode frame = Mutex.protect m (fun () -> encode frame) in
       let stop () = Mutex.protect m stop in
-      { encode_metadata; hls; encode; stop; header }
+      let restart_offset () = Mutex.protect m restart_offset in
+      { encode_metadata; hls; encode; stop; header; restart_offset }

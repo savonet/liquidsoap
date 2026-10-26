@@ -165,6 +165,7 @@ let encoder id ext =
     hls = Encoder.dummy_hls encode;
     encode;
     stop;
+    restart_offset = (fun () -> None);
   }
 
 let () =

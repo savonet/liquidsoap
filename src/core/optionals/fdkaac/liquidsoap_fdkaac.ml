@@ -113,6 +113,7 @@ let encoder ~pos aac =
     hls = Encoder_utils.mk_id3_hls ~pos encode;
     encode;
     stop;
+    restart_offset = (fun () -> None);
   }
 
 let () =
