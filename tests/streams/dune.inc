@@ -1314,6 +1314,37 @@
   (run %{run_test} icecast_no_restart.liq liquidsoap icecast_no_restart.liq)))
 
 (rule
+ (alias test_iir_resonator)
+ (package liquidsoap)
+ (deps
+  iir_resonator.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} iir_resonator.liq liquidsoap iir_resonator.liq)))
+
+(rule
  (alias test_image)
  (package liquidsoap)
  (deps
@@ -2637,6 +2668,7 @@
   (alias test_huge-playlist)
   (alias test_icecast_last_meta)
   (alias test_icecast_no_restart)
+  (alias test_iir_resonator)
   (alias test_image)
   (alias test_many-playlists)
   (alias test_merge_metadata)

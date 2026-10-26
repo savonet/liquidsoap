@@ -335,19 +335,17 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
                           resonator (notch filter) *)
                   (* place zeros exactly *)
                   let zp = { re = cos theta; im = sin theta } in
-                  zplane_poles <- [| zp; Complex.conj zp |]
+                  zplane_zeros <- [| zp; Complex.conj zp |]
               | All_pass ->
                   (* All-pass filter *)
                   self#log#info "This is an all-pass filter.";
 
                   (* compute Z-plane pole & zero positions for allpass
                           resonator *)
-                  zplane_zeros.(0) <-
-                    zplane_poles.(0)
-                    /~ sqrt (cor (Complex.norm zplane_poles.(0)));
-                  zplane_zeros.(1) <-
-                    zplane_poles.(1)
-                    /~ sqrt (cor (Complex.norm zplane_poles.(1)))
+                  zplane_zeros <-
+                    Array.map
+                      (fun pole -> Complex.inv (Complex.conj pole))
+                      zplane_poles
               | Band_pass -> ()
               | _ -> assert false)
       end;
@@ -534,7 +532,7 @@ let _ =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new iir src Resonator Band_pass 0 freq 0. q)
+      new iir src Resonator Band_pass 0 freq freq q)
 
 let _ =
   let frame_t =
@@ -555,7 +553,7 @@ let _ =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new iir src Resonator Band_pass 0 freq 0. q)
+      new iir src Resonator Band_stop 0 freq freq q)
 
 let _ =
   let frame_t =
@@ -576,4 +574,4 @@ let _ =
           Lang.to_float (f "q"),
           Lang.to_source (f "") )
       in
-      new iir src Resonator Band_pass 0 freq 0. q)
+      new iir src Resonator All_pass 0 freq freq q)
