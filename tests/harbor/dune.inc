@@ -46,6 +46,23 @@
    harbor_output_burst_null.liq)))
 
 (rule
+ (alias test_harbor_output_burst_ogg_pages)
+ (package liquidsoap)
+ (deps
+  harbor_output_burst_ogg_pages.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_burst_ogg_pages.liq
+   liquidsoap
+   harbor_output_burst_ogg_pages.liq)))
+
+(rule
  (alias test_harbor_output_dedicated_encoder)
  (package liquidsoap)
  (deps
@@ -269,6 +286,7 @@
   (alias test_harbor_output_auth)
   (alias test_harbor_output_burst)
   (alias test_harbor_output_burst_null)
+  (alias test_harbor_output_burst_ogg_pages)
   (alias test_harbor_output_dedicated_encoder)
   (alias test_harbor_output_icy_metaint)
   (alias test_harbor_output_listener_lifecycle)
