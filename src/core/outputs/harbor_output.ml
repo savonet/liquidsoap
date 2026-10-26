@@ -325,9 +325,10 @@ let proto frame_t =
         Lang.nullable_t Lang.int_t,
         Some (Lang.int 65534),
         Some
-          "Initial burst of data sent to the client. Set to `null` to disable \
-           burst. This feature is only available when `dedicated_encoder` is \
-           `false`." );
+          "Initial burst of data sent to the client, in bytes. It starts where \
+           an encoded chunk starts, so it can be slightly longer. Set to \
+           `null` to disable burst. This feature is only available when \
+           `dedicated_encoder` is `false`." );
       ( "headers",
         Lang.metadata_t,
         Some (Lang.list []),
@@ -864,6 +865,11 @@ class shared_output p =
        header pages; a burst starting before it would mix two streams. *)
     val stream_start = Atomic.make None
 
+    (* Where, in [ring], the encoder's recent outputs start, newest first: the
+       ones inside the burst and the latest one before it. A burst starts at one
+       of them, so a listener never joins in the middle of an Ogg page. *)
+    val chunk_starts = Atomic.make []
+
     method private create_listener ~protocol ~id ~client ~socket ~close
         ~metadata_interval ~stream_url ~timeout =
       match enc with
@@ -880,7 +886,17 @@ class shared_output p =
       let tail = ByteRing.tail ring in
       let offset =
         match burst_size with
-          | Some burst -> max 0 (tail - burst)
+          | Some burst -> (
+              let readable =
+                List.filter
+                  (fun start -> start >= tail - buffer_limit)
+                  (Atomic.get chunk_starts)
+              in
+              match
+                List.find_opt (fun start -> start <= tail - burst) readable
+              with
+                | Some start -> start
+                | None -> List.fold_left (fun _ start -> start) tail readable)
           | None -> tail
       in
       let offset, header =
@@ -1028,6 +1044,17 @@ class shared_output p =
           Atomic.set stream_start (Some (ByteRing.tail ring + offset)))
         (Option.bind enc (fun e -> e.Encoder.restart_offset ()));
       if Strings.length data > 0 then begin
+        Option.iter
+          (fun burst ->
+            let start = ByteRing.tail ring in
+            let rec keep = function
+              | s :: rest when s > start + Strings.length data - burst ->
+                  s :: keep rest
+              | s :: _ -> [s]
+              | [] -> []
+            in
+            Atomic.set chunk_starts (keep (start :: Atomic.get chunk_starts)))
+          burst_size;
         ByteRing.append ring data;
         Option.iter
           (fun ch -> Strings.iter (output_substring ch) data)
