@@ -54,6 +54,23 @@ tests =
         fade_in_type = "lin",
         fade_out = 2.
       }
+    ),
+    (
+      {
+        cue_in = 0.,
+        cue_out = 7.,
+        fade_in = 2.,
+        fade_out_type = "lin",
+        fade_out = 3.,
+        start_next = 5.
+      },
+      {
+        cue_in = 0.,
+        cue_out = 10.,
+        fade_in = 1.,
+        fade_in_type = "lin",
+        fade_out = 2.
+      }
     )
   ]
 
