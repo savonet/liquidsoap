@@ -58,5 +58,6 @@ Here is a tested use case: live switch between a playlist of MP4 files and an RT
 
 - The `h264_mp4toannexb` filter is needed on each stream to ensure the MP4 data conforms to what the MPEG-TS container expects.
 - FFmpeg's automatic bitstream filter insertion must be disabled with `fflags="-autobsf"`. FFmpeg does not support this kind of live switch natively and its auto-inserted filters break it.
+- Every source must reach the encoder in the same bitstream form: a source in another form is skipped when it is opened, and the switch moves on.
 
 Future work includes extending this to also support RTMP output from the same data.

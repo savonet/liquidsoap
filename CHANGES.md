@@ -69,6 +69,38 @@
 - Liquidsoap now requires OCaml 5.5 to build.
 - Removed the deprecated `input.udp` and `output.udp` operators. Use `input.srt`/`output.srt`
   for low-latency network streaming.
+- The FFmpeg layer (`%ffmpeg`, the FFmpeg decoders, inline encoders and decoders, filters, `input.ffmpeg`,
+  `output.url`) was rewritten from a specification. Scripts keep the same syntax, operators and settings. What
+  changes:
+  - Copied streams start each source on a keyframe of every track together. The wait is bounded by the new
+    `settings.ffmpeg.content.copy.max_keyframe_wait` (20 s), after which the ready tracks start with a warning;
+    audio is no longer withheld indefinitely. In outputs mixing copied and re-encoded streams, a source switched
+    in the middle of a GOP keeps a gap the length of its wait and stays in sync instead of drifting (#2333).
+  - Copied and raw tracks keep a length equal to the media they carry, so a copy relay keeps audio and video
+    together over hours of streaming instead of dropping content when one track's buffer fills (#4502).
+    `%audio.raw` and `%video.raw` streams keep continuous timestamps across a source switch (#3329).
+  - A copied file whose codec, bitstream form (AVCC or Annex B, raw AAC or ADTS), size, sample rate or channel
+    layout differs from the stream is skipped when opened. A file that differs only in its codec headers is
+    accepted: MPEG-TS and ADTS outputs take it, HLS with MP4 segments starts a new segment after a
+    discontinuity, Ogg chains a new link, and other file outputs stop with an error naming both parameter sets.
+    Rotation, HDR or colour differences are played with a warning.
+  - `output.file` with Ogg chains a new link at each metadata change, and `output.file(append=true)` with
+    `%ffmpeg` appends instead of overwriting.
+  - `%audio.raw` and `%video.raw` take the parameters they do not set from the first frame: a mono input stays
+    mono unless `channels=2` is given. `ffmpeg.filter.audio.input` no longer takes `channels`.
+  - Script errors are caught earlier: a field named twice, unused `%ffmpeg` or inline encoder options, unknown
+    FFmpeg option names, invalid `settings.ffmpeg.log.verbosity` or `scaling_algorithm`, and configuration
+    errors of `output.url` fail at evaluation or at the first start instead of retrying forever.
+  - `input.ffmpeg` takes a `timeout` (10 s): a read stalled longer reconnects (#2358).
+  - HLS playlists announce `EXT-X-INDEPENDENT-SEGMENTS` when no copied stream can be cut off a keyframe, and
+    re-encoded audio continues the variant's timeline across a restart.
+  - FFmpeg errors and warnings show at log levels 2 and 3 whatever `settings.ffmpeg.log.level`;
+    `settings.ffmpeg.log.verbosity` quietens FFmpeg.
+  - A filter graph whose outputs are consumed at different rates drops the excess beyond
+    `settings.ffmpeg.filter_max_buffer` with a warning instead of failing; a graph that cannot be built ends
+    its track and is retried.
+  - An encoded track that keeps failing restarts the output under its restart policy.
+  - Media without timestamps, such as bare H.264 elementary streams, fail visibly.
 - `ffmpeg` log messages now go through liquidsoap's logger by default, with the same timestamps, log file and levels as the rest of the logs. Set `settings.ffmpeg.log.capture := false` to print them to standard error as before.
 - `output.harbor`'s `on_connect` and `on_disconnect` callbacks now receive a listener record with
   its session duration and bytes sent, and a new `listeners` method lists connected listeners. The

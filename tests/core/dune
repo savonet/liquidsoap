@@ -90,7 +90,7 @@
  (libraries
   liquidsoap_core
   liquidsoap_optionals
-  liquidsoap_ffmpeg_base
+  liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec
   mm
@@ -111,76 +111,6 @@
  (package liquidsoap)
  (action
   (diff format_dump.expected format_dump.actual)))
-
-(executable
- (name ffmpeg_stream_description_test)
- (modules ffmpeg_stream_description_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_optionals
-  liquidsoap_ffmpeg
-  liquidsoap_ffmpeg_base
-  ffmpeg-av
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  dtools
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  threads.posix
-  unix
-  test_media_formats))
-
-(executable
- (name ffmpeg_get_type_test)
- (modules ffmpeg_get_type_test)
- (libraries
-  liquidsoap_core
-  liquidsoap_optionals
-  liquidsoap_ffmpeg
-  liquidsoap_ffmpeg_base
-  ffmpeg-av
-  ffmpeg-avutil
-  ffmpeg-avcodec
-  dtools
-  mm
-  mm.base
-  mm.audio
-  mm.video
-  mm.image
-  threads.posix
-  unix
-  test_media_formats))
-
-(rule
- (alias ffmpeg_get_type_test)
- (package liquidsoap)
- (deps
-  (glob_files ../media/**)
-  (:test ffmpeg_get_type_test.exe))
- (action
-  (run %{test} ../media)))
-
-(rule
- (alias ffmpeg_stream_description_test)
- (package liquidsoap)
- (deps
-  (glob_files ../media/**)
-  (:test ffmpeg_stream_description_test.exe))
- (target all_media_file_descriptions.json.gen)
- (action
-  (with-stdout-to
-   %{target}
-   (run %{test} ../media))))
-
-(rule
- (alias ffmpeg_stream_description_test)
- (action
-  (diff
-   all_media_file_descriptions.json
-   all_media_file_descriptions.json.gen)))
 
 (executable
  (name ffprobe_process_test)

@@ -521,6 +521,11 @@ CAMLprim value ocaml_av_input_format_name(value _format) {
   CAMLreturn(copy_text(InputFormat_val(_format)->name));
 }
 
+CAMLprim value ocaml_av_input_format_ts_discont(value _format) {
+  CAMLparam1(_format);
+  CAMLreturn(Val_bool(InputFormat_val(_format)->flags & AVFMT_TS_DISCONT));
+}
+
 CAMLprim value ocaml_av_input_format_long_name(value _format) {
   CAMLparam1(_format);
   CAMLreturn(copy_text(InputFormat_val(_format)->long_name));
@@ -810,6 +815,16 @@ CAMLprim value ocaml_av_input_duration(value _container, value _time_format) {
   ocaml_avutil_guard_release_shared(&record->guard);
 
   CAMLreturn(rescaled_option(duration, AV_TIME_BASE_Q, _time_format));
+}
+
+CAMLprim value ocaml_av_input_start_time(value _container, value _time_format) {
+  CAMLparam2(_container, _time_format);
+  container *record = shared(_container);
+  int64_t start_time = record->context->start_time;
+
+  ocaml_avutil_guard_release_shared(&record->guard);
+
+  CAMLreturn(rescaled_option(start_time, AV_TIME_BASE_Q, _time_format));
 }
 
 /* A copy of a dictionary of the container taken under the guard; [index] is
@@ -1838,15 +1853,21 @@ CAMLprim value ocaml_av_stream_send_frame(value _container, value _index,
   CAMLreturn(Val_true);
 }
 
+static value timestamp_option(int64_t timestamp) {
+  if (timestamp == AV_NOPTS_VALUE)
+    return Val_none;
+  return caml_alloc_some(caml_copy_int64(timestamp));
+}
+
 /* Receives the next packet of the stream's encoder and holds it for
-   ocaml_av_write_encoded. Returns 0 with none, 1 with a packet, 2 with a
-   key packet. */
+   ocaml_av_write_encoded. Returns [Nothing], or [Packet (key, pts, dts,
+   time_base)] with the timestamps in the encoder's time base. */
 CAMLprim value ocaml_av_stream_receive_packet(value _container, value _index) {
   CAMLparam2(_container, _index);
+  CAMLlocal3(_result, _pts, _dts);
   container *record = output_stream(_container, _index, 1);
   stream_state *stream = &record->streams[Int_val(_index)];
   int error = 0;
-  int result = 0;
 
   if (!stream->encoded) {
     stream->encoded = av_packet_alloc();
@@ -1862,11 +1883,20 @@ CAMLprim value ocaml_av_stream_receive_packet(value _container, value _index) {
       error = 0;
   }
 
-  if (stream->encoded)
-    result = (stream->encoded->flags & AV_PKT_FLAG_KEY) ? 2 : 1;
+  _result = Val_int(0);
+  if (error >= 0 && stream->encoded) {
+    _pts = timestamp_option(stream->encoded->pts);
+    _dts = timestamp_option(stream->encoded->dts);
+    _result = caml_alloc_tuple(4);
+    Store_field(_result, 0, Val_bool(stream->encoded->flags & AV_PKT_FLAG_KEY));
+    Store_field(_result, 1, _pts);
+    Store_field(_result, 2, _dts);
+    Store_field(_result, 3,
+                ocaml_avutil_value_of_rational(stream->codec->time_base));
+  }
   done(record, error);
 
-  CAMLreturn(Val_int(result));
+  CAMLreturn(_result);
 }
 
 CAMLprim value ocaml_av_write_encoded(value _container, value _index) {

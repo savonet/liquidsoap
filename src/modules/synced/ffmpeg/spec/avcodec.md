@@ -170,7 +170,8 @@ Absent values:
 These are FFmpeg's own sentinels: a duration of 0 and a position of -1 mean
 "unknown" to FFmpeg too, so `Some 0L` and `Some (-1L)` read back as `None`.
 
-`flag_qscale` is `AV_CODEC_FLAG_QSCALE`.
+`flag_qscale` is `AV_CODEC_FLAG_QSCALE`; `flag_global_header` is
+`AV_CODEC_FLAG_GLOBAL_HEADER`.
 
 ## 4. Operations
 
@@ -207,6 +208,7 @@ type descriptor = {
 
 ```ocaml
 val flag_qscale : int
+val flag_global_header : int
 ```
 
 §3.2.
@@ -223,6 +225,19 @@ val descriptor : 'media params -> descriptor option
 ```
 
 The descriptor of the parameters' codec identifier; see "Descriptors" below.
+
+```ocaml
+val params_extradata : _ params -> string
+val params_profile : _ params -> int option
+val params_level : _ params -> int option
+val params_block_align : _ params -> int
+val params_bits_per_coded_sample : _ params -> int
+```
+
+The header fields of the parameters, as `AVCodecParameters` stores them:
+`extradata` byte for byte (empty when absent or of size 0); `profile` and
+`level`, `None` for `AV_PROFILE_UNKNOWN` and `AV_LEVEL_UNKNOWN`;
+`block_align` and `bits_per_coded_sample`, 0 when unset.
 
 ```ocaml
 val time_base : 'media encoder -> Avutil.rational
@@ -458,16 +473,18 @@ val get_nb_channels : audio params -> int
 val get_sample_format : audio params -> Avutil.Sample_format.t
 val get_bit_rate : audio params -> int
 val get_sample_rate : audio params -> int
+val get_initial_padding : audio params -> int
 ```
 
-| Getter               | Returns                           |
-| -------------------- | --------------------------------- |
-| `get_params_id`      | the codec identifier (E3)         |
-| `get_channel_layout` | an independent copy of the layout |
-| `get_nb_channels`    | the channel count of the layout   |
-| `get_sample_format`  | the sample format (E3)            |
-| `get_bit_rate`       | the bit rate                      |
-| `get_sample_rate`    | the sample rate                   |
+| Getter                | Returns                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `get_params_id`       | the codec identifier (E3)                                                                               |
+| `get_channel_layout`  | an independent copy of the layout                                                                       |
+| `get_nb_channels`     | the channel count of the layout                                                                         |
+| `get_sample_format`   | the sample format (E3)                                                                                  |
+| `get_bit_rate`        | the bit rate                                                                                            |
+| `get_sample_rate`     | the sample rate                                                                                         |
+| `get_initial_padding` | the samples of priming the encoder puts before the first input sample (`initial_padding`); 0 when unset |
 
 ### 4.4 `Video`
 
@@ -546,6 +563,26 @@ val get_bit_rate : video params -> int
 | `get_pixel_aspect`        | the same ratio as an option: `None` when unknown      |
 | `get_bit_rate`            | the bit rate                                          |
 
+```ocaml
+val get_video_delay : video params -> int
+type field_order = [ `Unknown | `Progressive | `Tt | `Bb | `Tb | `Bt ]
+val get_field_order : video params -> field_order
+type color = {
+  color_range : Avutil.Color_range.t;
+  color_primaries : Avutil.Color_primaries.t;
+  color_trc : Avutil.Color_trc.t;
+  color_space : Avutil.Color_space.t;
+  chroma_location : Avutil.Chroma_location.t;
+}
+val get_color : video params -> color
+```
+
+| Getter            | Returns                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `get_video_delay` | the reorder delay in frames (`video_delay`); 0 without reordering                  |
+| `get_field_order` | `field_order`, one constructor per `AV_FIELD_*` value; `` `Unknown`` for any other |
+| `get_color`       | the five colour fields of the parameters, per E4                                   |
+
 ### 4.5 `Subtitle`
 
 ```ocaml
@@ -564,9 +601,13 @@ val get_description : _ codec -> string
 val string_of_id : id -> string
 val get_id : _ t -> id
 val get_params_id : subtitle params -> id
+val get_width : subtitle params -> int
+val get_height : subtitle params -> int
 ```
 
 As in `Audio`, for subtitle codecs and the subtitle identifier family.
+`get_width` and `get_height` are the size of the canvas a bitmap subtitle
+codec draws on, 0 when unset.
 Subtitle encoding and decoding go through containers
 ([avformat.md](avformat.md) §4).
 
@@ -606,7 +647,9 @@ empty when it accepts any (E4). `options` is the filter's private option
 class, with no class when the filter has no option.
 
 ```ocaml
-val init : ?opts:opts -> filter -> 'a params -> 'a t * 'a params
+val init :
+  ?opts:opts -> ?time_base:Avutil.rational -> filter -> 'a params ->
+  'a t * 'a params
 ```
 
 Creates and initialises an instance of the filter for input of the given
@@ -615,10 +658,19 @@ parameters, and returns it with a copy of its output parameters.
 - `opts` follows [avutil.md](avutil.md) §9.1. The entries are applied to the
   filter with child search, so that the filter's private options, the ones
   `filter.options` lists, are reached.
-- The input parameters value is not modified. The input time base keeps
+- The input parameters value is not modified. `time_base` is the time base
+  of the packets sent to the instance; without it, the input time base keeps
   FFmpeg's default.
 - A filter FFmpeg does not know raises ``Error `Bsf_not_found``.
 - Any failure releases the instance and raises the mapped error.
+
+```ocaml
+val time_base_out : 'a t -> Avutil.rational
+```
+
+The time base of the packets the instance outputs, fixed by its
+initialisation: often the input time base, a filter that retimes packets
+chooses its own.
 
 ```ocaml
 val send_packet : 'a t -> 'a Packet.t -> unit
@@ -814,7 +866,7 @@ Codecs, parameters and filter descriptors are immutable.
 
 ### 6.3 Global state
 
-The codec lists, the filter list, `version` and `flag_qscale`: computed at
+The codec lists, the filter list, `version` and the two flags: computed at
 module load, immutable afterwards. The library registers no thread; FFmpeg's
 codec worker threads never enter OCaml.
 

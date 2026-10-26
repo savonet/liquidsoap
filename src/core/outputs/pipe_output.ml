@@ -24,13 +24,15 @@
 
 let output = Modules.output
 
-let encoder_factory ?format format_val =
-  let format =
-    match format with Some f -> f | None -> Lang.to_format format_val
-  in
-  try (Encoder.get_factory format) ~hls:false ~pos:(Value.pos format_val)
-  with Not_found ->
-    raise (Error.Invalid_value (format_val, "Unsupported encoding format", []))
+let encoder_factory format_val =
+  let format = Lang.to_format format_val in
+  match Encoder.get_factory format with
+    | factory ->
+        fun name metadata ->
+          factory ~hls:false ~pos:(Value.pos format_val) name metadata
+    | exception Not_found ->
+        raise
+          (Error.Invalid_value (format_val, "Unsupported encoding format", []))
 
 let base_proto =
   ( "export_cover_metadata",
@@ -110,128 +112,6 @@ class virtual base ?clock ~source:source_val ~name p =
           | None -> ()
           | Some encoder -> encoder.Encoder.encode_metadata m)
   end
-
-(** url output: discard encoded data, try to restart on encoding error (can be
-    networking issues etc.) *)
-let url_proto frame_t =
-  base_proto
-  @ [
-      ("url", Lang.string_t, None, Some "Url to output to.");
-      ( "restart_delay",
-        Lang.nullable_t Lang.float_t,
-        Some (Lang.float 2.),
-        Some "If not `null`, restart output on errors after the given delay." );
-      ( "self_sync",
-        Lang.bool_t,
-        Some (Lang.bool false),
-        Some
-          "Should the source control its own synchronization? Set to `true` \
-           for output to e.g. `rtmp` output using `%ffmpeg` and etc." );
-      ("", Lang.format_t frame_t, None, Some "Encoding format.");
-      ("", Lang.source_t frame_t, None, None);
-    ]
-
-let url_callbacks =
-  Lang.
-    [
-      {
-        name = "on_error";
-        params = [];
-        descr = "when an error occurs.";
-        register_deprecated_argument = true;
-        arg_t = [(false, "", Lang.error_t)];
-        register =
-          (fun ~params:_ s f ->
-            s#register_on_error (fun ~bt exn ->
-                let error =
-                  Lang.runtime_error_of_exception ~bt ~kind:"output" exn
-                in
-                f [("", Lang.error error)]));
-      };
-    ]
-
-class url_output p =
-  let url = Lang.to_string (List.assoc "url" p) in
-  let format_val = Lang.assoc "" 1 p in
-  let format = Lang.to_format format_val in
-  let () =
-    if not (Encoder.url_output format) then
-      raise
-        (Error.Invalid_value
-           (format_val, "Encoding format does not support output url!", []))
-  in
-  let format = Encoder.with_url_output format url in
-  let source = Lang.assoc "" 2 p in
-  let restart_delay =
-    Lang.to_valued_option Lang.to_float (List.assoc "restart_delay" p)
-  in
-  let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
-  let name = "output.url" in
-  object (self)
-    inherit base p ~source ~name as base
-    method private encoder_factory = encoder_factory ~format format_val
-    val mutable restart_time = 0.
-    method can_connect = restart_time <= Unix.gettimeofday ()
-    val on_error = Callbacks.create ()
-    method register_on_error fn = Callbacks.register on_error fn
-    method on_error fn = Callbacks.add on_error fn
-
-    method apply_on_error ~bt exn =
-      (try ignore self#close_encoder with _ -> ());
-      Utils.log_exception ~log:self#log
-        ~bt:(Printexc.raw_backtrace_to_string bt)
-        (Printf.sprintf "Error while connecting: %s" (Printexc.to_string exn));
-      List.iter (fun fn -> fn ~bt exn) (Callbacks.elements on_error);
-      match restart_delay with
-        | None -> Printexc.raise_with_backtrace exn bt
-        | Some delay ->
-            restart_time <- Unix.gettimeofday () +. delay;
-            self#log#important "Will try again in %.02f seconds." delay
-
-    val mutable on_start = []
-    method! on_start fn = on_start <- fn :: on_start
-
-    method connect =
-      match self#get_encoder with
-        | None when self#can_connect -> (
-            try
-              self#create_encoder;
-              List.iter (fun fn -> fn ()) on_start
-            with exn ->
-              let bt = Printexc.get_raw_backtrace () in
-              self#apply_on_error ~bt exn)
-        | _ -> ()
-
-    method start = self#connect
-    method stop = ignore self#close_encoder
-
-    method! encode frame =
-      try
-        match self#get_encoder with
-          | None when self#can_connect ->
-              self#connect;
-              base#encode frame
-          | None -> Strings.empty
-          | Some _ -> base#encode frame
-      with exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        self#apply_on_error ~bt exn;
-        Strings.empty
-
-    method write_pipe _ _ _ = ()
-    method private self_sync = (`Static, self#source_sync self_sync)
-  end
-
-let _ =
-  let return_t = Lang.univ_t () in
-  Lang.add_operator ~base:output "url" (url_proto return_t) ~return_t
-    ~category:`Output ~meth:(Start_stop.meth ())
-    ~callbacks:(url_callbacks @ Start_stop.output_callbacks ())
-    ~descr:
-      "Encode and let encoder handle data output. Useful with encoder with no \
-       expected output or to encode to files that need full control from the \
-       encoder, e.g. `%ffmpeg` with `rtmp` output."
-    (fun p -> new url_output p)
 
 (** Piped virtual class: open/close pipe, implements metadata interpolation and
     takes care of the various reload mechanisms. *)
@@ -536,44 +416,6 @@ class file_output ?clock ~format_val p =
     method close_out = close_out
   end
 
-class file_output_using_encoder ?clock ~format_val p =
-  let format = Lang.to_format format_val in
-  let append = Lang.to_bool (List.assoc "append" p) in
-  let on_close = List.assoc "on_close" p in
-  let on_close s = Lang.to_unit (Lang.apply on_close [("", Lang.string s)]) in
-  let p = ("append", Lang.bool true) :: List.remove_assoc "append" p in
-  object (self)
-    inherit piped_output ?clock ~name:"output.file" p as base
-    inherit [unit] chan_output p
-    inherit [unit] file_output_base p
-
-    method open_out_gen mode perm filename =
-      let fd = open_out_gen mode perm filename in
-      close_out fd;
-      ()
-
-    method encoder_factory name meta =
-      (* Make sure the file is created with the right perms. *)
-      let filename, mode, perm = self#prepare_filename in
-      Atomic.set current_filename (Some filename);
-      self#open_out_gen mode perm filename;
-      let format = Encoder.with_file_output ~append format filename in
-      encoder_factory ~format format_val name meta
-
-    method! close_encoder =
-      let ret = base#close_encoder in
-      (try on_close (Option.get (Atomic.get current_filename))
-       with exn ->
-         let bt = Printexc.get_raw_backtrace () in
-         self#reopen_on_error ~bt exn);
-      Atomic.set current_filename None;
-      ret
-
-    method output_substring () _ _ _ = ()
-    method flush () = ()
-    method close_out () = ()
-  end
-
 let file_proto frame_t =
   [
     ( "append",
@@ -605,12 +447,49 @@ let file_proto frame_t =
   ]
   @ chan_proto frame_t "Filename where to output the stream."
 
+(* A %ffmpeg format writes the file itself, so that seekable containers can
+   finalise their header: the output only creates the file and names it. *)
+class ffmpeg_file_output ?clock ~format_val ~format p =
+  let append = Lang.to_bool (List.assoc "append" p) in
+  object
+    inherit piped_output ?clock ~name:"output.file" p
+    inherit [string] chan_output p
+    inherit [string] file_output_base p
+
+    method encoder_factory name metadata =
+      match Atomic.get current_filename with
+        | None -> failwith "output.file: no file is open"
+        | Some filename ->
+            let format =
+              {
+                format with
+                Liquidsoap_ffmpeg_formats.Encoder_format.output =
+                  `Url ("file:" ^ filename);
+                opts =
+                  Liquidsoap_ffmpeg_formats.Encoder_format.set
+                    format.Liquidsoap_ffmpeg_formats.Encoder_format.opts
+                    "truncate"
+                    (`Int (if append then 0 else 1));
+              }
+            in
+            (Encoder.get_factory (Encoder.Ffmpeg format))
+              ~hls:false ~pos:(Value.pos format_val) name metadata
+
+    method open_out_gen _ perm filename =
+      Unix.close (Unix.openfile filename [Unix.O_WRONLY; Unix.O_CREAT] perm);
+      filename
+
+    method output_substring _ _ _ _ = ()
+    method flush _ = ()
+    method close_out _ = ()
+  end
+
 let new_file_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
-  let format = Lang.to_format format_val in
-  if Encoder.file_output format then
-    (new file_output_using_encoder ?clock ~format_val p :> piped_output)
-  else (new file_output ?clock ~format_val p :> piped_output)
+  match Lang.to_format format_val with
+    | Encoder.Ffmpeg format ->
+        (new ffmpeg_file_output ?clock ~format_val ~format p :> piped_output)
+    | _ -> (new file_output ?clock ~format_val p :> piped_output)
 
 let output_file =
   let return_t = Lang.univ_t () in

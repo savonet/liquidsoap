@@ -118,7 +118,14 @@ let settings_module =
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              (fn conf)#set (conv_from (List.assoc "" p));
+              (try (fn conf)#set (conv_from (List.assoc "" p))
+               with Dtools.Conf.Invalid_Value _ ->
+                 Lang.raise_error ~pos:(Lang.pos p)
+                   ~message:
+                     (Printf.sprintf "Invalid value for setting %S. %s"
+                        (String.trim conf#descr)
+                        (String.trim (String.concat " " conf#comments)))
+                   "invalid");
               Lang.unit)
         in
         let set_default =

@@ -26,6 +26,9 @@ module Format = struct
   external get_input_long_name : (input, _) format -> string
     = "ocaml_av_input_format_long_name"
 
+  external input_ts_discont : (input, _) format -> bool
+    = "ocaml_av_input_format_ts_discont"
+
   external get_output_name : (output, _) format -> string
     = "ocaml_av_output_format_name"
 
@@ -150,6 +153,12 @@ external input_duration : input container -> Time_format.t -> Int64.t option
 
 let get_input_duration ?(format = `Second) container =
   input_duration container format
+
+external input_start_time : input container -> Time_format.t -> Int64.t option
+  = "ocaml_av_input_start_time"
+
+let get_input_start_time ?(format = `Second) container =
+  input_start_time container format
 
 external metadata : _ container -> int -> (string * string) list
   = "ocaml_av_metadata"
@@ -523,9 +532,18 @@ let write_packet stream time_base packet =
 
 (* The steps of [write_frame]: a send answers [false] when the encoder wants
    its output read first; a receive holds the packet on the C side until
-   [write_encoded], so that [on_keyframe] runs before the muxer gets it. *)
+   [write_encoded], so that [on_packet] runs before the muxer gets it. *)
 
-type received = Nothing | Packet | Key_packet
+type encoded_packet = {
+  key : bool;
+  pts : Int64.t option;
+  dts : Int64.t option;
+  time_base : rational;
+}
+
+type received =
+  | Nothing
+  | Packet of bool * Int64.t option * Int64.t option * rational
 
 external send_frame : output container -> int -> _ frame option -> bool
   = "ocaml_av_stream_send_frame"
@@ -536,25 +554,32 @@ external receive_packet : output container -> int -> received
 external write_encoded : output container -> int -> unit
   = "ocaml_av_write_encoded"
 
-let rec write_available ?on_keyframe container index =
+let rec write_available ?on_packet container index =
   match receive_packet container index with
     | Nothing -> ()
-    | Packet ->
+    | Packet (key, pts, dts, time_base) ->
+        let notified =
+          match
+            Option.iter
+              (fun notify -> notify { key; pts; dts; time_base })
+              on_packet
+          with
+            | () -> None
+            | exception exn -> Some (exn, Printexc.get_raw_backtrace ())
+        in
         write_encoded container index;
-        write_available ?on_keyframe container index
-    | Key_packet ->
-        Fun.protect
-          ~finally:(fun () -> write_encoded container index)
-          (fun () -> Option.iter (fun notify -> notify ()) on_keyframe);
-        write_available ?on_keyframe container index
+        Option.iter
+          (fun (exn, bt) -> Printexc.raise_with_backtrace exn bt)
+          notified;
+        write_available ?on_packet container index
 
-let write_frame ?on_keyframe { container; index } frame =
+let write_frame ?on_packet { container; index } frame =
   let rec send () =
-    write_available ?on_keyframe container index;
+    write_available ?on_packet container index;
     if not (send_frame container index (Some frame)) then send ()
   in
   send ();
-  write_available ?on_keyframe container index
+  write_available ?on_packet container index
 
 external write_subtitle : output container -> int -> Subtitle.frame -> unit
   = "ocaml_av_write_subtitle"

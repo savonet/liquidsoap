@@ -114,6 +114,9 @@ module Frame_side_data : sig
   (** The kinds whose content the bindings translate. *)
   type t = [ `Display_matrix of Display_matrix.t ]
 
+  (** Every kind of the installed headers, in FFmpeg's enumeration order. *)
+  val kinds : kind list
+
   (** FFmpeg's name of the kind, empty when it has none. *)
   val name : kind -> string
 
@@ -380,6 +383,10 @@ module Log : sig
       [f] is kept alive until it is replaced or cleared and its last message is
       delivered. *)
   val set_callback : (string -> unit) -> unit
+
+  (** As {!set_callback}, with each message's level: FFmpeg's numeric level
+      mapped to the named level at or above it in severity. *)
+  val set_callback_with_level : (level -> string -> unit) -> unit
 
   (** [clear_callback ()] restores FFmpeg's default logging and drops the
       installed callback.
@@ -793,6 +800,17 @@ module Video : sig
     color_trc : Color_trc.t;
     chroma_location : Chroma_location.t;
   }
+
+  (** [frame_set_colors frame format] sets the colour space, range, primaries,
+      transfer characteristic and chroma location of [frame] to those of
+      [format]. A frame shared with others is changed for all of them: set it
+      only on a frame the caller owns. *)
+  val frame_set_colors : video frame -> frame_format -> unit
+
+  (** [frame_force_keyframe frame] marks [frame] as an intra picture that the
+      encoder it is given to makes a key frame. A frame shared with others is
+      changed for all of them: mark only a frame the caller owns. *)
+  val frame_force_keyframe : video frame -> unit
 
   (** The format of the frame.
 

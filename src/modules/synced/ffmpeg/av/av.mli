@@ -63,6 +63,10 @@ module Format : sig
   (** The descriptive name of an input format. *)
   val get_input_long_name : (input, _) format -> string
 
+  (** Whether the input format declares timestamp discontinuities legitimate
+      (FFmpeg's [AVFMT_TS_DISCONT] flag), as MPEG-TS does. *)
+  val input_ts_discont : (input, _) format -> bool
+
   (** The name of an output format. It may be a comma-separated list of aliases.
   *)
   val get_output_name : (output, _) format -> string
@@ -220,6 +224,14 @@ val open_input_stream :
 
     @param format defaults to [`Second]. *)
 val get_input_duration :
+  ?format:Time_format.t -> input container -> Int64.t option
+
+(** The start time of the input (the timestamp of its first frame, as FFmpeg
+    reports it) in units of [format], rounded to the nearest unit. [None] when
+    FFmpeg does not know it, and when it rounds to 0.
+
+    @param format defaults to [`Second]. *)
+val get_input_start_time :
   ?format:Time_format.t -> input container -> Int64.t option
 
 (** The metadata of the container, as key and value pairs in the order FFmpeg
@@ -701,6 +713,16 @@ val write_packet :
   'media Avcodec.Packet.t ->
   unit
 
+(** A packet an encoder produced, as {!write_frame} reports it before the muxer
+    receives it: its key flag, and its timestamps in [time_base], the time base
+    of the stream's encoder. *)
+type encoded_packet = {
+  key : bool;
+  pts : Int64.t option;
+  dts : Int64.t option;
+  time_base : Avutil.rational;
+}
+
 (** [write_frame stream frame] encodes [frame] with the encoder of the stream
     and writes every packet that becomes available. The header of the output is
     written first when it is not written yet. It blocks while FFmpeg encodes and
@@ -712,16 +734,16 @@ val write_packet :
     holds. With a hardware frame context the frame is uploaded first, its
     properties included. [frame] is unchanged.
 
-    @param on_keyframe
-      called, on the calling thread, before each key packet is given to the
-      muxer. The position {!tell} reports at that moment is the start of that
-      key packet. The container is not in use while it runs: it may call
-      {!flush} or {!tell} on it. When it raises, the key packet is written, then
-      the exception propagates; packets still in the encoder are written by the
-      next write or by {!close}.
+    @param on_packet
+      called, on the calling thread, before each packet is given to the muxer.
+      The position {!tell} reports at that moment is the start of that packet.
+      The container is not in use while it runs: it may call {!flush} or {!tell}
+      on it. When it raises, the packet is written, then the exception
+      propagates; packets still in the encoder are written by the next write or
+      by {!close}.
     @raise Error with [`Failure] when the stream has no encoder. *)
 val write_frame :
-  ?on_keyframe:(unit -> unit) ->
+  ?on_packet:(encoded_packet -> unit) ->
   (output, 'media, [ `Frame ]) stream ->
   'media frame ->
   unit

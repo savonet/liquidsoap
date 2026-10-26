@@ -110,6 +110,11 @@ type descriptor = {
     qscale"). It is read once, when this module is loaded. *)
 val flag_qscale : int
 
+(** The integer value of FFmpeg's [AV_CODEC_FLAG_GLOBAL_HEADER] codec flag
+    ("place global headers in extradata"). It is read once, when this module is
+    loaded. *)
+val flag_global_header : int
+
 (** [params encoder] is a fresh, independent snapshot of the encoder's
     parameters, as FFmpeg derives them from the opened codec context. It is what
     a container needs to declare the stream the encoder produces.
@@ -224,6 +229,9 @@ module Packet_side_data : sig
     | `Display_matrix of Avutil.Display_matrix.t
     | `Frame_cropping of cropping ]
 
+  (** Every kind of the installed headers, in FFmpeg's enumeration order. *)
+  val kinds : kind list
+
   (** FFmpeg's name of the kind, empty when it has none. *)
   val name : kind -> string
 
@@ -253,6 +261,23 @@ end
     order. An entry whose kind the bindings have no constructor for is left out.
 *)
 val params_side_data : _ params -> Packet_side_data.raw list
+
+(** The codec's extradata (for instance an AudioSpecificConfig or an H.264
+    [avcC] record, or Annex-B parameter sets), byte for byte. The empty string
+    when the parameters have none. *)
+val params_extradata : _ params -> string
+
+(** The codec profile, an [AV_PROFILE_*] value; [None] when unknown. *)
+val params_profile : _ params -> int option
+
+(** The codec level; [None] when unknown. *)
+val params_level : _ params -> int option
+
+(** The block alignment, in bytes; 0 when unset. *)
+val params_block_align : _ params -> int
+
+(** The number of bits per coded sample; 0 when unset. *)
+val params_bits_per_coded_sample : _ params -> int
 
 (** [params_with_side_data params l] is an independent copy of [params] whose
     side data is exactly [l], in order. A kind that appears twice keeps its last
@@ -646,6 +671,10 @@ module Audio : sig
 
   (** [get_sample_rate params] is the sample rate of the stream, in Hz. *)
   val get_sample_rate : audio params -> int
+
+  (** [get_initial_padding params] is the number of priming samples per channel
+      the encoder puts before the first input sample; 0 when unset. *)
+  val get_initial_padding : audio params -> int
 end
 
 (** Video codecs: lookup, supported configurations, decoders, encoders and the
@@ -880,6 +909,29 @@ module Video : sig
   (** [get_bit_rate params] is the average bit rate of the encoded stream, in
       bits per second. *)
   val get_bit_rate : video params -> int
+
+  (** The number of frames the decoder outputs late because of reordering
+      (B-frames); 0 for a stream without reordering. *)
+  val get_video_delay : video params -> int
+
+  (** The field order of interlaced video; [`Unknown] when unset. [`Tt]: top
+      field coded and displayed first; [`Bb]: bottom first; [`Tb]: top coded
+      first, bottom displayed first; [`Bt]: the reverse. *)
+  type field_order = [ `Unknown | `Progressive | `Tt | `Bb | `Tb | `Bt ]
+
+  val get_field_order : video params -> field_order
+
+  (** The colour properties of the stream, as the codec parameters store them.
+  *)
+  type color = {
+    color_range : Avutil.Color_range.t;
+    color_primaries : Avutil.Color_primaries.t;
+    color_trc : Avutil.Color_trc.t;
+    color_space : Avutil.Color_space.t;
+    chroma_location : Avutil.Chroma_location.t;
+  }
+
+  val get_color : video params -> color
 end
 
 (** Subtitle codecs: lookup only. This module builds no subtitle decoder or
@@ -958,6 +1010,11 @@ module Subtitle : sig
       @raise Avutil.Error
         with [`Failure _] when the identifier is outside {!id}. *)
   val get_params_id : subtitle params -> id
+
+  (** The size of the canvas a bitmap subtitle codec draws on, 0 when unset. *)
+  val get_width : subtitle params -> int
+
+  val get_height : subtitle params -> int
 end
 
 (** The formats FFmpeg places in none of the audio, video and subtitle families.
@@ -1026,25 +1083,38 @@ module BitstreamFilter : sig
       built once, when this module is loaded. *)
   val filters : filter list
 
-  (** [init ?opts filter params] creates and initialises an instance of [filter]
-      for a stream of parameters [params]. It returns the instance and the
-      parameters of the stream the instance outputs.
+  (** [init ?opts ?time_base filter params] creates and initialises an instance
+      of [filter] for a stream of parameters [params]. It returns the instance
+      and the parameters of the stream the instance outputs.
 
       [params] is copied into the instance and is not modified. The returned
-      parameters are an independent copy. The input time base keeps FFmpeg's
-      default. Initialisation releases the OCaml runtime lock. On failure
-      everything allocated is released and [opts] is untouched.
+      parameters are an independent copy. Initialisation releases the OCaml
+      runtime lock. On failure everything allocated is released and [opts] is
+      untouched.
 
       @param opts
         Options for the filter, among those [filter.options] lists. After a
         successful call the table holds exactly the entries the filter did not
         consume, so a key still in it was not used. No table means no option and
         nothing reported.
+      @param time_base
+        The time base of the packets sent to the instance. FFmpeg's default
+        without it.
       @raise Avutil.Error
         with [`Bsf_not_found] when FFmpeg has no filter of that name, and with
         the mapped FFmpeg code when an option value is rejected or the filter
         fails to initialise. *)
-  val init : ?opts:opts -> filter -> 'a params -> 'a t * 'a params
+  val init :
+    ?opts:opts ->
+    ?time_base:Avutil.rational ->
+    filter ->
+    'a params ->
+    'a t * 'a params
+
+  (** The time base of the packets the instance outputs, fixed by its
+      initialisation: often the input time base; a filter that retimes packets
+      chooses its own. *)
+  val time_base_out : 'a t -> Avutil.rational
 
   (** [send_packet filter packet] gives [packet] to the filter. The filter takes
       a reference of its own to the payload: [packet] is unchanged and stays

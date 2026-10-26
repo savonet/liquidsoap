@@ -856,12 +856,15 @@ let requirement_3_16 () =
   let output = Av.open_output path in
   let stream = video_stream ~bindings:[("g", `Int 5); ("bf", `Int 0)] output in
   let positions = ref [] in
-  let on_keyframe () =
-    Av.flush output;
-    positions := Option.get (Av.tell output) :: !positions
+  let timestamps = ref [] in
+  let on_packet (packet : Av.encoded_packet) =
+    timestamps := packet.pts :: !timestamps;
+    if packet.key then (
+      Av.flush output;
+      positions := Option.get (Av.tell output) :: !positions)
   in
   for index = 0 to 29 do
-    Av.write_frame ~on_keyframe stream (picture index)
+    Av.write_frame ~on_packet stream (picture index)
   done;
   Av.close output;
   let keys = key_picture_offsets (read_file path) in
@@ -869,24 +872,63 @@ let requirement_3_16 () =
   let show l = String.concat "," (List.map string_of_int l) in
   equal keys (List.rev !positions)
     (Printf.sprintf
-       "every position recorded by on_keyframe is the start of a key packet: \
+       "every position recorded at a key packet is the start of a key packet: \
         %s / %s"
        (show keys)
        (show (List.rev !positions)));
+  let timestamps = List.rev !timestamps in
+  check
+    (List.length timestamps > 0
+    && List.for_all Option.is_some timestamps
+    && List.sort compare timestamps = timestamps)
+    "on_packet reports each packet written so far with its timestamp, in order";
   let output = Av.open_output (file "raising.m4v") in
   let stream = video_stream ~bindings:[("g", `Int 5); ("bf", `Int 0)] output in
   raises
     (fun exn -> exn = Exit)
-    "an exception of on_keyframe"
+    "an exception of on_packet"
     (fun () ->
-      Av.write_frame ~on_keyframe:(fun () -> raise Exit) stream (picture 0));
+      Av.write_frame ~on_packet:(fun _ -> raise Exit) stream (picture 0));
   for index = 1 to 9 do
     Av.write_frame stream (picture index)
   done;
   Av.close output;
   equal 10
     (List.length (video_frames (Av.open_input (file "raising.m4v"))))
-    "the key packet is written although on_keyframe raised"
+    "the packet is written although on_packet raised";
+  let output = Av.open_output (file "forced.m4v") in
+  let stream =
+    video_stream ~bindings:[("g", `Int 1000); ("bf", `Int 0)] output
+  in
+  let keys = ref [] in
+  let on_packet (packet : Av.encoded_packet) =
+    if packet.key then keys := Option.get packet.pts :: !keys
+  in
+  for index = 0 to 19 do
+    let frame = picture index in
+    if index = 10 then Avutil.Video.frame_force_keyframe frame;
+    Av.write_frame ~on_packet stream frame
+  done;
+  Av.close output;
+  equal [0L; 10L] (List.rev !keys)
+    "frame_force_keyframe makes the encoder start a key frame at that picture";
+  let failing = ref false in
+  let write _ _ length = if !failing then -5 else length in
+  let output = Av.open_output_stream write (mpegts ()) in
+  let stream = video_stream ~bindings:[("g", `Int 5); ("bf", `Int 0)] output in
+  Av.write_frame stream (picture 0);
+  failing := true;
+  (* Packets reach the write callback once the I/O buffer fills. *)
+  let rec until_a_write_fails index =
+    if index < 300 then (
+      match
+        Av.write_frame ~on_packet:(fun _ -> raise Exit) stream (picture index)
+      with
+        | () | (exception Exit) -> until_a_write_fails (index + 1))
+  in
+  raises is_error "a failed write raises its own error, over on_packet's"
+    (fun () -> until_a_write_fails 1);
+  try Av.close output with Error _ -> ()
 
 let requirement_3_17 () =
   let write_to ?opts path =

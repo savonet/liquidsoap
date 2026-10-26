@@ -122,6 +122,9 @@ type cropping = { top : int; bottom : int; left : int; right : int }
 
 module Frame_side_data = struct
   type kind = Frame_side_data_type.t
+
+  let kinds : kind list = Frame_side_data_type.t
+
   type prop = Side_data_prop.t
   type raw = { kind : kind; data : string }
   type t = [ `Display_matrix of Display_matrix.t ]
@@ -243,9 +246,24 @@ module Log = struct
   external log : level -> string -> unit = "ocaml_avutil_log"
   external start_capture : unit -> int = "ocaml_avutil_log_start_capture"
   external stop_capture : unit -> int = "ocaml_avutil_log_stop_capture"
-  external wait : unit -> string array = "ocaml_avutil_log_wait"
+  external wait : unit -> (int * string) array = "ocaml_avutil_log_wait"
 
-  type receiver = { first : int; mutable last : int; callback : string -> unit }
+  (* FFmpeg's levels are integers, with values between the named ones. *)
+  let level_of_int l : level =
+    if l <= 0 then `Panic
+    else if l <= 8 then `Fatal
+    else if l <= 16 then `Error
+    else if l <= 24 then `Warning
+    else if l <= 32 then `Info
+    else if l <= 40 then `Verbose
+    else if l <= 48 then `Debug
+    else `Trace
+
+  type receiver = {
+    first : int;
+    mutable last : int;
+    callback : level -> string -> unit;
+  }
 
   type state = {
     mutable receivers : receiver list;
@@ -263,7 +281,7 @@ module Log = struct
     state.receivers <-
       List.filter (fun r -> r.last > state.delivered) state.receivers
 
-  let deliver message =
+  let deliver (level, message) =
     let receiver =
       Mutex.protect mutex (fun () ->
           List.find_opt
@@ -273,7 +291,7 @@ module Log = struct
     (match receiver with
       | None -> ()
       | Some { callback; _ } -> (
-          try callback message
+          try callback (level_of_int level) message
           with exn ->
             Printf.eprintf "Avutil.Log: the log callback raised %s\n%!"
               (Printexc.to_string exn)));
@@ -288,7 +306,7 @@ module Log = struct
 
   (* ponytail: the delivery thread belongs to the domain of the first
      [set_callback]; a dedicated domain if that domain may terminate. *)
-  let set_callback callback =
+  let set_callback_with_level callback =
     Mutex.protect mutex (fun () ->
         let first = start_capture () in
         close_receivers first;
@@ -296,6 +314,9 @@ module Log = struct
           { first; last = max_int; callback } :: state.receivers;
         if state.delivery_thread = None then
           state.delivery_thread <- Some (Thread.create delivery_loop ()))
+
+  let set_callback callback =
+    set_callback_with_level (fun _ message -> callback message)
 
   let on_delivery_thread () =
     match state.delivery_thread with
@@ -516,6 +537,12 @@ module Video = struct
     color_trc : Color_trc.t;
     chroma_location : Chroma_location.t;
   }
+
+  external frame_set_colors : video frame -> frame_format -> unit
+    = "ocaml_avutil_video_frame_set_colors"
+
+  external frame_force_keyframe : video frame -> unit
+    = "ocaml_avutil_video_frame_force_keyframe"
 
   let frame_format frame =
     {

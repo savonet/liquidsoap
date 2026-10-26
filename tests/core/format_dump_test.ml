@@ -27,9 +27,9 @@ let () =
       Content.(default_format Midi.kind);
       Content.Metadata.format;
       Content.Track_marks.format;
-      Content.default_format Ffmpeg_copy_content.kind;
-      Content.default_format Ffmpeg_raw_content.Audio.kind;
-      Content.default_format Ffmpeg_raw_content.Video.kind;
+      Content.default_format Liquidsoap_ffmpeg.Ffmpeg_content.Copy.kind;
+      Content.default_format Liquidsoap_ffmpeg.Ffmpeg_content.Audio.kind;
+      Content.default_format Liquidsoap_ffmpeg.Ffmpeg_content.Video.kind;
     ]
 
 let () = print_newline ()

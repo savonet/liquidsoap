@@ -1,0 +1,31 @@
+; The FFmpeg layer: content data, decoders, the %ffmpeg encoder, filters and
+; I/O, over the OCaml FFmpeg bindings. Linking it registers everything.
+
+(include_subdirs unqualified)
+
+(library
+ (name liquidsoap_ffmpeg)
+ (library_flags (-linkall))
+ (flags (:standard))
+ (libraries
+  dtools
+  duppy
+  ffmpeg-av
+  ffmpeg-avcodec
+  ffmpeg-avdevice
+  ffmpeg-avfilter
+  ffmpeg-avutil
+  ffmpeg-swresample
+  ffmpeg-swscale
+  liquidsoap_core
+  liquidsoap_ffmpeg_formats
+  metadata
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  re
+  threads.posix
+  unix)
+ (optional))

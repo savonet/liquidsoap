@@ -23,6 +23,23 @@
 * Add `Avutil.Video.frame_format` and `Avutil.Audio.frame_format`: what a
   consumer of frames is configured for, with `same_frame_format` to tell when
   it needs setting up again, and `Avfilter.Utils.video_buffer_args`.
+* `Av.write_frame` takes `?on_packet`, called before each packet reaches the
+  muxer with its key flag and timestamps, in place of `?on_keyframe`, which
+  reported key packets only and without their time. A packet whose write
+  fails raises the write's `Error`, also when `on_packet` raised.
+* Add `Avutil.Video.frame_force_keyframe`, which makes the encoder start a key
+  frame at that picture, and `Avutil.Video.frame_set_colors`.
+* Add `BitstreamFilter.init ?time_base`, the input time base of the filter,
+  and `BitstreamFilter.time_base_out`.
+* Add `Packet_side_data.kinds` and `Frame_side_data.kinds`, every side-data
+  kind of the installed headers, to look a kind up by name.
+* Add codec parameter readers: `Avcodec.params_extradata`, `params_profile`,
+  `params_level`, `params_block_align`, `params_bits_per_coded_sample`,
+  `Video.get_video_delay`, `get_field_order` and `get_color`,
+  `Audio.get_initial_padding`, and
+  `Subtitle.get_width` and `get_height`.
+* Add `Avcodec.flag_global_header`, `Av.get_input_start_time`,
+  `Av.Format.input_ts_discont` and `Avutil.Log.set_callback_with_level`.
 * Add a conformance test suite, run with `dune build @ffmpeg_citest`.
 * Remove the examples.
 

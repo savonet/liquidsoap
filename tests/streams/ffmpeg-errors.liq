@@ -9,7 +9,11 @@ def f() =
       "Avutil.Error(No such file or directory)"
     )
     let [..._, {filename}] = e.trace
-    test.equal(filename, "src/core/optionals/ffmpeg/io/ffmpeg_io.ml")
+    test.equal(
+      string.contains(prefix="src/core/optionals/ffmpeg/", filename)
+      and string.contains(suffix=".ml", filename),
+      true
+    )
     test.pass()
   end
 
