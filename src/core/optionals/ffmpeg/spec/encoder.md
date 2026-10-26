@@ -533,11 +533,20 @@ are in [io.md §1.4](io.md#14-outputurl) and [io.md §11](io.md#11-outputurl).
   For Matroska, WebM and MP4 a reader needs to start at a cluster or fragment
   boundary, which the encoder does not mark;
   `dedicated_encoder=true` gives each listener its own container.
+- `restart_offset ()` is the offset, in the bytes the latest `encode` or
+  `stop` returned, at which the last restart's new container begins (§13.2);
+  none when those bytes hold no restart. Harbor starts a late listener's burst
+  there when the burst would otherwise begin in the previous container: an Ogg
+  link carries its own header pages, and the previous link's pages cannot
+  follow the new link's header.
 
 **Conformance.**
 
 - An Ogg/Opus `output.harbor` listener connecting after the burst no longer
   holds the stream's start receives `OpusHead` first, and its stream decodes.
+- An Ogg/Opus `output.harbor` stream whose metadata changes every second,
+  with a burst shorter than the stream so far: a late listener's first pages
+  are a link's header pages, and no page of an earlier link follows them.
 
 ## 11. Failure behaviour summary
 

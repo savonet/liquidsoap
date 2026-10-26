@@ -64,7 +64,9 @@ type hls = {
 
 (* [header] is the current container's header (encoder.md §10): [`Pending
    start] until its first packet, [start] being where its bytes begin in
-   [buffer]. *)
+   [buffer]. [link_start] is where the last restart's container begins in
+   [buffer], and [returned_link_start] the same offset in the bytes last
+   returned. *)
 type t = {
   log : Log.t;
   format : F.t;
@@ -77,6 +79,8 @@ type t = {
   mutable position : int;
   mutable hls : hls option;
   mutable header : [ `Pending of int | `Captured of Strings.t ];
+  mutable link_start : int option;
+  mutable returned_link_start : int option;
 }
 
 let convert_container_opts pos opts =
@@ -243,6 +247,8 @@ let encoded_tracks c =
 let take t =
   let s = Buffer.contents t.buffer in
   Buffer.clear t.buffer;
+  t.returned_link_start <- t.link_start;
+  t.link_start <- None;
   (match t.header with
     | `Pending _ -> t.header <- `Pending 0
     | `Captured _ -> ());
@@ -436,7 +442,9 @@ let restart t =
     open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
       ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:(t.hls = None) ();
   t.header <- `Pending (Buffer.length t.buffer);
-  if t.hls = None then t.position <- 0;
+  if t.hls = None then (
+    t.link_start <- Some (Buffer.length t.buffer);
+    t.position <- 0);
   t.state <- `Built;
   Av.set_output_metadata t.current.output t.metadata;
   Option.iter
@@ -498,6 +506,7 @@ let encode_metadata t m =
         else t.log#debug "Metadata update not carried by this container"
 
 let stop t =
+  t.returned_link_start <- None;
   match t.state with
     | `Stopped -> Strings.empty
     | `Failed _ ->
@@ -712,6 +721,8 @@ let create ?(hls = false) ?interrupt ~pos ~name metadata format =
       position = 0;
       hls = None;
       header = `Pending 0;
+      link_start = None;
+      returned_link_start = None;
     }
   in
   self := Some t;
@@ -742,7 +753,7 @@ let create ?(hls = false) ?interrupt ~pos ~name metadata format =
     hls = hls_value;
     encode = encode t;
     stop = (fun () -> stop t);
-    restart_offset = (fun () -> None);
+    restart_offset = (fun () -> t.returned_link_start);
   }
 
 let () =
