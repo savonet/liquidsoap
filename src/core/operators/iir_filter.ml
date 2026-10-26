@@ -423,7 +423,10 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
         done;
         !result
       in
+      let frame_offs = v_offs in
       for c = 0 to self#audio_channels - 1 do
+        (* Channels share the offset: each one replays the frame from its start. *)
+        v_offs <- frame_offs;
         let xvc = xv.(c) in
         let yvc = yv.(c) in
         let bc = b.(c) in
