@@ -1,14 +1,15 @@
 %include "../test.liq"
 
 # At 882-sample frames, a history offset shared by the channels diverges on stereo.
+# Order 8 at 30 Hz diverges when run as one high-order polynomial.
 settings.frame.audio.samplerate := 44100
 settings.frame.duration := 0.02
-pending = ref(2)
+pending = ref(3)
 failed = ref(false)
 
-def check(frequency) =
+def check(~order=4, frequency) =
   s = once(sine(amplitude=0.5, duration=3., 1000.))
-  s = filter.iir.butterworth.high(frequency=frequency, s)
+  s = filter.iir.butterworth.high(frequency=frequency, order=order, s)
   s = peak(duration=settings.frame.duration(), s)
   max_peak = ref(0.)
   frames = ref(0)
@@ -29,7 +30,9 @@ def check(frequency) =
     fun () ->
       begin
         print(
-          "#{frequency} Hz: frames: #{frames()}, max peak: #{max_peak()}"
+          "#{frequency} Hz, order #{order}: frames: #{frames()}, max peak: #{
+            max_peak()
+          }"
         )
         if frames() <= 100 or max_peak() >= 0.7 then failed := true end
         pending := pending() - 1
@@ -44,3 +47,4 @@ end
 
 check(30.)
 check(300.)
+check(order=8, 30.)

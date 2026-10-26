@@ -26,6 +26,46 @@ open Complex
 type filter_type = Band_stop | Band_pass | High_pass | Low_pass | All_pass
 type filter_family = Butterworth | Resonator
 
+(** A second-order section [(1 + b1 z^-1 + b2 z^-2) / (1 + a1 z^-1 + a2 z^-2)]
+    and its transposed direct form II state. *)
+type section = { b1 : float; b2 : float; a1 : float; a2 : float }
+
+type section_state = { mutable s1 : float; mutable s2 : float }
+
+(* A filter expanded into one high-order polynomial moves its poles outside
+   the unit circle by rounding at low corners: it runs as a cascade instead. *)
+let quadratic_factors roots =
+  let is_real z = Float.abs z.im <= 1e-10 *. (1. +. Complex.norm z) in
+  let conjugate_pairs =
+    List.filter_map
+      (fun z ->
+        if is_real z || z.im < 0. then None
+        else Some (-2. *. z.re, Complex.norm2 z))
+      roots
+  in
+  let rec real_pairs = function
+    | r1 :: r2 :: roots -> (-.(r1 +. r2), r1 *. r2) :: real_pairs roots
+    | [r] -> [(-.r, 0.)]
+    | [] -> []
+  in
+  conjugate_pairs
+  @ real_pairs
+      (List.filter_map (fun z -> if is_real z then Some z.re else None) roots)
+
+let make_sections ~zeros ~poles =
+  let rec zip zeros poles =
+    match (zeros, poles) with
+      | [], [] -> []
+      | (b1, b2) :: zeros, (a1, a2) :: poles ->
+          { b1; b2; a1; a2 } :: zip zeros poles
+      | [], (a1, a2) :: poles -> { b1 = 0.; b2 = 0.; a1; a2 } :: zip [] poles
+      | (b1, b2) :: zeros, [] -> { b1; b2; a1 = 0.; a2 = 0. } :: zip zeros []
+  in
+  Array.of_list
+    (zip
+       (quadratic_factors (Array.to_list zeros))
+       (quadratic_factors (Array.to_list poles)))
+
 class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
   =
   let rate = float (Frame.audio_of_seconds 1.) in
@@ -49,19 +89,11 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
     val mutable zplane_numpoles = 0
     val mutable zplane_zeros = [||]
     val mutable zplane_numzeros = 0
-    val mutable topcoeffs = [||]
-    val mutable botcoeffs = [||]
     val mutable dc_gain = { re = 0.; im = 0. }
     val mutable fc_gain = { re = 0.; im = 0. }
     val mutable hf_gain = { re = 0.; im = 0. }
-
-    (* Coefficients *)
-    val mutable xcoeffs = [||]
-    val mutable ycoeffs = [||]
-
-    (* I/O shift registries *)
-    val mutable xv = [||]
-    val mutable yv = [||]
+    val mutable sections = [||]
+    val mutable states = [||]
     initializer self#on_wake_up (fun () -> self#initialize)
 
     method private initialize =
@@ -158,9 +190,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
                         [| { re = 0.; im = w0.re }; { re = 0.; im = -.w0.re } |]
                   done;
                   splane_numpoles <- splane_numpoles * 2;
-                  splane_numzeros <- splane_numpoles;
-                  xv <- Array.make_matrix channels ((order * 2) + 1) 0.;
-                  yv <- Array.make_matrix channels ((order * 2) + 1) 0.
+                  splane_numzeros <- splane_numpoles
               | Band_pass ->
                   (* Band-pass filter *)
                   self#log#info "This is a band-pass filter.";
@@ -177,9 +207,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
                     splane_zeros <- Array.append splane_zeros [| cor 0. |]
                   done;
                   splane_numzeros <- splane_numpoles;
-                  splane_numpoles <- splane_numpoles * 2;
-                  xv <- Array.make_matrix channels ((order * 2) + 1) 0.;
-                  yv <- Array.make_matrix channels ((order * 2) + 1) 0.
+                  splane_numpoles <- splane_numpoles * 2
               | High_pass ->
                   (* Hi-pass filter *)
                   self#log#info "This is a hi-pass filter.";
@@ -190,18 +218,14 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
                     (* also N zeros at (0,0) *)
                     splane_zeros <- Array.append splane_zeros [| cor 0. |]
                   done;
-                  splane_numzeros <- splane_numpoles;
-                  xv <- Array.make_matrix channels (order + 1) 0.;
-                  yv <- Array.make_matrix channels (order + 1) 0.
+                  splane_numzeros <- splane_numpoles
               | Low_pass ->
                   (* Lo-pass filter *)
                   self#log#info "This is a lo-pass filter.";
                   for i = 0 to splane_numpoles - 1 do
                     splane_poles.(i) <- splane_poles.(i) *~ w1
                   done;
-                  splane_numzeros <- 0;
-                  xv <- Array.make_matrix channels (order + 1) 0.;
-                  yv <- Array.make_matrix channels (order + 1) 0.
+                  splane_numzeros <- 0
               | _ -> assert false
             end;
 
@@ -277,7 +301,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
               zplane_poles <- [| zp; Complex.conj zp |])
             else (
               (* must iterate to find exact pole positions *)
-              topcoeffs <- expand zplane_zeros zplane_numzeros;
+              let topcoeffs = expand zplane_zeros zplane_numzeros in
               let r = exp (cor (-.theta /. (2. *. qfactor)))
               and thm = ref theta
               and th1 = ref 0.
@@ -286,7 +310,7 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
               for _ = 0 to 50 do
                 let zp = r *~ { re = cos !thm; im = sin !thm } in
                 zplane_poles <- [| zp; Complex.conj zp |];
-                botcoeffs <- expand zplane_poles zplane_numpoles;
+                let botcoeffs = expand zplane_poles zplane_numpoles in
                 let g =
                   evaluate topcoeffs botcoeffs
                     { re = cos theta; im = sin theta }
@@ -300,8 +324,6 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
 
               (* if we failed to converge ... *)
               assert !cvg);
-            xv <- Array.make_matrix channels zplane_numzeros 0.;
-            yv <- Array.make_matrix channels zplane_numpoles 0.;
 
             (* Do we need to transform to Bandstop or Allpass? *)
               match filter_type with
@@ -330,36 +352,20 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
               | _ -> assert false)
       end;
 
-      (* Now expand the polynomials *)
-      self#log#info "Expanding polynomials...";
-      topcoeffs <- expand zplane_zeros zplane_numzeros;
-      botcoeffs <- expand zplane_poles zplane_numpoles;
-      self#log#info "Top coeffs:";
-      self#log#info "%s"
-        (String.concat "\n"
-           (Array.to_list
-              (Array.mapi
-                 (fun i a ->
-                   Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
-                 topcoeffs)));
-      self#log#info "Bottom coeffs:";
-      self#log#info "%s"
-        (String.concat "\n"
-           (Array.to_list
-              (Array.mapi
-                 (fun i a ->
-                   Printf.sprintf "%d: %+.013f %+.013f i." i a.re a.im)
-                 botcoeffs)));
-
+      let response z =
+        let product roots =
+          Array.fold_left (fun p root -> p *~ (z -~ root)) (cor 1.) roots
+        in
+        product zplane_zeros /~ product zplane_poles
+      in
       (* Gain *)
-      dc_gain <- evaluate topcoeffs botcoeffs { re = 1.; im = 0. };
+      dc_gain <- response { re = 1.; im = 0. };
       let theta =
         2. *. Float.pi *. 0.5 *. (raw_alpha1 +. raw_alpha2)
         (* jwt for centre freq. *)
       in
-      fc_gain <-
-        evaluate topcoeffs botcoeffs (Complex.exp { re = 0.; im = theta });
-      hf_gain <- evaluate topcoeffs botcoeffs { re = -1.; im = 0. };
+      fc_gain <- response (Complex.exp { re = 0.; im = theta });
+      hf_gain <- response { re = -1.; im = 0. };
       gain <-
         begin match filter_type with
           | Band_stop -> Complex.norm (sqrt (dc_gain *~ hf_gain))
@@ -372,33 +378,20 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
         (Complex.norm dc_gain) (Complex.norm fc_gain) (Complex.norm hf_gain)
         gain;
 
-      (* X-coeffs *)
-      for i = 0 to zplane_numzeros do
-        xcoeffs <-
-          Array.append xcoeffs
-            [| topcoeffs.(i).re /. botcoeffs.(zplane_numpoles).re |]
-      done;
-      self#log#info "Xcoeffs:";
+      sections <- make_sections ~zeros:zplane_zeros ~poles:zplane_poles;
+      self#log#info "Sections:";
       self#log#info "%s"
         (String.concat "\n"
            (Array.to_list
               (Array.mapi
-                 (fun i a -> Printf.sprintf "%d: %+.013f." i a)
-                 xcoeffs)));
-
-      (* Y-coeffs *)
-      for i = 0 to zplane_numpoles do
-        ycoeffs <-
-          Array.append ycoeffs
-            [| 0. -. (botcoeffs.(i).re /. botcoeffs.(zplane_numpoles).re) |]
-      done;
-      self#log#info "Ycoeffs:";
-      self#log#info "%s"
-        (String.concat "\n"
-           (Array.to_list
-              (Array.mapi
-                 (fun i a -> Printf.sprintf "%d: %+.013f." i a)
-                 ycoeffs)));
+                 (fun i { b1; b2; a1; a2 } ->
+                   Printf.sprintf
+                     "%d: b=[1 %+.013f %+.013f] a=[1 %+.013f %+.013f]." i b1 b2
+                     a1 a2)
+                 sections)));
+      states <-
+        Array.init channels (fun _ ->
+            Array.map (fun _ -> { s1 = 0.; s2 = 0. }) sections);
       self#log#info "Initialization done."
 
     (* Digital filter based on mkfilter/mkshape/gencode by A.J. Fisher *)
@@ -408,37 +401,23 @@ class iir (source : source) filter_family filter_type order freq1 freq2 qfactor
     method private self_sync = source#cached_self_sync
     method private can_generate_frame = source#is_ready
     method abort_track = source#abort_track
-    val mutable v_offs = 0
 
     method private generate_frame =
       let c = source#get_mutable_content Frame.Fields.audio in
       let b = Content.Audio.get_data c in
-      let v_len = Array.length xv.(0) in
-      let coeffs_len = Array.length xcoeffs in
-      let fold_left2 init v coeffs l =
-        let l = min (Array.length v) (min l (Array.length coeffs)) in
-        let result = ref init in
-        for i = 0 to l - 1 do
-          result := !result +. (v.((i + v_offs) mod v_len) *. coeffs.(i))
-        done;
-        !result
-      in
-      let frame_offs = v_offs in
       for c = 0 to self#audio_channels - 1 do
-        (* Channels share the offset: each one replays the frame from its start. *)
-        v_offs <- frame_offs;
-        let xvc = xv.(c) in
-        let yvc = yv.(c) in
         let bc = b.(c) in
+        let states = states.(c) in
         for i = 0 to source#frame_audio_position - 1 do
-          v_offs <- (v_offs + 1) mod v_len;
-          xvc.((coeffs_len - 1 + v_offs) mod v_len) <- bc.(i) /. gain;
-          let insert =
-            fold_left2 0. xvc xcoeffs 110 (* TODO: why 110? *)
-            +. fold_left2 0. yvc ycoeffs (coeffs_len - 1)
-          in
-          yvc.((coeffs_len - 1 + v_offs) mod v_len) <- insert;
-          bc.(i) <- insert
+          let x = ref (bc.(i) /. gain) in
+          for n = 0 to Array.length sections - 1 do
+            let { b1; b2; a1; a2 } = sections.(n) and state = states.(n) in
+            let y = !x +. state.s1 in
+            state.s1 <- (b1 *. !x) -. (a1 *. y) +. state.s2;
+            state.s2 <- (b2 *. !x) -. (a2 *. y);
+            x := y
+          done;
+          bc.(i) <- !x
         done
       done;
       source#set_frame_data Frame.Fields.audio Content.Audio.lift_data b
