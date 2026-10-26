@@ -60,10 +60,13 @@ let conf_max_buffer =
     processes the child's frame into the generator installed by the controlling
     operator. [process_frame] can be overridden to transform the data instead of
     buffering it verbatim (inline encoders, resamplers). *)
-class child_output src =
+class child_output ~clock ~stack src =
   object (self)
     inherit
-      Source.active_operator ~name:(Printf.sprintf "%s.child" src#id) [src]
+      Source.active_operator
+        ~clock ~stack
+        ~name:(Printf.sprintf "%s.child" src#id)
+        [src]
 
     method! source_type = `Output (self :> Source.active)
     val mutable generator = None
@@ -121,8 +124,9 @@ class child_output src =
     method effective_source = src#effective_source
   end
 
+type child = { clock : Clock.t; output : child_output }
+
 class virtual base ?child_frame_type ~check_self_sync child_val =
-  let child = new child_output (Lang.to_source child_val) in
   object (self)
     initializer
       if check_self_sync then (
@@ -154,8 +158,13 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
         [ `Other of string * < id : string > ] option =
       None
 
-    method child = child
-    val mutable child_clock = None
+    val mutable child = None
+
+    method private linked_child =
+      match child with Some child -> child | None -> assert false
+
+    method child = self#linked_child.output
+    method child_clock = self#linked_child.clock
 
     (* Generator holding the data processed by [child] and not yet consumed
        by this operator. Created with this operator's content type: the
@@ -171,19 +180,21 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
             { Clock.kind; id = owner#id })
           self#child_clock_controller
       in
-      child_clock <-
-        Some
-          (Clock.create ~parent:self#clock ?owner ~sync:`Passive
-             ~id:(Clock.name self#clock) ());
-      Clock.unify ~pos:self#pos self#child_clock child#clock;
+      let clock =
+        Clock.create ~parent:self#clock ?owner ~sync:`Passive
+          ~id:(Clock.name self#clock) ()
+      in
+      (* Built in its passive clock, the output is never a top-level clock that
+         another thread's start pass could start. *)
+      let output =
+        new child_output ~clock ~stack:self#stack (Lang.to_source child_val)
+      in
+      child <- Some { clock; output };
       let child_frame_type =
         Option.value ~default:self#frame_type child_frame_type
       in
-      Typing.(child#frame_type <: child_frame_type);
-      Typing.((Lang.to_source child_val)#frame_type <: child#frame_type)
-
-    method child_clock =
-      match child_clock with Some c -> c | None -> assert false
+      Typing.(output#frame_type <: child_frame_type);
+      Typing.((Lang.to_source child_val)#frame_type <: output#frame_type)
 
     val mutable child_activation = None
 
@@ -193,21 +204,22 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
       self#on_wake_up (fun () ->
           Clock.register ~parent:self#clock self#child_clock;
           child_buffer <- Generator.create self#content_type;
-          child#set_generator ~owner:self#id child_buffer;
-          child#set_stack self#stack;
+          self#child#set_generator ~owner:self#id child_buffer;
+          self#child#set_stack self#stack;
           assert (child_activation = None);
-          child_activation <- Some (child#wake_up (self :> Clock.source)));
+          child_activation <- Some (self#child#wake_up (self :> Clock.source)));
       self#on_sleep (fun () ->
           Clock.deregister ~parent:self#clock self#child_clock;
-          child#sleep (Option.get child_activation);
+          self#child#sleep (Option.get child_activation);
           child_activation <- None;
-          child#flush)
+          self#child#flush)
 
     method child_tick = Clock.tick self#child_clock
 
     (* Whether [child_get_frame] can still return data: the child may be down
        while we have buffered data left to drain. *)
-    method child_is_ready = 0 < Generator.length child_buffer || child#is_ready
+    method child_is_ready =
+      0 < Generator.length child_buffer || self#child#is_ready
 
     (* Return a frame of data from [child_buffer], ticking the child clock
        until enough data is available (or the child cannot produce more).
@@ -216,7 +228,7 @@ class virtual base ?child_frame_type ~check_self_sync child_val =
        consumed from the buffer. *)
     method child_get_frame ?(get_partial_frame = fun frame -> frame) () =
       let size = Lazy.Mutexed.force Frame.size in
-      while child#is_ready && Generator.length child_buffer < size do
+      while self#child#is_ready && Generator.length child_buffer < size do
         self#child_tick
       done;
       let frame =

@@ -525,10 +525,14 @@ reader, and its buffer limit.
 
 **Set-up, when the operator is created:**
 
-- it wraps its child in an output that lives in the child clock;
 - it creates a passive clock whose parent is the operator's own clock, with
   no owner;
-- it unifies that clock with the wrapped child's clock.
+- it wraps its child in an output created in that clock, which unifies the
+  child's clock with it.
+
+The output MUST NOT exist in a clock of its own first: that clock would be a
+top-level clock with a pending output, and a start pass on another thread
+could start it before the unification, which then fails.
 
 It MUST NOT register the sub-clock yet.
 
