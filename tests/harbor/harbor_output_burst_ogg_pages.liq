@@ -25,6 +25,14 @@ thread.run(
 
 output.harbor(port=port, mount="native", burst=4096, %ogg(%opus), s)
 
+output.harbor(
+  port=port,
+  mount="ffmpeg",
+  burst=4096,
+  %ffmpeg(format = "ogg", %audio(codec = "libopus", samplerate = 48000)),
+  s
+)
+
 def byte(data, pos) =
   string.binary.to_int(string.sub(encoding="ascii", data, start=pos, length=1))
 end
@@ -158,6 +166,7 @@ thread.run(
   fun () ->
     begin
       listen("native")
+      listen("ffmpeg")
       test.pass()
     end
 )
