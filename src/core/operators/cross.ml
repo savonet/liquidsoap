@@ -308,24 +308,43 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         | Some None ->
             self#log#important "Invalid non-float value for `liq_fade_out`: %s"
               (Frame.Metadata.find "liq_fade_out" before_metadata)
-        | Some (Some fade_out) when fade_out < cross_duration ->
-            let fade_out = min cross_duration fade_out in
-            let fade_out_delay = max (cross_duration -. fade_out) 0. in
-            self#log#info
-              "Adding %.02f `liq_fade_out_delay` to make sure `fade.out` ends \
-               at the end of the buffered data."
-              fade_out;
-            self#append_before_metadata "liq_fade_out"
-              (string_of_float fade_out);
-            self#append_before_metadata "liq_fade_out_delay"
-              (string_of_float fade_out_delay)
-        | Some (Some fade_out) when cross_duration < fade_out ->
-            self#log#info
-              "Dropping %.02f from `liq_fade_out` to match the buffered data."
-              (cross_duration -. fade_out);
-            self#append_before_metadata "liq_fade_out"
-              (string_of_float cross_duration)
-        | Some (Some fade_out) -> assert (cross_duration = fade_out)
+        | Some (Some fade_out) ->
+            let float_metadata lbl =
+              Option.bind
+                (Frame.Metadata.find_opt lbl before_metadata)
+                float_of_string_opt
+            in
+            let initial_fade_out_delay =
+              Option.value ~default:0. (float_metadata "liq_fade_out_delay")
+            in
+            if fade_out < cross_duration then (
+              let fade_out_delay = cross_duration -. fade_out in
+              self#log#info
+                "Setting `liq_fade_out_delay` to %.02f to make sure `fade.out` \
+                 ends at the end of the buffered data."
+                fade_out_delay;
+              self#append_before_metadata "liq_fade_out"
+                (string_of_float fade_out);
+              self#append_before_metadata "liq_fade_out_delay"
+                (string_of_float fade_out_delay))
+            else if cross_duration < fade_out then (
+              self#log#info
+                "Dropping %.02f from `liq_fade_out` to match the buffered data."
+                (fade_out -. cross_duration);
+              self#append_before_metadata "liq_fade_out"
+                (string_of_float cross_duration);
+              self#append_before_metadata "liq_fade_out_delay" "0.");
+            (* `liq_fade_out_start_next` is relative to the start of a window of
+               `liq_fade_out_delay + liq_fade_out` ending at the end of the
+               buffer. Move it to stay at the same position in the track. *)
+            Option.iter
+              (fun start_next ->
+                let window_shift =
+                  cross_duration -. fade_out -. initial_fade_out_delay
+                in
+                self#append_before_metadata "liq_fade_out_start_next"
+                  (string_of_float (max 0. (start_next +. window_shift))))
+              (float_metadata "liq_fade_out_start_next")
 
     method private fade_in_adjustements cross_duration =
       let after_metadata =
