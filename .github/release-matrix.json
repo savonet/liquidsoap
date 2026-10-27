@@ -9,7 +9,7 @@
   {
     "version": "2.4.x",
     "branch": "v2.4.x-latest",
-    "supported": true,
+    "supported": "sunset",
     "latest_release": "2.4.6",
     "previous_releases": ["2.4.5"],
     "package_ocaml": "4.14"

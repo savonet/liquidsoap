@@ -28,7 +28,8 @@ TABLE=$(
   jq -r --arg repo "${REPO}" '
     def status:
       if . == true then "✅" elif . == false then "❌"
-      elif . == "pre-release" then "🧪" else "🚧" end;
+      elif . == "pre-release" then "🧪"
+      elif . == "sunset" then "🌅" else "🚧" end;
 
     .[] | [
       "| `\(.version)` | ",
