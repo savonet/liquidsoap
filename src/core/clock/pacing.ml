@@ -330,6 +330,9 @@ let time_box c st =
               released = figures.released +. spent;
               releases = figures.releases + 1;
             })
+    (* A clock thread shares its domain's runtime lock with a scheduler
+       worker, which otherwise waits for the next tick of the master lock. *)
+    | Some (`Thread, _) -> Thread.yield ()
     | _ -> ()
 
 (* After a tick: rest, handle lateness, or give the worker a turn. *)
