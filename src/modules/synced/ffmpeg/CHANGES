@@ -27,6 +27,8 @@
   muxer with its key flag and timestamps, in place of `?on_keyframe`, which
   reported key packets only and without their time. A packet whose write
   fails raises the write's `Error`, also when `on_packet` raised.
+* Add `Av.write_header`, which writes the header of an output before its
+  first packet.
 * Add `Avutil.Video.frame_force_keyframe`, which makes the encoder start a key
   frame at that picture, and `Avutil.Video.frame_set_colors`.
 * Add `BitstreamFilter.init ?time_base`, the input time base of the filter,
