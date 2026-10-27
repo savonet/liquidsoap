@@ -281,6 +281,8 @@
   autocue-plot.1.png.gen
   autocue-plot.2.png.gen
   autocue-plot.3.png.gen
+  autocue-plot.4.png.gen
+  autocue-plot.5.png.gen
   autocue-plot.0.old.txt.gen
   autocue-plot.0.new.txt.gen
   autocue-plot.1.old.txt.gen
@@ -288,7 +290,11 @@
   autocue-plot.2.old.txt.gen
   autocue-plot.2.new.txt.gen
   autocue-plot.3.old.txt.gen
-  autocue-plot.3.new.txt.gen)
+  autocue-plot.3.new.txt.gen
+  autocue-plot.4.old.txt.gen
+  autocue-plot.4.new.txt.gen
+  autocue-plot.5.old.txt.gen
+  autocue-plot.5.new.txt.gen)
  (deps
   ../../src/bin/liquidsoap.exe
   ./test_autocue-plot.liq
@@ -365,6 +371,36 @@
  (alias test_autocue-plot)
  (action
   (diff autocue-plot.3.new.txt autocue-plot.3.new.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+  (diff autocue-plot.4.png autocue-plot.4.png.gen)))
+
+(rule
+ (alias test_autocue-plot)
+ (action
+  (diff autocue-plot.4.old.txt autocue-plot.4.old.txt.gen)))
+
+(rule
+ (alias test_autocue-plot)
+ (action
+  (diff autocue-plot.4.new.txt autocue-plot.4.new.txt.gen)))
+
+(rule
+ (alias genplot)
+ (action
+  (diff autocue-plot.5.png autocue-plot.5.png.gen)))
+
+(rule
+ (alias test_autocue-plot)
+ (action
+  (diff autocue-plot.5.old.txt autocue-plot.5.old.txt.gen)))
+
+(rule
+ (alias test_autocue-plot)
+ (action
+  (diff autocue-plot.5.new.txt autocue-plot.5.new.txt.gen)))
 
 (rule
  (alias test_icecast_ssl)

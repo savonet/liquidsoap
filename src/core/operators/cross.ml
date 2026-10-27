@@ -330,7 +330,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
             else if cross_duration < fade_out then (
               self#log#info
                 "Dropping %.02f from `liq_fade_out` to match the buffered data."
-                (cross_duration -. fade_out);
+                (fade_out -. cross_duration);
               self#append_before_metadata "liq_fade_out"
                 (string_of_float cross_duration);
               self#append_before_metadata "liq_fade_out_delay" "0.");
