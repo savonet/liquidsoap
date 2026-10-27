@@ -138,6 +138,29 @@ let discarded_sources_return () =
   check "K2: discarded sources are not kept alive by a running clock"
     (Atomic.get live_sources = sources)
 
+(* The clock is reachable only through its output, as for an output built in a
+   script function before the start pass that follows it. *)
+let attach_discarded_output () =
+  let clock = Clock.create ~sync:`Passive ~owner:(owner ()) () in
+  attach clock (Sys.opaque_identity (source `Output))
+
+let attach_and_detach_output () =
+  let clock = Clock.create ~sync:`Passive ~owner:(owner ()) () in
+  let output = Sys.opaque_identity (source `Output) in
+  attach clock output;
+  detach clock output
+
+let unactivated_outputs () =
+  collect ();
+  let sources = Atomic.get live_sources in
+  attach_and_detach_output ();
+  collect ();
+  check "a detached output is not kept alive" (Atomic.get live_sources = sources);
+  attach_discarded_output ();
+  collect ();
+  check "an output not yet activated is kept alive, with its clock"
+    (Atomic.get live_sources = sources + 1)
+
 let output_stays_awake () =
   let clock = passive () in
   let output = source `Output in
@@ -332,4 +355,6 @@ let run () =
   registration ();
   sleeping_output_deregisters ();
   controllers ();
-  names ()
+  names ();
+  (* Last: the output it keeps alive stays for the rest of the process. *)
+  unactivated_outputs ()
