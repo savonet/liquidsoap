@@ -1,0 +1,8 @@
+=== include_directory.invalid-liq ===
+# An editor that closes quotes produces this while an include is typed.
+%include ""
+--- diagnostics ---
+Error 14 at cases_analysis/include_directory.invalid-liq, line 2, char 0-11:
+Uncaught runtime error: type: not_found,
+message: "Path is a directory! Given path: , resolved path: cases_analysis/",
+stack: at cases_analysis/include_directory.invalid-liq, line 2, char 0-11

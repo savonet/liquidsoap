@@ -1303,6 +1303,26 @@
   (diff expected_analysis/include.expected analysis_include.actual)))
 
 (rule
+ (target analysis_include_directory.actual)
+ (deps
+  (:case cases_analysis/include_directory.invalid-liq)
+  (glob_files cases/*.liq-inc)
+  (:env analysis_stdlib.types)
+  (:snapshot snapshot.exe))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{snapshot} --analysis %{env} %{case}))))
+
+(rule
+ (aliases lang_snapshot runtest)
+ (package liquidsoap)
+ (action
+  (diff
+   expected_analysis/include_directory.expected
+   analysis_include_directory.actual)))
+
+(rule
  (target analysis_later_definition.actual)
  (deps
   (:case cases_analysis/later_definition.liq)
