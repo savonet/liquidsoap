@@ -22,7 +22,7 @@ jobs:
   update_doc:
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:b33103ca76ca91986e3b4476d03131f0ce6523a74858caa0d8b3298ec841bd02
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:3ee4d052bac56daffa654abd09ccc48cdfbd929211bb19d11a4457083f9abd6b
       options: --user root -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     env:
       HOME: /home/opam
@@ -30,7 +30,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24
+          node-version: 26
       - name: Get number of CPU cores
         uses: savonet/github-actions-cpu-cores-docker@c8384053077d8c21cca9333c6388485fc7b136e1 # v1
         id: cpu_cores

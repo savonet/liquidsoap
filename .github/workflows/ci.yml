@@ -45,6 +45,7 @@ jobs:
       minimal_exclude_deps: ${{ steps.build_details.outputs.minimal_exclude_deps }}
       save_traces: ${{ steps.build_details.outputs.save_traces }}
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
+      test_targets: ${{ steps.build_details.outputs.test_targets }}
       ocaml_version: ${{ steps.build_details.outputs.ocaml_version }}
       ocaml_docker_release_version: ${{ steps.build_details.outputs.ocaml_docker_release_version }}
     steps:
@@ -87,6 +88,7 @@ jobs:
       branch: ${{ needs.build_details.outputs.branch }}
       is_fork: ${{ needs.build_details.outputs.is_fork }}
       save_traces: ${{ needs.build_details.outputs.save_traces }}
+      test_targets: ${{ needs.build_details.outputs.test_targets }}
     secrets:
       LIQUIDSOAP_TEST_REPO_TOKEN: ${{ secrets.LIQUIDSOAP_TEST_REPO_TOKEN }}
 

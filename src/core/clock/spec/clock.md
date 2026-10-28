@@ -140,6 +140,12 @@ given sync mode (default automatic), id, stack and error handler. Creating a
 passive clock without a controller, or a non-passive clock with one, MUST be
 refused. A top-level clock joins `waiting`.
 
+**Attachment.** An attached output MUST be kept alive until it is activated or
+detached, and keeps its clock alive with it. Before its clock starts, nothing
+else may refer to it: an output built in a script function is unreachable once
+the function returns, and still has to start at the next start pass. Clocks
+without outputs stay collectable (§5).
+
 **Start scope.** Runs a function that may create clocks. When the function
 returns, a start pass runs. When the function fails, no start pass runs: the
 clocks it created stay in `waiting`, and the error is passed on. An error

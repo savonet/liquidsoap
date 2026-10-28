@@ -201,6 +201,12 @@
 
 ## Fixed:
 
+- A listener joining a `%ffmpeg` `output.harbor` stream after its start, including an
+  `icecast.server` mount, receives the container header first. An Ogg/Opus listener used
+  to get no `OpusHead` and could not decode the stream (#5542).
+- `output.harbor` no longer interleaves ICY metadata into Ogg streams when a listener
+  sends `Icy-MetaData: 1`, as Icecast does. Clients that always ask for it and do not
+  strip it could not demultiplex the stream (#5542).
 - A listener joining an Ogg `output.harbor` stream after a metadata change starts at the
   current link, with its header pages, and can decode the stream. It used to receive the
   current link's header followed by pages of earlier links (#5546).

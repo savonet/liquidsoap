@@ -10,3 +10,8 @@
  (_
   (ocamlopt_flags
    (:standard -w -58))))
+
+(alias
+ (name citest)
+ (deps
+  (alias_rec runtest)))

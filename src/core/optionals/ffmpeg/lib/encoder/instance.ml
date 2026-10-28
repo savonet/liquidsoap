@@ -319,11 +319,12 @@ let split t h ~time ~forced =
   if h.mp4 && h.header <> None then push h (`Bytes (Strings.of_string styp))
 
 (* encoder.md §8.2: the hook every stream calls before a packet reaches the
-   muxer. The bytes before the first packet are the header. *)
+   muxer. The bytes before the first packet are the header; the bindings
+   would only write it with that packet, so it is written here. *)
 let on_packet t field ~key ~time =
   (match t.header with
     | `Pending start when t.hls = None ->
-        Av.flush t.current.output;
+        Av.write_header t.current.output;
         t.header <-
           `Captured
             (Strings.of_string

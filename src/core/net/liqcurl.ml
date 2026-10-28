@@ -24,7 +24,9 @@ module Http = Liq_http
 
 let () = Curl.global_init Curl.CURLINIT_GLOBALALL
 
-let string_of_curl_code = function
+(* curl 0.10.1 added error codes: the fallback covers them while older
+   versions, where it is unused, still build. *)
+let[@warning "-11"] string_of_curl_code = function
   | Curl.CURLE_OK -> "Ok"
   | Curl.CURLE_UNSUPPORTED_PROTOCOL -> "Unsupported_protocol"
   | Curl.CURLE_FAILED_INIT -> "Failed_init"
@@ -107,6 +109,7 @@ let string_of_curl_code = function
   | Curl.CURLE_SSH -> "Ssh"
   | Curl.CURLE_SSL_SHUTDOWN_FAILED -> "Ssl_shutdown_failed"
   | Curl.CURLE_AGAIN -> "Again"
+  | code -> Curl.strerror code
 
 let () =
   Printexc.register_printer (function

@@ -62,12 +62,14 @@ repos:
         name: shfmt
         language: docker_image
         entry: mvdan/shfmt -i 2 -ci -sr -kp -w
+        require_serial: true
         types: [shell]
 
       - id: shellcheck
         name: shellcheck
         language: docker_image
         entry: koalaman/shellcheck --color=always
+        require_serial: true
         types: [shell]
 
       - id: mutexed-lazy

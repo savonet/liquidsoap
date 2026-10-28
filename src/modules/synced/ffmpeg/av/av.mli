@@ -763,6 +763,13 @@ val write_frame :
 val write_subtitle_frame :
   (output, subtitle, [ `Frame ]) stream -> Avutil.Subtitle.frame -> unit
 
+(** Writes the header of an output whose header is not written yet, then flushes
+    the I/O. Packets the muxer buffers are not written out. All the streams of
+    the output must exist. It blocks, with the runtime lock released.
+
+    @raise Error with the mapped FFmpeg code when the header write fails. *)
+val write_header : output container -> unit
+
 (** On an output whose header is written, makes the muxer write out the packets
     it buffers and flushes the I/O. Encoders are not flushed: the frames they
     hold are written by {!close}. On an output whose header is not written it

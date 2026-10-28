@@ -10,12 +10,26 @@ let rec add_pending c source =
     && not (Atomic.compare_and_set c.pending pending (pending @ [source]))
   then add_pending c source
 
+(* Outputs attached and not activated yet. Until its clock starts, nothing else
+   may refer to an output, which must still start then: an output built in a
+   script function is unreachable as soon as the function returns. *)
+let unactivated_outputs : source Queues.Queue.t = Queues.Queue.create ()
+
+(* ponytail: linear in the outputs awaiting activation, which are few. *)
+let release source =
+  if role source = `Output then
+    Queues.Queue.filter_out unactivated_outputs (fun other -> other == source)
+
 (* A merge may move the handle to another clock while the source is added:
    the source then follows it. *)
-let rec attach t source =
+let rec attach_pending t source =
   let c = get t in
   add_pending c source;
-  if get t != c then attach t source
+  if get t != c then attach_pending t source
+
+let attach t source =
+  if role source = `Output then Queues.Queue.push unactivated_outputs source;
+  attach_pending t source
 
 let rec forget_pending c source =
   let pending = Atomic.get c.pending in
@@ -40,6 +54,7 @@ let queue_removal st source =
 let detach t source =
   let c = get t in
   forget_pending c source;
+  release source;
   Option.iter (fun st -> queue_removal st source) (streaming c)
 
 (* Takes a source out of the run and puts its output to sleep.
@@ -129,7 +144,9 @@ let rec pop_pending c =
   match Atomic.get c.pending with
     | [] -> None
     | source :: rest as pending ->
-        if Atomic.compare_and_set c.pending pending rest then Some source
+        if Atomic.compare_and_set c.pending pending rest then (
+          release source;
+          Some source)
         else pop_pending c
 
 let crossed_multiple ~before ~after threshold =

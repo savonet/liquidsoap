@@ -587,5 +587,6 @@ external write_subtitle : output container -> int -> Subtitle.frame -> unit
 let write_subtitle_frame stream subtitle =
   write_subtitle stream.container stream.index subtitle
 
+external write_header : output container -> unit = "ocaml_av_write_header"
 external flush : output container -> unit = "ocaml_av_flush"
 external tell : _ container -> int option = "ocaml_av_tell"
