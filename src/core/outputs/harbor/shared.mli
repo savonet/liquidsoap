@@ -8,7 +8,6 @@
 type t
 
 val create :
-  log:Log.t ->
   factory:(string -> Frame.Metadata.Export.t -> Encoder.encoder) ->
   buffer:int ->
   burst:int option ->

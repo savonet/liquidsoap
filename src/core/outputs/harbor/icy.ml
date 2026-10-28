@@ -86,6 +86,16 @@ let block_for ~last_generation = function
 type position = { since_block : int; last_generation : int }
 
 let start = { since_block = 0; last_generation = -1 }
+let room ~metaint position = max 0 (metaint - position.since_block)
+
+let next_block position stamp =
+  let block, last_generation =
+    block_for ~last_generation:position.last_generation stamp
+  in
+  (block, { since_block = 0; last_generation })
+
+let advance position length =
+  { position with since_block = position.since_block + length }
 
 let interleave ~metaint position stamp data =
   let output = Buffer.create (String.length data + 64) in
@@ -93,21 +103,15 @@ let interleave ~metaint position stamp data =
     if offset >= String.length data then position
     else (
       let position =
-        if position.since_block < metaint then position
+        if room ~metaint position > 0 then position
         else (
-          let block, last_generation =
-            block_for ~last_generation:position.last_generation stamp
-          in
+          let block, position = next_block position stamp in
           Buffer.add_string output block;
-          { since_block = 0; last_generation })
+          position)
       in
-      let length =
-        min (String.length data - offset) (metaint - position.since_block)
-      in
+      let length = min (String.length data - offset) (room ~metaint position) in
       Buffer.add_substring output data offset length;
-      go
-        { position with since_block = position.since_block + length }
-        (offset + length))
+      go (advance position length) (offset + length))
   in
   let position = go position 0 in
   (Buffer.contents output, position)

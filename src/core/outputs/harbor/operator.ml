@@ -135,7 +135,6 @@ class output p =
   let source = Lang.assoc "" 2 p in
   let pos = Lang.pos p in
   let { Mime.factory; format = mime; _ } = Mime.encoder_data p in
-  let icy_allowed = not (Icy.is_ogg_mime mime) in
   let () =
     if dedicated then
       invalid
@@ -151,9 +150,7 @@ class output p =
         source
 
     val mode =
-      Shared.create
-        ~log:(Log.make ["harbor"; "output"])
-        ~factory ~buffer:parameters.buffer ~burst:parameters.burst
+      Shared.create ~factory ~buffer:parameters.buffer ~burst:parameters.burst
         ~metaint:parameters.metaint ()
 
     method private self_sync = (Lang.to_source source)#cached_self_sync
@@ -381,7 +378,7 @@ class output p =
         Listener.close_socket listener;
         self#teardown listener
       in
-      let icy = icy_allowed && Icy.negotiated ~mime headers in
+      let icy = Icy.negotiated ~mime headers in
       let head =
         Connection.response_head ~protocol ~mime
           ~metaint:(if icy then Some parameters.metaint else None)

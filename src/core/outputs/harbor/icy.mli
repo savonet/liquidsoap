@@ -21,17 +21,23 @@ val title : (string * string) list -> string option
 val event :
   generation:int -> url:string option -> (string * string) list -> event
 
-(** The block preceding a stream byte whose metadata in effect is [stamp], for a
-    listener that last received [last_generation]: the event's block when its
-    generation differs, the empty block otherwise. Returns the block and the
-    listener's new last generation. *)
-val block_for : last_generation:int -> event option -> string * int
-
 (** A listener's place in the ICY framing: stream bytes since the last block,
     and the generation of the last non-empty block it received. *)
 type position = { since_block : int; last_generation : int }
 
 val start : position
+
+(** Stream bytes a listener may receive before its next block is due; [0] when
+    the block is due before the next stream byte. *)
+val room : metaint:int -> position -> int
+
+(** The block due now, carrying [stamp], the metadata in effect for the stream
+    byte it precedes: the event's block when the listener has not received that
+    event yet, the empty block otherwise. Returns the position after it. *)
+val next_block : position -> event option -> string * position
+
+(** The position after [length] stream bytes. *)
+val advance : position -> int -> position
 
 (** [interleave ~metaint position stamp data] inserts blocks into [data], every
     block stamped with [stamp]. A block is emitted only before a stream byte,

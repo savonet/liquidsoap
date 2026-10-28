@@ -33,5 +33,3 @@ val publish : t -> member -> bool
     member closed, closes their sockets and queues their teardown. Later
     publications fail. *)
 val stop : t -> unit
-
-val retry_interval : float

@@ -12,7 +12,6 @@ type snapshot = {
 (* [lock] serialises the encoder's use with its stop, and the store's
    writes. *)
 type t = {
-  log : Log.t;
   factory : string -> Frame.Metadata.Export.t -> Encoder.encoder;
   buffer : int;
   burst : int option;
@@ -25,9 +24,8 @@ type t = {
 
 type encoded = { data : Strings.t; restart : int option }
 
-let create ~log ~factory ~buffer ~burst ~metaint () =
+let create ~factory ~buffer ~burst ~metaint () =
   {
-    log;
     factory;
     buffer;
     burst;
@@ -170,10 +168,11 @@ type listener = {
   mutable position : Icy.position;
 }
 
-type segment = Carried of int | Block of string * int | Stream of int
+type segment = Carried of int | Block of string * Icy.position | Stream of int
 
-let overflow t listener =
-  t.log#info "Listener %s buffer overflow (client too slow), disconnecting"
+let overflow listener =
+  (Listener.log listener.base)#info
+    "Listener %s buffer overflow (client too slow), disconnecting"
     (Listener.info listener.base).peer;
   Listener.mark_closed listener.base
 
@@ -192,9 +191,9 @@ let commit listener segments accepted =
           listener.carried <- "";
           listener.carried_offset <- 0);
         go (accepted - sent) rest
-    | Block (block, last_generation) :: rest ->
+    | Block (block, position) :: rest ->
         let length = String.length block in
-        listener.position <- { since_block = 0; last_generation };
+        listener.position <- position;
         if accepted >= length then go (accepted - length) rest
         else (
           listener.carried <- String.sub block accepted (length - accepted);
@@ -202,11 +201,7 @@ let commit listener segments accepted =
     | Stream length :: rest ->
         let sent = min accepted length in
         listener.offset <- listener.offset + sent;
-        listener.position <-
-          {
-            listener.position with
-            since_block = listener.position.since_block + sent;
-          };
+        listener.position <- Icy.advance listener.position sent;
         go (accepted - sent) rest
   in
   go accepted segments
@@ -215,7 +210,7 @@ let flush t listener ~scratch =
   let tail = Store.tail t.store in
   let snapshot = Atomic.get t.snapshot in
   if listener.offset < newest_start snapshot ~tail - t.buffer then
-    overflow t listener
+    overflow listener
   else (
     let capacity = Bytes.length scratch in
     let carried = String.length listener.carried - listener.carried_offset in
@@ -223,29 +218,25 @@ let flush t listener ~scratch =
     Bytes.blit_string listener.carried listener.carried_offset scratch 0 first;
     let rec stage ~fill ~offset ~position ~valid segments =
       if fill >= capacity || offset >= tail then (fill, valid, segments)
-      else if listener.icy && position.Icy.since_block >= t.metaint then (
-        let block, last_generation =
-          Icy.block_for ~last_generation:position.Icy.last_generation
-            (marker_at snapshot.markers offset)
+      else if listener.icy && Icy.room ~metaint:t.metaint position = 0 then (
+        let block, after =
+          Icy.next_block position (marker_at snapshot.markers offset)
         in
         let length = String.length block in
         if fill + length >= capacity then (fill, valid, segments)
         else (
           Bytes.blit_string block 0 scratch fill length;
-          stage ~fill:(fill + length) ~offset
-            ~position:{ since_block = 0; last_generation }
-            ~valid
-            (Block (block, last_generation) :: segments)))
+          stage ~fill:(fill + length) ~offset ~position:after ~valid
+            (Block (block, after) :: segments)))
       else (
         let length = min (capacity - fill) (tail - offset) in
         let length =
-          if listener.icy then min length (t.metaint - position.since_block)
+          if listener.icy then min length (Icy.room ~metaint:t.metaint position)
           else length
         in
         let valid = Store.read t.store ~offset ~length scratch fill && valid in
         stage ~fill:(fill + length) ~offset:(offset + length)
-          ~position:
-            { position with since_block = position.since_block + length }
+          ~position:(Icy.advance position length)
           ~valid
           (Stream length :: segments))
     in
@@ -258,7 +249,7 @@ let flush t listener ~scratch =
     let segments =
       (if first > 0 then [Carried first] else []) @ List.rev segments
     in
-    if not valid then overflow t listener
+    if not valid then overflow listener
     else if fill > 0 then (
       match Listener.write listener.base scratch 0 fill with
         | -1 -> Listener.mark_closed listener.base
