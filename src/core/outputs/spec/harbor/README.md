@@ -91,8 +91,6 @@ Frozen; a rebuild keeps it unchanged:
 - the listener record: every field keeps its name, type and meaning; fields
   MAY be added ([operator.md §5](operator.md#5-the-listener-record)).
 
-Not frozen: `settings.harbor.output.writers`, which stays accepted as a hint
-([operator.md §6](operator.md#6-settings)), and the bytes on the wire, which
-stay valid for Icecast- and Shoutcast-style players
-([connection.md §5](connection.md#5-the-response-head),
+Not frozen: the bytes on the wire, which stay valid for Icecast- and
+Shoutcast-style players ([connection.md §5](connection.md#5-the-response-head),
 [icy.md §2](icy.md#2-block-format)). There is no persisted state.

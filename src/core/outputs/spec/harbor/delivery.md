@@ -24,9 +24,9 @@ both modes; what a listener is owed and how it is staged is the mode's
 Listeners are partitioned into **delivery groups**. Each listener belongs to
 exactly one group for its whole life. A group is served by one **delivery
 pass** at a time; passes of different groups are independent and MAY run in
-parallel. How many groups an output has, and how listeners are assigned to
-them, is the implementation's choice; it MAY follow
-`settings.harbor.output.writers` ([operator.md §6](operator.md#6-settings)).
+parallel. An output has as many groups as the scheduler's parallelism
+([operator.md §6](operator.md#6-settings)); how listeners are assigned to
+them is the implementation's choice.
 Where passes run, and how many run at once, is the scheduler's decision
 ([contracts.md §5](contracts.md#5-scheduler)).
 

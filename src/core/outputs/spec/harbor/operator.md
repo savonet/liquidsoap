@@ -142,14 +142,10 @@ instead ([connection.md §3](connection.md#3-authentication)).
 
 ## 6. Settings
 
-| Key                              | Meaning                                                                                                         |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `settings.harbor.output.writers` | Hint for how many independent delivery groups an output uses ([delivery.md §1](delivery.md#1-delivery-groups)). |
-
-The key MUST remain accepted. Its displayed default MUST be the value used
-when it is unset. An implementation MAY ignore it when the scheduler decides
-the parallelism of delivery on its own. Harbor-wide settings
-(`settings.harbor.*`) belong to the server
+An output has as many delivery groups as the scheduler's parallelism,
+`settings.scheduler.domains`, read at each start
+([delivery.md §1](delivery.md#1-delivery-groups)).
+Harbor-wide settings (`settings.harbor.*`) belong to the server
 ([contracts.md §1](contracts.md#1-harbor-server)).
 
 ## 7. Lifecycle
