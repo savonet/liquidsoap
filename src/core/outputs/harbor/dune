@@ -1,0 +1,21 @@
+; output.harbor: serves an encoded stream to listeners over the harbor
+; server. The specification is in ../spec/harbor/.
+
+(library
+ (name harbor_output)
+ (preprocess
+  (pps ppx_string))
+ (libraries
+  dtools
+  duppy
+  clock
+  liquidsoap_core_encoder
+  liquidsoap_core_lang
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  liquidsoap_core_net
+  liquidsoap_core_outputs
+  re
+  threads.posix
+  unix))

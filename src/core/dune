@@ -27,4 +27,5 @@
   (re_export liquidsoap_core_decoders)
   (re_export liquidsoap_core_sources)
   (re_export liquidsoap_core_outputs)
+  (re_export harbor_output)
   (re_export liquidsoap_core_operators)))
