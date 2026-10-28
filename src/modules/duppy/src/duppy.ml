@@ -254,6 +254,13 @@ let default_on_fatal exn bt =
     (Printexc.raw_backtrace_to_string bt);
   exit 1
 
+(* Set once the program exits: its exit handlers then tear down what the loops
+   wait on (Windows' Unix stops Winsock), so a loop failing after that ends with
+   the program instead of crashing it. *)
+let exiting = Atomic.make false
+let () = at_exit (fun () -> Atomic.set exiting true)
+let fatal s exn bt = if not (Atomic.get exiting) then s.on_fatal exn bt
+
 (* Forces the portable backend, so that it runs where a native one exists. *)
 let forced_fallback () = Sys.getenv_opt "DUPPY_BACKEND" = Some "poll"
 
@@ -536,7 +543,7 @@ let aux_loop s w =
           (try job ()
            with exn ->
              let bt = Printexc.get_raw_backtrace () in
-             s.on_fatal exn bt);
+             fatal s exn bt);
           Mutex.lock w.aux_m;
           w.aux_busy <- w.aux_busy - 1;
           loop ()
@@ -611,6 +618,7 @@ let dispatch s w =
           run_blocking s w fn;
           loop ()
       | `Stopped, _ -> ()
+      | `Failed, _ when Atomic.get exiting -> ()
       | `Failed, _ ->
           s.on_fatal
             (Failure ("Duppy: event thread failed: " ^ Core.error s.core))
@@ -685,7 +693,7 @@ let start ?pool ?(max_blocking = 64) ?(grow_after = 1.) ?log:logger s =
     try fn ()
     with exn ->
       let bt = Printexc.get_raw_backtrace () in
-      s.on_fatal exn bt
+      fatal s exn bt
   in
   (* The first worker of a domain pool is a thread on the calling domain, which
      exists anyway and collects only what it allocated itself.

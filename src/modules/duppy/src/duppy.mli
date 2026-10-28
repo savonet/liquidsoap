@@ -110,8 +110,9 @@ exception Unknown_domain of int
 (** Initiate a new scheduler. It has no domains until [start] is called.
   * @param on_error called when a task raises.
   * @param on_fatal called when the event loop itself crashes, which should be
-  * considered a MAJOR FAILURE: all non-ready tasks are dropped. Default: print
-  * the backtrace and exit.
+  * considered a MAJOR FAILURE: all non-ready tasks are dropped. Not called once
+  * the program is exiting, whose exit handlers may tear down what the loop
+  * waits on. Default: print the backtrace and exit.
   * @param rank the urgency of a priority, lowest first, between [0] and [63].
   * Default: [fun _ -> 0]
   * @param classify how each priority is run. Default: [fun _ -> `Threaded]
