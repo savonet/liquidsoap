@@ -6,6 +6,7 @@ type socket =
   ; file_descr : Unix.file_descr
   ; wait_for : ?log:(string -> unit) -> event -> float -> unit
   ; pending : bool
+  ; non_blocking : bool -> unit
   ; write : Bytes.t -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
   ; closed : bool
@@ -85,6 +86,10 @@ let rec unix_socket ~pos fd =
       method transport = unix_transport ()
       method wait_for = s#wait_for
       method pending = false
+
+      method non_blocking enabled =
+        if enabled then Unix.set_nonblock fd else Unix.clear_nonblock fd
+
       method write = s#write
       method read = s#read
       method closed = Atomic.get closed

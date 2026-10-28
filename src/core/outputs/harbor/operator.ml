@@ -452,7 +452,7 @@ class output p =
         | exception exn -> fail (Printexc.to_string exn)
         | None -> fail "output stopped"
         | Some member -> (
-            match Unix.set_nonblock (Listener.socket listener)#file_descr with
+            match (Listener.socket listener)#non_blocking true with
               | exception exn -> fail ~member (Printexc.to_string exn)
               | () ->
                   if Group.publish group member then

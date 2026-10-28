@@ -25,11 +25,16 @@ let log = Log.make ["tls"]
 module Http = Liq_http
 
 module Liq_tls = struct
+  (* [unsent] holds encrypted bytes the socket has not taken yet; a
+     non-blocking session accepts no new data until it is drained. *)
   type t = {
     read_pending : Strings.Mutable.t;
     fd : Unix.file_descr;
     buf : bytes;
     mutable state : Tls.Engine.state;
+    mutable non_blocking : bool;
+    mutable unsent : string;
+    mutable unsent_offset : int;
   }
 
   let () = Mirage_crypto_rng_unix.use_default ()
@@ -87,7 +92,17 @@ module Liq_tls = struct
   let init_base ~timeout ~state fd =
     let buf = Bytes.create buf_len in
     let read_pending = Strings.Mutable.create () in
-    let h = { read_pending; fd; buf; state } in
+    let h =
+      {
+        read_pending;
+        fd;
+        buf;
+        state;
+        non_blocking = false;
+        unsent = "";
+        unsent_offset = 0;
+      }
+    in
     handshake ~timeout h;
     h
 
@@ -100,16 +115,63 @@ module Liq_tls = struct
     write_all ~timeout fd hello;
     init_base ~timeout ~state fd
 
+  let drain h =
+    let rec go () =
+      let remaining = String.length h.unsent - h.unsent_offset in
+      if remaining > 0 then (
+        match
+          Unix_utils.write h.fd
+            (Bytes.unsafe_of_string h.unsent)
+            h.unsent_offset remaining
+        with
+          | 0 -> ()
+          | written ->
+              h.unsent_offset <- h.unsent_offset + written;
+              go ()
+          | exception
+              Unix.Unix_error
+                ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
+              ())
+    in
+    go ();
+    if h.unsent_offset >= String.length h.unsent then (
+      h.unsent <- "";
+      h.unsent_offset <- 0)
+
   let write ?timeout h b off len =
     let timeout = Option.value ~default:Harbor.conf_timeout#get timeout in
-    match
-      Tls.Engine.send_application_data h.state [Bytes.sub_string b off len]
-    with
-      | None -> len
-      | Some (state, data) ->
-          write_all ~timeout h.fd data;
-          h.state <- state;
-          len
+    if h.non_blocking then (
+      drain h;
+      if h.unsent <> "" then raise (Unix.Unix_error (Unix.EAGAIN, "write", ""));
+      match
+        Tls.Engine.send_application_data h.state [Bytes.sub_string b off len]
+      with
+        | None -> len
+        | Some (state, data) ->
+            h.state <- state;
+            h.unsent <- data;
+            drain h;
+            len)
+    else (
+      match
+        Tls.Engine.send_application_data h.state [Bytes.sub_string b off len]
+      with
+        | None -> len
+        | Some (state, data) ->
+            write_all ~timeout h.fd data;
+            h.state <- state;
+            len)
+
+  let set_non_blocking h enabled =
+    if enabled then Unix.set_nonblock h.fd
+    else (
+      Unix.clear_nonblock h.fd;
+      write_all ~timeout:Harbor.conf_timeout#get h.fd
+        (String.sub h.unsent h.unsent_offset
+           (String.length h.unsent - h.unsent_offset));
+      h.unsent <- "";
+      h.unsent_offset <- 0);
+    h.non_blocking <- enabled
 
   let read ?read_timeout ?write_timeout h b off len =
     let read_timeout =
@@ -147,9 +209,14 @@ module Liq_tls = struct
 
   let close ?(timeout = 1.) h =
     let state, data = Tls.Engine.send_close_notify h.state in
-    write_all ~timeout h.fd data;
     h.state <- state;
-    Unix.close h.fd
+    Fun.protect
+      ~finally:(fun () -> Unix.close h.fd)
+      (fun () ->
+        if h.non_blocking then (
+          h.unsent <- h.unsent ^ data;
+          drain h)
+        else write_all ~timeout h.fd data)
 end
 
 let tls_socket ~pos ~session transport =
@@ -182,6 +249,7 @@ let tls_socket ~pos ~session transport =
 
       method read = Liq_tls.read session
       method write = Liq_tls.write session
+      method non_blocking = Liq_tls.set_non_blocking session
       method closed = Atomic.get closed
 
       method close =

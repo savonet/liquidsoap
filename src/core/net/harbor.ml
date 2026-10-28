@@ -655,6 +655,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         buffered () || Atomic.get rem_ofs < rem_len || socket#pending
 
       method write = socket#write
+      method non_blocking = socket#non_blocking
       method close = socket#close
       method closed = socket#closed
 

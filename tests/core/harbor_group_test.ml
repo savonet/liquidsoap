@@ -21,6 +21,7 @@ let socket closes =
     method file_descr = Unix.stdin
     method wait_for ?log:_ _ _ = ()
     method pending = false
+    method non_blocking _ = ()
     method write _ _ length = length
     method read _ _ _ = 0
     method closed = Atomic.get closes > 0
