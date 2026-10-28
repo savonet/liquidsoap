@@ -13,14 +13,16 @@ whose path, query string removed, equals the mount path byte for byte. The
 mount is a literal path: no character of it has a pattern meaning, so
 `stream.mp3` matches only `/stream.mp3`.
 
-**Duplicate mounts.** A port MAY hold several outputs on the same mount. The
-most recently registered one serves the mount; the others are shadowed, and
-a registration that shadows another MUST log a warning naming the mount and
+**Duplicate mounts.** A start that registers a mount already registered on
+the port, with the same verb, MUST fail with an error naming the mount and
+port. With `override_mount`, the new registration takes the mount instead:
+the most recently registered one serves it, the others are shadowed, and a
+registration that shadows another MUST log a warning naming the mount and
 port. When the serving output removes its registration, the most recent
 remaining one serves again. An output's removal MUST remove its own
-registration only, never another output's, whatever their mounts. This keeps
-a mount served without a gap when a new output takes over before the old one
-is gone ([icecast-server.md §4](icecast-server.md#4-lifecycle-of-a-mounts-output)).
+registration only, never another output's, whatever their mounts. Overriding
+lets a new output start while an old one on the same mount is still being
+removed ([icecast-server.md §4](icecast-server.md#4-lifecycle-of-a-mounts-output)).
 
 What the server provides for this is a contract
 ([contracts.md §1](contracts.md#1-harbor-server)): the port is opened by the

@@ -42,6 +42,7 @@ Specific to `output.harbor`:
 | `headers`              | [(string, string)]        | `[]`                    | Extra response headers ([connection.md §5](connection.md#5-the-response-head)).                                               |
 | `dedicated_encoder`    | bool                      | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                              |
 | `allow_unsynced_clock` | bool                      | `false`                 | Allow running on a clock that is not paced in real time ([§7](#7-lifecycle)).                                                 |
+| `override_mount`       | bool                      | `false`                 | Advanced. Take over a mount another registration on the port already serves ([connection.md §1](connection.md#1-routing)).    |
 | (unlabeled, 2nd)       | source                    | —                       | The source to encode.                                                                                                         |
 
 `dedicated_encoder` picks the mode once, at construction: `false` gives

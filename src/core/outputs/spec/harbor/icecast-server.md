@@ -109,10 +109,10 @@ as on Icecast.
   which stops it: every listener is disconnected and the mount's route is
   removed. Requests for the mount then get the server's 404.
 - **A source returns.** A new `output.harbor` is created on the same mount and
-  port. Whatever the order of the old output's removal and the new output's
-  registration, the new output serves and keeps serving: removal takes only
-  its own registration, and the most recent registration serves
-  ([connection.md §1](connection.md#1-routing)).
+  port, with `override_mount`. Whatever the order of the old output's removal
+  and the new output's registration, the new output serves and keeps serving:
+  removal takes only its own registration, and the most recent registration
+  serves ([connection.md §1](connection.md#1-routing)).
 - **Fallback.** A mount configured with a fallback mount keeps its output, and
   its listeners, while either source is live.
 - **Reload.** Live outputs keep the parameters they were created with; new
