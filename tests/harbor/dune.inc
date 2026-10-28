@@ -459,6 +459,23 @@
    icecast_server_shutdown.liq)))
 
 (rule
+ (alias test_icecast_server_source_reconnect)
+ (package liquidsoap)
+ (deps
+  icecast_server_source_reconnect.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_source_reconnect.liq
+   liquidsoap
+   icecast_server_source_reconnect.liq)))
+
+(rule
  (alias test_post)
  (package liquidsoap)
  (deps
@@ -515,5 +532,6 @@
   (alias test_icecast_server_ogg_late_listener)
   (alias test_icecast_server_reload)
   (alias test_icecast_server_shutdown)
+  (alias test_icecast_server_source_reconnect)
   (alias test_post)
   (alias test_put)))
