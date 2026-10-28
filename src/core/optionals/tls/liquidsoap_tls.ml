@@ -130,7 +130,9 @@ module Liq_tls = struct
               go ()
           | exception
               Unix.Unix_error
-                ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
+                ( (Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR | Unix.ENOBUFS),
+                  _,
+                  _ ) ->
               ())
     in
     go ();

@@ -45,9 +45,13 @@ let write t data offset length =
         ignore (Atomic.fetch_and_add t.bytes_sent accepted);
         accepted
     | exception
-        Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
+        Unix.Unix_error
+          ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR | Unix.ENOBUFS), _, _)
+      ->
         0
-    | exception Unix.Unix_error (((Unix.EPIPE | Unix.ECONNRESET) as e), _, _) ->
+    | exception
+        Unix.Unix_error
+          (((Unix.EPIPE | Unix.ECONNRESET | Unix.ECONNABORTED) as e), _, _) ->
         t.log#info "Socket write for %s: %s (disconnecting)" t.info.peer
           (Unix.error_message e);
         -1
