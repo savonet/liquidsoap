@@ -21,8 +21,12 @@ operator.
   path, query string removed, by byte equality
   ([connection.md §1](connection.md#1-routing)).
 - **Registrations are owned.** Registering returns a handle, and removal
-  takes that handle: it removes that registration only. When several
-  registrations on a port match a request, the most recent one serves it.
+  takes that handle: it removes that registration only. Registrations are
+  tried in the order they were made and the first that matches serves, which
+  is the order `harbor.http.register` documents. A literal registration is the
+  exception: it goes ahead of every earlier registration with the same verb
+  and path, so the most recent output on a mount serves it, and removing it
+  puts the earlier one back in its place.
 - **Dispatch.** The server reads the request head within
   `settings.harbor.timeout`, parses the request line and headers, strips the
   query string, and calls the matching route on work allowed to block. It
