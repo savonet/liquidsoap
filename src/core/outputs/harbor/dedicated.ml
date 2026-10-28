@@ -161,14 +161,17 @@ let pending listener =
 let stage listener scratch =
   Mutex.protect listener.queue_lock (fun () ->
       let capacity = Bytes.length scratch in
-      Queue.fold
-        (fun fill piece ->
-          let length =
-            min (String.length piece.data - piece.sent) (capacity - fill)
-          in
-          Bytes.blit_string piece.data piece.sent scratch fill length;
-          fill + length)
-        0 listener.queue)
+      let rec go fill pieces =
+        match pieces () with
+          | Seq.Cons (piece, rest) when fill < capacity ->
+              let length =
+                min (String.length piece.data - piece.sent) (capacity - fill)
+              in
+              Bytes.blit_string piece.data piece.sent scratch fill length;
+              go (fill + length) rest
+          | _ -> fill
+      in
+      go 0 (Queue.to_seq listener.queue))
 
 let drop listener accepted =
   Mutex.protect listener.queue_lock (fun () ->
