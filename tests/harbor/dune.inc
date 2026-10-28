@@ -221,6 +221,23 @@
    icecast_server_logs.liq)))
 
 (rule
+ (alias test_icecast_server_ogg_late_listener)
+ (package liquidsoap)
+ (deps
+  icecast_server_ogg_late_listener.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_ogg_late_listener.liq
+   liquidsoap
+   icecast_server_ogg_late_listener.liq)))
+
+(rule
  (alias test_icecast_server_reload)
  (package liquidsoap)
  (deps
@@ -297,6 +314,7 @@
   (alias test_http3)
   (alias test_icecast_server_fallback)
   (alias test_icecast_server_logs)
+  (alias test_icecast_server_ogg_late_listener)
   (alias test_icecast_server_reload)
   (alias test_icecast_server_shutdown)
   (alias test_post)

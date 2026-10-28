@@ -1,0 +1,2 @@
+# An editor that closes quotes produces this while an include is typed.
+%include ""
