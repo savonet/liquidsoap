@@ -10,10 +10,9 @@ The API is documented here: https://www.liquidsoap.info/ocaml-duppy/
 
 ## Prerequisites:
 
-- ocaml
-- findlib
+- ocaml >= 5.5
 - ocaml-re
-- dune
+- dune >= 3.23
 
 ## Compilation:
 

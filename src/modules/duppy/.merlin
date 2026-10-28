@@ -1,4 +1,0 @@
-B src/**
-S src/**
-B +threads
-PKG re

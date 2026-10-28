@@ -31,7 +31,7 @@ depends: [
   "dune-build-info"
   "xmlm"
   "liquidsoap-lang" {= version}
-  "duppy" {= version}
+  "duppy" {>= "1.0.0"}
   "ppx_string" {build}
   "odoc" {with-doc}
 ]
