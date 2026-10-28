@@ -39,9 +39,10 @@ The queue is non-empty.
 
 ## 4. Flush
 
-Offer the queue's front in one write and drop from it what was accepted. On
-−1, mark the listener closed. Appends from send and drops by flush MUST NOT
-lose or reorder bytes when they run at the same time.
+Offer the front of the queue in one write, as much of it as the staging
+area holds ([§10](#10-staging)), and drop from it what was accepted. On −1,
+mark the listener closed. Appends from send and drops by flush MUST NOT lose
+or reorder bytes when they run at the same time.
 
 ## 5. Encode and send
 
@@ -85,7 +86,10 @@ discard what it returns: the socket is closed by then.
 
 ## 10. Staging
 
-The queue is offered in place; nothing to stage ([modes.md §10](modes.md#10-staging)).
+The front of the queue is copied into a staging area and offered in one
+write ([modes.md §10](modes.md#10-staging)). The queue holds many small
+pieces (an empty ICY block is one byte), so offering one piece per write
+would multiply the writes.
 
 ## 11. Final bytes
 
