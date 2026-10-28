@@ -7,7 +7,7 @@ to any implementation, then reconciled with the as-built spec.
 
 ## K1. A late listener must join at a point a decoder can start from
 
-Seen 5 times.
+Seen 6 times.
 
 - **Situation.** One encoder feeds many listeners. A listener connects while
   the stream is running and is sent a codec header followed by recent stream
@@ -20,6 +20,10 @@ stream`). A burst started in the middle of a page, right after the header.
   Before that, a joiner got no header at all, or a header fixed at start that
   no longer matched the stream, so Ogg streams were empty or garbled for every
   client. An mp3 joiner received an ID3v2 tag and a Xing frame mid-stream.
+  On an Ogg/Opus mount relayed by the Icecast emulation, a joiner after the
+  burst no longer reached the stream's start got pages with no `OpusHead`:
+  the captured container header was empty, and in-band link headers hid it in
+  the tests that changed metadata often.
 - **Why it is hard.** The valid join points are known only to the encoder, and
   they move as the stream goes. Tolerant decoders resynchronise on the next
   page, so a listening test sounds fine while the bytes are invalid. The
@@ -31,8 +35,10 @@ stream`). A burst started in the middle of a page, right after the header.
   whole consecutive pages from the first byte; the first page begins a
   logical stream; every page belongs to the logical stream whose beginning
   came last; at least two stream changes are seen. Also: an mp3 joiner's
-  bytes contain no ID3v2 tag and no Xing frame. Decoding success alone is not
-  binding.
+  bytes contain no ID3v2 tag and no Xing frame. Also, with a source whose
+  metadata never changes (a single Ogg link) and a short burst: a joiner's
+  first page is `OggS` with the codec's identification header. Decoding
+  success alone is not binding.
 
 **Reconciled.** Covered: join point
 [shared-encoder.md §2](shared-encoder.md#2-initial-bytes), chunk starts and
@@ -196,19 +202,23 @@ Seen 3 times.
 
 ## K8. ICY negotiation and per-listener metadata state
 
-Seen 3 times.
+Seen 4 times.
 
 - **Situation.** Several ICY listeners, joining at different times, with
   metadata changing.
 - **What went wrong.** No ICY metadata was sent at all. ICY was never
   negotiated because the request header was looked up with its original
   capitalisation after the server had normalised it. A metadata change was
-  consumed by the first listener served and never reached the others.
+  consumed by the first listener served and never reached the others. ICY
+  blocks were spliced into Ogg streams for clients that asked: an Icecast
+  relay and GStreamer's Ogg demuxer, which always ask and never strip, broke.
 - **Why it is hard.** Header names are case-insensitive. Metadata belongs to
-  the output, but "already sent" belongs to each listener.
+  the output, but "already sent" belongs to each listener. Asking for ICY does
+  not mean the client can take it: the right answer depends on the format.
 - **How to tell.** Two ICY listeners, one joining late, with the request header
   in mixed case. _Binding_: both get `icy-metaint`; both receive a block with
-  each new title; an unchanged title gives empty blocks.
+  each new title; an unchanged title gives empty blocks. An Ogg mount asked
+  for ICY answers without `icy-metaint` and sends no blocks.
 
 **Reconciled.** Covered: [icy.md §1](icy.md#1-negotiation),
 [icy.md §4](icy.md#4-cadence-and-change-detection).

@@ -94,6 +94,35 @@ run.
   audio stream; every non-reading client is closed by the server within 60 s;
   the server process is still alive at the end.
 
+## `icecast.server`
+
+End-to-end tests through [icecast-server.md](icecast-server.md): a real
+`icecast.server`, real source clients (`output.icecast`), real listeners. A
+rebuild must pass them unchanged.
+
+- **Ogg late listener** (`icecast_server_ogg_late_listener`). An Ogg/Opus
+  source, `<burst-size>4096</burst-size>`; a raw client joins after 4 s
+  asking `Icy-MetaData: 1`. _Binding_: no `icy-metaint` in the response head;
+  the body starts with `OggS` and its first 64 bytes contain `OpusHead`.
+- **Fallback keeps listeners** (`icecast_server_fallback`). A listener on `/a`;
+  a reload adds `/b` as `/a`'s fallback; `/a`'s source leaves. _Binding_: the
+  listener is not disconnected and its `bytes_sent` keeps growing; once both
+  sources leave, no mount remains.
+- **Logs and admin page** (`icecast_server_logs`). _Binding_: the admin page
+  refuses without credentials (401) and lists the listener with a 16-hex-digit
+  hashed address; the access log line matches
+  `<hash> - - [<date>] "GET /live HTTP/1.x" 200 <positive bytes> "-" "<agent>" <seconds>`;
+  the playlist log carries the title; the error log has the source login line.
+- **Reload** (`icecast_server_reload`). Configuration changes apply to new
+  sources without dropping connected ones. Exercises the operator only through
+  mount creation.
+- **Shutdown with a source connected** (`icecast_server_shutdown`). _Binding_:
+  the process does not hang.
+
+Not covered: a source reconnecting to the same mount (handler removal versus
+re-registration, [icecast-server.md §4](icecast-server.md#4-lifecycle-of-a-mounts-output));
+listeners counted against a limit; a TLS port.
+
 ## Byte ring
 
 Unit tests of the ring alone (`byteRing_test`), no server involved:

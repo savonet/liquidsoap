@@ -165,6 +165,47 @@ All read only, from the code and the tests.
   followed at once by a start can get `EADDRINUSE`. Reported in the pull
   request that added the churn test, which waits 200 ms to avoid it.
 
+## `icecast.server`
+
+### I1. ICY is no longer offered on Ogg — checked by the suite
+
+Recorded for the history: until the fix, Ogg mounts honoured `Icy-MetaData: 1`
+and broke Icecast relays and GStreamer clients. Covered now by
+[icy.md §1](icy.md#1-negotiation) and the Ogg late-listener test.
+
+### I2. No burst unless configured — checked
+
+A mount whose configuration sets no `<burst-size>` gets `burst=null`: listeners
+receive no burst at all. Observed through `icecast.server` with a 128 kbps mp3
+source: about 16 KB in a listener's first second, the live rate only. Icecast's
+own default `burst-size` is 64 KB, so behaviour differs from the server it
+emulates (that default is from memory, to verify).
+
+### I3. No way to refuse a listener without credentials — read only
+
+The operator admits every listener unless `auth` is set, and with `auth` set
+it asks for credentials before calling it. Icecast's `<clients>` and
+`<max-listeners>` therefore cannot be enforced through it, and are documented
+as not implemented.
+
+### I4. Responses lack Icecast's listener headers — read only
+
+Icecast answers listeners with `icy-name`, `icy-description`, `icy-genre`,
+`icy-br`, `icy-pub`, `Server` and caching headers taken from the source.
+`icecast.server` passes only the configured `<http-headers>`, so players and
+directories see none of the stream's identity (Icecast's set is from memory,
+to verify).
+
+### I5. A mount can be shadowed by a status route — read only
+
+The status routes (`/`, `/status.json`, `/admin/listeners.json`) are
+registered first and win over a mount with the same path.
+
+### I6. Frame duration bounds latency — read only
+
+`icecast.server` sets 0.2 s frames, so encoded data reaches the writers in
+0.2 s steps and a listener's latency has that granularity on top of the burst.
+
 ## To verify
 
 - **V1.** The Windows claim behind waking writers every cycle instead of

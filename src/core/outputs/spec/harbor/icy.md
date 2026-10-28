@@ -6,15 +6,22 @@ data, the server inserts one metadata block.
 ## 1. Negotiation
 
 A listener gets ICY metadata exactly when its request has a header named
-`icy-metadata` (any case) whose value is exactly the string `1`. Then the
+`icy-metadata` (any case) whose value is exactly the string `1`, and the
+output's MIME type is not an Ogg one. Then the
 response head carries `icy-metaint: <metaint>`
 ([connection.md §4](connection.md#4-the-response-head)) and blocks are
 inserted for this listener. Otherwise the listener gets the plain stream.
 Negotiation is per listener and fixed for the connection.
 
-ICY is offered whatever the stream's format; the setting
-`settings.harbor.icy_formats` concerns sources sending metadata to the server
-and does not apply here.
+**Ogg.** The MIME type is taken up to its first `;`, trimmed and lowercased.
+When it is `application/ogg`, `audio/ogg` or `video/ogg`, the request header
+is ignored: no `icy-metaint`, no blocks. Ogg carries metadata in band, and
+clients that always request ICY (Icecast relays, GStreamer's Ogg demuxer) do
+not strip it; Icecast never sends ICY on Ogg either. The decision is made once
+per output, from the resolved MIME type, not from the encoder.
+
+No other format is excluded. The setting `settings.harbor.icy_formats`
+concerns sources sending metadata to the server and does not apply here.
 
 ## 2. Block format
 

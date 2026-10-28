@@ -19,26 +19,30 @@ MIME derivation shared with `output.icecast`; encoders; the generic output
 base and its start/stop machinery; the scheduler. The `%ffmpeg` specifics of
 the MIME and mp3 options are owned by the FFmpeg spec,
 [io.md §12](../../../optionals/ffmpeg/spec/io.md#12-other-outputs-special-casing-ffmpeg).
-`output.harbor.hls` and `icecast.server` are script-level users and are not
-covered.
+`output.harbor.hls` is a script-level user and is not covered.
+
+**`icecast.server`** is a primary user: it serves every listener of every
+mount through `output.harbor`. What it relies on is stated in
+[icecast-server.md](icecast-server.md), and a rebuild must keep it working.
 
 ## Reading order
 
-| #   | Document                                     | Owns                                                                                      |
-| --- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 1   | [operator.md](operator.md)                   | Parameters, validation, methods, callbacks, the listener record, settings, lifecycle      |
-| 2   | [connection.md](connection.md)               | Routing a request to the output, authentication, rejections, the response head, admission |
-| 3   | [icy.md](icy.md)                             | ICY negotiation, block format, title composition, cadence and change detection            |
-| 4   | [delivery.md](delivery.md)                   | Writer shards, wake-ups, the flush pass, backpressure, the no-progress timeout, teardown  |
-| 5   | [modes.md](modes.md)                         | The encoder-mode contract: what each mode must provide, §1–§11                            |
-| 6   | [shared-encoder.md](shared-encoder.md)       | The shared mode, numbered as modes.md: one encoder, a ring, bursts                        |
-| 7   | [dedicated-encoder.md](dedicated-encoder.md) | The dedicated mode, numbered as modes.md: one encoder per listener                        |
-| 8   | [ring.md](ring.md)                           | The single-writer, lock-free-reader byte ring the shared mode reads from                  |
-| 9   | [concurrency.md](concurrency.md)             | Actors, what each owns, the listener lifecycle, ordering and exactly-once guarantees      |
-| 10  | [contracts.md](contracts.md)                 | What the operator relies on from the harbor server, encoders, output base, scheduler      |
-| 11  | [tests.md](tests.md)                         | The suite by principle: invariants, binding and incidental parts, doubles                 |
-| 12  | [findings.md](findings.md)                   | Defects, asymmetries, gaps and open questions, each checked or read only                  |
-| 13  | [known-complexity.md](known-complexity.md)   | Pitfalls from the history, implementation-free, each reconciled with the rules above      |
+| #   | Document                                     | Owns                                                                                             |
+| --- | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 1   | [operator.md](operator.md)                   | Parameters, validation, methods, callbacks, the listener record, settings, lifecycle             |
+| 2   | [connection.md](connection.md)               | Routing a request to the output, authentication, rejections, the response head, admission        |
+| 3   | [icy.md](icy.md)                             | ICY negotiation, block format, title composition, cadence and change detection                   |
+| 4   | [delivery.md](delivery.md)                   | Writer shards, wake-ups, the flush pass, backpressure, the no-progress timeout, teardown         |
+| 5   | [modes.md](modes.md)                         | The encoder-mode contract: what each mode must provide, §1–§11                                   |
+| 6   | [shared-encoder.md](shared-encoder.md)       | The shared mode, numbered as modes.md: one encoder, a ring, bursts                               |
+| 7   | [dedicated-encoder.md](dedicated-encoder.md) | The dedicated mode, numbered as modes.md: one encoder per listener                               |
+| 8   | [ring.md](ring.md)                           | The single-writer, lock-free-reader byte ring the shared mode reads from                         |
+| 9   | [concurrency.md](concurrency.md)             | Actors, what each owns, the listener lifecycle, ordering and exactly-once guarantees             |
+| 10  | [contracts.md](contracts.md)                 | What the operator relies on from the harbor server, encoders, output base, scheduler             |
+| 11  | [tests.md](tests.md)                         | The suite by principle: invariants, binding and incidental parts, doubles                        |
+| 12  | [icecast-server.md](icecast-server.md)       | What `icecast.server` does with the operator and relies on: parameters, lifecycle, record fields |
+| 13  | [findings.md](findings.md)                   | Defects, asymmetries, gaps and open questions, each checked or read only                         |
+| 14  | [known-complexity.md](known-complexity.md)   | Pitfalls from the history, implementation-free, each reconciled with the rules above             |
 
 [modes.md](modes.md) is a seam: [shared-encoder.md](shared-encoder.md) and
 [dedicated-encoder.md](dedicated-encoder.md) answer every clause of it under
