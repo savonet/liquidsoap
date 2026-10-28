@@ -406,7 +406,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       | `Regexp a, `Regexp b -> Lang.descr_of_regexp a = Lang.descr_of_regexp b
       | _ -> false
 
-  (** Newest first: the first match serves. *)
+  (** In dispatch order: the first match serves. *)
   type http_handlers = registration list Atomic.t
 
   type handler = { sources : sources; http : http_handlers }
@@ -1454,19 +1454,24 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         Mutex.protect registration_lock (fun () ->
             if not (Atomic.get registration.removed) then (
               let handler = get_handler ~pos ~transport ~icy:false port in
-              let current = Atomic.get handler.http in
               let spath = string_of_route_path path in
-              if
-                List.exists
-                  (fun r -> r.verb = verb && same_route_path r.path path)
-                  current
-              then
-                log#severe
-                  "Handler for '%s %s' on port %i shadows an earlier one."
-                  (string_of_verb verb) spath port;
+              let shadows r =
+                match path with
+                  | `Literal _ -> r.verb = verb && same_route_path r.path path
+                  | `Regexp _ -> false
+              in
+              let rec insert = function
+                | r :: rest when shadows r ->
+                    log#severe
+                      "Handler for '%s %s' on port %i shadows an earlier one."
+                      (string_of_verb verb) spath port;
+                    registration :: r :: rest
+                | r :: rest -> r :: insert rest
+                | [] -> [registration]
+              in
               log#important "Adding handler for '%s %s' on port %i"
                 (string_of_verb verb) spath port;
-              Atomic.set handler.http (registration :: current))));
+              Atomic.set handler.http (insert (Atomic.get handler.http)))));
     registration
 
   let unregister ~port matches =
