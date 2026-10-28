@@ -165,6 +165,23 @@
    harbor_output_icy_stamping.liq)))
 
 (rule
+ (alias test_harbor_output_idle_cost)
+ (package liquidsoap)
+ (deps
+  harbor_output_idle_cost.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_idle_cost.liq
+   liquidsoap
+   harbor_output_idle_cost.liq)))
+
+(rule
  (alias test_harbor_output_join_points)
  (package liquidsoap)
  (deps
@@ -514,6 +531,7 @@
   (alias test_harbor_output_icy_listeners)
   (alias test_harbor_output_icy_metaint)
   (alias test_harbor_output_icy_stamping)
+  (alias test_harbor_output_idle_cost)
   (alias test_harbor_output_join_points)
   (alias test_harbor_output_large_output)
   (alias test_harbor_output_listener_lifecycle)
