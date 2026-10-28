@@ -91,12 +91,18 @@ group with no listener ever timed out.
 A write offers a byte range to the listener's socket through its transport
 and classifies the outcome:
 
-| Outcome                          | Result | Effect                                               |
-| -------------------------------- | ------ | ---------------------------------------------------- |
-| `k > 0` bytes accepted           | `k`    | last progress := now; `bytes_sent += k`              |
-| 0 bytes accepted, or would block | 0      | none                                                 |
-| `EPIPE` or `ECONNRESET`          | −1     | log `Socket write for <id>: <error> (disconnecting)` |
-| any other error                  | −1     | log `Socket write error for <id>: <error>`           |
+| Outcome                                     | Result | Effect                                               |
+| ------------------------------------------- | ------ | ---------------------------------------------------- |
+| `k > 0` bytes accepted                      | `k`    | last progress := now; `bytes_sent += k`              |
+| 0 bytes accepted, would block, or `ENOBUFS` | 0      | none                                                 |
+| `EPIPE`, `ECONNRESET` or `ECONNABORTED`     | −1     | log `Socket write for <id>: <error> (disconnecting)` |
+| any other error                             | −1     | log `Socket write error for <id>: <error>`           |
+
+"Would block" is `EAGAIN` or `EWOULDBLOCK`, whichever the platform reports.
+`ENOBUFS` is a transient shortage of socket buffers that some platforms report
+under load; it is retried like a full socket, and the no-progress timeout
+bounds it. A peer that closed its end is reported as `EPIPE` or `ECONNRESET`
+on some platforms and as `ECONNABORTED` on others.
 
 A result of −1 makes the mode mark the listener closed. One flush issues at
 most one write. Every transport MUST offer this non-blocking write, encrypted
