@@ -52,6 +52,8 @@ extracted first:
 1. If an `Authorization` header is present and its value, split on runs of
    spaces or tabs, starts with the token `Basic` followed by a token, that
    token is base64-decoded and split into user and password at the first `:`.
+   A decoded token with no `:` is a user with an empty password; a token that
+   is not valid base64 counts as no header.
 2. Otherwise, if the query has a `pass` argument, the password is that value
    and the user is the `user` argument, or `""` when there is none. Players
    that can only take a URL pass credentials this way.
