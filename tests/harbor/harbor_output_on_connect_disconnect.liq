@@ -10,6 +10,7 @@ o = output.harbor(port=port, mount="cb.mp3", %mp3, sine())
 connected_id = ref(-1)
 connected_at = ref(0.)
 received = ref(0)
+final_bytes_sent = ref(-1)
 others = ref(0)
 
 o.on_connect(synchronous=true, fun (_) -> error.raise(error.failure, "boom"))
@@ -35,12 +36,11 @@ o.on_disconnect(
       atomic(fun () -> others := others() + 1)
       test.equal(l.id, connected_id())
       test.equal(l.connected_at, connected_at())
-      test.equal(l.bytes_sent, received())
+      final_bytes_sent := l.bytes_sent
       test.equal(l.bytes_sent > 1000, true)
       test.equal(l.duration > 0., true)
       test.equal(o.listeners(), [])
       test.equal(others(), 2)
-      test.pass()
     end
 )
 
@@ -72,6 +72,10 @@ def check() =
   )
   read()
   sock.close()
+  thread.pause(1.)
+  test.equal(final_bytes_sent(), received())
+  test.equal(others(), 2)
+  test.pass()
 end
 
 o.on_start(synchronous=true, fun () -> thread.run(delay=0.5, check))
