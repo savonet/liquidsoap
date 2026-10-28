@@ -107,11 +107,15 @@
 - `output.harbor`'s `on_connect` and `on_disconnect` callbacks now receive a listener record with
   its session duration and bytes sent, and a new `listeners` method lists connected listeners. The
   `ip` field no longer includes the client port (#5408). A new `accept` argument admits or
-  refuses listeners. Mounts match literally, and a newer output on the same mount takes it over.
+  refuses listeners. Mounts match literally, and a newer output takes over a served mount only
+  with `override_mount`.
   ICY titles change at their position in the stream, final Ogg pages reach listeners at stop,
   and a slow HTTPS listener no longer delays the others. Clocks not paced in real time are refused
   unless `allow_unsynced_clock` is set. `dumpfile` and the deprecated `on_connect` and
   `on_disconnect` arguments were removed: use the methods of the same names.
+- `harbor.http.register` and its variants return a value with a `remove` method, which replaces
+  `harbor.remove`. Registering a path already registered with the same method on a port raises an
+  error.
 - Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
   taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
   Heavy work in a callback or a request resolution no longer stalls playback either.
