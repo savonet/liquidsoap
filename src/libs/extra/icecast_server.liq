@@ -832,6 +832,7 @@ end
 # @flag hidden
 def icecast.server.mount_table() =
   entries = ref([])
+  source_id = source.id
 
   def has(mount) =
     list.assoc.mem(mount, entries())
@@ -907,10 +908,21 @@ def icecast.server.mount_table() =
     orphans
   end
 
-  # Returns the entries it leaves orphaned, see `sweep`.
-  def disconnect(mount) =
-    if has(mount) then get(mount).source := null end
-    list.iter(fun ((_, e)) -> e.fallback := null, dependents(mount))
+  # Returns the entries it leaves orphaned, see `sweep`. With `source`, does nothing unless the mount still holds that source: a source that reconnected before the old one's disconnect was handled keeps its mount.
+  def disconnect(~source:(departing:source?)=null, mount) =
+    holds =
+      has(mount)
+      and (
+        not null.defined(departing)
+        or (null.map(source_id, get(mount).source()) ?? "") ==
+          source_id(null.get(departing))
+      )
+    if
+      holds
+    then
+      get(mount).source := null
+      list.iter(fun ((_, e)) -> e.fallback := null, dependents(mount))
+    end
     sweep()
   end
 
@@ -1700,7 +1712,7 @@ def icecast.server.source_manager(
                 "source/source_main",
                 "Source at \"#{icecast.server.log_escape(mount)}\" exiting"
               )
-              shutdown_orphans(mounts.disconnect(mount))
+              shutdown_orphans(mounts.disconnect(source=s, mount))
               run_command(config.on_disconnect_cmd)
               list.iter(
                 fun (h) -> h({mount = mount}),

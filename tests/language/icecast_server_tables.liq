@@ -29,6 +29,17 @@ def f() =
   test.equal(created(), ["/b", "/a"])
   test.equal(source.id(null.get(entry_a.fallback())), "b")
 
+  # A source that reconnects before the old one's disconnect is handled keeps
+  # its mount.
+  r1 = blank(id="r1")
+  r2 = blank(id="r2")
+  ignore(t.connect(mount="/r", fallback_mount=null, source=r1, create("/r")))
+  ignore(t.connect(mount="/r", fallback_mount=null, source=r2, create("/r")))
+  test.equal(list.map(fst, t.disconnect(source=r1, "/r")), [])
+  test.equal(source.id(null.get(t.source("/r"))), "r2")
+  test.equal(list.map(fst, t.disconnect(source=r2, "/r")), ["/r"])
+  created := list.filter(fun (m) -> m != "/r", created())
+
   # /a's source leaves: entry survives on its fallback, nothing shut down
   test.equal(list.map(fst, t.disconnect("/a")), [])
   test.equal(t.has("/a"), true)
