@@ -14,7 +14,7 @@ jobs:
   build_no_depopts:
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:3ee4d052bac56daffa654abd09ccc48cdfbd929211bb19d11a4457083f9abd6b
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:129ae708d9cf644f63e08309efcff81c44c7c320159127996344397726434e0d
       options: --user opam
     env:
       HOME: /home/opam
