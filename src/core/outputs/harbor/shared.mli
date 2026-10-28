@@ -45,5 +45,8 @@ val join :
   head:string ->
   icy:bool ->
   Listener.t ->
-  (pending:(unit -> bool) -> flush:(scratch:bytes -> unit) -> 'a) ->
+  (pending:(unit -> bool) ->
+  flush:(scratch:bytes -> unit) ->
+  teardown:(unit -> unit) ->
+  'a) ->
   'a option

@@ -287,4 +287,5 @@ let join t ~head ~icy base make =
             Some
               (make
                  ~pending:(fun () -> pending t listener)
-                 ~flush:(fun ~scratch -> flush t listener ~scratch)))
+                 ~flush:(fun ~scratch -> flush t listener ~scratch)
+                 ~teardown:ignore))

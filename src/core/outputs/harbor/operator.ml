@@ -60,6 +60,60 @@ type parameters = {
   allow_unsynced_clock : bool;
 }
 
+(* The encoder-mode contract of modes.md, as the operator uses it; [encode]
+   returns the mode's send step. *)
+type mode = {
+  start :
+    name:string -> last:(Frame.Metadata.Export.t * Icy.event) option -> unit;
+  stop : unit -> unit;
+  running : unit -> bool;
+  encode : Frame.t -> unit -> unit;
+  metadata : Frame.Metadata.Export.t -> Icy.event -> unit;
+  join :
+    head:string ->
+    icy:bool ->
+    Listener.t ->
+    (pending:(unit -> bool) ->
+    flush:(scratch:bytes -> unit) ->
+    teardown:(unit -> unit) ->
+    Group.member) ->
+    Group.member option;
+}
+
+let shared_mode ~factory parameters =
+  let t =
+    Shared.create ~factory ~buffer:parameters.buffer ~burst:parameters.burst
+      ~metaint:parameters.metaint ()
+  in
+  {
+    start = Shared.start t;
+    stop = (fun () -> Shared.stop t);
+    running = (fun () -> Shared.running t);
+    encode =
+      (fun frame ->
+        let encoded = Shared.encode t frame in
+        fun () -> Shared.send t encoded);
+    metadata = Shared.metadata t;
+    join =
+      (fun ~head ~icy listener make -> Shared.join t ~head ~icy listener make);
+  }
+
+let dedicated_mode ~factory parameters =
+  let t =
+    Dedicated.create ~factory ~buffer:parameters.buffer
+      ~metaint:parameters.metaint ()
+  in
+  {
+    start = Dedicated.start t;
+    stop = (fun () -> Dedicated.stop t);
+    running = (fun () -> Dedicated.running t);
+    encode = (fun frame () -> Dedicated.send t frame);
+    metadata = Dedicated.metadata t;
+    join =
+      (fun ~head ~icy listener make ->
+        Dedicated.join t ~head ~icy listener make);
+  }
+
 let invalid value message = raise (Error.Invalid_value (value, message, []))
 
 let parse p =
@@ -135,23 +189,17 @@ class output p =
   let source = Lang.assoc "" 2 p in
   let pos = Lang.pos p in
   let { Mime.factory; format = mime; _ } = Mime.encoder_data p in
-  let () =
-    if dedicated then
-      invalid
-        (List.assoc "dedicated_encoder" p)
-        "The dedicated encoder mode is not available yet."
-  in
   object (self)
     inherit
-      [Shared.encoded] Output.encoded
+      [unit -> unit] Output.encoded
         ~output_kind:"output.harbor" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false
         ~name:(Lang.to_string (List.assoc "mount" p))
         source
 
     val mode =
-      Shared.create ~factory ~buffer:parameters.buffer ~burst:parameters.burst
-        ~metaint:parameters.metaint ()
+      if dedicated then dedicated_mode ~factory parameters
+      else shared_mode ~factory parameters
 
     method private self_sync = (Lang.to_source source)#cached_self_sync
     val run : run option Atomic.t = Atomic.make None
@@ -215,12 +263,12 @@ class output p =
           (Frame.Metadata.Export.to_list metadata)
       in
       Atomic.set last_metadata (Some (metadata, event));
-      Shared.metadata mode metadata event
+      mode.metadata metadata event
 
-    method private encode frame = Shared.encode mode frame
+    method private encode frame = mode.encode frame
 
     method private send data =
-      Shared.send mode data;
+      data ();
       match Atomic.get run with
         | Some { groups; _ } ->
             Array.iter
@@ -247,7 +295,7 @@ class output p =
       Mutex.protect start_stop (fun () ->
           if Atomic.get run = None then (
             self#check_clock;
-            Shared.start mode ~name:self#id ~last:(Atomic.get last_metadata);
+            mode.start ~name:self#id ~last:(Atomic.get last_metadata);
             let groups =
               Array.init (max 1 conf_writers#get) (fun _ ->
                   Group.create ~log:self#log ~timeout:parameters.timeout ())
@@ -270,7 +318,7 @@ class output p =
             | Some { groups; registration; live_key } ->
                 Harbor.remove_http_handler registration;
                 Atomic.set run None;
-                Shared.stop mode;
+                mode.stop ();
                 Array.iter Group.stop groups;
                 Mutex.protect live_outputs_lock (fun () ->
                     Hashtbl.remove live_outputs live_key))
@@ -338,7 +386,7 @@ class output p =
       in
       let groups =
         match Atomic.get run with
-          | Some { groups; _ } when Shared.running mode -> groups
+          | Some { groups; _ } when mode.running () -> groups
           | _ -> unavailable ()
       in
       let info =
@@ -355,7 +403,7 @@ class output p =
       if not (self#accepted info) then (
         self#log#info "Listener %s refused" peer;
         Harbor.simple_reply (Connection.forbidden ~protocol));
-      if not (Shared.running mode) then unavailable ();
+      if not (mode.running ()) then unavailable ();
       let group = groups.(info.id mod Array.length groups) in
       let listener =
         Listener.create ~log:self#log
@@ -371,12 +419,14 @@ class output p =
     (* Steps 7 to 9 of admission: from here on, every failure ends with the
        listener closed and both callbacks fired. *)
     method private admit ~protocol ~headers ~group listener =
-      let fail reason =
+      let fail ?member reason =
         self#log#info "Listener %s failed to connect: %s"
           (Listener.info listener).peer reason;
         Listener.mark_closed listener;
         Listener.close_socket listener;
-        self#teardown listener
+        match member with
+          | Some member -> member.Group.teardown ()
+          | None -> self#teardown listener
       in
       let icy = Icy.negotiated ~mime headers in
       let head =
@@ -385,24 +435,30 @@ class output p =
           parameters.headers
       in
       match
-        Shared.join mode ~head ~icy listener (fun ~pending ~flush ->
+        mode.join ~head ~icy listener (fun ~pending ~flush ~teardown ->
             {
               Group.listener;
               pending;
               flush;
-              teardown = (fun () -> self#teardown listener);
+              teardown =
+                (fun () ->
+                  (try teardown ()
+                   with exn ->
+                     self#log#info "Listener %s encoder stop failed: %s"
+                       (Listener.info listener).peer (Printexc.to_string exn));
+                  self#teardown listener);
             })
       with
         | exception exn -> fail (Printexc.to_string exn)
         | None -> fail "output stopped"
         | Some member -> (
             match Unix.set_nonblock (Listener.socket listener)#file_descr with
-              | exception exn -> fail (Printexc.to_string exn)
+              | exception exn -> fail ~member (Printexc.to_string exn)
               | () ->
                   if Group.publish group member then
                     self#log#info "Listener %s connected"
                       (Listener.info listener).peer
-                  else fail "output stopped")
+                  else fail ~member "output stopped")
   end
 
 let auth_t =
