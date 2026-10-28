@@ -50,6 +50,11 @@ caller: the streaming clock wakes groups on every cycle.
 - _Admission_: the group a listener is published to.
 - _Disconnection_: the listener's group, so that it is removed promptly
   ([§6](#6-disconnection)).
+- _Progress_: a group whose pass left a member owed bytes after that
+  member's socket accepted some is woken again at once. The socket may have
+  room for more, and waiting for the next cycle would cap a listener's rate
+  at one write per cycle, below the stream's rate when outputs are large.
+  Passes stop following each other once no member's socket accepts bytes.
 - _Retry_: a group with a member still owed bytes after a pass is woken
   again after at most `RETRY_INTERVAL` (recommended 1 s) when no cycle wakes
   it first. This keeps slow listeners and timeouts progressing when the
