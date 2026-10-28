@@ -66,6 +66,13 @@ let mark_closed t =
     t.wake ())
 
 let is_closed t = Atomic.get t.closed_at <> None
+
+let close_for_overflow t =
+  if not (is_closed t) then (
+    t.log#info "Listener %s buffer overflow (client too slow), disconnecting"
+      t.info.peer;
+    mark_closed t)
+
 let close_socket t = try t.socket#close with _ -> ()
 
 let record_t =

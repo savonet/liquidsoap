@@ -170,12 +170,6 @@ type listener = {
 
 type segment = Carried of int | Block of string * Icy.position | Stream of int
 
-let overflow listener =
-  (Listener.log listener.base)#info
-    "Listener %s buffer overflow (client too slow), disconnecting"
-    (Listener.info listener.base).peer;
-  Listener.mark_closed listener.base
-
 let pending t listener =
   listener.carried_offset < String.length listener.carried
   || listener.offset < Store.tail t.store
@@ -210,7 +204,7 @@ let flush t listener ~scratch =
   let tail = Store.tail t.store in
   let snapshot = Atomic.get t.snapshot in
   if listener.offset < newest_start snapshot ~tail - t.buffer then
-    overflow listener
+    Listener.close_for_overflow listener.base
   else (
     let capacity = Bytes.length scratch in
     let carried = String.length listener.carried - listener.carried_offset in
@@ -249,7 +243,7 @@ let flush t listener ~scratch =
     let segments =
       (if first > 0 then [Carried first] else []) @ List.rev segments
     in
-    if not valid then overflow listener
+    if not valid then Listener.close_for_overflow listener.base
     else if fill > 0 then (
       match Listener.write listener.base scratch 0 fill with
         | -1 -> Listener.mark_closed listener.base

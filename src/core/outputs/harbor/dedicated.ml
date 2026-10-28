@@ -88,11 +88,7 @@ let append t listener ~stamp data =
         enqueue t listener ~kind:`Stream ~stamp (Strings.to_string data);
         listener.older_owed > t.buffer)
   in
-  if overflow && not (Listener.is_closed listener.base) then (
-    (Listener.log listener.base)#info
-      "Listener %s buffer overflow (client too slow), disconnecting"
-      (Listener.info listener.base).peer;
-    Listener.mark_closed listener.base)
+  if overflow then Listener.close_for_overflow listener.base
 
 (* Runs [f] on the listener's encoder unless it is stopped or the listener is
    closed: the closed flag is set before teardown stops the encoder, so a

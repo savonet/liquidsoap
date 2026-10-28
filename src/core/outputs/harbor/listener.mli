@@ -45,6 +45,10 @@ val mark_closed : t -> unit
 
 val is_closed : t -> bool
 
+(** {!mark_closed} for a listener too far behind the stream, logged unless it is
+    closed already. *)
+val close_for_overflow : t -> unit
+
 (** Errors are ignored. Called once, by the socket's owner. *)
 val close_socket : t -> unit
 
