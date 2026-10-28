@@ -354,6 +354,17 @@ class virtual ['a] base p =
   let get_param name = List.assoc name p in
   let metaint = Lang.to_int (get_param "metaint") in
   let encoder_data = encoder_data p in
+  (* Ogg carries metadata in band: like Icecast, never interleave ICY blocks
+     into it, as clients that ask for them would not strip them. *)
+  let sends_icy =
+    let mime =
+      String.lowercase_ascii
+        (String.trim (List.hd (String.split_on_char ';' encoder_data.format)))
+    in
+    not
+      (List.mem mime
+         Icecast_utils.[ogg_application_mime; ogg_audio_mime; ogg_video_mime])
+  in
   let encoding = Lang.to_string (get_param "encoding") in
   let recode_metadata m =
     let target_encoding =
@@ -722,7 +733,7 @@ class virtual ['a] base p =
       in
       let metadata_interval, icy_header =
         match List.assoc_opt "icy-metadata" headers with
-          | Some "1" ->
+          | Some "1" when sends_icy ->
               (Some metaint, Printf.sprintf "icy-metaint: %d\r\n" metaint)
           | _ | (exception _) -> (None, "")
       in
