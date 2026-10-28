@@ -383,8 +383,8 @@ Settings apply at different times:
   `<fallback-mount>` of live mounts. A mount whose source is gone and whose
   fallback is removed is shut down, since it has nothing left to send.
 - **On the next connection**: `<on-connect>` and `<on-disconnect>` commands.
-- **When a mount is next created**: HTTP headers, burst size, dump file and
-  client timeout. A running mount keeps the settings it started with.
+- **When a mount is next created**: HTTP headers, burst size and client
+  timeout. A running mount keeps the settings it started with.
 - **After a restart only**: port, bind address, TLS on or off and source
   timeout. A reload that changes one of them logs that it was not applied.
 
@@ -481,7 +481,7 @@ Mount configurations support both `type="default"` (settings applied to all moun
 | `mount-name`     | Mount point path (e.g., `/live.mp3`)                                                       |
 | `username`       | Source client username (default: "source")                                                 |
 | `password`       | Mount-specific password (overrides global)                                                 |
-| `dump-file`      | Path to dump the raw stream to a file                                                      |
+| `dump-file`      | Not implemented: ignored with a warning                                                    |
 | `burst-size`     | Initial burst size for new listeners (bytes)                                               |
 | `fallback-mount` | Mount to fall back to when this source disconnects. A reload applies it to live mounts too |
 | `on-connect`     | Shell command to execute when source connects                                              |

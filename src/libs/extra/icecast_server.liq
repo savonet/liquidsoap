@@ -180,7 +180,6 @@ let icecast.server.config.mount.empty =
     username = (null : string?),
     password = (null : string?),
     max_listeners = (null : int?),
-    dump_file = (null : string?),
     burst_size = (null : int?),
     fallback_mount = (null : string?),
     hidden = false,
@@ -230,6 +229,7 @@ def icecast.server.config.mount.parse(doc) =
     "mount",
     [
       ("public", null.defined(m.public)),
+      ("dump-file", null.defined(m.dump_file)),
       ("intro", null.defined(m.intro)),
       ("max-listener-duration", null.defined(m.max_listener_duration)),
       ("authentication", null.defined(m?.authentication))
@@ -262,7 +262,6 @@ def icecast.server.config.mount.parse(doc) =
     username = m.username,
     password = m.password,
     max_listeners = m.max_listeners,
-    dump_file = m.dump_file,
     burst_size = m.burst_size,
     fallback_mount = m.fallback_mount,
     hidden = m.hidden == 1,
@@ -287,7 +286,6 @@ def icecast.server.config.mount.resolve(~default, ~mounts, (mount:string)) =
     username = config.username ?? default.username,
     password = config.password ?? default.password,
     max_listeners = config.max_listeners ?? default.max_listeners,
-    dump_file = config.dump_file ?? default.dump_file,
     burst_size = config.burst_size ?? default.burst_size,
     fallback_mount = config.fallback_mount ?? default.fallback_mount,
     hidden = config.hidden or default.hidden,
@@ -1154,7 +1152,6 @@ def icecast.server.default_prepare(
     timeout,
     port,
     transport,
-    dumpfile,
     dedicated_encoder,
     muxer_opts
   }
@@ -1180,7 +1177,6 @@ def icecast.server.default_prepare(
           headers=headers,
           timeout=timeout,
           burst=burst,
-          dumpfile=dumpfile,
           dedicated_encoder=dedicated_encoder,
           format=mime_type ?? "",
           copy_encoder(format, options=muxer_opts),
@@ -1493,7 +1489,6 @@ def icecast.server.source_manager(
               timeout = parsed.client_timeout ?? 30.,
               port = port,
               transport = transport,
-              dumpfile = config.dump_file,
               dedicated_encoder = dedicated_encoder,
               muxer_opts = muxer_options(format)
             }
