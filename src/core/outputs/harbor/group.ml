@@ -113,7 +113,7 @@ and pass t =
   (* Stop holds the lock for the last pass; a pass that finds it taken has
      nothing left to do, and a publication wakes the group once it is out. *)
   if Mutex.try_lock t.lock then (
-    let owed, progressed, removed =
+    let removed, next =
       Fun.protect
         ~finally:(fun () -> Mutex.unlock t.lock)
         (fun () ->
@@ -124,12 +124,19 @@ and pass t =
           let owed =
             List.filter (fun m -> m.pending ()) (Atomic.get t.members)
           in
-          ( owed <> [],
-            List.exists (fun m -> Listener.last_progress m.listener >= now) owed,
-            removed ))
+          let next =
+            if
+              List.exists
+                (fun m -> Listener.last_progress m.listener >= now)
+                owed
+            then `Wake
+            else if owed <> [] then `Retry
+            else `Idle
+          in
+          (removed, next))
     in
     release removed;
-    if progressed then wake t else if owed then arm_retry t)
+    match next with `Wake -> wake t | `Retry -> arm_retry t | `Idle -> ())
 
 and run t =
   Atomic.set t.schedule `Running;

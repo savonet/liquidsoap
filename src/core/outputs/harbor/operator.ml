@@ -158,11 +158,11 @@ let parse p =
     },
     dedicated )
 
-let peer_address socket =
-  match Unix.getpeername socket#file_descr with
-    | Unix.ADDR_INET (address, port) as sockaddr ->
-        (sockaddr, Unix.string_of_inet_addr address, port)
-    | Unix.ADDR_UNIX path as sockaddr -> (sockaddr, path, 0)
+let peer_address = function
+  | Unix.ADDR_INET (address, port) ->
+      let ip = Unix.string_of_inet_addr address in
+      (ip, Printf.sprintf "%s:%d" ip port)
+  | Unix.ADDR_UNIX path -> (path, path ^ ":0")
 
 class output p =
   let parameters, dedicated = parse p in
@@ -360,8 +360,8 @@ class output p =
 
     method private handle ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri
         =
-      let sockaddr, ip, port = peer_address socket in
-      let peer = Printf.sprintf "%s:%d" ip port in
+      let sockaddr = Unix.getpeername socket#file_descr in
+      let ip, peer = peer_address sockaddr in
       self#log#info "New listener connection from %s" peer;
       self#authenticate ~peer ~sockaddr ~headers ~query;
       let unavailable () =
