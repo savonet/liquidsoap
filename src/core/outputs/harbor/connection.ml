@@ -26,26 +26,14 @@ let credentials ~headers ~query =
                   password )
           | None -> None)
 
-let error_page status message =
-  "HTTP/1.0 " ^ status
-  ^ "\r\n\
-     WWW-Authenticate: Basic realm=\"Liquidsoap harbor\"\r\n\
-     Content-Type: text/html\r\n\
-     \r\n\
-     <?xml version=\"1.0\" encoding=\"utf-8\"?>\n\
-     <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \
-     \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n\
-     <html xmlns=\"http://www.w3.org/1999/xhtml\" \
-     xml:lang=\"en\"><head><title>Liquidsoap source \
-     harbor</title></head><body><p>" ^ message ^ "</p></body></html>"
-
 let unauthorized = function
   | `No_credentials ->
-      error_page "401 Unauthorized" "No login / password supplied."
+      Harbor.challenge_page 401 "Unauthorized" "No login / password supplied."
   | `Wrong_credentials ->
-      error_page "401 Unauthorized" "Wrong Authentication data"
+      Harbor.challenge_page 401 "Unauthorized" "Wrong Authentication data"
 
-let mount_taken = error_page "403 Mountpoint already taken" "Mountpoint in use"
+let mount_taken =
+  Harbor.challenge_page 403 "Mountpoint already taken" "Mountpoint in use"
 
 let empty_reply ~protocol status =
   Printf.sprintf "HTTP/%s %s\r\nContent-Length: 0\r\n\r\n" protocol status

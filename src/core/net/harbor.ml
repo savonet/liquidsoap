@@ -180,6 +180,10 @@ module type T = sig
   val string_of_verb : http_verb -> string
   val mk_simple : string -> unit -> string
   val simple_reply : string -> 'a
+
+  (** An HTML error page that carries the Basic authentication challenge. *)
+  val challenge_page : int -> string -> string -> string
+
   val reply : (unit -> string) -> 'a
   val custom : unit -> 'a
 
@@ -477,12 +481,14 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
        xml:lang=\"en\"><head><title>Liquidsoap source \
        harbor</title></head><body><p>" ^ msg ^ "</p></body></html>"
 
+  let challenge_page code status msg =
+    http_error_page code
+      (status ^ "\r\nWWW-Authenticate: Basic realm=\"Liquidsoap harbor\"")
+      msg
+
   let mount_taken_error () =
     simple_reply
-      (http_error_page 403
-         "Mountpoint already taken\r\n\
-          WWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
-         "Mountpoint in use")
+      (challenge_page 403 "Mountpoint already taken" "Mountpoint in use")
 
   (* The error numbers are specified here:
      http://tools.ietf.org/html/rfc6455#section-7.4.1 *)
@@ -582,12 +588,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let http_auth_check ?query ~meth ~uri ~login socket headers =
     (* 401 error model *)
-    let http_reply s =
-      simple_reply
-        (http_error_page 401
-           "Unauthorized\r\nWWW-Authenticate: Basic realm=\"Liquidsoap harbor\""
-           s)
-    in
+    let http_reply s = simple_reply (challenge_page 401 "Unauthorized" s) in
     let valid_user, auth_f = login in
     try
       let user, pass =

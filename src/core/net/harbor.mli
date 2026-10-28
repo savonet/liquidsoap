@@ -105,6 +105,10 @@ module type T = sig
   val mk_simple : string -> unit -> string
 
   val simple_reply : string -> 'a
+
+  (** An HTML error page that carries the Basic authentication challenge. *)
+  val challenge_page : int -> string -> string -> string
+
   val reply : (unit -> string) -> 'a
   val custom : unit -> 'a
 
