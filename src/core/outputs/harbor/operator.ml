@@ -1,20 +1,3 @@
-let conf_output =
-  Dtools.Conf.void
-    ~p:(Harbor.conf_harbor#plug "output")
-    "Settings of output.harbor."
-
-let conf_writers =
-  Dtools.Conf.int
-    ~p:(conf_output#plug "writers")
-    ~d:(Domain.recommended_domain_count ())
-    "Delivery groups per output"
-    ~comments:
-      [
-        "How many independent delivery groups each output.harbor spreads its";
-        "listeners over. Passes of different groups may run in parallel on";
-        "the scheduler's domains; a group with no listener costs nothing.";
-      ]
-
 module Mime = Icecast_utils.Icecast_v (struct
   type content = string
 
@@ -297,7 +280,7 @@ class output p =
             self#check_clock;
             mode.start ~name:self#id ~last:(Atomic.get last_metadata);
             let groups =
-              Array.init (max 1 conf_writers#get) (fun _ ->
+              Array.init (Scheduler.max_domains ()) (fun _ ->
                   Group.create ~log:self#log ~timeout:parameters.timeout ())
             in
             let registration =
