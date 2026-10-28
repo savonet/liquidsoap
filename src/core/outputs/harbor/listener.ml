@@ -37,11 +37,12 @@ let now () =
   let module Time = (val Clock.time_implementation ()) in
   Time.to_float (Time.time ())
 
+let bytes_sent t = Atomic.get t.bytes_sent
+
 let write t data offset length =
   match t.socket#write data offset length with
     | 0 -> 0
     | accepted ->
-        t.last_progress <- now ();
         ignore (Atomic.fetch_and_add t.bytes_sent accepted);
         accepted
     | exception Unix.Unix_error (error, _, _) when Liq_http.would_block error ->
@@ -65,7 +66,7 @@ let mark_closed t =
     t.log#info "Listener %s disconnected" t.info.peer;
     t.wake ())
 
-let is_closed t = Atomic.get t.closed_at <> None
+let is_closed t = Option.is_some (Atomic.get t.closed_at)
 
 let close_for_overflow t =
   if not (is_closed t) then (

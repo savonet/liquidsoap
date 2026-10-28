@@ -30,13 +30,14 @@ val socket : t -> Harbor.socket
 val now : unit -> float
 
 (** Offers bytes to the socket in one non-blocking write: the count accepted,
-    [0] when none was, [-1] on an error, logged. Accepted bytes count as
-    progress and towards [bytes_sent]. *)
+    [0] when none was, [-1] on an error, logged. Accepted bytes count towards
+    {!bytes_sent}. *)
 val write : t -> bytes -> int -> int -> int
 
+val bytes_sent : t -> int
 val last_progress : t -> float
 
-(** Set by the group at publication. *)
+(** Set by the group: at publication, and by a pass whose flush sent bytes. *)
 val set_last_progress : t -> float -> unit
 
 (** Idempotent; exactly one caller wins, records the disconnection time, logs

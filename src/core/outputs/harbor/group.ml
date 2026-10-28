@@ -32,7 +32,7 @@ let create ~log ~timeout () =
     retry_armed = Atomic.make false;
   }
 
-let has_members t = Atomic.get t.members <> []
+let has_members t = match Atomic.get t.members with [] -> false | _ -> true
 
 let add_task ?(delay = 0.) handler =
   Scheduler.Task.add
@@ -60,7 +60,10 @@ let serve t ~scratch ~now member =
   let listener = member.listener in
   try
     if (not (Listener.is_closed listener)) && member.pending () then (
+      let sent = Listener.bytes_sent listener in
       member.flush ~scratch;
+      if Listener.bytes_sent listener > sent then
+        Listener.set_last_progress listener now;
       if
         (not (Listener.is_closed listener))
         && now -. Listener.last_progress listener > t.timeout
@@ -78,13 +81,13 @@ let serve t ~scratch ~now member =
 (* Must be called with [t.lock] held; returns the removed members, whose
    sockets the caller closes once the lock is released. *)
 let remove_closed t =
-  let closed, live =
-    List.partition
-      (fun m -> Listener.is_closed m.listener)
-      (Atomic.get t.members)
-  in
-  Atomic.set t.members live;
-  closed
+  let members = Atomic.get t.members in
+  let is_closed m = Listener.is_closed m.listener in
+  if not (List.exists is_closed members) then []
+  else (
+    let closed, live = List.partition is_closed members in
+    Atomic.set t.members live;
+    closed)
 
 let release removed =
   List.iter
@@ -121,17 +124,15 @@ and pass t =
           let now = Listener.now () in
           List.iter (serve t ~scratch ~now) (Atomic.get t.members);
           let removed = remove_closed t in
-          let owed =
-            List.filter (fun m -> m.pending ()) (Atomic.get t.members)
-          in
           let next =
-            if
-              List.exists
-                (fun m -> Listener.last_progress m.listener >= now)
-                owed
-            then `Wake
-            else if owed <> [] then `Retry
-            else `Idle
+            List.fold_left
+              (fun next m ->
+                match next with
+                  | `Wake -> `Wake
+                  | _ when not (m.pending ()) -> next
+                  | _ when Listener.last_progress m.listener >= now -> `Wake
+                  | _ -> `Retry)
+              `Idle (Atomic.get t.members)
           in
           (removed, next))
     in
