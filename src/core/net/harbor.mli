@@ -114,8 +114,9 @@ module type T = sig
 
   type registration
 
-  (** Takes effect once the server has started. When several registrations match
-      a request, the most recent one serves it. *)
+  (** Takes effect once the server has started. Registrations are tried in the
+      order they were made and the first match serves, except that a literal one
+      goes ahead of earlier ones with the same verb and path. *)
   val add_http_handler :
     pos:Pos.t list ->
     transport:Http.transport ->
