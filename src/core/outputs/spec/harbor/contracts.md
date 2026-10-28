@@ -46,7 +46,10 @@ operator.
   the socket is: it writes what fits, returns the count accepted, and reports
   "would block" without waiting. An encrypted transport MUST buffer what it
   has encrypted and not yet written, and accept no new bytes until that is
-  drained, rather than block.
+  drained, rather than block. A transport that reports "would block" MAY
+  already hold part of the offered range; the next write MUST offer the same
+  bytes from the same start, possibly followed by more, as a flush resuming at
+  its first unaccepted byte does.
 
 ## 2. Format and MIME derivation
 
