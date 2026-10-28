@@ -410,11 +410,15 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   type http_handlers = registration list Atomic.t
 
   type handler = { sources : sources; http : http_handlers }
+  type listening = { socket : Unix.file_descr; port : int; icy : bool }
 
+  (* The entry's accept task reads [listening] on every round; a byte written to
+     [signal] makes it re-select and decide whether to release the port. *)
   type open_port = {
     handler : handler;
     transport : Http.transport;
-    fds : Unix.file_descr list;
+    listening : listening list Atomic.t;
+    signal : Unix.file_descr;
   }
 
   let opened_ports : (int, open_port) Concurrent_hashtbl.t =
@@ -1238,11 +1242,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           else false
       | _ -> true
 
-  let open_port ~transport ~handler ~base_port ~icy port =
-    log#info "Opening port %d with icy = %b" port icy;
-    let max_conn = conf_harbor_max_conn#get in
+  let close_listening listening =
+    List.iter
+      (fun { socket; _ } -> try Unix.close socket with _ -> ())
+      listening
+
+  let signal fd =
+    try ignore (Unix_utils.write fd (Bytes.of_string " ") 0 1) with _ -> ()
+
+  let accept_clients ~transport ~handler ~base_port listening =
     let server = transport#server in
-    let process_client sock =
+    let process_client { socket = sock; port; icy } =
       try
         let socket, caller =
           server#accept ?timeout:(Some conf_accept_timeout#get) sock
@@ -1316,36 +1326,45 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           (Printf.sprintf "Failed to accept new client: %s"
              (Printexc.to_string e))
     in
-    let rec incoming ~port ~icy ~close_request events
-        (close_signal : Unix.file_descr) e =
-      let task () =
-        [
-          {
-            Task.priority = `Non_blocking;
-            events;
-            handler = incoming ~port ~icy ~close_request events close_signal;
-          };
-        ]
-      in
-      if List.mem (`Read close_signal) e then (
-        (try ignore (Unix.read close_signal (Bytes.create 64) 0 64)
-         with _ -> ());
-        Mutex.protect registration_lock (fun () ->
-            if release_port ~handler ~base_port then (
-              log#important "Nothing more on port %i: closing sockets." port;
-              List.iter
-                (function
-                  | `Read s -> ( try Unix.close s with _ -> ()) | _ -> ())
-                events;
-              (try Unix.close close_request with _ -> ());
-              [])
-            else task ()))
-      else (
-        let get_sock = function `Read sock -> sock | _ -> assert false in
-        List.iter process_client (List.map get_sock e);
-        task ())
+    (* A socket pair rather than a pipe: on Windows, a single non-socket fd in
+       the scheduler forces [Unix.select] into its worker-thread emulation for
+       every call, which leaks native memory (see #5245). With sockets only,
+       select uses the plain winsock fast path. *)
+    let in_s, out_s = Unix_utils.socketpair ~cloexec:true () in
+    let release () =
+      (try ignore (Unix.read in_s (Bytes.create 64) 0 64) with _ -> ());
+      Mutex.protect registration_lock (fun () ->
+          let released = release_port ~handler ~base_port in
+          if released then (
+            log#important "Nothing more on port %i: closing sockets." base_port;
+            close_listening (Atomic.get listening);
+            (try Unix.close in_s with _ -> ());
+            try Unix.close out_s with _ -> ());
+          released)
     in
-    let open_socket port bind_addr =
+    let rec incoming e =
+      if List.mem (`Read in_s) e && release () then []
+      else (
+        List.iter
+          (fun l -> if List.mem (`Read l.socket) e then process_client l)
+          (Atomic.get listening);
+        [task ()])
+    and task () =
+      {
+        Task.priority = `Non_blocking;
+        events =
+          `Read in_s
+          :: List.map (fun { socket; _ } -> `Read socket) (Atomic.get listening);
+        handler = incoming;
+      }
+    in
+    Task.add (task ());
+    out_s
+
+  let listen ~icy port =
+    log#info "Opening port %d with icy = %b" port icy;
+    let max_conn = conf_harbor_max_conn#get in
+    let open_socket bind_addr =
       let bind_addr_inet = Unix.inet_addr_of_string bind_addr in
       let bind_addr = Unix.ADDR_INET (bind_addr_inet, port) in
       let domain = Unix.domain_of_sockaddr bind_addr in
@@ -1353,72 +1372,65 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       (* Set TCP_NODELAY on the socket *)
       Unix.setsockopt sock Unix.SO_REUSEADDR true;
       Unix.setsockopt sock Unix.TCP_NODELAY true;
-      Unix.bind sock bind_addr;
-      Unix.listen sock max_conn;
-      `Read sock
+      (try
+         Unix.bind sock bind_addr;
+         Unix.listen sock max_conn
+       with exn ->
+         Unix.close sock;
+         raise exn);
+      sock
     in
     let bind_addrs =
       List.fold_left
         (fun cur bind_addr -> if bind_addr <> "" then bind_addr :: cur else cur)
         [] conf_harbor_bind_addrs#get
     in
-    (* A socket pair rather than a pipe: on Windows, a single non-socket fd in
-       the scheduler forces [Unix.select] into its worker-thread emulation for
-       every call, which leaks native memory (see #5245). With sockets only,
-       select uses the plain winsock fast path. *)
-    let in_s, out_s = Unix_utils.socketpair ~cloexec:true () in
-    let events = `Read in_s :: List.map (open_socket port) bind_addrs in
-    Task.add
-      {
-        Task.priority = `Non_blocking;
-        events;
-        handler = incoming ~port ~icy ~close_request:out_s events in_s;
-      };
-    out_s
+    List.fold_left
+      (fun opened bind_addr ->
+        match open_socket bind_addr with
+          | socket -> { socket; port; icy } :: opened
+          | exception exn ->
+              close_listening opened;
+              raise exn)
+      [] bind_addrs
 
   (* This, contrary to the find_xx functions
      creates the handlers when they are missing. *)
   let get_handler ~pos ~transport ~icy port =
     match Concurrent_hashtbl.find_opt opened_ports port with
-      | Some { handler; fds; transport = t } ->
+      | Some { handler; listening; signal = wake; transport = t } ->
           if transport#name <> t#name then
             Lang.raise_error ~pos
               ~message:"Port is already opened with a different transport"
               "http";
-          (* If we have only one socket and icy=true,
-           * we need to open a second one. *)
-          if List.length fds = 1 && icy then (
-            let fds =
-              open_port ~transport ~handler ~base_port:port ~icy (port + 1)
-              :: fds
-            in
-            Concurrent_hashtbl.replace opened_ports port
-              { handler; fds; transport });
+          if icy && not (List.exists (fun l -> l.icy) (Atomic.get listening))
+          then (
+            Atomic.set listening (Atomic.get listening @ listen ~icy (port + 1));
+            signal wake);
           handler
       | None ->
           let handler = { sources = Atomic.make []; http = Atomic.make [] } in
-          let fds =
-            [open_port ~transport ~handler ~base_port:port ~icy:false port]
+          let listening = listen ~icy:false port in
+          let listening =
+            if icy then (
+              try listening @ listen ~icy (port + 1)
+              with exn ->
+                close_listening listening;
+                raise exn)
+            else listening
           in
-          let fds =
-            if icy then
-              open_port ~transport ~handler ~base_port:port ~icy (port + 1)
-              :: fds
-            else fds
+          let listening = Atomic.make listening in
+          let wake =
+            accept_clients ~transport ~handler ~base_port:port listening
           in
           Concurrent_hashtbl.replace opened_ports port
-            { handler; fds; transport };
+            { handler; transport; listening; signal = wake };
           handler
 
-  (* Asks the accept tasks to close the port; they decide under
+  (* Asks the accept task to close the port; it decides under
      [registration_lock], so a registration made meanwhile keeps it open. *)
-  let request_close_if_empty { handler; fds; _ } =
-    if is_empty handler then
-      List.iter
-        (fun fd ->
-          try ignore (Unix_utils.write fd (Bytes.of_string " ") 0 1)
-          with _ -> ())
-        fds
+  let request_close_if_empty { handler; signal = wake; _ } =
+    if is_empty handler then signal wake
 
   (* Add sources... This is tied up to sources lifecycle so
      no need to prevent early start *)

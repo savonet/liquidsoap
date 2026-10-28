@@ -1,4 +1,17 @@
 (rule
+ (alias test_harbor_icy_port)
+ (package liquidsoap)
+ (deps
+  harbor_icy_port.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} harbor_icy_port.liq liquidsoap harbor_icy_port.liq)))
+
+(rule
  (alias test_harbor_output_accept)
  (package liquidsoap)
  (deps
@@ -521,6 +534,7 @@
 (alias
  (name citest)
  (deps
+  (alias test_harbor_icy_port)
   (alias test_harbor_output_accept)
   (alias test_harbor_output_auth)
   (alias test_harbor_output_burst)
