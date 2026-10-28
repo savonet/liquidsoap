@@ -44,10 +44,7 @@ let write t data offset length =
         t.last_progress <- now ();
         ignore (Atomic.fetch_and_add t.bytes_sent accepted);
         accepted
-    | exception
-        Unix.Unix_error
-          ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR | Unix.ENOBUFS), _, _)
-      ->
+    | exception Unix.Unix_error (error, _, _) when Liq_http.would_block error ->
         0
     | exception
         Unix.Unix_error

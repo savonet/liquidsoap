@@ -141,6 +141,10 @@ let args_split s =
   List.iter fill_arg (String.split_on_char '&' s);
   args
 
+let would_block = function
+  | Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR | Unix.ENOBUFS -> true
+  | _ -> false
+
 let is_url path =
   Re.Pcre.pmatch ~rex:(Re.Pcre.regexp "^[Hh][Tt][Tt][Pp][sS]?://.+") path
 

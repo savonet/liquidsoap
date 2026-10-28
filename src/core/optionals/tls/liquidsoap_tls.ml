@@ -128,11 +128,8 @@ module Liq_tls = struct
           | written ->
               h.unsent_offset <- h.unsent_offset + written;
               go ()
-          | exception
-              Unix.Unix_error
-                ( (Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR | Unix.ENOBUFS),
-                  _,
-                  _ ) ->
+          | exception Unix.Unix_error (error, _, _) when Http.would_block error
+            ->
               ())
     in
     go ();
