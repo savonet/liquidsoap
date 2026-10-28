@@ -22,11 +22,21 @@ def f() =
       end
   )
 
+  # The server thread may not be listening yet on a loaded machine.
+  def rec connect() =
+    try
+      socket.unix.client(fname)
+    catch _ do
+      thread.pause(0.05)
+      connect()
+    end
+  end
+
   thread.run(
     delay=0.1,
     fun () ->
       begin
-        s = socket.unix.client(fname)
+        s = connect()
         s.read.wait(
           fun () ->
             begin
