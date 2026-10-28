@@ -38,6 +38,7 @@ covered.
 | 10  | [contracts.md](contracts.md)                 | What the operator relies on from the harbor server, encoders, output base, scheduler      |
 | 11  | [tests.md](tests.md)                         | The suite by principle: invariants, binding and incidental parts, doubles                 |
 | 12  | [findings.md](findings.md)                   | Defects, asymmetries, gaps and open questions, each checked or read only                  |
+| 13  | [known-complexity.md](known-complexity.md)   | Pitfalls from the history, implementation-free, each reconciled with the rules above      |
 
 [modes.md](modes.md) is a seam: [shared-encoder.md](shared-encoder.md) and
 [dedicated-encoder.md](dedicated-encoder.md) answer every clause of it under

@@ -86,11 +86,28 @@ run.
   seconds after the last stop: more than eight connects in total; disconnects
   equal connects; `listeners()` is empty. _Why_: listeners admitted while a
   stop is in progress are the case where a callback can be lost or doubled.
+  _Limit_: recorded when it was added as passing with and without the fix for
+  that race; it does not reliably reach the window.
 - **Load** (`scale-test.sh` / `scale-test.js`, run by hand, not by CI). For a
   given encoder and mode: 30 probes connect with random staggers of 0.2–2 s,
   and 3 clients connect and never read. _Binding_: every probe identifies an
   audio stream; every non-reading client is closed by the server within 60 s;
   the server process is still alive at the end.
+
+## Byte ring
+
+Unit tests of the ring alone (`byteRing_test`), no server involved:
+
+- **Round trip and wrap.** Appends of 10 bytes, reads at several offsets.
+  _Binding_: tail, and exact bytes read across the wrap point.
+- **Unavailable ranges.** _Binding_: a range older than tail minus capacity,
+  or beyond the tail, reads as unavailable.
+- **Growth.** A chunk larger than the capacity. _Binding_: the new capacity
+  is twice the chunk, and older bytes still within reach read back intact.
+- **One writer, one reader, concurrently.** 200 000 bytes of a known pattern,
+  in chunks of 1–97 bytes, into a 1024-byte ring. _Binding_: every range
+  reported valid has the exact pattern bytes; the final tail is the total.
+  A reader that is overtaken skips ahead and continues.
 
 ## Gaps in coverage
 

@@ -75,7 +75,9 @@ output is stopping. Not reproduced: the window is narrow.
 before publishing the tail, and the reader's after-copy check cannot see an
 append in progress. With a single encoder output longer than `buffer` (a large
 video keyframe with a small `buffer`), a reader at the edge of its allowed lag
-can send corrupted bytes. Not reproduced.
+can send corrupted bytes. Not reproduced. The ring's concurrent unit test
+appends chunks of at most 97 bytes into a 1024-byte ring, so it cannot reach
+this case.
 
 ### D10. Shared state survives a restart — read only
 
@@ -154,6 +156,14 @@ All read only, from the code and the tests.
 - **G9. A large single chunk grows the ring for good.** A chunk larger than
   the ring's capacity grows it to twice the chunk's size, and it never
   shrinks.
+- **G10. No bound on process memory or threads.** The spec bounds the ring
+  and per-listener pending bytes only. Reported growth with listeners came
+  from outside the managed heap and scaled with the thread count
+  ([known-complexity.md K10](known-complexity.md#k10-memory-over-long-runs-with-listeners)).
+- **G11. An immediate restart can fail to bind.** The server closes a port's
+  listening sockets asynchronously when its last handler goes, so a stop
+  followed at once by a start can get `EADDRINUSE`. Reported in the pull
+  request that added the churn test, which waits 200 ms to avoid it.
 
 ## To verify
 
