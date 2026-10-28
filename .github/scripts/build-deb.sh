@@ -52,7 +52,7 @@ echo "::endgroup::"
 if [ "${PLATFORM}" = "amd64" ]; then
   echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-  ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+  DUNE_PROFILE=release ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
   mv /tmp/*.deb "${LIQ_TMP_DIR}"
 fi
@@ -96,7 +96,7 @@ echo "::endgroup::"
 if [ "${PLATFORM}" = "amd64" ]; then
   echo "::group:: save build config for ${LIQ_PACKAGE}.."
 
-  ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
+  DUNE_PROFILE=release ./liquidsoap --build-config > "${LIQ_TMP_DIR}/${LIQ_PACKAGE}-minimal_${LIQ_VERSION}-${LIQ_TAG}-${DEB_RELEASE}.config"
 
   echo "::endgroup::"
 fi

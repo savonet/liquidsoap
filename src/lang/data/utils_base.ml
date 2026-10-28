@@ -54,6 +54,10 @@ let check_readable ?current_dir ~pos path =
           Runtime_error.raise ~pos
             ~message:("File not found! " ^ details)
             "not_found";
+        if Sys.is_directory resolved_path then
+          Runtime_error.raise ~pos
+            ~message:("Path is a directory! " ^ details)
+            "not_found";
         if not (readable resolved_path) then
           Runtime_error.raise ~pos
             ~message:("File is not readable!" ^ details)

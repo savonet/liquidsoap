@@ -62,6 +62,8 @@ jobs:
     env:
       HOME: /home/opam
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
+      # The paths the packages are built with, so packaging reuses the first build.
+      LIQUIDSOAP_BUILD_TARGET: posix
     steps:
       - name: Checkout code
         run: |

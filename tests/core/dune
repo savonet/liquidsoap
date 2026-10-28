@@ -158,7 +158,9 @@
    3650
    -nodes
    -subj
-   "/CN=localhost")))
+   "/CN=localhost"
+   -addext
+   "subjectAltName=DNS:localhost")))
 
 (rule
  (alias tls_pending_test)

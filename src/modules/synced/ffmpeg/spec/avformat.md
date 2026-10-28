@@ -102,6 +102,7 @@ bases of the streams among them, is known after the first write.
 | `set_output_metadata`, `set_metadata`                              | replaces the metadata          | failure: header written       | failed error             | closed error |
 | `set_time_base`, `set_avg_frame_rate`                              | writes the field               | failure: header written       | failed error             | closed error |
 | `write_packet`, `write_frame`, `write_subtitle_frame`              | writes the header, then writes | writes                        | failed error             | closed error |
+| `write_header`                                                     | writes the header, flushes I/O | nothing                       | failed error             | closed error |
 | `flush`                                                            | nothing                        | flushes the muxer and the I/O | failed error             | closed error |
 | `output_started`                                                   | `false`                        | `true`                        | failed error             | closed error |
 | getters                                                            | performed                      | performed                     | failed error             | closed error |
@@ -779,6 +780,15 @@ Encodes a subtitle and writes it as one packet.
   error the encoder reports.
 
 ```ocaml
+val write_header : output container -> unit
+```
+
+On an open output, writes the header and flushes the I/O, so the header's
+bytes reach the sink before any packet. Packets the muxer buffers are not
+written out. On a started output it does nothing. A failed header write
+raises its error and leaves the output open.
+
+```ocaml
 val flush : output container -> unit
 ```
 
@@ -825,7 +835,7 @@ propagates: `` `Other `` of that code when FFmpeg passes it through unchanged.
 
 The runtime lock is released (contract M1, M4) around every open, probing,
 `find_best_*_stream`, `read_input`, `seek`, the creation of an encoding
-stream, the three writes, `flush`, `tell`, `close`, and release by
+stream, the three writes, `write_header`, `flush`, `tell`, `close`, and release by
 collection. `Format.find_input_format` and
 `Format.guess_output_format` MAY release it.
 
@@ -833,12 +843,12 @@ collection. `Format.find_input_format` and
 
 A container has one guard, shared by its streams (M9).
 
-| Exclusive                                                                                                                                      | Shared                                       |
-| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
+| Exclusive                                                                                                                                                      | Shared                                       |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `write_header`, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
 
 The container is not in use while a function of §7.2 runs: `on_packet` may
-call `flush` or `tell` on its own container.
+call `write_header`, `flush` or `tell` on its own container.
 
 ### 6.3 Global state
 

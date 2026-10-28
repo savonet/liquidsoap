@@ -1993,6 +1993,23 @@ static int flush_io(container *record) {
   return io->error < 0 ? io->error : 0;
 }
 
+CAMLprim value ocaml_av_write_header(value _container) {
+  CAMLparam1(_container);
+  container *record = exclusive(_container);
+  int error = 0;
+
+  if (record->is_output) {
+    caml_release_runtime_system();
+    error = ensure_header(record);
+    if (error >= 0)
+      error = flush_io(record);
+    caml_acquire_runtime_system();
+  }
+  done(record, error);
+
+  CAMLreturn(Val_unit);
+}
+
 CAMLprim value ocaml_av_flush(value _container) {
   CAMLparam1(_container);
   container *record = exclusive(_container);
