@@ -183,16 +183,21 @@ module type T = sig
   val reply : (unit -> string) -> 'a
   val custom : unit -> 'a
 
+  type route_path = [ `Literal of string | `Regexp of Lang.regexp ]
+  type registration
+
   val add_http_handler :
     pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
     verb:http_verb ->
-    uri:Lang.regexp ->
+    path:route_path ->
     http_handler ->
-    unit
+    registration
 
-  val remove_http_handler :
+  val remove_http_handler : registration -> unit
+
+  val remove_http_handlers :
     port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
 
   (* Source input *)
@@ -381,7 +386,29 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     string ->
     reply
 
-  type http_handlers = (http_verb * Lang.regexp * http_handler) list Atomic.t
+  type route_path = [ `Literal of string | `Regexp of Lang.regexp ]
+
+  type registration = {
+    port : int;
+    verb : http_verb;
+    path : route_path;
+    http_handler : http_handler;
+    removed : bool Atomic.t;
+  }
+
+  let string_of_route_path = function
+    | `Literal path -> path
+    | `Regexp regexp -> Lang.descr_of_regexp regexp
+
+  let same_route_path a b =
+    match (a, b) with
+      | `Literal a, `Literal b -> a = b
+      | `Regexp a, `Regexp b -> Lang.descr_of_regexp a = Lang.descr_of_regexp b
+      | _ -> false
+
+  (** Newest first: the first match serves. *)
+  type http_handlers = registration list Atomic.t
+
   type handler = { sources : sources; http : http_handlers }
 
   type open_port = {
@@ -491,6 +518,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   exception Protocol_not_supported of string
 
+  let ans_505 () =
+    simple_reply
+      "HTTP/1.0 505 HTTP Version Not Supported\r\nContent-Length: 0\r\n\r\n"
+
   let parse_http_request_line r =
     try
       let data = Re.Pcre.split ~rex:(Re.Pcre.regexp "[ \t]+") r in
@@ -506,7 +537,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     with
       | Protocol_not_supported p ->
           log#info "Protocol not supported for request %s: %s" r p;
-          simple_reply "HTTP 505 Protocol Not Supported\r\n\r\n"
+          ans_505 ()
       | e ->
           log#info "Invalid request line %s: %s" r (Printexc.to_string e);
           simple_reply "HTTP 500 Invalid request\r\n\r\n"
@@ -986,35 +1017,42 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | Some p -> p
         | None -> ans_404 base_uri
     in
-    let f (verb, regex, handler) =
-      let rex = regex.Lang_regexp.regexp in
-      let sub =
-        Lazy.Mutexed.from_fun (fun () ->
-            try Some (Re.Pcre.exec ~rex base_uri) with _ -> None)
+    let f { verb; path; http_handler = handler; _ } =
+      let groups =
+        if (verb :> verb) <> hmethod then None
+        else (
+          match path with
+            | `Literal p -> if p = base_uri then Some [] else None
+            | `Regexp regex -> (
+                let rex = regex.Lang_regexp.regexp in
+                match Re.Pcre.exec ~rex base_uri with
+                  | exception _ -> None
+                  | sub ->
+                      Some
+                        (List.fold_left
+                           (fun groups name ->
+                             try
+                               (name, Re.Pcre.get_named_substring rex name sub)
+                               :: groups
+                             with Not_found -> groups)
+                           []
+                           (Array.to_list (Re.Pcre.names rex)))))
       in
-      if (verb :> verb) = hmethod && Lazy.Mutexed.force sub <> None then (
-        let sub = Option.get (Lazy.Mutexed.force sub) in
-        let groups =
-          List.fold_left
-            (fun groups name ->
-              try (name, Re.Pcre.get_named_substring rex name sub) :: groups
-              with Not_found -> groups)
-            []
-            (Array.to_list (Re.Pcre.names rex))
-        in
-        log#info "Found handler '%s %s' on port %d%s." smethod
-          (Lang.descr_of_regexp regex)
-          port
-          (match groups with
-            | [] -> ""
-            | groups ->
-                Printf.sprintf " with matches: %s"
-                  (String.concat ", "
-                     (List.map
-                        (fun (lbl, v) -> [%string "%{lbl}: %{v}"])
-                        groups)));
-        raise (Handled (verb, groups, handler)))
-      else ()
+      match groups with
+        | None -> ()
+        | Some groups ->
+            log#info "Found handler '%s %s' on port %d%s." smethod
+              (string_of_route_path path)
+              port
+              (match groups with
+                | [] -> ""
+                | groups ->
+                    Printf.sprintf " with matches: %s"
+                      (String.concat ", "
+                         (List.map
+                            (fun (lbl, v) -> [%string "%{lbl}: %{v}"])
+                            groups)));
+            raise (Handled (verb, groups, handler))
     in
     try
       List.iter f (Atomic.get handler.http);
@@ -1034,7 +1072,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             match hprotocol with
               | `Http_10 -> "1.0"
               | `Http_11 -> "1.1"
-              | _ -> assert false
+              | _ -> ans_505 ()
           in
           let query =
             groups @ Hashtbl.fold (fun lbl k query -> (lbl, k) :: query) args []
@@ -1185,7 +1223,21 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   (* {1 The server} *)
   (* Open a port and listen to it. *)
-  let open_port ~transport ~icy port =
+  let is_empty handler =
+    Atomic.get handler.sources = [] && Atomic.get handler.http = []
+
+  (* Called by a port's accept task under [registration_lock] when asked to
+     close: a registration made since the request keeps the port open. *)
+  let release_port ~handler ~base_port =
+    match Concurrent_hashtbl.find_opt opened_ports base_port with
+      | Some p when p.handler == handler ->
+          if is_empty handler then (
+            Concurrent_hashtbl.remove opened_ports base_port;
+            true)
+          else false
+      | _ -> true
+
+  let open_port ~transport ~handler ~base_port ~icy port =
     log#info "Opening port %d with icy = %b" port icy;
     let max_conn = conf_harbor_max_conn#get in
     let server = transport#server in
@@ -1263,24 +1315,34 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           (Printf.sprintf "Failed to accept new client: %s"
              (Printexc.to_string e))
     in
-    let rec incoming ~port ~icy events (out_s : Unix.file_descr) e =
-      if List.mem (`Read out_s) e then (
-        try
-          List.iter
-            (function `Read s -> Unix.close s | _ -> assert false)
-            events;
-          []
-        with _ -> [])
-      else (
-        let get_sock = function `Read sock -> sock | _ -> assert false in
-        List.iter process_client (List.map get_sock e);
+    let rec incoming ~port ~icy ~close_request events
+        (close_signal : Unix.file_descr) e =
+      let task () =
         [
           {
             Task.priority = `Non_blocking;
             events;
-            handler = incoming ~port ~icy events out_s;
+            handler = incoming ~port ~icy ~close_request events close_signal;
           };
-        ])
+        ]
+      in
+      if List.mem (`Read close_signal) e then (
+        (try ignore (Unix.read close_signal (Bytes.create 64) 0 64)
+         with _ -> ());
+        Mutex.protect registration_lock (fun () ->
+            if release_port ~handler ~base_port then (
+              log#important "Nothing more on port %i: closing sockets." port;
+              List.iter
+                (function
+                  | `Read s -> ( try Unix.close s with _ -> ()) | _ -> ())
+                events;
+              (try Unix.close close_request with _ -> ());
+              [])
+            else task ()))
+      else (
+        let get_sock = function `Read sock -> sock | _ -> assert false in
+        List.iter process_client (List.map get_sock e);
+        task ())
     in
     let open_socket port bind_addr =
       let bind_addr_inet = Unix.inet_addr_of_string bind_addr in
@@ -1309,37 +1371,53 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       {
         Task.priority = `Non_blocking;
         events;
-        handler = incoming ~port ~icy events in_s;
+        handler = incoming ~port ~icy ~close_request:out_s events in_s;
       };
     out_s
 
   (* This, contrary to the find_xx functions
      creates the handlers when they are missing. *)
   let get_handler ~pos ~transport ~icy port =
-    try
-      let { handler; fds; transport = t } =
-        Concurrent_hashtbl.find opened_ports port
-      in
-      if transport#name <> t#name then
-        Lang.raise_error ~pos
-          ~message:"Port is already opened with a different transport" "http";
-      (* If we have only one socket and icy=true,
-       * we need to open a second one. *)
-      if List.length fds = 1 && icy then (
-        let fds = open_port ~transport ~icy (port + 1) :: fds in
-        Concurrent_hashtbl.replace opened_ports port { handler; fds; transport })
-      else ();
-      handler
-    with Not_found ->
-      (* First the port without icy *)
-      let fds = [open_port ~transport ~icy:false port] in
-      (* Now the port with icy, is requested.*)
-      let fds =
-        if icy then open_port ~transport ~icy (port + 1) :: fds else fds
-      in
-      let handler = { sources = Atomic.make []; http = Atomic.make [] } in
-      Concurrent_hashtbl.replace opened_ports port { handler; fds; transport };
-      handler
+    match Concurrent_hashtbl.find_opt opened_ports port with
+      | Some { handler; fds; transport = t } ->
+          if transport#name <> t#name then
+            Lang.raise_error ~pos
+              ~message:"Port is already opened with a different transport"
+              "http";
+          (* If we have only one socket and icy=true,
+           * we need to open a second one. *)
+          if List.length fds = 1 && icy then (
+            let fds =
+              open_port ~transport ~handler ~base_port:port ~icy (port + 1)
+              :: fds
+            in
+            Concurrent_hashtbl.replace opened_ports port
+              { handler; fds; transport });
+          handler
+      | None ->
+          let handler = { sources = Atomic.make []; http = Atomic.make [] } in
+          let fds =
+            [open_port ~transport ~handler ~base_port:port ~icy:false port]
+          in
+          let fds =
+            if icy then
+              open_port ~transport ~handler ~base_port:port ~icy (port + 1)
+              :: fds
+            else fds
+          in
+          Concurrent_hashtbl.replace opened_ports port
+            { handler; fds; transport };
+          handler
+
+  (* Asks the accept tasks to close the port; they decide under
+     [registration_lock], so a registration made meanwhile keeps it open. *)
+  let request_close_if_empty { handler; fds; _ } =
+    if is_empty handler then
+      List.iter
+        (fun fd ->
+          try ignore (Unix_utils.write fd (Bytes.of_string " ") 0 1)
+          with _ -> ())
+        fds
 
   (* Add sources... This is tied up to sources lifecycle so
      no need to prevent early start *)
@@ -1358,68 +1436,67 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
   (* Remove source. *)
   let remove_source ~port ~mountpoint () =
     Mutex.protect registration_lock (fun () ->
-        let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
+        let ({ handler; _ } as p) = Concurrent_hashtbl.find opened_ports port in
         let smount = Lang.descr_of_regexp mountpoint in
         let current = Atomic.get handler.sources in
         assert (
           List.exists (fun (r, _) -> Lang.descr_of_regexp r = smount) current);
         log#important "Removing mountpoint '%s' on port %i" smount port;
-        let filtered =
-          List.filter (fun (r, _) -> Lang.descr_of_regexp r <> smount) current
-        in
-        Atomic.set handler.sources filtered;
-        if List.length filtered = 0 && List.length (Atomic.get handler.http) = 0
-        then (
-          log#important "Nothing more on port %i: closing sockets." port;
-          let f in_s =
-            ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
-            Unix.close in_s
-          in
-          List.iter f fds;
-          Concurrent_hashtbl.remove opened_ports port)
-        else ())
+        Atomic.set handler.sources
+          (List.filter (fun (r, _) -> Lang.descr_of_regexp r <> smount) current);
+        request_close_if_empty p)
 
-  (* Add http_handler... *)
-  let add_http_handler ~pos ~transport ~port ~verb ~uri h =
-    let exec () =
-      Mutex.protect registration_lock (fun () ->
-          let handler = get_handler ~pos ~transport ~icy:false port in
-          let suri = Lang.descr_of_regexp uri in
-          log#important "Adding handler for '%s %s' on port %i"
-            (string_of_verb verb) suri port;
-          Atomic.set handler.http (Atomic.get handler.http @ [(verb, uri, h)]))
+  let add_http_handler ~pos ~transport ~port ~verb ~path h =
+    let registration =
+      { port; verb; path; http_handler = h; removed = Atomic.make false }
     in
-    Server.on_start exec
+    Server.on_start (fun () ->
+        Mutex.protect registration_lock (fun () ->
+            if not (Atomic.get registration.removed) then (
+              let handler = get_handler ~pos ~transport ~icy:false port in
+              let current = Atomic.get handler.http in
+              let spath = string_of_route_path path in
+              if
+                List.exists
+                  (fun r -> r.verb = verb && same_route_path r.path path)
+                  current
+              then
+                log#severe
+                  "Handler for '%s %s' on port %i shadows an earlier one."
+                  (string_of_verb verb) spath port;
+              log#important "Adding handler for '%s %s' on port %i"
+                (string_of_verb verb) spath port;
+              Atomic.set handler.http (registration :: current))));
+    registration
 
-  (* Remove http_handler. *)
-  let remove_http_handler ~port ~verb ~uri () =
-    let exec () =
-      Mutex.protect registration_lock (fun () ->
-          let { handler; fds; _ } = Concurrent_hashtbl.find opened_ports port in
-          let suri = Lang.descr_of_regexp uri in
+  let unregister ~port matches =
+    match Concurrent_hashtbl.find_opt opened_ports port with
+      | None -> ()
+      | Some ({ handler; _ } as p) ->
           let removed, remaining =
-            List.partition
-              (fun (v, u, _) -> v = verb && suri = Lang.descr_of_regexp u)
-              (Atomic.get handler.http)
+            List.partition matches (Atomic.get handler.http)
           in
-          if removed <> [] then
-            log#important "Removing handler for '%s %s' on port %i"
-              (string_of_verb verb) suri port;
+          List.iter
+            (fun r ->
+              Atomic.set r.removed true;
+              log#important "Removing handler for '%s %s' on port %i"
+                (string_of_verb r.verb)
+                (string_of_route_path r.path)
+                port)
+            removed;
           Atomic.set handler.http remaining;
-          if
-            List.length (Atomic.get handler.sources) = 0
-            && List.length (Atomic.get handler.http) = 0
-          then (
-            log#info "Nothing more on port %i: closing sockets." port;
-            let f in_s =
-              ignore (Unix_utils.write in_s (Bytes.of_string " ") 0 1);
-              Unix.close in_s
-            in
-            List.iter f fds;
-            Concurrent_hashtbl.remove opened_ports port)
-          else ())
-    in
-    Server.on_start exec
+          request_close_if_empty p
+
+  let remove_http_handler registration =
+    Mutex.protect registration_lock (fun () ->
+        Atomic.set registration.removed true;
+        unregister ~port:registration.port (fun r -> r == registration))
+
+  let remove_http_handlers ~port ~verb ~uri () =
+    Server.on_start (fun () ->
+        Mutex.protect registration_lock (fun () ->
+            unregister ~port (fun r ->
+                r.verb = verb && same_route_path r.path (`Regexp uri))))
 end
 
 module Harbor = Make (Http_transport)

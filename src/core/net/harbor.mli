@@ -108,16 +108,29 @@ module type T = sig
   val reply : (unit -> string) -> 'a
   val custom : unit -> 'a
 
+  (** A literal path matches a request path, query string removed, byte for
+      byte. *)
+  type route_path = [ `Literal of string | `Regexp of Lang.regexp ]
+
+  type registration
+
+  (** Takes effect once the server has started. When several registrations match
+      a request, the most recent one serves it. *)
   val add_http_handler :
     pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
     verb:http_verb ->
-    uri:Lang.regexp ->
+    path:route_path ->
     http_handler ->
-    unit
+    registration
 
-  val remove_http_handler :
+  (** Removes this registration only; idempotent, and effective even before the
+      registration took effect. *)
+  val remove_http_handler : registration -> unit
+
+  (** Removes every regexp registration with this verb and pattern. *)
+  val remove_http_handlers :
     port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
 
   type relay_info = {
