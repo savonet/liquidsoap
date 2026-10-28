@@ -155,7 +155,10 @@ def f() =
       icecast.server.config.mount.parse(mount).burst_size
     )
   end
-  test.equal(burst("<limits/>", "<mount/>"), null)
+  test.equal(
+    burst("<limits/>", "<mount/>"),
+    icecast.server.config.default_burst_size
+  )
   test.equal(
     burst("<limits><burst-size>10</burst-size></limits>", "<mount/>"),
     10
