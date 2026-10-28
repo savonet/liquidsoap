@@ -132,10 +132,6 @@ module type T = sig
       registration took effect. *)
   val remove_http_handler : registration -> unit
 
-  (** Removes every regexp registration with this verb and pattern. *)
-  val remove_http_handlers :
-    port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
-
   type relay_info = {
     uri : string;
     groups : (string * string) list;

@@ -198,9 +198,6 @@ module type T = sig
 
   val remove_http_handler : registration -> unit
 
-  val remove_http_handlers :
-    port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
-
   (* Source input *)
 
   type relay_info = {
@@ -1514,12 +1511,6 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     Mutex.protect registration_lock (fun () ->
         Atomic.set registration.removed true;
         unregister ~port:registration.port (fun r -> r == registration))
-
-  let remove_http_handlers ~port ~verb ~uri () =
-    Server.on_start (fun () ->
-        Mutex.protect registration_lock (fun () ->
-            unregister ~port (fun r ->
-                r.verb = verb && same_route_path r.path (`Regexp uri))))
 end
 
 module Harbor = Make (Http_transport)
