@@ -1,9 +1,9 @@
 %include "../test.liq"
 
 # Over TLS and SSL, a listener that stops reading delays nobody: with one
-# delivery group, a reading listener keeps receiving at the stream's rate while
-# the stalled one's socket is full.
-settings.harbor.output.writers := 1
+# scheduler domain, hence one delivery group, a reading listener keeps
+# receiving at the stream's rate while the stalled one's socket is full.
+settings.scheduler.domains := 1
 byte_rate = 192000 * 4
 
 tls = http.transport.tls(certificate="./ssl.cert", key="./ssl.key")
