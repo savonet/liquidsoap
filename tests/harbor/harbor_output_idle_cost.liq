@@ -1,9 +1,10 @@
 %include "../test.liq"
 
 # An output with no listener costs the same whatever its number of delivery
-# groups: idle with 1 group, then restarted with 64, the process uses about
-# the same CPU and context switches.
-settings.harbor.output.writers := 1
+# groups: restarted with 1 group, then with 4096, the process uses about the
+# same CPU and context switches. The group count follows
+# settings.scheduler.domains at each start, while the scheduler keeps the
+# domains it started with.
 o = output.harbor(port=18127, mount="idle", %wav, sine())
 
 def ctxt_switches(task) =
@@ -73,20 +74,25 @@ def wait_for(cond) =
   loop(100)
 end
 
-def check() =
-  if not file.exists("/proc/self/task") then test.skip() end
-  let (cpu1, switches1) = idle_cost()
-  settings.harbor.output.writers := 64
+def restart_with(groups) =
+  settings.scheduler.domains := groups
   o.stop()
   wait_for(fun () -> not o.is_started())
   o.start()
   wait_for(o.is_started)
   thread.pause(2.)
-  let (cpu64, switches64) = idle_cost()
+end
+
+def check() =
+  if not file.exists("/proc/self/task") then test.skip() end
+  restart_with(1)
+  let (cpu1, switches1) = idle_cost()
+  restart_with(4096)
+  let (cpuN, switchesN) = idle_cost()
   print(
-    "idle over 6s: 1 group cpu=#{cpu1} switches=#{switches1}; 64 groups cpu=#{
-      cpu64
-    } switches=#{switches64}"
+    "idle over 6s: 1 group cpu=#{cpu1} switches=#{switches1}; 4096 groups cpu=#{
+      cpuN
+    } switches=#{switchesN}"
   )
   if
     switches1 == 0 or cpu1 == 0
@@ -96,14 +102,14 @@ def check() =
     )
   end
   if
-    switches64 > switches1 * 3 / 2 + 300
+    switchesN > switches1 * 3 / 2 + 300
   then
     test.fail(
       "context switches grow with groups"
     )
   end
   if
-    cpu64 > cpu1 * 3 / 2 + 20
+    cpuN > cpu1 * 3 / 2 + 20
   then
     test.fail(
       "CPU grows with groups"
@@ -112,12 +118,4 @@ def check() =
   test.pass()
 end
 
-o.on_start(
-  synchronous=true,
-  fun () ->
-    if
-      settings.harbor.output.writers() == 1
-    then
-      thread.run(delay=3., check)
-    end
-)
+thread.run(delay=3., check)
