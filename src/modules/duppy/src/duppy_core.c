@@ -100,6 +100,8 @@ struct fd_entry {
 typedef struct {
   task *head;
   task *tail;
+  /* Tasks only some workers accept. */
+  size_t restricted;
 } queue;
 
 typedef struct {
@@ -624,6 +626,8 @@ static void task_stop_waiting(duppy_core *core, task *entry) {
 
 static void queue_push(queue *target, task *entry) {
   entry->next = NULL;
+  if (entry->accepted_by != DUPPY_EVERY_WORKER)
+    target->restricted++;
   if (target->tail)
     target->tail->next = entry;
   else
@@ -638,6 +642,8 @@ static void queue_unlink(queue *source, task *previous, task *entry) {
     source->head = entry->next;
   if (source->tail == entry)
     source->tail = previous;
+  if (entry->accepted_by != DUPPY_EVERY_WORKER)
+    source->restricted--;
   entry->next = NULL;
 }
 
@@ -666,6 +672,12 @@ static int better_placed(const duppy_core *core, const task *entry,
 static task *queue_find(queue *source, int worker_index,
                         const duppy_core *balanced, task **previous) {
   *previous = NULL;
+  /* Without a restricted task, better_placed answers the same for the whole
+     queue, and a walk repeating it is quadratic in a long queue. */
+  if (balanced && source->restricted == 0)
+    return source->head && !better_placed(balanced, source->head, worker_index)
+               ? source->head
+               : NULL;
   for (task *entry = source->head; entry; entry = entry->next) {
     if (accepted_by(entry, worker_index) &&
         !(balanced && better_placed(balanced, entry, worker_index)))
@@ -1104,6 +1116,7 @@ static void drop_waiting(duppy_core *core) {
 static void drop_queue(queue *target) {
   free_chain(target->head);
   target->head = target->tail = NULL;
+  target->restricted = 0;
 }
 
 static void drop_ready(duppy_core *core) {
