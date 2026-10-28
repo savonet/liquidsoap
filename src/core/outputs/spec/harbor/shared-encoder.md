@@ -47,6 +47,9 @@ With `B` the burst:
 1. **Join point.** With no burst, `offset = T`. With a burst, the candidates
    are the output starts, plus `S` when it is set, that are at least
    `max(E, S)` (when `S` is set, otherwise `E`) and at least `N − buffer`.
+   `E` itself is a candidate only when `S = E`: the encoder's first output
+   may begin with header pages it does not report, and a joiner there would
+   get the header twice.
    `offset` is the newest candidate with `offset ≤ T − B`, the newest one
    that gives at least `B` bytes; if none, the oldest candidate; if there is
    no candidate, `T`.

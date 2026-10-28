@@ -68,9 +68,8 @@ compares the mount's and the server's listener counts, kept from the
 callbacks, with the limits. A limit can be exceeded by the number of
 admissions in progress at once.
 
-**Dump file.** Icecast's `<dump-file>` is not offered by the operator. When
-`icecast.server` supports it, it records the mount's source with an output of
-its own.
+**Dump file.** Icecast's `<dump-file>` is not implemented: `icecast.server`
+parses it, ignores it with a warning, and documents it as not implemented.
 
 The output is created at run time, long after the server started, so route
 registration takes effect immediately

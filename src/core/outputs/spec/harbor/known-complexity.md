@@ -40,7 +40,7 @@ stream`). A burst started in the middle of a page, right after the header.
   first page is `OggS` with the codec's identification header. Decoding
   success alone is not binding.
 
-**Answered by.** Join points: candidates are encoder output starts at or after the current logical stream and the current encoder's first byte [shared-encoder.md §2](shared-encoder.md#2-initial-bytes); markers published before bytes [shared-encoder.md §5](shared-encoder.md#5-encode-and-send); a restart starts a new epoch, so no joiner receives a previous encoder's bytes [shared-encoder.md §7](shared-encoder.md#7-start); complete headers, a stream start reported for an instance's first output, and no mid-stream mp3 preambles [contracts.md §2, §4](contracts.md#4-encoder). The check also runs across a stop and start ([tests.md](tests.md#delivery)).
+**Answered by.** Join points: candidates are encoder output starts at or after the current logical stream and the current encoder's first byte [shared-encoder.md §2](shared-encoder.md#2-initial-bytes); markers published before bytes [shared-encoder.md §5](shared-encoder.md#5-encode-and-send); a restart starts a new epoch, so no joiner receives a previous encoder's bytes [shared-encoder.md §7](shared-encoder.md#7-start); the encoder's first byte a join point only where a stream start is reported; complete headers and no mid-stream mp3 preambles [contracts.md §2, §4](contracts.md#4-encoder). The check also runs across a stop and start ([tests.md](tests.md#delivery)).
 
 ## K2. Per-listener work must not scale the streaming cycle
 

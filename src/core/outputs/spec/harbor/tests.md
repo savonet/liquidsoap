@@ -45,6 +45,8 @@ the order in which asynchronous callbacks run.
   not stop the others or the teardown.
 - **Concurrent admission in dedicated mode** (`harbor_output_dedicated_encoder`).
   Both connect callbacks fire.
+- **Clock pacing.** An output on a clock with sync `none` fails to start with
+  an error naming the clock; with `allow_unsynced_clock=true` it starts.
 - **Construction errors.** Empty mount, `burst > buffer` in shared mode,
   a header value with a line break, an unknown `encoding`: each is an
   invalid-value error naming its argument. `burst > buffer` in dedicated

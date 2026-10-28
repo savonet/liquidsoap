@@ -63,6 +63,9 @@ Shared with `output.icecast`. From the encoding format argument:
 
 ## 3. Output base
 
+- The output's clock and its synchronization mode, read at start
+  ([operator.md §7](operator.md#7-lifecycle)); the output's self-sync
+  delegated to its source.
 - Parameters `start`, `fallible`, `register_telnet`, `id`; methods and
   callbacks of every output; the infallibility check; telnet commands.
 - The start/stop state machine: start when the source becomes ready (if
@@ -87,10 +90,8 @@ offers:
   every format the encoder produces, the container's identification headers
   included;
 - `restart_offset() → offset?`: in the bytes the latest `encode` or `stop`
-  returned, where a logical stream with its own header pages starts. It MUST
-  also be reported for the first output of an instance when that output
-  begins with its own header pages, so that a joiner at the encoder's first
-  byte does not get the header twice;
+  returned, where a logical stream with its own header pages starts. It MAY
+  be reported for the first output of an instance;
 - `stop() → bytes`: final bytes.
 
 Every instance serialises its own calls. The FFmpeg encoder's side of this
