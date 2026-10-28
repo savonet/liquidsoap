@@ -1,5 +1,5 @@
 (executables
- (names test_duppy test_signal_handlers bench_duppy bench_timer)
+ (names test_duppy test_signal_handlers bench_duppy bench_timer bench_spawn)
  (libraries duppy stdlib_utils unix threads.posix))
 
 (rule

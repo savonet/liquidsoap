@@ -33,7 +33,10 @@ thread.run(
       frames = ref(0)
       listener = input.http("http://127.0.0.1:#{port}/test")
       listener.on_frame(synchronous=true, fun () -> ref.incr(frames))
-      listener.on_error(synchronous=true, fun (_) -> test.fail())
+      listener.on_error(
+        synchronous=true,
+        fun (_) -> if not test.done() then test.fail() end
+      )
       def check() =
         if frames() > 50 then test.pass() else test.fail() end
       end
