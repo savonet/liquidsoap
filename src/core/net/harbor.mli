@@ -115,9 +115,11 @@ module type T = sig
   type registration
 
   (** Takes effect once the server has started. Registrations are tried in the
-      order they were made and the first match serves, except that a literal one
-      goes ahead of earlier ones with the same verb and path. *)
+      order they were made and the first match serves. One with the verb and
+      path of an existing registration raises, unless [override] puts it ahead
+      of them. *)
   val add_http_handler :
+    ?override:bool ->
     pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->

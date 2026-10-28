@@ -187,6 +187,7 @@ module type T = sig
   type registration
 
   val add_http_handler :
+    ?override:bool ->
     pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
@@ -1459,7 +1460,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           (List.filter (fun (r, _) -> Lang.descr_of_regexp r <> smount) current);
         request_close_if_empty p)
 
-  let add_http_handler ~pos ~transport ~port ~verb ~path h =
+  let add_http_handler ?(override = false) ~pos ~transport ~port ~verb ~path h =
     let registration =
       { port; verb; path; http_handler = h; removed = Atomic.make false }
     in
@@ -1468,13 +1469,17 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             if not (Atomic.get registration.removed) then (
               let handler = get_handler ~pos ~transport ~icy:false port in
               let spath = string_of_route_path path in
-              let shadows r =
-                match path with
-                  | `Literal _ -> r.verb = verb && same_route_path r.path path
-                  | `Regexp _ -> false
-              in
+              let same r = r.verb = verb && same_route_path r.path path in
+              if (not override) && List.exists same (Atomic.get handler.http)
+              then
+                Lang.raise_error ~pos
+                  ~message:
+                    (Printf.sprintf
+                       "Handler for '%s %s' is already registered on port %i"
+                       (string_of_verb verb) spath port)
+                  "http";
               let rec insert = function
-                | r :: rest when shadows r ->
+                | r :: rest when same r ->
                     log#severe
                       "Handler for '%s %s' on port %i shadows an earlier one."
                       (string_of_verb verb) spath port;

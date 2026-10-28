@@ -1262,6 +1262,7 @@ def icecast.server.default_prepare(
           burst=burst,
           accept=accept,
           dedicated_encoder=dedicated_encoder,
+          override_mount=true,
           format=mime_type ?? "",
           copy_encoder(format, options=muxer_opts),
           s

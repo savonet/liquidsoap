@@ -1,14 +1,21 @@
 %include "../test.liq"
 
-# Mounts match literally; on a duplicate mount the most recent output serves
-# and each output's removal takes only its own route; an output, an HTTP route
+# Mounts match literally; with `override_mount`, the most recent output on a
+# duplicate mount serves and each output's removal takes only its own route; an output, an HTTP route
 # and an input share one port; a stop followed at once by a start serves
 # again; an unsupported version gets 505.
 port = 18107
 
 first = output.harbor(port=port, mount="dup.mp3", %mp3, sine())
 second =
-  output.harbor(port=port, mount="dup.mp3", start=false, %mp3, sine(440.))
+  output.harbor(
+    port=port,
+    mount="dup.mp3",
+    start=false,
+    override_mount=true,
+    %mp3,
+    sine(440.)
+  )
 
 served_by = ref("")
 first.on_connect(synchronous=true, fun (_) -> served_by := "first")

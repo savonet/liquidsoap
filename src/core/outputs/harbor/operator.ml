@@ -41,6 +41,7 @@ type parameters = {
   burst : int option;
   headers : (string * string) list;
   allow_unsynced_clock : bool;
+  override_mount : bool;
 }
 
 (* The encoder-mode contract of modes.md, as the operator uses it; [encode]
@@ -155,6 +156,7 @@ let parse p =
       burst = (if dedicated then None else burst);
       headers;
       allow_unsynced_clock = Lang.to_bool (arg "allow_unsynced_clock");
+      override_mount = Lang.to_bool (arg "override_mount");
     },
     dedicated )
 
@@ -284,9 +286,14 @@ class output p =
                   Group.create ~log:self#log ~timeout:parameters.timeout ())
             in
             let registration =
-              Harbor.add_http_handler ~pos ~transport:parameters.transport
-                ~port:parameters.port ~verb:`Get
-                ~path:(`Literal parameters.mount) self#handle
+              try
+                Harbor.add_http_handler ~override:parameters.override_mount ~pos
+                  ~transport:parameters.transport ~port:parameters.port
+                  ~verb:`Get ~path:(`Literal parameters.mount) self#handle
+              with exn ->
+                let bt = Printexc.get_raw_backtrace () in
+                mode.stop ();
+                Printexc.raise_with_backtrace exn bt
             in
             let live_key = Atomic.fetch_and_add live_output_key 1 in
             Mutex.protect live_outputs_lock (fun () ->
@@ -537,6 +544,13 @@ let proto frame_t =
         Some
           "Allow running on a clock that is not paced in real time (sync \
            `none` or passive)." );
+      ( "override_mount",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "Advanced: take over the mount when another registration on the port \
+           already serves it, instead of failing to start. The most recent \
+           registration serves the mount." );
       ("", Lang.source_t frame_t, None, None);
     ]
 
