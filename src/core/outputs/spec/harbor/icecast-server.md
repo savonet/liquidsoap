@@ -54,12 +54,15 @@ operator's default, 65534 bytes, close to Icecast's own default of 64 KiB
 (from memory, to verify), so a joiner gets audio at once as on Icecast.
 
 **Stream identity.** Icecast answers listeners with the stream's identity
-taken from the source's request: `icy-name`, `icy-description`, `icy-genre`,
-`icy-url`, `icy-br`, `icy-pub` (Icecast's list is from memory, to verify).
-`icecast.server` SHOULD pass the ones the source sent, through `headers`.
-They are values from outside, so they go through the operator's header
-validation ([operator.md §2](operator.md#2-validation-at-construction)); a
-value with a line break SHOULD be dropped before building the output.
+taken from the source's request, as `icy-name`, `icy-description`,
+`icy-genre`, `icy-url`, `icy-br` and `icy-pub` (Icecast's list is from
+memory, to verify). Sources send it as `ice-*` headers over HTTP (`ice-name`,
+`ice-description`, `ice-genre`, `ice-url`, `ice-bitrate`, `ice-public`) or as
+the `icy-*` headers themselves over the Shoutcast protocol. `icecast.server`
+SHOULD pass on the ones the source sent, under their `icy-*` names, through
+`headers`. They are values from outside, so they go through the operator's
+header validation ([operator.md §2](operator.md#2-validation-at-construction));
+a value with a line break SHOULD be dropped before building the output.
 
 **Listener limits.** Icecast's `<max-listeners>` (per mount) and `<clients>`
 (server-wide) are enforced through `accept`
