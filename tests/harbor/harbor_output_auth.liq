@@ -17,8 +17,14 @@ def auth(r) =
 end
 
 o = output.harbor(port=port, mount="auth.mp3", auth=auth, %mp3, sine())
-o.on_connect(synchronous=true, fun (_) -> connects := connects() + 1)
-o.on_disconnect(synchronous=true, fun (_) -> disconnects := disconnects() + 1)
+o.on_connect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> connects := connects() + 1)
+)
+o.on_disconnect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> disconnects := disconnects() + 1)
+)
 
 # Sends a request and returns the response head, reading at most 2 KiB.
 def request(path, headers) =

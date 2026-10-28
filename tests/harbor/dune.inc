@@ -80,6 +80,23 @@
    harbor_output_construction.liq)))
 
 (rule
+ (alias test_harbor_output_dedicated_encoder)
+ (package liquidsoap)
+ (deps
+  harbor_output_dedicated_encoder.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_dedicated_encoder.liq
+   liquidsoap
+   harbor_output_dedicated_encoder.liq)))
+
+(rule
  (alias test_harbor_output_final_bytes)
  (package liquidsoap)
  (deps
@@ -458,6 +475,7 @@
   (alias test_harbor_output_burst)
   (alias test_harbor_output_clock)
   (alias test_harbor_output_construction)
+  (alias test_harbor_output_dedicated_encoder)
   (alias test_harbor_output_final_bytes)
   (alias test_harbor_output_icy_listeners)
   (alias test_harbor_output_icy_metaint)

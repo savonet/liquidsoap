@@ -7,8 +7,14 @@ count = 12
 o = output.harbor(port=port, mount="many.mp3", %mp3, sine())
 connects = ref(0)
 disconnects = ref(0)
-o.on_connect(synchronous=true, fun (_) -> connects := connects() + 1)
-o.on_disconnect(synchronous=true, fun (_) -> disconnects := disconnects() + 1)
+o.on_connect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> connects := connects() + 1)
+)
+o.on_disconnect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> disconnects := disconnects() + 1)
+)
 
 def start_clients() =
   for _ = 1 to count do

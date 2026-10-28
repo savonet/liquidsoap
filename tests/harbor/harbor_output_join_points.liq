@@ -159,7 +159,7 @@ def check() =
 
   vorbis.stop()
   vorbis.start()
-  sleep(3.)
+  thread.pause(3.)
   joins("vorbis.ogg")
 
   body = receive("single.ogg", 1.)

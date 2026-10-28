@@ -9,7 +9,8 @@ refused = output.harbor(port=18106, mount="refused", %mp3, sine())
 clock.assign_new(
   id="unsynced_refused",
   sync="none",
-  on_error=fun (e) -> errors := [...errors(), error.methods(e).message],
+  on_error=fun (e) ->
+    atomic(fun () -> errors := [...errors(), error.methods(e).message]),
   [refused]
 )
 

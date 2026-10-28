@@ -66,7 +66,7 @@ def wait(label, cond) =
           "timeout waiting for #{label}"
         )
       end
-      sleep(0.1)
+      thread.pause(0.1)
       loop(n - 1)
     end
   end
@@ -93,7 +93,7 @@ def check() =
     "second start",
     second.is_started
   )
-  sleep(0.5)
+  thread.pause(0.5)
   served("second")
 
   second.stop()
@@ -101,7 +101,7 @@ def check() =
     "second stop",
     fun () -> not second.is_started()
   )
-  sleep(0.5)
+  thread.pause(0.5)
   served("first")
 
   second.start()
@@ -109,13 +109,13 @@ def check() =
     "second restart",
     second.is_started
   )
-  sleep(0.5)
+  thread.pause(0.5)
   first.stop()
   wait(
     "first stop",
     fun () -> not first.is_started()
   )
-  sleep(0.5)
+  thread.pause(0.5)
   served("second")
   test.equal(request("/route"), "200")
 
@@ -125,7 +125,7 @@ def check() =
     "immediate restart",
     second.is_started
   )
-  sleep(0.5)
+  thread.pause(0.5)
   served("second")
 
   test.equal(request(port=port + 1, "/solo.mp3"), "200")
@@ -135,20 +135,20 @@ def check() =
     "solo restart",
     solo.is_started
   )
-  sleep(0.5)
+  thread.pause(0.5)
   test.equal(request(port=port + 1, "/solo.mp3"), "200")
   solo.stop()
   wait(
     "solo stop",
     fun () -> not solo.is_started()
   )
-  sleep(0.5)
+  thread.pause(0.5)
   solo.start()
   wait(
     "solo start after close",
     solo.is_started
   )
-  sleep(0.5)
+  thread.pause(0.5)
   test.equal(request(port=port + 1, "/solo.mp3"), "200")
   test.pass()
 end

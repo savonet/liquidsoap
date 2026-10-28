@@ -7,7 +7,7 @@ connects = ref([])
 seen = ref([])
 
 def accept(l) =
-  seen := [...seen(), l.id]
+  atomic(fun () -> seen := [...seen(), l.id])
   if
     l.uri != "/accept.mp3"
   then
@@ -28,7 +28,10 @@ def accept(l) =
 end
 
 o = output.harbor(port=port, mount="accept.mp3", accept=accept, %mp3, sine())
-o.on_connect(synchronous=true, fun (l) -> connects := [...connects(), l.id])
+o.on_connect(
+  synchronous=true,
+  fun (l) -> atomic(fun () -> connects := [...connects(), l.id])
+)
 
 def request(agent) =
   sock = socket.unix()

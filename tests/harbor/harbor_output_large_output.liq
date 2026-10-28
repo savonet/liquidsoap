@@ -15,7 +15,10 @@ o =
   )
 
 disconnects = ref(0)
-o.on_disconnect(synchronous=true, fun (_) -> disconnects := disconnects() + 1)
+o.on_disconnect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> disconnects := disconnects() + 1)
+)
 
 def check() =
   sock = socket.unix()

@@ -32,7 +32,7 @@ stalled =
 disconnected = ref([])
 o.on_disconnect(
   synchronous=true,
-  fun (l) -> disconnected := [...disconnected(), l.id]
+  fun (l) -> atomic(fun () -> disconnected := [...disconnected(), l.id])
 )
 stalled_closed = ref(0.)
 stalled.on_disconnect(synchronous=true, fun (_) -> stalled_closed := time())
@@ -109,7 +109,7 @@ def throttled() =
       chunk != ""
     then
       chunks := chunk::chunks()
-      if disconnected() == [] then sleep(0.05) end
+      if disconnected() == [] then thread.pause(0.05) end
       read()
     end
   end
@@ -151,7 +151,7 @@ def check() =
           "stalled client not closed"
         )
       end
-      sleep(0.2)
+      thread.pause(0.2)
       wait()
     end
   end

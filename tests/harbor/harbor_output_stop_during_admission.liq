@@ -25,7 +25,7 @@ def stop_and_wait(step) =
             "stop did not happen"
           )
         end
-        sleep(0.05)
+        thread.pause(0.05)
         wait(n - 1)
       end
     end
@@ -60,11 +60,14 @@ out.on_connect(
   synchronous=true,
   fun (_) ->
     begin
-      connects := connects() + 1
+      atomic(fun () -> connects := connects() + 1)
       stop_and_wait("on_connect")
     end
 )
-out.on_disconnect(synchronous=true, fun (_) -> disconnects := disconnects() + 1)
+out.on_disconnect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> disconnects := disconnects() + 1)
+)
 
 def request() =
   sock = socket.unix()
@@ -107,12 +110,12 @@ def restart() =
           "restart did not happen"
         )
       end
-      sleep(0.05)
+      thread.pause(0.05)
       wait(n - 1)
     end
   end
   wait(100)
-  sleep(0.3)
+  thread.pause(0.3)
 end
 
 def check() =
@@ -142,7 +145,7 @@ def check() =
     ),
     false
   )
-  sleep(1.)
+  thread.pause(1.)
   test.equal((connects(), disconnects()), (1, 1))
   test.equal(out.listeners(), [])
   test.pass()

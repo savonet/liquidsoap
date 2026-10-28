@@ -17,7 +17,7 @@ o.on_connect(
   synchronous=true,
   fun (l) ->
     begin
-      others := others() + 1
+      atomic(fun () -> others := others() + 1)
       connected_id := l.id
       connected_at := l.connected_at
       test.equal(l.bytes_sent, 0)
@@ -32,7 +32,7 @@ o.on_disconnect(
   synchronous=true,
   fun (l) ->
     begin
-      others := others() + 1
+      atomic(fun () -> others := others() + 1)
       test.equal(l.id, connected_id())
       test.equal(l.connected_at, connected_at())
       test.equal(l.bytes_sent, received())

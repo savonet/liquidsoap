@@ -14,7 +14,7 @@ o = output.harbor(port=#{
     }, mount=\"down.mp3\", %mp3, s)
 stuck = ref(false)
 o.on_connect(synchronous=true, fun (_) -> thread.run(delay=1., fun () -> begin stuck := true; shutdown() end))
-s.on_frame(synchronous=true, fun () -> if stuck() then sleep(30.) end)
+s.on_frame(synchronous=true, fun () -> if stuck() then thread.pause(30.) end)
 ",
     script
   )
@@ -50,7 +50,7 @@ s.on_frame(synchronous=true, fun () -> if stuck() then sleep(30.) end)
           "child never listened"
         )
       end
-      sleep(0.5)
+      thread.pause(0.5)
       connect(n - 1)
     end
   end
@@ -91,7 +91,7 @@ s.on_frame(synchronous=true, fun () -> if stuck() then sleep(30.) end)
           "child did not exit"
         )
       end
-      sleep(0.5)
+      thread.pause(0.5)
       wait(n - 1)
     end
   end

@@ -23,7 +23,7 @@ thread.run(
   every=2.,
   fun () ->
     begin
-      current := current() + 1
+      atomic(fun () -> current := current() + 1)
       s.insert_metadata([("title", "#{current()}")])
     end
 )
@@ -81,7 +81,7 @@ def check() =
         string.sub(encoding="ascii", body, start=position + 1, length=16 * n)
       acc =
         if
-          n == 0
+          n == 0 or position + 1 + 16 * n > length
         then
           acc
         else

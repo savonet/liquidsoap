@@ -7,8 +7,14 @@ port = 18118
 o = output.harbor(port=port, mount="churn.mp3", %mp3, sine())
 connects = ref(0)
 disconnects = ref(0)
-o.on_connect(synchronous=true, fun (_) -> connects := connects() + 1)
-o.on_disconnect(synchronous=true, fun (_) -> disconnects := disconnects() + 1)
+o.on_connect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> connects := connects() + 1)
+)
+o.on_disconnect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> disconnects := disconnects() + 1)
+)
 
 def descriptors() =
   list.length(file.ls("/proc/self/fd"))
@@ -34,10 +40,10 @@ def client(n) =
           ""
         end
       )
-      sleep(random.float(min=0., max=0.3))
+      thread.pause(random.float(min=0., max=0.3))
       sock.close()
     catch _ do
-      sleep(0.1)
+      thread.pause(0.1)
     end
 
   end
@@ -55,7 +61,7 @@ def wait_for(label, cond) =
           "timeout waiting for #{label}"
         )
       end
-      sleep(0.1)
+      thread.pause(0.1)
       loop(n - 1)
     end
   end
@@ -71,13 +77,13 @@ def check() =
       fun () ->
         begin
           client(15)
-          done := done() + 1
+          atomic(fun () -> done := done() + 1)
         end
     )
 
   end
   for _ = 1 to 5 do
-    sleep(0.7)
+    thread.pause(0.7)
     o.stop()
     wait_for("stop", fun () -> not o.is_started())
     o.start()
@@ -104,7 +110,7 @@ def check() =
     "final start",
     o.is_started
   )
-  sleep(1.)
+  thread.pause(1.)
   test.equal(descriptors(), baseline)
   test.pass()
 end

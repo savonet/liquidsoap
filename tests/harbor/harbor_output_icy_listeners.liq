@@ -34,7 +34,7 @@ thread.run(
   every=1.,
   fun () ->
     begin
-      titles := titles() + 1
+      atomic(fun () -> titles := titles() + 1)
       s.insert_metadata(
         [
           (
@@ -176,7 +176,7 @@ end
 def check() =
   first = ref([])
   thread.run(fun () -> first := changes("icy.mp3", 5.))
-  sleep(2.)
+  thread.pause(2.)
   late = changes("icy.mp3", 4.)
   if
     list.length(late) < 3
@@ -189,7 +189,7 @@ def check() =
     if
       first() == []
     then
-      sleep(0.2)
+      thread.pause(0.2)
       wait()
     end
   end
