@@ -307,6 +307,90 @@
   (run %{generator_test})))
 
 (executable
+ (name harbor_group_test)
+ (modules harbor_group_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias harbor_group_test)
+ (package liquidsoap)
+ (deps
+  (:harbor_group_test harbor_group_test.exe))
+ (action
+  (run %{harbor_group_test})))
+
+(executable
+ (name harbor_icy_test)
+ (modules harbor_icy_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias harbor_icy_test)
+ (package liquidsoap)
+ (deps
+  (:harbor_icy_test harbor_icy_test.exe))
+ (action
+  (run %{harbor_icy_test})))
+
+(executable
+ (name harbor_store_test)
+ (modules harbor_store_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias harbor_store_test)
+ (package liquidsoap)
+ (deps
+  (:harbor_store_test harbor_store_test.exe))
+ (action
+  (run %{harbor_store_test})))
+
+(executable
  (name http_test)
  (modules http_test)
  (libraries
@@ -1000,6 +1084,9 @@
   (alias frame_test)
   (alias frame_video_dimensions_test)
   (alias generator_test)
+  (alias harbor_group_test)
+  (alias harbor_icy_test)
+  (alias harbor_store_test)
   (alias http_test)
   (alias is_url)
   (alias json_test)
