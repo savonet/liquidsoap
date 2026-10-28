@@ -2,7 +2,8 @@
 
 # Credentials in the Authorization header or in the query string are admitted;
 # missing or wrong ones get 401 with the Basic challenge, the mount-taken error
-# gets 403, and a refused request fires neither callback.
+# gets 403, and a refused request fires neither callback. A token without `:`
+# is a user with an empty password.
 port = 18102
 connects = ref(0)
 disconnects = ref(0)
@@ -13,7 +14,8 @@ def auth(r) =
   then
     error.raise(error.register("error.icecast.server.mount_taken"), "taken")
   end
-  r.login == "user" and r.password == "secret"
+  (r.login == "user" and r.password == "secret")
+  or (r.login == "solo" and r.password == "")
 end
 
 o = output.harbor(port=port, mount="auth.mp3", auth=auth, %mp3, sine())
@@ -110,12 +112,22 @@ def check() =
     status(request("/auth.mp3?user=user&pass=secret", "")),
     "HTTP/1.0 200"
   )
+  solo = string.base64.encode("solo")
+  test.equal(
+    status(
+      request(
+        "/auth.mp3",
+        "Authorization: Basic #{solo}\r\n"
+      )
+    ),
+    "HTTP/1.0 200"
+  )
   thread.run(
     delay=1.,
     fun () ->
       begin
-        test.equal(connects(), 2)
-        test.equal(disconnects(), 2)
+        test.equal(connects(), 3)
+        test.equal(disconnects(), 3)
         test.pass()
       end
   )

@@ -15,12 +15,9 @@ let basic_token headers =
 let credentials ~headers ~query =
   match basic_token headers with
     | Some decoded -> (
-        match String.index_opt decoded ':' with
-          | Some i ->
-              Some
-                ( String.sub decoded 0 i,
-                  String.sub decoded (i + 1) (String.length decoded - i - 1) )
-          | None -> Some (decoded, ""))
+        match Liq_http.parse_auth decoded with
+          | { Liq_http.user; password } -> Some (user, password)
+          | exception Not_found -> Some (decoded, ""))
     | None -> (
         match List.assoc_opt "pass" query with
           | Some password ->
