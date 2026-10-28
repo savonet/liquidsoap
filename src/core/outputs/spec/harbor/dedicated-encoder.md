@@ -1,74 +1,73 @@
 # Dedicated encoder mode
 
 `dedicated_encoder=true`. Each listener gets its own encoder, created when it
-connects, so every listener receives a stream that starts from the encoder's
-first byte. There is no ring and no burst.
+connects, so every listener receives a stream that starts from an encoder's
+first byte. It serves formats a listener cannot join mid-stream. There is no
+shared store and no burst.
 
 Numbered as [modes.md](modes.md).
 
-**Output-wide state**: the encoder factory, set while started; the current
-frame piece, set by encode and cleared by send.
+**Output-wide state**: the encoder factory, set while started.
+
+**Cost.** Every frame piece is encoded once per listener, on the streaming
+clock, so the cycle's cost grows with the audience. This mode suits a small
+number of listeners. An implementation MAY spread the per-listener encoding
+of one piece over parallel work, provided each listener's encoder receives
+its pieces in order and the cycle's send completes only when every listener
+has its piece.
 
 ## 1. Listener state
 
-- its own encoder, created from the factory on the request task, named with
-  the output's id, with empty initial metadata;
-- a pending byte queue;
-- an encoder lock, held around every use of this encoder.
+- its own encoder, created from the factory during admission, named with the
+  output's id, with the last metadata as initial metadata;
+- a queue of bytes owed;
+- the length of the stream bytes owed that precede the newest encoder output,
+  for the overflow rule.
 
-Refused with 404 when the output is not started.
+Every use of a listener's encoder is serialised: encoding, in-stream
+metadata, and its stop never overlap.
 
 ## 2. Initial bytes
 
-The encoder's header, with ICY blocks inserted (as in
-[shared-encoder.md §2](shared-encoder.md#2-initial-bytes) step 3), appended to
-the pending queue after the response head. This append is not checked against
-`buffer`.
+The encoder's header, with ICY blocks inserted
+([icy.md §4](icy.md#4-cadence-and-change-detection)) stamped with the last
+metadata, queued after the response head.
 
 ## 3. Pending test
 
-The pending queue is non-empty.
+The queue is non-empty.
 
 ## 4. Flush
 
-Under the queue's lock, offer the whole queue to the socket in one write; drop
-from its front what was accepted. On −1, mark the listener closed. Overflow is
-not checked here ([§5](#5-encode-and-send)).
+Offer the queue's front in one write and drop from it what was accepted. On
+−1, mark the listener closed. Appends from send and drops by flush MUST NOT
+lose or reorder bytes when they run at the same time.
 
 ## 5. Encode and send
 
-_Encode_ stores the frame piece and returns nothing.
+_Encode_ keeps the frame piece and returns nothing.
 
-_Send_, when a piece is stored:
+_Send_, when a piece is kept, with `M` the last metadata:
 
-1. Read the output's last metadata once.
-2. For each listener currently listed (published, not marked closed), one
-   after the other on the streaming thread:
-   1. if it is marked closed, skip it;
-   2. take its encoder lock; check again that it is not marked closed;
-   3. encode the piece with its encoder; insert ICY blocks into the result
-      with the metadata of step 1 (a block goes wherever the position reaches
-      `metaint`, including at the very end of the result);
-   4. if the queue length plus the result's length exceeds `buffer`, append
-      nothing; otherwise append the result;
-   5. release the lock; if nothing was appended, disconnect for overflow.
-3. Clear the stored piece and wake the shards.
+1. For each listener published and not marked closed: encode the piece with
+   its encoder, insert ICY blocks into the result stamped with `M`, append
+   the result to its queue, then check overflow
+   ([modes.md §4](modes.md#4-flush)) and disconnect it if it is over.
+2. Wake the groups.
 
-The double check of the closed flag around the lock excludes encoding into an
-encoder that teardown ([§9](#9-listener-teardown)) is stopping: the flag is
-set before teardown is queued, and teardown takes the same lock. The overflow
-disconnection happens after releasing the lock for the same reason.
+Encoding MUST NOT use an encoder that is being stopped: the closed flag is set
+before teardown can run, and the check of the flag and the use of the
+encoder are serialised with the stop.
 
-Listeners admitted but not yet published when send runs do not get this piece;
-their stream starts with their header and continues with the next piece.
-
-The ICY block sent for a byte reflects the last metadata at the time the byte
-was encoded.
+Only published listeners get pieces, so every queue starts with its response
+head and header. A listener published after send has listed the listeners
+does not get this piece; its stream starts with its header and continues with the next piece.
 
 ## 6. Metadata
 
-Convert and store as last metadata. Nothing is passed to the per-listener
-encoders: they never receive in-stream metadata.
+Record the event, then pass the converted values, with cover art removed, to
+every listener's encoder as in-stream metadata, serialised with its encoding.
+The in-stream metadata a listener receives is the same as in shared mode.
 
 ## 7. Start
 
@@ -76,19 +75,19 @@ Store the encoder factory.
 
 ## 8. Stop
 
-Clear the factory. Per-listener encoders are stopped by each listener's
-teardown once the stop marks it closed.
+Clear the factory. Stop every listener's encoder and queue the bytes it
+returns ([§11](#11-final-bytes)).
 
 ## 9. Listener teardown
 
-Under the listener's encoder lock, call its encoder's stop and discard the
-bytes it returns.
+Stop the listener's encoder unless the output's stop already did, and
+discard what it returns: the socket is closed by then.
 
-## 10. Staging size
+## 10. Staging
 
-0: the staging buffer is unused.
+The queue is offered in place; nothing to stage ([modes.md §10](modes.md#10-staging)).
 
-## 11. Dump file
+## 11. Final bytes
 
-Nothing. The file is created (truncated) on start and closed on stop, and stays
-empty.
+Each listener's encoder's final bytes are appended to that listener's queue
+on stop.

@@ -1,90 +1,98 @@
-# `output.harbor` — as-built specification
+# `output.harbor` — specification
 
-What `output.harbor` does today, described closely enough to rebuild it
-without reading the code. It is written for someone rewriting the operator in
-OCaml inside Liquidsoap, on the same scheduler, clock, encoder and harbor
-server.
-
-This is the **as-built** pass: it describes and does not judge. Defects,
-asymmetries and gaps found while reading are in [findings.md](findings.md),
-never in the descriptive text.
+What `output.harbor` MUST, SHOULD and MAY do, stated closely enough to build
+it without any other source. It is written for someone implementing the
+operator in OCaml inside Liquidsoap, on the same scheduler, clock, encoder and
+harbor server.
 
 **Scope.** The `output.harbor` operator: its script interface, how it accepts
 listeners on the harbor server, how it encodes and delivers the stream to each
 listener, ICY metadata, and its lifecycle.
 
-**Out of scope, described only as contracts** ([contracts.md](contracts.md)):
+**Out of scope, stated only as contracts** ([contracts.md](contracts.md)):
 the harbor HTTP server shared with `input.harbor` and `harbor.http.*`; the
 MIME derivation shared with `output.icecast`; encoders; the generic output
-base and its start/stop machinery; the scheduler. The `%ffmpeg` specifics of
-the MIME and mp3 options are owned by the FFmpeg spec,
+base and its start/stop machinery; the scheduler. The spec states what it
+requires of them; a component that falls short is where the fix belongs. The
+`%ffmpeg` specifics of the MIME and mp3 options are owned by the FFmpeg spec,
 [io.md §12](../../../optionals/ffmpeg/spec/io.md#12-other-outputs-special-casing-ffmpeg).
 `output.harbor.hls` is a script-level user and is not covered.
 
 **`icecast.server`** is a primary user: it serves every listener of every
-mount through `output.harbor`. What it relies on is stated in
-[icecast-server.md](icecast-server.md), and a rebuild must keep it working.
+mount through `output.harbor`. What it relies on, and what emulating Icecast
+asks of it, is in [icecast-server.md](icecast-server.md); its tests are
+acceptance checks.
+
+## Design goals
+
+- **Blends into the scheduler.** The operator states what work exists, its
+  class (fast I/O, or allowed to block) and what it waits on; domains, thread
+  counts and placement are the scheduler's ([concurrency.md §1](concurrency.md#1-work)).
+- **Fast I/O.** Delivery is non-blocking, short tasks that never park a
+  domain ([delivery.md §1](delivery.md#1-delivery-groups)).
+- **Minimal memory and CPU, low latency.** Per-listener memory independent of
+  uptime and stream length, idle cost independent of the machine, bounded
+  time to first byte ([delivery.md](delivery.md)).
 
 ## Reading order
 
-| #   | Document                                     | Owns                                                                                             |
-| --- | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 1   | [operator.md](operator.md)                   | Parameters, validation, methods, callbacks, the listener record, settings, lifecycle             |
-| 2   | [connection.md](connection.md)               | Routing a request to the output, authentication, rejections, the response head, admission        |
-| 3   | [icy.md](icy.md)                             | ICY negotiation, block format, title composition, cadence and change detection                   |
-| 4   | [delivery.md](delivery.md)                   | Writer shards, wake-ups, the flush pass, backpressure, the no-progress timeout, teardown         |
-| 5   | [modes.md](modes.md)                         | The encoder-mode contract: what each mode must provide, §1–§11                                   |
-| 6   | [shared-encoder.md](shared-encoder.md)       | The shared mode, numbered as modes.md: one encoder, a ring, bursts                               |
-| 7   | [dedicated-encoder.md](dedicated-encoder.md) | The dedicated mode, numbered as modes.md: one encoder per listener                               |
-| 8   | [ring.md](ring.md)                           | The single-writer, lock-free-reader byte ring the shared mode reads from                         |
-| 9   | [concurrency.md](concurrency.md)             | Actors, what each owns, the listener lifecycle, ordering and exactly-once guarantees             |
-| 10  | [contracts.md](contracts.md)                 | What the operator relies on from the harbor server, encoders, output base, scheduler             |
-| 11  | [tests.md](tests.md)                         | The suite by principle: invariants, binding and incidental parts, doubles                        |
-| 12  | [icecast-server.md](icecast-server.md)       | What `icecast.server` does with the operator and relies on: parameters, lifecycle, record fields |
-| 13  | [findings.md](findings.md)                   | Defects, asymmetries, gaps and open questions, each checked or read only                         |
-| 14  | [known-complexity.md](known-complexity.md)   | Pitfalls from the history, implementation-free, each reconciled with the rules above             |
+| #   | Document                                     | Owns                                                                                         |
+| --- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | [operator.md](operator.md)                   | Parameters, validation, methods, callbacks, the listener record, settings, lifecycle         |
+| 2   | [connection.md](connection.md)               | Routing, authentication, the admission predicate, the response head, admission, refusals     |
+| 3   | [icy.md](icy.md)                             | ICY negotiation, block format, title composition, stamping and change detection              |
+| 4   | [delivery.md](delivery.md)                   | Delivery groups, wake-ups, the delivery pass, timeout, disconnection, stopping, socket close |
+| 5   | [modes.md](modes.md)                         | The encoder-mode contract, §1–§11, and the overflow rule                                     |
+| 6   | [shared-encoder.md](shared-encoder.md)       | The shared mode, numbered as modes.md: one encoder, a stream store, bursts                   |
+| 7   | [dedicated-encoder.md](dedicated-encoder.md) | The dedicated mode, numbered as modes.md: one encoder per listener                           |
+| 8   | [ring.md](ring.md)                           | The shared stream store: no blocking, no torn bytes, retention, bounded memory               |
+| 9   | [concurrency.md](concurrency.md)             | Work and its classes, ownership of a listener, ordering and exactly-once guarantees          |
+| 10  | [contracts.md](contracts.md)                 | What the operator requires of the harbor server, encoders, output base, scheduler            |
+| 11  | [icecast-server.md](icecast-server.md)       | What `icecast.server` does with the operator and relies on                                   |
+| 12  | [tests.md](tests.md)                         | Conformance checks by principle: binding and incidental parts, doubles, fault injection      |
+| 13  | [known-complexity.md](known-complexity.md)   | Pitfalls from the history, implementation-free, each answered by a rule above                |
 
 [modes.md](modes.md) is a seam: [shared-encoder.md](shared-encoder.md) and
 [dedicated-encoder.md](dedicated-encoder.md) answer every clause of it under
-the same section number.
+the same section number. Each rule has one owner; other files link to it.
 
 ## Cross-cutting concerns
 
-Each candidate was asked whether a rebuild would get it wrong without one
-stated rule.
-
-- **Concurrency and ownership** earns a document,
-  [concurrency.md](concurrency.md): four actors touch a listener, and the
-  exactly-once callback and close guarantees depend on who may do what.
-- **Failure classification** is small enough to live with the rules it
-  governs: listener faults in [delivery.md §6](delivery.md#6-disconnection),
-  request faults in [connection.md §6](connection.md#6-failure-paths),
-  construction errors in [operator.md §2](operator.md#2-validation-at-construction).
+- **Concurrency and ownership**: [concurrency.md](concurrency.md). Several
+  kinds of work touch a listener, and the exactly-once callback and close
+  guarantees depend on who may do what.
+- **Failure classification** lives with the rules it governs: listener faults
+  in [delivery.md §6](delivery.md#6-disconnection), request faults in
+  [connection.md §7](connection.md#7-failure-paths), construction errors in
+  [operator.md §2](operator.md#2-validation-at-construction).
 - **Crash safety, persistence, replication**: none. The operator holds no
   state that outlives the process.
-- **Security model**: authentication and address exposure are in
-  [connection.md §3](connection.md#3-authentication) and
-  [operator.md §5](operator.md#5-the-listener-record); there is no other
-  trust boundary inside the operator.
+- **Security model**: authentication and the admission predicate in
+  [connection.md §3–§4](connection.md#3-authentication), header validation in
+  [operator.md §2](operator.md#2-validation-at-construction), address
+  exposure in [operator.md §5](operator.md#5-the-listener-record), and the
+  server's handling of unsupported versions in
+  [contracts.md §1](contracts.md#1-harbor-server).
 
 ## Two parts
 
 **Part A** is the documents above. **Part B**,
-[language-notes/ocaml.md](language-notes/ocaml.md), maps them onto the OCaml
-implementation: the class structure, the atomics and the scheduler idioms.
-Part A is complete without it.
+[language-notes/ocaml.md](language-notes/ocaml.md), is advice on mapping them
+onto OCaml and Liquidsoap's internal APIs. Part A is complete without it and
+governs where they differ.
 
 ## Compatibility surface
 
-What a script or a listener can observe today:
+Frozen; a rebuild keeps it unchanged:
 
-- the operator name, every parameter name, type and default
-  ([operator.md §1](operator.md#1-parameters));
-- the `listeners` method and the `on_connect` / `on_disconnect` callbacks with
-  the listener record fields ([operator.md §3–§5](operator.md#3-methods));
-- `settings.harbor.output.writers`;
-- the bytes on the wire: the response head
-  ([connection.md §4](connection.md#4-the-response-head)) and the ICY block
-  format ([icy.md §2](icy.md#2-block-format)).
+- every parameter's name, type and default ([operator.md §1](operator.md#1-parameters));
+- the `listeners` method, the generic output methods, and the `on_connect` /
+  `on_disconnect` callbacks ([operator.md §3–§4](operator.md#3-methods));
+- the listener record: every field keeps its name, type and meaning; fields
+  MAY be added ([operator.md §5](operator.md#5-the-listener-record)).
 
-There is no persistent state: nothing on disk is read back.
+Not frozen: `settings.harbor.output.writers`, which stays accepted as a hint
+([operator.md §6](operator.md#6-settings)), and the bytes on the wire, which
+stay valid for Icecast- and Shoutcast-style players
+([connection.md §5](connection.md#5-the-response-head),
+[icy.md §2](icy.md#2-block-format)). There is no persisted state.

@@ -1,76 +1,78 @@
 # Concurrency and ownership
 
-Who runs what, who may touch which part of a listener, and the guarantees
-that follow. The rules themselves are owned by the documents linked; this file
-states how they fit together.
+What work exists, its scheduler class, what it waits on, who may touch which
+part of a listener, and the guarantees that follow. The rules are owned by the
+documents linked; this file states how they fit together.
 
-## 1. Actors
+Every decision about domains, thread counts and where work runs belongs to
+the scheduler ([contracts.md §5](contracts.md#5-scheduler)). The operator
+states only the classes below and creates no thread of its own.
 
-| Actor                 | Runs on                                                                                                          | Does                                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Streaming thread**  | the output's clock                                                                                               | metadata, encode, send ([modes.md §5–§6](modes.md#5-encode-and-send)); the shutdown sweep ([operator.md §7](operator.md#7-lifecycle)) |
-| **Request task**      | the harbor server, one per connection; moved to the `Threaded` queue before authentication and after publication | authentication, listener creation, `on_connect`, initial bytes, publication ([connection.md §5](connection.md#5-admission))           |
-| **Writer**            | one `Blocking` scheduler task per shard                                                                          | flush, timeout, removal, socket close ([delivery.md §3](delivery.md#3-the-writer-pass))                                               |
-| **Teardown task**     | one `Threaded` scheduler task per closed listener                                                                | per-listener encoder stop, `on_disconnect` ([delivery.md §6](delivery.md#6-disconnection))                                            |
-| **Start/stop caller** | whatever thread calls `start` / `stop` (script, clock, server)                                                   | [operator.md §7](operator.md#7-lifecycle), under the output's start/stop lock                                                         |
+## 1. Work
 
-Writers of different shards run in parallel on different domains; a writer
-never runs twice at once for the same shard.
+| Work              | Class                                                                  | Waits on                              | Does                                                                                                                                   |
+| ----------------- | ---------------------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Streaming**     | the output's clock                                                     | the clock                             | metadata, encode, send ([modes.md §5–§6](modes.md#5-encode-and-send))                                                                  |
+| **Request**       | the harbor server's request task; may block during `auth` and `accept` | the request socket, user code         | authentication, predicate, listener creation, `on_connect`, initial bytes, publication ([connection.md §6](connection.md#6-admission)) |
+| **Delivery pass** | fast I/O (non-blocking class), one at a time per group                 | the group's wake-up, the retry delay  | flush, timeout, removal, socket close ([delivery.md §3](delivery.md#3-the-delivery-pass))                                              |
+| **Teardown**      | work allowed to block, one per listener                                | nothing                               | per-listener encoder stop, `on_disconnect` ([delivery.md §6](delivery.md#6-disconnection))                                             |
+| **Start/stop**    | whatever calls `start` / `stop` (script, clock, server)                | the output's start/stop serialisation | [operator.md §7](operator.md#7-lifecycle)                                                                                              |
+| **Shutdown hook** | the core's shutdown                                                    | nothing                               | marks every listener closed ([operator.md §7](operator.md#7-lifecycle))                                                                |
+
+User code (`auth`, `accept`, synchronous callbacks) runs only on request,
+teardown and start/stop work, never in a delivery pass. Encoder code runs on
+the streaming clock, the request (dedicated creation and header), start/stop
+and teardown, never in a delivery pass.
 
 ## 2. Ownership of a listener
 
-| Part                                            | Written by                                                                                                                                            |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| record, socket, ICY negotiation, timeout        | request task, at creation; immutable afterwards                                                                                                       |
-| ICY position, last metadata sent, last progress | request task before publication; the shard's writer after (shared mode); the streaming thread for ICY state, the writer for progress (dedicated mode) |
-| shared `offset`, `carry`                        | request task before publication; the shard's writer after                                                                                             |
-| dedicated pending queue                         | request task (initial bytes); streaming thread (appends); writer (drops) — the queue has its own lock                                                 |
-| dedicated encoder                               | request task (creation, header); streaming thread (encode); teardown task (stop) — under the encoder lock                                             |
-| closed flag                                     | anyone, by atomic compare-and-set; the winner runs the disconnection steps                                                                            |
-| `bytes_sent`                                    | the writer, by atomic add; read by anyone                                                                                                             |
-| socket close                                    | the shard's writer, the stop path, a failed admission — once, by the socket's own once-flag                                                           |
-
-Shard member lists are replaced by compare-and-swap: admission prepends, the
-writer removes closed members, and the stopping writer swaps the list for
-the empty one.
+| Part                               | Written by                                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| record, socket, ICY negotiation    | the request, at creation; immutable afterwards                                                              |
+| ICY position, last generation sent | the request before publication; then the delivery pass (shared) or the streaming clock (dedicated)          |
+| last progress, `bytes_sent`        | the delivery pass; `bytes_sent` readable by anyone                                                          |
+| shared `offset`, carried bytes     | the request before publication; the delivery pass after                                                     |
+| dedicated queue                    | the request (initial bytes), the streaming clock and stop (appends), the delivery pass (drops)              |
+| dedicated encoder                  | the request (creation, header), the streaming clock (encode, metadata), stop or teardown (stop); serialised |
+| closed flag                        | anyone, race-free; exactly one marking wins                                                                 |
+| socket close                       | admission before publication; the group after; exactly once                                                 |
 
 ## 3. Guarantees
 
 1. **`on_connect` before any byte.** Synchronous `on_connect` handlers finish
-   before the listener's initial bytes are queued and before it is
-   published, so before any byte reaches the socket.
-2. **`on_disconnect` exactly once, after `on_connect`.** For every listener
-   whose `on_connect` ran, `on_disconnect` runs exactly once: every path out
-   of admission after `on_connect` marks the listener closed
-   ([connection.md §6](connection.md#6-failure-paths)); every published
+   before the listener is published, so before any byte reaches its socket.
+2. **`on_disconnect` exactly once, after `on_connect`.** Every path after
+   `on_connect` ends with the listener marked closed
+   ([connection.md §7](connection.md#7-failure-paths)); every published
    listener is eventually marked closed (write error, overflow, timeout,
-   stop, shutdown); and only the first marking queues the teardown task.
-   Since the marking can only happen after `on_connect` returned, synchronous
-   `on_disconnect` handlers always follow the synchronous `on_connect` ones.
-   Listeners refused before creation get neither.
-3. **No listener outlives its writer.** After stop, every listener is marked
+   failure, stop, shutdown); and teardown runs once per listener. Marking can
+   only follow `on_connect`, so synchronous `on_disconnect` handlers follow
+   the synchronous `on_connect` ones. Requests refused before `on_connect` get
+   neither.
+3. **`bytes_sent` is final in `on_disconnect`**: teardown runs after the
+   listener's socket is closed ([delivery.md §6](delivery.md#6-disconnection)).
+4. **No listener outlives its group.** After stop, every listener is marked
    closed and its socket closed, including one published concurrently with
-   the stop ([delivery.md §7](delivery.md#7-stopping-the-writers)).
-4. **A socket is closed once, by its owner, after it left the select set.**
+   the stop ([delivery.md §7](delivery.md#7-stopping)).
+5. **A socket is closed once, by its owner, when no other work uses it**
    ([delivery.md §8](delivery.md#8-removal-and-socket-close)).
-5. **Slow work stays off the streaming thread and the writers.** Encoder
-   teardown and `on_disconnect` run on a `Threaded` task; authentication runs
-   on the `Threaded` queue. The dedicated mode's per-listener encoding does run
-   on the streaming thread, one listener after the other.
-6. **One slow listener does not delay listeners of other shards.** It delays
-   its own shard only by one non-blocking write per pass (plain TCP), or by a
-   full blocking write (TLS, [delivery.md §4](delivery.md#4-writing-to-a-socket)).
+6. **The streaming clock never waits on a listener.** It appends, wakes and
+   returns; wake-ups do not block. In dedicated mode it also encodes per
+   listener ([dedicated-encoder.md](dedicated-encoder.md)), which is CPU work,
+   not I/O.
+7. **One slow listener delays nobody.** A delivery pass spends one
+   non-blocking write on it per pass, on every transport.
+8. **Faults stay local.** A fault while serving one listener closes that
+   listener only ([delivery.md §3](delivery.md#3-the-delivery-pass)); a
+   request fault affects only its request.
 
 ## 4. What is not synchronised
 
-- An admission reads the shared mode's markers (stream start, chunk starts) and
-  the ring's tail as separate atomic reads, while send may be updating them.
-  The resulting offset is either a valid chunk start, the stream start, or the
-  tail ([shared-encoder.md §5](shared-encoder.md#5-encode-and-send)).
-- The encoder reference of the shared mode is read without the start/stop lock
-  by encode, send, metadata and admission. When a stop clears it between an
-  admission's creation step and its initial-bytes step, the initial-bytes step
-  raises and the listener takes the failed-admission path
-  ([connection.md §6](connection.md#6-failure-paths)).
-- `listeners()` reads every shard's member list without a lock; the result is
-  a snapshot that may be stale on return.
+- An admission reads the shared mode's markers, output starts and tail while
+  send may be updating them. Since markers are published before the bytes
+  they point to, the join point is a valid candidate or the tail
+  ([shared-encoder.md §5](shared-encoder.md#5-encode-and-send)).
+- An admission may find the encoder state stopped between its checks; it then
+  replies 503 before `on_connect`, or ends closed after it
+  ([connection.md §6](connection.md#6-admission)).
+- `listeners()` is a snapshot that may be stale on return.

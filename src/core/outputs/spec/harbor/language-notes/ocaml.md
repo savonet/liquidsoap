@@ -2,6 +2,9 @@
 
 Part B: how the current implementation maps Part A onto OCaml and
 Liquidsoap's internal APIs. Advice for an OCaml rebuild, not a design to copy.
+Where these notes and Part A differ, Part A governs: the writers below run as
+`Blocking` tasks where Part A asks for fast I/O tasks, and the harbor's
+handler removal goes by pattern where Part A asks for owned registrations.
 
 ## Structure
 
@@ -63,9 +66,9 @@ or `[]` to end.
 - Replies are exceptions: `Harbor.reply f`, `Harbor.simple_reply s` and
   `Harbor.custom ()` all raise `Harbor.Reply`. `Harbor.reply` takes a producer
   called until it returns `""`; `simple_reply` wraps a string in a producer
-  that returns it once (`mk_simple`). Passing `reply` a constant function is
-  what [findings.md D8](../findings.md#d8-the-404-and-503-replies-never-end--read-only)
-  describes.
+  that returns it once (`mk_simple`). A constant producer never returns `""`, so
+  the server keeps writing it: every refusal reply must be a finite producer
+  ([connection.md §7](../connection.md#7-failure-paths)).
 - `Harbor.http_auth_check ~query ~meth:"GET" ~uri ~login socket headers`
   takes `login = ("", fun { Harbor.socket; user; password; _ } -> bool)`.
 - `Harbor.write` is the transport's `socket#write`. Non-blocking behaviour

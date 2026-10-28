@@ -3,7 +3,7 @@
 What the history of `output.harbor` shows to be easy to get wrong: 165 commits
 on the operator since 2010, of which about twenty fix behaviour, plus the
 issues and pull requests behind them. Each entry is stated without reference
-to any implementation, then reconciled with the as-built spec.
+to any implementation, then answered by a rule of the specification.
 
 ## K1. A late listener must join at a point a decoder can start from
 
@@ -40,14 +40,7 @@ stream`). A burst started in the middle of a page, right after the header.
   first page is `OggS` with the codec's identification header. Decoding
   success alone is not binding.
 
-**Reconciled.** Covered: join point
-[shared-encoder.md §2](shared-encoder.md#2-initial-bytes), chunk starts and
-stream start [shared-encoder.md §5](shared-encoder.md#5-encode-and-send), the
-encoder's side [contracts.md §4](contracts.md#4-encoder), mp3 preambles
-[contracts.md §2](contracts.md#2-format-and-mime-derivation). Not covered:
-the same situation across a stop and start, where join points from the
-previous encoder remain —
-[findings.md D10](findings.md#d10-shared-state-survives-a-restart--read-only).
+**Answered by.** Join points: candidates are encoder output starts at or after the current logical stream and the current encoder's first byte [shared-encoder.md §2](shared-encoder.md#2-initial-bytes); markers published before bytes [shared-encoder.md §5](shared-encoder.md#5-encode-and-send); a restart starts a new epoch, so no joiner receives a previous encoder's bytes [shared-encoder.md §7](shared-encoder.md#7-start); complete headers, a stream start reported for an instance's first output, and no mid-stream mp3 preambles [contracts.md §2, §4](contracts.md#4-encoder). The check also runs across a stop and start ([tests.md](tests.md#delivery)).
 
 ## K2. Per-listener work must not scale the streaming cycle
 
@@ -70,14 +63,7 @@ Seen 4 times.
   stays bounded; non-reading listeners are disconnected; the process stays
   up. _Incidental_: the exact thresholds.
 
-**Reconciled.** Covered: one append per cycle
-[shared-encoder.md §5](shared-encoder.md#5-encode-and-send), shards and
-writers [delivery.md §1–§3](delivery.md#1-shards), actors
-[concurrency.md §3](concurrency.md#3-guarantees). As stated, the dedicated mode
-still encodes per listener on the streaming thread
-([dedicated-encoder.md §5](dedicated-encoder.md#5-encode-and-send)), and a TLS
-write blocks a shard
-([findings.md G8](findings.md#gaps)).
+**Answered by.** One append per encoder output on the streaming clock, whatever the audience [shared-encoder.md](shared-encoder.md); delivery as fast I/O tasks in independent groups, run in parallel at the scheduler's choice [delivery.md §1](delivery.md#1-delivery-groups); goals for per-listener memory, cycle cost and time to first byte [delivery.md](delivery.md); non-blocking writes on every transport, encrypted ones included [contracts.md §1](contracts.md#1-harbor-server). The dedicated mode keeps a per-listener encoding cost on the streaming clock by its nature, stated with its cost and a permission to spread it [dedicated-encoder.md](dedicated-encoder.md).
 
 ## K3. A listener that falls behind is disconnected, never trimmed
 
@@ -95,9 +81,7 @@ Seen once, with a lasting effect.
   contiguous stream with a block exactly every `metaint` bytes, or is
   disconnected; never a block at another offset.
 
-**Reconciled.** Covered: [delivery.md §6](delivery.md#6-disconnection),
-[shared-encoder.md §4](shared-encoder.md#4-flush),
-[dedicated-encoder.md §5](dedicated-encoder.md#5-encode-and-send).
+**Answered by.** Disconnected, never trimmed [delivery.md §6](delivery.md#6-disconnection); framing never broken [icy.md §4](icy.md#4-cadence-and-change-detection); one overflow rule for both modes [modes.md §4](modes.md#4-flush).
 
 ## K4. How a writer learns it can write
 
@@ -121,12 +105,7 @@ Seen 5 times, including one revert.
   over an hour is flat; a writer pass that raises does not prevent the next
   pass.
 
-**Reconciled.** Covered: wake-ups by socket pair, no writability wait
-[delivery.md §2](delivery.md#2-wake-ups); re-arm after an error
-[delivery.md §3](delivery.md#3-the-writer-pass). The Windows facts are
-unverified here ([findings.md V1](findings.md#to-verify)). An exception that
-recurs on every pass still starves the shard
-([findings.md D2](findings.md#d2-long-title-plus-long-url-overflows-the-icy-length-byte--checked)).
+**Answered by.** Writability discovered by trying, never waiting on sockets owed nothing, progress under edge-triggered readiness [delivery.md §2](delivery.md#2-wake-ups); wake-ups through the scheduler, coalesced and non-blocking [contracts.md §5](contracts.md#5-scheduler); a fault while serving one listener closes that listener and the pass goes on, so a recurring fault cannot starve a group [delivery.md §3](delivery.md#3-the-delivery-pass); ICY text is capped to what the length byte describes [icy.md §2](icy.md#2-block-format).
 
 ## K5. Idle cost must not grow with the machine
 
@@ -143,7 +122,7 @@ Seen once.
 - **How to tell.** _Binding_: an idle output's CPU use and context switches
   per second do not depend on the number of writers.
 
-**Reconciled.** Covered: [delivery.md §2](delivery.md#2-wake-ups).
+**Answered by.** A group with no members is never woken and runs no pass; idle cost independent of the machine is a stated goal [delivery.md](delivery.md), [§2](delivery.md#2-wake-ups).
 
 ## K6. Stopping while listeners connect, stream and leave
 
@@ -172,13 +151,7 @@ Seen 9 times.
   with the guard removed to see the check fail. Timing-based churn alone is
   not binding.
 
-**Reconciled.** Covered: idempotent start/stop and stop order
-[operator.md §7](operator.md#7-lifecycle); admission's check after publishing
-[connection.md §5](connection.md#5-admission); stopping writers and close-once
-[delivery.md §7–§8](delivery.md#7-stopping-the-writers); guarantees
-[concurrency.md §3](concurrency.md#3-guarantees). Not covered: an immediate
-restart can fail to bind because the port closes asynchronously
-([findings.md G11](findings.md#gaps)).
+**Answered by.** Serialised, idempotent start and stop, and the stop order [operator.md §7](operator.md#7-lifecycle); publication ordered against a group's stop [connection.md §6](connection.md#6-admission), [delivery.md §7](delivery.md#7-stopping); close once, by the owner, when no other work uses the descriptor [delivery.md §8](delivery.md#8-removal-and-socket-close); shutdown closes listeners from the hook, without waiting for a frame [operator.md §7](operator.md#7-lifecycle); an immediate restart re-registers on the port [contracts.md §1](contracts.md#1-harbor-server); deterministic fault injection [tests.md](tests.md#harness-and-doubles).
 
 ## K7. Listener callbacks feed accounting
 
@@ -197,8 +170,7 @@ Seen 3 times.
   it, with the same `id` and `connected_at`; a raising handler does not stop
   the others; disconnect carries `bytes_sent` including the response head.
 
-**Reconciled.** Covered: [operator.md §4–§5](operator.md#4-callbacks),
-[concurrency.md §3](concurrency.md#3-guarantees).
+**Answered by.** Callbacks and raising handlers [operator.md §4](operator.md#4-callbacks); exactly once, after, with a final `bytes_sent` [concurrency.md §3](concurrency.md#3-guarantees); `listeners()` agreeing with the callbacks [operator.md §3](operator.md#3-methods).
 
 ## K8. ICY negotiation and per-listener metadata state
 
@@ -220,8 +192,7 @@ Seen 4 times.
   each new title; an unchanged title gives empty blocks. An Ogg mount asked
   for ICY answers without `icy-metaint` and sends no blocks.
 
-**Reconciled.** Covered: [icy.md §1](icy.md#1-negotiation),
-[icy.md §4](icy.md#4-cadence-and-change-detection).
+**Answered by.** Case-insensitive negotiation, Ogg excluded [icy.md §1](icy.md#1-negotiation); metadata events with generation numbers, last generation sent per listener, stamping at encode time [icy.md §4](icy.md#4-cadence-and-change-detection).
 
 ## K9. The status line and the request version
 
@@ -238,10 +209,7 @@ Seen 2 times.
   `HTTP/1.1 200 OK` matching the request; any other version gets a 505 and
   the server keeps running.
 
-**Reconciled.** Covered for 1.0 and 1.1:
-[connection.md §4](connection.md#4-the-response-head). Contradicted for other
-versions: `ICE/1.0` is accepted and then crashes the process
-([findings.md D1](findings.md#d1-a-get-with-protocol-ice10-crashes-the-process--checked-outside-scope)).
+**Answered by.** The status line echoes `HTTP/1.0` or `HTTP/1.1` [connection.md §5](connection.md#5-the-response-head); any other version gets 505 from the server and never reaches the output, and no request can end the process [contracts.md §1](contracts.md#1-harbor-server). The fix lies in the harbor server, outside this spec.
 
 ## K10. Memory over long runs with listeners
 
@@ -257,10 +225,7 @@ Seen 3 times, root cause outside the operator in at least one.
 - **How to tell.** _Binding_: resident memory with one listener over several
   hours stays within a bound independent of uptime, on each platform.
 
-**Reconciled.** Not covered: the spec bounds the shared ring
-([shared-encoder.md](shared-encoder.md)) and per-listener pending bytes, but
-states no bound on process memory or threads
-([findings.md G10](findings.md#gaps)).
+**Answered by.** Delivery adds no threads and runs on the scheduler's domains; per-listener memory independent of uptime; bounded store memory with space released after a large output [delivery.md](delivery.md), [ring.md §2](ring.md#2-guarantees). A platform primitive leaking per call is outside the operator; the check stays binding.
 
 ## K11. One port, many users
 
@@ -269,8 +234,8 @@ Seen 2 times.
 - **Situation.** An output shares its port with HTTP routes, harbor inputs,
   or another output.
 - **What went wrong.** Registering a route on a port already used by an
-  output failed with `Address already in use`. Today a second output on the
-  same mount is accepted silently and stopping either removes both.
+  output failed with `Address already in use`. A second output on the same
+  mount was accepted silently, and stopping either removed both.
 - **Why it is hard.** The port is shared state owned by the server; each user
   sees only its own registration.
 - **How to tell.** _Binding_: an output, an HTTP route and an input on one
@@ -278,6 +243,4 @@ Seen 2 times.
   construction or served deterministically, and stopping one leaves the other
   serving.
 
-**Reconciled.** Covered for sharing: [contracts.md §1](contracts.md#1-harbor-server).
-Not covered for duplicate mounts:
-[findings.md D5](findings.md#d5-two-outputs-on-one-mount--checked).
+**Answered by.** Literal routes, owned registrations, the most recent registration serves, removal takes only its own [connection.md §1](connection.md#1-routing), [contracts.md §1](contracts.md#1-harbor-server).

@@ -5,6 +5,9 @@ number of listeners, on a port of the harbor server, at one mount.
 
 ## 1. Parameters
 
+The names, types and defaults below are the script-facing API. A rebuild
+MUST keep every one of them unchanged; new optional parameters MAY be added.
+
 Shared with every output (generic output base, [contracts.md §3](contracts.md#3-output-base)):
 
 | Name              | Type    | Default | Meaning                                                                     |
@@ -23,144 +26,168 @@ Shared with `output.icecast` (MIME derivation, [contracts.md §2](contracts.md#2
 
 Specific to `output.harbor`:
 
-| Name                | Type               | Default                 | Meaning                                                                                                                     |
-| ------------------- | ------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `mount`             | string             | — (required)            | Mount path. A leading `/` is added when absent. See [connection.md §1](connection.md#1-routing).                            |
-| `port`              | int                | `8000`                  | Harbor port.                                                                                                                |
-| `transport`         | http_transport     | the plain TCP transport | Transport of the port. An SSL/TLS transport serves HTTPS.                                                                   |
-| `timeout`           | float              | `30.`                   | Seconds a listener with pending data may go without accepting a byte ([delivery.md §5](delivery.md#5-no-progress-timeout)). |
-| `encoding`          | string             | `""`                    | Charset metadata values are converted to. Empty means UTF-8 ([icy.md §5](icy.md#5-charset)).                                |
-| `url`               | string?            | null                    | Sent as `StreamUrl` in ICY blocks.                                                                                          |
-| `metaint`           | int                | `8192`                  | ICY metadata interval, in stream bytes.                                                                                     |
-| `auth`              | (record → bool)?   | null                    | Authentication function ([connection.md §3](connection.md#3-authentication)). Null: no authentication.                      |
-| `buffer`            | int                | `327675` (5 × 65535)    | Per-listener limit, in bytes, of how far a listener may fall behind.                                                        |
-| `burst`             | int?               | `65534`                 | Bytes of already-encoded stream a new listener receives first. Null: none. Shared mode only.                                |
-| `headers`           | [(string, string)] | `[]`                    | Extra response headers, sent verbatim.                                                                                      |
-| `dumpfile`          | string?            | null                    | Path the encoded stream is also written to.                                                                                 |
-| `dedicated_encoder` | bool               | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                            |
-| (unlabeled, 2nd)    | source             | —                       | The source to encode.                                                                                                       |
+| Name                | Type                      | Default                 | Meaning                                                                                                                       |
+| ------------------- | ------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `mount`             | string                    | — (required)            | Mount path, matched literally. A leading `/` is added when absent ([connection.md §1](connection.md#1-routing)).              |
+| `port`              | int                       | `8000`                  | Harbor port.                                                                                                                  |
+| `transport`         | http_transport            | the plain TCP transport | Transport of the port. An SSL/TLS transport serves HTTPS. A transport value carrying extra methods MUST be accepted.          |
+| `timeout`           | float                     | `30.`                   | Seconds a listener owed bytes may go without accepting one ([delivery.md §5](delivery.md#5-no-progress-timeout)).             |
+| `encoding`          | string                    | `""`                    | Charset metadata values are converted to. Empty means UTF-8 ([icy.md §5](icy.md#5-charset)).                                  |
+| `url`               | string?                   | null                    | Sent as `StreamUrl` in ICY blocks.                                                                                            |
+| `metaint`           | int                       | `8192`                  | ICY metadata interval, in stream bytes.                                                                                       |
+| `auth`              | (record → bool)?          | null                    | Authentication function ([connection.md §3](connection.md#3-authentication)). Null: no authentication.                        |
+| `accept`            | (listener record → bool)? | null                    | Admission predicate ([connection.md §4](connection.md#4-admission-predicate)). Null: every authenticated request is admitted. |
+| `buffer`            | int                       | `327675` (5 × 65535)    | How far, in stream bytes, a listener may fall behind the live stream ([modes.md §4](modes.md#4-flush)).                       |
+| `burst`             | int?                      | `65534`                 | Bytes of already-encoded stream a new listener receives first. Null: none. Shared mode only.                                  |
+| `headers`           | [(string, string)]        | `[]`                    | Extra response headers ([connection.md §5](connection.md#5-the-response-head)).                                               |
+| `dedicated_encoder` | bool                      | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                              |
+| (unlabeled, 2nd)    | source                    | —                       | The source to encode.                                                                                                         |
 
-The `dedicated_encoder` value picks the mode once, at construction:
-`false` gives [shared-encoder.md](shared-encoder.md), `true` gives
-[dedicated-encoder.md](dedicated-encoder.md). The two modes accept the same
+`dedicated_encoder` picks the mode once, at construction: `false` gives
+[shared-encoder.md](shared-encoder.md), `true` gives
+[dedicated-encoder.md](dedicated-encoder.md). Both modes accept the same
 parameters.
 
 ## 2. Validation at construction
 
-In this order, when the operator is evaluated:
+Every check below MUST run when the operator is evaluated, and each failure
+MUST be an invalid-value error attached to the argument it names, so that a
+script error points at its cause:
 
 1. The encoder factory and the MIME type are resolved
    ([contracts.md §2](contracts.md#2-format-and-mime-derivation)). An
    unsupported format fails with `No encoder found for that format`; no MIME
    type from either `format` or the encoder fails with
-   `No format (mime) found, please specify one.` Both are invalid-value
-   errors attached to the format argument.
-2. When `burst` is not null and `burst > buffer`, the operator fails with an
-   invalid-value error on `buffer`: `Maximum buffering inferior to burst
-length`. This check runs in both modes.
-3. The mount's first character is inspected to decide whether to prepend
-   `/`. An empty mount fails here with a runtime error `index out of bounds`.
-4. The generic output base checks that the source is infallible unless
+   `No format (mime) found, please specify one.` Both on the format argument.
+2. `mount` MUST NOT be empty.
+3. `metaint` and `buffer` MUST be positive; `timeout` MUST be positive.
+4. In shared mode, when `burst` is not null, `burst ≤ buffer`; otherwise the
+   error is on `buffer`: `Maximum buffering inferior to burst length`. A burst
+   longer than the allowed lag would put a joiner in overflow on its first
+   write. In dedicated mode `burst` is ignored and MUST NOT be checked: its
+   default is not null, so a check would reject valid dedicated scripts.
+5. Every pair of `headers` MUST have a name that is an HTTP token and a value
+   with no CR or LF. A line break in a value would end the response head or
+   inject headers.
+6. A non-empty `encoding` MUST name a charset the converter knows. An unknown
+   name would otherwise fail later, on the streaming path, at the first
+   metadata.
+7. The generic output base checks that the source is infallible unless
    `fallible` is true, and unifies the frame types.
-
-Nothing else is validated: `metaint`, `timeout` and `buffer` are taken as
-given; `headers` are not inspected; the `encoding` name is looked up only when
-metadata is converted ([icy.md §5](icy.md#5-charset)).
 
 ## 3. Methods
 
 The generic output methods (`start`, `stop`, `is_started`, and the source
 methods every output has), plus:
 
-- `listeners()` returns the list of listener records
-  ([§5](#5-the-listener-record)) of the listeners currently connected: every
-  listener published to a writer shard and not yet marked closed. `duration`
-  and `bytes_sent` are read at call time. The order is unspecified.
+- `listeners()` returns the listener records ([§5](#5-the-listener-record)) of
+  the listeners connected at call time: every listener whose `on_connect`
+  handlers have run and that has not yet been marked closed
+  ([delivery.md §6](delivery.md#6-disconnection)). `duration` and
+  `bytes_sent` are read at call time. The order is unspecified.
+
+`listeners()` MUST agree with the callbacks: a listener appears from the end
+of its synchronous `on_connect` handlers until it is marked closed, so it is
+already absent inside its own synchronous `on_disconnect` handlers.
 
 ## 4. Callbacks
 
 The generic output callbacks (`on_start`, `on_stop`, `on_output`), plus two
-listener callbacks. Both take one listener record. Like every callback, each
-registration chooses `synchronous=true` (run in the actor that fires it) or
-`synchronous=false` (each handler runs in its own thread, in any order).
+listener callbacks, each taking one listener record. Each registration
+chooses `synchronous=true` (run in the actor that fires it) or
+`synchronous=false` (each handler runs on its own, in any order).
 
-- **`on_connect`** fires when a listener has been admitted
-  ([connection.md §5](connection.md#5-admission)), before it receives any
-  byte. `duration` is the time since the record was created (≈ 0), and
-  `bytes_sent` is `0`.
-- **`on_disconnect`** fires once for every listener whose `on_connect` fired,
-  after it, whatever ended the connection. `duration` is measured to the
-  moment the listener was marked closed; `bytes_sent` is the total accepted by
-  the socket, read when the callback runs.
+- **`on_connect`** fires when a listener is admitted
+  ([connection.md §6](connection.md#6-admission)), before any byte is written
+  to its socket. `duration` is ≈ 0 and `bytes_sent` is `0`.
+- **`on_disconnect`** fires exactly once for every listener whose
+  `on_connect` fired, after the synchronous `on_connect` handlers, whatever
+  ended the connection. It fires once no further byte can be written to the
+  listener, so `bytes_sent` is final; `duration` is measured to the moment the
+  listener was marked closed.
 
-A handler that raises is logged with its backtrace (`Listener callback
-failed: …`); the other handlers and the listener's teardown still run.
-Ordering and threads are in [concurrency.md §3](concurrency.md#3-guarantees).
+A handler that raises MUST be logged with its backtrace
+(`Listener callback failed: …`) and MUST NOT prevent the other handlers or
+the listener's teardown. Accounting built on these callbacks (access logs,
+listener counts) depends on this; see
+[concurrency.md §3](concurrency.md#3-guarantees).
 
 ## 5. The listener record
 
-| Field          | Type               | Value                                                                                                           |
-| -------------- | ------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `id`           | int                | Per-output counter, starting at 0, incremented for every admitted listener. Never reset, not even by a restart. |
-| `ip`           | string             | Peer address without port, numeric. Reverse DNS is never applied here.                                          |
-| `uri`          | string             | Request path, query string removed.                                                                             |
-| `protocol`     | string             | `"1.0"` or `"1.1"`.                                                                                             |
-| `headers`      | [(string, string)] | Request headers, names lowercased, values as received, in request order.                                        |
-| `connected_at` | float              | Wall-clock time (Unix epoch seconds) when the record was created.                                               |
-| `duration`     | float              | See [§4](#4-callbacks) and [§3](#3-methods).                                                                    |
-| `bytes_sent`   | int                | Bytes the socket accepted for this listener, response head included.                                            |
+Every field keeps its name, type and meaning; new fields MAY be added.
 
-`id` is a counter rather than the address so that the record can be shown
-without exposing the peer. The log uses a separate identifier, the peer
-address with port (`127.0.0.1:37890`).
+| Field          | Type               | Value                                                                                                        |
+| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `id`           | int                | Per-output counter, starting at 0, unique and increasing over the operator's life. Never reset by a restart. |
+| `ip`           | string             | Peer address without port, numeric. Never a reverse-DNS name.                                                |
+| `uri`          | string             | Request path, query string removed.                                                                          |
+| `protocol`     | string             | `"1.0"` or `"1.1"`.                                                                                          |
+| `headers`      | [(string, string)] | Request headers, names lowercased, values as received, in request order.                                     |
+| `connected_at` | float              | Wall-clock time (Unix epoch seconds) when the record was created.                                            |
+| `duration`     | float              | See [§3](#3-methods) and [§4](#4-callbacks).                                                                 |
+| `bytes_sent`   | int                | Bytes the socket accepted for this listener, response head included.                                         |
+
+The record is created before the admission predicate runs
+([connection.md §6](connection.md#6-admission)), so a refused request
+consumes an `id`: ids of admitted listeners are increasing, not necessarily
+consecutive.
+
+`id` exists so that a record can be shown without exposing the peer address.
+Logs MAY use the peer address with port (`127.0.0.1:37890`) as the
+listener's identifier. `ip` is numeric because consumers hash it or replace it
+with a forwarded address ([icecast-server.md §5](icecast-server.md#5-what-it-reads-from-the-output));
+the `auth` record's `address` follows the harbor's reverse-DNS setting
+instead ([connection.md §3](connection.md#3-authentication)).
 
 ## 6. Settings
 
-| Key                              | Default as displayed                   | Effective default when unset                     |
-| -------------------------------- | -------------------------------------- | ------------------------------------------------ |
-| `settings.harbor.output.writers` | the runtime's recommended domain count | the scheduler's maximum domain count, at least 1 |
+| Key                              | Meaning                                                                                                         |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `settings.harbor.output.writers` | Hint for how many independent delivery groups an output uses ([delivery.md §1](delivery.md#1-delivery-groups)). |
 
-It is the number of writer tasks (shards) per output
-([delivery.md §1](delivery.md#1-shards)). It is read each time the output
-starts. Harbor-wide settings (`settings.harbor.*`: bind addresses, timeouts,
-reverse DNS, verbose passwords) belong to the server
-([contracts.md §1](contracts.md#1-harbor-server)); `reverse_dns` changes the
-`address` passed to `auth`.
+The key MUST remain accepted. Its displayed default MUST be the value used
+when it is unset. An implementation MAY ignore it when the scheduler decides
+the parallelism of delivery on its own. Harbor-wide settings
+(`settings.harbor.*`) belong to the server
+([contracts.md §1](contracts.md#1-harbor-server)).
 
 ## 7. Lifecycle
 
-States follow the generic output: stopped and started. Transitions:
+States follow the generic output: stopped and started. Start and stop are
+serialised per output; a start while started and a stop while stopped MUST
+do nothing.
 
-**Start** (under the output's start/stop lock; a start while started does
-nothing):
+**Start**:
 
 1. Create the encoder state of the mode ([modes.md §7](modes.md#7-start)).
-2. Create the writer shards and their tasks
-   ([delivery.md §1](delivery.md#1-shards)).
-3. Register the HTTP handler for `GET` on the mount
-   ([connection.md §1](connection.md#1-routing)). Registration takes effect
-   when the server has started; before that it is queued.
-4. Open `dumpfile` for writing, truncating it, when set.
+2. Create the delivery groups ([delivery.md §1](delivery.md#1-delivery-groups)).
+3. Register the mount on the port ([connection.md §1](connection.md#1-routing)).
+   Registration takes effect when the server has started; before that it is
+   queued.
 
-**Stop** (same lock; a stop while stopped does nothing):
+**Stop**:
 
-1. Stop the encoder state of the mode ([modes.md §8](modes.md#8-stop)).
-2. Remove the HTTP handler.
-3. Mark every listener of every shard closed
-   ([delivery.md §6](delivery.md#6-disconnection)).
-4. Stop the writer tasks ([delivery.md §7](delivery.md#7-stopping-the-writers)).
-5. Close `dumpfile`.
+1. Remove the mount's registration, so no new request reaches the output.
+2. Stop the encoder state of the mode and queue its final bytes for the
+   listeners ([modes.md §8](modes.md#8-stop), [§11](modes.md#11-final-bytes)).
+3. Run one last delivery pass for every group
+   ([delivery.md §7](delivery.md#7-stopping)), then mark every listener closed.
+4. End the delivery groups.
 
-A stop followed by a start is a restart: shards, tasks and the encoder state
-are created anew. The listener id counter, the last metadata
-([icy.md §4](icy.md#4-cadence-and-change-detection)) and, in shared mode, the
-ring and its markers ([shared-encoder.md §7](shared-encoder.md#7-start)) are
-kept.
+Stop MUST NOT wait on any listener: the last pass is one non-blocking write
+per listener. A request admitted concurrently with a stop MUST end closed,
+with both callbacks ([delivery.md §7](delivery.md#7-stopping)).
 
-**Process shutdown.** Before the core shuts down, a process-wide flag is set.
-At the start of the next frame of each `output.harbor`, the first time it sees
-the flag, every listener is marked closed. The output itself is then stopped
-by the generic shutdown.
+**Restart.** A stop followed by a start creates new delivery groups and a new
+encoder state. The listener id counter and the last metadata
+([icy.md §4](icy.md#4-cadence-and-change-detection)) are kept; no byte the
+previous encoder produced reaches a listener admitted after the restart
+([shared-encoder.md §7](shared-encoder.md#7-start)).
+
+**Process shutdown.** When the core is about to shut down, every listener of
+every `output.harbor` MUST be marked closed, from the shutdown hook itself:
+waiting for the next frame would leave listeners connected when no frame
+comes. The output is then stopped by the generic shutdown.
 
 **Fallible source.** When the output is fallible and its source becomes
 unavailable, the generic base stops the output, which disconnects every
