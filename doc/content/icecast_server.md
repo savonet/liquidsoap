@@ -299,11 +299,13 @@ This gives `icecast.server` the following behavior:
 
 - Fallback happens inside the mount's output. When a source disconnects, the mount switches to the source of its `<fallback-mount>` and listeners stay connected to the same mount. When the source reconnects, the mount switches back to it.
 - With `dedicated_encoder=true` and copy encoders, each listener gets a stream that starts with its own container header. Listeners can then join a stream in any streamable container format at any time.
+- Listeners receive the stream identity the source sent, as `ice-*` or `icy-*` headers, as `icy-name`, `icy-description`, `icy-genre`, `icy-url`, `icy-br` and `icy-pub` headers.
+- Sources cannot use the mount points of the status pages (`/`, `/status.json`) or anything under `/admin`.
 
 Because of this architecture, the following icecast options do not apply:
 
 - `fallback-override`: in icecast, a source that reconnects takes its listeners back from the fallback mount. In liquidsoap, listeners always stay on their mount, which switches back to its source as soon as the source reconnects.
-- `fallback-when-full`: in icecast, listeners are redirected to a fallback mount once `max-listeners` is reached. `icecast.server` does not enforce `max-listeners` yet.
+- `fallback-when-full`: in icecast, listeners are redirected to a fallback mount once `max-listeners` is reached. `icecast.server` refuses them with `403 Forbidden` instead.
 
 ## Using an Icecast Configuration File
 
@@ -416,16 +418,16 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 
 ### limits
 
-| Option             | Status        | Notes                                             |
-| ------------------ | ------------- | ------------------------------------------------- |
-| `sources`          | Supported     | Maximum number of simultaneous source connections |
-| `clients`          | Parsed (TODO) | Maximum number of listeners (not yet enforced)    |
-| `source-timeout`   | Supported     | Timeout in seconds for source connections (float) |
-| `client-timeout`   | Supported     | Timeout in seconds for client connections (float) |
-| `burst-size`       | Supported     | Default burst size for new listeners (bytes)      |
-| `burst-on-connect` | Supported     | Set to 0 to disable burst entirely                |
-| `queue-size`       | Not used      | Liquidsoap manages queues differently             |
-| `header-timeout`   | Not used      | Liquidsoap handles headers differently            |
+| Option             | Status    | Notes                                                  |
+| ------------------ | --------- | ------------------------------------------------------ |
+| `sources`          | Supported | Maximum number of simultaneous source connections      |
+| `clients`          | Supported | Maximum number of listeners across all mounts          |
+| `source-timeout`   | Supported | Timeout in seconds for source connections (float)      |
+| `client-timeout`   | Supported | Timeout in seconds for client connections (float)      |
+| `burst-size`       | Supported | Burst size for new listeners (bytes), 65534 when unset |
+| `burst-on-connect` | Supported | Set to 0 to disable burst entirely                     |
+| `queue-size`       | Not used  | Liquidsoap manages queues differently                  |
+| `header-timeout`   | Not used  | Liquidsoap handles headers differently                 |
 
 ### paths
 
@@ -483,6 +485,7 @@ Mount configurations support both `type="default"` (settings applied to all moun
 | `password`       | Mount-specific password (overrides global)                                                 |
 | `dump-file`      | Not implemented: ignored with a warning                                                    |
 | `burst-size`     | Initial burst size for new listeners (bytes)                                               |
+| `max-listeners`  | Maximum number of listeners on this mount; more are refused with `403 Forbidden`           |
 | `fallback-mount` | Mount to fall back to when this source disconnects. A reload applies it to live mounts too |
 | `on-connect`     | Shell command to execute when source connects                                              |
 | `on-disconnect`  | Shell command to execute when source disconnects                                           |
@@ -494,7 +497,6 @@ These options are not yet implemented:
 
 | Option                  | Reason                                         |
 | ----------------------- | ---------------------------------------------- |
-| `max-listeners`         | Not yet implemented                            |
 | `hidden`                | Not yet implemented                            |
 | `public`                | Directory listing registration not implemented |
 | `intro`                 | Intro file playback not implemented            |
@@ -508,7 +510,7 @@ These options do not apply to liquidsoap's architecture, see [Key Differences fr
 | Option               | Reason                                                                     |
 | -------------------- | -------------------------------------------------------------------------- |
 | `fallback-override`  | Listeners stay on their mount, which switches back when its source returns |
-| `fallback-when-full` | Depends on `max-listeners`, which is not implemented                       |
+| `fallback-when-full` | Listeners past `max-listeners` are refused, not redirected                 |
 
 ### Configuration Sections Not Supported
 
