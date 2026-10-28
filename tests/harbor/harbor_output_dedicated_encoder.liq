@@ -3,7 +3,8 @@
 # Dedicated encoders: two listeners admitted at once both get `on_connect` and
 # each a stream starting from its own encoder's first byte; new titles reach
 # them in band; an ICY listener gets its blocks; at stop each listener gets
-# its encoder's end-of-stream page and one disconnect.
+# its encoder's end-of-stream page and one disconnect. A WAV listener gets its
+# encoder's header once.
 port = 18121
 metaint = 2000
 s = insert_metadata(sine())
@@ -39,6 +40,14 @@ icy =
     dedicated_encoder=true,
     metaint=metaint,
     %mp3,
+    s
+  )
+wav =
+  output.harbor(
+    port=port,
+    mount="dedicated.wav",
+    dedicated_encoder=true,
+    %wav,
     s
   )
 
@@ -230,6 +239,20 @@ def check() =
         )
       end,
     titled
+  )
+
+  wav_sock = connect("dedicated.wav", "")
+  wav_data = ref("")
+  while string.length(encoding="ascii", wav_data()) < 1000 do
+    wav_data := wav_data() ^ wav_sock.read(timeout=5.)
+
+  end
+  wav_sock.close()
+  wav_body = body_of(wav_data())
+  test.equal(string.sub(encoding="ascii", wav_body, start=0, length=4), "RIFF")
+  test.equal(
+    string.sub(encoding="ascii", wav_body, start=44, length=4) == "RIFF",
+    false
   )
 
   test.equal(connects(), 2)

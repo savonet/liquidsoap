@@ -112,7 +112,9 @@ let encoder avi =
     Encoder.encode_metadata = (fun _ -> ());
     hls = Encoder.dummy_hls encode;
     encode;
-    header = (fun () -> Strings.of_string header);
+    header =
+      (fun () ->
+        if !need_header then Strings.empty else Strings.of_string header);
     stop = (fun () -> Strings.empty);
     restart_offset = (fun () -> None);
   }
