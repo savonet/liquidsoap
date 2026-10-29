@@ -29,6 +29,17 @@ def f() =
   test.equal(created(), ["/b", "/a"])
   test.equal(source.id(null.get(entry_a.fallback())), "b")
 
+  # A source that reconnects before the old one's disconnect is handled keeps
+  # its mount.
+  r1 = blank(id="r1")
+  r2 = blank(id="r2")
+  ignore(t.connect(mount="/r", fallback_mount=null, source=r1, create("/r")))
+  ignore(t.connect(mount="/r", fallback_mount=null, source=r2, create("/r")))
+  test.equal(list.map(fst, t.disconnect(source=r1, "/r")), [])
+  test.equal(source.id(null.get(t.source("/r"))), "r2")
+  test.equal(list.map(fst, t.disconnect(source=r2, "/r")), ["/r"])
+  created := list.filter(fun (m) -> m != "/r", created())
+
   # /a's source leaves: entry survives on its fallback, nothing shut down
   test.equal(list.map(fst, t.disconnect("/a")), [])
   test.equal(t.has("/a"), true)
@@ -373,6 +384,9 @@ def f() =
   test.equal(check("/admin/metadata"), false)
   test.equal(check("/admin.cgi"), false)
   test.equal(check("/administrative"), true)
+  test.equal(check("/"), false)
+  test.equal(check("/status.json"), false)
+  test.equal(check("/status.json.mp3"), true)
   test.equal(check(max_sources=2, active=2, "/live"), false)
   test.equal(check(max_sources=2, active=1, "/live"), true)
   test.equal(check(method="GET", provided="wrong", "/admin/stats"), true)
@@ -385,6 +399,47 @@ def f() =
     end,
     false
   )
+
+  # identity_headers
+  test.equal(
+    icecast.server.identity_headers(
+      [
+        ("ice-name", "Radio"),
+        ("ICE-Genre", "Jazz"),
+        ("icy-url", "http://x"),
+        ("ice-bitrate", "128"),
+        (
+          "ice-description",
+          "a\r\nX-Injected: 1"
+        ),
+        ("user-agent", "source"),
+        ("icy-name", "Second")
+      ]
+    ),
+    [
+      ("icy-name", "Radio"),
+      ("icy-genre", "Jazz"),
+      ("icy-url", "http://x"),
+      ("icy-br", "128")
+    ]
+  )
+
+  # listener_limit
+  def limit(~max_listeners, ~max_clients, mount, server) =
+    accept =
+      icecast.server.listener_limit(
+        max_listeners=max_listeners,
+        max_clients=max_clients,
+        mount_listeners=fun () -> mount,
+        server_listeners=fun () -> server
+      )
+    accept(())
+  end
+  test.equal(limit(max_listeners=null, max_clients=null, 100, 100), true)
+  test.equal(limit(max_listeners=2, max_clients=null, 1, 100), true)
+  test.equal(limit(max_listeners=2, max_clients=null, 2, 2), false)
+  test.equal(limit(max_listeners=null, max_clients=3, 0, 3), false)
+  test.equal(limit(max_listeners=5, max_clients=3, 1, 2), true)
 
   test.pass()
 end

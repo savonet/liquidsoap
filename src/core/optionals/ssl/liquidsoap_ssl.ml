@@ -94,6 +94,11 @@ let ssl_socket ~pos transport ssl =
 
       method read = read
       method write = write_wrapper ssl
+
+      method non_blocking enabled =
+        let fd = Ssl.file_descr_of_socket ssl in
+        if enabled then Unix.set_nonblock fd else Unix.clear_nonblock fd
+
       method closed = Atomic.get closed
 
       method close =

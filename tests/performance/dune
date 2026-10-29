@@ -39,3 +39,20 @@
  (name citest)
  (deps
   (alias perftest)))
+
+(executable
+ (name harbor_load_client)
+ (libraries unix threads.posix duppy.stdlib_utils)
+ (modules harbor_load_client))
+
+(rule
+ (alias perftest_harbor)
+ (deps
+  (:liquidsoap ../../src/bin/liquidsoap.exe)
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ./harbor_load_client.exe
+  (:load test_harbor_load.liq)
+  ../test.liq)
+ (action
+  (run %{liquidsoap} %{load})))

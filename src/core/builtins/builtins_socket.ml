@@ -248,9 +248,7 @@ module Socket_value = struct
           Lang.val_fun
             [("", "", None)]
             (fun p ->
-              if Lang.to_bool (List.assoc "" p) then
-                Unix.set_nonblock socket#file_descr
-              else Unix.clear_nonblock socket#file_descr;
+              socket#non_blocking (Lang.to_bool (List.assoc "" p));
               Lang.unit) );
       ( "write",
         ( [],

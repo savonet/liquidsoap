@@ -11,6 +11,11 @@ type socket =
         (** Set when [read] can return data without [file_descr] being readable,
             e.g. bytes a TLS layer already decrypted, in which case
             [wait_for `Read] returns immediately. *)
+  ; non_blocking : bool -> unit
+        (** Switches the socket's blocking mode. Once non-blocking, [write]
+            never waits: it accepts what fits, buffering what an encrypted
+            transport has already encoded, and raises [EAGAIN] when it can
+            accept nothing. *)
   ; write : Bytes.t -> int -> int -> int
   ; read : Bytes.t -> int -> int -> int
   ; closed : bool
@@ -64,6 +69,10 @@ val unix_socket : pos:Pos.t list -> Unix.file_descr -> socket
 
 (** User-agent for liquidsoap *)
 val user_agent : string
+
+(** Whether a failed non-blocking socket write only means "try again later",
+    across the platform variants of that condition. *)
+val would_block : Unix.error -> bool
 
 (** Basic detection of whether a path is an HTTP url. *)
 val is_url : string -> bool

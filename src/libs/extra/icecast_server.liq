@@ -180,7 +180,6 @@ let icecast.server.config.mount.empty =
     username = (null : string?),
     password = (null : string?),
     max_listeners = (null : int?),
-    dump_file = (null : string?),
     burst_size = (null : int?),
     fallback_mount = (null : string?),
     hidden = false,
@@ -230,6 +229,7 @@ def icecast.server.config.mount.parse(doc) =
     "mount",
     [
       ("public", null.defined(m.public)),
+      ("dump-file", null.defined(m.dump_file)),
       ("intro", null.defined(m.intro)),
       ("max-listener-duration", null.defined(m.max_listener_duration)),
       ("authentication", null.defined(m?.authentication))
@@ -262,7 +262,6 @@ def icecast.server.config.mount.parse(doc) =
     username = m.username,
     password = m.password,
     max_listeners = m.max_listeners,
-    dump_file = m.dump_file,
     burst_size = m.burst_size,
     fallback_mount = m.fallback_mount,
     hidden = m.hidden == 1,
@@ -287,7 +286,6 @@ def icecast.server.config.mount.resolve(~default, ~mounts, (mount:string)) =
     username = config.username ?? default.username,
     password = config.password ?? default.password,
     max_listeners = config.max_listeners ?? default.max_listeners,
-    dump_file = config.dump_file ?? default.dump_file,
     burst_size = config.burst_size ?? default.burst_size,
     fallback_mount = config.fallback_mount ?? default.fallback_mount,
     hidden = config.hidden or default.hidden,
@@ -516,7 +514,11 @@ def icecast.server.config.logging.parse(doc) =
   }
 end
 
-# Burst for a mount: its own `<burst-size>`, else the global one. A `0` at either level, or `<burst-on-connect>0</burst-on-connect>`, disables bursting.
+# Burst a listener gets when the configuration sets none: Icecast also bursts by default, by about 64 KiB.
+# @flag hidden
+let icecast.server.config.default_burst_size = 65534
+
+# Burst for a mount: its own `<burst-size>`, else the global one, else the default. A `0` at either level, or `<burst-on-connect>0</burst-on-connect>`, disables bursting.
 # @flag hidden
 def icecast.server.config.burst_size(~limits, (burst_size:int?)) =
   def disabled(value) =
@@ -528,7 +530,10 @@ def icecast.server.config.burst_size(~limits, (burst_size:int?)) =
   then
     null
   else
-    burst_size ?? (limits.burst_size : int?)
+    burst_size
+      ?? (
+        (limits.burst_size : int?) ?? icecast.server.config.default_burst_size
+      )
   end
 end
 
@@ -827,6 +832,7 @@ end
 # @flag hidden
 def icecast.server.mount_table() =
   entries = ref([])
+  source_id = source.id
 
   def has(mount) =
     list.assoc.mem(mount, entries())
@@ -902,10 +908,21 @@ def icecast.server.mount_table() =
     orphans
   end
 
-  # Returns the entries it leaves orphaned, see `sweep`.
-  def disconnect(mount) =
-    if has(mount) then get(mount).source := null end
-    list.iter(fun ((_, e)) -> e.fallback := null, dependents(mount))
+  # Returns the entries it leaves orphaned, see `sweep`. With `source`, does nothing unless the mount still holds that source: a source that reconnected before the old one's disconnect was handled keeps its mount.
+  def disconnect(~source:(departing:source?)=null, mount) =
+    holds =
+      has(mount)
+      and (
+        not null.defined(departing)
+        or (null.map(source_id, get(mount).source()) ?? "") ==
+          source_id(null.get(departing))
+      )
+    if
+      holds
+    then
+      get(mount).source := null
+      list.iter(fun ((_, e)) -> e.fallback := null, dependents(mount))
+    end
     sweep()
   end
 
@@ -985,7 +1002,12 @@ def icecast.server.listener_counters() =
     )
   end
 
-  {connect = connect, disconnect = disconnect, get = get}
+  {
+    connect = connect,
+    disconnect = disconnect,
+    get = get,
+    current = fun () -> atomic(fast=true, current)
+  }
 end
 
 # Default listener IP hash for `icecast.server`: an MD5 digest of the address with a fixed public key, truncated to 16 hex characters. It keeps addresses out of logs and pages but does not resist someone testing guessed addresses: pass your own `ip_hash` if that matters.
@@ -1142,6 +1164,64 @@ def icecast.server.log_writer(target) =
     )
 end
 
+# Stream identity a source sent, as `ice-*` (HTTP) or `icy-*` (Shoutcast protocol) headers, under the `icy-*` names Icecast answers listeners with. Values with a line break are dropped: they would end the response head.
+# @flag hidden
+def icecast.server.identity_headers(headers) =
+  names =
+    [
+      ("icy-name", "icy-name"),
+      ("ice-name", "icy-name"),
+      ("icy-description", "icy-description"),
+      ("ice-description", "icy-description"),
+      ("icy-genre", "icy-genre"),
+      ("ice-genre", "icy-genre"),
+      ("icy-url", "icy-url"),
+      ("ice-url", "icy-url"),
+      ("icy-br", "icy-br"),
+      ("ice-bitrate", "icy-br"),
+      ("icy-pub", "icy-pub"),
+      ("ice-public", "icy-pub")
+    ]
+  list.fold(
+    fun (identity, header) ->
+      begin
+        let (name, value) = header
+        listener_name =
+          list.assoc.nullable(string.case(lower=true, name), names)
+        if
+          null.defined(listener_name)
+          and not r/[\r\n]/.test(value)
+          and not list.assoc.mem(null.get(listener_name), identity)
+        then
+          [...identity, (null.get(listener_name), value)]
+        else
+          identity
+        end
+      end,
+    [],
+    headers
+  )
+end
+
+# Admission predicate enforcing `<max-listeners>` of a mount and `<clients>` of the server. Counts come from the listener callbacks, so admissions in progress at once can exceed a limit by their number.
+# @flag hidden
+def icecast.server.listener_limit(
+  ~max_listeners,
+  ~max_clients,
+  ~mount_listeners,
+  ~server_listeners
+) =
+  fun (_) ->
+    (
+      not null.defined(max_listeners)
+      or mount_listeners() < null.get(max_listeners)
+    )
+    and (
+      not null.defined(max_clients)
+      or server_listeners() < null.get(max_clients)
+    )
+end
+
 # Output of an `icecast.server` mount, served by `output.harbor`.
 # @flag hidden
 def icecast.server.default_prepare(
@@ -1154,7 +1234,7 @@ def icecast.server.default_prepare(
     timeout,
     port,
     transport,
-    dumpfile,
+    accept,
     dedicated_encoder,
     muxer_opts
   }
@@ -1180,8 +1260,9 @@ def icecast.server.default_prepare(
           headers=headers,
           timeout=timeout,
           burst=burst,
-          dumpfile=dumpfile,
+          accept=accept,
           dedicated_encoder=dedicated_encoder,
+          override_mount=true,
           format=mime_type ?? "",
           copy_encoder(format, options=muxer_opts),
           s
@@ -1265,7 +1346,7 @@ def icecast.server.authorize(
   then
     true
   elsif
-    r/^\/admin(\/|\.cgi|$)/.test(uri)
+    uri == "/" or uri == "/status.json" or r/^\/admin(\/|\.cgi|$)/.test(uri)
   then
     log_event(
       level=2,
@@ -1443,6 +1524,8 @@ def icecast.server.source_manager(
     end
   end
 
+  server_listeners = ref(0)
+
   # Build the output and stats for a mount on its first connection.
   def create_entry(
     ~mount,
@@ -1450,6 +1533,7 @@ def icecast.server.source_manager(
     ~format,
     ~mime_type,
     ~streams,
+    ~source_headers,
     ~copy_encoder
   ) =
     fun ({source = main, fallback = backup}) ->
@@ -1459,12 +1543,20 @@ def icecast.server.source_manager(
         parsed = server_config().parsed
 
         def on_listener_connect(listener) =
+          atomic(
+            fast=true,
+            fun () -> server_listeners := server_listeners() + 1
+          )
           listeners.connect()
           view = listener_view(mount=mount, listener)
           list.iter(fun (h) -> h(view), on_listener_connect_handlers())
         end
 
         def on_listener_disconnect(listener) =
+          atomic(
+            fast=true,
+            fun () -> server_listeners := server_listeners() - 1
+          )
           listeners.disconnect(listener)
           view = listener_view(mount=mount, listener)
           list.iter(fun (h) -> h(view), on_listener_disconnect_handlers())
@@ -1481,7 +1573,12 @@ def icecast.server.source_manager(
               copy_encoder = copy_encoder,
               format = format,
               mount = mount,
-              headers = [...parsed.http_headers, ...config.http_headers],
+              headers =
+                [
+                  ...parsed.http_headers,
+                  ...config.http_headers,
+                  ...icecast.server.identity_headers(source_headers)
+                ],
               burst =
                 icecast.server.config.burst_size(
                   limits={
@@ -1493,7 +1590,13 @@ def icecast.server.source_manager(
               timeout = parsed.client_timeout ?? 30.,
               port = port,
               transport = transport,
-              dumpfile = config.dump_file,
+              accept =
+                icecast.server.listener_limit(
+                  max_listeners=config.max_listeners,
+                  max_clients=parsed.max_clients,
+                  mount_listeners=listeners.current,
+                  server_listeners=server_listeners
+                ),
               dedicated_encoder = dedicated_encoder,
               muxer_opts = muxer_options(format)
             }
@@ -1580,6 +1683,7 @@ def icecast.server.source_manager(
               format=format,
               mime_type=mime_type,
               streams=streams,
+              source_headers=headers,
               copy_encoder=copy_encoder
             )
           )
@@ -1609,7 +1713,7 @@ def icecast.server.source_manager(
                 "source/source_main",
                 "Source at \"#{icecast.server.log_escape(mount)}\" exiting"
               )
-              shutdown_orphans(mounts.disconnect(mount))
+              shutdown_orphans(mounts.disconnect(source=s, mount))
               run_command(config.on_disconnect_cmd)
               list.iter(
                 fun (h) -> h({mount = mount}),

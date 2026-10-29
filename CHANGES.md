@@ -27,11 +27,13 @@
   authentication, mount points, relay, and per-listener encoding (#4915). It writes icecast's
   access, playlist and error logs, reports listener sessions through callbacks, serves an admin listener
   page, and hashes listener IPs by default (#5408). Its configuration file is reloaded on
-  `SIGHUP` or `reload()` without disconnecting sources or listeners (#5418).
+  `SIGHUP` or `reload()` without disconnecting sources or listeners (#5418). Like Icecast, it
+  bursts to new listeners, passes the source's stream name and genre to them, and enforces
+  `<max-listeners>` and `<clients>`.
 - Added `on_signal`, which runs a function when the process receives a signal such as
   `SIGHUP` or `SIGUSR2`, and returns a `release` method (#5418).
-- Added dedicated encoder mode to `output.harbor`: mount points can now be served with
-  a single shared encoder instead of per-listener encoding (#5003).
+- Added dedicated encoder mode to `output.harbor`: each listener gets its own encoder, so its
+  stream starts from an encoder's first byte (#5003).
 - Rewrote JACK I/O using native OCaml bindings, removing the dependency on the `bjack`
   C library (#5028).
 - Added `settings.clock.child.max_buffer`, the amount of data an operator such as
@@ -104,7 +106,16 @@
 - `ffmpeg` log messages now go through liquidsoap's logger by default, with the same timestamps, log file and levels as the rest of the logs. Set `settings.ffmpeg.log.capture := false` to print them to standard error as before.
 - `output.harbor`'s `on_connect` and `on_disconnect` callbacks now receive a listener record with
   its session duration and bytes sent, and a new `listeners` method lists connected listeners. The
-  `ip` field no longer includes the client port (#5408).
+  `ip` field no longer includes the client port (#5408). A new `accept` argument admits or
+  refuses listeners. Mounts match literally, and a newer output takes over a served mount only
+  with `override_mount`.
+  ICY titles change at their position in the stream, final Ogg pages reach listeners at stop,
+  and a slow HTTPS listener no longer delays the others. Clocks not paced in real time are refused
+  unless `allow_unsynced_clock` is set. `dumpfile` and the deprecated `on_connect` and
+  `on_disconnect` arguments were removed: use the methods of the same names.
+- `harbor.http.register` and its variants return a value with a `remove` method, which replaces
+  `harbor.remove`. Registering a path already registered with the same method on a port raises an
+  error.
 - Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
   taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
   Heavy work in a callback or a request resolution no longer stalls playback either.

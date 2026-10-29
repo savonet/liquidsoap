@@ -24,7 +24,20 @@ def f() =
   end
 
   harbor.http.register.regexp(r/default/g, port=3456, handler)
-  harbor.http.register("/default", port=3456, handler)
+
+  # Registering a path already registered on the port raises
+  try
+    harbor.http.register("/default", port=3456, handler)
+    test.fail()
+  catch err : [error.http] do
+    test.equal(
+      string.contains(
+        substring="already registered",
+        err.message
+      ),
+      true
+    )
+  end
   resp = http.get("http://localhost:3456/default")
   test.equal(resp.status_message, "OK")
   test.equal(resp.status_code, 200)

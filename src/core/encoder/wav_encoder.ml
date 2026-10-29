@@ -74,7 +74,10 @@ let encoder ~pos wav =
     Encoder.encode_metadata = (fun _ -> ());
     hls = Encoder.dummy_hls encode;
     encode;
-    header = (fun () -> Strings.of_string header);
+    header =
+      (fun () ->
+        if wav.header && not !need_header then Strings.of_string header
+        else Strings.empty);
     stop = (fun () -> Strings.empty);
     restart_offset = (fun () -> None);
   }

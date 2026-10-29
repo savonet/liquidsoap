@@ -45,7 +45,6 @@ def f() =
   test.equal(m.username, "dj")
   test.equal(m.password, "secret")
   test.equal(m.max_listeners, 10)
-  test.equal(m.dump_file, "/tmp/dump")
   test.equal(m.burst_size, 65536)
   test.equal(m.fallback_mount, "/backup")
   test.equal(m.hidden, true)
@@ -156,7 +155,10 @@ def f() =
       icecast.server.config.mount.parse(mount).burst_size
     )
   end
-  test.equal(burst("<limits/>", "<mount/>"), null)
+  test.equal(
+    burst("<limits/>", "<mount/>"),
+    icecast.server.config.default_burst_size
+  )
   test.equal(
     burst("<limits><burst-size>10</burst-size></limits>", "<mount/>"),
     10

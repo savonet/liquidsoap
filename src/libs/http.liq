@@ -500,7 +500,9 @@ end
 # as well as fragment matches, i.e. `"/user/:id"`, `"/users/:id/collabs/:cid"`,
 # etc. If you need more advanced matching, use `harbor.http.register.regexp`
 # to match regular expressions. Paths are resolved in the order they are declared
-# and can override default harbor paths such as metadata handlers.
+# and can override default harbor paths such as metadata handlers. Registering a
+# path already registered with the same method on the port raises an error. The
+# returned value's `remove` method removes this registration.
 # The handler receives the request details as a record and a response
 # handler. Matched fragments are reported as part of the response `query` parameter.
 # The response handler can be used to fill up details about the http response,

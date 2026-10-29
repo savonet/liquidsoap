@@ -1,40 +1,74 @@
 %include "../test.liq"
 
-# A listener joining a running mount receives the burst on top of the live
-# stream: in one second it gets well over the 16 KB/s of 128 kbps mp3.
-def f() =
-  output.harbor(%mp3, mount="test", port=3476, sine())
+# A joiner gets the burst at once, more than one second of a 128 kbps stream;
+# with no burst, a joiner still streams.
+port = 18109
+o = output.harbor(port=port, mount="burst.mp3", %mp3(bitrate = 128), sine())
+plain =
+  output.harbor(
+    port=port,
+    mount="plain.mp3",
+    burst=null,
+    %mp3(bitrate = 128),
+    sine()
+  )
 
-  def check() =
-    sock = socket.unix()
-    sock.connect(
-      socket.address.internet_address(
-        socket.internet_address("127.0.0.1"),
-        3476
-      )
-    )
-    sock.write(
-      "GET /test HTTP/1.0\r\n\r\n"
-    )
-    received = ref(0)
-    deadline = time() + 1.
-    while received() < 30000 and time() < deadline do
-      received := received() + string.length(sock.read(timeout=1.))
-
-    end
-    sock.close()
+# Bytes received within `duration` seconds, response head included.
+def received(mount, duration) =
+  sock = socket.unix()
+  sock.connect(
+    socket.address.internet_address(socket.internet_address("127.0.0.1"), port)
+  )
+  sock.write(
+    "GET /#{mount} HTTP/1.0\r\n\r\n"
+  )
+  start = time()
+  total = ref(0)
+  def rec read() =
+    left = duration - (time() - start)
     if
-      received() >= 30000
+      left > 0.
     then
-      test.pass()
-    else
-      test.fail(
-        "got #{received()} bytes"
-      )
+      chunk =
+        try
+          sock.read(timeout=left)
+        catch _ do
+          ""
+        end
+      total := total() + string.length(encoding="ascii", chunk)
+      if chunk != "" then read() end
     end
   end
-
-  thread.run(delay=6., check)
+  read()
+  sock.close()
+  total()
 end
 
-test.check(f)
+def check() =
+  burst = received("burst.mp3", 1.)
+  if
+    burst < 30000
+  then
+    test.fail(
+      "burst too short: #{burst}"
+    )
+  end
+  streamed = received("plain.mp3", 3.)
+  if
+    streamed < 16000
+  then
+    test.fail(
+      "no burst stream too short: #{streamed}"
+    )
+  end
+  if
+    streamed > 3 * 16000 + 8000
+  then
+    test.fail(
+      "no burst stream got a burst: #{streamed}"
+    )
+  end
+  test.pass()
+end
+
+o.on_start(synchronous=true, fun () -> thread.run(delay=4., check))

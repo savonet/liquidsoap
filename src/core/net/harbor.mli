@@ -105,20 +105,36 @@ module type T = sig
   val mk_simple : string -> unit -> string
 
   val simple_reply : string -> 'a
+
+  (** An HTML error page that carries the Basic authentication challenge. *)
+  val challenge_page : int -> string -> string -> string
+
   val reply : (unit -> string) -> 'a
   val custom : unit -> 'a
 
+  (** A literal path matches a request path, query string removed, byte for
+      byte. *)
+  type route_path = [ `Literal of string | `Regexp of Lang.regexp ]
+
+  type registration
+
+  (** Takes effect once the server has started. Registrations are tried in the
+      order they were made and the first match serves. One with the verb and
+      path of an existing registration raises, unless [override] puts it ahead
+      of them. *)
   val add_http_handler :
+    ?override:bool ->
     pos:Pos.t list ->
     transport:Http.transport ->
     port:int ->
     verb:http_verb ->
-    uri:Lang.regexp ->
+    path:route_path ->
     http_handler ->
-    unit
+    registration
 
-  val remove_http_handler :
-    port:int -> verb:http_verb -> uri:Lang.regexp -> unit -> unit
+  (** Removes this registration only; idempotent, and effective even before the
+      registration took effect. *)
+  val remove_http_handler : registration -> unit
 
   type relay_info = {
     uri : string;

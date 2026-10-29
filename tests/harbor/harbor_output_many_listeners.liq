@@ -1,43 +1,53 @@
 %include "../test.liq"
 
-# Twelve listeners spread over three writer tasks all connect, and all are
-# disconnected when the output stops.
-def f() =
-  settings.harbor.output.writers := 3
-  connected = ref(0)
-  disconnected = ref(0)
+# Twelve decoding clients, then stop: twelve connects and twelve disconnects,
+# and `listeners()` is empty afterwards.
+port = 18113
+count = 12
+o = output.harbor(port=port, mount="many.mp3", %mp3, sine())
+connects = ref(0)
+disconnects = ref(0)
+o.on_connect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> connects := connects() + 1)
+)
+o.on_disconnect(
+  synchronous=true,
+  fun (_) -> atomic(fun () -> disconnects := disconnects() + 1)
+)
 
-  o = output.harbor(%mp3, mount="test", port=3475, sine())
-
-  # Asynchronous callbacks run in parallel, so each count must be bumped and
-  # read back as one step.
-  def bump(counter) =
-    atomic(
-      fast=true,
-      fun () ->
-        begin
-          counter := counter() + 1
-          counter()
-        end
-    )
-  end
-
-  def on_disconnect(_) =
-    if bump(disconnected) == 12 then test.pass() end
-  end
-
-  def on_connect(_) =
-    if bump(connected) == 12 then thread.run(delay=1., {o.stop()}) end
-  end
-
-  o.on_connect(synchronous=false, on_connect)
-  o.on_disconnect(synchronous=false, on_disconnect)
-
-  for _ = 1 to 12 do
-    l = input.http("http://localhost:3475/test")
-    output.dummy(fallible=true, l)
+def start_clients() =
+  for _ = 1 to count do
+    output.dummy(fallible=true, input.http("http://127.0.0.1:#{port}/many.mp3"))
 
   end
 end
 
-test.check(f)
+def check() =
+  if
+    connects() != count
+  then
+    test.fail(
+      "#{connects()} connects"
+    )
+  end
+  o.stop()
+  thread.run(
+    delay=2.,
+    fun () ->
+      begin
+        test.equal(disconnects(), count)
+        test.equal(o.listeners(), [])
+        test.pass()
+      end
+  )
+end
+
+o.on_start(
+  synchronous=true,
+  fun () ->
+    begin
+      start_clients()
+      thread.run(delay=5., check)
+    end
+)

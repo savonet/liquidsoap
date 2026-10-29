@@ -116,26 +116,24 @@ let _ =
   Lang.add_builtin ~base:harbor_http "register" ~category:`Internet
     ~descr:
       "Low-level harbor handler registration. Overridden in standard library."
-    register_args Lang.unit_t (fun p ->
-      let uri, port, transport, verb, handler = parse_register_args p in
-      Harbor.add_http_handler ~pos:(Lang.pos p) ~transport ~port ~verb ~uri
-        handler;
-      Lang.unit)
-
-let _ =
-  Lang.add_builtin ~base:harbor "remove" ~category:`Internet
-    ~descr:(Printf.sprintf "Remove a registered handler on the harbor.")
-    [
-      ("port", Lang.int_t, Some (Lang.int 8000), Some "Port to serve.");
-      ("method", Lang.string_t, Some (Lang.string "GET"), Some "Method served.");
-      ("", Lang.regexp_t, None, Some "URI served.");
-    ]
-    Lang.unit_t
+    register_args
+    (Lang.method_t Lang.unit_t
+       [
+         ( "remove",
+           ([], Lang.fun_t [] Lang.unit_t),
+           "Remove this registration only. Calling it more than once is a \
+            no-op." );
+       ])
     (fun p ->
-      let port = Lang.to_int (List.assoc "port" p) in
-      let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
-      let verb =
-        Harbor.verb_of_string (Lang.to_string (List.assoc "method" p))
+      let uri, port, transport, verb, handler = parse_register_args p in
+      let registration =
+        Harbor.add_http_handler ~pos:(Lang.pos p) ~transport ~port ~verb
+          ~path:(`Regexp uri) handler
       in
-      Harbor.remove_http_handler ~port ~verb ~uri ();
-      Lang.unit)
+      Lang.meth Lang.unit
+        [
+          ( "remove",
+            Lang.val_fun [] (fun _ ->
+                Harbor.remove_http_handler registration;
+                Lang.unit) );
+        ])

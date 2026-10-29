@@ -1,4 +1,47 @@
 (rule
+ (alias test_harbor_http_remove)
+ (package liquidsoap)
+ (deps
+  harbor_http_remove.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} harbor_http_remove.liq liquidsoap harbor_http_remove.liq)))
+
+(rule
+ (alias test_harbor_icy_port)
+ (package liquidsoap)
+ (deps
+  harbor_icy_port.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} harbor_icy_port.liq liquidsoap harbor_icy_port.liq)))
+
+(rule
+ (alias test_harbor_output_accept)
+ (package liquidsoap)
+ (deps
+  harbor_output_accept.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_accept.liq
+   liquidsoap
+   harbor_output_accept.liq)))
+
+(rule
  (alias test_harbor_output_auth)
  (package liquidsoap)
  (deps
@@ -29,10 +72,10 @@
    harbor_output_burst.liq)))
 
 (rule
- (alias test_harbor_output_burst_null)
+ (alias test_harbor_output_clock)
  (package liquidsoap)
  (deps
-  harbor_output_burst_null.liq
+  harbor_output_clock.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -41,15 +84,15 @@
  (action
   (run
    %{run_test}
-   harbor_output_burst_null.liq
+   harbor_output_clock.liq
    liquidsoap
-   harbor_output_burst_null.liq)))
+   harbor_output_clock.liq)))
 
 (rule
- (alias test_harbor_output_burst_ogg_pages)
+ (alias test_harbor_output_construction)
  (package liquidsoap)
  (deps
-  harbor_output_burst_ogg_pages.liq
+  harbor_output_construction.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -58,9 +101,9 @@
  (action
   (run
    %{run_test}
-   harbor_output_burst_ogg_pages.liq
+   harbor_output_construction.liq
    liquidsoap
-   harbor_output_burst_ogg_pages.liq)))
+   harbor_output_construction.liq)))
 
 (rule
  (alias test_harbor_output_dedicated_encoder)
@@ -80,6 +123,40 @@
    harbor_output_dedicated_encoder.liq)))
 
 (rule
+ (alias test_harbor_output_final_bytes)
+ (package liquidsoap)
+ (deps
+  harbor_output_final_bytes.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_final_bytes.liq
+   liquidsoap
+   harbor_output_final_bytes.liq)))
+
+(rule
+ (alias test_harbor_output_icy_listeners)
+ (package liquidsoap)
+ (deps
+  harbor_output_icy_listeners.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_icy_listeners.liq
+   liquidsoap
+   harbor_output_icy_listeners.liq)))
+
+(rule
  (alias test_harbor_output_icy_metaint)
  (package liquidsoap)
  (deps
@@ -95,6 +172,74 @@
    harbor_output_icy_metaint.liq
    liquidsoap
    harbor_output_icy_metaint.liq)))
+
+(rule
+ (alias test_harbor_output_icy_stamping)
+ (package liquidsoap)
+ (deps
+  harbor_output_icy_stamping.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_icy_stamping.liq
+   liquidsoap
+   harbor_output_icy_stamping.liq)))
+
+(rule
+ (alias test_harbor_output_idle_cost)
+ (package liquidsoap)
+ (deps
+  harbor_output_idle_cost.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_idle_cost.liq
+   liquidsoap
+   harbor_output_idle_cost.liq)))
+
+(rule
+ (alias test_harbor_output_join_points)
+ (package liquidsoap)
+ (deps
+  harbor_output_join_points.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_join_points.liq
+   liquidsoap
+   harbor_output_join_points.liq)))
+
+(rule
+ (alias test_harbor_output_large_output)
+ (package liquidsoap)
+ (deps
+  harbor_output_large_output.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_large_output.liq
+   liquidsoap
+   harbor_output_large_output.liq)))
 
 (rule
  (alias test_harbor_output_listener_lifecycle)
@@ -146,6 +291,74 @@
    harbor_output_on_connect_disconnect.liq
    liquidsoap
    harbor_output_on_connect_disconnect.liq)))
+
+(rule
+ (alias test_harbor_output_overflow)
+ (package liquidsoap)
+ (deps
+  harbor_output_overflow.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_overflow.liq
+   liquidsoap
+   harbor_output_overflow.liq)))
+
+(rule
+ (alias test_harbor_output_routing)
+ (package liquidsoap)
+ (deps
+  harbor_output_routing.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_routing.liq
+   liquidsoap
+   harbor_output_routing.liq)))
+
+(rule
+ (alias test_harbor_output_shutdown)
+ (package liquidsoap)
+ (deps
+  harbor_output_shutdown.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_shutdown.liq
+   liquidsoap
+   harbor_output_shutdown.liq)))
+
+(rule
+ (alias test_harbor_output_stop_during_admission)
+ (package liquidsoap)
+ (deps
+  harbor_output_stop_during_admission.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_stop_during_admission.liq
+   liquidsoap
+   harbor_output_stop_during_admission.liq)))
 
 (rule
  (alias test_http)
@@ -202,6 +415,23 @@
    icecast_server_fallback.liq
    liquidsoap
    icecast_server_fallback.liq)))
+
+(rule
+ (alias test_icecast_server_listeners)
+ (package liquidsoap)
+ (deps
+  icecast_server_listeners.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_listeners.liq
+   liquidsoap
+   icecast_server_listeners.liq)))
 
 (rule
  (alias test_icecast_server_logs)
@@ -272,6 +502,23 @@
    icecast_server_shutdown.liq)))
 
 (rule
+ (alias test_icecast_server_source_reconnect)
+ (package liquidsoap)
+ (deps
+  icecast_server_source_reconnect.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_source_reconnect.liq
+   liquidsoap
+   icecast_server_source_reconnect.liq)))
+
+(rule
  (alias test_post)
  (package liquidsoap)
  (deps
@@ -300,22 +547,37 @@
 (alias
  (name citest)
  (deps
+  (alias test_harbor_http_remove)
+  (alias test_harbor_icy_port)
+  (alias test_harbor_output_accept)
   (alias test_harbor_output_auth)
   (alias test_harbor_output_burst)
-  (alias test_harbor_output_burst_null)
-  (alias test_harbor_output_burst_ogg_pages)
+  (alias test_harbor_output_clock)
+  (alias test_harbor_output_construction)
   (alias test_harbor_output_dedicated_encoder)
+  (alias test_harbor_output_final_bytes)
+  (alias test_harbor_output_icy_listeners)
   (alias test_harbor_output_icy_metaint)
+  (alias test_harbor_output_icy_stamping)
+  (alias test_harbor_output_idle_cost)
+  (alias test_harbor_output_join_points)
+  (alias test_harbor_output_large_output)
   (alias test_harbor_output_listener_lifecycle)
   (alias test_harbor_output_many_listeners)
   (alias test_harbor_output_on_connect_disconnect)
+  (alias test_harbor_output_overflow)
+  (alias test_harbor_output_routing)
+  (alias test_harbor_output_shutdown)
+  (alias test_harbor_output_stop_during_admission)
   (alias test_http)
   (alias test_http2)
   (alias test_http3)
   (alias test_icecast_server_fallback)
+  (alias test_icecast_server_listeners)
   (alias test_icecast_server_logs)
   (alias test_icecast_server_ogg_late_listener)
   (alias test_icecast_server_reload)
   (alias test_icecast_server_shutdown)
+  (alias test_icecast_server_source_reconnect)
   (alias test_post)
   (alias test_put)))
