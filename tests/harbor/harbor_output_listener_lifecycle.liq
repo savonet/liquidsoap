@@ -22,8 +22,8 @@ end
 
 def client(n) =
   for _ = 1 to n do
+    sock = socket.unix()
     try
-      sock = socket.unix()
       sock.connect(
         socket.address.internet_address(
           socket.internet_address("127.0.0.1"),
@@ -41,9 +41,10 @@ def client(n) =
         end
       )
       thread.pause(random.float(min=0., max=0.3))
-      sock.close()
     catch _ do
       thread.pause(0.1)
+    finally
+      sock.close()
     end
 
   end
