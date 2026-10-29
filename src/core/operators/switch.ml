@@ -259,7 +259,24 @@ class switch ~all_predicates children =
     method private still_wanted c =
       self#is_track_sensitive c || self#predicate_holds c
 
+    val predicates_snapshot : unit Source.Per_cycle.t = Source.Per_cycle.make ()
+
+    (* Predicates are evaluated only once a selection needs one, so keeping a
+       track-sensitive selection costs no script call.
+
+       They are then read as one snapshot, so a script writing several of them
+       inside an atomic section is never observed part way through. *)
     method private predicate_holds c =
+      self#per_cycle predicates_snapshot (fun () ->
+          Atomic_section.run (fun () ->
+              List.iter
+                (fun c ->
+                  ignore (self#evaluate_predicate c);
+                  ignore (self#is_track_sensitive c))
+                children));
+      self#evaluate_predicate c
+
+    method private evaluate_predicate c =
       self#per_cycle c.effective_predicate (fun () ->
           Lang.to_bool (Lang.apply c.predicate []))
 
@@ -285,18 +302,7 @@ class switch ~all_predicates children =
           | `After_position _ | `Force -> false
           | `Ok -> s.effective_source#is_ready)
 
-    (* The predicates are read as one snapshot, so a script writing several of
-       them inside an atomic section is never observed part way through. *)
-    method private snapshot_predicates =
-      Atomic_section.run (fun () ->
-          List.iter
-            (fun c ->
-              ignore (self#predicate_holds c);
-              ignore (self#is_track_sensitive c))
-            children)
-
     method get_source ~reselect () =
-      self#snapshot_predicates;
       match self#selected with
         | Some s
           when (not resuming) && self#still_wanted s.child
