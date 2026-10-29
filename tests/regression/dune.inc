@@ -2662,6 +2662,28 @@
    switch_per_source_single.liq)))
 
 (rule
+ (alias test_switch_predicates_on_selection)
+ (package liquidsoap)
+ (deps
+  switch_predicates_on_selection.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_predicates_on_selection
+   liquidsoap
+   switch_predicates_on_selection.liq)))
+
+(rule
  (alias test_switch_reselect_after_idle)
  (package liquidsoap)
  (deps
@@ -2929,6 +2951,7 @@
   (alias test_switch_per_source_on_select)
   (alias test_switch_per_source_replay_metadata)
   (alias test_switch_per_source_single)
+  (alias test_switch_predicates_on_selection)
   (alias test_switch_reselect_after_idle)
   (alias test_switch_skipped_track_metadata)
   (alias test_track_sensitive)
