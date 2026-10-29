@@ -64,6 +64,9 @@ jobs:
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
       # The paths the packages are built with, so packaging reuses the first build.
       LIQUIDSOAP_BUILD_TARGET: posix
+      # LV2 plugin metadata costs about 100 MiB per process on hosts with large
+      # bundles. CI images keep lilv so tests still cover it.
+      LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS: lilv
     steps:
       - name: Checkout code
         run: |
