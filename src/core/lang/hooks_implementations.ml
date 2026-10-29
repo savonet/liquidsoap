@@ -96,6 +96,8 @@ let register () =
   Hooks.implement Hooks.hasher (fun () ->
       let state = Xxh.create () in
       { Hooks.update = Xxh.update state; digest = (fun () -> Xxh.digest state) });
+  Hooks.implement Hooks.build_id (fun () ->
+      String.get_int64_le (Code_digest.get ()) 0);
   Hooks.implement Hooks.has_encoder (fun fmt ->
       try
         let (_ : Encoder.factory) =

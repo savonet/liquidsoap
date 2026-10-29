@@ -1,0 +1,9 @@
+; The OCaml runtime's digest of the program's code, behind the language's
+; build_id hook; see Hooks_implementations.
+
+(library
+ (name liquidsoap_code_digest)
+ (wrapped false)
+ (foreign_stubs
+  (language c)
+  (names code_digest_stubs)))

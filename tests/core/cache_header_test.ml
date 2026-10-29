@@ -1,5 +1,6 @@
 (* A cache file is unmarshalled only when its header matches this build and
-   the payload's hash matches; every other file is a miss. *)
+   the payload's hash matches; every other file is a miss. The build ID is the
+   code digest [Marshal] embeds in closures. *)
 
 module Cache = Liquidsoap_lang_cache.Cache
 
@@ -28,6 +29,20 @@ let with_byte s pos f =
   let b = Bytes.of_string s in
   Bytes.set b pos (Char.chr (f (Char.code (Bytes.get b pos)) land 0xff));
   Bytes.to_string b
+
+let contains haystack needle =
+  let n = String.length needle in
+  let rec go i =
+    i + n <= String.length haystack
+    && (String.sub haystack i n = needle || go (i + 1))
+  in
+  go 0
+
+let () =
+  let id = Bytes.create 8 in
+  Bytes.set_int64_le id 0 (Hooks.get Hooks.build_id ());
+  let closure = Marshal.to_string (fun () -> ()) [Marshal.Closures] in
+  assert (contains closure (Bytes.to_string id))
 
 let () =
   Cache.store ~dirtype:`User ~kind:`Term name value;

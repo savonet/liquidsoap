@@ -114,35 +114,12 @@ let hash_string s =
   update s 0 (String.length s);
   digest ()
 
-(* The hash of the running executable: an entry is only valid for the exact
-   binary that wrote it, which its marshalled closures require. *)
-let build_id =
-  let lock = Mutex.create () in
-  let id = ref None in
-  fun () ->
-    Mutex.protect lock (fun () ->
-        match !id with
-          | Some id -> id
-          | None ->
-              let executable =
-                if Sys.file_exists "/proc/self/exe" then "/proc/self/exe"
-                else Sys.executable_name
-              in
-              let ic = open_in_bin executable in
-              let hash =
-                Fun.protect
-                  ~finally:(fun () -> close_in_noerr ic)
-                  (fun () -> hash_channel ic (in_channel_length ic))
-              in
-              id := Some hash;
-              hash)
-
 let header ~kind payload =
   let b = Bytes.create header_length in
   Bytes.blit_string magic 0 b 0 (String.length magic);
   Bytes.set_uint16_le b 8 header_version;
   Bytes.set_uint16_le b 10 (kind_code kind);
-  Bytes.set_int64_le b 12 (build_id ());
+  Bytes.set_int64_le b 12 (Hooks.get Hooks.build_id ());
   Bytes.set_int64_le b 20 (Int64.of_int (String.length payload));
   Bytes.set_int64_le b 28 (hash_string payload);
   Bytes.unsafe_to_string b
@@ -157,7 +134,8 @@ let check ~kind ic =
     if String.sub h 0 (String.length magic) <> magic then Error `Format
     else if String.get_uint16_le h 8 <> header_version then Error `Format
     else if String.get_uint16_le h 10 <> kind_code kind then Error `Kind
-    else if String.get_int64_le h 12 <> build_id () then Error `Binary
+    else if String.get_int64_le h 12 <> Hooks.get Hooks.build_id () then
+      Error `Binary
     else if String.get_int64_le h 20 <> Int64.of_int payload_length then
       Error `Corrupted
     else if hash_channel ic payload_length <> String.get_int64_le h 28 then

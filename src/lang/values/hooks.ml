@@ -34,6 +34,11 @@ let liq_libs_dir = make "liq_libs_dir" (fun () -> raise Not_found)
 type hasher = { update : string -> int -> int -> unit; digest : unit -> int64 }
 
 let hasher = make "hasher" (fun () -> failwith "Hashing is not implemented!")
+
+let build_id =
+  make "build_id" (fun () ->
+      failwith "Build identification is not implemented!")
+
 let log_path = ref None
 
 type log =
