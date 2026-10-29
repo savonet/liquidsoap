@@ -4,6 +4,7 @@ external create : unit -> state = "liquidsoap_xxh3_create"
 
 external unsafe_update : state -> string -> int -> int -> unit
   = "liquidsoap_xxh3_update"
+[@@noalloc]
 
 external digest : state -> int64 = "liquidsoap_xxh3_digest"
 

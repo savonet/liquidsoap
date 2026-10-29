@@ -8,7 +8,10 @@
 
 #define State_val(v) (*((XXH3_state_t **)Data_custom_val(v)))
 
-static void state_finalize(value _state) { XXH3_freeState(State_val(_state)); }
+static void state_finalize(value _state) {
+  if (State_val(_state) != NULL)
+    XXH3_freeState(State_val(_state));
+}
 
 static struct custom_operations state_ops = {
     "liquidsoap.xxh3_state",    state_finalize,
@@ -19,11 +22,12 @@ static struct custom_operations state_ops = {
 CAMLprim value liquidsoap_xxh3_create(value _unit) {
   CAMLparam1(_unit);
   CAMLlocal1(_state);
+  _state = caml_alloc_custom(&state_ops, sizeof(XXH3_state_t *), 0, 1);
+  State_val(_state) = NULL;
   XXH3_state_t *state = XXH3_createState();
   if (state == NULL)
     caml_raise_out_of_memory();
   XXH3_64bits_reset(state);
-  _state = caml_alloc_custom(&state_ops, sizeof(XXH3_state_t *), 0, 1);
   State_val(_state) = state;
   CAMLreturn(_state);
 }
