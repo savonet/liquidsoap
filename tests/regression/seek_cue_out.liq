@@ -6,8 +6,16 @@ s = single("annotate:liq_cue_in=0.5,liq_cue_out=3.:../streams/file1.mp3")
 
 track_starts = ref([])
 
+def seek() =
+  let seeked = s.seek(1.)
+  if seeked < 0.9 then test.fail() end
+end
+
+# Seeking before the track is open returns 0, and a seek from another thread can
+# land past the cue-out point while the clock catches up.
 def on_track(_) =
   track_starts := [...track_starts(), s.time()]
+  if list.length(track_starts()) == 1 then seek() end
   if
     list.length(track_starts()) == 2
   then
@@ -21,13 +29,5 @@ def on_track(_) =
 end
 
 s.on_track(synchronous=true, on_track)
-
-thread.run(
-  delay=0.5,
-  {
-    let seeked = s.seek(1.)
-    if seeked < 0.9 then test.fail() end
-  }
-)
 
 output.dummy(s)
