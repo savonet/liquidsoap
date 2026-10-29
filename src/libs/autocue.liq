@@ -822,8 +822,6 @@ def autocue.metadata(~implementation, autocue) =
 
   total_fade_out = fade_out + fade_out_delay
 
-  max_start_duration = cue_out - cue_in - total_fade_out
-
   opt_arg = fun (lbl, v) -> null.defined(v) ? [(lbl, string(v))] : []
 
   [
@@ -831,9 +829,7 @@ def autocue.metadata(~implementation, autocue) =
     ...opt_arg("liq_amplify", amplify),
     ("liq_cue_in", string(cue_in)),
     ("liq_cue_out", string(cue_out)),
-    ("liq_cross_start_duration", string(fade_in)),
-    ("liq_cross_max_start_duration", string(max_start_duration)),
-    ("liq_cross_end_duration", string(total_fade_out)),
+    ("liq_cross_duration", string(total_fade_out)),
     ("liq_fade_in", string(fade_in)),
     ...opt_arg("liq_fade_in_type", fade_in_type),
     ...opt_arg("liq_fade_in_curve", fade_in_curve),
