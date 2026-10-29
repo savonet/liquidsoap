@@ -255,14 +255,16 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
 
         (* Should we buffer more or are we done ? *)
         if Frame.is_partial buf_frame then (
+          let ending_duration = main_duration in
           if not persist_override then self#reset_duration;
-          self#analyze_after)
+          self#analyze_after ending_duration)
         else self#buffer_before ~is_first:false ())
 
-    (* Analyze the beginning of a new track. *)
-    method private analyze_after =
+    (* Analyze the beginning of a new track over the ending track's duration: an
+       override carried by the new track applies to its own end. *)
+    method private analyze_after ending_duration =
       let rec f ~is_first () =
-        if Generator.length gen_after < main_duration && self#child_is_ready
+        if Generator.length gen_after < ending_duration && self#child_is_ready
         then (
           let buf_frame = self#child_get ~is_first () in
           self#append `After buf_frame;
