@@ -13,8 +13,16 @@ val dir : dirtype -> string option
     [$LIQ_CACHE_MAX_FILES]. Run automatically after every [store]. *)
 val maintenance : dirtype -> unit
 
-val retrieve : ?name:string -> dirtype:dirtype -> string -> 'a option
-val store : dirtype:dirtype -> string -> 'a -> unit
+(** What a cache file holds, checked before unmarshalling. *)
+type kind = [ `Term | `Table ]
+
+(** [None] unless the file carries this build's header for [kind] and its
+    payload hash matches; a rejected file is reported and left to be rewritten.
+*)
+val retrieve :
+  ?name:string -> dirtype:dirtype -> kind:kind -> string -> 'a option
+
+val store : dirtype:dirtype -> kind:kind -> string -> 'a -> unit
 
 module Table : sig
   type 'a t
