@@ -86,7 +86,71 @@ let dir dirtype =
     Startup.message "Cache disabled!";
     None)
 
-let retrieve ?name ~dirtype filename =
+type kind = [ `Term | `Table ]
+
+(* Every file starts with a fixed header, integers little-endian: magic (8
+   bytes), header version (u16), payload kind (u16), build ID (u64), payload
+   length (u64) and payload hash (u64), then the marshalled payload. *)
+let magic = "\x89LIQ\r\n\x1a\n"
+let header_version = 1
+let header_length = 36
+let kind_code = function `Term -> 1 | `Table -> 2
+
+let hash_channel ic length =
+  let { Hooks.update; digest } = Hooks.get Hooks.hasher () in
+  let buffer = Bytes.create 65536 in
+  let rec feed remaining =
+    if remaining > 0 then (
+      let read = input ic buffer 0 (min remaining (Bytes.length buffer)) in
+      if read = 0 then raise End_of_file;
+      update (Bytes.unsafe_to_string buffer) 0 read;
+      feed (remaining - read))
+  in
+  feed length;
+  digest ()
+
+let hash_string s =
+  let { Hooks.update; digest } = Hooks.get Hooks.hasher () in
+  update s 0 (String.length s);
+  digest ()
+
+let header ~kind payload =
+  let b = Bytes.create header_length in
+  Bytes.blit_string magic 0 b 0 (String.length magic);
+  Bytes.set_uint16_le b 8 header_version;
+  Bytes.set_uint16_le b 10 (kind_code kind);
+  Bytes.set_int64_le b 12 (Hooks.get Hooks.build_id ());
+  Bytes.set_int64_le b 20 (Int64.of_int (String.length payload));
+  Bytes.set_int64_le b 28 (hash_string payload);
+  Bytes.unsafe_to_string b
+
+(* Leaves [ic] at the start of a payload that passed every check. *)
+let check ~kind ic =
+  let file_length = in_channel_length ic in
+  if file_length < header_length then Error `Corrupted
+  else (
+    let h = really_input_string ic header_length in
+    let payload_length = file_length - header_length in
+    if String.sub h 0 (String.length magic) <> magic then Error `Format
+    else if String.get_uint16_le h 8 <> header_version then Error `Format
+    else if String.get_uint16_le h 10 <> kind_code kind then Error `Kind
+    else if String.get_int64_le h 12 <> Hooks.get Hooks.build_id () then
+      Error `Binary
+    else if String.get_int64_le h 20 <> Int64.of_int payload_length then
+      Error `Corrupted
+    else if hash_channel ic payload_length <> String.get_int64_le h 28 then
+      Error `Corrupted
+    else (
+      seek_in ic header_length;
+      Ok ()))
+
+let rejection_message = function
+  | `Format -> "Cache format changed"
+  | `Kind -> "Not a cache of this kind"
+  | `Binary -> "Liquidsoap binary changed"
+  | `Corrupted -> "Corrupted cache file"
+
+let retrieve ?name ~dirtype ~kind filename =
   try
     match dir dirtype with
       | None -> None
@@ -97,28 +161,31 @@ let retrieve ?name ~dirtype filename =
             Fun.protect
               ~finally:(fun () -> close_in_noerr ic)
               (fun () ->
-                let value = Marshal.from_channel ic in
-                (match name with
-                  | Some name -> Startup.message "Loading %s from cache!" name
-                  | None -> ());
-                Some value))
+                match check ~kind ic with
+                  | Error reason ->
+                      (match name with
+                        | Some name ->
+                            Startup.message "%s: %s cache invalidated!"
+                              (rejection_message reason) name
+                        | None ->
+                            log#info "%s: %s ignored" (rejection_message reason)
+                              (Filename.basename filename));
+                      None
+                  | Ok () ->
+                      let value = Marshal.from_channel ic in
+                      (match name with
+                        | Some name ->
+                            Startup.message "Loading %s from cache!" name
+                        | None -> ());
+                      Some value))
           else None
-  with
-    | Failure msg
-      when String.starts_with ~prefix:"input_value: unknown code module" msg ->
-        (match name with
-          | Some name ->
-              Startup.message "Liquidsoap binary changed: %s cache invalidated!"
-                name
-          | None -> ());
-        None
-    | exn ->
-        let bt = Printexc.get_backtrace () in
-        let exn = Printexc.to_string exn in
-        if Sys.getenv_opt "LIQ_DEBUG_CACHE" <> None then
-          Startup.message "Error while loading cache: %s\n%s" exn bt
-        else Startup.message "Error while loading cache: %s" exn;
-        None
+  with exn ->
+    let bt = Printexc.get_backtrace () in
+    let exn = Printexc.to_string exn in
+    if Sys.getenv_opt "LIQ_DEBUG_CACHE" <> None then
+      Startup.message "Error while loading cache: %s\n%s" exn bt
+    else Startup.message "Error while loading cache: %s" exn;
+    None
 
 (** Evict entries that are too old, then the oldest ones if there are still too
     many. Run after every store. *)
@@ -162,7 +229,7 @@ let maintenance dirtype =
   with exn ->
     log#severe "Error while cleaning up cache: %s" (Printexc.to_string exn)
 
-let store ~dirtype filename value =
+let store ~dirtype ~kind filename value =
   try
     match dir dirtype with
       | None -> ()
@@ -184,8 +251,10 @@ let store ~dirtype filename value =
               close_out_noerr oc;
               if Sys.file_exists tmp_file then Sys.remove tmp_file)
             (fun () ->
-              Marshal.to_channel oc value [Marshal.Closures];
-              close_out_noerr oc;
+              let payload = Marshal.to_string value [Marshal.Closures] in
+              output_string oc (header ~kind payload);
+              output_string oc payload;
+              close_out oc;
               Sys.rename tmp_file filename);
           maintenance dirtype
   with exn ->
@@ -208,7 +277,9 @@ module Table = struct
   let load ?name ~dirtype fname =
     {
       fname;
-      table = Option.value ~default:Map.empty (retrieve ?name ~dirtype fname);
+      table =
+        Option.value ~default:Map.empty
+          (retrieve ?name ~dirtype ~kind:`Table fname);
       changed = false;
     }
 
@@ -222,5 +293,6 @@ module Table = struct
           t.changed <- true;
           v
 
-  let store ~dirtype t = if t.changed then store ~dirtype t.fname t.table
+  let store ~dirtype t =
+    if t.changed then store ~dirtype ~kind:`Table t.fname t.table
 end

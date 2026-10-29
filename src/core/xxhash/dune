@@ -1,0 +1,9 @@
+; XXH3-64 (xxHash 0.8.3, vendored header-only) behind the language's hasher
+; hook; see Hooks_implementations.
+
+(library
+ (name liquidsoap_xxhash)
+ (wrapped false)
+ (foreign_stubs
+  (language c)
+  (names xxh_stubs)))

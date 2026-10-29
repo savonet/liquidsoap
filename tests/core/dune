@@ -176,3 +176,19 @@
  (name citest)
  (deps
   (alias tls_pending_test)))
+
+(executable
+ (name cache_header_test)
+ (modules cache_header_test)
+ (libraries liquidsoap_core liquidsoap-lang.cache unix))
+
+(rule
+ (alias cache_header_test)
+ (package liquidsoap)
+ (action
+  (run %{exe:cache_header_test.exe})))
+
+(alias
+ (name citest)
+ (deps
+  (alias cache_header_test)))

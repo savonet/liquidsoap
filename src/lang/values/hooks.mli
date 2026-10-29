@@ -21,6 +21,20 @@ val fallback : 'a t -> 'a -> unit
 val make_log : (string list -> log) t
 val log : string list -> log
 val liq_libs_dir : (unit -> string) t
+
+(** A fast 64-bit hash over a stream of bytes: [update s off len] feeds a slice,
+    [digest ()] returns the hash of everything fed so far. The cache uses it to
+    check its files, and reports every access as an error in a process with no
+    implementation. *)
+type hasher = { update : string -> int -> int -> unit; digest : unit -> int64 }
+
+val hasher : (unit -> hasher) t
+
+(** A number that differs between builds of the running program, stable for the
+    life of a process. The cache stamps it on every file, so an entry is only
+    read back by the build that wrote it. *)
+val build_id : (unit -> int64) t
+
 val log_path : string option ref
 
 (* Media-specific dependencies. *)

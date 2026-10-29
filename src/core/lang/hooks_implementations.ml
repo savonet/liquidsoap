@@ -93,6 +93,11 @@ let register () =
   Hooks.implement Hooks.make_log (fun name -> (Log.make name :> Hooks.log));
   Hooks.implement Hooks.make_encoder Lang_encoder.make_encoder;
   Hooks.implement Hooks.eval_check eval_check;
+  Hooks.implement Hooks.hasher (fun () ->
+      let state = Xxh.create () in
+      { Hooks.update = Xxh.update state; digest = (fun () -> Xxh.digest state) });
+  Hooks.implement Hooks.build_id (fun () ->
+      String.get_int64_le (Code_digest.get ()) 0);
   Hooks.implement Hooks.has_encoder (fun fmt ->
       try
         let (_ : Encoder.factory) =

@@ -28,8 +28,9 @@ let retrieve ?name ?(dirtype = `User) ~trim parsed_term : Term.t option =
             Startup.time (Printf.sprintf "%s cache retrieval" name) fn
     in
     report (fun () ->
-        Cache.retrieve ?name ~dirtype (cache_filename ?name ~trim parsed_term)))
+        Cache.retrieve ?name ~dirtype ~kind:`Term
+          (cache_filename ?name ~trim parsed_term)))
   else None
 
 let cache ?(dirtype = `User) ~trim ~parsed_term term =
-  Cache.store ~dirtype (cache_filename ~trim parsed_term) term
+  Cache.store ~dirtype ~kind:`Term (cache_filename ~trim parsed_term) term

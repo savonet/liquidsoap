@@ -62,6 +62,14 @@ let load_full_stdlib_types () =
 
 let () =
   Hooks.implement Hooks.liq_libs_dir (fun () -> "/static");
+  Hooks.implement Hooks.hasher (fun () ->
+      let buffer = Buffer.create 4096 in
+      {
+        Hooks.update = Buffer.add_substring buffer;
+        digest =
+          (fun () ->
+            String.get_int64_le (Digest.string (Buffer.contents buffer)) 0);
+      });
   Runtime.load_libs ~stdlib:"stdlib_js.liq" ();
   load_full_stdlib_types ()
 
