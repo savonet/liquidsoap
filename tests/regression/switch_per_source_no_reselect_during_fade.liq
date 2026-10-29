@@ -4,8 +4,9 @@ log.level.set(5)
 
 # Test: fade-out transition does not cause premature re-selection.
 #
-# s1 is initially selected (s1_guard=true). When s1_guard is set to false,
-# the switch transitions to s2 via default_on_select (which fades out s1).
+# s1 is initially selected (s1_guard=true). Once s1's first track is out,
+# s1_guard is set to false and the switch transitions to s2 via
+# default_on_select (which fades out s1).
 #
 # The custom on_select for s2 re-enables s1_guard on the first frame of the
 # ending (s1's proxy), so the guard is restored during the fade. The key
@@ -63,6 +64,7 @@ s.on_metadata(
       then
         prev_title := title
         titles := [...titles(), title]
+        if titles() == ["s1"] then s1_guard := false end
         log(
           "titles so far: #{titles()}"
         )
@@ -74,14 +76,14 @@ s.on_metadata(
           then
             test.pass()
           else
-            test.fail()
+            test.fail(
+              "unexpected titles: #{titles()}"
+            )
           end
         end
       end
     end
 )
-
-thread.run(delay=0.2, fun () -> s1_guard := false)
 
 clock.assign_new(sync="none", [s])
 output.dummy(fallible=true, s)
