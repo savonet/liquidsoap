@@ -64,6 +64,9 @@ jobs:
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
       # The paths the packages are built with, so packaging reuses the first build.
       LIQUIDSOAP_BUILD_TARGET: posix
+      # LV2 plugin metadata costs about 100 MiB per process on hosts with large
+      # bundles. CI images keep lilv so tests still cover it.
+      LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS: lilv
     steps:
       - name: Checkout code
         run: |
@@ -80,6 +83,8 @@ jobs:
         run: |
           export CPU_CORES=${{ steps.cpu_cores.outputs.count }}
           sudo -u opam -E /tmp/liquidsoap/.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
+          sudo -u opam -E sh -c 'cd /tmp/liquidsoap && eval "$(opam config env)" && dune exec --profile=release -- liquidsoap --build-config' > /tmp/build-config.txt
+          grep -q "Lilv *: no" /tmp/build-config.txt
       - name: Build debian package
         if: contains(matrix.os, 'debian') || contains(matrix.os, 'ubuntu')
         id: build_deb
