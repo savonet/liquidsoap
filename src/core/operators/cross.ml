@@ -260,11 +260,25 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           self#analyze_after ending_duration)
         else self#buffer_before ~is_first:false ())
 
-    (* Analyze the beginning of a new track over the ending track's duration: an
-       override carried by the new track applies to its own end. *)
+    method private fade_in_main_duration =
+      let float_metadata lbl =
+        Option.value ~default:0.
+          (Option.bind
+             (Option.bind after_metadata (Frame.Metadata.find_opt lbl))
+             float_of_string_opt)
+      in
+      Frame.main_of_seconds
+        (float_metadata "liq_fade_in_delay" +. float_metadata "liq_fade_in")
+
+    (* Analyze the beginning of a new track over the ending track's duration and
+       its own fade-in: an override carried by the new track applies to its own
+       end. *)
     method private analyze_after ending_duration =
       let rec f ~is_first () =
-        if Generator.length gen_after < ending_duration && self#child_is_ready
+        if
+          Generator.length gen_after
+          < max ending_duration self#fade_in_main_duration
+          && self#child_is_ready
         then (
           let buf_frame = self#child_get ~is_first () in
           self#append `After buf_frame;
@@ -373,6 +387,9 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
       let buffered_before = Generator.length gen_before in
       let buffered_after = Generator.length gen_after in
       let buffered = min buffered_before buffered_after in
+      let starting_length =
+        min buffered_after (max buffered self#fade_in_main_duration)
+      in
       let db_after =
         Audio.dB_of_lin
           (sqrt (rms_after /. float rmsi_after /. float self#audio_channels))
@@ -383,7 +400,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
       in
       let buffered_seconds = Frame.seconds_of_main buffered in
       self#fade_out_adjustements buffered_seconds;
-      self#fade_in_adjustements buffered_seconds;
+      self#fade_in_adjustements (Frame.seconds_of_main starting_length);
       let compound, release_callbacks =
         let metadata = function None -> Frame.Metadata.empty | Some m -> m in
         let before_metadata = metadata before_metadata in
@@ -413,8 +430,8 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         in
         Typing.(before#frame_type <: self#frame_type);
         let after_tail =
-          if buffered < buffered_after then (
-            let head = Generator.slice gen_after buffered in
+          if starting_length < buffered_after then (
+            let head = Generator.slice gen_after starting_length in
             let head_gen =
               Generator.create ~content:head (Generator.content_type gen_after)
             in
