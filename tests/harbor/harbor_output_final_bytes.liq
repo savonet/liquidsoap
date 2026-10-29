@@ -70,7 +70,24 @@ def check() =
   end
   read()
   sock.close()
-  test.equal(stopped(), true)
+
+  # The socket closes during the stop, before on_stop runs.
+  def rec wait_stopped(n) =
+    if
+      not stopped()
+    then
+      if
+        n == 0
+      then
+        test.fail(
+          "on_stop did not run"
+        )
+      end
+      thread.pause(0.1)
+      wait_stopped(n - 1)
+    end
+  end
+  wait_stopped(50)
   d = string.concat(list.rev(chunks()))
   header_end = string.index(substring="\r\n\r\n", d)
   body =
@@ -88,7 +105,13 @@ def check() =
       "only #{count} pages"
     )
   end
-  test.equal(last mod 8 >= 4, true)
+  if
+    last mod 8 < 4
+  then
+    test.fail(
+      "last page does not end the stream (header type #{last})"
+    )
+  end
   test.pass()
 end
 
