@@ -27,5 +27,6 @@
   liquidsoap_core_source
   liquidsoap_core_stream
   liquidsoap_core_utils
+  liquidsoap_xxhash
   re
   unix))

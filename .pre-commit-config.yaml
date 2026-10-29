@@ -40,13 +40,14 @@ repos:
     hooks:
       - id: codespell
         args: [-w, --ignore-words=.codespellignore]
-        exclude: ^(doc/orig/fosdem2020|tests/language/cue_test.liq)
+        exclude: ^(doc/orig/fosdem2020|tests/language/cue_test.liq|src/core/xxhash/(xxhash\.h|LICENSE)$)
 
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v19.1.7
     hooks:
       - id: clang-format
         types_or: [c, c++]
+        exclude: ^src/core/xxhash/xxhash\.h$
 
   - repo: local
     hooks:
