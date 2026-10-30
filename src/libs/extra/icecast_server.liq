@@ -86,32 +86,6 @@ let settings.icecast.server.status_codes =
     "2.5"
   )
 
-# Refusal of a listener past a listener limit. Raises on an unknown `settings.icecast.server.status_codes`.
-# @flag hidden
-def icecast.server.limit_refusal() =
-  version = settings.icecast.server.status_codes()
-  if
-    version == "2.5"
-  then
-    {
-      status = 503,
-      reason =
-        "Service Unavailable",
-      headers = []
-    }
-  elsif
-    version == "2.4"
-  then
-    {status = 403, reason = "Forbidden", headers = []}
-  else
-    error.raise(
-      error.invalid,
-      "Invalid settings.icecast.server.status_codes '#{version}': expected \
-       \"2.5\" or \"2.4\""
-    )
-  end
-end
-
 # Reason phrase Icecast sends with `status`, for the statuses an authentication backend chooses.
 # @flag hidden
 def icecast.server.status_reason(status) =
@@ -171,6 +145,29 @@ def icecast.server.status_reason(status) =
       )
     ]
   )
+end
+
+# Refusal of a listener past a listener limit. Raises on an unknown `settings.icecast.server.status_codes`.
+# @flag hidden
+def icecast.server.limit_refusal() =
+  version = settings.icecast.server.status_codes()
+  status =
+    if
+      version == "2.5"
+    then
+      503
+    elsif
+      version == "2.4"
+    then
+      403
+    else
+      error.raise(
+        error.invalid,
+        "Invalid settings.icecast.server.status_codes '#{version}': expected \
+         \"2.5\" or \"2.4\""
+      )
+    end
+  {status = status, reason = icecast.server.status_reason(status), headers = []}
 end
 
 # Refusal of a listener by listener authentication: Icecast's 401 challenge, or the status, reason and challenge an RSAS backend chose. As in Icecast, only a 401 gets the default challenge.
@@ -390,27 +387,18 @@ def icecast.server.config.mount.url_auth(authentication) =
   )
 
   def header(value) =
-    separator = string.index(substring=":", value)
-    if
-      separator < 0
-    then
-      error.raise(
-        error.invalid,
-        "Invalid auth_header '#{value}': expected 'name: value'"
-      )
-    end
-    def normalize(s) =
-      string.case(lower=true, string.trim(s))
-    end
-    (
-      normalize(string.sub(value, start=0, length=separator)),
-      normalize(
-        string.sub(
-          value,
-          start=separator + 1,
-          length=string.length(value) - separator - 1
+    let (name, content) =
+      try
+        string.split.first(encoding="ascii", separator=":", value)
+      catch _ : [error.not_found] do
+        error.raise(
+          error.invalid,
+          "Invalid auth_header '#{value}': expected 'name: value'"
         )
-      )
+      end
+    (
+      string.case(lower=true, string.trim(name)),
+      string.case(lower=true, string.trim(content))
     )
   end
 
@@ -1503,27 +1491,18 @@ def icecast.server.basic_credentials(headers) =
       prefix="Basic ",
       list.assoc(default="", "authorization", headers)
     )
-  decoded =
-    try
-      null.map(string.base64.decode, credentials)
-    catch _ do
-      null
-    end
-  separator = string.index(substring=":", decoded ?? "")
-  if
-    separator < 0
-  then
-    null
-  else
-    decoded = null.get(decoded)
+  try
     (
-      string.sub(decoded, start=0, length=separator),
-      string.sub(
-        decoded,
-        start=separator + 1,
-        length=string.length(decoded) - separator - 1
+      string.split.first(
+        encoding="ascii",
+        separator=":",
+        string.base64.decode(null.get(credentials))
       )
+    :
+      (string * string)?
     )
+  catch _ do
+    null
   end
 end
 
@@ -2163,26 +2142,9 @@ def icecast.server.listener_ip(
   end
 end
 
-# Public view of an `output.harbor` listener. Its address is resolved through X-Forwarded-For then `ip_hash`, and raw headers are left out since they can carry the unhashed address.
+# Public view of an `output.harbor` listener, its resolved address `ip` hashed with `ip_hash`. Raw headers are left out since they can carry the unhashed address.
 # @flag hidden
-def icecast.server.listener_view(
-  ~mount,
-  ~x_forwarded_for,
-  ~proxy_ips,
-  ~ip_hash,
-  listener
-) =
-  ip =
-    icecast.server.listener_ip(
-      x_forwarded_for=x_forwarded_for,
-      proxy_ips=proxy_ips,
-      {
-        headers = listener.headers,
-        ip = listener.ip,
-        protocol = listener.protocol,
-        uri = listener.uri
-      }
-    )
+def icecast.server.listener_view(~mount, ~ip, ~ip_hash, listener) =
   {
     id = listener.id,
     mount = (mount : string),
@@ -2218,11 +2180,24 @@ def icecast.server.source_manager(
   on_listener_disconnect_handlers = ref([])
   on_metadata_handlers = ref([])
 
+  # The listener's address resolved through X-Forwarded-For, unhashed.
+  def listener_address(listener) =
+    icecast.server.listener_ip(
+      x_forwarded_for=x_forwarded_for,
+      proxy_ips=x_forwarded_for_proxy_ips,
+      {
+        headers = listener.headers,
+        ip = listener.ip,
+        protocol = listener.protocol,
+        uri = listener.uri
+      }
+    )
+  end
+
   def listener_view(~mount, listener) =
     icecast.server.listener_view(
       mount=mount,
-      x_forwarded_for=x_forwarded_for,
-      proxy_ips=x_forwarded_for_proxy_ips,
+      ip=listener_address(listener),
       ip_hash=ip_hash,
       listener
     )
@@ -2283,20 +2258,6 @@ def icecast.server.source_manager(
     else
       path.concat(null.get(webroot), source)
     end
-  end
-
-  # The listener's address as Icecast sends it to URL authentication: resolved, never hashed.
-  def listener_address(listener) =
-    icecast.server.listener_ip(
-      x_forwarded_for=x_forwarded_for,
-      proxy_ips=x_forwarded_for_proxy_ips,
-      {
-        headers = listener.headers,
-        ip = listener.ip,
-        protocol = listener.protocol,
-        uri = listener.uri
-      }
-    )
   end
 
   # Icecast's `server-instance`: a random UUID, fixed for the server's life.

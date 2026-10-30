@@ -122,7 +122,7 @@ def f() =
   test.equal(r/^[0-9a-f]{16}$/.test(hash("1.2.3.4")), true)
   test.equal(hash("1.2.3.4") == hash("1.2.3.5"), false)
 
-  # listener_view: X-Forwarded-For resolved, then hashed; headers dropped
+  # listener_view: the resolved address hashed; headers dropped
   harbor_listener =
     {
       id = 7,
@@ -137,8 +137,7 @@ def f() =
   view =
     icecast.server.listener_view(
       mount="/a",
-      x_forwarded_for=null,
-      proxy_ips=[],
+      ip="5.5.5.5",
       ip_hash=fun (ip) -> "hash(#{ip})",
       harbor_listener
     )
