@@ -43,7 +43,7 @@ output with:
 | `headers`                    | the configuration's global `<http-headers>`, then the mount's own, then the stream identity headers below                              |
 | `timeout`                    | `<client-timeout>`, default 30 s                                                                                                       |
 | `burst`                      | the mount's `<burst-size>`, else the global one; null when either is 0 or `<burst-on-connect>` is 0; the operator's default otherwise  |
-| `accept`                     | the listener-limit predicate below, then the mount's URL authentication                                                                |
+| `accept`                     | the mount's URL authentication, then the listener-limit predicate below                                                                |
 | `dedicated_encoder`          | the `icecast.server` parameter of that name, default `false`                                                                           |
 | `format`                     | the MIME type the source declared, or `""` to derive it                                                                                |
 | encoder                      | a copy encoder for the source's container, with muxer options from `format_options` or `settings.icecast.server.default_muxer_options` |
@@ -69,7 +69,8 @@ a value with a line break SHOULD be dropped before building the output.
 ([connection.md §4](connection.md#4-admission-predicate)): the predicate
 compares the mount's and the server's listener counts, kept from the
 callbacks, with the limits. A limit can be exceeded by the number of
-admissions in progress at once. A listener past a limit is refused as
+admissions in progress at once. The limits are read at each admission, so a
+reload applies at once. A listener past a limit is refused as
 Icecast 2.5 does, `503 Service Unavailable`, or as Icecast 2.4 does,
 `403 Forbidden`, after `settings.icecast.server.status_codes` (`"2.5"` by
 default); `icecast.server` MUST reject another value when it is created.
@@ -128,8 +129,9 @@ sent as they are ([connection.md §4](connection.md#4-admission-predicate)).
 
 **Time limits.** An admitted listener gets the time limit of its
 `listener_add` reply, else the mount's `<max-listener-duration>`, its own or
-the default mount's, through `accept`'s `{time_limit}`. Zero means no limit,
-as in Icecast.
+the default mount's, through `accept`'s `{time_limit}`. As in Icecast, a
+reply's `0` disconnects the listener at once, and a mount's `0` means no
+limit.
 
 **Dump file.** Icecast's `<dump-file>` is not implemented: `icecast.server`
 parses it, ignores it with a warning, and documents it as not implemented.
