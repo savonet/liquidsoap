@@ -5,7 +5,8 @@
 # `auth_header`, else refuses with Icecast's 401 challenge; a configured
 # `auth_header` disables `x-icecast-auth-result`. A reply's time limit cuts the
 # listener, a zero one at once, and each departure is POSTed to
-# `listener_remove`. A reload changes the listener limits of a running mount.
+# `listener_remove`, including a listener the limits refuse after
+# `listener_add` admitted it. A reload changes the listener limits of a running mount.
 port = 18137
 auth_port = 18141
 
@@ -373,6 +374,20 @@ def f() =
     expect_status(
       "/radio.mp3?token=ok",
       "HTTP/1.0 503"
+    )
+    refused_client = list.assoc(default="", "client", posted())
+    ignore(
+      wait_for(
+        "listener_remove of client #{refused_client}, refused by the limits",
+        fun () ->
+          list.exists(
+            fun (params) ->
+              list.assoc(default="", "client", params) == refused_client,
+            removed()
+          )
+            ? true
+            : null
+      )
     )
     test.pass()
   end

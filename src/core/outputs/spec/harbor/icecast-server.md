@@ -111,7 +111,8 @@ another status no challenge. Unknown reason phrases come from Icecast's
 table, `Refused` for a status it has none for.
 
 `listener_remove` is POSTed in the background when an admitted listener
-disconnects, with `action=listener_remove` and `duration`, the session's
+disconnects, and when the limits refuse a listener `listener_add` admitted,
+as Icecast releases every listener its authentication admitted, with `action=listener_remove` and `duration`, the session's
 whole seconds. Its reply is ignored, a failure logged. The mount's
 configuration is read at each admission and disconnection, so a reload
 applies at once.

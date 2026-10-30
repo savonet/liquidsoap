@@ -122,7 +122,7 @@ The listener is admitted when the reply carries the `auth_header` header line, w
 
 The reply can also limit how long the listener stays: `icecast-auth-timelimit: 3600` disconnects it after an hour. Without a `timelimit_header` option, `x-icecast-auth-timelimit` does the same on a `2xx` reply. The option names another header, written as in Icecast with its colon, e.g. `X-Limit:`.
 
-With a `listener_remove` option, `icecast.server` also POSTs to that URL when an admitted listener leaves, with `action=listener_remove`, the same fields as `listener_add` up to `agent`, and `duration`, the length of the session in seconds. This is what billing or concurrent-session tracking usually needs. The request is sent in the background and its reply is ignored. A mount can use `listener_remove` without `listener_add`, to track listeners without authenticating them.
+With a `listener_remove` option, `icecast.server` also POSTs to that URL when an admitted listener leaves, or is refused by the listener limits after `listener_add` admitted it, with `action=listener_remove`, the same fields as `listener_add` up to `agent`, and `duration`, the length of the session in seconds. This is what billing or concurrent-session tracking usually needs. The request is sent in the background and its reply is ignored. A mount can use `listener_remove` without `listener_add`, to track listeners without authenticating them.
 
 The reply can also send the listener elsewhere, or refuse it in its own words:
 
