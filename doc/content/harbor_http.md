@@ -51,6 +51,8 @@ where:
 - `method` is for the http method (or verb), one of: `"GET"`, `"PUT"`, `"POST"`, `"DELETE"`, `"OPTIONS"` and `"HEAD"`
 - `path` is the matched path. It can include named fragments, e.g. `"/users/:id/collabs/:cid"`. Matched named fragments are passed via `request.query`, for instance: `req.query["cid"]`.
 
+`request.query` holds the decoded query arguments and the matched fragments. `request.query_string` is the query string as the client sent it, without the `?`, undecoded and in its original order: use it when the exact bytes matter, for instance to check a signature computed over the URL.
+
 The handler function receives a record containing all the information about the request and fills
 up the details about the response, which is then used to write a proper HTTP response to the client.
 

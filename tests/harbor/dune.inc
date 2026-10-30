@@ -1,4 +1,21 @@
 (rule
+ (alias test_harbor_http_query_string)
+ (package liquidsoap)
+ (deps
+  harbor_http_query_string.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_http_query_string.liq
+   liquidsoap
+   harbor_http_query_string.liq)))
+
+(rule
  (alias test_harbor_http_remove)
  (package liquidsoap)
  (deps
@@ -598,6 +615,7 @@
 (alias
  (name citest)
  (deps
+  (alias test_harbor_http_query_string)
   (alias test_harbor_http_remove)
   (alias test_harbor_icy_port)
   (alias test_harbor_output_accept)
