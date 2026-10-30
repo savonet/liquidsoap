@@ -167,18 +167,22 @@ type preroll = {
   epoch : int;
 }
 
+(* A listener owes its preroll, or has joined the stream and reads it from
+   [offset]. *)
+type progress = Prerolling of preroll | Joined of { mutable offset : int }
+
 (* [carried] holds the unsent initial bytes, or the rest of a block of which
-   only part was accepted; it goes out before any further stream byte.
-   [offset] is set when the listener joins, once its preroll is sent. *)
+   only part was accepted; it goes out before any further stream byte. *)
 type listener = {
   base : Listener.t;
   icy : bool;
-  mutable offset : int;
+  mutable progress : progress;
   mutable carried : string;
   mutable carried_offset : int;
   mutable position : Icy.position;
-  mutable preroll : preroll option;
 }
+
+type join_point = { offset : int; header : string; snapshot : snapshot }
 
 type segment =
   | Carried of int
@@ -188,8 +192,10 @@ type segment =
 
 let pending t listener =
   listener.carried_offset < String.length listener.carried
-  || Option.is_some listener.preroll
-  || listener.offset < Store.tail t.store
+  ||
+    match listener.progress with
+    | Prerolling _ -> true
+    | Joined joined -> joined.offset < Store.tail t.store
 
 let commit listener segments accepted =
   let rec go accepted = function
@@ -211,14 +217,16 @@ let commit listener segments accepted =
           listener.carried_offset <- 0)
     | Stream length :: rest ->
         let sent = min accepted length in
-        listener.offset <- listener.offset + sent;
+        (match listener.progress with
+          | Joined joined -> joined.offset <- joined.offset + sent
+          | Prerolling _ -> ());
         listener.position <- Icy.advance listener.position sent;
         go (accepted - sent) rest
     | Preroll length :: rest ->
         let sent = min accepted length in
-        Option.iter
-          (fun preroll -> preroll.sent <- preroll.sent + sent)
-          listener.preroll;
+        (match listener.progress with
+          | Prerolling preroll -> preroll.sent <- preroll.sent + sent
+          | Joined _ -> ());
         listener.position <- Icy.advance listener.position sent;
         go (accepted - sent) rest
   in
@@ -235,9 +243,10 @@ let join_point t preroll =
     Option.map (fun burst -> max 0 (burst - String.length preroll.data)) t.burst
   in
   let offset = join_offset t snapshot ~tail ~burst in
-  if Some offset = snapshot.stream_start then Some (offset, "", snapshot)
+  if Some offset = snapshot.stream_start then
+    Some { offset; header = ""; snapshot }
   else if snapshot.epoch = preroll.epoch || preroll.header = "" then
-    Some (offset, preroll.header, snapshot)
+    Some { offset; header = preroll.header; snapshot }
   else None
 
 let finish_preroll t listener preroll =
@@ -247,7 +256,7 @@ let finish_preroll t listener preroll =
           "Listener %s: encoder restarted during its preroll, disconnecting"
           (Listener.info listener.base).peer;
         Listener.mark_closed listener.base
-    | Some (offset, header, snapshot) ->
+    | Some { offset; header; snapshot } ->
         let header, position =
           if listener.icy then
             Icy.interleave ~metaint:t.metaint listener.position
@@ -255,11 +264,10 @@ let finish_preroll t listener preroll =
               header
           else (header, listener.position)
         in
-        listener.offset <- offset;
+        listener.progress <- Joined { offset };
         listener.carried <- header;
         listener.carried_offset <- 0;
-        listener.position <- position;
-        listener.preroll <- None
+        listener.position <- position
 
 (* Offers the carried bytes then the preroll, with empty ICY blocks where the
    position requires them, and joins the stream once all of it is accepted. *)
@@ -308,10 +316,10 @@ let flush_preroll t listener preroll ~scratch =
       && listener.carried_offset >= String.length listener.carried
     then finish_preroll t listener preroll)
 
-let flush_stream t listener ~scratch =
+let flush_stream t listener ~offset ~scratch =
   let tail = Store.tail t.store in
   let snapshot = Atomic.get t.snapshot in
-  if listener.offset < newest_start snapshot ~tail - t.buffer then
+  if offset < newest_start snapshot ~tail - t.buffer then
     Listener.close_for_overflow listener.base
   else (
     let capacity = Bytes.length scratch in
@@ -344,9 +352,7 @@ let flush_stream t listener ~scratch =
     in
     let fill, valid, segments =
       if first < carried then (first, true, [])
-      else
-        stage ~fill:first ~offset:listener.offset ~position:listener.position
-          ~valid:true []
+      else stage ~fill:first ~offset ~position:listener.position ~valid:true []
     in
     let segments =
       (if first > 0 then [Carried first] else []) @ List.rev segments
@@ -358,9 +364,9 @@ let flush_stream t listener ~scratch =
         | accepted -> commit listener segments accepted))
 
 let flush t listener ~scratch =
-  match listener.preroll with
-    | Some preroll -> flush_preroll t listener preroll ~scratch
-    | None -> flush_stream t listener ~scratch
+  match listener.progress with
+    | Prerolling preroll -> flush_preroll t listener preroll ~scratch
+    | Joined { offset } -> flush_stream t listener ~offset ~scratch
 
 let join t ~head ~icy ~preroll base make =
   Mutex.protect t.lock (fun () ->
@@ -375,12 +381,8 @@ let join t ~head ~icy ~preroll base make =
                     {
                       base;
                       icy;
-                      offset = tail;
-                      carried = head;
-                      carried_offset = 0;
-                      position = Icy.start;
-                      preroll =
-                        Some
+                      progress =
+                        Prerolling
                           {
                             data;
                             sent = 0;
@@ -388,6 +390,9 @@ let join t ~head ~icy ~preroll base make =
                               Strings.to_string (encoder.Encoder.header ());
                             epoch = snapshot.epoch;
                           };
+                      carried = head;
+                      carried_offset = 0;
+                      position = Icy.start;
                     }
                 | _ ->
                     let offset = join_offset t snapshot ~tail ~burst:t.burst in
@@ -405,11 +410,10 @@ let join t ~head ~icy ~preroll base make =
                     {
                       base;
                       icy;
-                      offset;
+                      progress = Joined { offset };
                       carried = head ^ header;
                       carried_offset = 0;
                       position;
-                      preroll = None;
                     }
             in
             Some
