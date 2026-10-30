@@ -34,6 +34,7 @@ let request_t =
       ("data", Lang.fun_t [(true, "timeout", Lang.float_t)] Lang.string_t);
       ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("query", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+      ("query_string", Lang.string_t);
       ("socket", Builtins_socket.Socket_value.t);
       ("path", Lang.string_t);
     ]
@@ -66,8 +67,7 @@ let parse_register_args p =
   let verb = Harbor.verb_of_string (Lang.to_string (List.assoc "method" p)) in
   let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
   let f = Lang.assoc "" 2 p in
-  let handler ~protocol ~meth ~data ~headers ~query ~query_string:_ ~socket path
-      =
+  let handler ~protocol ~meth ~data ~headers ~query ~query_string ~socket path =
     let meth = Harbor.string_of_verb meth in
     let headers =
       List.map
@@ -92,6 +92,7 @@ let parse_register_args p =
           ("method", Lang.string meth);
           ("headers", headers);
           ("query", query);
+          ("query_string", Lang.string query_string);
           ("socket", socket);
           ( "data",
             Lang.val_fun
