@@ -66,7 +66,8 @@ let parse_register_args p =
   let verb = Harbor.verb_of_string (Lang.to_string (List.assoc "method" p)) in
   let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
   let f = Lang.assoc "" 2 p in
-  let handler ~protocol ~meth ~data ~headers ~query ~socket path =
+  let handler ~protocol ~meth ~data ~headers ~query ~query_string:_ ~socket path
+      =
     let meth = Harbor.string_of_verb meth in
     let headers =
       List.map

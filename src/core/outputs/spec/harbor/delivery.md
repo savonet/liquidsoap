@@ -121,7 +121,11 @@ at most `RETRY_INTERVAL` after its `timeout` elapses.
 
 ## 6. Disconnection
 
-**Causes.** A write error ([§4](#4-writing-to-a-socket)); overflow (the mode
+**Causes.** A time limit from admission
+([connection.md §4](connection.md#4-admission-predicate)), checked at the
+start of every pass that serves the listener and logged `Listener <id>
+reached its time limit`, so a listener is cut at the first pass after its
+deadline; a write error ([§4](#4-writing-to-a-socket)); overflow (the mode
 finds the listener more than `buffer` behind, logged `Listener <id> buffer
 overflow (client too slow), disconnecting`); the no-progress timeout; a
 failure while serving it ([§3](#3-the-delivery-pass)); a failed admission
