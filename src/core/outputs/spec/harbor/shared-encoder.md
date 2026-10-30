@@ -34,15 +34,26 @@ marker in effect at the window's start.
 
 ## 1. Listener state
 
-- `offset`: the offset of the next stream byte to send;
+- `offset`: the offset of the next stream byte to send, set when the
+  listener joins;
 - the unsent rest of its initial bytes, and of an ICY block of which only
-  part was accepted.
+  part was accepted;
+- while it owes a preroll: the preroll, how much of it was accepted, and the
+  encoder's header and epoch start `E` at admission.
 
 The per-listener state does not grow with uptime or stream length.
 
 ## 2. Initial bytes
 
-With `B` the burst:
+With `B` the burst. A listener with a preroll owes the response head then
+the preroll, and joins when all of it has been accepted, in the delivery
+pass: steps 1–3 run then, with `B` reduced by the preroll's length, at least
+0, as Icecast shortens the burst after an intro. Encoder code never runs in a
+delivery pass ([concurrency.md §1](concurrency.md#1-work)), so the header is
+the one taken at admission. If `E` changed since admission and the join point
+is not `S`, that header belongs to a stopped encoder: the listener is
+disconnected, logged `Listener <peer:port>: encoder restarted during its
+preroll, disconnecting`, unless the header is empty.
 
 1. **Join point.** With no burst, `offset = T`. With a burst, the candidates
    are the output starts, plus `S` when it is set, that are at least
@@ -75,9 +86,17 @@ With `B` the burst:
 
 ## 3. Pending test
 
-The listener has unsent initial or carried bytes, or `offset < T`.
+The listener has unsent initial or carried bytes, owes a preroll, or
+`offset < T`.
 
 ## 4. Flush
+
+While the listener owes a preroll: offer the carried bytes then the preroll,
+with empty ICY blocks where the position requires, advance by what was
+accepted, and join ([§2](#2-initial-bytes)) once all of it has been. No
+overflow check applies: the listener has no offset yet.
+
+Otherwise:
 
 1. If `offset < N − buffer`, disconnect for overflow ([modes.md §4](modes.md#4-flush)).
 2. Offer, in one write: the carried bytes, then stream bytes from `offset`

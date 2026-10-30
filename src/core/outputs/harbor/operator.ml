@@ -56,6 +56,7 @@ type mode = {
   join :
     head:string ->
     icy:bool ->
+    preroll:string option ->
     Listener.t ->
     (pending:(unit -> bool) ->
     flush:(scratch:bytes -> unit) ->
@@ -79,7 +80,8 @@ let shared_mode ~factory parameters =
         fun () -> Shared.send t encoded);
     metadata = Shared.metadata t;
     join =
-      (fun ~head ~icy listener make -> Shared.join t ~head ~icy listener make);
+      (fun ~head ~icy ~preroll listener make ->
+        Shared.join t ~head ~icy ~preroll listener make);
   }
 
 let dedicated_mode ~factory parameters =
@@ -94,11 +96,75 @@ let dedicated_mode ~factory parameters =
     encode = (fun frame () -> Dedicated.send t frame);
     metadata = Dedicated.metadata t;
     join =
-      (fun ~head ~icy listener make ->
-        Dedicated.join t ~head ~icy listener make);
+      (fun ~head ~icy ~preroll listener make ->
+        Dedicated.join t ~head ~icy ~preroll listener make);
   }
 
 let invalid value message = raise (Error.Invalid_value (value, message, []))
+
+let refusal_t =
+  Lang.optional_method_t
+    (Lang.record_t [("status", Lang.int_t); ("reason", Lang.string_t)])
+    [
+      ( "headers",
+        ([], Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)),
+        "Reply headers." );
+    ]
+
+let decision_t =
+  Lang.optional_record_t
+    [
+      ("refuse", Lang.nullable_t refusal_t);
+      ("time_limit", Lang.nullable_t Lang.float_t);
+      ("preroll", Lang.nullable_t Lang.string_t);
+    ]
+
+type admission = { time_limit : float option; preroll : string option }
+
+let rec decision_of_value value =
+  match Lang.to_option value with
+    | None -> `Admit { time_limit = None; preroll = None }
+    | Some value -> (
+        let fields, _ = Lang.split_meths value in
+        let field name convert =
+          Option.bind
+            (List.assoc_opt name fields)
+            (Lang.to_valued_option convert)
+        in
+        match field "refuse" refusal_of_value with
+          | Some refusal -> `Refuse refusal
+          | None ->
+              `Admit
+                {
+                  time_limit =
+                    field "time_limit" (fun limit ->
+                        let limit = Lang.to_float limit in
+                        if limit < 0. then
+                          invalid value "Time limit must not be negative.";
+                        limit);
+                  preroll = field "preroll" Lang.to_string;
+                })
+
+and refusal_of_value value =
+  let fields, _ = Lang.split_meths value in
+  let refusal =
+    {
+      Connection.status = Lang.to_int (List.assoc "status" fields);
+      reason = Lang.to_string (List.assoc "reason" fields);
+      headers =
+        (match List.assoc_opt "headers" fields with
+          | None -> []
+          | Some headers ->
+              List.map
+                (fun header ->
+                  let name, value = Lang.to_product header in
+                  (Lang.to_string name, Lang.to_string value))
+                (Lang.to_list headers));
+    }
+  in
+  match Connection.refusal_error refusal with
+    | Some message -> invalid value message
+    | None -> refusal
 
 let parse p =
   let arg name = List.assoc name p in
@@ -124,14 +190,11 @@ let parse p =
     | _ -> ());
   let headers =
     List.map
-      (fun header ->
-        let name, value = Lang.to_product header in
-        let name = Lang.to_string name and value = Lang.to_string value in
-        if not (Connection.is_token name) then
-          invalid header "Header name must be an HTTP token.";
-        if String.exists (fun c -> c = '\r' || c = '\n') value then
-          invalid header "Header value must not contain a line break.";
-        (name, value))
+      (fun value ->
+        let name, content = Lang.to_product value in
+        let header = (Lang.to_string name, Lang.to_string content) in
+        Option.iter (invalid value) (Connection.header_error header);
+        header)
       (Lang.to_list (arg "headers"))
   in
   let encoding =
@@ -351,22 +414,22 @@ class output p =
                              (Printexc.to_string exn));
                         refuse ""))
 
-    method private accepted info =
+    method private decision info =
       match parameters.accept with
-        | None -> true
+        | None -> `Admit { time_limit = None; preroll = None }
         | Some accept -> (
             try
-              Lang.to_bool
+              decision_of_value
                 (Lang.apply accept [("", Listener.info_to_value info)])
             with exn ->
               let bt = Printexc.get_backtrace () in
               Utils.log_exception ~log:self#log ~bt
                 (Printf.sprintf "Admission predicate failed for %s: %s"
                    info.Listener.peer (Printexc.to_string exn));
-              false)
+              `Refuse Connection.forbidden)
 
-    method private handle ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri
-        =
+    method private handle ~protocol ~meth:_ ~data:_ ~headers ~query
+        ~query_string ~socket uri =
       let sockaddr = Unix.getpeername socket#file_descr in
       let ip, peer = peer_address sockaddr in
       self#log#info "New listener connection from %s" peer;
@@ -385,30 +448,39 @@ class output p =
           ip;
           peer;
           uri;
+          query_string;
           protocol;
           headers;
           connected_at = Unix.gettimeofday ();
         }
       in
-      if not (self#accepted info) then (
-        self#log#info "Listener %s refused" peer;
-        Harbor.simple_reply (Connection.forbidden ~protocol));
+      let { time_limit; preroll } =
+        match self#decision info with
+          | `Admit admission -> admission
+          | `Refuse refusal ->
+              self#log#info "Listener %s refused: %d %s" peer
+                refusal.Connection.status refusal.Connection.reason;
+              Harbor.simple_reply (Connection.refusal_reply ~protocol refusal)
+      in
       if not (mode.running ()) then unavailable ();
       let group = groups.(info.id mod Array.length groups) in
       let listener =
-        Listener.create ~log:self#log
+        Listener.create
+          ?deadline:
+            (Option.map (fun limit -> Listener.now () +. limit) time_limit)
+          ~log:self#log
           ~wake:(fun () -> Group.wake group)
           info socket
       in
       self#fire on_connect (Listener.to_value listener);
       Mutex.protect connected_lock (fun () ->
           Hashtbl.replace connected info.id listener);
-      self#admit ~protocol ~headers ~group listener;
+      self#admit ~protocol ~headers ~preroll ~group listener;
       Harbor.custom ()
 
     (* Steps 7 to 9 of admission: from here on, every failure ends with the
        listener closed and both callbacks fired. *)
-    method private admit ~protocol ~headers ~group listener =
+    method private admit ~protocol ~headers ~preroll ~group listener =
       let fail ?member reason =
         self#log#info "Listener %s failed to connect: %s"
           (Listener.info listener).peer reason;
@@ -425,7 +497,7 @@ class output p =
           parameters.headers
       in
       match
-        mode.join ~head ~icy listener (fun ~pending ~flush ~teardown ->
+        mode.join ~head ~icy ~preroll listener (fun ~pending ~flush ~teardown ->
             {
               Group.listener;
               pending;
@@ -508,13 +580,21 @@ let proto frame_t =
            null, listeners are not asked for credentials." );
       ( "accept",
         Lang.nullable_t
-          (Lang.fun_t [(false, "", Listener.record_t)] Lang.bool_t),
+          (Lang.fun_t
+             [(false, "", Listener.record_t)]
+             (Lang.nullable_t decision_t)),
         Some Lang.null,
         Some
           "Admission predicate, called with the listener record of an \
-           authenticated request before `on_connect`: `false` refuses it with \
-           `403 Forbidden`. When null, every authenticated request is \
-           admitted." );
+           authenticated request before `on_connect`. It returns `null` to \
+           admit the request, or `{time_limit?, preroll?}` to admit it, \
+           disconnect it after `time_limit` seconds and send it the bytes of \
+           `preroll` before the stream, or `{refuse = {status, reason, \
+           headers?}}` to refuse it with that status line and those headers \
+           and an empty body. A preroll is sent as is: it must be in the \
+           stream's format, for instance MP3 or ADTS AAC with the same \
+           parameters. A predicate that raises refuses with `403 Forbidden`. \
+           When null, every authenticated request is admitted." );
       ( "buffer",
         Lang.int_t,
         Some (Lang.int (5 * 65535)),

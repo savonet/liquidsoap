@@ -130,8 +130,8 @@ let metadata t metadata event =
 
 (* The encoder's first byte is a candidate only when it reports a stream start
    there: its first output may begin with header pages it does not report. *)
-let join_offset t snapshot ~tail =
-  match t.burst with
+let join_offset t snapshot ~tail ~burst =
+  match burst with
     | None -> tail
     | Some burst -> (
         let window = newest_start snapshot ~tail - t.buffer in
@@ -157,8 +157,19 @@ let join_offset t snapshot ~tail =
                 | oldest :: _ -> oldest
                 | [] -> tail))
 
+(* A preroll owed before the listener joins the stream, with the header and
+   epoch of the encoder at admission: encoder code never runs in a delivery
+   pass, where the join happens. *)
+type preroll = {
+  data : string;
+  mutable sent : int;
+  header : string;
+  epoch : int;
+}
+
 (* [carried] holds the unsent initial bytes, or the rest of a block of which
-   only part was accepted; it goes out before any further stream byte. *)
+   only part was accepted; it goes out before any further stream byte.
+   [offset] is set when the listener joins, once its preroll is sent. *)
 type listener = {
   base : Listener.t;
   icy : bool;
@@ -166,12 +177,18 @@ type listener = {
   mutable carried : string;
   mutable carried_offset : int;
   mutable position : Icy.position;
+  mutable preroll : preroll option;
 }
 
-type segment = Carried of int | Block of string * Icy.position | Stream of int
+type segment =
+  | Carried of int
+  | Block of string * Icy.position
+  | Stream of int
+  | Preroll of int
 
 let pending t listener =
   listener.carried_offset < String.length listener.carried
+  || Option.is_some listener.preroll
   || listener.offset < Store.tail t.store
 
 let commit listener segments accepted =
@@ -197,10 +214,101 @@ let commit listener segments accepted =
         listener.offset <- listener.offset + sent;
         listener.position <- Icy.advance listener.position sent;
         go (accepted - sent) rest
+    | Preroll length :: rest ->
+        let sent = min accepted length in
+        Option.iter
+          (fun preroll -> preroll.sent <- preroll.sent + sent)
+          listener.preroll;
+        listener.position <- Icy.advance listener.position sent;
+        go (accepted - sent) rest
   in
   go accepted segments
 
-let flush t listener ~scratch =
+(* The join point and header of a listener whose preroll is sent, its burst
+   shortened by the preroll as Icecast does with intros: [None] when the
+   encoder restarted since admission and the stream needs a header that is
+   no longer known. *)
+let join_point t preroll =
+  let tail = Store.tail t.store in
+  let snapshot = Atomic.get t.snapshot in
+  let burst =
+    Option.map (fun burst -> max 0 (burst - String.length preroll.data)) t.burst
+  in
+  let offset = join_offset t snapshot ~tail ~burst in
+  if Some offset = snapshot.stream_start then Some (offset, "", snapshot)
+  else if snapshot.epoch = preroll.epoch || preroll.header = "" then
+    Some (offset, preroll.header, snapshot)
+  else None
+
+let finish_preroll t listener preroll =
+  match join_point t preroll with
+    | None ->
+        (Listener.log listener.base)#info
+          "Listener %s: encoder restarted during its preroll, disconnecting"
+          (Listener.info listener.base).peer;
+        Listener.mark_closed listener.base
+    | Some (offset, header, snapshot) ->
+        let header, position =
+          if listener.icy then
+            Icy.interleave ~metaint:t.metaint listener.position
+              (marker_at snapshot.markers offset)
+              header
+          else (header, listener.position)
+        in
+        listener.offset <- offset;
+        listener.carried <- header;
+        listener.carried_offset <- 0;
+        listener.position <- position;
+        listener.preroll <- None
+
+(* Offers the carried bytes then the preroll, with empty ICY blocks where the
+   position requires them, and joins the stream once all of it is accepted. *)
+let flush_preroll t listener preroll ~scratch =
+  let capacity = Bytes.length scratch in
+  let carried = String.length listener.carried - listener.carried_offset in
+  let first = min carried capacity in
+  Bytes.blit_string listener.carried listener.carried_offset scratch 0 first;
+  let total = String.length preroll.data in
+  let rec stage ~fill ~sent ~position segments =
+    if fill >= capacity || sent >= total then (fill, segments)
+    else if listener.icy && Icy.room ~metaint:t.metaint position = 0 then (
+      let block, after = Icy.next_block position None in
+      let length = String.length block in
+      if fill + length >= capacity then (fill, segments)
+      else (
+        Bytes.blit_string block 0 scratch fill length;
+        stage ~fill:(fill + length) ~sent ~position:after
+          (Block (block, after) :: segments)))
+    else (
+      let length = min (capacity - fill) (total - sent) in
+      let length =
+        if listener.icy then min length (Icy.room ~metaint:t.metaint position)
+        else length
+      in
+      Bytes.blit_string preroll.data sent scratch fill length;
+      stage ~fill:(fill + length) ~sent:(sent + length)
+        ~position:(Icy.advance position length)
+        (Preroll length :: segments))
+  in
+  let fill, segments =
+    if first < carried then (first, [])
+    else stage ~fill:first ~sent:preroll.sent ~position:listener.position []
+  in
+  let segments =
+    (if first > 0 then [Carried first] else []) @ List.rev segments
+  in
+  let accepted =
+    if fill = 0 then 0 else Listener.write listener.base scratch 0 fill
+  in
+  if accepted = -1 then Listener.mark_closed listener.base
+  else (
+    commit listener segments accepted;
+    if
+      preroll.sent >= total
+      && listener.carried_offset >= String.length listener.carried
+    then finish_preroll t listener preroll)
+
+let flush_stream t listener ~scratch =
   let tail = Store.tail t.store in
   let snapshot = Atomic.get t.snapshot in
   if listener.offset < newest_start snapshot ~tail - t.buffer then
@@ -249,34 +357,60 @@ let flush t listener ~scratch =
         | -1 -> Listener.mark_closed listener.base
         | accepted -> commit listener segments accepted))
 
-let join t ~head ~icy base make =
+let flush t listener ~scratch =
+  match listener.preroll with
+    | Some preroll -> flush_preroll t listener preroll ~scratch
+    | None -> flush_stream t listener ~scratch
+
+let join t ~head ~icy ~preroll base make =
   Mutex.protect t.lock (fun () ->
       match t.encoder with
         | None -> None
         | Some encoder ->
             let tail = Store.tail t.store in
             let snapshot = Atomic.get t.snapshot in
-            let offset = join_offset t snapshot ~tail in
-            let header =
-              if Some offset = snapshot.stream_start then ""
-              else Strings.to_string (encoder.Encoder.header ())
-            in
-            let header, position =
-              if icy then
-                Icy.interleave ~metaint:t.metaint Icy.start
-                  (marker_at snapshot.markers offset)
-                  header
-              else (header, Icy.start)
-            in
             let listener =
-              {
-                base;
-                icy;
-                offset;
-                carried = head ^ header;
-                carried_offset = 0;
-                position;
-              }
+              match preroll with
+                | Some data when data <> "" ->
+                    {
+                      base;
+                      icy;
+                      offset = tail;
+                      carried = head;
+                      carried_offset = 0;
+                      position = Icy.start;
+                      preroll =
+                        Some
+                          {
+                            data;
+                            sent = 0;
+                            header =
+                              Strings.to_string (encoder.Encoder.header ());
+                            epoch = snapshot.epoch;
+                          };
+                    }
+                | _ ->
+                    let offset = join_offset t snapshot ~tail ~burst:t.burst in
+                    let header =
+                      if Some offset = snapshot.stream_start then ""
+                      else Strings.to_string (encoder.Encoder.header ())
+                    in
+                    let header, position =
+                      if icy then
+                        Icy.interleave ~metaint:t.metaint Icy.start
+                          (marker_at snapshot.markers offset)
+                          header
+                      else (header, Icy.start)
+                    in
+                    {
+                      base;
+                      icy;
+                      offset;
+                      carried = head ^ header;
+                      carried_offset = 0;
+                      position;
+                      preroll = None;
+                    }
             in
             Some
               (make

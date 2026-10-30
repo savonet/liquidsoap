@@ -33,8 +33,14 @@ the order in which asynchronous callbacks run.
   `WWW-Authenticate` challenge; wrong ones get 401; the mount-taken error
   gets 403. _Binding_: status codes, the challenge, neither callback on
   refusal.
-- **Admission predicate.** `accept` returning false gets
-  `403 Forbidden` and neither callback; true admits.
+- **Admission predicate** (`harbor_output_accept`). A refusal is sent as its
+  status line and headers, with neither callback; null admits; a time limit
+  disconnects the listener after it, not before; a raising predicate or an
+  invalid refusal gets `403 Forbidden`.
+- **Preroll** (`harbor_output_preroll`). In both modes the body starts with
+  the preroll, then the stream; with ICY, the preroll counts towards the
+  interval and its blocks are empty; a preroll much larger than `buffer`, read
+  after a stall, does not overflow.
 - **Callback records** (`harbor_output_on_connect_disconnect`). _Binding_: the
   disconnect record has the same `id` and `connected_at` as the connect
   record; `ip` is numeric with no port; `uri` is the mount path; `bytes_sent`

@@ -2,7 +2,7 @@
 
 # Listeners of an `icecast.server` mount get the source's stream identity as
 # `icy-*` headers and a burst by default, as on Icecast; `<max-listeners>`
-# refuses a listener past the limit with 403.
+# refuses a listener past the limit with 503.
 port = 18124
 
 def f() =
@@ -105,7 +105,7 @@ def f() =
     second.close()
     test.equal(
       string.sub(encoding="ascii", refused, start=0, length=12),
-      "HTTP/1.0 403"
+      "HTTP/1.0 503"
     )
     first.close()
     test.pass()

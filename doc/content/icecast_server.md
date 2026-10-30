@@ -84,6 +84,91 @@ Synchronous disconnect handlers are called exactly once per listener, and always
 
 `on_metadata` handlers receive a record with the `mount`, its new `metadata` and the current number of `listeners`.
 
+## Listener Authentication
+
+Paid streams, geo-restricted content or a per-listener ad server all need a decision on each listener before the stream starts. Icecast leaves that decision to a web service of your own, and `icecast.server` speaks the same protocol, so an existing backend keeps working. Add an `<authentication type="url">` element to a mount in the [configuration file](#using-an-icecast-configuration-file):
+
+```xml
+<mount>
+    <mount-name>/live.mp3</mount-name>
+    <authentication type="url">
+        <option name="listener_add" value="http://localhost/auth"/>
+        <option name="auth_header" value="icecast-auth-user: 1"/>
+    </authentication>
+</mount>
+```
+
+For each listener request, `icecast.server` sends a `POST` to the `listener_add` URL, with Icecast's form fields followed by the ones RSAS adds:
+
+| Field             | Value                                                                                    |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| `action`          | `listener_add`                                                                           |
+| `server`          | The `<hostname>` of the configuration, `localhost` by default                            |
+| `port`            | Port of the server                                                                       |
+| `server-instance` | A random UUID, fixed for the life of the server                                          |
+| `client`          | Listener id, as in [listener callbacks](#listener-callbacks)                             |
+| `mount`           | Requested path, with its query string as received (e.g. `/live.mp3?token=x`)             |
+| `user`            | User name from the request's HTTP Basic credentials, or empty                            |
+| `pass`            | Password from the request's HTTP Basic credentials, or empty                             |
+| `ip`              | Listener's address, after [X-Forwarded-For](#reverse-proxy-and-x-forwarded-for) handling |
+| `agent`           | `User-Agent` header, `-` when absent                                                     |
+| `protocol`        | `http`                                                                                   |
+| `referrer`        | `Referer` header, or empty                                                               |
+| `listener-count`  | Number of listeners on the mount, the new one excluded                                   |
+
+The request carries HTTP Basic credentials of its own: the `username` and `password` options when both are set, otherwise the listener's credentials when it sent some. A `listener_add` URL that embeds `user:password@` sends only those.
+
+The listener is admitted when the reply carries the `auth_header` header line, whatever its status. Without an `auth_header` option, `icecast-auth-user: 1` admits, and so does `x-icecast-auth-result: ok` on a `2xx` reply. Header name and value are compared without regard to case. Any other reply refuses the listener as Icecast does, with `401 Authentication Required` and a `WWW-Authenticate` challenge, and so does a request that fails or times out. Authentication runs before the listener limits, so a listener refused for `max-listeners` still triggers a request.
+
+The reply can also limit how long the listener stays: `icecast-auth-timelimit: 3600` disconnects it after an hour. Without a `timelimit_header` option, `x-icecast-auth-timelimit` does the same on a `2xx` reply. The option names another header, written as in Icecast with its colon, e.g. `X-Limit:`.
+
+With a `listener_remove` option, `icecast.server` also POSTs to that URL when an admitted listener leaves, with `action=listener_remove`, the same fields as `listener_add` up to `agent`, and `duration`, the length of the session in seconds. This is what billing or concurrent-session tracking usually needs. The request is sent in the background and its reply is ignored. A mount can use `listener_remove` without `listener_add`, to track listeners without authenticating them.
+
+The reply can also send the listener elsewhere, or refuse it in its own words:
+
+| Reply headers                                                                      | Effect                                                                                                                             |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `x-icecast-auth-alter-action: redirect` and `x-icecast-auth-alter-argument: <url>` | On a `2xx` reply, `303` to that URL, even for an admitted listener. `redirect_temporary` answers `307`, `redirect_permanent` `308` |
+| `icecast-auth-redirect: <url>`                                                     | A refused listener gets a `303` to that URL, for instance a "subscribe now" message                                                |
+| `icecast-resp-status: 403` and `icecast-resp-reason: Geoblocked`                   | A refused listener gets that status line instead of the `401`                                                                      |
+| `icecast-www-authenticate: Basic realm="Premium"`                                  | The challenge sent with the refusal, so a browser asks for credentials                                                             |
+
+The alter actions are Icecast's, the others RSAS's. Redirecting new listeners to other servers this way also spreads them across edge servers, for instance from a backend that knows their load.
+
+A mount without its own `<authentication>` uses the one of the `type="default"` mount. A reload applies a changed `<authentication>` at once, to the next listener request.
+
+Other authentication types, such as `htpasswd`, and the other options of `type="url"`, such as `headers` or `stream_auth`, are not supported yet: they are ignored with a warning.
+
+## Prerolls
+
+A preroll is a short audio file a listener hears before joining the live stream: a station jingle, a sponsor message, or an ad chosen for each listener by an ad server. `icecast.server` sends, in order of precedence:
+
+- the file whose URL the [listener authentication](#listener-authentication) reply gives in a `preroll` header, as with RSAS;
+- the mount's `<intro>`, as in Icecast;
+- the mount's `<preroll>`, as with RSAS.
+
+```xml
+<paths>
+    <webroot>/var/lib/radio</webroot>
+</paths>
+<mount>
+    <mount-name>/live.aac</mount-name>
+    <intro>/jingles/welcome.aac</intro>
+</mount>
+```
+
+A local file is looked up under `<webroot>`, and `<intro>` or `<preroll>` can also be a URL. The file is sent as it is, before the stream, so it must use the same codec and parameters as the stream: for an AAC stream, an ADTS `.aac` file with the same sample rate and channels; for an MP3 stream, an MP3 file with the same sample rate and channels. The listener joins the live stream once the preroll has been sent, with a shorter burst, as with Icecast's intros.
+
+Files are kept in memory and shared by every listener: up to 500 files of up to 10 MiB each. A URL is checked again after two hours, using its ETag, and a local file is read again when it changes. A file that cannot be loaded is logged and the listener gets the stream without a preroll.
+
+## Listener Limits
+
+A listener past the mount's `<max-listeners>` or the server's `<clients>` is refused with the status Icecast 2.5 sends, `503 Service Unavailable`. Some players and monitoring tools expect Icecast 2.4's `403 Forbidden` instead:
+
+```{.liquidsoap include="icecast-server-status-codes.liq"}
+
+```
+
 ## Log Files
 
 Many log analyzers and statistics tools read the logs written by icecast. `icecast.server` writes the same access, playlist and error logs, so these tools keep working when liquidsoap takes over serving listeners:
@@ -154,6 +239,7 @@ Keep in mind that some data still contains raw addresses:
 
 - Liquidsoap's own log mentions each listener's `ip:port` at level 4 (info) and above.
 - The `x_forwarded_for` callback sees the raw address and headers, since it runs before hashing.
+- The [listener authentication](#listener-authentication) service receives the raw address, as on Icecast.
 
 ## `dedicated_encoder`
 
@@ -305,7 +391,7 @@ This gives `icecast.server` the following behavior:
 Because of this architecture, the following icecast options do not apply:
 
 - `fallback-override`: in icecast, a source that reconnects takes its listeners back from the fallback mount. In liquidsoap, listeners always stay on their mount, which switches back to its source as soon as the source reconnects.
-- `fallback-when-full`: in icecast, listeners are redirected to a fallback mount once `max-listeners` is reached. `icecast.server` refuses them with `403 Forbidden` instead.
+- `fallback-when-full`: in icecast, listeners are redirected to a fallback mount once `max-listeners` is reached. `icecast.server` refuses them instead, see [listener limits](#listener-limits).
 
 ## Using an Icecast Configuration File
 
@@ -380,7 +466,8 @@ file. If the file is invalid, `reload()` raises an error, or logs it on
 
 Settings apply at different times:
 
-- **Right away**: source authentication (passwords, usernames, `<sources>`), the
+- **Right away**: source authentication (passwords, usernames, `<sources>`),
+  listener authentication, the
   admin page credentials, the log files and their `<logging>` settings, and the
   `<fallback-mount>` of live mounts. A mount whose source is gone and whose
   fallback is removed is shut down, since it has nothing left to send.
@@ -396,6 +483,12 @@ day on their own, see [Renewing certificates](./harbor.md#renewing-certificates)
 ## Configuration Reference
 
 This section lists the icecast XML configuration options and their status in `icecast.server`. Options marked as not implemented may be added later. Incompatible options do not fit liquidsoap's architecture, see [Key Differences from Icecast](#key-differences-from-icecast).
+
+### hostname
+
+| Option     | Status    | Notes                                                                   |
+| ---------- | --------- | ----------------------------------------------------------------------- |
+| `hostname` | Supported | Sent as `server` to [listener authentication](#listener-authentication) |
 
 ### listen-socket
 
@@ -438,7 +531,7 @@ Note: Only the first `listen-socket` entry is used. Multiple listen sockets are 
 | `pidfile`                             | Not supported   |                                                                                                                                |
 | `tls-certificate` / `ssl-certificate` | Supported       | Path to TLS certificate file (required when TLS is enabled). May include the private key. Read again on reload and once a day. |
 | `tls-key`                             | Supported       | Path to separate TLS private key file (icecast 2.5 only)                                                                       |
-| `webroot`                             | Not implemented | Static files are not served, see the [status page](#status-page)                                                               |
+| `webroot`                             | Supported       | Directory of the [prerolls](#prerolls). Static files are not served, see the [status page](#status-page)                       |
 | `adminroot`                           | Not implemented | Icecast's admin interface is not available, see the [admin listener page](#admin-listener-page)                                |
 | `allow-ip`                            | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
 | `deny-ip`                             | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
@@ -478,30 +571,31 @@ Mount configurations support both `type="default"` (settings applied to all moun
 
 #### Supported Mount Options
 
-| Option           | Description                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| `mount-name`     | Mount point path (e.g., `/live.mp3`)                                                       |
-| `username`       | Source client username (default: "source")                                                 |
-| `password`       | Mount-specific password (overrides global)                                                 |
-| `dump-file`      | Not implemented: ignored with a warning                                                    |
-| `burst-size`     | Initial burst size for new listeners (bytes)                                               |
-| `max-listeners`  | Maximum number of listeners on this mount; more are refused with `403 Forbidden`           |
-| `fallback-mount` | Mount to fall back to when this source disconnects. A reload applies it to live mounts too |
-| `on-connect`     | Shell command to execute when source connects                                              |
-| `on-disconnect`  | Shell command to execute when source disconnects                                           |
-| `http-headers`   | Custom HTTP headers for this mount's responses                                             |
+| Option                  | Description                                                                                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mount-name`            | Mount point path (e.g., `/live.mp3`)                                                                                                                                       |
+| `username`              | Source client username (default: "source")                                                                                                                                 |
+| `password`              | Mount-specific password (overrides global)                                                                                                                                 |
+| `dump-file`             | Not implemented: ignored with a warning                                                                                                                                    |
+| `burst-size`            | Initial burst size for new listeners (bytes)                                                                                                                               |
+| `max-listeners`         | Maximum number of listeners on this mount; more are refused, see [listener limits](#listener-limits)                                                                       |
+| `max-listener-duration` | Seconds after which a listener is disconnected, `0` for no limit. A [listener authentication](#listener-authentication) time limit takes precedence                        |
+| `fallback-mount`        | Mount to fall back to when this source disconnects. A reload applies it to live mounts too                                                                                 |
+| `on-connect`            | Shell command to execute when source connects                                                                                                                              |
+| `on-disconnect`         | Shell command to execute when source disconnects                                                                                                                           |
+| `http-headers`          | Custom HTTP headers for this mount's responses                                                                                                                             |
+| `intro`                 | File sent to each listener before the stream, see [prerolls](#prerolls)                                                                                                    |
+| `preroll`               | RSAS\'s preroll, used when there is no `intro`, see [prerolls](#prerolls)                                                                                                  |
+| `authentication`        | `type="url"` with `listener_add`, `listener_remove`, `auth_header`, `timelimit_header`, `username` and `password`, see [Listener Authentication](#listener-authentication) |
 
 #### Unsupported Mount Options
 
 These options are not yet implemented:
 
-| Option                  | Reason                                         |
-| ----------------------- | ---------------------------------------------- |
-| `hidden`                | Not yet implemented                            |
-| `public`                | Directory listing registration not implemented |
-| `intro`                 | Intro file playback not implemented            |
-| `max-listener-duration` | Listener duration limits not implemented       |
-| `authentication`        | URL-based authentication not implemented       |
+| Option   | Reason                                         |
+| -------- | ---------------------------------------------- |
+| `hidden` | Not yet implemented                            |
+| `public` | Directory listing registration not implemented |
 
 #### Incompatible Mount Options
 

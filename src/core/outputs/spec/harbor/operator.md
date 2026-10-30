@@ -26,24 +26,24 @@ Shared with `output.icecast` (MIME derivation, [contracts.md §2](contracts.md#2
 
 Specific to `output.harbor`:
 
-| Name                   | Type                      | Default                 | Meaning                                                                                                                       |
-| ---------------------- | ------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `mount`                | string                    | — (required)            | Mount path, matched literally. A leading `/` is added when absent ([connection.md §1](connection.md#1-routing)).              |
-| `port`                 | int                       | `8000`                  | Harbor port.                                                                                                                  |
-| `transport`            | http_transport            | the plain TCP transport | Transport of the port. An SSL/TLS transport serves HTTPS. A transport value carrying extra methods MUST be accepted.          |
-| `timeout`              | float                     | `30.`                   | Seconds a listener owed bytes may go without accepting one ([delivery.md §5](delivery.md#5-no-progress-timeout)).             |
-| `encoding`             | string                    | `""`                    | Charset metadata values are converted to. Empty means UTF-8 ([icy.md §5](icy.md#5-charset)).                                  |
-| `url`                  | string?                   | null                    | Sent as `StreamUrl` in ICY blocks.                                                                                            |
-| `metaint`              | int                       | `8192`                  | ICY metadata interval, in stream bytes.                                                                                       |
-| `auth`                 | (record → bool)?          | null                    | Authentication function ([connection.md §3](connection.md#3-authentication)). Null: no authentication.                        |
-| `accept`               | (listener record → bool)? | null                    | Admission predicate ([connection.md §4](connection.md#4-admission-predicate)). Null: every authenticated request is admitted. |
-| `buffer`               | int                       | `327675` (5 × 65535)    | How far, in stream bytes, a listener may fall behind the live stream ([modes.md §4](modes.md#4-flush)).                       |
-| `burst`                | int?                      | `65534`                 | Bytes of already-encoded stream a new listener receives first. Null: none. Shared mode only.                                  |
-| `headers`              | [(string, string)]        | `[]`                    | Extra response headers ([connection.md §5](connection.md#5-the-response-head)).                                               |
-| `dedicated_encoder`    | bool                      | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                              |
-| `allow_unsynced_clock` | bool                      | `false`                 | Allow running on a clock that is not paced in real time ([§7](#7-lifecycle)).                                                 |
-| `override_mount`       | bool                      | `false`                 | Advanced. Take over a mount another registration on the port already serves ([connection.md §1](connection.md#1-routing)).    |
-| (unlabeled, 2nd)       | source                    | —                       | The source to encode.                                                                                                         |
+| Name                   | Type                           | Default                 | Meaning                                                                                                                       |
+| ---------------------- | ------------------------------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `mount`                | string                         | — (required)            | Mount path, matched literally. A leading `/` is added when absent ([connection.md §1](connection.md#1-routing)).              |
+| `port`                 | int                            | `8000`                  | Harbor port.                                                                                                                  |
+| `transport`            | http_transport                 | the plain TCP transport | Transport of the port. An SSL/TLS transport serves HTTPS. A transport value carrying extra methods MUST be accepted.          |
+| `timeout`              | float                          | `30.`                   | Seconds a listener owed bytes may go without accepting one ([delivery.md §5](delivery.md#5-no-progress-timeout)).             |
+| `encoding`             | string                         | `""`                    | Charset metadata values are converted to. Empty means UTF-8 ([icy.md §5](icy.md#5-charset)).                                  |
+| `url`                  | string?                        | null                    | Sent as `StreamUrl` in ICY blocks.                                                                                            |
+| `metaint`              | int                            | `8192`                  | ICY metadata interval, in stream bytes.                                                                                       |
+| `auth`                 | (record → bool)?               | null                    | Authentication function ([connection.md §3](connection.md#3-authentication)). Null: no authentication.                        |
+| `accept`               | (listener record → decision?)? | null                    | Admission predicate ([connection.md §4](connection.md#4-admission-predicate)). Null: every authenticated request is admitted. |
+| `buffer`               | int                            | `327675` (5 × 65535)    | How far, in stream bytes, a listener may fall behind the live stream ([modes.md §4](modes.md#4-flush)).                       |
+| `burst`                | int?                           | `65534`                 | Bytes of already-encoded stream a new listener receives first. Null: none. Shared mode only.                                  |
+| `headers`              | [(string, string)]             | `[]`                    | Extra response headers ([connection.md §5](connection.md#5-the-response-head)).                                               |
+| `dedicated_encoder`    | bool                           | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                              |
+| `allow_unsynced_clock` | bool                           | `false`                 | Allow running on a clock that is not paced in real time ([§7](#7-lifecycle)).                                                 |
+| `override_mount`       | bool                           | `false`                 | Advanced. Take over a mount another registration on the port already serves ([connection.md §1](connection.md#1-routing)).    |
+| (unlabeled, 2nd)       | source                         | —                       | The source to encode.                                                                                                         |
 
 `dedicated_encoder` picks the mode once, at construction: `false` gives
 [shared-encoder.md](shared-encoder.md), `true` gives
@@ -123,6 +123,7 @@ Every field keeps its name, type and meaning; new fields MAY be added.
 | `id`           | int                | Per-output counter, starting at 0, unique and increasing over the operator's life. Never reset by a restart. |
 | `ip`           | string             | Peer address without port, numeric. Never a reverse-DNS name.                                                |
 | `uri`          | string             | Request path, query string removed.                                                                          |
+| `query_string` | string             | Query string as received, without the `?`: not decoded, arguments in request order. Empty when absent.       |
 | `protocol`     | string             | `"1.0"` or `"1.1"`.                                                                                          |
 | `headers`      | [(string, string)] | Request headers, names lowercased, values as received, in request order.                                     |
 | `connected_at` | float              | Wall-clock time (Unix epoch seconds) when the record was created.                                            |

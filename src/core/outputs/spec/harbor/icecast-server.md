@@ -43,7 +43,7 @@ output with:
 | `headers`                    | the configuration's global `<http-headers>`, then the mount's own, then the stream identity headers below                              |
 | `timeout`                    | `<client-timeout>`, default 30 s                                                                                                       |
 | `burst`                      | the mount's `<burst-size>`, else the global one; null when either is 0 or `<burst-on-connect>` is 0; the operator's default otherwise  |
-| `accept`                     | the listener-limit predicate below                                                                                                     |
+| `accept`                     | the listener-limit predicate below, then the mount's URL authentication                                                                |
 | `dedicated_encoder`          | the `icecast.server` parameter of that name, default `false`                                                                           |
 | `format`                     | the MIME type the source declared, or `""` to derive it                                                                                |
 | encoder                      | a copy encoder for the source's container, with muxer options from `format_options` or `settings.icecast.server.default_muxer_options` |
@@ -69,7 +69,67 @@ a value with a line break SHOULD be dropped before building the output.
 ([connection.md §4](connection.md#4-admission-predicate)): the predicate
 compares the mount's and the server's listener counts, kept from the
 callbacks, with the limits. A limit can be exceeded by the number of
-admissions in progress at once.
+admissions in progress at once. A listener past a limit is refused as
+Icecast 2.5 does, `503 Service Unavailable`, or as Icecast 2.4 does,
+`403 Forbidden`, after `settings.icecast.server.status_codes` (`"2.5"` by
+default); `icecast.server` MUST reject another value when it is created.
+
+**URL authentication.** A mount with `<authentication type="url">` and a
+`listener_add` or `listener_remove` option, its own or the default mount's,
+follows Icecast mainline's legacy URL authentication, then RSAS where
+mainline is silent. Both requests are POSTs with the form fields `action`,
+`server` (`<hostname>`, default `localhost`), `port`, `server-instance` (a
+random UUID per server), `client` (the record's `id`), `mount` (`uri`, then
+`?` and `query_string` when not empty), `user` and `pass` (from HTTP Basic
+credentials, empty otherwise), `ip` (resolved as in
+[§5](#5-what-it-reads-from-the-output), never hashed) and `agent` (`-` when
+absent). They carry Basic credentials: the `username` and `password`
+options, else the listener's, none when the URL embeds its own.
+
+`listener_add` runs before the listener limits, with `action=listener_add`
+and RSAS's `protocol` (`http`), `referrer` and `listener-count`. It MUST
+admit the request when the reply carries the `auth_header` line, whatever
+the status; without that option, when it carries `icecast-auth-user: 1`, or
+`x-icecast-auth-result: ok` on a 2xx reply. The time limit is read the same
+way: the `timelimit_header` header (the option's name without its colon),
+else `icecast-auth-timelimit`, or `x-icecast-auth-timelimit` on a 2xx reply;
+its value is a non-negative integer, anything else is ignored. Names and
+values compare without case. A failed request refuses.
+
+On a 2xx reply, mainline's alter actions `redirect` and `redirect_see_other`
+(303), `redirect_temporary` (307) and `redirect_permanent` (308), with their
+`x-icecast-auth-alter-argument` as `Location`, redirect the listener whether
+it was admitted or not. `noop` does nothing; another action is logged and
+ignored. A listener refused without a redirect gets, in order: RSAS's
+`icecast-auth-redirect` as a `303` with that `Location`; else the
+`icecast-resp-status` (300–599, else ignored) and `icecast-resp-reason` the
+reply chose, `401 Authentication Required` by default, with RSAS's
+`icecast-www-authenticate` as `WWW-Authenticate`. As in Icecast, a 401
+without it gets `WWW-Authenticate: Basic realm="Icecast2 Server"`, and
+another status no challenge. Unknown reason phrases come from Icecast's
+table, `Refused` for a status it has none for.
+
+`listener_remove` is POSTed in the background when an admitted listener
+disconnects, with `action=listener_remove` and `duration`, the session's
+whole seconds. Its reply is ignored, a failure logged. The mount's
+configuration is read at each admission and disconnection, so a reload
+applies at once.
+
+**Prerolls.** An admitted listener gets a preroll from, in order: RSAS's
+`preroll` reply header (a URL), the mount's mainline `<intro>`, then its
+RSAS `<preroll>`, each its own or the default mount's. A local path is
+relative to `<paths><webroot>` when set, whether or not it starts with `/`,
+as Icecast's intros. Files are kept in memory per server, as RSAS caches its
+ads: at most 500 of at most 10 MiB each, the oldest dropped first; a URL is
+fetched again with `If-None-Match` and its ETag once two hours old, a local
+file read again when its modification time changes. A file that cannot be
+loaded is logged and the listener admitted without a preroll. The bytes are
+sent as they are ([connection.md §4](connection.md#4-admission-predicate)).
+
+**Time limits.** An admitted listener gets the time limit of its
+`listener_add` reply, else the mount's `<max-listener-duration>`, its own or
+the default mount's, through `accept`'s `{time_limit}`. Zero means no limit,
+as in Icecast.
 
 **Dump file.** Icecast's `<dump-file>` is not implemented: `icecast.server`
 parses it, ignores it with a warning, and documents it as not implemented.
@@ -139,7 +199,9 @@ Listener record fields it relies on ([operator.md §5](operator.md#5-the-listene
 - `ip`: the numeric peer address, replaced by the `X-Forwarded-For` value when
   configured, then hashed. It is never a reverse-DNS name;
 - `headers`, looked up by **lowercase** name: `x-forwarded-for`,
-  `user-agent`, `referer`.
+  `user-agent`, `referer`, and for URL authentication `host` and
+  `authorization`;
+- `query_string`: sent to URL authentication as received.
 
 Guarantees it relies on: exactly one `on_disconnect` per `on_connect`, after
 it, with a final `bytes_sent`, so its counters cannot drift; `listeners()`
@@ -148,6 +210,7 @@ agreeing with those callbacks ([concurrency.md §3](concurrency.md#3-guarantees)
 
 ## 6. What it does not use
 
-- `auth`: listener requests are not asked for credentials. Icecast's listener
-  authentication is not offered.
+- `auth`: listener requests are not asked for credentials. Icecast's URL
+  listener authentication goes through `accept` instead
+  ([§2](#2-creating-a-mounts-output)).
 - `metaint`, `encoding`, `url`, `buffer`: left at the operator's defaults.

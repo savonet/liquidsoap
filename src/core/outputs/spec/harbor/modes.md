@@ -34,6 +34,14 @@ the response head ([connection.md §6](connection.md#6-admission), step 7). It
 runs before the listener is published, so nothing else touches the listener
 yet. Initial bytes do not count towards `buffer` ([§4](#4-flush)).
 
+A listener admitted with a preroll owes it right after the response head,
+before the mode's initial bytes. Its live data starts only once the preroll
+has been accepted by its socket, as Icecast's intros: a preroll longer than
+`buffer`, read by a slow client, never leads to overflow. The preroll's bytes
+are stream data for ICY ([icy.md §4](icy.md#4-cadence-and-change-detection)).
+A preroll MUST NOT be copied per listener: the same ad commonly goes to every
+listener.
+
 ## 3. Pending test
 
 Whether the listener is owed bytes. Delivery flushes and times out only

@@ -13,15 +13,24 @@ type info = {
   ip : string;
   peer : string;
   uri : string;
+  query_string : string;
   protocol : string;
   headers : (string * string) list;
   connected_at : float;
 }
 
 (** [wake] is called by the winner of {!mark_closed}, so the listener's group
-    removes it promptly. *)
-val create : log:Log.t -> wake:(unit -> unit) -> info -> Harbor.socket -> t
+    removes it promptly. Past [deadline], on the {!now} clock, the group closes
+    the listener. *)
+val create :
+  ?deadline:float ->
+  log:Log.t ->
+  wake:(unit -> unit) ->
+  info ->
+  Harbor.socket ->
+  t
 
+val deadline : t -> float option
 val info : t -> info
 val log : t -> Log.t
 val socket : t -> Harbor.socket

@@ -172,6 +172,7 @@ module type T = sig
     data:(float -> string) ->
     headers:(string * string) list ->
     query:(string * string) list ->
+    query_string:string ->
     socket:socket ->
     string ->
     reply
@@ -384,6 +385,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     data:(float -> string) ->
     headers:(string * string) list ->
     query:(string * string) list ->
+    query_string:string ->
     socket:socket ->
     string ->
     reply
@@ -990,7 +992,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   let handle_http_request ~hmethod ~hprotocol ~port h uri headers =
     let rex = Re.Pcre.regexp "^(.+)\\?(.+)$" in
-    let base_uri, args =
+    let base_uri, query_string =
       try
         let sub = Re.Pcre.exec ~rex uri in
         (Re.Pcre.get_substring sub 1, Re.Pcre.get_substring sub 2)
@@ -999,7 +1001,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let protocol_name = protocol_name h in
     let smethod = string_of_verb hmethod in
     log#info "%s request on %s (protocol: %s)." smethod base_uri protocol_name;
-    let args = Http.args_split args in
+    let args = Http.args_split query_string in
     (* Filter out password *)
     let log_args =
       if conf_pass_verbose#get then args
@@ -1113,7 +1115,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               | _ -> fun _ -> ""
           in
           Scheduler.reschedule ~priority:`Threaded ();
-          handler ~protocol ~meth ~headers ~data ~socket ~query base_uri
+          handler ~protocol ~meth ~headers ~data ~socket ~query ~query_string
+            base_uri
       | Reply _ as e -> raise e
       | e ->
           let bt = Printexc.get_backtrace () in

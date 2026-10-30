@@ -30,12 +30,14 @@ val send : t -> Frame.t -> unit
 
 val metadata : t -> Frame.Metadata.Export.t -> Icy.event -> unit
 
-(** Creates the listener's encoder and queues [head] then its header: [None]
-    when the mode is not running. *)
+(** Creates the listener's encoder and queues [head], [preroll], then its
+    header: [None] when the mode is not running. The encoder gets no piece until
+    the preroll is sent. *)
 val join :
   t ->
   head:string ->
   icy:bool ->
+  preroll:string option ->
   Listener.t ->
   (pending:(unit -> bool) ->
   flush:(scratch:bytes -> unit) ->

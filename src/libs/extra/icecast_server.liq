@@ -76,6 +76,133 @@ let settings.icecast.server.default_muxer_options =
     ]
   )
 
+# Icecast version whose status codes refuse listeners: `"2.5"` answers `503 Service Unavailable` when a listener limit is reached, `"2.4"` answers `403 Forbidden`. Both answer `401` when listener authentication refuses.
+# @flag extra
+# @category Source / Input / Active
+let settings.icecast.server.status_codes =
+  settings.make(
+    description="Icecast version whose status codes refuse listeners: \"2.5\" \
+     answers 503 when a listener limit is reached, \"2.4\" answers 403.",
+    "2.5"
+  )
+
+# Refusal of a listener past a listener limit. Raises on an unknown `settings.icecast.server.status_codes`.
+# @flag hidden
+def icecast.server.limit_refusal() =
+  version = settings.icecast.server.status_codes()
+  if
+    version == "2.5"
+  then
+    {
+      status = 503,
+      reason =
+        "Service Unavailable",
+      headers = []
+    }
+  elsif
+    version == "2.4"
+  then
+    {status = 403, reason = "Forbidden", headers = []}
+  else
+    error.raise(
+      error.invalid,
+      "Invalid settings.icecast.server.status_codes '#{version}': expected \
+       \"2.5\" or \"2.4\""
+    )
+  end
+end
+
+# Reason phrase Icecast sends with `status`, for the statuses an authentication backend chooses.
+# @flag hidden
+def icecast.server.status_reason(status) =
+  list.assoc(
+    default="Refused",
+    status,
+    [
+      (
+        301,
+        "Moved Permanently"
+      ),
+      (302, "Found"),
+      (
+        303,
+        "See Other"
+      ),
+      (
+        307,
+        "Temporary Redirect"
+      ),
+      (
+        308,
+        "Permanent Redirect"
+      ),
+      (
+        400,
+        "Bad Request"
+      ),
+      (
+        401,
+        "Authentication Required"
+      ),
+      (
+        402,
+        "Payment Required"
+      ),
+      (403, "Forbidden"),
+      (
+        404,
+        "File Not Found"
+      ),
+      (
+        429,
+        "Too Many Requests"
+      ),
+      (
+        451,
+        "Unavailable For Legal Reasons"
+      ),
+      (
+        500,
+        "Internal Server Error"
+      ),
+      (
+        503,
+        "Service Unavailable"
+      )
+    ]
+  )
+end
+
+# Refusal of a listener by listener authentication: Icecast's 401 challenge, or the status, reason and challenge an RSAS backend chose. As in Icecast, only a 401 gets the default challenge.
+# @flag hidden
+def icecast.server.auth_refusal(
+  ~status=401,
+  ~reason=null,
+  ~www_authenticate=null
+) =
+  challenge =
+    status == 401
+      ? www_authenticate
+        ?? "Basic realm=\"Icecast2 Server\""
+      : www_authenticate
+  {
+    status = status,
+    reason = reason ?? icecast.server.status_reason(status),
+    headers =
+      null.defined(challenge) ? [("WWW-Authenticate", null.get(challenge))] : []
+  }
+end
+
+# Redirect of a listener to `location` with `status`.
+# @flag hidden
+def icecast.server.redirect(status, location) =
+  {
+    status = status,
+    reason = icecast.server.status_reason(status),
+    headers = [("Location", location)]
+  }
+end
+
 let icecast.server.config = ()
 let icecast.server.config.mount = ()
 let icecast.server.config.logging = ()
@@ -185,8 +312,134 @@ let icecast.server.config.mount.empty =
     hidden = false,
     on_connect_cmd = (null : string?),
     on_disconnect_cmd = (null : string?),
-    http_headers = ([] : [(string * string)])
+    http_headers = ([] : [(string * string)]),
+    max_listener_duration = (null : int?),
+    intro = (null : string?),
+    preroll = (null : string?),
+    url_auth =
+      (null :
+        {
+          listener_add: string?,
+          listener_remove: string?,
+          auth_header: (string * string)?,
+          timelimit_header: string?,
+          credentials: (string * string)?
+        }?
+      )
   }
+
+# Listener URL authentication of a `<mount>`, from its `<authentication type="url">` element, as Icecast's legacy URL options. `auth_header` is the reply header that admits a listener as a lowercased `(name, value)` pair and `timelimit_header` the lowercased name of the one that limits its time, each null for Icecast's defaults. `credentials` authenticate the requests to `listener_add` and `listener_remove`.
+# @flag hidden
+def icecast.server.config.mount.url_auth(authentication) =
+  options =
+    list.filter_map(
+      fun ((tag, node)) ->
+        begin
+          let {name, value} = node.xml_params
+          if
+            tag == "option" and null.defined(name) and null.defined(value)
+          then
+            (null.get(name), null.get(value))
+          else
+            null
+          end
+        end,
+      authentication.xml_children
+    )
+
+  type = authentication.xml_params.type ?? ""
+  if
+    type != "url"
+  then
+    log.important(
+      label="icecast.server",
+      "Mount authentication type '#{type}' is not supported"
+    )
+  end
+
+  icecast.server.config.warn_unsupported(
+    "authentication",
+    list.map(
+      fun ((name, _)) ->
+        (
+          name,
+          not list.mem(
+            name,
+            [
+              "listener_add",
+              "listener_remove",
+              "auth_header",
+              "timelimit_header",
+              "username",
+              "password"
+            ]
+          )
+        ),
+      options
+    )
+  )
+
+  def header(value) =
+    separator = string.index(substring=":", value)
+    if
+      separator < 0
+    then
+      error.raise(
+        error.invalid,
+        "Invalid auth_header '#{value}': expected 'name: value'"
+      )
+    end
+    def normalize(s) =
+      string.case(lower=true, string.trim(s))
+    end
+    (
+      normalize(string.sub(value, start=0, length=separator)),
+      normalize(
+        string.sub(
+          value,
+          start=separator + 1,
+          length=string.length(value) - separator - 1
+        )
+      )
+    )
+  end
+
+  auth_header = null.map(header, list.assoc.nullable("auth_header", options))
+  username = list.assoc.nullable("username", options)
+  password = list.assoc.nullable("password", options)
+  credentials =
+    null.defined(username) and null.defined(password)
+      ? (null.get(username), null.get(password))
+      : null
+
+  # Icecast writes the option with its colon, `icecast-auth-timelimit:`.
+  timelimit_header =
+    null.map(
+      fun (name) ->
+        string.case(
+          lower=true,
+          string.trim(r/:\s*$/.replace(fun (_) -> "", name))
+        ),
+      list.assoc.nullable("timelimit_header", options)
+    )
+
+  listener_add = list.assoc.nullable("listener_add", options)
+  listener_remove = list.assoc.nullable("listener_remove", options)
+  if
+    type == "url"
+    and (null.defined(listener_add) or null.defined(listener_remove))
+  then
+    {
+      listener_add = listener_add,
+      listener_remove = listener_remove,
+      auth_header = auth_header,
+      timelimit_header = timelimit_header,
+      credentials = credentials
+    }
+  else
+    null
+  end
+end
 
 # Parse one `<mount>` element.
 # @flag hidden
@@ -217,8 +470,14 @@ def icecast.server.config.mount.parse(doc) =
         "fallback-when-full" as fallback_when_full: int?,
         public: string?,
         intro: string?,
-        "max-listener-duration" as max_listener_duration: string?,
-        authentication?: {xml_params: [(string * string)]},
+        preroll: string?,
+        "max-listener-duration" as max_listener_duration: int?,
+        authentication?: {
+          xml_params: {type: string?},
+          xml_children: [
+            (string * {xml_params: {name: string?, value: string?}})
+          ]
+        },
         xml_params: {type: string?}
       }
     }
@@ -229,10 +488,7 @@ def icecast.server.config.mount.parse(doc) =
     "mount",
     [
       ("public", null.defined(m.public)),
-      ("dump-file", null.defined(m.dump_file)),
-      ("intro", null.defined(m.intro)),
-      ("max-listener-duration", null.defined(m.max_listener_duration)),
-      ("authentication", null.defined(m?.authentication))
+      ("dump-file", null.defined(m.dump_file))
     ]
   )
   list.iter(
@@ -267,7 +523,11 @@ def icecast.server.config.mount.parse(doc) =
     hidden = m.hidden == 1,
     on_connect_cmd = m.on_connect,
     on_disconnect_cmd = m.on_disconnect,
-    http_headers = http_headers
+    http_headers = http_headers,
+    max_listener_duration = m.max_listener_duration,
+    intro = m.intro,
+    preroll = m.preroll,
+    url_auth = null.map(icecast.server.config.mount.url_auth, m?.authentication)
   }
 end
 
@@ -291,7 +551,12 @@ def icecast.server.config.mount.resolve(~default, ~mounts, (mount:string)) =
     hidden = config.hidden or default.hidden,
     on_connect_cmd = config.on_connect_cmd ?? default.on_connect_cmd,
     on_disconnect_cmd = config.on_disconnect_cmd ?? default.on_disconnect_cmd,
-    http_headers = [...default.http_headers, ...config.http_headers]
+    http_headers = [...default.http_headers, ...config.http_headers],
+    max_listener_duration =
+      config.max_listener_duration ?? default.max_listener_duration,
+    intro = config.intro ?? default.intro,
+    preroll = config.preroll ?? default.preroll,
+    url_auth = config.url_auth ?? default.url_auth
   }
 end
 
@@ -403,7 +668,6 @@ def icecast.server.config.paths(doc) =
     [
       ("basedir", null.defined(p.basedir)),
       ("pidfile", null.defined(p.pidfile)),
-      ("webroot", null.defined(p.webroot)),
       ("adminroot", null.defined(p.adminroot)),
       ("allow-ip", null.defined(p.allow_ip)),
       ("deny-ip", null.defined(p.deny_ip)),
@@ -414,9 +678,17 @@ def icecast.server.config.paths(doc) =
 
   {
     logdir = p.logdir,
+    webroot = p.webroot,
     tls_certificate = p.tls_certificate ?? p.ssl_certificate,
     tls_key = p.tls_key
   }
+end
+
+# Parse the `<hostname>` element.
+# @flag hidden
+def icecast.server.config.hostname(doc) =
+  let xml.parse (parsed : {hostname: string}) = doc
+  (parsed.hostname : string?)
 end
 
 # Parse an `<authentication>` element.
@@ -547,12 +819,14 @@ let icecast.server.config.empty =
     tls_certificate = (null : string?),
     tls_key = (null : string?),
     logdir = (null : string?),
+    webroot = (null : string?),
     logging = icecast.server.config.logging.empty,
     password = (null : string?),
     admin_user = (null : string?),
     admin_password = (null : string?),
     max_sources = (null : int?),
     max_clients = (null : int?),
+    hostname = (null : string?),
     client_timeout = (null : float?),
     source_timeout = (null : float?),
     burst_on_connect = (null : int?),
@@ -642,12 +916,19 @@ def icecast.server.config.parse(doc) =
     tls_certificate = paths.tls_certificate,
     tls_key = paths.tls_key,
     logdir = paths.logdir,
+    webroot = paths.webroot,
     logging = logging,
     password = authentication.password,
     admin_user = authentication.admin_user,
     admin_password = authentication.admin_password,
     max_sources = limits.max_sources,
     max_clients = limits.max_clients,
+    hostname =
+      list.case(
+        sections("hostname"),
+        null,
+        fun (doc, _) -> icecast.server.config.hostname(doc)
+      ),
     client_timeout = limits.client_timeout,
     source_timeout = limits.source_timeout,
     burst_on_connect = limits.burst_on_connect,
@@ -738,6 +1019,7 @@ def icecast.server.log_mount_config(label, prefix, config) =
       "hidden: #{config.hidden}",
       "on-connect: #{config.on_connect_cmd ?? "none"}",
       "on-disconnect: #{config.on_disconnect_cmd ?? "none"}",
+      "listener-auth: #{null.defined(config.url_auth) ? "url" : "none"}",
       "http-headers: #{list.length(config.http_headers)} header(s)",
       ...list.map(
         fun ((k, v)) ->
@@ -1203,6 +1485,419 @@ def icecast.server.identity_headers(headers) =
   )
 end
 
+# `(user, password)` from a request's HTTP Basic credentials, null when absent or malformed.
+# @flag hidden
+def icecast.server.basic_credentials(headers) =
+  credentials =
+    string.residual(
+      prefix="Basic ",
+      list.assoc(default="", "authorization", headers)
+    )
+  decoded =
+    try
+      null.map(string.base64.decode, credentials)
+    catch _ do
+      null
+    end
+  separator = string.index(substring=":", decoded ?? "")
+  if
+    separator < 0
+  then
+    null
+  else
+    decoded = null.get(decoded)
+    (
+      string.sub(decoded, start=0, length=separator),
+      string.sub(
+        decoded,
+        start=separator + 1,
+        length=string.length(decoded) - separator - 1
+      )
+    )
+  end
+end
+
+# POSTs one of Icecast's URL authentication requests about `listener` to `url`, with the form fields both actions share followed by `fields`. The request carries the `credentials` option, else the listener's own, unless `url` embeds some.
+# @flag hidden
+def icecast.server.url_auth_request(
+  ~action,
+  ~hostname,
+  ~port,
+  ~instance,
+  ~ip,
+  ~fields,
+  ~credentials,
+  url,
+  listener
+) =
+  listener_credentials = icecast.server.basic_credentials(listener.headers)
+  let (user, password) = listener_credentials ?? ("", "")
+  params =
+    [
+      ("action", action),
+      ("server", hostname),
+      ("port", string(port)),
+      ("server-instance", instance),
+      ("client", string(listener.id)),
+      (
+        "mount",
+        listener.query_string == ""
+          ? listener.uri
+          : "#{listener.uri}?#{listener.query_string}"
+      ),
+      ("user", user),
+      ("pass", password),
+      ("ip", ip),
+      ("agent", list.assoc(default="-", "user-agent", listener.headers)),
+      ...fields
+    ]
+
+  backend_credentials =
+    string.contains(substring="@", url) ? null : credentials
+      ?? listener_credentials
+  authorization =
+    null.map(
+      fun ((user, password)) ->
+        (
+          "Authorization",
+          "Basic #{string.base64.encode("#{user}:#{password}")}"
+        ),
+      backend_credentials
+    )
+
+  http.post(
+    headers=[
+      ("Content-Type", "application/x-www-form-urlencoded"),
+      ...(null.defined(authorization) ? [null.get(authorization)] : [])
+    ],
+    data=http.www_form_urlencoded(params),
+    url
+  )
+end
+
+# Icecast's `listener_add` decision with RSAS's fields and reply headers, as specified in `icecast-server.md`: `{refusal, time_limit, preroll}`, `refusal` null when the listener is admitted and `preroll` the source of its RSAS preroll.
+# @flag hidden
+def icecast.server.url_auth_admit(
+  ~hostname,
+  ~port,
+  ~instance,
+  ~ip,
+  ~listener_count,
+  auth,
+  listener
+) =
+  listener_add = auth.listener_add
+  auth_header = auth.auth_header
+  timelimit_header = auth.timelimit_header
+
+  def header(name, headers) =
+    null.map(
+      string.trim,
+      list.assoc.nullable(
+        name,
+        list.map(fun ((n, v)) -> (string.case(lower=true, n), v), headers)
+      )
+    )
+  end
+
+  def has_header(name, value, headers) =
+    null.map(
+      fun (v) -> string.case(lower=true, v) == value,
+      header(name, headers)
+    )
+      ?? false
+  end
+
+  # Icecast reads time limits as non-negative integers and ignores anything else.
+  def time_limit(name, headers) =
+    value =
+      null.map(fun (v) -> int_of_string(default=-1, v), header(name, headers))
+    null.defined(value) and null.get(value) >= 0 ? float(null.get(value)) : null
+  end
+
+  def alter_redirect(headers) =
+    action =
+      null.map(
+        fun (a) -> string.case(lower=true, a),
+        header("x-icecast-auth-alter-action", headers)
+      )
+    argument = header("x-icecast-auth-alter-argument", headers)
+    status =
+      list.assoc(
+        default=0,
+        action ?? "noop",
+        [
+          ("redirect", 303),
+          ("redirect_see_other", 303),
+          ("redirect_temporary", 307),
+          ("redirect_permanent", 308)
+        ]
+      )
+    if
+      status == 0 and (action ?? "noop") != "noop"
+    then
+      log.important(
+        label="icecast.server",
+        "Unsupported alter action '#{null.get(action)}' from listener_add, \
+         ignored"
+      )
+    end
+    if
+      status > 0 and null.defined(argument)
+    then
+      icecast.server.redirect(status, null.get(argument))
+    else
+      null
+    end
+  end
+
+  def denial(headers) =
+    redirect = header("icecast-auth-redirect", headers)
+    status =
+      int_of_string(default=0, header("icecast-resp-status", headers) ?? "")
+    if
+      null.defined(redirect)
+    then
+      icecast.server.redirect(303, null.get(redirect))
+    else
+      icecast.server.auth_refusal(
+        status=status >= 300 and status <= 599 ? status : 401,
+        reason=header("icecast-resp-reason", headers),
+        www_authenticate=header("icecast-www-authenticate", headers)
+      )
+    end
+  end
+
+  if
+    not null.defined(listener_add)
+  then
+    {refusal = null, time_limit = null, preroll = null}
+  else
+    try
+      response =
+        icecast.server.url_auth_request(
+          action="listener_add",
+          hostname=hostname,
+          port=port,
+          instance=instance,
+          ip=ip,
+          fields=[
+            ("protocol", "http"),
+            ("referrer", list.assoc(default="", "referer", listener.headers)),
+            ("listener-count", string(listener_count))
+          ],
+          credentials=auth.credentials,
+          null.get(listener_add),
+          listener
+        )
+      headers = response.headers
+      success = response.status_code >= 200 and response.status_code < 300
+      let (header_name, header_value) =
+        auth_header ?? ("icecast-auth-user", "1")
+      admitted =
+        has_header(header_name, header_value, headers)
+        or (
+          not null.defined(auth_header)
+          and success
+          and has_header("x-icecast-auth-result", "ok", headers)
+        )
+      redirect = success ? alter_redirect(headers) : null
+      refusal =
+        null.defined(redirect)
+          ? redirect
+          : (admitted ? null : (denial(headers)))
+      if
+        null.defined(refusal)
+      then
+        message =
+          header("x-icecast-auth-message", headers)
+            ?? (header("icecast-auth-message", headers) ?? "")
+        log.info(
+          label="icecast.server",
+          "Listener #{listener.id} on #{listener.uri} refused by listener_add \
+           (status #{response.status_code}): #{null.get(refusal).status} #{
+            message
+          }"
+        )
+      end
+      limit = time_limit(timelimit_header ?? "icecast-auth-timelimit", headers)
+      limit =
+        null.defined(limit) or null.defined(timelimit_header) or not success
+          ? limit
+          : time_limit("x-icecast-auth-timelimit", headers)
+      {
+        refusal = refusal,
+        time_limit = limit,
+        preroll = header("preroll", headers)
+      }
+    catch err do
+      log.severe(
+        label="icecast.server",
+        "listener_add request failed, refusing listener #{listener.id}: #{
+          err.message
+        }"
+      )
+      {
+        refusal = icecast.server.auth_refusal(),
+        time_limit = null,
+        preroll = null
+      }
+    end
+  end
+end
+
+# Preroll files kept in memory, as RSAS caches its ads: at most `max_entries` of at most `max_size` bytes each, a URL revalidated with its ETag once `revalidate` seconds old, a local file read again when it changes. Its `get(source)` returns null, logging why, when the file cannot be loaded.
+# @flag hidden
+def icecast.server.preroll_cache(
+  ~max_entries=500,
+  ~max_size=10485760,
+  ~revalidate=7200.
+) =
+  entries =
+    ref(([] : [(string * {data: string, version: string, checked_at: float})]))
+
+  def remember(source, entry) =
+    atomic(
+      fun () ->
+        entries :=
+          list.prefix(
+            max_entries,
+            (source, entry)::list.assoc.remove(source, entries())
+          )
+    )
+    entry.data
+  end
+
+  def checked(data) =
+    if
+      string.bytes.length(data) > max_size
+    then
+      error.raise(
+        error.invalid,
+        "#{string.bytes.length(data)} bytes, more than #{max_size}"
+      )
+    end
+    data
+  end
+
+  def load_url(url, cached) =
+    if
+      null.defined(cached) and time() - null.get(cached).checked_at < revalidate
+    then
+      null.get(cached).data
+    else
+      etag = null.defined(cached) ? null.get(cached).version : ""
+      response =
+        http.get(headers=etag == "" ? [] : [("If-None-Match", etag)], url)
+      if
+        response.status_code == 304 and null.defined(cached)
+      then
+        remember(url, {...null.get(cached), checked_at = time()})
+      elsif
+        response.status_code >= 200 and response.status_code < 300
+      then
+        remember(
+          url,
+          {
+            data = checked(response),
+            version = list.assoc(default="", "etag", response.headers),
+            checked_at = time()
+          }
+        )
+      else
+        error.raise(
+          error.http,
+          "status #{response.status_code}"
+        )
+      end
+    end
+  end
+
+  def load_file(path, cached) =
+    version = string(file.mtime(path))
+    if
+      null.defined(cached) and null.get(cached).version == version
+    then
+      null.get(cached).data
+    else
+      remember(
+        path,
+        {
+          data = checked(file.contents(path)),
+          version = version,
+          checked_at = time()
+        }
+      )
+    end
+  end
+
+  def get(source) =
+    cached = list.assoc.nullable(source, entries())
+    try
+      if
+        string.contains(prefix="http://", source)
+        or string.contains(prefix="https://", source)
+      then
+        load_url(source, cached)
+      else
+        load_file(source, cached)
+      end
+    catch err do
+      log.important(
+        label="icecast.server",
+        "Preroll #{source} not loaded, listener admitted without it: #{
+          err.message
+        }"
+      )
+      null
+    end
+  end
+
+  {get = get}
+end
+
+# Icecast's `listener_remove` notification, sent in the background with the session's `duration` in seconds; its reply is ignored.
+# @flag hidden
+def icecast.server.url_auth_remove(
+  ~hostname,
+  ~port,
+  ~instance,
+  ~ip,
+  auth,
+  listener
+) =
+  listener_remove = auth.listener_remove
+  if
+    null.defined(listener_remove)
+  then
+    thread.run(
+      fun () ->
+        try
+          ignore(
+            icecast.server.url_auth_request(
+              action="listener_remove",
+              hostname=hostname,
+              port=port,
+              instance=instance,
+              ip=ip,
+              fields=[("duration", string(int(listener.duration)))],
+              credentials=auth.credentials,
+              null.get(listener_remove),
+              listener
+            )
+          )
+        catch err do
+          log.important(
+            label="icecast.server",
+            "listener_remove request failed for listener #{listener.id}: #{
+              err.message
+            }"
+          )
+        end
+    )
+  end
+end
+
 # Admission predicate enforcing `<max-listeners>` of a mount and `<clients>` of the server. Counts come from the listener callbacks, so admissions in progress at once can exceed a limit by their number.
 # @flag hidden
 def icecast.server.listener_limit(
@@ -1212,14 +1907,20 @@ def icecast.server.listener_limit(
   ~server_listeners
 ) =
   fun (_) ->
-    (
-      not null.defined(max_listeners)
-      or mount_listeners() < null.get(max_listeners)
-    )
-    and (
-      not null.defined(max_clients)
-      or server_listeners() < null.get(max_clients)
-    )
+    if
+      (
+        not null.defined(max_listeners)
+        or mount_listeners() < null.get(max_listeners)
+      )
+      and (
+        not null.defined(max_clients)
+        or server_listeners() < null.get(max_clients)
+      )
+    then
+      null
+    else
+      icecast.server.limit_refusal()
+    end
 end
 
 # Output of an `icecast.server` mount, served by `output.harbor`.
@@ -1526,6 +2227,51 @@ def icecast.server.source_manager(
 
   server_listeners = ref(0)
 
+  def hostname() =
+    server_config().parsed.hostname ?? "localhost"
+  end
+
+  prerolls = icecast.server.preroll_cache()
+
+  # Local preroll files are relative to `<webroot>`, as Icecast's intros.
+  def preroll_location(source) =
+    webroot = server_config().parsed.webroot
+    if
+      string.contains(prefix="http://", source)
+      or string.contains(prefix="https://", source)
+      or not null.defined(webroot)
+    then
+      source
+    else
+      path.concat(null.get(webroot), source)
+    end
+  end
+
+  # The listener's address as Icecast sends it to URL authentication: resolved, never hashed.
+  def listener_address(listener) =
+    icecast.server.listener_ip(
+      x_forwarded_for=x_forwarded_for,
+      proxy_ips=x_forwarded_for_proxy_ips,
+      {
+        headers = listener.headers,
+        ip = listener.ip,
+        protocol = listener.protocol,
+        uri = listener.uri
+      }
+    )
+  end
+
+  # Icecast's `server-instance`: a random UUID, fixed for the server's life.
+  instance =
+    begin
+      def hex(n) =
+        string.concat(
+          list.init(n, fun (_) -> string.hex_of_int(random.int(min=0, max=16)))
+        )
+      end
+      "#{hex(8)}-#{hex(4)}-4#{hex(3)}-#{hex(4)}-#{hex(12)}"
+    end
+
   # Build the output and stats for a mount on its first connection.
   def create_entry(
     ~mount,
@@ -1557,9 +2303,71 @@ def icecast.server.source_manager(
             fast=true,
             fun () -> server_listeners := server_listeners() - 1
           )
+          auth = mount_config(mount).url_auth
+          if
+            null.defined(auth)
+          then
+            icecast.server.url_auth_remove(
+              hostname=hostname(),
+              port=port,
+              instance=instance,
+              ip=listener_address(listener),
+              null.get(auth),
+              listener
+            )
+          end
           listeners.disconnect(listener)
           view = listener_view(mount=mount, listener)
           list.iter(fun (h) -> h(view), on_listener_disconnect_handlers())
+        end
+
+        within_limits =
+          icecast.server.listener_limit(
+            max_listeners=config.max_listeners,
+            max_clients=parsed.max_clients,
+            mount_listeners=listeners.current,
+            server_listeners=server_listeners
+          )
+
+        # Read at each admission so that a reload applies at once.
+        def admission(listener) =
+          config = mount_config(mount)
+          auth =
+            null.map(
+              fun (auth) ->
+                icecast.server.url_auth_admit(
+                  hostname=hostname(),
+                  port=port,
+                  instance=instance,
+                  listener_count=listeners.current(),
+                  ip=listener_address(listener),
+                  auth,
+                  listener
+                ),
+              config.url_auth
+            )
+              ?? {refusal = null, time_limit = null, preroll = null}
+          refusal = auth.refusal ?? within_limits(listener)
+          time_limit =
+            auth.time_limit ?? null.map(float, config.max_listener_duration)
+          if
+            null.defined(refusal)
+          then
+            {refuse = refusal, time_limit = null, preroll = null}
+          else
+            source = auth.preroll ?? (config.intro ?? config.preroll)
+            {
+              refuse = null,
+              time_limit =
+                null.defined(time_limit) and null.get(time_limit) > 0.
+                  ? time_limit
+                  : null,
+              preroll =
+                null.defined(source)
+                  ? prerolls.get(preroll_location(null.get(source)))
+                  : null
+            }
+          end
         end
 
         def on_metadata({metadata, listeners}) =
@@ -1590,13 +2398,7 @@ def icecast.server.source_manager(
               timeout = parsed.client_timeout ?? 30.,
               port = port,
               transport = transport,
-              accept =
-                icecast.server.listener_limit(
-                  max_listeners=config.max_listeners,
-                  max_clients=parsed.max_clients,
-                  mount_listeners=listeners.current,
-                  server_listeners=server_listeners
-                ),
+              accept = admission,
               dedicated_encoder = dedicated_encoder,
               muxer_opts = muxer_options(format)
             }
@@ -1922,17 +2724,8 @@ end
 # `true` when the request carries HTTP Basic credentials matching `user` and `password`.
 # @flag hidden
 def icecast.server.basic_auth(~user, ~password, request) =
-  credentials =
-    string.residual(
-      prefix="Basic ",
-      list.assoc(default="", "authorization", request.headers)
-    )
-  try
-    null.defined(credentials)
-    and string.base64.decode(null.get(credentials)) == "#{user}:#{password}"
-  catch _ do
-    false
-  end
+  credentials = icecast.server.basic_credentials(request.headers)
+  null.defined(credentials) and null.get(credentials) == (user, password)
 end
 
 # @flag hidden
@@ -2198,6 +2991,7 @@ def replaces icecast.server(
   ~serve_html=null
 ) =
   settings.frame.duration.set_default(0.2)
+  ignore(icecast.server.limit_refusal())
 
   # Explicit parameters keep overriding the file on every reload.
   def load() =
