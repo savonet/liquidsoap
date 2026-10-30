@@ -3,7 +3,8 @@
 # A listener gets the `preroll` URL of its `listener_add` reply, else the
 # mount's `<intro>` under `<webroot>`, before the stream. A preroll URL is
 # fetched once for many listeners, and one that fails to load admits the
-# listener without a preroll.
+# listener without a preroll. The cache keeps to its byte budget and keeps a
+# file whose revalidation fails.
 port = 18145
 backend_port = 18147
 intro = string.make(char_code=73, 2000)
@@ -55,6 +56,27 @@ def f() =
     method="GET",
     "/none.mp3",
     fun (_, response) -> response.status_code(404)
+  )
+
+  other_fetches = ref(0)
+  harbor.http.register(
+    port=backend_port,
+    method="GET",
+    "/other.mp3",
+    fun (_, response) ->
+      begin
+        atomic(fun () -> other_fetches := other_fetches() + 1)
+        response.data(ad)
+      end
+  )
+
+  flaky_down = ref(false)
+  harbor.http.register(
+    port=backend_port,
+    method="GET",
+    "/flaky.mp3",
+    fun (_, response) ->
+      if flaky_down() then response.status_code(502) else response.data(ad) end
   )
 
   dir = file.temp_dir("icecast", "preroll")
@@ -168,6 +190,34 @@ def f() =
     then
       test.fail(
         "a preroll that failed to load was replaced by another one"
+      )
+    end
+
+    # A budget below two files drops the least recently used one.
+    settings.icecast.server.preroll_cache_size := 4000
+    cache = icecast.server.preroll_cache()
+    url = fun (name) -> "http://127.0.0.1:#{backend_port}/#{name}.mp3"
+    fetches = ad_fetches()
+    ignore(cache.get(url("ad")))
+    ignore(cache.get(url("other")))
+    ignore(cache.get(url("ad")))
+    if
+      ad_fetches() - fetches != 2 or other_fetches() != 1
+    then
+      test.fail(
+        "budget eviction: #{ad_fetches() - fetches} fetches of the evicted file"
+      )
+    end
+    settings.icecast.server.preroll_cache_size := 268435456
+
+    stale = icecast.server.preroll_cache(revalidate=0.)
+    ignore(stale.get(url("flaky")))
+    flaky_down := true
+    if
+      stale.get(url("flaky")) != ad
+    then
+      test.fail(
+        "a failed revalidation dropped the cached preroll"
       )
     end
     test.pass()

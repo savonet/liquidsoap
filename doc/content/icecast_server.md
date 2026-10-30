@@ -159,7 +159,7 @@ A preroll is a short audio file a listener hears before joining the live stream:
 
 A local file is looked up under `<webroot>`, and `<intro>` or `<preroll>` can also be a URL. The file is sent as it is, before the stream, so it must use the same codec and parameters as the stream: for an AAC stream, an ADTS `.aac` file with the same sample rate and channels; for an MP3 stream, an MP3 file with the same sample rate and channels. The listener joins the live stream once the preroll has been sent, with a shorter burst, as with Icecast's intros.
 
-Files are kept in memory and shared by every listener: up to 500 files of up to 10 MiB each. A URL is checked again after two hours, using its ETag, and a local file is read again when it changes. A file that cannot be loaded is logged and the listener gets the stream without a preroll.
+Files are kept in memory and shared by every listener: files of up to 10 MiB each, up to 256 MiB in all, the least recently used dropped first. Change the total with `settings.icecast.server.preroll_cache_size`, in bytes. A URL is checked again after two hours, using its ETag, and keeps its copy when that check fails. A local file is read again when it changes. A file that cannot be loaded is logged and the listener gets the stream without a preroll.
 
 ## Listener Limits
 
