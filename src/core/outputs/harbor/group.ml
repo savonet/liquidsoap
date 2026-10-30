@@ -164,7 +164,15 @@ let publish t member =
           Atomic.set t.members (member :: Atomic.get t.members);
           true))
   in
-  if published then wake t;
+  if published then (
+    wake t;
+    (* The deadline is checked by passes, which only data or a retry start. *)
+    Option.iter
+      (fun deadline ->
+        add_task
+          ~delay:(max 0. (deadline -. Listener.now ()))
+          (fun () -> wake t))
+      (Listener.deadline member.listener));
   published
 
 let stop t =
