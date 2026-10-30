@@ -4,7 +4,8 @@
 # `listener_add` and admits the listener only when the reply carries
 # `auth_header`, else refuses with Icecast's 401 challenge; a configured
 # `auth_header` disables `x-icecast-auth-result`. A reply's time limit cuts the
-# listener, and each departure is POSTed to `listener_remove`.
+# listener, a zero one at once, and each departure is POSTed to
+# `listener_remove`. A reload changes the listener limits of a running mount.
 port = 18137
 auth_port = 18141
 
@@ -44,6 +45,11 @@ def f() =
         then
           response.header("Icecast-Auth-User", "1")
           response.header("Icecast-Auth-Timelimit", "1")
+        elsif
+          token == "zero"
+        then
+          response.header("Icecast-Auth-User", "1")
+          response.header("Icecast-Auth-Timelimit", "0")
         elsif
           token == "alter"
         then
@@ -334,6 +340,40 @@ def f() =
     finally
       timed.close()
     end
+
+    zero = connect("/radio.mp3?token=zero")
+    try
+      ignore(
+        wait_for(
+          "the listener with a zero time limit to be disconnected",
+          fun () ->
+            begin
+              chunk =
+                try
+                  zero.read(timeout=0.5)
+                catch _ do
+                  "timeout"
+                end
+              chunk == "" ? true : null
+            end
+        )
+      )
+    finally
+      zero.close()
+    end
+
+    file.write(
+      data=r/<\/mount>/.replace(
+        fun (_) -> "<max-listeners>0</max-listeners></mount>",
+        file.contents(config)
+      ),
+      config
+    )
+    server.reload()
+    expect_status(
+      "/radio.mp3?token=ok",
+      "HTTP/1.0 503"
+    )
     test.pass()
   end
 

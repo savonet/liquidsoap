@@ -2321,17 +2321,16 @@ def icecast.server.source_manager(
           list.iter(fun (h) -> h(view), on_listener_disconnect_handlers())
         end
 
-        within_limits =
-          icecast.server.listener_limit(
-            max_listeners=config.max_listeners,
-            max_clients=parsed.max_clients,
-            mount_listeners=listeners.current,
-            server_listeners=server_listeners
-          )
-
-        # Read at each admission so that a reload applies at once.
+        # Reads the configuration at each admission so that a reload applies at once.
         def admission(listener) =
           config = mount_config(mount)
+          within_limits =
+            icecast.server.listener_limit(
+              max_listeners=config.max_listeners,
+              max_clients=server_config().parsed.max_clients,
+              mount_listeners=listeners.current,
+              server_listeners=server_listeners
+            )
           auth =
             null.map(
               fun (auth) ->
@@ -2348,8 +2347,13 @@ def icecast.server.source_manager(
             )
               ?? {refusal = null, time_limit = null, preroll = null}
           refusal = auth.refusal ?? within_limits(listener)
-          time_limit =
-            auth.time_limit ?? null.map(float, config.max_listener_duration)
+
+          # A backend's 0 disconnects at once, as in Icecast; the mount's 0 means no limit.
+          mount_limit =
+            (config.max_listener_duration ?? 0) > 0
+              ? float(null.get(config.max_listener_duration))
+              : null
+          time_limit = auth.time_limit ?? mount_limit
           if
             null.defined(refusal)
           then
@@ -2358,10 +2362,7 @@ def icecast.server.source_manager(
             source = auth.preroll ?? (config.intro ?? config.preroll)
             {
               refuse = null,
-              time_limit =
-                null.defined(time_limit) and null.get(time_limit) > 0.
-                  ? time_limit
-                  : null,
+              time_limit = time_limit,
               preroll =
                 null.defined(source)
                   ? prerolls.get(preroll_location(null.get(source)))

@@ -467,7 +467,7 @@ file. If the file is invalid, `reload()` raises an error, or logs it on
 Settings apply at different times:
 
 - **Right away**: source authentication (passwords, usernames, `<sources>`),
-  listener authentication, the
+  listener authentication and limits, the
   admin page credentials, the log files and their `<logging>` settings, and the
   `<fallback-mount>` of live mounts. A mount whose source is gone and whose
   fallback is removed is shut down, since it has nothing left to send.
