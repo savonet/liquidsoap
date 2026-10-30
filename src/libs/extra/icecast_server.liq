@@ -2348,6 +2348,22 @@ def icecast.server.source_manager(
               ?? {refusal = null, time_limit = null, preroll = null}
           refusal = auth.refusal ?? within_limits(listener)
 
+          # Icecast releases every listener its authentication admitted.
+          if
+            null.defined(config.url_auth)
+            and not null.defined(auth.refusal)
+            and null.defined(refusal)
+          then
+            icecast.server.url_auth_remove(
+              hostname=hostname(),
+              port=port,
+              instance=instance,
+              ip=listener_address(listener),
+              null.get(config.url_auth),
+              listener
+            )
+          end
+
           # A backend's 0 disconnects at once, as in Icecast; the mount's 0 means no limit.
           mount_limit =
             (config.max_listener_duration ?? 0) > 0
