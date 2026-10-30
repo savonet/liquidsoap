@@ -203,6 +203,16 @@ def icecast.server.redirect(status, location) =
   }
 end
 
+# Bytes of preroll files `icecast.server` keeps in memory, the least recently used dropped first.
+# @flag extra
+# @category Source / Input / Active
+let settings.icecast.server.preroll_cache_size =
+  settings.make(
+    description="Bytes of preroll files icecast.server keeps in memory, the \
+     least recently used dropped first.",
+    268435456
+  )
+
 let icecast.server.config = ()
 let icecast.server.config.mount = ()
 let icecast.server.config.logging = ()
@@ -1746,24 +1756,38 @@ def icecast.server.url_auth_admit(
   end
 end
 
-# Preroll files kept in memory, as RSAS caches its ads: at most `max_entries` of at most `max_size` bytes each, a URL revalidated with its ETag once `revalidate` seconds old, a local file read again when it changes. Its `get(source)` returns null, logging why, when the file cannot be loaded.
+# Whether a preroll source is a URL rather than a local path.
 # @flag hidden
-def icecast.server.preroll_cache(
-  ~max_entries=500,
-  ~max_size=10485760,
-  ~revalidate=7200.
-) =
+def icecast.server.is_url(source) =
+  string.contains(prefix="http://", source)
+  or string.contains(prefix="https://", source)
+end
+
+# Preroll files kept in memory, as RSAS caches its ads: files of at most `max_size` bytes, the least recently used dropped past `settings.icecast.server.preroll_cache_size` bytes in all. A URL is revalidated with its ETag once `revalidate` seconds old, keeping its copy when that fails, and a local file is read again when it changes. Its `get(source)` returns null, logging why, when the file cannot be loaded.
+# @flag hidden
+def icecast.server.preroll_cache(~max_size=10485760, ~revalidate=7200.) =
+  # Most recently used first.
   entries =
     ref(([] : [(string * {data: string, version: string, checked_at: float})]))
 
   def remember(source, entry) =
+    budget = settings.icecast.server.preroll_cache_size()
+    def rec within(total, entries) =
+      list.case(
+        entries,
+        [],
+        fun (entry, rest) ->
+          begin
+            let (_, cached) = entry
+            total = total + string.bytes.length(cached.data)
+            total > budget ? [] : (entry::within(total, rest))
+          end
+      )
+    end
     atomic(
       fun () ->
         entries :=
-          list.prefix(
-            max_entries,
-            (source, entry)::list.assoc.remove(source, entries())
-          )
+          within(0, (source, entry)::list.assoc.remove(source, entries()))
     )
     entry.data
   end
@@ -1780,35 +1804,56 @@ def icecast.server.preroll_cache(
     data
   end
 
+  def fetch(url, (cached:{data: string, version: string, checked_at: float}?)) =
+    etag = null.defined(cached) ? null.get(cached).version : ""
+    response =
+      http.get(headers=etag == "" ? [] : [("If-None-Match", etag)], url)
+    if
+      response.status_code == 304 and null.defined(cached)
+    then
+      remember(url, {...null.get(cached), checked_at = time()})
+    elsif
+      response.status_code >= 200 and response.status_code < 300
+    then
+      remember(
+        url,
+        {
+          data = checked(response),
+          version = list.assoc(default="", "etag", response.headers),
+          checked_at = time()
+        }
+      )
+    else
+      error.raise(
+        error.http,
+        "status #{response.status_code}"
+      )
+    end
+  end
+
   def load_url(url, cached) =
     if
-      null.defined(cached) and time() - null.get(cached).checked_at < revalidate
+      not null.defined(cached)
     then
-      null.get(cached).data
+      fetch(url, null)
     else
-      etag = null.defined(cached) ? null.get(cached).version : ""
-      response =
-        http.get(headers=etag == "" ? [] : [("If-None-Match", etag)], url)
+      entry = null.get(cached)
       if
-        response.status_code == 304 and null.defined(cached)
+        time() - entry.checked_at < revalidate
       then
-        remember(url, {...null.get(cached), checked_at = time()})
-      elsif
-        response.status_code >= 200 and response.status_code < 300
-      then
-        remember(
-          url,
-          {
-            data = checked(response),
-            version = list.assoc(default="", "etag", response.headers),
-            checked_at = time()
-          }
-        )
+        remember(url, entry)
       else
-        error.raise(
-          error.http,
-          "status #{response.status_code}"
-        )
+        # Marked fresh first, so that admissions during the refetch use the copy.
+        ignore(remember(url, {...entry, checked_at = time()}))
+        try
+          fetch(url, cached)
+        catch err do
+          log.important(
+            label="icecast.server",
+            "Preroll #{url} not revalidated, keeping its copy: #{err.message}"
+          )
+          entry.data
+        end
       end
     end
   end
@@ -1818,7 +1863,7 @@ def icecast.server.preroll_cache(
     if
       null.defined(cached) and null.get(cached).version == version
     then
-      null.get(cached).data
+      remember(path, null.get(cached))
     else
       remember(
         path,
@@ -1834,14 +1879,9 @@ def icecast.server.preroll_cache(
   def get(source) =
     cached = list.assoc.nullable(source, entries())
     try
-      if
-        string.contains(prefix="http://", source)
-        or string.contains(prefix="https://", source)
-      then
-        load_url(source, cached)
-      else
-        load_file(source, cached)
-      end
+      icecast.server.is_url(source)
+        ? load_url(source, cached)
+        : load_file(source, cached)
     catch err do
       log.important(
         label="icecast.server",
@@ -2237,9 +2277,7 @@ def icecast.server.source_manager(
   def preroll_location(source) =
     webroot = server_config().parsed.webroot
     if
-      string.contains(prefix="http://", source)
-      or string.contains(prefix="https://", source)
-      or not null.defined(webroot)
+      icecast.server.is_url(source) or not null.defined(webroot)
     then
       source
     else

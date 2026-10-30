@@ -122,10 +122,13 @@ applies at once.
 RSAS `<preroll>`, each its own or the default mount's. A local path is
 relative to `<paths><webroot>` when set, whether or not it starts with `/`,
 as Icecast's intros. Files are kept in memory per server, as RSAS caches its
-ads: at most 500 of at most 10 MiB each, the oldest dropped first; a URL is
-fetched again with `If-None-Match` and its ETag once two hours old, a local
-file read again when its modification time changes. A file that cannot be
-loaded is logged and the listener admitted without a preroll. The bytes are
+ads: each at most 10 MiB, at most `settings.icecast.server.preroll_cache_size`
+bytes in all (256 MiB by default), the least recently used dropped first. A
+URL is fetched again with `If-None-Match` and its ETag once two hours old; it
+is marked fresh before the request, so admissions meanwhile use its copy, and
+a failed revalidation keeps that copy. A local file is read again when its
+modification time changes. A file that cannot be loaded is logged and the
+listener admitted without a preroll. The bytes are
 sent as they are ([connection.md §4](connection.md#4-admission-predicate)).
 
 **Time limits.** An admitted listener gets the time limit of its
