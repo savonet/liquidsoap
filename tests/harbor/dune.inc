@@ -310,6 +310,23 @@
    harbor_output_overflow.liq)))
 
 (rule
+ (alias test_harbor_output_preroll)
+ (package liquidsoap)
+ (deps
+  harbor_output_preroll.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_preroll.liq
+   liquidsoap
+   harbor_output_preroll.liq)))
+
+(rule
  (alias test_harbor_output_routing)
  (package liquidsoap)
  (deps
@@ -468,6 +485,23 @@
    icecast_server_ogg_late_listener.liq)))
 
 (rule
+ (alias test_icecast_server_preroll)
+ (package liquidsoap)
+ (deps
+  icecast_server_preroll.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_preroll.liq
+   liquidsoap
+   icecast_server_preroll.liq)))
+
+(rule
  (alias test_icecast_server_reload)
  (package liquidsoap)
  (deps
@@ -519,6 +553,23 @@
    icecast_server_source_reconnect.liq)))
 
 (rule
+ (alias test_icecast_server_url_auth)
+ (package liquidsoap)
+ (deps
+  icecast_server_url_auth.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_url_auth.liq
+   liquidsoap
+   icecast_server_url_auth.liq)))
+
+(rule
  (alias test_post)
  (package liquidsoap)
  (deps
@@ -566,6 +617,7 @@
   (alias test_harbor_output_many_listeners)
   (alias test_harbor_output_on_connect_disconnect)
   (alias test_harbor_output_overflow)
+  (alias test_harbor_output_preroll)
   (alias test_harbor_output_routing)
   (alias test_harbor_output_shutdown)
   (alias test_harbor_output_stop_during_admission)
@@ -576,8 +628,10 @@
   (alias test_icecast_server_listeners)
   (alias test_icecast_server_logs)
   (alias test_icecast_server_ogg_late_listener)
+  (alias test_icecast_server_preroll)
   (alias test_icecast_server_reload)
   (alias test_icecast_server_shutdown)
   (alias test_icecast_server_source_reconnect)
+  (alias test_icecast_server_url_auth)
   (alias test_post)
   (alias test_put)))

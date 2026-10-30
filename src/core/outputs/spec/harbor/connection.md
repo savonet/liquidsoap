@@ -102,15 +102,34 @@ When `accept` is set, it is called with the listener record
 passed authentication, before `on_connect`. It is user code and runs on work
 allowed to block, like `auth`.
 
-- `true` admits the request.
-- `false` refuses it with `HTTP/<protocol> 403 Forbidden\r\n`, a
-  `Content-Length: 0` header and an empty body, then closes the connection.
-  Neither callback fires. Logged as `Listener <peer:port> refused`.
-- An exception is logged and treated as `false`.
+The predicate returns `null` or a decision record whose fields are each
+optional and nullable: `refuse`, `time_limit`, `preroll`. An absent field and
+a `null` one mean the same.
+
+- `null`, or a decision without `refuse`, admits the request, with:
+  - `time_limit`: a deadline `time_limit` seconds after admission, on the
+    monotonic clock. The listener is disconnected once a delivery pass finds
+    the deadline passed ([delivery.md §6](delivery.md#6-disconnection)). A
+    negative limit is an exception.
+  - `preroll`: bytes sent as they are after the response head, before the
+    stream ([modes.md §2](modes.md#2-initial-bytes)). They are not decoded or
+    checked: the caller makes them match the stream's format, for instance
+    MP3 or ADTS AAC frames with the same parameters. An empty preroll is no
+    preroll.
+- `refuse = {status, reason, headers?}` refuses it with
+  `HTTP/<protocol> <status> <reason>\r\n`, each header as `<name>: <value>\r\n`
+  in order, a `Content-Length: 0` header and an empty body, then closes the
+  connection. Neither callback fires. Logged as
+  `Listener <peer:port> refused: <status> <reason>`.
+- A refusal whose status is outside 300–599, whose reason has a line break,
+  or with a header that fails the validation of
+  [operator.md §2](operator.md#2-validation-at-construction), is an
+  exception.
+- An exception is logged and refuses with `403 Forbidden` and no header.
 
 The predicate is what lets a caller enforce listener limits, per mount or
-across mounts, address bans or header checks, without asking for
-credentials. Admissions of one output MAY run concurrently, so a limit
+across mounts, address bans, header checks or an external authentication,
+with the refusals Icecast sends, without asking for credentials. Admissions of one output MAY run concurrently, so a limit
 counted by the predicate can be exceeded by the number of admissions in
 progress at once.
 
@@ -192,7 +211,7 @@ the group, so a joiner never waits for the next streaming cycle.
 | Authentication refused          | 401 or 403 page, connection closed ([§3](#3-authentication)).                    | neither                        |
 | Authentication raised           | Logged; connection closed with no reply.                                         | neither                        |
 | Output not started (steps 3, 5) | 503 reply.                                                                       | neither                        |
-| Predicate refused or raised     | 403 reply ([§4](#4-admission-predicate)).                                        | neither                        |
+| Predicate refused or raised     | The refusal, or 403 ([§4](#4-admission-predicate)).                              | neither                        |
 | Peer address unavailable        | The server answers its 500 reply.                                                | neither                        |
 | Steps 7–9 fail                  | Logged `Listener … failed to connect: …`; listener marked closed, socket closed. | both                           |
 | Output stopped after step 6     | Listener marked closed, socket closed.                                           | both                           |

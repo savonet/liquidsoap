@@ -36,6 +36,7 @@ let probe ~group id =
       ip = "127.0.0.1";
       peer = Printf.sprintf "127.0.0.1:%d" id;
       uri = "/test";
+      query_string = "";
       protocol = "1.0";
       headers = [];
       connected_at = Unix.gettimeofday ();
