@@ -23,9 +23,11 @@ has no history to send.
 
 What the mode keeps per listener besides the common fields (record, socket,
 closed flag, ICY position and last generation sent, last progress). Created
-during admission ([connection.md §6](connection.md#6-admission), step 5).
-When the mode's encoder state is not running, creation refuses the request
-with the 503 reply of that step.
+during admission with the initial bytes
+([connection.md §6](connection.md#6-admission), step 7), after `on_connect`.
+When the mode's encoder state has stopped by then, creation fails and the
+listener ends closed, with both callbacks, as for an output stopped after
+step 6 ([connection.md §7](connection.md#7-failure-paths)).
 
 ## 2. Initial bytes
 

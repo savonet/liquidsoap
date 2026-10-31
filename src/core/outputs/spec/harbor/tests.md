@@ -45,7 +45,8 @@ the order in which asynchronous callbacks run.
   fields, a preroll or `on_dropped` ignores them and never calls `on_dropped`.
 - **`on_dropped`.** An admitting decision carrying `on_dropped` gets exactly
   one of `on_connect` or `on_dropped` for every request. A decision with an
-  invalid `time_limit`, a decision with an invalid header pair, and
+  invalid `time_limit` (negative or non-finite), a decision with an invalid
+  header pair, and
   an output stopped between the decision and `on_connect` (step 5 race, by
   fault injection) each give `403` or `503`, exactly one `on_dropped` call and
   no `on_connect`. A normal admission gives `on_connect` and no `on_dropped`.
@@ -142,6 +143,11 @@ the order in which asynchronous callbacks run.
   `keep_listeners` created while its source is not available starts, registers
   its mount and admits a listener, who receives the response head and no
   stream byte until the source is available.
+- **Timeout after a wait.** A listener owed nothing for longer than `timeout`,
+  then owed bytes its socket does not accept, is not timed out by that first
+  pass; it is once `timeout` passes again.
+- **Watch without a wake-up.** A listener's socket is closed, and its teardown
+  runs, on a descriptor whose shutdown wakes nothing.
 - **Hang-up during a gap.** A listener that closes its socket while the
   source is unavailable is disconnected within a bound (a few seconds), with
   `on_disconnect` exactly once and `listeners()` no longer listing it. The

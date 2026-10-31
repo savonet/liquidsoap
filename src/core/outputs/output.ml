@@ -180,10 +180,16 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
         ~finally:(fun () -> self#fire_on_output ~before:false ())
         (fun () -> self#do_output)
 
+    (* Called on every cycle where the source is unavailable or has ended.
+       [`Hold] keeps the output started and skips the cycle; it also starts an
+       idle output over an unavailable source. *)
+    method private on_unavailable_source : [ `Stop | `Hold ] = `Stop
+
     method private do_output =
-      if self#is_ready && state = `Idle then
+      let held = (not self#is_ready) && self#on_unavailable_source = `Hold in
+      if (self#is_ready || held) && state = `Idle then
         start_stop#execute_transition `Started;
-      if start_stop#state = `Started then (
+      if start_stop#state = `Started && not held then (
         let data =
           if self#is_ready then self#get_frame else self#end_of_track
         in
@@ -194,8 +200,9 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           if self#is_ready && not self#fallible then (
             self#log#critical "Infallible source produced a partial frame!";
             assert false);
-          self#log#info "Source ended (no more tracks) stopping output...";
-          self#execute_transition `Idle);
+          if self#on_unavailable_source = `Stop then (
+            self#log#info "Source ended (no more tracks) stopping output...";
+            self#execute_transition `Idle));
 
         if skip then (
           self#log#important "Performing user-requested skip";
