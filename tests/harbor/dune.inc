@@ -242,6 +242,23 @@
    harbor_output_join_points.liq)))
 
 (rule
+ (alias test_harbor_output_keep_listeners)
+ (package liquidsoap)
+ (deps
+  harbor_output_keep_listeners.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_keep_listeners.liq
+   liquidsoap
+   harbor_output_keep_listeners.liq)))
+
+(rule
  (alias test_harbor_output_large_output)
  (package liquidsoap)
  (deps
@@ -308,6 +325,23 @@
    harbor_output_on_connect_disconnect.liq
    liquidsoap
    harbor_output_on_connect_disconnect.liq)))
+
+(rule
+ (alias test_harbor_output_on_dropped)
+ (package liquidsoap)
+ (deps
+  harbor_output_on_dropped.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_on_dropped.liq
+   liquidsoap
+   harbor_output_on_dropped.liq)))
 
 (rule
  (alias test_harbor_output_overflow)
@@ -630,10 +664,12 @@
   (alias test_harbor_output_icy_stamping)
   (alias test_harbor_output_idle_cost)
   (alias test_harbor_output_join_points)
+  (alias test_harbor_output_keep_listeners)
   (alias test_harbor_output_large_output)
   (alias test_harbor_output_listener_lifecycle)
   (alias test_harbor_output_many_listeners)
   (alias test_harbor_output_on_connect_disconnect)
+  (alias test_harbor_output_on_dropped)
   (alias test_harbor_output_overflow)
   (alias test_harbor_output_preroll)
   (alias test_harbor_output_routing)

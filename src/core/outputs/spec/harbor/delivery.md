@@ -114,7 +114,11 @@ the group, behind one slow peer.
 ## 5. No-progress timeout
 
 `last progress` starts at the listener's publication and is updated on every
-write that accepts at least one byte. A listener is timed out only while it
+write that accepts at least one byte. It is also reset to now when a pass
+finds bytes owed to a listener that the previous pass left owed nothing: the
+time a listener waited for the source does not count, since `timeout` MUST NOT
+end a listener that waits for it ([operator.md §7](operator.md#7-lifecycle)).
+A listener is timed out only while it
 is owed bytes, right after a flush attempt. A listener owed nothing is never
 timed out, and one whose socket accepts any byte within `timeout` is never
 timed out. With the retry of [§2](#2-wake-ups), a stalled listener is closed
@@ -145,19 +149,23 @@ happens within a cycle while the stream runs.
 A listener owed nothing, as during a `keep_listeners` gap
 ([operator.md §7](operator.md#7-lifecycle)), is no longer written to, so a
 hang-up would go unseen and the listener count would drift. The delivery
-group therefore waits for read-readiness on the sockets of its idle members:
-a read that returns end of stream, or an error, marks the listener closed, so
-`on_disconnect` fires promptly. Bytes a listener sends are discarded. The
-wait is on readability only; it does not spin, since an idle peer sends
-nothing.
+group therefore waits for read-readiness on the socket of every member, for
+its whole life: a read that returns end of stream, or an error, marks the
+listener closed, so `on_disconnect` fires promptly. Bytes a listener sends are
+discarded. The wait is on readability only; it does not spin, since a
+listening peer sends nothing. Watching every member costs one registration
+per listener, where watching only idle ones would register again on every
+pass. The trade-off: a client that half-closes its write side after its
+request is disconnected, even while it is streaming.
+
 **Marking closed** is the only operation a cause performs. It MUST be
 idempotent and race-free: exactly one caller wins. The winner records the
 disconnection time, logs `Listener <id> disconnected`, and wakes the
 listener's group. After marking, no new byte is staged for the listener.
 
-**Teardown** runs once per listener, after its socket is closed: by its group
-on removal ([§8](#8-removal-and-socket-close)), or by admission for a listener
-that never reached a running group. It is work allowed to block, since it
+**Teardown** runs once per listener, after its socket is closed
+([§8](#8-removal-and-socket-close)): queued by whoever closes it, or by
+admission for a listener that never reached a running group. It is work allowed to block, since it
 runs encoder code and user callbacks:
 
 1. the mode's listener teardown ([modes.md §9](modes.md#9-listener-teardown)),
@@ -190,11 +198,14 @@ place, no listener is left in an ended group.
 ## 8. Removal and socket close
 
 At the end of each pass, the group removes its members marked closed and
-closes their sockets, then queues each removed listener's teardown
-([§6](#6-disconnection)).
+releases their sockets.
 
-A listener's socket MUST be closed exactly once, by whoever owns it: its
-group once it is published, admission before that. It MUST NOT be closed
+A listener's socket MUST be closed exactly once, by its last user: admission
+before publication; after it, the group or the listener's hang-up watch
+([§6](#6-disconnection)), whichever releases it last. It MUST NOT be closed
 while another task may still use its descriptor: a closed descriptor number
 can be reused by a new connection, and a late write or wait would then hit
-an unrelated peer. Errors on close are ignored.
+an unrelated peer. A group that releases a socket its watch still waits on
+wakes the watch, which ends within `RETRY_INTERVAL` even where nothing wakes
+it. The one that closes the socket queues the listener's teardown
+([§6](#6-disconnection)). Errors on close are ignored.

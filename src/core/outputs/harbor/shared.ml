@@ -10,11 +10,12 @@ type snapshot = {
 }
 
 (* [lock] serialises the encoder's use with its stop, and the store's
-   writes. *)
+   writes. A listener joining while [held] gets no burst. *)
 type t = {
   factory : string -> Frame.Metadata.Export.t -> Encoder.encoder;
   buffer : int;
   burst : int option;
+  held : bool Atomic.t;
   metaint : int;
   store : Store.t;
   snapshot : snapshot Atomic.t;
@@ -29,6 +30,7 @@ let create ~factory ~buffer ~burst ~metaint () =
     factory;
     buffer;
     burst;
+    held = Atomic.make false;
     metaint;
     store = Store.create ~retain:buffer ();
     snapshot =
@@ -106,7 +108,10 @@ let stop t =
             let data = encoder.Encoder.stop () in
             append t { data; restart = encoder.Encoder.restart_offset () })
 
+let hold t = Atomic.set t.held true
+
 let encode t frame =
+  Atomic.set t.held false;
   Mutex.protect t.lock (fun () ->
       match t.encoder with
         | None -> { data = Strings.empty; restart = None }
@@ -132,8 +137,7 @@ let metadata t metadata event =
    there: its first output may begin with header pages it does not report. *)
 let join_offset t snapshot ~tail ~burst =
   match burst with
-    | None -> tail
-    | Some burst -> (
+    | Some burst when not (Atomic.get t.held) -> (
         let window = newest_start snapshot ~tail - t.buffer in
         let lowest, stream_start =
           match snapshot.stream_start with
@@ -156,6 +160,7 @@ let join_offset t snapshot ~tail ~burst =
               match List.rev candidates with
                 | oldest :: _ -> oldest
                 | [] -> tail))
+    | _ -> tail
 
 (* A preroll owed before the listener joins the stream, with the header and
    epoch of the encoder at admission: encoder code never runs in a delivery

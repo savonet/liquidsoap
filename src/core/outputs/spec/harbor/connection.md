@@ -204,12 +204,12 @@ In order:
    `HTTP/<protocol> 503 Service Unavailable\r\n`, `Content-Length: 0`, an
    empty line, and close.
 4. Create the listener record and run the admission predicate ([§4](#4-admission-predicate)).
-5. Create the mode's per-listener state ([modes.md §1](modes.md#1-listener-state));
-   if the encoder state stopped meanwhile, reply as in step 3 and call the
+5. If the encoder state stopped meanwhile, reply as in step 3 and call the
    decision's `on_dropped` ([§4](#4-admission-predicate)).
 6. Run the `on_connect` handlers with the record.
-7. Queue the listener's initial bytes: the response head, then what the mode
-   sends first ([modes.md §2](modes.md#2-initial-bytes)).
+7. Create the mode's per-listener state ([modes.md §1](modes.md#1-listener-state))
+   and queue the listener's initial bytes: the response head, then what the
+   mode sends first ([modes.md §2](modes.md#2-initial-bytes)).
 8. Put the socket in non-blocking mode.
 9. Publish the listener to a delivery group and wake that group
    ([delivery.md §2](delivery.md#2-wake-ups)). Log
