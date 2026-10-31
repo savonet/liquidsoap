@@ -1506,6 +1506,13 @@ def icecast.server.basic_credentials(headers) =
   end
 end
 
+# Whether a preroll source is a URL rather than a local path.
+# @flag hidden
+def icecast.server.is_url(source) =
+  string.contains(prefix="http://", source)
+  or string.contains(prefix="https://", source)
+end
+
 # POSTs one of Icecast's URL authentication requests about `listener` to `url`, with the form fields both actions share followed by `fields`. The request carries the `credentials` option, else the listener's own, unless `url` embeds some.
 # @flag hidden
 def icecast.server.url_auth_request(
@@ -1714,11 +1721,23 @@ def icecast.server.url_auth_admit(
         null.defined(limit) or null.defined(timelimit_header) or not success
           ? limit
           : time_limit("x-icecast-auth-timelimit", headers)
-      {
-        refusal = refusal,
-        time_limit = limit,
-        preroll = header("preroll", headers)
-      }
+
+      # A backend names URLs only: a local path would let it read any file the server can.
+      preroll = header("preroll", headers)
+      preroll =
+        if
+          null.defined(preroll) and not icecast.server.is_url(null.get(preroll))
+        then
+          log.important(
+            label="icecast.server",
+            "Ignoring preroll #{null.get(preroll)} from listener_add: not an \
+             http or https URL"
+          )
+          null
+        else
+          preroll
+        end
+      {refusal = refusal, time_limit = limit, preroll = preroll}
     catch err do
       log.severe(
         label="icecast.server",
@@ -1733,13 +1752,6 @@ def icecast.server.url_auth_admit(
       }
     end
   end
-end
-
-# Whether a preroll source is a URL rather than a local path.
-# @flag hidden
-def icecast.server.is_url(source) =
-  string.contains(prefix="http://", source)
-  or string.contains(prefix="https://", source)
 end
 
 # Preroll files kept in memory, as RSAS caches its ads: files of at most `max_size` bytes, the least recently used dropped past `settings.icecast.server.preroll_cache_size` bytes in all. A URL is revalidated with its ETag once `revalidate` seconds old, keeping its copy when that fails, and a local file is read again when it changes. Its `get(source)` returns null, logging why, when the file cannot be loaded.
