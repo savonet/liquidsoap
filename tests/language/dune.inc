@@ -813,6 +813,20 @@
   (run %{run_test} various.liq liquidsoap various.liq)))
 
 (rule
+ (alias test_xml_helpers)
+ (package liquidsoap)
+ (deps
+  xml_helpers.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} xml_helpers.liq liquidsoap xml_helpers.liq)))
+
+(rule
  (alias test_xml_test)
  (package liquidsoap)
  (deps
@@ -900,5 +914,6 @@
   (alias test_typing)
   (alias test_url)
   (alias test_various)
+  (alias test_xml_helpers)
   (alias test_xml_test)
   (alias test_yaml)))

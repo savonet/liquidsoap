@@ -2515,6 +2515,20 @@
    --no-fallible-check
    content/liq/video-webcam.liq)))
 
+(rule
+ (alias test-doc-xml-tree)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/xml-tree.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/xml-tree.liq)))
+
 (alias
  (name doctest)
  (deps
@@ -2693,4 +2707,5 @@
   (alias test-doc-video-text)
   (alias test-doc-video-transition)
   (alias test-doc-video-weather)
-  (alias test-doc-video-webcam)))
+  (alias test-doc-video-webcam)
+  (alias test-doc-xml-tree)))
