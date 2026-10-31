@@ -65,7 +65,9 @@ A parameter read at use whose type is `T` MAY be given as a getter `{T}`: a
 value, or a function of no argument returning one. The server evaluates it at
 each use, so a limit can change without a reload. A parameter read at startup
 or at mount output creation is a plain value. A getter MUST NOT be evaluated
-more than once per use.
+more than once per use. Its value is validated as the field's
+([§7](#7-validation-and-errors)) when the record is validated and at each use:
+a value invalid at use fails that use, as an invalid mount record does.
 
 ## 3. Server parameters
 
@@ -260,7 +262,9 @@ precedence rule:
 - a computed value is validated before the decision is handed to the harbor
   output: a name that is not an HTTP token, or a value with a CR or LF, drops
   the entry and is logged. The harbor output validates what reaches it too, so
-  it stays the single validator of what is written.
+  it stays the single validator of what is written;
+- a `compute` that raises drops the entry and is logged, as an invalid value
+  does: the reply is still sent.
 
 `compute` is called for each reply with `(request, status)`. `request` has the
 request's headers by lowercase name in `headers`, and `compatibility`
@@ -397,17 +401,17 @@ decision reserved.
 The standard library provides these helpers. Their behaviour is owned by the
 document linked; the names are fixed here.
 
-| Public helper                                                                            | Builds                                                                                                                                                                            | Owner                                                |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `icecast.server.config.load(~compatibility="icecast-2.5", path)`                         | The parameters of an Icecast, RSAS or Icecast-KH file. `compatibility` is an argument because the translation branches on it, and it is written into the record.                  | [icecast-config.md](icecast-config.md)               |
-| `icecast.server.refusal(~reason, ~headers, status)`                                      | A `refuse` value.                                                                                                                                                                 | [listeners.md](listeners.md#2-the-listener-decision) |
-| `icecast.server.redirect(status, location)`                                              | A `refuse` value that redirects.                                                                                                                                                  | the same                                             |
-| `icecast.server.decision.all(decisions)`                                                 | A decision composing others in order, and the one owner of how their outcomes merge ([listeners.md §7](listeners.md#7-ready-made-decisions)).                                     | the same                                             |
-| `icecast.server.decision.url_auth(~cache, options)`                                      | URL authentication; `options` are url-auth.md's option names, `cache` is the preroll cache that loads the prerolls the backend chooses and bounds them by its `preroll_max_size`. | [url-auth.md](url-auth.md)                           |
-| `icecast.server.decision.access_lists(~deny, ~allow, ~agents)`                           | Access lists; each argument is a file name or `null`.                                                                                                                             | [listeners.md](listeners.md#71-access-lists)         |
-| `icecast.server.decision.htpasswd(file)`                                                 | Basic authentication against a file.                                                                                                                                              | [listeners.md](listeners.md#72-htpasswd)             |
-| `icecast.server.headers.cors(~origins=[], ~expose=[])`                                   | The CORS `http_headers` entries. `origins` restricts the allowed origins (empty: any) and `expose` appends names to the exposed headers, under every `compatibility` value.       | [listeners.md](listeners.md#32-per-reply-headers)    |
-| `icecast.server.preroll_cache(~preroll_timeout, ~preroll_max_size, ~preroll_revalidate)` | A view over the process-wide preroll store that turns a location into bytes.                                                                                                      | [prerolls.md](prerolls.md#3-the-cache)               |
+| Public helper                                                                                        | Builds                                                                                                                                                                            | Owner                                                |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `icecast.server.config.load(~compatibility="icecast-2.5", path)`                                     | The parameters of an Icecast, RSAS or Icecast-KH file. `compatibility` is an argument because the translation branches on it, and it is written into the record.                  | [icecast-config.md](icecast-config.md)               |
+| `icecast.server.refusal(~reason, ~headers, status)`                                                  | A `refuse` value.                                                                                                                                                                 | [listeners.md](listeners.md#2-the-listener-decision) |
+| `icecast.server.redirect(status, location)`                                                          | A `refuse` value that redirects.                                                                                                                                                  | the same                                             |
+| `icecast.server.decision.all(decisions)`                                                             | A decision composing others in order, and the one owner of how their outcomes merge ([listeners.md §7](listeners.md#7-ready-made-decisions)).                                     | the same                                             |
+| `icecast.server.decision.url_auth(~cache, options)`                                                  | URL authentication; `options` are url-auth.md's option names, `cache` is the preroll cache that loads the prerolls the backend chooses and bounds them by its `preroll_max_size`. | [url-auth.md](url-auth.md)                           |
+| `icecast.server.decision.access_lists(~deny, ~allow, ~agents)`                                       | Access lists; each argument is a file name or `null`.                                                                                                                             | [listeners.md](listeners.md#71-access-lists)         |
+| `icecast.server.decision.htpasswd(file)`                                                             | Basic authentication against a file.                                                                                                                                              | [listeners.md](listeners.md#72-htpasswd)             |
+| `icecast.server.headers.cors(~origins=[], ~expose=[])`                                               | The CORS `http_headers` entries. `origins` restricts the allowed origins (empty: any) and `expose` appends names to the exposed headers, under every `compatibility` value.       | [listeners.md](listeners.md#32-per-reply-headers)    |
+| `icecast.server.preroll_cache(~directory, ~preroll_timeout, ~preroll_max_size, ~preroll_revalidate)` | A view over the process-wide preroll store that turns a location into bytes; `directory` is the base directory of local locations.                                                | [prerolls.md](prerolls.md#3-the-cache)               |
 
 These helpers are internal. `icecast.server.config.load` calls them, and no
 script needs them: `connections_per_user(n)` (the per-user limit,
@@ -468,6 +472,8 @@ A record is **valid** when:
   `status`, when present, in 100 to 599. The value a `compute` answers is
   checked at each reply ([§4.2](#42-headers));
 - each event binding names one of the five events;
+- each `proxy_ips` entry is an IPv4 or IPv6 address, or one in CIDR notation
+  (`address/prefix`, with a prefix no longer than the address);
 - a mount record's `fallback` is `{mount?, source?}`, with a `mount` that starts
   with `/`. A `fallback` with both fields is valid: it logs a warning and uses
   `source`.
