@@ -30,18 +30,26 @@ The server reports events to handlers the operator registers through server
 methods. Methods, not parameters: a reload replaces the parameters and MUST NOT
 drop registered handlers.
 
-| Method                   | When                                                                                     | Handler receives                                                                                                                                                                     |
-| ------------------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `on_source_connect`      | A source client or Liquidsoap source starts feeding a mount, and its mount output exists | the source-connect record: `mount`, `source` (the Liquidsoap source feeding the mount output), `format`, `headers` (the headers a source client sent, empty for a Liquidsoap source) |
-| `on_source_disconnect`   | What fed a mount is gone and the mount is updated ([mounts.md](mounts.md))               | `mount`                                                                                                                                                                              |
-| `on_listener_connect`    | A listener is admitted and its session starts                                            | the [listener record](#2-the-listener-record) with `duration` and `bytes_sent` zero                                                                                                  |
-| `on_listener_disconnect` | A listener session ends, for any reason                                                  | the listener record with final `duration` and `bytes_sent`                                                                                                                           |
-| `on_metadata`            | A mount's metadata changes ([mounts.md](mounts.md))                                      | `mount`, `metadata` (a list of key and value pairs), `listeners` (the mount's current listener count)                                                                                |
+| Method                   | When                                                                                     | Handler receives                                                                                                                                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `on_source_connect`      | A source client or Liquidsoap source starts feeding a mount, and its mount output exists | the source-connect record: `mount`, `source` (the Liquidsoap source feeding the mount output), `format`, `headers` (the headers a source client sent, empty for a Liquidsoap source), `ip`, `agent`, `server` |
+| `on_source_disconnect`   | What fed a mount is gone and the mount is updated ([mounts.md](mounts.md))               | the source-disconnect record: `mount`, `ip`, `agent`, `server`                                                                                                                                                |
+| `on_listener_connect`    | A listener is admitted and its session starts                                            | the [listener record](#2-the-listener-record) with `duration` and `bytes_sent` zero                                                                                                                           |
+| `on_listener_disconnect` | A listener session ends, for any reason                                                  | the listener record with final `duration` and `bytes_sent`                                                                                                                                                    |
+| `on_metadata`            | A mount's metadata changes ([mounts.md](mounts.md))                                      | `mount`, `metadata` (a list of key and value pairs), `listeners` (the mount's current listener count)                                                                                                         |
 
 Each method takes `synchronous` and a callback, and may be called any number of
 times. `synchronous` defaults to `false`. A mount's `on_connect` and
 `on_disconnect` callbacks ([parameters.md](parameters.md#52-source-callbacks))
-receive the source-connect record and `{mount}`.
+receive the source-connect and source-disconnect records.
+
+**Source records.** `ip` is the source client's address, never hashed, and
+`agent` its `User-Agent`, `-` when absent; both are empty for a Liquidsoap
+source. The disconnect record carries the same two as the connect record of the
+same feeder, so a notification on departure needs no state of its own. `server`
+is `{hostname, port, instance}` ([parameters.md §5](parameters.md#5-callbacks)):
+the server fills it, and a handler or a helper built outside the server uses it
+as it is.
 
 Icecast's `event-bindings` are the `event_bindings` parameter
 ([parameters.md §5.5](parameters.md#55-event-bindings)), not handlers
@@ -467,6 +475,7 @@ out are [listeners.md §8 and §9](listeners.md#8-the-listeners-address).
 | ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | Listener record (every event), `stats()`, pages, access log             | Resolved address transformed by `address_hash`                              |
 | URL authentication requests to the backend ([url-auth.md](url-auth.md)) | Raw                                                                         |
+| Source records and notifications ([§1](#1-events))                      | Raw: they describe the operator's own source clients                        |
 | Error log, and the server's own log                                     | May contain the raw `ip:port` of a connection (as Icecast's error log does) |
 
 With the default `address_hash`, `ip` is a fixed-length hexadecimal string, not

@@ -55,7 +55,9 @@ reader sees the whole record as it stood at one instant ([§8.2](#82-atomic-swap
 
 `compatibility` chooses the implementation the server mimics wherever
 implementations differ ([§3.2](#32-compatibility)). Each rule that depends on
-it says what every value does, in the document that owns the rule.
+it says what every value does, in the document that owns the rule. The server
+reads it once and puts it in the requests it hands to callbacks
+([§5](#5-callbacks)), so a callback or helper never receives it as an argument.
 
 ### 2.4 Getters
 
@@ -80,13 +82,22 @@ more than once per use.
 
 | Field           | Type     | Default         | Read point | Meaning                                                                            |
 | --------------- | -------- | --------------- | ---------- | ---------------------------------------------------------------------------------- |
-| `compatibility` | `string` | `"icecast-2.5"` | use        | The implementation to mimic: `"icecast-2.5"`, `"icecast-2.4"`, `"rsas"` or `"kh"`. |
+| `compatibility` | `string` | `"icecast-2.5"` | startup    | The implementation to mimic: `"icecast-2.5"`, `"icecast-2.4"`, `"rsas"` or `"kh"`. |
 
 Wherever implementations behave differently, the chosen one wins, including
 where RSAS or KH depart from mainline. A behaviour only other implementations
 have, and that conflicts with nothing the chosen one does, is honoured too.
-No Icecast configuration file sets it
-([icecast-config.md](icecast-config.md#11-rules-that-depend-on-compatibility)).
+
+- It is read at startup only: a reload with another value keeps the running one
+  and logs the change as not applied ([§8.3](#83-after-the-swap)). Rationale:
+  the record that callbacks and helpers were built for assumes one value for
+  the life of the server.
+- The server hands it to callbacks as `request.compatibility`
+  ([§5](#5-callbacks)). The server has no getter for it.
+- No Icecast configuration file sets it. The translation takes it as an
+  argument, because mount selection and the CORS type depend on it, and writes
+  it into the record
+  ([icecast-config.md](icecast-config.md#11-rules-that-depend-on-compatibility)).
 
 ### 3.3 Transport and TLS
 
@@ -233,17 +244,37 @@ is a string or a callback `(request, status) -> string?`:
   below) is present;
 - `status`, when present, restricts the entry to replies with that status.
 
-The effective list for a mount is the server's, then the mount's. An entry is
-dropped when its name was already set on that reply, by the listener decision
-or by an earlier entry: a header is never sent twice. Rationale: a doubled
-`Access-Control-Allow-Origin` makes browsers reject the reply. The ready-made
-CORS header set is `icecast.server.headers.cors` ([§5.7](#57-decisions-and-helpers)).
+The final list of a reply is, in order: the headers of the listener decision,
+the stream identity headers, the server's list, then the mount's list. The
+server owns the whole evaluation, per reply, and this section owns the one
+precedence rule:
 
-`compute` is called for each reply with `(request, status)`, where `request`
-gives the request's headers by lowercase name and `status` is the reply's. It
-answers a string, or `null` to skip the entry. It exists because some headers
-depend on the request (a CORS origin) and on the reply's status. The harbor
-output MUST let a refusal and a stream reply carry headers computed this way.
+- the first entry of a given name (compared without case) wins, whether its
+  value is fixed (`value`) or computed (`compute`); later entries with that
+  name are dropped, so a header is never sent twice. Rationale: a doubled
+  `Access-Control-Allow-Origin` makes browsers reject the reply, and list
+  order is the one thing an operator can read off;
+- an entry with a `status` applies to a reply of that status only; an entry
+  that does not apply, or whose `compute` answers `null`, sets no name and
+  lets a later entry of that name win;
+- a computed value is validated before the decision is handed to the harbor
+  output: a name that is not an HTTP token, or a value with a CR or LF, drops
+  the entry and is logged. The harbor output validates what reaches it too, so
+  it stays the single validator of what is written.
+
+`compute` is called for each reply with `(request, status)`. `request` has the
+request's headers by lowercase name in `headers`, and `compatibility`
+([§3.2](#32-compatibility)). `status` is the reply's. It answers a string, or
+`null` to skip the entry. It exists because some headers depend on the request
+(a CORS origin) and on the reply's status. The ready-made CORS header set is
+`icecast.server.headers.cors` ([§5.7](#57-decisions-and-helpers)).
+
+The server wraps every decision, so it builds the complete reply head of a
+refusal, a redirect and a decision failure, with the final header list. For an
+admitted listener it hands the harbor output the headers to add to the `200`
+reply (the `headers` field of the harbor decision). The harbor
+output writes both as given and de-duplicates nothing
+([connection.md §4](../../../../core/outputs/spec/harbor/connection.md#4-admission-predicate)).
 
 ## 5. Callbacks
 
@@ -251,21 +282,23 @@ A callback is called on work that may block unless a row says otherwise. A
 callback that raises is a failure of the use that called it; the failure's
 effect is stated with each callback.
 
+**What the server hands in.** Ready-made decisions and helpers are built by the
+script, outside the server, and built again for each `reload`. They are not
+asked to know what only the server knows. The server reads these once and puts
+them in the records it passes:
+
+| Field           | Type                                                 | In                                                                                   | Content                                                                                                                                                                    |
+| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`        | `{hostname : string, port : int, instance : string}` | the listener and source decision requests, the source event records                  | `hostname` and `port` as [§3](#3-server-parameters) gives them; `instance` is a UUID the server generates once when it starts and keeps across reloads: fixed for its life |
+| `compatibility` | `string`                                             | the listener and source decision requests, the `compute` input ([§4.2](#42-headers)) | The value of [§3.2](#32-compatibility).                                                                                                                                    |
+
 ### 5.1 The source decision
 
 `source_decision` is a callback `(request) -> bool`, called after the reserved
 path check and in place of the password check
-([sources.md](sources.md#31-the-source-decision)). Its input:
-
-| Field      | Content                                                         |
-| ---------- | --------------------------------------------------------------- |
-| `address`  | The client's address, never hashed.                             |
-| `method`   | `PUT`, `POST`, `SOURCE` or `ICY`.                               |
-| `mount`    | The mount path, query string excluded.                          |
-| `query`    | The query string as received, empty when none.                  |
-| `user`     | The Basic user name, empty when none.                           |
-| `password` | The Basic password, empty when none.                            |
-| `admin`    | `true` for an admin request on the mount, `false` for a stream. |
+([sources.md](sources.md#31-the-source-decision)). Its input is
+[sources.md §3.1](sources.md#31-the-source-decision)'s request, which carries
+`server` and `compatibility` ([§5](#5-callbacks)).
 
 Outcome: `true` admits, `false` refuses as bad credentials. An error it
 raises refuses the same way and is logged. The statuses are
@@ -274,9 +307,9 @@ raises refuses the same way and is logged. The statuses are
 ### 5.2 Source callbacks
 
 `on_connect` is a callback `(source-connect event) -> unit` and `on_disconnect`
-a callback `({mount}) -> unit`; the arguments are the records of the source
-events ([observability.md](observability.md#1-events)), the connect one carrying
-the Liquidsoap source of the feed. They run in the background; their duration
+a callback `(source-disconnect event) -> unit`; the arguments are the records of
+the source events ([observability.md](observability.md#1-events)), the connect
+one carrying the Liquidsoap source of the feed. They run in the background; their duration
 never delays the stream. A callback
 that raises is logged and changes nothing. They replace Icecast's command
 strings: the Icecast configuration file translation wraps a command into one.
@@ -333,35 +366,61 @@ input is [listeners.md §2](listeners.md#2-the-listener-decision) and the check
 order [listeners.md §1](listeners.md#1-the-admission-pipeline).
 The outcome is a record, every field optional:
 
-| Field        | Type                        | Meaning                                                                                                                              |
-| ------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `refuse`     | `{status, reason, headers}` | Refuse the listener, or redirect it when the status is a redirect and `headers` carry `Location`. This is harbor's admission record. |
-| `time_limit` | `float`                     | Seconds after which the listener is disconnected. Harbor's field.                                                                    |
-| `preroll`    | `string`                    | Bytes sent before the stream. Harbor's field. A Liquidsoap source cannot be a preroll: it would need encoding.                       |
-| `exempt`     | `bool`                      | Skips `max_listeners` and `fallback_when_full`; still counted in, and subject to, `max_clients` (KH `icecast-slave`).                |
-| `on_release` | `(float) -> unit`           | Called once with the session's length in seconds when the admitted listener leaves, or is refused by a later step.                   |
+| Field        | Type                         | Meaning                                                                                                                                                                                                     |
+| ------------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refuse`     | `{status, reason, headers?}` | Refuse the listener, or redirect it when the status is a redirect and `headers` carry `Location`. This is harbor's admission record.                                                                        |
+| `time_limit` | `float`                      | Seconds after which the listener is disconnected. Harbor's field.                                                                                                                                           |
+| `preroll`    | `string`                     | Bytes sent before the stream. Harbor's field. A Liquidsoap source cannot be a preroll: it would need encoding.                                                                                              |
+| `exempt`     | `bool`                       | Skips `max_listeners` and `fallback_when_full`; still counted in, and subject to, `max_clients` (KH `icecast-slave`).                                                                                       |
+| `on_release` | `(release) -> unit`          | Called once with the release record when the admitted listener leaves, or when its admission ends before it is served: refused by a later step, rejected by the harbor output, or the mount output stopped. |
+
+The input is [listeners.md §2](listeners.md#2-the-listener-decision)'s request.
+It carries `server`, `compatibility` and `user_listeners` besides the
+request's own fields, so a decision built by a helper needs no argument for
+them. The release record is:
+
+| Field        | Type                  | Meaning                                                                                                                                         |
+| ------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `duration`   | `float`               | The session's length in seconds; `0` for a listener whose admission ended before it was served.                                                 |
+| `bytes_sent` | `int`                 | Bytes sent to the listener, as the listener record's ([observability.md](observability.md#2-the-listener-record)); `0` then.                    |
+| `listeners`  | `int`                 | The mount's listener count at release, this listener included (RSAS sends it so); without it for a duration-0 release, which was never counted. |
+| `metadata`   | `[(string * string)]` | The mount's current metadata at release.                                                                                                        |
 
 A decision is told when its listener is released through `on_release` only: the
 closure it returned at admission is the one called, whatever a reload changed
-meanwhile.
+meanwhile. The server sets the harbor decision's `on_dropped` to call
+`on_release` with a duration-0 record
+([connection.md §4](../../../../core/outputs/spec/harbor/connection.md#4-admission-predicate)),
+so an admission that the harbor output does not complete releases what the
+decision reserved.
 
 The standard library provides these helpers. Their behaviour is owned by the
 document linked; the names are fixed here.
 
-| Helper                                                                                   | Builds                                                                                                                                                                            | Owner                                                            |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `icecast.server.refusal(~reason, ~headers, status)`                                      | A `refuse` value.                                                                                                                                                                 | [listeners.md](listeners.md#2-the-listener-decision)             |
-| `icecast.server.redirect(status, location)`                                              | A `refuse` value that redirects.                                                                                                                                                  | the same                                                         |
-| `icecast.server.decision.all(decisions)`                                                 | A decision composing others in order ([listeners.md §7](listeners.md#7-ready-made-decisions)).                                                                                    | the same                                                         |
-| `icecast.server.decision.url_auth(~cache, options)`                                      | URL authentication; `options` are url-auth.md's option names, `cache` is the preroll cache that loads the prerolls the backend chooses and bounds them by its `preroll_max_size`. | [url-auth.md](url-auth.md)                                       |
-| `icecast.server.headers.cors(~origins=[], ~expose=[])`                                   | The CORS `http_headers` entries. `origins` is RSAS's allowed-origins list and `expose` the names RSAS appends to its expose list; both are read under `"rsas"` only.              | [listeners.md](listeners.md#32-per-reply-headers)                |
-| `icecast.server.source_callbacks.url(options)`                                           | A mount's `{on_connect, on_disconnect}` that notify `mount_add` and `mount_remove` URLs; `options` are `mount_add`, `mount_remove`, `username`, `password`, `timeout`.            | [sources.md](sources.md#7-notifications)                         |
-| `icecast.server.decision.access_lists(~deny, ~allow, ~agents)`                           | Access lists; each argument is a file name or `null`.                                                                                                                             | [listeners.md](listeners.md#71-access-lists)                     |
-| `icecast.server.decision.htpasswd(file)`                                                 | Basic authentication against a file.                                                                                                                                              | [listeners.md](listeners.md#72-htpasswd)                         |
-| `icecast.server.decision.connections_per_user(n)`                                        | The per-user connection limit.                                                                                                                                                    | [listeners.md](listeners.md#73-per-user-connection-limit)        |
-| `icecast.server.decision.static_preroll(~cache, location)`                               | Gives the location as `preroll` when the decisions before it gave none.                                                                                                           | [prerolls.md](prerolls.md#5-precedence)                          |
-| `icecast.server.preroll_cache(~preroll_timeout, ~preroll_max_size, ~preroll_revalidate)` | The cache that turns a location into bytes.                                                                                                                                       | [prerolls.md](prerolls.md#3-the-cache)                           |
-| `icecast.server.source_decision.stream_auth(options)`                                    | URL authentication of source clients.                                                                                                                                             | [sources.md](sources.md#32-url-authentication-of-source-clients) |
+| Public helper                                                                            | Builds                                                                                                                                                                            | Owner                                                |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `icecast.server.config.load(~compatibility="icecast-2.5", path)`                         | The parameters of an Icecast, RSAS or Icecast-KH file. `compatibility` is an argument because the translation branches on it, and it is written into the record.                  | [icecast-config.md](icecast-config.md)               |
+| `icecast.server.refusal(~reason, ~headers, status)`                                      | A `refuse` value.                                                                                                                                                                 | [listeners.md](listeners.md#2-the-listener-decision) |
+| `icecast.server.redirect(status, location)`                                              | A `refuse` value that redirects.                                                                                                                                                  | the same                                             |
+| `icecast.server.decision.all(decisions)`                                                 | A decision composing others in order, and the one owner of how their outcomes merge ([listeners.md §7](listeners.md#7-ready-made-decisions)).                                     | the same                                             |
+| `icecast.server.decision.url_auth(~cache, options)`                                      | URL authentication; `options` are url-auth.md's option names, `cache` is the preroll cache that loads the prerolls the backend chooses and bounds them by its `preroll_max_size`. | [url-auth.md](url-auth.md)                           |
+| `icecast.server.decision.access_lists(~deny, ~allow, ~agents)`                           | Access lists; each argument is a file name or `null`.                                                                                                                             | [listeners.md](listeners.md#71-access-lists)         |
+| `icecast.server.decision.htpasswd(file)`                                                 | Basic authentication against a file.                                                                                                                                              | [listeners.md](listeners.md#72-htpasswd)             |
+| `icecast.server.headers.cors(~origins=[], ~expose=[])`                                   | The CORS `http_headers` entries. `origins` restricts the allowed origins (empty: any) and `expose` appends names to the exposed headers, under every `compatibility` value.       | [listeners.md](listeners.md#32-per-reply-headers)    |
+| `icecast.server.preroll_cache(~preroll_timeout, ~preroll_max_size, ~preroll_revalidate)` | A view over the process-wide preroll store that turns a location into bytes.                                                                                                      | [prerolls.md](prerolls.md#3-the-cache)               |
+
+These helpers are internal. `icecast.server.config.load` calls them, and no
+script needs them: `connections_per_user(n)` (the per-user limit,
+[listeners.md §7.3](listeners.md#73-per-user-connection-limit)),
+`source_callbacks.url(options)` (the `mount_add` and `mount_remove` notifications,
+[sources.md §7](sources.md#7-notifications)) and `source_decision.stream_auth(options)`
+(URL authentication of source clients,
+[sources.md §3.2](sources.md#32-url-authentication-of-source-clients)). A script
+that wants their behaviour loads a file, or writes its own callback.
+
+No helper takes `compatibility`, `hostname`, `port` or the server instance as an
+argument: each reads them from the request it is called with
+([§5](#5-callbacks)).
 
 ## 6. The server value
 
@@ -378,7 +437,6 @@ methods. A reload never drops them.
 | `stats()`                                             | A snapshot of the statistics, one entry per mount ([observability.md](observability.md#5-the-stats-snapshot)).                                              |
 | `reload(parameters)`                                  | Replace the whole record ([§8](#8-reload)).                                                                                                                 |
 | `reopen_logs()`                                       | Close and open again every log file ([observability.md](observability.md)).                                                                                 |
-| `source(mount)`                                       | The Liquidsoap source currently feeding a live mount, or `null`.                                                                                            |
 | `attach_source(~headers=[], mount, source)`           | Feed a mount from a Liquidsoap source of encoded content ([mounts.md](mounts.md#2-what-feeds-a-mount)). `headers` are the optional stream identity headers. |
 | `detach_source(mount)`                                | Stop feeding the mount from the attached source.                                                                                                            |
 
@@ -406,8 +464,9 @@ A record is **valid** when:
   and per mount, is in 1 to 256 (an Icecast value outside it is mapped by the
   translation, [icecast-config.md](icecast-config.md#5-mount));
 - each `http_headers` entry has exactly one of `value` and `compute`, a
-  non-empty `name` without line break, and a `status`, when present, in 100
-  to 599;
+  non-empty `name` that is an HTTP token, a `value` without CR or LF, and a
+  `status`, when present, in 100 to 599. The value a `compute` answers is
+  checked at each reply ([§4.2](#42-headers));
 - each event binding names one of the five events;
 - a mount record's `fallback` is `{mount?, source?}`, with a `mount` that starts
   with `/`. A `fallback` with both fields is valid: it logs a warning and uses
@@ -449,18 +508,19 @@ request in progress finishes with the values it already read.
 
 ### 8.3 After the swap
 
-| Class of parameter | Effect                                                                            |
-| ------------------ | --------------------------------------------------------------------------------- |
-| startup            | Kept. The server logs, for each one whose value changed, that it was not applied. |
-| use                | Applies at the next use: the next request, source connection, log write or event. |
-| mount output       | Applies when a mount output is next created. Existing outputs are not touched.    |
+| Class of parameter | Effect                                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| startup            | Kept. The server logs, for each one whose value changed, that it was not applied. `compatibility` is one of them. |
+| use                | Applies at the next use: the next request, source connection, log write or event.                                 |
+| mount output       | Applies when a mount output is next created. Existing outputs are not touched.                                    |
 
 The reload also performs these actions before it returns:
 
 - `transport.reload()` is called when the transport has one. Its failure is
   logged and is not a reload failure.
-- A live mount follows its new `fallback` at once.
-  A mount left with nothing to send under any source is shut down, as
+- A live mount follows its new `fallback` at once. The `source` of a
+  `fallback` is the same Liquidsoap source as before ([§9](#9-overrides)), so
+  the mount keeps following it. A mount left with nothing to send under any source is shut down, as
   [mounts.md](mounts.md#1-lifecycle) states.
 - `event_bindings` are replaced.
 - The run-time overlay ([§8.4](#84-run-time-overlay)) is cleared.
@@ -492,7 +552,7 @@ the server:
 
 ```liquidsoap
 def parameters() =
-  icecast.server.config.load("icecast.xml").{port = 8100}
+  icecast.server.config.load(compatibility="icecast-2.5", "icecast.xml").{port = 8100}
 end
 server = icecast.server(parameters())
 server.reload(parameters())
@@ -502,20 +562,36 @@ A script that overrides a value MUST override it on every reload, so that a
 reload does not silently undo it. Computing the record in one function, as
 above, does that. The server does no merging of its own.
 
+The function runs again at every reload, so it MUST NOT create a Liquidsoap
+source: one in a `fallback`, or one the script attaches. A source created in
+the function is a new source with its own clock state at each call, and "the
+mount follows its new `fallback`" compares sources by identity. The script
+creates each Liquidsoap source once, outside the function, and the function
+refers to it.
+
+```liquidsoap
+fallback_source = (...)  # created once
+def parameters() =
+  (...).{mount = fun (path) -> {fallback = {source = fallback_source}}}
+end
+```
+
 ## 10. Existing global settings
 
 The global `settings.icecast.server.*` settings are process-wide defaults, not
 the server's parameters.
 
-| Global setting                                  | Stays or moves | Notes                                                                                                               |
-| ----------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `settings.icecast.server.tls_transport`         | stays          | Chooses the factory that `icecast.server.config.load` uses to build `transport`. Not read by the server itself.     |
-| `settings.icecast.server.default_muxer_options` | stays          | Default of `muxer_options` ([§5.6](#56-muxer-options)).                                                             |
-| `settings.icecast.server.preroll_cache_size`    | stays          | Read by `icecast.server.preroll_cache` each time it stores a preroll. The cache is not a server mechanism.          |
-| `settings.icecast.server.status_codes`          | moves          | Replaced by the `compatibility` parameter, which also decides everything else that differs between implementations. |
+| Global setting                                  | Stays or moves | Notes                                                                                                                              |
+| ----------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `settings.icecast.server.tls_transport`         | stays          | Chooses the factory that `icecast.server.config.load` uses to build `transport`. Not read by the server itself.                    |
+| `settings.icecast.server.default_muxer_options` | stays          | Default of `muxer_options` ([§5.6](#56-muxer-options)).                                                                            |
+| `settings.icecast.server.preroll_cache_size`    | stays          | Bytes bounding the one process-wide preroll store, read each time a preroll is stored ([prerolls.md §3](prerolls.md#3-the-cache)). |
+| `settings.icecast.server.status_codes`          | moves          | Replaced by the `compatibility` parameter, which also decides everything else that differs between implementations.                |
 
-The preroll cache's own limits (`preroll_max_size`, `preroll_revalidate`,
-`preroll_timeout`) are arguments of `icecast.server.preroll_cache`, not
+The preroll store lives in the process, not in the server: a reload, or a new
+`icecast.server.config.load`, keeps it warm. The limits of one use
+(`preroll_max_size`, `preroll_revalidate`, `preroll_timeout`) are arguments of
+`icecast.server.preroll_cache`, which returns a view over the store, not
 parameters of the server ([prerolls.md](prerolls.md)).
 
 ## 11. Conformance
@@ -532,7 +608,10 @@ parameters of the server ([prerolls.md](prerolls.md)).
   new, one made before saw every one old, and none sees a mixture (test with two
   parameters changed together and a request loop).
 - A startup-class change is not applied (the port keeps serving) and is logged
-  as not applied.
+  as not applied; a reload with another `compatibility` is one.
+- Requests carry what the server knows: a decision and a `compute` header see
+  the `compatibility` the server started with, and the same `server.instance`
+  across a reload.
 - A mount output created before a reload keeps its `client_timeout`, burst and
   headers; one created after has the new ones.
 - A fallback set by the `fallbacks` request holds until a reload, which clears
@@ -543,23 +622,36 @@ parameters of the server ([prerolls.md](prerolls.md)).
   and is read at each use.
 - `linger` is read when the feeder leaves; a changed value applies to the next
   departure.
-- Header entries accumulate server first, then the mount's; an entry whose name
-  was already set on the reply, by the decision or an earlier entry, is dropped.
+- Header precedence is [§4.2](#42-headers)'s: the decision's headers, the
+  stream identity headers, the server's list, then the mount's; the first entry
+  of a name wins, fixed or computed, and later ones are dropped. An entry that
+  does not apply or answers `null` lets a later one win. A computed value with
+  a line break, or a name that is not a token, is dropped and logged.
+- A `fallback.source` created once outside the function that builds the record
+  is the one a live mount keeps following after a reload.
 - A live mount follows a changed fallback during the reload; a mount whose
   fallback was removed and that has no source client is gone when `reload`
   returns.
 - A mount's own value beats the server's of the same name, which beats the
-  default; headers accumulate server first, then the mount's.
+  default; headers follow [§4.2](#42-headers).
 - A mount's `burst_size` of `0` disables the burst when the server's is not
   `0`, and a mount's positive value gives one when the server's is `0`.
 - A getter given for a use-class field is evaluated at each use, and its changes
   apply without a reload.
 - `source_decision` outcomes map to the replies of [sources.md](sources.md#4-replies);
-  `on_release` is called exactly once per admitted listener.
+  `on_release` is called exactly once per admitted listener, with a release
+  record of the session's `duration`, `bytes_sent`, `listeners` and `metadata`,
+  also for an admission that ended before the listener was served
+  (duration 0, `listeners` without it).
+- Header entries are evaluated by the server: a refusal, a redirect and a
+  decision failure that raised reach the harbor output with their final header
+  list, and an admitted listener's `200` reply carries the entries as the
+  decision's admit headers.
 - Handlers registered with `on_*` before a reload still fire after it;
   `event_bindings` of the old record do not.
 - `reload` and `reopen_logs` are methods; nothing in the server installs a
   signal handler.
+- The preroll store is kept by a reload (a cached preroll is not fetched again).
 - A record built by substitution over `icecast.server.config.load` and passed
   to both `icecast.server` and `reload` keeps the substituted value.
 

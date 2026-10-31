@@ -116,11 +116,23 @@ Icecast-KH behaviour it replaces, and is not subject to `compatibility`.
 The harbor output owns delivery. This server relies on it for:
 
 - an admission decision per request, carrying a refusal (status, reason,
-  headers), a time limit and preroll bytes
-  ([connection.md §4](../../../../core/outputs/spec/harbor/connection.md#4-admission-predicate));
-- reply headers computed per request, on refusals and on stream replies
-  alike, for the CORS rules of [mounts.md](mounts.md) and
-  [listeners.md](listeners.md);
+  headers as given), or, for an admitted listener, a time limit, preroll bytes
+  and headers to add to the `200` reply, plus an `on_dropped` function the
+  output calls when an admitted request ends before `on_connect`, so that
+  every admission ends in a connect event or in `on_dropped`. The output
+  validates the decision and de-duplicates nothing
+  ([connection.md §4](../../../../core/outputs/spec/harbor/connection.md#4-admission-predicate)).
+  The server builds the final header lists, for the CORS rules of
+  [listeners.md §3.2](listeners.md#32-per-reply-headers);
+- outputs that keep their listeners while their source is unavailable: with
+  the `keep_listeners` parameter an unavailable source does not stop the
+  output, listeners receive nothing and are served again when the source is
+  available ([operator.md §7](../../../../core/outputs/spec/harbor/operator.md#7-lifecycle)).
+  Such an output starts at once over an unavailable source, and a listener
+  that hangs up during the gap is disconnected promptly
+  ([delivery.md §6](../../../../core/outputs/spec/harbor/delivery.md#6-disconnection)).
+  The server owns shutdown, for `linger` and an idle attached Liquidsoap source
+  ([mounts.md §1.1](mounts.md#11-linger));
 - the listener record and connect/disconnect callbacks it reports
   ([observability.md](observability.md)).
 

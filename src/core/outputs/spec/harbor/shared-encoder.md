@@ -73,6 +73,12 @@ preroll, disconnecting`, unless the header is empty.
 4. The listener owes: the response head, then the header, then the stream
    from `offset`.
 
+**During a gap.** An output kept started while its source is unavailable
+([operator.md §7](operator.md#7-lifecycle)) joins a listener as with no burst:
+`offset = T`. The pre-gap stream is stale, and a burst of it would play old
+audio before the silence. The listener owes the response head, the header and
+its preroll, if any, then the stream from `T`.
+
 **Worked example.** `buffer = 6000`, `E = 0`, `T = 10000`, output starts
 `[9000, 8000, 6500, 5000, 2000]`, so `N = 9000` and the window starts at 3000. Output starts in it: `[9000, 8000, 6500, 5000]`.
 

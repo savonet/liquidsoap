@@ -36,32 +36,53 @@ whose fallback has something to send
 `icecast.server` builds the mount's output. The values come from the server's parameters
 ([parameters.md](../../../../libs/extra/spec/icecast-server/parameters.md)).
 
-| `output.harbor` parameter    | Value                                                                                                                      |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `id`                         | `<mount without leading slash>.output`                                                                                     |
-| `fallible`                   | `true`                                                                                                                     |
-| `mount`, `port`, `transport` | the mount path; the server's port and transport                                                                            |
-| `headers`                    | the configured headers and the stream identity headers ([mounts.md](../../../../libs/extra/spec/icecast-server/mounts.md)) |
-| `timeout`                    | the server's `client_timeout` (server-wide only)                                                                           |
-| `burst`                      | the mount's `burst_size`, else the server's; `0` when `burst_on_connect` is off                                            |
-| `accept`                     | the admission of [listeners.md](../../../../libs/extra/spec/icecast-server/listeners.md#1-the-admission-pipeline)          |
-| `dedicated_encoder`          | the server's parameter of that name                                                                                        |
-| `format`, encoder, source    | as [mounts.md](../../../../libs/extra/spec/icecast-server/mounts.md) states                                                |
+| `output.harbor` parameter    | Value                                                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `id`                         | `<mount without leading slash>.output`                                                                            |
+| `fallible`                   | `true`                                                                                                            |
+| `keep_listeners`             | `true`: the server shuts the output down itself ([§4](#4-lifecycle-of-a-mounts-output))                           |
+| `mount`, `port`, `transport` | the mount path; the server's port and transport                                                                   |
+| `headers`                    | none: stream identity headers depend on the mount's current feeder and travel as admit headers                    |
+| `timeout`                    | the server's `client_timeout` (server-wide only)                                                                  |
+| `burst`                      | the mount's `burst_size`, else the server's; `0` when `burst_on_connect` is off                                   |
+| `accept`                     | the admission of [listeners.md](../../../../libs/extra/spec/icecast-server/listeners.md#1-the-admission-pipeline) |
+| `dedicated_encoder`          | the server's parameter of that name                                                                               |
+| `format`, encoder, source    | as [mounts.md](../../../../libs/extra/spec/icecast-server/mounts.md) states                                       |
 
 What it relies on in the output, each stated by the harbor spec:
 
 - **Admission.** `accept` returns the decision record
-  (`refuse`, `time_limit`, `preroll`;
-  [connection.md §4](connection.md#4-admission-predicate)). The server hands
-  it a non-negative `time_limit` and a valid refusal; a refusal that is
-  invalid or a callback that raises is `403 Forbidden`.
+  (`refuse`, `time_limit`, `preroll`, `headers`, `on_dropped`;
+  [connection.md §4](connection.md#4-admission-predicate)). The output
+  validates it: an invalid record, or an `accept` that raises, is
+  `403 Forbidden`. The server validates the values it computes (header names
+  and values) before handing the decision over and drops an invalid entry with
+  a log; the output still validates what reaches it.
+- **Admission that does not complete.** The server sets `on_dropped` to call
+  the decision's `on_release` with a duration-0 release record. The output
+  calls it when an admitted request ends before `on_connect`, so a limit
+  counted at admission cannot leak
+  ([listeners.md §5](../../../../libs/extra/spec/icecast-server/listeners.md#5-release)).
 - **Preroll bytes.** Sent as they are after the response head
   ([modes.md §2](modes.md#2-initial-bytes)).
-- **Per-reply headers.** The server needs a refusal and a stream reply to
-  carry headers computed per request and per status (CORS,
-  [listeners.md §3.2](../../../../libs/extra/spec/icecast-server/listeners.md#32-per-reply-headers)).
-  `headers` takes values that are fixed strings or callbacks of the request
-  and the status.
+- **Admit headers.** A decision that admits carries headers that the output
+  appends to the `200` reply, and a refusal carries the headers it is to send
+  ([connection.md §4](connection.md#4-admission-predicate)). The stream
+  identity headers (`icy-*`) are among them: the server builds them per reply
+  from the mount's current feeder, so a listener joining after a feeder
+  reconnect gets the new identity. The output writes
+  them as given. The server builds the final list (status filter, computed
+  values, de-duplication), because it alone knows the request and the policy
+  ([listeners.md §3.2](../../../../libs/extra/spec/icecast-server/listeners.md#32-per-reply-headers)).
+  The output takes no header callback.
+- **Listeners kept while the source is unavailable.** With `keep_listeners`
+  the output stays started and keeps its listeners while its source is
+  unavailable, sends them nothing, and serves again when the source is
+  available ([operator.md §7](operator.md#7-lifecycle)). The server needs it
+  for `linger` and for an attached Liquidsoap source with no data
+  ([mounts.md §1.1](../../../../libs/extra/spec/icecast-server/mounts.md#11-linger)).
+  The server ends the output itself, with `shutdown()`, when nothing is left
+  to send.
 - **Time limits.** Enforced by the output
   ([delivery.md §6](delivery.md#6-disconnection)).
 - **Burst.** With none configured the output keeps its default.
@@ -95,7 +116,8 @@ as on Icecast.
 - **Source reconnects or switches.** The output keeps running: listeners stay
   connected and the output follows the new source, unless the format changes
   ([mounts.md §3](../../../../libs/extra/spec/icecast-server/mounts.md#3-the-format-match-rule)).
-- **Nothing left to send.** When no source of any kind feeds the output
+- **Nothing left to send.** When no source of any kind feeds the output, and
+  no `linger` runs
   ([mounts.md](../../../../libs/extra/spec/icecast-server/mounts.md#1-lifecycle)),
   `icecast.server` shuts the output down, which stops it: every listener is
   disconnected and the mount's route is removed. Requests for the mount then
@@ -112,14 +134,14 @@ as on Icecast.
 
 ## 5. What it reads from the output
 
-| Used                          | For                                                                            |
-| ----------------------------- | ------------------------------------------------------------------------------ |
-| `on_connect` (synchronous)    | listener counts and the connect event                                          |
-| `on_disconnect` (synchronous) | counts, the access log line, the disconnect event, the decision's `on_release` |
-| `listeners()`                 | the stats snapshot                                                             |
-| `on_metadata`                 | playlist log and the metadata event                                            |
-| `last_metadata`               | the mount's current metadata in stats                                          |
-| `clock`, `shutdown`           | clock unification, mount teardown                                              |
+| Used                          | For                                                                                                                                             |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `on_connect` (synchronous)    | listener counts and the connect event                                                                                                           |
+| `on_disconnect` (synchronous) | counts, the access log line, the disconnect event, the decision's `on_release` (`on_dropped` covers an admission that ends before `on_connect`) |
+| `listeners()`                 | the stats snapshot                                                                                                                              |
+| `on_metadata`                 | playlist log and the metadata event                                                                                                             |
+| `last_metadata`               | the mount's current metadata in stats                                                                                                           |
+| `clock`, `shutdown`           | clock unification, mount teardown                                                                                                               |
 
 The listener record and the events built on it are owned by
 [observability.md](../../../../libs/extra/spec/icecast-server/observability.md#2-the-listener-record).

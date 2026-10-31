@@ -42,6 +42,11 @@ are stream data for ICY ([icy.md §4](icy.md#4-cadence-and-change-detection)).
 A preroll MUST NOT be copied per listener: the same ad commonly goes to every
 listener.
 
+A listener that joins while the output is kept started with its source
+unavailable ([operator.md §7](operator.md#7-lifecycle)) is owed the response
+head and the initial bytes the mode defines, with no history of the stream
+before the gap.
+
 ## 3. Pending test
 
 Whether the listener is owed bytes. Delivery flushes and times out only

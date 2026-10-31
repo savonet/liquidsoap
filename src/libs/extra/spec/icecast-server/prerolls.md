@@ -13,8 +13,9 @@ after the response head, before the stream, never copied per listener.
 The server knows prerolls only as the `preroll` field of the decision record
 ([listeners.md §2](listeners.md#2-the-listener-decision)): the bytes sent to
 this listener, unchanged. The server has no preroll cache, no fetching and no
-file reading of its own. The cache of [§3](#3-the-cache) is a helper that
-decisions use to turn a location into bytes.
+file reading of its own. The store of [§3](#3-the-cache) is process-wide, and
+`icecast.server.preroll_cache` returns a view over it that decisions use to
+turn a location into bytes.
 
 - An empty preroll is no preroll.
 - The bytes MUST be in the mount's container and codec (for MP3, MP3 frames;
@@ -53,16 +54,25 @@ helper turns a location into bytes.
 ## 3. The cache
 
 Loaded prerolls are kept in memory and shared by every listener, so the ad
-server is fetched once for many listeners. Observable rules:
+server is fetched once for many listeners. There is **one store per process**,
+bounded by the global setting `settings.icecast.server.preroll_cache_size`
+([parameters.md §10](parameters.md#10-existing-global-settings)).
+`icecast.server.preroll_cache(~preroll_timeout, ~preroll_max_size,
+~preroll_revalidate)` returns a view over the store with its own limits for
+what it loads. A reload, or a new `icecast.server.config.load`, builds new views
+and keeps the store warm: a preroll fetched before is not fetched again.
+Observable rules:
 
-- **Budget.** The cached prerolls together hold at most `preroll_cache_size`
-  bytes (recommended 256 MiB). Past it the least recently used are dropped
-  first. A dropped preroll is fetched or read again on its next use. The size
-  is read when a preroll is stored: a new value applies at the next storage.
+- **Budget.** The cached prerolls of all views together hold at most
+  `preroll_cache_size` bytes (recommended 256 MiB). Past it the least recently
+  used are dropped first. A dropped preroll is fetched or read again on its next
+  use. The size is read when a preroll is stored: a new value applies at the
+  next storage.
 - **Key.** A location is cached under its URL, query string included, or its
   resolved path. Per-listener URLs therefore each take cache space.
-- **Revalidation.** A cached URL is used as it is for `preroll_revalidate`
-  (recommended 2 hours, in seconds) after it was fetched or last confirmed.
+- **Revalidation.** A cached URL is used as it is for the view's
+  `preroll_revalidate` (recommended 2 hours, in seconds) after it was fetched or
+  last confirmed.
   After that, the next use requests the URL with `If-None-Match` carrying the
   ETag it stored (no validator when it had none). While that request is in
   flight, concurrent uses take the cached copy and do not wait. A `304` keeps
@@ -102,12 +112,14 @@ The order is the same for every `compatibility` value: `intro` and `preroll`
 name the same thing in the implementations that have them, and one does not
 override the other.
 
-The operator's two locations reach the server through a ready-made decision:
-it takes a location, loads it with the cache, and gives it as `preroll` only
-when the decision it is composed after gave none (not even an empty one)
-([listeners.md §7](listeners.md#7-ready-made-decisions)). The Icecast
-translation composes `intro` first and `preroll` second, after the
-authentication.
+The operator's two locations reach the server through the decision: the
+translation composes, last, a decision that loads the location with a view of
+the cache and gives it as `preroll`
+([icecast-config.md](icecast-config.md#53-intro-and-preroll)). Because
+`icecast.server.decision.all` keeps the first `preroll` given, an empty one
+included ([listeners.md §7](listeners.md#7-ready-made-decisions)), a location
+chosen earlier wins. The translation composes `intro` first and `preroll`
+second, after the authentication.
 
 ## 6. Conformance
 
@@ -128,6 +140,7 @@ authentication.
 - A load above `preroll_max_size`, or failing, admits without a preroll.
 - Cache total never above `preroll_cache_size` after a storage; the least
   recently used are dropped first.
+- A reload keeps the store: a preroll cached before it is not fetched again.
 
 **Incidental**: the order of eviction among entries of the same age, log
 wording, how concurrent revalidation is arranged, memory layout.

@@ -35,8 +35,21 @@ the order in which asynchronous callbacks run.
   refusal.
 - **Admission predicate** (`harbor_output_accept`). A refusal is sent as its
   status line and headers, with neither callback; null admits; a time limit
-  disconnects the listener after it, not before; a raising predicate or an
-  invalid refusal gets `403 Forbidden`.
+  disconnects the listener after it, not before; a raising predicate, an
+  invalid refusal or a negative time limit gets `403 Forbidden`.
+- **Admit headers.** A decision that admits with `headers` gets them on the
+  `200` head after the operator's `headers`, in order and unchanged, a
+  duplicate of an operator header included; a refusal's headers are written
+  as given, duplicates included. _Binding_: the head's header lines. An
+  invalid admit header gets `403 Forbidden`. A refusal that also carries admit
+  fields, a preroll or `on_dropped` ignores them and never calls `on_dropped`.
+- **`on_dropped`.** An admitting decision carrying `on_dropped` gets exactly
+  one of `on_connect` or `on_dropped` for every request. A decision with an
+  invalid `time_limit`, a decision with an invalid header pair, and
+  an output stopped between the decision and `on_connect` (step 5 race, by
+  fault injection) each give `403` or `503`, exactly one `on_dropped` call and
+  no `on_connect`. A normal admission gives `on_connect` and no `on_dropped`.
+  The check asserts the counts of each.
 - **Preroll** (`harbor_output_preroll`). In both modes the body starts with
   the preroll, then the stream; with ICY, the preroll counts towards the
   interval and its blocks are empty; a preroll much larger than `buffer`, read
@@ -117,6 +130,25 @@ the order in which asynchronous callbacks run.
   without the fault-injection checks above.
 - **Shutdown.** Process shutdown with listeners connected and no frame
   running closes every listener.
+- **Listeners kept while the source is unavailable.** An output with
+  `fallible` and `keep_listeners` on a source that becomes unavailable: the
+  listener stays connected, `on_stop` does not fire and no byte arrives, for
+  longer than `timeout`; when the source is available again the listener's
+  bytes resume, and a listener that joined during the gap is served. Without
+  `keep_listeners` the same sequence disconnects the listener. _Binding_:
+  connected through a gap longer than `timeout`, bytes resume, `stop` still
+  ends the output. The check asserts the listener count and the bytes it saw.
+- **Output created over an unavailable source.** An output with
+  `keep_listeners` created while its source is not available starts, registers
+  its mount and admits a listener, who receives the response head and no
+  stream byte until the source is available.
+- **Hang-up during a gap.** A listener that closes its socket while the
+  source is unavailable is disconnected within a bound (a few seconds), with
+  `on_disconnect` exactly once and `listeners()` no longer listing it. The
+  check asserts the disconnect count.
+- **No stale burst after a gap.** In shared mode with a burst, a listener
+  joining during a gap receives the head and header and no bytes of the
+  stream from before the gap.
 - **Load** ([known-complexity.md K2](known-complexity.md#k2-per-listener-work-must-not-scale-the-streaming-cycle),
   [K5](known-complexity.md#k5-idle-cost-must-not-grow-with-the-machine),
   [K10](known-complexity.md#k10-memory-over-long-runs-with-listeners)).
@@ -134,6 +166,9 @@ checks; a rebuild passes them.
 - **Fallback keeps listeners** (`icecast_server_fallback`). The listener is
   not disconnected and its `bytes_sent` keeps growing; once both sources
   leave, no mount remains.
+- **Linger and idle attached source.** A mount whose source client leaves with
+  `linger` set, and a mount whose attached Liquidsoap source has no data, keep
+  their listeners and send nothing; the stream resumes when a source returns.
 - **Logs and admin page** (`icecast_server_logs`). The admin page refuses
   without credentials (401) and lists the listener with a 16-hex-digit hashed
   address; the access log line matches

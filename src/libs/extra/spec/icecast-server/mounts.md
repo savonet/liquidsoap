@@ -43,7 +43,10 @@ grace period for a feeder that drops. The default is no linger.
 - The server SHOULD, when a mount's feeder leaves and nothing else feeds the
   mount (no fallback has something to send), keep the mount output for `linger`
   seconds with its listeners attached, sending nothing. `linger` is read when
-  the feeder leaves.
+  the feeder leaves. The server asks the harbor output for this once, when it
+  creates the output: the output keeps its listeners while its source is
+  unavailable ([harbor icecast-server.md §2](../../../../core/outputs/spec/harbor/icecast-server.md#2-what-the-server-asks-of-the-output)),
+  and the server alone decides when to shut the output down.
 - A source client or Liquidsoap source that takes the mount within the window
   feeds it, and the stream continues at a packet boundary. If it has another
   format the output is replaced as in [§3](#3-the-format-match-rule).
@@ -57,6 +60,7 @@ grace period for a feeder that drops. The default is no linger.
 boundary and a source blip is invisible to them; Icecast disconnects them with
 the source. This is not subject to `compatibility`. Icecast-KH's `linger-for`
 translates onto `linger` ([icecast-config.md](icecast-config.md#5-mount)).
+
 **A configured mount with no output.** A mount that is only another mount's
 fallback, with no feeder ever, has no output and no listeners. A listener
 request for a path that has no output, and whose parameters name a `fallback`
@@ -96,12 +100,11 @@ Rules for an attached Liquidsoap source:
 - It is a feeder for as long as it is attached. While it has no data to give,
   the mount follows its `fallback` when one has something to send; with none,
   the mount output stays, its listeners stay connected and receive nothing, and
-  the stream resumes when the source has data again. Nothing is shut down and no
+  the stream resumes when the source has data again (the same harbor
+  capability as [§1.1](#11-linger)). Nothing is shut down and no
   new output is created. Rationale: the attachment, not the momentary flow,
   says whether the script still feeds the mount; a Liquidsoap source may pause
   or fail and recover, where a source client's loss is a disconnection.
-- The server offers a lookup that returns the Liquidsoap source currently
-  feeding a mount ([parameters.md](parameters.md)).
 
 A Liquidsoap source cannot be a preroll: a preroll is bytes
 ([prerolls.md](prerolls.md)), and a Liquidsoap source would need encoding.
@@ -132,10 +135,11 @@ A candidate (a source client, an attached Liquidsoap source, or a fallback)
   disconnected (they reconnect), and a new output is created with the new
   format.
 - **Improvement.** Where the container lets a new stream start inside an
-  existing connection (chained Ogg links, whatever their codecs; MP3 or ADTS
-  frames with new parameters), the output SHOULD continue with the new stream
-  and keep its listeners instead of replacing the output. The server reads the
-  streams, so it can see where the new one starts; Icecast, which relays bytes,
+  existing connection, the output SHOULD continue with the new stream and keep
+  its listeners instead of replacing the output. The server asks the copy
+  encoder whether the new stream can continue the current one: the encoder
+  knows the rules of each container (chained Ogg links, MP3 or ADTS frames with
+  new parameters), and the server states none. Icecast, which relays bytes,
   ends the listeners' stream when its source goes away. A test asserts that a
   listener survives such a change. This is not subject to `compatibility`.
 
@@ -151,9 +155,14 @@ request that finds the fallback live ([§1](#1-lifecycle)), that delivers the
 stream to its listeners. Delivery (sockets, bursts, ICY framing, time limits)
 is the [harbor output's](../../../../core/outputs/spec/harbor/icecast-server.md).
 
-Fixed when the output is created: the stream identity headers of the feeder
-([sources.md §5](sources.md#5-stream-identity-and-content)), the container and
-its MIME type, and `dedicated_encoder` ([§5](#5-dedicated_encoder)). The
+Fixed when the output is created: the container and its MIME type, and
+`dedicated_encoder` ([§5](#5-dedicated_encoder)). The stream identity headers
+are not fixed: they follow the mount's current feeder and are built for each
+reply ([sources.md §5](sources.md#5-stream-identity-and-content)). A source
+client's identity is its own; an attached Liquidsoap source's is the `headers`
+given to `attach_source`, none when there are none; while the mount follows a
+fallback mount, it is that mount's feeder's, and none for a fallback that is a
+Liquidsoap source; while a `linger` runs, it is the departed feeder's. The
 parameters it reads when it is created, and those read at use, are
 [parameters.md](parameters.md)'s ([§2.2](parameters.md#22-read-points),
 [§4.1](parameters.md#41-fields)). The header list is
@@ -189,7 +198,11 @@ Liquidsoap source (`source`) ([parameters.md](parameters.md)).
 - A fallback mount that gets a feeder later is picked up by every mount
   falling back on it; one that loses its feeder leaves them with none.
 - A fallback must match the mount's format ([§3](#3-the-format-match-rule)).
-- A reload that changes a mount's fallback applies to live mounts at once.
+- A reload that changes a mount's fallback applies to live mounts at once. A
+  `fallback.source` MUST be created once, outside the function that builds the
+  record ([parameters.md §9](parameters.md#9-overrides)): a source rebuilt at
+  each reload has its own clock state, and a mount follows its new fallback by
+  comparing sources by identity, so a rebuilt one is a different fallback.
 
 ### 6.1 Chains and loops
 
@@ -293,7 +306,7 @@ Every other rule here holds under every value.
   feeder is shut down and its listeners disconnected, whether or not a fallback
   is configured.
 - A source client or Liquidsoap source can feed a mount; a second feeder is
-  refused; attach, detach and the lookup behave as [§2](#2-what-feeds-a-mount)
+  refused; attach and detach behave as [§2](#2-what-feeds-a-mount)
   says; a Liquidsoap source with no data lets the mount follow its fallback and
   takes it back, and with no fallback leaves the output and its listeners in
   place until data returns.
@@ -309,6 +322,9 @@ Every other rule here holds under every value.
   mounts.
 - Chains are followed up to 10 mounts and stop at a loop; under `rsas` a
   listener request past the bound is refused `503`.
+- A mount output keeps its listeners while its feeder is unavailable (linger,
+  an idle attached Liquidsoap source) and is served again when the source is
+  available; the server shuts it down itself.
 - With `linger` set, a mount whose feeder leaves keeps its output and listeners
   for that long; a feeder arriving in the window continues the stream with the
   listeners attached; none arriving shuts the mount down at the end of the
