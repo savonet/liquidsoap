@@ -122,7 +122,7 @@ def f() =
   test.equal(r/^[0-9a-f]{16}$/.test(hash("1.2.3.4")), true)
   test.equal(hash("1.2.3.4") == hash("1.2.3.5"), false)
 
-  # listener_view: X-Forwarded-For resolved, then hashed; headers dropped
+  # listener_view: the resolved address hashed; headers dropped
   harbor_listener =
     {
       id = 7,
@@ -137,8 +137,7 @@ def f() =
   view =
     icecast.server.listener_view(
       mount="/a",
-      x_forwarded_for=null,
-      proxy_ips=[],
+      ip="5.5.5.5",
       ip_hash=fun (ip) -> "hash(#{ip})",
       harbor_listener
     )
@@ -433,13 +432,25 @@ def f() =
         mount_listeners=fun () -> mount,
         server_listeners=fun () -> server
       )
-    accept(())
+    null.map(fun (refusal) -> refusal.status, accept(()))
   end
-  test.equal(limit(max_listeners=null, max_clients=null, 100, 100), true)
-  test.equal(limit(max_listeners=2, max_clients=null, 1, 100), true)
-  test.equal(limit(max_listeners=2, max_clients=null, 2, 2), false)
-  test.equal(limit(max_listeners=null, max_clients=3, 0, 3), false)
-  test.equal(limit(max_listeners=5, max_clients=3, 1, 2), true)
+  test.equal(limit(max_listeners=null, max_clients=null, 100, 100), null)
+  test.equal(limit(max_listeners=2, max_clients=null, 1, 100), null)
+  test.equal(limit(max_listeners=2, max_clients=null, 2, 2), 503)
+  test.equal(limit(max_listeners=null, max_clients=3, 0, 3), 503)
+  test.equal(limit(max_listeners=5, max_clients=3, 1, 2), null)
+  settings.icecast.server.status_codes := "2.4"
+  test.equal(limit(max_listeners=2, max_clients=null, 2, 2), 403)
+  settings.icecast.server.status_codes := "2.3"
+  try
+    ignore(limit(max_listeners=2, max_clients=null, 2, 2))
+    test.fail(
+      "status_codes 2.3 was accepted"
+    )
+  catch _ : [error.invalid] do
+    ()
+  end
+  settings.icecast.server.status_codes := "2.5"
 
   test.pass()
 end

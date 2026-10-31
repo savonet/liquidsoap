@@ -1,8 +1,17 @@
-type kind = [ `Initial | `Stream | `Block ]
+type kind = [ `Initial | `Preroll | `Stream | `Block ]
 
-(* [output] numbers the encoder output a stream piece comes from; only stream
-   pieces of outputs older than [newest] count towards overflow. *)
-type piece = { kind : kind; data : string; mutable sent : int; output : int }
+(* A piece is the slice [start, stop) of [data], so a preroll shared by many
+   listeners is never copied. [output] numbers the encoder output a stream
+   piece comes from; only stream pieces of outputs older than [newest] count
+   towards overflow. *)
+type piece = {
+  kind : kind;
+  data : string;
+  start : int;
+  stop : int;
+  mutable sent : int;
+  output : int;
+}
 
 (* [encoder] is [None] once stopped, under [encoder_lock]; the queue and the
    overflow counters are under [queue_lock], which is never held during an
@@ -14,6 +23,7 @@ type listener = {
   mutable encoder : Encoder.encoder option;
   queue_lock : Mutex.t;
   queue : piece Queue.t;
+  mutable prerolling : int;
   mutable position : Icy.position;
   mutable newest : int;
   mutable newest_owed : int;
@@ -49,8 +59,10 @@ let start t ~name ~last =
 let running t = Mutex.protect t.lock (fun () -> t.name <> None)
 let stamp t = Mutex.protect t.lock (fun () -> Option.map snd t.last)
 
-let push listener ~kind ~output data =
-  if data <> "" then Queue.push { kind; data; sent = 0; output } listener.queue
+let push ?(start = 0) ?stop listener ~kind ~output data =
+  let stop = Option.value ~default:(String.length data) stop in
+  if stop > start then
+    Queue.push { kind; data; start; stop; sent = start; output } listener.queue
 
 (* Queues [data] as one encoder output, with ICY blocks where the position
    requires them. Called with [queue_lock] held. *)
@@ -74,7 +86,7 @@ let enqueue t listener ~kind ~stamp data =
             min length (Icy.room ~metaint:t.metaint listener.position)
           else length
         in
-        push listener ~kind ~output (String.sub data offset length);
+        push ~start:offset ~stop:(offset + length) listener ~kind ~output data;
         if kind = `Stream then
           listener.newest_owed <- listener.newest_owed + length;
         listener.position <- Icy.advance listener.position length;
@@ -130,14 +142,20 @@ let stop t =
         | None -> ())
     listeners
 
+let prerolling listener =
+  Mutex.protect listener.queue_lock (fun () -> listener.prerolling > 0)
+
+(* A listener still owed its preroll gets no piece: its stream starts once the
+   preroll is sent, so the encoder output does not pile up behind it. *)
 let send t frame =
   let stamp = stamp t in
   List.iter
     (fun listener ->
-      match with_encoder listener (fun e -> e.Encoder.encode frame) with
-        | Some data when not (Strings.is_empty data) ->
-            append t listener ~stamp data
-        | _ -> ())
+      if not (prerolling listener) then (
+        match with_encoder listener (fun e -> e.Encoder.encode frame) with
+          | Some data when not (Strings.is_empty data) ->
+              append t listener ~stamp data
+          | _ -> ()))
     (live t)
 
 let metadata t metadata event =
@@ -160,9 +178,7 @@ let stage listener scratch =
       let rec go fill pieces =
         match pieces () with
           | Seq.Cons (piece, rest) when fill < capacity ->
-              let length =
-                min (String.length piece.data - piece.sent) (capacity - fill)
-              in
+              let length = min (piece.stop - piece.sent) (capacity - fill) in
               Bytes.blit_string piece.data piece.sent scratch fill length;
               go (fill + length) rest
           | _ -> fill
@@ -174,14 +190,15 @@ let drop listener accepted =
       let rec go accepted =
         if accepted > 0 && not (Queue.is_empty listener.queue) then (
           let piece = Queue.peek listener.queue in
-          let sent = min accepted (String.length piece.data - piece.sent) in
+          let sent = min accepted (piece.stop - piece.sent) in
           piece.sent <- piece.sent + sent;
           if piece.kind = `Stream then
             if piece.output = listener.newest then
               listener.newest_owed <- listener.newest_owed - sent
             else listener.older_owed <- listener.older_owed - sent;
-          if piece.sent = String.length piece.data then
-            ignore (Queue.pop listener.queue);
+          if piece.kind = `Preroll then
+            listener.prerolling <- listener.prerolling - sent;
+          if piece.sent = piece.stop then ignore (Queue.pop listener.queue);
           go (accepted - sent))
       in
       go accepted)
@@ -195,7 +212,7 @@ let flush listener ~scratch =
 
 let teardown listener = ignore (stop_encoder listener)
 
-let join t ~head ~icy base make =
+let join t ~head ~icy ~preroll base make =
   match
     Mutex.protect t.lock (fun () -> Option.map (fun n -> (n, t.last)) t.name)
   with
@@ -215,6 +232,7 @@ let join t ~head ~icy base make =
             encoder = Some encoder;
             queue_lock = Mutex.create ();
             queue = Queue.create ();
+            prerolling = 0;
             position = Icy.start;
             newest = 0;
             newest_owed = 0;
@@ -223,6 +241,11 @@ let join t ~head ~icy base make =
         in
         Mutex.protect listener.queue_lock (fun () ->
             push listener ~kind:`Initial ~output:0 head;
+            (match preroll with
+              | Some data ->
+                  listener.prerolling <- String.length data;
+                  enqueue t listener ~kind:`Preroll ~stamp:None data
+              | None -> ());
             enqueue t listener ~kind:`Initial ~stamp:(Option.map snd last)
               (Strings.to_string (encoder.Encoder.header ())));
         let registered =

@@ -472,7 +472,8 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
         http_version = request.http_version,
         method = request.method,
         path = request.path,
-        query = request.query
+        query = request.query,
+        query_string = request.query_string
       }
 
     handler =

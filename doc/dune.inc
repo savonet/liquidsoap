@@ -1518,6 +1518,20 @@
    content/liq/icecast-server-serve-json.liq)))
 
 (rule
+ (alias test-doc-icecast-server-status-codes)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-status-codes.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-status-codes.liq)))
+
+(rule
  (alias test-doc-icy-update)
  (package liquidsoap)
  (deps
@@ -2607,6 +2621,7 @@
   (alias test-doc-icecast-server-reload)
   (alias test-doc-icecast-server-serve-auth)
   (alias test-doc-icecast-server-serve-json)
+  (alias test-doc-icecast-server-status-codes)
   (alias test-doc-icy-update)
   (alias test-doc-implicit-float-ok)
   (alias test-doc-jack-buffer)

@@ -22,14 +22,19 @@ has its piece.
   output's id, with the last metadata as initial metadata;
 - a queue of bytes owed;
 - the length of the stream bytes owed that precede the newest encoder output,
-  for the overflow rule.
+  for the overflow rule;
+- the length of the preroll still owed.
+
+Queued bytes are slices of the strings they come from, so a preroll shared by
+many listeners is not copied per listener.
 
 Every use of a listener's encoder is serialised: encoding, in-stream
 metadata, and its stop never overlap.
 
 ## 2. Initial bytes
 
-The encoder's header, with ICY blocks inserted
+The preroll, if any, with empty ICY blocks inserted, then the encoder's
+header, with ICY blocks inserted
 ([icy.md §4](icy.md#4-cadence-and-change-detection)) stamped with the last
 metadata, queued after the response head.
 
@@ -50,7 +55,8 @@ _Encode_ keeps the frame piece and returns nothing.
 
 _Send_, when a piece is kept, with `M` the last metadata:
 
-1. For each listener published and not marked closed: encode the piece with
+1. For each listener published, not marked closed, and not owing any of its
+   preroll: encode the piece with
    its encoder, insert ICY blocks into the result stamped with `M`, append
    the result to its queue, then check overflow
    ([modes.md §4](modes.md#4-flush)) and disconnect it if it is over.

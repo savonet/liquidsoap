@@ -59,6 +59,13 @@ let teardown member =
 let serve t ~scratch ~now member =
   let listener = member.listener in
   try
+    (match Listener.deadline listener with
+      | Some deadline when now >= deadline && not (Listener.is_closed listener)
+        ->
+          t.log#info "Listener %s reached its time limit"
+            (Listener.info listener).peer;
+          Listener.mark_closed listener
+      | _ -> ());
     if (not (Listener.is_closed listener)) && member.pending () then (
       let sent = Listener.bytes_sent listener in
       member.flush ~scratch;
@@ -157,7 +164,15 @@ let publish t member =
           Atomic.set t.members (member :: Atomic.get t.members);
           true))
   in
-  if published then wake t;
+  if published then (
+    wake t;
+    (* The deadline is checked by passes, which only data or a retry start. *)
+    Option.iter
+      (fun deadline ->
+        add_task
+          ~delay:(max 0. (deadline -. Listener.now ()))
+          (fun () -> wake t))
+      (Listener.deadline member.listener));
   published
 
 let stop t =

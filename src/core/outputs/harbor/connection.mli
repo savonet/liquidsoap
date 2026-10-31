@@ -18,8 +18,23 @@ val credentials :
 
 val unauthorized : [ `No_credentials | `Wrong_credentials ] -> string
 val mount_taken : string
-val forbidden : protocol:string -> string
+
+(** A refusal from the admission predicate, sent with an empty body. *)
+type refusal = {
+  status : int;
+  reason : string;
+  headers : (string * string) list;
+}
+
+val refusal_reply : protocol:string -> refusal -> string
+
+(** The refusal of a predicate that failed. *)
+val forbidden : refusal
+
 val unavailable : protocol:string -> string
 
-(** Whether a header name is an HTTP token. *)
-val is_token : string -> bool
+(** Why a header cannot be sent, if it cannot. *)
+val header_error : string * string -> string option
+
+(** Why a refusal cannot be sent, if it cannot. *)
+val refusal_error : refusal -> string option

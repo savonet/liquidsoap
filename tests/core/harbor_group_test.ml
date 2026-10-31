@@ -28,7 +28,7 @@ let socket closes =
     method close = Atomic.incr closes
   end
 
-let probe ~group id =
+let probe ?deadline ~group id =
   let closes = Atomic.make 0 in
   let info =
     {
@@ -36,13 +36,16 @@ let probe ~group id =
       ip = "127.0.0.1";
       peer = Printf.sprintf "127.0.0.1:%d" id;
       uri = "/test";
+      query_string = "";
       protocol = "1.0";
       headers = [];
       connected_at = Unix.gettimeofday ();
     }
   in
   let listener =
-    Listener.create ~log ~wake:(fun () -> Group.wake group) info (socket closes)
+    Listener.create ?deadline ~log
+      ~wake:(fun () -> Group.wake group)
+      info (socket closes)
   in
   { listener; closes; teardowns = Atomic.make 0 }
 
@@ -137,9 +140,27 @@ let raising_flush () =
   Group.stop group;
   wait_until "healthy teardown" (fun () -> Atomic.get healthy.teardowns = 1)
 
+(* A listener past its deadline is closed even when it is owed nothing, so
+   that no data wakes its group. *)
+let idle_deadline () =
+  let group = Group.create ~log ~timeout:30. () in
+  let idle = probe ~deadline:(Listener.now () +. 0.2) ~group 20 in
+  assert (
+    Group.publish group
+      {
+        Group.listener = idle.listener;
+        pending = (fun () -> false);
+        flush = (fun ~scratch:_ -> ());
+        teardown = (fun () -> Atomic.incr idle.teardowns);
+      });
+  wait_until "deadline teardown" (fun () -> Atomic.get idle.teardowns = 1);
+  assert (Atomic.get idle.closes = 1);
+  Group.stop group
+
 let () =
   Scheduler.start ();
   stop_between_flush_and_removal ();
   raising_flush ();
+  idle_deadline ();
   print_endline "group checks passed";
   exit 0
