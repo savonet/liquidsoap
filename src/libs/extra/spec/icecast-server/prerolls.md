@@ -1,105 +1,140 @@
 # Prerolls
 
-A preroll is a short audio file a listener hears before joining the live
+A preroll is a short audio clip a listener hears before joining the live
 stream: a jingle, a sponsor message, an ad chosen for each listener. This
-document owns where the server finds it, which one wins, and how the server
-keeps and refreshes it. Sending its bytes is the harbor output's
+document owns what a preroll is to the server (bytes in the decision), the
+cache that loads and keeps prerolls, and the precedence of the places they
+come from. Sending the bytes is the harbor output's
 ([modes.md §2](../../../../core/outputs/spec/harbor/modes.md#2-initial-bytes)):
 after the response head, before the stream, never copied per listener.
 
-## 1. Sources and precedence
+## 1. A preroll is bytes
 
-An admitted listener ([listeners.md](listeners.md#1-the-admission-pipeline))
-gets at most one preroll, the first that exists among:
+The server knows prerolls only as the `preroll` field of the decision record
+([listeners.md §2](listeners.md#2-the-listener-decision)): the bytes sent to
+this listener, unchanged. The server has no preroll cache, no fetching and no
+file reading of its own. The cache of [§3](#3-the-cache) is a helper that
+decisions use to turn a location into bytes.
 
-1. the one its `listener_decision` chose ([url-auth.md](url-auth.md#54-a-preroll):
-   the `preroll` reply header, or with `compatibility` `"kh"` the reply body);
-2. the mount's `intro` (Icecast's);
-3. the mount's `preroll` (RSAS's).
+- An empty preroll is no preroll.
+- The bytes MUST be in the mount's container and codec (for MP3, MP3 frames;
+  for AAC, ADTS frames). The server MUST NOT decode them. A Liquidsoap source
+  cannot be a preroll: it would need encoding to the stream's format.
+- **Improvement.** The server SHOULD read the container and codec of a
+  preroll before sending it. A preroll of another container or codec than the
+  mount's format ([mounts.md §3](mounts.md#3-the-format-match-rule)) is dropped
+  with a log, and the listener gets the stream alone and valid. Icecast and
+  RSAS send the bytes they are given, and a mismatch makes the listener's
+  player fail (Icecast-KH realigns `withintro` bodies to frame boundaries). Sample rate and channels are not compared. This is not subject
+  to `compatibility`.
+- The server does not bound the bytes a decision hands it. The cache helper
+  bounds what it loads ([§2](#2-locations)).
 
-`intro` and `preroll` are the mount's own value, else the default mount's.
-Their order is the same for every `compatibility` value: they name the same
-thing, and one does not override the other under any implementation.
+## 2. Locations
 
-A source is a URL (`http://` or `https://`) or a local path.
+A location is a URL (`http://` or `https://`) or a local path. The cache
+helper turns a location into bytes.
 
-- A local path is relative to `webroot`, whether or not it starts with `/`,
-  as Icecast's intros are. It MUST NOT resolve outside `webroot`: a path with
-  `..` is a failed load ([§4](#4-failures)). A preroll chosen by a backend
-  is not trusted more than a configured one.
-- A URL is fetched with `GET` and, once cached, revalidated
-  ([§3](#3-the-cache)). Fetching MUST be bounded by `preroll_timeout`
-  (recommended 10 seconds): admission waits for it.
-- A body preroll ([url-auth.md](url-auth.md#54-a-preroll)) is taken as it is,
-  with the size limit of [§2](#2-format-and-size), and is not cached.
-
-## 2. Format and size
-
-The preroll's bytes are sent unchanged, so they MUST use the stream's codec
-and parameters (for MP3, the same sample rate and channels; for AAC, ADTS
-frames with the same parameters). The server MUST NOT decode or check them:
-the operator and the ad server are responsible for the match, and a mismatch
-makes the listener's player fail on its own.
-
-`preroll_max_size` (recommended 10 MiB) bounds one preroll, protecting the
-server's memory from a backend that points at a large file. A preroll above
-it is a failed load.
+- A local path is relative to a base directory (`webroot` in the Icecast
+  translation, [icecast-config.md](icecast-config.md)), whether or not it
+  starts with `/`, as Icecast's intros are. It MUST NOT resolve outside the
+  base directory: a path with `..` is a failed load ([§4](#4-failures)).
+- A URL is fetched with `GET`, bounded by `preroll_timeout` (recommended 10
+  seconds): admission waits for it. Once cached, it is revalidated
+  ([§3](#3-the-cache)).
+- A load larger than `preroll_max_size` (recommended 10 MiB) is a failed
+  load. The limit protects the server's memory from a backend that points at
+  a large file.
+- A location chosen by a backend MUST be an `http` or `https` URL. Any other
+  value, a local path included, is ignored with a log: a path from a backend
+  would let it read any file the server can. Local paths come only from the
+  operator's own parameters.
 
 ## 3. The cache
 
-Prerolls are kept in memory and shared by every listener, so the ad server
-is fetched once for many listeners. Observable rules:
+Loaded prerolls are kept in memory and shared by every listener, so the ad
+server is fetched once for many listeners. Observable rules:
 
-- **Budget.** The cached prerolls together hold at most
-  `preroll_cache_size` bytes (recommended 256 MiB). Past it the least
-  recently used are dropped first. A dropped preroll is fetched or read again
-  on its next admission.
-- **Key.** A source is cached under its URL, query string included, or its
+- **Budget.** The cached prerolls together hold at most `preroll_cache_size`
+  bytes (recommended 256 MiB). Past it the least recently used are dropped
+  first. A dropped preroll is fetched or read again on its next use. The size
+  is read when a preroll is stored: a new value applies at the next storage.
+- **Key.** A location is cached under its URL, query string included, or its
   resolved path. Per-listener URLs therefore each take cache space.
 - **Revalidation.** A cached URL is used as it is for `preroll_revalidate`
-  (recommended 2 hours) after it was fetched or last confirmed. After that, the
-  next admission marks it fresh at once, so that concurrent admissions use
-  the cached copy rather than wait, then requests the URL with
-  `If-None-Match` carrying the ETag it stored (none when it had none). A `304`
-  keeps the copy. A `2xx` replaces it with the new body and its ETag.
+  (recommended 2 hours, in seconds) after it was fetched or last confirmed.
+  After that, the next use requests the URL with `If-None-Match` carrying the
+  ETag it stored (no validator when it had none). While that request is in
+  flight, concurrent uses take the cached copy and do not wait. A `304` keeps
+  the copy; a `2xx` replaces it with the new body and its ETag.
 - **Failed revalidation.** Any other status, an error or a timeout keeps the
   copy, which stays fresh for another interval, and is logged. A copy is not
   dropped because the ad server is down.
-- **Local files.** The modification time is checked at each admission. A
-  changed file is read again; an unchanged one is not.
-- **Reload.** `preroll_cache_size` is read when a preroll is stored. A new
-  value takes effect at the next storage.
+- **Local files.** The modification time is checked at each use. A changed
+  file is read again; an unchanged one is not.
 
-An ad server sees: one `GET` per URL and per interval, `If-None-Match` on
-all but the first; and no other request while the copy is fresh.
+An ad server sees: one `GET` per URL and per interval, `If-None-Match` on all
+but the first; and no other request while the copy is fresh.
 
 ## 4. Failures
 
-A preroll that cannot be loaded (not found, unreadable, fetch failed on its
-first fetch, over `preroll_max_size`, outside `webroot`) MUST NOT refuse the
-listener. The failure is logged and the listener is admitted without a
-preroll, and no preroll is attempted from a lower-precedence source for this
-listener: the decision chose that one. A failed load is not remembered, so
-the next admission tries again.
+A location that cannot be loaded (not found, unreadable, fetch failed on its
+first fetch, over `preroll_max_size`, outside the base directory, not a URL
+where a backend chose it) is logged and yields no bytes. It MUST NOT refuse the
+listener. A failed load is not remembered, so the next use tries again.
 
-An empty preroll is no preroll.
+When a backend chose the location and it fails, the decision hands back an
+empty preroll rather than none. The listener then hears no preroll, and the
+operator's own location of [§5](#5-precedence) is not used in its place: the
+backend chose that one.
 
-## 5. Conformance
+## 5. Precedence
+
+A listener gets at most one preroll, the first that exists among:
+
+1. the one its authentication chose
+   ([url-auth.md](url-auth.md#54-a-preroll)): the `preroll` reply header, or
+   with `compatibility` `"kh"` the reply body, empty when it failed to load;
+2. the mount's `intro` (Icecast's);
+3. the mount's `preroll` (RSAS's).
+
+The order is the same for every `compatibility` value: `intro` and `preroll`
+name the same thing in the implementations that have them, and one does not
+override the other.
+
+The operator's two locations reach the server through a ready-made decision:
+it takes a location, loads it with the cache, and gives it as `preroll` only
+when the decision it is composed after gave none (not even an empty one)
+([listeners.md §7](listeners.md#7-ready-made-decisions)). The Icecast
+translation composes `intro` first and `preroll` second, after the
+authentication.
+
+## 6. Conformance
 
 **Binding**
 
-- Precedence: decision, then `intro`, then `preroll`; the mount's value else
-  the default mount's.
-- Local path under `webroot`, none outside it.
-- Bytes sent are the cached bytes, unchanged.
-- One fetch per URL while fresh (an ad server counts requests); revalidation
-  after `preroll_revalidate` carries `If-None-Match` when an ETag was stored; `304`
-  keeps, `2xx` replaces, failure keeps the copy.
-- A changed local file is read again at the next admission.
-- A source above `preroll_max_size`, or failing to load, admits without a
-  preroll.
+- The bytes sent are the bytes the decision gave, unchanged; an empty preroll
+  sends nothing. The container-and-codec check of [§1](#1-a-preroll-is-bytes)
+  SHOULD be done; when it is, a preroll of another container or codec is not
+  sent, a log says so, and the stream is.
+- Precedence: authentication, then `intro`, then `preroll`; a failed
+  authentication-chosen preroll is not replaced.
+- A backend location that is not an `http` or `https` URL is ignored and logged.
+- A local path under the base directory, none outside it.
+- One fetch per URL while fresh; revalidation after `preroll_revalidate`
+  carries `If-None-Match` when an ETag was stored; `304` keeps, `2xx`
+  replaces, failure keeps the copy.
+- A changed local file is read again at its next use.
+- A load above `preroll_max_size`, or failing, admits without a preroll.
 - Cache total never above `preroll_cache_size` after a storage; the least
   recently used are dropped first.
 
 **Incidental**: the order of eviction among entries of the same age, log
-wording, how the revalidation request is made concurrent, memory layout.
+wording, how concurrent revalidation is arranged, memory layout.
+
+**Doubles.** An ad server counting requests and recording `If-None-Match`,
+whose reply (`200`, `304`, `500`, a delay) the test sets; a directory of
+preroll files whose modification times the test changes.
+
+**Something ran.** The ad server double asserts the number of requests it
+saw, so a test whose revalidation never fired fails.
