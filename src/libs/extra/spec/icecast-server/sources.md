@@ -89,15 +89,24 @@ has an output of another format, the output is replaced or continued as
 `source_decision` is a callback, per mount, that replaces the password check
 of step 2. It receives:
 
-| Field      | Content                                                                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------- |
-| `address`  | The client's address as resolved in [listeners.md §8](listeners.md#8-the-listeners-address), never hashed |
-| `method`   | `PUT`, `POST`, `SOURCE` or `ICY`                                                                          |
-| `mount`    | The mount path, query string excluded                                                                     |
-| `query`    | The query string as received, empty when none                                                             |
-| `user`     | The Basic user name, empty when none                                                                      |
-| `password` | The Basic password, empty when none                                                                       |
-| `admin`    | `true` when the request is an admin request on the mount ([§6](#6-admin-requests)), `false` for a stream  |
+| Field           | Content                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| `address`       | The client's address as resolved in [listeners.md §8](listeners.md#8-the-listeners-address), never hashed |
+| `method`        | `PUT`, `POST`, `SOURCE` or `ICY`                                                                          |
+| `mount`         | The mount path, query string excluded                                                                     |
+| `query`         | The query string as received, empty when none                                                             |
+| `user`          | The Basic user name, empty when none                                                                      |
+| `password`      | The Basic password, empty when none                                                                       |
+| `admin`         | `true` when the request is an admin request on the mount ([§6](#6-admin-requests)), `false` for a stream  |
+| `agent`         | The `User-Agent` header, `-` when absent                                                                  |
+| `headers`       | The request headers, looked up by lowercase name                                                          |
+| `server`        | `{hostname, port, instance}` ([parameters.md §5](parameters.md#5-callbacks))                              |
+| `compatibility` | The server's `compatibility` ([parameters.md §3.2](parameters.md#32-compatibility))                       |
+
+The server reads `server` and `compatibility` and hands them in, so a ready-made
+decision, built outside the server and again at each reload, takes no argument
+for them. A source decision that needs the client's agent or headers (URL
+authentication does) reads them from the request.
 
 Its outcome is admit or refuse. A refusal is answered as bad credentials
 ([§4](#4-replies)): `401` with the challenge. The callback MUST NOT be called
@@ -111,13 +120,16 @@ A source decision does not replace the checks of steps 3 and 4.
 `stream_auth` (Icecast-KH; Icecast mainline's `stream_auth` option of
 `<authentication type="url">`) is a ready-made source decision: the server
 asks the operator's web service. It is honoured under every `compatibility`
-value, since it conflicts with nothing.
+value, since it conflicts with nothing. It is an internal helper
+(`source_decision.stream_auth`) that the configuration translation uses
+([parameters.md §5.7](parameters.md#57-decisions-and-helpers)).
 
 The request is a `POST` of form fields, with the credentials, `timeout`,
 failure handling and reply headers of [url-auth.md](url-auth.md#3-credentials)
 and [url-auth.md §7](url-auth.md#7-failures). Fields: `action`
-(`stream_auth`), `server` (`hostname`), `port`, `server-instance`, `mount`,
-`ip`, `agent`, `user`, `pass`, and `admin=1` for an admin request. The reply
+(`stream_auth`), `server`, `port` and `server-instance` (the request's
+`server`), `mount`, `ip` (the request's `address`), `agent`, `user`, `pass`, and
+`admin=1` for an admin request. The reply
 admits the source client under the rule of
 [url-auth.md §4](url-auth.md#4-the-reply) for admission; time limits,
 redirects and prerolls do not apply. Any other reply refuses as bad
@@ -172,8 +184,11 @@ The server MUST pass them to listeners as `icy-name`, `icy-description`,
 `icy-genre`, `icy-url`, `icy-br` and `icy-pub` in the response of the mount.
 When a source client sends both forms the first one received wins. A value
 containing a line break MUST be dropped: it would end the response head.
-The identity is fixed when the mount output is created
-([mounts.md §4](mounts.md#4-the-mount-output)).
+The identity belongs to the mount's current feeder, not to the mount output:
+the server builds the `icy-*` headers for each listener reply from the
+feeder at that moment, so a listener that joins after a source client
+reconnected with other headers gets the new ones. What the identity is while
+no source client feeds the mount is [mounts.md §4](mounts.md#4-the-mount-output)'s.
 
 The server MUST NOT decode or re-encode a stream. It splits it into encoded
 packets and writes them again in the container the source client used (MP3,
@@ -278,6 +293,9 @@ returns the mount's `on_connect` and `on_disconnect` callbacks that `POST` form
 fields to the operator's URL, with the credentials and failure handling of
 [url-auth.md §3](url-auth.md#3-credentials) and [§7](url-auth.md#7-failures);
 the reply is ignored and a failure is logged. They never block the stream.
+The helper is internal (`source_callbacks.url`): the configuration translation
+uses it. It reads everything it sends from the source event record
+([observability.md §1](observability.md#1-events)).
 
 When a mount has these notifications and also `on_connect` or `on_disconnect`
 commands (an Icecast configuration can have both,
@@ -285,13 +303,13 @@ commands (an Icecast configuration can have both,
 runs both, the notification first. Each is independent: a failure of one does
 not stop the other.
 
-| Field             | `mount_add`, `mount_remove`                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------- |
-| `action`          | `mount_add` or `mount_remove`                                                            |
-| `mount`           | The mount path                                                                           |
-| `server`, `port`  | `hostname`, `port`                                                                       |
-| `server-instance` | The server's instance identifier                                                         |
-| `ip`, `agent`     | The source client's address and `User-Agent` (Icecast-KH; empty for a Liquidsoap source) |
+| Field             | `mount_add`, `mount_remove`                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`          | `mount_add` or `mount_remove`                                                                                                                         |
+| `mount`           | The mount path                                                                                                                                        |
+| `server`, `port`  | The record's `server.hostname` and `server.port`                                                                                                      |
+| `server-instance` | The record's `server.instance`                                                                                                                        |
+| `ip`, `agent`     | The record's `ip` and `agent`: the source client's address and `User-Agent` (Icecast-KH; empty for a Liquidsoap source), on connect and on disconnect |
 
 Every field is sent under every `compatibility` value, and each notification
 uses its own URL.
@@ -311,7 +329,8 @@ uses its own URL.
 - **Connect and disconnect callbacks.** The mount's `on_connect` runs when a
   feeder takes the mount, with the record of the source-connect event
   ([observability.md §1](observability.md#1-events)). Its `on_disconnect`
-  runs when the feeder leaves, with the mount, and is the one the mount had
+  runs when the feeder leaves, with the record of the source-disconnect event,
+  and is the one the mount had
   when the feeder connected: a reload between the two does not change it.
   They run in the background; a failure is logged and never stops the stream.
   Icecast's `<on-connect>` and `<on-disconnect>` commands are callbacks that
@@ -343,10 +362,15 @@ Every other rule holds under every value.
   not called for a reserved path, and its refusal is a `401`.
 - Every reserved path of [§2](#2-reserved-paths) is refused, whether its page
   is on or off.
+- The source decision request carries `agent`, `headers`, `server` and
+  `compatibility`; the source events carry `ip`, `agent` and `server`, the
+  disconnect one included, and `mount_remove` sends them.
 - `stream_auth` request fields and its admit/refuse rule; `mount_add` and
   `mount_remove` fire once each, to their own URL, with the fields above.
 - Identity headers reach listeners under the `icy-*` names and a header with a
-  line break does not; the packets of a stream are relayed byte-identical.
+  line break does not; the packets of a stream are relayed byte-identical. A
+  listener joining after the source client reconnected with a new `ice-name`
+  gets the new `icy-name`.
 - Admin requests: a mount command is served with the source's credentials, or
   the admin's when `admin_password` is set, whether or not it is set; an admin
   page answers `401` with the challenge without `admin_password`, and a source

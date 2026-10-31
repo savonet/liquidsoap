@@ -103,29 +103,50 @@ passed authentication, before `on_connect`. It is user code and runs on work
 allowed to block, like `auth`.
 
 The predicate returns `null` or a decision record whose fields are each
-optional and nullable: `refuse`, `time_limit`, `preroll`. An absent field and
-a `null` one mean the same.
+optional and nullable: `refuse`, `time_limit`, `preroll`, `headers`,
+`on_dropped`. An absent field and a `null` one mean the same.
 
 - `null`, or a decision without `refuse`, admits the request, with:
   - `time_limit`: a deadline `time_limit` seconds after admission, on the
     monotonic clock. The listener is disconnected once a delivery pass finds
     the deadline passed ([delivery.md §6](delivery.md#6-disconnection)). A
-    negative limit is an exception.
+    negative or non-finite limit is an exception.
+  - `headers`: pairs `(name, value)` appended to the `200` response head after
+    the operator's `headers` ([§5](#5-the-response-head)), in order. They carry
+    what depends on the request, such as a CORS origin, which the operator's
+    fixed `headers` cannot. They are validated like the operator's
+    ([operator.md §2](operator.md#2-validation-at-construction)); an invalid
+    pair is an exception.
   - `preroll`: bytes sent as they are after the response head, before the
     stream ([modes.md §2](modes.md#2-initial-bytes)). They are not decoded or
     checked: the caller makes them match the stream's format, for instance
     MP3 or ADTS AAC frames with the same parameters. An empty preroll is no
     preroll.
+  - `on_dropped`: a function `() -> unit`, called exactly once when the
+    request ends after the predicate returned an admitting decision and before
+    `on_connect` fired: an invalid decision turned into `403`, the `503` of
+    [§6](#6-admission) step 5, or any other failure between the decision and
+    `on_connect`. It lets the caller release what its decision reserved (a
+    count, a slot). Every admission ends in exactly one of `on_connect` (then,
+    later, `on_disconnect`) or `on_dropped`. The output validates every
+    decision and decides no policy: it only reports that the admission did not
+    complete. A handler that raises is logged and has no other effect.
 - `refuse = {status, reason, headers?}` refuses it with
   `HTTP/<protocol> <status> <reason>\r\n`, each header as `<name>: <value>\r\n`
   in order, a `Content-Length: 0` header and an empty body, then closes the
   connection. Neither callback fires. Logged as
-  `Listener <peer:port> refused: <status> <reason>`.
+  `Listener <peer:port> refused: <status> <reason>`. The headers are written as
+  given: the output removes no duplicate and filters nothing, so the caller
+  hands in the final list. With `refuse` set, `headers` (admit headers),
+  `time_limit`, `preroll` and `on_dropped` are ignored; `on_dropped` is not
+  called, since the request was refused, not admitted.
 - A refusal whose status is outside 300–599, whose reason has a line break,
   or with a header that fails the validation of
   [operator.md §2](operator.md#2-validation-at-construction), is an
   exception.
-- An exception is logged and refuses with `403 Forbidden` and no header.
+- An exception is logged and refuses with `403 Forbidden` and no header. The
+  output is the only validator of a decision: a caller that wants a header on
+  its own failure replies catches its failures and returns a refusal.
 
 The predicate is what lets a caller enforce listener limits, per mount or
 across mounts, address bans, header checks or an external authentication,
@@ -143,6 +164,7 @@ Content-type: <mime>\r\n
 Connection: close\r\n
 [icy-metaint: <metaint>\r\n]
 [<name>: <value>\r\n for each pair of `headers`, in order]
+[<name>: <value>\r\n for each admit header of the decision, in order]
 \r\n
 ```
 
@@ -150,7 +172,9 @@ Connection: close\r\n
 - `<mime>` is the resolved MIME type ([operator.md §2](operator.md#2-validation-at-construction)).
 - The `icy-metaint` line is present exactly when ICY metadata was negotiated.
 - Extra headers are written as given, in order, with no deduplication; they
-  were validated at construction.
+  were validated at construction. The admit headers of the decision
+  ([§4](#4-admission-predicate)) follow them, written the same way: a caller
+  that wants no duplicate removes it before it hands them in.
 - The body is the stream, delimited by the connection closing: there is no
   `Content-Length` or `Transfer-Encoding`. `Connection: close` states this to
   HTTP/1.1 clients, which would otherwise expect a persistent connection.
@@ -181,7 +205,8 @@ In order:
    empty line, and close.
 4. Create the listener record and run the admission predicate ([§4](#4-admission-predicate)).
 5. Create the mode's per-listener state ([modes.md §1](modes.md#1-listener-state));
-   if the encoder state stopped meanwhile, reply as in step 3.
+   if the encoder state stopped meanwhile, reply as in step 3 and call the
+   decision's `on_dropped` ([§4](#4-admission-predicate)).
 6. Run the `on_connect` handlers with the record.
 7. Queue the listener's initial bytes: the response head, then what the mode
    sends first ([modes.md §2](modes.md#2-initial-bytes)).
@@ -204,17 +229,19 @@ the group, so a joiner never waits for the next streaming cycle.
 
 ## 7. Failure paths
 
-| Where                           | What happens                                                                     | `on_connect` / `on_disconnect` |
-| ------------------------------- | -------------------------------------------------------------------------------- | ------------------------------ |
-| No route matches                | The server answers (not-found or its own admin endpoints).                       | neither                        |
-| Unsupported protocol version    | The server answers 505 ([contracts.md §1](contracts.md#1-harbor-server)).        | neither                        |
-| Authentication refused          | 401 or 403 page, connection closed ([§3](#3-authentication)).                    | neither                        |
-| Authentication raised           | Logged; connection closed with no reply.                                         | neither                        |
-| Output not started (steps 3, 5) | 503 reply.                                                                       | neither                        |
-| Predicate refused or raised     | The refusal, or 403 ([§4](#4-admission-predicate)).                              | neither                        |
-| Peer address unavailable        | The server answers its 500 reply.                                                | neither                        |
-| Steps 7–9 fail                  | Logged `Listener … failed to connect: …`; listener marked closed, socket closed. | both                           |
-| Output stopped after step 6     | Listener marked closed, socket closed.                                           | both                           |
+| Where                        | What happens                                                                     | `on_connect` / `on_disconnect` | `on_dropped`   |
+| ---------------------------- | -------------------------------------------------------------------------------- | ------------------------------ | -------------- |
+| No route matches             | The server answers (not-found or its own admin endpoints).                       | neither                        | no             |
+| Unsupported protocol version | The server answers 505 ([contracts.md §1](contracts.md#1-harbor-server)).        | neither                        | no             |
+| Authentication refused       | 401 or 403 page, connection closed ([§3](#3-authentication)).                    | neither                        | no             |
+| Authentication raised        | Logged; connection closed with no reply.                                         | neither                        | no             |
+| Output not started (step 3)  | 503 reply.                                                                       | neither                        | no             |
+| Predicate refused or raised  | The refusal, or 403 ([§4](#4-admission-predicate)).                              | neither                        | no             |
+| Decision invalid             | 403 ([§4](#4-admission-predicate)).                                              | neither                        | if it admitted |
+| Peer address unavailable     | The server answers its 500 reply.                                                | neither                        | no             |
+| Output stopped (step 5)      | 503 reply.                                                                       | neither                        | yes            |
+| Steps 7–9 fail               | Logged `Listener … failed to connect: …`; listener marked closed, socket closed. | both                           | no             |
+| Output stopped after step 6  | Listener marked closed, socket closed.                                           | both                           | no             |
 
 Every reply the output sends on a refusal is complete: a status line, the
 headers stated, an empty line, then the connection closes. Request-level

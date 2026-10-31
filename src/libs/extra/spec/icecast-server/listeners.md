@@ -23,20 +23,23 @@ the first that refuses or redirects. The order is the same for every
 the server's clients when the client is created, before any authentication,
 and check the mount's limit after it.
 
-| #   | Step                                                             | Refusal or redirect                      |
-| --- | ---------------------------------------------------------------- | ---------------------------------------- |
-| 1   | `max_clients`                                                    | limit refusal ([§4](#4-listener-limits)) |
-| 2   | `listener_decision` ([§2](#2-the-listener-decision))             | the decision's refusal or redirect       |
-| 3   | validation of the decision ([§2](#2-the-listener-decision))      | `403 Forbidden`                          |
-| 4   | `max_listeners`, `fallback_when_full` ([§4](#4-listener-limits)) | limit refusal, or a redirect             |
-| 5   | time limit and preroll handed to the harbor output               | none                                     |
+| #   | Step                                                                                                                      | Refusal or redirect                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 0   | the mount's output, created through its fallback chain when it has none ([mounts.md §6.1](mounts.md#61-chains-and-loops)) | `503 Service Unavailable` under `rsas` when the chain is followed past its bound; the others stop the chain there |
+| 1   | `max_clients`                                                                                                             | limit refusal ([§4](#4-listener-limits))                                                                          |
+| 2   | `listener_decision` ([§2](#2-the-listener-decision))                                                                      | the decision's refusal or redirect; `403 Forbidden` when it fails ([§2](#2-the-listener-decision))                |
+| 3   | `max_listeners`, `fallback_when_full` ([§4](#4-listener-limits))                                                          | limit refusal, or a redirect                                                                                      |
+| 4   | time limit and preroll handed to the harbor output ([§6](#6-time-limits))                                                 | none                                                                                                              |
 
 - Each step MUST see the parameters as they are when the request is admitted:
   a reload applies at once ([parameters.md](parameters.md)).
 - A listener refused or redirected is never counted as a listener: no connect
   event, no listener count, no access-log line for a served stream.
-- A listener refused at step 3 or 4 after the decision admitted it is
-  released ([§5](#5-release)).
+- A listener refused at step 3 after the decision admitted it is
+  released ([§5](#5-release)), and so is one whose admission ends for any
+  other reason before it is served (an invalid record, an output stopped
+  meanwhile): every admitting decision ends in a served listener's release or
+  in this one.
 - Admissions of one mount MAY run concurrently. A limit MAY be exceeded by the
   number of admissions in progress at once; the server MUST NOT admit beyond
   that.
@@ -53,16 +56,23 @@ another. A mount without one admits every request.
 
 **Input.** The listener request:
 
-| Field              | Content                                                                             |
-| ------------------ | ----------------------------------------------------------------------------------- |
-| `id`               | The listener's identifier, unique on the mount output                               |
-| `mount`            | The mount path, query string excluded                                               |
-| `query`            | The query string as received, empty when none                                       |
-| `user`, `password` | The HTTP Basic credentials of the request, empty when it sent none                  |
-| `address`          | The listener's address, resolved as in [§8](#8-the-listeners-address), never hashed |
-| `headers`          | The request headers, looked up by lowercase name                                    |
-| `protocol`         | The HTTP version of the request                                                     |
-| `listeners`        | The number of listeners on the mount, the new one excluded                          |
+| Field              | Content                                                                                                                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | The listener's identifier, unique on the mount output                                                                                                                 |
+| `mount`            | The mount path, query string excluded                                                                                                                                 |
+| `query`            | The query string as received, empty when none                                                                                                                         |
+| `user`, `password` | The HTTP Basic credentials of the request, empty when it sent none                                                                                                    |
+| `address`          | The listener's address, resolved as in [§8](#8-the-listeners-address), never hashed                                                                                   |
+| `headers`          | The request headers, looked up by lowercase name                                                                                                                      |
+| `protocol`         | The HTTP version of the request                                                                                                                                       |
+| `listeners`        | The number of listeners on the mount, the new one excluded                                                                                                            |
+| `user_listeners`   | The number of admitted listeners of the request's `user` on the mount, the new one excluded; `0` when the request has no user ([§7.3](#73-per-user-connection-limit)) |
+| `server`           | `{hostname, port, instance}` ([parameters.md §5](parameters.md#5-callbacks))                                                                                          |
+| `compatibility`    | The server's `compatibility` ([parameters.md §3.2](parameters.md#32-compatibility))                                                                                   |
+
+The server reads `server`, `compatibility` and `user_listeners` once and hands
+them in, so a ready-made decision, built outside the server and again at each
+reload, is given no argument for them and cannot disagree with the server.
 
 **Output.** A record whose fields are all optional and nullable (an absent
 field and a null one mean the same). The first three are the harbor output's
@@ -76,41 +86,47 @@ the last two are the server's.
 | `time_limit` | Seconds after admission at which the listener is disconnected ([§6](#6-time-limits))                                           |
 | `preroll`    | The preroll, as bytes ([prerolls.md](prerolls.md))                                                                             |
 | `exempt`     | `true`: the mount's `max_listeners` and `fallback_when_full` do not apply; `max_clients` still does ([§4](#4-listener-limits)) |
-| `on_release` | A closure called once, with the session's duration in seconds, when the listener is gone ([§5](#5-release))                    |
+| `on_release` | A closure called once, with the release record, when the listener is gone ([§5](#5-release))                                   |
 
 A record without `refuse` admits. Helpers build refusals and redirects from a
 status, a reason and headers (a redirect from a status and a URL), so a
 decision does not assemble headers by hand ([parameters.md](parameters.md)).
 
-**Validation.** The server MUST validate the record before the harbor output
-sees it:
+**Validation.** The harbor output validates the record: a `refuse.status`
+outside 300-599, a `refuse.reason` with a line break, an invalid header, or a
+`time_limit` that is negative or not finite is a decision failure
+([connection.md §4](../../../../core/outputs/spec/harbor/connection.md#4-admission-predicate)).
+The server does not validate it again.
 
-- `refuse.status` is in 300-599, `refuse.reason` has no line break and the
-  headers are valid HTTP headers. A violation is a decision failure.
-- `time_limit` is clamped as in [§6](#6-time-limits). It is never a failure.
-
-**Failure.** A decision that raises, or returns a record violating the above,
-MUST refuse the listener with `403 Forbidden` and no `Location`; the failure
-is logged. A decision MUST NOT admit by default when it cannot decide: an
-authentication that cannot reach its backend refuses
+**Failure.** A decision that raises, or returns a record the harbor output
+rejects, MUST refuse the listener with `403 Forbidden` and no `Location`; the
+failure is logged. A decision MUST NOT admit by default when it cannot decide:
+an authentication that cannot reach its backend refuses
 (URL authentication has the one exception of [url-auth.md](url-auth.md#7-failures)).
+
+- A decision that raises gets the server's `403`, with the configured headers
+  ([§3.2](#32-per-reply-headers)); it returned no record, so nothing is
+  released. A record the harbor output rejects gets its bare `403`: no header.
+  The server sets `on_dropped` on every record it hands over, so a rejected
+  record that admitted is released ([§5](#5-release)). Decisions return valid
+  records, as the ready-made ones do.
 
 ## 3. Replies
 
-The harbor output writes the reply of a refusal or redirect: status line
-`HTTP/<protocol> <status> <reason>`, the headers of the record in order, the
-per-reply headers of [§3.2](#32-per-reply-headers), `Content-Length: 0`, an
-empty body, then closes the connection. Neither listener callback fires.
+The server builds the refusal or redirect with its final header list
+([§3.2](#32-per-reply-headers)). The harbor output writes it: status line
+`HTTP/<protocol> <status> <reason>`, the headers in order, `Content-Length: 0`,
+an empty body, then closes the connection. Neither listener callback fires.
 
 ### 3.1 Statuses
 
-| Outcome               | Status              | Headers                                                                      |
-| --------------------- | ------------------- | ---------------------------------------------------------------------------- |
-| Admitted              | `200 OK`            | the stream's, the harbor output's                                            |
-| Refused with a status | the chosen one      | the chosen headers; for `401` also the default challenge when none is chosen |
-| Redirected            | the chosen redirect | `Location: <url>`                                                            |
-| Past a limit          | by `compatibility`  | none                                                                         |
-| Decision failed       | `403 Forbidden`     | none                                                                         |
+| Outcome               | Status              | Headers                                                                                                                        |
+| --------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Admitted              | `200 OK`            | the stream's, the harbor output's                                                                                              |
+| Refused with a status | the chosen one      | the chosen headers; for `401` also the default challenge when none is chosen                                                   |
+| Redirected            | the chosen redirect | `Location: <url>`                                                                                                              |
+| Past a limit          | by `compatibility`  | none                                                                                                                           |
+| Decision failed       | `403 Forbidden`     | the configured ones when the decision raised ([§2](#2-the-listener-decision)); none when the harbor output rejected the record |
 
 - The default challenge is `WWW-Authenticate: Basic realm="Icecast2 Server"`.
   A `WWW-Authenticate` header is sent only when the status is `401`, or when
@@ -133,36 +149,48 @@ one of `icecast-2.5`.
 
 ### 3.2 Per-reply headers
 
-A header the operator configures (`http_headers`, global and per mount; the
-entry shape and the order are [parameters.md §4.2](parameters.md#42-headers))
-MAY have a value computed from the request and from the status of the reply it
-is sent on, instead of a fixed string; a callback returning null leaves the
-header out.
+A header the operator configures (`http_headers`, global and per mount) MAY
+have a value computed from the request and from the status of the reply it is
+sent on, instead of a fixed string. The entry shape, the evaluation (status
+filter, `compute`, de-duplication) and the order are the server's and are
+[parameters.md §4.2](parameters.md#42-headers)'s.
 
 - The headers apply to every reply the server's mount output sends to a
   listener: the stream reply, a refusal, a redirect and a decision failure.
-  A header the decision chose is sent first; the rule that drops a configured
-  entry of the same name is [parameters.md §4.2](parameters.md#42-headers)'s.
-- This is a requirement on the harbor output: a refusal and a stream reply
-  carry headers computed per request and per status
+  The order and the precedence between the decision's headers, the server's
+  and the mount's are [parameters.md §4.2](parameters.md#42-headers)'s.
+- The `icy-*` stream identity headers of a stream reply come from the mount's
+  current feeder ([sources.md](sources.md), [mounts.md](mounts.md)). The
+  server builds them for each reply and hands them in as admit headers, so a
+  listener joining after a feeder reconnect gets the new identity.
+- The server builds each refusal, redirect and decision-failure reply with its
+  final list. For a stream reply it hands the harbor output the list as admit
+  headers, which the output appends to the `200` reply
   ([icecast-server.md §2](../../../../core/outputs/spec/harbor/icecast-server.md#2-what-the-server-asks-of-the-output)).
 
 **CORS.** The ready-made header set `icecast.server.headers.cors`
 ([parameters.md](parameters.md#57-decisions-and-helpers)) computes the CORS
-headers from the request's `Origin`. This section owns what it computes. Under
-`"icecast-2.5"` it is the operator's to include and the server adds none by
-itself, under every value. The result depends on `compatibility`:
+headers from the request's `Origin`. This section owns what it computes. It is
+the operator's to include; the server adds none by itself, under every value.
+The set depends on `request.compatibility`:
 
-| `compatibility`         | CORS headers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `"icecast-2.5"`         | Only on a request that carries `Origin`. `Access-Control-Allow-Origin`: the request's `Origin` on a 2xx reply, `null` on a 4xx or 5xx reply, absent on other statuses. `Access-Control-Allow-Methods`: the methods the mount allows, on a 2xx reply only. `Access-Control-Expose-Headers`: `content-range, icy-br, icy-description, icy-genre, icy-name, icy-pub, icy-url`. `Access-Control-Max-Age`: `300`. `Access-Control-Allow-Headers`: `range, if-range`. A configured value replaces the computed one |
-| `"icecast-2.4"`, `"kh"` | None. These servers send only the static headers.                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `"rsas"`                | The allowed origins are the helper's `origins` list; `Access-Control-Expose-Headers` is `Content-Type, icy-metaint, icy-br, ice-audio-info, icy-description, icy-genre, icy-name, icy-samplerate, icy-url` followed by the helper's `expose` names;                                                                                                                                                                                                                                                          |
+| `compatibility`         | CORS headers                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"icecast-2.5"`         | Only on a request that carries `Origin`. `Access-Control-Allow-Origin`: the request's `Origin` on a 2xx reply, `null` on a 4xx or 5xx reply, absent on other statuses. `Access-Control-Allow-Methods`: the methods the mount allows, on a 2xx reply only. `Access-Control-Expose-Headers`: `content-range, icy-br, icy-description, icy-genre, icy-name, icy-pub, icy-url`. `Access-Control-Max-Age`: `300`. `Access-Control-Allow-Headers`: `range, if-range` |
+| `"rsas"`                | `Access-Control-Allow-Origin`: the request's `Origin`. `Access-Control-Expose-Headers`: `Content-Type, icy-metaint, icy-br, ice-audio-info, icy-description, icy-genre, icy-name, icy-samplerate, icy-url`.                                                                                                                                                                                                                                                    |
+| `"icecast-2.4"`, `"kh"` | These servers have no `cors` header type, and the translation builds no set from one; an RSAS `<cors>` block still becomes the CORS set ([icecast-config.md §8](icecast-config.md#8-http-headers)). A script that includes the helper gets the `"icecast-2.5"` set.                                                                                                                                                                                            |
+
+The helper's two arguments apply to the set under every `compatibility` value,
+since they conflict with nothing:
+
+- `origins` lists the origins allowed. A request whose `Origin` is not in the
+  list gets no `Access-Control-Allow-Origin`. An empty list allows any origin.
+- `expose` names are appended to `Access-Control-Expose-Headers`.
 
 RSAS sends CORS headers on every response without configuration; the server
 does not emulate that default: an operator who wants them includes the helper.
-Per-request origin logic beyond the helper is a native header callback
-([parameters.md §4.2](parameters.md#42-headers)).
+Per-request origin logic beyond the helper is a `compute` entry of the header
+list ([parameters.md §4.2](parameters.md#42-headers)).
 
 Icecast 2.5 answers an `OPTIONS` request on a mount with `204` and the same
 headers. The server SHOULD do the same under `"icecast-2.5"` once the harbor
@@ -216,10 +244,27 @@ backend sees two requests.
 Every decision that admitted a listener MUST have its `on_release` closure
 called exactly once when the listener is gone:
 
-- when the listener disconnects after being served, with the session's
-  duration in seconds;
+- when the listener disconnects after being served, with the release record
+  below;
 - when a later step refuses or redirects the listener after the decision
-  admitted it (step 3 or 4), with a duration of 0.
+  admitted it (step 3), with a release record whose `duration` and
+  `bytes_sent` are `0`;
+- when the admission ends before the listener is served for any other reason
+  (the harbor output rejected the record, or its mount output stopped
+  meanwhile), with the same duration-0 release record. The server obtains
+  this through the `on_dropped` it sets on every record it hands the harbor
+  output
+  ([connection.md §4](../../../../core/outputs/spec/harbor/connection.md#4-admission-predicate)),
+  which also covers the failure between the decision and the connect event.
+
+The release record is `{duration, bytes_sent, listeners, metadata}`
+([parameters.md §5.7](parameters.md#57-decisions-and-helpers)): the session's
+length in seconds and the bytes sent to the listener, the mount's listener
+count at release with this listener included, and the mount's current metadata.
+For a duration-0 release, which follows no connect event, `listeners` is the
+mount's count without this listener, since it was never counted.
+The server fills it, so that a closure built outside the server, such as the
+URL authentication notification, needs nothing else from it.
 
 A decision that refused or redirected is not released: it did not admit. The
 closure is called without delaying the disconnect. Its failure is logged and
@@ -228,7 +273,8 @@ each one that admitted is released.
 
 _Rationale._ Backends bill or count concurrent sessions from the pair
 add/remove; a missing remove is a leaked session. Icecast releases every
-listener its authentication admitted.
+listener its authentication admitted. RSAS reports the listener count at
+release with the leaving listener still in it.
 
 ## 6. Time limits
 
@@ -243,10 +289,11 @@ whatever the stream is doing. The limit that applies is, in order:
   It is released like any other admitted listener.
 - A mount's `max_listener_duration` of `0` or unset means no limit.
 - A decision's limit overrides the mount's, longer or shorter.
-- The server clamps before the harbor output sees the record: a negative or
-  non-finite `time_limit` is no limit. The server MUST NOT fail the request
-  for it, and the harbor output, which treats a negative limit as an error,
-  never receives one.
+- The server hands the harbor output the decision's `time_limit` as given.
+  A negative or non-finite one is a decision failure, which the harbor output
+  enforces ([§2](#2-the-listener-decision)). The server computes a limit of its
+  own only from the mount's `max_listener_duration`, which validation keeps
+  finite and non-negative ([parameters.md §7](parameters.md#7-validation-and-errors)).
 - Enforcement is the harbor output's
   ([delivery.md](../../../../core/outputs/spec/harbor/delivery.md)): the
   listener is cut at the first delivery pass after the deadline.
@@ -255,16 +302,18 @@ whatever the stream is doing. The limit that applies is, in order:
 
 These are `listener_decision` callbacks the server's library provides and the
 Icecast configuration translation uses ([icecast-config.md](icecast-config.md)).
-They use the reply and release mechanisms above; none needs the server's
-internals.
+They use the reply and release mechanisms above. They read `compatibility`,
+`server` and `user_listeners` from the request they are called with
+([§2](#2-the-listener-decision)), never from an argument.
 
 **Composition.** Decisions compose in order; authentication comes before the
 per-user limit ([§7.3](#73-per-user-connection-limit)). The first that refuses or
 redirects wins, and decisions that had admitted before it are released with
 a duration of 0. When all admit, the records merge: the first `time_limit`
-and the first `preroll` given win, `exempt` is set if any set it, and every
-`on_release` is kept. A preroll the translation of `intro` and `preroll`
-adds is the last one composed ([prerolls.md](prerolls.md)).
+and the first `preroll` given win (an empty preroll counts as given),
+`exempt` is set if any set it, and every `on_release` is kept.
+`icecast.server.decision.all` owns this rule; the precedence of prerolls
+([prerolls.md §5](prerolls.md#5-precedence)) is one use of it.
 
 ### 7.1 Access lists
 
@@ -302,7 +351,7 @@ modification time changes). It is provided under every `compatibility`
 value: Icecast 2.5, Icecast 2.4 and Icecast-KH have it. RSAS documents only
 webhook authentication for listeners (its static user and password are for
 source clients), so under `rsas` it is this server's rule, with the hash set
-of `icecast-2.5`.
+of `icecast-2.5`. The value is the request's `compatibility`.
 
 | `compatibility`           | Hash accepted                                                                          |
 | ------------------------- | -------------------------------------------------------------------------------------- |
@@ -317,9 +366,18 @@ whether or not the user is connected.
 
 ### 7.3 Per-user connection limit
 
-Refuses a listener whose `user` already has `connections_per_user` listeners
-on the mount, counted from the pair admit/release ([§5](#5-release)).
-A request without credentials is never limited. A limit of 0 is no limit.
+An internal helper, `connections_per_user(n)`, which the translation composes
+([parameters.md §5.7](parameters.md#57-decisions-and-helpers)). It refuses a
+listener when the request's `user_listeners` is at least `n`. The server counts
+admitted listeners per user and mount, from their connect event to their
+disconnect event, and hands the count in the request, so the helper holds no
+state and a reload cannot lose it. The counted user is the request's user as
+admitted: when a URL authentication reply renames it (Icecast-KH's
+`ice-username`), the new name is counted. Admissions in progress are not
+counted, as for every limit ([§1](#1-the-admission-pipeline)); Icecast also
+counts pending admissions, and this is an accepted difference under that
+allowance. Icecast and Icecast-KH both count one mount's clients. A request without credentials has
+`user_listeners` of `0` and is never limited. A limit of 0 is no limit.
 
 | `compatibility`           | Status                  |
 | ------------------------- | ----------------------- |
@@ -404,13 +462,24 @@ can carry the address (`X-Forwarded-For`).
 - Statuses of [§3.1](#31-statuses) per outcome and per `compatibility`;
   `WWW-Authenticate` exactly when [§3.1](#31-statuses) says; `Location` on
   redirects; `Content-Length: 0`; no connect event for a refused listener.
-- Validation: a refusal outside 300-599, with a line break in its reason or an
-  invalid header, is `403 Forbidden`; a negative `time_limit` is no limit and
-  admits.
+- Validation, owned by the harbor output: a refusal outside 300-599, with a
+  line break in its reason or an invalid header, and a negative `time_limit`,
+  are `403 Forbidden`; a decision that raises is `403` with the configured
+  headers.
 - Per-reply headers computed from the request and the status, on stream,
-  refusal and failure replies; the CORS values per `compatibility`.
+  refusal and failure replies; the CORS values per `compatibility`, with
+  `origins` and `expose` honoured under every value.
 - Exactly one `on_release` per admitted listener, none for a refused one,
-  including the listener a limit refused after admission (duration 0).
+  including the listener a limit refused after admission and one whose
+  admission ended before being served (duration 0, `listeners` without it),
+  with a release record carrying `duration`, `bytes_sent`, `listeners` (this
+  listener included for a served one) and `metadata`.
+- Header precedence is [parameters.md §4.2](parameters.md#42-headers)'s: no
+  restatement here.
+- The `icy-*` identity of a reply is the current feeder's: a listener joining
+  after a feeder reconnect gets the new `icy-name`.
+- Requests carry `server`, `compatibility` and `user_listeners`: a per-user
+  limit keeps counting across a reload.
 - Time limit: a decision's `0` disconnects at once; a mount's `0` never; the
   decision's limit beats the mount's.
 - `exempt` skips `max_listeners` and `fallback_when_full`, not `max_clients`.
@@ -421,6 +490,8 @@ can carry the address (`X-Forwarded-For`).
   target's decision runs a second time; no target gives the limit refusal.
 - A mount whose output exists only through its live fallback admits a
   listener request.
+- Under `rsas`, a listener request that follows a fallback chain past its bound
+  is `503`.
 - Ready-made decisions: access-list rule (deny beats allow, allow list
   closes), htpasswd hash formats per `compatibility`, per-user limit and
   status; composition order and release of earlier admissions.

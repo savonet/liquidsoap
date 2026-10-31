@@ -1,21 +1,26 @@
 # Icecast configuration translation
 
 How an Icecast, RSAS or Icecast-KH XML configuration file becomes the
-[parameters](parameters.md). `icecast.server.config.load(path)` takes the
-path of a file and returns the parameter record. The file is one way to build
-the record, never a second source of truth: after translation the server knows
-only parameters.
+[parameters](parameters.md). `icecast.server.config.load(~compatibility="icecast-2.5",
+path)` takes the path of a file and the `compatibility` to mimic, and returns the
+parameter record. The file is one way to build the record, never a second
+source of truth: after translation the server knows only parameters.
 
 ## 1. Scope and failure
 
 1. Translation is **pure**: it reads the file and returns a complete record. It
    opens no socket and writes no log file. The transport value it builds reads
    its certificate when the server starts, not before.
-2. Parameters the file does not mention take their defaults
+2. `compatibility` is an argument, not an element: the translation branches on
+   it (mount selection, the CORS type) and writes it into the record, which is
+   where the server reads it ([parameters.md §3.2](parameters.md#32-compatibility)).
+   A `compatibility` outside its four values raises
+   `error.icecast.server.invalid_parameters`.
+3. Parameters the file does not mention take their defaults
    ([parameters.md](parameters.md)). An override is a record substitution made
    by the script after `load` ([parameters.md §9](parameters.md#9-overrides)).
-3. The root element MUST be `<icecast>`.
-4. **Parse failures.** `load` raises `error.icecast.server.invalid_parameters`
+4. The root element MUST be `<icecast>`.
+5. **Parse failures.** `load` raises `error.icecast.server.invalid_parameters`
    when:
    - the file is not well-formed XML;
    - the root is not `<icecast>`;
@@ -25,11 +30,11 @@ only parameters.
    - a feature that restricts access cannot be honoured
      ([§5.4](#54-unsupported-authentication));
    - a `tls` value the server cannot serve ([§3.1](#31-listen-socket)).
-5. A rejected file at startup stops the server. A rejected file on reload is a
+6. A rejected file at startup stops the server. A rejected file on reload is a
    reload failure ([parameters.md §8.1](parameters.md#81-validate-first)): the
    previous record stays in force, the error reaches whoever called `reload`
    and it is logged.
-6. Departure from Icecast. Mainline warns on an out-of-range value and reads
+7. Departure from Icecast. Mainline warns on an out-of-range value and reads
    non-numeric text silently as 0. The translation fails, so a typo in a limit
    or a password never changes policy silently. This is not subject to
    `compatibility`.
@@ -167,8 +172,8 @@ A `<mount>` is `type="normal"` (default when `type` is absent) or
 `type="default"`. A `<mount>` of another type is ignored with a warning. A
 normal mount without `mount-name` is ignored with a warning.
 
-**Selection.** For a requested path, under `"icecast-2.5"`, `"icecast-2.4"` and
-`"rsas"`:
+**Selection.** The translation reads the `compatibility` argument. For a
+requested path, under `"icecast-2.5"`, `"icecast-2.4"` and `"rsas"`:
 
 1. the normal mount whose `mount-name` equals the path, if any;
 2. else, the first `type="default"` mount in file order whose `mount-name`
@@ -230,7 +235,7 @@ The decisions of one mount, with the file's access lists ([§6.1](#61-paths))
 and the intro and preroll of [§5.3](#53-intro-and-preroll), are composed with
 `icecast.server.decision.all` ([listeners.md §7](listeners.md#7-ready-made-decisions)),
 in this order: access lists, `htpasswd`, URL authentication, per-user limit,
-static prerolls (`intro`, then `preroll`). The first refusal wins.
+prerolls (`intro`, then `preroll`). The first refusal wins.
 Authentication comes before the per-user limit so that a wrong password is a
 `401` whether or not the user is connected.
 
@@ -263,7 +268,7 @@ kept as written; the comparison rules are url-auth.md's.
 ([listeners.md](listeners.md#72-htpasswd)), reading the file named
 by the `filename` option. The file is read again when it changes. A listener
 whose credentials are not in the file is refused with `401` and the default
-challenge. The option `allow_duplicate_users` set to `0` adds `connections_per_user` of 1
+challenge. The option `allow_duplicate_users` set to `0` adds a per-user limit of 1
 on the mount (Icecast master reads it as `connections-per-user="0"`, which is
 unlimited, a defect the translation does not copy). The option
 `drop_existing_listener` (KH) is not implemented and warns. The `htpasswd` type
@@ -272,7 +277,8 @@ exists in mainline and in KH; under `rsas` it is this server's rule
 
 **Per-user limit.** The attribute `connections-per-user` of `<authentication>`
 or of its `<acl>` child (Icecast 2.5), a positive number, adds
-`connections_per_user` ([listeners.md](listeners.md#73-per-user-connection-limit)) with that number on the mount; `0` and `unlimited` add nothing.
+the per-user limit ([listeners.md](listeners.md#73-per-user-connection-limit))
+with that number on the mount; `0` and `unlimited` add nothing.
 
 ### 5.2 Mount `hidden`
 
@@ -282,11 +288,16 @@ or of its `<acl>` child (Icecast 2.5), a positive number, adds
 ### 5.3 intro and preroll
 
 `intro` (Icecast) and `preroll` (RSAS) are local file names, relative to
-`webroot` (§6.1), or URLs. The translation makes one `icecast.server.preroll_cache` for the file and
-composes, last in the mount's decision, a `static_preroll` of the `intro`, then a
-`static_preroll` of the `preroll`: the precedence of
-[prerolls.md](prerolls.md#5-precedence). Both are composed when both are
-present, the default mount's values included; the base directory is `webroot`.
+`webroot` (§6.1), or URLs. The translation makes one
+`icecast.server.preroll_cache` view for the file, over the process-wide store
+that a reload keeps warm ([prerolls.md §3](prerolls.md#3-the-cache)). It
+composes, last in the mount's decision, `fun (_) -> {preroll = cache(location)}`
+for the `intro`, then the same for the `preroll`. The rule that the first
+`preroll` given wins is `icecast.server.decision.all`'s
+([listeners.md §7](listeners.md#7-ready-made-decisions)), which gives the
+precedence of [prerolls.md](prerolls.md#5-precedence). Both are composed when
+both are present, the default mount's values included; the base directory is
+`webroot`.
 
 ### 5.4 Unsupported authentication
 
@@ -362,17 +373,22 @@ listeners.md's.
 - A `static` header without `value` is skipped. With one, it is an entry with
   `value`.
 - A `cors` header becomes the entry of that name from the CORS set
-  `icecast.server.headers.cors`, under `"icecast-2.5"`. What it computes, and
+  `icecast.server.headers.cors`, under `"icecast-2.5"` and `"rsas"`: RSAS has
+  no `type="cors"`, so the attribute conflicts with nothing there. The set is
+  the one the RSAS `<cors>` block builds; when both are present, the first
+  entry of a name wins ([parameters.md §4.2](parameters.md#42-headers)). What it computes, and
   the effect of a `value`, is [listeners.md §3.2](listeners.md#32-per-reply-headers)'s.
   A `cors` header with a name the set does not have and no value is skipped
   with a warning.
 - Under `"icecast-2.4"` and `"kh"`, which have no `cors` type, the `type`
-  attribute is ignored with a warning and the header is `static`.
+  attribute is ignored with a warning and the header is `static`. An RSAS
+  `<cors>` block below still becomes the CORS set under every value.
 - **RSAS.** A `<custom-headers>` element at the root or in a `<mount>` holds
   `<add-header name= value=/>` (a `static` entry) and one `<cors>` block with
   repeatable `<allow-origin>` and `<expose-headers>`: these become one
-  `icecast.server.headers.cors(~origins, ~expose)` set. Under any other
-  `compatibility` value the set computes nothing. A `<custom-headers>` in a
+  `icecast.server.headers.cors(~origins, ~expose)` set, under every
+  `compatibility` value (the helper honours both arguments under all of them,
+  and the block conflicts with nothing). A `<custom-headers>` in a
   `<listen-socket>` or `<vhost>`, and any per-request origin logic beyond the
   helper, is not translated: it warns and points to a `compute` header
   ([parameters.md §4.2](parameters.md#42-headers)).
@@ -418,25 +434,26 @@ warning, as Icecast logs an error and drops it.
 
 ## 11. Rules that depend on `compatibility`
 
-No XML element sets `compatibility`. It is a parameter
-([parameters.md §3.2](parameters.md#32-compatibility)) chosen by the script,
-because a file's dialect is ambiguous: most elements are common to every
+No XML element sets `compatibility`. It is the `load` argument and a parameter
+read at startup ([parameters.md §3.2](parameters.md#32-compatibility)), chosen
+by the script, because a file's dialect is ambiguous: most elements are common to every
 implementation. A script MAY guess a value from a file (a `<preroll>` element
 suggests `"rsas"`, an `<ssl-private-key>` or `<master-*>` suggests `"kh"`, a
 `<tls-context>` suggests `"icecast-2.5"`, `<ssl-certificate>` under `<paths>`
 alone suggests `"icecast-2.4"`), but the server does not.
 
-| Rule                                                                                          | Where                                                       |
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Mount selection: patterns, `priority`, default mounts                                         | [§5](#5-mount)                                              |
-| Access-list entries, htpasswd hashes, per-user limit status                                   | [listeners.md](listeners.md#7-ready-made-decisions)         |
-| The `cors` type exists for `icecast-2.5`; RSAS's `<cors>` block feeds the helper under `rsas` | [§8](#8-http-headers)                                       |
-| Status of a listener refused for a listener limit                                             | [listeners.md](listeners.md)                                |
-| The `fallbacks` request on a mount that is not live                                           | [mounts.md §6.3](mounts.md#63-fallbacks-admin-request)      |
-| URL authentication defaults                                                                   | [url-auth.md](url-auth.md#10-what-depends-on-compatibility) |
+| Rule                                                  | Where                                                       |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
+| Mount selection: patterns, `priority`, default mounts | [§5](#5-mount)                                              |
+| The `cors` type exists for `icecast-2.5` and `rsas`   | [§8](#8-http-headers)                                       |
+| htpasswd hashes, per-user limit status                | [listeners.md](listeners.md#7-ready-made-decisions)         |
+| Status of a listener refused for a listener limit     | [listeners.md](listeners.md)                                |
+| The `fallbacks` request on a mount that is not live   | [mounts.md §6.3](mounts.md#63-fallbacks-admin-request)      |
+| `503` past the fallback-chain bound (`rsas` only)     | [mounts.md §6.1](mounts.md#61-chains-and-loops)             |
+| URL authentication defaults                           | [url-auth.md](url-auth.md#10-what-depends-on-compatibility) |
 
-Fallback chains, `fallback-when-full` and `fallback-override` do not depend on
-it. Every `tls` value form, every certificate location, `htpasswd` and
+Fallback chains, `fallback-when-full` and `fallback-override` otherwise do not
+depend on it. Every `tls` value form, every certificate location, `htpasswd` and
 `mount-name` defaults are accepted under every value: they do not conflict.
 
 ## 12. Conformance
@@ -473,8 +490,11 @@ it. Every `tls` value form, every certificate location, `htpasswd` and
   translated file; a named file without `logdir` is ignored with a warning.
 - CORS: a `cors` header becomes the CORS set's entry under `"icecast-2.5"` and
   a `static` header under `"icecast-2.4"` and `"kh"`; RSAS's `<cors>` block fills
-  the helper's `origins` and `expose`; scoped `<custom-headers>` warns. Values
-  are listeners.md's.
+  the helper's `origins` and `expose` under every value; scoped
+  `<custom-headers>` warns. Values are listeners.md's.
+- `load` writes its `compatibility` argument into the record, and an invalid
+  one raises `error.icecast.server.invalid_parameters`; mount selection follows
+  it.
 - Event bindings per §9: one binding per trigger, a mount's bound to its mount.
 - `load` returns the same record for the same file, every time, and changes
   nothing outside the returned record.

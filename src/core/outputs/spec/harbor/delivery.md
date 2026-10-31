@@ -64,8 +64,9 @@ A group with no members is never woken and runs no pass.
 
 Writability is discovered by trying a non-blocking write on each pass. An
 implementation MAY in addition wait for writability of sockets that are owed
-bytes, but MUST NOT wait on sockets owed nothing: those are always writable
-and the wait would spin. Delivery MUST make progress where readiness is
+bytes, but MUST NOT wait on the writability of sockets owed nothing: those
+are always writable and the wait would spin. Hang-up detection
+([§6](#6-disconnection)) waits on readability, which is not that wait. Delivery MUST make progress where readiness is
 reported only once per edge, as some platforms do once descriptors of
 another kind share the wait set.
 
@@ -137,10 +138,18 @@ A listener that falls behind is disconnected, never trimmed: dropping owed
 bytes would corrupt the audio and, with ICY, every later boundary
 ([icy.md §4](icy.md#4-cadence-and-change-detection)).
 
-A client closing its end is noticed through a write error. Every listener of
-a streaming output is owed bytes each cycle, so this happens within a cycle
-while the stream runs.
+A client closing its end is noticed through a write error while it is owed
+bytes. Every listener of a streaming output is owed bytes each cycle, so this
+happens within a cycle while the stream runs.
 
+A listener owed nothing, as during a `keep_listeners` gap
+([operator.md §7](operator.md#7-lifecycle)), is no longer written to, so a
+hang-up would go unseen and the listener count would drift. The delivery
+group therefore waits for read-readiness on the sockets of its idle members:
+a read that returns end of stream, or an error, marks the listener closed, so
+`on_disconnect` fires promptly. Bytes a listener sends are discarded. The
+wait is on readability only; it does not spin, since an idle peer sends
+nothing.
 **Marking closed** is the only operation a cause performs. It MUST be
 idempotent and race-free: exactly one caller wins. The winner records the
 disconnection time, logs `Listener <id> disconnected`, and wakes the

@@ -6,10 +6,11 @@ the options below: for each listener request it asks a web service of the
 operator's, and the reply becomes the decision record (`refuse`, `time_limit`,
 `preroll`, `exempt`, `on_release`). It is Icecast's protocol, extended the way RSAS and Icecast-KH extend
 it, so a backend written for any of them keeps working. Where they differ, the
-`compatibility` parameter ([parameters.md](parameters.md)) names the behaviour; a
-behaviour only another implementation has, and that conflicts with nothing in
-the chosen one, is honoured too. [§10](#10-what-depends-on-compatibility)
-lists the rules that depend on it.
+`compatibility` parameter ([parameters.md](parameters.md)) names the behaviour,
+which the helper reads from `request.compatibility`; a behaviour only another
+implementation has, and that conflicts with nothing in the chosen one, is
+honoured too. [§10](#10-what-depends-on-compatibility) lists the rules that
+depend on it.
 
 ## 1. Configuration
 
@@ -19,9 +20,10 @@ The helper, `icecast.server.decision.url_auth(~cache, options)`
 chooses and bounds them by its `preroll_max_size`, and these options. The
 names are Icecast's; the Icecast
 translation passes every one of them from an `<authentication type="url">`
-element ([icecast-config.md](icecast-config.md)). `server` and `port` in the
-request are the server's `hostname` and `port` ([parameters.md](parameters.md)),
-which the helper is given.
+element ([icecast-config.md](icecast-config.md)). `server`, `port` and
+`server-instance` in the request come from the listener request's `server`
+record ([parameters.md §5](parameters.md#5-callbacks)); the helper takes no
+argument for them.
 
 | Option                                                                                              | Meaning                                                                                                                                                                                                               |
 | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -54,9 +56,9 @@ backend reads the spelling it knows.
 | Field             | Value                                                                                                       | From       |
 | ----------------- | ----------------------------------------------------------------------------------------------------------- | ---------- |
 | `action`          | `action_add`, default `listener_add`                                                                        | Icecast    |
-| `server`          | `hostname`                                                                                                  | Icecast    |
-| `port`            | The server's port                                                                                           | Icecast    |
-| `server-instance` | A random UUID, fixed for the life of the server                                                             | Icecast    |
+| `server`          | `server.hostname`                                                                                           | Icecast    |
+| `port`            | `server.port`                                                                                               | Icecast    |
+| `server-instance` | `server.instance`: a UUID fixed for the life of the server                                                  | Icecast    |
 | `client`          | The listener's `id`                                                                                         | Icecast    |
 | `mount`           | The requested path, then `?` and the query string as received when not empty                                | Icecast    |
 | `user`, `pass`    | The request's HTTP Basic credentials, empty when none                                                       | Icecast    |
@@ -216,12 +218,18 @@ The record's `on_release` closure
 released, a `POST` to
 `listener_remove` with the credentials of [§3](#3-credentials). Its body is the fields
 of [§2](#2-the-request) up to `agent` (the `action` is `action_remove`,
-default `listener_remove`; `user` is the `ice-username` when given), then
-`listener-count` (RSAS: the listeners on the mount at release, this one
-included), `song` (RSAS: the mount's current song at release), `sent`
-(Icecast-KH: the bytes sent to the listener) and `duration`: the session's
-length in whole seconds, truncated, as the wire format has it. The reply is
-ignored.
+default `listener_remove`; `user` is the `ice-username` when given), then these,
+from the release record the closure receives
+([parameters.md §5.7](parameters.md#57-decisions-and-helpers)):
+
+| Field            | Value                                                                                                                                                          |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `listener-count` | RSAS: the record's `listeners`, the listeners on the mount at release, this one included                                                                       |
+| `song`           | RSAS: the mount's current song, built from the record's `metadata`: `artist` and `title` joined by `-`, the title alone without `artist`, empty without either |
+| `sent`           | Icecast-KH: the record's `bytes_sent`                                                                                                                          |
+| `duration`       | The record's `duration` in whole seconds, truncated, as the wire format has it                                                                                 |
+
+The reply is ignored.
 A failed notification is logged and not retried. A mount with `listener_remove`
 and no `listener_add` admits every listener and tracks them.
 
@@ -254,14 +262,15 @@ read ([icecast-config.md](icecast-config.md)). `mount_add`, `mount_remove` and
 | Default `header_prefix`               | empty                                      | `ClientHeader-`                          |
 | Default `on_error_wait`               | none                                       | 30 s                                     |
 
-Everything else, including the extra request fields, the RSAS headers and
-Icecast's alter actions, is honoured for every value.
+The value is `request.compatibility`. Everything else, including the extra
+request fields, the RSAS headers and Icecast's alter actions, is honoured for
+every value.
 
 ## 11. A worked example
 
 Mount `/live.mp3`, `listener_add` = `http://auth.example/check`,
 `username` = `radio`, `password` = `s3cret`, `hostname` = `radio.example`,
-port 8000. Listener 42 sends
+port 8000, `compatibility` = `"icecast-2.5"`. Listener 42 sends
 `GET /live.mp3?token=x HTTP/1.1` with `User-Agent: VLC/3.0`, no credentials,
 from 203.0.113.7; the mount has 3 listeners.
 
@@ -305,7 +314,11 @@ A reply `HTTP/1.1 200 OK` with no `icecast-auth-user` would refuse it with
   `401`; precedence of [§6](#6-precedence), per `compatibility` as in
   [§10](#10-what-depends-on-compatibility).
 - A failing request refuses (or admits with `presume_innocent`); a release
-  notification per admitted listener, with `duration`.
+  notification per admitted listener, with `duration`, and under the values
+  that send them `listener-count`, `song` and `sent` from the release record.
+- `server`, `port` and `server-instance` are the server's, the instance the same
+  across a reload; the compatibility-dependent rules follow the server's
+  `compatibility`, with no argument given to the helper.
 - No request is sent for a listener refused by `max_clients`; a listener
   refused by `max_listeners` after admission is released with duration 0.
 - A backend preroll is loaded as [prerolls.md §2](prerolls.md#2-locations)
