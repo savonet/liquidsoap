@@ -57,9 +57,13 @@ Loaded prerolls are kept in memory and shared by every listener, so the ad
 server is fetched once for many listeners. There is **one store per process**,
 bounded by the global setting `settings.icecast.server.preroll_cache_size`
 ([parameters.md §10](parameters.md#10-existing-global-settings)).
-`icecast.server.preroll_cache(~preroll_timeout, ~preroll_max_size,
+`icecast.server.preroll_cache(~directory, ~preroll_timeout, ~preroll_max_size,
 ~preroll_revalidate)` returns a view over the store with its own limits for
-what it loads. A reload, or a new `icecast.server.config.load`, builds new views
+what it loads; `directory` is the base directory of its local locations
+([§2](#2-locations)). The view loads an operator's location with
+`view(location)`, which gives no bytes when the load fails, and one a backend
+chose with `view.backend(location)`, which takes URLs only and gives an empty
+preroll for any other value or a failed load ([§4](#4-failures)). A reload, or a new `icecast.server.config.load`, builds new views
 and keeps the store warm: a preroll fetched before is not fetched again.
 Observable rules:
 
@@ -94,7 +98,7 @@ where a backend chose it) is logged and yields no bytes. It MUST NOT refuse the
 listener. A failed load is not remembered, so the next use tries again.
 
 When a backend chose the location and it fails, the decision hands back an
-empty preroll rather than none. The listener then hears no preroll, and the
+empty preroll rather than none: `view.backend(location)` gives `""`. The listener then hears no preroll, and the
 operator's own location of [§5](#5-precedence) is not used in its place: the
 backend chose that one.
 
