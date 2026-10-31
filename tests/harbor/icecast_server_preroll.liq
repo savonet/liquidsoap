@@ -3,7 +3,8 @@
 # A listener gets the `preroll` URL of its `listener_add` reply, else the
 # mount's `<intro>` under `<webroot>`, before the stream. A preroll URL is
 # fetched once for many listeners, and one that fails to load admits the
-# listener without a preroll. The cache keeps to its byte budget and keeps a
+# listener without a preroll. A backend's preroll must be a URL: a local path,
+# which could name any file outside `<webroot>`, is ignored. The cache keeps to its byte budget and keeps a
 # file whose revalidation fails.
 port = 18145
 backend_port = 18147
@@ -11,6 +12,7 @@ intro = string.make(char_code=73, 2000)
 ad = string.make(char_code=65, 3000)
 
 def f() =
+  secret_path = ref("")
   ad_fetches = ref(0)
 
   harbor.http.register(
@@ -27,6 +29,10 @@ def f() =
           token == "ad"
         then
           response.header("Preroll", "http://127.0.0.1:#{backend_port}/ad.mp3")
+        elsif
+          token == "local"
+        then
+          response.header("Preroll", secret_path())
         elsif
           token == "broken"
         then
@@ -81,6 +87,9 @@ def f() =
 
   dir = file.temp_dir("icecast", "preroll")
   file.write(data=intro, path.concat(dir, "intro.mp3"))
+  secret_dir = file.temp_dir("icecast", "secret")
+  file.write(data="SECRET", path.concat(secret_dir, "secret"))
+  secret_path := "../#{path.basename(secret_dir)}/secret"
   config = path.concat(dir, "icecast.xml")
   file.write(
     data="<icecast><paths><webroot>#{
@@ -183,6 +192,11 @@ def f() =
         "preroll fetched #{ad_fetches()} times for two listeners"
       )
     end
+    expect_start(
+      "/radio.mp3?token=local",
+      intro,
+      "mount intro, ignoring a backend's local path"
+    )
     data = body("/radio.mp3?token=broken", 2000)
     if
       data == intro
