@@ -182,7 +182,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
           ~timeout:args.timeout () as super
 
     val state : state Atomic.t = Atomic.make `Opening
-    val mutable connected = false
+    val handed = Atomic.make false
     val mutable peer_closed = false
     val mutable headers = []
 
@@ -195,6 +195,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
     method private register_decoder _ = ()
     method client_state = Atomic.get state
     method set_headers h = headers <- h
+    method hand_over = Atomic.set handed true
 
     (* The handler may start the output that wakes the source before the
        client is offered: that wake-up is answered here. *)
@@ -270,7 +271,6 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
                       (Generator.add_metadata self#buffer)
                       pending_metadata;
                     pending_metadata <- None;
-                    connected <- true;
                     List.iter
                       (fun fn -> fn headers)
                       (Callbacks.elements on_connect);
@@ -348,7 +348,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
         dump <- None;
         logf <- None;
         on_end (self :> client);
-        if connected then
+        if Atomic.get handed then
           List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect))
 
     (* The feed task, when one runs, finishes what it started: it holds the
@@ -479,6 +479,7 @@ let open_client ~args ~handler ~connection ~(relay : Harbor.relay_info) client =
                in
                client#set_headers relay.headers;
                let fn = Lang.apply handler [("", record)] in
+               client#hand_over;
                ignore (Lang.apply fn [("", source_value client)]);
                if client#offer container description then
                  Scheduler.Task.add

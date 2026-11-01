@@ -5,13 +5,7 @@
 # it asks for it.
 def f() =
   port = 3551
-  dir = file.temp_dir("icecast", "ogg")
-  config = path.concat(dir, "icecast.xml")
-  file.write(
-    data="<icecast><authentication><source-password>hackme</source-password></authentication><limits><burst-size>4096</burst-size></limits></icecast>",
-    config
-  )
-  server = icecast.server(port=port, config=config)
+  server = icecast.server({port = port, burst_size = 4096})
 
   output.icecast(
     %ogg(%opus),

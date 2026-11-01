@@ -6,13 +6,7 @@
 port = 18136
 
 def f() =
-  dir = file.temp_dir("icecast", "reconnect")
-  config = path.concat(dir, "icecast.xml")
-  file.write(
-    data="<icecast><authentication><source-password>hackme</source-password></authentication></icecast>",
-    config
-  )
-  server = icecast.server(port=port, config=config)
+  server = icecast.server({port = port})
 
   source =
     output.icecast(

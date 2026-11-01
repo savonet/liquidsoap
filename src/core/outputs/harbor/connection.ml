@@ -35,50 +35,14 @@ let unauthorized = function
 let mount_taken =
   Harbor.challenge_page 403 "Mountpoint already taken" "Mountpoint in use"
 
-type refusal = {
-  status : int;
-  reason : string;
-  headers : (string * string) list;
-}
-
 let header_line (name, value) = name ^ ": " ^ value ^ "\r\n"
 
-let refusal_reply ~protocol { status; reason; headers } =
-  Printf.sprintf "HTTP/%s %d %s\r\n%sContent-Length: 0\r\n\r\n" protocol status
-    reason
-    (String.concat "" (List.map header_line headers))
-
-let forbidden = { status = 403; reason = "Forbidden"; headers = [] }
+let forbidden =
+  { Harbor_refusal.status = 403; reason = "Forbidden"; headers = [] }
 
 let unavailable ~protocol =
-  refusal_reply ~protocol
+  Harbor_refusal.reply ~protocol
     { status = 503; reason = "Service Unavailable"; headers = [] }
-
-let is_token name =
-  name <> ""
-  && String.for_all
-       (function
-         | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> true
-         | '!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '.' | '^'
-         | '_' | '`' | '|' | '~' ->
-             true
-         | _ -> false)
-       name
-
-let has_line_break = String.exists (fun c -> c = '\r' || c = '\n')
-
-let header_error (name, value) =
-  if not (is_token name) then Some "Header name must be an HTTP token."
-  else if has_line_break value then
-    Some "Header value must not contain a line break."
-  else None
-
-let refusal_error { status; reason; headers } =
-  if status < 300 || status > 599 then
-    Some "Refusal status must be between 300 and 599."
-  else if has_line_break reason then
-    Some "Refusal reason must not contain a line break."
-  else List.find_map header_error headers
 
 let response_head ~protocol ~mime ~metaint headers =
   String.concat ""

@@ -44,6 +44,13 @@ def icecast.server.headers.invalid_entry(entry) =
   end
 end
 
+# Header list with lowercase names, as harbor's listener and login records
+# have them.
+# @flag hidden
+def icecast.server.headers.lowercase(headers) =
+  list.map(fun (h) -> (string.case(lower=true, fst(h)), snd(h)), headers)
+end
+
 # Header pairs as fixed entries.
 # @flag hidden
 def icecast.server.headers.of_pairs(headers) =

@@ -93,7 +93,11 @@ type login_args = {
   query : (string * string) list;
   user : string;
   password : string;
+  credentials : bool;
+  headers : (string * string) list;
 }
+
+exception Refused of Harbor_refusal.t
 
 module type Transport_t = sig
   type socket = Http.socket
@@ -496,6 +500,13 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
      http://tools.ietf.org/html/rfc6455#section-7.4.1 *)
   let websocket_error n msg = Websocket.to_string (`Close (Some (n, msg)))
 
+  (* Applies a login function, answering its refusal. *)
+  let refusing auth_f args =
+    try auth_f args
+    with Refused refusal ->
+      log#info "Returned %d: %s" refusal.Harbor_refusal.status refusal.reason;
+      simple_reply (Harbor_refusal.reply ~protocol:"1.0" refusal)
+
   let parse_icy_request_line ~port h r =
     let { Liq_http.user = requested_user; password } =
       try Liq_http.parse_auth r
@@ -512,7 +523,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
     let user, auth_f = s.login in
     let user = if requested_user = "" then user else requested_user in
     if
-      auth_f
+      refusing auth_f
         {
           socket = h.Io.socket;
           meth = "ICY";
@@ -520,6 +531,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           query = [];
           user;
           password;
+          credentials = true;
+          headers = [];
         }
     then (`Shout, "/", `Icy)
     else (
@@ -581,19 +594,19 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       if not (auth_f args) then raise Not_authenticated else ();
       log#info "Client logged in.";
       ()
-    with
-    | Runtime_error.Runtime_error { kind; _ }
-    when kind = "error.icecast.server.mount_taken"
-    ->
-      log#info "Returned 403: Mount taken";
-      mount_taken_error ()
+    with Refused refusal ->
+      log#info "Returned %d: %s" refusal.status refusal.reason;
+      simple_reply (Harbor_refusal.reply ~protocol:"1.0" refusal)
+
+  let lowercase_headers headers =
+    List.map (fun (name, value) -> (String.lowercase_ascii name, value)) headers
 
   let http_auth_check ?query ~meth ~uri ~login socket headers =
     (* 401 error model *)
     let http_reply s = simple_reply (challenge_page 401 "Unauthorized" s) in
     let valid_user, auth_f = login in
     try
-      let user, pass =
+      let credentials, user, pass =
         try
           (* HTTP authentication *)
           let auth = assoc_uppercase "AUTHORIZATION" headers in
@@ -603,7 +616,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 let { Liq_http.user; password } =
                   Liq_http.parse_auth (Lang_string.decode64 x)
                 in
-                (user, password)
+                (true, user, password)
             | _ -> raise Not_found
         with Not_found -> (
           match query with
@@ -615,8 +628,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                 let user =
                   try List.assoc "user" query with Not_found -> valid_user
                 in
-                (user, List.assoc "pass" query)
-            | _ -> raise Not_found)
+                (true, user, List.assoc "pass" query)
+            | _ -> (false, "", ""))
       in
       auth_check ~auth_f
         {
@@ -626,6 +639,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           query = Option.value ~default:[] query;
           user;
           password = pass;
+          credentials;
+          headers = lowercase_headers headers;
         }
     with
       | Not_authenticated ->
@@ -725,7 +740,10 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         try assoc_uppercase "CONTENT-TYPE" headers with
           | Not_found when smethod = `Shout || smethod = `Xaudiocast ->
               "audio/mpeg"
-          | Not_found -> raise Unknown_codec
+          | Not_found ->
+              log#info "Returned 400: no Content-Type";
+              simple_reply
+                "HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
       in
       let chunked =
         try assoc_uppercase "TRANSFER-ENCODING" headers = "chunked"
@@ -859,6 +877,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             query = [];
             user;
             password;
+            credentials = true;
+            headers = lowercase_headers headers;
           }
       with Not_authenticated ->
         log#info "Authentication failed!";
@@ -1061,7 +1081,15 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
             raise (Handled (verb, groups, handler))
     in
     try
-      List.iter f (Atomic.get handler.http);
+      (* A literal route beats a regexp route, whatever the registration
+         order. *)
+      let literal, regexp =
+        List.partition
+          (fun { path; _ } -> match path with `Literal _ -> true | _ -> false)
+          (Atomic.get handler.http)
+      in
+      List.iter f literal;
+      List.iter f regexp;
 
       (* Otherwise, try with a standard handler. *)
       let is_admin s = try String.sub s 0 6 = "/admin" with _ -> false in
@@ -1183,7 +1211,7 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
               let valid_user, auth_f = s.login in
               if
                 not
-                  (auth_f
+                  (refusing auth_f
                      {
                        socket = h.Io.socket;
                        meth = "SOURCE";
@@ -1191,6 +1219,8 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
                        query = [];
                        user = valid_user;
                        password;
+                       credentials = true;
+                       headers = lowercase_headers headers;
                      })
               then simple_reply "Invalid password!"
               else (true, uri, `Xaudiocast)
