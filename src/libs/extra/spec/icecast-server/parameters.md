@@ -377,9 +377,11 @@ The outcome is a record, every field optional:
 | `preroll`    | `string`                     | Bytes sent before the stream. Harbor's field. A Liquidsoap source cannot be a preroll: it would need encoding.                                                                                              |
 | `exempt`     | `bool`                       | Skips `max_listeners` and `fallback_when_full`; still counted in, and subject to, `max_clients` (KH `icecast-slave`).                                                                                       |
 | `on_release` | `(release) -> unit`          | Called once with the release record when the admitted listener leaves, or when its admission ends before it is served: refused by a later step, rejected by the harbor output, or the mount output stopped. |
+| `user`       | `string`                     | The listener's new user name, from a backend rename: the user the per-user limit counts ([listeners.md §7.3](listeners.md#73-per-user-connection-limit)).                                                   |
 
 The input is [listeners.md §2](listeners.md#2-the-listener-decision)'s request.
-It carries `server`, `compatibility` and `user_listeners` besides the
+It carries `server`, `compatibility` and `user_listeners` (a function from a
+user name to that user's admitted listeners on the mount) besides the
 request's own fields, so a decision built by a helper needs no argument for
 them. The release record is:
 

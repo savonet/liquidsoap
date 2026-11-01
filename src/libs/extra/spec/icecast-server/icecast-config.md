@@ -261,7 +261,7 @@ become its options, one for one, under the names url-auth.md gives:
 A mount's `<authentication>` takes effect as a listener decision only when it
 has `listener_add` or `listener_remove`; otherwise the mount has no listener
 decision of its own and inherits the default mount's. `mount_add`,
-`mount_remove` and `stream_auth` take effect without them. Option values are
+`mount_remove` and `stream_auth` take effect without them. String values are
 kept as written; the comparison rules are url-auth.md's.
 
 **`type="htpasswd"`.** The decision is the ready-made `htpasswd` decision
@@ -446,7 +446,7 @@ alone suggests `"icecast-2.4"`), but the server does not.
 | ----------------------------------------------------- | ----------------------------------------------------------- |
 | Mount selection: patterns, `priority`, default mounts | [§5](#5-mount)                                              |
 | The `cors` type exists for `icecast-2.5` and `rsas`   | [§8](#8-http-headers)                                       |
-| htpasswd hashes, per-user limit status                | [listeners.md](listeners.md#7-ready-made-decisions)         |
+| Per-user limit status                                 | [listeners.md](listeners.md#7-ready-made-decisions)         |
 | Status of a listener refused for a listener limit     | [listeners.md](listeners.md)                                |
 | The `fallbacks` request on a mount that is not live   | [mounts.md §6.3](mounts.md#63-fallbacks-admin-request)      |
 | `503` past the fallback-chain bound (`rsas` only)     | [mounts.md §6.1](mounts.md#61-chains-and-loops)             |

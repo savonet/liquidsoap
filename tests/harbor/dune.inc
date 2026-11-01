@@ -621,6 +621,23 @@
    icecast_server_url_auth.liq)))
 
 (rule
+ (alias test_icecast_server_url_auth_wire)
+ (package liquidsoap)
+ (deps
+  icecast_server_url_auth_wire.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_url_auth_wire.liq
+   liquidsoap
+   icecast_server_url_auth_wire.liq)))
+
+(rule
  (alias test_post)
  (package liquidsoap)
  (deps
@@ -687,5 +704,6 @@
   (alias test_icecast_server_shutdown)
   (alias test_icecast_server_source_reconnect)
   (alias test_icecast_server_url_auth)
+  (alias test_icecast_server_url_auth_wire)
   (alias test_post)
   (alias test_put)))

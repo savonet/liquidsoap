@@ -56,19 +56,19 @@ another. A mount without one admits every request.
 
 **Input.** The listener request:
 
-| Field              | Content                                                                                                                                                               |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`               | The listener's identifier, unique on the mount output                                                                                                                 |
-| `mount`            | The mount path, query string excluded                                                                                                                                 |
-| `query`            | The query string as received, empty when none                                                                                                                         |
-| `user`, `password` | The HTTP Basic credentials of the request, empty when it sent none                                                                                                    |
-| `address`          | The listener's address, resolved as in [§8](#8-the-listeners-address), never hashed                                                                                   |
-| `headers`          | The request headers, looked up by lowercase name                                                                                                                      |
-| `protocol`         | The HTTP version of the request                                                                                                                                       |
-| `listeners`        | The number of listeners on the mount, the new one excluded                                                                                                            |
-| `user_listeners`   | The number of admitted listeners of the request's `user` on the mount, the new one excluded; `0` when the request has no user ([§7.3](#73-per-user-connection-limit)) |
-| `server`           | `{hostname, port, instance}` ([parameters.md §5](parameters.md#5-callbacks))                                                                                          |
-| `compatibility`    | The server's `compatibility` ([parameters.md §3.2](parameters.md#32-compatibility))                                                                                   |
+| Field              | Content                                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`               | The listener's identifier, unique on the mount output                                                                                                                          |
+| `mount`            | The mount path, query string excluded                                                                                                                                          |
+| `query`            | The query string as received, empty when none                                                                                                                                  |
+| `user`, `password` | The HTTP Basic credentials of the request, empty when it sent none                                                                                                             |
+| `address`          | The listener's address, resolved as in [§8](#8-the-listeners-address), never hashed                                                                                            |
+| `headers`          | The request headers, looked up by lowercase name                                                                                                                               |
+| `protocol`         | The HTTP version of the request                                                                                                                                                |
+| `listeners`        | The number of listeners on the mount, the new one excluded                                                                                                                     |
+| `user_listeners`   | A function from a user name to the number of admitted listeners of that user on the mount, the new one excluded; `0` for an empty name ([§7.3](#73-per-user-connection-limit)) |
+| `server`           | `{hostname, port, instance}` ([parameters.md §5](parameters.md#5-callbacks))                                                                                                   |
+| `compatibility`    | The server's `compatibility` ([parameters.md §3.2](parameters.md#32-compatibility))                                                                                            |
 
 The server reads `server`, `compatibility` and `user_listeners` once and hands
 them in, so a ready-made decision, built outside the server and again at each
@@ -78,15 +78,16 @@ reload, is given no argument for them and cannot disagree with the server.
 field and a null one mean the same). The first three are the harbor output's
 admission record
 ([connection.md §4](../../../../core/outputs/spec/harbor/connection.md#4-admission-predicate));
-the last two are the server's.
+the others are the server's.
 
-| Field        | Content                                                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `refuse`     | `{status, reason, headers?}`: refuse, or redirect when `status` is a redirect status and `headers` carry `Location`            |
-| `time_limit` | Seconds after admission at which the listener is disconnected ([§6](#6-time-limits))                                           |
-| `preroll`    | The preroll, as bytes ([prerolls.md](prerolls.md))                                                                             |
-| `exempt`     | `true`: the mount's `max_listeners` and `fallback_when_full` do not apply; `max_clients` still does ([§4](#4-listener-limits)) |
-| `on_release` | A closure called once, with the release record, when the listener is gone ([§5](#5-release))                                   |
+| Field        | Content                                                                                                                                                                                                         |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refuse`     | `{status, reason, headers?}`: refuse, or redirect when `status` is a redirect status and `headers` carry `Location`                                                                                             |
+| `time_limit` | Seconds after admission at which the listener is disconnected ([§6](#6-time-limits))                                                                                                                            |
+| `preroll`    | The preroll, as bytes ([prerolls.md](prerolls.md))                                                                                                                                                              |
+| `exempt`     | `true`: the mount's `max_listeners` and `fallback_when_full` do not apply; `max_clients` still does ([§4](#4-listener-limits))                                                                                  |
+| `on_release` | A closure called once, with the release record, when the listener is gone ([§5](#5-release))                                                                                                                    |
+| `user`       | The listener's new user name, from a backend rename (Icecast-KH's `ice-username`, [url-auth.md §5.5](url-auth.md#55-other-effects)): the user the per-user limit counts ([§7.3](#73-per-user-connection-limit)) |
 
 A record without `refuse` admits. Helpers build refusals and redirects from a
 status, a reason and headers (a redirect from a status and a URL), so a
@@ -310,9 +311,14 @@ They use the reply and release mechanisms above. They read `compatibility`,
 **Composition.** Decisions compose in order; authentication comes before the
 per-user limit ([§7.3](#73-per-user-connection-limit)). The first that refuses or
 redirects wins, and decisions that had admitted before it are released with
-a duration of 0. When all admit, the records merge: the first `time_limit`
-and the first `preroll` given win (an empty preroll counts as given),
-`exempt` is set if any set it, and every `on_release` is kept.
+a duration of 0. When all admit, the records merge: the first `time_limit`,
+the first `preroll` and the first `user` given win (an empty preroll counts as
+given), `exempt` is set if any set it, and every `on_release` is kept. A
+decision after one that gave a `user` sees the request with that `user`, so a
+per-user limit composed after URL authentication counts the renamed user. A
+decision that raises after earlier ones admitted releases those with a
+duration of 0, then the error propagates. These duration-0 releases carry
+`metadata = []`: a decision does not know the mount's metadata.
 `icecast.server.decision.all` owns this rule; the precedence of prerolls
 ([prerolls.md §5](prerolls.md#5-precedence)) is one use of it.
 
@@ -324,6 +330,10 @@ hashed) and by `User-Agent`.
 - **Files.** A deny list and an allow list, each a file with one entry per
   line; blank lines and lines starting with `#` are ignored. The file is read
   again when its modification time changes, checked at most every 10 seconds.
+  A file that cannot be read keeps the entries last read, none at first, and
+  is logged once: a missing allow list refuses everyone and a missing deny
+  list refuses nobody, as on Icecast. A line that is not a valid pattern is
+  skipped and logged.
 - **Match.** Mainline: an entry is an address, compared exactly. Icecast-KH:
   an entry is an address or a wildcard pattern (`*`, `?`, `[...]`).
   The server accepts patterns under every `compatibility` value: a literal is
@@ -351,13 +361,12 @@ Authenticates a listener's Basic credentials against a file of
 modification time changes). It is provided under every `compatibility`
 value: Icecast 2.5, Icecast 2.4 and Icecast-KH have it. RSAS documents only
 webhook authentication for listeners (its static user and password are for
-source clients), so under `rsas` it is this server's rule, with the hash set
-of `icecast-2.5`. The value is the request's `compatibility`.
+source clients), so under `rsas` it is this server's rule.
 
-| `compatibility`           | Hash accepted                                                                          |
-| ------------------------- | -------------------------------------------------------------------------------------- |
-| `"icecast-2.5"`, `"rsas"` | the 32-hex-digit MD5 of the password, or a `crypt` string starting `$1$`, `$5$`, `$6$` |
-| `"icecast-2.4"`, `"kh"`   | the 32-hex-digit MD5 of the password                                                   |
+The hash accepted is the 32-hex-digit MD5 of the password. A line with another
+hash, such as Icecast 2.5's `crypt` strings (`$1$`, `$5$`, `$6$`), never
+matches: the listener is refused with `401` and the log names the user
+([future-work.md](future-work.md)).
 
 An unknown user or a wrong password refuses with `401` and the default
 challenge. A request without credentials refuses the same way, which is what
@@ -369,16 +378,17 @@ whether or not the user is connected.
 
 An internal helper, `connections_per_user(n)`, which the translation composes
 ([parameters.md §5.7](parameters.md#57-decisions-and-helpers)). It refuses a
-listener when the request's `user_listeners` is at least `n`. The server counts
+listener when `user_listeners` of the request's `user` is at least `n`. The server counts
 admitted listeners per user and mount, from their connect event to their
 disconnect event, and hands the count in the request, so the helper holds no
 state and a reload cannot lose it. The counted user is the request's user as
 admitted: when a URL authentication reply renames it (Icecast-KH's
-`ice-username`), the new name is counted. Admissions in progress are not
+`ice-username`), the decision's `user`, which `icecast.server.decision.all`
+hands to the decisions after it, is counted. Admissions in progress are not
 counted, as for every limit ([§1](#1-the-admission-pipeline)); Icecast also
 counts pending admissions, and this is an accepted difference under that
-allowance. Icecast and Icecast-KH both count one mount's clients. A request without credentials has
-`user_listeners` of `0` and is never limited. A limit of 0 is no limit.
+allowance. Icecast and Icecast-KH both count one mount's clients. A request without credentials has an
+empty user, whose count is `0`, and is never limited. A limit of 0 is no limit.
 
 | `compatibility`           | Status                  |
 | ------------------------- | ----------------------- |
@@ -494,8 +504,10 @@ can carry the address (`X-Forwarded-For`).
 - Under `rsas`, a listener request that follows a fallback chain past its bound
   is `503`.
 - Ready-made decisions: access-list rule (deny beats allow, allow list
-  closes), htpasswd hash formats per `compatibility`, per-user limit and
-  status; composition order and release of earlier admissions.
+  closes, an unreadable file keeps its last entries and is logged once),
+  htpasswd MD5 hashes and no other, per-user limit and status; composition
+  order, release of earlier admissions, and a rename seen by the decisions
+  after it and counted by the per-user limit.
 - Address: the rightmost entry not in `proxy_ips`, only when the peer is itself
   in the list (**Improvement**: one list, no per-socket switching); unset list
   gives the peer, empty list trusts the rightmost entry, CIDR ranges match,

@@ -8,6 +8,12 @@ here instead of describing them.
 
 ## Medium
 
+**`crypt` hashes in htpasswd files.** Icecast 2.5 accepts `crypt` strings
+(`$1$` MD5-crypt, `$5$` SHA-256-crypt, `$6$` SHA-512-crypt) besides the MD5
+hex digest ([listeners.md §7.2](listeners.md#72-htpasswd)). Building blocks:
+the htpasswd decision. Blocker: Liquidsoap has no `crypt` or SHA-2 primitive;
+it needs one in OCaml (libcrypt, or a digest library).
+
 **`killclient`.** Disconnect one listener by its identifier, from the admin
 interface (`/admin/killclient?mount=&id=`). Icecast and Icecast-KH have it.
 Building blocks: the listener record's `id` and the admin handlers
