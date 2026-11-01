@@ -90,6 +90,24 @@ passes a ceiling. Building blocks: the `bytes_sent` of the listener record, a
 listener decision. Blocker: the server has no rate measurement over a window,
 and the harbor output has no rate limiter.
 
+**`100 Continue` for `PUT` sources.** Icecast answers a `PUT` with
+`Expect: 100-continue` by `100 Continue` and otherwise waits for the first
+data before replying ([sources.md §4](sources.md#4-replies)). Building
+blocks: the source admission. Blocker: the harbor input answers every
+admitted `PUT` with `200` at once.
+
+**Refusing an unparsable stream at login.** Icecast 2.5 refuses a source
+client whose stream it cannot parse with `415`, the others with `403`
+([sources.md §4](sources.md#4-replies)). Building blocks: the source refusals.
+Blocker: the harbor input parses the stream after admission and answers a
+failure with its own error reply.
+
+**Hand a listener request to an output being created.** A listener asking
+for a configured mount with no output is redirected to the same URL once the
+output exists ([mounts.md §1.1](mounts.md#11-linger)). Building blocks: the
+mount request handler. Blocker: a harbor request handler cannot pass its
+socket to an output, so the listener reconnects.
+
 ## Large
 
 **Move a listener into another mount's output.** One harbor operation that

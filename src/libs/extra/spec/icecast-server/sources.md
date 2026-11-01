@@ -133,10 +133,8 @@ and [url-auth.md §7](url-auth.md#7-failures). Fields: `action`
 admits the source client under the rule of
 [url-auth.md §4](url-auth.md#4-the-reply) for admission; time limits,
 redirects and prerolls do not apply. Any other reply refuses as bad
-credentials, unless it carries `icecast-resp-status` (300 to 599) and
-`icecast-resp-reason`: they set the refusal's status and reason, as in
-[url-auth.md §5.3](url-auth.md#53-refusal). RSAS's webhooks use them; every
-`compatibility` value honours them.
+credentials: the source decision answers yes or no
+([§3.1](#31-the-source-decision)), so `icecast-resp-status` is not read.
 
 ### 3.3 The default password
 
@@ -155,8 +153,12 @@ commands of [§6](#6-admin-requests), such as `killsource`.
 | mount taken       | `409`         | `403 Mountpoint in use`     |
 | `max_sources`     | `503`         | `403 Too many sources`      |
 | no `Content-Type` | `400`         | `400`                       |
-| unparsable stream | `415`         | `403`                       |
 | reserved path     | `403`         | `403`                       |
+
+**Departure.** Icecast 2.5 refuses a stream it cannot parse with `415` (the
+others `403`) at login. Here the stream is parsed after admission, and one
+that cannot be parsed gets the harbor input's error reply
+([future-work.md](future-work.md#medium)).
 
 Under `rsas`, bad credentials (`401`) and a mount taken (`403 Mountpoint in
 use`) are RSAS's; it does not document the other refusals, so their statuses
@@ -170,8 +172,12 @@ A refused source client gets a short body and the connection is closed.
 An admitted source client is answered:
 
 - `SOURCE` and Shoutcast: `200 OK` (Shoutcast: the `OK2` form above) at once;
-- `PUT`: `100 Continue` when the client sent `Expect: 100-continue`, otherwise
-  nothing until the first data is read, as Icecast does.
+- `PUT`: `200 OK` at once.
+
+**Departure.** Icecast answers a `PUT` with `Expect: 100-continue` by
+`100 Continue`, and otherwise sends nothing until the first data is read. The
+harbor input answers every admitted `PUT` the same way
+([future-work.md](future-work.md#medium)).
 
 ## 5. Stream identity and content
 
@@ -204,9 +210,8 @@ produced, and a server holds many mounts.
   connection. The mount follows it as [mounts.md §3](mounts.md#3-the-format-match-rule)
   states. Whether a new link starts a new track is the output's
   ([harbor spec](../../../../core/outputs/spec/harbor/icecast-server.md)).
-- A stream the server cannot parse is refused as unparsable ([§4](#4-replies))
-  when detected at login, and otherwise ends the connection like a
-  disconnection.
+- A stream the server cannot parse ends the connection like a disconnection
+  ([§4](#4-replies)).
 
 ## 6. Admin requests
 
@@ -218,7 +223,8 @@ request is malformed. Two kinds exist.
 and `/admin/listclients` ([observability.md §7.3](observability.md#73-icecast-xml)).
 They are authenticated as the mount's source client would be ([§3](#3-admission)
 step 2, with `admin` true for `source_decision`), by Basic credentials or, on
-`/admin.cgi`, by the `user` and `pass` query parameters. The admin user and
+`/admin.cgi`, by the `user` and `pass` query parameters, an absent `user`
+meaning the mount's `source_user`. The admin user and
 password ([parameters.md](parameters.md)) are accepted too when `admin_password`
 is set. A mount command is served whether or not `admin_password` is set.
 Rationale: Icecast grants the commands of a mount to its sources.
@@ -343,10 +349,10 @@ uses its own URL.
 
 ## 9. Compatibility
 
-| Rule                                                       | Values                                                                                                                                                                           |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| refusal statuses ([§4](#4-replies))                        | mount taken, `max_sources`, unparsable stream: `icecast-2.5` `409`, `503`, `415`; the others `403`. Bad credentials, no `Content-Type` and the reserved path do not depend on it |
-| unknown mount on a mount command ([§6](#6-admin-requests)) | `icecast-2.5` `404`; the others `400`                                                                                                                                            |
+| Rule                                                       | Values                                                                                                                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| refusal statuses ([§4](#4-replies))                        | mount taken, `max_sources`: `icecast-2.5` `409`, `503`; the others `403`. Bad credentials, no `Content-Type` and the reserved path do not depend on it |
+| unknown mount on a mount command ([§6](#6-admin-requests)) | `icecast-2.5` `404`; the others `400`                                                                                                                  |
 
 Every other rule holds under every value.
 

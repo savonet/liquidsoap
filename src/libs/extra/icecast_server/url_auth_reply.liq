@@ -122,6 +122,38 @@ def icecast.server.url_auth.alter_redirect(~config, reply) =
     : null
 end
 
+# Whether a reply admits (url-auth.md §4): the `auth_header` line whatever the
+# status, or `header_auth: ok` on a 2xx reply.
+# @flag hidden
+def icecast.server.url_auth.admits(~config, reply) =
+  lower = icecast.server.url_auth.lower
+  old_auth = config.old_auth
+  old_value =
+    old_auth.name == ""
+      ? null
+      : (icecast.server.url_auth.header(reply, old_auth.name))
+  old_admits =
+    if
+      not null.defined(old_value)
+    then
+      false
+    elsif
+      config.kh
+    then
+      not string.contains(prefix="0", null.get(old_value))
+    else
+      lower(null.get(old_value)) == old_auth.value
+    end
+  old_admits
+  or (
+    reply.status >= 200
+    and reply.status < 300
+    and config.new_auth != ""
+    and lower(icecast.server.url_auth.header(reply, config.new_auth) ?? "") ==
+      "ok"
+  )
+end
+
 # The admission a URL authentication reply `{status, headers, body}`, header
 # names lowercased, gives (url-auth.md §4 to §6): `{refuse, time_limit,
 # preroll, exempt, user}`, `user` being the backend's rename of the listener,
@@ -139,23 +171,7 @@ def icecast.server.url_auth.outcome(~cache, ~config, request, reply) =
   old_auth = config.old_auth
   old_value = old_auth.name == "" ? null : header(old_auth.name)
   withintro = config.kh and lower(old_value ?? "") == "withintro"
-  old_admits =
-    if
-      not null.defined(old_value)
-    then
-      false
-    elsif
-      config.kh
-    then
-      not string.contains(prefix="0", null.get(old_value))
-    else
-      lower(null.get(old_value)) == old_auth.value
-    end
-  new_admits =
-    is_2xx
-    and config.new_auth != ""
-    and lower(header(config.new_auth) ?? "") == "ok"
-  admitted = old_admits or new_admits
+  admitted = icecast.server.url_auth.admits(config=config, reply)
 
   location = config.kh ? header("location") : null
   alter =

@@ -65,8 +65,10 @@ translates onto `linger` ([icecast-config.md](icecast-config.md#5-mount)).
 fallback, with no feeder ever, has no output and no listeners. A listener
 request for a path that has no output, and whose parameters name a `fallback`
 that has something to send, creates the mount's output, fed by that fallback,
-and the listener is admitted to it ([listeners.md §1](listeners.md#1-the-admission-pipeline)).
-Icecast serves the fallback at the mount's URL in the same way. No source-connect
+and the listener is answered `307` to the same URL, where the new output
+admits it ([listeners.md §1](listeners.md#1-the-admission-pipeline)).
+**Departure** from Icecast, which serves the fallback on the same connection
+([future-work.md](future-work.md#medium)). No source-connect
 event fires: there is no feeder. A source client MAY take the mount later
 ([§3](#3-the-format-match-rule)). Every other request for a mount without
 output answers `404`.
@@ -78,10 +80,12 @@ A mount has at most one feeder at a time.
 - **A source client** takes a free mount through the admission of
   [sources.md §3](sources.md#3-admission).
 - **A Liquidsoap source** is attached by the script, through the server's
-  `attach_source` method with the mount path and the Liquidsoap source, and
-  detached with `detach_source` ([parameters.md](parameters.md)). Its content
-  MUST be encoded, in a container the server can deliver; the mount's format
-  is that of the encoded content ([§3](#3-the-format-match-rule)). The script
+  `attach_source(~format, mount, source)` method, and detached with
+  `detach_source` ([parameters.md §6](parameters.md#6-the-server-value)). Its
+  content MUST be encoded, in a container the server can deliver; `format` is
+  the encoder that writes it for listeners (a copy encoder, such as
+  `%ffmpeg(format="mp3", %audio.copy)`), and the mount's MIME type is
+  `format`'s ([§3](#3-the-format-match-rule)). The script
   MAY pass the stream identity ([sources.md §5](sources.md#5-stream-identity-and-content))
   with it.
 
@@ -142,6 +146,11 @@ A candidate (a source client, an attached Liquidsoap source, or a fallback)
   new parameters), and the server states none. Icecast, which relays bytes,
   ends the listeners' stream when its source goes away. A test asserts that a
   listener survives such a change. This is not subject to `compatibility`.
+
+An attached Liquidsoap source's codecs are known only from its packets, so
+it is compared by MIME type alone. A mismatch the comparison misses (an Opus
+source on a Vorbis mount) fails the mount's copy encoder, which stops the
+clock it shares: it is a script error and stops the server.
 
 Rationale for the strict rule on fallbacks and attached sources: a listener
 who joined a Matroska stream cannot follow another codec or layout, and a

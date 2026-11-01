@@ -794,7 +794,7 @@ state into `Ended` ends the client, exactly once and in order: stop the feed
 task; drain the decoder when the cause is an end of input (§10.6), else
 discard; close the decoder, or the container when no decoder was built;
 close the client connection; remove the client's table entry; run the
-source's `on_disconnect` callbacks when its `on_connect` callbacks ran.
+source's `on_disconnect` callbacks when the source was handed to the handler.
 
 Every way a client ends other than a clean end of input, a sleep, a `stop()`
 or shutdown is a source fault of the client's source

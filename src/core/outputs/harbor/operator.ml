@@ -105,22 +105,12 @@ let dedicated_mode ~factory parameters =
   }
 
 let invalid value message = raise (Error.Invalid_value (value, message, []))
-
-let refusal_t =
-  Lang.optional_method_t
-    (Lang.record_t [("status", Lang.int_t); ("reason", Lang.string_t)])
-    [
-      ( "headers",
-        ([], Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)),
-        "Reply headers." );
-    ]
-
 let headers_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)
 
 let decision_t =
   Lang.optional_record_t
     [
-      ("refuse", Lang.nullable_t refusal_t);
+      ("refuse", Lang.nullable_t Harbor_refusal.t);
       ("time_limit", Lang.nullable_t Lang.float_t);
       ("preroll", Lang.nullable_t Lang.string_t);
       ("headers", Lang.nullable_t headers_t);
@@ -143,30 +133,9 @@ let headers_of_value value =
     (fun value ->
       let name, content = Lang.to_product value in
       let header = (Lang.to_string name, Lang.to_string content) in
-      Option.iter (invalid value) (Connection.header_error header);
+      Option.iter (invalid value) (Harbor_refusal.header_error header);
       header)
     (Lang.to_list value)
-
-let refusal_of_value value =
-  let fields, _ = Lang.split_meths value in
-  let refusal =
-    {
-      Connection.status = Lang.to_int (List.assoc "status" fields);
-      reason = Lang.to_string (List.assoc "reason" fields);
-      headers =
-        (match List.assoc_opt "headers" fields with
-          | None -> []
-          | Some headers ->
-              List.map
-                (fun header ->
-                  let name, value = Lang.to_product header in
-                  (Lang.to_string name, Lang.to_string value))
-                (Lang.to_list headers));
-    }
-  in
-  match Connection.refusal_error refusal with
-    | Some message -> invalid value message
-    | None -> refusal
 
 (* [`Invalid] is an admitting decision that fails validation, with its
    [on_dropped]. *)
@@ -180,7 +149,7 @@ let decision_of_value value =
             (List.assoc_opt name fields)
             (Lang.to_valued_option convert)
         in
-        match field "refuse" refusal_of_value with
+        match field "refuse" Harbor_refusal.of_value with
           | Some refusal -> `Refuse refusal
           | None -> (
               let on_dropped = field "on_dropped" Fun.id in
@@ -512,8 +481,8 @@ class output p =
           | `Admit admission -> admission
           | `Refuse refusal ->
               self#log#info "Listener %s refused: %d %s" peer
-                refusal.Connection.status refusal.Connection.reason;
-              Harbor.simple_reply (Connection.refusal_reply ~protocol refusal)
+                refusal.Harbor_refusal.status refusal.Harbor_refusal.reason;
+              Harbor.simple_reply (Harbor_refusal.reply ~protocol refusal)
       in
       let group = groups.(info.id mod Array.length groups) in
       if not (mode.running ()) then (

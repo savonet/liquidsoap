@@ -64,18 +64,11 @@ def icecast.server.url_auth.remove_fields(release) =
   ]
 end
 
-# POSTs the fields of `action` about `request` to `url`, then `fields`, and
-# returns `{status, headers, body}`, header names lowercased. Credentials
-# follow url-auth.md §3; those embedded in `url` are sent by the HTTP client.
+# POSTs `fields` to `url` and returns `{status, headers, body}`, header names
+# lowercased. Credentials follow url-auth.md §3, `request` giving the client's
+# own; those embedded in `url` are sent by the HTTP client.
 # @flag hidden
-def icecast.server.url_auth.post(
-  ~config,
-  ~action,
-  ~user,
-  ~fields,
-  request,
-  url
-) =
+def icecast.server.url_auth.send(~config, ~fields, request, url) =
   credentials =
     if
       r/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\/?#@]*@/.test(url)
@@ -109,21 +102,34 @@ def icecast.server.url_auth.post(
         ("Content-Type", "application/x-www-form-urlencoded"),
         ...authorization
       ],
-      data=http.www_form_urlencoded(
-        [
-          ...icecast.server.url_auth.fields(action=action, user=user, request),
-          ...fields
-        ]
-      ),
+      data=http.www_form_urlencoded(fields),
       url
     )
   {
     status = response.status_code,
-    headers =
-      list.map(
-        fun (header) -> (string.case(lower=true, fst(header)), snd(header)),
-        response.headers
-      ),
+    headers = icecast.server.headers.lowercase(response.headers),
     body = (response : string)
   }
+end
+
+# POSTs the fields of `action` about the listener `request` to `url`, then
+# `fields`.
+# @flag hidden
+def icecast.server.url_auth.post(
+  ~config,
+  ~action,
+  ~user,
+  ~fields,
+  request,
+  url
+) =
+  icecast.server.url_auth.send(
+    config=config,
+    fields=[
+      ...icecast.server.url_auth.fields(action=action, user=user, request),
+      ...fields
+    ],
+    request,
+    url
+  )
 end
