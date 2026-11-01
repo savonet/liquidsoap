@@ -142,9 +142,9 @@ let _ =
         Some "Kinds of errors to catch. Catches all errors if not set." );
       ("body", Lang_core.fun_t [] a, None, Some "Function to execute.");
       ( "catch",
-        Lang_core.fun_t [(false, "", Error.t)] a,
+        Lang_core.nullable_t (Lang_core.fun_t [(false, "", Error.t)] a),
         None,
-        Some "Error handler." );
+        Some "Error handler. Errors propagate if not set." );
       ( "finally",
         Lang_core.fun_t [] Lang_core.unit_t,
         None,
@@ -158,36 +158,37 @@ let _ =
           (Lang_core.to_option (List.assoc "errors" p))
       in
       let body = Lang_core.to_fun (List.assoc "body" p) in
-      let catch = Lang_core.to_fun (List.assoc "catch" p) in
+      let catch =
+        Option.map Lang_core.to_fun (Lang_core.to_option (List.assoc "catch" p))
+      in
       let finally = Lang_core.to_fun (List.assoc "finally" p) in
-      let finally_called = Atomic.make false in
-      try
-        let v = body [] in
-        Atomic.set finally_called true;
-        ignore (finally []);
-        v
-      with
-        | Runtime_error.(Runtime_error { kind; msg })
-          when errors = None
-               || List.exists (fun err -> err.kind = kind) (Option.get errors)
-          ->
-            let v =
-              try
+      let catches kind =
+        match errors with
+          | None -> true
+          | Some errors -> List.exists (fun err -> err.kind = kind) errors
+      in
+      let run_body () =
+        match catch with
+          | None -> body []
+          | Some catch -> (
+              try body []
+              with
+              | Runtime_error.(Runtime_error { kind; msg }) when catches kind ->
                 catch
                   [
                     ( "",
                       Error.to_value
                         (Runtime_error.make ~pos:(Lang_core.pos p) ~message:msg
                            kind) );
-                  ]
-              with exn when not (Atomic.get finally_called) ->
-                let bt = Printexc.get_raw_backtrace () in
-                ignore (finally []);
-                Printexc.raise_with_backtrace exn bt
-            in
-            if not (Atomic.get finally_called) then ignore (finally []);
+                  ])
+      in
+      (* An error raised by [finally] itself propagates as is, so [finally]
+         runs exactly once on every path. *)
+        match run_body () with
+        | v ->
+            ignore (finally []);
             v
-        | exn when Atomic.get finally_called ->
+        | exception exn ->
             let bt = Printexc.get_raw_backtrace () in
             ignore (finally []);
             Printexc.raise_with_backtrace exn bt)

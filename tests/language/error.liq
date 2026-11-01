@@ -195,6 +195,80 @@ def f() =
   end
   test.equal(ret(), true)
 
+  finally_runs = ref(0)
+  propagated =
+    try
+      try
+        error.raise(
+          error.not_found,
+          "no catch clause"
+        )
+      finally
+        ref.incr(finally_runs)
+      end
+      "swallowed"
+    catch err : [error.not_found] do
+      err.message
+    end
+  test.equal(
+    propagated,
+    "no catch clause"
+  )
+  test.equal(finally_runs(), 1)
+
+  finally_runs := 0
+  propagated =
+    try
+      try
+        error.raise(
+          error.failure,
+          "not in the catch list"
+        )
+      catch _ : [error.not_found] do
+        ()
+      finally
+        ref.incr(finally_runs)
+      end
+      "swallowed"
+    catch err : [error.failure] do
+      err.message
+    end
+  test.equal(
+    propagated,
+    "not in the catch list"
+  )
+  test.equal(finally_runs(), 1)
+
+  finally_runs := 0
+  propagated =
+    try
+      try
+        ()
+      finally
+        ref.incr(finally_runs)
+        error.raise(
+          error.failure,
+          "raised by finally"
+        )
+      end
+      "swallowed"
+    catch err : [error.failure] do
+      err.message
+    end
+  test.equal(
+    propagated,
+    "raised by finally"
+  )
+  test.equal(finally_runs(), 1)
+
+  value =
+    try
+      42
+    finally
+      ()
+    end
+  test.equal(value, 42)
+
   # Catches error
   def on_error(~backtrace, e) =
     print(

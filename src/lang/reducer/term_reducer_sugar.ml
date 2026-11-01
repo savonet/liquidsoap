@@ -416,13 +416,13 @@ let try_reducer ~pos ~env ~to_term ~to_block = function
           | Some b -> (b.block_pos, to_block ~env b)
       in
       let finally = mk_implicit_fun ~pos:finally_pos [] finally in
-      let handler_pos, handler =
+      let handler =
         match try_handler with
-          | None -> (pos, mk_implicit ~pos (`Tuple []))
+          | None -> mk_implicit ~pos `Null
           | Some h ->
-              (h.try_handler_block.block_pos, to_block ~env h.try_handler_block)
+              mk_implicit_fun ~pos:h.try_handler_block.block_pos err_arg
+                (to_block ~env h.try_handler_block)
       in
-      let handler = mk_implicit_fun ~pos:handler_pos err_arg handler in
       let error_module = mk_implicit ~pos (`Var "error") in
       let try_errors_list =
         match try_handler with
