@@ -29,6 +29,7 @@
 #include <caml/unixsupport.h>
 
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "duppy_core.h"
@@ -123,7 +124,23 @@ CAMLprim value duppy_stub_slots(value _core) {
 }
 
 CAMLprim value duppy_stub_error(value _core) {
-  return caml_copy_string(strerror(duppy_core_error(Core_val(_core))));
+  int error = duppy_core_error(Core_val(_core));
+#ifdef _WIN32
+  /* A Winsock code, which strerror does not know. */
+  if (error >= WSABASEERR) {
+    char text[256], message[320];
+    DWORD length = FormatMessageA(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+        (DWORD)error, 0, text, sizeof text, NULL);
+    while (length > 0 && (text[length - 1] == '\r' ||
+                          text[length - 1] == '\n' || text[length - 1] == '.'))
+      text[--length] = 0;
+    snprintf(message, sizeof message, "%s (Winsock error %d)",
+             length > 0 ? text : "unknown error", error);
+    return caml_copy_string(message);
+  }
+#endif
+  return caml_copy_string(strerror(error));
 }
 
 CAMLprim value duppy_stub_submit(value _core, value _handle, value _rank,
