@@ -301,6 +301,24 @@
    icecast_server_config.liq)))
 
 (rule
+ (alias test_icecast_server_decisions)
+ (package liquidsoap)
+ (deps
+  icecast_server_decisions.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_decisions.liq
+   liquidsoap
+   icecast_server_decisions.liq)))
+
+(rule
  (alias test_icecast_server_parameters)
  (package liquidsoap)
  (deps
@@ -950,6 +968,7 @@
   (alias test_getter)
   (alias test_icecast_server_addresses)
   (alias test_icecast_server_config)
+  (alias test_icecast_server_decisions)
   (alias test_icecast_server_parameters)
   (alias test_icecast_server_prerolls)
   (alias test_icecast_server_replies)

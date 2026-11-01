@@ -142,7 +142,8 @@ A reply that does not admit and does not redirect refuses the listener:
 
 - `icecast-resp-status` (300-599, else ignored) and `icecast-resp-reason`
   give the status and reason; they are RSAS's and honoured for every value
-  (the 300-599 range is this server's). Without them the status is `401`.
+  (the 300-599 range is this server's). Without them the status is `401`. A
+  valid `icecast-resp-status` wins over the `"kh"` 403 rule below.
 - `icecast-www-authenticate` is the `WWW-Authenticate` challenge. A `401`
   without one gets `Basic realm="Icecast2 Server"`; another status gets no
   challenge.
@@ -180,7 +181,9 @@ honoured when the reply has no `withintro`.
   applies. It is Icecast-KH's header for relays, honoured for every
   value.
 - `ice-username: <name>` (Icecast-KH): the listener's user name for the rest
-  of the session is `<name>`: it is the `user` of the release notification.
+  of the session is `<name>`: it is the record's `user`, which the per-user
+  limit counts ([listeners.md §7.3](listeners.md#73-per-user-connection-limit)),
+  and the `user` of the release notification.
   Honoured for every value.
 
 ## 6. Precedence
@@ -238,12 +241,12 @@ listeners.
 
 ## 9. Not supported
 
-| Feature                                                                   | Reason                                                                                                    |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `Mountpoint:` reply header (Icecast-KH)                                   | Moves the listener to another mount; a mount's admission cannot hand a listener to another mount's output |
-| `icecast-auth-user: hijack` (Icecast-KH)                                  | Relay takeover, outside listener admission                                                                |
-| `redirect_limit` and following the backend's own redirects                | A backend reply that redirects is a failure; the admission has a fixed budget                             |
-| Realigning a `withintro` body to MP3 or AAC frame boundaries (Icecast-KH) | The preroll is sent as it is ([prerolls.md](prerolls.md#1-a-preroll-is-bytes))                            |
+| Feature                                                                   | Reason                                                                                                                                                            |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Mountpoint:` reply header (Icecast-KH)                                   | Moves the listener to another mount; a mount's admission cannot hand a listener to another mount's output                                                         |
+| `icecast-auth-user: hijack` (Icecast-KH)                                  | Relay takeover, outside listener admission                                                                                                                        |
+| `redirect_limit` and following the backend's own redirects                | A backend reply with a 3xx status is a failure ([§7](#7-failures)), except under `"kh"` with `Location` ([§5.2](#52-redirects)); the admission has a fixed budget |
+| Realigning a `withintro` body to MP3 or AAC frame boundaries (Icecast-KH) | The preroll is sent as it is ([prerolls.md](prerolls.md#1-a-preroll-is-bytes))                                                                                    |
 
 An unsupported option is ignored with a warning when the configuration is
 read ([icecast-config.md](icecast-config.md)). `mount_add`, `mount_remove` and
