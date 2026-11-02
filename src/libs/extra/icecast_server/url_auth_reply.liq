@@ -74,8 +74,9 @@ def icecast.server.url_auth.time_limit(~config, reply) =
     null
   elsif
     r/^[0-9]+$/.test(null.get(value))
+    and int_of_string(default=-1, null.get(value)) >= 0
   then
-    float(int_of_string(null.get(value)))
+    float(int_of_string(default=0, null.get(value)))
   elsif
     config.kh
   then
