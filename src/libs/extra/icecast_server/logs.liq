@@ -38,15 +38,19 @@ def icecast.server.logs.create(~label, ~compatibility, settings) =
     )
   end
 
-  def write(file, target, line) =
+  def write(~when=fun (_) -> true, file, target, line) =
     try
       s = current()
-      file.write(
-        target=target(s),
-        size_limit=s.log_size,
-        archive=s.log_archive,
-        line()
-      )
+      if
+        when(s)
+      then
+        file.write(
+          target=target(s),
+          size_limit=s.log_size,
+          archive=s.log_archive,
+          line()
+        )
+      end
     catch err do
       log.severe(
         label=label,
@@ -89,8 +93,9 @@ def icecast.server.logs.create(~label, ~compatibility, settings) =
 
   def error(~category, level, message) =
     write(
+      when=fun (s) -> level <= s.log_level,
       error_file,
-      fun (s) -> if level <= s.log_level then s.error_log else null end,
+      fun (s) -> s.error_log,
       fun () ->
         icecast.server.log_lines.error(
           t=time(),

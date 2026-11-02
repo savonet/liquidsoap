@@ -41,22 +41,27 @@ def icecast.server.log_files.file(~label) =
     )
   end
 
-  # After a failed rename, lines keep going to the file in place.
+  # After a failed rename, lines keep going to the file in place, and the next
+  # attempt waits for another `size_limit` bytes.
   def rotate(~archive, path) =
     close()
-    try
-      file.move(
-        force=true,
-        path,
-        icecast.server.log_files.rotated_name(archive=archive, path)
-      )
-    catch err do
-      log.severe(
-        label=label,
-        "Log file rotation failed: #{err.message}"
-      )
-    end
+    moved =
+      try
+        file.move(
+          force=true,
+          path,
+          icecast.server.log_files.rotated_name(archive=archive, path)
+        )
+        true
+      catch err do
+        log.severe(
+          label=label,
+          "Log file rotation failed: #{err.message}"
+        )
+        false
+      end
     open_file(path)
+    if not moved then null.get(opened.get()).size.set(0) end
   end
 
   def write_line(~target, ~size_limit, ~archive, line) =
