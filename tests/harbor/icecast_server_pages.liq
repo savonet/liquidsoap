@@ -107,6 +107,9 @@ end
 # While set, the hidden mount's parameters fail validation.
 broken_parameters = ref(false)
 
+# While set, reading `hostname` fails.
+broken_hostname = ref(false)
+
 def mount(path) =
   if
     path == "/h.mp3"
@@ -144,6 +147,10 @@ def parameters(
     location =
       "Here & there",
     status_access = status_access,
+    hostname =
+      {
+        broken_hostname() ? error.raise(error.invalid, "hostname") : "localhost"
+      },
     status_json = status_json,
     status_html = status_html,
     mount = all_hidden ? fun (_) -> mount("/h.mp3") : mount
@@ -328,6 +335,20 @@ def check_status_pages() =
   check(
     "/metrics follows status_access: #{denied_metrics.status}",
     denied_metrics.status == 401
+  )
+end
+
+def check_failing_admin_page() =
+  broken_hostname := true
+  stats =
+    try
+      fetch(headers=basic("admin", "apw"), "/admin/stats")
+    finally
+      broken_hostname := false
+    end
+  check(
+    "an admin page that fails to render answers 500: #{stats.status}",
+    stats.status == 500
   )
 end
 
@@ -643,6 +664,7 @@ def run() =
     )
     check_status_pages()
     check_admin_pages()
+    check_failing_admin_page()
     check_xml_values()
     check_health_and_metrics()
     check_privacy()
@@ -657,10 +679,10 @@ def run() =
     h.shutdown()
     q.shutdown()
     if
-      checks() != 31
+      checks() != 32
     then
       test.fail(
-        "#{checks()} checks ran, expected 31"
+        "#{checks()} checks ran, expected 32"
       )
     end
     test.pass()

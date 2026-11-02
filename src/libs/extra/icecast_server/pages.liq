@@ -9,6 +9,20 @@ def icecast.server.pages.not_found() =
   http.response(status_code=404)
 end
 
+# The reply `render()` gives, or `500` and a log line when it fails.
+# @flag hidden
+def icecast.server.pages.rendered(state, ~content_type, request, render) =
+  try
+    http.response(content_type=content_type, data=render())
+  catch err do
+    icecast.server.log.important(
+      state,
+      "Rendering #{request.path} failed: #{err.message}"
+    )
+    http.response(status_code=500)
+  end
+end
+
 # The reply of a public page: its switch, `status_access`, then `render()`.
 # @flag hidden
 def icecast.server.pages.public(
@@ -27,15 +41,12 @@ def icecast.server.pages.public(
   then
     icecast.server.pages.unauthorized()
   else
-    try
-      http.response(content_type=content_type, data=render())
-    catch err do
-      icecast.server.log.important(
-        state,
-        "Rendering #{request.path} failed: #{err.message}"
-      )
-      http.response(status_code=500)
-    end
+    icecast.server.pages.rendered(
+      state,
+      content_type=content_type,
+      request,
+      render
+    )
   end
 end
 
@@ -170,7 +181,12 @@ def icecast.server.pages.register(~transport, state) =
       path,
       fun (request) ->
         icecast.server.pages.is_admin(state.params.get(), request)
-          ? http.response(content_type=content_type, data=render(request))
+          ? icecast.server.pages.rendered(
+            state,
+            content_type=content_type,
+            request,
+            fun () -> render(request)
+          )
           : (icecast.server.pages.unauthorized())
     )
   end
