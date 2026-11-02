@@ -159,6 +159,10 @@ def mount(path) =
   then
     {linger = 4.}
   elsif
+    path == "/relinger.mp3"
+  then
+    {linger = 4.}
+  elsif
     path == "/c1.mp3"
   then
     {fallback = {mount = "/c2.mp3"}}
@@ -249,6 +253,11 @@ live =
     switch([({ready()}, sine().{track_sensitive = false})])
   )
 mp3_copy = %ffmpeg(format = "mp3", %audio.copy)
+relive =
+  ffmpeg.encode.audio(
+    %ffmpeg(%audio(codec = "libmp3lame", sample_format = "fltp")),
+    sine()
+  )
 
 def check_attached() =
   server.attach_source(
@@ -450,6 +459,35 @@ def check_linger() =
   )
 end
 
+# The same Liquidsoap source attached and detached twice: the first linger's
+# timer does not end the second linger.
+def check_relinger() =
+  server.attach_source(format=mp3_copy, "/relinger.mp3", relive)
+  wait_for("/relinger.mp3", {list.mem("/relinger.mp3", mounts())})
+  server.detach_source("/relinger.mp3")
+  first = time()
+  thread.pause(2.)
+  server.attach_source(format=mp3_copy, "/relinger.mp3", relive)
+  server.detach_source("/relinger.mp3")
+  second = time()
+  wait_for(
+    "first linger window over",
+    {time() > first + 5.}
+  )
+  check(
+    "a later linger outlives the first one's window",
+    list.mem("/relinger.mp3", mounts())
+  )
+  wait_for(
+    "second linger window over",
+    {not list.mem("/relinger.mp3", mounts())}
+  )
+  check(
+    "the second linger lasts its own window: #{time() - second}s",
+    time() - second > 3.5
+  )
+end
+
 def check_full_and_virtual() =
   f = client("full.mp3")
   wait_for("/full.mp3", {list.mem("/full.mp3", mounts())})
@@ -637,12 +675,13 @@ def run() =
     main = check_fallback()
     check_chains()
     check_linger()
+    check_relinger()
     check_full_and_virtual()
     check_format()
     check_dump()
     main.shutdown()
     if
-      checks() < 40
+      checks() < 42
     then
       test.fail(
         "only #{checks()} checks ran"
