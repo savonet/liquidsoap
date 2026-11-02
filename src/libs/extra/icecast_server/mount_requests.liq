@@ -91,6 +91,7 @@ def icecast.server.mount_requests.handle(state, request) =
       end
     headers =
       icecast.server.headers.final(
+        log=fun (message) -> icecast.server.log.important(state, message),
         request={
           headers = icecast.server.headers.lowercase(request.headers),
           compatibility = state.compatibility

@@ -2,7 +2,7 @@
 # `mount`: its `source_decision` when it has one, else its source user and
 # password, an empty password requiring none.
 # @flag hidden
-def icecast.server.sources.authenticated(mount, request) =
+def icecast.server.sources.authenticated(state, mount, request) =
   decision = mount?.source_decision
   if
     null.defined(decision)
@@ -11,8 +11,8 @@ def icecast.server.sources.authenticated(mount, request) =
     try
       decision(request)
     catch err do
-      log.important(
-        label="icecast.server",
+      icecast.server.log.important(
+        state,
         "Source decision for #{request.mount} failed: #{err.message}"
       )
       false
@@ -94,6 +94,7 @@ def icecast.server.sources.request(
   {
     address =
       icecast.server.addresses.resolve(
+        log=fun (message) -> icecast.server.log.important(state, message),
         proxy_ips=p.proxy_ips(),
         forwarded_address=p?.forwarded_address,
         {ip = ip, headers = headers, protocol = protocol, uri = uri}
@@ -172,7 +173,11 @@ def icecast.server.sources.accept(state, args) =
       )
     if
       not null.defined(mount)
-      or not icecast.server.sources.authenticated(null.get(mount), request)
+      or not icecast.server.sources.authenticated(
+        state,
+        null.get(mount),
+        request
+      )
     then
       refuse("credentials")
     elsif

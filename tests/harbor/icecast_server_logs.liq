@@ -153,6 +153,15 @@ server.on_source_connect(
     atomic(fun () -> source_connects := [...source_connects(), r.mount])
 )
 
+server.on_source_connect(
+  synchronous=true,
+  fun (_) ->
+    error.raise(
+      error.invalid,
+      "a failing source handler"
+    )
+)
+
 def started(o) =
   try
     clock(o.clock).start(force=false)
@@ -380,6 +389,12 @@ def check_error_log() =
     "error log: EROR and WARN level names",
     r/^\[[^\]]+\] EROR /m.test(errors) and r/^\[[^\]]+\] WARN /m.test(errors)
   )
+  check(
+    "a failing event handler reaches the error log",
+    r/^\[[^\]]+\] EROR [^ ]+ Event handler failed: a failing source handler$/m.test(
+      errors
+    )
+  )
   server.reload(parameters(log_level=3))
   b = client("b.mp3")
   wait_for(
@@ -479,10 +494,10 @@ def run() =
     refusing.shutdown()
     k.shutdown()
     if
-      checks() != 16
+      checks() != 17
     then
       fail(
-        "#{checks()} checks ran, expected 16"
+        "#{checks()} checks ran, expected 17"
       )
     end
     test.pass()
