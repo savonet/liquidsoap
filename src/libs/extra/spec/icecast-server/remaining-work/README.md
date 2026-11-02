@@ -39,16 +39,13 @@ Spec questions to raise with the user (implemented with these proposed rules):
 
 ## Current focus: typechecker memory blowup (follow-up optimisation, like #5600)
 
-Two separate instances of a loaded record's `mount` callback type meeting in subtyping explode: 8 GB in 20 s uncapped. This is the canonical reload pattern:
+Two separate instances of a loaded record's `mount` callback type meeting in subtyping explode (8 GB in 20 s uncapped). It is the canonical reload pattern: `icecast.server(load(path))` then `server.reload(load(path))`.
 
-```liquidsoap
-server = icecast.server(icecast.server.config.load(path))
-server.reload(icecast.server.config.load(path))
-```
+**Cause, traced:** `Typing.sup` on nullables always rebuilds `Nullable (sup a b)`, and `Type.make (Nullable t)` with an already nullable `t` returns a _fresh_ covariant variable (to collapse `t??`). In the covariant case of `<:`, `b'' = sup a b'` is therefore never physically `b'`, the variable is relinked and `a <: b''` lands in the same case with a new variable: an unbounded recursion (405 k levels deep, variable ids counting up, link chain growing). The trigger is a `string??` field (`decision.all`'s `preroll`, from `p := d(r)?.preroll` on a nullable field) in a function whose argument (`~cache`) is a parameter.
 
-Repros in /var/tmp/claude-icecast-config/ (`m_nn.liq`: `[null.get(a.mount("/a")), null.get(b.mount("/a"))]` for two loads). Fast in comparison (~3.7 s): one instance used twice, native start + loaded reload, `load(…).{port = 8100}`, each mount field alone accessed with `?.`, and even a field-by-field `?.` copy of all 19 fields. Plain `.listener_decision` of two instances alone hangs; its printed type is small and concrete.
+**Fix, uncommitted, waiting for the user's approval** (in the working tree; also /var/tmp/claude-icecast-config/sup-fix.patch): `sup` strips nested nullables (`t??` is `t?`) and returns `b` itself when the supremum adds nothing (`v == v' -> b`, and the nullable cases), so the existing `b'' != b'` guard stops. Both halves are needed: without `v == v' -> b` it terminates but rejects the valid program. Results: the repros check in 3.7 s; `--list-functions-json` is byte-identical; stdlib cache-miss cost unchanged (~3.7 s, ~588 MB); `typing`, `record`, `record_methods_eager`, `type_errors`, `stdlib`, `null` and the icecast language tests pass. Regression check added at the end of tests/language/typing.liq (17-line repro, also /var/tmp/claude-icecast-config/sup-loop-repro.liq): passes with the fix, OOM-killed with the old checker.
 
-Trace so far (instrumentation patch: /var/tmp/claude-icecast-config/trace.patch, apply to src/lang/types/typing.ml, run with `LIQ_TRACE=1`; never commit it): the stack is shallow (`<:` → `sup`), and the covariant-link branch of `<:` runs `sup` on tiny types (2–3 nodes) hundreds of thousands of times: about 1 M `<:` calls, 380 k `sup`, 155 k covariant every few seconds. So the blowup is in the number of `<:` calls, not in type size. Next: find which `<:` recursion multiplies (count calls per case/caller, or log the path of the covariant variable), likely re-traversal of covariant links rebuilt by `sup` at each level. Also noted: `meth_sup`'s `try … with Incompatible -> sup a b` wraps the recursive `sup a b`, computing it twice on a deep `Incompatible` (exponential on its own); narrowing it alone did not fix the repro.
+Once approved: commit it on its own (`lang: …`) as a separate PR against main, like #5600; then drop the `listener_decision` request-type annotation in config/mounts.liq (it did not help) and check `doc/content/liq/icecast-server-reload.liq`.
 
 Every OCaml change needs the user's approval: minimal and generic.
 
