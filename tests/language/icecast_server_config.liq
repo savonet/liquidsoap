@@ -1194,6 +1194,32 @@ def check_review_fixes() =
   )
 end
 
+def check_kh_pattern_bindings() =
+  p =
+    load(
+      compatibility="kh",
+      '<mount><mount-name>/live*</mount-name><event-bindings><event type="log" \
+       trigger="source-connect"><option name="prefix" value="KH-PATTERN \
+       "/></event></event-bindings></mount>'
+    )
+  binding = list.hd(p.event_bindings)
+  binding.handler({event = "source_connect", mount = "/live1", listeners = 0})
+  binding.handler({event = "source_connect", mount = "/other", listeners = 0})
+  check_equal(
+    "kh: a pattern mount's binding fires for the paths it selects",
+    (
+      binding.mount,
+      logged(
+        "KH-PATTERN source-connect on /live1"
+      ),
+      logged(
+        "KH-PATTERN source-connect on /other"
+      )
+    ),
+    (null, true, false)
+  )
+end
+
 def check_purity() =
   logdir = path.concat(directory, "logs")
   file.mkdir(logdir)
@@ -1229,6 +1255,7 @@ def f() =
   check_headers()
   check_events()
   check_review_fixes()
+  check_kh_pattern_bindings()
   check_purity()
   check_warnings()
   if

@@ -112,6 +112,35 @@ def icecast.server.config.transport(~tls, ~certificate, ~key) =
   end
 end
 
+# The event bindings of the mount entries. Under `"kh"` a mount name is a
+# pattern: a binding fires for the paths that select its mount.
+# @flag hidden
+def icecast.server.config.mount_bindings(~kh, entries) =
+  bindings = list.flatten(list.map(fun (e) -> e.bindings, entries))
+  def selected(path) =
+    icecast.server.config.select(kh=true, entries, path).normal?.name
+  end
+
+  if
+    kh
+  then
+    list.map(
+      fun (b) ->
+        {
+          event = b.event,
+          mount = null,
+          synchronous = b.synchronous,
+          handler =
+            fun (record) ->
+              if selected(record.mount) == b.mount then b.handler(record) end
+        },
+      bindings
+    )
+  else
+    bindings
+  end
+end
+
 # @flag hidden
 def icecast.server.config.translate(~compatibility, root) =
   let (tag, _) = root
@@ -202,7 +231,10 @@ def icecast.server.config.translate(~compatibility, root) =
     event_bindings =
       [
         ...icecast.server.config.event_bindings(root),
-        ...list.flatten(list.map(fun (e) -> e.bindings, entries))
+        ...icecast.server.config.mount_bindings(
+          kh=compatibility == "kh",
+          entries
+        )
       ],
     mount =
       icecast.server.config.mount_callback(
