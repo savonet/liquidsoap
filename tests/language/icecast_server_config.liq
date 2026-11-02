@@ -1194,6 +1194,26 @@ def check_review_fixes() =
   )
 end
 
+def check_mounts_validated() =
+  list.iter(
+    fun (m) ->
+      rejects(
+        "an invalid mount value: #{m}",
+        "<icecast><mount><mount-name>/a</mount-name>#{m}</mount></icecast>"
+      ),
+    [
+      "<fallback-mount>backup</fallback-mount>",
+      "<max-listeners>-1</max-listeners>",
+      '<http-headers><header name="Bad Name" value="x"/></http-headers>'
+    ]
+  )
+  rejects(
+    "an invalid default mount value",
+    "<icecast><mount \
+     type=\"default\"><burst-size>-5</burst-size></mount></icecast>"
+  )
+end
+
 def check_kh_pattern_bindings() =
   p =
     load(
@@ -1256,6 +1276,7 @@ def f() =
   check_events()
   check_review_fixes()
   check_kh_pattern_bindings()
+  check_mounts_validated()
   check_purity()
   check_warnings()
   if

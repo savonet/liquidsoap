@@ -194,57 +194,71 @@ def icecast.server.config.translate(~compatibility, root) =
       xml.children("mount", root)
     )
   proxy_ips = [...listen.trusted_proxies, ...paths.forwarded_for]
-  {
-    compatibility = compatibility,
-    port = listen.port,
-    bind_address = listen.bind_address,
-    transport =
-      icecast.server.config.transport(
-        tls=listen.tls,
-        certificate=paths.certificate,
-        key=paths.key
-      ),
-    hostname = text("hostname"),
-    location = text("location"),
-    admin_contact = text("admin"),
-    server_id = text("server-id") ?? text("server_id"),
-    source_password = authentication.source_password ?? text("source-password"),
-    shoutcast_mount = listen.shoutcast_mount,
-    admin_user = authentication.admin_user,
-    admin_password = authentication.admin_password,
-    health_password = authentication.health_password,
-    max_sources = limits.max_sources,
-    max_clients = limits.max_clients,
-    client_timeout = limits.client_timeout,
-    source_timeout = limits.source_timeout,
-    burst_size = limits.burst_size,
-    burst_on_connect = limits.burst_on_connect,
-    proxy_ips = list.is_empty(proxy_ips) ? null : proxy_ips,
-    access_log = logging.access_log,
-    error_log = logging.error_log,
-    playlist_log = logging.playlist_log,
-    log_level = logging.log_level,
-    log_size = logging.log_size,
-    log_archive = logging.log_archive,
-    http_headers =
-      icecast.server.config.headers(compatibility=compatibility, root),
-    event_bindings =
-      [
-        ...icecast.server.config.event_bindings(root),
-        ...icecast.server.config.mount_bindings(
+  parameters =
+    {
+      compatibility = compatibility,
+      port = listen.port,
+      bind_address = listen.bind_address,
+      transport =
+        icecast.server.config.transport(
+          tls=listen.tls,
+          certificate=paths.certificate,
+          key=paths.key
+        ),
+      hostname = text("hostname"),
+      location = text("location"),
+      admin_contact = text("admin"),
+      server_id = text("server-id") ?? text("server_id"),
+      source_password =
+        authentication.source_password ?? text("source-password"),
+      shoutcast_mount = listen.shoutcast_mount,
+      admin_user = authentication.admin_user,
+      admin_password = authentication.admin_password,
+      health_password = authentication.health_password,
+      max_sources = limits.max_sources,
+      max_clients = limits.max_clients,
+      client_timeout = limits.client_timeout,
+      source_timeout = limits.source_timeout,
+      burst_size = limits.burst_size,
+      burst_on_connect = limits.burst_on_connect,
+      proxy_ips = list.is_empty(proxy_ips) ? null : proxy_ips,
+      access_log = logging.access_log,
+      error_log = logging.error_log,
+      playlist_log = logging.playlist_log,
+      log_level = logging.log_level,
+      log_size = logging.log_size,
+      log_archive = logging.log_archive,
+      http_headers =
+        icecast.server.config.headers(compatibility=compatibility, root),
+      event_bindings =
+        [
+          ...icecast.server.config.event_bindings(root),
+          ...icecast.server.config.mount_bindings(
+            kh=compatibility == "kh",
+            entries
+          )
+        ],
+      mount =
+        icecast.server.config.mount_callback(
           kh=compatibility == "kh",
+          cache=cache,
+          decisions=access,
+          max_listeners=limits.max_listeners,
           entries
         )
-      ],
-    mount =
-      icecast.server.config.mount_callback(
-        kh=compatibility == "kh",
-        cache=cache,
-        decisions=access,
-        max_listeners=limits.max_listeners,
-        entries
-      )
-  }
+    }
+
+  # Each entry's name selects it, so every mount record of the file is
+  # validated here rather than at its first use.
+  server = icecast.server.parameters.server(parameters)
+  list.iter(
+    fun (e) ->
+      ignore(
+        icecast.server.parameters.mount(server, e.name == "" ? "/" : (e.name))
+      ),
+    entries
+  )
+  parameters
 end
 
 # The parameters of an Icecast, RSAS or Icecast-KH configuration file
@@ -280,6 +294,5 @@ def icecast.server.config.load(~compatibility="icecast-2.5", path) =
         "#{path}: #{err.message}"
       )
     end
-  ignore(icecast.server.parameters.server(parameters))
   parameters
 end
