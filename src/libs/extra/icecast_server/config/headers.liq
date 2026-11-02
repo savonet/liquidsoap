@@ -34,7 +34,8 @@ def icecast.server.config.header(~compatibility, ~cors, header) =
   name = xml.string(attribute="name", header)
   value = xml.string(attribute="value", header)
   status = xml.int(attribute="status", header)
-  kind = xml.string(attribute="type", header) ?? "static"
+  kind =
+    string.case(lower=true, xml.string(attribute="type", header) ?? "static")
   cors_type = list.mem(compatibility, ["icecast-2.5", "rsas"])
   if
     not null.defined(name)
@@ -43,15 +44,17 @@ def icecast.server.config.header(~compatibility, ~cors, header) =
       "Ignoring a <header> without name."
     )
     []
-  elsif
-    kind != "static" and kind != "cors"
-  then
-    warn(
-      "Ignoring header #{null.get(name)}: unknown type #{string.quote(kind)}."
-    )
-    []
   else
     name = null.get(name)
+    if
+      kind != "static" and kind != "cors"
+    then
+      warn(
+        "Header #{name}: unknown type #{string.quote(kind)}, sending it as \
+         static."
+      )
+    end
+    kind = kind == "cors" ? "cors" : "static"
     if
       kind == "cors" and not cors_type
     then

@@ -105,7 +105,7 @@ def icecast.server.config.paths(root) =
           text("ssl-private-key") ?? xml.string(xml.child("tls-key", context))
         ),
     forwarded_for = texts("x-forwarded-for"),
-    deny = text("deny-ip") ?? (text("ban-file") ?? text("banfile")),
+    deny = [...texts("deny-ip"), ...texts("ban-file"), ...texts("banfile")],
     allow = text("allow-ip"),
     agents = text("deny-agents")
   }

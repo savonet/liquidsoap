@@ -310,7 +310,8 @@ def icecast.server.config.mount_entry(~compatibility, ~cache, mount) =
     {
       kind = kind,
       name = null.get(default="", name),
-      priority = xml.int(xml.child("priority", mount)) ?? max_int,
+      priority =
+        kh ? (xml.int(xml.child("priority", mount)) ?? max_int) : max_int,
       patterns =
         null.case(
           name,
