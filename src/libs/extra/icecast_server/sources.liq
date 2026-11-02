@@ -134,7 +134,8 @@ def icecast.server.sources.connect(state, connection) =
       then
         icecast.server.log.important(
           state,
-          "Mount #{quoted} was taken meanwhile, dropping the source client."
+          "Mount #{quoted} was taken, or max_sources reached, meanwhile: \
+           dropping the source client."
         )
         s.stop()
       end

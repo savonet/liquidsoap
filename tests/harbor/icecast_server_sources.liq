@@ -651,13 +651,15 @@ end
 
 # Two SOURCE clients sent at once on one mount: one feeds it, the other is
 # refused or dropped once admitted.
-def check_race() =
+# Two source clients connect at once, on `paths`; returns their replies and
+# sockets once one of them feeds its mount.
+def race(paths) =
   data = file.contents(mp3)
   results = ref([])
-  def feed() =
+  def feed(path) =
     sock = connect(port)
     sock.write(
-      "SOURCE /race.mp3 HTTP/1.0\r\n#{basic("source", "pw")}Content-Type: \
+      "SOURCE #{path} HTTP/1.0\r\n#{basic("source", "pw")}Content-Type: \
        audio/mpeg\r\n\r\n"
     )
     reply = read_head(sock)
@@ -674,33 +676,37 @@ def check_race() =
       fun () -> results := [...results(), {status = reply.status, sock = sock}]
     )
   end
-  thread.run(feed)
-  thread.run(feed)
+  list.iter(fun (path) -> thread.run(fun () -> feed(path)), paths)
   wait_for(
     "both race replies",
     {list.length(results()) == 2}
   )
   wait_for(
     "race mount fed",
-    {list.mem("/race.mp3", mounts())}
+    {list.exists(fun (path) -> list.mem(path, mounts()), paths)}
   )
+  results()
+end
 
-  # The server never writes to a source client: a kept connection's read
-  # waits for its timeout, a dropped one ends at once, closed or reset.
-  def kept(r) =
-    started = time()
-    chunk =
-      try
-        r.sock.read(timeout=3.)
-      catch _ do
-        ""
-      end
-    r.status == 200 and (chunk != "" or time() - started > 2.5)
-  end
-  statuses = list.map(fun (r) -> r.status, results())
+# The server never writes to a source client: a kept connection's read waits
+# for its timeout, a dropped one ends at once, closed or reset.
+def kept(r) =
+  started = time()
+  chunk =
+    try
+      r.sock.read(timeout=3.)
+    catch _ do
+      ""
+    end
+  r.status == 200 and (chunk != "" or time() - started > 2.5)
+end
+
+def check_race() =
+  results = race(["/race.mp3", "/race.mp3"])
+  statuses = list.map(fun (r) -> r.status, results)
   check(
     "exactly one racing client kept: #{statuses}",
-    list.length(list.filter(kept, results())) == 1
+    list.length(list.filter(kept, results)) == 1
   )
   connects =
     list.filter(
@@ -715,7 +721,23 @@ def check_race() =
     "exactly one race source-connect event: #{connects}",
     list.length(connects) == 1
   )
-  list.iter(fun (r) -> r.sock.close(), results())
+  list.iter(fun (r) -> r.sock.close(), results)
+end
+
+def check_race_max_sources() =
+  max_sources := 1
+  results =
+    try
+      race(["/ra.mp3", "/rb.mp3"])
+    finally
+      max_sources := null
+    end
+  statuses = list.map(fun (r) -> r.status, results)
+  check(
+    "max_sources holds for clients connecting at once: #{statuses}",
+    list.length(list.filter(kept, results)) == 1
+  )
+  list.iter(fun (r) -> r.sock.close(), results)
 end
 
 def check_identity() =
@@ -805,9 +827,10 @@ def run() =
     check_callbacks()
     check_protocols()
     check_race()
+    check_race_max_sources()
     check_url_services()
     if
-      checks() < 35
+      checks() < 37
     then
       test.fail(
         "only #{checks()} checks ran"
