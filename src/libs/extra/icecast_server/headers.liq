@@ -77,7 +77,12 @@ end
 # name wins, an entry that does not apply or computes `null` sets no name, and a
 # computed header that raises or cannot be written is dropped and logged.
 # @flag hidden
-def icecast.server.headers.reply(~request, ~status, entries) =
+def icecast.server.headers.reply(
+  ~log=fun (message) -> log.important(label="icecast.server", message),
+  ~request,
+  ~status,
+  entries
+) =
   def entry_value(entry) =
     if
       null.defined(entry?.status) and null.get(entry?.status) != status
@@ -93,8 +98,7 @@ def icecast.server.headers.reply(~request, ~status, entries) =
         try
           compute(request, status)
         catch err do
-          log.important(
-            label="icecast.server",
+          log(
             "Dropping computed header #{string.quote(entry.name)}: #{
               err.message
             }"
@@ -108,8 +112,7 @@ def icecast.server.headers.reply(~request, ~status, entries) =
           and icecast.server.headers.is_line(null.get(value))
         )
       then
-        log.important(
-          label="icecast.server",
+        log(
           "Dropping computed header #{string.quote(entry.name)}: invalid name or \
            value with a line break."
         )
@@ -261,8 +264,9 @@ end
 # The header list of a reply with `status` to `request`: the pairs `first`,
 # then the completed `entries`, evaluated by `reply`.
 # @flag hidden
-def icecast.server.headers.final(~request, ~status, ~first=[], entries) =
+def icecast.server.headers.final(~log, ~request, ~status, ~first=[], entries) =
   icecast.server.headers.reply(
+    log=log,
     request=request,
     status=status,
     [...icecast.server.headers.of_pairs(first), ...entries]

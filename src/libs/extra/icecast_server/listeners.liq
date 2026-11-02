@@ -7,6 +7,7 @@ def icecast.server.listeners.accept(state, entry, listener) =
   header_request = {headers = listener.headers, compatibility = compatibility}
   def reply_headers(status, first) =
     icecast.server.headers.final(
+      log=fun (message) -> icecast.server.log.important(state, message),
       request=header_request,
       status=status,
       first=first,
@@ -49,6 +50,7 @@ def icecast.server.listeners.accept(state, entry, listener) =
   max_clients = p.max_clients()
   address =
     icecast.server.addresses.resolve(
+      log=fun (message) -> icecast.server.log.important(state, message),
       proxy_ips=p.proxy_ips(),
       forwarded_address=p?.forwarded_address,
       {

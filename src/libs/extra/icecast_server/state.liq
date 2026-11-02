@@ -15,24 +15,30 @@ def icecast.server.state(p) =
   port = p.port
   instance = "#{hex(8)}-#{hex(4)}-4#{hex(3)}-#{hex(4)}-#{hex(12)}"
   params = icecast.server.cell(p)
+  logs =
+    icecast.server.logs.create(
+      label=name,
+      compatibility=p.compatibility,
+      fun () -> icecast.server.logs.settings(params.get())
+    )
+
+  def severe(message) =
+    icecast.server.log.severe({name = name, logs = logs}, message)
+  end
+
   {
     name = name,
     port = port,
     transport = p.transport,
     compatibility = p.compatibility,
     params = params,
-    logs =
-      icecast.server.logs.create(
-        label=name,
-        compatibility=p.compatibility,
-        fun () -> icecast.server.logs.settings(params.get())
-      ),
+    logs = logs,
     server =
       fun (hostname) -> {hostname = hostname, port = port, instance = instance},
     mounts = icecast.server.mounts.table(),
     overlay = icecast.server.cell(([] : [(string * string)])),
     lock = ref(false),
-    events = icecast.server.events.create(),
+    events = icecast.server.events.create(log=severe),
     counters = icecast.server.counters(),
     clock = icecast.server.cell(clock.create(id=name))
   }

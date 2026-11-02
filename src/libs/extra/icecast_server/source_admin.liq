@@ -54,6 +54,7 @@ def icecast.server.source_admin.allowed(state, p, path, request) =
       icecast.server.decision.credentials(headers) ?? query_credentials
     icecast.server.source_admin.is_admin(p, user, password)
     or icecast.server.sources.authenticated(
+      state,
       mount,
       icecast.server.sources.request(
         state,

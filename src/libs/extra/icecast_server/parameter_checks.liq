@@ -10,7 +10,7 @@ let icecast.server.compatibilities =
   ["icecast-2.5", "icecast-2.4", "rsas", "kh"]
 
 # @flag hidden
-let icecast.server.events =
+let icecast.server.event_names =
   [
     "source_connect",
     "source_disconnect",
@@ -83,7 +83,7 @@ def icecast.server.parameters.check(field) =
     list.iter(
       fun (binding) ->
         if
-          not list.mem(binding.event, icecast.server.events)
+          not list.mem(binding.event, icecast.server.event_names)
         then
           icecast.server.parameters.invalid(
             field,

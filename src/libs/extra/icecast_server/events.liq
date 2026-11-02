@@ -5,15 +5,18 @@
 let icecast.server.events = ()
 
 # Runs `handler()`, in order when `synchronous`, else in a thread of its own;
-# a failure is logged and changes nothing.
+# a failure is sent to `log` and changes nothing.
 # @flag hidden
-def icecast.server.events.call(~synchronous, handler) =
+def icecast.server.events.call(
+  ~log=fun (message) -> log.severe(label="icecast.server", message),
+  ~synchronous,
+  handler
+) =
   def run() =
     try
       handler()
     catch err do
-      log.severe(
-        label="icecast.server",
+      log(
         "Event handler failed: #{err.message}"
       )
     end
@@ -29,7 +32,7 @@ end
 # event: one binding list serves the five events, so its handlers take one
 # record type.
 # @flag hidden
-def icecast.server.events.registry(event) =
+def icecast.server.events.registry(~log, event) =
   handlers = ref([])
 
   def add(~synchronous=false, handler) =
@@ -44,6 +47,7 @@ def icecast.server.events.registry(event) =
     list.iter(
       fun (h) ->
         icecast.server.events.call(
+          log=log,
           synchronous=h.synchronous,
           fun () -> h.handler(record)
         ),
@@ -55,6 +59,7 @@ def icecast.server.events.registry(event) =
           b.event == event and (b?.mount ?? mount) == mount
         then
           icecast.server.events.call(
+            log=log,
             synchronous=b?.synchronous ?? false,
             fun () ->
               b.handler({event = event, mount = mount, listeners = listeners})
@@ -67,14 +72,18 @@ def icecast.server.events.registry(event) =
   {add = add, fire = fire}
 end
 
-# The registries of the five events.
+# A registry for each of `icecast.server.event_names`.
 # @flag hidden
-def icecast.server.events.create() =
+def icecast.server.events.create(~log) =
+  def registry(event) =
+    icecast.server.events.registry(log=log, event)
+  end
+
   {
-    source_connect = icecast.server.events.registry("source_connect"),
-    source_disconnect = icecast.server.events.registry("source_disconnect"),
-    listener_connect = icecast.server.events.registry("listener_connect"),
-    listener_disconnect = icecast.server.events.registry("listener_disconnect"),
-    metadata = icecast.server.events.registry("metadata")
+    source_connect = registry("source_connect"),
+    source_disconnect = registry("source_disconnect"),
+    listener_connect = registry("listener_connect"),
+    listener_disconnect = registry("listener_disconnect"),
+    metadata = registry("metadata")
   }
 end

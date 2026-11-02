@@ -187,7 +187,12 @@ end
 # uri}`): `forwarded_address`'s answer when it is set, else the walk of
 # `proxy_ips` when it is set, else the peer address.
 # @flag hidden
-def icecast.server.addresses.resolve(~proxy_ips, ~forwarded_address, request) =
+def icecast.server.addresses.resolve(
+  ~log=fun (message) -> log.important(label="icecast.server", message),
+  ~proxy_ips,
+  ~forwarded_address,
+  request
+) =
   if
     null.defined(forwarded_address)
   then
@@ -204,8 +209,7 @@ def icecast.server.addresses.resolve(~proxy_ips, ~forwarded_address, request) =
       )
         ?? request.ip
     catch err do
-      log.important(
-        label="icecast.server",
+      log(
         "forwarded_address failed, using the peer address: #{err.message}"
       )
       request.ip
