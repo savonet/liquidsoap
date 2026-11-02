@@ -529,6 +529,24 @@ def check_listen() =
     load("").proxy_ips,
     null
   )
+  p =
+    warns(
+      "<listen-socket><port>1</port><trusted-proxy/><client-ip>0.0.0.0/0</client-ip></listen-socket>"
+    )
+  check_equal(
+    "an empty trusted-proxy trusts nothing",
+    p.proxy_ips,
+    null
+  )
+  p =
+    load(
+      "<listen-socket><port>1</port><trusted-proxy>203.0.113.0/24</trusted-proxy></listen-socket>"
+    )
+  check_equal(
+    "a trusted-proxy naming no socket is an address",
+    p.proxy_ips,
+    ["203.0.113.0/24"]
+  )
 end
 
 def check_bursts() =
