@@ -49,6 +49,10 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
     then
       null
     else
+      # Values a getter or the dump can fail on are read before the table
+      # changes, so a failure leaves the mount as it was.
+      bindings = p.event_bindings()
+      server = state.server(p.hostname())
       if
         null.defined(current) and not continued
       then
@@ -74,21 +78,17 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
         state.mounts.add(icecast.server.mounts.create(state, p, path, feeder))
       end
       entry = null.get(icecast.server.mounts.find(state, path))
+      dump = icecast.server.mounts.dump(state, mount, feeder)
       entry.feeder.set(feeder)
       entry.lingering.set(null)
       entry.started.set(time())
-      entry.disconnect.set(
-        {
-          on_disconnect = mount?.on_disconnect,
-          dump = icecast.server.mounts.dump(state, mount, feeder)
-        }
-      )
+      entry.disconnect.set({on_disconnect = mount?.on_disconnect, dump = dump})
       icecast.server.mounts.refresh(state)
       state.counters.source_connected()
       {
-        bindings = p.event_bindings(),
+        bindings = bindings,
         listeners = entry.stats.current(),
-        server = state.server(p.hostname()),
+        server = server,
         on_connect = mount?.on_connect
       }
     end

@@ -106,11 +106,26 @@ def wait_for(label, cond) =
   wait()
 end
 
+# Source admissions on /bad.mp3, whose connection fails while `bindings_fail`.
+bad_attempts = ref(0)
+bindings_fail = ref(false)
+
 def mount(path) =
   if
     path == "/e.mp3"
   then
     {linger = 10., max_history = 2}
+  elsif
+    path == "/bad.mp3"
+  then
+    {
+      source_decision =
+        fun (_) ->
+          begin
+            atomic(fun () -> bad_attempts := bad_attempts() + 1)
+            true
+          end
+    }
   elsif
     path == "/h.mp3"
   then
@@ -146,7 +161,14 @@ server =
       port = port,
       mount = mount,
       event_bindings =
-        [binding("listener_connect"), binding("listener_disconnect")]
+        {
+          bindings_fail()
+            ? error.raise(
+              error.invalid,
+              "bindings fail"
+            )
+            : [binding("listener_connect"), binding("listener_disconnect")]
+        }
     }
   )
 
@@ -492,6 +514,35 @@ def check_attached() =
   )
 end
 
+# A source client whose connection fails while it takes the mount gets
+# neither a connect nor a disconnect event, and leaves no feeder.
+def check_failed_take() =
+  bindings_fail := true
+  bad = client("bad.mp3")
+  try
+    wait_for(
+      "two failed /bad.mp3 attempts",
+      {bad_attempts() >= 2}
+    )
+    events =
+      list.filter(
+        fun (line) ->
+          string.contains(
+            substring=" /bad.mp3",
+            line
+          ),
+        log_lines()
+      )
+    check(
+      "a failed take raises no source event: #{events} #{mounts()}",
+      events == [] and not list.mem("/bad.mp3", mounts())
+    )
+  finally
+    bad.shutdown()
+    bindings_fail := false
+  end
+end
+
 def run() =
   try
     source = client("e.mp3")
@@ -504,6 +555,7 @@ def run() =
     check_metadata()
     source = check_reconnect(source)
     check_attached()
+    check_failed_take()
     second.sock.close()
     wait_for(
       "second disconnect",
@@ -563,10 +615,10 @@ def run() =
     source.shutdown()
     hidden.shutdown()
     if
-      checks() != 20
+      checks() != 21
     then
       test.fail(
-        "#{checks()} checks ran, expected 20"
+        "#{checks()} checks ran, expected 21"
       )
     end
     test.pass()
