@@ -118,11 +118,14 @@ def icecast.server.stats.of_mount(
     null.defined(value) ? int_of_string(default=0, null.get(value)) : null
   end
 
+  # The list and the counters are read apart: a listener whose connect is in
+  # flight is listed before it is counted.
+  current = list.length(listeners)
   {
     mount = entry.path,
     listeners = list.map(fun (l) -> listener(entry, l), listeners),
-    peak_listeners = counters.peak,
-    connections = counters.connections,
+    peak_listeners = max(counters.peak, current),
+    connections = max(counters.connections, current),
     listening_time = counters.listening_time,
     bytes_sent = counters.bytes_sent,
     bytes_read = null.defined(feeder) ? null.get(feeder).bytes_read() : 0,
