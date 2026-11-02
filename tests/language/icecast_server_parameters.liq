@@ -266,6 +266,15 @@ def f() =
     null.get(icecast.server.parameters.mount(by_mount, "/a").fallback).mount,
     "/b"
   )
+  empty =
+    icecast.server.parameters.server(
+      {mount = fun (_) -> {fallback = ({} : {mount?: string, source?: source})}}
+    )
+  check_equal(
+    "an empty fallback is no fallback",
+    null.defined(icecast.server.parameters.mount(empty, "/a").fallback),
+    false
+  )
 
   # Invalid server records.
   expect_invalid(
