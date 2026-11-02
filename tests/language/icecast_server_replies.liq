@@ -124,7 +124,15 @@ def check_precedence() =
     ]
   check_equal(
     "first name wins",
-    reply(200, [...decision, ...identity, ...server, ...mount]),
+    reply(
+      200,
+      [
+        ...decision,
+        ...identity,
+        ...list.map(icecast.server.headers.entry, server),
+        ...list.map(icecast.server.headers.entry, mount)
+      ]
+    ),
     [
       ("X-A", "decision"),
       ("icy-name", "Live"),

@@ -1,16 +1,22 @@
 # The `http_headers` of a scope, the root or a `<mount>` (icecast-config.md
 # §8): its `<http-headers>` entries, then its RSAS `<custom-headers>` entries.
-# Every entry has the four fields of parameters.md §4.2, unset ones `null`, so
-# that static and computed entries share one type.
+# Every entry is completed by `icecast.server.headers.entry`, so that static
+# and computed entries share one type.
 
 # @flag hidden
-def icecast.server.config.static_header(~status=null, name, value) =
-  {name = name, value = value, compute = null, status = status}
+def icecast.server.config.static_header(
+  ~(status:int?)=null,
+  name,
+  (value:string)
+) =
+  icecast.server.headers.entry({name = name, value = value, status = status})
 end
 
 # @flag hidden
-def icecast.server.config.computed_header(~status=null, entry) =
-  {name = entry.name, value = null, compute = entry.compute, status = status}
+def icecast.server.config.computed_header(~(status:int?)=null, entry) =
+  icecast.server.headers.entry(
+    {name = entry.name, compute = entry.compute, status = status}
+  )
 end
 
 # The CORS set of a scope: the one its RSAS `<cors>` block builds, with the
@@ -66,7 +72,8 @@ def icecast.server.config.header(~compatibility, ~cors, header) =
     if
       null.defined(value)
     then
-      [icecast.server.config.static_header(status=status, name, value)]
+      [icecast.server.config.static_header(status=status, name, null.get(value))
+      ]
     elsif
       kind == "cors" and cors_type
     then

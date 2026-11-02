@@ -79,17 +79,47 @@ end
 def icecast.server.mount_requests.handle(state, request) =
   path = request.path
   outcome = icecast.server.mount_requests.create(state, path)
+  p = state.params.get()
+
+  # A listener reply, with the server's and the mount's `http_headers`.
+  def reply(~status_message=null, ~first=[], status) =
+    mount_headers =
+      try
+        icecast.server.parameters.mount(p, path).http_headers
+      catch _ do
+        []
+      end
+    headers =
+      icecast.server.headers.final(
+        request={
+          headers = icecast.server.headers.lowercase(request.headers),
+          compatibility = state.compatibility
+        },
+        status=status,
+        first=first,
+        [
+          ...list.map(icecast.server.headers.entry, p.http_headers),
+          ...list.map(icecast.server.headers.entry, mount_headers)
+        ]
+      )
+    http.response(
+      status_code=status,
+      status_message=status_message,
+      headers=headers
+    )
+  end
+
   if
     state.compatibility == "rsas" and outcome.past_bound
   then
-    http.response(
-      status_code=503,
-      status_message="Maximum fallback recursion limit reached"
+    reply(
+      status_message="Maximum fallback recursion limit reached",
+      503
     )
   elsif
     not outcome.created
   then
-    http.response(status_code=404)
+    reply(404)
   else
     entry = icecast.server.mounts.find(state, path)
     if
@@ -97,8 +127,8 @@ def icecast.server.mount_requests.handle(state, request) =
     then
       icecast.server.mount_requests.wait_started(null.get(entry))
     end
-    query = request.query_string == "" ? "" : "?#{request.query_string}"
-    http.response(status_code=307, headers=[("Location", "#{path}#{query}")])
+    query = icecast.server.headers.query_suffix(request.query_string)
+    reply(first=[("Location", "#{path}#{query}")], 307)
   end
 end
 

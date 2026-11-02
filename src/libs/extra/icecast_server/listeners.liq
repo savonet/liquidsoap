@@ -6,22 +6,11 @@ def icecast.server.listeners.accept(state, entry, listener) =
   compatibility = state.compatibility
   header_request = {headers = listener.headers, compatibility = compatibility}
   def reply_headers(status, first) =
-    icecast.server.headers.reply(
+    icecast.server.headers.final(
       request=header_request,
       status=status,
-      [
-        ...list.map(
-          fun (h) ->
-            {
-              name = fst(h),
-              value = (string.concat([snd(h)]) : string?),
-              compute = null,
-              status = null
-            },
-          first
-        ),
-        ...entry.headers
-      ]
+      first=first,
+      entry.headers
     )
   end
 
@@ -119,7 +108,7 @@ def icecast.server.listeners.accept(state, entry, listener) =
         if
           null.defined(target)
         then
-          query = listener.query_string == "" ? "" : "?#{listener.query_string}"
+          query = icecast.server.headers.query_suffix(listener.query_string)
           refuse(
             icecast.server.redirect(307, "#{null.get(target).path}#{query}")
           )

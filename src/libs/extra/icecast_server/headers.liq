@@ -51,10 +51,26 @@ def icecast.server.headers.lowercase(headers) =
   list.map(fun (h) -> (string.case(lower=true, fst(h)), snd(h)), headers)
 end
 
+# `entry` with the four fields of an entry, unset ones `null`: lists of
+# entries of different shapes concatenate once each is completed.
+# @flag hidden
+def icecast.server.headers.entry(entry) =
+  {
+    name = entry.name,
+    value = entry?.value,
+    compute = entry?.compute,
+    status = entry?.status
+  }
+end
+
 # Header pairs as fixed entries.
 # @flag hidden
 def icecast.server.headers.of_pairs(headers) =
-  list.map(fun (header) -> {name = fst(header), value = snd(header)}, headers)
+  list.map(
+    fun (header) ->
+      icecast.server.headers.entry({name = fst(header), value = snd(header)}),
+    headers
+  )
 end
 
 # Final header list of a reply with `status` to `request`: the first entry of a
@@ -240,4 +256,21 @@ def icecast.server.headers.cors(~origins=[], ~expose=[]) =
         )
     }
   ]
+end
+
+# The header list of a reply with `status` to `request`: the pairs `first`,
+# then the completed `entries`, evaluated by `reply`.
+# @flag hidden
+def icecast.server.headers.final(~request, ~status, ~first=[], entries) =
+  icecast.server.headers.reply(
+    request=request,
+    status=status,
+    [...icecast.server.headers.of_pairs(first), ...entries]
+  )
+end
+
+# The `?query` a redirect appends to its path, empty for an empty query.
+# @flag hidden
+def icecast.server.headers.query_suffix(query_string) =
+  query_string == "" ? "" : "?#{query_string}"
 end
