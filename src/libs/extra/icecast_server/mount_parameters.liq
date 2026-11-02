@@ -64,7 +64,18 @@ def icecast.server.parameters.mount(server, path) =
         check("max_listener_duration").optional_duration,
         m?.max_listener_duration ?? getter(null)
       ),
-    fallback = null.map(resolve_fallback, m?.fallback),
+    fallback =
+      null.case(
+        m?.fallback,
+        {null},
+        fun (fallback) ->
+          begin
+            fallback = resolve_fallback(fallback)
+            null.defined(fallback.mount) or null.defined(fallback.source)
+              ? fallback
+              : null
+          end
+      ),
     fallback_when_full =
       value(
         icecast.server.parameters.any,
