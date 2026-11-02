@@ -588,6 +588,23 @@ def check_url_auth() =
   )
 end
 
+def check_no_mount_headers() =
+  none = listen("/nothing.mp3")
+  none.sock.close()
+  check(
+    "a path with no mount answers 404 with the server's headers: #{none.head}",
+    none.status == 404
+    and string.contains(
+      substring="x-status: 404",
+      none.head
+    )
+    and string.contains(
+      substring="x-server: s",
+      none.head
+    )
+  )
+end
+
 # A slow `on_release` (/b.mp3's takes 10 s) does not delay the disconnect.
 def check_release_in_background() =
   listener = listen("/b.mp3")
@@ -625,11 +642,12 @@ def run() =
     check_time_limits()
     check_url_auth()
     check_release_in_background()
+    check_no_mount_headers()
     if
-      checks() != 32
+      checks() != 33
     then
       test.fail(
-        "#{checks()} checks ran, expected 32"
+        "#{checks()} checks ran, expected 33"
       )
     end
     test.pass()

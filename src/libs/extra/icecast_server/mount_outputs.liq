@@ -182,16 +182,10 @@ def icecast.server.mounts.create(state, p, path, template) =
       insert_metadata = fun (metadata) -> selector.insert_metadata(metadata),
       format = template.format,
       headers =
-        list.map(
-          fun (e) ->
-            {
-              name = e.name,
-              value = e?.value,
-              compute = e?.compute,
-              status = e?.status
-            },
-          [...p.http_headers, ...mount.http_headers]
-        ),
+        [
+          ...list.map(icecast.server.headers.entry, p.http_headers),
+          ...list.map(icecast.server.headers.entry, mount.http_headers)
+        ],
       stats = icecast.server.stats.mount(),
       sessions = icecast.server.listeners.sessions(),
       feeder = feeder_ref,
