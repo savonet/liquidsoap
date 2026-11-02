@@ -86,29 +86,6 @@ def icecast.server.config.merge(
     )
   end
 
-  # The request type of `icecast.server.decision.request`, written out: two
-  # loaded records otherwise take the typechecker minutes to unify.
-  def listener_decision(decisions) =
-    (icecast.server.decision.all(decisions) :
-      (
-        {
-          id: int,
-          mount: string,
-          query: string,
-          user: string,
-          password: string,
-          address: string,
-          headers: [(string * string)],
-          protocol: string,
-          listeners: int,
-          user_listeners: (string)->int,
-          server: {hostname: string, port: int, instance: string},
-          compatibility: string
-        }
-      )->_
-    )
-  end
-
   decision = icecast.server.config.decision
   decisions =
     [
@@ -129,7 +106,9 @@ def icecast.server.config.merge(
     max_listeners =
       own?.max_listeners ?? (default?.max_listeners ?? max_listeners),
     listener_decision =
-      list.is_empty(decisions) ? null : (listener_decision(decisions)),
+      list.is_empty(decisions)
+        ? null
+        : (icecast.server.decision.all(decisions)),
     max_listener_duration =
       own?.max_listener_duration ?? default?.max_listener_duration,
     fallback = own?.fallback ?? default?.fallback,
