@@ -96,6 +96,7 @@ def icecast.server.mounts.on_metadata(state, entry, metadata) =
   state.events.metadata.fire(
     bindings=p.event_bindings(),
     mount=entry.path,
+    listeners=entry.stats.current(),
     {mount = entry.path, metadata = metadata, listeners = entry.stats.current()}
   )
 end

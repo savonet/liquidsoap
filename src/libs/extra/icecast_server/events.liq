@@ -23,9 +23,10 @@ def icecast.server.events.call(~synchronous, handler) =
 end
 
 # A registry of the handlers of the event named `event`: `add` registers a
-# handler, `fire(~bindings, ~mount, record)` calls the registered handlers
-# with `record`, then the bindings of that event and mount with `{event,
-# mount}`: one binding list serves the five events, so its handlers take one
+# handler, `fire(~bindings, ~mount, ~listeners, record)` calls the registered
+# handlers with `record`, then the bindings of that event and mount with
+# `{event, mount, listeners}`, `listeners` being the mount's count after the
+# event: one binding list serves the five events, so its handlers take one
 # record type.
 # @flag hidden
 def icecast.server.events.registry(event) =
@@ -39,7 +40,7 @@ def icecast.server.events.registry(event) =
     )
   end
 
-  def fire(~bindings, ~mount, record) =
+  def fire(~bindings, ~mount, ~listeners, record) =
     list.iter(
       fun (h) ->
         icecast.server.events.call(
@@ -55,7 +56,8 @@ def icecast.server.events.registry(event) =
         then
           icecast.server.events.call(
             synchronous=b?.synchronous ?? false,
-            fun () -> b.handler({event = event, mount = mount})
+            fun () ->
+              b.handler({event = event, mount = mount, listeners = listeners})
           )
         end,
       bindings

@@ -123,12 +123,32 @@ def mount(path) =
   end
 end
 
-server = icecast.server({port = port, mount = mount})
-
 log_lines = ref([])
 def add(line) =
   atomic(fun () -> log_lines := [...log_lines(), line])
 end
+
+def binding(event) =
+  {
+    event = event,
+    synchronous = true,
+    handler =
+      fun (b) ->
+        add(
+          "binding #{b.event} #{b.mount} #{b.listeners}"
+        )
+  }
+end
+
+server =
+  icecast.server(
+    {
+      port = port,
+      mount = mount,
+      event_bindings =
+        [binding("listener_connect"), binding("listener_disconnect")]
+    }
+  )
 
 server.on_listener_connect(
   synchronous=true,
@@ -496,6 +516,31 @@ def run() =
           2
       }
     )
+    def bindings() =
+      list.filter(
+        fun (line) ->
+          string.contains(
+            substring=" /e.mp3 ",
+            line
+          ),
+        lines("binding")
+      )
+    end
+
+    wait_for(
+      "four bindings",
+      {list.length(bindings()) == 4}
+    )
+    check(
+      "bindings receive the mount's count after each event: #{bindings()}",
+      bindings() ==
+        [
+          "binding listener_connect /e.mp3 1",
+          "binding listener_connect /e.mp3 2",
+          "binding listener_disconnect /e.mp3 1",
+          "binding listener_disconnect /e.mp3 0"
+        ]
+    )
     check(
       "exactly one connect and one disconnect per listener",
       list.length(
@@ -518,10 +563,10 @@ def run() =
     source.shutdown()
     hidden.shutdown()
     if
-      checks() != 19
+      checks() != 20
     then
       test.fail(
-        "#{checks()} checks ran, expected 19"
+        "#{checks()} checks ran, expected 20"
       )
     end
     test.pass()

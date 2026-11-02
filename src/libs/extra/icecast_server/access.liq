@@ -56,14 +56,23 @@ end
 
 # The regular expression of a wildcard pattern: `*`, `?` and `[...]` (`[!...]`
 # negated), every other character literal, as a list: empty, logged, for a
-# pattern that is not one, such as an unclosed `[`.
+# pattern that is not one, such as an unclosed `[`. Without `star_matches_slash`,
+# `*` and `?` do not match `/`.
 # @flag hidden
-def icecast.server.access.pattern(~ignore_case=false, glob) =
+def icecast.server.access.pattern(
+  ~ignore_case=false,
+  ~star_matches_slash=true,
+  glob
+) =
+  any = star_matches_slash ? "." : "[^/]"
   escaped = r/[\\.^$|()+{}\/]/g.replace(fun (c) -> "\\#{c}", glob)
   translated =
     r/\[!/g.replace(
       fun (_) -> "[^",
-      r/\?/g.replace(fun (_) -> ".", r/\*/g.replace(fun (_) -> ".*", escaped))
+      r/\?/g.replace(
+        fun (_) -> any,
+        r/\*/g.replace(fun (_) -> "#{any}*", escaped)
+      )
     )
   try
     [regexp(flags=ignore_case ? ["i"] : [], "^#{translated}$")]

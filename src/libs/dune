@@ -21,3 +21,11 @@
  (package liquidsoap)
  (files
   (glob_files extra/icecast_server/*.liq)))
+
+(install
+ (section
+  (site
+   (liquidsoap-lang libs)))
+ (package liquidsoap)
+ (files
+  (glob_files extra/icecast_server/config/*.liq)))
