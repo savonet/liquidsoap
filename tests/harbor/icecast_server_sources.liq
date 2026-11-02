@@ -464,6 +464,17 @@ def check_feeding() =
     "/admin.cgi metadata applied",
     {list.assoc(default="", "title", mount_stats("/per.mp3").metadata) == "Cgi"}
   )
+  query_login =
+    exchange(
+      port,
+      "GET \
+       /admin/metadata?mount=/per.mp3&user=u&pass=mountpw&mode=updinfo&song=Query \
+       HTTP/1.0\r\n\r\n"
+    )
+  check(
+    "query credentials outside /admin.cgi are refused: #{query_login.status}",
+    query_login.status == 401
+  )
   no_mode =
     exchange(
       port,
