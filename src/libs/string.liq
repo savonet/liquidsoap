@@ -47,11 +47,14 @@ def string.bytes.length(s) =
   string.length(encoding="ascii", s)
 end
 
-# Split a string in two at first "separator".
+# Split a string in two at first "separator". The split is made on bytes,
+# which is exact in every encoding since the separator is matched whole.
 # @category String
+# @param ~encoding Accepted for compatibility; the split does not depend on it.
 def string.split.first(~encoding=null, ~separator, s) =
-  n = string.length(encoding=encoding, s)
-  l = string.length(encoding=encoding, separator)
+  ignore(encoding)
+  n = string.bytes.length(s)
+  l = string.bytes.length(separator)
   i = string.index(substring=separator, s)
   if
     i < 0
@@ -63,8 +66,8 @@ def string.split.first(~encoding=null, ~separator, s) =
   end
 
   (
-    string.sub(encoding=encoding, s, start=0, length=i),
-    string.sub(encoding=encoding, s, start=i + l, length=n - (i + l))
+    string.sub(encoding="ascii", s, start=0, length=i),
+    string.sub(encoding="ascii", s, start=i + l, length=n - (i + l))
   )
 end
 
