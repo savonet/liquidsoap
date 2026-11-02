@@ -207,6 +207,21 @@ def check_walk() =
     "10.0.0.1"
   )
   check_equal(
+    "a proxy's own header line comes after the client's",
+    icecast.server.addresses.resolve(
+      proxy_ips=["10.0.0.0/8"],
+      forwarded_address=null,
+      {
+        ip = "10.0.0.1",
+        headers =
+          [("x-forwarded-for", "6.6.6.6"), ("x-forwarded-for", "198.51.100.7")],
+        protocol = "HTTP/1.1",
+        uri = "/live"
+      }
+    ),
+    "198.51.100.7"
+  )
+  check_equal(
     "malformed entry",
     walk(forwarded="not-an-address", ["10.0.0.0/8"], "10.0.0.1"),
     "10.0.0.1"
