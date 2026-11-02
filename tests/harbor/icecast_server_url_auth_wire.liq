@@ -381,6 +381,25 @@ def check_failures() =
     }
   end
 
+  transport_failure =
+    try
+      ignore(
+        icecast.server.url_auth.send(
+          config=icecast.server.url_auth.config("icecast-2.5", {timeout = 2.}),
+          fields=[],
+          {user = "", password = ""},
+          closed
+        )
+      )
+      "no error"
+    catch err : [error.http] do
+      "error.http"
+    end
+  check_equal(
+    "a transport failure is an error, so on_error_wait starts",
+    transport_failure,
+    "error.http"
+  )
   waited = waits({listener_add = "#{base}/auth", on_error_wait = 60.})
   check_equal(
     "on_error_wait: no request during the wait",

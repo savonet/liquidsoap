@@ -66,7 +66,8 @@ end
 
 # POSTs `fields` to `url` and returns `{status, headers, body}`, header names
 # lowercased. Credentials follow url-auth.md §3, `request` giving the client's
-# own; those embedded in `url` are sent by the HTTP client.
+# own; those embedded in `url` are sent by the HTTP client. A transport failure
+# raises `error.http`.
 # @flag hidden
 def icecast.server.url_auth.send(~config, ~fields, request, url) =
   credentials =
@@ -105,6 +106,19 @@ def icecast.server.url_auth.send(~config, ~fields, request, url) =
       data=http.www_form_urlencoded(fields),
       url
     )
+
+  # The HTTP client answers a transport failure (refused, timed out,
+  # unresolved, TLS) with a status from 520 to 526 and no header.
+  if
+    response.status_code >= 520
+    and response.status_code <= 526
+    and list.is_empty(response.headers)
+  then
+    error.raise(
+      error.http,
+      "#{response.status_code} #{response.status_message}"
+    )
+  end
   {
     status = response.status_code,
     headers = icecast.server.headers.lowercase(response.headers),
