@@ -104,8 +104,21 @@ def wait_for(label, cond) =
   wait()
 end
 
+# While set, the hidden mount's parameters fail validation.
+broken_parameters = ref(false)
+
 def mount(path) =
-  if path == "/h.mp3" then {hidden = true, health_password = "hh"} else null end
+  if
+    path == "/h.mp3"
+  then
+    {
+      hidden = true,
+      health_password = "hh",
+      max_listeners = {broken_parameters() ? -1 : null}
+    }
+  else
+    null
+  end
 end
 
 def status_access(request) =
@@ -241,6 +254,13 @@ def check_status_pages() =
       fun (kv) -> kv.key == "title" and kv.value == "<b>x</b>",
       list.hd(parsed.mounts).current_metadata
     )
+  )
+  broken_parameters := true
+  broken = fetch("/status.json")
+  broken_parameters := false
+  check(
+    "a hidden mount whose parameters fail stays hidden: #{broken.body}",
+    broken.status == 200 and not contains(broken.body, "/h.mp3")
   )
   page = fetch("/")
   check(
@@ -637,10 +657,10 @@ def run() =
     h.shutdown()
     q.shutdown()
     if
-      checks() != 30
+      checks() != 31
     then
       test.fail(
-        "#{checks()} checks ran, expected 30"
+        "#{checks()} checks ran, expected 31"
       )
     end
     test.pass()
