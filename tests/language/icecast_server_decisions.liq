@@ -631,6 +631,14 @@ def check_replies() =
     null
   )
   check_equal(
+    "a time limit too large for an integer is ignored",
+    outcome(
+      200,
+      [...admitted, ("icecast-auth-timelimit", "99999999999999999999")]
+    ).time_limit,
+    null
+  )
+  check_equal(
     "kh: invalid time limit is 60",
     outcome(
       compatibility="kh",
