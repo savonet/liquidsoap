@@ -1462,6 +1462,20 @@
    content/liq/icecast-server-dedicated-encoder.liq)))
 
 (rule
+ (alias test-doc-icecast-server-forwarded)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-forwarded.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-forwarded.liq)))
+
+(rule
  (alias test-doc-icecast-server-headers)
  (package liquidsoap)
  (deps
@@ -1600,6 +1614,20 @@
    --check
    --no-fallible-check
    content/liq/icecast-server-status-codes.liq)))
+
+(rule
+ (alias test-doc-icecast-server-tls)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-tls.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-tls.liq)))
 
 (rule
  (alias test-doc-icecast-server-url-auth)
@@ -2715,6 +2743,7 @@
   (alias test-doc-icecast-server-config)
   (alias test-doc-icecast-server-decisions)
   (alias test-doc-icecast-server-dedicated-encoder)
+  (alias test-doc-icecast-server-forwarded)
   (alias test-doc-icecast-server-headers)
   (alias test-doc-icecast-server-ip-hash)
   (alias test-doc-icecast-server-listener-callbacks)
@@ -2725,6 +2754,7 @@
   (alias test-doc-icecast-server-serve-auth)
   (alias test-doc-icecast-server-serve-json)
   (alias test-doc-icecast-server-status-codes)
+  (alias test-doc-icecast-server-tls)
   (alias test-doc-icecast-server-url-auth)
   (alias test-doc-icy-update)
   (alias test-doc-implicit-float-ok)
