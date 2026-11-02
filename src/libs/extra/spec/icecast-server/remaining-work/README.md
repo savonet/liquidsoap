@@ -7,7 +7,7 @@ We are rewriting liquidsoap's `icecast.server` from a normative specification, o
 PRs:
 
 - #5592 (`icecast-server-listener-auth`): URL listener auth, prerolls, time limits, redirects. Open, CI green.
-- #5601 (`typing-nullable-sup-loop`, worktree /var/tmp/claude-sup-fix): the typechecker loop fix below, against `main`. The same change sits uncommitted in this branch's working tree (src/lang/types/typing.ml, tests/language/typing.liq) until #5601 merges and the branch is rebased; remove the worktree then.
+- #5601 (`typing-nullable-sup-loop`, worktree /var/tmp/claude-sup-fix): the typechecker loop fix below, against `main`. This branch is rebased on it (its two commits sit under the icecast ones); when it merges, rebase on `main` and remove the worktree.
 - #5595 (`icecast-server-refactor`): this work, a **draft** stacked on #5592 with `gh stack` (stack #5596). Its description has a per-batch checklist. When #5592 merges, check its commits reached `main` (`git merge-base --is-ancestor`) before going further.
 
 The branch history was squashed into one commit per batch; the remote still has the old history, so the next push is a force-push. Batch 4 (pages and logs) is committed but not pushed: when pushing, tick "status and admin pages, logs" in #5595's checklist (read the live PR body first and keep any lines the user added).
@@ -20,11 +20,10 @@ Done:
 - tests/language/icecast_server_config.liq: 256 checks over 97 fixtures, warnings counted per fixture from the "Translating <path>." info line `load` logs. 5/5 under CPU load; 9 mutations caught (log level, logsize KiB, unknown-element warnings, access lists first, `*` vs `/`, tls `auto`, is-zero filter, header order).
 - Event bindings receive `{event, mount, listeners}`, the mount's count after the event (needed for `source-listeners-is-zero`); tests/harbor/icecast_server_events.liq checks it (mutation caught, 5/5 under load).
 - `icecast.server.access.pattern` gained `~star_matches_slash` (non-KH mount patterns).
-- Doc examples doc/content/liq/icecast-server-\*.liq rewritten to the record API (12) plus 6 new ones (mounts, decisions, url-auth, attach, headers, preroll). 17 pass `--check`; `icecast-server-reload.liq` hits the typechecker blowup below.
+- doc/content/icecast_server.md rewritten to the record API, over 20 checked examples doc/content/liq/icecast-server-\*.liq (the 12 old ones rewritten, 8 new: mounts, decisions, url-auth, attach, headers, preroll, forwarded, tls). Every `@test-doc-icecast-server-*` passes; a broken example makes it fail.
 
 Not done:
 
-- Rewrite doc/content/icecast_server.md itself (old labeled-argument API throughout) to use the new examples; run `dune build @gendune --auto-promote` for doc/dune.inc.
 - Reviewer pass (one Opus reviewer), then fold the WIP commit into a proper batch-5 commit.
 - Offer the spec-extraction skill's final step (compare new vs old implementation) before #5595 leaves draft.
 
@@ -44,7 +43,7 @@ Two separate instances of a loaded record's `mount` callback type meeting in sub
 
 **Cause, traced:** `Typing.sup` on nullables always rebuilds `Nullable (sup a b)`, and `Type.make (Nullable t)` with an already nullable `t` returns a _fresh_ covariant variable (to collapse `t??`). In the covariant case of `<:`, `b'' = sup a b'` is therefore never physically `b'`, the variable is relinked and `a <: b''` lands in the same case with a new variable: an unbounded recursion (405 k levels deep, variable ids counting up, link chain growing). The trigger is a `string??` field (`decision.all`'s `preroll`, from `p := d(r)?.preroll` on a nullable field) in a function whose argument (`~cache`) is a parameter.
 
-**Fix: PR #5601** (also uncommitted in this working tree): `sup` strips nested nullables (`t??` is `t?`) and returns `b` itself when the supremum adds nothing (`v == v' -> b`, and the nullable cases), so the existing `b'' != b'` guard stops. Both halves are needed: without `v == v' -> b` it terminates but rejects the valid program. Results: the repros check in 3.7 s; `--list-functions-json` is byte-identical; stdlib cache-miss cost unchanged (~3.7 s, ~588 MB); `typing`, `record`, `record_methods_eager`, `type_errors`, `stdlib`, `null` and the icecast language tests pass. Regression check added at the end of tests/language/typing.liq (17-line repro, also /var/tmp/claude-icecast-config/sup-loop-repro.liq): passes with the fix, OOM-killed with the old checker.
+**Fix: PR #5601** (this branch is rebased on it): `sup` strips nested nullables (`t??` is `t?`) and returns `b` itself when the supremum adds nothing (`v == v' -> b`, and the nullable cases), so the existing `b'' != b'` guard stops. Both halves are needed: without `v == v' -> b` it terminates but rejects the valid program. Results: the repros check in 3.7 s; `--list-functions-json` is byte-identical; stdlib cache-miss cost unchanged (~3.7 s, ~588 MB); `typing`, `record`, `record_methods_eager`, `type_errors`, `stdlib`, `null` and the icecast language tests pass. Regression check added at the end of tests/language/typing.liq (17-line repro, also /var/tmp/claude-icecast-config/sup-loop-repro.liq): passes with the fix, OOM-killed with the old checker.
 
 Next: drop the `listener_decision` request-type annotation in config/mounts.liq (it did not help) and check `doc/content/liq/icecast-server-reload.liq`.
 
