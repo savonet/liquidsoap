@@ -187,15 +187,26 @@ let rec sup ~pos a b =
   in
   let a = deref a in
   let b = deref b in
+  let rec strip t =
+    match (deref t).descr with Nullable t -> strip t | _ -> deref t
+  in
+  (* [t??] is [t?]. The supremum is [b] itself when it adds nothing: the
+     covariant case of [<:] stops on physical equality, and a rebuilt nullable
+     of a nullable is a fresh variable that would make it loop. *)
+  let nullable_sup a b' =
+    let b' = strip b' in
+    let s = sup (strip a) b' in
+    if s == b' then b else mk (Nullable s)
+  in
   if a == b then a
   else (
     match (a.descr, b.descr) with
-      | v, v' when v == v' -> a
+      | v, v' when v == v' -> b
       | Var { contents = Free _ }, _ -> b
       | _, Var { contents = Free _ } -> a
-      | Nullable a, Nullable b -> mk (Nullable (sup a b))
-      | Nullable a, _ -> mk (Nullable (sup a b))
-      | _, Nullable b -> mk (Nullable (sup a b))
+      | Nullable a, Nullable b' -> nullable_sup a b'
+      | _, Nullable b' -> nullable_sup a b'
+      | Nullable a, _ -> mk (Nullable (sup (strip a) b))
       (* We implicitly convert int to float so we need to make sure to
          be more restrictive when mixing the two types and use int
          everywhere. *)
