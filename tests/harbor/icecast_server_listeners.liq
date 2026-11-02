@@ -248,7 +248,8 @@ def mount(path) =
   then
     {
       http_headers =
-        [{name = "X-Mount", value = "m"}, {name = "X-Server", value = "mount"}]
+        [{name = "X-Mount", value = "m"}, {name = "X-Server", value = "mount"}],
+      listener_decision = fun (_) -> {on_release = fun (_) -> thread.pause(10.)}
     }
   elsif
     path == "/u.mp3"
@@ -280,6 +281,13 @@ kh =
       mount = fun (_) -> {max_listeners = 0}
     }
   )
+
+disconnects = ref([])
+server.on_listener_disconnect(
+  synchronous=true,
+  fun (l) ->
+    atomic(fun () -> disconnects := [...disconnects(), (l.mount, time())])
+)
 
 connects = ref([])
 server.on_listener_connect(
@@ -493,6 +501,10 @@ def check_limits() =
     "listeners gone",
     {listener_count("/a.mp3") == 0}
   )
+  wait_for(
+    "every admission released",
+    {list.length(releases()) >= 3}
+  )
   check(
     "one release per admission: #{releases()}",
     list.length(releases()) == 3
@@ -576,6 +588,32 @@ def check_url_auth() =
   )
 end
 
+# A slow `on_release` (/b.mp3's takes 10 s) does not delay the disconnect.
+def check_release_in_background() =
+  listener = listen("/b.mp3")
+  wait_for(
+    "/b.mp3 listener",
+    {listener_count("/b.mp3") == 1}
+  )
+  closed = time()
+  listener.sock.close()
+  wait_for(
+    "/b.mp3 disconnect event",
+    {
+      list.exists(
+        fun (d) -> fst(d) == "/b.mp3" and snd(d) >= closed,
+        disconnects()
+      )
+    }
+  )
+  at =
+    list.find(fun (d) -> fst(d) == "/b.mp3" and snd(d) >= closed, disconnects())
+  check(
+    "a slow on_release does not delay the disconnect: #{snd(at) - closed}s",
+    snd(at) - closed < 5.
+  )
+end
+
 def run() =
   try
     wait_for(
@@ -586,11 +624,12 @@ def run() =
     check_limits()
     check_time_limits()
     check_url_auth()
+    check_release_in_background()
     if
-      checks() != 31
+      checks() != 32
     then
       test.fail(
-        "#{checks()} checks ran, expected 31"
+        "#{checks()} checks ran, expected 32"
       )
     end
     test.pass()
