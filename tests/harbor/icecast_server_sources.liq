@@ -283,6 +283,10 @@ def check_refusals() =
     put(auth=basic("source", "pw"), "/a/health").status == 403
   )
   check(
+    "reserved /a/manage",
+    put(auth=basic("source", "pw"), "/a/manage").status == 403
+  )
+  check(
     "reserved /admin/dec: no source decision",
     put(auth=basic("ok", "x"), "/admin/dec").status == 403 and decisions() == []
   )
@@ -888,7 +892,7 @@ def run() =
     check_source_timeout()
     check_url_services()
     if
-      checks() < 39
+      checks() < 40
     then
       test.fail(
         "only #{checks()} checks ran"

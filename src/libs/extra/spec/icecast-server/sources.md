@@ -50,6 +50,8 @@ These paths are never mounts: a source client on one is refused
 - `/metrics`;
 - `/health`, and every path ending in `/health` (`/<mount>/health` is a page,
   [observability.md](observability.md), so a mount name cannot end so);
+- every path ending in `/manage` (`POST /<mount>/manage` is RSAS's admin
+  request, [§6](#6-admin-requests));
 - every other path the server serves as a page or an endpoint
   ([observability.md](observability.md)).
 

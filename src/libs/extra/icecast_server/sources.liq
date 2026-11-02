@@ -16,6 +16,7 @@ def icecast.server.sources.is_reserved(path) =
   )
   or string.contains(prefix="/admin/", path)
   or string.contains(suffix="/health", path)
+  or string.contains(suffix="/manage", path)
 end
 
 # The `icy-*` stream identity of a source client's request headers: `ice-*`
