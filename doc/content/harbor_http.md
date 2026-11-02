@@ -53,6 +53,8 @@ where:
 
 `request.query` holds the decoded query arguments and the matched fragments. `request.query_string` is the query string as the client sent it, without the `?`, undecoded and in its original order: use it when the exact bytes matter, for instance to check a signature computed over the URL.
 
+`request.ip` is the address of the connected peer, as is: behind a reverse proxy it is the proxy's, and the client's own address is in a header such as `X-Forwarded-For`. It is personal data: treat it as such before logging or publishing it.
+
 The handler function receives a record containing all the information about the request and fills
 up the details about the response, which is then used to write a proper HTTP response to the client.
 

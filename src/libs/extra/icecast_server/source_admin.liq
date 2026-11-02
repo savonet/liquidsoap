@@ -58,7 +58,7 @@ def icecast.server.source_admin.allowed(state, p, path, request) =
       icecast.server.sources.request(
         state,
         p,
-        ip="",
+        ip=request.ip,
         method=request.method,
         mount=path,
         query=request.query_string,
