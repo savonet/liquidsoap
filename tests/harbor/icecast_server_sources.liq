@@ -102,6 +102,7 @@ decisions = ref([])
 cb_version = ref("A")
 callbacks = ref([])
 max_sources = ref(null)
+source_timeout = ref(10.)
 
 def add_callback(name) =
   atomic(fun () -> callbacks := [...callbacks(), name])
@@ -197,6 +198,7 @@ server =
       port = port,
       source_password = "pw",
       max_sources = {max_sources()},
+      source_timeout = {source_timeout()},
       mount = mount
     }
   )
@@ -724,6 +726,38 @@ def check_race() =
   list.iter(fun (r) -> r.sock.close(), results)
 end
 
+# `source_timeout` is read when a source client connects: a value lowered after
+# startup drops the next silent client within it.
+def check_source_timeout() =
+  source_timeout := 1.
+  sock = connect(port)
+  try
+    sock.write(
+      "SOURCE /quiet.mp3 HTTP/1.0\r\n#{basic("source", "pw")}Content-Type: \
+       audio/mpeg\r\n\r\n"
+    )
+    reply = read_head(sock)
+    sock.write(file.contents(mp3))
+    wait_for(
+      "quiet mount fed",
+      {list.mem("/quiet.mp3", mounts())}
+    )
+    started = time()
+    wait_for(
+      "silent source client dropped",
+      {not list.mem("/quiet.mp3", mounts())}
+    )
+    check(
+      "a lowered source_timeout applies to the next client: #{reply.status} \
+       after #{time() - started}s",
+      reply.status == 200 and time() - started < 8.
+    )
+  finally
+    source_timeout := 10.
+    sock.close()
+  end
+end
+
 def check_race_max_sources() =
   max_sources := 1
   results =
@@ -828,9 +862,10 @@ def run() =
     check_protocols()
     check_race()
     check_race_max_sources()
+    check_source_timeout()
     check_url_services()
     if
-      checks() < 37
+      checks() < 38
     then
       test.fail(
         "only #{checks()} checks ran"

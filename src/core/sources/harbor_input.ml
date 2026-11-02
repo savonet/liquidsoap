@@ -455,9 +455,12 @@ let proto ?(buffer_default = 12.) mountpoint_t =
       Some (Lang.float 20.),
       Some "Maximum duration of the buffered data (in seconds)." );
     ( "timeout",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 30.),
-      Some "Timeout for source connectionn." );
+      Some
+        "Timeout for source connections, in seconds. `input.harbor` reads it \
+         when it is created, `input.harbor.dynamic` when each client connects."
+    );
     ("user", Lang.string_t, Some (Lang.string "source"), Some "Source user.");
     ( "password",
       Lang.string_t,
@@ -549,7 +552,7 @@ type 'a parse_result = {
   mountpoint : 'a;
   login : string * (Harbor.login_args -> bool);
   debug : bool;
-  timeout : float;
+  timeout : unit -> float;
   icy : bool;
   icy_charset : string option;
   meta_charset : string option;
@@ -597,7 +600,7 @@ let parse_args ~parse_mountpoint p =
   let default_user = Lang.to_string (List.assoc "user" p) in
   let default_password = Lang.to_string (List.assoc "password" p) in
   let debug = Lang.to_bool (List.assoc "debug" p) in
-  let timeout = Lang.to_float (List.assoc "timeout" p) in
+  let timeout = Lang.to_float_getter (List.assoc "timeout" p) in
   let icy = Lang.to_bool (List.assoc "icy" p) in
   let icy_charset =
     Lang.to_valued_option Lang.to_string (List.assoc "icy_metadata_charset" p)
@@ -780,5 +783,6 @@ let input_harbor =
         parse_args ~parse_mountpoint:parse_mountpoint_string p
       in
       new http_input_server
-        ~pos ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
-        ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~debug ())
+        ~pos ~transport ~timeout:(timeout ()) ~bufferize ~max ~login ~mountpoint
+        ~dumpfile ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta
+        ~debug ())

@@ -206,7 +206,9 @@ other input.
 `"source"`, `password` `"hackme"`, `port` `8005`, `transport`, `icy` `false`,
 `icy_metadata_charset`, `metadata_charset`, `replay_metadata` `false`, `auth`,
 `dumpfile`, `logfile`, `debug` `false`), an unlabeled `regexp` mountpoint, and
-a required `on_connect`. It returns `unit`. `buffer >= max` is a script error
+a required `on_connect`. It returns `unit`. `timeout` is a getter, read once
+when each client connects: that value bounds the client's reads and its
+deadline. `buffer >= max` is a script error
 raised on `max` (example message:
 `Maximum buffering inferior to pre-buffered data`).
 

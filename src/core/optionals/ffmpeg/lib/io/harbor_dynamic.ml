@@ -171,16 +171,18 @@ let () =
     (fun () -> Atomic.set should_shutdown true)
 
 (* One source client: its source and its life (io.md §10.2). *)
-class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
-  ~mime ~connection ~(client_read : Harbor.socket -> bytes -> int -> int -> int)
+class client ~(args : Lang.regexp Harbor_input.parse_result) ~timeout
+  ~request_uri ~id ~mime ~connection
+  ~(client_read : Harbor.socket -> bytes -> int -> int -> int)
   ~(on_end : client -> unit) =
   object (self)
     inherit
       Harbor_input.http_input_base
         ~dumpfile:None ~logfile:None ~bufferize:args.bufferize ~max:args.max
           ~replay_meta:args.replay_meta ~login:args.login ~debug:args.debug
-          ~timeout:args.timeout () as super
+          ~timeout () as super
 
+    method timeout : float = timeout
     val state : state Atomic.t = Atomic.make `Opening
     val handed = Atomic.make false
     val mutable peer_closed = false
@@ -218,7 +220,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
       let socket = connection.Connection.socket in
       let rec read () =
         try
-          socket#wait_for ~log:(self#log#info "%s") `Read args.timeout;
+          socket#wait_for ~log:(self#log#info "%s") `Read timeout;
           client_read socket buf ofs len
         with Harbor.Retry -> read ()
       in
@@ -300,7 +302,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
                     ->
                       `Stopped
                   | Read_timeout ->
-                      `Fault (Printf.sprintf "no data for %.0fs" args.timeout)
+                      `Fault (Printf.sprintf "no data for %.0fs" timeout)
                   | exn -> `Fault (Printexc.to_string exn)
               in
               (match cause with
@@ -340,7 +342,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
               self#log#important
                 "Client %s: no output used its source within %.0fs, \
                  disconnected."
-                request_uri args.timeout
+                request_uri timeout
           | `End_of_input -> end_track ()
           | `Stopped -> ());
         Connection.abort connection;
@@ -486,7 +488,7 @@ let open_client ~args ~handler ~connection ~(relay : Harbor.relay_info) client =
                  Scheduler.Task.add
                    {
                      Scheduler.Task.priority = `Non_blocking;
-                     events = [`Delay args.Harbor_input.timeout];
+                     events = [`Delay client#timeout];
                      handler =
                        (fun _ ->
                          (match client#client_state with
@@ -517,7 +519,7 @@ let register ~(args : Lang.regexp Harbor_input.parse_result) ~handler =
     in
     let client =
       new client
-        ~args ~request_uri:info.uri ~id
+        ~args ~timeout:(args.timeout ()) ~request_uri:info.uri ~id
         ~mime:(Harbor_input.extract_mime info.stype)
         ~connection
         ~client_read:(Option.value ~default:Harbor.read info.read)
