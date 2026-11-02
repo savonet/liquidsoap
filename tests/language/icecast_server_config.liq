@@ -56,10 +56,6 @@ def check_equal(label, got, expected) =
   end
 end
 
-# Fixture paths with whether translating them must warn, checked once at the
-# end: `log.flush` waits for the logging thread.
-expected_warnings = ref([])
-
 def logged(text) =
   log.flush()
   list.exists(
@@ -74,74 +70,39 @@ def write(name, content) =
   path
 end
 
+# Fixtures translated, and those whose translation warned.
+translated = ref(0)
+warned = ref(0)
+
 def load(~compatibility="icecast-2.5", ~warns=null, content) =
   fixtures := fixtures() + 1
   path = write("icecast-#{fixtures()}.xml", "<icecast>#{content}</icecast>")
+  before = icecast.server.config.warnings()
+  p = icecast.server.config.load(compatibility=compatibility, path)
+  produced = icecast.server.config.warnings() > before
+  translated := translated() + 1
+  if produced then warned := warned() + 1 end
   if
     null.defined(warns)
   then
-    expected_warnings := [(path, null.get(warns)), ...expected_warnings()]
+    check_equal(
+      "#{path} warns",
+      produced,
+      null.get(warns)
+    )
   end
-  icecast.server.config.load(compatibility=compatibility, path)
+  p
 end
 
 def warns(content) =
   load(warns=true, content)
 end
 
-# Warnings of each translated fixture, from the "Translating" line `load` logs
-# to the next one.
+# Something ran: fixtures were translated, and some of them warned.
 def check_warnings() =
-  log.flush()
-  counts = ref([])
-  current = ref("")
-  list.iter(
-    fun (line) ->
-      if
-        string.contains(
-          substring="] Translating ",
-          line
-        )
-      then
-        let (_, translated) =
-          string.split.first(
-            separator="] Translating ",
-            line
-          )
-        current :=
-          string.sub(translated, start=0, length=string.length(translated) - 1)
-        counts := [(current(), 0), ...counts()]
-      elsif
-        string.contains(substring="[icecast.server.config:3]", line)
-        and current() != ""
-      then
-        n = list.assoc(current(), counts())
-        counts :=
-          [(current(), n + 1), ...list.assoc.remove(current(), counts())]
-      end,
-    file.lines(log_path)
-  )
-  list.iter(
-    fun (e) ->
-      begin
-        let (path, warns) = e
-        n = list.assoc.nullable(path, counts())
-        check_equal(
-          "#{path} was translated",
-          null.defined(n),
-          true
-        )
-        check_equal(
-          "#{path} warns",
-          (n ?? 0) > 0,
-          warns
-        )
-      end,
-    expected_warnings()
-  )
   check_equal(
-    "fixtures translated",
-    list.length(counts()) >= list.length(expected_warnings()),
+    "fixtures translated and warning: #{translated()} #{warned()}",
+    translated() > 50 and warned() > 20,
     true
   )
 end
@@ -1173,6 +1134,66 @@ def check_events() =
   )
 end
 
+def check_review_fixes() =
+  tls_factory = settings.icecast.server.tls_transport()
+  settings.icecast.server.tls_transport := ("none", snd(tls_factory))
+  rejects(
+    "TLS on a build without TLS",
+    "<icecast><listen-socket><tls>1</tls></listen-socket><paths><tls-certificate>/c.pem</tls-certificate></paths></icecast>"
+  )
+  settings.icecast.server.tls_transport := tls_factory
+
+  p =
+    warns(
+      "<mount><mount-name>/a</mount-name><priority>high</priority><max-listeners>3</max-listeners></mount>"
+    )
+  check_equal(
+    "priority outside kh is ignored, not parsed",
+    mount(p, "/a").max_listeners,
+    3
+  )
+
+  def names(p) =
+    list.map(fun (h) -> h.name, p.http_headers)
+  end
+
+  p =
+    load(
+      compatibility="kh",
+      '<http-headers><header name="X-A" value="1" type="Static"/><header \
+       name="X-B" value="2" type="other"/></http-headers>'
+    )
+  check_equal(
+    "under kh any header type is sent static",
+    names(p),
+    ["X-A", "X-B"]
+  )
+  p =
+    load(
+      '<http-headers><header name="Access-Control-Allow-Origin" \
+       type="CORS"/></http-headers>'
+    )
+  check_equal(
+    "header types compare without case",
+    names(p),
+    ["Access-Control-Allow-Origin"]
+  )
+
+  deny = write("deny-a", "198.51.100.1\n")
+  ban = write("ban-b", "198.51.100.2\n")
+  p =
+    load("<paths><deny-ip>#{deny}</deny-ip><ban-file>#{ban}</ban-file></paths>")
+  check_equal(
+    "every deny file refuses",
+    (
+      status(p, "/any", listener_request(address="198.51.100.1")),
+      status(p, "/any", listener_request(address="198.51.100.2")),
+      status(p, "/any", listener_request(address="198.51.100.3"))
+    ),
+    (403, 403, null)
+  )
+end
+
 def check_purity() =
   logdir = path.concat(directory, "logs")
   file.mkdir(logdir)
@@ -1207,6 +1228,7 @@ def f() =
   check_prerolls()
   check_headers()
   check_events()
+  check_review_fixes()
   check_purity()
   check_warnings()
   if

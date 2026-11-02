@@ -5,8 +5,14 @@
 # not translate with `warn_children`.
 let icecast.server.config = ()
 
+# Warnings emitted so far, for tests that count them per file.
+# @flag hidden
+let icecast.server.config.warnings = ref(0)
+
 # @flag hidden
 def icecast.server.config.warn(message) =
+  warnings = icecast.server.config.warnings
+  atomic(fun () -> warnings := warnings() + 1)
   log.important(label="icecast.server.config", message)
 end
 

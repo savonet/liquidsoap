@@ -98,7 +98,14 @@ def icecast.server.config.transport(~tls, ~certificate, ~key) =
         "TLS is enabled but no certificate is configured."
       )
     end
-    let (_, factory) = settings.icecast.server.tls_transport()
+    let (name, factory) = settings.icecast.server.tls_transport()
+    if
+      name == "none"
+    then
+      icecast.server.config.reject(
+        "TLS is enabled but this build of liquidsoap has no TLS support."
+      )
+    end
     factory(certificate, key)
   else
     http.transport.unix
@@ -131,17 +138,22 @@ def icecast.server.config.translate(~compatibility, root) =
   logging = icecast.server.config.logging(logdir=paths.logdir, root)
   cache = icecast.server.preroll_cache(directory=paths.webroot ?? ".")
   access =
-    null.defined(paths.deny)
-    or null.defined(paths.allow)
-    or null.defined(paths.agents)
-      ? [
-        icecast.server.decision.access_lists(
-          deny=paths.deny,
-          allow=paths.allow,
-          agents=paths.agents
-        )
-      ]
-      : []
+    [
+      ...list.map(
+        fun (deny) -> icecast.server.decision.access_lists(deny=deny),
+        paths.deny
+      ),
+      ...(
+        null.defined(paths.allow) or null.defined(paths.agents)
+          ? [
+            icecast.server.decision.access_lists(
+              allow=paths.allow,
+              agents=paths.agents
+            )
+          ]
+          : []
+      )
+    ]
   entries =
     list.filter_map(
       fun (mount) ->
