@@ -237,6 +237,32 @@ def f() =
 
   # Allow float params.
   s = (sine() : source(audio=pcm(5.1)))
+
+  # Two instances of a doubly nullable field behind a covariant variable
+  # unify in finite time: the supremum of `t??` and `t?` is `t?`.
+  def first_preroll(decisions) =
+    fun (r) ->
+      begin
+        p = ref(null)
+        list.iter(fun (d) -> p := d(r)?.preroll, decisions)
+        {preroll = p()}
+      end
+  end
+
+  def preroll_decision(~cache, location) =
+    first_preroll([fun (_) -> {preroll = cache(location)}])
+  end
+
+  def no_preroll(_) =
+    (null : string?)
+  end
+
+  l =
+    [
+      preroll_decision(cache=no_preroll, null),
+      preroll_decision(cache=no_preroll, null)
+    ]
+  test.equal(list.length(l), 2)
   test.pass()
 end
 
