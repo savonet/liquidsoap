@@ -36,6 +36,7 @@ let request_t =
       ("query", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("query_string", Lang.string_t);
       ("socket", Builtins_socket.Socket_value.t);
+      ("ip", Lang.string_t);
       ("path", Lang.string_t);
     ]
 
@@ -81,6 +82,13 @@ let parse_register_args p =
         query
     in
     let query = Lang.list query in
+    (* The peer address as is: no reverse DNS, empty once the peer is gone. *)
+    let ip =
+      try
+        Utils.name_of_sockaddr ~rev_dns:false
+          (Unix.getpeername (Harbor.file_descr_of_socket socket))
+      with _ -> ""
+    in
     let socket =
       Builtins_socket.Socket_value.to_value
         (socket :> Builtins_socket.Socket_value.content)
@@ -94,6 +102,7 @@ let parse_register_args p =
           ("query", query);
           ("query_string", Lang.string query_string);
           ("socket", socket);
+          ("ip", Lang.string ip);
           ( "data",
             Lang.val_fun
               [("timeout", "timeout", Some (Lang.float 10.))]

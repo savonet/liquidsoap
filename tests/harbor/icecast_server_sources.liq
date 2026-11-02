@@ -828,6 +828,29 @@ def check_url_services() =
     {list.mem("/sa.mp3", mounts())}
   )
   wait_for("mount_add", {backend_forms("/add") != []})
+  admin =
+    exchange(
+      port,
+      "GET /admin/metadata?mount=/sa.mp3&mode=updinfo&song=x HTTP/1.0\r\n#{
+        basic("good", "any")
+      }\r\n"
+    )
+  admin_forms =
+    list.filter(
+      fun (form) -> list.assoc(default="", "admin", form) == "1",
+      backend_forms("/auth")
+    )
+  check(
+    "an admin command's stream_auth carries the requester's address: #{
+      admin.status
+    } #{admin_forms}",
+    admin.status == 200
+    and admin_forms != []
+    and list.for_all(
+      fun (form) -> list.assoc(default="", "ip", form) == "127.0.0.1",
+      admin_forms
+    )
+  )
   sa.shutdown()
   wait_for("mount_remove", {backend_forms("/remove") != []})
   add = list.hd(backend_forms("/add"))
@@ -865,7 +888,7 @@ def run() =
     check_source_timeout()
     check_url_services()
     if
-      checks() < 38
+      checks() < 39
     then
       test.fail(
         "only #{checks()} checks ran"
