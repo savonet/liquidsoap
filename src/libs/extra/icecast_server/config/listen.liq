@@ -51,16 +51,34 @@ def icecast.server.config.listen(root) =
   end
   socket = list.case(sockets, null, fun (socket, _) -> socket)
 
-  # A trusted proxy names listen sockets by `id`; their `client-ip` values
-  # are the proxies' addresses.
-  def client_ips(id) =
-    named = list.filter(fun (s) -> xml.string(attribute="id", s) == id, sockets)
-    list.flatten(
-      list.map(
-        fun (s) -> list.filter_map(xml.string, xml.children("client-ip", s)),
-        named
+  # A trusted proxy names listen sockets by `id`, whose `client-ip` values
+  # are the proxies' addresses, or is itself an address or a CIDR range.
+  def trusted(proxy) =
+    name = string.trim(xml.string(proxy) ?? "")
+    named =
+      list.filter(
+        fun (s) -> xml.string(attribute="id", s) == (name : string?),
+        sockets
       )
-    )
+    if
+      name == ""
+    then
+      icecast.server.config.warn(
+        "Ignoring an empty <trusted-proxy>."
+      )
+      []
+    elsif
+      list.is_empty(named)
+    then
+      [name]
+    else
+      list.flatten(
+        list.map(
+          fun (s) -> list.filter_map(xml.string, xml.children("client-ip", s)),
+          named
+        )
+      )
+    end
   end
 
   if
@@ -106,11 +124,6 @@ def icecast.server.config.listen(root) =
       xml.string(xml.child("shoutcast-mount", socket))
         ?? xml.string(xml.child("shoutcast-mount", root)),
     trusted_proxies =
-      list.flatten(
-        list.map(
-          fun (proxy) -> client_ips(xml.string(proxy)),
-          xml.children("trusted-proxy", socket)
-        )
-      )
+      list.flatten(list.map(trusted, xml.children("trusted-proxy", socket)))
   }
 end
