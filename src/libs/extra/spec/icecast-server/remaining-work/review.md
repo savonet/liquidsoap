@@ -8,7 +8,7 @@ Six Opus reviewers (config, core, decisions, pages and logs, tests and docs, own
 2. ✓ addresses.liq `walk`: only the first `X-Forwarded-For` line is read. A client spoofs its address behind a proxy that adds its own line (listeners.md §8). Join all lines with "," first.
 3. ✓ config/listen.liq: an empty `<trusted-proxy/>` gives `null`, which matches every listen socket without an `id` (`null == null`), so any address may be trusted as a proxy.
 4. ✓ snapshot.liq: when `parameters.mount` raises, `hidden` becomes `false`, so a hidden mount shows on public pages (observability.md §6). Fail closed instead.
-5. sources.liq `connect` re-reads `shoutcast_mount` after `accept` authenticated against the old value: a reload in between lets a client feed a mount it was not checked for (parameters.md §8.2).
+5. Not fixed (user, 2026-11-02: Shoutcast is not the main concern): recorded in future-work.md, "Shoutcast mount fixed at admission". sources.liq `connect` re-reads `shoutcast_mount` after `accept` authenticated against the old value: a reload in between lets a client feed a mount it was not checked for (parameters.md §8.2).
 
 ## Correctness
 
@@ -88,3 +88,5 @@ Untested Binding items reported: reload keeps a mount output's `client_timeout` 
 - F. Which ownership refactors (30–42) to do in this PR.
 
 Decided (user, 2026-11-02): A yes, validate translated mount records at load. B keep hidden mounts in the callbacks' snapshot; document and filter in the example. C yes, a generic `ip` on harbor.http requests (show the OCaml diff first). D yes, through `headers.reply`. E match the pattern under `"kh"`. F do 30–32, 33, 34–36, 38–40; skip 37 and 41. Spec questions: keep all seven rules; `trusted-proxy` also takes its own text as an address when no socket has that `id`. Old-vs-new comparison after the fixes. Order: security, correctness and config, ownership, tests and docs.
+
+Progress (2026-11-02): fixed and committed, each with a test that fails without it: 1, 2, 3 (and `trusted-proxy` text as an address), 4, 6 (`input.harbor` `timeout` getter, OCaml approved), 7, 8, 13 (`harbor.http` `request.ip`, OCaml approved), 16, 17, 18, 21, 22. Item 5 recorded as future work.

@@ -27,6 +27,16 @@ cross-origin player before connecting
 server already computes. Blocker: the harbor output serves `GET` on a mount
 only.
 
+**Shoutcast mount fixed at admission.** A Shoutcast source client is
+authenticated against the `shoutcast_mount` read at admission, then attached
+to the value read again when its stream starts, about a second later: a reload
+that changes `shoutcast_mount` in between lets it feed the new mount with the
+old one's credentials ([parameters.md §8.2](parameters.md#82-atomic-swap)).
+Building blocks: the source admission and connection of
+[sources.md](sources.md). Blocker: harbor's admission (`accept`) cannot hand a
+value to the connection it admits; carrying one needs its login type changed
+wherever harbor applies it.
+
 **Postroll at the time limit.** RSAS plays an audio file to a listener whose
 time limit ends, before closing the connection. It is a static `<postroll>`
 with `<max-listener-duration>`, or a webhook `postroll` header sent after
