@@ -213,8 +213,8 @@ def icecast.server.listeners.connected(state, entry, listener) =
   )
 end
 
-# A listener's session ends: released with this listener in the count, then
-# uncounted, logged, then its disconnect event.
+# A listener's session ends: released in the background with this listener in
+# the count, then uncounted, logged, then its disconnect event.
 # @flag hidden
 def icecast.server.listeners.disconnected(state, entry, listener) =
   p = state.params.get()
@@ -226,14 +226,14 @@ def icecast.server.listeners.disconnected(state, entry, listener) =
     null.defined(session)
   then
     release = null.get(session).release
-    release(
+    released =
       {
         duration = listener.duration,
         bytes_sent = listener.bytes_sent,
         listeners = listeners,
         metadata = icecast.server.listeners.metadata(entry)
       }
-    )
+    thread.run(fun () -> release(released))
   end
   state.logs.access(record)
   state.events.listener_disconnect.fire(
