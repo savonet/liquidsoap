@@ -95,7 +95,7 @@ Error 5: this value has no method `not_found`
                                      lstop : int,
                                      to_string : (?prefix : string) -> string
                                    }]
-                        }) -> 'a),
+                        }) -> 'a)?,
               finally : (() -> unit)) -> 'a,
   methods : (error) -> error
             .{

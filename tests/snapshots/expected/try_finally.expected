@@ -64,7 +64,7 @@ r()
 f7c87e793beef4ef392bad627c9aa06b
 --- term ---
 r = ref(0)
-error.catch(errors=null, body=fun () -> (r.set(1) : unit), catch=fun (_) -> (), finally=fun () -> (r.set(2) : unit))
+error.catch(errors=null, body=fun () -> (r.set(1) : unit), catch=null, finally=fun () -> (r.set(2) : unit))
 r()
 --- type ---
 int
