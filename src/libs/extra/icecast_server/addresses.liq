@@ -146,9 +146,20 @@ end
 
 # The client's address behind the trusted `proxy_ips`: the rightmost
 # `X-Forwarded-For` entry that is not a proxy, when the peer itself is one.
+# Repeated header lines are one list in arrival order: a proxy may add a line
+# of its own after the client's.
 # @flag hidden
 def icecast.server.addresses.walk(~proxy_ips, request) =
-  forwarded = list.assoc.nullable("x-forwarded-for", request.headers)
+  lines =
+    list.map(
+      snd,
+      list.filter(
+        fun (header) -> fst(header) == "x-forwarded-for",
+        request.headers
+      )
+    )
+  forwarded =
+    list.is_empty(lines) ? null : (string.concat(separator=",", lines))
   if
     not null.defined(forwarded)
     or (
