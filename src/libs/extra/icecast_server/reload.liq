@@ -4,7 +4,8 @@
 def icecast.server.warn_default_password(state, p) =
   def is_default(entry) =
     try
-      icecast.server.parameters.mount(p, entry.path).source_password == "hackme"
+      icecast.server.parameters.mount(p, entry.path).source_password ==
+        icecast.server.default_password
     catch err do
       icecast.server.log.debug(
         state,
@@ -15,12 +16,14 @@ def icecast.server.warn_default_password(state, p) =
   end
 
   if
-    getter.get(p.source_password) == "hackme"
+    getter.get(p.source_password) == icecast.server.default_password
     or list.exists(is_default, state.mounts.all())
   then
     icecast.server.log.severe(
       state,
-      "The source password is the default \"hackme\": set source_password."
+      "The source password is the default #{
+        string.quote(icecast.server.default_password)
+      }: set source_password."
     )
   end
 end

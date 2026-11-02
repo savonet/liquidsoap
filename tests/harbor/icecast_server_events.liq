@@ -150,7 +150,7 @@ def binding(event) =
     handler =
       fun (b) ->
         add(
-          "binding #{b.event} #{b.mount} #{b.listeners}"
+          "binding #{b.event} #{b.mount} #{b.listeners} #{b.compatibility}"
         )
   }
 end
@@ -587,10 +587,10 @@ def run() =
       "bindings receive the mount's count after each event: #{bindings()}",
       bindings() ==
         [
-          "binding listener_connect /e.mp3 1",
-          "binding listener_connect /e.mp3 2",
-          "binding listener_disconnect /e.mp3 1",
-          "binding listener_disconnect /e.mp3 0"
+          "binding listener_connect /e.mp3 1 icecast-2.5",
+          "binding listener_connect /e.mp3 2 icecast-2.5",
+          "binding listener_disconnect /e.mp3 1 icecast-2.5",
+          "binding listener_disconnect /e.mp3 0 icecast-2.5"
         ]
     )
     check(

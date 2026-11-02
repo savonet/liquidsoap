@@ -25,12 +25,7 @@ end
 def icecast.server.pages.unauthorized() =
   http.response(
     status_code=401,
-    headers=[
-      (
-        "WWW-Authenticate",
-        "Basic realm=\"Icecast2 Server\""
-      )
-    ]
+    headers=[("WWW-Authenticate", icecast.server.realm)]
   )
 end
 

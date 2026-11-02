@@ -7,8 +7,14 @@ let icecast.server.feeders = ()
 
 # The source-connect and source-disconnect records of `feeder` on `path`.
 # @flag hidden
-def icecast.server.feeders.event_record(~server, path, feeder) =
-  {mount = path, ip = feeder.ip, agent = feeder.agent, server = server}
+def icecast.server.feeders.event_record(~server, ~compatibility, path, feeder) =
+  {
+    mount = path,
+    ip = feeder.ip,
+    agent = feeder.agent,
+    server = server,
+    compatibility = compatibility
+  }
 end
 
 # Calls a mount's nullable source callback in the background.
@@ -101,7 +107,12 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
   then
     taken = null.get(taken)
     record =
-      icecast.server.feeders.event_record(server=taken.server, path, feeder).{
+      icecast.server.feeders.event_record(
+        server=taken.server,
+        compatibility=state.compatibility,
+        path,
+        feeder
+      ).{
         source = feeder.source,
         format = null.get(default=feeder.format.mime, feeder.format.container),
         headers = feeder.headers
@@ -192,7 +203,12 @@ def icecast.server.feeders.detach(state, path, feeder) =
   then
     left = null.get(left)
     record =
-      icecast.server.feeders.event_record(server=left.server, path, feeder)
+      icecast.server.feeders.event_record(
+        server=left.server,
+        compatibility=state.compatibility,
+        path,
+        feeder
+      )
     icecast.server.feeders.run_callback(left.on_disconnect, record)
     state.events.source_disconnect.fire(
       bindings=left.bindings,

@@ -28,11 +28,11 @@ end
 # A registry of the handlers of the event named `event`: `add` registers a
 # handler, `fire(~bindings, ~mount, ~listeners, record)` calls the registered
 # handlers with `record`, then the bindings of that event and mount with
-# `{event, mount, listeners}`, `listeners` being the mount's count after the
-# event: one binding list serves the five events, so its handlers take one
+# `{event, mount, listeners, compatibility}`, `listeners` being the mount's
+# count after the event: one binding list serves the five events, so its handlers take one
 # record type.
 # @flag hidden
-def icecast.server.events.registry(~log, event) =
+def icecast.server.events.registry(~log, ~compatibility, event) =
   handlers = ref([])
 
   def add(~synchronous=false, handler) =
@@ -62,7 +62,14 @@ def icecast.server.events.registry(~log, event) =
             log=log,
             synchronous=b?.synchronous ?? false,
             fun () ->
-              b.handler({event = event, mount = mount, listeners = listeners})
+              b.handler(
+                {
+                  event = event,
+                  mount = mount,
+                  listeners = listeners,
+                  compatibility = compatibility
+                }
+              )
           )
         end,
       bindings
@@ -74,9 +81,9 @@ end
 
 # A registry for each of `icecast.server.event_names`.
 # @flag hidden
-def icecast.server.events.create(~log) =
+def icecast.server.events.create(~log, ~compatibility) =
   def registry(event) =
-    icecast.server.events.registry(log=log, event)
+    icecast.server.events.registry(log=log, compatibility=compatibility, event)
   end
 
   {

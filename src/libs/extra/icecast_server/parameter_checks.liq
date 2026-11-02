@@ -10,6 +10,12 @@ let icecast.server.compatibilities =
   ["icecast-2.5", "icecast-2.4", "rsas", "kh"]
 
 # @flag hidden
+let icecast.server.default_compatibility = "icecast-2.5"
+
+# @flag hidden
+let icecast.server.default_password = "hackme"
+
+# @flag hidden
 let icecast.server.event_names =
   [
     "source_connect",
@@ -147,4 +153,20 @@ def icecast.server.parameters.use(check, value) =
   end
   ignore(read_value())
   read_value
+end
+
+# `compatibility`, once it is one of `icecast.server.compatibilities`.
+# @flag hidden
+def icecast.server.parameters.compatibility(compatibility) =
+  if
+    not list.mem(compatibility, icecast.server.compatibilities)
+  then
+    icecast.server.parameters.invalid(
+      "compatibility",
+      "#{string.quote(compatibility)} is not one of #{
+        icecast.server.compatibilities
+      }"
+    )
+  end
+  compatibility
 end

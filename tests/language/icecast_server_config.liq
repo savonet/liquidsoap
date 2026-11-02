@@ -1111,7 +1111,14 @@ def check_events() =
     ]
   )
   zero = list.nth(p.event_bindings, 3)
-  zero.handler({event = "listener_disconnect", mount = "/m", listeners = 1})
+  zero.handler(
+    {
+      event = "listener_disconnect",
+      mount = "/m",
+      listeners = 1,
+      compatibility = "icecast-2.5"
+    }
+  )
   check_equal(
     "is-zero skips a non-zero count",
     logged(
@@ -1119,7 +1126,14 @@ def check_events() =
     ),
     false
   )
-  zero.handler({event = "listener_disconnect", mount = "/m", listeners = 0})
+  zero.handler(
+    {
+      event = "listener_disconnect",
+      mount = "/m",
+      listeners = 0,
+      compatibility = "icecast-2.5"
+    }
+  )
   check_equal(
     "is-zero fires at zero",
     logged(
@@ -1223,8 +1237,22 @@ def check_kh_pattern_bindings() =
        "/></event></event-bindings></mount>'
     )
   binding = list.hd(p.event_bindings)
-  binding.handler({event = "source_connect", mount = "/live1", listeners = 0})
-  binding.handler({event = "source_connect", mount = "/other", listeners = 0})
+  binding.handler(
+    {
+      event = "source_connect",
+      mount = "/live1",
+      listeners = 0,
+      compatibility = "kh"
+    }
+  )
+  binding.handler(
+    {
+      event = "source_connect",
+      mount = "/other",
+      listeners = 0,
+      compatibility = "kh"
+    }
+  )
   check_equal(
     "kh: a pattern mount's binding fires for the paths it selects",
     (

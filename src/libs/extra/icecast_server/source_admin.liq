@@ -10,14 +10,7 @@ let icecast.server.source_admin = ()
 def icecast.server.source_admin.response(status, message) =
   http.response(
     status_code=status,
-    headers=status == 401
-      ? [
-        (
-          "WWW-Authenticate",
-          "Basic realm=\"Icecast2 Server\""
-        )
-      ]
-      : [],
+    headers=status == 401 ? [("WWW-Authenticate", icecast.server.realm)] : [],
     content_type="text/xml",
     data="<?xml version=\"1.0\"?>\n<iceresponse><message>#{
       message

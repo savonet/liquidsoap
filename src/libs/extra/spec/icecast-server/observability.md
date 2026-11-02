@@ -54,7 +54,8 @@ as it is.
 Icecast's `event-bindings` are the `event_bindings` parameter
 ([parameters.md §5.5](parameters.md#55-event-bindings)), not handlers
 registered on these methods: a reload replaces them, and it does not touch the
-handlers. Each binding is called with the record of the event it names. Their
+handlers. Each binding is called with `{event, mount, listeners,
+compatibility}` ([parameters.md §5.5](parameters.md#55-event-bindings)). Their
 triggers map as follows; [icecast-config.md](icecast-config.md) owns the
 translation of the `exec` and `url` actions.
 
