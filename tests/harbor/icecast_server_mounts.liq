@@ -600,6 +600,38 @@ def check_format() =
       true
     )
   end
+
+  # A run-time fallback ends with the output a new format replaces.
+  admin = connect()
+  admin.write(
+    "GET /admin/fallbacks?mount=/o.ogg&fallback=/main.mp3 \
+     HTTP/1.0\r\nAuthorization: Basic #{
+      string.base64.encode("source:hackme")
+    }\r\n\r\n"
+  )
+  ignore(read_head(admin))
+  admin.close()
+  def o_stats() =
+    list.case(
+      list.filter(fun (m) -> m.mount == "/o.ogg", server.stats().mounts),
+      null,
+      fun (m, _) -> m
+    )
+  end
+  wait_for(
+    "/o.ogg overlay set",
+    {o_stats()?.fallback == "/main.mp3"}
+  )
+  m = client("o.ogg")
+  wait_for(
+    "/o.ogg replaced by MP3",
+    {o_stats()?.mime_type == "audio/mpeg"}
+  )
+  check(
+    "the overlay ends with the replaced output: #{o_stats()?.fallback}",
+    o_stats()?.fallback == null
+  )
+  m.shutdown()
 end
 
 def check_dump() =
@@ -681,7 +713,7 @@ def run() =
     check_dump()
     main.shutdown()
     if
-      checks() < 42
+      checks() < 43
     then
       test.fail(
         "only #{checks()} checks ran"

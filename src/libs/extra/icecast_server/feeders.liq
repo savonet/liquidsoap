@@ -71,6 +71,7 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
           "Mount #{path}: new stream format, replacing its output."
         )
         old.output.shutdown()
+        icecast.server.mounts.output_ended(state, [path])
       end
       if
         not continued
