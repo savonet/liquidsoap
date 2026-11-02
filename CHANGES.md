@@ -348,6 +348,11 @@
   refuses the connection, e.g. `output.icecast` to `localhost` with an IPv4-only server,
   on connection and on every metadata update (#5484).
 
+## Optimized:
+
+- Scripts typecheck about four times faster and with less memory: checking the standard
+  library without cache drops from 10 s to under 3 s (#5600).
+
 ---
 
 # 2.4.5 (2026-06-15)
