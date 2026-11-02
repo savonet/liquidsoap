@@ -43,12 +43,15 @@ def icecast.server.source_admin.allowed(state, p, path, request) =
   headers = icecast.server.headers.lowercase(request.headers)
   try
     mount = icecast.server.parameters.mount(p, path)
-    let (user, password) =
-      icecast.server.decision.credentials(headers)
-        ?? (
+    query_credentials =
+      request.path == "/admin.cgi"
+        ? (
           list.assoc(default=mount.source_user, "user", request.query),
           list.assoc(default="", "pass", request.query)
         )
+        : ("", "")
+    let (user, password) =
+      icecast.server.decision.credentials(headers) ?? query_credentials
     icecast.server.source_admin.is_admin(p, user, password)
     or icecast.server.sources.authenticated(
       mount,

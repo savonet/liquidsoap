@@ -86,3 +86,5 @@ Untested Binding items reported: reload keeps a mount output's `client_timeout` 
 - D. Apply `http_headers` (CORS) to the 404/503/307 answers of a path with no mount output (33)?
 - E. KH pattern-mount event bindings (28): match the pattern, or warn and ignore?
 - F. Which ownership refactors (30–42) to do in this PR.
+
+Decided (user, 2026-11-02): A yes, validate translated mount records at load. B keep hidden mounts in the callbacks' snapshot; document and filter in the example. C yes, a generic `ip` on harbor.http requests (show the OCaml diff first). D yes, through `headers.reply`. E match the pattern under `"kh"`. F do 30–32, 33, 34–36, 38–40; skip 37 and 41. Spec questions: keep all seven rules; `trusted-proxy` also takes its own text as an address when no socket has that `id`. Old-vs-new comparison after the fixes. Order: security, correctness and config, ownership, tests and docs.
