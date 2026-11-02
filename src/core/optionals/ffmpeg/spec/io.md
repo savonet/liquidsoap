@@ -224,7 +224,8 @@ converted by `harbor.http.regexp_of_path`.
                 pixel_format? : string, samplerate? : int, type : string,
                 width? : int }],
    uri : string })
--> (source('a).{ …, buffer_length : () -> float, connected_client : () -> string?,
+-> (source('a).{ …, buffer_length : () -> float, bytes_read : () -> int,
+                 connected_client : () -> string?,
                  on_connect : (synchronous : bool, (([string * string]) -> unit)) -> {release : () -> unit},
                  on_disconnect : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
                  status : () -> string, stop : () -> unit })
@@ -232,7 +233,8 @@ converted by `harbor.http.regexp_of_path`.
 ```
 
 The source handed to the inner function carries every generic source method
-(`id`, `is_ready`, …) plus the methods and callbacks listed.
+(`id`, `is_ready`, …) plus the methods and callbacks listed. `bytes_read()`
+is the number of bytes the client read function has returned so far.
 
 ### 1.4 `output.url`
 

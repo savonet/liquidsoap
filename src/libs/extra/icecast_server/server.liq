@@ -1,6 +1,7 @@
 # Starts an Icecast-compatible server on one port: source clients feed mounts
 # and listeners read them, under the policy of `parameters` (see the
-# icecast.server specification). Raises
+# icecast.server specification). Routes registered on the same port before
+# this call take precedence; later GET routes are shadowed. Raises
 # `error.icecast.server.invalid_parameters` when `parameters` are invalid.
 # @category Internet
 # @flag extra
@@ -15,6 +16,7 @@ def replaces icecast.server(parameters) =
   end
   state = icecast.server.state(p)
   icecast.server.source_admin.register(transport=p.transport, state)
+  icecast.server.pages.register(transport=p.transport, state)
   icecast.server.mount_requests.register(transport=p.transport, state)
   input.harbor.dynamic.regexp(
     icy=true,
@@ -27,16 +29,16 @@ def replaces icecast.server(parameters) =
       icecast.server.sources.connect(state, connection),
     r/^\/.*$/
   )
-  log.important(
-    label=p.name,
+  icecast.server.log.important(
+    state,
     "Icecast server starting on port #{p.port}."
   )
   icecast.server.warn_default_password(state, p)
   if
     not null.defined(p.admin_password())
   then
-    log.important(
-      label=p.name,
+    icecast.server.log.important(
+      state,
       "No admin_password: the admin pages refuse everyone."
     )
   end
@@ -54,7 +56,7 @@ def replaces icecast.server(parameters) =
     on_metadata = events.metadata.add,
     stats = fun () -> icecast.server.snapshot(state),
     reload = reload,
-    reopen_logs = fun () -> (),
+    reopen_logs = state.logs.reopen,
     attach_source =
       fun (~headers=[], ~format, path, s) ->
         icecast.server.attached.attach(

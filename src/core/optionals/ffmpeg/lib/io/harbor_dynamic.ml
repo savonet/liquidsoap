@@ -228,6 +228,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
             0
         | n ->
             if Atomic.get state = `Ended then raise Read_aborted;
+            self#count_read n;
             Option.iter
               (fun oc ->
                 output oc buf ofs n;

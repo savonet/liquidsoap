@@ -51,8 +51,8 @@ def icecast.server.listeners.accept(state, entry, listener) =
     try
       icecast.server.parameters.mount(p, entry.path)
     catch err do
-      log.important(
-        label=state.name,
+      icecast.server.log.important(
+        state,
         "Refusing a listener of #{entry.path}: #{err.message}"
       )
       null
@@ -170,8 +170,8 @@ def icecast.server.listeners.accept(state, entry, listener) =
         try
           decision(request)
         catch err do
-          log.important(
-            label=state.name,
+          icecast.server.log.important(
+            state,
             "Listener decision of #{entry.path} failed: #{err.message}"
           )
           null
@@ -213,7 +213,7 @@ def icecast.server.listeners.connected(state, entry, listener) =
 end
 
 # A listener's session ends: released with this listener in the count, then
-# uncounted, then its disconnect event.
+# uncounted, logged, then its disconnect event.
 # @flag hidden
 def icecast.server.listeners.disconnected(state, entry, listener) =
   p = state.params.get()
@@ -234,6 +234,7 @@ def icecast.server.listeners.disconnected(state, entry, listener) =
       }
     )
   end
+  state.logs.access(record)
   state.events.listener_disconnect.fire(
     bindings=p.event_bindings(),
     mount=entry.path,

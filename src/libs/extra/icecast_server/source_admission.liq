@@ -119,10 +119,15 @@ def icecast.server.sources.accept(state, args) =
   is_source =
     list.mem(args.method, ["PUT", "POST", "SOURCE", "ICY", "WEBSOCKET"])
   path = args.method == "ICY" ? p.shoutcast_mount() : (args.uri)
+  quoted =
+    icecast.server.log_lines.client_value(
+      compatibility=state.compatibility,
+      path
+    )
   def refuse(why) =
-    log.important(
-      label=state.name,
-      "Refusing source client on #{path}: #{why}."
+    icecast.server.log.important(
+      state,
+      "Refusing source client on #{quoted}: #{why}."
     )
     {refuse = icecast.server.sources.refusal(state.compatibility, why)}
   end
@@ -144,9 +149,9 @@ def icecast.server.sources.accept(state, args) =
       try
         icecast.server.parameters.mount(p, path)
       catch err do
-        log.important(
-          label=state.name,
-          "Invalid parameters for mount #{path}: #{err.message}"
+        icecast.server.log.important(
+          state,
+          "Invalid parameters for mount #{quoted}: #{err.message}"
         )
         null
       end

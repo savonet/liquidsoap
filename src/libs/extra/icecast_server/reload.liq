@@ -6,8 +6,8 @@ def icecast.server.warn_default_password(state, p) =
     try
       icecast.server.parameters.mount(p, entry.path).source_password == "hackme"
     catch err do
-      log.debug(
-        label=state.name,
+      icecast.server.log.debug(
+        state,
         "Mount #{entry.path} skipped by the password check: #{err.message}"
       )
       false
@@ -18,8 +18,8 @@ def icecast.server.warn_default_password(state, p) =
     getter.get(p.source_password) == "hackme"
     or list.exists(is_default, state.mounts.all())
   then
-    log.severe(
-      label=state.name,
+    icecast.server.log.severe(
+      state,
       "The source password is the default \"hackme\": set source_password."
     )
   end
@@ -44,8 +44,8 @@ def icecast.server.reload(state, ~transport_reload, parameters) =
         if
           snd(change)
         then
-          log.important(
-            label=state.name,
+          icecast.server.log.important(
+            state,
             "Parameter #{fst(change)} changed: it is read at startup and is not \
              applied."
           )
@@ -64,8 +64,8 @@ def icecast.server.reload(state, ~transport_reload, parameters) =
       try
         reload()
       catch err do
-        log.important(
-          label=state.name,
+        icecast.server.log.important(
+          state,
           "Transport reload failed, keeping its certificate: #{err.message}"
         )
       end
@@ -74,8 +74,8 @@ def icecast.server.reload(state, ~transport_reload, parameters) =
     try
       icecast.server.mounts.refresh(state)
     catch err do
-      log.important(
-        label=state.name,
+      icecast.server.log.important(
+        state,
         "Reload: following the new fallbacks failed: #{err.message}"
       )
     end

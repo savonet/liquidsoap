@@ -16,18 +16,15 @@ def icecast.server.cell(value) =
   {get = fun () -> r(), set = fun (x) -> r := x}
 end
 
-# Runs `fn()` under the server's lock and returns its result; an error is
-# raised again once the lock is released. The table's changes and a reload
-# take it, and they never take it twice.
+# Runs `fn()` holding the flag `lock`, spinning while another holder has it,
+# and returns its result; an error is raised again once the flag is released.
 # @flag hidden
-def icecast.server.locked(state, fn) =
-  # ponytail: one global lock for every mount, per-mount locks if contention
-  # shows.
+def icecast.server.with_lock(lock, fn) =
   def rec acquire() =
     if
-      atomic(fun () -> state.lock.exchange(true))
+      atomic(fun () -> lock.exchange(true))
     then
-      thread.pause(0.01)
+      thread.pause(0.001)
       acquire()
     end
   end
@@ -35,12 +32,21 @@ def icecast.server.locked(state, fn) =
   acquire()
   try
     result = fn()
-    state.lock := false
+    lock := false
     result
   catch err do
-    state.lock := false
+    lock := false
     error.raise(err, err.message)
   end
+end
+
+# Runs `fn()` under the server's lock. The table's changes and a reload take
+# it, and they never take it twice.
+# @flag hidden
+def icecast.server.locked(state, fn) =
+  # ponytail: one global lock for every mount, per-mount locks if contention
+  # shows.
+  icecast.server.with_lock(state.lock, fn)
 end
 
 # The live mounts: `all()` lists them, `add(entry)` adds one, `remove(f)`
@@ -69,7 +75,8 @@ end
 # A feeder: a source client (`is_client`) or an attached Liquidsoap source.
 # `format` is `{container, codecs, mime, channels, samplerate}`, an unknown
 # container or rate being `null`; `encoder(options)` is the copy encoder of its
-# stream, `stop()` ends a source client's connection.
+# stream, `stop()` ends a source client's connection and `bytes_read()` counts
+# the bytes read from it.
 # @flag hidden
 def icecast.server.mounts.feeder(
   ~is_client,
@@ -80,6 +87,7 @@ def icecast.server.mounts.feeder(
   ~format,
   ~encoder,
   ~stop,
+  ~bytes_read,
   (source:source)
 ) =
   {
@@ -91,6 +99,7 @@ def icecast.server.mounts.feeder(
     format = format,
     encoder = encoder,
     stop = stop,
+    bytes_read = bytes_read,
     source = source
   }
 end
