@@ -116,18 +116,17 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
   null.defined(taken)
 end
 
-# Ends the linger of `entry` started for `feeder`, unless a feeder took the
-# mount meanwhile.
+# Ends the linger of `entry` started at the departure time `departed`, unless
+# a feeder took the mount, or another departure started a linger, meanwhile.
 # @flag hidden
-def icecast.server.feeders.end_linger(state, entry, feeder) =
+def icecast.server.feeders.end_linger(state, entry, departed) =
   icecast.server.locked(
     state,
     fun () ->
       begin
         lingering = entry.lingering.get()
         if
-          null.defined(lingering)
-          and source.id(null.get(lingering).source) == source.id(feeder.source)
+          null.defined(lingering) and null.get(lingering).departed == departed
         then
           entry.lingering.set(null)
           icecast.server.mounts.refresh(state)
@@ -167,10 +166,11 @@ def icecast.server.feeders.detach(state, path, feeder) =
       if
         linger > 0. and not null.defined(entry.fallback.get())
       then
-        entry.lingering.set(feeder)
+        departed = time()
+        entry.lingering.set(feeder.{departed = departed})
         thread.run(
           delay=linger,
-          fun () -> icecast.server.feeders.end_linger(state, entry, feeder)
+          fun () -> icecast.server.feeders.end_linger(state, entry, departed)
         )
       end
       icecast.server.mounts.refresh(state)
