@@ -291,10 +291,10 @@ script, outside the server, and built again for each `reload`. They are not
 asked to know what only the server knows. The server reads these once and puts
 them in the records it passes:
 
-| Field           | Type                                                 | In                                                                                   | Content                                                                                                                                                                    |
-| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server`        | `{hostname : string, port : int, instance : string}` | the listener and source decision requests, the source event records                  | `hostname` and `port` as [§3](#3-server-parameters) gives them; `instance` is a UUID the server generates once when it starts and keeps across reloads: fixed for its life |
-| `compatibility` | `string`                                             | the listener and source decision requests, the `compute` input ([§4.2](#42-headers)) | The value of [§3.2](#32-compatibility).                                                                                                                                    |
+| Field           | Type                                                 | In                                                                                                                                        | Content                                                                                                                                                                    |
+| --------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`        | `{hostname : string, port : int, instance : string}` | the listener and source decision requests, the source event records                                                                       | `hostname` and `port` as [§3](#3-server-parameters) gives them; `instance` is a UUID the server generates once when it starts and keeps across reloads: fixed for its life |
+| `compatibility` | `string`                                             | the listener and source decision requests, the `compute` input ([§4.2](#42-headers)), the source event records, the event binding records | The value of [§3.2](#32-compatibility).                                                                                                                                    |
 
 ### 5.1 The source decision
 
@@ -350,8 +350,9 @@ middleware in front of them; [observability.md](observability.md) owns them.
 ### 5.5 Event bindings
 
 An event binding is `{event: string, mount?: string, synchronous?: bool,
-handler: callback}`: `handler` is called with the event's record, as a handler
-registered with the method of the same event ([§6](#6-the-server-value)). `event`
+handler: callback}`: `handler` is called with `{event, mount, listeners,
+compatibility}`, `listeners` being the mount's listener count after the event,
+so that one binding list serves the five events. `event`
 is `"source_connect"`, `"source_disconnect"`, `"listener_connect"`,
 `"listener_disconnect"` or `"metadata"`; `mount` restricts the binding to one
 mount; `synchronous` defaults to `false`. Bindings are part of the record, so a

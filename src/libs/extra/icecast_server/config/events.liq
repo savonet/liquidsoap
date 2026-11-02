@@ -1,6 +1,7 @@
 # The `event_bindings` of an `<event-bindings>` element, or its old name
 # `<kartoffelsalat>`, at the root or in a `<mount>` (icecast-config.md §9).
-# A handler receives the binding record `{event, mount, listeners}`.
+# A handler receives the binding record `{event, mount, listeners,
+# compatibility}`.
 
 # The events of a trigger, each with whether it fires on that record.
 # @flag hidden
@@ -69,10 +70,10 @@ end
 # POSTs the binding record to `url`; a failure is logged.
 # @flag hidden
 def icecast.server.config.url_handler(~options, ~trigger, url) =
-  config = icecast.server.url_auth.config("icecast-2.5", options)
   action = options?.action ?? trigger
   fun (record) ->
     try
+      config = icecast.server.url_auth.config(record.compatibility, options)
       ignore(
         icecast.server.url_auth.send(
           config=config,

@@ -269,16 +269,11 @@ end
 # @flag extra
 # @param ~compatibility The implementation to mimic: `"icecast-2.5"`, `"icecast-2.4"`, `"rsas"` or `"kh"`.
 # @param path Configuration file.
-def icecast.server.config.load(~compatibility="icecast-2.5", path) =
-  if
-    not list.mem(compatibility, icecast.server.compatibilities)
-  then
-    icecast.server.config.reject(
-      "compatibility: #{string.quote(compatibility)} is not one of #{
-        icecast.server.compatibilities
-      }"
-    )
-  end
+def icecast.server.config.load(
+  ~compatibility=icecast.server.default_compatibility,
+  path
+) =
+  compatibility = icecast.server.parameters.compatibility(compatibility)
   log.info(
     label="icecast.server.config",
     "Translating #{path}."

@@ -58,6 +58,11 @@ let icecast.server.reasons =
     )
   ]
 
+# The challenge of every `401` the server sends.
+# @flag hidden
+let icecast.server.realm =
+  "Basic realm=\"Icecast2 Server\""
+
 # Refusal of a listener request, the `refuse` value of a listener decision. A
 # `401` without a `WWW-Authenticate` header gets Icecast's default challenge.
 # @category Internet
@@ -74,12 +79,7 @@ def icecast.server.refusal(~reason=null, ~headers=[], status) =
     )
   challenge =
     status == 401 and not has_challenge
-      ? [
-        (
-          "WWW-Authenticate",
-          "Basic realm=\"Icecast2 Server\""
-        )
-      ]
+      ? [("WWW-Authenticate", icecast.server.realm)]
       : []
   {
     status = status,

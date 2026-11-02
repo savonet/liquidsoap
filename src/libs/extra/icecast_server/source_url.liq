@@ -50,8 +50,8 @@ end
 # and `on_disconnect`; a failure is logged and the reply ignored.
 # @flag hidden
 def icecast.server.source_callbacks.url(options) =
-  config = icecast.server.url_auth.config("icecast-2.5", options)
   def notify(action, url, record) =
+    config = icecast.server.url_auth.config(record.compatibility, options)
     if
       url != ""
     then

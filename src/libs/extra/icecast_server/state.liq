@@ -38,7 +38,8 @@ def icecast.server.state(p) =
     mounts = icecast.server.mounts.table(),
     overlay = icecast.server.cell(([] : [(string * string)])),
     lock = ref(false),
-    events = icecast.server.events.create(log=severe),
+    events =
+      icecast.server.events.create(log=severe, compatibility=p.compatibility),
     counters = icecast.server.counters(),
     clock = icecast.server.cell(clock.create(id=name))
   }

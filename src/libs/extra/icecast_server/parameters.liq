@@ -11,17 +11,10 @@
 def icecast.server.parameters.server(p) =
   check = icecast.server.parameters.check
 
-  compatibility = p?.compatibility ?? "icecast-2.5"
-  if
-    not list.mem(compatibility, icecast.server.compatibilities)
-  then
-    icecast.server.parameters.invalid(
-      "compatibility",
-      "#{string.quote(compatibility)} is not one of #{
-        icecast.server.compatibilities
-      }"
+  compatibility =
+    icecast.server.parameters.compatibility(
+      p?.compatibility ?? icecast.server.default_compatibility
     )
-  end
 
   {
     name = p?.name ?? "icecast.server",
@@ -41,7 +34,7 @@ def icecast.server.parameters.server(p) =
     source_password =
       icecast.server.parameters.use(
         icecast.server.parameters.any,
-        p?.source_password ?? getter("hackme")
+        p?.source_password ?? getter(icecast.server.default_password)
       ),
     shoutcast_mount =
       icecast.server.parameters.use(
