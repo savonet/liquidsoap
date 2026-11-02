@@ -139,6 +139,19 @@ def icecast.server.mounts.full_target(state, p, path) =
   first(icecast.server.mounts.chain(state, p, path).mounts)
 end
 
+# The mount outputs at `paths` ended: their `fallbacks` overlay entries go,
+# except under `"kh"` (parameters.md §8.4).
+# @flag hidden
+def icecast.server.mounts.output_ended(state, paths) =
+  if
+    state.compatibility != "kh"
+  then
+    state.overlay.set(
+      list.filter(fun (o) -> not list.mem(fst(o), paths), state.overlay.get())
+    )
+  end
+end
+
 # Points every mount at its fallback, then shuts down the mounts left with
 # nothing to send: no feeder, no fallback, no linger. Called under the lock.
 # @flag hidden
@@ -156,16 +169,7 @@ def icecast.server.mounts.refresh(state) =
   end
 
   idle = state.mounts.remove(is_idle)
-  if
-    state.compatibility != "kh"
-  then
-    state.overlay.set(
-      list.filter(
-        fun (o) -> not list.exists(fun (e) -> e.path == fst(o), idle),
-        state.overlay.get()
-      )
-    )
-  end
+  icecast.server.mounts.output_ended(state, list.map(fun (e) -> e.path, idle))
   list.iter(
     fun (entry) ->
       begin
