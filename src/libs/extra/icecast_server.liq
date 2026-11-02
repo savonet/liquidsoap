@@ -15,8 +15,11 @@
 # `icecast.server.redirect`, `icecast.server.decision.all`,
 # `icecast.server.decision.url_auth`, `icecast.server.decision.access_lists`,
 # `icecast.server.decision.htpasswd`, `icecast.server.headers.cors` and
-# `icecast.server.preroll_cache`. The parts below are included in dependency
-# order; server.liq defines `icecast.server` itself.
+# `icecast.server.preroll_cache`, and `icecast.server.config.load(path)` builds
+# the record from an Icecast configuration file. The parts below are included
+# in dependency order; server.liq defines `icecast.server` itself and comes
+# last, since each definition under `icecast.server` after it costs the
+# typechecker a copy of the server's whole type.
 %include "icecast_server/settings.liq"
 %include "icecast_server/headers.liq"
 %include "icecast_server/addresses.liq"
@@ -58,5 +61,15 @@
 %include "icecast_server/admin_xml.liq"
 %include "icecast_server/health.liq"
 %include "icecast_server/pages.liq"
+%include "icecast_server/config/read.liq"
+%include "icecast_server/config/listen.liq"
+%include "icecast_server/config/limits.liq"
+%include "icecast_server/config/paths.liq"
+%include "icecast_server/config/headers.liq"
+%include "icecast_server/config/events.liq"
+%include "icecast_server/config/mount_auth.liq"
+%include "icecast_server/config/mount_entry.liq"
+%include "icecast_server/config/mounts.liq"
+%include "icecast_server/config/load.liq"
 %include "icecast_server/state.liq"
 %include "icecast_server/server.liq"

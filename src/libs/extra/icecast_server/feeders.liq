@@ -78,6 +78,7 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
       state.counters.source_connected()
       {
         bindings = p.event_bindings(),
+        listeners = entry.stats.current(),
         server = state.server(p.hostname()),
         on_connect = mount?.on_connect
       }
@@ -99,6 +100,7 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
     state.events.source_connect.fire(
       bindings=taken.bindings,
       mount=path,
+      listeners=taken.listeners,
       record
     )
   end
@@ -165,6 +167,7 @@ def icecast.server.feeders.detach(state, path, feeder) =
       icecast.server.mounts.refresh(state)
       {
         bindings = p.event_bindings(),
+        listeners = entry.stats.current(),
         server = state.server(p.hostname()),
         on_disconnect = disconnect.on_disconnect
       }
@@ -184,6 +187,7 @@ def icecast.server.feeders.detach(state, path, feeder) =
     state.events.source_disconnect.fire(
       bindings=left.bindings,
       mount=path,
+      listeners=left.listeners,
       record
     )
   end

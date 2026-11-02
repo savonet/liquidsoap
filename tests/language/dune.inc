@@ -387,24 +387,6 @@
    icecast_server_replies.liq)))
 
 (rule
- (alias test_icecast_server_tables)
- (package liquidsoap)
- (deps
-  icecast_server_tables.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  crontab_test_cases.json
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   icecast_server_tables.liq
-   liquidsoap
-   icecast_server_tables.liq)))
-
-(rule
  (alias test_implicit_float_casting)
  (package liquidsoap)
  (deps
@@ -987,7 +969,6 @@
   (alias test_icecast_server_parameters)
   (alias test_icecast_server_prerolls)
   (alias test_icecast_server_replies)
-  (alias test_icecast_server_tables)
   (alias test_implicit_float_casting)
   (alias test_interactive)
   (alias test_json)

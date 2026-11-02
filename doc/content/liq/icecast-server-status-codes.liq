@@ -1,1 +1,1 @@
-settings.icecast.server.status_codes := "2.4"
+icecast.server({source_password = "change-me", compatibility = "icecast-2.4"})

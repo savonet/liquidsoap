@@ -205,6 +205,7 @@ def icecast.server.listeners.connected(state, entry, listener) =
   state.events.listener_connect.fire(
     bindings=p.event_bindings(),
     mount=entry.path,
+    listeners=entry.stats.current(),
     icecast.server.listeners.record(state, p, entry, listener).{
       duration = 0.,
       bytes_sent = 0
@@ -238,6 +239,7 @@ def icecast.server.listeners.disconnected(state, entry, listener) =
   state.events.listener_disconnect.fire(
     bindings=p.event_bindings(),
     mount=entry.path,
+    listeners=entry.stats.current(),
     record
   )
 end
