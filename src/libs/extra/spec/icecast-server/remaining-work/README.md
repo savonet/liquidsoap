@@ -10,7 +10,7 @@ PRs:
 - #5601: the typechecker loop fix, merged into `main`.
 - #5595 (`icecast-server-refactor`): this work, a **draft** stacked on #5592 with `gh stack` (stack #5596). Its description has a per-batch checklist. When #5592 merges, check its commits reached `main` (`git merge-base --is-ancestor`) before going further.
 
-Both branches are rebased on `main` (with #5600 and #5601): `main` ← #5592 ← #5595. Backups of the pre-restack heads: `backup/icecast-server-refactor-pre-restack`, `backup/icecast-server-listener-auth-pre-restack` (delete once the push is confirmed).
+Both branches are rebased on `main` (with #5600 and #5601): `main` ← #5592 ← #5595.
 
 ## Batch 5, config and docs: in progress (committed as "icecast.server: configuration translation, work in progress")
 
@@ -23,6 +23,8 @@ Done:
 - doc/content/icecast_server.md rewritten to the record API, over 20 checked examples doc/content/liq/icecast-server-\*.liq (the 12 old ones rewritten, 8 new: mounts, decisions, url-auth, attach, headers, preroll, forwarded, tls). Every `@test-doc-icecast-server-*` passes; a broken example makes it fail.
 
 Not done:
+
+- Fix the findings of the code review: `remaining-work/review.md` (50+ findings, user decisions A–F at its end).
 
 - Reviewer pass (one Opus reviewer), then fold the WIP commit into a proper batch-5 commit.
 - Offer the spec-extraction skill's final step (compare new vs old implementation) before #5595 leaves draft.
