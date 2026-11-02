@@ -7,6 +7,7 @@ We are rewriting liquidsoap's `icecast.server` from a normative specification, o
 PRs:
 
 - #5592 (`icecast-server-listener-auth`): URL listener auth, prerolls, time limits, redirects. Open, CI green.
+- #5601 (`typing-nullable-sup-loop`, worktree /var/tmp/claude-sup-fix): the typechecker loop fix below, against `main`. The same change sits uncommitted in this branch's working tree (src/lang/types/typing.ml, tests/language/typing.liq) until #5601 merges and the branch is rebased; remove the worktree then.
 - #5595 (`icecast-server-refactor`): this work, a **draft** stacked on #5592 with `gh stack` (stack #5596). Its description has a per-batch checklist. When #5592 merges, check its commits reached `main` (`git merge-base --is-ancestor`) before going further.
 
 The branch history was squashed into one commit per batch; the remote still has the old history, so the next push is a force-push. Batch 4 (pages and logs) is committed but not pushed: when pushing, tick "status and admin pages, logs" in #5595's checklist (read the live PR body first and keep any lines the user added).
@@ -43,9 +44,9 @@ Two separate instances of a loaded record's `mount` callback type meeting in sub
 
 **Cause, traced:** `Typing.sup` on nullables always rebuilds `Nullable (sup a b)`, and `Type.make (Nullable t)` with an already nullable `t` returns a _fresh_ covariant variable (to collapse `t??`). In the covariant case of `<:`, `b'' = sup a b'` is therefore never physically `b'`, the variable is relinked and `a <: b''` lands in the same case with a new variable: an unbounded recursion (405 k levels deep, variable ids counting up, link chain growing). The trigger is a `string??` field (`decision.all`'s `preroll`, from `p := d(r)?.preroll` on a nullable field) in a function whose argument (`~cache`) is a parameter.
 
-**Fix, uncommitted, waiting for the user's approval** (in the working tree; also /var/tmp/claude-icecast-config/sup-fix.patch): `sup` strips nested nullables (`t??` is `t?`) and returns `b` itself when the supremum adds nothing (`v == v' -> b`, and the nullable cases), so the existing `b'' != b'` guard stops. Both halves are needed: without `v == v' -> b` it terminates but rejects the valid program. Results: the repros check in 3.7 s; `--list-functions-json` is byte-identical; stdlib cache-miss cost unchanged (~3.7 s, ~588 MB); `typing`, `record`, `record_methods_eager`, `type_errors`, `stdlib`, `null` and the icecast language tests pass. Regression check added at the end of tests/language/typing.liq (17-line repro, also /var/tmp/claude-icecast-config/sup-loop-repro.liq): passes with the fix, OOM-killed with the old checker.
+**Fix: PR #5601** (also uncommitted in this working tree): `sup` strips nested nullables (`t??` is `t?`) and returns `b` itself when the supremum adds nothing (`v == v' -> b`, and the nullable cases), so the existing `b'' != b'` guard stops. Both halves are needed: without `v == v' -> b` it terminates but rejects the valid program. Results: the repros check in 3.7 s; `--list-functions-json` is byte-identical; stdlib cache-miss cost unchanged (~3.7 s, ~588 MB); `typing`, `record`, `record_methods_eager`, `type_errors`, `stdlib`, `null` and the icecast language tests pass. Regression check added at the end of tests/language/typing.liq (17-line repro, also /var/tmp/claude-icecast-config/sup-loop-repro.liq): passes with the fix, OOM-killed with the old checker.
 
-Once approved: commit it on its own (`lang: …`) as a separate PR against main, like #5600; then drop the `listener_decision` request-type annotation in config/mounts.liq (it did not help) and check `doc/content/liq/icecast-server-reload.liq`.
+Next: drop the `listener_decision` request-type annotation in config/mounts.liq (it did not help) and check `doc/content/liq/icecast-server-reload.liq`.
 
 Every OCaml change needs the user's approval: minimal and generic.
 
