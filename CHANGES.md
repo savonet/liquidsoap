@@ -347,6 +347,9 @@
 - Fixed a stall of the full connection timeout on Windows when a host's first address
   refuses the connection, e.g. `output.icecast` to `localhost` with an IPv4-only server,
   on connection and on every metadata update (#5484).
+- Fixed typechecking that never finished and ran out of memory on scripts mixing a doubly
+  nullable value, such as `x?.field` on a nullable field, with another instance of the same
+  type, for instance a `reload` of `icecast.server` with a record loaded from a file (#5601).
 
 ## Optimized:
 
