@@ -24,7 +24,8 @@ end
 
 # Makes `feeder` the feeder of `path`, creating or replacing its output
 # (mounts.md §3), and raises its connect callbacks and events. `false` when the
-# mount already has a feeder. With `strict`, a mount output of another format
+# mount already has a feeder, or a source client would pass `max_sources`. With
+# `strict`, a mount output of another format
 # raises `error.icecast.server.format_mismatch` instead of being replaced.
 # @flag hidden
 def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
@@ -35,8 +36,16 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
     continued =
       null.defined(current)
       and icecast.server.mounts.matches(null.get(current).format, feeder.format)
+    max_sources = p.max_sources()
+    full =
+      feeder.is_client
+      and null.defined(max_sources)
+      and icecast.server.mounts.source_clients(state) >= null.get(max_sources)
     if
-      null.defined(current) and null.defined(null.get(current).feeder.get())
+      full
+      or (
+        null.defined(current) and null.defined(null.get(current).feeder.get())
+      )
     then
       null
     else
