@@ -18,7 +18,7 @@ def icecast.server.snapshot(state) =
       listener=fun (entry, l) ->
         icecast.server.listeners.record(state, p, entry, l),
       listeners=icecast.server.listeners.current(entry),
-      hidden=null.defined(mount) and null.get(mount).hidden,
+      hidden=not null.defined(mount) or null.get(mount).hidden,
       fallback=null.defined(fallback)
         ? (null.get(fallback).mount ?? "(source)")
         : null,
