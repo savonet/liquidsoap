@@ -32,6 +32,7 @@ def icecast.server.attached.attach(state, ~headers, ~format, path, s) =
       },
       encoder=fun (_) -> format,
       stop=fun () -> (),
+      bytes_read=fun () -> 0,
       s
     )
   if

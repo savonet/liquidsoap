@@ -53,8 +53,8 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
         end
         old = null.get(current)
         ignore(state.mounts.remove(fun (e) -> e.path == path))
-        log.important(
-          label=state.name,
+        icecast.server.log.important(
+          state,
           "Mount #{path}: new stream format, replacing its output."
         )
         old.output.shutdown()
@@ -146,8 +146,8 @@ def icecast.server.feeders.detach(state, path, feeder) =
         try
           icecast.server.parameters.mount(p, path).linger ?? 0.
         catch err do
-          log.debug(
-            label=state.name,
+          icecast.server.log.debug(
+            state,
             "Mount #{path} does not linger: #{err.message}"
           )
           0.

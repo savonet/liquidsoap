@@ -25,6 +25,16 @@ def icecast.server.source_admin.response(status, message) =
   )
 end
 
+# Whether `user` and `password` are the admin credentials of the parameters
+# `p`.
+# @flag hidden
+def icecast.server.source_admin.is_admin(p, user, password) =
+  admin_password = p.admin_password()
+  null.defined(admin_password)
+  and user == p.admin_user()
+  and password == null.get(admin_password)
+end
+
 # Whether `request` may run a command on `path` under the parameters `p`
 # (sources.md §6): Basic credentials, or `user` and `pass` query arguments on
 # `/admin.cgi`, an absent `user` meaning the mount's `source_user`.
@@ -39,12 +49,7 @@ def icecast.server.source_admin.allowed(state, p, path, request) =
           list.assoc(default=mount.source_user, "user", request.query),
           list.assoc(default="", "pass", request.query)
         )
-    admin_password = p.admin_password()
-    (
-      null.defined(admin_password)
-      and user == p.admin_user()
-      and password == null.get(admin_password)
-    )
+    icecast.server.source_admin.is_admin(p, user, password)
     or icecast.server.sources.authenticated(
       mount,
       icecast.server.sources.request(
@@ -63,9 +68,14 @@ def icecast.server.source_admin.allowed(state, p, path, request) =
       )
     )
   catch err do
-    log.important(
-      label=state.name,
-      "Refusing a mount command on #{path}: #{err.message}"
+    icecast.server.log.important(
+      state,
+      "Refusing a mount command on #{
+        icecast.server.log_lines.client_value(
+          compatibility=state.compatibility,
+          path
+        )
+      }: #{err.message}"
     )
     false
   end

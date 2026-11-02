@@ -132,6 +132,9 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
     val mime_type : string option Atomic.t = Atomic.make None
     val mutable dump = None
     val mutable logf = None
+    val bytes_read = Atomic.make 0
+    method bytes_read = Atomic.get bytes_read
+    method private count_read n = ignore (Atomic.fetch_and_add bytes_read n)
 
     val on_connect : ((string * string) list -> unit) Callbacks.t =
       Callbacks.create ()
@@ -213,6 +216,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                   (try self#disconnect_connection c with _ -> ());
                   0)
         in
+        self#count_read input;
         begin match dump with
           | Some b ->
               output_string b (Bytes.sub_string buf 0 input);
@@ -702,6 +706,12 @@ let meth () =
               match s#connected_client with
                 | Some c -> Lang.string c
                 | None -> Lang.null));
+    };
+    {
+      name = "bytes_read";
+      scheme = ([], Lang.fun_t [] Lang.int_t);
+      descr = "Bytes read from source clients since the input was created.";
+      value = (fun s -> Lang.val_fun [] (fun _ -> Lang.int s#bytes_read));
     };
     {
       name = "status";

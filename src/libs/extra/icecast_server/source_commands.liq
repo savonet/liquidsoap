@@ -97,7 +97,7 @@ def icecast.server.source_admin.register(~transport, state) =
     fun (request) -> icecast.server.source_admin.metadata(state, request)
   )
   get(
-    "/admin.cgi",
+    "/admin\\.cgi",
     fun (request) ->
       icecast.server.source_admin.metadata(state, shoutcast=true, request)
   )

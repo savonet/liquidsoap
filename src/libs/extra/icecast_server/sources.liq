@@ -104,18 +104,37 @@ def icecast.server.sources.connect(state, connection) =
           encoder=fun (options) ->
             connection.copy_encoder(connection.format, options=options),
           stop=s.stop,
+          bytes_read=s.bytes_read,
           s
+        )
+      quoted =
+        icecast.server.log_lines.client_value(
+          compatibility=state.compatibility,
+          path
         )
       on_disconnect(
         synchronous=true,
-        fun () -> icecast.server.feeders.detach(state, path, feeder)
+        fun () ->
+          begin
+            icecast.server.feeders.detach(state, path, feeder)
+            icecast.server.log.info(
+              state,
+              category="source/source_main",
+              "Source at \"#{quoted}\" exiting"
+            )
+          end
+      )
+      icecast.server.log.info(
+        state,
+        category="connection-handle/_handle_source_request",
+        "Source logging in at mountpoint \"#{quoted}\""
       )
       if
         not icecast.server.feeders.attach(state, path, feeder)
       then
-        log.important(
-          label=state.name,
-          "Mount #{path} was taken meanwhile, dropping the source client."
+        icecast.server.log.important(
+          state,
+          "Mount #{quoted} was taken meanwhile, dropping the source client."
         )
         s.stop()
       end

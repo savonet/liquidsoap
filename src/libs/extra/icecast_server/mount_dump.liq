@@ -43,8 +43,8 @@ def icecast.server.mounts.dump(state, mount, feeder) =
     end
 
     def on_error(_) =
-      log.important(
-        label=state.name,
+      icecast.server.log.important(
+        state,
         "Recording to #{path} failed, stopping it."
       )
       stop()

@@ -28,8 +28,8 @@ def icecast.server.mounts.unify_clock(state, c) =
   try
     state.clock.get().unify(c)
   catch err do
-    log.info(
-      label=state.name,
+    icecast.server.log.info(
+      state,
       "Taking a new clock: #{err.message}"
     )
     fresh = clock.create(id=state.name)
@@ -39,8 +39,8 @@ def icecast.server.mounts.unify_clock(state, c) =
   try
     state.clock.get().start(force=false)
   catch err do
-    log.debug(
-      label=state.name,
+    icecast.server.log.debug(
+      state,
       "Clock not started: #{err.message}"
     )
   end
@@ -67,7 +67,8 @@ def icecast.server.mounts.muxer_options(p, format) =
   end
 end
 
-# The mount's metadata update: its history, then the metadata event.
+# The mount's metadata update: its history and playlist log line, then the
+# metadata event.
 # @flag hidden
 def icecast.server.mounts.on_metadata(state, entry, metadata) =
   p = state.params.get()
@@ -75,8 +76,8 @@ def icecast.server.mounts.on_metadata(state, entry, metadata) =
     try
       icecast.server.parameters.mount(p, entry.path).max_history
     catch err do
-      log.debug(
-        label=state.name,
+      icecast.server.log.debug(
+        state,
         "Mount #{entry.path} keeps the server's max_history: #{err.message}"
       )
       getter.get(p.max_history)
@@ -87,6 +88,11 @@ def icecast.server.mounts.on_metadata(state, entry, metadata) =
   then
     entry.stats.add_title(max_history=max_history, null.get(title))
   end
+  state.logs.playlist(
+    mount=entry.path,
+    listeners=entry.stats.current(),
+    metadata
+  )
   state.events.metadata.fire(
     bindings=p.event_bindings(),
     mount=entry.path,

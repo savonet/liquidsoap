@@ -7,8 +7,8 @@ def icecast.server.snapshot(state) =
       try
         icecast.server.parameters.mount(p, entry.path)
       catch err do
-        log.debug(
-          label=state.name,
+        icecast.server.log.debug(
+          state,
           "Mount #{entry.path} has no parameters in stats: #{err.message}"
         )
         null

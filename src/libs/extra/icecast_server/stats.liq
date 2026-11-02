@@ -74,20 +74,23 @@ def icecast.server.stats.mount() =
   }
 end
 
-# The title of `metadata`, `null` when it has none: `title`, prefixed with
-# `artist - ` when there is one, else `song`.
+# The text of `metadata` (observability.md §11): `artist - title` when both
+# are non-empty, else the one that is, `null` when neither is.
 # @flag hidden
 def icecast.server.stats.title(metadata) =
-  title = list.assoc.nullable("title", metadata)
-  artist = list.assoc.nullable("artist", metadata)
+  def field(name) =
+    value = list.assoc(default="", name, metadata)
+    value == "" ? null : value
+  end
+
+  title = field("title")
+  artist = field("artist")
   if
-    null.defined(title)
+    null.defined(title) and null.defined(artist)
   then
-    null.defined(artist)
-      ? "#{null.get(artist)} - #{null.get(title)}"
-      : (null.get(title))
+    "#{null.get(artist)} - #{null.get(title)}"
   else
-    list.assoc.nullable("song", metadata)
+    title ?? artist
   end
 end
 
@@ -103,6 +106,7 @@ def icecast.server.stats.of_mount(
   entry
 ) =
   counters = entry.stats.get()
+  feeder = entry.feeder.get()
   identity = entry.identity()
   audio = entry.audio()
   def field(name) =
@@ -121,6 +125,7 @@ def icecast.server.stats.of_mount(
     connections = counters.connections,
     listening_time = counters.listening_time,
     bytes_sent = counters.bytes_sent,
+    bytes_read = null.defined(feeder) ? null.get(feeder).bytes_read() : 0,
     metadata = entry.output.last_metadata() ?? [],
     history = counters.history,
     name = field("icy-name"),

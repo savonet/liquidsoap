@@ -132,11 +132,11 @@ def icecast.server.listeners.record(state, p, entry, listener) =
       try
         hash(address)
       catch err do
-        log.important(
-          label=state.name,
+        icecast.server.log.important(
+          state,
           "address_hash failed: #{err.message}"
         )
-        ""
+        "-"
       end,
     user = user == "" ? null : user,
     user_agent = list.assoc.nullable("user-agent", listener.headers),

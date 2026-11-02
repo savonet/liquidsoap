@@ -519,6 +519,23 @@
    icecast_server_listeners.liq)))
 
 (rule
+ (alias test_icecast_server_logs)
+ (package liquidsoap)
+ (deps
+  icecast_server_logs.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_logs.liq
+   liquidsoap
+   icecast_server_logs.liq)))
+
+(rule
  (alias test_icecast_server_mounts)
  (package liquidsoap)
  (deps
@@ -551,6 +568,23 @@
    icecast_server_ogg_late_listener.liq
    liquidsoap
    icecast_server_ogg_late_listener.liq)))
+
+(rule
+ (alias test_icecast_server_pages)
+ (package liquidsoap)
+ (deps
+  icecast_server_pages.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_pages.liq
+   liquidsoap
+   icecast_server_pages.liq)))
 
 (rule
  (alias test_icecast_server_reload)
@@ -715,8 +749,10 @@
   (alias test_http3)
   (alias test_icecast_server_events)
   (alias test_icecast_server_listeners)
+  (alias test_icecast_server_logs)
   (alias test_icecast_server_mounts)
   (alias test_icecast_server_ogg_late_listener)
+  (alias test_icecast_server_pages)
   (alias test_icecast_server_reload)
   (alias test_icecast_server_shutdown)
   (alias test_icecast_server_source_reconnect)

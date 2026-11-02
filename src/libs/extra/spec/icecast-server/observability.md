@@ -126,6 +126,7 @@ The server keeps, for every mount output:
 | `connections`    | The number of listener connections admitted since the mount output was created                                                                                                                                                                                           |
 | `listening_time` | Sum of `duration` over finished sessions, in seconds                                                                                                                                                                                                                     |
 | `bytes_sent`     | Sum of `bytes_sent` over finished sessions                                                                                                                                                                                                                               |
+| `bytes_read`     | Bytes read so far from the mount's current source client; 0 without one                                                                                                                                                                                                  |
 | `metadata`       | The mount's latest metadata, empty before any                                                                                                                                                                                                                            |
 | `history`        | The last titles played, newest first ([§13](#13-metadata-history))                                                                                                                                                                                                       |
 | stream identity  | `name`, `description`, `genre`, `url` (from the source client's stream headers, [sources.md](sources.md#5-stream-identity-and-content); empty when absent), `public`, `content_type`, `mime_type`, and `bitrate`, `channels`, `samplerate` when the source declared them |
@@ -138,8 +139,8 @@ Rules:
 - `peak_listeners` never decreases and is at least the current count.
 - `connections` counts at connect; `listening_time` and `bytes_sent` change
   only at disconnect. Live sessions are not in the totals.
-- `started` and the stream identity describe the current source: a source that
-  reconnects replaces them. Counters persist across source reconnections for as
+- `started`, `bytes_read` and the stream identity describe the current source:
+  a source that reconnects replaces them. Counters persist across source reconnections for as
   long as the mount output exists ([mounts.md](mounts.md)).
 
 The server also keeps `server_start` (seconds since the epoch),
@@ -163,7 +164,9 @@ Every page and the metrics export are renderings of it.
 ## 6. The status page
 
 When `status_page` is on, the server serves these paths as HTTP handlers on its
-own port, with the other handlers of the port:
+own port, with the other handlers of the port. A route the script registers on
+that port before calling `icecast.server` takes precedence over the server's;
+a `GET` route registered after it is shadowed by the server's handlers.
 
 | Path               | Content                                                                                         |
 | ------------------ | ----------------------------------------------------------------------------------------------- |
@@ -183,7 +186,8 @@ A `/status.json` mount entry has `mount`, `name`, `content_type`, `mime_type`,
   to allow it. It is the ordinary access control of a handler: a refusal is a
   `401` with `WWW-Authenticate: Basic realm="Icecast2 Server"` and an empty
   body. Unset, every request is allowed. Rationale: that is Icecast's realm;
-  clients that cache credentials key them by realm.
+  clients that cache credentials key them by realm. A callback that raises
+  refuses the request with that `401` and the error is logged.
 - `status_json` and `status_html`, when set, are callbacks that replace the
   built-in body of `/status.json` and `/`. Each receives the `stats()` snapshot
   ([§5](#5-the-stats-snapshot)) and returns the body. A callback that fails
@@ -284,8 +288,7 @@ produced from the snapshot; values are text, numbers decimal.
   the audio keys of [§6.1](#61-status-jsonxsl) (plus `ice-bitrate`),
   `max_listeners` (the mount's `max_listeners`, or `unlimited`), `public`
   (`0` or `1`), `slow_listeners` (`0`), `total_bytes_sent` (`bytes_sent`
-  including live sessions), `total_bytes_read` (bytes the mount output read
-  from its source), `connected` (seconds since `started`), `source_ip` (the
+  including live sessions), `total_bytes_read` (`bytes_read`), `connected` (seconds since `started`), `source_ip` (the
   source client's raw address; absent for a Liquidsoap source) and
   `user_agent` (the source client's).
 
@@ -326,9 +329,10 @@ provided.
   output is in `mounts`, hidden ones excepted. `format` keys are present when
   known; `codec` is the codec's common name. `now_playing` is the text of
   [§11](#11-playlist-log), absent while the mount has none.
-- `/<mount>/health` returns that mount's entry (an unknown mount is `404`). A
-  mount whose name ends in `/health` cannot be served: the path is reserved
-  ([sources.md](sources.md)).
+- `/<mount>/health` returns that mount's entry. A hidden or unknown mount is
+  `404`, answered before any password is checked. Rationale: a challenge would
+  tell a prober that the hidden mount exists. A mount whose name ends in
+  `/health` cannot be served: the path is reserved ([sources.md](sources.md)).
 - `health_password`, global or in the mount's parameters (the mount's own,
   else the global one), protects the matching path with HTTP Basic: the
   password is checked, the user name is not. Unset, the path is open. A refusal
@@ -360,6 +364,8 @@ charset=utf-8`), rendered from the snapshot. It follows `status_access`
 - Hidden mounts are omitted. No label or value carries a listener address, user
   agent, referer or metadata.
 - Label values are escaped as the format requires (`\\`, `\"`, `\n`).
+- Counts are written as integers; times (`server_start`, `last_reload`,
+  `started`, `listening_time`) with three decimals.
 - Counters restart at zero when a mount output is removed and created again;
   scrapers treat that as a counter reset.
 
@@ -526,7 +532,10 @@ the most verbose level written there. Lower levels are always written.
   exists, so existing parsers keep matching.
 - Values that come from clients (mount names, headers) in a message are
   escaped as in [§10](#10-access-log) for `"icecast-2.5"`,
-  `"icecast-2.4"` and `"rsas"`.
+  `"icecast-2.4"` and `"rsas"`. This binds the messages that have an Icecast
+  category; the others use the category `icecast/server`.
+- Messages logged where no server is at hand (parameter validation) and the
+  failures of the log files themselves go to Liquidsoap's log only.
 
 Binding examples, which parsers match:
 

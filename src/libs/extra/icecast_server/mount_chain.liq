@@ -13,8 +13,8 @@ def icecast.server.mounts.fallback_of(state, p, path) =
     try
       icecast.server.parameters.mount(p, path).fallback
     catch err do
-      log.important(
-        label=state.name,
+      icecast.server.log.important(
+        state,
         "Ignoring the fallback of #{path}: #{err.message}"
       )
       null
@@ -80,8 +80,8 @@ def icecast.server.mounts.resolve(state, p, entry) =
               identity = null.get(feeder).identity
             }
           else
-            log.info(
-              label=state.name,
+            icecast.server.log.info(
+              state,
               "Mount #{entry.path}: skipping fallback #{path} of another format."
             )
             first(rest)
@@ -109,8 +109,8 @@ def icecast.server.mounts.full_target(state, p, path) =
             try
               icecast.server.parameters.mount(p, target)
             catch err do
-              log.debug(
-                label=state.name,
+              icecast.server.log.debug(
+                state,
                 "Mount #{target} has no listener limit: #{err.message}"
               )
               null
@@ -169,8 +169,8 @@ def icecast.server.mounts.refresh(state) =
   list.iter(
     fun (entry) ->
       begin
-        log.info(
-          label=state.name,
+        icecast.server.log.info(
+          state,
           "Mount #{entry.path} has nothing to send, shutting it down."
         )
         entry.output.shutdown()
