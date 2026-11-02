@@ -197,6 +197,10 @@ val meths :
 
 val split_meths : t -> meth list * t
 val hide_meth : string -> t -> t
+
+(** Remove the first method with this label, sharing the type below it. *)
+val drop_meth : string -> t -> t
+
 val opt_meth : string -> t -> t
 val get_meth : string -> t -> meth
 val filter_meths : t -> (meth -> bool) -> t

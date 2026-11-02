@@ -317,15 +317,27 @@ let meth ?pos ?json_name ?(category = `Method) ?(optional = false) meth scheme
          },
          t ))
 
+(** Remove the first method [l] and share the type below it, or return [t]
+    itself when it has no method [l].
+
+    Overrides go through this so that shadowed copies do not pile up. *)
+let rec drop_meth l t =
+  match (deref t).descr with
+    | Meth ({ meth = l' }, u) when l = l' -> u
+    | Meth (m, u) ->
+        let u' = drop_meth l u in
+        if u' == u then t else make ?pos:t.pos (Meth (m, u'))
+    | _ -> t
+
 (** Add a submethod to a type. *)
 let rec meths ?(invoke = invoke) ?pos l v t =
   match l with
     | [] -> assert false
-    | [l] -> meth ?pos l v t
+    | [l] -> meth ?pos l v (drop_meth l t)
     | l :: ll ->
         let g, tl = invoke t l in
         let v = meths ?pos ~invoke ll v tl in
-        meth ?pos l (g, v) t
+        meth ?pos l (g, v) (drop_meth l t)
 
 (** Split the methods from the type. *)
 let split_meths t =

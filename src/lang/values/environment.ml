@@ -76,7 +76,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                           doc = { meth_descr = ""; category = `Method };
                           json_name = None;
                         },
-                        t0 ))
+                        Type.drop_meth l t0 ))
               in
               ((g0, t), Value.map_methods v0 (Methods.add l v))
           | l :: ll ->
@@ -92,7 +92,7 @@ let add_builtin ?(override = false) ?(register = true) ?doc name ((g, t), v) =
                           doc = { meth_descr = ""; category = `Method };
                           json_name = None;
                         },
-                        t0 ))
+                        Type.drop_meth l t0 ))
               in
               ((g0, t), Value.map_methods v0 (Methods.add l v))
           | [] -> ((g, t), v)
