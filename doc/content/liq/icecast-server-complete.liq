@@ -38,4 +38,13 @@ server.on_source_connect(
     )
 )
 
-ignore(on_signal("hup", fun () -> server.reload(parameters())))
+ignore(
+  on_signal(
+    "hup",
+    fun () ->
+      begin
+        server.reload(parameters())
+        server.reopen_logs()
+      end
+  )
+)

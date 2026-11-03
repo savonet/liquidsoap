@@ -107,6 +107,10 @@ def icecast.server.config.transport(~tls, ~certificate, ~key) =
         "TLS is enabled but this build of liquidsoap has no TLS support."
       )
     end
+    log.info(
+      label="icecast.server.config",
+      "Using the #{name} TLS transport."
+    )
     factory(certificate, key).{certificate = certificate, key = key}
   else
     http.transport.unix.{certificate = null, key = null}

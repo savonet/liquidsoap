@@ -197,7 +197,7 @@ Log analyzers and statistics tools read the files Icecast writes. `icecast.serve
 - The **playlist log** gets one line per metadata change: time, mount, listener count and `artist - title`.
 - The **error log** gets the server's own events, in Icecast's format, levels and categories, up to `log_level` (on liquidsoap's scale: 4, info, by default). Every event also goes to liquidsoap's own log.
 
-`"-"` writes to standard error. Files rotate past `log_size` bytes, to `<file>.old`, or to a timestamped name with `log_archive`. After `logrotate` moves a file, `reopen_logs()` opens it again at its path. The server takes no signal itself: the example binds `SIGHUP` with `on_signal`.
+`"-"` writes to standard error. Files rotate past `log_size` bytes, to `<file>.old`, or to a timestamped name with `log_archive`. After `logrotate` moves a file, `reopen_logs()` opens it again at its path. The server takes no signal itself: the example binds `SIGHUP` with `on_signal`. A setup that also reloads on `SIGHUP` reopens the logs in the same handler, as the [reload example](#reloading) does, since a reload keeps files whose path did not change open.
 
 ## Listener privacy
 
