@@ -280,6 +280,8 @@ def check_status_pages() =
     )
     and not contains(page.body, "<b>x</b>")
     and not contains(page.body, "/h.mp3")
+    and contains(page.body, "type=\"audio/mpeg\"")
+    and contains(page.body, "setInterval")
   )
   xsl = fetch("/status-json.xsl")
   let json.parse (one :
@@ -617,6 +619,14 @@ def check_switches() =
     "/status-json.xsl without a public mount has no source",
     not contains(fetch("/status-json.xsl").body, "\"source\"")
   )
+  server.reload(parameters(all_hidden=true))
+  check(
+    "/ without a public mount says so",
+    contains(
+      fetch("/").body,
+      "No active mounts."
+    )
+  )
   server.reload(
     parameters(
       status_json=fun (_) ->
@@ -679,10 +689,10 @@ def run() =
     h.shutdown()
     q.shutdown()
     if
-      checks() != 32
+      checks() != 33
     then
       test.fail(
-        "#{checks()} checks ran, expected 32"
+        "#{checks()} checks ran, expected 33"
       )
     end
     test.pass()
