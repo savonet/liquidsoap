@@ -266,11 +266,7 @@ def lines(prefix) =
 end
 
 def stats_of(path) =
-  list.find(
-    default=list.hd(server.stats().mounts),
-    fun (m) -> m.mount == path,
-    server.stats().mounts
-  )
+  list.find(fun (m) -> m.mount == path, server.stats().mounts)
 end
 
 def mounts() =

@@ -348,7 +348,13 @@ def check_access_lists(directory) =
     null
   )
 
+  # Two writes can share an mtime tick: give the new one its own.
   file.write(data="198.51.100.1\n", deny)
+  ignore(
+    process.run(
+      "touch -d @1000000000 #{process.quote(deny)}"
+    )
+  )
   check_equal(
     "changed file read again",
     status(only_deny(request(address="198.51.100.1"))),

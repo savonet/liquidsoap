@@ -658,12 +658,21 @@ def check_dump() =
       file.ls(dump_dir)
     )
   end
+
+  # Settled: no growth for 3 s, so that a writer stalled by load does not
+  # pass for a stopped one.
   last = ref(dump_size())
+  changed_at = ref(time())
   def settled() =
-    before = last()
     thread.pause(0.2)
-    last := dump_size()
-    last() == before
+    size = dump_size()
+    if
+      size != last()
+    then
+      last := size
+      changed_at := time()
+    end
+    time() - changed_at() >= 3.
   end
   wait_for(
     "dump size settled",
