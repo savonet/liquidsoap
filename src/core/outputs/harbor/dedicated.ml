@@ -147,16 +147,61 @@ let prerolling listener =
 
 (* A listener still owed its preroll gets no piece: its stream starts once the
    preroll is sent, so the encoder output does not pile up behind it. *)
+let send_one t ~stamp frame listener =
+  if not (prerolling listener) then (
+    match with_encoder listener (fun e -> e.Encoder.encode frame) with
+      | Some data when not (Strings.is_empty data) ->
+          append t listener ~stamp data
+      | _ -> ())
+
+(* ponytail: fixed batch size, tune from measurements if dispatch dominates. *)
+let batch_size = 32
+
+let rec batches = function
+  | [] -> []
+  | l ->
+      let rec split n acc = function
+        | x :: rest when n > 0 -> split (n - 1) (x :: acc) rest
+        | rest -> (List.rev acc, rest)
+      in
+      let batch, rest = split batch_size [] l in
+      batch :: batches rest
+
+(* Each batch of listeners is encoded by a task of its own, and the clock parks
+   until all are done, so the cycle's send ends with every listener served. A
+   listener is in one batch per cycle, so its pieces stay in order. *)
 let send t frame =
   let stamp = stamp t in
-  List.iter
-    (fun listener ->
-      if not (prerolling listener) then (
-        match with_encoder listener (fun e -> e.Encoder.encode frame) with
-          | Some data when not (Strings.is_empty data) ->
-              append t listener ~stamp data
-          | _ -> ()))
-    (live t)
+  match batches (live t) with
+    | [] -> ()
+    | [batch] -> List.iter (send_one t ~stamp frame) batch
+    | batches ->
+        let remaining = Atomic.make (List.length batches) in
+        let failure = Atomic.make None in
+        let finished = Scheduler.Condition.create () in
+        List.iter
+          (fun batch ->
+            Scheduler.Task.add
+              {
+                Scheduler.Task.priority = `Blocking;
+                events = [`Delay 0.];
+                handler =
+                  (fun _ ->
+                    (try List.iter (send_one t ~stamp frame) batch
+                     with exn ->
+                       let bt = Printexc.get_raw_backtrace () in
+                       ignore
+                         (Atomic.compare_and_set failure None (Some (exn, bt))));
+                    Atomic.decr remaining;
+                    Scheduler.Condition.signal finished;
+                    []);
+              })
+          batches;
+        Duppy.Condition.wait ~priority:`Clock Scheduler.raw finished (fun () ->
+            Atomic.get remaining = 0);
+        Option.iter
+          (fun (exn, bt) -> Printexc.raise_with_backtrace exn bt)
+          (Atomic.get failure)
 
 let metadata t metadata event =
   Mutex.protect t.lock (fun () -> t.last <- Some (metadata, event));
