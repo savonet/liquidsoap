@@ -69,6 +69,7 @@ let encoder flac meta =
     encode;
     stop;
     bitrate = (fun () -> None);
+    encode_into = None;
     restart_offset = (fun () -> None);
   }
 

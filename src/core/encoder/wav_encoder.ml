@@ -79,6 +79,7 @@ let encoder ~pos wav =
         else Strings.empty);
     stop = (fun () -> Strings.empty);
     bitrate = (fun () -> None);
+    encode_into = None;
     restart_offset = (fun () -> None);
   }
 

@@ -144,6 +144,11 @@ let bitrate = function
   | FdkAacEnc w -> Fdkaac_format.bitrate w
   | _ -> raise Not_found
 
+(** The bytes of one encoder output, readable only during the call that hands
+    them over: [blit offset destination destination_offset length] copies a
+    range of them. *)
+type output = { length : int; blit : int -> bytes -> int -> int -> unit }
+
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
     is really meant for inline metadata, i.e. in most cases, stream sources.
@@ -157,6 +162,7 @@ type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
+  encode_into : (Frame.t -> (output -> unit) -> unit) option;
   stop : unit -> Strings.t;
   bitrate : unit -> int option;
   restart_offset : unit -> int option;
@@ -198,17 +204,25 @@ let plug : plugin Plug.t =
 
 exception Found of factory
 
-let protect { encode_metadata; encode; stop; header; bitrate; restart_offset } =
+let protect
+    { encode_metadata; encode; encode_into; stop; header; bitrate; restart_offset }
+    =
   let m = Mutex.create () in
   let encode_metadata metadata =
     Mutex.protect m (fun () -> encode_metadata metadata)
   in
   let header () = Mutex.protect m header in
   let encode frame = Mutex.protect m (fun () -> encode frame) in
+  let encode_into =
+    Option.map
+      (fun encode_into frame f ->
+        Mutex.protect m (fun () -> encode_into frame f))
+      encode_into
+  in
   let stop () = Mutex.protect m stop in
   let bitrate () = Mutex.protect m bitrate in
   let restart_offset () = Mutex.protect m restart_offset in
-  { encode_metadata; encode; stop; header; bitrate; restart_offset }
+  { encode_metadata; encode; encode_into; stop; header; bitrate; restart_offset }
 
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =

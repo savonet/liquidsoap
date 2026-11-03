@@ -307,6 +307,34 @@
   (run %{generator_test})))
 
 (executable
+ (name harbor_dedicated_test)
+ (modules harbor_dedicated_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias harbor_dedicated_test)
+ (package liquidsoap)
+ (deps
+  (:harbor_dedicated_test harbor_dedicated_test.exe))
+ (action
+  (run %{harbor_dedicated_test})))
+
+(executable
  (name harbor_group_test)
  (modules harbor_group_test)
  (libraries
@@ -1112,6 +1140,7 @@
   (alias frame_test)
   (alias frame_video_dimensions_test)
   (alias generator_test)
+  (alias harbor_dedicated_test)
   (alias harbor_group_test)
   (alias harbor_icy_test)
   (alias harbor_store_test)
