@@ -17,5 +17,15 @@ def reload() =
   end
 end
 
-ignore(on_signal("hup", reload))
+# One signal for a configuration reload and logrotate's reopen.
+ignore(
+  on_signal(
+    "hup",
+    fun () ->
+      begin
+        reload()
+        server.reopen_logs()
+      end
+  )
+)
 ignore(file.watch(config, reload))
