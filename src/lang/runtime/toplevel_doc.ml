@@ -82,6 +82,7 @@ let method_entry ~generalized (doc : Doc.Value.t) (m : Type.meth) =
       | None -> (
           match List.assoc_opt m.meth doc.methods with
             | Some entry -> (entry.meth_description, m.doc.category)
+            | None when m.doc.meth_descr = "" -> (None, m.doc.category)
             | None -> (Some m.doc.meth_descr, m.doc.category))
   in
   ( category,
