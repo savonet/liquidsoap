@@ -81,6 +81,7 @@ def icecast.server.sources.connect(state, connection) =
           is_client=true,
           identity=icecast.server.sources.identity(connection.headers),
           headers=connection.headers,
+          streams=streams,
           ip=s.connected_client() ?? "",
           agent=list.assoc(
             default="-",

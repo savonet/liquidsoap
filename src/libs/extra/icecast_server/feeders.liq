@@ -115,7 +115,8 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
       ).{
         source = feeder.source,
         format = null.get(default=feeder.format.mime, feeder.format.container),
-        headers = feeder.headers
+        headers = feeder.headers,
+        streams = feeder.streams
       }
     icecast.server.feeders.run_callback(taken.on_connect, record)
     state.events.source_connect.fire(

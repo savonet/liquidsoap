@@ -21,6 +21,7 @@ def icecast.server.attached.attach(state, ~headers, ~format, path, s) =
       is_client=false,
       identity=icecast.server.sources.identity(headers),
       headers=[],
+      streams=[],
       ip="",
       agent="",
       format={
