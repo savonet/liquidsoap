@@ -66,6 +66,10 @@ let running t = Mutex.protect t.lock (fun () -> t.name <> None)
 let stamp t = Mutex.protect t.lock (fun () -> Option.map snd t.last)
 let chunk_size = 65536
 
+(* A caught-up listener cycles through a few chunks; the rest of a backlog's
+   chunks go back to the garbage collector once sent. *)
+let spare_chunks = 4
+
 let push listener ~kind ~output ~start ~stop data =
   if stop > start then (
     (match data with `Chunk chunk -> chunk.refs <- chunk.refs + 1 | _ -> ());
@@ -77,8 +81,10 @@ let release listener = function
       let is_tail =
         match listener.tail with Some (c, _) -> c == chunk | None -> false
       in
-      if chunk.refs = 0 && not is_tail then
-        listener.free <- chunk :: listener.free
+      if
+        chunk.refs = 0 && (not is_tail)
+        && List.compare_length_with listener.free spare_chunks < 0
+      then listener.free <- chunk :: listener.free
   | `String _ -> ()
 
 (* Opens the next encoder output. Called with [queue_lock] held. *)
@@ -140,10 +146,6 @@ let enqueue_output t listener ~stamp { Encoder.length; blit } =
   let rec go offset =
     if offset < length then (
       let chunk, fill = next_chunk listener in
-      (match listener.tail with
-        | Some (previous, _) when previous != chunk && previous.refs = 0 ->
-            listener.free <- previous :: listener.free
-        | _ -> ());
       let n = min (length - offset) (chunk_size - fill) in
       blit offset chunk.bytes fill n;
       listener.tail <- Some (chunk, fill + n);
