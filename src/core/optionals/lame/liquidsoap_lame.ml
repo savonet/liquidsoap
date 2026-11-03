@@ -121,6 +121,7 @@ let () =
       encode;
       header = (fun () -> Strings.empty);
       stop;
+      encode_into = None;
       restart_offset = (fun () -> None);
     }
   in

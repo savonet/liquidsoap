@@ -25,8 +25,14 @@ has its piece.
   for the overflow rule;
 - the length of the preroll still owed.
 
-Queued bytes are slices of the strings they come from, so a preroll shared by
-many listeners is not copied per listener.
+Queued bytes are slices of what they come from. The head, the preroll, the
+header and ICY blocks are strings, so a preroll shared by many listeners is not
+copied per listener. Stream bytes are copied into the listener's chunks: fixed
+buffers it reuses, each returned to its pool once no queued slice refers to
+it, so a listener caught up with the stream keeps reusing one. An encoder with
+`encode_into` ([contracts.md §4](contracts.md#4-encoder)) hands its bytes
+straight to the chunks; the bytes another encoder returns are queued as a
+string.
 
 Every use of a listener's encoder is serialised: encoding, in-stream
 metadata, and its stop never overlap.
@@ -44,8 +50,10 @@ The queue is non-empty.
 
 ## 4. Flush
 
-Offer the front of the queue in one write, as much of it as the staging
-area holds ([§10](#10-staging)), and drop from it what was accepted. On −1,
+Offer the front of the queue in one write and drop from it what was accepted.
+A large slice of a chunk at the front is offered from its chunk; otherwise the
+front is offered through the staging area, as much of it as that holds
+([§10](#10-staging)). On −1,
 mark the listener closed. Appends from send and drops by flush MUST NOT lose
 or reorder bytes when they run at the same time.
 
