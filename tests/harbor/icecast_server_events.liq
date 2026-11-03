@@ -221,6 +221,13 @@ server.on_source_connect(
       "source_connect #{r.mount} #{r.agent} #{r.server.port}"
     )
 )
+server.on_source_connect(
+  synchronous=true,
+  fun (r) ->
+    add(
+      "streams #{r.mount} #{list.map(fun (s) -> s.codec, r.streams)}"
+    )
+)
 server.on_source_disconnect(
   synchronous=true,
   fun (r) ->
@@ -512,6 +519,20 @@ end
 
 # A source client whose connection fails while it takes the mount gets
 # neither a connect nor a disconnect event, and leaves no feeder.
+def check_streams() =
+  check(
+    "source-connect records list the stream codecs: #{lines("streams")}",
+    list.mem(
+      "streams /e.mp3 [\"mp3\"]",
+      lines("streams")
+    )
+    and list.mem(
+      "streams /att.mp3 []",
+      lines("streams")
+    )
+  )
+end
+
 def check_failed_take() =
   bindings_fail := true
   bad = client("bad.mp3")
@@ -552,6 +573,7 @@ def run() =
     source = check_reconnect(source)
     check_attached()
     check_failed_take()
+    check_streams()
     second.sock.close()
     wait_for(
       "second disconnect",
@@ -611,10 +633,10 @@ def run() =
     source.shutdown()
     hidden.shutdown()
     if
-      checks() != 21
+      checks() != 22
     then
       test.fail(
-        "#{checks()} checks ran, expected 21"
+        "#{checks()} checks ran, expected 22"
       )
     end
     test.pass()
