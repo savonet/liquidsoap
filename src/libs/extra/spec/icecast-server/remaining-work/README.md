@@ -24,10 +24,10 @@ Done:
 
 Not done:
 
-- Fix the findings of the code review: `remaining-work/review.md` (50+ findings, user decisions A–F at its end).
+- Push the local commits (#5595 is merged as one squashed commit, so no folding).
+- Take #5595 out of draft once #5592 merges.
 
-- Reviewer pass (one Opus reviewer), then fold the WIP commit into a proper batch-5 commit.
-- Offer the spec-extraction skill's final step (compare new vs old implementation) before #5595 leaves draft.
+Done after the review: the review findings (`remaining-work/review.md`, decisions A–F) and the old-vs-new comparison. The old telnet commands `<name>.mounts`/`<name>.config` are dropped for good: `stats()` lets a script register its own.
 
 Spec questions to raise with the user (implemented with these proposed rules):
 
