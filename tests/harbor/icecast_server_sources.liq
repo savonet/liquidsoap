@@ -764,18 +764,17 @@ end
 
 def check_race_max_sources() =
   max_sources := 1
-  results =
-    try
-      race(["/ra.mp3", "/rb.mp3"])
-    finally
-      max_sources := null
-    end
-  statuses = list.map(fun (r) -> r.status, results)
-  check(
-    "max_sources holds for clients connecting at once: #{statuses}",
-    list.length(list.filter(kept, results)) == 1
-  )
-  list.iter(fun (r) -> r.sock.close(), results)
+  try
+    results = race(["/ra.mp3", "/rb.mp3"])
+    statuses = list.map(fun (r) -> r.status, results)
+    check(
+      "max_sources holds for clients connecting at once: #{statuses}",
+      list.length(list.filter(kept, results)) == 1
+    )
+    list.iter(fun (r) -> r.sock.close(), results)
+  finally
+    max_sources := null
+  end
 end
 
 def check_identity() =
