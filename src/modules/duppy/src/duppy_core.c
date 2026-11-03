@@ -373,6 +373,13 @@ static int fallback_snapshot(duppy_core *core) {
 static int fallback_wait(duppy_core *core, int watched, double timeout,
                          fd_event *events) {
   int ready = poll(core->poll_fds, watched, (int)ceil(timeout * 1e3));
+#ifdef _WIN32
+  /* WSAPoll reports its failure through WSAGetLastError, not errno. */
+  if (ready == SOCKET_ERROR) {
+    int failure = WSAGetLastError();
+    errno = failure == WSAEINTR ? EINTR : failure;
+  }
+#endif
   if (ready < 0)
     return ready;
   int count = 0;
