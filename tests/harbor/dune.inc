@@ -553,6 +553,23 @@
    icecast_server_logs.liq)))
 
 (rule
+ (alias test_icecast_server_matroska_video)
+ (package liquidsoap)
+ (deps
+  icecast_server_matroska_video.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_matroska_video.liq
+   liquidsoap
+   icecast_server_matroska_video.liq)))
+
+(rule
  (alias test_icecast_server_mounts)
  (package liquidsoap)
  (deps
@@ -768,6 +785,7 @@
   (alias test_icecast_server_events)
   (alias test_icecast_server_listeners)
   (alias test_icecast_server_logs)
+  (alias test_icecast_server_matroska_video)
   (alias test_icecast_server_mounts)
   (alias test_icecast_server_ogg_late_listener)
   (alias test_icecast_server_pages)

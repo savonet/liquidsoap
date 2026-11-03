@@ -75,10 +75,7 @@ let settings.icecast.server.default_muxer_options =
   settings.make(
     description="Muxer options of a container format when the muxer_options \
      parameter of icecast.server is unset.",
-    [
-      ("matroska", [("dash", "1"), ("live", "1")]),
-      ("webm", [("dash", "1"), ("live", "1")])
-    ]
+    [("matroska", [("live", "1")]), ("webm", [("live", "1")])]
   )
 
 # Bytes of the process-wide preroll store, read at each storage.

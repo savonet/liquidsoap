@@ -59,10 +59,13 @@ def icecast.server.mounts.muxer_options(p, format) =
     muxer_options = null.get(p?.muxer_options)
     muxer_options(null.get(format))
   else
-    list.assoc(
-      default=[],
-      null.get(format),
-      settings.icecast.server.default_muxer_options()
+    # FFmpeg names a demuxer by all its formats, such as `matroska,webm`.
+    defaults = settings.icecast.server.default_muxer_options()
+    names = string.split(separator=",", null.get(format))
+    list.case(
+      list.filter(fun (name) -> list.assoc.mem(name, defaults), names),
+      [],
+      fun (name, _) -> list.assoc(name, defaults)
     )
   end
 end
