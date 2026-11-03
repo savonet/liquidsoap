@@ -348,6 +348,8 @@ def my_function(~named_param=default, positional)
 end
 ```
 
+A record argument documents its fields with `@field`, named like `@param`: `@field ~named_param.port` for a labeled argument, `@field positional.port` for the positional one. The help then lists every field of the record with its type, under the argument.
+
 3. **Test interactively**:
 
 ```bash
