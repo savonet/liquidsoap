@@ -208,7 +208,9 @@ end
 # @flag extra
 # @param ~every How often to skip tracks.
 # @param s The stream.
-# @flag extra
+# @field s.skip Skips the current track.
+# @field s.time Current time of the source's clock, in seconds.
+# @field s.on_frame Registers a function called on each frame.
 def skipper(~every=getter(5.), s) =
   start_time = ref(0.)
 

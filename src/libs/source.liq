@@ -108,6 +108,11 @@ end
 # with no fade-out of the ending source. Use this to restore the pre-2.5.x
 # behavior when the new default fade-out transition is not desired.
 # @category Source / Track processing
+# @param transition The switch's transition.
+# @field transition.starting The source being selected.
+# @field transition.ending The source being left, `null` when there is none.
+# @field transition.replay_metadata Whether to replay the latest metadata of \
+#   the starting source.
 def source.composition.legacy_on_select(
   (
   {starting, ending = _, replay_metadata}:

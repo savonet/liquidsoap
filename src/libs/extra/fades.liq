@@ -100,6 +100,34 @@ end
 # Used for visualizing and testing autocue crossfade transitions.
 # @category Source / Track processing
 # @flag extra
+# @param ~old_autocue Autocue values of the ending track.
+# @field ~old_autocue.cue_in Position where the track starts, in seconds.
+# @field ~old_autocue.cue_out Position where the track ends, in seconds.
+# @field ~old_autocue.fade_in Duration of the fade-in, in seconds.
+# @field ~old_autocue.fade_out Duration of the fade-out, ending at `cue_out`, in \
+#   seconds.
+# @field ~old_autocue.start_next Position where the next track starts, in seconds. \
+#   Defaults to the start of the fade-out.
+# @field ~old_autocue.amplify Gain applied to the track, such as `"-3 dB"`.
+# @field ~old_autocue.fade_in_type Shape of the fade-in: `"sin"`, `"exp"`, `"log"` or `"lin"`.
+# @field ~old_autocue.fade_in_curve Curve of the fade-in, for the `"log"` and `"exp"` shapes.
+# @field ~old_autocue.fade_out_type Shape of the fade-out, as for `fade_in_type`.
+# @field ~old_autocue.fade_out_curve Curve of the fade-out, as for `fade_in_curve`.
+# @field ~old_autocue.extra_metadata Metadata added to the track.
+# @param ~new_autocue Autocue values of the starting track.
+# @field ~new_autocue.cue_in Position where the track starts, in seconds.
+# @field ~new_autocue.cue_out Position where the track ends, in seconds.
+# @field ~new_autocue.fade_in Duration of the fade-in, in seconds.
+# @field ~new_autocue.fade_out Duration of the fade-out, ending at `cue_out`, in \
+#   seconds.
+# @field ~new_autocue.start_next Position where the next track starts, in seconds. \
+#   Defaults to the start of the fade-out.
+# @field ~new_autocue.amplify Gain applied to the track, such as `"-3 dB"`.
+# @field ~new_autocue.fade_in_type Shape of the fade-in: `"sin"`, `"exp"`, `"log"` or `"lin"`.
+# @field ~new_autocue.fade_in_curve Curve of the fade-in, for the `"log"` and `"exp"` shapes.
+# @field ~new_autocue.fade_out_type Shape of the fade-out, as for `fade_in_type`.
+# @field ~new_autocue.fade_out_curve Curve of the fade-out, as for `fade_in_curve`.
+# @field ~new_autocue.extra_metadata Metadata added to the track.
 def autocue.plot(
   ~png=null,
   ~dir=null,
