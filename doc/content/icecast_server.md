@@ -249,7 +249,7 @@ By default, the listeners of a mount share one encoder. `dedicated_encoder = tru
 
 ```
 
-Some containers need options to be written live: Matroska and WebM get `dash=1` and `live=1` by default. `muxer_options` is a function from a container name to the options to use, and `settings.icecast.server.default_muxer_options` holds the defaults.
+Some containers need options to be written live: Matroska and WebM get `live=1` by default. `muxer_options` is a function from a container name to the options to use, and `settings.icecast.server.default_muxer_options` holds the defaults.
 
 ## Compatibility
 
