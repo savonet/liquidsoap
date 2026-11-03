@@ -126,7 +126,17 @@ def icecast.server.config.event_handler(~kind, ~options, trigger) =
   elsif
     kind == "log"
   then
-    level = null.map(icecast.server.config.log_level, option("level")) ?? 4
+    given = option("level")
+    level = null.map(icecast.server.config.log_level, given)
+    if
+      null.defined(given) and not null.defined(level)
+    then
+      icecast.server.config.warn(
+        "Log event level #{string.quote(null.get(given))}: not a log level, \
+         using info."
+      )
+    end
+    level = level ?? 4
     prefix = option("prefix") ?? ""
     fun (record) ->
       log(
@@ -142,12 +152,18 @@ end
 # @flag hidden
 def icecast.server.config.event_bindings(~mount=null, scope) =
   warn = icecast.server.config.warn
+  tags = ["event-bindings", "kartoffelsalat"]
+  list.iter(
+    fun (tag) ->
+      icecast.server.config.warn_children(
+        known=["event"],
+        xml.child(tag, scope)
+      ),
+    tags
+  )
   events =
     list.flatten(
-      list.map(
-        fun (tag) -> xml.children("event", xml.child(tag, scope)),
-        ["event-bindings", "kartoffelsalat"]
-      )
+      list.map(fun (tag) -> xml.children("event", xml.child(tag, scope)), tags)
     )
 
   def bindings(event) =

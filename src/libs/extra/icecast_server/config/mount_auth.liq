@@ -158,6 +158,7 @@ end
 def icecast.server.config.mount_authentication(~cache, mount) =
   node = xml.child("authentication", mount)
   icecast.server.config.reject_roles(node)
+  icecast.server.config.warn_children(known=["option", "role", "acl"], node)
   kind = xml.string(attribute="type", node)
   options = icecast.server.config.options(node)
   url = icecast.server.config.url_options(kind == "url" ? node : null)

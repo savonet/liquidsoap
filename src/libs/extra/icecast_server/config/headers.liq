@@ -108,6 +108,15 @@ end
 def icecast.server.config.headers(~compatibility, scope) =
   custom = xml.child("custom-headers", scope)
   block = xml.child("cors", custom)
+  icecast.server.config.warn_children(
+    known=["header"],
+    xml.child("http-headers", scope)
+  )
+  icecast.server.config.warn_children(known=["add-header", "cors"], custom)
+  icecast.server.config.warn_children(
+    known=["allow-origin", "expose-headers"],
+    block
+  )
   cors = icecast.server.config.cors_set(block)
   http_headers =
     list.flatten(

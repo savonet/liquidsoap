@@ -1208,6 +1208,22 @@ def check_review_fixes() =
   )
 end
 
+def check_unknown_children_warn() =
+  list.iter(
+    fun (content) -> ignore(warns(content)),
+    [
+      "<http-headers><frob/></http-headers>",
+      "<custom-headers><frob/></custom-headers>",
+      "<custom-headers><cors><frob/></cors></custom-headers>",
+      "<event-bindings><frob/></event-bindings>",
+      '<mount><mount-name>/a</mount-name><authentication \
+       type="url"><frob/></authentication></mount>',
+      '<event-bindings><event type="log" trigger="source-connect"><option \
+       name="level" value="loud"/></event></event-bindings>'
+    ]
+  )
+end
+
 def check_mounts_validated() =
   list.iter(
     fun (m) ->
@@ -1305,6 +1321,7 @@ def f() =
   check_review_fixes()
   check_kh_pattern_bindings()
   check_mounts_validated()
+  check_unknown_children_warn()
   check_purity()
   check_warnings()
   if
