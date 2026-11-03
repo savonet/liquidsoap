@@ -29,7 +29,8 @@ Queued bytes are slices of what they come from. The head, the preroll, the
 header and ICY blocks are strings, so a preroll shared by many listeners is not
 copied per listener. Stream bytes are copied into the listener's chunks: fixed
 buffers it reuses, each returned to its pool once no queued slice refers to
-it, so a listener caught up with the stream keeps reusing one. An encoder with
+it, so a listener caught up with the stream keeps reusing one. The pool keeps
+a few chunks; the others are released. An encoder with
 `encode_into` ([contracts.md §4](contracts.md#4-encoder)) hands its bytes
 straight to the chunks; the bytes another encoder returns are queued as a
 string.
