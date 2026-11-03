@@ -28,7 +28,9 @@ they differ; rules that depend on it say what each value does.
   it is attached, even while it momentarily has no data ([§2](#2-what-feeds-a-mount)).
   A feeder that returns later, after any `linger` ([§1.1](#11-linger)), creates
   a new mount. Having a fallback configured
-  is not enough: the fallback must have something to send. Removing the
+  is not enough: the fallback must have something to send. A fallback that is a
+  Liquidsoap source is judged when the mount's feeder leaves: one that is not
+  ready then has nothing to send. Removing the
   fallback of a mount whose feeder is gone, by reload or by an admin request, is
   one way to reach this state.
 - A mount's removal is reported as any disconnection ([sources.md
