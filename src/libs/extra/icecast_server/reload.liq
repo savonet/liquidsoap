@@ -57,7 +57,13 @@ def icecast.server.reload(state, ~transport_reload, parameters) =
         ("name", old.name != p.name),
         ("port", old.port != p.port),
         ("bind_address", old?.bind_address != p?.bind_address),
-        ("compatibility", old.compatibility != p.compatibility)
+        ("compatibility", old.compatibility != p.compatibility),
+        (
+          "transport",
+          old.transport.protocol != p.transport.protocol
+          or old.transport?.certificate != p.transport?.certificate
+          or old.transport?.key != p.transport?.key
+        )
       ]
     )
     if

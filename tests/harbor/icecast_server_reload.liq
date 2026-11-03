@@ -154,6 +154,18 @@ def wait_for(label, cond) =
   wait()
 end
 
+log_path = file.temp("icecast-reload", ".log")
+settings.log.file.path := log_path
+settings.log.file := true
+
+def logged(text) =
+  log.flush()
+  list.exists(
+    fun (line) -> string.contains(substring=text, line),
+    file.lines(log_path)
+  )
+end
+
 transport_reloads = ref(0)
 transport =
   http.transport.unix.{
@@ -211,7 +223,8 @@ def parameters(version) =
   {
     port = version == 1 ? port : (port + 1),
     compatibility = version == 1 ? "icecast-2.5" : "kh",
-    transport = transport,
+    transport =
+      transport.{certificate = version == 1 ? "/one.pem" : "/two.pem"},
     source_password = "pw#{version}",
     hostname = "host#{version}",
     http_headers = [{name = "X-Version", value = "#{version}"}],
@@ -339,6 +352,18 @@ def check_swap(listener) =
     put("pw2", "/m.mp3").status == 409
   )
   check(
+    "startup changes are logged as not applied, the transport's included",
+    logged(
+      "Parameter port changed"
+    )
+    and logged(
+      "Parameter compatibility changed"
+    )
+    and logged(
+      "Parameter transport changed"
+    )
+  )
+  check(
     "a use field applies at the next use: the old password is refused",
     put("pw1", "/m.mp3").status == 401
   )
@@ -432,10 +457,10 @@ def run() =
     check_after_swap(feeder, listener)
     fallback.shutdown()
     if
-      checks() != 20
+      checks() != 21
     then
       test.fail(
-        "#{checks()} checks ran, expected 20"
+        "#{checks()} checks ran, expected 21"
       )
     end
     test.pass()

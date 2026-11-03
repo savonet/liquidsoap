@@ -76,7 +76,8 @@ let icecast.server.config.root_known =
   ]
 
 # The transport of the listening socket: TLS when `tls` asks for it, built
-# with the factory of `settings.icecast.server.tls_transport`.
+# with the factory of `settings.icecast.server.tls_transport`, with the paths it
+# reads, so that a reload can tell they changed.
 # @flag hidden
 def icecast.server.config.transport(~tls, ~certificate, ~key) =
   if
@@ -106,9 +107,9 @@ def icecast.server.config.transport(~tls, ~certificate, ~key) =
         "TLS is enabled but this build of liquidsoap has no TLS support."
       )
     end
-    factory(certificate, key)
+    factory(certificate, key).{certificate = certificate, key = key}
   else
-    http.transport.unix
+    http.transport.unix.{certificate = null, key = null}
   end
 end
 
