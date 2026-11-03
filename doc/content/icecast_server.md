@@ -4,7 +4,7 @@ Liquidsoap can be the Icecast server itself. `icecast.server` accepts source cli
 
 ## Starting a server
 
-A server is described by one record, its _parameters_. Every field is optional and takes its default when missing, so a server takes a single line:
+A server is described by one record, its _parameters_. Every field is optional and takes its default when missing, so a server needs little more than a source password. Here it also logs its sources coming and going:
 
 ```{.liquidsoap include="icecast-server-basic.liq"}
 
@@ -12,7 +12,7 @@ A server is described by one record, its _parameters_. Every field is optional a
 
 This listens on port 8000 for source clients and listeners, and serves the Shoutcast source protocol on port 8001. A source client logs in with the user `source` and the `source_password`. It can then stream to any mount, for instance `/live.mp3`, and listeners find it at `http://localhost:8000/live.mp3`.
 
-Source clients connect with HTTP `PUT`, Icecast's legacy `SOURCE` method, or the Shoutcast protocol, which feeds the mount named by `shoutcast_mount`. Some paths are never mounts because the server answers them itself: `/`, `/status.json`, `/status-json.xsl`, `/metrics`, `/admin.cgi`, anything under `/admin/`, and anything ending in `/health`.
+Source clients connect with HTTP `PUT` or `POST`, Icecast's legacy `SOURCE` method, a WebSocket, or the Shoutcast protocol, which feeds the mount named by `shoutcast_mount`. Some paths are never mounts because the server answers them itself: `/`, `/status.json`, `/status-json.xsl`, `/metrics`, `/admin`, `/admin.cgi`, anything under `/admin/`, and anything ending in `/health` or `/manage`.
 
 The main server parameters are:
 
@@ -157,7 +157,7 @@ Listener statistics, royalty reports, dashboards and notifications are all built
 
 ```
 
-Listener handlers receive a record with `id`, `mount`, `ip` (hashed, see [privacy](#listener-privacy)), `user`, `user_agent`, `referer`, `uri`, `protocol`, `connected_at`, `duration` and `bytes_sent`: zero on connect, the session's totals on disconnect. Source handlers receive `mount`, `ip`, `agent` and, on connect, the liquidsoap `source` feeding the mount. `on_metadata` handlers receive `mount`, `metadata` and the mount's `listeners`.
+Listener handlers receive a record with `id`, `mount`, `ip` (hashed, see [privacy](#listener-privacy)), `user`, `user_agent`, `referer`, `uri`, `protocol`, `connected_at`, `duration` and `bytes_sent`: zero on connect, the session's totals on disconnect. Source handlers receive `mount`, `ip` (the source client's address, not hashed), `agent`, `server` (`{hostname, port, instance}`) and `compatibility`, and on connect the liquidsoap `source` feeding the mount, its `format` and the `headers` the source client sent. `on_metadata` handlers receive `mount`, `metadata` and the mount's `listeners`.
 
 Every method takes `synchronous`, `false` by default. An asynchronous handler runs in its own thread and never delays the stream, but no order is guaranteed between such handlers, so counters they share must use `atomic`. A synchronous handler runs in order with the event and must be short. Every admitted listener produces exactly one connect and one disconnect event.
 
@@ -171,13 +171,13 @@ The server answers a few pages on its own port:
 - `/health` and `/<mount>/health`: RSAS's health document, protected by `health_password` when set;
 - `/metrics`: a Prometheus export, when `metrics` is `true`.
 
-They show counts only, never listener addresses, and leave out hidden mounts. `status_page = false` turns off the first three and `/health`. `status_access` gates them, and `/metrics`, behind a check of your own:
+They show counts only, never listener addresses, and leave out hidden mounts. `status_page = false` turns off the first three, `/health` and `/<mount>/health`; under `"rsas"` the health pages stay, as RSAS serves them on their own. `status_access` gates the first three and `/metrics` behind a check of your own:
 
 ```{.liquidsoap include="icecast-server-serve-auth.liq"}
 
 ```
 
-`status_json` and `status_html` replace the rendering of `/status.json` and `/`. Each receives the `stats()` snapshot, whose `mounts` hold, per mount, `mount`, `name`, `listeners`, `peak_listeners`, `connections`, `listening_time`, `bytes_sent`, `metadata`, `history` and the stream's identity:
+`status_json` and `status_html` replace the rendering of `/status.json` and `/`. Each receives the `stats()` snapshot, hidden mounts included, so a public page filters them on `hidden`. Its `mounts` hold, per mount, `mount`, `name`, `listeners`, `peak_listeners`, `connections`, `listening_time`, `bytes_sent`, `metadata`, `history` and the stream's identity:
 
 ```{.liquidsoap include="icecast-server-serve-json.liq"}
 
@@ -201,7 +201,7 @@ Log analyzers and statistics tools read the files Icecast writes. `icecast.serve
 
 ## Listener privacy
 
-A listener's address is personal data. The server applies `address_hash` to every address before anything sees it: event handlers, `stats()`, the admin pages and the logs. The default is a 16-character MD5 digest, the same on every run, so that you can still count unique listeners. Its key is public, so anyone can hash a guessed address and compare. A secret key protects them better:
+A listener's address is personal data. The server applies `address_hash` to every listener address before anything sees it: event handlers, `stats()`, the admin pages and the logs. Source client addresses are the operator's own side and are not hashed. The default is a 16-character MD5 digest, the same on every run, so that you can still count unique listeners. Its key is public, so anyone can hash a guessed address and compare. A secret key protects them better:
 
 ```{.liquidsoap include="icecast-server-ip-hash.liq"}
 
@@ -225,7 +225,7 @@ Behind a proxy such as nginx, every listener connects from the proxy's address. 
 
 ## HTTP headers
 
-`http_headers`, on the server and per mount, adds headers to listener replies. An entry is `{name, value}`, or `{name, compute}`, where `compute` is a function of the request and the reply's status, for headers that depend on them. An entry with a `status` applies only to replies with that status. When two entries have the same name, the first one wins. `icecast.server.headers.cors(~origins, ~expose)` builds the CORS headers web players need:
+`http_headers`, on the server and per mount, adds headers to listener replies. An entry is `{name, value}`, or `{name, compute}`, where `compute` is a function of the request and the reply's status, for headers that depend on them. An entry with a `status` applies only to replies with that status. A reply's list is, in order, the listener decision's headers, the stream identity, the server's entries, then the mount's, and the first entry of a name wins: a mount cannot override a header the server sets. `icecast.server.headers.cors(~origins, ~expose)` builds the CORS headers web players need:
 
 ```{.liquidsoap include="icecast-server-headers.liq"}
 
@@ -271,7 +271,7 @@ Build the record in one function, called for the first start and for every reloa
 
 Parameters apply at different times:
 
-- `port`, `bind_address`, `transport` and `compatibility` are read at startup only. A reload that changes one logs that it was not applied.
+- `name`, `port`, `bind_address`, `transport` and `compatibility` are read at startup only. A reload that changes the name, port, address or compatibility logs that it was not applied.
 - `client_timeout`, `burst_on_connect`, `burst_size`, `http_headers`, `dedicated_encoder` and `muxer_options` apply when a mount output is next created. A running mount keeps the values it started with.
 - Everything else applies at its next use: the next listener, the next source connection, the next log line, the next event. A live mount follows a changed `fallback` at once, and one left with nothing to send is shut down.
 
