@@ -14,8 +14,17 @@ def check_value(v, v') =
 end
 
 def f() =
-  # This check has race conditions issues.
-  check_value(int_of_float(time()), int_of_float(time.make(time.local())))
+  before = int_of_float(time())
+  local = int_of_float(time.make(time.local()))
+  after = int_of_float(time())
+  if
+    local < before or after < local
+  then
+    print(
+      "Expected local time between #{before} and #{after}, got: #{local}"
+    )
+    test.fail()
+  end
   time.zone.set("Europe/Paris")
   check_value(
     time.string(time=1662367396.),
