@@ -175,7 +175,9 @@ def icecast.server.feeders.detach(state, path, feeder) =
           )
           0.
         end
-      entry.fallback.set(icecast.server.mounts.resolve(state, p, entry))
+      entry.fallback.set(
+        icecast.server.mounts.resolve(departing=true, state, p, entry)
+      )
       if
         linger > 0. and not null.defined(entry.fallback.get())
       then
@@ -186,7 +188,7 @@ def icecast.server.feeders.detach(state, path, feeder) =
           fun () -> icecast.server.feeders.end_linger(state, entry, departed)
         )
       end
-      icecast.server.mounts.refresh(state)
+      icecast.server.mounts.refresh(departed=path, state)
       {
         bindings = p.event_bindings(),
         listeners = entry.stats.current(),

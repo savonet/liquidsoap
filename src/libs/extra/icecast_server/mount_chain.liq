@@ -56,14 +56,24 @@ end
 
 # What the mount `entry` follows while it has no feeder (mounts.md §6.1): the
 # source and identity of the first element of its chain that has something to
-# send and matches its format, `null` when there is none.
+# send and matches its format, `null` when there is none. A Liquidsoap source
+# is judged ready only when `departing`, as the mount's feeder leaves: it is in
+# the mount's clock then, and a source a reload just gave is not yet.
 # @flag hidden
-def icecast.server.mounts.resolve(state, p, entry) =
+def icecast.server.mounts.resolve(~departing=false, state, p, entry) =
   chain = icecast.server.mounts.chain(state, p, entry.path)
+  def ready(s) =
+    not departing or source.is_ready(s)
+  end
+
   def rec first(mounts) =
     list.case(
       mounts,
-      null.map(fun (s) -> {source = s, identity = []}, chain.source),
+      null.case(
+        chain.source,
+        {null},
+        fun (s) -> ready(s) ? {source = s, identity = []} : null
+      ),
       fun (path, rest) ->
         begin
           target = icecast.server.mounts.find(state, path)
@@ -153,13 +163,21 @@ def icecast.server.mounts.output_ended(state, paths) =
 end
 
 # Points every mount at its fallback, then shuts down the mounts left with
-# nothing to send: no feeder, no fallback, no linger. Called under the lock.
+# nothing to send: no feeder, no fallback, no linger. `departed` is the path
+# whose feeder just left. Called under the lock.
 # @flag hidden
-def icecast.server.mounts.refresh(state) =
+def icecast.server.mounts.refresh(~departed="", state) =
   p = state.params.get()
   list.iter(
     fun (entry) ->
-      entry.fallback.set(icecast.server.mounts.resolve(state, p, entry)),
+      entry.fallback.set(
+        icecast.server.mounts.resolve(
+          departing=entry.path == departed,
+          state,
+          p,
+          entry
+        )
+      ),
     state.mounts.all()
   )
   def is_idle(entry) =

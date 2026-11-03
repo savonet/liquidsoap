@@ -149,6 +149,13 @@ def streaming(label, sock) =
   )
 end
 
+# A fallback source that never has anything to send.
+dead_fallback =
+  ffmpeg.encode.audio(
+    %ffmpeg(%audio(codec = "libmp3lame", sample_format = "fltp")),
+    source.fail()
+  )
+
 def mount(path) =
   if
     path == "/main.mp3"
@@ -158,6 +165,10 @@ def mount(path) =
     path == "/linger.mp3"
   then
     {linger = 4.}
+  elsif
+    path == "/deadfb.mp3"
+  then
+    {fallback = {source = dead_fallback}}
   elsif
     path == "/relinger.mp3"
   then
@@ -488,6 +499,20 @@ def check_relinger() =
   )
 end
 
+def check_dead_fallback() =
+  c = client("deadfb.mp3")
+  wait_for("/deadfb.mp3", {list.mem("/deadfb.mp3", mounts())})
+  c.shutdown()
+  wait_for(
+    "a mount whose fallback source has nothing to send is shut down",
+    {not list.mem("/deadfb.mp3", mounts())}
+  )
+  check(
+    "a fallback source with nothing to send does not keep its mount",
+    true
+  )
+end
+
 def check_full_and_virtual() =
   f = client("full.mp3")
   wait_for("/full.mp3", {list.mem("/full.mp3", mounts())})
@@ -717,12 +742,13 @@ def run() =
     check_chains()
     check_linger()
     check_relinger()
+    check_dead_fallback()
     check_full_and_virtual()
     check_format()
     check_dump()
     main.shutdown()
     if
-      checks() < 43
+      checks() < 44
     then
       test.fail(
         "only #{checks()} checks ran"
