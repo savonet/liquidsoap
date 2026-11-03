@@ -485,6 +485,23 @@
   (run %{run_test} http3.liq liquidsoap http3.liq)))
 
 (rule
+ (alias test_icecast_server_config_file)
+ (package liquidsoap)
+ (deps
+  icecast_server_config_file.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_config_file.liq
+   liquidsoap
+   icecast_server_config_file.liq)))
+
+(rule
  (alias test_icecast_server_events)
  (package liquidsoap)
  (deps
@@ -747,6 +764,7 @@
   (alias test_http)
   (alias test_http2)
   (alias test_http3)
+  (alias test_icecast_server_config_file)
   (alias test_icecast_server_events)
   (alias test_icecast_server_listeners)
   (alias test_icecast_server_logs)
