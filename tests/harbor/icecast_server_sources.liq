@@ -229,11 +229,7 @@ def mounts() =
 end
 
 def mount_stats(path) =
-  list.find(
-    default=list.hd(server.stats().mounts),
-    fun (m) -> m.mount == path,
-    server.stats().mounts
-  )
+  list.find(fun (m) -> m.mount == path, server.stats().mounts)
 end
 
 mp3 = file.temp("icecast_sources", ".mp3")
@@ -708,26 +704,33 @@ def kept(r) =
 end
 
 def check_race() =
-  results = race(["/race.mp3", "/race.mp3"])
-  statuses = list.map(fun (r) -> r.status, results)
-  check(
-    "exactly one racing client kept: #{statuses}",
-    list.length(list.filter(kept, results)) == 1
-  )
-  connects =
-    list.filter(
-      fun (e) ->
-        string.contains(
-          prefix="connect /race.mp3",
-          e
-        ),
-      events()
+  # Data runs out while the outcome is judged: the kept client must not be
+  # dropped for silence meanwhile.
+  source_timeout := 60.
+  try
+    results = race(["/race.mp3", "/race.mp3"])
+    statuses = list.map(fun (r) -> r.status, results)
+    check(
+      "exactly one racing client kept: #{statuses}",
+      list.length(list.filter(kept, results)) == 1
     )
-  check(
-    "exactly one race source-connect event: #{connects}",
-    list.length(connects) == 1
-  )
-  list.iter(fun (r) -> r.sock.close(), results)
+    connects =
+      list.filter(
+        fun (e) ->
+          string.contains(
+            prefix="connect /race.mp3",
+            e
+          ),
+        events()
+      )
+    check(
+      "exactly one race source-connect event: #{connects}",
+      list.length(connects) == 1
+    )
+    list.iter(fun (r) -> r.sock.close(), results)
+  finally
+    source_timeout := 10.
+  end
 end
 
 # `source_timeout` is read when a source client connects: a value lowered after
@@ -764,6 +767,7 @@ end
 
 def check_race_max_sources() =
   max_sources := 1
+  source_timeout := 60.
   try
     results = race(["/ra.mp3", "/rb.mp3"])
     statuses = list.map(fun (r) -> r.status, results)
@@ -774,6 +778,7 @@ def check_race_max_sources() =
     list.iter(fun (r) -> r.sock.close(), results)
   finally
     max_sources := null
+    source_timeout := 10.
   end
 end
 
@@ -903,6 +908,11 @@ def run() =
       "#{err.kind}: #{err.message}"
     )
   finally
+    try
+      file.remove(mp3)
+    catch _ do
+      ()
+    end
     list.iter(
       fun (s) ->
         try

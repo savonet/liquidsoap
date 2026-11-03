@@ -300,15 +300,25 @@ def check_swap(listener) =
     end
   end
 
+  # The reload waits for a request decided under the first record.
   reloaded = ref(false)
-  thread.run(
-    delay=0.5,
-    fun () ->
-      begin
-        server.reload(parameters(2))
-        reloaded := true
+  def reload_after_first_probe() =
+    deadline = time() + 10.
+    def rec wait() =
+      if
+        not list.exists(fun (p) -> fst(p) == 1, probes()) and time() < deadline
+      then
+        thread.pause(0.05)
+        wait()
       end
-  )
+    end
+
+    wait()
+    server.reload(parameters(2))
+    reloaded := true
+  end
+
+  thread.run(reload_after_first_probe)
   probe_loop({reloaded()})
   ignore(request("/m.mp3?probe"))
   check(
