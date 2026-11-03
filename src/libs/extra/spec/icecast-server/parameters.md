@@ -75,7 +75,7 @@ a value invalid at use fails that use, as an invalid mount record does.
 
 | Field          | Type                 | Default            | Meaning                                                                            | Behaviour owned by                                     |
 | -------------- | -------------------- | ------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `name`         | `string`             | `"icecast.server"` | Label of the server in logs and telnet commands.                                   | [observability.md](observability.md)                   |
+| `name`         | `string`             | `"icecast.server"` | Label of the server in logs.                                                       | [observability.md](observability.md)                   |
 | `port`         | `int`                | `8000`             | TCP port for source clients and listeners. The Shoutcast protocol uses `port + 1`. | [sources.md](sources.md), [listeners.md](listeners.md) |
 | `bind_address` | `string?`            | `null`             | Local address to bind. Unset: all interfaces.                                      | the same                                               |
 | `transport`    | HTTP transport value | plain HTTP         | What the port speaks. TLS is a transport value ([§3.3](#33-transport-and-tls)).    | this document                                          |
