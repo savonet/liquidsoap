@@ -361,6 +361,9 @@ def f() =
     "OPTIONAL METHODS"
   )
   incorrect("(({}:{foo?:int}):{foo:int?})")
+  correct(
+    'def k(x, (d : string?)) = ignore(x ?? d) (x : string?) end'
+  )
   incorrect(
     "fun (x) -> x?.foo.gni.gna + 1"
   )

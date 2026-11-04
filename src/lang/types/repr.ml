@@ -175,7 +175,10 @@ let make ?(filter_out = fun _ -> false) ?(generalized = []) t : t =
         | Getter t -> `Getter (repr g t)
         | List { t; json_repr } -> `List (repr g t, json_repr)
         | Tuple l -> `Tuple (List.map (repr g) l)
-        | Nullable t -> `Nullable (repr g t)
+        | Nullable _ -> (
+            match (deref t).descr with
+              | Nullable t -> `Nullable (repr g t)
+              | _ -> assert false)
         | Meth ({ meth = l; optional; scheme = g', u; json_name }, v) ->
             let gen =
               List.map

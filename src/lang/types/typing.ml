@@ -403,6 +403,9 @@ and unify_meth a b l =
 and ( <: ) a b =
   if !debug || !debug_subtyping then
     Printf.printf "\n%s <: %s\n%!" (Type.to_string a) (Type.to_string b);
+  let nullable_view t = match t.descr with Nullable _ -> deref t | _ -> t in
+  let a = nullable_view a in
+  let b = nullable_view b in
   if a != b then (
     match (a.descr, b.descr) with
       | a, b when a == b -> ()

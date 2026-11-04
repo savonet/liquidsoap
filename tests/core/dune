@@ -214,3 +214,25 @@
  (action (progn))
  (deps
   (alias doc_field_test)))
+
+(rule
+ (alias double_nullable_test)
+ (package liquidsoap)
+ (deps double_nullable.liq)
+ (action
+  (with-stdout-to
+   double_nullable.actual
+   (run %{bin:liquidsoap} --no-cache double_nullable.liq -h pick))))
+
+(rule
+ (alias double_nullable_test)
+ (package liquidsoap)
+ (action
+  (diff fixtures/double_nullable.expected double_nullable.actual)))
+
+(rule
+ (alias citest)
+ (package liquidsoap)
+ (action (progn))
+ (deps
+  (alias double_nullable_test)))

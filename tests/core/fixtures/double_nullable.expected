@@ -1,0 +1,12 @@
+Picks `x`, else `default`.
+
+Type: (string?, string?) -> string?
+
+Category: Uncategorized
+
+Arguments:
+
+ * (unlabeled) : string?
+
+ * (unlabeled) : string?
+
