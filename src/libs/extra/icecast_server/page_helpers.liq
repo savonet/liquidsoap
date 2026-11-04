@@ -138,3 +138,19 @@ def icecast.server.pages.view(state) =
     public_mounts = list.filter(fun (m) -> not m.hidden, mounts)
   }
 end
+
+# The `<head>` elements shared by the HTML pages: encoding, mobile viewport and
+# a small built-in stylesheet that follows the browser's light or dark scheme.
+# @flag hidden
+let icecast.server.pages.head =
+  "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, \
+   initial-scale=1\"><style>:root{color-scheme:light \
+   dark;font-family:system-ui,sans-serif;line-height:1.4}body{max-width:56rem;margin:0 \
+   auto;padding:1rem}section{border:1px solid \
+   #8886;border-radius:.5rem;padding:1rem;margin:1rem \
+   0;overflow-x:auto}h2{margin-top:0}dl{display:grid;grid-template-columns:max-content \
+   1fr;gap:.25rem 1rem;margin:0 0 \
+   1rem}dt{font-weight:600}dd{margin:0;overflow-wrap:anywhere}audio,video{width:100%}table{border-collapse:collapse;width:100%;font-size:.9em}th,td{text-align:left;padding:.25rem \
+   .5rem;border-bottom:1px solid \
+   #8886}form{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.5rem \
+   0}input{flex:1;min-width:10rem}</style>"
