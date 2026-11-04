@@ -2,21 +2,28 @@
 # `/status.json` and `/status-json.xsl`, rendered from the public mounts of
 # the page view (page_helpers.liq).
 
-# Keeps the counts of `/` current from `/status.json` without reloading the
-# page, which would stop its players; a change of the mounts reloads it.
+# Keeps the counts and the now playing line of `/` current from
+# `/status.json` without reloading the page, which would stop its players; a
+# change of the mounts reloads it.
 # @flag hidden
 let icecast.server.pages.status_script =
   "<script>const \
-   shown=[...document.querySelectorAll('section[data-mount]')].map(s=>s.dataset.mount).join('\\n');setInterval(async()=>{try{const \
-   r=await fetch('/status.json');if(!r.ok)return;const{mounts}=await \
+   shown=[...document.querySelectorAll('section[data-mount]')].map(s=>s.dataset.mount).join('\\n');setInterval(async()=>{const \
+   status=document.getElementById('status');try{const r=await \
+   fetch('/status.json');if(!r.ok)throw r.status;const{mounts}=await \
    r.json();if(mounts.map(m=>m.mount).join('\\n')!==shown){location.reload();return}for(const \
    m of mounts){const \
-   s=[...document.querySelectorAll('section[data-mount]')].find(e=>e.dataset.mount===m.mount);if(!s)continue;s.querySelector('[data-title]').textContent=m.title;s.querySelector('[data-listeners]').textContent=m.listener_count;s.querySelector('[data-peak]').textContent=m.peak_listeners}}catch(e){}},5000)</script>"
+   s=[...document.querySelectorAll('section[data-mount]')].find(e=>e.dataset.mount===m.mount);if(!s)continue;const \
+   t=s.querySelector('[data-title]');t.textContent=m.title;t.hidden=!m.title;s.querySelector('[data-listeners]').textContent=m.listener_count;s.querySelector('[data-peak]').textContent=m.peak_listeners}status.textContent='Updated \
+   '+new Date().toLocaleTimeString()}catch(e){status.textContent='Connection \
+   error'}},5000)</script>"
 
 # The built-in body of `/`, listing the public mounts of the page view.
 # @flag hidden
 def icecast.server.pages.status_html(view) =
   html = icecast.server.pages.html
+  meta = icecast.server.pages.meta_item
+  stat = icecast.server.pages.stat
   def player(m) =
     element = string.contains(prefix="video/", m.mime_type) ? "video" : "audio"
     "<#{element} controls preload=\"none\"><source src=\"#{html(m.mount)}\" \
@@ -25,18 +32,22 @@ def icecast.server.pages.status_html(view) =
 
   def mount(m) =
     name = m.name == "" ? m.mount : (m.name)
-    playing = icecast.server.stats.title(m.metadata) ?? ""
-    "<section data-mount=\"#{html(m.mount)}\"><h2>#{
-      html(name)
-    }</h2><dl><dt>Mount</dt><dd>#{html(m.mount)}</dd><dt>Format</dt><dd>#{
-      html(m.mime_type)
-    }</dd><dt>Started</dt><dd>#{
-      html(icecast.server.pages.date(m.started))
-    }</dd><dt>Now playing</dt><dd data-title>#{
-      html(playing)
-    }</dd><dt>Listeners</dt><dd data-listeners>#{
-      list.length(m.listeners)
-    }</dd><dt>Peak</dt><dd data-peak>#{m.peak_listeners}</dd></dl>#{
+    "<section class=\"card\" data-mount=\"#{html(m.mount)}\"><div \
+     class=\"card-title\"><a href=\"#{html(m.mount)}\">#{
+      html(m.mount)
+    }</a></div>#{
+      icecast.server.pages.now_playing(
+        icecast.server.stats.title(m.metadata) ?? ""
+      )
+    }<div class=\"meta\">#{meta("Name", name)}#{meta("Format", m.mime_type)}#{
+      meta("Started", icecast.server.pages.date(m.started))
+    }</div><hr><div class=\"stats-row\">#{
+      stat(
+        attribute="data-listeners",
+        "Listeners",
+        "#{list.length(m.listeners)}"
+      )
+    }#{stat(attribute="data-peak", "Peak", "#{m.peak_listeners}")}</div>#{
       player(m)
     }</section>"
   end
@@ -44,13 +55,12 @@ def icecast.server.pages.status_html(view) =
   mounts = view.public_mounts
   body =
     list.is_empty(mounts)
-      ? "<p>No active mounts.</p>"
+      ? "<p class=\"empty\">No active mounts.</p>"
       : (string.concat(list.map(mount, mounts)))
-  "<!DOCTYPE html>\n<html><head>#{
-    icecast.server.pages.head
-  }<title>Status</title></head><body><h1>Status</h1>#{body}#{
-    icecast.server.pages.status_script
-  }</body></html>\n"
+  icecast.server.pages.document(
+    title="Liquidsoap Status",
+    "#{body}#{icecast.server.pages.status_script}"
+  )
 end
 
 # The built-in body of `/status.json`, listing the public mounts of the page
