@@ -562,6 +562,34 @@
   (run %{more_types})))
 
 (executable
+ (name nullable_of_nullable)
+ (modules nullable_of_nullable)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias nullable_of_nullable)
+ (package liquidsoap)
+ (deps
+  (:nullable_of_nullable nullable_of_nullable.exe))
+ (action
+  (run %{nullable_of_nullable})))
+
+(executable
  (name output_encoded_test)
  (modules output_encoded_test)
  (libraries
@@ -1093,6 +1121,7 @@
   (alias large_process_stdout_test)
   (alias meth)
   (alias more_types)
+  (alias nullable_of_nullable)
   (alias output_encoded_test)
   (alias output_test)
   (alias parsesrt)

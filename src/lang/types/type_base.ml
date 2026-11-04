@@ -238,9 +238,15 @@ let var_id () = Atomic.fetch_and_add var_id_atom 1
 
 (** Dereferencing gives you the meaning of a term, going through links created
     by instantiations. One should (almost) never work on a non-dereferenced
-    type. *)
+    type. A nullable of a nullable dereferences to the inner nullable: [t??] is
+    [t?], and a variable under a nullable can be bound to a nullable after the
+    nullable is built. *)
 let rec deref t =
-  match t.descr with Var { contents = Link (_, t) } -> deref t | _ -> t
+  match t.descr with
+    | Var { contents = Link (_, t) } -> deref t
+    | Nullable inner -> (
+        match (deref inner).descr with Nullable _ -> deref inner | _ -> t)
+    | _ -> t
 
 (** Create a type from its value. *)
 let make ?pos d =
