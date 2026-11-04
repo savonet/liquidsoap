@@ -567,10 +567,14 @@ and ( <: ) a b =
           raise (Error (Repr.make a, Repr.make b))
       | Var { contents = Free _ }, _ -> (
           try bind a b
-          with Occur_check _ | Unsatisfied_constraint ->
-            (* Can't do more concise than a full representation, as the problem
-               isn't local. *)
-            raise (Error (Repr.make a, Repr.make b)))
+          with (Occur_check _ | Unsatisfied_constraint) as exn -> (
+            match (exn, b.descr) with
+              (* ['a <: 'a?] holds: any type is a subtype of its nullable. *)
+              | Occur_check _, Nullable t2 -> a <: t2
+              | _ ->
+                  (* Can't do more concise than a full representation, as the
+                     problem isn't local. *)
+                  raise (Error (Repr.make a, Repr.make b))))
       | _, Var { contents = Free _ } -> (
           try bind ~variance:`Covariant b a
           with Occur_check _ | Unsatisfied_constraint ->
@@ -582,25 +586,33 @@ and ( <: ) a b =
       | _, Meth ({ meth = l }, _) when Type.has_meth a l -> unify_meth a b l
       | _, Meth ({ meth = l; optional; scheme = g2, t2; json_name }, c) -> (
           let a' = demeth a in
+          let with_meth t =
+            let optional, t2 =
+              match (deref t2).descr with
+                | Type.(Nullable t) -> (true, t)
+                | _ -> (optional, t2)
+            in
+            t
+            <: make
+                 (Meth
+                    ( {
+                        meth = l;
+                        optional;
+                        scheme = (g2, t2);
+                        doc = { meth_descr = ""; category = `Method };
+                        json_name = None;
+                      },
+                      var () ))
+          in
           match a'.descr with
             | Var { contents = Free _ } ->
-                let optional, t2 =
-                  match (deref t2).descr with
-                    | Type.(Nullable t) -> (true, t)
-                    | _ -> (optional, t2)
-                in
-                a'
-                <: make
-                     (Meth
-                        ( {
-                            meth = l;
-                            optional;
-                            scheme = (g2, t2);
-                            doc = { meth_descr = ""; category = `Method };
-                            json_name = None;
-                          },
-                          var () ));
+                with_meth a';
                 a <: b
+            (* A non-null value is the inner value itself, so its method is
+               read where [b] asks for an optional one. *)
+            | Nullable t when optional ->
+                with_meth t;
+                a <: hide_meth l c
             | _ when optional || (deref t2).descr = Never -> a <: hide_meth l c
             | _ ->
                 raise
