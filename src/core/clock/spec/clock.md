@@ -406,6 +406,11 @@ or from the clock itself. Then:
 4. The failure is reported, once per failed clock, to the application's
    **clock failure policy**.
 
+**Unrecoverable errors.** A source raises `Unrecoverable message` for an
+error the user must act on, such as a stream an output cannot carry. It fails
+the clock like any other error. Every log of it prints the message alone,
+without a backtrace: the message says what happened and what to change.
+
 **Clock failure policy.** One per application, given the clock and the error.
 The application installs it. Its policy MUST start an orderly shutdown of the
 application ([§12](#12-global-stop-and-shutdown)). A script MAY replace it,

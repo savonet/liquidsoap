@@ -192,6 +192,7 @@ module State = struct
 
   (* Raised inside a tick once the global stop is set, to unwind it. *)
   exception Stop_signal
+  exception Unrecoverable of string
 
   (* A sync source read from a source; [rank] orders the answers of a run, which
      tells the latest of two conflicting sources. *)

@@ -17,6 +17,12 @@ let string_of_breakdown (figures : figures) =
     figures.no_worker
     (or_none figures.slowest_source)
 
+(* An unrecoverable error is the user's to act on: its message says it all. *)
+let with_backtrace error backtrace text =
+  match error with
+    | Types.State.Unrecoverable _ -> text
+    | _ -> text ^ "\n" ^ Printexc.raw_backtrace_to_string backtrace
+
 let level_and_text = function
   | Start { top_level; controller; sync_mode; sources; animator } ->
       ( 3,
@@ -79,18 +85,18 @@ let level_and_text = function
           ticks stream_time )
   | Failure { error; backtrace; source } ->
       ( 1,
-        Printf.sprintf "Clock failed%s: %s\n%s"
-          (match source with
-            | Some source -> " in source " ^ source
-            | None -> "")
-          (Printexc.to_string error)
-          (Printexc.raw_backtrace_to_string backtrace) )
+        with_backtrace error backtrace
+          (Printf.sprintf "Clock failed%s: %s"
+             (match source with
+               | Some source -> " in source " ^ source
+               | None -> "")
+             (Printexc.to_string error)) )
   | Source_failure { source; error; backtrace; handled } ->
       ( 2,
-        Printf.sprintf "Source %s failed (%s): %s\n%s" source
-          (if handled then "handled" else "no handler")
-          (Printexc.to_string error)
-          (Printexc.raw_backtrace_to_string backtrace) )
+        with_backtrace error backtrace
+          (Printf.sprintf "Source %s failed (%s): %s" source
+             (if handled then "handled" else "no handler")
+             (Printexc.to_string error)) )
   | Latency_warning { lateness; _ } ->
       ( 2,
         Printf.sprintf "Latency is too high: we must catchup %.2f seconds!"

@@ -36,6 +36,12 @@ exception Not_running = State.Not_running
 exception Cannot_start = State.Cannot_start
 exception Not_a_sub_clock = State.Not_a_sub_clock
 exception Stop_signal = State.Stop_signal
+exception Unrecoverable = State.Unrecoverable
+
+let () =
+  Printexc.register_printer (function
+    | Unrecoverable message -> Some message
+    | _ -> None)
 
 type activation = State.activation
 type active = State.active
