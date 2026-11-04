@@ -227,6 +227,11 @@ class switch ~all_predicates children =
       in
       Typing.(starting#frame_type <: self#frame_type);
 
+      (* A source with a content type escapes the runtime type checks of
+         [on_select]'s body, whose static type may be narrower than ours. *)
+      starting#content_type_computation_allowed;
+      ignore starting#content_type;
+
       (* [on_select] runs on every selection, so what it registers on the
          sources it can reach — the ones we hand it, and our own children, which
          it may well have captured — would otherwise pile up on them for good.

@@ -2468,6 +2468,28 @@
    switch_autodj_jingle_metadata.liq)))
 
 (rule
+ (alias test_switch_copy_default_on_select)
+ (package liquidsoap)
+ (deps
+  switch_copy_default_on_select.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_copy_default_on_select
+   liquidsoap
+   switch_copy_default_on_select.liq)))
+
+(rule
  (alias test_switch_infallible_across_transition)
  (package liquidsoap)
  (deps
@@ -2924,6 +2946,7 @@
   (alias test_source_cleanup)
   (alias test_source_dynamic)
   (alias test_switch_autodj_jingle_metadata)
+  (alias test_switch_copy_default_on_select)
   (alias test_switch_infallible_across_transition)
   (alias test_switch_on_leave_chained)
   (alias test_switch_on_leave_track_boundary)
