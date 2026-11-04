@@ -89,7 +89,9 @@ end
 # audio parameters as `(name, value)` pairs, in the order of Icecast's
 # `audio_info`), `has_source`, the feeder's `codecs`, the `source_ip` and
 # `source_agent` of a source client (`""` without one), `max_listeners` as
-# written on the admin pages and `health_password`; and `public_mounts`, the
+# written on the admin pages, `health_password`, `parameters`, the mount's
+# parameters (`null` when they fail), `burst`, its burst size once the
+# server's `burst_on_connect` applies, and `dedicated_encoder`; and `public_mounts`, the
 # mounts public pages list. Renderers read these fields: a renderer that reads
 # a nullable field of a mount it also passes on is rejected by the typechecker.
 # @flag hidden
@@ -128,7 +130,13 @@ def icecast.server.pages.view(state) =
       health_password =
         null.defined(mount)
           ? null.get(mount).health_password
-          : (getter.get(p.health_password))
+          : (getter.get(p.health_password)),
+      parameters = mount,
+      dedicated_encoder = p.dedicated_encoder,
+      burst =
+        p.burst_on_connect and null.defined(mount)
+          ? null.get(mount).burst_size
+          : (0)
     }
   end
 

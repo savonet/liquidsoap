@@ -111,6 +111,78 @@ def icecast.server.pages.listeners_html(view) =
     m.has_source ? "#{metadata}#{kill}" : ""
   end
 
+  def configuration(
+    ~parameters,
+    ~fallback,
+    ~hidden,
+    ~burst,
+    ~dedicated_encoder
+  ) =
+    meta = icecast.server.pages.meta_item
+    def optional(value, format, absent) =
+      null.defined(value) and null.get(value) != 0.
+        ? format(null.get(value))
+        : absent
+    end
+
+    if
+      not null.defined(parameters)
+    then
+      "<p class=\"muted\">The mount's parameters are invalid: see the log.</p>"
+    else
+      c = null.get(parameters)
+      fallback = null.defined(fallback) ? null.get(fallback) : "none"
+      recording = null.defined(c.dump_file) ? null.get(c.dump_file) : null
+      "<div class=\"meta\">#{meta("Visibility", hidden ? "hidden" : "public")}#{
+        meta(
+          "Fallback",
+          c.fallback_when_full
+            ? "#{fallback}, also when full"
+            : fallback
+        )
+      }#{meta("Linger", optional(c.linger, duration, "none"))}#{
+        meta(
+          "Listener time limit",
+          optional(c.max_listener_duration, duration, "none")
+        )
+      }#{meta("Burst", burst > 0 ? bytes(burst) : "off")}#{
+        meta(
+          "Encoder",
+          dedicated_encoder
+            ? "one per listener"
+            : "shared"
+        )
+      }#{
+        meta(
+          "Source login",
+          null.defined(c.source_decision)
+            ? "decision"
+            : "user #{c.source_user}"
+        )
+      }#{
+        meta(
+          "Listener admission",
+          null.defined(c.listener_decision) ? "decision" : "open"
+        )
+      }#{
+        meta(
+          "Health password",
+          null.defined(c.health_password) ? "set" : "none"
+        )
+      }#{
+        meta(
+          "History",
+          "#{c.max_history} titles"
+        )
+      }#{
+        meta(
+          "Extra headers",
+          "#{list.length(c.http_headers)}"
+        )
+      }#{meta("Recording", recording ?? "off")}</div>"
+    end
+  end
+
   def mount(m) =
     meta = icecast.server.pages.meta_item
     stat = icecast.server.pages.stat
@@ -132,7 +204,15 @@ def icecast.server.pages.listeners_html(view) =
       stat("Connections", "#{m.connections}")
     }#{stat("Listened", duration(m.listening_time))}#{
       stat("Sent", bytes(m.bytes_sent))
-    }</div>#{commands(m)}<hr>#{listeners(m)}</section>"
+    }</div><hr>#{
+      configuration(
+        parameters=m.parameters,
+        fallback=m.fallback,
+        hidden=m.hidden,
+        burst=m.burst,
+        dedicated_encoder=m.dedicated_encoder
+      )
+    }#{commands(m)}<hr>#{listeners(m)}</section>"
   end
 
   body =
