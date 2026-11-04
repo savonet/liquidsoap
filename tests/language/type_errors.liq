@@ -374,6 +374,22 @@ def f() =
   correct(
     "fun (x) -> x?.foo(123).gni ?? null"
   )
+  incorrect(
+    'def f(x) = x == "" ? null : {n = "x"} end fun () -> (f("a")?.n ?? 0) + 1'
+  )
+  incorrect(
+    'def use(f) = fun () -> (f("/a")?.n ?? 0) + 1 end use(fun (x) -> x == "" ? \
+     null : {n = "x"})'
+  )
+  correct(
+    'def use(f) = fun () -> (f("/a")?.n ?? 0) + 1 end ignore(use(fun (x) -> x == \
+     "" ? null : {n = 1})) use(fun (_) -> null)'
+  )
+  correct(
+    'def merge(~max, own, default) = own = own?.values default = default?.values \
+     own?.m ?? (default?.m ?? max) end def cb(~max, x) = null.defined(max) ? \
+     null : merge(max=max, x, x) end'
+  )
   section("EVAL")
   incorrect("let eval x = '123'
 ignore(x+1)
