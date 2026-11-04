@@ -67,13 +67,18 @@ module Value : sig
     | `Time
     | `Track of source ]
 
+  type meth = { meth_type : string; meth_description : string option }
+
+  (** Documentation of an argument:
+      - [arg_default]: default value
+      - [arg_fields]: the fields of a record argument, listed when at least one
+        is documented with [@field]. *)
   type argument = {
     arg_type : string;
     arg_default : string option;
     arg_description : string option;
+    arg_fields : (string * meth) list;
   }
-
-  type meth = { meth_type : string; meth_description : string option }
 
   type t = {
     typ : string;

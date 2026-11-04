@@ -1,0 +1,25 @@
+Connects to a server.
+
+Type: (retry : 'a.{count? : int}, 'b.{host? : string, name : string, port : int}) ->
+unit
+
+Category: Uncategorized
+
+Arguments:
+
+ * retry : 'a.{count? : int}
+
+     - count? : int
+         Number of attempts.
+
+ * (unlabeled) : 'b.{host? : string, name : string, port : int}
+     The connection settings.
+
+     - host? : string
+         Host name, resolved at connection.
+
+     - name : string
+
+     - port : int
+         TCP port.
+

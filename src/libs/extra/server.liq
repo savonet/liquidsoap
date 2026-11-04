@@ -25,7 +25,9 @@ end
 # format: insert key1="val1",key2="val2",...
 # @flag extra
 # @category Source / Track processing
-# @param ~id Force the value of the source ID.
+# @param s The source receiving the metadata.
+# @field s.insert_metadata Inserts metadata into the source's stream.
+# @field s.register_command Registers the server command.
 def server.insert_metadata(s) =
   def insert(arg) =
     let (meta, _) = string.annotate.parse("#{arg}:")
