@@ -17,12 +17,13 @@ let settings.source.composition.max_fade =
   )
 
 # Default on_select for both file and live composition profiles. When `ending`
-# is non-null (the ending source was preempted mid-track): if it has at most
-# `settings.source.composition.max_fade` seconds remaining, sequences it with
-# the starting source so it finishes naturally; if it has only PCM audio content
-# and enough remaining time, fades it out for `max_fade` seconds; otherwise
-# switches immediately. When `replay_metadata` is true, replays the latest
-# metadata on the starting source.
+# is non-null (the ending source was preempted mid-track) and has only PCM audio
+# content: if it has at most `settings.source.composition.max_fade` seconds
+# remaining, sequences it with the starting source so it finishes naturally;
+# otherwise fades it out for `max_fade` seconds. Any other content switches
+# immediately: the body is typed for PCM audio, and the runtime type checks
+# reject any source it builds from other content. When `replay_metadata` is
+# true, replays the latest metadata on the starting source.
 def source.composition.default_on_select(
   (
   {starting, ending, replay_metadata}:
@@ -76,13 +77,13 @@ def source.composition.default_on_select(
       max_fade = settings.source.composition.max_fade()
       rem = source.remaining(leaving)
       if
-        rem > 0. and rem <= max_fade
-      then
-        (sequence([(leaving : source), starting()]) : source)
-      elsif
         not has_pcm_audio
       then
         starting()
+      elsif
+        rem > 0. and rem <= max_fade
+      then
+        (sequence([(leaving : source), starting()]) : source)
       else
         log.important(
           label=id(),
