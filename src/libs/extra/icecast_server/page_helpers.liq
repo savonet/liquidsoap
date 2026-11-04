@@ -139,18 +139,67 @@ def icecast.server.pages.view(state) =
   }
 end
 
-# The `<head>` elements shared by the HTML pages: encoding, mobile viewport and
-# a small built-in stylesheet that follows the browser's light or dark scheme.
+# The `<head>` elements of the HTML pages: encoding, mobile viewport and their
+# built-in stylesheet.
 # @flag hidden
 let icecast.server.pages.head =
-  "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, \
-   initial-scale=1\"><style>:root{color-scheme:light \
-   dark;font-family:system-ui,sans-serif;line-height:1.4}body{max-width:56rem;margin:0 \
-   auto;padding:1rem}section{border:1px solid \
-   #8886;border-radius:.5rem;padding:1rem;margin:1rem \
-   0;overflow-x:auto}h2{margin-top:0}dl{display:grid;grid-template-columns:max-content \
-   1fr;gap:.25rem 1rem;margin:0 0 \
-   1rem}dt{font-weight:600}dd{margin:0;overflow-wrap:anywhere}audio,video{width:100%}table{border-collapse:collapse;width:100%;font-size:.9em}th,td{text-align:left;padding:.25rem \
+  "<meta charset=\"utf-8\"><meta name=\"viewport\" \
+   content=\"width=device-width,initial-scale=1\"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,-apple-system,sans-serif;background:#f0f2f5;color:#222;line-height:1.5}header{background:#16213e;color:#fff;padding:1.25rem \
+   2rem;display:flex;align-items:center;justify-content:space-between}header \
+   h1{font-size:1.3rem;font-weight:500}#status{font-size:.8rem;opacity:.7}main{max-width:860px;margin:2rem \
+   auto;padding:0 \
+   1rem}.empty{text-align:center;color:#888;padding:4rem;background:#fff;border-radius:8px}.card{background:#fff;border-radius:8px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 \
+   1px 3px \
+   rgba(0,0,0,.08);overflow-x:auto}.card-title{font-size:1.05rem;font-weight:600;color:#16213e;margin-bottom:.75rem;font-family:monospace}.card-title \
+   a{color:inherit;text-decoration:none}.now-playing{background:#eef2ff;color:#3730a3;border-radius:4px;padding:.4rem \
+   .75rem;margin-bottom:.75rem;font-size:.9rem}.now-playing::before{content:'▶ \
+   ';opacity:.7}.meta{display:flex;flex-wrap:wrap;gap:.75rem \
+   2rem;margin-bottom:1rem;font-size:.875rem}.meta-item{display:flex;flex-direction:column}.meta-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:.15rem}hr{border:none;border-top:1px \
+   solid #f0f0f0;margin:.75rem \
+   0}.stats-row{display:flex;flex-wrap:wrap;align-items:center;gap:2rem}.stat{text-align:center}.stat-n{font-size:1.6rem;font-weight:600;color:#16213e;line-height:1}.stat-l{font-size:.7rem;text-transform:uppercase;color:#888;margin-top:.2rem}audio,video{width:100%;margin-top:1rem;accent-color:#16213e}table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{text-align:left;padding:.3rem \
    .5rem;border-bottom:1px solid \
-   #8886}form{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.5rem \
-   0}input{flex:1;min-width:10rem}</style>"
+   #f0f0f0}th{font-size:.7rem;text-transform:uppercase;color:#888}form{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:1rem}input{flex:1;min-width:10rem;padding:.4rem \
+   .6rem;border:1px solid \
+   #d0d4dc;border-radius:4px;font:inherit}button{padding:.4rem \
+   .9rem;border:none;border-radius:4px;background:#16213e;color:#fff;font:inherit;cursor:pointer}output{font-size:.85rem;color:#555}.danger{background:#b42318}.muted{color:#888;font-size:.875rem}</style>"
+
+# An HTML page titled `title`: a header bar with a `#status` line, then `body`
+# in its `main` element.
+# @flag hidden
+def icecast.server.pages.document(~title, body) =
+  "<!DOCTYPE html>\n<html lang=\"en\"><head>#{
+    icecast.server.pages.head
+  }<title>#{title}</title></head><body><header><h1>#{title}</h1><span \
+   id=\"status\"></span></header><main>#{body}</main></body></html>\n"
+end
+
+# A labelled value of a mount card's meta row; `value` is plain text.
+# @flag hidden
+def icecast.server.pages.meta_item(label, value) =
+  "<div class=\"meta-item\"><span class=\"meta-label\">#{label}</span><span>#{
+    icecast.server.pages.html(value)
+  }</span></div>"
+end
+
+# A large figure of a mount card's stats row; `attribute` marks the number for
+# the page script.
+# @flag hidden
+def icecast.server.pages.stat(~attribute="", label, value) =
+  "<div class=\"stat\"><div class=\"stat-n\"#{
+    attribute == ""
+      ? ""
+      : " #{attribute}"
+  }>#{icecast.server.pages.html(value)}</div><div class=\"stat-l\">#{
+    label
+  }</div></div>"
+end
+
+# The now playing line of a mount card, hidden while `title` is empty.
+# @flag hidden
+def icecast.server.pages.now_playing(title) =
+  "<div class=\"now-playing\" data-title#{
+    title == ""
+      ? " hidden"
+      : ""
+  }>#{icecast.server.pages.html(title)}</div>"
+end

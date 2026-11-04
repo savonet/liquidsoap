@@ -65,10 +65,6 @@ def icecast.server.pages.listeners_html(view) =
     "<td>#{html(value)}</td>"
   end
 
-  def entry(name, value) =
-    "<dt>#{name}</dt><dd>#{html(value)}</dd>"
-  end
-
   def listener(l) =
     "<tr>#{cell(l.ip)}#{cell(l.user ?? "")}#{cell(l.user_agent ?? "")}#{
       cell(l.referer ?? "")
@@ -77,7 +73,7 @@ def icecast.server.pages.listeners_html(view) =
 
   def listeners(m) =
     list.is_empty(m.listeners)
-      ? "<p>No listeners.</p>"
+      ? "<p class=\"muted\">No listeners.</p>"
       : "<table><tr><th>Address</th><th>User</th><th>User \
        agent</th><th>Referer</th><th>Connected</th><th>Sent</th></tr>#{
         string.concat(list.map(listener, m.listeners))
@@ -110,44 +106,41 @@ def icecast.server.pages.listeners_html(view) =
        metadata</button><output></output></form>"
     kill =
       "<form data-command=\"/admin/killsource\" data-confirm=\"Disconnect the \
-       source of #{html(m.mount)}?\">#{mount}<button>Disconnect \
+       source of #{html(m.mount)}?\">#{mount}<button class=\"danger\">Disconnect \
        source</button><output></output></form>"
     m.has_source ? "#{metadata}#{kill}" : ""
   end
 
   def mount(m) =
+    meta = icecast.server.pages.meta_item
+    stat = icecast.server.pages.stat
     name = m.name == "" ? m.mount : (m.name)
-    "<section><h2>#{html(name)}</h2><dl>#{entry("Mount", m.mount)}#{
-      entry("Format", m.mime_type)
-    }#{entry("Source", source(m))}#{
-      entry(
-        "Now playing",
+    "<section class=\"card\"><div class=\"card-title\">#{html(m.mount)}</div>#{
+      icecast.server.pages.now_playing(
         icecast.server.stats.title(m.metadata) ?? ""
       )
+    }<div class=\"meta\">#{meta("Name", name)}#{meta("Format", m.mime_type)}#{
+      meta("Source", source(m))
     }#{
-      entry(
-        "Listeners",
-        "#{list.length(m.listeners)} (max #{m.max_listeners}, peak #{
-          m.peak_listeners
-        })"
+      meta(
+        "Max listeners",
+        m.max_listeners
       )
-    }#{entry("Connections", "#{m.connections}")}#{
-      entry(
-        "Listening time",
-        duration(m.listening_time)
-      )
-    }#{entry("Sent", bytes(m.bytes_sent))}</dl>#{commands(m)}#{
-      listeners(m)
-    }</section>"
+    }</div><hr><div class=\"stats-row\">#{
+      stat("Listeners", "#{list.length(m.listeners)}")
+    }#{stat("Peak", "#{m.peak_listeners}")}#{
+      stat("Connections", "#{m.connections}")
+    }#{stat("Listened", duration(m.listening_time))}#{
+      stat("Sent", bytes(m.bytes_sent))
+    }</div>#{commands(m)}<hr>#{listeners(m)}</section>"
   end
 
   body =
     list.is_empty(view.mounts)
-      ? "<p>No mounts.</p>"
+      ? "<p class=\"empty\">No active mounts.</p>"
       : (string.concat(list.map(mount, view.mounts)))
-  "<!DOCTYPE html>\n<html><head>#{
-    icecast.server.pages.head
-  }<title>Admin</title></head><body><h1>Admin</h1>#{body}#{
-    icecast.server.pages.admin_script
-  }</body></html>\n"
+  icecast.server.pages.document(
+    title="Liquidsoap Admin",
+    "#{body}#{icecast.server.pages.admin_script}"
+  )
 end
