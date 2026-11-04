@@ -552,15 +552,15 @@ are in [io.md §1.4](io.md#14-outputurl) and [io.md §11](io.md#11-outputurl).
 
 Classes as in §5.2 and [faults.md §2](faults.md#2-classes).
 
-| Situation                                        | Behaviour                                                              |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| factory failure (§3, §4)                         | raises; configuration error, or output fault for a failed `Url` open   |
-| data fault in `encode` (§5.2)                    | item dropped with a warning; streaming goes on                         |
-| output fault in `encode` (§5.2)                  | raises; instance `Failed` (§1)                                         |
-| drain or close error in `stop`                   | output fault; logged at error; teardown continues                      |
-| metadata after the header, no restart (§6)       | not carried; logged at debug                                           |
-| copy source with other header properties (§13.3) | accepted (in-band container), restart where defined, else output fault |
-| no split point by the HLS bound (§8.7)           | forced cut with a warning (output-side wait)                           |
+| Situation                                        | Behaviour                                                                                                 |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| factory failure (§3, §4)                         | raises; configuration error, or output fault for a failed `Url` open                                      |
+| data fault in `encode` (§5.2)                    | item dropped with a warning; streaming goes on                                                            |
+| output fault in `encode` (§5.2)                  | raises; instance `Failed` (§1)                                                                            |
+| drain or close error in `stop`                   | output fault; logged at error; teardown continues                                                         |
+| metadata after the header, no restart (§6)       | not carried; logged at debug                                                                              |
+| copy source with other header properties (§13.3) | rejected at open; past the merge, accepted (in-band container), restart where defined, else unrecoverable |
+| no split point by the HLS bound (§8.7)           | forced cut with a warning (output-side wait)                                                              |
 
 What an output does with a raised error is the output's. `output.url`
 classifies a failed open or a failed stream creation as permanent
@@ -711,8 +711,10 @@ Copy compatibility is split by what a container can survive
   and pixel or sample format when both are set): no container survives a
   change. The type merge rejects such a source when it opens; the encoder
   never sees it.
-- **Header properties** (extradata, profile, level): judged here, at a
-  source switch, by the container. The copy stream encoder compares them
+- **Header properties** (extradata, profile, level): the type merge rejects
+  them too, so the first source of a track commits them. They reach the
+  encoder only through a path that bypasses the merge; there the copy
+  stream encoder judges them at a source switch, by the container
   ([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources)).
 - **Descriptive properties** (colour range, primaries, transfer, colour
   space, chroma location, field order, header side data such as the display
@@ -728,18 +730,21 @@ Containers by where they keep header properties:
 | MPEG-TS (HLS-TS included), ADTS, Annex B elementary streams | carried in band           | accepted: the packets carry their own configuration                        |
 
 - A restart logs both parameter sets at warning level.
-- A stop fails the instance with an error of kind `encoder` that names the
-  field and prints both parameter sets, logged at error level: an output
-  fault ([faults.md §2](faults.md#2-classes)), the one data-driven case the
-  user chose to stop an output.
+- A stop fails the instance with an unrecoverable error
+  ([clock.md §11](../../../clock/spec/clock.md#11-failure)) whose message
+  names the field, the property that differs and both parameter sets, and
+  says to encode the sources with identical settings. The clock logs it
+  without a backtrace: the one data-driven case the user chose to stop an
+  output (D2).
 - With `settings.ffmpeg.content.copy.relaxed_compatibility_check` on, the
   type merge and this check both reduce to media and codec id. Every other
   difference goes to the muxer, which is the judge: a packet it rejects is
   an item fault (§5.2).
 
-Consequence: a live relay whose remote encoder restarts with new extradata
-keeps working. An in-band output accepts the change; a header-storing output
-restarts or stops by the table.
+Consequence: the table is a backstop. A source whose header properties
+differ is rejected when it opens, whatever the container
+([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)); the
+relaxed setting lets a live relay follow a remote encoder's new extradata.
 
 ### 13.4 Conformance
 

@@ -400,6 +400,92 @@
   (run %{run_test} "FFmpeg side data" liquidsoap test_ffmpeg_side_data.liq)))
 
 (rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target stored-header-first.mkv)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=4:size=320x240:rate=25"
+   -c:v
+   libx264
+   -profile:v
+   high
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target stored-header-other.mkv)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=3:size=320x240:rate=25"
+   -c:v
+   libx264
+   -profile:v
+   baseline
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target stored-header-third.mkv)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=3:size=320x240:rate=25"
+   -c:v
+   libx264
+   -profile:v
+   high
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
+ (alias test_ffmpeg_copy_stored_header)
+ (package liquidsoap)
+ (deps
+  stored-header-first.mkv
+  stored-header-other.mkv
+  stored-header-third.mkv
+  test_ffmpeg_copy_stored_header.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg copy with a stored header"
+   liquidsoap
+   test_ffmpeg_copy_stored_header.liq)))
+
+(rule
  (alias test_ffmpeg_copy_concat)
  (package liquidsoap)
  (deps
@@ -867,6 +953,7 @@
   (alias test_ffmpeg_raw_implicit_conversion)
   (alias test_ffmpeg_complex_filter)
   (alias test_ffmpeg_copy_concat)
+  (alias test_ffmpeg_copy_stored_header)
   (alias test_ffmpeg_side_data)
   (alias test_ffmpeg_video_format_change)
   (alias test_ffmpeg_raw_format_change)

@@ -203,11 +203,11 @@ no container survives, some only containers that store them in their header
 cannot follow, and some only describe the picture. Copy compatibility is
 therefore split in three (user decision D2, as refined by the user):
 
-| Class                  | Where it is judged                                                                                                          | On a difference                                                                                                                                                            |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| type properties        | the type merge, when a source is opened (this section, §3.1.1)                                                              | the source is rejected at open, a source fault ([faults.md §3](faults.md#3-source-faults-reach-the-script)); a playlist moves on                                           |
-| header details         | the encoder's runtime check at a source switch, per container ([encoder.md §13.3](encoder.md#133-incompatible-copy-source)) | a container that carries them in band accepts the change; a container that stores them in its header restarts where it defines a clean restart, else the output stops (D2) |
-| descriptive properties | the encoder at a source switch                                                                                              | a warning naming both values; the stream keeps its first header. Never a restart, a stop or a rejection                                                                    |
+| Class                  | Where it is judged                                                                                                                                                                | On a difference                                                                                                                                                                                                                                                                  |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type properties        | the type merge, when a source is opened (this section, §3.1.1)                                                                                                                    | the source is rejected at open, a source fault ([faults.md §3](faults.md#3-source-faults-reach-the-script)); a playlist moves on                                                                                                                                                 |
+| header details         | the type merge too: the first source opened commits them (§3.1.1); the encoder checks them again at a source switch ([encoder.md §13.3](encoder.md#133-incompatible-copy-source)) | rejected at open, as a type property. Reaching the encoder (a path that bypasses the merge), a container that carries them in band accepts the change; one that stores them in its header restarts where it defines a clean restart, else the instance fails, unrecoverable (D2) |
+| descriptive properties | the encoder at a source switch                                                                                                                                                    | a warning naming both values; the stream keeps its first header. Never a restart, a stop or a rejection                                                                                                                                                                          |
 
 Parameters are unknown (the default) or known. Known parameters hold the
 bindings' codec parameters of one stream, read from the container or from
@@ -337,24 +337,27 @@ track goes through a merge. Each path, and the rule that closes it:
 | An operator that rewrites parameters (bitstream filter, copy side-data operator) | The operator accepts any parameters on its input: its input format is merged with nothing of its own. Its output parameters are merged into its separate output format by the rule of the row above ([side-data.md §5.1](side-data.md#51-per-frame), [bitstream-filters.md](bitstream-filters.md)).                                                                                                                                                                                                                             |
 | Content arriving while the format is unknown                                     | Cannot happen: content with packets carries known parameters (§4.2), and its producer merged them first.                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | A merge that keeps one side and drops the other                                  | Closed by the merge of this section: type properties are compared, unset ones are filled.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| Header details and descriptive properties                                        | Not judged at the merge, by design: the encoder judges them per container at each source switch.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Header details                                                                   | Judged with the type properties: the first source opened commits them, and a source whose header details differ is rejected at open.                                                                                                                                                                                                                                                                                                                                                                                            |
+| Descriptive properties                                                           | Not judged at the merge, by design: the encoder reports them at each source switch.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | Relaxed check on                                                                 | By design: libav judges.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 The encoder's runtime check runs at each source switch on the new source's
 run parameters (§4.2) against the parameters its stream header was written
 from ([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources),
-[encoder.md §13.3](encoder.md#133-incompatible-copy-source)). It is
-reachable: header details and descriptive properties pass the type merge by
-design. A type-property mismatch that still reaches it (a path through an
-operator with its own output format under the relaxed setting, for
-instance) is handled like a header detail stored in the header. A failure is
-an output fault ([faults.md §2](faults.md#2-classes), user decision D2): the
-output restarts when the container defines a clean restart, else stops under
-its restart policy, and reports through its callbacks.
+[encoder.md §13.3](encoder.md#133-incompatible-copy-source)). It is a
+backstop: a difference reaches it only through a path that bypasses the
+merge (an operator with its own output format, for instance). There the
+output restarts when the container defines a clean restart; otherwise the
+instance fails with an unrecoverable error (user decision D2) naming the
+track, the property that differs and both parameter sets, which the clock
+reports without a backtrace ([clock.md §11](../../../clock/spec/clock.md#11-failure)).
 
-Consequence: a live relay whose remote encoder restarts with new extradata
-keeps working. An output that carries extradata in band accepts the change;
-an output that stores it in its header restarts or stops by the rule above.
+Consequence: every source of a copied track must share the parameters of the
+first one, header details included, whatever the output. A live relay whose
+remote encoder restarts with new extradata, or a playlist of files from
+different encoders, needs the relaxed setting: an output that carries
+extradata in band, or restarts, then follows the change. Copy is an advanced
+feature: preparing compatible sources is the user's job.
 
 Conformance:
 
@@ -364,10 +367,14 @@ Conformance:
   packet of it reaches an encoder.
 - A playlist of AAC then MP3: the second is rejected at open, with the
   relaxed setting on or off.
-- Two H.264 files of the same form whose extradata differ: both are
-  accepted at open. Copied to MPEG-TS, the output keeps streaming. Copied to
-  MP4, the output stops at the switch (no clean restart); as an HLS variant,
-  it starts a new segment.
+- Two H.264 files of the same form whose extradata differ: the second is
+  rejected at open, with an error that names the extradata, wherever the
+  track is copied to. With the relaxed setting, both are accepted at open;
+  copied to MPEG-TS, the output keeps streaming.
+- A playlist of three Matroska H.264 files, the second with another profile,
+  copied to Matroska: the second is rejected when it opens, the playlist
+  moves on, and the output holds the first and the third
+  (`tests/media/test_ffmpeg_copy_stored_header.liq`).
 - A copy playlist whose files differ in display matrix, HDR metadata or a
   colour property: every file plays, and each switch to a file whose value
   differs from the stream header logs a warning naming both values.

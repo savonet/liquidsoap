@@ -248,10 +248,43 @@ let to_string t =
             | Some tb -> [Printf.sprintf "time_base=%s" (rational_to_string tb)]
             | None -> [])
 
-let incompatibility t t' =
+let type_incompatibility t t' =
   List.find_map Fun.id (type_differences t t')
   |> Option.map (fun (name, v, v') ->
       Printf.sprintf "%s differs (%s against %s)" name v v')
+
+let block_align_and_bits t =
+  match t.media with
+    | `Audio p ->
+        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
+    | `Video p ->
+        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
+    | `Subtitle p ->
+        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
+
+let header_incompatibility t t' =
+  if relaxed () then None
+  else (
+    let digest = function "" -> "none" | s -> Digest.(to_hex (string s)) in
+    let optional = function Some n -> string_of_int n | None -> "unset" in
+    let pair (a, b) = Printf.sprintf "%d/%d" a b in
+    [
+      differ "extradata" digest (extradata t) (extradata t') ( = );
+      differ "profile" optional t.profile t'.profile (both_set ( = ));
+      differ "level" optional t.level t'.level (both_set ( = ));
+      differ "block align and bits per coded sample" pair
+        (block_align_and_bits t) (block_align_and_bits t') ( = );
+    ]
+    |> List.find_map Fun.id
+    |> Option.map (fun (name, v, v') ->
+        Printf.sprintf "%s differs (%s against %s)" name v v'))
+
+let header_compatible t t' = header_incompatibility t t' = None
+
+let incompatibility t t' =
+  match type_incompatibility t t' with
+    | Some reason -> Some reason
+    | None -> header_incompatibility t t'
 
 let compatible t t' = incompatibility t t' = None
 
@@ -271,22 +304,6 @@ let merge t t' =
     profile = fill t.profile t'.profile;
     level = fill t.level t'.level;
   }
-
-let block_align_and_bits t =
-  match t.media with
-    | `Audio p ->
-        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
-    | `Video p ->
-        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
-    | `Subtitle p ->
-        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
-
-let header_compatible t t' =
-  relaxed ()
-  || extradata t = extradata t'
-     && both_set ( = ) t.profile t'.profile
-     && both_set ( = ) t.level t'.level
-     && block_align_and_bits t = block_align_and_bits t'
 
 let descriptive_side_data =
   [

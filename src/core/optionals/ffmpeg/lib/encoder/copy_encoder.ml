@@ -23,7 +23,12 @@
 module F = Liquidsoap_ffmpeg_formats.Encoder_format
 
 exception
-  Incompatible of { field : Frame.field; header : string; source : string }
+  Incompatible of {
+    field : Frame.field;
+    reason : string;
+    header : string;
+    source : string;
+  }
 
 let max_rounding_shift = 1
 
@@ -551,10 +556,15 @@ let flush t ~position =
     (Hashtbl.copy t.groups);
   ignore position
 
-let incompatible track header (source : Copy_params.t) =
-  Copy_params.incompatibility header source <> None
-  || track.shared.stores_header
-     && not (Copy_params.header_compatible header source)
+let incompatibility track header (source : Copy_params.t) =
+  match Copy_params.type_incompatibility header source with
+    | Some reason -> Some reason
+    | None when track.shared.stores_header ->
+        Copy_params.header_incompatibility header source
+    | None -> None
+
+let incompatible track header source =
+  incompatibility track header source <> None
 
 let switch_position t frame =
   let track_switch track =
@@ -588,14 +598,17 @@ let check_params track (source : Copy_params.t) =
   match track.header with
     | None -> ()
     | Some header ->
-        if incompatible track header source then
-          raise
-            (Incompatible
-               {
-                 field = track.field;
-                 header = Copy_params.to_string header;
-                 source = Copy_params.to_string source;
-               });
+        Option.iter
+          (fun reason ->
+            raise
+              (Incompatible
+                 {
+                   field = track.field;
+                   reason;
+                   header = Copy_params.to_string header;
+                   source = Copy_params.to_string source;
+                 }))
+          (incompatibility track header source);
         List.iter
           (fun (property, old_value, new_value) ->
             track.shared.log#important

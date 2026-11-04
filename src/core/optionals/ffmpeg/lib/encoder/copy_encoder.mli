@@ -33,10 +33,15 @@ type t
 type track
 
 (** Raised by {!encode} when a source's parameters cannot follow the stream
-    header in this container (§12.7): the track, the header's parameters and the
-    new ones. *)
+    header in this container (§12.7): the track, the first property that
+    differs, the header's parameters and the new ones. *)
 exception
-  Incompatible of { field : Frame.field; header : string; source : string }
+  Incompatible of {
+    field : Frame.field;
+    reason : string;
+    header : string;
+    source : string;
+  }
 
 (** [whole_output] is [true] when every stream of the output is a copy track, so
     that a group of every track is a whole-output switch. *)

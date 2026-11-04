@@ -24,9 +24,11 @@
     one coded stream, plus its average frame rate (video) or time base
     (subtitles), and the properties a merge fills in.
 
-    The type merge compares type properties ({!incompatibility}); the encoder
-    compares header details ({!header_compatible}) and reports descriptive
-    differences ({!descriptive_differences}) at a source switch. Both read
+    The type merge compares type properties and header details
+    ({!incompatibility}), so the first source of a stream commits both; the
+    encoder compares them again at a source switch, header details only where
+    its container stores them, and reports descriptive differences
+    ({!descriptive_differences}). Both read
     [settings.ffmpeg.content.copy.relaxed_compatibility_check] at each call. *)
 
 type media =
@@ -66,6 +68,11 @@ val bitstream_form : t -> string
 (** The first type property that differs, in table order, with both values;
     [None] when the two are compatible. Under the relaxed setting only media and
     codec are compared. *)
+val type_incompatibility : t -> t -> string option
+
+(** The first type property or header detail that differs: what a source must
+    match to join a stream ({!merge}, content.md §3.1.1). Under the relaxed
+    setting only media and codec are compared. *)
 val incompatibility : t -> t -> string option
 
 val compatible : t -> t -> bool
@@ -75,8 +82,12 @@ val compatible : t -> t -> bool
     @raise Failure naming the first incompatible property. *)
 val merge : t -> t -> t
 
-(** Header details (extradata, profile, level, block align, bits per coded
-    sample) all compatible; [true] under the relaxed setting. *)
+(** The first header detail (extradata, profile, level, block align and bits per
+    coded sample) that differs, with both values; [None] when they match or
+    under the relaxed setting. *)
+val header_incompatibility : t -> t -> string option
+
+(** [header_incompatibility] finds nothing. *)
 val header_compatible : t -> t -> bool
 
 (** [(property, old value, new value)] for each descriptive property that
