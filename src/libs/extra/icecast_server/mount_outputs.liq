@@ -168,7 +168,7 @@ def icecast.server.mounts.create(state, p, path, template) =
       timeout=p.client_timeout,
       burst=burst > 0 ? burst : null,
       buffer=max(icecast.server.mounts.buffer_size, burst),
-      dedicated_encoder=p.dedicated_encoder,
+      dedicated_encoder=mount.dedicated_encoder,
       format=template.format.mime,
       accept=fun (listener) ->
         icecast.server.listeners.accept(state, null.get(entry_ref()), listener),

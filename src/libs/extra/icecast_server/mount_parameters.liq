@@ -102,6 +102,11 @@ def icecast.server.parameters.mount(server, path) =
           check("burst_size").count,
           m?.burst_size ?? getter(server.burst_size)
         ),
+      dedicated_encoder =
+        value(
+          icecast.server.parameters.any,
+          m?.dedicated_encoder ?? getter(server.dedicated_encoder)
+        ),
       http_headers =
         value(check("http_headers").headers, m?.http_headers ?? []),
       dump_file =
