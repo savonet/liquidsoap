@@ -90,13 +90,14 @@ def icecast.server.listeners.accept(state, entry, listener) =
         null.defined(refusal)
       then
         refusal = null.get(refusal)
-        refuse(
+        refused =
           icecast.server.refusal(
             reason=refusal.reason,
             headers=refusal?.headers ?? [],
             refusal.status
           )
-        )
+        ignore((refusal : unit))
+        refuse(refused)
       elsif
         not exempt
         and null.defined(max_listeners)
@@ -173,13 +174,20 @@ def icecast.server.listeners.accept(state, entry, listener) =
         refuse(icecast.server.refusal(403))
       else
         outcome = null.get(outcome)
+        refusal = outcome?.refuse
+        time_limit = outcome?.time_limit
+        preroll = outcome?.preroll
+        exempt = outcome?.exempt ?? false
+        user = outcome?.user
+        on_release = outcome?.on_release
+        ignore((outcome : unit))
         decided(
-          refusal=outcome?.refuse,
-          time_limit=outcome?.time_limit,
-          preroll=outcome?.preroll,
-          exempt=outcome?.exempt ?? false,
-          user=outcome?.user,
-          on_release=outcome?.on_release
+          refusal=refusal,
+          time_limit=time_limit,
+          preroll=preroll,
+          exempt=exempt,
+          user=user,
+          on_release=on_release
         )
       end
     end

@@ -55,22 +55,25 @@ def icecast.server.events.registry(~log, ~compatibility, event) =
     )
     list.iter(
       fun (b) ->
-        if
-          b.event == event and (b?.mount ?? mount) == mount
-        then
-          icecast.server.events.call(
-            log=log,
-            synchronous=b?.synchronous ?? false,
-            fun () ->
-              b.handler(
-                {
-                  event = event,
-                  mount = mount,
-                  listeners = listeners,
-                  compatibility = compatibility
-                }
-              )
-          )
+        begin
+          if
+            b.event == event and (b?.mount ?? mount) == mount
+          then
+            icecast.server.events.call(
+              log=log,
+              synchronous=b?.synchronous ?? false,
+              fun () ->
+                b.handler(
+                  {
+                    event = event,
+                    mount = mount,
+                    listeners = listeners,
+                    compatibility = compatibility
+                  }
+                )
+            )
+          end
+          ignore((b : unit))
         end,
       bindings
     )

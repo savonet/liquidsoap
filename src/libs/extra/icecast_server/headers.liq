@@ -23,25 +23,30 @@ end
 def icecast.server.headers.invalid_entry(entry) =
   value = entry?.value
   status = entry?.status
-  if
-    null.defined(value) == null.defined(entry?.compute)
-  then
-    "header #{entry.name}: exactly one of value and compute is required"
-  elsif
-    not icecast.server.headers.is_token(entry.name)
-  then
-    "header name #{string.quote(entry.name)} is not an HTTP token"
-  elsif
-    null.defined(value) and not icecast.server.headers.is_line(null.get(value))
-  then
-    "header #{entry.name}: value has a line break"
-  elsif
-    null.defined(status) and (null.get(status) < 100 or null.get(status) > 599)
-  then
-    "header #{entry.name}: status #{null.get(status)} is not in 100 to 599"
-  else
-    null
-  end
+  why =
+    if
+      null.defined(value) == null.defined(entry?.compute)
+    then
+      "header #{entry.name}: exactly one of value and compute is required"
+    elsif
+      not icecast.server.headers.is_token(entry.name)
+    then
+      "header name #{string.quote(entry.name)} is not an HTTP token"
+    elsif
+      null.defined(value)
+      and not icecast.server.headers.is_line(null.get(value))
+    then
+      "header #{entry.name}: value has a line break"
+    elsif
+      null.defined(status)
+      and (null.get(status) < 100 or null.get(status) > 599)
+    then
+      "header #{entry.name}: status #{null.get(status)} is not in 100 to 599"
+    else
+      null
+    end
+  ignore((entry : unit))
+  why
 end
 
 # Header list with lowercase names, as harbor's listener and login records

@@ -75,7 +75,7 @@ def f() =
     d.address_hash("1.2.3.4"),
     icecast.server.addresses.hash("1.2.3.4")
   )
-  check_equal("mount", d.mount("/a") == null, true)
+  check_equal("mount", null.defined(d.mount("/a")), false)
 
   e =
     icecast.server.parameters.server(
