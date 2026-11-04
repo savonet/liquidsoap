@@ -176,8 +176,10 @@ a `GET` route registered after it is shadowed by the server's handlers.
 | `/status-json.xsl` | JSON in Icecast's shape ([§6.1](#61-status-jsonxsl))                                            |
 
 A `/status.json` mount entry has `mount`, `name`, `content_type`, `mime_type`,
-`started`, `listener_count`, `peak_listeners` and `current_metadata`, a list of
-`{"key", "value"}` pairs.
+`started`, `listener_count`, `peak_listeners`, `title`, the now playing text
+of `/` (`""` without one), and `current_metadata`, a list of `{"key", "value"}`
+pairs. `/` keeps its counts and its now playing text current from
+`/status.json`.
 
 - When `status_page` is off, none of the paths is served (they answer as any
   unknown path, [mounts.md](mounts.md)). The admin pages
@@ -260,10 +262,10 @@ by `status_page`.
 
 ### 7.2 Liquidsoap pages
 
-| Path                    | Content                                                                                                                                                                     |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/admin/listeners`      | HTML page, refreshed periodically: per mount, listeners, peak, connections, listening time, and a table of listeners                                                        |
-| `/admin/listeners.json` | JSON `{"mounts": [...]}`: per mount, `mount`, `peak_listeners`, `connections`, `listening_time`, `bytes_sent`, `listeners` (the [listener records](#2-the-listener-record)) |
+| Path                    | Content                                                                                                                                                                                                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/admin/listeners`      | HTML page: per mount, the source (its user agent, never its address), now playing, listeners, peak, connections, listening time, bytes sent, a table of listeners, and forms for the `metadata` and `killsource` commands. It reloads periodically, except while a metadata field holds text. |
+| `/admin/listeners.json` | JSON `{"mounts": [...]}`: per mount, `mount`, `peak_listeners`, `connections`, `listening_time`, `bytes_sent`, `listeners` (the [listener records](#2-the-listener-record))                                                                                                                   |
 
 ### 7.3 Icecast XML
 

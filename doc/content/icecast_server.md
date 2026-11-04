@@ -183,7 +183,7 @@ They show counts only, never listener addresses, and leave out hidden mounts. `s
 
 ```
 
-With an `admin_password` (user `admin_user`, `"admin"` by default), the server also serves the admin pages: `/admin/listeners` and `/admin/listeners.json` list each mount's listeners, and `/admin/stats`, `/admin/listmounts` and `/admin/listclients` answer Icecast's XML for administration tools. The admin commands `metadata`, `killsource` and `fallbacks` work as on Icecast.
+With an `admin_password` (user `admin_user`, `"admin"` by default), the server also serves the admin pages: `/admin/listeners` is a page to watch each mount and its listeners, update a mount's metadata or disconnect its source, `/admin/listeners.json` lists each mount's listeners, and `/admin/stats`, `/admin/listmounts` and `/admin/listclients` answer Icecast's XML for administration tools. The admin commands `metadata`, `killsource` and `fallbacks` work as on Icecast.
 
 ## Log files
 

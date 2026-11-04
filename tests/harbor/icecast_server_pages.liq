@@ -246,6 +246,7 @@ def check_status_pages() =
           started: float,
           listener_count: int,
           peak_listeners: int,
+          title: string,
           current_metadata: [{key: string, value: string}]
         }
       ]
@@ -257,6 +258,8 @@ def check_status_pages() =
     and list.hd(parsed.mounts).listener_count == 1
     and list.hd(parsed.mounts).peak_listeners == 1
     and list.hd(parsed.mounts).mime_type == "audio/mpeg"
+    and list.hd(parsed.mounts).title ==
+      "A - <b>x</b>"
     and list.exists(
       fun (kv) -> kv.key == "title" and kv.value == "<b>x</b>",
       list.hd(parsed.mounts).current_metadata
@@ -432,8 +435,11 @@ def check_admin_pages() =
   )
   html = fetch(headers=admin, "/admin/listeners")
   check(
-    "/admin/listeners is HTML",
-    html.status == 200 and contains(html.body, "agent-x")
+    "/admin/listeners is HTML with the mount's commands: #{html.body}",
+    html.status == 200
+    and contains(html.body, "agent-x")
+    and contains(html.body, "data-command=\"/admin/metadata\"")
+    and contains(html.body, "data-command=\"/admin/killsource\"")
   )
 end
 

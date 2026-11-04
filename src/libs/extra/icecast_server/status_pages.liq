@@ -11,7 +11,7 @@ let icecast.server.pages.status_script =
    r=await fetch('/status.json');if(!r.ok)return;const{mounts}=await \
    r.json();if(mounts.map(m=>m.mount).join('\\n')!==shown){location.reload();return}for(const \
    m of mounts){const \
-   s=[...document.querySelectorAll('section[data-mount]')].find(e=>e.dataset.mount===m.mount);if(!s)continue;s.querySelector('[data-listeners]').textContent=m.listener_count;s.querySelector('[data-peak]').textContent=m.peak_listeners}}catch(e){}},5000)</script>"
+   s=[...document.querySelectorAll('section[data-mount]')].find(e=>e.dataset.mount===m.mount);if(!s)continue;s.querySelector('[data-title]').textContent=m.title;s.querySelector('[data-listeners]').textContent=m.listener_count;s.querySelector('[data-peak]').textContent=m.peak_listeners}}catch(e){}},5000)</script>"
 
 # The built-in body of `/`, listing the public mounts of the page view.
 # @flag hidden
@@ -32,10 +32,13 @@ def icecast.server.pages.status_html(view) =
       html(m.mime_type)
     }</dd><dt>Started</dt><dd>#{
       html(icecast.server.pages.date(m.started))
-    }</dd><dt>Now playing</dt><dd>#{html(playing)}</dd><dt>Listeners</dt><dd \
-     data-listeners>#{list.length(m.listeners)}</dd><dt>Peak</dt><dd data-peak>#{
-      m.peak_listeners
-    }</dd></dl>#{player(m)}</section>"
+    }</dd><dt>Now playing</dt><dd data-title>#{
+      html(playing)
+    }</dd><dt>Listeners</dt><dd data-listeners>#{
+      list.length(m.listeners)
+    }</dd><dt>Peak</dt><dd data-peak>#{m.peak_listeners}</dd></dl>#{
+      player(m)
+    }</section>"
   end
 
   mounts = view.public_mounts
@@ -43,8 +46,9 @@ def icecast.server.pages.status_html(view) =
     list.is_empty(mounts)
       ? "<p>No active mounts.</p>"
       : (string.concat(list.map(mount, mounts)))
-  "<!DOCTYPE html>\n<html><head><meta \
-   charset=\"utf-8\"><title>Status</title></head><body><h1>Status</h1>#{body}#{
+  "<!DOCTYPE html>\n<html><head>#{
+    icecast.server.pages.head
+  }<title>Status</title></head><body><h1>Status</h1>#{body}#{
     icecast.server.pages.status_script
   }</body></html>\n"
 end
@@ -62,6 +66,7 @@ def icecast.server.pages.status_json(view) =
       started = m.started,
       listener_count = list.length(m.listeners),
       peak_listeners = m.peak_listeners,
+      title = icecast.server.stats.title(m.metadata) ?? "",
       current_metadata =
         list.map(fun (kv) -> {key = fst(kv), value = snd(kv)}, m.metadata)
     }
