@@ -132,7 +132,10 @@ def icecast.server.pages.view(state) =
           ? null.get(mount).health_password
           : (getter.get(p.health_password)),
       parameters = mount,
-      dedicated_encoder = p.dedicated_encoder,
+      dedicated_encoder =
+        null.defined(mount)
+          ? null.get(mount).dedicated_encoder
+          : (getter.get(p.dedicated_encoder)),
       burst =
         p.burst_on_connect and null.defined(mount)
           ? null.get(mount).burst_size

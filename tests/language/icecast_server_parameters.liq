@@ -191,6 +191,7 @@ def f() =
                 source_password = "own",
                 max_history = 5,
                 burst_size = 100,
+                dedicated_encoder = true,
                 max_listeners = 2
               }
               : null
@@ -232,6 +233,25 @@ def f() =
     "server burst 0",
     inherited.burst_size,
     0
+  )
+  check_equal(
+    "mount dedicated_encoder over server",
+    own.dedicated_encoder,
+    true
+  )
+  check_equal(
+    "server dedicated_encoder",
+    inherited.dedicated_encoder,
+    false
+  )
+  r =
+    icecast.server.parameters.server(
+      {dedicated_encoder = true, mount = fun (_) -> {dedicated_encoder = false}}
+    )
+  check_equal(
+    "mount dedicated_encoder false over server",
+    icecast.server.parameters.mount(r, "/m").dedicated_encoder,
+    false
   )
   q = icecast.server.parameters.server({mount = fun (_) -> {burst_size = 0}})
   check_equal(

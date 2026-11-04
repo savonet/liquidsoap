@@ -28,8 +28,8 @@
 # @field parameters.compatibility Implementation to mimic where they differ: \
 #   `"icecast-2.5"` (default), `"icecast-2.4"`, `"rsas"` or `"kh"`. Read at \
 #   startup.
-# @field parameters.dedicated_encoder Give each listener its own encoder, \
-#   `false` by default.
+# @field parameters.dedicated_encoder Give each listener its own encoder on \
+#   mounts with no `dedicated_encoder` of their own, `false` by default.
 # @field parameters.error_log Path of the Icecast-format error log. Unset: no \
 #   error log.
 # @field parameters.event_bindings Callbacks bound to server events: \
