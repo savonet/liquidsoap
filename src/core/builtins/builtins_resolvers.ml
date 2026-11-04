@@ -146,10 +146,10 @@ let add_playlist_parser ~format name (parser : Playlist_parser.parser) =
                    Lang.product (Lang.metadata_list metadata) (Lang.string uri))
                  entries)
         | exception exn ->
-            let bt = Printexc.get_backtrace () in
-            Utils.log_exception ~log ~bt
-              (Printf.sprintf "Error while parsing %s playlist: %s" format
-                 (Printexc.to_string exn));
+            (* Autodetection calls every parser in turn, so a failure here
+               usually only means the content is in another format. *)
+            log#info "Content is not a valid %s playlist: %s" format
+              (Printexc.to_string exn);
             Lang.list [])
 
 let _ =

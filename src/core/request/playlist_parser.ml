@@ -86,25 +86,29 @@ let get_file ?pwd file =
           if Sys.file_exists f then f else file)
     | None -> file
 
-exception Exit of (string * playlist)
-
 (** Get a valid parser for [string]. The validity is not based on file type but
     only on success of the parser instantiation. Being based on file extension
     is weak, and troublesome when accessing a remote file -- that would force us
     to create a local temporary file with the same extension. *)
 let search_valid ?pwd string =
-  try
-    let plugins = Plug.entries parsers in
-    (* Try strict plugins first *)
-    let compare (_, a) (_, b) = compare b.strict a.strict in
-    let plugins = List.sort compare plugins in
-    List.iter
+  let plugins = Plug.entries parsers in
+  (* Try strict plugins first *)
+  let compare (_, a) (_, b) = compare b.strict a.strict in
+  let plugins = List.sort compare plugins in
+  match
+    List.find_map
       (fun (format, plugin) ->
-        log#info "Trying %s parser" format;
-        match try Some (plugin.parser ?pwd string) with _ -> None with
-          | Some d -> raise (Exit (format, d))
-          | None -> ())
-      plugins;
-    log#important "No format found";
-    raise Not_found
-  with Exit (format, d) -> (format, d)
+        match plugin.parser ?pwd string with
+          | d -> Some (format, d)
+          | exception _ ->
+              log#info "Content is not a %s playlist" format;
+              None)
+      plugins
+  with
+    | Some (format, d) ->
+        log#important "Playlist detected as %s with %d entries" format
+          (List.length d);
+        (format, d)
+    | None ->
+        log#important "Content does not match any playlist format";
+        raise Not_found
