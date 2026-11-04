@@ -117,7 +117,7 @@ let shape_of_encoded ~mode ~field params : F.shape =
           | `Unknown -> `Untyped)
     | Some `Video -> `Video (alpha params)
 
-let shape_of_track (name, params) =
+let shape_of_track ~container (name, params) =
   let field, mode =
     try F.split_track_name name with Failure message -> error message
   in
@@ -129,15 +129,27 @@ let shape_of_track (name, params) =
           `Untyped
       | `Copy ->
           check_copy_params params;
-          `Copy
+          `Copy (Copy_header.of_container container)
       | (`Internal | `Raw) as mode -> shape_of_encoded ~mode ~field params
   in
   (field, shape)
 
+(* A container that is not a literal string is not known when the script is
+   typechecked. *)
+let container params =
+  List.fold_left
+    (fun container -> function
+      | `Labelled ("format", { Term.term = `String s }) -> Some s
+      | `Labelled ("format", _) -> None
+      | _ -> container)
+    None params
+
 let type_of_encoder params =
+  let container = container params in
   let tracks =
     List.filter_map
-      (function `Encoder track -> Some (shape_of_track track) | _ -> None)
+      (function
+        | `Encoder track -> Some (shape_of_track ~container track) | _ -> None)
       params
   in
   try F.fields_type tracks with Failure message -> error message

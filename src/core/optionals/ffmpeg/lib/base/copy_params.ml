@@ -281,15 +281,16 @@ let header_incompatibility t t' =
 
 let header_compatible t t' = header_incompatibility t t' = None
 
-let incompatibility t t' =
-  match type_incompatibility t t' with
-    | Some reason -> Some reason
-    | None -> header_incompatibility t t'
+let incompatibility ?(headers = `Compare) t t' =
+  match (type_incompatibility t t', headers) with
+    | Some reason, _ -> Some reason
+    | None, `Compare -> header_incompatibility t t'
+    | None, `Ignore -> None
 
 let compatible t t' = incompatibility t t' = None
 
-let merge t t' =
-  (match incompatibility t t' with
+let merge ?headers t t' =
+  (match incompatibility ?headers t t' with
     | Some reason ->
         failwith
           (Printf.sprintf "Incompatible copy parameters: %s: %s and %s" reason

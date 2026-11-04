@@ -189,21 +189,19 @@ let merge_copy format stream =
   match copy_params stream with
     | None -> ()
     | Some params ->
-        (match Ffmpeg_content.Copy.get_params format with
-          | Some current -> (
-              match Copy_params.incompatibility current params with
-                | Some reason ->
-                    failwith
-                      (Printf.sprintf
-                         "Incompatible copy parameters for field %s: %s. \
-                          Current: %s, new: %s"
-                         (Frame.Fields.string_of_field stream.field)
-                         reason
-                         (Copy_params.to_string current)
-                         (Copy_params.to_string params))
-                | None -> ())
+        (match Ffmpeg_content.Copy.incompatibility format params with
+          | Some reason ->
+              failwith
+                (Printf.sprintf
+                   "Incompatible copy parameters for field %s: %s. Current: \
+                    %s, new: %s"
+                   (Frame.Fields.string_of_field stream.field)
+                   reason
+                   (Option.fold ~none:"unknown" ~some:Copy_params.to_string
+                      (Ffmpeg_content.Copy.stream_params format))
+                   (Copy_params.to_string params))
           | None -> ());
-        Content.merge format (Ffmpeg_content.Copy.lift_params (Some params))
+        Content.merge format (Ffmpeg_content.Copy.of_params params)
 
 let has_alpha params =
   match Avcodec.Video.get_pixel_format params with

@@ -252,13 +252,24 @@ seeing literal values alone (§2.1, §10.1).
 | Track                      | Field type                                              |
 | -------------------------- | ------------------------------------------------------- |
 | `.drop`                    | an unconstrained track variable                         |
-| `.copy`                    | `ffmpeg.copy`                                           |
+| `.copy`                    | `ffmpeg.copy(header=…)`, by the container (below)       |
 | `.raw`, audio              | `ffmpeg.audio.raw`                                      |
 | `.raw`, video              | `ffmpeg.video.raw`                                      |
 | internal audio             | `pcm`/`pcm_s16`/`pcm_f32` with the channel layout of §5 |
 | internal video             | video, with alpha when `alpha` is true                  |
 | subtitle (internal or raw) | `subtitles`                                             |
 | no media type (§2.1)       | an unconstrained track variable                         |
+
+A copy track's type carries the header requirement of its container
+([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)):
+`header=in_band` when the `format` argument names a container that carries
+codec headers in band or chains to follow them, `header=stored` otherwise.
+
+| `format`                                | Copy track type               |
+| --------------------------------------- | ----------------------------- |
+| `mpegts`, `adts`, `h264`, `hevc`, `mp3` | `ffmpeg.copy(header=in_band)` |
+| `ogg`                                   | `ffmpeg.copy(header=in_band)` |
+| any other, absent, or not a literal     | `ffmpeg.copy(header=stored)`  |
 
 ### 10.1 Literal values at type-checking time
 
@@ -294,7 +305,9 @@ Examples (`liquidsoap --check -i`):
 %ffmpeg(format="mp4", %audio(codec="aac"), %video(codec="libx264"))
   : format(audio=pcm(stereo), video=yuv420p)
 %ffmpeg(%audio.copy, %video.raw(codec="libx264"), %audio_2.raw(codec="aac"))
-  : format(audio=ffmpeg.copy, audio_2=ffmpeg.audio.raw, video=ffmpeg.video.raw)
+  : format(audio=ffmpeg.copy(header=stored), audio_2=ffmpeg.audio.raw, video=ffmpeg.video.raw)
+%ffmpeg(format="mpegts", %video.copy)
+  : format(video=ffmpeg.copy(header=in_band))
 %ffmpeg(%sub(subtitle_content, codec="ass"), %audio.drop, %mytrack(codec="libopus", ac=1))
   : format(audio='A, mytrack=pcm(mono), sub=subtitles) where 'A is a track
 %ffmpeg(%audio(pcm_s16, codec="pcm_s16le", channels=1))
@@ -306,6 +319,9 @@ Examples (`liquidsoap --check -i`):
 - `%audio(codec="aac", channel_layout="stereo", channels=1)` types as
   `pcm(mono)` and encodes one channel;
   `%audio(codec="aac", channels=1, channel_layout="stereo")` types as `pcm(stereo)` and encodes two.
+- `%ffmpeg(format="mpegts", %video.copy)` types its track
+  `ffmpeg.copy(header=in_band)`; `format="matroska"`, a non-literal format
+  and no format type it `ffmpeg.copy(header=stored)`.
 - `%video(codec="libvpx-vp9", pixel_format="yuva420p")` types with alpha under
   `--check`, and the encoder receives alpha video.
 - For every format of the test matrix, the type printed by `--check` equals

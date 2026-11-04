@@ -162,7 +162,7 @@ let audio ~(log : Log.t) ~mode : Producer.builder =
               List.iter
                 (fun (start, (run : Ffmpeg_content.Copy.Data.run)) ->
                   let params =
-                    match (run.source_params, content.params) with
+                    match (run.source_params, content.params.params) with
                       | Some p, _ | None, Some p -> p
                       | None, None ->
                           raise
@@ -347,7 +347,7 @@ let video ~(log : Log.t) ~mode : Producer.builder =
               let params =
                 match run.source_params with
                   | Some p -> Some p
-                  | None -> content.params
+                  | None -> content.params.params
               in
               let stream =
                 stream_for

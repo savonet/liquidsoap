@@ -104,11 +104,6 @@ let convert_container_opts pos opts =
 
 let non_drop format = List.filter (fun (_, t) -> t <> `Drop) format.F.streams
 
-(* Containers that carry header properties in band follow a change of them
-   at a source switch (encoder.md §13.3). *)
-let carries_header_in_band muxer =
-  List.mem muxer ["mpegts"; "adts"; "h264"; "hevc"; "mp3"]
-
 (* FFmpeg's [file] protocol has no append mode: [truncate] = 0 writes from the
    start of the file. An appending file output writes through a descriptor
    opened for appending; [output.file] asks for it with [truncate] = 0. *)
@@ -205,7 +200,9 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
           (List.for_all
              (function _, `Copy _ -> true | _ -> false)
              (non_drop format))
-        ~stores_header:(not (carries_header_in_band muxer))
+        ~stores_header:
+          (not
+             (Liquidsoap_ffmpeg_formats.Copy_header.carries_header_in_band muxer))
         output
     in
     let tracks =

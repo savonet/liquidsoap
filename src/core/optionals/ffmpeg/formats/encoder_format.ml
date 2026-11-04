@@ -145,16 +145,16 @@ let media_type ~markers ~field ~codec =
 
 type shape =
   [ `Untyped
-  | `Copy
+  | `Copy of Copy_header.t
   | `Raw_audio
   | `Raw_video
   | `Audio of pcm_kind * int
   | `Video of bool
   | `Subtitle ]
 
-let shape_of_track : track -> shape = function
+let shape_of_track ~container : track -> shape = function
   | `Drop -> `Untyped
-  | `Copy _ -> `Copy
+  | `Copy _ -> `Copy (Copy_header.of_container container)
   | `Encode { mode = `Raw; options = `Audio _ } -> `Raw_audio
   | `Encode { mode = `Raw; options = `Video _ } -> `Raw_video
   | `Encode { options = `Subtitle _ } -> `Subtitle
@@ -169,10 +169,15 @@ let kind name =
 
 let type_of_shape : shape -> Type.t = function
   | `Untyped -> Type.var ~constraints:[Format_type.track] ()
-  | `Copy ->
+  | `Copy header ->
+      let copy = kind Kinds.copy_name in
       Type.make
         (Format_type.descr
-           (`Format (Content_base.default_format (kind Kinds.copy_name))))
+           (`Format
+              (match header with
+                | `Unspecified -> Content_base.default_format copy
+                | `In_band -> Content_base.parse_param copy "header" "in_band"
+                | `Stored -> Content_base.parse_param copy "header" "stored")))
   | `Raw_audio ->
       Type.make (Format_type.descr (`Kind (kind Kinds.raw_audio_name)))
   | `Raw_video ->
@@ -213,7 +218,9 @@ let fields_type tracks =
 
 let type_of_format f =
   fields_type
-    (List.map (fun (field, track) -> (field, shape_of_track track)) f.streams)
+    (List.map
+       (fun (field, track) -> (field, shape_of_track ~container:f.format track))
+       f.streams)
 
 let default_text_to_ass i text = Printf.sprintf "%d,0,Default,,0,0,0,,%s" i text
 let string_literal = Lang_string.quote_string

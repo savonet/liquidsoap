@@ -741,10 +741,14 @@ Containers by where they keep header properties:
   difference goes to the muxer, which is the judge: a packet it rejects is
   an item fault (§5.2).
 
-Consequence: the table is a backstop. A source whose header properties
-differ is rejected when it opens, whatever the container
-([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)); the
-relaxed setting lets a live relay follow a remote encoder's new extradata.
+Consequence: the merge applies this table before a source opens. The
+encoder types its copy tracks `header=in_band` for a container of the second
+row or Ogg, and `header=stored` otherwise
+([encoder-format.md §10](encoder-format.md#10-content-type-implied-by-a-format)):
+under `stored`, a source whose header properties differ is rejected when it
+opens ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)).
+HLS and `output.url` restarts are not known from the type: those outputs
+follow a change only with the relaxed setting.
 
 ### 13.4 Conformance
 

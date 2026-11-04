@@ -70,17 +70,18 @@ val bitstream_form : t -> string
     codec are compared. *)
 val type_incompatibility : t -> t -> string option
 
-(** The first type property or header detail that differs: what a source must
-    match to join a stream ({!merge}, content.md §3.1.1). Under the relaxed
-    setting only media and codec are compared. *)
-val incompatibility : t -> t -> string option
+(** The first type property, or header detail when [headers] is [`Compare] (the
+    default), that differs: what a source must match to join a stream ({!merge},
+    content.md §3.1.1). Under the relaxed setting only media and codec are
+    compared. *)
+val incompatibility : ?headers:[ `Compare | `Ignore ] -> t -> t -> string option
 
 val compatible : t -> t -> bool
 
 (** The left side, with the properties it leaves unset taken from the right.
 
     @raise Failure naming the first incompatible property. *)
-val merge : t -> t -> t
+val merge : ?headers:[ `Compare | `Ignore ] -> t -> t -> t
 
 (** The first header detail (extradata, profile, level, block align and bits per
     coded sample) that differs, with both values; [None] when they match or

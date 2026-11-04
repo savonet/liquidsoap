@@ -871,7 +871,8 @@ let pad_fields t buffer =
         Generator.put generator field
           (Ffmpeg_content.Copy.lift_data
              (Ffmpeg_content.Copy.Data.make ~length:missing
-                (Stream_description.copy_params e.stream))))
+                (Ffmpeg_content.Copy.unconstrained
+                   (Stream_description.copy_params e.stream)))))
     fields
 
 let eof t buffer =

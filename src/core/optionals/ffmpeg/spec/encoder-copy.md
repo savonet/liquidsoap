@@ -533,8 +533,10 @@ A clean restart logs both parameter sets at warning level; a stop logs them
 at critical level (§11).
 
 Consequence: the table applies to what passes the merge. Two sources whose
-header properties differ never share a track without the relaxed setting,
-whatever the container.
+header properties differ share a track only when every encoder of the track
+types it `header=in_band`
+([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)), or
+under the relaxed setting.
 
 When `settings.ffmpeg.content.copy.relaxed_compatibility_check` is on, the
 type merge and this check both reduce to media and codec id. Every other
@@ -544,10 +546,9 @@ is an advanced escape hatch ([content.md §13](content.md#13-settings)).
 
 Conformance:
 
-- Copy H.264 from two files whose encoders used different extradata: the
-  second is rejected when it opens, whatever the output. With the relaxed
-  setting, to an MPEG-TS file every packet of both is written and the output
-  keeps streaming.
+- Copy H.264 from two files whose encoders used different extradata: to an
+  MPEG-TS file every packet of both is written and the output keeps
+  streaming; to an MP4 file the second is rejected when it opens.
 - A live relay whose remote encoder restarts with new extradata: the input
   rejects the new stream; with the relaxed setting, copied to `output.url`
   with FLV, the output reconnects with the new header.
