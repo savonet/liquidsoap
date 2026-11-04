@@ -118,9 +118,9 @@ def icecast.server.pages.admin_stats(info, view, request) =
     icecast.server.pages.elements(
       [
         ("admin", (info.admin_contact : string?)),
-        ("host", info.hostname),
-        ("location", info.location),
-        ("server_id", info.server_id),
+        ("host", (info.hostname : string)),
+        ("location", (info.location : string)),
+        ("server_id", (info.server_id : string)),
         ("server_start", date(view.server_start)),
         ("server_start_iso8601", date(iso=true, view.server_start)),
         ("sources", "#{sources}"),
