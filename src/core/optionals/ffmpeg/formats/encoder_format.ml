@@ -145,7 +145,7 @@ let media_type ~markers ~field ~codec =
 
 type shape =
   [ `Untyped
-  | `Copy of Copy_header.t
+  | `Copy of Copy_changes.t
   | `Raw_audio
   | `Raw_video
   | `Audio of pcm_kind * int
@@ -154,7 +154,7 @@ type shape =
 
 let shape_of_track ~container : track -> shape = function
   | `Drop -> `Untyped
-  | `Copy _ -> `Copy (Copy_header.of_container container)
+  | `Copy _ -> `Copy (Copy_changes.of_container container)
   | `Encode { mode = `Raw; options = `Audio _ } -> `Raw_audio
   | `Encode { mode = `Raw; options = `Video _ } -> `Raw_video
   | `Encode { options = `Subtitle _ } -> `Subtitle
@@ -169,15 +169,16 @@ let kind name =
 
 let type_of_shape : shape -> Type.t = function
   | `Untyped -> Type.var ~constraints:[Format_type.track] ()
-  | `Copy header ->
+  | `Copy containers ->
       let copy = kind Kinds.copy_name in
       Type.make
         (Format_type.descr
            (`Format
-              (match header with
-                | `Unspecified -> Content_base.default_format copy
-                | `In_band -> Content_base.parse_param copy "header" "in_band"
-                | `Stored -> Content_base.parse_param copy "header" "stored")))
+              (match containers with
+                | [] -> Content_base.default_format copy
+                | _ ->
+                    Content_base.parse_param copy "containers"
+                      (Copy_changes.value containers))))
   | `Raw_audio ->
       Type.make (Format_type.descr (`Kind (kind Kinds.raw_audio_name)))
   | `Raw_video ->

@@ -722,12 +722,11 @@ Copy compatibility is split by what a container can survive
   naming both values. The stream keeps the first header. They never restart,
   stop or reject.
 
-Containers by where they keep header properties:
-
-| Container                                                   | Header properties         | A change at a switch                                                       |
-| ----------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------- |
-| MP4/MOV, Matroska/WebM, FLV, Ogg                            | stored once in the header | a restart where the target defines one (§13.1); otherwise the output stops |
-| MPEG-TS (HLS-TS included), ADTS, Annex B elementary streams | carried in band           | accepted: the packets carry their own configuration                        |
+At a switch, a difference the container carries in band, by the table of
+[content.md §3.1.1](content.md#311-where-copy-parameters-are-merged), is
+written as it comes. Any other one restarts the container where the target
+defines a restart (§13.1); otherwise, under the relaxed setting, the packets
+go to the muxer, which judges them; otherwise the output stops.
 
 - A restart logs both parameter sets at warning level.
 - A stop fails the instance with an unrecoverable error
@@ -737,18 +736,16 @@ Containers by where they keep header properties:
   without a backtrace: the one data-driven case the user chose to stop an
   output (D2).
 - With `settings.ffmpeg.content.copy.relaxed_compatibility_check` on, the
-  type merge and this check both reduce to media and codec id. Every other
-  difference goes to the muxer, which is the judge: a packet it rejects is
-  an item fault (§5.2).
+  type merge reduces to media and codec id. This check still restarts where
+  the target can; elsewhere the muxer is the judge: a packet it rejects is an
+  item fault (§5.2).
 
-Consequence: the merge applies this table before a source opens. The
-encoder types its copy tracks `header=in_band` for a container of the second
-row or Ogg, and `header=stored` otherwise
+Consequence: the merge applies the same table before a source opens, with
+the containers the encoders typed their copy tracks with
 ([encoder-format.md §10](encoder-format.md#10-content-type-implied-by-a-format)):
-under `stored`, a source whose header properties differ is rejected when it
-opens ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)).
-HLS and `output.url` restarts are not known from the type: those outputs
-follow a change only with the relaxed setting.
+a source with another change is rejected when it opens. HLS and `output.url`
+restarts are not known from the type: those outputs follow such a change only
+with the relaxed setting.
 
 ### 13.4 Conformance
 

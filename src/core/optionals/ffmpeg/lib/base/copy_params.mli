@@ -24,12 +24,12 @@
     one coded stream, plus its average frame rate (video) or time base
     (subtitles), and the properties a merge fills in.
 
-    The type merge compares type properties and header details
-    ({!incompatibility}), so the first source of a stream commits both; the
-    encoder compares them again at a source switch, header details only where
-    its container stores them, and reports descriptive differences
-    ({!descriptive_differences}). Both read
-    [settings.ffmpeg.content.copy.relaxed_compatibility_check] at each call. *)
+    Every comparison lists the {!differences} of two parameter sets and keeps
+    those whose property its caller does not allow to change: the type merge
+    with what the track's containers follow, or {!relaxed_allowed} under
+    [settings.ffmpeg.content.copy.relaxed_compatibility_check]; the encoder, at
+    a source switch, with what its own container carries in band. Descriptive
+    differences ({!descriptive_differences}) are only reported. *)
 
 type media =
   [ `Audio of Avutil.audio Avcodec.params
@@ -65,31 +65,39 @@ val has_reordering : t -> bool
 
 val bitstream_form : t -> string
 
-(** The first type property that differs, in table order, with both values;
-    [None] when the two are compatible. Under the relaxed setting only media and
-    codec are compared. *)
-val type_incompatibility : t -> t -> string option
+(** [settings.ffmpeg.content.copy.relaxed_compatibility_check]. *)
+val relaxed : unit -> bool
 
-(** The first type property, or header detail when [headers] is [`Compare] (the
-    default), that differs: what a source must match to join a stream ({!merge},
-    content.md §3.1.1). Under the relaxed setting only media and codec are
-    compared. *)
-val incompatibility : ?headers:[ `Compare | `Ignore ] -> t -> t -> string option
+(** [(property, old value, new value)] for each compared property that differs,
+    in table order: media, codec, bitstream form, the media's geometry, then the
+    header details. Frame rate is not compared. *)
+val differences :
+  t ->
+  t ->
+  (Liquidsoap_ffmpeg_formats.Copy_changes.property * string * string) list
 
+(** The properties the relaxed setting lets change: all but media and codec. *)
+val relaxed_allowed : Liquidsoap_ffmpeg_formats.Copy_changes.property -> bool
+
+(** The first difference whose property is not [allowed], named with both
+    values; [None] when there is none. *)
+val incompatibility :
+  allowed:(Liquidsoap_ffmpeg_formats.Copy_changes.property -> bool) ->
+  t ->
+  t ->
+  string option
+
+(** No difference at all. *)
 val compatible : t -> t -> bool
 
 (** The left side, with the properties it leaves unset taken from the right.
 
-    @raise Failure naming the first incompatible property. *)
-val merge : ?headers:[ `Compare | `Ignore ] -> t -> t -> t
-
-(** The first header detail (extradata, profile, level, block align and bits per
-    coded sample) that differs, with both values; [None] when they match or
-    under the relaxed setting. *)
-val header_incompatibility : t -> t -> string option
-
-(** [header_incompatibility] finds nothing. *)
-val header_compatible : t -> t -> bool
+    @raise Failure naming the first difference not [allowed]. *)
+val merge :
+  allowed:(Liquidsoap_ffmpeg_formats.Copy_changes.property -> bool) ->
+  t ->
+  t ->
+  t
 
 (** [(property, old value, new value)] for each descriptive property that
     differs. *)

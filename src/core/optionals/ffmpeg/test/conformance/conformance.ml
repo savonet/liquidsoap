@@ -1145,23 +1145,27 @@ let kc11 () =
   check "kc11: a codec change is rejected with the relaxed setting on"
     (contains "codec differs" log);
   let profiles = ["h264_high.mp4"; "h264_main.mp4"] in
-  ignore
-    (run_ok "kc11_extradata"
-       (copy_script profiles "%video.copy" "kc11_extradata.ts" "mpegts"));
-  check "kc11: differing extradata keeps an MPEG-TS output streaming"
-    (List.length (packets "kc11_extradata.ts" `Video) = 100);
-  let _, log =
-    run_script "kc11_extradata_mp4"
-      (copy_script profiles "%video.copy" "kc11_extradata.mp4" "mp4")
-  in
-  check "kc11: differing extradata stops an MP4 output at the switch"
-    (contains "cannot follow" log
-    && List.length (packets "kc11_extradata.mp4" `Video) = 50);
+  List.iter
+    (fun (format, out) ->
+      let log =
+        run_ok out (playlist_script out profiles "%video.copy" out format)
+      in
+      check
+        (Printf.sprintf
+           "kc11: differing extradata from MP4 sources is rejected at open for \
+            %s, naming it"
+           format)
+        (contains "extradata differs" log
+        && List.length (packets out `Video) = 50))
+    [("mpegts", "kc11_extradata.ts"); ("mp4", "kc11_extradata.mp4")];
   let log =
     run_ok "kc11_colour"
-      (copy_script
-         ["c709.mp4"; "c601.mp4"; "c709.mp4"]
-         "%video.copy" "kc11_colour.ts" "mpegts")
+      (* H.264 keeps its colour description in the SPS, which a
+         length-prefixed source does not carry into MPEG-TS. *)
+      ("settings.ffmpeg.content.copy.relaxed_compatibility_check := true\n"
+      ^ copy_script
+          ["c709.mp4"; "c601.mp4"; "c709.mp4"]
+          "%video.copy" "kc11_colour.ts" "mpegts")
   in
   check "kc11: files differing in a colour property all play"
     (List.length (packets "kc11_colour.ts" `Video) = 150);
@@ -1182,6 +1186,7 @@ let kc11 () =
   ignore
     (run_ok "kc11_hls"
        {|settings.decoder.decoders.set(["ffmpeg"])
+settings.ffmpeg.content.copy.relaxed_compatibility_check := true
 s = sequence([once(single("h264_high.mp4")), once(single("h264_main.mp4"))])
 clock.assign_new(sync="none", [s])
 o = output.file.hls(fallible=true, segment_duration=1., "kc11_hls", [("v", %ffmpeg(format="mp4", %video.copy))], s)
@@ -1317,6 +1322,7 @@ let hls () =
   ignore
     (run_ok "hls_restart"
        {|settings.decoder.decoders.set(["ffmpeg"])
+settings.ffmpeg.content.copy.relaxed_compatibility_check := true
 v = sequence([once(single("h264_high.mp4")), once(single("h264_main.mp4"))])
 s = source({audio = source.tracks(once(sine(duration=4.))).audio, video = source.tracks(v).video})
 clock.assign_new(sync="none", [s])

@@ -30,40 +30,46 @@ let packet_media : copy_packet -> _ = function
   | `Video _ -> `Video
   | `Subtitle _ -> `Subtitle
 
-type header = Liquidsoap_ffmpeg_formats.Copy_header.t
-type copy_format = { params : Copy_params.t option; header : header }
+module Changes = Liquidsoap_ffmpeg_formats.Copy_changes
+
+type copy_format = { params : Copy_params.t option; containers : Changes.t }
 
 module Libav = struct
   let name = "libav"
 
   module Copy = struct
-    module H = Liquidsoap_ffmpeg_formats.Copy_header
-
     type t = copy_format
 
-    let default = { params = None; header = H.default }
+    let default = { params = None; containers = Changes.default }
 
-    let to_string { params; header } =
+    let to_string { params; containers } =
       String.concat ","
         (List.filter
            (fun s -> s <> "")
            [
              Option.fold ~none:"" ~some:Copy_params.to_string params;
-             H.to_string header;
+             Changes.to_string containers;
            ])
 
     let parse_param label value =
       Option.map
-        (fun header -> { params = None; header })
-        (H.parse_param label value)
+        (fun containers -> { params = None; containers })
+        (Changes.parse_param label value)
 
-    (* content.md §3.1.1: header details are compared unless every output of
-       the track carries them in band. *)
+    (* content.md §3.1.1: a source may change what every container of the
+       track follows for the stream's codec and bitstream form. *)
+    let allowed containers stream =
+      if Copy_params.relaxed () then Copy_params.relaxed_allowed
+      else
+        Changes.allowed containers
+          ~codec:(Copy_params.codec_name stream)
+          ~form:(Copy_params.bitstream_form stream)
+
     let incompatibility a b =
       match (a.params, b.params) with
         | Some p, Some p' ->
             Copy_params.incompatibility
-              ~headers:(H.headers (H.merge a.header b.header))
+              ~allowed:(allowed (Changes.merge a.containers b.containers) p)
               p p'
         | _ -> None
 
@@ -76,22 +82,22 @@ module Libav = struct
               (Printf.sprintf "Incompatible copy parameters: %s: %s and %s"
                  reason (to_string a) (to_string b))
         | None -> ());
-      let header = H.merge a.header b.header in
+      let containers = Changes.merge a.containers b.containers in
       {
         params =
           (match (a.params, b.params) with
             | Some p, Some p' ->
-                Some (Copy_params.merge ~headers:(H.headers header) p p')
+                Some (Copy_params.merge ~allowed:(allowed containers p) p p')
             | None, p | p, None -> p);
-        header;
+        containers;
       }
 
-    let serialize { header } = H.to_string header
+    let serialize { containers } = Changes.to_string containers
 
     let parse_serialized s =
       Option.map
-        (fun header -> { params = None; header })
-        (H.parse_serialized s)
+        (fun containers -> { params = None; containers })
+        (Changes.parse_serialized s)
   end
 
   module Audio = Raw_params.Audio
@@ -127,10 +133,7 @@ module Copy = struct
   include Content_base.MkDataBase (Kinds.Copy) (Data)
 
   let kind = lift_kind `Copy
-
-  let unconstrained params =
-    { params; header = Liquidsoap_ffmpeg_formats.Copy_header.default }
-
+  let unconstrained params = { params; containers = Changes.default }
   let of_params params = lift_params (unconstrained (Some params))
   let stream_params format = (get_params format).params
 

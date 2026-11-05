@@ -532,11 +532,10 @@ reports the source to the instance
 A clean restart logs both parameter sets at warning level; a stop logs them
 at critical level (§11).
 
-Consequence: the table applies to what passes the merge. Two sources whose
-header properties differ share a track only when every encoder of the track
-types it `header=in_band`
-([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)), or
-under the relaxed setting.
+Consequence: the table applies to what passes the merge. Two sources share a
+track only when every container of the track allows what differs between
+them ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)),
+or under the relaxed setting.
 
 When `settings.ffmpeg.content.copy.relaxed_compatibility_check` is on, the
 type merge and this check both reduce to media and codec id. Every other

@@ -1,8 +1,8 @@
 %include "../test.liq"
 
-# MPEG-TS carries codec headers in band, so its copied track takes a file whose
-# H.264 header differs from the stream's: every file of the playlist plays.
-playlist_file = file.temp("in-band-header", ".m3u")
+# H.264 from Matroska is length-prefixed: MPEG-TS writes the stream's first
+# parameter sets only, so a file whose header differs is refused when it opens.
+playlist_file = file.temp("avcc-to-mpegts", ".m3u")
 file.write(
   data="stored-header-first.mkv\nstored-header-other.mkv\nstored-header-third.mkv\n",
   playlist_file
@@ -29,11 +29,11 @@ def on_close(filename) =
     ) = test.ffprobe(count_packets=true, filename)
     packets = int_of_string(nb_read_packets)
     if
-      packets < 240 or packets > 250
+      packets < 170 or packets > 175
     then
       test.fail(
-        "#{packets} packets copied, expected the three files (100, 75 and 75), \
-         less the few packets dropped before the first key frame"
+        "#{packets} packets copied, expected the first file (100) then the third \
+         (75)"
       )
     end
     test.pass()
@@ -44,6 +44,6 @@ output.file(
   fallible=true,
   on_close=on_close,
   %ffmpeg(format = "mpegts", %video.copy),
-  file.temp("in-band-header", ".ts"),
+  file.temp("avcc-to-mpegts", ".ts"),
   s
 )

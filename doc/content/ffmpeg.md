@@ -205,12 +205,21 @@ Manipulating encoded content requires knowledge of the internal aspects of media
 
 A copied stream keeps the parameters of its first source. When a playlist or a switch moves to another source, liquidsoap compares the new source with them:
 
-- A file whose codec, bitstream form (for instance H.264 in MP4 against MPEG-TS form, or raw AAC against ADTS), video size, sample rate or channel layout differs is skipped when it is opened, and the playlist moves on.
-- A file that differs only in codec headers (extradata, profile, level) plays when the encoder's `format` carries headers inside the stream: `mpegts`, `adts`, `h264`, `hevc` and `mp3`, and `ogg`, which chains a new link. With any other container, such as `matroska`, `webm` or `mp4`, or when `format` is not given, the file is skipped when it is opened, with an error naming the header that differs. A source that feeds several outputs follows the strictest one. The copy type shows the rule: `ffmpeg.copy(header=in_band)` or `ffmpeg.copy(header=stored)`.
+- A file whose codec or bitstream form differs (for instance H.264 in MP4 against MPEG-TS form, or raw AAC against ADTS) is skipped when it is opened, and the playlist moves on.
+- Other files are skipped when they are opened, with an error naming what differs, unless the encoder's `format` can carry that change inside the stream. The copy type shows which containers count: `ffmpeg.copy(containers=mpegts)`. A source that feeds several outputs must suit all of them. The containers that accept changes are:
 
-Files meant to follow each other in a Matroska or WebM stream must come from the same encoder with the same settings. For AV1, for instance, frame rate, size and colour settings all end up in the sequence header, which a Matroska track requires to be identical throughout.
+  | `format`         | Source                                 | Accepted changes                                        |
+  | ---------------- | -------------------------------------- | ------------------------------------------------------- |
+  | `mpegts`, `h264` | H.264 in MPEG-TS or raw (Annex B) form | codec headers, profile, level, video size, pixel format |
+  | `mpegts`, `adts` | AAC in ADTS form (`.aac`, MPEG-TS)     | profile, sample rate, channel layout                    |
+  | `mp3`            | MP3                                    | sample rate, channel layout                             |
+  | `ogg`            | any                                    | anything but the codec: a new link is chained           |
 
-- A file that differs only in its rotation, HDR metadata or colour properties is played, with a warning naming each difference.
+  Every other container, such as `matroska`, `webm`, `mp4` or `flv`, or an encoder without `format`, accepts no change. H.264 from MP4 or Matroska files does not change in MPEG-TS either: the muxer only writes the first file's parameter sets.
+
+  Files meant to follow each other in a Matroska or WebM stream must come from the same encoder with the same settings. For AV1, for instance, frame rate, size and colour settings all end up in the sequence header, which a Matroska track requires to be identical throughout.
+
+- A file that differs only in its rotation, HDR metadata or colour properties is played, with a warning naming each difference. Some codecs, such as H.264 and AV1, keep colour properties in their codec headers: there, the rule above applies.
 
 The tracks of a copied source start together, at the video's first keyframe. A source that switches in the middle of a group of pictures waits for its next keyframe, at most `settings.ffmpeg.content.copy.max_keyframe_wait` seconds (20 by default); past that, the tracks that are ready start without it, with a warning.
 

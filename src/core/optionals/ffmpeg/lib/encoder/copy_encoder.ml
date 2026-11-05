@@ -75,7 +75,7 @@ type t = {
   log : Log.t;
   container : Avutil.output Avutil.container;
   whole_output : bool;
-  stores_header : bool;
+  muxer : string;
   groups : (Source_id.t, group) Hashtbl.t;
   mutable tracks : track list;
   mutable skipped : int;
@@ -96,12 +96,12 @@ and track = {
   on_packet : key:bool -> time:int option -> unit;
 }
 
-let create ~log ~whole_output ~stores_header container =
+let create ~log ~whole_output ~muxer container =
   {
     log;
     container;
     whole_output;
-    stores_header;
+    muxer;
     groups = Hashtbl.create 4;
     tracks = [];
     skipped = 0;
@@ -556,12 +556,17 @@ let flush t ~position =
     (Hashtbl.copy t.groups);
   ignore position
 
+(* encoder.md §13.3: what the container carries in band is written as it
+   comes; any other difference needs a new container or is refused. *)
 let incompatibility track header (source : Copy_params.t) =
-  match Copy_params.type_incompatibility header source with
-    | Some reason -> Some reason
-    | None when track.shared.stores_header ->
-        Copy_params.header_incompatibility header source
-    | None -> None
+  Copy_params.incompatibility
+    ~allowed:(fun property ->
+      Liquidsoap_ffmpeg_formats.Copy_changes.rule ~container:track.shared.muxer
+        ~codec:(Copy_params.codec_name header)
+        ~form:(Copy_params.bitstream_form header)
+        property
+      = `In_band)
+    header source
 
 let incompatible track header source =
   incompatibility track header source <> None
@@ -608,7 +613,8 @@ let check_params track (source : Copy_params.t) =
                    header = Copy_params.to_string header;
                    source = Copy_params.to_string source;
                  }))
-          (incompatibility track header source);
+          (if Copy_params.relaxed () then None
+           else incompatibility track header source);
         List.iter
           (fun (property, old_value, new_value) ->
             track.shared.log#important

@@ -8,6 +8,6 @@ ignore((e, n))
 #? type 3:4
 --- diagnostics ---
 --- type 2:4 ---
-format(audio=pcm(5.1), video=ffmpeg.copy(header=stored))
+format(audio=pcm(5.1), video=ffmpeg.copy(containers=mp4))
 --- type 3:4 ---
 format(audio=pcm(5.1))

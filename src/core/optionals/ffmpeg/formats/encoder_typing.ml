@@ -129,7 +129,7 @@ let shape_of_track ~container (name, params) =
           `Untyped
       | `Copy ->
           check_copy_params params;
-          `Copy (Copy_header.of_container container)
+          `Copy (Copy_changes.of_container container)
       | (`Internal | `Raw) as mode -> shape_of_encoded ~mode ~field params
   in
   (field, shape)

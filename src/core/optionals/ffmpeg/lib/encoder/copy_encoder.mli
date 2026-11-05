@@ -44,11 +44,13 @@ exception
   }
 
 (** [whole_output] is [true] when every stream of the output is a copy track, so
-    that a group of every track is a whole-output switch. *)
+    that a group of every track is a whole-output switch. [muxer] names the
+    container: what it carries in band follows a source switch
+    ({!Liquidsoap_ffmpeg_formats.Copy_changes.rule}). *)
 val create :
   log:Log.t ->
   whole_output:bool ->
-  stores_header:bool ->
+  muxer:string ->
   Avutil.output Avutil.container ->
   t
 

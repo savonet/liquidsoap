@@ -119,11 +119,10 @@ val media_of_marker : string -> media option
 (** Whether the field name alone gives the media type (§2.1 rule 2). *)
 val media_of_field : string -> media option
 
-(** [`Copy] carries the header requirement of the track's container
-    ({!Copy_header.of_container}). *)
+(** [`Copy] carries the track's container ({!Copy_changes.of_container}). *)
 type shape =
   [ `Untyped
-  | `Copy of Copy_header.t
+  | `Copy of Copy_changes.t
   | `Raw_audio
   | `Raw_video
   | `Audio of pcm_kind * int

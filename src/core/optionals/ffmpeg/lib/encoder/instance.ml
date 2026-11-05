@@ -200,10 +200,7 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
           (List.for_all
              (function _, `Copy _ -> true | _ -> false)
              (non_drop format))
-        ~stores_header:
-          (not
-             (Liquidsoap_ffmpeg_formats.Copy_header.carries_header_in_band muxer))
-        output
+        ~muxer output
     in
     let tracks =
       List.map
