@@ -116,17 +116,34 @@ def check() =
           p.segments
         )
 
+        # conformance.md §2: within the key-frame offset, the same at every
+        # segment.
         starts = hls_test.starts(p.segments)
+        first_offset = ref(null)
         list.iteri(
           fun (i, t) ->
             if
-              i < count
+              i > 0 and i < count
             then
-              t' = list.nth(ref_starts, i)
+              offset = t - list.nth(ref_starts, i)
               hls_test.check(
-                abs(t - t') <= tolerance,
-                "segment #{i} starts at #{t} in #{name} and #{t'} in v1"
+                abs(offset) <= 0.5,
+                "segment #{i} of #{name} is #{offset}s from v1, beyond the \
+                 key-frame tolerance"
               )
+
+              if
+                null.defined(first_offset())
+              then
+                hls_test.check(
+                  abs(offset - null.get(first_offset())) <= tolerance,
+                  "segment #{i} of #{name} is #{offset}s from v1, segment 1 was #{
+                    null.get(first_offset())
+                  }s: the variants drift"
+                )
+              else
+                first_offset := offset
+              end
             end,
           starts
         )
