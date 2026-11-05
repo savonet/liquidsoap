@@ -4,4 +4,17 @@
  (name hls_output)
  (flags
   (:standard -open Liquidsoap_lang_data))
- (libraries liquidsoap-lang.data liquidsoap_core_utils))
+ (libraries
+  clock
+  dtools
+  liquidsoap-lang
+  liquidsoap-lang.data
+  liquidsoap_core_encoder
+  liquidsoap_ffmpeg_formats
+  liquidsoap_core_lang
+  liquidsoap_core_outputs
+  liquidsoap_core_source
+  liquidsoap_core_stream
+  liquidsoap_core_utils
+  threads.posix
+  unix))
