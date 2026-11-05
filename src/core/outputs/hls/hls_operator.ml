@@ -10,6 +10,11 @@ let invalid value message = raise (Error.Invalid_value (value, message, []))
 
 type state = [ `Idle | `Running | `Waiting of float ]
 
+(* From wake-up to sleep (spec/operator.md §3). [Restore_failed]: a strict
+   restore failed, the state file is kept and never saved over until the next
+   wake-up. *)
+type life = Asleep | Restore_failed | Awake of { restored : bool; runs : int }
+
 let is_playlist_tag tag =
   String.length tag > 0
   && tag.[0] = '#'
@@ -287,15 +292,8 @@ class output p =
 
     val mutable state : state = `Idle
     val mutable stopping = false
-
-    (* False after a strict restore failed: the bad file is kept until the
-       next wake-up, so every start fails until it is removed. *)
-    val mutable saving = true
-    val mutable restored = false
-    val mutable woken = true
-    val mutable first_run = true
-    val mutable main_due = false
-    val mutable main_values = None
+    val mutable life = Asleep
+    val mutable main = `Due
     val mutable pending_metadata = None
     val tag_cut = Atomic.make `None
     method private self_sync = (Lang.to_source source_val)#cached_self_sync
@@ -528,9 +526,8 @@ class output p =
                     v.name m announced
               | _ -> ())
           variants values;
-        if main_due || main_values <> Some values then (
-          main_due <- false;
-          main_values <- Some values;
+        if main <> `Written values then (
+          main <- `Written values;
           match Lang.to_valued_option Fun.id main_playlist_writer with
             | None -> ()
             | Some writer -> (
@@ -587,7 +584,7 @@ class output p =
     method private save =
       match persist_at with
         | None -> ()
-        | Some _ when not saving -> ()
+        | Some _ when life = Restore_failed -> ()
         | Some file -> (
             try
               let temp = file ^ ".tmp" in
@@ -619,7 +616,7 @@ class output p =
             in
             match parsed with
               | Error reason when strict_persist ->
-                  saving <- false;
+                  life <- Restore_failed;
                   raise
                     (Fatal
                        (Failure
@@ -627,13 +624,14 @@ class output p =
                              reason)))
               | Error reason ->
                   self#log#important "Ignoring the state file %s: %s" file
-                    reason
+                    reason;
+                  false
               | Ok saved ->
                   List.iter
                     (fun (s : Persist.variant) -> self#apply_saved s)
                     saved;
-                  restored <- true)
-        | _ -> ()
+                  true)
+        | _ -> false
 
     method private apply_saved (saved : Persist.variant) =
       let v = List.find (fun v -> v.Variant.name = saved.name) variants in
@@ -710,20 +708,24 @@ class output p =
               };
           v.metadata <- `None;
           v.current_init <- None;
-          if not (first_run && not restored) then
-            v.pending_discontinuity <- true)
+          match life with
+            | Awake { restored = false; runs = 0 } -> ()
+            | _ -> v.pending_discontinuity <- true)
         variants;
-      first_run <- false;
-      main_due <- true;
-      main_values <- None;
+      (match life with
+        | Awake ({ runs; _ } as l) -> life <- Awake { l with runs = runs + 1 }
+        | Asleep | Restore_failed -> ());
+      main <- `Due;
       state <- `Running
 
     method private start =
       Hashtbl.replace registry self#id (self :> < lookup : string -> lookup >);
-      if woken then (
-        woken <- false;
-        self#restore;
-        if restored then List.iter self#write_media_playlist variants);
+      (match life with
+        | Asleep | Restore_failed ->
+            let restored = self#restore in
+            life <- Awake { restored; runs = 0 };
+            if restored then List.iter self#write_media_playlist variants
+        | Awake _ -> ());
       self#begin_run
 
     (* spec/operator.md §3.2. *)
@@ -800,11 +802,8 @@ class output p =
           v.pending_discontinuity <- false)
         variants;
       Hashtbl.remove registry self#id;
-      woken <- true;
-      saving <- true;
+      life <- Asleep;
       store <- None;
-      restored <- false;
-      first_run <- true;
       state <- `Idle
 
     method! output =
