@@ -67,9 +67,11 @@ when the file exists:
 1. **Parse and check** the file as a whole: the format of §2; the same set
    of variant names as the output; for each variant, positions strictly
    increasing and below `next_position`, discontinuity values non-decreasing
-   and at most `discontinuity_count`, init names below
-   `next_init_position` in their position, every name valid by
-   [files.md §2](files.md#2-file-names).
+   and at most `discontinuity_count`, window start at most
+   `next_position`, every name valid by
+   [files.md §2](files.md#2-file-names). Init segments are known by name
+   only: the naming function chose the name, so its position cannot be read
+   back from it.
 2. A failed check applies nothing. With `strict_persist` true, the output
    fails, without `reopen_on_error`: a bad state file does not heal by
    itself. Otherwise a warning gives the reason and the output starts

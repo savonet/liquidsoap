@@ -81,9 +81,17 @@ its open segment's start. When a split point with time `t ≥ k` is recorded:
    most `T`. The cut point is the eligible candidate nearer to _k_, `b` on a
    tie. If neither is eligible, `a`: the bound of §5 did not hold because
    the encoder declined a forced split.
-3. **Cut** there (§4.1). The current boundary becomes the first boundary
-   after the cut point. If a split point of the new segment is at or after
-   that boundary, repeat from step 1.
+3. **Served.** When the choice is `a`, `a` is eligible, and the open
+   segment's start is nearer to _k_ than `a`, no cut is made: the cut that
+   opened the segment has served _k_.
+4. **Cut** there (§4.1), unless step 3 applies. The current boundary becomes
+   the first boundary after both _k_ and the cut point. If a split point of
+   the open segment is at or after that boundary, repeat from step 1.
+
+Reason for step 3 and for "after _k_": with split points just before every
+boundary, a cut made at one of them — by this rule or by the bound of §5 —
+leaves the next split point past _k_, and cutting there would leave a stub
+of one key-frame interval.
 
 A segment MUST NOT be cut anywhere but at a split point.
 

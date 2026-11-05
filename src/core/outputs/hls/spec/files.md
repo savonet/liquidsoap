@@ -100,8 +100,13 @@ stays on disk while either holds:
   window after it.
 
 Otherwise it is deleted (§5.1). With `segments_overhead` `null`, nothing is
-deleted while running. Both quantities are sums of lengths of the segment
-and newer retained segments, so they hold across a restore.
+deleted while running.
+
+After a restore ([persistence.md §4](persistence.md#4-restoring)), a
+restored segment outside the window counts as having left it at the
+restore, and every restored segment as listed by a playlist as long as the
+restored window. Reason: when a segment left the window and the playlists
+that listed it are not saved; this assumption only lengthens retention.
 
 Availability is counted in media time. What is not promised: a clock that
 runs faster than real time, catching up, deletes segments earlier in wall
