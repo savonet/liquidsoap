@@ -101,6 +101,7 @@ bases of the streams among them, is known after the first write.
 | `initialize_stream_copy`                                           | initialises the stream         | failure: header written       | failed error             | closed error |
 | `set_output_metadata`, `set_metadata`                              | replaces the metadata          | failure: header written       | failed error             | closed error |
 | `set_time_base`, `set_avg_frame_rate`                              | writes the field               | failure: header written       | failed error             | closed error |
+| `set_output_option`                                                | sets the option                | sets the option               | failed error             | closed error |
 | `write_packet`, `write_frame`, `write_subtitle_frame`              | writes the header, then writes | writes                        | failed error             | closed error |
 | `write_header`                                                     | writes the header, flushes I/O | nothing                       | failed error             | closed error |
 | `flush`                                                            | nothing                        | flushes the muxer and the I/O | failed error             | closed error |
@@ -614,6 +615,21 @@ Replace the whole metadata of the container, or of the stream, with the list.
 Entries present before and absent from the list are gone; a key that appears
 twice keeps its last value. On failure the metadata is unchanged.
 `set_metadata` accepts input streams too.
+
+```ocaml
+val set_output_option : output container -> string -> string -> unit
+```
+
+`set_output_option output name value` sets the option `name` of the
+output's muxer to `value`, searching the muxer's private options and their
+children (`av_opt_set` on the private data with `AV_OPT_SEARCH_CHILDREN`).
+It is accepted on an open and on a started output, so a muxer option can
+change between two packet writes; a one-shot flag such as the mpegts muxer's
+`mpegts_flags=+resend_headers` takes effect at the next packet. A muxer with
+no such option, or with no private options, raises
+``Error `Option_not_found``; an invalid value raises the mapped FFmpeg code.
+It is a setter: it takes the container exclusively and keeps the runtime
+lock.
 
 **Adding a stream.** Every creation function below:
 

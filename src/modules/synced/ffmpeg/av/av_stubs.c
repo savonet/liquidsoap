@@ -18,6 +18,7 @@
 
 #include <libavutil/avstring.h>
 #include <libavutil/mem.h>
+#include <libavutil/opt.h>
 
 #define CUSTOM_IO_BUFFER_SIZE 32768
 #define SUBTITLE_PACKET_MAX (1024 * 1024)
@@ -1094,6 +1095,21 @@ CAMLprim value ocaml_av_set_metadata(value _container, value _index,
   av_dict_free(target);
   *target = metadata;
   done(record, 0);
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value ocaml_av_set_output_option(value _container, value _name,
+                                          value _option_value) {
+  CAMLparam3(_container, _name, _option_value);
+  container *record = exclusive(_container);
+  void *private_data = record->context->priv_data;
+  int error = AVERROR_OPTION_NOT_FOUND;
+
+  if (private_data)
+    error = av_opt_set(private_data, String_val(_name),
+                       String_val(_option_value), AV_OPT_SEARCH_CHILDREN);
+  done(record, error);
 
   CAMLreturn(Val_unit);
 }

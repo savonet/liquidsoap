@@ -411,6 +411,9 @@ let set_output_metadata container metadata =
 let set_metadata stream metadata =
   set_container_metadata stream.container stream.index metadata
 
+external set_output_option : output container -> string -> string -> unit
+  = "ocaml_av_set_output_option"
+
 type uninitialized_stream_copy = { output : output container; reserved : int }
 
 external reserve_stream_copy : output container -> int
