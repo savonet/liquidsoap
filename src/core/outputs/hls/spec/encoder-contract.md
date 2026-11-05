@@ -98,15 +98,19 @@ The output relies on:
 
 ## 6. Properties
 
-| Query                     | Meaning for the output                                                                   |
-| ------------------------- | ---------------------------------------------------------------------------------------- |
-| `codec_attrs ()`          | RFC 6381 codec string listing every format in the variant, or none; never a partial list |
-| `independent_segments ()` | true when the encoder's split points, not counting forced ones, start with key packets   |
-| `free_split ()`           | true when a split point is within one codec frame of every request                       |
-| `bitrate ()`              | nominal bits per second, or none                                                         |
-| `video_size ()`           | `(width, height)`, or none                                                               |
+| Query                     | Meaning for the output                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `codec_attrs ()`          | RFC 6381 codec string listing every format in the variant, or none; never a partial list                |
+| `independent_segments ()` | true when the encoder's split points, not counting forced ones, start with key packets                  |
+| `free_split ()`           | true when a split point is within one codec frame of every request                                      |
+| `split_due ()`            | true while a split point the encoder has committed to is on its way (§5): it declines `force` meanwhile |
+| `bitrate ()`              | nominal bits per second, or none                                                                        |
+| `video_size ()`           | `(width, height)`, or none                                                                              |
 
-Answers are valid from the `Init` of §4 and may change at a `Restart`. None
+Answers are valid from the `Init` of §4 and may change later, at a
+`Restart` or once a stream's parameters are known (a copied stream that
+waits for its source); the output reads them again at every segment
+close. None
 defers to the format and the variant fields
 ([variants.md §3](variants.md#3-derived-properties)). Whether a listed
 segment started at a forced split is recorded by the output

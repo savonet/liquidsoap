@@ -68,7 +68,8 @@ that variant) trims `tag` and adds it to the variant's pending tags. It may
 be called from any thread; concurrent calls MUST NOT be lost.
 
 A **playlist tag** is one line starting with `#`. `insert_tag` rejects
-anything else with an invalid-value error and queues nothing; the output's
+anything else with an `error.invalid` runtime error, which the script can
+catch, and queues nothing; the output's
 and the variants' `extra_tags` are checked the same way at construction.
 Reason: a tag is written into the playlist as is, and a second line in it
 would be read as a URI.

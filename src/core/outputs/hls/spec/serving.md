@@ -16,7 +16,7 @@ formats, s)`. HTTPS is a `transport`.
 ## 2. Composition
 
 1. The output directory is `tmpdir`, or a new temporary directory when
-   `null`. With `tmpdir` `null` and a relative `persist_at`, a warning says
+   `null`, removed at the final stop with what it holds. With `tmpdir` `null` and a relative `persist_at`, a warning says
    that the state lands in a new directory every run and can never be
    restored.
 2. The HLS output is built on that directory, with every argument passed

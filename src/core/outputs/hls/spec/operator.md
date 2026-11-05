@@ -35,7 +35,8 @@ Labelled, with defaults:
 | `strict_persist`       | `bool`                                                          | `false`                                   | [persistence.md §4](persistence.md#4-restoring)                           |
 | `reopen_on_error`      | `(error?) -> float?`                                            | `fun (_) -> 2.`                           | §6                                                                        |
 
-Plus the parameters common to every output: `id`, `fallible` (default
+Plus the parameters common to every output: `id` (default: the main
+playlist's file name), `fallible` (default
 `false`), `start` (default `true`), `register_telnet` (default `true`) and
 the `on_start` / `on_stop` callbacks.
 
@@ -120,8 +121,12 @@ failure is logged with the variant and the step, and the stop completes.
    are applied ([segmenting.md §3](segmenting.md#3-applying-pieces)). Skipped during the reopen delay of §6,
    when no run is active.
 2. Each open segment is closed ([files.md §4](files.md#4-closing-a-segment)),
-   or dropped when empty.
-3. With `persist_at`, the state is saved ([persistence.md §3](persistence.md#3-saving)).
+   or dropped when empty; the main playlist is not rewritten meanwhile.
+3. The main playlist is written if due
+   ([playlists.md §3](playlists.md#3-main-playlist)), with the values of
+   every variant's last encoder. Reason: a variant already stopped would
+   otherwise announce its format's values in place of its encoder's.
+4. With `persist_at`, the state is saved ([persistence.md §3](persistence.md#3-saving)).
 
 **Sleep**, whatever the output's state (started, idle, or stopped by
 hand): a stop if it is started, then, with `persist_at`, a save, and
@@ -154,7 +159,8 @@ at each metadata position into chunks. For each non-empty chunk, in order:
 
 - `insert_tag(tag)`: on every variant ([metadata.md §3](metadata.md#3-inserted-tags)).
 - `streams()`: one record per variant: `name`, `encoder`, `video_size`
-  (`{width, height}` or `null`), `bandwidth`, `codecs`, `extname`,
+  (`{width, height}` or `null`), `bandwidth`, `codecs`, `extname` (the media
+  segments' extension),
   `id3_enabled`, `replay_id3`, `extra_tags`, `discontinuity_count`, and
   `insert_tag(tag)` for that variant alone. Values are read when called
   ([variants.md §3](variants.md#3-derived-properties)).

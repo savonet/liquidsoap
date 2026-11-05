@@ -42,8 +42,9 @@ format`.
    WebVTT. Any other is rejected, naming the variant: "Transport of other
    media file formats is not defined" (§3.1). By encoder: `%mp3` and
    `%shine` (MP3), `%fdkaac` with ADTS transport, and `%ffmpeg` with the
-   `mpegts`, fragmented `mp4`, `adts`, `mp3`, `ac3`, `eac3` or `webvtt`
-   muxer. Every other encoder is rejected.
+   `mpegts`, `adts`, `mp3`, `ac3`, `eac3` or `webvtt` muxer, or a muxer of
+   the ISO base media family (`mp4`, `mov`, `ipod`, `ismv`), written as
+   fragmented MP4. Every other encoder is rejected.
 
 At the start of every run each variant gets a new encoder, built the same
 way ([encoder-contract.md §2](encoder-contract.md#2-calls-and-order)).

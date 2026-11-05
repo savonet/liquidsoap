@@ -37,7 +37,7 @@ audio and ADTS frames decode on their own, bit reservoir aside.
 `codec_attrs` and `bitrate` come from the format
 ([variants.md §3.1](variants.md#31-format-tables)), except `%mp3` VBR (no
 bit rate); `video_size` is none; `independent_segments` and `free_split`
-are true.
+are true; `split_due` is false.
 
 ## 7. `insert_id3`
 

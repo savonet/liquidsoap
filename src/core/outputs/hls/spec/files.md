@@ -30,8 +30,10 @@ stream_name}` and returns a name relative to the output directory.
   number ([playlists.md §2.1](playlists.md#21-media-sequence)); `extname`
   the variant's extension.
 - **Init segment**: called when it is written, with `position` the
-  variant's init position (§6), `extname` `mp4` for an `m4s` variant and the
-  variant's extension otherwise, `duration` 0 and `ticks` 0.
+  variant's init position (§6), `extname` the container's file extension
+  (`mp4` for fragmented MP4, whatever the variant's `extname`), `duration` 0
+  and `ticks` 0. Reason: an init segment named with the media segments'
+  extension takes a name a media segment of the next run uses.
 
 Default: `"#{stream_name}_#{position}.#{extname}"`. The function is called
 once per file and may be impure.

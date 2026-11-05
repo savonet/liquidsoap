@@ -80,7 +80,8 @@ In order:
    the stream's codec parameters, where the muxer and the codec string of
    §8.6 read it, whatever the container.
 2. **HLS defaults**, only when `hls` is true:
-   - `format="mp4"`: container option `movflags` defaults to
+   - `format` of the ISO base media family (`mp4`, `mov`, `ipod`,
+     `ismv`): container option `movflags` defaults to
      `"+frag_custom+dash+delay_moov"` (fragments are cut only when the
      encoder asks, §8.2).
    - `format="mpegts"`: container option `avoid_negative_ts` defaults to
@@ -364,15 +365,12 @@ segment formats of RFC 8216
 
 `init_encode ~boundary frame` encodes the frame (§5). It returns
 `Init (init, pieces)` once the header is known, where `pieces` (§8.4) hold
-every byte after the header; for MP4 they start with the `styp` box. Until the header is known it returns
+every byte after the header. For MP4 the header is the `ftyp` and `moov`
+boxes, and a media segment starts with its first fragment's boxes (`sidx`
+when the muxer writes one, `moof`). Until the header is known it returns
 `Pending`, and the bytes stay in the buffer for the next call: no frame's
 data is lost while the HLS output retries. An init segment MUST NOT be empty
 for a format that has a header.
-
-The `styp` box (24 bytes):
-`00 00 00 18 's' 't' 'y' 'p' 'm' 's' 'd' 'h' 00 00 00 00 'm' 's' 'd' 'h' 'm' 's' 'i' 'x'`
-— size 24, major brand `msdh`, minor version 0, compatible brands `msdh`, `msix`.
-It starts every MP4 media segment.
 
 ### 8.4 `split_encode frame`
 
@@ -389,8 +387,7 @@ order:
 
 - `Bytes`: output bytes no longer held (§8.2).
 - `Split`: an accepted split point between the bytes before and after it,
-  with its media time. For MP4, the bytes after it start with the `styp`
-  box.
+  with its media time. For MP4, the bytes after it start a fragment.
 - `Restart`: a container restart (§13) during the call. It is a split point
   that also starts a new container, with `init` its init segment (none for
   formats without one). It is returned in the call in which the new init

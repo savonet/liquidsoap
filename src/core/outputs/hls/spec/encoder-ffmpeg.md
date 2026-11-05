@@ -53,7 +53,10 @@ can all fall just after the boundaries; the cut rule absorbs that
 subtitles, intra-only codecs): the hook then takes a split point before the
 first packet at or after each request
 ([encoder.md §8.2](../../../optionals/ffmpeg/spec/encoder.md#82-keyframe-hooks)).
-False otherwise.
+False otherwise. `split_due` is true while a key frame made for a request has
+not yet reached the muxer, or a restart is not yet returned: the cases in
+which the instance declines `force`
+([encoder.md §8.4](../../../optionals/ffmpeg/spec/encoder.md#84-split_encode-frame)).
 
 ## 7. `insert_id3`
 

@@ -140,11 +140,18 @@ starts within 0.1 s in both.
 
 Before each chunk is given to `split_encode`, with `len` its length: if the
 open segment's length after the chunk, rounded to the nearest second, would
-exceed `T`:
+exceed `T`, and the encoder has no split point due
+([encoder-contract.md §6](encoder-contract.md#6-properties)):
 
 1. If the segment holds a split point, cut at the latest one (§4.1); the
    current boundary becomes the first after it; check again.
 2. Otherwise `split_encode` is called with `force` true.
+
+With a split point due, nothing is done: the split point comes at the
+requested time, and the segment's length is measured on media the encoder
+still holds (lookahead, reordering), not on what it has written. Cutting at
+an earlier split point instead would halve segments behind an encoder
+whose delay exceeds half a target duration.
 
 `force` is false otherwise. The encoder decides whether to honour it
 ([encoder-contract.md §5](encoder-contract.md#5-split_encode)). Each
