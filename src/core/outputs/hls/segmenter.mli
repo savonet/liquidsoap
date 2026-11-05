@@ -60,8 +60,9 @@ val request : 'a t -> int
 
 (** Applies the target-duration bound for a chunk of [length] ticks, opening the
     first segment if none is open. Returns [true] when the encoder must be asked
-    to force a split. *)
-val bound : 'a t -> length:int -> bool
+    to force a split; with [split_due] (a split point on its way from the
+    encoder) nothing is cut or forced. *)
+val bound : ?split_due:bool -> 'a t -> length:int -> bool
 
 val advance : 'a t -> int -> unit
 val add_bytes : 'a t -> Strings.t -> unit

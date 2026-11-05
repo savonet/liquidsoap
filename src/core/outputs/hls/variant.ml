@@ -35,6 +35,7 @@ type run = {
   encoder : Encoder.hls_encoder;
   segmenter : segment Segmenter.t;
   mutable properties : properties option;
+  mutable encoder_stopped : bool;
   mutable last_tag : int option;
   mutable bandwidth_warned : bool;
 }
@@ -125,5 +126,13 @@ let video_size v =
           | Some s -> Some s
           | None -> Encoder.video_size v.format)
 
+let iso_muxer = function
+  | Encoder.Ffmpeg
+      { Liquidsoap_ffmpeg_formats.Encoder_format.format = Some m; _ } ->
+      List.mem m ["mp4"; "mov"; "ipod"; "ismv"]
+  | _ -> false
+
 let segment_extension v = if v.extname = "mp4" then "m4s" else v.extname
-let init_extension v = v.extname
+
+(* spec/files.md §2: the container's extension, whatever [extname] says. *)
+let init_extension v = if iso_muxer v.format then "mp4" else v.extname

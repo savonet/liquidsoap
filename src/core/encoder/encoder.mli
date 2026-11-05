@@ -113,6 +113,7 @@ type hls_encoder = {
   codec_attrs : unit -> string option;
   independent_segments : unit -> bool;
   free_split : unit -> bool;
+  split_due : unit -> bool;
   hls_bitrate : unit -> int option;
   hls_video_size : unit -> (int * int) option;
 }
@@ -136,5 +137,6 @@ val get_factory : format -> factory
 val hls_plug : (format -> hls_factory option) Plug.t
 
 (** The HLS factory for that format, its encoders serialised; [Not_found] for a
-    format no plug-in segments. *)
+    format no plug-in segments. Each plug-in accepts only the formats it writes
+    as RFC 8216 segments. *)
 val get_hls_factory : format -> hls_factory

@@ -496,6 +496,14 @@ let create ?interrupt ~pos ~name metadata format =
   }
 
 let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"]
+let iso_family = ["mp4"; "mov"; "ipod"; "ismv"]
+
+(* HLS variants.md §2: the segment formats of RFC 8216 §3. *)
+let segment_muxer = function
+  | Some m ->
+      m = "mpegts" || m = "webvtt" || List.mem m packed_audio
+      || List.mem m iso_family
+  | None -> false
 
 (* encoder.md §3 step 2. *)
 let hls_defaults (format : F.t) =
@@ -504,7 +512,7 @@ let hls_defaults (format : F.t) =
   in
   let opts =
     match format.format with
-      | Some "mp4" ->
+      | Some m when List.mem m iso_family ->
           default "movflags" "+frag_custom+dash+delay_moov" format.opts
       | Some "mpegts" -> default "avoid_negative_ts" "disabled" format.opts
       | _ -> format.opts
@@ -515,7 +523,7 @@ let hls_defaults (format : F.t) =
   { format with opts; interleaved; output = `Stream }
 
 (* The init segment of a fragmented MP4 container: its boxes before the first
-   [styp] or [moof]. *)
+   fragment's. *)
 let mp4_init_length buffer offset =
   let length = Buffer.length buffer in
   let byte i = Char.code (Buffer.nth buffer i) in
@@ -529,7 +537,7 @@ let mp4_init_length buffer offset =
     if pos + 8 > length then None
     else (
       match Buffer.sub buffer (pos + 4) 4 with
-        | "styp" | "moof" -> Some (pos - offset)
+        | "styp" | "sidx" | "moof" -> Some (pos - offset)
         | _ ->
             let size = int32 pos in
             if size < 8 then None else scan (pos + size))
@@ -663,7 +671,7 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
   let fields = List.map fst (non_drop format) in
   let muxer = ref "" in
   let init_length buffer offset =
-    if !muxer = "mp4" then mp4_init_length buffer offset else Some 0
+    if List.mem !muxer iso_family then mp4_init_length buffer offset else Some 0
   in
   let h =
     {
@@ -701,6 +709,7 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
     codec_attrs = (fun () -> codec_attrs t);
     independent_segments = (fun () -> independent_segments t);
     free_split = (fun () -> Hls_split.all_key h.split);
+    split_due = (fun () -> h.key_due <> [] || Hls_split.restart_pending h.split);
     hls_bitrate = (fun () -> bitrate t);
     hls_video_size = (fun () -> video_size t);
   }
@@ -711,6 +720,6 @@ let () =
         Some (fun ~pos name metadata -> create ~pos ~name metadata format)
     | _ -> None);
   Plug.register Encoder.hls_plug "ffmpeg" ~doc:"FFmpeg HLS segments." (function
-    | Encoder.Ffmpeg format ->
+    | Encoder.Ffmpeg format when segment_muxer format.F.format ->
         Some (fun ~pos name -> create_hls ~pos ~name format)
     | _ -> None)

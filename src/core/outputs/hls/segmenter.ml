@@ -153,18 +153,19 @@ let sync_cut t =
         cut t s ~discontinuous:(List.exists snd due) latest
     | _ -> ()
 
-let rec bound t ~length =
+let rec bound ?(split_due = false) t ~length =
   match t.segment with
     | None ->
         open_segment t ~start:t.media ~discontinuous:false ~forced:false
           ~bytes:Strings.empty ~splits:[];
-        bound t ~length
+        bound ~split_due t ~length
+    | Some _ when split_due -> false
     | Some s
       when rounded_seconds t.config (t.media + length - s.start) > t.target -> (
         match s.splits with
           | latest :: _ ->
               cut t s ~discontinuous:false latest;
-              bound t ~length
+              bound ~split_due t ~length
           | [] -> true)
     | Some _ -> false
 

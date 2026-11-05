@@ -50,7 +50,7 @@ end
 # @argsof output.file.hls
 def replaces output.file.hls(
   %argsof(output.file.hls[!main_playlist_writer]),
-  ~main_playlist_writer=(
+  ~main_playlist_writer=null(
     fun (~extra_tags, ~prefix, ~version, streams) ->
       (
         hls.playlist.main(
@@ -240,7 +240,16 @@ def output.harbor.hls(
     )
   end
 
-  dir = tmpdir ?? file.temp_dir("hls")
+  dir =
+    if
+      null.defined(tmpdir)
+    then
+      null.get(tmpdir)
+    else
+      dir = file.temp_dir("hls")
+      on_shutdown(fun () -> file.rmdir(dir))
+      dir
+    end
 
   o = output.file.hls(%argsof(output.file.hls), dir, formats, s)
 
@@ -264,6 +273,8 @@ def output.harbor.hls(
         generated
       )
 
+    content_type = content_type == "" ? [] : [("Content-Type", content_type)]
+
     if
       request.method == "GET"
     then
@@ -276,10 +287,10 @@ def output.harbor.hls(
       if
         null.defined(data)
       then
-        response.headers(
-          [("Content-Type", content_type), ...generated, ...headers]
-        )
-        response.data(null.get(data))
+        data = null.get(data)
+        length = data == "" ? [("Content-Length", "0")] : []
+        response.headers([...content_type, ...length, ...generated, ...headers])
+        response.data(data)
       else
         response.status_code(404)
       end
@@ -287,7 +298,7 @@ def output.harbor.hls(
       length = file.size(fname)
       response.headers(
         [
-          ("Content-Type", content_type),
+          ...content_type,
           ("Content-Length", "#{length}"),
           ...generated,
           ...headers

@@ -233,6 +233,29 @@ let () =
   check "same-time sync and restart: one cut"
     (List.length (List.filter (fun s -> s.discontinuous) segs) = 1)
 
+(* §5: with a split point due, the bound neither cuts nor forces. *)
+let () =
+  let closed = ref 0 in
+  let seg =
+    Segmenter.create
+      ~on_open:(fun ~start:_ -> ((), Strings.empty))
+      ~on_close:(fun _ -> incr closed)
+      (config ~duration:1000)
+  in
+  ignore (Segmenter.bound seg ~length:chunk);
+  Segmenter.advance seg chunk;
+  Segmenter.add_bytes seg (Strings.of_string "x");
+  Segmenter.split seg ~time:200 ~forced:false;
+  for _ = 1 to 40 do
+    check "split due: no force"
+      (not (Segmenter.bound ~split_due:true seg ~length:chunk));
+    Segmenter.advance seg chunk;
+    Segmenter.add_bytes seg (Strings.of_string "x")
+  done;
+  check "split due: no cut at an earlier split point" (!closed = 0);
+  check "without it the bound cuts"
+    ((not (Segmenter.bound seg ~length:chunk)) && !closed = 1)
+
 let () =
   check "T rounds 6.006 s to 6"
     (Segmenter.target_duration { duration = 6006; ticks_per_second = tps } = 6);

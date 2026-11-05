@@ -25,18 +25,6 @@ let check_tags value tags =
 
 let seconds ticks = Frame.seconds_of_main ticks
 
-(* spec/variants.md §2: the segment formats of RFC 8216 §3. *)
-let segment_format = function
-  | Encoder.MP3 _ | Encoder.Shine _ -> true
-  | Encoder.FdkAacEnc { Fdkaac_format.transmux = `Adts; _ } -> true
-  | Encoder.Ffmpeg f -> (
-      match f.Liquidsoap_ffmpeg_formats.Encoder_format.format with
-        | Some ("mpegts" | "mp4" | "adts" | "mp3" | "ac3" | "eac3" | "webvtt")
-          ->
-            true
-        | _ -> false)
-  | _ -> false
-
 let parse_fields value =
   let meths, _ = Lang.split_meths value in
   let get name f = Option.map f (List.assoc_opt name meths) in
@@ -68,6 +56,7 @@ let build_variant ~pos (name, value) =
   let extname =
     match fields.extname with
       | Some e -> e
+      | None when Variant.iso_muxer format -> "mp4"
       | None -> (
           try Encoder.extension format
           with Not_found ->
@@ -77,8 +66,8 @@ let build_variant ~pos (name, value) =
   in
   let factory =
     match Encoder.get_hls_factory format with
-      | f when segment_format format -> f
-      | _ | (exception Not_found) ->
+      | f -> f
+      | exception Not_found ->
           invalid value
             (Printf.sprintf
                "Variant %s: transport of other media file formats is not \
@@ -271,7 +260,7 @@ class output p =
     inherit
       [unit] Output.encoded
         ~output_kind:"output.file.hls" ~infallible ~register_telnet ~autostart
-          ~export_cover_metadata:false ~name:"output.file.hls" source_val as base
+          ~export_cover_metadata:false ~name:playlist source_val as base
 
     val on_file_change : (Lang.value -> unit) Callbacks.t = Callbacks.create ()
     method register_on_file_change fn = Callbacks.register on_file_change fn
@@ -297,6 +286,7 @@ class output p =
             s
 
     val mutable state : state = `Idle
+    val mutable stopping = false
 
     (* False after a strict restore failed: the bad file is kept until the
        next wake-up, so every start fails until it is removed. *)
@@ -313,7 +303,6 @@ class output p =
     method files = self#store
 
     initializer
-      Hashtbl.replace registry self#id (self :> < lookup : string -> lookup >);
       (match temp_dir with
         | Some d when device d <> device dir ->
             self#log#important
@@ -414,7 +403,13 @@ class output p =
         v.Variant.pending_discontinuity <-
           v.pending_discontinuity || discontinuous;
         Variant.give_back_tags v segment.tags)
-      else self#publish v segment closed ~discontinuous
+      else (
+        (match v.run with
+          | Some ({ properties = Some _; encoder_stopped = false; _ } as r) -> (
+              try r.properties <- Some (Variant.read_properties r.encoder)
+              with _ -> ())
+          | _ -> ());
+        self#publish v segment closed ~discontinuous)
 
     (* spec/files.md §4. *)
     method private publish v segment closed ~discontinuous =
@@ -446,7 +441,7 @@ class output p =
       step (fun () -> self#save);
       step fire;
       step (fun () -> self#write_media_playlist v);
-      step (fun () -> self#write_main_playlist);
+      step (fun () -> if not stopping then self#write_main_playlist);
       step (fun () -> self#retention v);
       Option.iter
         (fun (exn, bt) -> Printexc.raise_with_backtrace exn bt)
@@ -709,6 +704,7 @@ class output p =
                     ~on_close:(fun c -> self#close_segment v c)
                     config;
                 properties = None;
+                encoder_stopped = false;
                 last_tag = None;
                 bandwidth_warned = false;
               };
@@ -723,6 +719,7 @@ class output p =
       state <- `Running
 
     method private start =
+      Hashtbl.replace registry self#id (self :> < lookup : string -> lookup >);
       if woken then (
         woken <- false;
         self#restore;
@@ -731,26 +728,37 @@ class output p =
 
     (* spec/operator.md §3.2. *)
     method private stop =
-      List.iter
-        (fun v ->
-          match v.Variant.run with
-            | None -> ()
-            | Some r ->
-                (try
-                   let pieces = r.encoder.hls_stop () in
-                   if Segmenter.current r.segmenter <> None then
-                     self#apply_pieces v pieces
-                 with exn ->
-                   self#log#important
-                     "Variant %s: stopping the encoder failed: %s" v.name
-                     (Printexc.to_string exn));
-                (try Segmenter.finish r.segmenter
-                 with exn ->
-                   self#log#important
-                     "Variant %s: closing the last segment failed: %s" v.name
-                     (Printexc.to_string exn));
-                v.run <- None)
-        variants;
+      let running = List.exists (fun v -> v.Variant.run <> None) variants in
+      stopping <- true;
+      Fun.protect
+        ~finally:(fun () -> stopping <- false)
+        (fun () ->
+          List.iter
+            (fun v ->
+              match v.Variant.run with
+                | None -> ()
+                | Some r -> (
+                    (try
+                       let pieces = r.encoder.hls_stop () in
+                       r.encoder_stopped <- true;
+                       if Segmenter.current r.segmenter <> None then
+                         self#apply_pieces v pieces
+                     with exn ->
+                       r.encoder_stopped <- true;
+                       self#log#important
+                         "Variant %s: stopping the encoder failed: %s" v.name
+                         (Printexc.to_string exn));
+                    try Segmenter.finish r.segmenter
+                    with exn ->
+                      self#log#important
+                        "Variant %s: closing the last segment failed: %s" v.name
+                        (Printexc.to_string exn)))
+            variants);
+      (try if running then self#write_main_playlist
+       with exn ->
+         self#log#important "Writing the main playlist failed: %s"
+           (Printexc.to_string exn));
+      List.iter (fun v -> v.Variant.run <- None) variants;
       if state = `Running then state <- `Idle;
       self#save
 
@@ -791,6 +799,7 @@ class output p =
           v.pending_tags <- [];
           v.pending_discontinuity <- false)
         variants;
+      Hashtbl.remove registry self#id;
       woken <- true;
       saving <- true;
       store <- None;
@@ -927,7 +936,8 @@ class output p =
           List.map
             (fun v ->
               let r = Option.get v.Variant.run in
-              let force = Segmenter.bound r.segmenter ~length in
+              let split_due = r.properties <> None && r.encoder.split_due () in
+              let force = Segmenter.bound ~split_due r.segmenter ~length in
               let boundary = Segmenter.request r.segmenter in
               if r.properties <> None then
                 r.encoder.split_encode ~boundary ~force chunk
@@ -975,7 +985,7 @@ class output p =
               ("bandwidth", Lang.int (Variant.bandwidth v ~target));
               ( "codecs",
                 Lang.string (Option.value ~default:"" (Variant.codecs v)) );
-              ("extname", Lang.string v.extname);
+              ("extname", Lang.string (Variant.segment_extension v));
               ("id3_enabled", Lang.bool (v.id3_mode <> `None));
               ("replay_id3", Lang.bool v.fields.replay_id3);
               ( "extra_tags",
@@ -1172,15 +1182,6 @@ let proto frame_t =
         Some "Variants: name and format." );
       ("", Lang.source_t frame_t, None, None);
     ]
-
-let tag_meth (insert : string -> unit) =
-  Lang.val_fun
-    [("", "", None)]
-    (fun p ->
-      (try insert (Lang.to_string (List.assoc "" p))
-       with Failure message ->
-         raise (Error.Invalid_value (List.assoc "" p, message, [])));
-      Lang.unit)
 
 let stream_record_t =
   Lang.record_t
