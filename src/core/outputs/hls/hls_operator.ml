@@ -137,7 +137,10 @@ let tag_meth insert =
     (fun p ->
       let tag = List.assoc "" p in
       (try insert (Lang.to_string tag)
-       with Failure message -> raise (Error.Invalid_value (tag, message, [])));
+       with Failure message ->
+         Lang.raise_error ~message
+           ~pos:(Value.pos tag |> Option.to_list)
+           "invalid");
       Lang.unit)
 
 type lookup =
@@ -294,6 +297,10 @@ class output p =
             s
 
     val mutable state : state = `Idle
+
+    (* False after a strict restore failed: the bad file is kept until the
+       next wake-up, so every start fails until it is removed. *)
+    val mutable saving = true
     val mutable restored = false
     val mutable woken = true
     val mutable first_run = true
@@ -585,6 +592,7 @@ class output p =
     method private save =
       match persist_at with
         | None -> ()
+        | Some _ when not saving -> ()
         | Some file -> (
             try
               let temp = file ^ ".tmp" in
@@ -616,6 +624,7 @@ class output p =
             in
             match parsed with
               | Error reason when strict_persist ->
+                  saving <- false;
                   raise
                     (Fatal
                        (Failure
@@ -783,6 +792,8 @@ class output p =
           v.pending_discontinuity <- false)
         variants;
       woken <- true;
+      saving <- true;
+      store <- None;
       restored <- false;
       first_run <- true;
       state <- `Idle

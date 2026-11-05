@@ -34,15 +34,15 @@ of the script API; it keeps no copy of its own. Then it serves other
 regular files of the directory that a script placed there on purpose: keys
 named by an `EXT-X-KEY` tag, player pages, images.
 
-For a request path:
+For a request path under the base path (other paths are the HTTP
+server's, which the handler never sees):
 
-1. Not under the base path: 404.
-2. The rest is percent-decoded. A tracked name equal to it: the response of
+1. The rest is percent-decoded. A tracked name equal to it: the response of
    §4, with the content type of its kind (§4.1).
-3. Otherwise, a path with a NUL byte or a `..` component (split on `/`,
+2. Otherwise, a path with a NUL byte or a `..` component (split on `/`,
    and also on `\` where the system uses it) is a 404. So is the output's
    state file, and any temporary file of the output.
-4. Otherwise, a regular file at that path under the directory: the
+3. Otherwise, a regular file at that path under the directory: the
    response of §4, with the content type its extension gives, if any. A
    directory or a missing file: 404.
 
