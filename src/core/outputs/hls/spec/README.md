@@ -93,8 +93,19 @@ in the normative pass.
 
 ## Compatibility surface
 
-Not settled yet; to be decided with the user before the normative pass.
-Candidates: the parameter and method names and defaults of
-[operator.md §1](operator.md#1-parameters); the default file names; the
-state file of [persistence.md §2](persistence.md#2-format), which deployed
-systems hold on disk; the file-change event states.
+Settled with the user for the normative pass. Nothing is frozen, but the
+cost of a break depends on who sees it:
+
+- **Data on disk changes freely**: the state file of
+  [persistence.md §2](persistence.md#2-format) (no migration), the bytes
+  of segments and init segments, temporary files.
+- **The user-facing API is hard to break**: parameters, callbacks, methods,
+  file-change event states and paths, default file names. The script API is
+  considered good as it is. A change to it needs a case made to the user,
+  one change at a time; the default is to keep it.
+
+The change lands in a release cycle whose first release candidate is out,
+so every breaking change is weighed, justified and listed for the user.
+
+The target of the rewrite is the application logic: segmenting, playlists,
+storage and their interactions.
