@@ -102,7 +102,8 @@ let builder ~filter ~args ~wrap ~unwrap ~media_of ~to_media : Producer.builder =
         | [] -> ());
       Generator.put output.buffer.generator output.field
         (Ffmpeg_content.Copy.lift_data
-           (Ffmpeg_content.Copy.Data.of_run (Some h.params)
+           (Ffmpeg_content.Copy.Data.of_run
+              (Ffmpeg_content.Copy.unconstrained (Some h.params))
               (Ffmpeg_content.Copy.Data.run ~source_params:h.params
                  ~source_id:h.source_id ~time_base:h.out_time_base ~length
                  (List.map (fun p -> (0, wrap p)) items)))))
@@ -164,9 +165,7 @@ let builder ~filter ~args ~wrap ~unwrap ~media_of ~to_media : Producer.builder =
                (Avutil.string_of_opts opts))
           "ffmpeg");
     let out_params = Copy_params.make (media_of out_params) in
-    (try
-       Content.merge (format ())
-         (Ffmpeg_content.Copy.lift_params (Some out_params))
+    (try Content.merge (format ()) (Ffmpeg_content.Copy.of_params out_params)
      with exn ->
        raise
          (Producer.Source_fault

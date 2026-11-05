@@ -62,7 +62,8 @@ let create ~output ~faults ~source_id stream params =
       filled := !filled + length;
       output.Per_stream.put
         (Ffmpeg_content.Copy.lift_data
-           (Data.of_run (Some params)
+           (Data.of_run
+              (Ffmpeg_content.Copy.unconstrained (Some params))
               (Data.run ~continues:!continuing ~source_params:params
                  ~source_id:!source_id ~time_base ~length
                  (List.map (fun item -> (0, item)) items)))))

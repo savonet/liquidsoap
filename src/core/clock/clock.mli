@@ -76,6 +76,11 @@ exception Not_a_sub_clock of { clock : string; parent : string }
 (** Abandons a tick when the application stops. Never an error. *)
 exception Stop_signal
 
+(** A source error the user must act on, such as a stream the output cannot
+    carry: it fails the clock like any unhandled error and is reported by its
+    message alone, without a backtrace. *)
+exception Unrecoverable of string
+
 (** A handle. Several handles designate one clock after {!unify}. *)
 type t
 

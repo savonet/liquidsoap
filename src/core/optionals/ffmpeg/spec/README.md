@@ -24,9 +24,10 @@ These hold in every document. Each has one owner; the others link to it.
 1. **Content keeps flowing.** Liquidsoap runs long-lived streams. A fault in
    the data is contained to the smallest unit and becomes a signal the script
    can act on: a dropped item with a warning, an end of track, a source that
-   is not ready. A data fault never stops an output. A configuration error
-   that cannot recover fails the script, whenever it shows. No source invents
-   content. Owner: [faults.md](faults.md).
+   is not ready. A data fault never stops an output, with the one exception
+   of principle 6. A configuration error that cannot recover fails the
+   script, whenever it shows. No source invents content. Owner:
+   [faults.md](faults.md).
 2. **Nothing held is lost.** Every stage drains what it holds before it ends.
    Owner: [draining.md](draining.md).
 3. **One notion of source.** A new decoder, a seek, a reconnect, a declared
@@ -39,12 +40,20 @@ These hold in every document. Each has one owner; the others link to it.
    every source switch. Lengths and positions come from absolute timestamps,
    never from summed rounded steps. Owners: [timestamps.md](timestamps.md) and
    [common.md §6](common.md#6-duration-helper).
-6. **Incompatible copied sources are caught by the type system first.** The
-   `ffmpeg.copy` parameters carry the full stream header, so the format merge
-   rejects a source the muxer cannot take. The encoder checks again at a
-   switch. `settings.ffmpeg.content.copy.relaxed_compatibility_check` relaxes
-   both checks to media type and codec id and leaves the rest to libav.
-   Owners: [content.md §3.1](content.md#31-ffmpegcopy) and
+6. **Copied content is the user's contract** (user decision D2). Copy passes
+   coded packets through untouched, so the layer cannot repair a source the
+   output cannot carry: preparing compatible sources is the user's job, and
+   copy is an advanced feature. The check when a source opens is advisory.
+   It refuses what users expect to be fixed, such as the codec or the video
+   size, unless a container is known to carry the change, and what a
+   container is known not to carry. When in doubt about anything else it
+   SHOULD accept, and FFmpeg judges at run time. A copied stream that turns
+   out not to fit its output, with no clean restart, MUST fail hard with an
+   unrecoverable error naming what differs, rather than keep streaming a
+   broken result: the one exception to principle 1.
+   `settings.ffmpeg.content.copy.relaxed_compatibility_check` reduces the
+   check at open to media type and codec id. Owners:
+   [content.md §3.1.1](content.md#311-where-copy-parameters-are-merged) and
    [encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources).
 
 **Compatibility surface.** The `%ffmpeg(...)` syntax; every

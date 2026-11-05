@@ -30,28 +30,73 @@ let packet_media : copy_packet -> _ = function
   | `Video _ -> `Video
   | `Subtitle _ -> `Subtitle
 
+module Changes = Liquidsoap_ffmpeg_formats.Copy_changes
+
+type copy_format = { params : Copy_params.t option; containers : Changes.t }
+
 module Libav = struct
   let name = "libav"
 
   module Copy = struct
-    type t = Copy_params.t option
+    type t = copy_format
 
-    let default = None
-    let to_string = function None -> "" | Some p -> Copy_params.to_string p
-    let parse_param _ _ = None
+    let default = { params = None; containers = Changes.default }
 
-    let compatible a b =
-      match (a, b) with
-        | Some a, Some b -> Copy_params.compatible a b
-        | _ -> true
+    let to_string { params; containers } =
+      String.concat ","
+        (List.filter
+           (fun s -> s <> "")
+           [
+             Option.fold ~none:"" ~some:Copy_params.to_string params;
+             Changes.to_string containers;
+           ])
+
+    let parse_param label value =
+      Option.map
+        (fun containers -> { params = None; containers })
+        (Changes.parse_param label value)
+
+    (* content.md §3.1.1: a source may change what every container of the
+       track follows for the stream's codec and bitstream form. *)
+    let allowed containers stream =
+      if Copy_params.relaxed () then Copy_params.relaxed_allowed
+      else
+        Changes.allowed containers
+          ~codec:(Copy_params.codec_name stream)
+          ~form:(Copy_params.bitstream_form stream)
+
+    let incompatibility a b =
+      match (a.params, b.params) with
+        | Some p, Some p' ->
+            Copy_params.incompatibility
+              ~allowed:(allowed (Changes.merge a.containers b.containers) p)
+              p p'
+        | _ -> None
+
+    let compatible a b = incompatibility a b = None
 
     let merge a b =
-      match (a, b) with
-        | Some a, Some b -> Some (Copy_params.merge a b)
-        | None, p | p, None -> p
+      (match incompatibility a b with
+        | Some reason ->
+            failwith
+              (Printf.sprintf "Incompatible copy parameters: %s: %s and %s"
+                 reason (to_string a) (to_string b))
+        | None -> ());
+      let containers = Changes.merge a.containers b.containers in
+      {
+        params =
+          (match (a.params, b.params) with
+            | Some p, Some p' -> Some (Copy_params.merge p p')
+            | None, p | p, None -> p);
+        containers;
+      }
 
-    let serialize _ = ""
-    let parse_serialized = function "" -> Some None | _ -> None
+    let serialize { containers } = Changes.to_string containers
+
+    let parse_serialized s =
+      Option.map
+        (fun containers -> { params = None; containers })
+        (Changes.parse_serialized s)
   end
 
   module Audio = Raw_params.Audio
@@ -78,15 +123,21 @@ module Copy = struct
   module Data =
     Runs.Make
       (struct
-        type t = Copy_params.t option
+        type t = copy_format
 
-        let known = Option.is_some
+        let known { params } = Option.is_some params
       end)
       (Packet_item)
 
   include Content_base.MkDataBase (Kinds.Copy) (Data)
 
   let kind = lift_kind `Copy
+  let unconstrained params = { params; containers = Changes.default }
+  let of_params params = lift_params (unconstrained (Some params))
+  let stream_params format = (get_params format).params
+
+  let incompatibility format params =
+    Libav.Copy.incompatibility (get_params format) (unconstrained (Some params))
 end
 
 module Audio = struct

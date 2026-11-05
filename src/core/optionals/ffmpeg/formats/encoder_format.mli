@@ -119,16 +119,18 @@ val media_of_marker : string -> media option
 (** Whether the field name alone gives the media type (§2.1 rule 2). *)
 val media_of_field : string -> media option
 
+(** [`Copy] carries the track's container ({!Copy_changes.of_container}). *)
 type shape =
   [ `Untyped
-  | `Copy
+  | `Copy of Copy_changes.t
   | `Raw_audio
   | `Raw_video
   | `Audio of pcm_kind * int
   | `Video of bool
   | `Subtitle ]
 
-val shape_of_track : track -> shape
+(** [container] is the format's [format] option. *)
+val shape_of_track : container:string option -> track -> shape
 
 (** §10. A field written twice raises [Failure] naming it. *)
 val fields_type : (string * shape) list -> Type.t Fields.t

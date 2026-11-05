@@ -126,14 +126,14 @@ let bitstream_form t =
         match Avcodec.Video.get_params_id p with
           | `H264 | `Hevc | `Vvc ->
               let e = extradata t in
-              if e = "" || starts_with_start_code e then "annexb"
-              else "length_prefixed"
-          | _ -> "none")
+              if e = "" || starts_with_start_code e then `Annex_b
+              else `Length_prefixed
+          | _ -> `Other)
     | `Audio p -> (
         match Avcodec.Audio.get_params_id p with
-          | `Aac -> if extradata t = "" then "in_band" else "raw"
-          | _ -> "none")
-    | `Subtitle _ -> "none"
+          | `Aac -> if extradata t = "" then `Adts else `Raw_aac
+          | _ -> `Other)
+    | `Subtitle _ -> `Other
 
 let relaxed () = Settings.relaxed_compatibility_check#get
 
@@ -150,53 +150,88 @@ let layout_name l =
 
 let rational_to_string { Avutil.num; den } = Printf.sprintf "%d/%d" num den
 
-let differ name show a b equal =
-  if equal a b then None else Some (name, show a, show b)
+let differ property show a b equal =
+  if equal a b then None else Some (property, show a, show b)
 
 let both_set equal a b =
   match (a, b) with Some a, Some b -> equal a b | _ -> true
 
-let type_differences t t' =
-  let codec = differ "codec" Fun.id (codec_name t) (codec_name t') ( = ) in
-  let base =
-    [
-      differ "media" Fun.id (media_name t) (media_name t') ( = );
-      codec;
-      differ "bitstream form" Fun.id (bitstream_form t) (bitstream_form t')
-        ( = );
-    ]
-  in
+let property_name : Liquidsoap_ffmpeg_formats.Copy_changes.property -> string =
+  function
+  | `Media -> "media"
+  | `Codec -> "codec"
+  | `Bitstream_form -> "bitstream form"
+  | `Sample_rate -> "sample rate"
+  | `Channel_layout -> "channel layout"
+  | `Sample_format -> "sample format"
+  | `Width -> "width"
+  | `Height -> "height"
+  | `Pixel_format -> "pixel format"
+  | `Extradata -> "extradata"
+  | `Profile -> "profile"
+  | `Level -> "level"
+  | `Block_align -> "block align and bits per coded sample"
+
+let block_align_and_bits t =
+  match t.media with
+    | `Audio p ->
+        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
+    | `Video p ->
+        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
+    | `Subtitle p ->
+        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
+
+let differences t t' =
   let media =
     match (t.media, t'.media) with
       | `Audio p, `Audio p' ->
           [
-            differ "sample rate" string_of_int
+            differ `Sample_rate string_of_int
               (Avcodec.Audio.get_sample_rate p)
               (Avcodec.Audio.get_sample_rate p')
               ( = );
-            differ "channel layout" layout_name
+            differ `Channel_layout layout_name
               (Avcodec.Audio.get_channel_layout p)
               (Avcodec.Audio.get_channel_layout p') (fun l l' ->
                 try Avutil.Channel_layout.compare l l' with _ -> false);
-            differ "sample format" sample_format_name t.sample_format
+            differ `Sample_format sample_format_name t.sample_format
               t'.sample_format (both_set ( = ));
           ]
       | `Video p, `Video p' ->
           [
-            differ "width" string_of_int
+            differ `Width string_of_int
               (Avcodec.Video.get_width p)
               (Avcodec.Video.get_width p')
               ( = );
-            differ "height" string_of_int
+            differ `Height string_of_int
               (Avcodec.Video.get_height p)
               (Avcodec.Video.get_height p')
               ( = );
-            differ "pixel format" pixel_format_name t.pixel_format
+            differ `Pixel_format pixel_format_name t.pixel_format
               t'.pixel_format (both_set ( = ));
           ]
       | _ -> []
   in
-  if relaxed () then List.filteri (fun i _ -> i < 2) base else base @ media
+  let digest = function "" -> "none" | s -> Digest.(to_hex (string s)) in
+  let optional = function Some n -> string_of_int n | None -> "unset" in
+  let pair (a, b) = Printf.sprintf "%d/%d" a b in
+  List.filter_map Fun.id
+    ([
+       differ `Media Fun.id (media_name t) (media_name t') ( = );
+       differ `Codec Fun.id (codec_name t) (codec_name t') ( = );
+       differ `Bitstream_form Liquidsoap_ffmpeg_formats.Copy_changes.form_name
+         (bitstream_form t) (bitstream_form t') ( = );
+     ]
+    @ media
+    @ [
+        differ `Extradata digest (extradata t) (extradata t') ( = );
+        differ `Profile optional t.profile t'.profile (both_set ( = ));
+        differ `Level optional t.level t'.level (both_set ( = ));
+        differ `Block_align pair (block_align_and_bits t)
+          (block_align_and_bits t') ( = );
+      ])
+
+let relaxed_allowed = function `Media | `Codec -> false | _ -> true
 
 let reduce { Avutil.num; den } =
   let rec gcd a b = if b = 0 then a else gcd b (a mod b) in
@@ -248,20 +283,24 @@ let to_string t =
             | Some tb -> [Printf.sprintf "time_base=%s" (rational_to_string tb)]
             | None -> [])
 
-let incompatibility t t' =
-  List.find_map Fun.id (type_differences t t')
-  |> Option.map (fun (name, v, v') ->
-      Printf.sprintf "%s differs (%s against %s)" name v v')
+let incompatibility ~allowed t t' =
+  List.find_opt
+    (fun (property, _, _) -> not (allowed property))
+    (differences t t')
+  |> Option.map (fun (property, v, v') ->
+      Printf.sprintf "%s differs (%s against %s)" (property_name property) v v')
 
-let compatible t t' = incompatibility t t' = None
+let is_header_detail = function
+  | `Extradata | `Profile | `Level | `Block_align -> true
+  | _ -> false
+
+let compatible t t' =
+  incompatibility
+    ~allowed:(fun p -> is_header_detail p || (relaxed () && relaxed_allowed p))
+    t t'
+  = None
 
 let merge t t' =
-  (match incompatibility t t' with
-    | Some reason ->
-        failwith
-          (Printf.sprintf "Incompatible copy parameters: %s: %s and %s" reason
-             (to_string t) (to_string t'))
-    | None -> ());
   let fill a b = match a with Some _ -> a | None -> b in
   {
     t with
@@ -271,22 +310,6 @@ let merge t t' =
     profile = fill t.profile t'.profile;
     level = fill t.level t'.level;
   }
-
-let block_align_and_bits t =
-  match t.media with
-    | `Audio p ->
-        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
-    | `Video p ->
-        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
-    | `Subtitle p ->
-        (Avcodec.params_block_align p, Avcodec.params_bits_per_coded_sample p)
-
-let header_compatible t t' =
-  relaxed ()
-  || extradata t = extradata t'
-     && both_set ( = ) t.profile t'.profile
-     && both_set ( = ) t.level t'.level
-     && block_align_and_bits t = block_align_and_bits t'
 
 let descriptive_side_data =
   [

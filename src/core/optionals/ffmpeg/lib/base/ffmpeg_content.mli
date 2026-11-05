@@ -28,17 +28,38 @@ type copy_packet =
   | `Video of Avutil.video Avcodec.Packet.t
   | `Subtitle of Avutil.subtitle Avcodec.Packet.t ]
 
+(** The parameters of a copy format (content.md §3.1.1): [params], the stream's,
+    which its first source commits, and [containers], those the encoders of the
+    track write, which decide what a later source may change. *)
+type copy_format = {
+  params : Copy_params.t option;
+  containers : Liquidsoap_ffmpeg_formats.Copy_changes.t;
+}
+
 module Copy : sig
   module Data :
-    Runs.S with type item = copy_packet and type params = Copy_params.t option
+    Runs.S with type item = copy_packet and type params = copy_format
 
   include
     Content_base.Content
       with type kind = [ `Copy ]
-       and type params = Copy_params.t option
+       and type params = copy_format
        and type data = Data.data
 
   val kind : Content_base.kind
+
+  (** [params] with no container: the parameters of the data a producer makes.
+  *)
+  val unconstrained : Copy_params.t option -> copy_format
+
+  (** A format holding [params], for a merge. *)
+  val of_params : Copy_params.t -> Content_base.format
+
+  val stream_params : Content_base.format -> Copy_params.t option
+
+  (** Why a source with these parameters cannot join the format, under what its
+      containers allow; [None] when it can. *)
+  val incompatibility : Content_base.format -> Copy_params.t -> string option
 end
 
 module Audio : sig

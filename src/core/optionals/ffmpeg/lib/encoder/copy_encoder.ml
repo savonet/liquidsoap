@@ -23,7 +23,12 @@
 module F = Liquidsoap_ffmpeg_formats.Encoder_format
 
 exception
-  Incompatible of { field : Frame.field; header : string; source : string }
+  Incompatible of {
+    field : Frame.field;
+    reason : string;
+    header : string;
+    source : string;
+  }
 
 let max_rounding_shift = 1
 
@@ -70,7 +75,7 @@ type t = {
   log : Log.t;
   container : Avutil.output Avutil.container;
   whole_output : bool;
-  stores_header : bool;
+  muxer : string;
   groups : (Source_id.t, group) Hashtbl.t;
   mutable tracks : track list;
   mutable skipped : int;
@@ -91,12 +96,12 @@ and track = {
   on_packet : key:bool -> time:int option -> unit;
 }
 
-let create ~log ~whole_output ~stores_header container =
+let create ~log ~whole_output ~muxer container =
   {
     log;
     container;
     whole_output;
-    stores_header;
+    muxer;
     groups = Hashtbl.create 4;
     tracks = [];
     skipped = 0;
@@ -551,10 +556,26 @@ let flush t ~position =
     (Hashtbl.copy t.groups);
   ignore position
 
-let incompatible track header (source : Copy_params.t) =
-  Copy_params.incompatibility header source <> None
-  || track.shared.stores_header
-     && not (Copy_params.header_compatible header source)
+(* encoder.md §13.3: what the container carries in band is written as it
+   comes; any other difference needs a new container, else under the relaxed
+   setting the muxer judges it. *)
+let in_band track header property =
+  Liquidsoap_ffmpeg_formats.Copy_changes.rule
+    ~container:(`Named track.shared.muxer)
+    ~codec:(Copy_params.codec_name header)
+    ~form:(Copy_params.bitstream_form header)
+    property
+  = `In_band
+
+let incompatibility ?(relaxed = false) track header (source : Copy_params.t) =
+  Copy_params.incompatibility
+    ~allowed:(fun property ->
+      in_band track header property
+      || (relaxed && Copy_params.relaxed_allowed property))
+    header source
+
+let incompatible track header source =
+  incompatibility track header source <> None
 
 let switch_position t frame =
   let track_switch track =
@@ -588,14 +609,17 @@ let check_params track (source : Copy_params.t) =
   match track.header with
     | None -> ()
     | Some header ->
-        if incompatible track header source then
-          raise
-            (Incompatible
-               {
-                 field = track.field;
-                 header = Copy_params.to_string header;
-                 source = Copy_params.to_string source;
-               });
+        Option.iter
+          (fun reason ->
+            raise
+              (Incompatible
+                 {
+                   field = track.field;
+                   reason;
+                   header = Copy_params.to_string header;
+                   source = Copy_params.to_string source;
+                 }))
+          (incompatibility ~relaxed:(Copy_params.relaxed ()) track header source);
         List.iter
           (fun (property, old_value, new_value) ->
             track.shared.log#important

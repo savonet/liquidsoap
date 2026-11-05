@@ -20,12 +20,17 @@ away from the script author.
 
 ## 2. Classes
 
-| Class               | Examples                                                                                                       | Outcome                                                                                                                          |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Configuration error | unknown option, codec or format; invalid argument; type error; a hardware method that cannot be met            | Error at script evaluation or at start-up, before streaming. The script never starts on a configuration it cannot honour.        |
-| Item fault          | one corrupt packet, one non-increasing timestamp, one frame a converter rejects, one packet a muxer rejects    | The item is dropped with a warning (§4). Streaming continues.                                                                    |
-| Source fault        | a run of item faults past its bound, media that cannot be decoded further, a lost connection, a failed rebuild | The source ends its track, or becomes not ready. The script's `fallback`, `switch` or playlist decides what plays next (§3).     |
-| Output fault        | the byte sink fails, the header cannot be written, an incompatible copy source with no clean container restart | The output stops or restarts under its own restart policy, and reports through its callbacks. The clock and other outputs go on. |
+| Class               | Examples                                                                                                                      | Outcome                                                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Configuration error | unknown option, codec or format; invalid argument; type error; a hardware method that cannot be met                           | Error at script evaluation or at start-up, before streaming. The script never starts on a configuration it cannot honour.                                     |
+| Item fault          | one corrupt packet, one non-increasing timestamp, one frame a converter rejects, one packet a muxer rejects                   | The item is dropped with a warning (§4). Streaming continues.                                                                                                 |
+| Source fault        | a run of item faults past its bound, media that cannot be decoded further, a lost connection, a failed rebuild                | The source ends its track, or becomes not ready. The script's `fallback`, `switch` or playlist decides what plays next (§3).                                  |
+| Output fault        | the byte sink fails, the header cannot be written                                                                             | The output stops or restarts under its own restart policy, and reports through its callbacks. The clock and other outputs go on.                              |
+| Unrecoverable       | a copied source the output cannot carry and cannot restart for (user decision D2, [README](README.md#principles) principle 6) | The clock fails, with one message naming what differs and both parameter sets, without a backtrace ([clock.md §11](../../../clock/spec/clock.md#11-failure)). |
+
+Unrecoverable is the one data case that stops a script. It is reserved for
+copied content, where the user is responsible for compatible sources and a
+broken stream is worse than a stopped one.
 
 A fault is placed in the smallest class that contains it. A fault is raised
 out of a source while it streams only in the one case of §3 item 3.

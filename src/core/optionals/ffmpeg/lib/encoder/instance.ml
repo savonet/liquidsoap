@@ -104,11 +104,6 @@ let convert_container_opts pos opts =
 
 let non_drop format = List.filter (fun (_, t) -> t <> `Drop) format.F.streams
 
-(* Containers that carry header properties in band follow a change of them
-   at a source switch (encoder.md §13.3). *)
-let carries_header_in_band muxer =
-  List.mem muxer ["mpegts"; "adts"; "h264"; "hevc"; "mp3"]
-
 (* FFmpeg's [file] protocol has no append mode: [truncate] = 0 writes from the
    start of the file. An appending file output writes through a descriptor
    opened for appending; [output.file] asks for it with [truncate] = 0. *)
@@ -205,8 +200,7 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
           (List.for_all
              (function _, `Copy _ -> true | _ -> false)
              (non_drop format))
-        ~stores_header:(not (carries_header_in_band muxer))
-        output
+        ~muxer output
     in
     let tracks =
       List.map
@@ -393,16 +387,18 @@ let encode_frame t frame =
         (copy_tracks c);
       Copy_encoder.end_of_frame c.copy ~position:t.position
     with
-      | Copy_encoder.Incompatible { field; header; source } ->
-          let message =
-            Printf.sprintf
-              "Track %s: a source with parameters %s cannot follow the stream \
-               header %s in this container"
-              (Frame.Fields.string_of_field field)
-              source header
-          in
-          t.log#severe "%s" message;
-          fail t (Failure message)
+      | Copy_encoder.Incompatible { field; reason; header; source } ->
+          fail t
+            (Clock.Unrecoverable
+               (Printf.sprintf
+                  "Track %s cannot copy the next source into this %s stream: \
+                   %s. Every source of a copied track must share the \
+                   parameters of the stream's first one, and this container \
+                   cannot change them mid-stream. Encode the sources with \
+                   identical settings. Stream: %s. New source: %s."
+                  (Frame.Fields.string_of_field field)
+                  (match c.muxer with "" -> "container" | muxer -> muxer)
+                  reason header source))
       | Avutil.Error _ as exn -> fail t exn);
   if length > 0 then t.position <- t.position + length
 

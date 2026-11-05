@@ -107,9 +107,19 @@ end
 module Params = struct
   let name = "stand-in"
 
-  module Copy = Pairs (struct
-    let labels = []
-  end)
+  module Copy = struct
+    module C = Liquidsoap_ffmpeg_formats.Copy_changes
+
+    type t = C.t
+
+    let default = C.default
+    let to_string = C.to_string
+    let parse_param = C.parse_param
+    let compatible _ _ = true
+    let merge = C.merge
+    let serialize = C.to_string
+    let parse_serialized = C.parse_serialized
+  end
 
   module Audio = Pairs (struct
     let labels =

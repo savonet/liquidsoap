@@ -203,17 +203,31 @@ Manipulating encoded content requires knowledge of the internal aspects of media
 
 ### Switching between copied sources
 
+Copying encoded content is an advanced feature, and making sure the sources fit together is your job. Liquidsoap passes the encoded data through untouched, so it cannot fix a source the output cannot carry. When a file opens, it refuses what you would expect to be refused, such as another codec or another video size in a container that cannot change it. It lets less visible differences through, and FFmpeg judges them while streaming. If a copied stream turns out not to fit its output after all, the script stops with an error naming what differs, instead of streaming something broken.
+
 A copied stream keeps the parameters of its first source. When a playlist or a switch moves to another source, liquidsoap compares the new source with them:
 
-- A file whose codec, bitstream form (for instance H.264 in MP4 against MPEG-TS form, or raw AAC against ADTS), video size, sample rate or channel layout differs is skipped when it is opened, and the playlist moves on.
-- A file that differs only in codec headers (extradata, profile, level) is accepted, and the output's container decides. MPEG-TS, HLS with MPEG-TS segments and ADTS take the change. HLS with MP4 segments starts a new segment after a discontinuity, with its own init segment, and an Ogg output chains a new link. Other containers, such as MP4 or Matroska files, stop the output at the switch with an error naming both parameter sets.
-- A file that differs only in its rotation, HDR metadata or colour properties is played, with a warning naming each difference.
+- A file whose codec or bitstream form differs (for instance H.264 in MP4 against MPEG-TS form, or raw AAC against ADTS) is skipped when it is opened, and the playlist moves on.
+- Other files are skipped when they are opened, with an error naming what differs, unless the encoder's `format` can carry that change inside the stream. The copy type shows which containers count: `ffmpeg.copy(containers=mpegts)`. A source that feeds several outputs must suit all of them. The containers that accept changes are:
+
+  | `format`                 | Source                                         | Accepted changes                                        |
+  | ------------------------ | ---------------------------------------------- | ------------------------------------------------------- |
+  | `mpegts`, `h264`, `hevc` | H.264 or HEVC in MPEG-TS or raw (Annex B) form | codec headers, profile, level, video size, pixel format |
+  | `mpegts`, `adts`         | AAC in ADTS form (`.aac`, MPEG-TS)             | profile, sample rate, channel layout                    |
+  | `mp3`                    | MP3                                            | sample rate, channel layout                             |
+  | `ogg`                    | any                                            | anything but the codec: a new link is chained           |
+
+  Ogg chains a new link for file outputs and streamed outputs such as Icecast or harbor; through `output.url` to another kind of URL, the script stops at such a change. Every other container, such as `matroska`, `webm`, `mp4` or `flv`, or an encoder without `format`, accepts no change. H.264 from MP4 or Matroska files does not change in MPEG-TS either: the muxer only writes the first file's parameter sets.
+
+  Files meant to follow each other in a Matroska or WebM stream must come from the same encoder with the same settings. For AV1, for instance, frame rate, size and colour settings all end up in the sequence header, which a Matroska track requires to be identical throughout.
+
+- A file that differs only in its rotation, HDR metadata or colour properties is played, with a warning naming each difference. Some codecs, such as H.264 and AV1, keep colour properties in their codec headers: there, the rule above applies.
 
 The tracks of a copied source start together, at the video's first keyframe. A source that switches in the middle of a group of pictures waits for its next keyframe, at most `settings.ffmpeg.content.copy.max_keyframe_wait` seconds (20 by default); past that, the tracks that are ready start without it, with a warning.
 
 ### Relaxed copy content compatibility check
 
-This is an advanced setting. When it is on, sources of another bitstream form or geometry are accepted into one copied stream, as long as the codec is the same, and the muxer decides whether the output stays valid:
+This is an advanced setting. When it is on, sources of other codec headers, bitstream form or geometry are accepted into one copied stream, as long as the codec is the same, and the output decides whether it stays valid: HLS with MP4 segments starts a new segment with its own init segment, `output.url` reconnects, and other containers may produce a stream players reject:
 
 ```liquidsoap
 settings.ffmpeg.content.copy.relaxed_compatibility_check := true

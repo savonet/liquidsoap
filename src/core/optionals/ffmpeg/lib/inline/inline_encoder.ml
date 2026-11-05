@@ -51,7 +51,8 @@ let merge_params (output : Producer.output) params =
 
 let copy_data ~params ~source_id ~time_base wrap ~length packets =
   Ffmpeg_content.Copy.lift_data
-    (Ffmpeg_content.Copy.Data.of_run (Some params)
+    (Ffmpeg_content.Copy.Data.of_run
+       (Ffmpeg_content.Copy.unconstrained (Some params))
        (Ffmpeg_content.Copy.Data.run ~source_params:params ~source_id ~time_base
           ~length
           (List.map (fun p -> (0, wrap p)) packets)))
@@ -112,7 +113,7 @@ let audio ~(log : Log.t) ~(encoded : F.encoded) ~(a : F.audio) :
               ~time_base:target_tb codec
           in
           let params = Copy_params.make (`Audio (Avcodec.params encoder)) in
-          merge_params output (Ffmpeg_content.Copy.lift_params (Some params));
+          merge_params output (Ffmpeg_content.Copy.of_params params);
           let time_base = Avcodec.time_base encoder in
           let chunker =
             Chunker.packets ~faults ~src:time_base ~output
@@ -277,7 +278,7 @@ let video ~(log : Log.t) ~(encoded : F.encoded) ~(v : F.video) :
               ~frame_rate:{ Avutil.num = frame_rate; den = 1 }
               (`Video (Avcodec.params encoder))
           in
-          merge_params output (Ffmpeg_content.Copy.lift_params (Some params));
+          merge_params output (Ffmpeg_content.Copy.of_params params);
           let time_base = Avcodec.time_base encoder in
           let chunker =
             Chunker.packets ~faults ~src:time_base ~output

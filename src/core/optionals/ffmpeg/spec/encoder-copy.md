@@ -164,7 +164,7 @@ source's track, so its item faults escalate inside the output (below).
 | packet the muxer or its bitstream filter rejects as invalid data                                     | item fault                                             | packet dropped, warning, counted                                                          | §6                                                        |
 | packet of another media kind, packet in a run with id 0                                              | item fault                                             | packet dropped, warning, counted                                                          | §3, §12.1                                                 |
 | `max_consecutive_faults` consecutive item faults on one tenure, and every further run past the bound | escalation                                             | the source's group restarts with a keyframe wait (§12.3); warning; reported to the output | §12.3                                                     |
-| incompatible copy source, no clean container restart                                                 | output fault                                           | the output stops or restarts under the output's policy (user decision, D2)                | §12.7                                                     |
+| incompatible copy source, no clean container restart                                                 | unrecoverable                                          | the instance fails; the clock logs the message without a backtrace (user decision, D2)    | §12.7                                                     |
 | a failing byte sink                                                                                  | output fault                                           | [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults)                            | §6                                                        |
 | a group's keyframe wait reaches `max_keyframe_wait`                                                  | output-side wait ([faults.md §5](faults.md#5-waiting)) | the group starts without its late members; warning; reported to the output                | §12.3                                                     |
 
@@ -493,8 +493,9 @@ Copy parameters split into three sets, owned by
   no container survives a change; the content-format merge rejects a
   mismatch when the source opens
   ([§3.1.1](content.md#311-where-copy-parameters-are-merged));
-- **header properties** (extradata, profile, level): judged here, per
-  container;
+- **header properties** (extradata, profile, level): the merge rejects a
+  mismatch when the source opens, like a type-merge property; judged here
+  again, per container, for a path that bypasses the merge;
 - **descriptive properties** (colour range, primaries, transfer, colour
   space, chroma location, field order, header side data such as the display
   matrix, HDR mastering and content light): never judged.
@@ -522,17 +523,19 @@ reports the source to the instance
   ([encoder.md §13.2](encoder.md#132-what-a-restart-does),
   [io.md §11.3](io.md#113-errors)); the new stream takes the new run's
   parameters;
-- otherwise the instance fails with an error that names the track and prints
-  both parameter sets, and the output stops (MP4 to a file, for example).
-  This is an output fault ([faults.md §2](faults.md#2-classes)), the one
-  data case that can stop an output (user decision, D2).
+- otherwise the instance fails with an unrecoverable error
+  ([clock.md §11](../../../clock/spec/clock.md#11-failure)) that names the
+  track, the property that differs and both parameter sets, and says to
+  encode the sources with identical settings (MP4 to a file, for example).
+  It is the one data case that can stop an output (user decision, D2).
 
 A clean restart logs both parameter sets at warning level; a stop logs them
-at error level (§11).
+at critical level (§11).
 
-Consequence: a live relay whose remote encoder restarts with new extradata
-keeps working. An output whose container carries the header in band accepts
-the change; a header-storing container restarts or stops per the table.
+Consequence: the table applies to what passes the merge. Two sources share a
+track only when every container of the track allows what differs between
+them ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged)),
+or under the relaxed setting.
 
 When `settings.ffmpeg.content.copy.relaxed_compatibility_check` is on, the
 type merge and this check both reduce to media and codec id. Every other
@@ -542,13 +545,12 @@ is an advanced escape hatch ([content.md §13](content.md#13-settings)).
 
 Conformance:
 
-- Copy H.264 from two MPEG-TS files whose encoders used different
-  extradata, to an MPEG-TS file: every packet of both is written; the output
-  keeps streaming. The same to an MP4 file: the output stops at the switch
-  with an error printing both parameter sets. The same to an HLS output: a
-  clean restart, logged at warning.
-- A live relay whose remote encoder restarts with new extradata, copied to
-  `output.url` with FLV: the output reconnects with the new header.
+- Copy H.264 from two files whose encoders used different extradata: to an
+  MPEG-TS file every packet of both is written and the output keeps
+  streaming; to an MP4 file the second is rejected when it opens.
+- A live relay whose remote encoder restarts with new extradata: the input
+  rejects the new stream; with the relaxed setting, copied to `output.url`
+  with FLV, the output reconnects with the new header.
 - Two files that differ only in colour primaries: both play; one warning
   names both values.
 - A type-merge mismatch (AAC followed by MP3) reaching the encoder through a

@@ -260,7 +260,8 @@ let source ?(continues = false) ~(scenario : scenario) streams =
       in
       let items = List.map2 (fun pos p -> (pos - first, p)) positions packets in
       let data =
-        Ffmpeg_content.Copy.Data.make ~length:(first + length) (Some s.params)
+        Ffmpeg_content.Copy.Data.make ~length:(first + length)
+          (Ffmpeg_content.Copy.unconstrained (Some s.params))
       in
       let lead =
         Ffmpeg_content.Copy.Data.run ~continues ~source_id
@@ -402,7 +403,7 @@ let () =
             (fun ctype (field, params) ->
               Frame.Fields.add
                 (Frame.Fields.register field)
-                (Ffmpeg_content.Copy.lift_params (Some params))
+                (Ffmpeg_content.Copy.of_params params)
                 ctype)
             Frame.Fields.empty fields
         in

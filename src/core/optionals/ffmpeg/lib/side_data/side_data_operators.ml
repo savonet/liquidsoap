@@ -225,14 +225,12 @@ class copy_side_data ~field ~rotation ~remove (source : Source.source) =
         | _ ->
             let result = self#edit ~r params in
             let format = Frame.Fields.find field self#content_type in
-            (try
-               Content.merge format
-                 (Ffmpeg_content.Copy.lift_params (Some result))
+            (try Content.merge format (Ffmpeg_content.Copy.of_params result)
              with exn ->
                self#reject
                  (Printf.sprintf "%s\nOutput: %s\nNew source: %s"
                     (Printexc.to_string exn)
-                    (match Ffmpeg_content.Copy.get_params format with
+                    (match Ffmpeg_content.Copy.stream_params format with
                       | Some p -> Copy_params.to_string p
                       | None -> "unknown")
                     (Copy_params.to_string result)));
