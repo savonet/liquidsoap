@@ -402,7 +402,12 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
       guarded faults ~kind (fun () ->
           Option.iter (fun r -> feed (r.drain ())) !resampler;
           drain_raw_stage ());
-      guarded faults ~kind (fun () -> Audio_writer.flush (fst (writer ()))))
+      guarded faults ~kind (fun () -> Audio_writer.flush (fst (writer ())));
+      Option.iter
+        (fun stream ->
+          guarded faults ~kind (fun () ->
+              Av.flush_encoder ~on_packet:(report on_packet) stream))
+        !audio_stream)
   in
   let stream () = !audio_stream in
   {
@@ -694,8 +699,13 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
       | `Raw -> iter_raw coverage ~position (video_runs frame field) encode_raw
   in
   let flush () =
-    if !state <> None then
-      guarded faults ~kind (fun () -> Video_writer.drain (writer ()))
+    if !state <> None then (
+      let w = writer () in
+      guarded faults ~kind (fun () -> Video_writer.drain w);
+      guarded faults ~kind (fun () ->
+          Av.flush_encoder
+            ~on_packet:(report w.Video_writer.on_packet)
+            w.Video_writer.stream))
   in
   let stream () = Option.map (fun (w, _) -> w.Video_writer.stream) !state in
   {
