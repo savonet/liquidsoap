@@ -3,6 +3,7 @@
 #include "av_stubs.h"
 
 #include <pthread.h>
+#include <string.h>
 
 typedef struct {
   AVFormatContext *context;
@@ -92,4 +93,24 @@ CAMLprim value test_rewrap_output_format(value _format) {
 CAMLprim value test_wrap_null_format(value _output) {
   return Bool_val(_output) ? ocaml_av_wrap_output_format(NULL)
                            : ocaml_av_wrap_input_format(NULL);
+}
+
+/* A copy of [_params] whose extradata is [_extradata]. */
+CAMLprim value test_params_with_extradata(value _params, value _extradata) {
+  CAMLparam2(_params, _extradata);
+  CAMLlocal1(_copy);
+  size_t size = caml_string_length(_extradata);
+  AVCodecParameters *params;
+
+  _copy = ocaml_avcodec_copy_parameters(CodecParameters_val(_params));
+  params = CodecParameters_val(_copy);
+  av_freep(&params->extradata);
+  params->extradata_size = 0;
+  params->extradata = av_mallocz(size + AV_INPUT_BUFFER_PADDING_SIZE);
+  if (!params->extradata)
+    caml_raise_out_of_memory();
+  memcpy(params->extradata, String_val(_extradata), size);
+  params->extradata_size = (int)size;
+
+  CAMLreturn(_copy);
 }

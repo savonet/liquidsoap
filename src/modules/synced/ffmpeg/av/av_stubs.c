@@ -2174,11 +2174,18 @@ static int starts_with_start_code(const uint8_t *data, int size) {
          (size >= 3 && !data[0] && !data[1] && data[2] == 1);
 }
 
+/* An avcC record (ISO/IEC 14496-15) starts with version 1, then the
+   profile, constraint and level bytes of its SPS. */
 static int h264_attribute(const AVCodecParameters *parameters, char *text,
                           size_t text_size) {
   const uint8_t *data = parameters->extradata;
   int size = parameters->extradata_size;
   int offset;
+
+  if (data && size >= 4 && data[0] == 1) {
+    snprintf(text, text_size, "avc1.%02x%02x%02x", data[1], data[2], data[3]);
+    return 1;
+  }
 
   if (!data || !starts_with_start_code(data, size))
     return 0;

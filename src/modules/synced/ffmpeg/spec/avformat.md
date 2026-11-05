@@ -717,16 +717,16 @@ val codec_attr : _ stream -> string option
 The codec string of the stream for an HLS playlist (RFC 6381 style), from its
 codec parameters. `None` for every case not listed.
 
-| Codec  | Result                                                                                                                                                                                     |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| H.264  | `avc1.` followed by the three bytes after the SPS NAL header, as two lowercase hex digits each, when the extradata starts with an Annex-B SPS and is long enough to hold them; else `None` |
-| HEVC   | below                                                                                                                                                                                      |
-| AAC    | `mp4a.40.` followed by the profile plus one, when the profile is known; else `None`                                                                                                        |
-| MP2    | `mp4a.40.33`                                                                                                                                                                               |
-| MP3    | `mp4a.40.34`                                                                                                                                                                               |
-| AC-3   | `ac-3`                                                                                                                                                                                     |
-| E-AC-3 | `ec-3`                                                                                                                                                                                     |
-| FLAC   | `fLaC`                                                                                                                                                                                     |
+| Codec  | Result                                                                                                                                                                                                                                                                                                                                  |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H.264  | `avc1.` followed by three bytes, as two lowercase hex digits each: the three bytes after the SPS NAL header when the extradata starts with an Annex-B SPS, or bytes 1 to 3 when the extradata is an `avcC` record (ISO/IEC 14496-15: its first byte is 1); `None` when the extradata is too short to hold them, and in every other case |
+| HEVC   | below                                                                                                                                                                                                                                                                                                                                   |
+| AAC    | `mp4a.40.` followed by the profile plus one, when the profile is known; else `None`                                                                                                                                                                                                                                                     |
+| MP2    | `mp4a.40.33`                                                                                                                                                                                                                                                                                                                            |
+| MP3    | `mp4a.40.34`                                                                                                                                                                                                                                                                                                                            |
+| AC-3   | `ac-3`                                                                                                                                                                                                                                                                                                                                  |
+| E-AC-3 | `ec-3`                                                                                                                                                                                                                                                                                                                                  |
+| FLAC   | `fLaC`                                                                                                                                                                                                                                                                                                                                  |
 
 HEVC: the profile and level are those of the codec parameters, replaced by the
 ones read from the SPS when the extradata holds an Annex-B SPS. When the codec
@@ -782,6 +782,23 @@ becomes available.
 - The caller's frame is unchanged (A4).
 
 ```ocaml
+val flush_encoder :
+  ?on_packet:(encoded_packet -> unit) -> (output, 'media, [ `Frame ]) stream ->
+  unit
+```
+
+Drains the stream's encoder and writes every packet it still holds, with the
+rules of `write_frame`: the header is written first when needed, timestamps
+are converted the same way, and `on_packet` is called before each packet is
+given to the muxer (§7.2). A caller that cuts the output at packet boundaries
+sees the packets of the frames the encoder held, before `close`.
+
+- The encoder is then drained: `close` writes no more packets for it and
+  succeeds.
+- A later `write_frame` or `flush_encoder` on the stream raises
+  ``Error `Eof``.
+
+```ocaml
 val write_subtitle_frame :
   (output, subtitle, [ `Frame ]) stream -> Avutil.Subtitle.frame -> unit
 ```
@@ -830,7 +847,7 @@ val close : _ container -> unit
 | Raised                                    | By                                                                                                                                                       |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Error e`, `e` mapped from an FFmpeg code | every operation that calls a fallible FFmpeg function                                                                                                    |
-| ``Error `Eof``                            | `read_input` at the end of the input                                                                                                                     |
+| ``Error `Eof``                            | `read_input` at the end of the input; `write_frame` and `flush_encoder` on a drained encoder                                                             |
 | ``Error `Exit``                           | a blocking operation the interrupt function aborted                                                                                                      |
 | ``Error `Stream_not_found``               | `find_best_*_stream`                                                                                                                                     |
 | ``Error `Decoder_not_found``              | `read_input`, for a frame-mode stream with no decoder                                                                                                    |
@@ -851,7 +868,7 @@ propagates: `` `Other `` of that code when FFmpeg passes it through unchanged.
 
 The runtime lock is released (contract M1, M4) around every open, probing,
 `find_best_*_stream`, `read_input`, `seek`, the creation of an encoding
-stream, the three writes, `write_header`, `flush`, `tell`, `close`, and release by
+stream, the three writes, `flush_encoder`, `write_header`, `flush`, `tell`, `close`, and release by
 collection. `Format.find_input_format` and
 `Format.guess_output_format` MAY release it.
 
@@ -859,9 +876,9 @@ collection. `Format.find_input_format` and
 
 A container has one guard, shared by its streams (M9).
 
-| Exclusive                                                                                                                                                      | Shared                                       |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `write_header`, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
+| Exclusive                                                                                                                                                                       | Shared                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `flush_encoder`, `write_header`, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
 
 The container is not in use while a function of §7.2 runs: `on_packet` may
 call `write_header`, `flush` or `tell` on its own container.
@@ -925,11 +942,11 @@ hands over at a time.
 
 They follow the contract's §7.2.
 
-| Function              | Called from   | State when called, and after it raises                                                                                                                                                                                                                                       |
-| --------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `configure_*_stream`  | `open_input`  | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                                                                                                         |
-| `on_unhandled_packet` | `read_input`  | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                                                                                              |
-| `on_packet`           | `write_frame` | A packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. A write that fails raises its own error, whether or not the function raised. Packets still in the encoder are written by the next write or by `close`. |
+| Function              | Called from                    | State when called, and after it raises                                                                                                                                                                                                                                       |
+| --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `configure_*_stream`  | `open_input`                   | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                                                                                                         |
+| `on_unhandled_packet` | `read_input`                   | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                                                                                              |
+| `on_packet`           | `write_frame`, `flush_encoder` | A packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. A write that fails raises its own error, whether or not the function raised. Packets still in the encoder are written by the next write or by `close`. |
 
 ## 8. Data transfer
 
