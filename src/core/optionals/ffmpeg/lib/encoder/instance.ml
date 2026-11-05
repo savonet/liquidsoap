@@ -49,7 +49,6 @@ type hls = {
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
   mutable id3_queue : (unit -> unit) list;
   mutable media_written : bool;
-  mutable requested : int;
   mutable key_due : int option;
   mutable key_seen : int;
 }
@@ -540,11 +539,10 @@ let run_id3_queue h =
 
 let hls_encode t h ~boundary ~force frame =
   Hls_split.request h.split boundary;
-  if boundary <> h.requested then (
-    h.requested <- boundary;
-    List.iter
-      (fun track -> track.Encoded_stream.request_keyframe boundary)
-      (encoded_tracks t.current));
+  (* A stream ignores requests until it exists, and repeats of one. *)
+  List.iter
+    (fun track -> track.Encoded_stream.request_keyframe boundary)
+    (encoded_tracks t.current);
   if
     force && h.key_due = None
     && (not (Hls_split.restart_pending h.split))
@@ -615,9 +613,10 @@ let codec_attrs t =
     None)
 
 let bitrate t =
-  match List.filter_map (fun (_, b, _) -> b) (streams_attrs t) with
-    | [] -> None
-    | l -> Some (List.fold_left ( + ) 0 l)
+  let rates = List.map (fun (_, b, _) -> b) (streams_attrs t) in
+  if rates <> [] && List.for_all Option.is_some rates then
+    Some (List.fold_left (fun sum b -> sum + Option.get b) 0 rates)
+  else None
 
 let video_size t =
   match List.filter_map (fun (_, _, v) -> v) (streams_attrs t) with
@@ -655,7 +654,6 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
       id3_stream = None;
       id3_queue = [];
       media_written = false;
-      requested = -1;
       key_due = None;
       key_seen = -1;
     }
