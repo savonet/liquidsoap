@@ -113,7 +113,6 @@ let encoder ~pos { Ogg_format.audio; video } =
     let rec enc =
       {
         Encoder.encode_metadata;
-        hls = Encoder.dummy_hls (fun _ -> assert false);
         encode;
         header = (fun () -> Ogg_muxer.get_header ogg_enc);
         stop;
@@ -146,9 +145,9 @@ let encoder ~pos { Ogg_format.audio; video } =
       let f track = track.id <- Some (track.reset ogg_enc m) in
       List.iter f tracks
     in
-    { enc with hls = Encoder.dummy_hls encode }
+    enc
 
 let () =
   Plug.register Encoder.plug "ogg" ~doc:"ogg encoder." (function
-    | Encoder.Ogg m -> Some (fun ?hls:_ ~pos v -> encoder ~pos m v)
+    | Encoder.Ogg m -> Some (fun ~pos v -> encoder ~pos m v)
     | _ -> None)

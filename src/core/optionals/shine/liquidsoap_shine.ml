@@ -65,7 +65,6 @@ let encoder ~pos shine =
   {
     Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);
-    hls = Encoder_utils.mk_id3_hls ~pos encode;
     encode;
     stop;
     restart_offset = (fun () -> None);
@@ -74,5 +73,5 @@ let encoder ~pos shine =
 let () =
   Plug.register Encoder.plug "shine" ~doc:"SHINE fixed-point mp3 encoder."
     (function
-    | Encoder.Shine m -> Some (fun ?hls:_ ~pos _ _ -> encoder ~pos m)
+    | Encoder.Shine m -> Some (fun ~pos _ _ -> encoder ~pos m)
     | _ -> None)

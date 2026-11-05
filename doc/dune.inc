@@ -1266,20 +1266,6 @@
    content/liq/harbor.http.response.liq)))
 
 (rule
- (alias test-doc-hls-metadata)
- (package liquidsoap)
- (deps
-  (alias_rec ../install)
-  (source_tree ../src/libs)
-  (:test_liq content/liq/hls-metadata.liq))
- (action
-  (run
-   %{bin:liquidsoap}
-   --check
-   --no-fallible-check
-   content/liq/hls-metadata.liq)))
-
-(rule
  (alias test-doc-http-input)
  (package liquidsoap)
  (deps
@@ -1830,20 +1816,6 @@
    --check
    --no-fallible-check
    content/liq/multitrack2.liq)))
-
-(rule
- (alias test-doc-output.file.hls)
- (package liquidsoap)
- (deps
-  (alias_rec ../install)
-  (source_tree ../src/libs)
-  (:test_liq content/liq/output.file.hls.liq))
- (action
-  (run
-   %{bin:liquidsoap}
-   --check
-   --no-fallible-check
-   content/liq/output.file.hls.liq)))
 
 (rule
  (alias test-doc-playlists)
@@ -2589,7 +2561,6 @@
   (alias test-doc-harbor-usage)
   (alias test-doc-harbor.http.register)
   (alias test-doc-harbor.http.response)
-  (alias test-doc-hls-metadata)
   (alias test-doc-http-input)
   (alias test-doc-icecast-output-basic)
   (alias test-doc-icecast-output-callbacks)
@@ -2630,7 +2601,6 @@
   (alias test-doc-multitrack-add-video-track2)
   (alias test-doc-multitrack-default-video-track)
   (alias test-doc-multitrack2)
-  (alias test-doc-output.file.hls)
   (alias test-doc-playlists)
   (alias test-doc-prometheus-callback)
   (alias test-doc-prometheus-settings)

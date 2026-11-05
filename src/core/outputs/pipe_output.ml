@@ -28,8 +28,7 @@ let encoder_factory format_val =
   let format = Lang.to_format format_val in
   match Encoder.get_factory format with
     | factory ->
-        fun name metadata ->
-          factory ~hls:false ~pos:(Value.pos format_val) name metadata
+        fun name metadata -> factory ~pos:(Value.pos format_val) name metadata
     | exception Not_found ->
         raise
           (Error.Invalid_value (format_val, "Unsupported encoding format", []))
@@ -473,7 +472,7 @@ class ffmpeg_file_output ?clock ~format_val ~format p =
               }
             in
             (Encoder.get_factory (Encoder.Ffmpeg format))
-              ~hls:false ~pos:(Value.pos format_val) name metadata
+              ~pos:(Value.pos format_val) name metadata
 
     method open_out_gen _ perm filename =
       Unix.close (Unix.openfile filename [Unix.O_WRONLY; Unix.O_CREAT] perm);

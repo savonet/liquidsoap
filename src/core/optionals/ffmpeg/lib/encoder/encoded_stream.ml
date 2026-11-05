@@ -225,8 +225,8 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
   let raw_stage = ref None in
   let coverage = { covered = 0; gap = false } in
   let next_main = ref 0 in
-  (* encoder.md §13.2: the sample counter starts at the container's position,
-     so a restarted HLS container keeps the variant's timeline. *)
+  (* encoder.md §13.2: the sample counter starts at the container's
+     position. *)
   let started = ref false in
   let writer () = Option.get !state in
   let audio_stream = ref None in

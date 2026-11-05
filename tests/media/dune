@@ -925,90 +925,6 @@
    video-with-subtitle.mkv)))
 
 (rule
- (alias test_ffmpeg_distributed_hls_setup)
- (package liquidsoap)
- (target hls_resume_output.done)
- (deps
-  long-video.mp4
-  test_ffmpeg_distributed_hls_setup.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (progn
-   (run
-    %{run_test}
-    "FFmpeg distributed HLS setup"
-    liquidsoap
-    test_ffmpeg_distributed_hls_setup.liq
-    --
-    long-video.mp4)
-   (bash "touch hls_resume_output.done"))))
-
-(rule
- (alias test_ffmpeg_distributed_hls)
- (package liquidsoap)
- (deps
-  long-video.mp4
-  test_ffmpeg_distributed_hls.liq
-  hls_resume_output.done
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg distributed HLS encoding"
-   liquidsoap
-   test_ffmpeg_distributed_hls.liq
-   --
-   long-video.mp4)))
-
-(rule
- (alias test_ffmpeg_hls_mp4)
- (package liquidsoap)
- (deps
-  long-video.mp4
-  test_ffmpeg_hls_mp4.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg HLS MP4 encoding"
-   liquidsoap
-   test_ffmpeg_hls_mp4.liq
-   --
-   long-video.mp4)))
-
-(rule
- (alias test_ffmpeg_hls_copy_mp4)
- (package liquidsoap)
- (deps
-  long-video.mp4
-  test_ffmpeg_hls_copy_mp4.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg HLS MP4 encoding"
-   liquidsoap
-   test_ffmpeg_hls_copy_mp4.liq
-   --
-   long-video.mp4)))
-
-(rule
  (alias test_ffmpeg_transparency_filter)
  (package liquidsoap)
  (deps
@@ -1261,7 +1177,6 @@
 (alias
  (name mediatest)
  (deps
-  (alias test_ffmpeg_distributed_hls)
   (alias test_ffmpeg_raw_implicit_conversion)
   (alias test_ffmpeg_complex_filter)
   (alias test_ffmpeg_copy_concat)
@@ -1273,7 +1188,6 @@
   (alias test_ffmpeg_video_format_change)
   (alias test_ffmpeg_raw_format_change)
   (alias test_ffmpeg_copy_subtitle)
-  (alias test_ffmpeg_hls_mp4)
   (alias test_ffmpeg_transparency_filter)
   (alias test_ffmpeg_filter_changing_rate)
   (alias test_ffmpeg_filter_array_args)

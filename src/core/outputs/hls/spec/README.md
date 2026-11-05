@@ -66,7 +66,6 @@ Build in this order, each layer with its checks of
 | [serving.md](serving.md)                           | `output.harbor.hls`: what is served, content types, caching.         |
 | [conformance.md](conformance.md)                   | The checks, by principle.                                            |
 | [known-complexity.md](known-complexity.md)         | What the history shows to be hard, each entry answered by a rule.    |
-| [ocaml-notes.md](ocaml-notes.md)                   | Part B. Notes on an earlier OCaml implementation. Not normative.     |
 
 Encoder implementation files use the contract's section numbers: "§7" is
 `insert_id3` in all of them.

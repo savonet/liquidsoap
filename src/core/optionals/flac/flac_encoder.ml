@@ -66,7 +66,6 @@ let encoder flac meta =
     (* Flac encoder do not support header
      * for now. It will probably never do.. *)
     header = (fun () -> Strings.empty);
-    hls = Encoder.dummy_hls encode;
     encode;
     stop;
     restart_offset = (fun () -> None);
@@ -74,5 +73,5 @@ let encoder flac meta =
 
 let () =
   Plug.register Encoder.plug "flac" ~doc:"Flac encoder." (function
-    | Encoder.Flac m -> Some (fun ?hls:_ ~pos:_ _ -> encoder m)
+    | Encoder.Flac m -> Some (fun ~pos:_ _ -> encoder m)
     | _ -> None)

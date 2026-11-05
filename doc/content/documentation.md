@@ -60,7 +60,6 @@ If you are migrating from a previous version, you might want to check out
 - [Customize metadata](./metadata.md)
 - [Dynamic source creation](./dynamic_sources.md): dynamically create sources using server requests.
 - [External programs](./external_programs.md): decode files and encode streams with external programs.
-- [HLS output](./hls_output.md): output your stream as HTTP Live Stream.
 - [JACK audio](./jack.md): low-latency audio I/O with the JACK audio server.
 - [Streaming to Icecast and Shoutcast](./icecast.md): send your stream to a server, and update its ICY metadata.
 - [Icecast server emulation](./icecast_server.md): serve streams to listeners directly from liquidsoap.
