@@ -12,8 +12,8 @@ type t = {
   mutable marks : (int * mark) list;
   (* Undecided, oldest first. *)
   mutable candidates : candidate list;
-  mutable request : int;
-  mutable request_served : bool;
+  (* Requests without their candidate yet, increasing. *)
+  mutable requests : int list;
 }
 
 let create ~fields ~init_length () =
@@ -23,17 +23,20 @@ let create ~fields ~init_length () =
     streams = List.map (fun f -> (f, ref true)) fields;
     marks = [];
     candidates = [];
-    request = max_int;
-    request_served = false;
+    requests = [];
   }
 
 let buffer t = t.buffer
+
+let inter_coded t field =
+  Option.iter (fun all_key -> all_key := false) (List.assoc_opt field t.streams)
+
 let all_key t = List.for_all (fun (_, k) -> !k) t.streams
 
 let request t time =
-  if time <> t.request then (
-    t.request <- time;
-    t.request_served <- false)
+  match List.rev t.requests with
+    | last :: _ when last >= time -> ()
+    | _ -> t.requests <- t.requests @ [time]
 
 let accept t c =
   t.marks <-
@@ -41,7 +44,7 @@ let accept t c =
       (fun (a, _) (b, _) -> compare a b)
       (t.marks @ [(c.offset, Split { time = c.time; forced = false })])
 
-let decide t ~field ~key =
+let decide t ~field ~key ~superseded =
   t.candidates <-
     List.filter_map
       (fun c ->
@@ -50,7 +53,7 @@ let decide t ~field ~key =
         else (
           c.waiting <- List.filter (( <> ) field) c.waiting;
           if c.waiting = [] then (
-            accept t c;
+            if not superseded then accept t c;
             None)
           else Some c))
       t.candidates
@@ -59,10 +62,12 @@ let packet t ~flush ~field ~key ~time =
   match List.assoc_opt field t.streams with
     | None -> ()
     | Some all_key ->
-        decide t ~field ~key;
-        let at_request = (not t.request_served) && time >= t.request in
-        if at_request then t.request_served <- true;
-        if key && ((not !all_key) || at_request) then (
+        let at_request = List.exists (fun r -> r <= time) t.requests in
+        let takes = key && ((not !all_key) || at_request) in
+        decide t ~field ~key ~superseded:takes;
+        if at_request then
+          t.requests <- List.filter (fun r -> r > time) t.requests;
+        if takes then (
           flush ();
           let waiting =
             List.filter_map

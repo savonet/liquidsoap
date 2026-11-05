@@ -124,8 +124,11 @@ returns none.
 
 `header ()`: bytes written at the start of every segment, after any
 prepended ID3 tag. An encoder whose header is known only after its first
-chunk puts it at the start of that chunk's bytes. `stop ()`: final bytes,
-appended to the open segment; they carry no split point.
+chunk puts it at the start of that chunk's bytes. `stop ()`: the final
+pieces, as §5, applied to the open segment before it closes. Reason: an
+encoder that holds media (lookahead, reordering) returns at its stop the
+split points of the media it held, and dropping them would make the last
+segment exceed the target duration.
 
 ## 9. Conformance
 

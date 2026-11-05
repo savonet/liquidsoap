@@ -115,8 +115,8 @@ reaches the next run.
 Every step runs for every variant whatever happened in an earlier one; a
 failure is logged with the variant and the step, and the stop completes.
 
-1. When a run is active, each variant's encoder is stopped and its bytes
-   are appended to its open segment. Skipped during the reopen delay of §6,
+1. When a run is active, each variant's encoder is stopped and its pieces
+   are applied ([segmenting.md §3](segmenting.md#3-applying-pieces)). Skipped during the reopen delay of §6,
    when no run is active.
 2. Each open segment is closed ([files.md §4](files.md#4-closing-a-segment)),
    or dropped when empty.

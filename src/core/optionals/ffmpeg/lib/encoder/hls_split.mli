@@ -18,10 +18,15 @@ val create :
 
 val buffer : t -> Buffer.t
 
+(** Marks a stream whose packets are not all key packets, before it writes any:
+    its first packet after a candidate then decides it. *)
+val inter_coded : t -> string -> unit
+
 (** Every participating stream has written only key packets. *)
 val all_key : t -> bool
 
-(** Sets the request: the next media time at which a split point is wanted. *)
+(** Adds a request: a media time at which a split point is wanted. It stays
+    pending until a candidate is taken at it. *)
 val request : t -> int -> unit
 
 val packet :

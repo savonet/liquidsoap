@@ -15,9 +15,6 @@ def hls.playlist.main(
   [string.{ bandwidth: int, codecs: string, video_size?: (int * int) }]
   )
 ) =
-  prefix =
-    if prefix == "" or r/\/$/.test(prefix) then prefix else "#{prefix}/" end
-
   def stream(s) =
     codecs = s.codecs == "" ? "" : ",CODECS=\"#{s.codecs}\""
     resolution =
@@ -32,7 +29,7 @@ def hls.playlist.main(
 
     [
       "#EXT-X-STREAM-INF:BANDWIDTH=#{s.bandwidth}#{codecs}#{resolution}",
-      "#{prefix}#{url.encode(string(s))}.m3u8"
+      output.file.hls.uri(prefix=prefix, "#{string(s)}.m3u8")
     ]
   end
 

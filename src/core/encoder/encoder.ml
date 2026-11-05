@@ -179,7 +179,7 @@ type hls_encoder = {
   split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
   hls_header : unit -> Strings.t;
-  hls_stop : unit -> Strings.t;
+  hls_stop : unit -> hls_piece list;
   codec_attrs : unit -> string option;
   independent_segments : unit -> bool;
   free_split : unit -> bool;

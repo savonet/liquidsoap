@@ -65,7 +65,10 @@ audio: returns a tag to prepend, built as in
 ## 8. Header and stop
 
 `header()` is empty. `stop()` drains the instance
-([encoder.md §7](../../../optionals/ffmpeg/spec/encoder.md#7-stop)).
+([encoder.md §7](../../../optionals/ffmpeg/spec/encoder.md#7-stop)) and
+returns the drained output as pieces: the candidates its drained packets
+take are split points; bytes held after an undecided candidate are returned
+as bytes.
 
 ## 9. Conformance
 

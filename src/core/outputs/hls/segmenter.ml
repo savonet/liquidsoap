@@ -56,7 +56,9 @@ let media_time t = t.media
 let current t = Option.map (fun (s : _ segment) -> s.payload) t.segment
 
 let request t =
-  match t.syncs with (sync, _) :: _ -> min sync t.boundary | [] -> t.boundary
+  let d = t.config.duration in
+  let boundary = max d ((t.media + d - 1) / d * d) in
+  match t.syncs with (sync, _) :: _ -> min sync boundary | [] -> boundary
 
 let first_boundary_after t time =
   ((time / t.config.duration) + 1) * t.config.duration

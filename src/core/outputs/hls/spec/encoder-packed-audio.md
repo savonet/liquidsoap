@@ -77,7 +77,8 @@ The audio frames follow.
 
 ## 8. Header and stop
 
-`header()` is empty. `stop()` is the encoder's own.
+`header()` is empty. `stop()` returns `[Bytes]` of the encoder's own final
+bytes.
 
 ## 9. Conformance
 

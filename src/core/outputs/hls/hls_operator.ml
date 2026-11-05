@@ -421,7 +421,7 @@ class output p =
           Variant.give_back_tags v segment.tags;
           raise exn
       in
-      let codecs = Variant.encoder_answer v (fun e -> e.codec_attrs ()) in
+      let codecs = Variant.encoder_answer v (fun p -> p.codecs) in
       ignore
         (Window.publish v.window ~discontinuous ~forced:closed.forced ~codecs
            ~init:segment.init ~name ~tags:segment.tags
@@ -461,7 +461,7 @@ class output p =
       in
       let independent =
         Option.value ~default:false
-          (Variant.encoder_answer v (fun e -> Some (e.independent_segments ())))
+          (Variant.encoder_answer v (fun p -> Some p.independent))
         && not (List.exists (fun (s : Window.segment) -> s.forced) listed)
       in
       let bytes =
@@ -697,7 +697,7 @@ class output p =
                     ~on_open:(fun ~start -> self#open_segment v ~start)
                     ~on_close:(fun c -> self#close_segment v c)
                     config;
-                initialized = false;
+                properties = None;
                 last_tag = None;
                 bandwidth_warned = false;
               };
@@ -726,9 +726,9 @@ class output p =
             | None -> ()
             | Some r ->
                 (try
-                   let bytes = r.encoder.hls_stop () in
+                   let pieces = r.encoder.hls_stop () in
                    if Segmenter.current r.segmenter <> None then
-                     Segmenter.add_bytes r.segmenter bytes
+                     self#apply_pieces v pieces
                  with exn ->
                    self#log#important
                      "Variant %s: stopping the encoder failed: %s" v.name
@@ -808,7 +808,7 @@ class output p =
       || List.for_all
            (fun v ->
              Option.value ~default:false
-               (Variant.encoder_answer v (fun e -> Some (e.free_split ()))))
+               (Variant.encoder_answer v (fun p -> Some p.free_split)))
            variants
 
     method private sync_all ~time ~discontinuous =
@@ -886,6 +886,7 @@ class output p =
           | Encoder.Restart { time; init } ->
               self#set_init v init;
               Segmenter.restart r.segmenter ~time;
+              r.properties <- Some (Variant.read_properties r.encoder);
               List.iter
                 (fun other ->
                   if other != v then
@@ -915,13 +916,13 @@ class output p =
               let r = Option.get v.Variant.run in
               let force = Segmenter.bound r.segmenter ~length in
               let boundary = Segmenter.request r.segmenter in
-              if r.initialized then
+              if r.properties <> None then
                 r.encoder.split_encode ~boundary ~force chunk
               else (
                 match r.encoder.init_encode ~boundary chunk with
                   | Encoder.Pending -> []
                   | Encoder.Init { init; pieces } ->
-                      r.initialized <- true;
+                      r.properties <- Some (Variant.read_properties r.encoder);
                       self#set_init v init;
                       (match Segmenter.current r.segmenter with
                         | Some s -> s.init <- v.current_init
@@ -1297,3 +1298,17 @@ let _ =
                       ( "Expires",
                         http_date (Unix.gettimeofday () +. float_of_int s) );
                     ]))
+
+let _ =
+  Lang.add_builtin ~base:output_hls "uri" ~category:`Internet ~flags:[`Hidden]
+    ~descr:"Internal: a playlist URI for a file name (spec/playlists.md §4)."
+    [
+      ("prefix", Lang.string_t, Some (Lang.string ""), None);
+      ("", Lang.string_t, None, None);
+    ]
+    Lang.string_t
+    (fun p ->
+      Lang.string
+        (Playlist.uri
+           ~prefix:(Lang.to_string (List.assoc "prefix" p))
+           (Lang.to_string (Lang.assoc "" 1 p))))

@@ -54,7 +54,8 @@ val media_time : 'a t -> int
 (** The open segment's payload. *)
 val current : 'a t -> 'a option
 
-(** The next media time at which a split point is wanted. *)
+(** The next media time at which a split point is wanted: the first grid
+    boundary at or after the media time, or an earlier pending sync. *)
 val request : 'a t -> int
 
 (** Applies the target-duration bound for a chunk of [length] ticks, opening the

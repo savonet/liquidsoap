@@ -39,7 +39,7 @@ type container = {
 
 type state = [ `Built | `Started | `Failed of exn | `Stopped ]
 
-(* HLS mode (encoder.md §8). [key_due] is a grid boundary whose image an
+(* HLS mode (encoder.md §8). [key_due] are requested times whose image an
    encoded video stream has made a key frame and whose key packet is not yet
    seen: [force] is ignored meanwhile. *)
 type hls = {
@@ -49,8 +49,8 @@ type hls = {
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
   mutable id3_queue : (unit -> unit) list;
   mutable media_written : bool;
-  mutable key_due : int option;
-  mutable key_seen : int;
+  mutable key_requests : int list;
+  mutable key_due : int list;
 }
 
 (* [header] is the current container's header (encoder.md §10): [`Pending
@@ -268,11 +268,9 @@ let on_packet t field ~key ~time =
   match (t.hls, time) with
     | Some h, Some time ->
         h.media_written <- true;
-        (match h.key_due with
-          | Some b when key && time >= b && List.mem field (encoded_video t) ->
-              h.key_due <- None;
-              h.key_seen <- b
-          | _ -> ());
+        if key && List.mem field (encoded_video t) then (
+          h.key_due <- List.filter (fun b -> b > time) h.key_due;
+          h.key_requests <- List.filter (fun b -> b > time) h.key_requests);
         Hls_split.packet h.split ~flush:(hls_flush t) ~field ~key ~time
     | Some h, None -> h.media_written <- true
     | None, _ -> ()
@@ -295,6 +293,19 @@ let create_streams t frame =
         | _, `Drop -> ())
       c.tracks;
     c.streams_created <- true;
+    Option.iter
+      (fun h ->
+        List.iter
+          (function
+            | field, `Encoded _ when List.mem field (encoded_video t) ->
+                Hls_split.inter_coded h.split field
+            | field, `Copy track
+              when Copy_encoder.video_size track <> None
+                   && not (Copy_encoder.intra_only track) ->
+                Hls_split.inter_coded h.split field
+            | _ -> ())
+          c.tracks)
+      t.hls;
     (match t.hls with
       | Some ({ id3 = `In_stream; _ } as h) ->
           h.id3_stream <-
@@ -488,10 +499,15 @@ let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"]
 
 (* encoder.md §3 step 2. *)
 let hls_defaults (format : F.t) =
+  let default key value opts =
+    if List.mem_assoc key opts then opts else F.set opts key (`String value)
+  in
   let opts =
-    if format.format = Some "mp4" && not (List.mem_assoc "movflags" format.opts)
-    then F.set format.opts "movflags" (`String "+frag_custom+dash+delay_moov")
-    else format.opts
+    match format.format with
+      | Some "mp4" ->
+          default "movflags" "+frag_custom+dash+delay_moov" format.opts
+      | Some "mpegts" -> default "avoid_negative_ts" "disabled" format.opts
+      | _ -> format.opts
   in
   let interleaved =
     match format.interleaved with `Default -> `False | v -> v
@@ -539,12 +555,14 @@ let run_id3_queue h =
 
 let hls_encode t h ~boundary ~force frame =
   Hls_split.request h.split boundary;
+  if encoded_video t <> [] && not (List.mem boundary h.key_requests) then
+    h.key_requests <- h.key_requests @ [boundary];
   (* A stream ignores requests until it exists, and repeats of one. *)
   List.iter
     (fun track -> track.Encoded_stream.request_keyframe boundary)
     (encoded_tracks t.current);
   if
-    force && h.key_due = None
+    force && h.key_due = []
     && (not (Hls_split.restart_pending h.split))
     && Av.output_started t.current.output
   then Hls_split.force h.split ~flush:(hls_flush t) ~time:t.position;
@@ -552,8 +570,7 @@ let hls_encode t h ~boundary ~force frame =
     | `Failed exn -> raise exn
     | `Stopped -> failwith "Encoder used after stop"
     | `Built | `Started -> encode_frames t frame);
-  if encoded_video t <> [] && t.position > boundary && h.key_seen <> boundary
-  then h.key_due <- Some boundary;
+  h.key_due <- List.filter (fun b -> b < t.position) h.key_requests;
   run_id3_queue h;
   Hls_split.take h.split
 
@@ -629,15 +646,17 @@ let independent_segments t =
     t.current.tracks
 
 let hls_stop t h =
+  (match t.state with
+    | `Stopped -> ()
+    | `Failed _ -> ( try close_output t.current with _ -> ())
+    | `Built | `Started -> close_container t);
+  t.state <- `Stopped;
   let taken = Hls_split.take h.split in
-  let bytes =
-    List.filter_map
-      (function Encoder.Bytes b -> Some b | _ -> None)
-      taken.pieces
-  in
-  let rest = Strings.of_string (Buffer.contents (Hls_split.buffer h.split)) in
-  Buffer.clear (Hls_split.buffer h.split);
-  Strings.concat (bytes @ [rest; stop t])
+  let buffer = Hls_split.buffer h.split in
+  let held = Buffer.contents buffer in
+  Buffer.clear buffer;
+  taken.pieces
+  @ if held = "" then [] else [Encoder.Bytes (Strings.of_string held)]
 
 let create_hls ~pos ~name format : Encoder.hls_encoder =
   let format = hls_defaults format in
@@ -654,8 +673,8 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
       id3_stream = None;
       id3_queue = [];
       media_written = false;
-      key_due = None;
-      key_seen = -1;
+      key_requests = [];
+      key_due = [];
     }
   in
   let t = make ~hls:h ~pos ~name Frame.Metadata.Export.empty format in

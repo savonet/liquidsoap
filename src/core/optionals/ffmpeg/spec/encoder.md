@@ -83,6 +83,12 @@ In order:
    - `format="mp4"`: container option `movflags` defaults to
      `"+frag_custom+dash+delay_moov"` (fragments are cut only when the
      encoder asks, §8.2).
+   - `format="mpegts"`: container option `avoid_negative_ts` defaults to
+     `"disabled"`. Reason: the muxer would otherwise shift the timeline by
+     the first packet's negative timestamp, which is the codec's priming,
+     so variants of one output with different codecs (AAC-LC, HE-AAC) would
+     carry different timestamps for the same media time. MPEG-TS stores
+     timestamps after its own positive delay.
    - `interleaved=Default` becomes `False`; an explicit value is kept.
      Reason: an interleaving muxer holds packets until every stream has
      written, which empties the first segment when a stream is sparse (the
@@ -338,6 +344,9 @@ can be useful:
    decision. When
    every other participating stream flags each packet as key (audio,
    subtitles, intra-only codecs), acceptance is immediate in practice.
+   A candidate decided by a key packet that takes a candidate of its own is
+   dropped in favour of that one: the two are one split point, and keeping
+   both would leave a segment of a few packets between them.
 3. Bytes written after an undecided candidate are held by the instance and
    returned in order once it is decided; no byte is dropped.
 
@@ -458,7 +467,10 @@ What this encoder provides to them:
    every variant has a split point at each requested time, within one
    packet when its streams are all-key. The candidate is taken at the first
    packet at or after the request even when no stream is video and the
-   request has not changed since the previous frame.
+   request has not changed since the previous frame. A request stays
+   pending until a candidate is taken at it, also after a later request
+   arrives: packets trail the media time by the codec delay, and every
+   requested time gets its candidate, in order.
 2. **Split points** are the only places a segment may be cut (§8.2). With
    MPEG-TS, the instance makes the muxer write a PAT and a PMT at each
    candidate (the muxer's own header resend), so every segment starts with

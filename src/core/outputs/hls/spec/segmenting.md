@@ -56,8 +56,12 @@ content, packed audio). The encoder says so
 ([encoder-contract.md §6](encoder-contract.md#6-properties)).
 
 The **request** passed to the encoder with each chunk is the next media
-time at which the output wants a split point: the variant's next grid
-boundary, or a pending sync time (§7) when that comes first.
+time at which the output wants a split point: the first grid boundary at or
+after the chunk's media time (and after 0), or a pending sync time (§7) when
+that comes first. Reason: the encoder must learn of each boundary before it
+encodes the image there; an encoder whose delay exceeds the segment duration
+would otherwise get the request only after the cut for the previous
+boundary, too late to make a key frame on time.
 
 ## 3. Applying pieces
 

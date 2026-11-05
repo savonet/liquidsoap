@@ -21,10 +21,20 @@ type segment = {
   mutable init : string option;
 }
 
+(* The encoder's answers, read when they become valid: at its init segment
+   and at each restart (spec/encoder-contract.md §6). *)
+type properties = {
+  codecs : string option;
+  independent : bool;
+  free_split : bool;
+  bitrate : int option;
+  video_size : (int * int) option;
+}
+
 type run = {
   encoder : Encoder.hls_encoder;
   segmenter : segment Segmenter.t;
-  mutable initialized : bool;
+  mutable properties : properties option;
   mutable last_tag : int option;
   mutable bandwidth_warned : bool;
 }
@@ -61,13 +71,20 @@ let add_tag v tag =
 
 let pending_tags v = Mutex.protect v.tags_lock (fun () -> v.pending_tags)
 
+let read_properties (e : Encoder.hls_encoder) =
+  {
+    codecs = e.codec_attrs ();
+    independent = e.independent_segments ();
+    free_split = e.free_split ();
+    bitrate = e.hls_bitrate ();
+    video_size = e.hls_video_size ();
+  }
+
 let initialized v =
-  match v.run with Some { initialized; _ } -> initialized | None -> false
+  match v.run with Some { properties = Some _; _ } -> true | _ -> false
 
 let encoder_answer v f =
-  match v.run with
-    | Some ({ initialized = true; _ } as r) -> f r.encoder
-    | _ -> None
+  match v.run with Some { properties = Some p; _ } -> f p | _ -> None
 
 let headroom b = int_of_float (float_of_int b *. 1.1)
 let nominal format = try Some (Encoder.bitrate format) with Not_found -> None
@@ -78,7 +95,7 @@ let bandwidth v ~target =
   match v.fields.bandwidth with
     | Some b -> b
     | None -> (
-        match encoder_answer v (fun e -> e.hls_bitrate ()) with
+        match encoder_answer v (fun p -> p.bitrate) with
           | Some b -> headroom b
           | None -> (
               match nominal v.format with
@@ -104,7 +121,7 @@ let video_size v =
   match v.fields.video_size with
     | Some s -> Some s
     | None -> (
-        match encoder_answer v (fun e -> e.hls_video_size ()) with
+        match encoder_answer v (fun p -> p.video_size) with
           | Some s -> Some s
           | None -> Encoder.video_size v.format)
 
