@@ -27,7 +27,7 @@ Labelled, with defaults:
 | `segment_name`         | `({position, extname, duration, ticks, stream_name}) -> string` | `"#{stream_name}_#{position}.#{extname}"` | [files.md §2](files.md#2-file-names)                                      |
 | `segments`             | `int`                                                           | `10`                                      | [playlists.md §2](playlists.md#2-media-playlist)                          |
 | `segments_overhead`    | `int?`                                                          | `5`                                       | [files.md §5](files.md#5-retention)                                       |
-| `cut_on_metadata`      | `bool?`                                                         | `null`                                    | [metadata.md §4](metadata.md#4-cuts-on-metadata)                          |
+| `cut_on_metadata`      | `bool?`                                                         | `null`                                    | [metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags)                 |
 | `perm`                 | `int`                                                           | `0o666`                                   | [files.md §3](files.md#3-writing-a-file)                                  |
 | `dir_perm`             | `int`                                                           | `0o777`                                   | [files.md §1](files.md#1-directories)                                     |
 | `temp_dir`             | `string?`                                                       | `null`                                    | [files.md §3](files.md#3-writing-a-file)                                  |
@@ -82,20 +82,26 @@ become a retry loop at runtime.
 
 The output follows the start/stop state machine common to outputs: `idle`,
 `started`, `stopped`. `start` runs on entering `started`; `stop` on leaving
-it. A stop is **final** when the output goes to sleep (the end of the
-process); every other stop — the `stop` method or command, a fallible
-source that ends — is not.
+it. The output's life runs from wake-up to **sleep**: the end of the
+process, but also `clock.stop()`, `o.shutdown()` and the like. A stop is
+**final** when it is part of going to sleep; every other stop — the `stop`
+method or command, a fallible source that ends, a clock catching up — is
+not.
 
 The output's **state** is, per variant, its counters (next position
 number, next init position, discontinuity count, pending inserted tags),
 its retained segments and its window: what
 [persistence.md §1](persistence.md#1-what-is-saved) saves. It lives in
-memory from construction until a final stop, across every run in between.
+memory from wake-up to sleep, across every run in between.
+
+The `insert_tag` method and the `streams()` entries refer to the variants,
+not to one run: a tag inserted through a value kept from before a stop
+reaches the next run.
 
 ### 3.1 Start
 
-1. If no state has been held yet in this process (the first start) and
-   `persist_at` names an existing file: restore it
+1. At the first start since wake-up, if `persist_at` names an existing
+   file: restore it
    ([persistence.md §4](persistence.md#4-restoring)).
 2. A run begins ([segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration)):
    every variant gets a new encoder, media time 0, no open segment, init
@@ -116,8 +122,12 @@ failure is logged with the variant and the step, and the stop completes.
 2. Each open segment is closed ([files.md §4](files.md#4-closing-a-segment)),
    or dropped when empty.
 3. With `persist_at`, the state is saved ([persistence.md §3](persistence.md#3-saving)).
-4. At a final stop without `persist_at`, the cleanup of
-   [files.md §7](files.md#7-cleanup-at-a-final-stop).
+
+**Sleep**, whatever the output's state (started, idle, or stopped by
+hand): a stop if it is started, then, with `persist_at`, a save, and
+without it the cleanup of [files.md §7](files.md#7-cleanup-at-a-final-stop).
+The state is then dropped; the next wake-up starts from `persist_at` or
+fresh.
 
 A stop that is not final keeps every file and the state, so the next start
 continues the same playlists with a discontinuity. Reason: a fallible
@@ -131,7 +141,7 @@ at each metadata position into chunks. For each non-empty chunk, in order:
 
 1. Metadata starting in the chunk is given to every variant
    ([metadata.md §1](metadata.md#1-track-metadata)); a cut on metadata is
-   requested if due ([metadata.md §4](metadata.md#4-cuts-on-metadata)).
+   requested if due ([metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags)).
 2. For each variant: open a segment if none is open
    ([segmenting.md §6](segmenting.md#6-opening-a-segment)); apply the bound
    ([segmenting.md §5](segmenting.md#5-the-target-duration-bound)); encode
@@ -170,8 +180,10 @@ will re-open in <d>s`, and nothing is pulled or written for `d` seconds.
 4. Then a new run begins as in §3.1 steps 2–3: new encoders, a new grid
    origin, and a discontinuity in every variant.
 
-A file name that breaks [files.md §2](files.md#2-file-names) makes the
-output fail at once, without `reopen_on_error`: it is a script error.
+A file name that breaks [files.md §2](files.md#2-file-names), and a strict
+restore that fails ([persistence.md §4](persistence.md#4-restoring)), make
+the output fail at once, without `reopen_on_error`: neither heals by
+itself.
 
 Reason for new encoders: an encoder interrupted mid-output can only continue
 with bytes that do not start at a key packet, and the segment after the

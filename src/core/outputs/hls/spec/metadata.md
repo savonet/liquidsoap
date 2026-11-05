@@ -41,9 +41,12 @@ defaults to `true`.
 called with the media time `t` of the chunk that carried `m`, after any cut
 made at `t`, and the state becomes sent `m`: the tag is on time whether or
 not a cut follows. When a segment opens with sent `m` and `replay_id3` true,
-`insert_id3` is called with the segment's start and `m`, unless `m` was
-inserted at that same time: a player joining at that segment sees the
-current track.
+`insert_id3` is called with the segment's start and `m` if that start is
+after the variant's last in-stream tag: a player joining at that segment
+sees the current track. Reason: in-stream tag times MUST strictly increase.
+A cut can land at a split point before the last tag's time, and a replay
+there would label earlier media with the new track, and a muxer drops a tag
+whose time goes back.
 
 **Prepended.** When a segment opens, `insert_id3` is called with the
 segment's start and:
@@ -74,33 +77,44 @@ When a segment opens, it takes every pending tag, in insertion order, and
 the pending list becomes empty; a dropped segment gives them back
 ([segmenting.md §6](segmenting.md#6-opening-a-segment)). The tags are
 written in that segment's playlist entry
-([playlists.md §2](playlists.md#2-media-playlist)). Inserted tags never
-cause a cut: they wait for the next segment, at most one segment duration.
+([playlists.md §2](playlists.md#2-media-playlist)). Inserted tags may
+cause a cut (§4); otherwise they wait for the next segment, at most one
+segment duration.
 Pending tags, and the tags of the open segment at a stop, are kept
 ([persistence.md](persistence.md), [operator.md §3](operator.md#3-lifecycle)).
 
-## 4. Cuts on metadata
+## 4. Cuts on metadata and tags
 
 A cut on metadata makes a new segment start at the metadata's media time,
 so that a prepended tag, or a player joining at that segment, has the new
-track from the start. It is a sync cut
-([segmenting.md §7](segmenting.md#7-output-wide-cuts)) at the media time of
-the chunk that carried the metadata, not a discontinuity.
+track from the start. A cut on an inserted tag makes the tag's segment
+start when it is inserted, so a cue or a marker is on time. Both are sync
+cuts ([segmenting.md §7](segmenting.md#7-output-wide-cuts)), not
+discontinuities: at the media time of the chunk that carried the metadata,
+or of the next chunk after `insert_tag`.
 
-`cut_on_metadata` decides:
+The **alignment condition** holds when the output has one variant, or when
+every variant is free-split ([segmenting.md §2](segmenting.md#2-segments-in-memory)).
+Then a sync cut keeps the grid aligned across variants.
 
-- `null` (default): cut when the output has one variant, or when every
-  variant is free-split ([segmenting.md §2](segmenting.md#2-segments-in-memory)).
-  Both keep the grid aligned across variants.
+`cut_on_metadata` decides for both:
+
+- `null` (default): a metadata cut when the alignment condition holds and
+  some variant's ID3 mode is not none (a cut no tag uses only makes a short
+  segment); a tag cut when the alignment condition holds.
 - `true`: always cut. With variants that are not free-split, segment
   boundaries and counts can then differ between variants
   ([segmenting.md §7](segmenting.md#7-output-wide-cuts), alignment).
 - `false`: never cut.
 
-The decision is made when the metadata arrives, from the encoders' answers
-at that time. Metadata equal to what was sent (§1) causes no cut. Before
-every variant's encoder has returned its init segment, no cut is made: the
-metadata belongs to the first segment.
+A tag inserted on one variant (a `streams()` entry) cuts only when the
+output has one variant: a sync cut for it would cut every variant.
 
-Without a cut, metadata waits for the next segment: in-stream ID3 is still
-on time; a prepended tag comes at most one segment duration late.
+The decision is made when the metadata or the tag arrives, from the
+encoders' answers at that time. Metadata equal to what was sent (§1) causes
+no cut. Before every variant's encoder has returned its init segment, no cut
+is made: the metadata or tag belongs to the first segment.
+
+Without a cut, metadata and tags wait for the next segment: in-stream ID3 is
+still on time; a prepended ID3 tag or an inserted tag comes at most one
+segment duration late.

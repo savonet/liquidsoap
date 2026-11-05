@@ -37,9 +37,13 @@ format`.
 3. A first encoder is created and its `init` called
    ([encoder-contract.md §3](encoder-contract.md#3-init)); its answer is
    the variant's ID3 mode. A rejection stops the script.
-4. A format whose container RFC 8216 does not name as a segment format
-   (MPEG-TS, fragmented MP4, packed audio, WebVTT) is accepted with a
-   warning naming the variant.
+4. The variant's container MUST be a segment format of RFC 8216 §3:
+   MPEG-TS, fragmented MP4, packed audio (ADTS, MP3, AC-3, E-AC-3) or
+   WebVTT. Any other is rejected, naming the variant: "Transport of other
+   media file formats is not defined" (§3.1). By encoder: `%mp3` and
+   `%shine` (MP3), `%fdkaac` with ADTS transport, and `%ffmpeg` with the
+   `mpegts`, fragmented `mp4`, `adts`, `mp3`, `ac3`, `eac3` or `webvtt`
+   muxer. Every other encoder is rejected.
 
 At the start of every run each variant gets a new encoder, built the same
 way ([encoder-contract.md §2](encoder-contract.md#2-calls-and-order)).
@@ -89,10 +93,7 @@ type: MPEG-4 AAC-LC `mp4a.40.2`, HE-AAC `mp4a.40.5`, HE-AACv2 `mp4a.40.29`,
 AAC-LD `mp4a.40.23`, AAC-ELD `mp4a.40.39`; every MPEG-2 profile `mp4a.67`.
 Every other format: none from the format.
 
-Extensions: `%wav` `wav`, `%avi` `avi`, `%ogg` `ogg`, `%mp3` and `%shine`
-`mp3`, `%flac` `flac`, `%fdkaac` `aac`, `%ffmpeg` by its muxer
-([ffmpeg encoder-format](../../../optionals/ffmpeg/spec/encoder-format.md));
-every other format: none.
+Extensions: `%mp3` and `%shine` `mp3`, `%fdkaac` `aac`, `%ffmpeg` by its
+muxer ([ffmpeg encoder-format](../../../optionals/ffmpeg/spec/encoder-format.md)).
 
-Declared video size: `%ogg` with Theora → its width and height; `%ffmpeg`
-→ by its format; every other format: none.
+Declared video size: `%ffmpeg` → by its format; others: none.

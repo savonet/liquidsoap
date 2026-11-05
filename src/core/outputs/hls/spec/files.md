@@ -131,7 +131,8 @@ When the encoder hands over an init segment (`Init` or `Restart`):
 
 ## 7. Cleanup at a final stop
 
-At a final stop without `persist_at` ([operator.md §3.2](operator.md#32-stop)):
+At sleep without `persist_at` ([operator.md §3.2](operator.md#32-stop)),
+whatever the output's state:
 
 1. Every open segment is aborted (§3 step 5).
 2. The main playlist, then every media playlist, is deleted (§5.1).
@@ -141,7 +142,7 @@ Afterwards the output tracks no file. Files the output never published are
 not touched.
 
 What is not promised: RFC 8216 §6.2.2 asks that the segments of a removed
-presentation stay available for the playlist's duration. A final stop is
+presentation stay available for the playlist's duration. Sleep is usually
 the end of the process; files go at once, and the playlists go first so
 that no player is directed to a missing segment.
 

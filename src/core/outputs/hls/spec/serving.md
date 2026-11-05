@@ -26,28 +26,42 @@ formats, s)`. HTTPS is a `transport`.
 
 ## 3. What is served
 
-The handler serves exactly the files the output tracks
+The handler serves, first, the files the output tracks
 ([files.md](files.md)): listed and retained media segments, their init
 segments, the media playlists and the main playlist. It reads the output's
-tracked set at each request; it does not keep a copy of its own.
+tracked set at each request, through an internal accessor that is not part
+of the script API; it keeps no copy of its own. Then it serves other
+regular files of the directory that a script placed there on purpose: keys
+named by an `EXT-X-KEY` tag, player pages, images.
 
 For a request path:
 
 1. Not under the base path: 404.
-2. The rest, percent-decoded, is looked up by exact equality among the
-   tracked names. No match: 404.
-3. A match: the response of §4.
+2. The rest is percent-decoded. A tracked name equal to it: the response of
+   §4, with the content type of its kind (§4.1).
+3. Otherwise, a path with a NUL byte or a `..` component (split on `/`,
+   and also on `\` where the system uses it) is a 404. So is the output's
+   state file, and any temporary file of the output.
+4. Otherwise, a regular file at that path under the directory: the
+   response of §4, with the content type its extension gives, if any. A
+   directory or a missing file: 404.
 
-Reason: serving by lookup, not by joining a request path to a directory,
-makes paths that leave the directory, temporary files, the state file and
-anything else in the directory unreachable by construction, and restored
-files reachable at once.
+Reason: tracked files are found by lookup, so restored files are reachable
+at once and nothing the output is still writing is. Other files are joined
+to the directory only after a lexical check, so no request leaves it. A
+symbolic link inside the directory is followed: placing one there serves
+its target.
 
 ## 4. Responses
 
-Headers, in order: the configured `headers`, then `Content-Type` (§4.1),
-`Content-Length`, and `Cache-Control` (§4.2). `GET` gets the file's content;
-`HEAD` and `OPTIONS` get headers only.
+The configured `headers` go on every response, errors included. Reason: a
+browser player needs the CORS header to see a 404 as a 404.
+
+A successful response adds `Content-Type` (§4.1), `Content-Length` and
+caching (§4.2). A configured header replaces a generated one of the same
+name, compared case-insensitively: a script's `Cache-Control` is its cache
+policy. `GET` gets the file's content; `HEAD` and `OPTIONS` get headers
+only.
 
 The content is read when served. A file deleted between lookup and read is
 a 404.

@@ -32,8 +32,17 @@ check here, cited by its number.
   unwritable directories, `segment_duration` under one frame, `segments`
   0, negative overhead, empty or duplicate variant names, a multi-line
   `extra_tags` entry, `id3` against the encoder — stops the script before streaming, naming the argument.
-- A missing bandwidth never fails: a `%wav` variant without `bandwidth`
-  announces a measured one (KC9).
+- A missing bandwidth never fails: an `%mp3` VBR variant without
+  `bandwidth` announces a measured one (KC9).
+- `%wav`, `%ogg`, `%flac` and `%ffmpeg` WebM or Matroska variants are
+  rejected at construction, naming the variant.
+- A strict restore of an invalid state file makes the output fail without
+  calling `reopen_on_error`.
+- Sleep while the source is down (output idle), without persistence,
+  leaves no file the output wrote; `clock.stop()` then `clock.start()` with
+  persistence restores from `persist_at`.
+- A tag inserted through a `streams()` entry kept from before a stop
+  reaches the next run.
 - A file-system error mid-stream: the output resumes after
   `reopen_on_error`'s delay; the first segment after recovery is
   discontinuous in every variant and starts with a key packet of every
@@ -107,13 +116,16 @@ check here, cited by its number.
   frames; the bytes of [encoder-packed-audio.md §7](encoder-packed-audio.md#7-insert_id3)
   are reproduced exactly.
 - MPEG-TS timed ID3 (KC18): a title change appears as a timed ID3 packet at
-  the media time of the change; with replay, every segment carries the
+  the media time of the change; in-stream tag times strictly increase, also
+  when a cut lands before the change; with replay, every segment carries the
   current title from its start; with `id3=false`, none.
 - Cuts on metadata (KC6): with only free-split variants (`%mp3`, `%ffmpeg`
   AAC in MPEG-TS, `%fdkaac`), a new title starts a new segment within one
   codec frame of its media time in every variant, counts stay equal, and
   the grid after it is unchanged; with a copied video variant and the default, no
-  cut; the same metadata sent ten times causes no cut.
+  cut; the same metadata sent ten times causes no cut; a single fMP4 variant
+  with no ID3 is not cut on metadata; with only free-split variants, an
+  inserted tag starts a new segment at the next chunk.
 - Init segments (KC21): non-empty; the first media segment holds the first
   frame; deleted once no retained segment refers to them.
 - Large covers in metadata keep memory flat over an hour (KC19).
@@ -157,7 +169,10 @@ check here, cited by its number.
 - Every file a playlist names is served with the content type of
   [serving.md §4.1](serving.md#41-content-types), init segments included
   (KC25).
-- `..%2F`, absolute paths, temporary files and the state file give 404.
+- `..%2F`, `%2e%2e/`, a literal `../`, a NUL byte, temporary files and the
+  state file give 404; a key file placed in the directory is served.
+- A 404 carries the configured headers; a configured `Cache-Control`
+  replaces the generated one.
 - After a restore, restored segments and rewritten playlists are served.
 - Playlists and segments carry the cache headers of
   [serving.md §4.2](serving.md#42-caching).

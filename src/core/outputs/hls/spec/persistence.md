@@ -61,8 +61,8 @@ back over files that players have seen.
 
 ## 4. Restoring
 
-At `start`, when no state is held in memory
-([operator.md §3](operator.md#3-lifecycle)) and the file exists:
+At the first start after a wake-up ([operator.md §3](operator.md#3-lifecycle)),
+when the file exists:
 
 1. **Parse and check** the file as a whole: the format of §2; the same set
    of variant names as the output; for each variant, positions strictly
@@ -70,9 +70,10 @@ At `start`, when no state is held in memory
    and at most `discontinuity_count`, init names below
    `next_init_position` in their position, every name valid by
    [files.md §2](files.md#2-file-names).
-2. A failed check applies nothing. With `strict_persist` true, the error
-   propagates out of `start`. Otherwise a warning gives the reason and the
-   output starts fresh.
+2. A failed check applies nothing. With `strict_persist` true, the output
+   fails, without `reopen_on_error`: a bad state file does not heal by
+   itself. Otherwise a warning gives the reason and the output starts
+   fresh.
 3. **Apply**: each variant's counters and window start are taken as saved.
    A listed segment whose file, or whose init segment, is missing is
    dropped with a warning naming it, together with every older segment of
@@ -89,3 +90,9 @@ that keep numbering monotonic.
 
 A `persist_at` that does not exist is a fresh start. The file stays and is
 replaced at the next save.
+
+There is one format, with no reader for any other. What is not promised: a
+state file written in another format fails the check, so after such a
+change a persistent output with `strict_persist` false starts its numbering
+again at 1 once, and with `strict_persist` true fails at every start until
+the file is removed.

@@ -5,11 +5,10 @@ This file owns that interface: the calls, their order, and what each answer
 must satisfy. Each implementation has its own file, with the same section
 numbers:
 
-| File                                               | Encoders                                             |
-| -------------------------------------------------- | ---------------------------------------------------- |
-| [encoder-frame-units.md](encoder-frame-units.md)   | `%wav`, `%avi`, `%flac`, `%ogg`, `%external`, `%ndi` |
-| [encoder-packed-audio.md](encoder-packed-audio.md) | `%mp3`, `%shine`, `%fdkaac`                          |
-| [encoder-ffmpeg.md](encoder-ffmpeg.md)             | `%ffmpeg`                                            |
+| File                                               | Encoders                    |
+| -------------------------------------------------- | --------------------------- |
+| [encoder-packed-audio.md](encoder-packed-audio.md) | `%mp3`, `%shine`, `%fdkaac` |
+| [encoder-ffmpeg.md](encoder-ffmpeg.md)             | `%ffmpeg`                   |
 
 Each implementation file answers every section; a missing answer is a gap.
 

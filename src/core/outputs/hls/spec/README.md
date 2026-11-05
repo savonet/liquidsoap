@@ -44,7 +44,7 @@ The contracts between them:
 - **Encoder → segmenting**: pieces (bytes, split points, restarts) and
   properties; the encoder never sees a segment.
 - **Files → serving**: the tracked set of files; serving never reads the
-  directory to decide what exists.
+  directory to decide which files are the output's.
 
 ## Reading order
 
@@ -54,7 +54,6 @@ Build in this order, each layer with its checks of
 | File                                               | Content                                                              |
 | -------------------------------------------------- | -------------------------------------------------------------------- |
 | [encoder-contract.md](encoder-contract.md)         | The encoder seam.                                                    |
-| [encoder-frame-units.md](encoder-frame-units.md)   | `%wav`, `%avi`, `%flac`, `%ogg`, `%external`, `%ndi`.                |
 | [encoder-packed-audio.md](encoder-packed-audio.md) | `%mp3`, `%shine`, `%fdkaac`, with the ID3 timestamp bytes.           |
 | [encoder-ffmpeg.md](encoder-ffmpeg.md)             | `%ffmpeg`, mapped to the FFmpeg layer's spec.                        |
 | [variants.md](variants.md)                         | Variant fields and derived properties: bandwidth, codecs, extension. |
@@ -79,8 +78,7 @@ threads, [metadata.md §3](metadata.md#3-inserted-tags),
 crash safety (atomic publication, [files.md §3](files.md#3-writing-a-file);
 the state file, [persistence.md §3](persistence.md#3-saving)); security
 (names stay inside the directory, [files.md §2](files.md#2-file-names);
-modes under the umask, [files.md §3](files.md#3-writing-a-file); serving by
-lookup, [serving.md §3](serving.md#3-what-is-served)). Each is a few rules
+modes under the umask, [files.md §3](files.md#3-writing-a-file); what is served, [serving.md §3](serving.md#3-what-is-served)). Each is a few rules
 with one owner.
 
 ## Vocabulary

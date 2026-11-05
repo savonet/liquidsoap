@@ -52,7 +52,7 @@ forced split.
 
 A variant is **free-split** when it has a split point within one codec
 frame of any media time the output requests (audio-only and intra-only
-content, frame-unit formats). The encoder says so
+content, packed audio). The encoder says so
 ([encoder-contract.md §6](encoder-contract.md#6-properties)).
 
 The **request** passed to the encoder with each chunk is the next media
@@ -165,8 +165,8 @@ one at `t`, and free-split variants have a split point there. It is used
 for:
 
 - a container restart in any variant (§8), marked as a discontinuity;
-- track metadata, as decided by
-  [metadata.md §4](metadata.md#4-cuts-on-metadata).
+- track metadata and inserted tags, as decided by
+  [metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags).
 
 Rules:
 

@@ -348,9 +348,10 @@ segment holds one fragment per candidate it contains.
 ### 8.3 `init_encode frame`
 
 The init segment is the container's header: the bytes the muxer writes before
-its first media data (fragmented MP4: `ftyp` and `moov`; WebM: the EBML
-header, segment information and tracks). For a format without one (MPEG-TS,
-ADTS, MP3) it is none.
+its first media data (fragmented MP4: `ftyp` and `moov`). For a format
+without one (MPEG-TS, ADTS, MP3) it is none. The HLS output accepts only the
+segment formats of RFC 8216
+([HLS variants §2](../../../outputs/hls/spec/variants.md#2-building-a-variant)).
 
 `init_encode ~boundary frame` encodes the frame (§5). It returns
 `Init (init, pieces)` once the header is known, where `pieces` (§8.4) hold
@@ -455,10 +456,13 @@ What this encoder provides to them:
    makes its first image at or after `boundary` a key frame (§8.4), and the
    hook takes a candidate before the first packet at or after it (§8.2), so
    every variant has a split point at each requested time, within one
-   packet when its streams are all-key.
+   packet when its streams are all-key. The candidate is taken at the first
+   packet at or after the request even when no stream is video and the
+   request has not changed since the previous frame.
 2. **Split points** are the only places a segment may be cut (§8.2). With
-   MPEG-TS, the muxer writes a PAT and a PMT at each candidate, so every
-   segment starts with them (RFC 8216 §3.2).
+   MPEG-TS, the instance makes the muxer write a PAT and a PMT at each
+   candidate (the muxer's own header resend), so every segment starts with
+   them (RFC 8216 §3.2).
 3. **Force** is honoured as §8.4 states.
 4. **Restarts** are `Restart` pieces (§13).
 
@@ -481,7 +485,7 @@ What this encoder provides to them:
   first PTS of segment _n_ is equal across variants to within one codec frame.
 - An AAC MPEG-TS HLS output with 2 s segments: the first ten segments sum to
   20 s within one internal frame.
-- A WebM and an MP4 variant: the init segment is non-empty and the first media
+- An MP4 variant: the init segment is non-empty and the first media
   segment holds the first frame.
 
 ## 9. Outputs with a URL or file target

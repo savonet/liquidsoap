@@ -1,8 +1,7 @@
 # Packed-audio encoders with ID3 timestamps
 
-Part A. `%mp3`, `%shine` and `%fdkaac` write raw MPEG audio or ADTS. They
-use the adapter of [encoder-frame-units.md](encoder-frame-units.md) with
-`init` and `insert_id3` replaced. Sections follow
+Part A. `%mp3`, `%shine` and `%fdkaac` write raw MPEG audio or ADTS. One adapter
+around their plain encoding function implements the seam. Sections follow
 [encoder-contract.md](encoder-contract.md).
 
 ## 1. Role
@@ -12,7 +11,8 @@ holding its timestamp. These encoders build that tag.
 
 ## 2. Calls and order
 
-As [encoder-frame-units.md §2](encoder-frame-units.md#2-calls-and-order).
+As the contract. The adapter counts media time as the sum of the chunk
+lengths it has encoded.
 
 ## 3. `init`
 
@@ -22,19 +22,22 @@ recorded, default 3.
 
 ## 4. `init_encode`
 
-As [encoder-frame-units.md §4](encoder-frame-units.md#4-init_encode).
+The first call returns `Init (none, [Bytes (encode chunk)])`: no init
+segment.
 
 ## 5. `split_encode`
 
-As [encoder-frame-units.md §5](encoder-frame-units.md#5-split_encode). MPEG
+Returns `[Split {time = media time before this chunk; forced = force};
+Bytes (encode chunk)]`: every chunk start is a split point, so `force`
+never changes where it is. MPEG
 audio and ADTS frames decode on their own, bit reservoir aside.
 
 ## 6. Properties
 
-As [encoder-frame-units.md §6](encoder-frame-units.md#6-properties):
-`free_split` true. The formats give bit rate and codec string
+`codec_attrs` and `bitrate` come from the format
 ([variants.md §3.1](variants.md#31-format-tables)), except `%mp3` VBR (no
-bit rate).
+bit rate); `video_size` is none; `independent_segments` and `free_split`
+are true.
 
 ## 7. `insert_id3`
 
