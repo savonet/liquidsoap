@@ -1,5 +1,84 @@
 let hls = {playlist = ()}
 
+# The main playlist of an HLS output: one `EXT-X-STREAM-INF` per stream.
+# @category Source / Output
+# @param ~extra_tags Extra tags, each on its own line after the version.
+# @param ~prefix Prefix of each media playlist URI.
+# @param ~version Announced `EXT-X-VERSION`.
+# @param streams Each media playlist's name, with its `bandwidth`, `codecs` (empty when unknown) and optional `video_size`.
+def hls.playlist.main(
+  ~extra_tags=[],
+  ~prefix="",
+  ~version=7,
+  (
+  streams:
+  [string.{ bandwidth: int, codecs: string, video_size?: (int * int) }]
+  )
+) =
+  prefix =
+    if prefix == "" or r/\/$/.test(prefix) then prefix else "#{prefix}/" end
+
+  def stream(s) =
+    codecs = s.codecs == "" ? "" : ",CODECS=\"#{s.codecs}\""
+    resolution =
+      if
+        null.defined(s?.video_size)
+      then
+        let (w, h) = null.get(s?.video_size)
+        ",RESOLUTION=#{w}x#{h}"
+      else
+        ""
+      end
+
+    [
+      "#EXT-X-STREAM-INF:BANDWIDTH=#{s.bandwidth}#{codecs}#{resolution}",
+      "#{prefix}#{url.encode(string(s))}.m3u8"
+    ]
+  end
+
+  lines =
+    [
+      "#EXTM3U",
+      "#EXT-X-VERSION:#{version}",
+      ...extra_tags,
+      ...list.flatten(list.map(stream, streams))
+    ]
+
+  string.concat(separator="\r\n", lines) ^ "\r\n"
+end
+
+# Output the source stream as an HTTP Live Streaming (HLS) presentation, with a
+# main playlist written by `hls.playlist.main`.
+# @category Source / Output
+# @argsof output.file.hls
+def replaces output.file.hls(
+  %argsof(output.file.hls[!main_playlist_writer]),
+  ~main_playlist_writer=(
+    fun (~extra_tags, ~prefix, ~version, streams) ->
+      (
+        hls.playlist.main(
+          extra_tags=extra_tags,
+          prefix=prefix,
+          version=version,
+          streams
+        )
+      :
+        string?
+      )
+  ),
+  dir,
+  formats,
+  s
+) =
+  output.file.hls(
+    %argsof(output.file.hls[!main_playlist_writer]),
+    main_playlist_writer=main_playlist_writer,
+    dir,
+    formats,
+    s
+  )
+end
+
 let input.hls = ()
 
 # Play an HLS stream.
@@ -132,3 +211,133 @@ let replaces input.hls = fun (~id=null, uri) -> input.ffmpeg(id=id, uri)
 def input.hls(~id=null, uri) =
   input.hls(id=id, uri)
 end
+
+%ifdef harbor.http.register
+# Output the source stream as HLS, served by the harbor HTTP server.
+# @category Source / Output
+# @argsof output.file.hls
+# @param ~headers Headers of every response.
+# @param ~port Port of the HTTP server.
+# @param ~path Base path of the presentation.
+# @param ~tmpdir Directory of the files; a new temporary directory when `null`.
+# @param ~transport HTTP transport; use `http.transport.ssl` for HTTPS.
+def output.harbor.hls(
+  %argsof(output.file.hls),
+  ~headers=[("Access-Control-Allow-Origin", "*")],
+  ~port=8000,
+  ~path="/",
+  ~tmpdir=null,
+  ~transport=http.transport.unix,
+  formats,
+  s
+) =
+  if
+    null.defined(persist_at)
+    and not null.defined(tmpdir)
+    and not r/^\//.test(null.get(persist_at))
+  then
+    log.important(
+      label="output.harbor.hls",
+      "persist_at is relative and tmpdir is null: the state lands in a new \
+       directory every run and can never be restored."
+    )
+  end
+
+  dir = tmpdir ?? file.temp_dir("hls")
+
+  o = output.file.hls(%argsof(output.file.hls), dir, formats, s)
+
+  base = r/^\//.test(path) ? path : ("/#{path}")
+  base = r/\/$/.test(base) ? base : ("#{base}/")
+
+  def mime_of_extension(fname) =
+    ext = ".#{file.extension(fname)}"
+    list.find(
+      default=("", ""),
+      fun (m) -> snd(m) == ext,
+      settings.http.mime.extnames()
+    )
+  end
+
+  def respond(request, response, content_type, generated, fname) =
+    names = list.map(fun (h) -> string.case(lower=true, fst(h)), headers)
+    generated =
+      list.filter(
+        fun (h) -> not list.mem(string.case(lower=true, fst(h)), names),
+        generated
+      )
+
+    if
+      request.method == "GET"
+    then
+      data =
+        try
+          file.contents(fname)
+        catch _ do
+          null
+        end
+      if
+        null.defined(data)
+      then
+        response.headers(
+          [("Content-Type", content_type), ...generated, ...headers]
+        )
+        response.data(null.get(data))
+      else
+        response.status_code(404)
+      end
+    else
+      length = file.size(fname)
+      response.headers(
+        [
+          ("Content-Type", content_type),
+          ("Content-Length", "#{length}"),
+          ...generated,
+          ...headers
+        ]
+      )
+    end
+  end
+
+  def handler(request, response) =
+    response.headers(headers)
+    rpath = string.residual(prefix=base, request.path)
+    if
+      not null.defined(rpath)
+    then
+      response.status_code(404)
+    else
+      rel = url.decode(null.get(rpath))
+      fname = "#{dir}/#{rel}"
+      r = output.file.hls.lookup(o.id(), rel)
+      if
+        r.kind == "tracked" and file.exists(fname)
+      then
+        respond(request, response, r.content_type, r.headers, fname)
+      elsif
+        r.kind == "other"
+        and file.exists(fname)
+        and not file.is_directory(fname)
+      then
+        let (mime, _) = mime_of_extension(fname)
+        respond(request, response, mime, [], fname)
+      else
+        response.status_code(404)
+      end
+    end
+  end
+
+  def register(method) =
+    harbor.http.register(
+      transport=transport,
+      port=port,
+      method=method,
+      "#{base}.*",
+      handler
+    )
+  end
+
+  list.iter(register, ["GET", "HEAD", "OPTIONS"])
+  o
+end
+%endif

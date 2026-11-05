@@ -140,6 +140,14 @@ let tag_meth insert =
        with Failure message -> raise (Error.Invalid_value (tag, message, [])));
       Lang.unit)
 
+type lookup =
+  [ `Tracked of string * [ `Max_age of int | `Expires of int ]
+  | `Forbidden
+  | `Other ]
+
+let registry : (string, < lookup : string -> lookup >) Hashtbl.t =
+  Hashtbl.create 4
+
 class output p =
   let source_val = Lang.assoc "" 3 p in
   let arg name = List.assoc name p in
@@ -296,6 +304,7 @@ class output p =
     method files = self#store
 
     initializer
+      Hashtbl.replace registry self#id (self :> < lookup : string -> lookup >);
       (match temp_dir with
         | Some d when device d <> device dir ->
             self#log#important
@@ -963,6 +972,49 @@ class output p =
             ])
         variants
 
+    (* spec/serving.md §3 and §4: what a request path names. *)
+    method lookup rel =
+      let forbidden =
+        String.contains rel '\000'
+        || List.mem ".."
+             (String.split_on_char '/'
+                (if Sys.win32 then
+                   String.map (function '\\' -> '/' | c -> c) rel
+                 else rel))
+        || String.starts_with ~prefix:File_store.temp_prefix
+             (Filename.basename rel)
+        || List.exists
+             (fun f ->
+               f = Filename.concat dir rel
+               || f ^ ".tmp" = Filename.concat dir rel)
+             (Option.to_list persist_at)
+      in
+      match List.assoc_opt rel (File_store.tracked self#store) with
+        | Some `Playlist ->
+            `Tracked (Content_type.playlist, `Max_age (target / 2))
+        | Some (`Segment name) ->
+            let v = List.find (fun v -> v.name = name) variants in
+            let lifetime =
+              match
+                List.find_opt
+                  (fun (s : Window.segment) -> s.name = rel)
+                  v.window.segments
+              with
+                | Some seg ->
+                    seg.duration +. Window.duration (Window.listed v.window)
+                | None -> 0.
+            in
+            `Tracked
+              ( Content_type.segment v,
+                `Expires (int_of_float (Float.ceil lifetime)) )
+        | Some (`Init name) ->
+            let v = List.find (fun v -> v.name = name) variants in
+            let lifetime = Window.duration (Window.listed v.window) in
+            `Tracked
+              ( Content_type.init v,
+                `Expires (int_of_float (Float.ceil lifetime)) )
+        | None -> if forbidden then `Forbidden else `Other
+
     method private send () = ()
     method! private reset = ()
   end
@@ -1177,3 +1229,71 @@ let output_hls =
           };
         ])
     (fun p -> new output p)
+
+let http_date t =
+  let tm = Unix.gmtime t in
+  Printf.sprintf "%s, %02d %s %d %02d:%02d:%02d GMT"
+    [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |].(tm.Unix.tm_wday)
+    tm.tm_mday
+    [|
+      "Jan";
+      "Feb";
+      "Mar";
+      "Apr";
+      "May";
+      "Jun";
+      "Jul";
+      "Aug";
+      "Sep";
+      "Oct";
+      "Nov";
+      "Dec";
+    |].(tm.tm_mon)
+    (tm.tm_year + 1900) tm.tm_hour tm.tm_min tm.tm_sec
+
+let lookup_t =
+  Lang.record_t
+    [
+      ("kind", Lang.string_t);
+      ("content_type", Lang.string_t);
+      ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+    ]
+
+let _ =
+  Lang.add_builtin ~base:output_hls "lookup" ~category:`Internet
+    ~flags:[`Hidden]
+    ~descr:
+      "Internal: what an HLS output serves at a path relative to its directory."
+    [
+      ("", Lang.string_t, None, Some "Output id.");
+      ("", Lang.string_t, None, None);
+    ]
+    lookup_t
+    (fun p ->
+      let id = Lang.to_string (Lang.assoc "" 1 p) in
+      let rel = Lang.to_string (Lang.assoc "" 2 p) in
+      let header (k, v) = Lang.product (Lang.string k) (Lang.string v) in
+      let result kind content_type headers =
+        Lang.record
+          [
+            ("kind", Lang.string kind);
+            ("content_type", Lang.string content_type);
+            ("headers", Lang.list (List.map header headers));
+          ]
+      in
+      match Hashtbl.find_opt registry id with
+        | None -> result "forbidden" "" []
+        | Some o -> (
+            match o#lookup rel with
+              | `Forbidden -> result "forbidden" "" []
+              | `Other -> result "other" "" []
+              | `Tracked (content_type, `Max_age a) ->
+                  result "tracked" content_type
+                    [("Cache-Control", Printf.sprintf "max-age=%d" a)]
+              | `Tracked (content_type, `Expires s) ->
+                  result "tracked" content_type
+                    [
+                      ("Cache-Control", Printf.sprintf "max-age=%d" s);
+                      ( "Expires",
+                        http_date (Unix.gettimeofday () +. float_of_int s) );
+                    ]))
