@@ -80,6 +80,45 @@ type encoder = {
 
 type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 
+(** The HLS encoder seam (spec of the HLS output, encoder-contract.md). Times
+    are media time of the run, in main ticks. [init] answers the variant's ID3
+    mode or rejects its [id3] field with a reason; the other calls follow the
+    contract's order, serialised by {!get_hls_factory}.
+
+    Pieces of [split_encode], in byte order:
+    - [Bytes]: output bytes;
+    - [Split]: a position where a segment may start, [time] the media time of
+      what follows, [forced] when made without the encoder's condition;
+    - [Restart]: a split point that also starts a new container, with its init
+      segment. *)
+
+type hls_id3_mode = [ `None | `In_stream | `Prepended ]
+
+type hls_piece =
+  | Bytes of Strings.t
+  | Split of { time : int; forced : bool }
+  | Restart of { time : int; init : string option }
+
+type hls_init =
+  | Pending
+  | Init of { init : string option; pieces : hls_piece list }
+
+type hls_encoder = {
+  init : ?id3:bool -> ?id3_version:int -> unit -> (hls_id3_mode, string) result;
+  init_encode : boundary:int -> Frame.t -> hls_init;
+  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
+  insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
+  hls_header : unit -> Strings.t;
+  hls_stop : unit -> Strings.t;
+  codec_attrs : unit -> string option;
+  independent_segments : unit -> bool;
+  free_split : unit -> bool;
+  hls_bitrate : unit -> int option;
+  hls_video_size : unit -> (int * int) option;
+}
+
+type hls_factory = pos:Pos.t option -> string -> hls_encoder
+
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)
 type plugin = format -> factory option
@@ -92,3 +131,10 @@ val protect : encoder -> encoder
 
 (** Return the first available encoder factory for that format. *)
 val get_factory : format -> factory
+
+(** Encoders that can write HLS segments register here. *)
+val hls_plug : (format -> hls_factory option) Plug.t
+
+(** The HLS factory for that format, its encoders serialised; [Not_found] for a
+    format no plug-in segments. *)
+val get_hls_factory : format -> hls_factory

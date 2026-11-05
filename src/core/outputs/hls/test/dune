@@ -3,7 +3,18 @@
 
 (executables
  (names segmenter_test playlist_test persist_test window_test)
+ (modules segmenter_test playlist_test persist_test window_test)
  (libraries hls_output liquidsoap_core_utils))
+
+(executable
+ (name id3_test)
+ (modules id3_test)
+ (libraries liquidsoap_core_encoder liquidsoap_core_stream))
+
+(rule
+ (alias hls_conformance)
+ (action
+  (run ./id3_test.exe)))
 
 (rule
  (alias hls_conformance)

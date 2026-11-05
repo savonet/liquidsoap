@@ -162,6 +162,32 @@ type encoder = {
 }
 
 type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
+type hls_id3_mode = [ `None | `In_stream | `Prepended ]
+
+type hls_piece =
+  | Bytes of Strings.t
+  | Split of { time : int; forced : bool }
+  | Restart of { time : int; init : string option }
+
+type hls_init =
+  | Pending
+  | Init of { init : string option; pieces : hls_piece list }
+
+type hls_encoder = {
+  init : ?id3:bool -> ?id3_version:int -> unit -> (hls_id3_mode, string) result;
+  init_encode : boundary:int -> Frame.t -> hls_init;
+  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
+  insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
+  hls_header : unit -> Strings.t;
+  hls_stop : unit -> Strings.t;
+  codec_attrs : unit -> string option;
+  independent_segments : unit -> bool;
+  free_split : unit -> bool;
+  hls_bitrate : unit -> int option;
+  hls_video_size : unit -> (int * int) option;
+}
+
+type hls_factory = pos:Pos.t option -> string -> hls_encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)
@@ -190,3 +216,37 @@ let get_factory fmt =
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
   with Found factory -> fun ~pos name m -> protect (factory ~pos name m)
+
+let hls_plug : (format -> hls_factory option) Plug.t =
+  Plug.create ~doc:"Methods to encode HLS segments." "hls encoding formats"
+
+exception Found_hls of hls_factory
+
+let protect_hls e =
+  let m = Mutex.create () in
+  let p f = Mutex.protect m f in
+  {
+    init =
+      (fun ?id3 ?id3_version () -> p (fun () -> e.init ?id3 ?id3_version ()));
+    init_encode = (fun ~boundary f -> p (fun () -> e.init_encode ~boundary f));
+    split_encode =
+      (fun ~boundary ~force f ->
+        p (fun () -> e.split_encode ~boundary ~force f));
+    insert_id3 = (fun ~time m -> p (fun () -> e.insert_id3 ~time m));
+    hls_header = (fun () -> p e.hls_header);
+    hls_stop = (fun () -> p e.hls_stop);
+    codec_attrs = (fun () -> p e.codec_attrs);
+    independent_segments = (fun () -> p e.independent_segments);
+    free_split = (fun () -> p e.free_split);
+    hls_bitrate = (fun () -> p e.hls_bitrate);
+    hls_video_size = (fun () -> p e.hls_video_size);
+  }
+
+let get_hls_factory fmt =
+  try
+    Plug.iter hls_plug (fun _ f ->
+        match f fmt with
+          | Some factory -> raise (Found_hls factory)
+          | None -> ());
+    raise Not_found
+  with Found_hls factory -> fun ~pos name -> protect_hls (factory ~pos name)
