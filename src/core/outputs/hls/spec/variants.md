@@ -25,7 +25,7 @@ fields, written `%encoder(...).{field = value, ...}`:
 
 The name is the media playlist's base name (`<name>.m3u8`), the
 `stream_name` of segment names, and the key of the variant's persisted
-state. Names MUST be unique within an output.
+state. Names MUST be non-empty and unique within an output.
 
 ## 2. Building a variant
 

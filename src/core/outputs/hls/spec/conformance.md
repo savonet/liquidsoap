@@ -60,8 +60,10 @@ check here, cited by its number.
   B-frames, AAC-LC and HE-AAC audio, a 2 s GOP, 6 s segments, and an
   audio-only variant. Binding: every `EXTINF` is 6 s within one video frame,
   except the first segment of a run; no long/short alternation; segment _n_
-  starts at the same media time in every variant within one video frame;
-  media sequence and segment counts are equal across variants. Repeat with
+  starts in every variant within the source's key-frame offset from the
+  grid, and at the same offset at every segment, so variants never drift
+  apart ([segmenting.md §4.2](segmenting.md#42-worked-example)); media
+  sequence and segment counts are equal across variants. Repeat with
   key frames a few frames before each boundary: same result.
 - Grid without drift (KC2): an AAC MPEG-TS variant with 2 s segments, ten
   segments sum to 20 s within one frame; HE-AAC and AAC-LC variants of one

@@ -245,6 +245,8 @@ class output p =
               l
           in
           let names = List.map fst l in
+          if List.mem "" names then
+            invalid variants_value "Variant names must not be empty";
           if List.length (List.sort_uniq compare names) <> List.length names
           then invalid variants_value "Variant names must be unique";
           List.map (build_variant ~pos) l

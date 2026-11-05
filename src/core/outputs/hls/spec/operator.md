@@ -72,8 +72,9 @@ become a retry loop at runtime.
 6. **Tags.** Every entry of `extra_tags`, and of each variant's
    `extra_tags`, is a playlist tag ([metadata.md §3](metadata.md#3-inserted-tags)),
    or the argument is rejected.
-7. **Variants.** An empty list or two variants with the same name are
-   rejected. Each variant is built by [variants.md §2](variants.md#2-building-a-variant).
+7. **Variants.** An empty list, an empty variant name or two variants
+   with the same name are rejected: the name is the media playlist's base
+   name. Each variant is built by [variants.md §2](variants.md#2-building-a-variant).
 8. **Warning**, construction continues: `segments` below 6
    ([playlists.md §2](playlists.md#2-media-playlist)).
 
