@@ -67,7 +67,6 @@ let encoder ~pos shine =
     header = (fun () -> Strings.empty);
     encode;
     stop;
-    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 

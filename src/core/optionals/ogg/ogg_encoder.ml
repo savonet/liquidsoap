@@ -116,7 +116,6 @@ let encoder ~pos { Ogg_format.audio; video } =
         encode;
         header = (fun () -> Ogg_muxer.get_header ogg_enc);
         stop;
-        bitrate = (fun () -> None);
         restart_offset = (fun () -> Ogg_muxer.last_link_start ogg_enc);
       }
     and streams_start () =

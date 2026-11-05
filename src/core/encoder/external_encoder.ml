@@ -164,7 +164,6 @@ let encoder id ext =
     header = (fun () -> Strings.empty);
     encode;
     stop;
-    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 

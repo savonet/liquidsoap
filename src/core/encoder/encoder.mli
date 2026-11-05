@@ -66,9 +66,6 @@ val bitrate : format -> int
     container/streams is meant to be sequentialized but not the mp3 format.
     header contains data that should be sent first to streaming client.
 
-    [bitrate ()] is the nominal bit rate, in bits per second, once the encoder
-    knows it; streaming outputs announce it.
-
     [restart_offset ()] is the offset, in the bytes the latest [encode] or
     [stop] returned, at which a new stream starts with its header pages (an Ogg
     link after a metadata change); [None] when those bytes start none. A
@@ -78,7 +75,6 @@ type encoder = {
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
   stop : unit -> Strings.t;
-  bitrate : unit -> int option;
   restart_offset : unit -> int option;
 }
 

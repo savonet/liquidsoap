@@ -78,7 +78,6 @@ let encoder ~pos wav =
         if wav.header && not !need_header then Strings.of_string header
         else Strings.empty);
     stop = (fun () -> Strings.empty);
-    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 

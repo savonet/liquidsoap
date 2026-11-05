@@ -158,7 +158,6 @@ type encoder = {
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
   stop : unit -> Strings.t;
-  bitrate : unit -> int option;
   restart_offset : unit -> int option;
 }
 
@@ -199,7 +198,7 @@ let plug : plugin Plug.t =
 
 exception Found of factory
 
-let protect { encode_metadata; encode; stop; header; bitrate; restart_offset } =
+let protect { encode_metadata; encode; stop; header; restart_offset } =
   let m = Mutex.create () in
   let encode_metadata metadata =
     Mutex.protect m (fun () -> encode_metadata metadata)
@@ -207,9 +206,8 @@ let protect { encode_metadata; encode; stop; header; bitrate; restart_offset } =
   let header () = Mutex.protect m header in
   let encode frame = Mutex.protect m (fun () -> encode frame) in
   let stop () = Mutex.protect m stop in
-  let bitrate () = Mutex.protect m bitrate in
   let restart_offset () = Mutex.protect m restart_offset in
-  { encode_metadata; encode; stop; header; bitrate; restart_offset }
+  { encode_metadata; encode; stop; header; restart_offset }
 
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =

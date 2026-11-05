@@ -115,7 +115,6 @@ let encoder avi =
       (fun () ->
         if !need_header then Strings.empty else Strings.of_string header);
     stop = (fun () -> Strings.empty);
-    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 
