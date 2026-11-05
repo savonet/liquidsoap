@@ -1,160 +1,207 @@
 # Segmenting
 
-Part A. As built. This file owns how one variant's byte stream is cut into
-segments: the grid, split points, cuts, the target-duration bound, extra
-cuts and container restarts. It relies on the encoder pieces of
-[encoder-contract.md §5](encoder-contract.md#5-split_encode). What closing
-and opening a segment does on disk is [files.md](files.md).
+Part A. This file owns how each variant's byte stream is cut into
+segments: the grid and its origin, split points, the cut rule, the
+target-duration bound, output-wide cuts and container restarts. It relies on
+the encoder pieces of [encoder-contract.md §5](encoder-contract.md#5-split_encode).
+What opening and closing a segment does on disk is [files.md](files.md);
+how segments are numbered is [playlists.md §2.1](playlists.md#21-media-sequence).
 
-The same grid is also stated, from the encoder's side, in the `%ffmpeg`
-encoder spec ([encoder.md §8.7](../../../optionals/ffmpeg/spec/encoder.md#87-segment-grid-hls-output-side)).
-This file describes the behaviour; the two texts agree today (finding
-F-OWN-1).
+These rules are the only statement of the grid. The `%ffmpeg` encoder spec
+states what an encoder provides to it
+([encoder.md §8.7](../../../optionals/ffmpeg/spec/encoder.md#87-segment-grid-hls-output-side)).
 
-## 1. Segment duration and the grid
+## 1. Time, the grid and the target duration
 
-Time is counted in **main ticks**, the internal time unit (with default
-settings, one tick per audio sample: 44100 per second). A **frame** is the
+Time is counted in **main ticks**, the internal time unit. A **frame** is the
 configured frame size in ticks.
 
-- `D`, the segment duration in ticks, is `segment_duration` rounded **down**
-  to whole frames: `floor(ticks(segment_duration) / frame) × frame`. The
-  seconds value used everywhere after is `D` in seconds.
-- `T`, the announced target duration, is `ceil(D in seconds)`, an integer.
-- **Media time** of a variant: ticks given to its encoder since the variant
-  was built ([variants.md §2](variants.md#2-building-a-variant)). It
-  advances by each chunk's length ([operator.md §4](operator.md#4-per-frame-loop)).
-  Each variant has its own; all advance by the same amounts, so they are
-  equal unless a variant was rebuilt.
-- **Grid**: boundary _k_ is `k × D`. The next boundary after time `t` is
-  `(floor(t / D) + 1) × D`, always strictly after `t`. Boundaries never
-  depend on where a segment actually ended.
+- `D`, the segment duration in ticks, is `segment_duration` rounded down to
+  whole frames. A `segment_duration` shorter than one frame MUST be rejected
+  at construction ([operator.md §2](operator.md#2-construction)).
+- `T`, the target duration, is `D` in seconds rounded to the nearest
+  integer, halves up, and at least 1. It is fixed for the life of the
+  output's playlists, and every variant announces the same `T` (RFC 8216
+  §6.2.1, §6.2.4). Reason for rounding rather than ceiling: a nominal
+  6.006 s segment (29.97 fps) then announces 6, as Apple's authoring
+  specification recommends (§7.5–7.6), and its rounded `EXTINF` is still 6.
+- **Run**: the time from a `start`, or from the rebuild after an error
+  ([operator.md §6](operator.md#6-errors-and-reopening)), to the next `stop`
+  or error. All variants of an output are built together at the start of a
+  run and MUST NOT be rebuilt one at a time.
+- **Media time**: ticks given to the encoders since the run started. It
+  advances by each chunk's length and is the same for every variant.
+- **Grid**: boundary _k_ is `k × D` of media time. Its **origin** is media
+  time 0 of the run, shared by every variant. A boundary MUST NOT depend on
+  where any segment actually ended.
 
-A `segment_duration` shorter than one frame gives `D = 0` and every frame
-raises a division by zero (finding F-SEG-1, checked).
-
-Each variant holds a **current boundary**, initially `D`.
+Reason for one shared origin and a strict grid: a player switching variants
+mid-stream expects segment boundaries at the same media time in every
+variant (Apple §8.22). Reason for absolute boundaries: codec frames do not
+line up with internal frames, and a grid placed relative to the previous cut
+drifts by a codec-dependent amount, so variants drift apart without bound.
 
 ## 2. Segments in memory
 
-The open segment of a variant has a start (media time of its first byte), a
-length (ticks), its bytes so far, and its **split points**: pairs
-(media time, byte offset in the segment), each strictly after the start.
+An open segment has a start (media time of its first byte), its bytes so
+far, and its **split points**: pairs (media time, byte offset), each strictly
+after the start, in increasing time. Its **length** is the media time between
+its start and its cut, or the current media time while open. Its `EXTINF`
+duration is its length in seconds. It also records whether it starts at a
+forced split.
 
-A segment's `EXTINF` duration is its length. Length is the media time
-between the segment's two cuts, or between its start and the current media
-time while open.
+A variant is **free-split** when it has a split point within one codec
+frame of any media time the output requests (audio-only and intra-only
+content, frame-unit formats). The encoder says so
+([encoder-contract.md §6](encoder-contract.md#6-properties)).
+
+The **request** passed to the encoder with each chunk is the next media
+time at which the output wants a split point: the variant's next grid
+boundary, or a pending sync time (§7) when that comes first.
 
 ## 3. Applying pieces
 
-The pieces an encoder returns for a chunk are applied in order
-([encoder-contract.md §5](encoder-contract.md#5-split_encode)):
+The pieces an encoder returns for a chunk are applied in order:
 
 - **Bytes**: appended to the open segment.
-- **Split** `{time, forced}`: if `forced`, a level-3 log:
-  `Stream <name>: no split point within the target duration, segment cut at
-<time>s without a key packet of every stream.` Then the split is handled
-  at the segment's current byte position (§5).
-- **Restart** `{time, init}`: §7.
+- **Split** `{time, forced}`: recorded (§2) if after the segment's start,
+  then pending sync cuts (§7) and the cut rule (§4) run. A forced split is
+  logged as a warning naming the variant and the time.
+- **Restart** `{time, init}`: §8.
 
-## 4. Opening a segment
+## 4. The cut rule
 
-A segment opens with a start time. It receives the variant's next position
-number, takes the pending discontinuity flag and the pending inserted tags,
-and records the variant's current init segment. Before any encoder byte,
-in this order, it receives: the ID3 tag for its start
-([metadata.md §2](metadata.md#2-id3)), then the encoder's `header()` bytes
-([encoder-contract.md §8](encoder-contract.md#8-header-and-stop)).
+Each variant tracks its **current boundary** _k_, the first boundary after
+its open segment's start. When a split point with time `t ≥ k` is recorded:
 
-The first segment opens at the first chunk, before the encoder has returned
-anything.
+1. **Candidates.** `b`, the latest split point at or before _k_, if any;
+   `a`, the one just recorded.
+2. **Choice.** A candidate is **eligible** when cutting there gives the
+   segment a length that, in seconds rounded to the nearest integer, is at
+   most `T`. The cut point is the eligible candidate nearer to _k_, `b` on a
+   tie. If neither is eligible, `a`: the bound of §5 did not hold because
+   the encoder declined a forced split.
+3. **Cut** there (§4.1). The current boundary becomes the first boundary
+   after the cut point. If a split point of the new segment is at or after
+   that boundary, repeat from step 1.
 
-## 5. Handling a split
+A segment MUST NOT be cut anywhere but at a split point.
 
-Given a split (time `t`, offset `o`):
+Reason for "nearest": content often puts every key frame a few tens of
+milliseconds after its boundary (B-frame delay, encoder priming). A rule
+that only looks at or before _k_ then cuts one key-frame interval early and
+leaves a stub, on every segment. Eligibility keeps the tolerance inside RFC
+8216 §4.3.3.1 (a rounded `EXTINF` never exceeds the target duration) and
+Apple §7.7 (no segment exceeds it by more than 0.5 s). Because `T` is then
+a rounded bound, playlists announce version 6
+([playlists.md §1](playlists.md#1-common-form)).
 
-1. If `t` is after the open segment's start, (`t`, `o`) is recorded.
-2. **Due cut.** If `t ≥` current boundary _k_:
-   1. The **target** is the latest recorded split point at or before _k_;
-      if there is none, the earliest one after _k_.
-   2. With a target (`t'`, `o'`): log level 4 `Terminating current segment
-<id> on stream <name> at its split point`; the current boundary
-      becomes the next boundary after `t'`; the segment is **cut** at
-      (`t'`, `o'`) (§5.1); repeat step 2 on the new open segment.
-   3. With none (the split equals the segment's start): the current boundary
-      becomes the next boundary after `t`. No cut.
-3. **Extra cut.** Else, if the variant has a reason
-   ([metadata.md §4](metadata.md#4-extra-cuts)) and `t` is after the
-   segment's start: log level 4 `Terminating current segment <id> on stream
-<name> <reason>` and cut at `t`, at its offset in the current segment
-   (an earlier cut in the same step may have moved it). The boundary is
-   unchanged.
+What is not promised: when key frames sit close to half a second after the
+grid, `a` is not eligible, and segments alternate long and short.
 
-A segment is never cut anywhere but at a split point.
-
-### 5.1 Cutting
+### 4.1 Cutting
 
 Cutting the open segment at (`t`, `o`):
 
-1. The bytes after `o` are taken out; the split points after `t` are kept.
-2. The segment's length becomes `t − start`; it is truncated at `o` and
-   closed ([files.md §4](files.md#4-closing-a-segment)).
-3. A new segment opens at `t` (§4: ID3 tag, header).
-4. The taken bytes are appended, the kept split points move with them, and
-   the new segment's length is media time minus `t`.
+1. The bytes after `o` and the split points after `t` are taken out.
+2. The segment's length becomes `t − start`; it is closed with its bytes up
+   to `o` ([files.md §4](files.md#4-closing-a-segment)).
+3. A new segment opens at `t` (§6).
+4. The taken bytes and split points are moved into it.
 
-### 5.2 Worked example
+### 4.2 Worked example
 
-`D` = 6 s. A copied video variant has key frames every 2 s, each 0.1 s after
-a multiple of 2 s (codec delay in the source), so split points arrive at
-2.1, 4.1, 6.1, 8.1, …
+`D` = 6 s, `T` = 6. A copied video variant has key frames every 2 s, each
+0.1 s after a multiple of 2 s, so its split points arrive at 2.1, 4.1, 6.1, …
 
-| Split arrives | Boundary | Recorded in open segment | Action                                                                           |
-| ------------- | -------- | ------------------------ | -------------------------------------------------------------------------------- |
-| 2.1           | 6        | 2.1                      | none                                                                             |
-| 4.1           | 6        | 2.1, 4.1                 | none                                                                             |
-| 6.1           | 6        | 2.1, 4.1, 6.1            | target 4.1 (latest ≤ 6): cut, segment 0–4.1; boundary → 6                        |
-| (repeat)      | 6        | 6.1                      | target 6.1 (none ≤ 6, earliest after): cut, segment 4.1–6.1 (2 s); boundary → 12 |
-| 12.1          | 12       | 8.1, 10.1, 12.1          | target 10.1: segment 6.1–10.1 (4 s); then 12.1: segment 10.1–12.1 (2 s)          |
+| Split arrives | Boundary | Candidates     | Cut  | Segment   |
+| ------------- | -------- | -------------- | ---- | --------- |
+| 6.1           | 6        | b 4.1, a 6.1   | 6.1  | 0–6.1     |
+| 12.1          | 12       | b 10.1, a 12.1 | 12.1 | 6.1–12.1  |
+| 18.1          | 18       | b 16.1, a 18.1 | 18.1 | 12.1–18.1 |
 
-`EXTINF`s alternate 4, 2, 4, 2, while every key frame is within 0.1 s of a
-boundary. This is the behaviour reported in the field and is what the rule
-gives (known complexity KC3).
+The first segment is 6.1 s (rounded 6); every later one is 6 s. A
+free-split audio variant of the same output cuts at 6, 12, 18: segment _n_
+starts within 0.1 s in both.
 
-## 6. The target-duration bound
+## 5. The target-duration bound
 
-Before each chunk is given to `split_encode`, with `len` the chunk's length:
+Before each chunk is given to `split_encode`, with `len` its length: if the
+open segment's length after the chunk, rounded to the nearest second, would
+exceed `T`:
 
-1. If the open segment's duration after the chunk, `media time + len −
-start`, in seconds, rounded to the nearest integer, exceeds `T`:
-   1. If the segment has a target (§5 step 2.1, computed against the current
-      boundary): log level 4 `Terminating current segment <id> on stream
-<name> at its split point before the target duration`; the boundary
-      becomes the next one after the target; cut there; check again.
-   2. Else: `split_encode` is called with `force` true.
-2. Otherwise `force` is false.
+1. If the segment holds a split point, cut at the latest one (§4.1); the
+   current boundary becomes the first after it; check again.
+2. Otherwise `split_encode` is called with `force` true.
 
-A forced `Split` comes back at the chunk's start
-([encoder-contract.md §5](encoder-contract.md#5-split_encode)) and is handled
-like any split. Each segment's rounded duration therefore stays at or below
-`T`, provided the encoder honours `force`.
+`force` is false otherwise. The encoder decides whether to honour it
+([encoder-contract.md §5](encoder-contract.md#5-split_encode)). Each
+segment's rounded length stays at or below `T` when it does.
 
-## 7. Container restart
+## 6. Opening a segment
 
-On `Restart {time, init}`:
+A segment opens with a start time. It takes, from its variant, the pending
+discontinuity flag, the pending inserted tags
+([metadata.md §3](metadata.md#3-inserted-tags)) and the current init
+segment. Before any encoder byte, in this order, it receives the ID3 tag
+for its start when one is due ([metadata.md §2](metadata.md#2-id3)), then
+the encoder's `header()` bytes.
 
-1. The current boundary becomes the next boundary after `time`.
-2. The next segment is marked discontinuous.
-3. The open segment is cut at (`time`, current byte position).
-4. The init position number increases by one, and the new segment takes
-   `init` as its init segment ([files.md §6](files.md#6-init-segments)).
+The first segment of a run opens at media time 0, at the first chunk.
 
-## 8. Position numbers
+A segment with no encoder bytes, or with length 0, MUST NOT be published or
+listed: it is dropped. A segment is dropped also when aborted
+([operator.md §6](operator.md#6-errors-and-reopening)). A dropped segment
+gives its discontinuity flag and inserted tags back to the variant's
+pending state, so the next segment carries them.
 
-Each variant numbers its segments from 1, one per opened segment. A segment
-aborted on error ([operator.md §6](operator.md#6-errors-and-reopening))
-keeps its number unused. Restoring persisted state skips one number
-([persistence.md §4](persistence.md#4-restoring)). A `stop` without
-persistence restarts the numbering at 1 ([operator.md §3.2](operator.md#32-stop)).
-Position numbers are the media sequence numbers of
-[playlists.md §2](playlists.md#2-media-playlist).
+## 7. Output-wide cuts
+
+A **sync cut** at media time `t` ends the open segment of every variant at
+that variant's first split point at or after `t` that is not already in a
+closed segment. Until it is made, `t` is a pending sync time of the variant
+and is passed as the request (§2), so encoders that make key frames make
+one at `t`, and free-split variants have a split point there. It is used
+for:
+
+- a container restart in any variant (§8), marked as a discontinuity;
+- track metadata, as decided by
+  [metadata.md §4](metadata.md#4-cuts-on-metadata).
+
+Rules:
+
+- In each variant, a sync cut is one cut. If its point is also the point
+  the cut rule (§4) chooses, that one cut serves both.
+- A sync cut does not move the grid: the current boundary after it is the
+  first boundary after its cut point.
+- A sync cut MUST NOT be forced. It waits for a split point; the bound of
+  §5 applies meanwhile.
+- A discontinuous sync cut marks the segment it opens as discontinuous in
+  every variant, so the discontinuity sequence numbers stay equal across
+  variants (RFC 8216 §6.2.4, Apple §8.15).
+
+**Alignment.** When every variant is free-split or makes key frames, a sync
+cut lands within one codec frame of `t` in every variant, and the grid stays
+aligned: segment _n_ covers the same media time everywhere and counts are
+equal. What is not promised: in a copied variant that does not itself
+restart, the cut waits for the next key frame of the source, so content
+between `t` and that key frame carries different discontinuity sequence
+numbers in different variants; and a sync cut just before a boundary can be
+two cuts in one variant and one in another, so counts can differ by one
+after it.
+
+## 8. Container restart
+
+On `Restart {time, init}` in one variant:
+
+1. Its open segment is cut at (`time`, current byte position) (§4.1); the
+   new segment is discontinuous and takes `init` as its init segment
+   ([files.md §6](files.md#6-init-segments)).
+2. A discontinuous sync cut at `time` (§7) is made in every other variant.
+   A variant that restarts at the same `time` (copied streams of one
+   source) takes its own restart as that cut.
+
+A restart is a split point, a discontinuity and possibly a new init
+segment at once; the three land on the same segment. A `Restart` may reach
+the output after other variants have passed `time`; they cut at their next
+split point, and the mismatch of §7 covers the content in between.

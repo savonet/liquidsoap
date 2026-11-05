@@ -1,9 +1,8 @@
 # Packed-audio encoders with ID3 timestamps
 
-Part A. As built. `%mp3`, `%shine` and `%fdkaac` write raw MPEG audio or
-ADTS. They use the adapter of
-[encoder-frame-units.md](encoder-frame-units.md) with two calls replaced:
-`init` and `insert_id3`. Sections follow
+Part A. `%mp3`, `%shine` and `%fdkaac` write raw MPEG audio or ADTS. They
+use the adapter of [encoder-frame-units.md](encoder-frame-units.md) with
+`init` and `insert_id3` replaced. Sections follow
 [encoder-contract.md](encoder-contract.md).
 
 ## 1. Role
@@ -17,9 +16,9 @@ As [encoder-frame-units.md §2](encoder-frame-units.md#2-calls-and-order).
 
 ## 3. `init`
 
-Records `id3_version`. If `id3_enabled` is `false`: error `Format requires
-ID3 metadata!` at the format's position, which stops the script. Returns
-`true`.
+ID3 mode prepended. `id3 = false` is rejected
+([encoder-contract.md §3](encoder-contract.md#3-init)). `id3_version` is
+recorded, default 3.
 
 ## 4. `init_encode`
 
@@ -28,33 +27,37 @@ As [encoder-frame-units.md §4](encoder-frame-units.md#4-init_encode).
 ## 5. `split_encode`
 
 As [encoder-frame-units.md §5](encoder-frame-units.md#5-split_encode). MPEG
-audio and ADTS frames decode on their own, so every chunk start is a valid
-split point in practice, bit reservoir aside.
+audio and ADTS frames decode on their own, bit reservoir aside.
 
 ## 6. Properties
 
-As [encoder-frame-units.md §6](encoder-frame-units.md#6-properties). The
-formats themselves give bit rate and codec string
+As [encoder-frame-units.md §6](encoder-frame-units.md#6-properties):
+`free_split` true. The formats give bit rate and codec string
 ([variants.md §3.1](variants.md#31-format-tables)), except `%mp3` VBR (no
 bit rate).
 
 ## 7. `insert_id3`
 
-Always returns a tag, also with empty metadata. The tag is ID3v2 of the
-recorded version (default 3) with these frames:
+Always returns a tag, also with empty metadata: ID3v2 of the recorded
+version, with these frames:
 
 1. One text frame per metadata entry whose key maps to an ID3 frame id
    (`title` → `TIT2`, …); others are dropped. Text is UTF-16 with BOM for
    version 3 and below, UTF-8 for version 4.
-2. A `PRIV` frame, owner `com.apple.streaming.transportStreamTimestamp`,
-   then a zero byte, then the timestamp as 8 bytes big-endian.
+2. A `PRIV` frame: the owner `com.apple.streaming.transportStreamTimestamp`
+   with its terminating zero byte, then the timestamp as 8 bytes
+   big-endian, its upper 31 bits zero.
 
-Frames carry their id's default flags. **Timestamp**, in 90 kHz units:
-`frame_position × trunc(frame duration × 90000) + trunc(sample_position in
-seconds × 90000)`, reduced modulo `0x1FFFFFFFF` (finding F-ID3-1).
+**Timestamp**: `round(time × 90000 / ticks per second) mod 2^33`, with
+`time` the segment's start in ticks. Reason: the value is a 33-bit MPEG-2
+timestamp; computing it from the tick count, not per frame, keeps it exact
+when a frame is not a whole number of 90 kHz units. What is not promised:
+the timestamp is the segment's start as the output counts it; an encoder's
+own delay (priming, buffering) offsets the first sample from it by up to
+that delay, which can differ from another variant's timestamps.
 
 Example, the first bytes of a segment starting at 184 s, `%mp3`, metadata
-`title = "T1"`, version 3 (checked):
+`title = "T1"`, version 3:
 
 ```
 49 44 33 03 00 00 00 00 00 50                    "ID3" v3.0, flags 0, size 80 (syncsafe)
@@ -67,11 +70,11 @@ Example, the first bytes of a segment starting at 184 s, `%mp3`, metadata
 00 00 00 00 00 fc af 80                          16560000 = 184 s × 90000
 ```
 
-The audio frames follow at once (here a LAME header frame).
+The audio frames follow.
 
 ## 8. Header and stop
 
-`header()` is empty for all three. `stop()` is the encoder's own.
+`header()` is empty. `stop()` is the encoder's own.
 
 ## 9. Conformance
 

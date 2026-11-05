@@ -1,101 +1,163 @@
-# The test suite
+# Conformance
 
-As built. What today's tests check, by principle, grouped by the subsystem
-each protects. Each entry names what is **binding**; unless said otherwise,
-file names, log wording, timing and the harness are incidental. Test names
-are given only as a trace back to the source. Entries marked KC are
-situations of [known-complexity.md](known-complexity.md).
+The checks an implementation of this spec is run against, by principle,
+grouped by the document each protects. Each names what is **binding**;
+file names, log wording, timing and the harness are incidental unless said
+otherwise. Every entry of [known-complexity.md](known-complexity.md) is a
+check here, cited by its number.
 
 ## Doubles a harness needs
 
 - A source that can be switched off and on while running, so a fallible
   output goes idle and starts again.
-- A clock that runs unpaced, so segments are produced faster than real
-  time.
+- An unpaced clock, so segments are produced faster than real time.
 - A recorder of file-change events, run synchronously, that can act inside
-  the event (switch the source, read the file, end the test).
-- A reader for the produced HLS: an HLS input that decodes the playlist and
-  reports metadata, and a probe that lists the streams of a playlist.
-- A file system that can fail on demand: the output directory replaced by a
-  file, then restored; directories made unwritable.
+  the event.
+- A reader for the produced HLS: playlist parser, segment probe (streams,
+  first packet of each stream, timestamps), ID3 parser.
+- A file system that can fail on demand: an output directory made
+  unwritable or replaced by a file, then restored; a temporary directory on
+  another file system.
 - A metadata injector on the source.
-- Persisted state carried from one process run to the next.
+- Persisted state carried from one process run to the next, and a state
+  file that can be corrupted or truncated.
+- A poller that reads every published playlist and checks that each URI it
+  names exists, at every file-change event.
+- Content with a fixed offset between key frames and the grid: copied H.264
+  with B-frames, a 2 s GOP, plus AAC-LC and HE-AAC.
 
-## 1. Operator and construction
+## 1. Operator
 
-- An unwritable output directory, `temp_dir` or `persist_at` directory is
-  rejected before streaming. Binding: the script fails, and the message
-  names which directory. (GH5261)
-- An output with `persist_at` in a directory that does not exist yet, on a
-  source that ends, stops cleanly and runs its `on_stop`. Binding: the stop
-  completes. (GH2926)
-- A file-system error while streaming does not end the process; once
-  `reopen_on_error` has repaired the cause, a new segment is created.
-  Binding: a second segment creation after the error. (GH5259)
+- Each construction error of [operator.md §2](operator.md#2-construction) —
+  unwritable directories, `segment_duration` under one frame, `segments`
+  0, negative overhead, empty or duplicate variant names, a multi-line
+  `extra_tags` entry, `id3` against the encoder — stops the script before streaming, naming the argument.
+- A missing bandwidth never fails: a `%wav` variant without `bandwidth`
+  announces a measured one (KC9).
+- A file-system error mid-stream: the output resumes after
+  `reopen_on_error`'s delay; the first segment after recovery is
+  discontinuous in every variant and starts with a key packet of every
+  stream; no temporary file remains; other outputs never stop. A `stop`
+  during the outage completes (KC24).
+- A stop where one variant's flush fails still flushes and closes the
+  others.
+- A `segment_name` returning `../x` makes the output fail without retry.
+- A synchronous callback that raises on a segment's `created` event: the
+  segment is listed, numbering has no gap.
 
 ## 2. Segmenting
 
-- Ten consecutive segments of an AAC MPEG-TS variant with 2 s segments
-  total 20 s within one frame. Binding: the sum of the segment durations
-  the naming function receives. Incidental: individual durations. Guards
-  the grid against drift (KC2). (GH5319)
-- A video variant whose frame duration is larger than usual (0.1 s) and
-  whose key frames come every 12 frames produces files. Binding: one file
-  event. (hls_large_frame)
-- Forced cuts, split points and restarts are checked by the FFmpeg layer's
-  conformance suite ([encoder.md §8.8](../../../optionals/ffmpeg/spec/encoder.md#88-conformance)).
+- **Field scenario** (KC3, KC4): three copied H.264 variants with
+  B-frames, AAC-LC and HE-AAC audio, a 2 s GOP, 6 s segments, and an
+  audio-only variant. Binding: every `EXTINF` is 6 s within one video frame,
+  except the first segment of a run; no long/short alternation; segment _n_
+  starts at the same media time in every variant within one video frame;
+  media sequence and segment counts are equal across variants. Repeat with
+  key frames a few frames before each boundary: same result.
+- Grid without drift (KC2): an AAC MPEG-TS variant with 2 s segments, ten
+  segments sum to 20 s within one frame; HE-AAC and AAC-LC variants of one
+  source, after fifty segments, start segment _n_ within one codec frame.
+- Bound (KC1): re-encoded video with key frames every 4 s and 1 s segments
+  starts every segment on a key frame; the same video copied keeps every
+  rounded `EXTINF` within `T`, logs each forced cut, and announces no
+  `EXT-X-INDEPENDENT-SEGMENTS`.
+- A segment is never empty and never of length 0 (KC5); an inserted tag or
+  discontinuity of a dropped or aborted segment appears on the next one.
+- An MPEG-TS segment starts with a PAT and a PMT.
+- Restart (KC22): two copied files whose H.264 extradata differ into an
+  fMP4 variant beside an encoded audio-only variant: the segment after the
+  switch is discontinuous in both, starting within one codec frame of the
+  switch, the fMP4 one preceded by the new `EXT-X-MAP` and starting with a
+  key packet; discontinuity sequences are
+  equal across variants; timestamps keep increasing; boundaries after the
+  switch are on the grid.
 
 ## 3. Playlists
 
-- `hls.playlist.main` produces exact bytes for: extra tags, a prefix with
-  and without a trailing `/`, no prefix, `CODECS`, `RESOLUTION` present and
-  absent. Binding: every byte, CR LF included. (hls_main_playlist)
-- Variant `extra_tags` reach media playlists of an ADTS and an fMP4
-  variant; main `extra_tags` reach the main playlist after trimming;
-  `insert_tag` on one variant reaches that variant's playlist. Binding:
-  presence of the tag text. Incidental: position. Not checked: that the
-  inserted tag is absent from the other variant. (hls_custom_tags)
-- Codec strings of H.264 variants in MPEG-TS and fMP4 are the same full
-  string (`avc1.64001f`), as given to the main playlist writer. Binding:
-  the strings. (hls_global_headers)
-- Discontinuities after a source off/on cycle with persistence: exact
-  playlist bytes at three points. **Skipped**: the test is disabled and its
-  expected bytes predate the current grid. Its intent: the media sequence
-  advances across the gap, the next segment is marked
-  `EXT-X-DISCONTINUITY`, and the discontinuity sequence counts it once it
-  leaves the window. (hls_discontinuity)
+- At every file-change event, every URI in every published playlist names
+  an existing file (KC7, KC10), including init segments and names with
+  sub-directories.
+- Media sequence: across an aborted segment, a stop and start without
+  persistence, and a resume with persistence, every segment keeps its
+  media sequence number while listed, and the number never goes back
+  (KC8, KC16).
+- Discontinuities (KC8): stop and restart a three-variant output with
+  persistence: each variant's next segment is discontinuous; after the
+  window has scrolled past it every discontinuity sequence is 1; the first
+  listed segment carries no `EXT-X-DISCONTINUITY`; a run without restart
+  shows none.
+- Window: never under three target durations, its start never moves back,
+  also when short segments follow long ones; `EXT-X-VERSION` is 6.
+- Main playlist (KC9, KC11): written once every variant has a segment;
+  exists after each of five stop/start cycles; rewritten when a restart
+  changes codecs; a writer returning `null` leaves no file and no error.
+  The same H.264 variant in MPEG-TS and fMP4 gives the same full codec
+  string; an unknown one gives no `CODECS` and a warning.
+- `hls.playlist.main` bytes for extra tags, prefixes with and without `/`,
+  `CODECS` and `RESOLUTION` present and absent. Binding: every byte.
+- Inserted tags (KC20): a tag inserted once appears exactly once, before
+  the `EXTINF` of the first segment opened after it, in that variant only,
+  in insertion order; a tag pending at stop appears after restart; a tag
+  with a line break is rejected.
 
 ## 4. Encoder seam
 
-- Seven variants (ADTS, MPEG-TS with ID3v2.4, MPEG-TS with `id3=false`,
-  `%shine`, `%mp3`, `%fdkaac`, fMP4) run side by side. Read back through
-  the HLS input: the MPEG-TS-with-ID3 variant reports the injected title and
-  album; the variant with `id3=false` reports none. Binding: those two
-  outcomes. The fMP4 check asserts that **no** metadata is read back, so it
-  fails the day the reader supports fMP4 ID3. The packed-audio variants are
-  built but not read back. (hls_id3v2)
-- The first MPEG-TS segment's bytes contain the title text of its timed ID3,
-  not an empty tag. Binding: the text in the segment bytes. (GH5084)
-- `%ffmpeg` fMP4 from encoded raw content, from an encoded file, and from a
-  copied file; three MPEG-TS variants each taking one audio track and
-  dropping the others. Binding: the playlist probes as the expected codecs,
-  layout, sample format and rate (copy: an audio and a video stream).
-  Incidental: segment count, names. (ffmpeg_raw_hls, test_ffmpeg_hls_mp4,
-  test_ffmpeg_hls_copy_mp4, test_ffmpeg_drop_tracks)
+- Packed audio (KC18): every segment starts with an ID3 tag whose `PRIV`
+  timestamp equals the segment's start in 90 kHz units, also with 0.0232 s
+  frames; the bytes of [encoder-packed-audio.md §7](encoder-packed-audio.md#7-insert_id3)
+  are reproduced exactly.
+- MPEG-TS timed ID3 (KC18): a title change appears as a timed ID3 packet at
+  the media time of the change; with replay, every segment carries the
+  current title from its start; with `id3=false`, none.
+- Cuts on metadata (KC6): with only free-split variants (`%mp3`, `%ffmpeg`
+  AAC in MPEG-TS, `%fdkaac`), a new title starts a new segment within one
+  codec frame of its media time in every variant, counts stay equal, and
+  the grid after it is unchanged; with a copied video variant and the default, no
+  cut; the same metadata sent ten times causes no cut.
+- Init segments (KC21): non-empty; the first media segment holds the first
+  frame; deleted once no retained segment refers to them.
+- Large covers in metadata keep memory flat over an hour (KC19).
 
-## 5. Persistence
+## 5. Files
 
-- A run with copied fMP4 and MPEG-TS variants saves its state at shutdown;
-  a second process, with `strict_persist`, restores it from a copy of the
-  directory and produces a playlist that probes as H.264 and AAC. Binding:
-  the restore succeeds strictly and the playlist decodes. Not checked: the
-  continuity of media and discontinuity sequences, the reuse of old segments.
-  (test_ffmpeg_distributed_hls_setup, test_ffmpeg_distributed_hls)
+- Retention (KC7): with `segments=3` and `segments_overhead=1`, a segment
+  stays on disk at least its length plus the window duration after leaving
+  the playlist, and is deleted once neither allowance of
+  [files.md §5](files.md#5-retention) holds.
+- Modes: under umask 022, files are `0644` and directories `0755` with the
+  defaults.
+- Temporary directory on another file system (KC12): every published file
+  is complete; one warning at construction.
+- Events (KC13): per file, one `created`, any `updated`, at most one
+  `deleted`, with the same path; none for temporary or state files.
+- Cleanup: a final stop without persistence leaves no file the output
+  wrote, and deletes no other file, decoys in the working directory
+  included (KC11).
+- A stop and start without persistence (a fallible source off for 2 s)
+  keeps every file; the next segment is discontinuous in every variant and
+  numbering continues (KC17).
+- A segment deleted by hand mid-stream is logged and streaming continues;
+  removing the whole directory before stop lets stop complete (KC15).
+- Sub-directories in `segment_name` created mid-stream (KC14).
 
-## 6. Not covered
+## 6. Persistence
 
-No test checks: retention counts and which files are deleted, cleanup at
-`stop`, file modes, the bytes of the persisted state, media-sequence
-continuity across an error, a stop/start or a resume, the `deleted` event
-paths, the packed-audio ID3 bytes, the serving wrapper, or a stop and start
-without persistence. Each is where a finding sits ([findings.md](findings.md)).
+- Round trip (KC16): media and discontinuity sequences and the window
+  continue across a process restart; the next segment is discontinuous.
+- A truncated or corrupt state file: a fresh start with a warning, nothing
+  half applied; with `strict_persist`, `start` fails.
+- A crash during the save leaves the previous or the new state, complete.
+- A process killed mid-stream, then restarted with persistence, continues
+  numbering from its last published segment.
+- A state naming a segment deleted by hand restores the newer segments,
+  drops it and the older ones, and keeps the counters.
+
+## 7. Serving
+
+- Every file a playlist names is served with the content type of
+  [serving.md §4.1](serving.md#41-content-types), init segments included
+  (KC25).
+- `..%2F`, absolute paths, temporary files and the state file give 404.
+- After a restore, restored segments and rewritten playlists are served.
+- Playlists and segments carry the cache headers of
+  [serving.md §4.2](serving.md#42-caching).

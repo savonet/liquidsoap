@@ -152,7 +152,7 @@ of times (KC3, extra cuts in KC6), even with one origin.
 **How to tell.** Binding: in every variant of one output, segment _n_ starts
 at the same media time, within one frame of the slowest-framed stream, and
 the media sequence and the segment count are equal across variants after any
-run, including after a restart. Incidental: file names.
+run without output-wide cuts, including after a restart. Incidental: file names.
 
 **Evidence.** Field report 2026-11-05 (copied H.264 with B-frames + AAC-LC/HE-AAC,
 2 s GOP, 6 s segments). Related drift: #5319. Observed once.
@@ -233,8 +233,8 @@ list is.
 **How to tell.** Binding: at every moment, every segment named by a published
 media playlist exists on disk, which holds for the smallest retention allowed
 as well. The media sequence equals the number of segments that have left the
-window. Segment order is by media time. The number of segment files on disk
-never exceeds window + retention. Incidental: when exactly a file past
+window. Segment order is by media time. No segment file stays on disk past
+both retention allowances. Incidental: when exactly a file past
 retention is removed.
 
 **Evidence.** da858506e, c7722a253, fff33ed19, 2698cb913, c91a70349 / #4374,
@@ -334,7 +334,7 @@ write their own main playlist, or none.
 is tied to the deletion. A script-provided writer can decline to write.
 
 **How to tell.** Binding: stop and start the output five times: after each
-start, the main playlist exists once the first segment does. A writer that
+start, the main playlist exists once every variant has a segment. A writer that
 declines leaves no main playlist file and no error. Incidental: whether the
 main playlist is rewritten when nothing changed.
 
@@ -458,7 +458,7 @@ shows on restart.
 **How to tell.** Binding: stop and start with persisted state: the media
 sequence, the discontinuity sequence and the window continue, and the next
 segment is a discontinuity (KC8). A state file from the previous version
-loads. A corrupt state file gives a fresh start with a log line, not a stop.
+loads, or gives a fresh start with a log line under the normative spec, which does not read that format. A corrupt state file gives a fresh start with a log line, not a stop.
 A state written by a crash-interrupted stop is either complete or ignored.
 Incidental: field names.
 
@@ -684,39 +684,37 @@ Incidental: header names beyond CORS.
 
 **Evidence.** #913, f8e1db8d5, field report 2026-11-05. Recurred 2 times.
 
-## Reconciliation with the as-built spec
+## Answered by the normative spec
 
-**Covered**: a stated behaviour handles the situation. **Not covered**: the
-as-built spec shows the situation is not handled; a finding records it.
-**Contradicts**: history fixed it, the current behaviour has it again.
+Each entry's situation, and the rule that handles it.
 
-| Entry | Verdict                 | Where                                                                                                                                                                                                      |
-| ----- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| KC1   | Covered                 | [segmenting.md §6](segmenting.md#6-the-target-duration-bound); forced splits and `EXT-X-INDEPENDENT-SEGMENTS`: [encoder-ffmpeg.md §5–6](encoder-ffmpeg.md#5-split_encode)                                  |
-| KC2   | Covered                 | [segmenting.md §1](segmenting.md#1-segment-duration-and-the-grid). Grid state is not persisted ([persistence.md §1](persistence.md#1-what-is-saved)); a resumed run starts its grid at media time 0 again. |
-| KC3   | Not covered             | F-GRID-1; worked through in [segmenting.md §5.2](segmenting.md#52-worked-example)                                                                                                                          |
-| KC4   | Not covered             | F-GRID-2                                                                                                                                                                                                   |
-| KC5   | Covered                 | [segmenting.md §4](segmenting.md#4-opening-a-segment); first tag content: [metadata.md §1](metadata.md#1-track-metadata) (metadata before data)                                                            |
-| KC6   | Covered                 | [metadata.md §1](metadata.md#1-track-metadata) (equal metadata ignored), [segmenting.md §5](segmenting.md#5-handling-a-split) step 3 (split points only, boundary unchanged)                               |
-| KC7   | Contradicts             | Deletion runs before the playlist rewrite, and retention keeps one fewer: F-FS-3. Media sequence after gaps: F-PL-1                                                                                        |
-| KC8   | Contradicts             | Covered with persistence ([persistence.md §4](persistence.md#4-restoring) step 7). Without persistence, a stop/start marks no discontinuity and the sequence goes back: F-LIFE-1                           |
-| KC9   | Covered                 | [variants.md §3](variants.md#3-derived-properties); written once: F-PL-4                                                                                                                                   |
-| KC10  | Not covered             | Names with directories lose them in playlists; prefix asymmetry: F-PL-2, F-PL-3                                                                                                                            |
-| KC11  | Covered, by accident    | The main playlist is due again after `stop`; its deletion targets the working directory, so the old file stays (F-FS-5)                                                                                    |
-| KC12  | Covered, except modes   | [files.md §3](files.md#3-writing-a-file); modes ignore the umask: F-FS-1                                                                                                                                   |
-| KC13  | Contradicts             | Open segment gets `created` and no `deleted` at `stop` (F-FS-4); `deleted` paths differ from `created` paths for init segments and playlists (F-EV-1)                                                      |
-| KC14  | Contradicts on modes    | Construction checks: [operator.md §2](operator.md#2-construction); sub-directories: [files.md §1](files.md#1-directories); "up to the umask": F-FS-1                                                       |
-| KC15  | Covered                 | [files.md §5.1](files.md#51-deleting-a-file)                                                                                                                                                               |
-| KC16  | Partly                  | Old forms read: [persistence.md §2](persistence.md#2-format); corrupt file: [persistence.md §4](persistence.md#4-restoring); crash mid-write: F-PER-1; half-applied restore: F-PER-2                       |
-| KC17  | Contradicts             | Variants are rebuilt ([operator.md §3.2](operator.md#32-stop)) but the segment lists are not: F-LIFE-1; flush is all or nothing: F-STOP-1                                                                  |
-| KC18  | Covered                 | [metadata.md §2](metadata.md#2-id3), [encoder-packed-audio.md §7](encoder-packed-audio.md#7-insert_id3); timestamp arithmetic: F-ID3-1                                                                     |
-| KC19  | Covered                 | Covers are not exported ([metadata.md §1](metadata.md#1-track-metadata))                                                                                                                                   |
-| KC20  | Covered                 | [metadata.md §3](metadata.md#3-inserted-tags); order: F-TAG-1                                                                                                                                              |
-| KC21  | Contradicts on deletion | Init segments: [files.md §6](files.md#6-init-segments); never deleted: F-FS-2                                                                                                                              |
-| KC22  | Covered                 | [segmenting.md §7](segmenting.md#7-container-restart)                                                                                                                                                      |
-| KC23  | Covered                 | [encoder-ffmpeg.md](encoder-ffmpeg.md), owned by the FFmpeg layer's spec                                                                                                                                   |
-| KC24  | Partly                  | Abort and retry: [operator.md §6](operator.md#6-errors-and-reopening); first segment after recovery need not start at a split point: F-ERR-1                                                               |
-| KC25  | Not covered             | F-SRV-3 (content types; checked: the fMP4 _media_ segment, not the init segment, gets none), F-SRV-4 (temporary and state files served); path traversal F-SRV-1 is new                                     |
+| Entry | Rule                                                                                                                                                                                                                                                                        |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| KC1   | [segmenting.md §5](segmenting.md#5-the-target-duration-bound); forced splits and independent segments: [encoder-contract.md §5–6](encoder-contract.md#5-split_encode)                                                                                                       |
+| KC2   | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration): absolute boundaries from one origin. Each run has its own grid, so the state carries none ([persistence.md §1](persistence.md#1-what-is-saved)).                                                 |
+| KC3   | [segmenting.md §4](segmenting.md#4-the-cut-rule): the split point nearest the boundary within the bound; [§4.2](segmenting.md#42-worked-example).                                                                                                                           |
+| KC4   | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration) (one origin per output) and [§7](segmenting.md#7-output-wide-cuts) (every non-grid cut is output-wide; what alignment is not promised).                                                           |
+| KC5   | [segmenting.md §6](segmenting.md#6-opening-a-segment): first segment at media time 0, empty segments never published; first tag: [metadata.md §1](metadata.md#1-track-metadata).                                                                                            |
+| KC6   | [metadata.md §4](metadata.md#4-cuts-on-metadata): cuts on metadata are sync cuts, by default only where every variant is free-split or there is one variant; equal metadata ignored ([§1](metadata.md#1-track-metadata)).                                                   |
+| KC7   | [files.md §4–5](files.md#4-closing-a-segment): playlist before deletion, RFC availability; a window that only moves forward and holds at least three target durations: [playlists.md §2](playlists.md#2-media-playlist); numbering: [§2.1](playlists.md#21-media-sequence). |
+| KC8   | [playlists.md §2.1](playlists.md#21-media-sequence); discontinuity at every run start: [operator.md §3.1](operator.md#31-start); output-wide: [segmenting.md §7](segmenting.md#7-output-wide-cuts).                                                                         |
+| KC9   | [variants.md §3](variants.md#3-derived-properties): peak bandwidth with headroom, measured as a last resort; rewritten on change: [playlists.md §3](playlists.md#3-main-playlist).                                                                                          |
+| KC10  | [playlists.md §4](playlists.md#4-uris-and-prefix): one URI rule for every kind of file; names stay inside the directory: [files.md §2](files.md#2-file-names).                                                                                                              |
+| KC11  | [playlists.md §3](playlists.md#3-main-playlist): due at every run start; files kept across a stop that is not final, cleanup by tracked name at a final stop: [files.md §7](files.md#7-cleanup-at-a-final-stop).                                                            |
+| KC12  | [files.md §3](files.md#3-writing-a-file): modes under the umask; device warning: [operator.md §2](operator.md#2-construction).                                                                                                                                              |
+| KC13  | [files.md §8](files.md#8-file-change-events): one path per file across its events; an open segment at cleanup is aborted, not published.                                                                                                                                    |
+| KC14  | [operator.md §2](operator.md#2-construction), [files.md §1](files.md#1-directories).                                                                                                                                                                                        |
+| KC15  | [files.md §5.1](files.md#51-deleting-a-file); stop completes whatever fails: [operator.md §3.2](operator.md#32-stop).                                                                                                                                                       |
+| KC16  | [persistence.md](persistence.md): atomic save after every segment close; a checked restore that keeps counters and drops only missing segments. The previous format is not read: a strict restore of it fails, a non-strict one starts fresh.                               |
+| KC17  | [operator.md §3](operator.md#3-lifecycle): new encoders per run; state and files kept across a stop that is not final; per-variant stop steps.                                                                                                                              |
+| KC18  | [metadata.md §2](metadata.md#2-id3); timestamp from the tick count: [encoder-packed-audio.md §7](encoder-packed-audio.md#7-insert_id3).                                                                                                                                     |
+| KC19  | [metadata.md §1](metadata.md#1-track-metadata): binary entries are not kept.                                                                                                                                                                                                |
+| KC20  | [metadata.md §3](metadata.md#3-inserted-tags): insertion order, no cut, validated.                                                                                                                                                                                          |
+| KC21  | [files.md §5–6](files.md#5-retention): tracked by full path, deleted when unreferenced.                                                                                                                                                                                     |
+| KC22  | [segmenting.md §8](segmenting.md#8-container-restart).                                                                                                                                                                                                                      |
+| KC23  | [encoder-contract.md §6](encoder-contract.md#6-properties); options: the FFmpeg layer's spec.                                                                                                                                                                               |
+| KC24  | [operator.md §6](operator.md#6-errors-and-reopening): new encoders after an error, so the next segment starts at a key packet.                                                                                                                                              |
+| KC25  | [serving.md](serving.md): lookup among tracked files, content types by kind, cache headers.                                                                                                                                                                                 |
 
 ## Code-only notes (not entries)
 
