@@ -126,14 +126,14 @@ let bitstream_form t =
         match Avcodec.Video.get_params_id p with
           | `H264 | `Hevc | `Vvc ->
               let e = extradata t in
-              if e = "" || starts_with_start_code e then "annexb"
-              else "length_prefixed"
-          | _ -> "none")
+              if e = "" || starts_with_start_code e then `Annex_b
+              else `Length_prefixed
+          | _ -> `Other)
     | `Audio p -> (
         match Avcodec.Audio.get_params_id p with
-          | `Aac -> if extradata t = "" then "in_band" else "raw"
-          | _ -> "none")
-    | `Subtitle _ -> "none"
+          | `Aac -> if extradata t = "" then `Adts else `Raw_aac
+          | _ -> `Other)
+    | `Subtitle _ -> `Other
 
 let relaxed () = Settings.relaxed_compatibility_check#get
 
@@ -219,8 +219,8 @@ let differences t t' =
     ([
        differ `Media Fun.id (media_name t) (media_name t') ( = );
        differ `Codec Fun.id (codec_name t) (codec_name t') ( = );
-       differ `Bitstream_form Fun.id (bitstream_form t) (bitstream_form t')
-         ( = );
+       differ `Bitstream_form Liquidsoap_ffmpeg_formats.Copy_changes.form_name
+         (bitstream_form t) (bitstream_form t') ( = );
      ]
     @ media
     @ [
@@ -290,15 +290,17 @@ let incompatibility ~allowed t t' =
   |> Option.map (fun (property, v, v') ->
       Printf.sprintf "%s differs (%s against %s)" (property_name property) v v')
 
-let compatible t t' = incompatibility ~allowed:(fun _ -> false) t t' = None
+let is_header_detail = function
+  | `Extradata | `Profile | `Level | `Block_align -> true
+  | _ -> false
 
-let merge ~allowed t t' =
-  (match incompatibility ~allowed t t' with
-    | Some reason ->
-        failwith
-          (Printf.sprintf "Incompatible copy parameters: %s: %s and %s" reason
-             (to_string t) (to_string t'))
-    | None -> ());
+let compatible t t' =
+  incompatibility
+    ~allowed:(fun p -> is_header_detail p || (relaxed () && relaxed_allowed p))
+    t t'
+  = None
+
+let merge t t' =
   let fill a b = match a with Some _ -> a | None -> b in
   {
     t with

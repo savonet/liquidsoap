@@ -35,13 +35,23 @@ type property =
   | `Level
   | `Block_align ]
 
-type t = string list
+type form = [ `Annex_b | `Length_prefixed | `Adts | `Raw_aac | `Other ]
+
+let form_name = function
+  | `Annex_b -> "annexb"
+  | `Length_prefixed -> "length_prefixed"
+  | `Adts -> "in_band"
+  | `Raw_aac -> "raw"
+  | `Other -> "none"
+
+type container = [ `Named of string | `Unknown ]
+type t = container list
 
 let default = []
 let merge a b = List.sort_uniq compare (a @ b)
-let of_container container = [Option.value ~default:"" container]
-let show = function "" -> "?" | c -> c
-let read = function "?" -> "" | c -> c
+let of_container = function Some name -> [`Named name] | None -> [`Unknown]
+let show = function `Named name -> name | `Unknown -> "?"
+let read = function "?" -> `Unknown | name -> `Named name
 let value t = String.concat "+" (List.map show t)
 let to_string = function [] -> "" | t -> "containers=" ^ value t
 
@@ -67,16 +77,20 @@ let in_band_adts = [`Profile; `Sample_rate; `Channel_layout]
 
 let rule ~container ~codec ~form property =
   match (container, codec, form) with
-    | ("mpegts" | "h264"), "h264", "annexb" when List.mem property in_band_video
-      ->
+    | _ when property = `Block_align -> `In_band
+    | `Named "mpegts", ("h264" | "hevc"), `Annex_b
+    | `Named "h264", "h264", `Annex_b
+    | `Named "hevc", "hevc", `Annex_b
+      when List.mem property in_band_video ->
         `In_band
-    | ("mpegts" | "adts"), "aac", "in_band" when List.mem property in_band_adts
-      ->
+    | (`Named "mpegts", "aac", `Adts | `Named "adts", "aac", `Adts)
+      when List.mem property in_band_adts ->
         `In_band
-    | "mp3", "mp3", _ when List.mem property [`Sample_rate; `Channel_layout] ->
+    | `Named "mp3", "mp3", _
+      when List.mem property [`Sample_rate; `Channel_layout] ->
         `In_band
-    | "ogg", _, _ when not (List.mem property [`Media; `Codec; `Bitstream_form])
-      ->
+    | `Named "ogg", _, _
+      when not (List.mem property [`Media; `Codec; `Bitstream_form]) ->
         `Restart
     | _ -> `No
 

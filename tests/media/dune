@@ -692,12 +692,75 @@
    %{target})))
 
 (rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target changes-hevc-first.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=3:size=320x240:rate=25"
+   -c:v
+   libx265
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target changes-hevc-bigger.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc2=duration=3:size=640x360:rate=25"
+   -c:v
+   libx265
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target changes-hevc-third.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "smptebars=duration=3:size=320x240:rate=25"
+   -c:v
+   libx265
+   -pix_fmt
+   yuv420p
+   %{target})))
+
+(rule
  (alias test_ffmpeg_copy_changes_video)
  (package liquidsoap)
  (deps
   changes-first.ts
   changes-bigger.ts
   changes-third.ts
+  changes-hevc-first.ts
+  changes-hevc-bigger.ts
+  changes-hevc-third.ts
   test_ffmpeg_copy_changes_video.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)

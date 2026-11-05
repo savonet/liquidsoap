@@ -63,7 +63,7 @@ val intra_only : t -> bool
 (** Whether the stream declares a reorder delay (B-frames). *)
 val has_reordering : t -> bool
 
-val bitstream_form : t -> string
+val bitstream_form : t -> Liquidsoap_ffmpeg_formats.Copy_changes.form
 
 (** [settings.ffmpeg.content.copy.relaxed_compatibility_check]. *)
 val relaxed : unit -> bool
@@ -87,17 +87,13 @@ val incompatibility :
   t ->
   string option
 
-(** No difference at all. *)
+(** Only header details differ, or under the relaxed setting media and codec
+    agree: what lets one decoder go on across the two (the inline decoder). *)
 val compatible : t -> t -> bool
 
-(** The left side, with the properties it leaves unset taken from the right.
-
-    @raise Failure naming the first difference not [allowed]. *)
-val merge :
-  allowed:(Liquidsoap_ffmpeg_formats.Copy_changes.property -> bool) ->
-  t ->
-  t ->
-  t
+(** The left side, with the properties it leaves unset taken from the right. The
+    caller checks {!incompatibility} first. *)
+val merge : t -> t -> t
 
 (** [(property, old value, new value)] for each descriptive property that
     differs. *)

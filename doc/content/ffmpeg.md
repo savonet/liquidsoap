@@ -203,19 +203,21 @@ Manipulating encoded content requires knowledge of the internal aspects of media
 
 ### Switching between copied sources
 
+Copying encoded content is an advanced feature, and making sure the sources fit together is your job. Liquidsoap passes the encoded data through untouched, so it cannot fix a source the output cannot carry. When a file opens, it refuses what you would expect to be refused, such as another codec or another video size in a container that cannot change it. It lets less visible differences through, and FFmpeg judges them while streaming. If a copied stream turns out not to fit its output after all, the script stops with an error naming what differs, instead of streaming something broken.
+
 A copied stream keeps the parameters of its first source. When a playlist or a switch moves to another source, liquidsoap compares the new source with them:
 
 - A file whose codec or bitstream form differs (for instance H.264 in MP4 against MPEG-TS form, or raw AAC against ADTS) is skipped when it is opened, and the playlist moves on.
 - Other files are skipped when they are opened, with an error naming what differs, unless the encoder's `format` can carry that change inside the stream. The copy type shows which containers count: `ffmpeg.copy(containers=mpegts)`. A source that feeds several outputs must suit all of them. The containers that accept changes are:
 
-  | `format`         | Source                                 | Accepted changes                                        |
-  | ---------------- | -------------------------------------- | ------------------------------------------------------- |
-  | `mpegts`, `h264` | H.264 in MPEG-TS or raw (Annex B) form | codec headers, profile, level, video size, pixel format |
-  | `mpegts`, `adts` | AAC in ADTS form (`.aac`, MPEG-TS)     | profile, sample rate, channel layout                    |
-  | `mp3`            | MP3                                    | sample rate, channel layout                             |
-  | `ogg`            | any                                    | anything but the codec: a new link is chained           |
+  | `format`                 | Source                                         | Accepted changes                                        |
+  | ------------------------ | ---------------------------------------------- | ------------------------------------------------------- |
+  | `mpegts`, `h264`, `hevc` | H.264 or HEVC in MPEG-TS or raw (Annex B) form | codec headers, profile, level, video size, pixel format |
+  | `mpegts`, `adts`         | AAC in ADTS form (`.aac`, MPEG-TS)             | profile, sample rate, channel layout                    |
+  | `mp3`                    | MP3                                            | sample rate, channel layout                             |
+  | `ogg`                    | any                                            | anything but the codec: a new link is chained           |
 
-  Every other container, such as `matroska`, `webm`, `mp4` or `flv`, or an encoder without `format`, accepts no change. H.264 from MP4 or Matroska files does not change in MPEG-TS either: the muxer only writes the first file's parameter sets.
+  Ogg chains a new link for file outputs and streamed outputs such as Icecast or harbor; through `output.url` to another kind of URL, the script stops at such a change. Every other container, such as `matroska`, `webm`, `mp4` or `flv`, or an encoder without `format`, accepts no change. H.264 from MP4 or Matroska files does not change in MPEG-TS either: the muxer only writes the first file's parameter sets.
 
   Files meant to follow each other in a Matroska or WebM stream must come from the same encoder with the same settings. For AV1, for instance, frame rate, size and colour settings all end up in the sequence header, which a Matroska track requires to be identical throughout.
 

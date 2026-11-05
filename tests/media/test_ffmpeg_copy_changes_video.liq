@@ -1,21 +1,27 @@
 %include "../test.liq"
 
-# MPEG-TS and raw H.264 carry an Annex B H.264 stream's parameter sets in band:
-# files of other sizes and profiles follow each other and the output decodes.
-playlist_file = file.temp("changes-video", ".m3u")
-file.write(
-  data="changes-first.ts\nchanges-bigger.ts\nchanges-third.ts\n",
-  playlist_file
-)
+# MPEG-TS and raw H.264 or HEVC carry an Annex B stream's parameter sets in
+# band: files of other sizes and profiles follow each other and the output
+# decodes.
+def files(name, list) =
+  f = file.temp(name, ".m3u")
+  file.write(data=string.concat(separator="\n", list) ^ "\n", f)
+  playlist(mode="normal", loop=false, reload_mode="never", prefetch=1, f)
+end
 
-s =
-  playlist(
-    mode="normal",
-    loop=false,
-    reload_mode="never",
-    prefetch=1,
-    playlist_file
+def h264() =
+  files(
+    "changes-h264",
+    ["changes-first.ts", "changes-bigger.ts", "changes-third.ts"]
   )
+end
+
+def hevc() =
+  files(
+    "changes-hevc",
+    ["changes-hevc-first.ts", "changes-hevc-bigger.ts", "changes-hevc-third.ts"]
+  )
+end
 
 directory = file.temp_dir(cleanup=true, "changes-video")
 checked = ref([])
@@ -37,10 +43,10 @@ def check(label, filename) =
   ) = test.ffprobe(count_packets=true, filename)
   packets = int_of_string(nb_read_packets)
   if
-    packets < 240 or packets > 250
+    packets < 220 or packets > 250
   then
     test.fail(
-      "#{label}: #{packets} packets, expected the three files (100, 75 and 75)"
+      "#{label}: #{packets} packets, expected the three files"
     )
   end
   count =
@@ -51,10 +57,10 @@ def check(label, filename) =
           list.length(checked())
         end
     )
-  if count == 2 then test.pass() end
+  if count == 4 then test.pass() end
 end
 
-def output(label, format) =
+def output(label, format, s) =
   closed = ref(false)
   def on_close(filename) =
     if
@@ -73,5 +79,7 @@ def output(label, format) =
   )
 end
 
-output("out.ts", %ffmpeg(format = "mpegts", %video.copy))
-output("out.h264", %ffmpeg(format = "h264", %video.copy))
+output("h264.ts", %ffmpeg(format = "mpegts", %video.copy), h264())
+output("out.h264", %ffmpeg(format = "h264", %video.copy), h264())
+output("hevc.ts", %ffmpeg(format = "mpegts", %video.copy), hevc())
+output("out.hevc", %ffmpeg(format = "hevc", %video.copy), hevc())

@@ -174,11 +174,8 @@ let type_of_shape : shape -> Type.t = function
       Type.make
         (Format_type.descr
            (`Format
-              (match containers with
-                | [] -> Content_base.default_format copy
-                | _ ->
-                    Content_base.parse_param copy "containers"
-                      (Copy_changes.value containers))))
+              (Content_base.parse_param copy "containers"
+                 (Copy_changes.value containers))))
   | `Raw_audio ->
       Type.make (Format_type.descr (`Kind (kind Kinds.raw_audio_name)))
   | `Raw_video ->

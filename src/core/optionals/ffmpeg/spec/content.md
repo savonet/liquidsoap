@@ -201,7 +201,8 @@ them when the container starts. Whether a later source with other parameters
 can follow depends on the property and on the container: some differences
 no container survives, some only containers that store them in their header
 cannot follow, and some only describe the picture. Copy compatibility is
-therefore split in three (user decision D2, as refined by the user):
+therefore split in three (user decision D2, [README](README.md#principles)
+principle 6):
 
 | Class                  | Where it is judged                                                                                                                      | On a difference                                                                                                                                                                      |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -351,17 +352,31 @@ allows that change for the stream's codec and bitstream form. No container
 absent or not a literal) allows nothing. Media, codec and bitstream form
 never change.
 
+What a source may change follows from who is responsible for copied
+content: the user ([README](README.md#principles) principle 6, user decision
+D2). The check at open does not prove a stream valid; FFmpeg judges at run
+time, and a copied stream that does not fit fails hard. The check exists to
+refuse early what users would expect to be refused, and it splits the
+properties by how visible they are:
+
+| Properties                                                           | At open                                         | Why                                                                                                                                 |
+| -------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| media, codec, bitstream form                                         | never change                                    | no container survives it                                                                                                            |
+| video size, pixel format, sample rate, channel layout, sample format | change only where the table lists the container | user-visible: a user who mixes sizes expects to be told, so refusing in a container that could carry it surprises no one            |
+| codec headers: extradata, profile, level                             | change only where the table lists the container | a container that stores them in its header is known not to follow them (Matroska requires an AV1 sequence header to stay identical) |
+| block align, bits per coded sample                                   | always change                                   | users do not see them; when in doubt the check accepts and FFmpeg judges                                                            |
+
 The allowed changes are one table, owned by `Copy_changes` in the formats
 library. It lists only what a conformance test decodes with `ffmpeg
--xerror`; a container it does not list allows nothing, and the relaxed
-setting covers the rest.
+-xerror`; a container it does not list allows no user-visible or header
+change, and the relaxed setting covers the rest.
 
-| Container        | Codec, source form    | May change                                             | How                                   |
-| ---------------- | --------------------- | ------------------------------------------------------ | ------------------------------------- |
-| `mpegts`, `h264` | H.264, Annex B        | extradata, profile, level, width, height, pixel format | in band: SPS/PPS with each key frame  |
-| `mpegts`, `adts` | AAC, ADTS (`in_band`) | profile, sample rate, channel layout                   | in band: each frame header            |
-| `mp3`            | MP3                   | sample rate, channel layout                            | in band: each frame header            |
-| `ogg`            | any                   | anything but media, codec and bitstream form           | a new chained link (encoder.md §13.1) |
+| Container                | Codec, source form     | May change                                             | How                                   |
+| ------------------------ | ---------------------- | ------------------------------------------------------ | ------------------------------------- |
+| `mpegts`, `h264`, `hevc` | H.264 or HEVC, Annex B | extradata, profile, level, width, height, pixel format | in band: SPS/PPS with each key frame  |
+| `mpegts`, `adts`         | AAC, ADTS (`in_band`)  | profile, sample rate, channel layout                   | in band: each frame header            |
+| `mp3`                    | MP3                    | sample rate, channel layout                            | in band: each frame header            |
+| `ogg`                    | any                    | anything but media, codec and bitstream form           | a new chained link (encoder.md §13.1) |
 
 Length-prefixed H.264 (from MP4, Matroska or FLV) is not listed for MPEG-TS:
 the muxer writes the stream's first parameter sets only, so the slices of a

@@ -37,18 +37,30 @@ type property =
   | `Level
   | `Block_align ]
 
-(** The containers the encoders of a copied track write (content.md §3.1.1),
-    [""] for one the type does not name. The encoder typing sets them from a
-    [%ffmpeg] format ({!of_container}), a merge takes the union, and a source
-    may change only what every one of them allows ({!allowed}). An empty list is
-    a track no encoder constrains: nothing may change. *)
-type t = string list
+(** The form a codec's configuration travels in: inside the stream ([`Annex_b]
+    H.264 or HEVC, [`Adts] AAC) or in the codec parameters alone
+    ([`Length_prefixed], [`Raw_aac]); [`Other] for codecs with a single form. *)
+type form = [ `Annex_b | `Length_prefixed | `Adts | `Raw_aac | `Other ]
+
+(** The name copy parameters print for a form. *)
+val form_name : form -> string
+
+(** A muxer name, or [`Unknown] for a [%ffmpeg] format without a literal
+    [format]. *)
+type container = [ `Named of string | `Unknown ]
+
+(** The containers the encoders of a copied track write (content.md §3.1.1). The
+    encoder typing sets them from a [%ffmpeg] format ({!of_container}), a merge
+    takes the union, and a source may change only what every one of them allows
+    ({!allowed}). An empty list is a track no encoder constrains: nothing may
+    change. *)
+type t = container list
 
 val default : t
 val merge : t -> t -> t
 val of_container : string option -> t
 
-(** [containers=mpegts+matroska], [?] for a container not named; empty for no
+(** [containers=mpegts+matroska], [?] for an unknown container; empty for no
     container. *)
 val to_string : t -> string
 
@@ -61,15 +73,17 @@ val parse_serialized : string -> t option
 
 (** What [container] does when a source of this [codec] and bitstream [form]
     changes [property]: carries the change in the stream ([`In_band]), follows
-    it with a new container ([`Restart], Ogg chaining), or cannot ([`No]). The
-    table lists only what its conformance tests decode; a container it does not
-    list follows no change. *)
+    it with a new container ([`Restart], Ogg chaining, which the encoder does
+    for stream and file outputs only), or cannot ([`No]). A user-visible
+    property or a codec header changes only where the table lists it, as its
+    conformance tests decode; block align, which users do not see, changes
+    anywhere and FFmpeg judges it (content.md §3.1.1). *)
 val rule :
-  container:string ->
+  container:container ->
   codec:string ->
-  form:string ->
+  form:form ->
   property ->
   [ `In_band | `Restart | `No ]
 
 (** Every container of [t] follows a change of [property]. *)
-val allowed : t -> codec:string -> form:string -> property -> bool
+val allowed : t -> codec:string -> form:form -> property -> bool

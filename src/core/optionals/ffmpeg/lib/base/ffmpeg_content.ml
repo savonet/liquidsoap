@@ -86,8 +86,7 @@ module Libav = struct
       {
         params =
           (match (a.params, b.params) with
-            | Some p, Some p' ->
-                Some (Copy_params.merge ~allowed:(allowed containers p) p p')
+            | Some p, Some p' -> Some (Copy_params.merge p p')
             | None, p | p, None -> p);
         containers;
       }
