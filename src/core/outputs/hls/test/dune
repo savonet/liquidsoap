@@ -1,0 +1,31 @@
+; Conformance checks of the HLS output's pure layers (spec/conformance.md).
+; Run with dune build @hls_conformance.
+
+(executables
+ (names segmenter_test playlist_test persist_test window_test)
+ (libraries hls_output liquidsoap_core_utils))
+
+(rule
+ (alias hls_conformance)
+ (action
+  (run ./segmenter_test.exe)))
+
+(rule
+ (alias hls_conformance)
+ (action
+  (run ./playlist_test.exe)))
+
+(rule
+ (alias hls_conformance)
+ (action
+  (run ./persist_test.exe)))
+
+(rule
+ (alias hls_conformance)
+ (action
+  (run ./window_test.exe)))
+
+(alias
+ (name citest)
+ (deps
+  (alias hls_conformance)))

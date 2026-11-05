@@ -1,0 +1,7 @@
+; output.file.hls: the HLS output. The specification is in spec/.
+
+(library
+ (name hls_output)
+ (flags
+  (:standard -open Liquidsoap_lang_data))
+ (libraries liquidsoap-lang.data liquidsoap_core_utils))

@@ -153,7 +153,12 @@ val float_of_extended_float : string -> float
     the Icecast source protocol and does not always give the same answer. *)
 val mime_of_container_format : string -> string option
 
-val id3v2_of_metadata : version:int -> (string * string) list -> string
+(** [extra_frames] follow the metadata frames. *)
+val id3v2_of_metadata :
+  ?extra_frames:Metadata.ID3v2.frame list ->
+  version:int ->
+  (string * string) list ->
+  string
 
 (** {1 Miscellaneous} *)
 

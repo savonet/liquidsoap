@@ -498,7 +498,7 @@ let frame_id_of_string = function
 
 (* UTF-8 text frames exist from ID3v2.4: earlier versions get UTF-16 with a
    byte order mark. *)
-let id3v2_of_metadata ~version m =
+let id3v2_of_metadata ?(extra_frames = []) ~version m =
   let frames =
     List.fold_left
       (fun frames (k, v) ->
@@ -519,7 +519,7 @@ let id3v2_of_metadata ~version m =
           | None -> frames)
       [] m
   in
-  Metadata.ID3v2.make ~version frames
+  Metadata.ID3v2.make ~version (frames @ extra_frames)
 
 let is_docker =
   Lazy.Mutexed.from_fun (fun () ->
