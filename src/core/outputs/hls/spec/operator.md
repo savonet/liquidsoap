@@ -74,9 +74,8 @@ become a retry loop at runtime.
    or the argument is rejected.
 7. **Variants.** An empty list or two variants with the same name are
    rejected. Each variant is built by [variants.md §2](variants.md#2-building-a-variant).
-8. **Warnings**, construction continues: `segments` below 6
-   ([playlists.md §2](playlists.md#2-media-playlist)); a container RFC 8216
-   does not name ([variants.md §2](variants.md#2-building-a-variant)).
+8. **Warning**, construction continues: `segments` below 6
+   ([playlists.md §2](playlists.md#2-media-playlist)).
 
 ## 3. Lifecycle
 
