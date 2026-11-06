@@ -118,7 +118,13 @@ module Icecast = struct
                     Some a.Liquidsoap_ffmpeg_formats.Encoder_format.channels )
               | _ -> (None, None)
           in
-          { quality = None; bitrate = None; samplerate; channels }
+          {
+            quality = None;
+            bitrate =
+              Option.map (fun b -> b / 1000) (encoder.Encoder.bitrate ());
+            samplerate;
+            channels;
+          }
       | Encoder.WAV m ->
           {
             quality = None;

@@ -497,18 +497,6 @@ let make ?hls ?interrupt ~pos ~name metadata format =
   encode_metadata t metadata;
   t
 
-let create ?interrupt ~pos ~name metadata format =
-  let t = make ?interrupt ~pos ~name metadata format in
-  {
-    Encoder.encode_metadata = encode_metadata t;
-    header =
-      (fun () ->
-        match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
-    encode = encode t;
-    stop = (fun () -> stop t);
-    restart_offset = (fun () -> t.returned_link_start);
-  }
-
 let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"]
 
 (* HLS variants.md §2: the segment formats of RFC 8216 §3. *)
@@ -725,6 +713,19 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
     split_due = (fun () -> h.key_due <> [] || Hls_split.restart_pending h.split);
     hls_bitrate = (fun () -> bitrate t);
     hls_video_size = (fun () -> video_size t);
+  }
+
+let create ?interrupt ~pos ~name metadata format =
+  let t = make ?interrupt ~pos ~name metadata format in
+  {
+    Encoder.encode_metadata = encode_metadata t;
+    header =
+      (fun () ->
+        match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
+    encode = encode t;
+    stop = (fun () -> stop t);
+    bitrate = (fun () -> bitrate t);
+    restart_offset = (fun () -> t.returned_link_start);
   }
 
 let () =

@@ -120,6 +120,7 @@ let () =
       encode;
       header = (fun () -> Strings.empty);
       stop;
+      bitrate = (fun () -> None);
       restart_offset = (fun () -> None);
     }
   in

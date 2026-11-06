@@ -112,6 +112,7 @@ let encoder ~pos aac =
     header = (fun () -> Strings.empty);
     encode;
     stop;
+    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 
