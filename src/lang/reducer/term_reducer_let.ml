@@ -142,6 +142,7 @@ let string_of_let_decoration = function
    is known. *)
 let mk_let ~env ~pos ~to_term ~comments ~throw ~body
     { kind = _; decoration; pat; arglist; def; cast } =
+  with_typeof ~pos ~env ~to_term @@ fun ~typeof ->
   let def = to_term ~env def in
   let mk_body def =
     let env =
@@ -161,8 +162,10 @@ let mk_let ~env ~pos ~to_term ~comments ~throw ~body
     in
     body env
   in
-  let cast = Option.map (mk_parsed_ty ~pos ~env ~to_term) cast in
-  let arglist = Option.map (expand_argsof ~throw ~pos ~env ~to_term) arglist in
+  let cast = Option.map (mk_parsed_ty ~pos ~typeof) cast in
+  let arglist =
+    Option.map (expand_argsof ~throw ~pos ~env ~to_term ~typeof) arglist
+  in
   let doc =
     match
       List.rev

@@ -53,6 +53,9 @@ and trim_ast tm =
         `Let { _let with def = trim_term def; body = trim_term body }
     | `List l -> `List (List.map trim_term l)
     | `Cast c -> `Cast { c with cast = trim_term c.cast }
+    (* Holes are only read by the typechecker and their terms never run. *)
+    | `Typeof { holes = _; body } ->
+        `Typeof { holes = []; body = trim_term body }
     | `App (t, l) ->
         `App (trim_term t, List.map (fun (lbl, t) -> (lbl, trim_term t)) l)
     | `Invoke { invoked; invoke_default; meth } ->

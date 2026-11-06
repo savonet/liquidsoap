@@ -203,6 +203,7 @@ let rec token lexbuf =
             inc_pos = Sedlexing.lexing_bytes_positions lexbuf;
           }
     | "%argsof" -> ARGS_OF
+    | "%typeof" -> TYPE_OF
     | '#', Star (Compl '\n'), eof -> EOF
     | eof -> EOF
     | "def", Plus skipped, "rec", Plus skipped -> DEF `Recursive

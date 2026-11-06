@@ -52,6 +52,11 @@ type ('a, 'b) func = {
 type 'a app = 'a * (string * 'a) list
 type ('a, 'b) cast = { cast : 'a; typ : 'b } [@@deriving hash]
 
+(* [%typeof(e)] annotations in [body] are type variables, the holes. The
+   typechecker binds each hole to the type of its term, which is never
+   evaluated. *)
+type ('a, 'b) typeof = { holes : ('b * 'a) list; body : 'a }
+
 type ('a, 'b) common_ast =
   [ `Custom of custom_term
   | `Tuple of 'a list
@@ -113,7 +118,8 @@ type 'a runtime_ast =
   | `Invoke of 'a invoke
   | `Hide of 'a * string list
   | `Encoder of 'a encoder
-  | `Fun of ('a, Type.t) func ]
+  | `Fun of ('a, Type.t) func
+  | `Typeof of ('a, Type.t) typeof ]
 
 type t = ast term
 and ast = [ (t, Type.t) common_ast | t runtime_ast ]

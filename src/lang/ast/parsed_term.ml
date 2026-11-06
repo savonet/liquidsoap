@@ -205,7 +205,8 @@ and type_annotation =
   | `Method of type_annotation * meth_annotation list
   | `Invoke of type_annotation * string
   | `Source of string * source_annotation
-  | `Getter of type_annotation ]
+  | `Getter of type_annotation
+  | `Typeof of t ]
 
 (* These terms are reduced at runtime *)
 and parsed_ast =
@@ -271,6 +272,34 @@ let unit = `Tuple []
 let make ?(comments = []) ?(annotations = []) ~pos term =
   { pos; term; comments; annotations }
 
+(** [map_type fn ty] applies [fn] to the terms of the [%typeof(...)] annotations
+    in [ty]. *)
+let rec map_type fn ty =
+  let meths =
+    List.map (fun (m : meth_annotation) -> { m with typ = map_type fn m.typ })
+  in
+  match ty with
+    | `Typeof tm -> `Typeof (fn tm)
+    | (`Named _ | `Source _) as ty -> ty
+    | `Nullable ty -> `Nullable (map_type fn ty)
+    | `List ty -> `List (map_type fn ty)
+    | `Ref ty -> `Ref (map_type fn ty)
+    | `Json_object ty -> `Json_object (map_type fn ty)
+    | `Getter ty -> `Getter (map_type fn ty)
+    | `Tuple l -> `Tuple (List.map (map_type fn) l)
+    | `Arrow (args, ty) ->
+        let args =
+          List.map
+            (fun (optional, name, ty) -> (optional, name, map_type fn ty))
+            args
+        in
+        `Arrow (args, map_type fn ty)
+    | `Record l -> `Record (meths l)
+    | `Method (ty, l) ->
+        let ty = map_type fn ty in
+        `Method (ty, meths l)
+    | `Invoke (ty, name) -> `Invoke (map_type fn ty, name)
+
 (** [map_children fn ast] applies [fn] to every direct child term of [ast], and
     [map_block] / [map_statement] do the same for blocks and statements.
 
@@ -307,7 +336,9 @@ let rec map_children ?block:on_block fn ast =
   in
   let fun_args =
     List.map (function
-      | `Term arg -> `Term { arg with default = opt arg.default }
+      | `Term arg ->
+          let typ = Option.map (map_type fn) arg.typ in
+          `Term { arg with typ; default = opt arg.default }
       | `Argsof _ as v -> v)
   in
   let app_args =
@@ -360,7 +391,9 @@ let rec map_children ?block:on_block fn ast =
         in
         let try_finally_block = opt_block try_finally_block in
         `Try { try_body_block; try_handler; try_finally_block }
-    | `Cast { cast; typ } -> `Cast { cast = fn cast; typ }
+    | `Cast { cast; typ } ->
+        let cast = fn cast in
+        `Cast { cast; typ = map_type fn typ }
     | `App (tm, args) ->
         let tm = fn tm in
         `App (tm, app_args args)
@@ -442,7 +475,7 @@ and map_static_if ?block:on_block fn ({ static_then; static_else; _ } as p) =
   let static_else = Option.map block static_else in
   { p with static_then; static_else }
 
-and map_let fn ({ decoration; arglist; def; _ } as l) =
+and map_let fn ({ decoration; arglist; cast; def; _ } as l) =
   let decoration =
     match decoration with
       | `Json_parse args ->
@@ -454,12 +487,15 @@ and map_let fn ({ decoration; arglist; def; _ } as l) =
   let arglist =
     Option.map
       (List.map (function
-        | `Term arg -> `Term { arg with default = Option.map fn arg.default }
+        | `Term arg ->
+            let typ = Option.map (map_type fn) arg.typ in
+            `Term { arg with typ; default = Option.map fn arg.default }
         | `Argsof _ as v -> v))
       arglist
   in
+  let cast = Option.map (map_type fn) cast in
   let def = fn def in
-  { l with decoration; arglist; def }
+  { l with decoration; arglist; cast; def }
 
 and map_statement ?block:_ fn stmt =
   let stmt_ast =

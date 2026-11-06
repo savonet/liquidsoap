@@ -93,6 +93,7 @@ let value_restriction t =
       | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ -> true
       | `Let l -> value_restriction l.def && value_restriction l.body
       | `Cast { cast = t } -> value_restriction t
+      | `Typeof { holes = _; body } -> value_restriction body
       (* | Invoke (t, _) -> value_restriction t *)
       | _ -> false
   in
@@ -223,6 +224,14 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
           check ~level ~env a;
           a.t <: t;
           base_type >: t
+      | `Typeof { holes; body } ->
+          List.iter
+            (fun (hole, tm) ->
+              check ~level ~env tm;
+              Typing.bind hole tm.t)
+            holes;
+          check ~level ~env body;
+          base_type >: body.t
       | `Hide (a, methods) ->
           check ~level ~env a;
           let ty =
