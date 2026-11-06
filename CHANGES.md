@@ -3,7 +3,7 @@
 ## New:
 
 - Added `getter(t)` type annotation syntax for getter types (#5078).
-- Added the `%typeof(e)` type annotation, which stands for the type of `e` without evaluating it. Reading back a saved state with `let json.parse (saved : %typeof(state())) = ...` no longer requires writing its type out and keeping it in sync.
+- Added the `%typeof(e)` type annotation, which stands for the type of `e` without evaluating it. Reading back a saved state with `let json.parse (saved : %typeof(state())) = ...` no longer requires writing its type out and keeping it in sync (#5614).
 - Added `atomic(f)`, which runs `f` without letting any other atomic section run at the same time. Script code now runs on several cores at once, so a group of changes that must not be observed half-done — writing several references together, or checking a flag and setting it — needs to say so.
 - Added `r.exchange(v)`, which sets a reference and returns the value it replaced in one
   indivisible step. Now that script code runs on several cores at once, a flag guarding
