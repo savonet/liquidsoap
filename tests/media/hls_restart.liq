@@ -33,8 +33,12 @@ o =
     s
   )
 
-# The first file lasts 8 s.
-switch_time = 8.
+# The cut must land where the source switches files, wherever that is.
+switch_time = ref(-1.)
+s.on_track(
+  synchronous=true,
+  fun (_) -> if s.time() > 0. then switch_time := s.time() end
+)
 video_frame = 1. / 25.
 tolerance = video_frame + 0.001
 
@@ -58,9 +62,9 @@ def check_variant(name, p, kind, j) =
   starts = hls_test.starts(p.segments)
   t = list.nth(starts, j)
   hls_test.check(
-    abs(t - switch_time) <= tolerance,
+    switch_time() > 0. and abs(t - switch_time()) <= tolerance,
     "#{name}: the discontinuous segment starts at #{t}, the switch is at #{
-      switch_time
+      switch_time()
     }"
   )
 
