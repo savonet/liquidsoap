@@ -95,6 +95,8 @@ first answer.
   address, the stream id (absent when the caller set none) and the new
   socket. `true` admits; `false` or an exception rejects. Closing the
   listening socket frees the predicate.
+- The largest live-mode payload is 1456 bytes: the 1500-byte MTU less the
+  UDP and SRT headers, as libsrt's public header defines it.
 - A send buffer is copied before the runtime is released, so the collector
   cannot move it while libsrt reads it.
 - The readiness wait returns the read-ready and write-ready sockets, and
@@ -122,8 +124,7 @@ documentation or a run. Each says what the spec needs if it does not hold.
   peer was ended.
 - The library can tell when a socket's send buffer is empty, so a clean end
   closes after delivery ([output.md §6](output.md#6-stopping)).
-- The largest live-mode payload is 1456 bytes; valid key lengths are 16, 24
-  and 32.
+- Valid key lengths are 0 (the library's default), 16, 24 and 32.
 - What `messageapi = false` means for a live-mode socket.
 - Unsigned 64-bit statistics past the native integer range saturate at its
   maximum ([socket-value.md §4](socket-value.md#4-statistics)).

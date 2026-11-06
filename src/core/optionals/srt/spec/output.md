@@ -60,11 +60,14 @@ one peer to send to.
 - **Creating.** The first encode after a peer joins, with no encoder
   running, creates one from the factory with the operator's id and empty
   metadata. Every joining peer's stream starts at the encoder's first byte.
-- **Joining.** A peer that joins while an encoder runs receives the
-  encoder's separately available header, when the encoder has one, then the
-  encoder's output from the start of its next output block. An encoder with
-  no separate header (MPEG-TS) gives the joiner its output from the next
-  block alone.
+- **Joining.** A peer joins at the next encode while an encoder runs. When
+  the bytes that encode returns contain a **restart point** (where the
+  encoder starts a new stream link carrying its own headers, as an Ogg
+  encoder does after a metadata change), the peer's stream starts there.
+  Otherwise it starts with the encoder's separately available header, read
+  at that moment so that it belongs to the link in progress, followed by
+  those bytes from their start. An encoder with no separate header
+  (MPEG-TS) gives the joiner those bytes alone.
 - **Ending.** When the last peer ends by failure, the encoder is stopped and
   its final bytes discarded. When the output ends its peers itself, §6
   applies. Every encoder created is stopped exactly once.

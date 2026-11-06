@@ -41,7 +41,7 @@ error on the parameter it names, and the message states the valid values:
 | `prefer_address` not one of `"system"`, `"ipv4"`, `"ipv6"`                            | ``Valid values are: `"system"`, `"ipv4"` or `"ipv6"`.``         |
 | `port` outside 1–65535                                                                | `Port must be between 1 and 65535!`                             |
 | `payload_size` outside 1 to the library's largest live payload                        | `Payload size must be between 1 and <max>!`                     |
-| `pbkeylen` not one of 16, 24, 32                                                      | `Key length must be one of: 16, 24 or 32!`                      |
+| `pbkeylen` not one of 0, 16, 24, 32                                                   | `Key length must be one of: 0, 16, 24 or 32!`                   |
 | a non-empty `passphrase` shorter than 10 bytes                                        | `Passphrase must be at least 10 characters long!`               |
 | `passphrase` longer than 79 bytes                                                     | `Passphrase must be at most 79 characters long!`                |
 | `polling_delay`, `connection_timeout`, `read_timeout` or `write_timeout` not positive | `Value must be positive!`                                       |
@@ -53,6 +53,7 @@ reported against the setting, not the argument. Lengths are byte counts.
 
 `passphrase`, `pbkeylen` and `enforced_encryption` are libsrt socket options,
 each set only when given. A null or empty `passphrase` means no encryption.
+A `pbkeylen` of 0 is libsrt's default key length, the same as null.
 They are set:
 
 - on the caller's socket before it connects
