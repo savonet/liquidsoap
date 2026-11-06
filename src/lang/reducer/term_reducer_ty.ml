@@ -130,17 +130,26 @@ and mk_meth_ty ?pos ~typeof base
            },
            base )))
 
-(** Run [fn] with the [~typeof] callback that [mk_parsed_ty] needs, and wrap the
-    [ast] it returns in a [`Typeof] node holding the holes it made. The holes'
-    terms are reduced in [env], the scope of the annotations. *)
-let with_typeof ~pos ~env ~to_term fn =
+(** Return the [~typeof] callback for [mk_parsed_ty] and [annotate], which wraps
+    a term in a [`Typeof] node holding the holes, reduced in [env].
+
+    Only the annotated term gets the node, so the chain of [`Let]s a block
+    reduces to keeps its shape. *)
+let typeof_holes ~pos ~env ~to_term =
   let holes = ref [] in
   let typeof tm =
     let hole = mk_var ~pos () in
     holes := (hole, to_term ~env tm) :: !holes;
     hole
   in
+  let annotate tm =
+    match List.rev !holes with
+      | [] -> tm
+      | holes -> mk ~pos (`Typeof { holes; body = tm })
+  in
+  (typeof, annotate)
+
+let with_typeof ~pos ~env ~to_term fn =
+  let typeof, annotate = typeof_holes ~pos ~env ~to_term in
   let ast = fn ~typeof in
-  match List.rev !holes with
-    | [] -> ast
-    | holes -> `Typeof { holes; body = mk ~pos ast }
+  (annotate (mk ~pos ast)).term

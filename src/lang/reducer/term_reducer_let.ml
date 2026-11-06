@@ -31,7 +31,7 @@ open Term_reducer_argsof
 open Term_reducer_ty
 open Term_reducer_pattern
 
-let mk_let_json_parse ~pos (args, pat, def, cast) body =
+let mk_let_json_parse ~pos ~annotate (args, pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let json5 =
@@ -44,34 +44,34 @@ let mk_let_json_parse ~pos (args, pat, def, cast) body =
     mk_implicit ~pos
       (`App (parser, [("json5", json5); ("type", tty); ("", def)]))
   in
-  let def = mk_implicit ~pos (`Cast { cast = def; typ = ty }) in
+  let def = annotate (mk_implicit ~pos (`Cast { cast = def; typ = ty })) in
   pattern_reducer ~body ~pat def
 
-let mk_let_xml_parse ~pos (pat, def, cast) body =
+let mk_let_xml_parse ~pos ~annotate (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let parser = mk_implicit ~pos (`Var Reserved.xml_parser) in
   let def = mk_implicit ~pos (`App (parser, [("type", tty); ("", def)])) in
-  let def = mk_implicit ~pos (`Cast { cast = def; typ = ty }) in
+  let def = annotate (mk_implicit ~pos (`Cast { cast = def; typ = ty })) in
   pattern_reducer ~body ~pat def
 
-let mk_let_yaml_parse ~pos (pat, def, cast) body =
+let mk_let_yaml_parse ~pos ~annotate (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let parser = mk_implicit ~pos (`Var Reserved.yaml_parser) in
   let def = mk_implicit ~pos (`App (parser, [("type", tty); ("", def)])) in
-  let def = mk_implicit ~pos (`Cast { cast = def; typ = ty }) in
+  let def = annotate (mk_implicit ~pos (`Cast { cast = def; typ = ty })) in
   pattern_reducer ~body ~pat def
 
-let mk_let_sqlite_row ~pos (pat, def, cast) body =
+let mk_let_sqlite_row ~pos ~annotate (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let parser = mk_implicit ~pos (`Var Reserved.sqlite_row_parser) in
   let def = mk_implicit ~pos (`App (parser, [("type", tty); ("", def)])) in
-  let def = mk_implicit ~pos (`Cast { cast = def; typ = ty }) in
+  let def = annotate (mk_implicit ~pos (`Cast { cast = def; typ = ty })) in
   pattern_reducer ~body ~pat def
 
-let mk_let_sqlite_query ~pos (pat, def, cast) body =
+let mk_let_sqlite_query ~pos ~annotate (pat, def, cast) body =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let inner_list_ty = mk_var ~pos () in
   Typing.(
@@ -107,7 +107,7 @@ let mk_let_sqlite_query ~pos (pat, def, cast) body =
       (`Invoke { invoked = list; invoke_default = None; meth = "map" })
   in
   let def = mk_implicit ~pos (`App (map, [("", mapper); ("", def)])) in
-  let def = mk_implicit ~pos (`Cast { cast = def; typ = ty }) in
+  let def = annotate (mk_implicit ~pos (`Cast { cast = def; typ = ty })) in
   pattern_reducer ~body ~pat def
 
 let mk_rec_fun ~pos pat arguments body =
@@ -118,12 +118,12 @@ let mk_rec_fun ~pos pat arguments body =
   in
   mk ~pos (`Fun { name = Some name; arguments; body; free_vars = None })
 
-let mk_eval ~pos (pat, def, body, cast) =
+let mk_eval ~pos ~annotate (pat, def, body, cast) =
   let ty = match cast with Some ty -> ty | None -> mk_var ~pos () in
   let tty = Value.RuntimeType.to_term ty in
   let eval = mk_implicit ~pos (`Var Reserved.eval) in
   let def = mk_implicit ~pos (`App (eval, [("type", tty); ("", def)])) in
-  let def = mk_implicit ~pos (`Cast { cast = def; typ = ty }) in
+  let def = annotate (mk_implicit ~pos (`Cast { cast = def; typ = ty })) in
   pattern_reducer ~body ~pat def
 
 let string_of_let_decoration = function
@@ -142,7 +142,7 @@ let string_of_let_decoration = function
    is known. *)
 let mk_let ~env ~pos ~to_term ~comments ~throw ~body
     { kind = _; decoration; pat; arglist; def; cast } =
-  with_typeof ~pos ~env ~to_term @@ fun ~typeof ->
+  let typeof, annotate = typeof_holes ~pos ~env ~to_term in
   let def = to_term ~env def in
   let mk_body def =
     let env =
@@ -166,6 +166,12 @@ let mk_let ~env ~pos ~to_term ~comments ~throw ~body
   let arglist =
     Option.map (expand_argsof ~throw ~pos ~env ~to_term ~typeof) arglist
   in
+  let annotated def =
+    annotate
+      (match cast with
+        | Some ty -> mk ~pos (`Cast { cast = def; typ = ty })
+        | None -> def)
+  in
   let doc =
     match
       List.rev
@@ -182,51 +188,39 @@ let mk_let ~env ~pos ~to_term ~comments ~throw ~body
         let replace = decoration = `Replaces in
         let def = mk_def def in
         let def = mk_fun ~pos arglist def in
-        let def =
-          match cast with
-            | Some ty -> mk ~pos (`Cast { cast = def; typ = ty })
-            | None -> def
-        in
+        let def = annotated def in
         let body = mk_body def in
         pattern_reducer ?doc ~body ~pat ~replace def
     | Some (mk_def, arglist), `Recursive ->
         let def = mk_def def in
         let def = mk_rec_fun ~pos pat.pat_entry arglist def in
-        let def =
-          match cast with
-            | Some ty -> mk ~pos (`Cast { cast = def; typ = ty })
-            | None -> def
-        in
+        let def = annotated def in
         let body = mk_body def in
         pattern_reducer ?doc ~body ~pat def
     | None, `None | None, `Replaces ->
         let replace = decoration = `Replaces in
-        let def =
-          match cast with
-            | Some ty -> mk ~pos (`Cast { cast = def; typ = ty })
-            | None -> def
-        in
+        let def = annotated def in
         let body = mk_body def in
         pattern_reducer ?doc ~body ~pat ~replace def
     | None, `Eval ->
         let body = mk_body def in
-        mk_eval ~pos (pat, def, body, cast)
+        mk_eval ~pos ~annotate (pat, def, body, cast)
     | None, `Json_parse args ->
         let args = List.map (fun (l, v) -> (l, to_term ~env v)) args in
         let body = mk_body def in
-        mk_let_json_parse ~pos (args, pat, def, cast) body
+        mk_let_json_parse ~pos ~annotate (args, pat, def, cast) body
     | None, `Yaml_parse ->
         let body = mk_body def in
-        mk_let_yaml_parse ~pos (pat, def, cast) body
+        mk_let_yaml_parse ~pos ~annotate (pat, def, cast) body
     | None, `Xml_parse ->
         let body = mk_body def in
-        mk_let_xml_parse ~pos (pat, def, cast) body
+        mk_let_xml_parse ~pos ~annotate (pat, def, cast) body
     | None, `Sqlite_row ->
         let body = mk_body def in
-        mk_let_sqlite_row ~pos (pat, def, cast) body
+        mk_let_sqlite_row ~pos ~annotate (pat, def, cast) body
     | None, `Sqlite_query ->
         let body = mk_body def in
-        mk_let_sqlite_query ~pos (pat, def, cast) body
+        mk_let_sqlite_query ~pos ~annotate (pat, def, cast) body
     | Some _, v ->
         parse_error ~pos
           (string_of_let_decoration v

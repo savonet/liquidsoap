@@ -159,8 +159,13 @@ let builtin_args_of ~only ~except ~pos name =
     | None ->
         parse_error ~pos (Printf.sprintf "Builtin %s is not registered!" name)
 
+let rec strip_typeof (tm : Term.t) =
+  match tm with
+    | { term = `Typeof { holes = _; body } } -> strip_typeof body
+    | tm -> tm
+
 let args_of ~only ~except ~pos ~env name =
-  match List.assoc_opt name env with
+  match Option.map strip_typeof (List.assoc_opt name env) with
     | Some { term = `Fun { arguments } } ->
         let filtered_args =
           List.filter (fun { label } -> label <> "") arguments

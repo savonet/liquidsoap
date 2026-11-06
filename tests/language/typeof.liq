@@ -19,7 +19,15 @@ def rejected(expr) =
   if typechecks(expr) then test.fail("should not typecheck: #{expr}") end
 end
 
+# Top-level bindings after an annotated one stay visible to `let eval`.
+typeof_base = 1
+let (typeof_annotated : %typeof(typeof_base)) = 3
+typeof_after = typeof_annotated + 5
+
 def f() =
+  let eval after = "typeof_after + 1"
+  test.equal(after, 9)
+
   # The type of a reference can be pinned after the annotation that uses it.
   data = ref([])
   let json.parse (saved : %typeof(data())) = '[{"id": 3}]'
@@ -38,9 +46,12 @@ def f() =
   test.equal(evaluated(), false)
 
   # Annotating with the type of a polymorphic value keeps generalization.
-  empty = ([] : %typeof([]))
-  test.equal(list.add(1, empty), [1])
-  test.equal(list.add("a", empty), ["a"])
+  generic = ([] : %typeof([]))
+  test.equal(list.add(1, generic), [1])
+  test.equal(list.add("a", generic), ["a"])
+  accepted(
+    '(items : %typeof([])) = [] ignore(list.add(1, items)) ignore(list.add("a", items))'
+  )
 
   # Argument annotations.
   x = 1
@@ -65,6 +76,17 @@ def f() =
   rejected("ignore(((1 : %typeof(1.)) : int))")
   accepted('def g((v : %typeof(1))) = v end ignore(g(1))')
   rejected('def g((v : %typeof(1))) = v end ignore(g("a"))')
+
+  accepted(
+    'y = 1 def g(~a=1, (b : %typeof(y))) = a + b end def h(%argsof(g)) = g(%argsof(g), 2) end ignore(h(a=3))'
+  )
+
+%ifdef sqlite
+  # The `sqlite.query` reducer constrains the annotated type before typechecking.
+  accepted(
+    'def q(db) = let sqlite.query (rows : %typeof([{n=1}])) = db.select("SELECT 1 AS n") rows end ignore(q)'
+  )
+%endif
 
   test.pass()
 end

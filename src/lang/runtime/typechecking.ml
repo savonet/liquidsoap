@@ -228,7 +228,12 @@ let rec check ?(print_toplevel = false) ~throw ~level ~env e =
           List.iter
             (fun (hole, tm) ->
               check ~level ~env tm;
-              Typing.bind hole tm.t)
+              (* Reducers such as [sqlite.query] may have constrained the hole
+                 already. *)
+                match (Type.deref hole).Type.descr with
+                | Type.Var { contents = Type.Free _ } ->
+                    Typing.bind (Type.deref hole) tm.t
+                | _ -> tm.t <: hole)
             holes;
           check ~level ~env body;
           base_type >: body.t
