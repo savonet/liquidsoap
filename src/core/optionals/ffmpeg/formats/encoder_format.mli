@@ -137,6 +137,10 @@ val fields_type : (string * shape) list -> Type.t Fields.t
 
 val type_of_format : t -> Type.t Fields.t
 val to_string : t -> string
+
+(** The muxers of the ISO base media file format. *)
+val iso_family : string list
+
 val extension : t -> string option
 val mime : t -> string
 

@@ -103,17 +103,15 @@ type hls_piece =
   | Split of { time : int; forced : bool }
   | Restart of { time : int; init : string option }
 
-type hls_init =
-  | Pending
-  | Init of { init : string option; pieces : hls_piece list }
+type hls_ready = { init : string option; pieces : hls_piece list }
+type hls_init = Pending | Init of hls_ready
 
 type hls_encoder = {
   init : ?id3:bool -> ?id3_version:int -> unit -> (hls_id3_mode, string) result;
   init_encode : boundary:int -> Frame.t -> hls_init;
   split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
-  hls_header : unit -> Strings.t;
-  hls_stop : unit -> hls_piece list;
+  hls_stop : unit -> hls_ready;
   codec_attrs : unit -> string option;
   independent_segments : unit -> bool;
   free_split : unit -> bool;

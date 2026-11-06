@@ -48,7 +48,10 @@ UTF-8 JSON:
 
 With `persist_at`, the state is saved after every segment close
 ([files.md §4](files.md#4-closing-a-segment)) and at every stop
-([operator.md §3.2](operator.md#32-stop)):
+([operator.md §3.2](operator.md#32-stop)) after the output has started
+since it woke up. Reason: an output that never started holds no state of
+its own, and saving it would replace the previous run's state with an
+empty one.
 
 1. The JSON is written to a temporary file in the state file's directory.
 2. It is renamed onto `persist_at`.

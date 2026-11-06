@@ -31,8 +31,8 @@ output's.
 2. `init` once, before the first chunk.
 3. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
 4. At every segment open: `insert_id3` when the variant's ID3 mode is
-   prepended, then `header()`. Both also before the first `init_encode`,
-   since the first segment opens first. `insert_id3` for in-stream ID3 at
+   prepended, also before the first `init_encode`, since the first segment
+   opens first. `insert_id3` for in-stream ID3 at
    the times of [metadata.md §2](metadata.md#2-id3).
 5. `stop()` once, at the end of a run that ends on a `stop`.
 6. Properties (§6) after `init_encode` has returned `Init`.
@@ -124,12 +124,14 @@ For a prepended mode, the result is the tag to start the segment, including
 its timestamp; for in-stream, the encoder writes a timed tag at `time` and
 returns none.
 
-## 8. Header and stop
+## 8. Stop
 
-`header ()`: bytes written at the start of every segment, after any
-prepended ID3 tag. An encoder whose header is known only after its first
-chunk puts it at the start of that chunk's bytes. `stop ()`: the final
-pieces, as §5, applied to the open segment before it closes. Reason: an
+`stop () → Init (init, pieces)`: the final pieces, as §5, applied to the
+open segment before it closes. `init` is as in §4 when `init_encode` has
+not yet returned `Init`: an encoder stopped within its first segment can
+learn its init segment only at its stop. It is none otherwise. A format's
+header lives in its init segment; no bytes are repeated at the start of each
+segment. Reason: an
 encoder that holds media (lookahead, reordering) returns at its stop the
 split points of the media it held, and dropping them would make the last
 segment exceed the target duration.

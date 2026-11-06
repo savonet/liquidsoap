@@ -75,10 +75,9 @@ Example, the first bytes of a segment starting at 184 s, `%mp3`, metadata
 
 The audio frames follow.
 
-## 8. Header and stop
+## 8. Stop
 
-`header()` is empty. `stop()` returns `[Bytes]` of the encoder's own final
-bytes.
+`stop()` returns no init and `[Bytes]` of the encoder's own final bytes.
 
 ## 9. Conformance
 

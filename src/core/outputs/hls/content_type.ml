@@ -7,10 +7,10 @@ let ffmpeg_muxer = function
 (* spec/serving.md §4.1: by the kind of file and its variant. *)
 let segment v =
   match (v.Variant.format, ffmpeg_muxer v.format) with
+    | format, _ when Variant.iso_muxer format -> "video/iso.segment"
     | (Encoder.MP3 _ | Encoder.Shine _), _ | _, Some "mp3" -> "audio/mpeg"
     | Encoder.FdkAacEnc _, _ | _, Some "adts" -> "audio/aac"
     | _, Some "mpegts" -> "video/mp2t"
-    | _, Some "mp4" -> "video/iso.segment"
     | _, Some "ac3" -> "audio/ac3"
     | _, Some "eac3" -> "audio/eac3"
     | _, Some "webvtt" -> "text/vtt"

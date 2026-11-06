@@ -16,7 +16,7 @@ given. [encoder.md §8.2](../../../optionals/ffmpeg/spec/encoder.md#82-keyframe-
 
 With the HLS flag the instance runs in its HLS mode
 ([encoder.md §8](../../../optionals/ffmpeg/spec/encoder.md#8-hls)).
-`header()` is empty: the container header is the init segment.
+The container header is the init segment.
 
 ## 3. `init`
 
@@ -65,13 +65,13 @@ audio: returns a tag to prepend, built as in
 [encoder-packed-audio.md §7](encoder-packed-audio.md#7-insert_id3).
 [encoder.md §8.5](../../../optionals/ffmpeg/spec/encoder.md#85-timed-id3-in-mpegts).
 
-## 8. Header and stop
+## 8. Stop
 
-`header()` is empty. `stop()` drains the instance
+`stop()` drains the instance
 ([encoder.md §7](../../../optionals/ffmpeg/spec/encoder.md#7-stop)) and
 returns the drained output as pieces: the candidates its drained packets
 take are split points; bytes held after an undecided candidate are returned
-as bytes.
+as bytes. Its init is the container's, when no `Init` was returned before.
 
 ## 9. Conformance
 

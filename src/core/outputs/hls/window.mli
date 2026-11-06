@@ -71,8 +71,13 @@ val publish :
 val slide : t -> max_segments:int -> target:int -> unit
 val mark_listed : t -> unit
 
-(** Removes and returns the segments past both retention allowances; none when
-    [overhead] is [None]. *)
+(** Removes and returns the segments past both retention allowances, or past
+    availability alone when [overhead] is [None]: the caller deletes them only
+    when it is [Some _]. *)
 val expire : t -> overhead:int option -> segment list
+
+(** Seconds of media time [s] stays available, counted from now; the remaining
+    allowance once it has left the window. *)
+val lifetime : t -> segment -> float
 
 val referenced_inits : t -> string list

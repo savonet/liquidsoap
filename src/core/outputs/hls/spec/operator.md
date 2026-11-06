@@ -74,7 +74,8 @@ become a retry loop at runtime.
    or the argument is rejected.
 7. **Variants.** An empty list, an empty variant name or two variants
    with the same name are rejected: the name is the media playlist's base
-   name. Each variant is built by [variants.md §2](variants.md#2-building-a-variant).
+   name. So is a main playlist whose canonical name
+   ([files.md §2](files.md#2-file-names)) is a variant's media playlist. Each variant is built by [variants.md §2](variants.md#2-building-a-variant).
 8. **Warning**, construction continues: `segments` below 6
    ([playlists.md §2](playlists.md#2-media-playlist)).
 

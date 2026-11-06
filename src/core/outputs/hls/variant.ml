@@ -14,11 +14,13 @@ type metadata =
   | `Pending of Frame.Metadata.Export.t
   | `Sent of Frame.Metadata.Export.t ]
 
+(* [first_id3]: the metadata whose first ID3 tag this segment carries. *)
 type segment = {
   start : int;
   mutable discontinuous : bool;
   mutable tags : string list;
   mutable init : string option;
+  first_id3 : Frame.Metadata.Export.t option;
 }
 
 (* The encoder's answers, read when they become valid: at its init segment
@@ -71,6 +73,16 @@ let add_tag v tag =
   Mutex.protect v.tags_lock (fun () -> v.pending_tags <- v.pending_tags @ [tag])
 
 let pending_tags v = Mutex.protect v.tags_lock (fun () -> v.pending_tags)
+
+(* spec/segmenting.md §6: a dropped segment hands its pending state back. *)
+let give_back v segment ~discontinuous =
+  v.pending_discontinuity <- v.pending_discontinuity || discontinuous;
+  give_back_tags v segment.tags;
+  match (v.metadata, segment.first_id3) with
+    | `Sent m, Some m' when m == m' -> v.metadata <- `Pending m
+    | _ -> ()
+
+let media_playlist v = v.name ^ ".m3u8"
 
 let read_properties (e : Encoder.hls_encoder) =
   {
@@ -129,10 +141,11 @@ let video_size v =
 let iso_muxer = function
   | Encoder.Ffmpeg
       { Liquidsoap_ffmpeg_formats.Encoder_format.format = Some m; _ } ->
-      List.mem m ["mp4"; "mov"; "ipod"; "ismv"]
+      List.mem m Liquidsoap_ffmpeg_formats.Encoder_format.iso_family
   | _ -> false
 
-let segment_extension v = if v.extname = "mp4" then "m4s" else v.extname
+let segment_extension v =
+  if iso_muxer v.format && v.extname = "mp4" then "m4s" else v.extname
 
 (* spec/files.md §2: the container's extension, whatever [extname] says. *)
 let init_extension v = if iso_muxer v.format then "mp4" else v.extname

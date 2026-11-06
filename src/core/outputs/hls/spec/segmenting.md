@@ -162,17 +162,18 @@ segment's rounded length stays at or below `T` when it does.
 A segment opens with a start time. It takes, from its variant, the pending
 discontinuity flag, the pending inserted tags
 ([metadata.md §3](metadata.md#3-inserted-tags)) and the current init
-segment. Before any encoder byte, in this order, it receives the ID3 tag
-for its start when one is due ([metadata.md §2](metadata.md#2-id3)), then
-the encoder's `header()` bytes.
+segment. Before any encoder byte, it receives the ID3 tag for its start
+when one is due ([metadata.md §2](metadata.md#2-id3)).
 
 The first segment of a run opens at media time 0, at the first chunk.
 
 A segment with no encoder bytes, or with length 0, MUST NOT be published or
 listed: it is dropped. A segment is dropped also when aborted
-([operator.md §6](operator.md#6-errors-and-reopening)). A dropped segment
-gives its discontinuity flag and inserted tags back to the variant's
-pending state, so the next segment carries them.
+([operator.md §6](operator.md#6-errors-and-reopening)), or when publishing
+it fails ([files.md §4](files.md#4-closing-a-segment)). A dropped segment
+gives its discontinuity flag, its inserted tags and the first ID3 tag of new
+metadata it carried back to the variant's pending state, so the next segment
+carries them.
 
 ## 7. Output-wide cuts
 

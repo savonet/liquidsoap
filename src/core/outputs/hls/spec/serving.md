@@ -37,11 +37,14 @@ named by an `EXT-X-KEY` tag, player pages, images.
 For a request path under the base path (other paths are the HTTP
 server's, which the handler never sees):
 
-1. The rest is percent-decoded. A tracked name equal to it: the response of
-   §4, with the content type of its kind (§4.1).
+1. The rest is percent-decoded, `+` kept as is (RFC 3986 paths have no
+   form encoding), and taken in canonical form
+   ([files.md §2](files.md#2-file-names)). A path that does not decode is a 404. A tracked name equal to it: the response of §4, with the content
+   type of its kind (§4.1).
 2. Otherwise, a path with a NUL byte or a `..` component (split on `/`,
    and also on `\` where the system uses it) is a 404. So is the output's
-   state file, and any temporary file of the output.
+   state file and its temporary file, in any spelling of their names, and
+   any temporary file of the output.
 3. Otherwise, a regular file at that path under the directory: the
    response of §4, with the content type its extension gives, if any. A
    directory or a missing file: 404.

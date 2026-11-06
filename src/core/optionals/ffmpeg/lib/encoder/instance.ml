@@ -373,12 +373,10 @@ let chains t =
     | `Stream -> true
     | `Url u -> String.length u > 5 && String.sub u 0 5 = "file:"
 
-let iso_family = ["mp4"; "mov"; "ipod"; "ismv"]
-
 (* encoder.md §13.2 step 3. *)
 let continued_format (format : F.t) =
   match (format.format, List.assoc_opt "movflags" format.opts) with
-    | Some m, Some (`String flags) when List.mem m iso_family ->
+    | Some m, Some (`String flags) when List.mem m F.iso_family ->
         {
           format with
           opts =
@@ -503,7 +501,7 @@ let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"]
 let segment_muxer = function
   | Some m ->
       m = "mpegts" || m = "webvtt" || List.mem m packed_audio
-      || List.mem m iso_family
+      || List.mem m F.iso_family
   | None -> false
 
 (* encoder.md §3 step 2. *)
@@ -513,7 +511,7 @@ let hls_defaults (format : F.t) =
   in
   let opts =
     match format.format with
-      | Some m when List.mem m iso_family ->
+      | Some m when List.mem m F.iso_family ->
           default "movflags" "+frag_custom+dash+delay_moov" format.opts
       | Some "mpegts" -> default "avoid_negative_ts" "disabled" format.opts
       | _ -> format.opts
@@ -614,24 +612,34 @@ let insert_id3 t h ~time m =
         run_id3_queue h;
         None
 
+type stream_attrs = {
+  codec_attr : string option;
+  bitrate : int option;
+  video_size : (int * int) option;
+}
+
 let streams_attrs t =
   List.filter_map
     (function
       | _, `Copy track ->
           Some
-            ( Copy_encoder.codec_attr track,
-              Copy_encoder.bitrate track,
-              Copy_encoder.video_size track )
+            {
+              codec_attr = Copy_encoder.codec_attr track;
+              bitrate = Copy_encoder.bitrate track;
+              video_size = Copy_encoder.video_size track;
+            }
       | _, `Encoded track ->
           Some
-            ( track.Encoded_stream.codec_attr (),
-              track.bitrate (),
-              track.video_size () )
+            {
+              codec_attr = track.Encoded_stream.codec_attr ();
+              bitrate = track.bitrate ();
+              video_size = track.video_size ();
+            }
       | _, `Drop -> None)
     t.current.tracks
 
 let codec_attrs t =
-  let attrs = List.map (fun (c, _, _) -> c) (streams_attrs t) in
+  let attrs = List.map (fun a -> a.codec_attr) (streams_attrs t) in
   if attrs <> [] && List.for_all Option.is_some attrs then
     Some (String.concat "," (List.filter_map Fun.id attrs))
   else (
@@ -639,13 +647,13 @@ let codec_attrs t =
     None)
 
 let bitrate t =
-  let rates = List.map (fun (_, b, _) -> b) (streams_attrs t) in
+  let rates = List.map (fun a -> a.bitrate) (streams_attrs t) in
   if rates <> [] && List.for_all Option.is_some rates then
     Some (List.fold_left (fun sum b -> sum + Option.get b) 0 rates)
   else None
 
 let video_size t =
-  match List.filter_map (fun (_, _, v) -> v) (streams_attrs t) with
+  match List.filter_map (fun a -> a.video_size) (streams_attrs t) with
     | [v] -> Some v
     | _ -> None
 
@@ -664,15 +672,20 @@ let hls_stop t h =
   let buffer = Hls_split.buffer h.split in
   let held = Buffer.contents buffer in
   Buffer.clear buffer;
-  taken.pieces
-  @ if held = "" then [] else [Encoder.Bytes (Strings.of_string held)]
+  {
+    Encoder.init = Option.join taken.init;
+    pieces =
+      (taken.pieces
+      @ if held = "" then [] else [Encoder.Bytes (Strings.of_string held)]);
+  }
 
 let create_hls ~pos ~name format : Encoder.hls_encoder =
   let format = hls_defaults format in
   let fields = List.map fst (non_drop format) in
   let muxer = ref "" in
   let init_length buffer offset =
-    if List.mem !muxer iso_family then mp4_init_length buffer offset else Some 0
+    if List.mem !muxer F.iso_family then mp4_init_length buffer offset
+    else Some 0
   in
   let h =
     {
@@ -705,7 +718,6 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
       (fun ~boundary ~force frame ->
         (hls_encode t h ~boundary ~force frame).pieces);
     insert_id3 = (fun ~time m -> insert_id3 t h ~time m);
-    hls_header = (fun () -> Strings.empty);
     hls_stop = (fun () -> hls_stop t h);
     codec_attrs = (fun () -> codec_attrs t);
     independent_segments = (fun () -> independent_segments t);

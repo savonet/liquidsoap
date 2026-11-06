@@ -1171,6 +1171,41 @@
    hls_construction_errors.liq)))
 
 (rule
+ (alias test_hls_construction_playlist_name)
+ (package liquidsoap)
+ (deps
+  hls_construction_playlist_name.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_construction_playlist_name.liq
+   liquidsoap
+   hls_construction_playlist_name.liq)))
+
+(rule
  (alias test_hls_construction_variants)
  (package liquidsoap)
  (deps
@@ -1363,6 +1398,37 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} hls_harbor_id.liq liquidsoap hls_harbor_id.liq)))
+
+(rule
+ (alias test_hls_harbor_paths)
+ (package liquidsoap)
+ (deps
+  hls_harbor_paths.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} hls_harbor_paths.liq liquidsoap hls_harbor_paths.liq)))
 
 (rule
  (alias test_hls_harbor_serving)
@@ -1695,6 +1761,41 @@
    hls_mp3_vbr_bandwidth.liq)))
 
 (rule
+ (alias test_hls_overhead_null_state)
+ (package liquidsoap)
+ (deps
+  hls_overhead_null_state.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_overhead_null_state.liq
+   liquidsoap
+   hls_overhead_null_state.liq)))
+
+(rule
  (alias test_hls_persist_corrupt)
  (package liquidsoap)
  (deps
@@ -1864,6 +1965,41 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} hls_persist_strict.liq liquidsoap hls_persist_strict.liq)))
+
+(rule
+ (alias test_hls_persist_unstarted_sleep)
+ (package liquidsoap)
+ (deps
+  hls_persist_unstarted_sleep.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_persist_unstarted_sleep.liq
+   liquidsoap
+   hls_persist_unstarted_sleep.liq)))
 
 (rule
  (alias test_hls_playlist_main)
@@ -3533,12 +3669,14 @@
   (alias test_hls_callback_raises)
   (alias test_hls_cleanup)
   (alias test_hls_construction_errors)
+  (alias test_hls_construction_playlist_name)
   (alias test_hls_construction_variants)
   (alias test_hls_default_id)
   (alias test_hls_deleted_segment)
   (alias test_hls_file_events)
   (alias test_hls_file_modes)
   (alias test_hls_harbor_id)
+  (alias test_hls_harbor_paths)
   (alias test_hls_harbor_serving)
   (alias test_hls_id3_bytes)
   (alias test_hls_id3_timestamp)
@@ -3549,11 +3687,13 @@
   (alias test_hls_metadata_covers)
   (alias test_hls_metadata_cuts)
   (alias test_hls_mp3_vbr_bandwidth)
+  (alias test_hls_overhead_null_state)
   (alias test_hls_persist_corrupt)
   (alias test_hls_persist_deleted_segment)
   (alias test_hls_persist_round_trip)
   (alias test_hls_persist_state_removed)
   (alias test_hls_persist_strict)
+  (alias test_hls_persist_unstarted_sleep)
   (alias test_hls_playlist_main)
   (alias test_hls_playlist_uris)
   (alias test_hls_retention)

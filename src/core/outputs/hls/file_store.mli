@@ -21,9 +21,19 @@ val create :
   unit ->
   t
 
-val dir : t -> string
+(** [name] relative to the directory, without empty or [.] components: the one
+    form names are compared in. *)
+val canonical : string -> string
 
-(** Relative, without [..], neither reserved nor tracked. *)
+val path : t -> string -> string
+
+(** Whether [name], in any spelling, is reserved. *)
+val reserved : t -> string -> bool
+
+(** Relative, canonical, without [..], not reserved. *)
+val allowed : t -> string -> bool
+
+(** [allowed] and not tracked. *)
 val valid_name : t -> string -> bool
 
 (** Temporary files of the output carry this prefix. *)
@@ -42,7 +52,7 @@ val delete : t -> string -> unit
 (** Tracks a file found on disk, for a restore; no event. *)
 val track : t -> string -> kind -> unit
 
-val is_tracked : t -> string -> bool
-
 (** A snapshot. *)
 val tracked : t -> (string * kind) list
+
+val kind : t -> string -> kind option

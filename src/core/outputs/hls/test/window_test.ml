@@ -66,7 +66,21 @@ let () =
         (Window.duration (Window.listed w) >= 18.
         || Window.duration w.segments < 18.))
     [6.; 6.; 6.; 6.; 1.; 1.; 1.; 1.; 1.; 6.; 6.];
-  check "overhead null keeps everything" (List.length w.segments = 11)
+  check "overhead null keeps what is available" (List.length w.segments = 11)
+
+(* files.md §5: with overhead null, what is no longer available leaves the
+   window's state, and nothing listed does. *)
+let () =
+  let w = Window.create () in
+  let forgotten =
+    List.concat_map
+      (fun _ -> step w ~max_segments:3 ~target:1 ~overhead:None 1.)
+      (List.init 40 Fun.id)
+  in
+  check "overhead null bounds the state"
+    (List.length w.segments < 20 && List.length forgotten > 20);
+  check "overhead null keeps the listed segments"
+    (List.for_all (fun s -> List.memq s w.segments) (Window.listed w))
 
 (* KC8: the discontinuity sequence counts discontinuities that left. *)
 let () =

@@ -142,8 +142,20 @@ type lookup =
   | `Forbidden
   | `Other ]
 
+(* Written by the streaming thread, read by harbor handlers. *)
 let registry : (string, < lookup : string -> lookup >) Hashtbl.t =
   Hashtbl.create 4
+
+let registry_lock = Mutex.create ()
+let registered f = Mutex.protect registry_lock (fun () -> f registry)
+
+(* The variant's main values, for the main playlist writer. *)
+type main_value = {
+  name : string;
+  bandwidth : int;
+  codecs : string option;
+  video_size : (int * int) option;
+}
 
 class output p =
   let source_val = Lang.assoc "" 3 p in
@@ -248,18 +260,30 @@ class output p =
           then invalid variants_value "Variant names must be unique";
           List.map (build_variant ~pos) l
   in
-  let reserved =
-    (playlist :: List.map (fun v -> v.Variant.name ^ ".m3u8") variants)
-    @
-      match persist_at with
-      | Some f when String.starts_with ~prefix:(Filename.concat dir "") f ->
+  let () =
+    if
+      List.exists
+        (fun v -> Variant.media_playlist v = File_store.canonical playlist)
+        variants
+    then
+      invalid (arg "playlist")
+        "The main playlist has the name of a variant's media playlist"
+  in
+  let state_names =
+    let prefix = Filename.concat dir "" in
+    match persist_at with
+      | Some f when String.starts_with ~prefix f ->
           let rel =
-            String.sub f
-              (String.length dir + 1)
-              (String.length f - String.length dir - 1)
+            File_store.canonical
+              (String.sub f (String.length prefix)
+                 (String.length f - String.length prefix))
           in
           [rel; rel ^ ".tmp"]
       | _ -> []
+  in
+  let reserved =
+    (File_store.canonical playlist :: List.map Variant.media_playlist variants)
+    @ state_names
   in
   object (self)
     inherit
@@ -352,6 +376,17 @@ class output p =
             v.current_init <- Some name;
             v.inits <- v.inits @ [name]
 
+    (* The encoder's first init segment, at [init_encode] or at its stop: a
+       stopped encoder may no longer answer its properties. *)
+    method private apply_init v r (ready : Encoder.hls_ready) =
+      (try r.Variant.properties <- Some (Variant.read_properties r.encoder)
+       with _ when r.encoder_stopped -> ());
+      self#set_init v ready.init;
+      (match Segmenter.current r.segmenter with
+        | Some s -> s.init <- v.current_init
+        | None -> ());
+      ready.pieces
+
     method private open_segment v ~start =
       let run = Option.get v.Variant.run in
       let segment =
@@ -360,19 +395,25 @@ class output p =
           discontinuous = v.pending_discontinuity;
           tags = Variant.take_tags v;
           init = v.current_init;
+          first_id3 = None;
         }
       in
       v.pending_discontinuity <- false;
+      let first_id3 =
+        match (v.id3_mode, v.metadata) with
+          | `Prepended, `Pending m ->
+              v.metadata <- `Sent m;
+              Some m
+          | _ -> None
+      in
+      let segment = { segment with first_id3 } in
       let id3 =
         match v.id3_mode with
           | `None -> None
           | `Prepended ->
               let m =
-                match (v.metadata, v.fields.replay_id3) with
-                  | `Pending m, _ ->
-                      v.metadata <- `Sent m;
-                      m
-                  | `Sent m, true -> m
+                match (first_id3, v.metadata, v.fields.replay_id3) with
+                  | Some m, _, _ | None, `Sent m, true -> m
                   | _ -> Frame.Metadata.Export.empty
               in
               run.encoder.insert_id3 ~time:start m
@@ -385,22 +426,15 @@ class output p =
                 | _ -> ());
               None
       in
-      let prefix =
-        Strings.append
-          (match id3 with
-            | Some tag -> Strings.of_string tag
-            | None -> Strings.empty)
-          (run.encoder.hls_header ())
-      in
-      (segment, prefix)
+      ( segment,
+        match id3 with
+          | Some tag -> Strings.of_string tag
+          | None -> Strings.empty )
 
     method private close_segment v (closed : Variant.segment Segmenter.closed) =
       let segment = closed.payload in
       let discontinuous = segment.discontinuous || closed.discontinuous in
-      if not closed.publishable then (
-        v.Variant.pending_discontinuity <-
-          v.pending_discontinuity || discontinuous;
-        Variant.give_back_tags v segment.tags)
+      if not closed.publishable then Variant.give_back v segment ~discontinuous
       else (
         (match v.run with
           | Some ({ properties = Some _; encoder_stopped = false; _ } as r) -> (
@@ -411,16 +445,17 @@ class output p =
 
     (* spec/files.md §4. *)
     method private publish v segment closed ~discontinuous =
-      let name =
-        self#segment_name v ~position:v.Variant.window.next_position
-          ~extname:(Variant.segment_extension v)
-          ~ticks:closed.length
-      in
-      let fire =
-        try File_store.write self#store ~name (`Segment v.name) closed.bytes
+      let name, fire =
+        try
+          let name =
+            self#segment_name v ~position:v.Variant.window.next_position
+              ~extname:(Variant.segment_extension v)
+              ~ticks:closed.length
+          in
+          ( name,
+            File_store.write self#store ~name (`Segment v.name) closed.bytes )
         with exn ->
-          v.pending_discontinuity <- v.pending_discontinuity || discontinuous;
-          Variant.give_back_tags v segment.tags;
+          Variant.give_back v segment ~discontinuous;
           raise exn
       in
       let codecs = Variant.encoder_answer v (fun p -> p.codecs) in
@@ -477,14 +512,19 @@ class output p =
             entries;
           }
       in
-      File_store.write_now self#store ~name:(v.name ^ ".m3u8") `Playlist
+      File_store.write_now self#store ~name:(Variant.media_playlist v) `Playlist
         (Strings.of_string bytes);
       Window.mark_listed v.window
 
     method private retention v =
-      List.iter
-        (fun (s : Window.segment) -> File_store.delete self#store s.name)
-        (Window.expire v.Variant.window ~overhead);
+      let expired = Window.expire v.Variant.window ~overhead in
+      if overhead <> None then (
+        List.iter
+          (fun (s : Window.segment) -> File_store.delete self#store s.name)
+          expired;
+        self#init_retention v)
+
+    method private init_retention v =
       let referenced =
         Option.to_list v.current_init
         @ Window.referenced_inits v.window
@@ -506,7 +546,7 @@ class output p =
       let bandwidth = Variant.bandwidth v ~target in
       let codecs = Variant.codecs v in
       let video_size = Variant.video_size v in
-      (v.Variant.name, bandwidth, codecs, video_size)
+      { name = v.Variant.name; bandwidth; codecs; video_size }
 
     (* spec/playlists.md §3. *)
     method private write_main_playlist =
@@ -514,7 +554,7 @@ class output p =
       then (
         let values = List.map self#variant_value variants in
         List.iter2
-          (fun v (_, announced, codecs, _) ->
+          (fun v { bandwidth = announced; codecs; _ } ->
             if codecs = None then
               self#log#important
                 "Variant %s: no codec string, CODECS is left out" v.Variant.name;
@@ -533,7 +573,7 @@ class output p =
             | Some writer -> (
                 let streams =
                   List.map
-                    (fun (name, bandwidth, codecs, video_size) ->
+                    (fun { name; bandwidth; codecs; video_size } ->
                       Lang.meth (Lang.string name)
                         ([
                            ("bandwidth", Lang.int bandwidth);
@@ -583,9 +623,7 @@ class output p =
     (* spec/persistence.md §3. *)
     method private save =
       match persist_at with
-        | None -> ()
-        | Some _ when life = Restore_failed -> ()
-        | Some file -> (
+        | Some file when self#awake -> (
             try
               let temp = file ^ ".tmp" in
               let oc = open_out_bin temp in
@@ -596,6 +634,9 @@ class output p =
             with exn ->
               self#log#important "Could not save the state to %s: %s" file
                 (Printexc.to_string exn))
+        | _ -> ()
+
+    method private awake = match life with Awake _ -> true | _ -> false
 
     (* spec/persistence.md §4. *)
     method private restore =
@@ -609,10 +650,7 @@ class output p =
               Result.bind content
                 (Persist.of_string
                    ~names:(List.map (fun v -> v.Variant.name) variants)
-                   ~valid_name:(fun n ->
-                     n <> "" && Filename.is_relative n
-                     && (not (List.mem ".." (String.split_on_char '/' n)))
-                     && not (List.mem n reserved)))
+                   ~valid_name:(File_store.allowed self#store))
             in
             match parsed with
               | Error reason when strict_persist ->
@@ -635,7 +673,7 @@ class output p =
 
     method private apply_saved (saved : Persist.variant) =
       let v = List.find (fun v -> v.Variant.name = saved.name) variants in
-      let path name = Filename.concat dir name in
+      let path = File_store.path self#store in
       let present (s : Persist.segment) =
         Sys.file_exists (path s.name)
         && Option.fold ~none:true
@@ -719,7 +757,8 @@ class output p =
       state <- `Running
 
     method private start =
-      Hashtbl.replace registry self#id (self :> < lookup : string -> lookup >);
+      registered (fun r ->
+          Hashtbl.replace r self#id (self :> < lookup : string -> lookup >));
       (match life with
         | Asleep | Restore_failed ->
             let restored = self#restore in
@@ -741,8 +780,12 @@ class output p =
                 | None -> ()
                 | Some r -> (
                     (try
-                       let pieces = r.encoder.hls_stop () in
+                       let ready = r.encoder.hls_stop () in
                        r.encoder_stopped <- true;
+                       let pieces =
+                         if r.properties = None then self#apply_init v r ready
+                         else ready.pieces
+                       in
                        if Segmenter.current r.segmenter <> None then
                          self#apply_pieces v pieces
                      with exn ->
@@ -771,9 +814,7 @@ class output p =
             | Some r -> (
                 match Segmenter.abort r.segmenter with
                   | Some s ->
-                      v.pending_discontinuity <-
-                        v.pending_discontinuity || s.discontinuous;
-                      Variant.give_back_tags v s.tags
+                      Variant.give_back v s ~discontinuous:s.discontinuous
                   | None -> ())
             | None -> ());
           v.run <- None)
@@ -798,10 +839,10 @@ class output p =
         (fun v ->
           v.Variant.window <- Window.create ();
           v.inits <- [];
-          v.pending_tags <- [];
+          ignore (Variant.take_tags v);
           v.pending_discontinuity <- false)
         variants;
-      Hashtbl.remove registry self#id;
+      registered (fun r -> Hashtbl.remove r self#id);
       life <- Asleep;
       store <- None;
       state <- `Idle
@@ -936,20 +977,14 @@ class output p =
             (fun v ->
               let r = Option.get v.Variant.run in
               let split_due = r.properties <> None && r.encoder.split_due () in
-              let force = Segmenter.bound ~split_due r.segmenter ~length in
+              let force = Segmenter.bound ~split_due ~length r.segmenter in
               let boundary = Segmenter.request r.segmenter in
               if r.properties <> None then
                 r.encoder.split_encode ~boundary ~force chunk
               else (
                 match r.encoder.init_encode ~boundary chunk with
                   | Encoder.Pending -> []
-                  | Encoder.Init { init; pieces } ->
-                      r.properties <- Some (Variant.read_properties r.encoder);
-                      self#set_init v init;
-                      (match Segmenter.current r.segmenter with
-                        | Some s -> s.init <- v.current_init
-                        | None -> ());
-                      pieces))
+                  | Encoder.Init ready -> self#apply_init v r ready))
             variants
         in
         List.iter2
@@ -997,41 +1032,33 @@ class output p =
 
     (* spec/serving.md §3 and §4: what a request path names. *)
     method lookup rel =
+      let rel = File_store.canonical rel in
       let forbidden =
         String.contains rel '\000'
-        || List.mem ".."
-             (String.split_on_char '/'
-                (if Sys.win32 then
-                   String.map (function '\\' -> '/' | c -> c) rel
-                 else rel))
+        || List.mem ".." (String.split_on_char '/' rel)
         || String.starts_with ~prefix:File_store.temp_prefix
              (Filename.basename rel)
-        || List.exists
-             (fun f ->
-               f = Filename.concat dir rel
-               || f ^ ".tmp" = Filename.concat dir rel)
-             (Option.to_list persist_at)
+        || List.mem rel state_names
       in
-      match List.assoc_opt rel (File_store.tracked self#store) with
+      match Option.bind store (fun s -> File_store.kind s rel) with
         | Some `Playlist ->
             `Tracked (Content_type.playlist, `Max_age (target / 2))
         | Some (`Segment name) ->
-            let v = List.find (fun v -> v.name = name) variants in
+            let v = List.find (fun (v : Variant.t) -> v.name = name) variants in
             let lifetime =
               match
                 List.find_opt
                   (fun (s : Window.segment) -> s.name = rel)
                   v.window.segments
               with
-                | Some seg ->
-                    seg.duration +. Window.duration (Window.listed v.window)
+                | Some seg -> Window.lifetime v.window seg
                 | None -> 0.
             in
             `Tracked
               ( Content_type.segment v,
                 `Expires (int_of_float (Float.ceil lifetime)) )
         | Some (`Init name) ->
-            let v = List.find (fun v -> v.name = name) variants in
+            let v = List.find (fun (v : Variant.t) -> v.name = name) variants in
             let lifetime = Window.duration (Window.listed v.window) in
             `Tracked
               ( Content_type.init v,
@@ -1295,7 +1322,7 @@ let _ =
             ("headers", Lang.list (List.map header headers));
           ]
       in
-      match Hashtbl.find_opt registry id with
+      match registered (fun r -> Hashtbl.find_opt r id) with
         | None -> result "forbidden" "" []
         | Some o -> (
             match o#lookup rel with

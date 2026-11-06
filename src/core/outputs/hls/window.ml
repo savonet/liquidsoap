@@ -91,23 +91,24 @@ let available t s =
     | Some left_at -> t.closed -. left_at < s.duration +. s.listed_max
 
 let expire t ~overhead =
-  match overhead with
-    | None -> []
-    | Some overhead ->
-        let left = List.filter (fun s -> s.left_at <> None) t.segments in
-        let left_after s =
-          List.length (List.filter (fun s' -> s'.position > s.position) left)
-        in
-        let expired, kept =
-          List.partition
-            (fun s ->
-              s.left_at <> None
-              && (not (available t s))
-              && left_after s >= overhead)
-            t.segments
-        in
-        t.segments <- kept;
-        expired
+  let left = List.filter (fun s -> s.left_at <> None) t.segments in
+  let left_after s =
+    List.length (List.filter (fun s' -> s'.position > s.position) left)
+  in
+  let expired, kept =
+    List.partition
+      (fun s ->
+        s.left_at <> None
+        && (not (available t s))
+        && Option.fold ~none:true ~some:(fun n -> left_after s >= n) overhead)
+      t.segments
+  in
+  t.segments <- kept;
+  expired
+
+let lifetime t s =
+  s.duration +. s.listed_max
+  -. Option.fold ~none:0. ~some:(fun l -> t.closed -. l) s.left_at
 
 let referenced_inits t = List.filter_map (fun s -> s.init) t.segments
 

@@ -137,7 +137,7 @@ let mime = function
   | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.mime m
   | _ -> "application/octet-stream"
 
-(** Bitrate estimation in kbits per second. *)
+(** Bitrate estimation in bits per second. *)
 let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
@@ -170,17 +170,15 @@ type hls_piece =
   | Split of { time : int; forced : bool }
   | Restart of { time : int; init : string option }
 
-type hls_init =
-  | Pending
-  | Init of { init : string option; pieces : hls_piece list }
+type hls_ready = { init : string option; pieces : hls_piece list }
+type hls_init = Pending | Init of hls_ready
 
 type hls_encoder = {
   init : ?id3:bool -> ?id3_version:int -> unit -> (hls_id3_mode, string) result;
   init_encode : boundary:int -> Frame.t -> hls_init;
   split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
   insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
-  hls_header : unit -> Strings.t;
-  hls_stop : unit -> hls_piece list;
+  hls_stop : unit -> hls_ready;
   codec_attrs : unit -> string option;
   independent_segments : unit -> bool;
   free_split : unit -> bool;
@@ -236,7 +234,6 @@ let protect_hls e =
       (fun ~boundary ~force f ->
         p (fun () -> e.split_encode ~boundary ~force f));
     insert_id3 = (fun ~time m -> p (fun () -> e.insert_id3 ~time m));
-    hls_header = (fun () -> p e.hls_header);
     hls_stop = (fun () -> p e.hls_stop);
     codec_attrs = (fun () -> p e.codec_attrs);
     independent_segments = (fun () -> p e.independent_segments);

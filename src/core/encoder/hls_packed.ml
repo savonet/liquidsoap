@@ -28,8 +28,7 @@ let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
         let split = Encoder.Split { time = !time; forced = force } in
         [split; Bytes (encode frame)]);
     insert_id3 = (fun ~time m -> Some (Hls_id3.make ~version:!version ~time m));
-    hls_header = (fun () -> Strings.empty);
-    hls_stop = (fun () -> [Bytes (encoder.stop ())]);
+    hls_stop = (fun () -> { init = None; pieces = [Bytes (encoder.stop ())] });
     codec_attrs = (fun () -> codecs format);
     independent_segments = (fun () -> true);
     free_split = (fun () -> true);

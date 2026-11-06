@@ -26,18 +26,31 @@ let create ~dir ~temp_dir ~perm ~dir_perm ~reserved ~on_event () =
     lock = Mutex.create ();
   }
 
-let dir t = t.dir
 let path t name = Filename.concat t.dir name
 let locked t f = Mutex.protect t.lock f
 let is_tracked t name = locked t (fun () -> Hashtbl.mem t.tracked name)
 let tracked t = locked t (fun () -> List.of_seq (Hashtbl.to_seq t.tracked))
+let kind t name = locked t (fun () -> Hashtbl.find_opt t.tracked name)
 let track t name kind = locked t (fun () -> Hashtbl.replace t.tracked name kind)
 
-let valid_name t name =
+let canonical name =
+  let name =
+    if Sys.win32 then String.map (function '\\' -> '/' | c -> c) name
+    else name
+  in
+  String.split_on_char '/' name
+  |> List.filter (fun s -> s <> "" && s <> ".")
+  |> String.concat "/"
+
+let reserved t name = List.mem (canonical name) t.reserved
+
+let allowed t name =
   name <> "" && Filename.is_relative name
+  && canonical name = name
   && (not (List.mem ".." (String.split_on_char '/' name)))
-  && (not (List.mem name t.reserved))
-  && not (is_tracked t name)
+  && not (reserved t name)
+
+let valid_name t name = allowed t name && not (is_tracked t name)
 
 let temp_file t dir =
   let rec attempt n =

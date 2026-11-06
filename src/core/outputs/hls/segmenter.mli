@@ -19,9 +19,6 @@ type config = { duration : int; ticks_per_second : int }
 *)
 val target_duration : config -> int
 
-(** Seconds rounded to the nearest integer, halves up. *)
-val rounded_seconds : config -> int -> int
-
 (** A segment handed back by the segmenter:
     - [length]: in ticks;
     - [discontinuous]: opened by a restart or a discontinuous sync cut;
@@ -62,7 +59,7 @@ val request : 'a t -> int
     first segment if none is open. Returns [true] when the encoder must be asked
     to force a split; with [split_due] (a split point on its way from the
     encoder) nothing is cut or forced. *)
-val bound : ?split_due:bool -> 'a t -> length:int -> bool
+val bound : ?split_due:bool -> length:int -> 'a t -> bool
 
 val advance : 'a t -> int -> unit
 val add_bytes : 'a t -> Strings.t -> unit

@@ -42,8 +42,11 @@ once per file and may be impure.
 (`<variant name>.m3u8`), the main playlist, and `persist_at` with its
 temporary file when they are inside the output directory.
 
-A name MUST be relative, MUST NOT contain a `..` component, MUST NOT be a
-reserved name, and MUST NOT be the name of a file the output tracks. A name
+Names are compared in their **canonical** form: the path relative to the
+output directory with its empty and `.` components removed (`./a//b` is
+`a/b`). A name MUST be relative and canonical, MUST NOT contain a `..`
+component, MUST NOT be a reserved name, and MUST NOT be the name of a file
+the output tracks. A name
 that breaks this makes the output fail, without `reopen_on_error`
 ([operator.md §6](operator.md#6-errors-and-reopening)). Reason: the first
 two would write outside the directory, the others would replace a file a
@@ -102,7 +105,11 @@ stays on disk while either holds:
   window after it.
 
 Otherwise it is deleted (§5.1). With `segments_overhead` `null`, nothing is
-deleted while running.
+deleted while running: a segment that is no longer available stays on disk
+and tracked, and is left out of the saved state
+([persistence.md §3](persistence.md#3-saving)) and of init retention, which
+then deletes nothing. Reason: the state stays bounded by the window however
+long the output runs.
 
 After a restore ([persistence.md §4](persistence.md#4-restoring)), a
 restored segment outside the window counts as having left it at the

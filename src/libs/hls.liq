@@ -231,7 +231,7 @@ def output.harbor.hls(
   if
     null.defined(persist_at)
     and not null.defined(tmpdir)
-    and not r/^\//.test(null.get(persist_at))
+    and not r/^[\/~]/.test(null.get(persist_at))
   then
     log.important(
       label="output.harbor.hls",
@@ -315,10 +315,20 @@ def output.harbor.hls(
     then
       response.status_code(404)
     else
-      rel = url.decode(null.get(rpath))
+      rel =
+        try
+          url.decode(plus=false, null.get(rpath))
+        catch _ do
+          null
+        end
+      rel = rel ?? ""
       fname = "#{dir}/#{rel}"
       r = output.file.hls.lookup(o.id(), rel)
       if
+        rel == ""
+      then
+        response.status_code(404)
+      elsif
         r.kind == "tracked" and file.exists(fname)
       then
         respond(request, response, r.content_type, r.headers, fname)

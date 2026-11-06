@@ -1214,7 +1214,9 @@
   (alias test_hls_x264_lookahead)
   (alias test_hls_fmp4_extname_restart)
   (alias test_hls_streams_extname)
-  (alias test_hls_iso_muxers)))
+  (alias test_hls_iso_muxers)
+  (alias test_hls_fmp4_short_stop)
+  (alias test_hls_harbor_iso_content_type)))
 
 ; HLS output conformance: copied H.264 with B-frames in three variants, AAC-LC
 ; and HE-AAC, a 2 s GOP whose key frames fall after or before each boundary.
@@ -1798,3 +1800,39 @@
    "HLS large internal frames"
    liquidsoap
    hls_large_frames.liq)))
+
+(rule
+ (alias test_hls_fmp4_short_stop)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_fmp4_short_stop.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS fMP4 variant stopped within its first segment"
+   liquidsoap
+   hls_fmp4_short_stop.liq)))
+
+(rule
+ (alias test_hls_harbor_iso_content_type)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_harbor_iso_content_type.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS ISO family segments served as video/iso.segment"
+   liquidsoap
+   hls_harbor_iso_content_type.liq)))

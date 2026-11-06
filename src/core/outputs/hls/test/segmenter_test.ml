@@ -53,7 +53,7 @@ let run ?(syncs = []) ?(restarts = []) ~duration ~until encoder =
       (fun (time, discontinuous) ->
         if time = before then Segmenter.sync seg ~time ~discontinuous)
       syncs;
-    let force = Segmenter.bound seg ~length:chunk in
+    let force = Segmenter.bound ~length:chunk seg in
     Segmenter.advance seg chunk;
     if List.mem before restarts then (
       Segmenter.restart seg ~time:before;
@@ -83,7 +83,7 @@ let run ?(syncs = []) ?(restarts = []) ~duration ~until encoder =
 let every ~offset ~step ~until =
   List.init (((until - offset) / step) + 1) (fun i -> offset + (i * step))
 
-let rounded = Segmenter.rounded_seconds (config ~duration:6000)
+let rounded ticks = int_of_float (Float.round (float ticks /. float tps))
 
 (* §4.2 worked example and KC3: key frames 0.1 s after every 2 s. *)
 let () =
