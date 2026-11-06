@@ -191,7 +191,7 @@ let restart t ~time =
 let sync t ~time ~discontinuous =
   match t.segment with
     | None -> ()
-    | Some s when s.start = time ->
+    | Some s when s.start >= time ->
         s.discontinuous <- s.discontinuous || discontinuous
     | Some s -> (
         match List.rev (List.filter (fun p -> p.time >= time) s.splits) with

@@ -178,7 +178,9 @@ pending state, so the next segment carries them.
 
 A **sync cut** at media time `t` ends the open segment of every variant at
 that variant's first split point at or after `t` that is not already in a
-closed segment. Until it is made, `t` is a pending sync time of the variant
+closed segment. When the open segment starts at or after `t`, that point is
+its start: no cut is made, and the open segment takes the cut's
+discontinuity. Until it is made, `t` is a pending sync time of the variant
 and is passed as the request (§2), so encoders that make key frames make
 one at `t`, and free-split variants have a split point there. It is used
 for:
