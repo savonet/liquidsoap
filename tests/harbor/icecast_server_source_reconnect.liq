@@ -6,13 +6,7 @@
 port = 18136
 
 def f() =
-  dir = file.temp_dir("icecast", "reconnect")
-  config = path.concat(dir, "icecast.xml")
-  file.write(
-    data="<icecast><authentication><source-password>hackme</source-password></authentication></icecast>",
-    config
-  )
-  server = icecast.server(port=port, config=config)
+  server = icecast.server({port = port})
 
   source =
     output.icecast(
@@ -24,36 +18,46 @@ def f() =
       sine()
     )
 
+  # The status of `GET /back.mp3`, `"error"` when the request fails.
   def status() =
     sock = socket.unix()
-    sock.connect(
-      socket.address.internet_address(
-        socket.internet_address("127.0.0.1"),
-        port
+    try
+      sock.connect(
+        socket.address.internet_address(
+          socket.internet_address("127.0.0.1"),
+          port
+        )
       )
-    )
-    sock.write(
-      "GET /back.mp3 HTTP/1.0\r\n\r\n"
-    )
-    data = ref("")
-    def rec read() =
-      chunk =
-        try
-          sock.read(timeout=5.)
-        catch _ do
-          ""
+      sock.write(
+        "GET /back.mp3 HTTP/1.0\r\n\r\n"
+      )
+      data = ref("")
+      def rec read() =
+        chunk =
+          try
+            sock.read(timeout=5.)
+          catch _ do
+            ""
+          end
+        data := data() ^ chunk
+        if
+          chunk != ""
+          and not string.contains(
+            encoding="ascii",
+            substring="\r\n\r\n",
+            data()
+          )
+        then
+          read()
         end
-      data := data() ^ chunk
-      if
-        chunk != ""
-        and not string.contains(encoding="ascii", substring="\r\n\r\n", data())
-      then
-        read()
       end
+      read()
+      string.sub(encoding="ascii", data(), start=9, length=3)
+    catch _ do
+      "error"
+    finally
+      sock.close()
     end
-    read()
-    sock.close()
-    string.sub(encoding="ascii", data(), start=9, length=3)
   end
 
   def wait_for(label, expected) =
@@ -92,9 +96,16 @@ def f() =
       "source back",
       "200"
     )
-    for _ = 1 to 6 do
+    for i = 1 to 6 do
       thread.pause(0.5)
-      test.equal(status(), "200")
+      code = status()
+      if
+        code != "200"
+      then
+        test.fail(
+          "after a reconnect, check #{i}: status #{code}"
+        )
+      end
 
     end
     source.stop()
@@ -119,12 +130,25 @@ def f() =
       "quick reconnect",
       "200"
     )
-    for _ = 1 to 6 do
+    for i = 1 to 6 do
       thread.pause(0.5)
-      test.equal(status(), "200")
+      code = status()
+      if
+        code != "200"
+      then
+        test.fail(
+          "after a quick reconnect, check #{i}: status #{code}"
+        )
+      end
 
     end
-    test.equal(connections(), 3)
+    if
+      connections() != 3
+    then
+      test.fail(
+        "#{connections()} source logins, expected 3"
+      )
+    end
     test.pass()
   end
 

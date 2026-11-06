@@ -5,7 +5,8 @@
     {!stop} runs each group's last pass and closes its members. A pass is a
     [`Non_blocking] scheduler task: it flushes members owed bytes, times out
     stalled ones, removes the closed ones, closes their sockets and queues their
-    teardown as a [`Threaded] task. *)
+    teardown as a [`Threaded] task. Each member also has a [`Non_blocking] watch
+    on its socket's readability, which marks it closed when it hangs up. *)
 
 type t
 

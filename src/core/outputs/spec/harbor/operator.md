@@ -10,12 +10,12 @@ MUST keep every one of them unchanged; new optional parameters MAY be added.
 
 Shared with every output (generic output base, [contracts.md §3](contracts.md#3-output-base)):
 
-| Name              | Type    | Default | Meaning                                                                     |
-| ----------------- | ------- | ------- | --------------------------------------------------------------------------- |
-| `id`              | string? | null    | Source id. Also used to name the encoder. Null: the `mount` value as given. |
-| `start`           | bool    | `true`  | Start the output as soon as the source is available.                        |
-| `fallible`        | bool    | `false` | Accept a fallible source; the output stops while the source is unavailable. |
-| `register_telnet` | bool    | `true`  | Register telnet commands for this output.                                   |
+| Name              | Type    | Default | Meaning                                                                                                      |
+| ----------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------ |
+| `id`              | string? | null    | Source id. Also used to name the encoder. Null: the `mount` value as given.                                  |
+| `start`           | bool    | `true`  | Start the output as soon as the source is available.                                                         |
+| `fallible`        | bool    | `false` | Accept a fallible source; the output stops while the source is unavailable, unless `keep_listeners` is true. |
+| `register_telnet` | bool    | `true`  | Register telnet commands for this output.                                                                    |
 
 Shared with `output.icecast` (MIME derivation, [contracts.md §2](contracts.md#2-format-and-mime-derivation)):
 
@@ -26,24 +26,25 @@ Shared with `output.icecast` (MIME derivation, [contracts.md §2](contracts.md#2
 
 Specific to `output.harbor`:
 
-| Name                   | Type                           | Default                 | Meaning                                                                                                                       |
-| ---------------------- | ------------------------------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `mount`                | string                         | — (required)            | Mount path, matched literally. A leading `/` is added when absent ([connection.md §1](connection.md#1-routing)).              |
-| `port`                 | int                            | `8000`                  | Harbor port.                                                                                                                  |
-| `transport`            | http_transport                 | the plain TCP transport | Transport of the port. An SSL/TLS transport serves HTTPS. A transport value carrying extra methods MUST be accepted.          |
-| `timeout`              | float                          | `30.`                   | Seconds a listener owed bytes may go without accepting one ([delivery.md §5](delivery.md#5-no-progress-timeout)).             |
-| `encoding`             | string                         | `""`                    | Charset metadata values are converted to. Empty means UTF-8 ([icy.md §5](icy.md#5-charset)).                                  |
-| `url`                  | string?                        | null                    | Sent as `StreamUrl` in ICY blocks.                                                                                            |
-| `metaint`              | int                            | `8192`                  | ICY metadata interval, in stream bytes.                                                                                       |
-| `auth`                 | (record → bool)?               | null                    | Authentication function ([connection.md §3](connection.md#3-authentication)). Null: no authentication.                        |
-| `accept`               | (listener record → decision?)? | null                    | Admission predicate ([connection.md §4](connection.md#4-admission-predicate)). Null: every authenticated request is admitted. |
-| `buffer`               | int                            | `327675` (5 × 65535)    | How far, in stream bytes, a listener may fall behind the live stream ([modes.md §4](modes.md#4-flush)).                       |
-| `burst`                | int?                           | `65534`                 | Bytes of already-encoded stream a new listener receives first. Null: none. Shared mode only.                                  |
-| `headers`              | [(string, string)]             | `[]`                    | Extra response headers ([connection.md §5](connection.md#5-the-response-head)).                                               |
-| `dedicated_encoder`    | bool                           | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                              |
-| `allow_unsynced_clock` | bool                           | `false`                 | Allow running on a clock that is not paced in real time ([§7](#7-lifecycle)).                                                 |
-| `override_mount`       | bool                           | `false`                 | Advanced. Take over a mount another registration on the port already serves ([connection.md §1](connection.md#1-routing)).    |
-| (unlabeled, 2nd)       | source                         | —                       | The source to encode.                                                                                                         |
+| Name                   | Type                           | Default                 | Meaning                                                                                                                                                                                                                                                                 |
+| ---------------------- | ------------------------------ | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mount`                | string                         | — (required)            | Mount path, matched literally. A leading `/` is added when absent ([connection.md §1](connection.md#1-routing)).                                                                                                                                                        |
+| `port`                 | int                            | `8000`                  | Harbor port.                                                                                                                                                                                                                                                            |
+| `transport`            | http_transport                 | the plain TCP transport | Transport of the port. An SSL/TLS transport serves HTTPS. A transport value carrying extra methods MUST be accepted.                                                                                                                                                    |
+| `timeout`              | float                          | `30.`                   | Seconds a listener owed bytes may go without accepting one ([delivery.md §5](delivery.md#5-no-progress-timeout)).                                                                                                                                                       |
+| `encoding`             | string                         | `""`                    | Charset metadata values are converted to. Empty means UTF-8 ([icy.md §5](icy.md#5-charset)).                                                                                                                                                                            |
+| `url`                  | string?                        | null                    | Sent as `StreamUrl` in ICY blocks.                                                                                                                                                                                                                                      |
+| `metaint`              | int                            | `8192`                  | ICY metadata interval, in stream bytes.                                                                                                                                                                                                                                 |
+| `auth`                 | (record → bool)?               | null                    | Authentication function ([connection.md §3](connection.md#3-authentication)). Null: no authentication.                                                                                                                                                                  |
+| `accept`               | (listener record → decision?)? | null                    | Admission predicate; its decision may carry headers for the `200` reply and an `on_dropped` function called when an admitted request ends before `on_connect` ([connection.md §4](connection.md#4-admission-predicate)). Null: every authenticated request is admitted. |
+| `buffer`               | int                            | `327675` (5 × 65535)    | How far, in stream bytes, a listener may fall behind the live stream ([modes.md §4](modes.md#4-flush)).                                                                                                                                                                 |
+| `burst`                | int?                           | `65534`                 | Bytes of already-encoded stream a new listener receives first. Null: none. Shared mode only.                                                                                                                                                                            |
+| `headers`              | [(string, string)]             | `[]`                    | Extra response headers, fixed for the output ([connection.md §5](connection.md#5-the-response-head)). Request-dependent ones come from the decision's `headers`.                                                                                                        |
+| `dedicated_encoder`    | bool                           | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                                                                                                                                                                        |
+| `allow_unsynced_clock` | bool                           | `false`                 | Allow running on a clock that is not paced in real time ([§7](#7-lifecycle)).                                                                                                                                                                                           |
+| `override_mount`       | bool                           | `false`                 | Advanced. Take over a mount another registration on the port already serves ([connection.md §1](connection.md#1-routing)).                                                                                                                                              |
+| `keep_listeners`       | bool                           | `false`                 | With a fallible source: when the source is unavailable the output stays started and keeps its listeners ([§7](#7-lifecycle)).                                                                                                                                           |
+| (unlabeled, 2nd)       | source                         | —                       | The source to encode.                                                                                                                                                                                                                                                   |
 
 `dedicated_encoder` picks the mode once, at construction: `false` gives
 [shared-encoder.md](shared-encoder.md), `true` gives
@@ -70,7 +71,9 @@ script error points at its cause:
    default is not null, so a check would reject valid dedicated scripts.
 5. Every pair of `headers` MUST have a name that is an HTTP token and a value
    with no CR or LF. A line break in a value would end the response head or
-   inject headers.
+   inject headers. The same rule applies, at admission, to the headers of a
+   decision's refusal and to its admit headers
+   ([connection.md §4](connection.md#4-admission-predicate)).
 6. A non-empty `encoding` MUST name a charset the converter knows. An unknown
    name would otherwise fail later, on the streaming path, at the first
    metadata.
@@ -87,6 +90,10 @@ methods every output has), plus:
   handlers have run and that has not yet been marked closed
   ([delivery.md §6](delivery.md#6-disconnection)). `duration` and
   `bytes_sent` are read at call time. The order is unspecified.
+- `shutdown()`, the generic output method that ends the output for good: it
+  stops it, like `stop`, and the output does not start again. A caller that
+  holds the output with `keep_listeners` ends it this way
+  ([§7](#7-lifecycle)).
 
 `listeners()` MUST agree with the callbacks: a listener appears from the end
 of its synchronous `on_connect` handlers until it is marked closed, so it is
@@ -201,3 +208,31 @@ comes. The output is then stopped by the generic shutdown.
 **Fallible source.** When the output is fallible and its source becomes
 unavailable, the generic base stops the output, which disconnects every
 listener; it starts again when the source is available.
+
+**`keep_listeners`.** Some callers hold a mount open across a gap in its
+source and decide themselves when to end it. With `keep_listeners` true, an
+unavailable source does not stop the output:
+
+- the output starts at once, even when its source is not (yet) available: it
+  registers its mount and admits listeners, who receive the response head and
+  what the mode sends first and nothing more until the source is available. It
+  stays started, `on_stop` does not fire, and every listener stays connected;
+- while the source is unavailable the output produces no bytes. A listener
+  owed nothing is not disconnected: the no-progress timeout applies only to a
+  listener owed bytes ([delivery.md §5](delivery.md#5-no-progress-timeout)), so
+  the `timeout` parameter MUST NOT end a listener that waits for the source. A
+  listener that hangs up during the gap is still noticed and disconnected
+  promptly ([delivery.md §6](delivery.md#6-disconnection)), so counts stay
+  right;
+- a listener that arrives meanwhile is admitted as usual and receives the
+  response head and what the mode sends first
+  ([modes.md §2](modes.md#2-initial-bytes)), without a burst of pre-gap stream
+  ([shared-encoder.md §2](shared-encoder.md#2-initial-bytes));
+- when the source is available again the output serves again, and the encoder
+  follows the source as for any switch of source
+  ([encoder-copy.md §12](../../../optionals/ffmpeg/spec/encoder-copy.md#12-source-switching-and-per-source-state));
+- the output stops only by `stop`, by `shutdown()` or by process shutdown, which
+  end it as in [Stop](#7-lifecycle) above. Rationale: the caller, not the
+  harbor output, knows whether the gap is a blip or the end.
+
+Without `keep_listeners` nothing changes.

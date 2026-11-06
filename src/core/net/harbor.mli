@@ -59,7 +59,16 @@ type login_args = {
   query : (string * string) list;
   user : string;
   password : string;
+  credentials : bool;
+      (** Whether the request carried credentials: an HTTP request without them
+          has an empty [user] and [password]. *)
+  headers : (string * string) list;
+      (** The request headers, lowercase names. Empty for an ICY source, whose
+          headers follow its authentication. *)
 }
+
+(** Raised by a login function to refuse a source client with this reply. *)
+exception Refused of Harbor_refusal.t
 
 module type T = sig
   type socket

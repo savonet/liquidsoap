@@ -171,18 +171,20 @@ let () =
     (fun () -> Atomic.set should_shutdown true)
 
 (* One source client: its source and its life (io.md §10.2). *)
-class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
-  ~mime ~connection ~(client_read : Harbor.socket -> bytes -> int -> int -> int)
+class client ~(args : Lang.regexp Harbor_input.parse_result) ~timeout
+  ~request_uri ~id ~mime ~connection
+  ~(client_read : Harbor.socket -> bytes -> int -> int -> int)
   ~(on_end : client -> unit) =
   object (self)
     inherit
       Harbor_input.http_input_base
         ~dumpfile:None ~logfile:None ~bufferize:args.bufferize ~max:args.max
           ~replay_meta:args.replay_meta ~login:args.login ~debug:args.debug
-          ~timeout:args.timeout () as super
+          ~timeout () as super
 
+    method timeout : float = timeout
     val state : state Atomic.t = Atomic.make `Opening
-    val mutable connected = false
+    val handed = Atomic.make false
     val mutable peer_closed = false
     val mutable headers = []
 
@@ -195,6 +197,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
     method private register_decoder _ = ()
     method client_state = Atomic.get state
     method set_headers h = headers <- h
+    method hand_over = Atomic.set handed true
 
     (* The handler may start the output that wakes the source before the
        client is offered: that wake-up is answered here. *)
@@ -217,7 +220,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
       let socket = connection.Connection.socket in
       let rec read () =
         try
-          socket#wait_for ~log:(self#log#info "%s") `Read args.timeout;
+          socket#wait_for ~log:(self#log#info "%s") `Read timeout;
           client_read socket buf ofs len
         with Harbor.Retry -> read ()
       in
@@ -227,6 +230,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
             0
         | n ->
             if Atomic.get state = `Ended then raise Read_aborted;
+            self#count_read n;
             Option.iter
               (fun oc ->
                 output oc buf ofs n;
@@ -270,7 +274,6 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
                       (Generator.add_metadata self#buffer)
                       pending_metadata;
                     pending_metadata <- None;
-                    connected <- true;
                     List.iter
                       (fun fn -> fn headers)
                       (Callbacks.elements on_connect);
@@ -299,7 +302,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
                     ->
                       `Stopped
                   | Read_timeout ->
-                      `Fault (Printf.sprintf "no data for %.0fs" args.timeout)
+                      `Fault (Printf.sprintf "no data for %.0fs" timeout)
                   | exn -> `Fault (Printexc.to_string exn)
               in
               (match cause with
@@ -339,7 +342,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
               self#log#important
                 "Client %s: no output used its source within %.0fs, \
                  disconnected."
-                request_uri args.timeout
+                request_uri timeout
           | `End_of_input -> end_track ()
           | `Stopped -> ());
         Connection.abort connection;
@@ -348,7 +351,7 @@ class client ~(args : Lang.regexp Harbor_input.parse_result) ~request_uri ~id
         dump <- None;
         logf <- None;
         on_end (self :> client);
-        if connected then
+        if Atomic.get handed then
           List.iter (fun fn -> fn ()) (Callbacks.elements on_disconnect))
 
     (* The feed task, when one runs, finishes what it started: it holds the
@@ -479,12 +482,13 @@ let open_client ~args ~handler ~connection ~(relay : Harbor.relay_info) client =
                in
                client#set_headers relay.headers;
                let fn = Lang.apply handler [("", record)] in
+               client#hand_over;
                ignore (Lang.apply fn [("", source_value client)]);
                if client#offer container description then
                  Scheduler.Task.add
                    {
                      Scheduler.Task.priority = `Non_blocking;
-                     events = [`Delay args.Harbor_input.timeout];
+                     events = [`Delay client#timeout];
                      handler =
                        (fun _ ->
                          (match client#client_state with
@@ -515,7 +519,7 @@ let register ~(args : Lang.regexp Harbor_input.parse_result) ~handler =
     in
     let client =
       new client
-        ~args ~request_uri:info.uri ~id
+        ~args ~timeout:(args.timeout ()) ~request_uri:info.uri ~id
         ~mime:(Harbor_input.extract_mime info.stype)
         ~connection
         ~client_read:(Option.value ~default:Harbor.read info.read)

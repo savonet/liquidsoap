@@ -1,447 +1,1339 @@
 %include "../test.liq"
+%include "../../src/libs/extra/icecast_server/settings.liq"
+%include "../../src/libs/extra/icecast_server/headers.liq"
+%include "../../src/libs/extra/icecast_server/addresses.liq"
+%include "../../src/libs/extra/icecast_server/refusals.liq"
+%include "../../src/libs/extra/icecast_server/parameter_checks.liq"
+%include "../../src/libs/extra/icecast_server/parameters.liq"
+%include "../../src/libs/extra/icecast_server/mount_parameters.liq"
+%include "../../src/libs/extra/icecast_server/prerolls.liq"
+%include "../../src/libs/extra/icecast_server/decisions.liq"
+%include "../../src/libs/extra/icecast_server/url_auth_options.liq"
+%include "../../src/libs/extra/icecast_server/url_auth_reply.liq"
+%include "../../src/libs/extra/icecast_server/url_auth_request.liq"
+%include "../../src/libs/extra/icecast_server/url_auth.liq"
+%include "../../src/libs/extra/icecast_server/access.liq"
+%include "../../src/libs/extra/icecast_server/source_url.liq"
+%include "../../src/libs/extra/icecast_server/config/read.liq"
+%include "../../src/libs/extra/icecast_server/config/listen.liq"
+%include "../../src/libs/extra/icecast_server/config/limits.liq"
+%include "../../src/libs/extra/icecast_server/config/paths.liq"
+%include "../../src/libs/extra/icecast_server/config/headers.liq"
+%include "../../src/libs/extra/icecast_server/config/events.liq"
+%include "../../src/libs/extra/icecast_server/config/mount_auth.liq"
+%include "../../src/libs/extra/icecast_server/config/mount_entry.liq"
+%include "../../src/libs/extra/icecast_server/config/mounts.liq"
+%include "../../src/libs/extra/icecast_server/config/load.liq"
 
-def f() =
-  # <http-headers>: CORS defaults, explicit values, unknown CORS, plain headers
-  headers =
-    icecast.server.config.headers(
-      '<http-headers>
-         <header name="Access-Control-Allow-Origin" type="cors" />
-         <header name="Access-Control-Max-Age" type="cors" value="60" />
-         <header name="X-Unknown" type="cors" />
-         <header name="X-Robots-Tag" value="noindex" />
-         <header type="cors" />
-         <not-a-header name="X-Ignored" />
-       </http-headers>'
+# Translation of Icecast configuration files (icecast-config.md §12).
+checks = ref(0)
+log_path = file.temp("icecast-config", ".log")
+settings.log.file.path := log_path
+settings.log.file := true
+settings.log.level := 4
+directory = file.temp_dir(cleanup=true, "icecast-config")
+fixtures = ref(0)
+tls_factory_calls = ref([])
+settings.icecast.server.tls_transport :=
+  (
+    "fake",
+    fun (certificate, key) ->
+      begin
+        tls_factory_calls :=
+          [(getter.get(certificate), getter.get(key)), ...tls_factory_calls()]
+        http.transport.unix.{reload = fun () -> ()}
+      end
+  )
+
+def check_equal(label, got, expected) =
+  checks := checks() + 1
+  if
+    got != expected
+  then
+    test.fail(
+      "#{label}: got #{got}, expected #{expected}"
     )
-  test.equal(
-    headers,
+  end
+end
+
+def logged(text) =
+  log.flush()
+  list.exists(
+    fun (line) -> string.contains(substring=text, line),
+    file.lines(log_path)
+  )
+end
+
+def write(name, content) =
+  path = path.concat(directory, name)
+  file.write(data=content, path)
+  path
+end
+
+# Fixtures translated, and those whose translation warned.
+translated = ref(0)
+warned = ref(0)
+
+def load(~compatibility="icecast-2.5", ~warns=null, content) =
+  fixtures := fixtures() + 1
+  path = write("icecast-#{fixtures()}.xml", "<icecast>#{content}</icecast>")
+  before = icecast.server.config.warnings()
+  p = icecast.server.config.load(compatibility=compatibility, path)
+  produced = icecast.server.config.warnings() > before
+  translated := translated() + 1
+  if produced then warned := warned() + 1 end
+  if
+    null.defined(warns)
+  then
+    check_equal(
+      "#{path} warns",
+      produced,
+      null.get(warns)
+    )
+  end
+  p
+end
+
+def warns(content) =
+  load(warns=true, content)
+end
+
+# Something ran: fixtures were translated, and some of them warned.
+def check_warnings() =
+  check_equal(
+    "fixtures translated and warning: #{translated()} #{warned()}",
+    translated() > 50 and warned() > 20,
+    true
+  )
+end
+
+def rejects(~compatibility="icecast-2.5", label, content) =
+  rejected =
+    try
+      fixtures := fixtures() + 1
+      ignore(
+        icecast.server.config.load(
+          compatibility=compatibility,
+          write("icecast-#{fixtures()}.xml", content)
+        )
+      )
+      false
+    catch _ : [error.icecast.server.invalid_parameters] do
+      true
+    end
+  check_equal(
+    "#{label} is rejected",
+    rejected,
+    true
+  )
+end
+
+def mount(p, path) =
+  icecast.server.parameters.mount(icecast.server.parameters.server(p), path)
+end
+
+def listener_request(
+  ~user="",
+  ~password="",
+  ~address="203.0.113.7",
+  ~user_listeners=0
+) =
+  icecast.server.decision.request(
+    server={hostname = "radio.example", port = 8000, instance = "uuid"},
+    compatibility="icecast-2.5",
+    address=address,
+    listeners=0,
+    user_listeners=fun (_) -> user_listeners,
+    {
+      id = 1,
+      uri = "/live",
+      query_string = "",
+      protocol = "1.1",
+      ip = address,
+      headers =
+        user == ""
+          ? []
+          : [
+            (
+              "authorization",
+              "Basic #{string.base64.encode("#{user}:#{password}")}"
+            )
+          ]
+    }
+  )
+end
+
+def status(p, path, request) =
+  decision = mount(p, path).listener_decision
+  null.case(
+    decision,
+    {null},
+    fun (decide) -> null.map(fun (r) -> r.status, decide(request).refuse)
+  )
+end
+
+def check_failures() =
+  rejects(
+    "a root other than <icecast>",
+    "<icecast2/>"
+  )
+  rejects(
+    "malformed XML",
+    "<icecast><port>"
+  )
+  rejects(
+    "a non-numeric <port>",
+    "<icecast><port>80a</port></icecast>"
+  )
+  rejects(
+    "a non-numeric mount value",
+    "<icecast><mount><mount-name>/a</mount-name><max-listeners>x</max-listeners></mount></icecast>"
+  )
+  rejects(
+    compatibility="icecast-3",
+    "an unknown compatibility",
+    "<icecast/>"
+  )
+  rejects(
+    "an unknown authentication type",
+    '<icecast><mount><mount-name>/a</mount-name><authentication \
+     type="command"/></mount></icecast>'
+  )
+  rejects(
+    "role authentication",
+    '<icecast><mount><mount-name>/a</mount-name><authentication><role \
+     type="anonymous"/></authentication></mount></icecast>'
+  )
+  rejects(
+    "an invalid record",
+    "<icecast><port>70000</port></icecast>"
+  )
+  rejects(
+    "a malformed auth_header",
+    '<icecast><mount><mount-name>/a</mount-name><authentication \
+     type="url"><option name="auth_header" value=": \
+     1"/></authentication></mount></icecast>'
+  )
+end
+
+def check_server_values() =
+  p =
+    load(
+      "<hostname>radio.example</hostname><location>Here</location><admin>ops@example</admin><server-id>Box</server-id><authentication><source-password>src</source-password><admin-user>boss</admin-user><admin-password>adm</admin-password><health-password>hp</health-password></authentication><limits><sources>3</sources><clients>40</clients><client-timeout>12.5</client-timeout><source-timeout>4</source-timeout><burst-size>1000</burst-size></limits><shoutcast-mount>/sc</shoutcast-mount><paths><logdir>/logs</logdir></paths><logging><loglevel>warn</loglevel><logsize>10</logsize><logarchive>1</logarchive><playlistlog>play.log</playlistlog><errorlog>-</errorlog></logging>"
+    )
+  check_equal("compatibility", p.compatibility, "icecast-2.5")
+  check_equal("hostname", p.hostname, "radio.example")
+  check_equal("location", p.location, "Here")
+  check_equal("admin", p.admin_contact, "ops@example")
+  check_equal("server-id", p.server_id, "Box")
+  check_equal("source-password", p.source_password, "src")
+  check_equal("admin-user", p.admin_user, "boss")
+  check_equal("admin-password", p.admin_password, "adm")
+  check_equal("health-password", p.health_password, "hp")
+  check_equal("sources", p.max_sources, 3)
+  check_equal("clients", p.max_clients, 40)
+  check_equal("client-timeout", p.client_timeout, 12.5)
+  check_equal("source-timeout", p.source_timeout, 4.)
+  check_equal("burst-size", p.burst_size, 1000)
+  check_equal("shoutcast-mount", p.shoutcast_mount, "/sc")
+  check_equal(
+    "loglevel warn",
+    p.log_level,
+    3
+  )
+  check_equal(
+    "logsize in KiB",
+    p.log_size,
+    10240
+  )
+  check_equal("logarchive", p.log_archive, true)
+  check_equal(
+    "accesslog default name",
+    p.access_log,
+    "/logs/access.log"
+  )
+  check_equal(
+    "errorlog -",
+    p.error_log,
+    "-"
+  )
+  check_equal("playlistlog", p.playlist_log, "/logs/play.log")
+
+  levels =
+    [("1", 2), ("error", 2), ("3", 4), ("INFO", 4), ("4", 5), ("debug", 5)]
+  list.iter(
+    fun (level) ->
+      check_equal(
+        "loglevel #{fst(level)}",
+        load("<logging><loglevel>#{fst(level)}</loglevel></logging>").log_level,
+        snd(level)
+      ),
+    levels
+  )
+  p = warns("<logging><loglevel>loud</loglevel></logging>")
+  check_equal(
+    "unknown loglevel keeps the default",
+    p.log_level,
+    null
+  )
+
+  p = load("")
+  check_equal(
+    "defaults: port",
+    p.port,
+    null
+  )
+  check_equal(
+    "defaults: access log needs a logdir",
+    p.access_log,
+    null
+  )
+  check_equal(
+    "defaults: no playlist log",
+    p.playlist_log,
+    null
+  )
+  p = warns("<logging><accesslog>a.log</accesslog></logging>")
+  check_equal(
+    "a log name without logdir is ignored",
+    p.access_log,
+    null
+  )
+
+  p =
+    load(
+      "<source-password>kh</source-password><port>8200</port><bind-address>::1</bind-address>"
+    )
+  check_equal(
+    "KH root source-password",
+    p.source_password,
+    "kh"
+  )
+  check_equal(
+    "root port",
+    p.port,
+    8200
+  )
+  check_equal(
+    "root bind-address",
+    p.bind_address,
+    "::1"
+  )
+  p =
+    load(
+      "<source-password>kh</source-password><authentication><source-password>main</source-password></authentication>"
+    )
+  check_equal(
+    "authentication source-password wins",
+    p.source_password,
+    "main"
+  )
+end
+
+def check_unsupported() =
+  base = "<hostname>h</hostname><mount><mount-name>/a</mount-name></mount>"
+  plain = load(warns=false, base)
+  list.iter(
+    fun (extra) ->
+      begin
+        p = warns("#{base}#{extra}")
+        check_equal(
+          "#{extra}: hostname unchanged",
+          p.hostname,
+          plain.hostname
+        )
+        check_equal(
+          "#{extra}: port unchanged",
+          p.port,
+          plain.port
+        )
+        check_equal(
+          "#{extra}: mount unchanged",
+          mount(p, "/a").max_listeners,
+          mount(plain, "/a").max_listeners
+        )
+      end,
     [
-      ("Access-Control-Allow-Origin", "*"),
-      ("Access-Control-Max-Age", "60"),
-      ("X-Robots-Tag", "noindex")
+      "<fileserve>1</fileserve>",
+      "<relay><server>x</server></relay>",
+      "<master-server>m</master-server>",
+      "<security><chroot>0</chroot></security>",
+      "<directory><yp-url>u</yp-url></directory>",
+      "<frobnicate/>",
+      "<limits><queue-size>10</queue-size></limits>",
+      "<paths><basedir>/b</basedir></paths>",
+      "<logging><memorybacklog>5</memorybacklog></logging>",
+      "<logging><accesslog_lines>5</accesslog_lines></logging>",
+      "<authentication><relay-password>r</relay-password></authentication>"
     ]
   )
-  test.equal(icecast.server.config.headers("<http-headers/>"), [])
+  p =
+    warns(
+      "<mount><mount-name>/b</mount-name><genre>jazz</genre><postroll-file>p</postroll-file><wait-time>3</wait-time><max-listeners>4</max-listeners></mount>"
+    )
+  check_equal(
+    "mount still translated",
+    mount(p, "/b").max_listeners,
+    4
+  )
+  p =
+    warns(
+      '<mount type="other"><mount-name>/b</mount-name></mount>'
+    )
+  check_equal(
+    "a mount of another type is ignored",
+    null.defined(p.mount("/b")),
+    false
+  )
+  p = warns("<mount><max-listeners>4</max-listeners></mount>")
+  check_equal(
+    "a mount without name is ignored",
+    null.defined(p.mount("/b")),
+    false
+  )
+end
 
-  # <mount>: every field, plus nested headers
-  m =
-    icecast.server.config.mount.parse(
-      '<mount type="normal">
-         <mount-name>/live</mount-name>
-         <username>dj</username>
-         <password>secret</password>
-         <max-listeners>10</max-listeners>
-         <dump-file>/tmp/dump</dump-file>
-         <burst-size>65536</burst-size>
-         <fallback-mount>/backup</fallback-mount>
-         <hidden>1</hidden>
-         <on-connect>/bin/true</on-connect>
-         <on-disconnect>/bin/false</on-disconnect>
-         <http-headers><header name="X-Mount" value="live" /></http-headers>
-       </mount>'
+def check_listen() =
+  p =
+    warns(
+      "<listen-socket><port>9001</port><bind-address>127.0.0.1</bind-address><shoutcast-mount>/s1</shoutcast-mount></listen-socket><listen-socket><port>9002</port></listen-socket><port>9003</port>"
     )
-  test.equal(m.type, "normal")
-  test.equal(m.mount_name, "/live")
-  test.equal(m.username, "dj")
-  test.equal(m.password, "secret")
-  test.equal(m.max_listeners, 10)
-  test.equal(m.burst_size, 65536)
-  test.equal(m.fallback_mount, "/backup")
-  test.equal(m.hidden, true)
-  test.equal(m.on_connect_cmd, "/bin/true")
-  test.equal(m.on_disconnect_cmd, "/bin/false")
-  test.equal(m.http_headers, [("X-Mount", "live")])
+  check_equal(
+    "first listen-socket port",
+    p.port,
+    9001
+  )
+  check_equal(
+    "first listen-socket address",
+    p.bind_address,
+    "127.0.0.1"
+  )
+  check_equal(
+    "listen-socket shoutcast-mount",
+    p.shoutcast_mount,
+    "/s1"
+  )
 
-  # <mount>: element children under unsupported options must not break parsing
-  m =
-    icecast.server.config.mount.parse(
-      '<mount><mount-name>/x</mount-name><authentication type="htpasswd"><option \
-       name="filename" value="f"/></authentication></mount>'
+  certificate = "<paths><tls-certificate>/c.pem</tls-certificate></paths>"
+  list.iter(
+    fun (value) ->
+      begin
+        tls_factory_calls := []
+        ignore(load("<listen-socket><tls>#{value}</tls></listen-socket>"))
+        check_equal(
+          "tls #{value} is plain HTTP",
+          tls_factory_calls(),
+          []
+        )
+      end,
+    ["0", "disabled", "false", "no", "off"]
+  )
+  list.iter(
+    fun (value) ->
+      begin
+        tls_factory_calls := []
+        ignore(
+          load(
+            "<listen-socket><ssl>#{value}</ssl></listen-socket>#{certificate}"
+          )
+        )
+        check_equal(
+          "tls #{value} is TLS",
+          tls_factory_calls(),
+          [("/c.pem", null)]
+        )
+      end,
+    ["1", "rfc2818", "true", "yes", "on"]
+  )
+  tls_factory_calls := []
+  ignore(
+    load(
+      "<listen-socket><tls>1</tls></listen-socket><paths><tls-context><tls-certificate>/x.pem</tls-certificate><tls-key>/x.key</tls-key></tls-context></paths>"
     )
-  test.equal(m.mount_name, "/x")
-  test.equal(m.url_auth, null)
+  )
+  check_equal(
+    "tls-context certificate and key",
+    tls_factory_calls(),
+    [("/x.pem", "/x.key")]
+  )
+  list.iter(
+    fun (value) ->
+      rejects(
+        "tls #{string.quote(value)}",
+        "<icecast><listen-socket><tls>#{value}</tls></listen-socket>#{
+          certificate
+        }</icecast>"
+      ),
+    ["auto", "auto_no_plain", "rfc2817", "maybe", ""]
+  )
+  rejects(
+    "a certificate without tls mode",
+    "<icecast>#{certificate}</icecast>"
+  )
+  rejects(
+    "tls without certificate",
+    "<icecast><listen-socket><tls>1</tls></listen-socket></icecast>"
+  )
 
-  # <mount>: URL listener authentication
-  def url_auth(options) =
-    icecast.server.config.mount.parse(
-      '<mount><authentication type="url">#{options}</authentication></mount>'
-    ).url_auth
-  end
-  auth =
-    null.get(
-      url_auth(
-        '<option name="listener_add" value="http://auth/add"/><option \
-         name="auth_header" value=" Icecast-Auth-User : OK "/>'
-      )
+  p =
+    load(
+      '<listen-socket><port>1</port><trusted-proxy>edge</trusted-proxy></listen-socket><listen-socket \
+       id="edge"><client-ip>10.0.0.0/8</client-ip></listen-socket><paths><x-forwarded-for>192.0.2.1</x-forwarded-for></paths>'
     )
-  test.equal(auth.listener_add, "http://auth/add")
-  test.equal(auth.auth_header, ("icecast-auth-user", "ok"))
-  test.equal(auth.credentials, null)
-  auth =
-    null.get(
-      url_auth(
-        '<option name="listener_add" value="http://a"/><option name="username" \
-         value="u"/><option name="password" value="p"/>'
-      )
-    )
-  test.equal(auth.auth_header, null)
-  test.equal(auth.timelimit_header, null)
-  test.equal(auth.listener_remove, null)
-  test.equal(auth.credentials, ("u", "p"))
-  auth =
-    null.get(
-      url_auth(
-        '<option name="listener_remove" value="http://a/rm"/><option \
-         name="timelimit_header" value="X-Limit: "/>'
-      )
-    )
-  test.equal(auth.listener_add, null)
-  test.equal(auth.listener_remove, "http://a/rm")
-  test.equal(auth.timelimit_header, "x-limit")
-  test.equal(
-    url_auth(
-      '<option name="stream_auth" value="http://a"/>'
-    ),
+  check_equal(
+    "trusted-proxy and x-forwarded-for fill proxy_ips",
+    p.proxy_ips,
+    ["10.0.0.0/8", "192.0.2.1"]
+  )
+  check_equal(
+    "no proxy element: proxy_ips unset",
+    load("").proxy_ips,
     null
   )
-  try
-    ignore(
-      url_auth(
-        '<option name="listener_add" value="http://a"/><option \
-         name="auth_header" value="no-separator"/>'
-      )
+  p =
+    warns(
+      "<listen-socket><port>1</port><trusted-proxy/><client-ip>0.0.0.0/0</client-ip></listen-socket>"
     )
-    test.fail(
-      "auth_header without ':' was accepted"
-    )
-  catch _ : [error.invalid] do
-    ()
-  end
-
-  # <mount>: defaults when nothing is set
-  m =
-    icecast.server.config.mount.parse(
-      '<mount type="default"/>'
-    )
-  test.equal(m.type, "default")
-  test.equal(m.mount_name, null)
-  test.equal(m.hidden, false)
-  test.equal(m.http_headers, [])
-  test.equal(icecast.server.config.mount.parse("<mount/>").type, "normal")
-
-  # mount.resolve: own value wins, default fills gaps, headers accumulate
-  default =
-    icecast.server.config.mount.parse(
-      '<mount type="default">
-         <password>global</password>
-         <fallback-mount>/backup</fallback-mount>
-         <burst-size>1</burst-size>
-         <hidden>1</hidden>
-         <http-headers><header name="X-Default" value="1" /></http-headers>
-         <authentication type="url">
-           <option name="listener_add" value="http://auth/add"/>
-         </authentication>
-         <max-listener-duration>3600</max-listener-duration>
-         <intro>/intro.mp3</intro>
-         <preroll>http://ads/preroll.aac</preroll>
-       </mount>'
-    )
-  live =
-    icecast.server.config.mount.parse(
-      '<mount>
-         <mount-name>/live</mount-name>
-         <password>own</password>
-         <burst-size>2</burst-size>
-         <http-headers><header name="X-Live" value="1" /></http-headers>
-       </mount>'
-    )
-  r =
-    icecast.server.config.mount.resolve(default=default, mounts=[live], "/live")
-  test.equal(r.mount_name, "/live")
-  test.equal(r.password, "own")
-  test.equal(r.burst_size, 2)
-  test.equal(r.fallback_mount, "/backup")
-  test.equal(r.hidden, true)
-  test.equal(r.http_headers, [("X-Default", "1"), ("X-Live", "1")])
-  r =
-    icecast.server.config.mount.resolve(
-      default=default,
-      mounts=[live],
-      "/other"
-    )
-  test.equal(r.mount_name, null)
-  test.equal(r.password, "global")
-  test.equal(r.burst_size, 1)
-  test.equal(r.http_headers, [("X-Default", "1")])
-  test.equal(null.get(r.url_auth).listener_add, "http://auth/add")
-  test.equal(r.max_listener_duration, 3600)
-  test.equal(r.intro, "/intro.mp3")
-  test.equal(r.preroll, "http://ads/preroll.aac")
-
-  # <listen-socket>
-  s =
-    icecast.server.config.listen_socket(
-      "<listen-socket><port>8100</port><bind-address>127.0.0.1</bind-address><tls>auto_no_plain</tls></listen-socket>"
-    )
-  test.equal(s.port, 8100)
-  test.equal(s.bind_address, "127.0.0.1")
-  test.equal(s.tls, true)
-  s =
-    icecast.server.config.listen_socket(
-      "<listen-socket><ssl>1</ssl></listen-socket>"
-    )
-  test.equal(s.port, null)
-  test.equal(s.tls, true)
-  s =
-    icecast.server.config.listen_socket(
-      "<listen-socket><tls>auto</tls></listen-socket>"
-    )
-  test.equal(s.tls, false)
-  test.equal(icecast.server.config.listen_socket("<listen-socket/>").tls, false)
-
-  # <limits>: burst-on-connect=0 disables bursting
-  l =
-    icecast.server.config.limits(
-      "<limits><sources>2</sources><clients>100</clients><client-timeout>30</client-timeout><source-timeout>10.5</source-timeout><burst-size>65535</burst-size></limits>"
-    )
-  test.equal(l.max_sources, 2)
-  test.equal(l.max_clients, 100)
-  test.equal(l.client_timeout, 30.)
-  test.equal(l.source_timeout, 10.5)
-  test.equal(l.burst_size, 65535)
-  l =
-    icecast.server.config.limits(
-      "<limits><burst-on-connect>0</burst-on-connect><burst-size>65535</burst-size></limits>"
-    )
-  test.equal(l.burst_on_connect, 0)
-  test.equal(l.burst_size, 65535)
-
-  # burst_size: mount over global, 0 disables at either level
-  def burst(limits, mount) =
-    icecast.server.config.burst_size(
-      limits=icecast.server.config.limits(limits),
-      icecast.server.config.mount.parse(mount).burst_size
-    )
-  end
-  test.equal(
-    burst("<limits/>", "<mount/>"),
-    icecast.server.config.default_burst_size
+  check_equal(
+    "an empty trusted-proxy trusts nothing",
+    p.proxy_ips,
+    null
   )
-  test.equal(
-    burst("<limits><burst-size>10</burst-size></limits>", "<mount/>"),
+  p =
+    load(
+      "<listen-socket><port>1</port><trusted-proxy>203.0.113.0/24</trusted-proxy></listen-socket>"
+    )
+  check_equal(
+    "a trusted-proxy naming no socket is an address",
+    p.proxy_ips,
+    ["203.0.113.0/24"]
+  )
+end
+
+def check_bursts() =
+  p = load("<limits><burst-on-connect>0</burst-on-connect></limits>")
+  check_equal(
+    "burst-on-connect 0",
+    p.burst_on_connect,
+    false
+  )
+  p = load("<limits><burst-on-connect>1</burst-on-connect></limits>")
+  check_equal(
+    "burst-on-connect 1 keeps the default",
+    p.burst_on_connect,
+    null
+  )
+  check_equal(
+    "burst-size 0",
+    load("<limits><burst-size>0</burst-size></limits>").burst_size,
+    0
+  )
+  check_equal(
+    "burst unset",
+    icecast.server.parameters.server(load("")).burst_size,
+    65536
+  )
+  p =
+    load(
+      "<limits><burst-size>0</burst-size></limits><mount><mount-name>/a</mount-name><burst-size>500</burst-size></mount>"
+    )
+  check_equal(
+    "mount burst-size beats a root 0",
+    mount(p, "/a").burst_size,
+    500
+  )
+  p =
+    load(
+      "<limits><burst-size>500</burst-size></limits><mount><mount-name>/a</mount-name><burst-size>0</burst-size></mount>"
+    )
+  check_equal(
+    "a mount burst-size 0 beats the root",
+    mount(p, "/a").burst_size,
+    0
+  )
+end
+
+def check_mount_values() =
+  p =
+    load(
+      '<mount><mount-name>/a</mount-name><username>dj</username><password>pw</password><max-listeners>5</max-listeners><fallback-mount>/b</fallback-mount><fallback-when-full>1</fallback-when-full><linger-for>2.5</linger-for><hidden>1</hidden><max-listener-duration>60</max-listener-duration><max-history>300</max-history><health-password>mh</health-password><dump-file \
+       interpolation="none">/d/50%.mp3</dump-file><dump-file-size-limit>99</dump-file-size-limit><dump-file-time-limit>9</dump-file-time-limit><on-connect>/bin/true</on-connect></mount><mount><mount-name>/k</mount-name><fallback><mount>/z</mount></fallback></mount>'
+    )
+  m = mount(p, "/a")
+  check_equal("username", m.source_user, "dj")
+  check_equal("password", m.source_password, "pw")
+  check_equal("max-listeners", m.max_listeners, 5)
+  check_equal("fallback-mount", m.fallback?.mount, "/b")
+  check_equal("fallback-when-full", m.fallback_when_full, true)
+  check_equal("linger-for", m.linger, 2.5)
+  check_equal("hidden", m.hidden, true)
+  check_equal("max-listener-duration", m.max_listener_duration, 60.)
+  check_equal(
+    "max-history out of range",
+    m.max_history,
+    256
+  )
+  check_equal(
+    "mount health-password",
+    m.health_password,
+    "mh"
+  )
+  check_equal(
+    "dump-file interpolation none",
+    m.dump_file,
+    "/d/50%%.mp3"
+  )
+  check_equal("dump-file-size-limit", m.dump_file_size_limit, 99)
+  check_equal("dump-file-time-limit", m.dump_file_time_limit, 9.)
+  check_equal("on-connect", null.defined(m.on_connect), true)
+  check_equal(
+    "on-disconnect unset",
+    null.defined(m.on_disconnect),
+    false
+  )
+  check_equal(
+    "KH nested fallback",
+    mount(p, "/k").fallback?.mount,
+    "/z"
+  )
+  check_equal(
+    "fallback-when-full unset",
+    mount(
+      load("<mount><mount-name>/a</mount-name></mount>"),
+      "/a"
+    ).fallback_when_full,
+    false
+  )
+  list.iter(
+    fun (value) ->
+      ignore(
+        load(
+          warns=list.mem(value, ["0", "false", "none"]),
+          "<mount><mount-name>/a</mount-name><fallback-override>#{
+            value
+          }</fallback-override></mount>"
+        )
+      ),
+    ["0", "false", "none", "1", "true", "all", "own"]
+  )
+end
+
+def check_selection() =
+  file =
+    '<mount><mount-name>/live</mount-name><max-listeners>1</max-listeners><http-headers><header \
+     name="X-Own" value="own"/><header name="X-Both" \
+     value="own"/></http-headers></mount><mount \
+     type="default"><mount-name>/a*</mount-name><max-listeners>2</max-listeners></mount><mount \
+     type="default"><max-listeners>3</max-listeners><hidden>1</hidden><burst-size>7</burst-size><http-headers><header \
+     name="X-Both" value="default"/><header name="X-Default" \
+     value="d"/></http-headers></mount><mount><mount-name>/b*</mount-name><priority>2</priority><max-listeners>20</max-listeners></mount><mount><mount-name>/b/*</mount-name><priority>1</priority><max-listeners>10</max-listeners></mount><mount><mount-name>/b/x</mount-name><max-listeners>30</max-listeners></mount><mount><mount-name>/hidden</mount-name><hidden>0</hidden></mount>'
+  p = load(file)
+  check_equal(
+    "exact normal mount",
+    mount(p, "/live").max_listeners,
+    1
+  )
+  check_equal(
+    "merged from the default mount",
+    mount(p, "/live").burst_size,
+    7
+  )
+  check_equal(
+    "headers: own, then the default mount's",
+    list.map(fun (h) -> (h.name, h?.value), mount(p, "/live").http_headers),
+    [
+      ("X-Own", "own"),
+      ("X-Both", "own"),
+      ("X-Both", "default"),
+      ("X-Default", "d")
+    ]
+  )
+  check_equal(
+    "default mount pattern",
+    mount(p, "/abc").max_listeners,
+    2
+  )
+  check_equal(
+    "* does not match /",
+    mount(p, "/a/c").max_listeners,
+    3
+  )
+  check_equal(
+    "nameless default mount",
+    mount(p, "/zzz").max_listeners,
+    3
+  )
+  check_equal(
+    "own hidden false wins",
+    mount(p, "/hidden").hidden,
+    false
+  )
+  check_equal(
+    "normal names are exact outside kh",
+    mount(p, "/b/y").max_listeners,
+    3
+  )
+  k = load(compatibility="kh", file)
+  check_equal(
+    "kh: lowest priority wins",
+    mount(k, "/b/y").max_listeners,
     10
   )
-  test.equal(
-    burst(
-      "<limits><burst-size>10</burst-size></limits>",
-      "<mount><burst-size>20</burst-size></mount>"
-    ),
+  check_equal(
+    "kh: exact name wins",
+    mount(k, "/b/x").max_listeners,
+    30
+  )
+  check_equal(
+    "kh: * matches /",
+    mount(k, "/bz/y").max_listeners,
     20
   )
-  test.equal(
-    burst(
-      "<limits><burst-size>10</burst-size></limits>",
-      "<mount><burst-size>0</burst-size></mount>"
+  check_equal(
+    "kh: compatibility in the record",
+    k.compatibility,
+    "kh"
+  )
+  check_equal(
+    "no mount matches",
+    null.defined(
+      load("<mount><mount-name>/a</mount-name></mount>").mount("/b")
+    ),
+    false
+  )
+  p = load("<limits><max-listeners>8</max-listeners></limits>")
+  check_equal(
+    "KH max-listeners is every mount's default",
+    mount(p, "/any").max_listeners,
+    8
+  )
+end
+
+def check_url_auth() =
+  options =
+    [
+      ("listener_add", "http://a/add"),
+      ("client_add", "http://a/cadd"),
+      ("listener_remove", "http://a/rm"),
+      ("client_remove", "http://a/crm"),
+      ("username", "u"),
+      ("password", "p"),
+      (
+        "auth_header",
+        "icecast-auth-user: 1"
+      ),
+      ("timelimit_header", "icecast-auth-timelimit:"),
+      ("header_auth", "x-a"),
+      ("header_timelimit", "x-t"),
+      ("header_message", "x-m"),
+      ("header_alter_action", "x-aa"),
+      ("header_alter_argument", "x-ag"),
+      ("action_add", "add"),
+      ("action_remove", "rm"),
+      ("headers", "user-agent"),
+      ("header_prefix", "h-"),
+      ("timeout", "2.5"),
+      ("presume_innocent", "1"),
+      ("on_error_wait", "4"),
+      ("mount_add", "http://a/madd"),
+      ("mount_remove", "http://a/mrm"),
+      ("stream_auth", "http://a/sa")
+    ]
+  elements =
+    string.concat(
+      list.map(
+        fun (o) ->
+          '<option name="#{fst(o)}" value="#{snd(o)}"/>',
+        options
+      )
+    )
+  o =
+    icecast.server.config.url_options(
+      xml.tree("<authentication>#{elements}</authentication>")
+    )
+  read =
+    [
+      ("listener_add", o.listener_add),
+      ("client_add", o.client_add),
+      ("listener_remove", o.listener_remove),
+      ("client_remove", o.client_remove),
+      ("username", o.username),
+      ("password", o.password),
+      ("auth_header", o.auth_header),
+      ("timelimit_header", o.timelimit_header),
+      ("header_auth", o.header_auth),
+      ("header_timelimit", o.header_timelimit),
+      ("header_message", o.header_message),
+      ("header_alter_action", o.header_alter_action),
+      ("header_alter_argument", o.header_alter_argument),
+      ("action_add", o.action_add),
+      ("action_remove", o.action_remove),
+      ("headers", o.headers),
+      ("header_prefix", o.header_prefix),
+      ("mount_add", o.mount_add),
+      ("mount_remove", o.mount_remove),
+      ("stream_auth", o.stream_auth)
+    ]
+  list.iter(
+    fun (r) ->
+      check_equal(
+        "url option #{fst(r)}",
+        snd(r),
+        list.assoc.nullable(fst(r), options)
+      ),
+    read
+  )
+  check_equal(
+    "url option timeout",
+    o.timeout,
+    2.5
+  )
+  check_equal(
+    "url option presume_innocent",
+    o.presume_innocent,
+    true
+  )
+  check_equal(
+    "url option on_error_wait",
+    o.on_error_wait,
+    4.
+  )
+
+  def auth(options) =
+    "<mount><mount-name>/live</mount-name><authentication type=\"url\">#{
+      options
+    }</authentication></mount>"
+  end
+
+  unreachable = "http://127.0.0.1:1/auth"
+  p =
+    load(
+      auth(
+        '<option name="listener_add" value="#{unreachable}"/><option \
+         name="timeout" value="1"/>'
+      )
+    )
+  check_equal(
+    "a failed listener_add refuses",
+    status(p, "/live", listener_request()),
+    401
+  )
+  p =
+    load(
+      auth(
+        '<option name="listener_add" value="#{unreachable}"/><option \
+         name="presume_innocent" value="1"/>'
+      )
+    )
+  check_equal(
+    "presume_innocent reaches the decision",
+    status(p, "/live", listener_request()),
+    null
+  )
+  p =
+    load(
+      auth(
+        '<option name="mount_add" value="#{unreachable}"/><option \
+         name="stream_auth" value="#{unreachable}"/>'
+      )
+    )
+  m = mount(p, "/live")
+  check_equal(
+    "mount_add without listener_add: no listener decision",
+    null.defined(m.listener_decision),
+    false
+  )
+  check_equal(
+    "mount_add gives on_connect",
+    null.defined(m.on_connect),
+    true
+  )
+  check_equal(
+    "mount_add gives on_disconnect",
+    null.defined(m.on_disconnect),
+    true
+  )
+  check_equal(
+    "stream_auth gives source_decision",
+    null.defined(m.source_decision),
+    true
+  )
+  ignore(
+    warns(
+      auth(
+        '<option name="frob" value="1"/>'
+      )
+    )
+  )
+end
+
+def check_access_and_htpasswd() =
+  users = write("users", "bob:#{string.digest("pw")}\n")
+  deny = write("deny", "198.51.100.*\n")
+  def htpasswd(attributes, options) =
+    '<paths><deny-ip>#{
+      deny
+    }</deny-ip></paths><mount><mount-name>/live</mount-name><authentication \
+     type="htpasswd" #{attributes}><option name="filename" value="#{users}"/>#{
+      options
+    }</authentication></mount>'
+  end
+
+  p = load(htpasswd("", ""))
+  check_equal(
+    "htpasswd admits",
+    status(p, "/live", listener_request(user="bob", password="pw")),
+    null
+  )
+  check_equal(
+    "htpasswd refuses a wrong password",
+    status(p, "/live", listener_request(user="bob", password="no")),
+    401
+  )
+  check_equal(
+    "access lists come first",
+    status(
+      p,
+      "/live",
+      listener_request(user="bob", password="no", address="198.51.100.9")
+    ),
+    403
+  )
+  check_equal(
+    "access lists apply to every mount",
+    status(p, "/other", listener_request(address="198.51.100.9")),
+    403
+  )
+  check_equal(
+    "duplicates allowed by default",
+    status(
+      p,
+      "/live",
+      listener_request(user="bob", password="pw", user_listeners=1)
     ),
     null
   )
-  test.equal(
-    burst(
-      "<limits><burst-on-connect>0</burst-on-connect><burst-size>10</burst-size></limits>",
-      "<mount><burst-size>20</burst-size></mount>"
+  p =
+    load(
+      htpasswd(
+        "",
+        '<option name="allow_duplicate_users" value="0"/>'
+      )
+    )
+  check_equal(
+    "allow_duplicate_users 0",
+    status(
+      p,
+      "/live",
+      listener_request(user="bob", password="pw", user_listeners=1)
+    ),
+    429
+  )
+  p = load(htpasswd('connections-per-user="2"', ""))
+  check_equal(
+    "connections-per-user under the limit",
+    status(
+      p,
+      "/live",
+      listener_request(user="bob", password="pw", user_listeners=1)
     ),
     null
   )
-  test.equal(icecast.server.config.limits("<limits/>").max_sources, null)
-
-  # <paths>: tls-certificate wins over ssl-certificate
-  p =
-    icecast.server.config.paths(
-      "<paths><logdir>/var/log</logdir><webroot>/web</webroot><ssl-certificate>/old.pem</ssl-certificate><tls-certificate>/new.pem</tls-certificate><tls-key>/key.pem</tls-key><alias \
-       source=\"/a\" dest=\"/b\"/></paths>"
-    )
-  test.equal(p.logdir, "/var/log")
-  test.equal(p.webroot, "/web")
-  test.equal(p.tls_certificate, "/new.pem")
-  test.equal(p.tls_key, "/key.pem")
-  p =
-    icecast.server.config.paths(
-      "<paths><ssl-certificate>/old.pem</ssl-certificate></paths>"
-    )
-  test.equal(p.tls_certificate, "/old.pem")
-  test.equal(p.logdir, null)
-
-  # <authentication>
-  test.equal(
-    icecast.server.config.authentication(
-      "<authentication><source-password>pw</source-password></authentication>"
-    ).password,
-    "pw"
+  check_equal(
+    "connections-per-user at the limit",
+    status(
+      p,
+      "/live",
+      listener_request(user="bob", password="pw", user_listeners=2)
+    ),
+    429
   )
-  test.equal(
-    icecast.server.config.authentication("<authentication/>").password,
+  p = load(htpasswd('connections-per-user="unlimited"', ""))
+  check_equal(
+    "connections-per-user unlimited",
+    status(
+      p,
+      "/live",
+      listener_request(user="bob", password="pw", user_listeners=9)
+    ),
     null
   )
-  a =
-    icecast.server.config.authentication(
-      "<authentication><admin-user>root</admin-user><admin-password>apw</admin-password></authentication>"
-    )
-  test.equal(a.admin_user, "root")
-  test.equal(a.admin_password, "apw")
+  rejects(
+    "htpasswd without filename",
+    '<icecast><mount><mount-name>/a</mount-name><authentication \
+     type="htpasswd"/></mount></icecast>'
+  )
+end
 
-  # <logging>
-  l =
-    icecast.server.config.logging.parse(
-      '<logging>
-         <accesslog>a.log</accesslog>
-         <errorlog>-</errorlog>
-         <playlistlog>p.log</playlistlog>
-         <loglevel>debug</loglevel>
-         <logsize>100</logsize>
-         <logarchive>1</logarchive>
-         <memorybacklog logfile="error">10</memorybacklog>
-       </logging>'
+def check_prerolls() =
+  webroot = path.concat(directory, "web")
+  file.mkdir(webroot)
+  ignore(write("web/intro.bin", "INTRO"))
+  ignore(write("web/pre.bin", "PRE"))
+  p =
+    load(
+      "<paths><webroot>#{
+        webroot
+      }</webroot></paths><mount><mount-name>/live</mount-name><preroll>pre.bin</preroll></mount><mount \
+       type=\"default\"><intro>intro.bin</intro></mount>"
     )
-  test.equal(l.accesslog, "a.log")
-  test.equal(l.errorlog, "-")
-  test.equal(l.playlistlog, "p.log")
-  test.equal(l.loglevel, 4)
-  test.equal(l.logsize, 100)
-  test.equal(l.logarchive, true)
-  l = icecast.server.config.logging.parse("<logging/>")
-  test.equal(l.accesslog, null)
-  test.equal(l.loglevel, null)
-  test.equal(l.logarchive, false)
-  test.equal(icecast.server.config.logging.level("1"), 1)
-  test.equal(icecast.server.config.logging.level("INFO"), 3)
-  test.equal(icecast.server.config.logging.level("verbose"), null)
-
-  # Full document: repeated mounts, default mount split off, sections optional
-  c =
-    icecast.server.config.parse(
-      '<icecast>
-         <hostname>radio.example</hostname>
-         <limits><sources>3</sources></limits>
-         <authentication><source-password>pw</source-password></authentication>
-         <logging><playlistlog>p.log</playlistlog></logging>
-         <listen-socket><port>9000</port></listen-socket>
-         <listen-socket><port>9001</port></listen-socket>
-         <http-headers><header name="X-Global" value="1" /></http-headers>
-         <mount type="default"><fallback-mount>/backup</fallback-mount></mount>
-         <mount><mount-name>/live</mount-name></mount>
-         <mount type="normal"><mount-name>/backup</mount-name></mount>
-       </icecast>'
+  decide = null.get(mount(p, "/live").listener_decision)
+  check_equal(
+    "intro first, from webroot",
+    decide(listener_request()).preroll,
+    "INTRO"
+  )
+  p =
+    load(
+      "<paths><webroot>#{
+        webroot
+      }</webroot></paths><mount><mount-name>/live</mount-name><preroll>pre.bin</preroll></mount>"
     )
-  test.equal(c.port, 9000)
-  test.equal(c.hostname, "radio.example")
-  test.equal(c.password, "pw")
-  test.equal(c.max_sources, 3)
-  test.equal(c.http_headers, [("X-Global", "1")])
-  test.equal(c.default_mount.fallback_mount, "/backup")
-  test.equal(list.map(fun (m) -> m.mount_name, c.mounts), ["/live", "/backup"])
-  test.equal(c.tls, false)
-  test.equal(c.logdir, null)
-  test.equal(c.logging.playlistlog, "p.log")
-  test.equal(c.admin_password, null)
+  decide = null.get(mount(p, "/live").listener_decision)
+  check_equal(
+    "RSAS preroll",
+    decide(listener_request()).preroll,
+    "PRE"
+  )
+end
 
-  c = icecast.server.config.parse("<icecast/>")
-  test.equal(c.port, null)
-  test.equal(c.hostname, null)
-  test.equal(c.logging.accesslog, null)
-  test.equal(c.mounts, [])
-  test.equal(c.default_mount.mount_name, null)
-
-  # resolve: explicit parameters win over the config file, which wins over defaults
-  c =
-    icecast.server.config.parse(
-      '<icecast>
-         <listen-socket><port>9000</port></listen-socket>
-         <authentication>
-           <source-password>pw</source-password>
-           <admin-password>apw</admin-password>
-         </authentication>
-         <paths><logdir>/logs</logdir></paths>
-         <logging><accesslog>a.log</accesslog></logging>
-       </icecast>'
-    )
-  def resolve(
-    ~port=null,
-    ~password=null,
-    ~access_log=null,
-    ~admin_password=null,
-    ~from_file=true,
-    parsed
-  ) =
-    icecast.server.config.resolve(
-      port=port,
-      password=password,
-      access_log=access_log,
-      playlist_log=null,
-      admin_user=null,
-      admin_password=admin_password,
-      from_file=from_file,
-      parsed
+def check_headers() =
+  def values(~compatibility="icecast-2.5", ~status=200, entries) =
+    icecast.server.headers.reply(
+      request={
+        headers = [("origin", "http://o")],
+        compatibility = compatibility
+      },
+      status=status,
+      entries
     )
   end
-  r =
-    resolve(
-      port=8080,
-      password="explicit",
-      access_log="/tmp/x.log",
-      admin_password="explicit",
-      c
+
+  headers =
+    '<http-headers><header name="Access-Control-Allow-Origin" \
+     type="cors"/><header name="X-Static" value="s" status="200"/><header \
+     name="X-Cors-Value" type="cors" value="v"/></http-headers>'
+  p = load(headers)
+  check_equal(
+    "cors header under icecast-2.5",
+    values(p.http_headers),
+    [
+      ("Access-Control-Allow-Origin", "http://o"),
+      ("X-Static", "s"),
+      ("X-Cors-Value", "v")
+    ]
+  )
+  check_equal(
+    "header status",
+    values(status=404, p.http_headers),
+    [("Access-Control-Allow-Origin", "null"), ("X-Cors-Value", "v")]
+  )
+  p = load(compatibility="icecast-2.4", warns=true, headers)
+  check_equal(
+    "cors type is static under icecast-2.4",
+    values(compatibility="icecast-2.4", p.http_headers),
+    [("X-Static", "s"), ("X-Cors-Value", "v")]
+  )
+  p =
+    warns(
+      '<http-headers><header name="X-None" type="cors"/></http-headers>'
     )
-  test.equal(r.port, 8080)
-  test.equal(r.password, "explicit")
-  test.equal(r.access_log, "/tmp/x.log")
-  test.equal(r.admin_password, "explicit")
-  r = resolve(c)
-  test.equal(r.port, 9000)
-  test.equal(r.password, "pw")
-  test.equal(r.access_log, "/logs/a.log")
-  test.equal(r.error_log, "/logs/error.log")
-  test.equal(r.playlist_log, null)
-  test.equal(r.admin_user, "admin")
-  test.equal(r.admin_password, "apw")
-  r = resolve(from_file=false, icecast.server.config.empty)
-  test.equal(r.port, 8000)
-  test.equal(r.password, "hackme")
-  test.equal(r.access_log, null)
-  test.equal(r.error_log, null)
-  test.equal(r.admin_password, null)
+  check_equal(
+    "a cors header outside the set is skipped",
+    list.length(p.http_headers),
+    0
+  )
+  p =
+    warns(
+      '<http-headers><header name="X-None"/></http-headers>'
+    )
+  check_equal(
+    "a static header without value is skipped",
+    list.length(p.http_headers),
+    0
+  )
 
-  # Errors name the section
-  def fails(doc) =
-    try
-      ignore(icecast.server.config.parse(doc))
-      null
-    catch err : [error.invalid] do
-      err.message
-    end
+  rsas =
+    '<custom-headers><add-header name="X-Add" \
+     value="a"/><cors><allow-origin>http://o</allow-origin><expose-headers>x-more</expose-headers></cors></custom-headers>'
+  p = load(compatibility="kh", rsas)
+  check_equal(
+    "RSAS cors block under kh",
+    values(compatibility="kh", p.http_headers),
+    [
+      ("X-Add", "a"),
+      ("Access-Control-Allow-Origin", "http://o"),
+      ("Access-Control-Allow-Methods", "GET"),
+      (
+        "Access-Control-Expose-Headers",
+        "content-range, icy-br, icy-description, icy-genre, icy-name, icy-pub, \
+         icy-url, x-more"
+      ),
+      ("Access-Control-Max-Age", "300"),
+      (
+        "Access-Control-Allow-Headers",
+        "range, if-range"
+      )
+    ]
+  )
+  p =
+    load(
+      '<custom-headers><cors><allow-origin>http://elsewhere</allow-origin></cors></custom-headers>'
+    )
+  check_equal(
+    "RSAS cors origins",
+    list.assoc.nullable("Access-Control-Allow-Origin", values(p.http_headers)),
+    null
+  )
+  ignore(
+    warns("<listen-socket><port>1</port><custom-headers/></listen-socket>")
+  )
+end
+
+def check_events() =
+  p =
+    load(
+      '<event-bindings><event type="log" trigger="source-connect, \
+       source-listeners-changed"><option name="prefix" value="EV \
+       "/></event><event type="log" trigger="nope"/><event \
+       trigger="source-connect"/></event-bindings><mount><mount-name>/m</mount-name><kartoffelsalat><event \
+       type="log" trigger="source-listeners-is-zero"><option name="prefix" \
+       value="ZERO "/></event></kartoffelsalat></mount>'
+    )
+  check_equal(
+    "one binding per trigger",
+    list.map(fun (b) -> (b.event, b.mount), p.event_bindings),
+    [
+      ("source_connect", null),
+      ("listener_connect", null),
+      ("listener_disconnect", null),
+      ("listener_disconnect", "/m")
+    ]
+  )
+  zero = list.nth(p.event_bindings, 3)
+  zero.handler(
+    {
+      event = "listener_disconnect",
+      mount = "/m",
+      listeners = 1,
+      compatibility = "icecast-2.5"
+    }
+  )
+  check_equal(
+    "is-zero skips a non-zero count",
+    logged(
+      "ZERO source-listeners-is-zero"
+    ),
+    false
+  )
+  zero.handler(
+    {
+      event = "listener_disconnect",
+      mount = "/m",
+      listeners = 0,
+      compatibility = "icecast-2.5"
+    }
+  )
+  check_equal(
+    "is-zero fires at zero",
+    logged(
+      "ZERO source-listeners-is-zero on /m"
+    ),
+    true
+  )
+  check_equal(
+    "an untranslated event warns",
+    logged("trigger=\"nope\""),
+    true
+  )
+end
+
+def check_review_fixes() =
+  tls_factory = settings.icecast.server.tls_transport()
+  settings.icecast.server.tls_transport := ("none", snd(tls_factory))
+  rejects(
+    "TLS on a build without TLS",
+    "<icecast><listen-socket><tls>1</tls></listen-socket><paths><tls-certificate>/c.pem</tls-certificate></paths></icecast>"
+  )
+  settings.icecast.server.tls_transport := tls_factory
+
+  p =
+    warns(
+      "<mount><mount-name>/a</mount-name><priority>high</priority><max-listeners>3</max-listeners></mount>"
+    )
+  check_equal(
+    "priority outside kh is ignored, not parsed",
+    mount(p, "/a").max_listeners,
+    3
+  )
+
+  def names(p) =
+    list.map(fun (h) -> h.name, p.http_headers)
   end
-  test.equal(
-    string.contains(
-      prefix="Invalid <limits> section in icecast config:",
-      fails("<icecast><limits><sources>many</sources></limits></icecast>") ?? ""
-    ),
-    true
+
+  p =
+    load(
+      compatibility="kh",
+      '<http-headers><header name="X-A" value="1" type="Static"/><header \
+       name="X-B" value="2" type="other"/></http-headers>'
+    )
+  check_equal(
+    "under kh any header type is sent static",
+    names(p),
+    ["X-A", "X-B"]
   )
-  test.equal(
-    string.contains(
-      prefix="Invalid <mount> section in icecast config:",
-      fails("<icecast><mount><burst-size>big</burst-size></mount></icecast>")
-        ?? ""
-    ),
-    true
-  )
-  test.equal(
-    string.contains(
-      prefix="Invalid icecast config: root element",
-      fails("<foo/>") ?? ""
-    ),
-    true
+  p =
+    load(
+      '<http-headers><header name="Access-Control-Allow-Origin" \
+       type="CORS"/></http-headers>'
+    )
+  check_equal(
+    "header types compare without case",
+    names(p),
+    ["Access-Control-Allow-Origin"]
   )
 
+  deny = write("deny-a", "198.51.100.1\n")
+  ban = write("ban-b", "198.51.100.2\n")
+  p =
+    load("<paths><deny-ip>#{deny}</deny-ip><ban-file>#{ban}</ban-file></paths>")
+  check_equal(
+    "every deny file refuses",
+    (
+      status(p, "/any", listener_request(address="198.51.100.1")),
+      status(p, "/any", listener_request(address="198.51.100.2")),
+      status(p, "/any", listener_request(address="198.51.100.3"))
+    ),
+    (403, 403, null)
+  )
+end
+
+def check_unknown_children_warn() =
+  list.iter(
+    fun (content) -> ignore(warns(content)),
+    [
+      "<http-headers><frob/></http-headers>",
+      "<custom-headers><frob/></custom-headers>",
+      "<custom-headers><cors><frob/></cors></custom-headers>",
+      "<event-bindings><frob/></event-bindings>",
+      '<mount><mount-name>/a</mount-name><authentication \
+       type="url"><frob/></authentication></mount>',
+      '<event-bindings><event type="log" trigger="source-connect"><option \
+       name="level" value="loud"/></event></event-bindings>'
+    ]
+  )
+end
+
+def check_mounts_validated() =
+  list.iter(
+    fun (m) ->
+      rejects(
+        "an invalid mount value: #{m}",
+        "<icecast><mount><mount-name>/a</mount-name>#{m}</mount></icecast>"
+      ),
+    [
+      "<fallback-mount>backup</fallback-mount>",
+      "<max-listeners>-1</max-listeners>",
+      '<http-headers><header name="Bad Name" value="x"/></http-headers>'
+    ]
+  )
+  rejects(
+    "an invalid default mount value",
+    "<icecast><mount \
+     type=\"default\"><burst-size>-5</burst-size></mount></icecast>"
+  )
+end
+
+def check_kh_pattern_bindings() =
+  p =
+    load(
+      compatibility="kh",
+      '<mount><mount-name>/live*</mount-name><event-bindings><event type="log" \
+       trigger="source-connect"><option name="prefix" value="KH-PATTERN \
+       "/></event></event-bindings></mount>'
+    )
+  binding = list.hd(p.event_bindings)
+  binding.handler(
+    {
+      event = "source_connect",
+      mount = "/live1",
+      listeners = 0,
+      compatibility = "kh"
+    }
+  )
+  binding.handler(
+    {
+      event = "source_connect",
+      mount = "/other",
+      listeners = 0,
+      compatibility = "kh"
+    }
+  )
+  check_equal(
+    "kh: a pattern mount's binding fires for the paths it selects",
+    (
+      binding.mount,
+      logged(
+        "KH-PATTERN source-connect on /live1"
+      ),
+      logged(
+        "KH-PATTERN source-connect on /other"
+      )
+    ),
+    (null, true, false)
+  )
+end
+
+def check_purity() =
+  logdir = path.concat(directory, "logs")
+  file.mkdir(logdir)
+  content =
+    "<paths><logdir>#{
+      logdir
+    }</logdir></paths><hostname>h</hostname><mount><mount-name>/a</mount-name><max-listeners>2</max-listeners></mount>"
+  a = load(content)
+  b = load(content)
+  check_equal(
+    "same file, same values",
+    (a.hostname, a.access_log, mount(a, "/a").max_listeners),
+    (b.hostname, b.access_log, mount(b, "/a").max_listeners)
+  )
+  check_equal(
+    "load writes no log file",
+    file.ls(logdir),
+    []
+  )
+end
+
+def f() =
+  check_failures()
+  check_server_values()
+  check_unsupported()
+  check_listen()
+  check_bursts()
+  check_mount_values()
+  check_selection()
+  check_url_auth()
+  check_access_and_htpasswd()
+  check_prerolls()
+  check_headers()
+  check_events()
+  check_review_fixes()
+  check_kh_pattern_bindings()
+  check_mounts_validated()
+  check_unknown_children_warn()
+  check_purity()
+  check_warnings()
+  if
+    checks() < 200 or fixtures() < 60
+  then
+    test.fail(
+      "only #{checks()} checks over #{fixtures()} fixtures ran"
+    )
+  end
+  print(
+    "#{checks()} checks over #{fixtures()} fixtures ran"
+  )
   test.pass()
 end
 

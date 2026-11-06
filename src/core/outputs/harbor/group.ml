@@ -20,6 +20,7 @@ type t = {
 let retry_interval = 1.
 let scratch_size = 131072
 let scratch = Domain.DLS.new_key (fun () -> Bytes.create scratch_size)
+let discard = Domain.DLS.new_key (fun () -> Bytes.create 4096)
 
 let create ~log ~timeout () =
   {
@@ -67,6 +68,8 @@ let serve t ~scratch ~now member =
           Listener.mark_closed listener
       | _ -> ());
     if (not (Listener.is_closed listener)) && member.pending () then (
+      if Listener.owed_nothing listener then
+        Listener.set_last_progress listener now;
       let sent = Listener.bytes_sent listener in
       member.flush ~scratch;
       if Listener.bytes_sent listener > sent then
@@ -98,10 +101,41 @@ let remove_closed t =
 
 let release removed =
   List.iter
-    (fun m ->
-      Listener.close_socket m.listener;
-      teardown m)
+    (fun m -> if Listener.release_socket m.listener `Owner then teardown m)
     removed
+
+(* Waits for readability, so that a listener owed nothing is still seen
+   hanging up; what it sends is discarded. It holds the socket until it ends:
+   the owner's release shuts the socket down to wake it, and the delay ends it
+   where that shutdown wakes nothing. *)
+let rec watch_hangup member =
+  let listener = member.listener in
+  let fd = (Listener.socket listener)#file_descr in
+  let finish () =
+    if Listener.release_socket listener `Watch then teardown member;
+    []
+  in
+  {
+    Scheduler.Task.priority = `Non_blocking;
+    events = [`Read fd; `Delay retry_interval];
+    handler =
+      (fun events ->
+        if Listener.is_closed listener then finish ()
+        else if not (List.mem (`Read fd) events) then [watch_hangup member]
+        else (
+          let buffer = Domain.DLS.get discard in
+          match Unix.read fd buffer 0 (Bytes.length buffer) with
+            | 0 ->
+                Listener.mark_closed listener;
+                finish ()
+            | _ -> [watch_hangup member]
+            | exception Unix.Unix_error (error, _, _)
+              when Liq_http.would_block error || error = Unix.EINTR ->
+                [watch_hangup member]
+            | exception _ ->
+                Listener.mark_closed listener;
+                finish ()));
+  }
 
 let rec wake t =
   match Atomic.get t.schedule with
@@ -134,9 +168,11 @@ and pass t =
           let next =
             List.fold_left
               (fun next m ->
+                let owed = m.pending () in
+                Listener.set_owed_nothing m.listener (not owed);
                 match next with
                   | `Wake -> `Wake
-                  | _ when not (m.pending ()) -> next
+                  | _ when not owed -> next
                   | _ when Listener.last_progress m.listener >= now -> `Wake
                   | _ -> `Retry)
               `Idle (Atomic.get t.members)
@@ -161,10 +197,12 @@ let publish t member =
         if t.stopping then false
         else (
           Listener.set_last_progress member.listener (Listener.now ());
+          Listener.hold_socket member.listener;
           Atomic.set t.members (member :: Atomic.get t.members);
           true))
   in
   if published then (
+    Scheduler.Task.add (watch_hangup member);
     wake t;
     (* The deadline is checked by passes, which only data or a retry start. *)
     Option.iter

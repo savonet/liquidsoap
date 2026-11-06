@@ -132,6 +132,9 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
     val mime_type : string option Atomic.t = Atomic.make None
     val mutable dump = None
     val mutable logf = None
+    val bytes_read = Atomic.make 0
+    method bytes_read = Atomic.get bytes_read
+    method private count_read n = ignore (Atomic.fetch_and_add bytes_read n)
 
     val on_connect : ((string * string) list -> unit) Callbacks.t =
       Callbacks.create ()
@@ -213,6 +216,7 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
                   (try self#disconnect_connection c with _ -> ());
                   0)
         in
+        self#count_read input;
         begin match dump with
           | Some b ->
               output_string b (Bytes.sub_string buf 0 input);
@@ -423,6 +427,18 @@ class http_input_server ~pos ~transport ~dumpfile ~logfile ~bufferize ~max ~icy
         | None -> raise Harbor.Unknown_codec
   end
 
+let login_t =
+  Lang.record_t
+    [
+      ("address", Lang.string_t);
+      ("method", Lang.string_t);
+      ("uri", Lang.string_t);
+      ("query", Lang.metadata_t);
+      ("user", Lang.string_t);
+      ("password", Lang.string_t);
+      ("headers", Lang.metadata_t);
+    ]
+
 let proto ?(buffer_default = 12.) mountpoint_t =
   [
     ( "buffer",
@@ -439,9 +455,12 @@ let proto ?(buffer_default = 12.) mountpoint_t =
       Some (Lang.float 20.),
       Some "Maximum duration of the buffered data (in seconds)." );
     ( "timeout",
-      Lang.float_t,
+      Lang.getter_t Lang.float_t,
       Some (Lang.float 30.),
-      Some "Timeout for source connectionn." );
+      Some
+        "Timeout for source connections, in seconds. `input.harbor` reads it \
+         when it is created, `input.harbor.dynamic` when each client connects."
+    );
     ("user", Lang.string_t, Some (Lang.string "source"), Some "Source user.");
     ( "password",
       Lang.string_t,
@@ -482,22 +501,7 @@ let proto ?(buffer_default = 12.) mountpoint_t =
         "Replay last known metadata when switching back to this source. This \
          helps when source has dropped due to temporary connection issues." );
     ( "auth",
-      Lang.nullable_t
-        (Lang.fun_t
-           [
-             ( false,
-               "",
-               Lang.record_t
-                 [
-                   ("address", Lang.string_t);
-                   ("method", Lang.string_t);
-                   ("uri", Lang.string_t);
-                   ("query", Lang.metadata_t);
-                   ("user", Lang.string_t);
-                   ("password", Lang.string_t);
-                 ] );
-           ]
-           Lang.bool_t),
+      Lang.nullable_t (Lang.fun_t [(false, "", login_t)] Lang.bool_t),
       Some Lang.null,
       Some
         "Authentication function. Receives a record with: `user`, `password`, \
@@ -506,9 +510,27 @@ let proto ?(buffer_default = 12.) mountpoint_t =
          (connection method: `\"PUT\"` or `\"POST\"` for HTTP source \
          connections, `\"SOURCE\"` for Xaudiocast/ICE sources, `\"ICY\"` for \
          Shoutcast/ICY sources, `\"WEBSOCKET\"` for WebSocket sources, \
-         `\"GET\"` for ICY metadata updates) and returns `true` if the user \
-         should be granted access for this login. Override any other method if \
-         used." );
+         `\"GET\"` for ICY metadata updates), and `headers` (the request \
+         headers, lowercase names, empty for ICY sources) and returns `true` \
+         if the user should be granted access for this login. A request \
+         without credentials is refused unless `accept` is given, in which \
+         case it is passed empty ones. Override any other method if used." );
+    ( "accept",
+      Lang.nullable_t
+        (Lang.fun_t
+           [(false, "", login_t)]
+           (Lang.nullable_t
+              (Lang.optional_record_t
+                 [("refuse", Lang.nullable_t Harbor_refusal.t)]))),
+      Some Lang.null,
+      Some
+        "Admission of a source client that passed `auth`, with the same \
+         record. It also runs for the `GET` logins of ICY metadata updates. A \
+         decision with `refuse = {status, reason, headers?}` refuses the \
+         client with that reply and an empty body; `null` or no `refuse` \
+         admits it. A refusal whose status is outside 300 to 599, or with a \
+         line break in its reason or headers, and a function that raises, \
+         refuse with `403 Forbidden`." );
     ( "dumpfile",
       Lang.nullable_t Lang.string_t,
       Some Lang.null,
@@ -530,7 +552,7 @@ type 'a parse_result = {
   mountpoint : 'a;
   login : string * (Harbor.login_args -> bool);
   debug : bool;
-  timeout : float;
+  timeout : unit -> float;
   icy : bool;
   icy_charset : string option;
   meta_charset : string option;
@@ -548,12 +570,37 @@ let parse_mountpoint_string v =
   if mountpoint <> "" && mountpoint.[0] = '/' then mountpoint
   else Printf.sprintf "/%s" mountpoint
 
+let log = Log.make ["input"; "harbor"]
+
+let refuse_forbidden () =
+  raise
+    (Harbor.Refused
+       { Harbor_refusal.status = 403; reason = "Forbidden"; headers = [] })
+
+(* [accept]'s decision: raises [Harbor.Refused] when it refuses. *)
+let apply_accept accept record =
+  match
+    try
+      Lang.to_option (Lang.apply accept [("", record)])
+      |> Option.map (fun decision ->
+          let fields, _ = Lang.split_meths decision in
+          Option.bind (List.assoc_opt "refuse" fields) Lang.to_option
+          |> Option.map Harbor_refusal.of_value)
+    with exn ->
+      let bt = Printexc.get_backtrace () in
+      Utils.log_exception ~log ~bt
+        (Printf.sprintf "Source admission failed: %s" (Printexc.to_string exn));
+      refuse_forbidden ()
+  with
+    | Some (Some refusal) -> raise (Harbor.Refused refusal)
+    | _ -> ()
+
 let parse_args ~parse_mountpoint p =
   let mountpoint = parse_mountpoint (List.assoc "" p) in
   let default_user = Lang.to_string (List.assoc "user" p) in
   let default_password = Lang.to_string (List.assoc "password" p) in
   let debug = Lang.to_bool (List.assoc "debug" p) in
-  let timeout = Lang.to_float (List.assoc "timeout" p) in
+  let timeout = Lang.to_float_getter (List.assoc "timeout" p) in
   let icy = Lang.to_bool (List.assoc "icy" p) in
   let icy_charset =
     Lang.to_valued_option Lang.to_string (List.assoc "icy_metadata_charset" p)
@@ -565,34 +612,43 @@ let parse_args ~parse_mountpoint p =
   let port = Lang.to_int (List.assoc "port" p) in
   let transport = Lang.to_http_transport (List.assoc "transport" p) in
   let auth_function = Lang.to_option (List.assoc "auth" p) in
-  let login { Harbor.socket; meth; uri; query; user; password } =
+  let accept = Lang.to_option (List.assoc "accept" p) in
+  let login
+      { Harbor.socket; meth; uri; query; user; password; credentials; headers }
+      =
     let user, password =
       let f = Charset.convert in
       (f user, f password)
     in
     let default_login = user = default_user && password = default_password in
-    match auth_function with
-      | Some auth_function ->
-          Lang.to_bool
-            (Lang.apply auth_function
-               [
-                 ( "",
-                   Lang.record
-                     [
-                       ("address", Lang.string (address_resolver socket));
-                       ("method", Lang.string meth);
-                       ("uri", Lang.string uri);
-                       ( "query",
-                         Lang.list
-                           (List.map
-                              (fun (k, v) ->
-                                Lang.product (Lang.string k) (Lang.string v))
-                              query) );
-                       ("user", Lang.string user);
-                       ("password", Lang.string password);
-                     ] );
-               ])
-      | None -> default_login
+    let pairs l =
+      Lang.list
+        (List.map
+           (fun (k, v) -> Lang.product (Lang.string k) (Lang.string v))
+           l)
+    in
+    let record =
+      Lang.record
+        [
+          ("address", Lang.string (address_resolver socket));
+          ("method", Lang.string meth);
+          ("uri", Lang.string uri);
+          ("query", pairs query);
+          ("user", Lang.string user);
+          ("password", Lang.string password);
+          ("headers", pairs headers);
+        ]
+    in
+    let logged_in =
+      match auth_function with
+        | _ when (not credentials) && Option.is_none accept -> false
+        | Some auth_function ->
+            Lang.to_bool (Lang.apply auth_function [("", record)])
+        | None -> default_login
+    in
+    if logged_in then
+      Option.iter (fun accept -> apply_accept accept record) accept;
+    logged_in
   in
   let login = (default_user, login) in
   let dumpfile =
@@ -653,6 +709,12 @@ let meth () =
               match s#connected_client with
                 | Some c -> Lang.string c
                 | None -> Lang.null));
+    };
+    {
+      name = "bytes_read";
+      scheme = ([], Lang.fun_t [] Lang.int_t);
+      descr = "Bytes read from source clients since the input was created.";
+      value = (fun s -> Lang.val_fun [] (fun _ -> Lang.int s#bytes_read));
     };
     {
       name = "status";
@@ -721,5 +783,6 @@ let input_harbor =
         parse_args ~parse_mountpoint:parse_mountpoint_string p
       in
       new http_input_server
-        ~pos ~transport ~timeout ~bufferize ~max ~login ~mountpoint ~dumpfile
-        ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta ~debug ())
+        ~pos ~transport ~timeout:(timeout ()) ~bufferize ~max ~login ~mountpoint
+        ~dumpfile ~logfile ~icy ~port ~icy_charset ~meta_charset ~replay_meta
+        ~debug ())
