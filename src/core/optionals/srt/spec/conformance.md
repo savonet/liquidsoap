@@ -1,40 +1,58 @@
-# Tests
+# Conformance
 
-The suite runs both ends in one process: an `input.srt` and an `output.srt`
-over the loopback interface. Each test is a script that passes by calling the
-harness's pass function and fails on timeout or on an uncaught error. Test
-names below are a trace back to the source, not content.
+What a test suite for these operators MUST check, by principle. Every
+[known-complexity](known-complexity.md) entry's "How to tell" is a check
+too; the table names the entry where one applies.
 
-## 1. The checks
+## 1. Principles
 
-| Invariant                                                                    | Binding                                                                                                                                                                                           | Incidental                                                                                         | Trace                                                                                                   |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| A listener's admission predicate receives the stream id the caller set.      | The predicate is called during the handshake with `streamid` equal to the caller's string.                                                                                                        | The predicate rejecting afterwards; the WAV format; the one-second delay before the caller starts. | `srt_listen_callback`                                                                                   |
-| An output listener accepts several callers at once and reports each.         | `on_connect` fires once per accepted caller: two callers, two events.                                                                                                                             | Format, port.                                                                                      | `srt_multiple_outputs`                                                                                  |
-| Encrypted connections succeed when both ends set the same passphrase.        | `on_connect` fires on the listener. No mismatched case: the test also passes if neither end encrypts.                                                                                             | The passphrase's value beyond its length.                                                          | `srt_passphrase`                                                                                        |
-| A stream sent by the output reaches the input's decoder.                     | A track starts on the input. The track mark is added when the decoder is created, before any byte is decoded: this proves a connection and a decoder found for MIME parameters, not decoded data. | The codec, sample rate, layout.                                                                    | `srt_raw_pcm`                                                                                           |
-| Disconnecting and reconnecting an input caller starts a new track each time. | More than one track seen across two cycles.                                                                                                                                                       | The delays.                                                                                        | `GH4395` — **skipped**: the script calls the skip function before doing anything, so it checks nothing. |
-| An output with a copy encoder on a fallible source is accepted.              | Construction does not fail.                                                                                                                                                                       | The unreachable HTTP source.                                                                       | `ffmpeg-copy-input-http`                                                                                |
+- **Assert on data that crossed the connection**: byte counts, payload
+  sizes, decoded content, the input's dump. A callback firing is never the
+  pass signal alone, since it fires before data flows.
+- **Every positive check has a negative twin** that must fail: mismatched
+  passphrase, rejected stream id, client past the limit.
+- **Interoperability**: each role and kind runs once against a third-party
+  SRT peer, not only against the other operator.
+- **No family pinning**: the default-parameter checks run without setting
+  `settings.srt.prefer_address`.
+- **A skipped check is reported as missing coverage**, never as a pass.
+- **Run under load**, since most of these paths are races.
 
-The documentation examples `srt-sender.liq` and `srt-receiver.liq` are
-typechecked only.
+## 2. Checks
 
-## 2. Harness
+| Invariant                                                                                                                  | Binding                                                                                                                                          | Incidental                 | Entry      |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- | ---------- |
+| Payloads are exactly `payload_size` bytes, counted from each peer's first byte ([output.md §10](output.md#10-wire-bytes)). | Sizes of every payload a raw peer receives; the last of a clean end may be shorter.                                                              | Encoder, content.          |            |
+| A clean stop delivers the encoder's trailer.                                                                               | The peer's last bytes are the encoder's final bytes.                                                                                             | Format.                    | KC6        |
+| A late listener client receives the header, then decodes.                                                                  | Ogg and WAV clients joining mid-stream decode; a TS client decodes.                                                                              | Timing of the join.        | KC6        |
+| One listener client failing leaves the others' streams intact.                                                             | The surviving client's bytes are one continuous stream, with one header.                                                                         | How the failure is caused. | KC6        |
+| A caller output reconnecting gives the new peer a stream from its start.                                                   | Two reconnections with Ogg; the input decodes both and starts a track at each.                                                                   | Delays.                    | KC6        |
+| A slow peer delays neither the clock nor other peers.                                                                      | With one peer that stops reading, the clock's timing and the other peer's byte rate hold; the slow peer fails after `write_timeout`.             | Amounts.                   | KC2        |
+| A silent connected peer makes the input not ready and keeps the connection.                                                | Readiness false, no reconnection, the clock ticks; stop and shutdown complete promptly.                                                          | Durations.                 | KC1        |
+| End of stream loses no byte.                                                                                               | A known byte sequence then a close: the dump holds every byte.                                                                                   |                            | KC7        |
+| Callbacks may call every method of their operator.                                                                         | For each callback, role and kind, a synchronous callback calling every method returns; shutdown then completes.                                  |                            | KC3        |
+| Events pair per peer.                                                                                                      | Per peer, `on_connect` then `on_disconnect`, exactly once each; a failed attempt fires neither.                                                  | Thread names.              | KC14       |
+| `disconnect()` during an attempt leaves the caller idle.                                                                   | No socket held, last event `on_disconnect` or none; `connect()` twice gives one peer.                                                            | Timing.                    | KC12       |
+| The listener survives failed accepts and peers.                                                                            | After a rejected handshake and fifty connect/disconnect cycles, a caller still connects; the listening socket is the same one throughout.        |                            | KC9        |
+| The client limit is exact.                                                                                                 | With `max_clients = n`, `n + 1` simultaneous callers: exactly `n` live.                                                                          |                            |            |
+| A bind failure that may clear is retried; one that cannot fails start.                                                     | Port in use: retried, other outputs keep running, listening once freed. Privileged port without permission: start fails.                         |                            |            |
+| Encryption is enforced.                                                                                                    | Same passphrase: data flows. Mismatched or missing: no peer.                                                                                     | Passphrase value.          | KC15       |
+| Validation names the parameter and its valid values.                                                                       | Passphrase of 9 and 80 bytes, port 0, `payload_size` too large, a bad `pbkeylen` fail at evaluation.                                             | Message wording.           | KC19       |
+| Options set in `on_socket` take effect.                                                                                    | Latency set in `on_socket "listen"` is read back on both ends.                                                                                   |                            | KC15       |
+| Dual stack works with defaults.                                                                                            | Default caller reaches default listener under each preference.                                                                                   |                            | KC16       |
+| Pacing follows the stream.                                                                                                 | One time-controlled input paces; two different streams in one clock report a conflict; two inputs of the same stream do not.                     |                            | KC13       |
+| Reconnecting keeps the operator's state.                                                                                   | An audio-video input disconnected mid-frame several times inside a fallback resumes each time.                                                   |                            | KC5        |
+| Nothing leaks.                                                                                                             | After injected failures at every setup step, a thousand times, open sockets and descriptors return to baseline; dropped operators are collected. |                            | KC11, KC18 |
+| Process lifecycle is clean.                                                                                                | `--version`, `--check`, daemonised run, interrupt and clean stop exit 0.                                                                         |                            | KC4        |
+| A latency reset restarts the output.                                                                                       | After a forced reset, the peer receives data again within one reconnection.                                                                      |                            | KC8        |
+| Blocking work never starves the scheduler.                                                                                 | More failing callers than pool workers: a server request is still answered promptly.                                                             |                            | KC17       |
 
-- Each test binds a fixed port: 8001–8004, 9502, 10001.
-- Every streaming test sets `settings.srt.prefer_address` to `"ipv4"`, so
-  `localhost` resolves to the address the listener bound, `0.0.0.0`.
-- No failure is simulated: no dropped peer, no slow peer, no timeout, no bad
-  passphrase.
-- Doubles a new harness would need: an SRT peer that can be told to stop
-  reading, to vanish without closing, to send a stream id, to use a wrong
-  passphrase; a way to observe the exact bytes of each payload.
+## 3. Harness
 
-## 3. Untested
+Doubles a harness needs: an SRT peer that can be told to stop reading, to
+vanish without closing, to send a stream id, to use a wrong passphrase, to
+send without timestamp-based delivery; a raw receiver that records each
+payload's bytes and size; a third-party SRT tool for interoperability.
 
-Nothing checks: the payload cut ([output.md §10](output.md#10-wire-bytes)),
-the encoder trailer on stop, a late listener client, peer failure for either
-role, caller reconnection after a lost peer, the read timeout ending a track,
-`sockets()`, `connect()`/`disconnect()` on the output, the socket value's
-methods, the settings, IPv6, `max_clients`, a passphrase mismatch, the
-callback lock, or shutdown with connections open.
+Ports are unique across the suite, and each test releases what it opens on
+every path.

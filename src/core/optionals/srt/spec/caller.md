@@ -1,101 +1,103 @@
 # The caller role
 
-Connects to a remote listener and keeps at most one connection. Numbered as
+Connects to a remote listener and keeps at most one peer. Numbered as
 [connection.md](connection.md).
 
 ## 1. Parameters
 
 `host`, `port`, `prefer_address`, `streamid`, `passphrase`, `pbkeylen`,
-`enforced_encryption`, `polling_delay`, `connection_timeout`, `read_timeout`,
-`write_timeout`, `payload_size`, `messageapi`.
+`enforced_encryption`, `polling_delay`, `connection_timeout`,
+`payload_size`, `messageapi`, and the kind's timeout (`read_timeout` for the
+input, `write_timeout` for the output).
 
 ## 2. State
 
-- **socket**: absent, or one (resolved remote address, socket) pair.
-- **connect task**: absent until the first connect; a task on the scheduler's
-  threaded queue running the attempt of §4.
-- **task stop flag**: separate from the operator's stop flag; set by
-  disconnect, cleared by connect.
+One of:
 
-The operator is entered in the shutdown registry at construction
-([library.md §4](library.md#4-shutdown)).
+- **idle**: the connection is not wanted;
+- **attempting**: one attempt (§4) is in flight;
+- **waiting**: the next attempt is due at a known time;
+- **connected**: one peer.
+
+Each attempt carries the identity of the transition that started it. An
+attempt whose identity is no longer current when it completes is discarded
+([connection.md §2](connection.md#2-state)): this is what makes a
+`disconnect()` during an attempt leave the operator idle, with no socket and
+no event.
 
 ## 3. Socket setup
 
-After [connection.md §3](connection.md#3-socket-setup) with mode `"connect"`,
-in this order:
+After [connection.md §3](connection.md#3-socket-setup) steps 1–5, the
+caller's own options, each only when given:
 
-1. blocking send, blocking receive;
-2. `streamid`, if given;
-3. `enforced_encryption`, if given;
-4. `pbkeylen`, if given;
-5. `passphrase`, if given;
-6. connect timeout from `connection_timeout`, if given;
-7. send timeout from `write_timeout`, if given;
-8. receive timeout from `read_timeout`, if given.
+1. `streamid`;
+2. `enforced_encryption`;
+3. `pbkeylen`;
+4. `passphrase` ([common.md §2](common.md#2-encryption));
+5. connect timeout from `connection_timeout`.
+
+Then `on_socket` fires with `"connect"`.
 
 ## 4. Connect
 
-1. Clear the task stop flag.
-2. If there is no connect task, create one and wake it; otherwise wake the
-   existing one.
+When the connection becomes wanted, an attempt starts at once.
 
-Each run of the task is one **attempt**:
+**Attempt:**
 
 1. Resolve `host`:`port` ([library.md §5](library.md#5-address-resolution)).
-2. Log at level 3 `Connecting to srt://<host>:<port>..`.
-3. If a socket is held, take it out and close it
-   ([connection.md §3](connection.md#3-socket-setup)). `on_disconnect` does
-   not fire.
-4. Create and set up a socket (§3).
-5. Connect it to the resolved address. The call blocks up to the connect
-   timeout.
-6. Log at level 3 `Client connected!`.
-7. Fire `on_connect` (§5).
-8. Store (address, socket) as the socket.
-9. Sleep until woken.
+   Log at level 4 `Connecting to srt://<host>:<port>`.
+2. For each resolved address in the resolver's order, until one connects:
+   create and set up a socket (§3) and connect it, waiting up to the connect
+   timeout. A socket that fails to connect is closed (with its `"close"`
+   event).
+3. On success, if the attempt is still current: log at level 3
+   `Connected to srt://<ip>:<port>`, and the socket becomes the peer
+   ([connection.md §5](connection.md#5-connected)).
 
-An exception in steps 5–8 closes the new socket without the `close` event and
-fails the attempt. A failed attempt, from any step, logs at level 3
-`Connect failed: <exn>` and runs again after `polling_delay` seconds unless
-the task stop flag is set, in which case the task sleeps.
+A failure is classified by
+[connection.md §4](connection.md#4-connect): a transient one logs at level 3
+`Connection to srt://<host>:<port> failed: <cause>`, with the library's
+rejection reason when the peer refused the handshake, and moves to waiting
+for `polling_delay` seconds.
 
-Retrying has no limit and no back-off.
-
-Waking the task while a socket is held runs a full attempt: step 3 closes the
-live connection and a new one replaces it.
+`connect()` while attempting, waiting or connected does nothing: there is
+never more than one attempt or one peer. Attempts MUST NOT occupy a worker
+of a shared bounded pool while they block
+([concurrency.md §1](concurrency.md#1-threads)).
 
 ## 5. Connected
 
-`on_connect` fires on the connect task's thread, before the socket is stored:
-while it runs the operator is not connected and `sockets()` is empty. No lock
-is held.
+`on_connect` fires on the thread that completed the attempt, after the
+kind's own reaction and before the peer is live
+([connection.md §5](connection.md#5-connected)).
 
 ## 6. Sockets
 
-The held socket, as a one-element list, or the empty list. The address is the
-resolved remote address.
+The peer, as a one-element list, or the empty list. The address is the
+remote address the attempt connected to.
 
 ## 7. Peer failure
 
-1. Log the exception with its backtrace as
-   `Error while sending client data: <exn>`.
-2. Disconnect (§8).
-3. Unless stopping, connect (§4): a new connect task is created.
+The peer is ended ([connection.md §8](connection.md#8-disconnect)). If the
+connection is still wanted, a new attempt starts at once when the peer was
+live for at least `polling_delay`, and after `polling_delay` otherwise: a
+peer that fails as soon as it connects (a decoder that cannot be found, a
+peer that drops every stream) never makes the caller reconnect without
+pause.
 
 ## 8. Disconnect
 
-1. Take the socket out. If there was one: close it, then fire
-   `on_disconnect`.
-2. Set the task stop flag.
-3. If there is a connect task: stop it and forget it. Stopping does not
-   interrupt an attempt in progress; that attempt runs to its end and may
-   store a socket.
+Releasing ([connection.md §8](connection.md#8-disconnect)) from each state:
 
-`on_disconnect` fires on the thread that called disconnect.
+- **attempting**: the attempt is abandoned; whatever it later produces is
+  discarded and its socket closed;
+- **waiting**: the scheduled attempt is cancelled;
+- **connected**: the peer is ended.
+
+The role is then idle.
 
 ## 9. Stopping
 
-The attempt reads only the task stop flag, never the operator's stop flag.
-The operator's stop flag matters in §7 only. At process shutdown the registry
-calls disconnect (§8).
+At process shutdown the role is released (§8). An attempt blocked in the
+library is abandoned without waiting for its connect timeout; its socket is
+closed when the call returns, or by the library's cleanup.

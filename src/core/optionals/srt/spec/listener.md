@@ -6,112 +6,117 @@ Listens on a local address and keeps a list of accepted peers. Numbered as
 ## 1. Parameters
 
 `bind_address`, `port`, `prefer_address`, `ipv6only`, `listen_callback`,
-`passphrase`, `pbkeylen`, `enforced_encryption`, `read_timeout`,
-`write_timeout`, `payload_size`, `messageapi`, and a client limit: the
-output's `max_clients` (null: no limit), fixed at 1 for the input.
+`passphrase`, `pbkeylen`, `enforced_encryption`, `polling_delay`,
+`payload_size`, `messageapi`, the kind's timeout (`read_timeout` for the
+input, `write_timeout` for the output), and a **client limit**: the output's
+`max_clients` (null: no limit), 1 for the input.
 
 ## 2. State
 
-- **listening socket**: absent, or one socket, created on demand (§3).
-- **clients**: a list of (peer address, socket), newest first.
+One of:
 
-The operator is entered in the shutdown registry at construction
-([library.md §4](library.md#4-shutdown)).
+- **idle**: the connection is not wanted;
+- **waiting**: setting up the listening socket failed transiently; the next
+  try is due at a known time;
+- **listening**: one listening socket, and the peers accepted through it.
+
+A peer is **admitted** from the moment its accept lands until it is ended;
+live peers ([connection.md §2](connection.md#2-state)) are the admitted ones
+whose `on_connect` has completed. The client limit counts admitted peers.
+
+The listening socket lives exactly as long as the connection is wanted:
+losing a peer never touches it.
 
 ## 3. Socket setup
 
-The listening socket is created the first time connect needs it and kept
-until a stopping disconnect (§8). After
-[connection.md §3](connection.md#3-socket-setup) with mode `"listen"`, in
-this order:
+**Listening socket.** After [connection.md §3](connection.md#3-socket-setup)
+steps 1–5:
 
 1. Resolve `bind_address`:`port` ([library.md §5](library.md#5-address-resolution)).
-2. IPv6-only flag: set to `ipv6only` if given; otherwise set to `true` if the
-   resolved address is IPv6; otherwise leave it.
-3. Bind to the resolved address.
-4. Build the **admission predicate** and install it if it exists:
-   - with a client limit `n`: admit while the clients list is shorter than
-     `n`, read under the source lock;
-   - with `listen_callback`: call it with `hs_version`, `peeraddr` (the peer's
-     IP without port), `streamid` (null if the caller sent none) and the new
-     socket without methods, and admit on `true`;
-   - with both: the limit is checked first, then the callback, and both must
-     admit.
-     The predicate runs on a libsrt thread during the handshake
-     ([library.md §6](library.md#6-what-is-relied-upon-from-the-binding)); an
-     exception rejects.
-5. `enforced_encryption`, `pbkeylen`, `passphrase`, each if given.
-6. Listen, with a backlog of the client limit, or 1 when there is none.
-7. Log at level 4 `Setting up socket to listen at <ip>:<port>`.
+2. IPv6-only flag: `ipv6only` if given; otherwise `true` when the resolved
+   address is IPv6; otherwise left as is.
+3. `enforced_encryption`, `pbkeylen`, `passphrase`, each when given
+   ([common.md §2](common.md#2-encryption)).
+4. Fire `on_socket` with `"listen"`.
+5. Bind to the resolved address.
+6. Install the admission predicate (below).
+7. Listen. The backlog SHOULD be at least the client limit when there is
+   one.
+8. Log at level 4 `Listening on srt://<ip>:<port>`.
 
-Any failure closes the socket without the `close` event and is raised to the
-caller of connect. Accepted sockets are configured in §4.
+**Admission predicate**, consulted by the library during each handshake:
+
+1. With a client limit `n`: reject when `n` peers are admitted.
+2. With `listen_callback`: call it with `hs_version`, `peeraddr` (the peer's
+   IP without port), `streamid` (null when the caller sent none) and the new
+   socket ([socket-value.md](socket-value.md)); admit on `true`.
+3. Otherwise admit.
+
+An exception from `listen_callback` rejects the handshake and is logged at
+level 2. The predicate runs on the library's handshake thread and holds no
+operator lock; a slow `listen_callback` delays every handshake of the
+process, which its documentation states.
+
+The predicate's count is advisory, since a handshake it admits completes
+later. The limit is exact at accept (§4).
+
+**Accepted socket.** After [connection.md §3](connection.md#3-socket-setup)
+steps 6–7: the options the kind needs for exchanging data, then `on_socket`
+with `"incoming"`. Steps 1–5 do not apply: an accepted socket inherits the
+listening socket's options.
 
 ## 4. Connect
 
-If the operator is stopping, nothing. Otherwise, under the source lock: get
-or create the listening socket (§3), and register it with the readiness loop
-for read readiness with the accept handler ([poll.md §2](poll.md#2-registering-and-removing)).
+When the connection becomes wanted: set up the listening socket (§3) and
+register it with the readiness loop for incoming connections
+([poll.md §2](poll.md#2-registering-and-removing)). The first setup runs in
+the call that made the connection wanted, so a permanent failure is raised
+from it ([connection.md §4](connection.md#4-connect)); a transient one logs at
+level 3 `Listening on srt://<ip>:<port> failed: <cause>` and moves to
+waiting for `polling_delay` seconds.
 
-The **accept handler** runs on the readiness loop's thread:
+**Accepting**, each time the listening socket reports a connection:
 
-1. Accept a connection from the listening socket: (client, origin).
-2. Log at level 4 `New connection from <ip>:<port>`; if formatting the
-   address fails, log at level 3 `Error while fetching connection source: <exn>`
-   and go on.
-3. Register the listening socket again, for the next connection.
-4. Set on the client: blocking send, blocking receive, send timeout from
-   `write_timeout` if given, receive timeout from `read_timeout` if given.
-5. Fire `on_socket` with `"incoming"`.
-6. If the operator is stopping: close the client (with the `close` event)
-   and give up.
-7. Prepend (origin, client) to the clients, under the source lock.
-8. Fire `on_connect` (§5).
+1. Accept: (socket, origin).
+2. Log at level 4 `New connection from <ip>:<port>`.
+3. In one atomic step: if the connection is no longer wanted, or `n` peers
+   are already admitted, discard the socket (closed, no event); otherwise
+   admit it.
+4. Set it up as an accepted socket (§3).
+5. Connected ([connection.md §5](connection.md#5-connected)).
 
-Any exception in steps 3–8 closes the client without the event and gives up;
-giving up logs at level 5 `Failed to connect: <exn>`. In step 6 this closes
-the client a second time; if that second close raises, its error is the one
-logged.
-
-An exception in step 1 or 2 is logged the same way, and step 3 never runs:
-the listening socket is no longer registered, and no further connection is
-accepted until connect runs again.
+An accept that fails is logged at level 3 and the listening socket stays
+registered: a failure on one connection never stops the listener from
+accepting the next. Any failure in steps 4–5 ends that peer alone.
 
 ## 5. Connected
 
-`on_connect` fires once per accepted client, on the readiness loop's thread,
-after the client is listed, inside the source lock in its mutating mode
-([concurrency.md §2](concurrency.md#2-the-source-lock)).
+`on_connect` fires once per admitted peer, after the kind's own reaction
+and before the peer is live. It never runs on the readiness loop's thread
+([concurrency.md §1](concurrency.md#1-threads)), so a slow `on_connect`
+delays only its own peer.
 
 ## 6. Sockets
 
-The clients list, read under the source lock, newest first. The address is
-the peer's origin address.
+The live peers, newest first. The address is the peer's origin.
 
 ## 7. Peer failure
 
-1. Log the exception with its backtrace as
-   `Error while sending client data: <exn>`.
-2. Under the source lock in mutating mode: close that client (with the
-   `close` event) and remove it from the clients.
-
-`on_disconnect` does not fire. The listening socket is untouched.
+The peer is ended ([connection.md §8](connection.md#8-disconnect)). The
+listening socket and every other peer are untouched, and a new peer may be
+admitted in its place.
 
 ## 8. Disconnect
 
-1. Note whether the operator is stopping.
-2. Under the source lock in mutating mode:
-   1. close every client (with the `close` event), and empty the list;
-   2. if stopping and there is a listening socket: remove it from the
-      readiness loop, close it (with the `close` event), forget it;
-   3. fire `on_disconnect`.
+Releasing ([connection.md §8](connection.md#8-disconnect)):
 
-`on_disconnect` fires on every disconnect, whether or not a client was
-connected. A non-stopping disconnect keeps the listening socket and its
-registration, so new clients are still accepted.
+1. Remove the listening socket from the readiness loop, close it (with its
+   `"close"` event). New handshakes are refused from here on.
+2. End every admitted peer; for an output, cleanly.
+3. From waiting, cancel the scheduled try.
+
+The role is then idle.
 
 ## 9. Stopping
 
-Connect and the accept handler read the operator's stop flag. At process
-shutdown the stop flag reads as set, so the registry's disconnect (§8) also
-closes the listening socket.
+At process shutdown the role is released (§8).

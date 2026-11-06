@@ -8,23 +8,24 @@ listener or as a listener to every accepted caller.
 `output.srt(<common>, max_clients, start, fallible, register_telnet, id,
 format, source)`.
 
-| Parameter                              | Type    | Default | Meaning                                                   |
-| -------------------------------------- | ------- | ------- | --------------------------------------------------------- |
-| [common.md §1](common.md#1-parameters) |         |         | `mode` defaults to `"caller"`.                            |
-| `max_clients`                          | int?    | null    | Client limit of the listener role; ignored by the caller. |
-| `start`                                | bool    | `true`  | Start as soon as the source is available.                 |
-| `fallible`                             | bool    | `false` | Accept a fallible source.                                 |
-| `register_telnet`                      | bool    | `true`  | Register the generic server commands.                     |
-| `id`                                   | string? | null    | Operator id.                                              |
-| (unlabeled)                            | format  | —       | The encoder.                                              |
-| (unlabeled)                            | source  | —       | The source.                                               |
+| Parameter                              | Type    | Default | Meaning                                                               |
+| -------------------------------------- | ------- | ------- | --------------------------------------------------------------------- |
+| [common.md §1](common.md#1-parameters) |         |         | `mode` defaults to `"caller"`.                                        |
+| `max_clients`                          | int?    | null    | Client limit of the listener role, at least 1; ignored by the caller. |
+| `start`                                | bool    | `true`  | Start as soon as the source is available.                             |
+| `fallible`                             | bool    | `false` | Accept a fallible source.                                             |
+| `register_telnet`                      | bool    | `true`  | Register the generic server commands.                                 |
+| `id`                                   | string? | null    | Operator id.                                                          |
+| (unlabeled)                            | format  | —       | The encoder.                                                          |
+| (unlabeled)                            | source  | —       | The source.                                                           |
 
 The value returned carries the methods and callbacks of
 [common.md §3–§4](common.md#3-callbacks) and the generic output ones.
 
 ## 2. Construction
 
-1. Validate the common parameters ([common.md §1](common.md#1-parameters)).
+1. Validate the common parameters ([common.md §1](common.md#1-parameters))
+   and `max_clients`.
 2. Look up an encoder factory for the format. None found: invalid-value error
    on the format, `Cannot get a stream encoder for that format`.
 3. Build the operator with the role `mode` names. The generic output checks
@@ -35,82 +36,98 @@ The value returned carries the methods and callbacks of
 The generic output drives two operations, each called on the streaming
 thread:
 
-- **start**, when the output enters the started state: clear the stop flag
-  (under the source lock), then connect.
-- **stop**, when it leaves it, towards stopped or idle: set the stop flag
-  (under the source lock), stop the encoder (§6), send the full chunks still
-  queued (§5), disconnect.
+- **start**, when the output enters the started state: clear the hold
+  ([common.md §5](common.md#5-connection-wanted)); the role connects.
+- **stop**, when it leaves it, towards stopped or idle: the role releases
+  ([connection.md §8](connection.md#8-disconnect)), ending every peer
+  cleanly (§6).
 
 A **reset**, which the clock asks of its outputs after too much latency, is
-stop then start, and only while started.
+stop then start, and only while started. Afterwards the output is started and
+connecting, exactly as after a first start.
 
-The generic output enters started when its source is ready and it is idle, and
-falls back to idle when the source ends a frame early: a fallible output goes
-through stop and start each time its source becomes unavailable and comes
-back. A listener's stop is a stopping disconnect: it closes every client and
-the listening socket, and the next start listens again.
+The generic output enters started when its source is ready and it is idle,
+and falls back to idle when the source ends a frame early. A fallible output
+therefore ends its peers each time its source becomes unavailable, and
+connects again when it comes back: one peer connection carries one stream,
+from its start to its end.
 
 ## 4. Encoder
 
-At most one encoder exists at a time.
+The output holds at most one encoder, and runs it only while it has at least
+one peer to send to.
 
-- It is created on first need while connected: by an encode, a metadata
-  encode, or a stop of the encoder. It is created under the source lock, from
-  the factory, with the operator's id and empty metadata.
-- It is forgotten by §6 and §7.
+- **Creating.** The first encode after a peer joins, with no encoder
+  running, creates one from the factory with the operator's id and empty
+  metadata. Every joining peer's stream starts at the encoder's first byte.
+- **Joining.** A peer that joins while an encoder runs receives the
+  encoder's separately available header, when the encoder has one, then the
+  encoder's output from the start of its next output block. An encoder with
+  no separate header (MPEG-TS) gives the joiner its output from the next
+  block alone.
+- **Ending.** When the last peer ends by failure, the encoder is stopped and
+  its final bytes discarded. When the output ends its peers itself, §6
+  applies. Every encoder created is stopped exactly once.
 
-Encoding happens only while connected. Otherwise a frame is not encoded and
-its bytes do not exist; metadata is dropped the same way.
+Encoding runs on the streaming thread, and only while an encoder runs or a
+peer waits to join. Otherwise a frame is not encoded and its bytes do not
+exist; metadata is dropped the same way. Encoder errors are the generic
+output's to handle.
 
 Each frame is cut at its metadata positions. For each piece, in order: the
 metadata starting in it is encoded first (cover art not exported), then the
-piece's data, and the data's bytes are sent (§5). The generic output adds
-`on_air` and `on_air_timestamp` to each metadata.
+piece's data, and the resulting bytes go to every peer's stream (§5). The
+generic output adds `on_air` and `on_air_timestamp` to each metadata.
 
-The encoder's separately available header is never read. A peer receives the
-header only when it is connected at the moment a new encoder produces its
-first bytes.
+## 5. Sending
 
-## 5. Chunking and sending
+Each peer has its own **stream**: the bytes it is owed, from its first byte
+(§4). The stream is cut into **payloads** of exactly `payload_size` bytes,
+counted from the peer's first byte. A payload is sent as one message when
+`messageapi` is set, otherwise as stream data. Fewer than `payload_size`
+bytes wait for more, except at a clean end (§6).
 
-One byte **queue** is shared by all peers. Sending encoded bytes, while
-connected:
+**The streaming thread never waits for a peer.** It hands each peer's
+payloads to that peer's queue and goes on; payloads leave the queue as the
+library accepts them, in order. For a live peer, no payload is skipped,
+reordered or split across messages.
 
-1. Append them to the queue.
-2. While the queue holds at least `payload_size` bytes:
-   1. take the first `payload_size` bytes off the queue as the **chunk**;
-   2. for each socket of the role's list ([connection.md §6](connection.md#6-sockets)),
-      in list order, send the whole chunk: with `messageapi`, send it as a
-      message with no time-to-live and no ordering requirement; otherwise as
-      stream data. Repeat with the unsent remainder until the whole chunk is
-      accepted.
-   3. If sending to a socket fails: stop the encoder (§6), then hand the
-      socket to the role's peer failure ([connection.md §7](connection.md#7-peer-failure)),
-      and go on to the next socket with the same chunk.
+A peer **fails** ([connection.md §7](connection.md#7-peer-failure)):
 
-Fewer than `payload_size` bytes stay queued until more arrive. Because §6
-empties the queue, the loop ends after a failure: one peer's failure restarts
-the stream for every peer.
+- when a send to it fails;
+- when it has queued bytes and the library accepts none of them for
+  `write_timeout`;
+- when its queue exceeds `peer_backlog_limit` bytes.
 
-Sockets are blocking with the send timeout of `write_timeout`, and sending
-runs on the streaming thread: each send can hold the streaming cycle for up
-to `write_timeout`, once per socket and per chunk.
+`peer_backlog_limit` protects the process's memory against a peer that
+accepts data too slowly. Recommended value: 8 MiB. A failing peer affects no
+other peer: their streams continue unchanged.
 
-## 6. Stopping the encoder
+## 6. Stopping
 
-1. If connected: append the encoder's final bytes to the queue (getting an
-   encoder first if there was none). An error is logged with its backtrace as
-   `Error while stopping encoder: <exn>`.
-2. Empty the queue, discarding its contents.
-3. Forget the encoder.
+When the output ends its peers itself (stop, `disconnect()`, reset,
+shutdown):
 
-The final bytes appended in step 1 are discarded by step 2, with any partial
-chunk: no encoder trailer is ever sent.
+1. Stop the encoder, if one runs, and append its final bytes to every
+   peer's stream. An error is logged at level 2 with its backtrace as
+   `Error while stopping encoder: <exn>`; the peers are ended anyway.
+2. Send each peer's remaining bytes, the last payload shorter than
+   `payload_size` if need be.
+3. Close each peer once the library has sent everything queued for it, or
+   after `write_timeout`, whichever comes first; then `on_disconnect` fires
+   for it.
 
-## 7. Disconnect handler
+This does not hold the streaming thread: a start that follows at once (a
+reset) proceeds while the old peers drain.
 
-Registered at construction, before any script callback: on `on_disconnect`,
-empty the queue and forget the encoder, without stopping it.
+## 7. Reactions to peers
+
+The output's own reactions ([connection.md §5](connection.md#5-connected),
+[§8](connection.md#8-disconnect)):
+
+- on a new peer: it waits to join the stream at the next encode (§4);
+- on a peer ending: its stream and queue are dropped; if it was the last
+  peer and §6 has not already stopped the encoder, the encoder ends (§4).
 
 ## 8. Pacing
 
@@ -126,22 +143,25 @@ own.
 
 ## 10. Wire bytes
 
-The stream is the encoder's byte output, concatenated, cut into SRT payloads
-of exactly `payload_size` bytes. A cut falls where the count says, whatever
-the encoder's own packet boundaries. The code produces this one form only.
+A peer receives the encoder's byte output, from its join point (§4),
+concatenated and cut into SRT payloads of exactly `payload_size` bytes. A
+cut falls where the count says, whatever the encoder's own packet
+boundaries. Only the last payload of a clean end may be shorter. Receivers
+SHOULD accept payloads of any size up to the library's largest live payload.
 
-Example, `payload_size = 1316`:
+Example, `payload_size = 1316`, one peer from the encoder's start:
 
-| Encoder output | Queue after | Sent                                     |
-| -------------- | ----------- | ---------------------------------------- |
-| 500 bytes      | 500         | nothing                                  |
-| 1000 bytes     | 184         | one payload: stream bytes 0–1315         |
-| 2448 bytes     | 0           | two payloads: bytes 1316–2631, 2632–3947 |
+| Encoder output             | Pending after | Sent                                     |
+| -------------------------- | ------------- | ---------------------------------------- |
+| 500 bytes                  | 500           | nothing                                  |
+| 1000 bytes                 | 184           | one payload: stream bytes 0–1315         |
+| 2448 bytes                 | 0             | two payloads: bytes 1316–2631, 2632–3947 |
+| clean end, 40-byte trailer | 0             | one payload of 40 bytes                  |
 
-With an MPEG-TS encoder every payload is seven whole TS packets, since the
-stream starts on a packet boundary and 1316 is a multiple of 188. After a
-restart (§5, §6) the new stream starts on a payload boundary, so alignment
-holds across restarts too.
+A second peer joining after the third row, with a 58-byte header, receives
+the header followed by the next block: its payloads are counted from the
+header's first byte, independently of the first peer's.
 
-A listener client accepted while a stream runs receives from the next payload
-on: mid-stream, and without the header.
+With an MPEG-TS encoder every payload is seven whole TS packets, since each
+peer's stream starts on a block, the TS encoder's blocks start on a packet
+boundary, and 1316 is a multiple of 188.

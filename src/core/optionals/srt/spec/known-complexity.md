@@ -53,7 +53,7 @@ millisecond and to `null`; both must behave as documented.
 
 Sources: 4bcd5c70a, f605bb717, #2082, #2809.
 
-**Spec:** Partly. A receive timeout bounds each read ([input.md §4](input.md#4-decoder)) and ends the track ([input.md §5](input.md#5-producing-frames)). Not covered: readiness means connected, not data available ([findings.md G14](findings.md#gaps)); sub-millisecond timeouts become 0 (G5).
+**Spec:** Readiness means data available, the connection is kept ([input.md §3](input.md#3-readiness)); receives run off the streaming thread and are interrupted when the peer ends ([input.md §4](input.md#4-receiving-and-decoding)); durations round up, never to 0 ([common.md §1](common.md#1-parameters)).
 
 ---
 
@@ -86,7 +86,7 @@ slowly: the clock's stall must be bounded by the read deadline and reported.
 
 Sources: 7802d3e64, 8ece3ef9e.
 
-**Spec:** Covered for the caller: attempts hold no lock ([caller.md §5](caller.md#5-connected)). Not covered: the decoder reads the header on the streaming thread ([findings.md G10](findings.md#gaps)).
+**Spec:** The streaming thread never connects, sends or receives ([concurrency.md §1](concurrency.md#1-threads)); the decoder is created and fed by the reader ([input.md §4](input.md#4-receiving-and-decoding)); no user code under a lock ([concurrency.md §2](concurrency.md#2-callbacks-and-locks)).
 
 ---
 
@@ -114,7 +114,7 @@ shutdown must finish.
 
 Sources: 7802d3e64, 6d04b4ab5, 5845027c7.
 
-**Spec:** Described ([concurrency.md §2](concurrency.md#2-the-source-lock)). Not covered: the deadlock stands ([findings.md D2](findings.md#defects)).
+**Spec:** No user code runs under an operator lock, and every method works from a callback ([concurrency.md §2](concurrency.md#2-callbacks-and-locks), [common.md §4](common.md#4-methods)).
 
 ---
 
@@ -155,7 +155,7 @@ on libsrt's own threads.
 Sources: 3a6a98075, 1f26595f4, 383d1d8f9, 39ac9e13e, 08469c676, cf00f47ce,
 b14d7fe43, fcecb8ea6, binding 0.2.2 and 0.3.1, #3450, #3473.
 
-**Spec:** Covered: [library.md §1](library.md#1-initialisation), [§2](library.md#2-log-routing).
+**Spec:** [library.md §1](library.md#1-initialisation): started once, after daemonising, only when used, balanced with cleanup, nothing called before the start; [§2](library.md#2-log-routing): the log handler never blocks libsrt's threads.
 
 ---
 
@@ -190,7 +190,7 @@ frame) and a test must cover each reset point.
 
 Sources: 83dda4672, fbff29210, c81ebf458, 5edc4d246, #1186, #1950.
 
-**Spec:** Covered: limit set at wake-up ([input.md §2](input.md#2-lifecycle)), decoder per connection ([input.md §4](input.md#4-decoder)), buffer kept across reconnections ([input.md §6](input.md#6-connect-and-disconnect-handlers)).
+**Spec:** State lifetimes are stated per piece ([input.md §2](input.md#2-lifecycle)); the buffer limit is set at wake-up; decoder, dump and socket live per peer ([input.md §6](input.md#6-reactions-to-peers)).
 
 ---
 
@@ -229,7 +229,7 @@ refused for formats that need it; which one is a spec decision.
 Sources: 977e17429, 77cf76e88, 8ece3ef9e, cd78f705b, 682c85838, 801f29d54,
 #4395, #4399.
 
-**Spec:** Described: [output.md §4–§6](output.md#4-encoder), [§10](output.md#10-wire-bytes). Not covered: [findings.md D3, A2, A3](findings.md#defects), and the reconnection test is skipped (G13).
+**Spec:** Every peer's stream starts at the encoder's start or with its header ([output.md §4](output.md#4-encoder)); one peer's failure leaves the others' streams intact ([output.md §5](output.md#5-sending)); a clean end delivers the trailer ([output.md §6](output.md#6-stopping)). The late-joiner decision: header, then live.
 
 ---
 
@@ -257,7 +257,7 @@ byte, verified with the input's dump.
 
 Sources: e04f05786, 64003622b.
 
-**Spec:** Covered: end of stream is signalled only once received bytes are used up ([input.md §4](input.md#4-decoder)). Not covered: check-then-act on shared state ([findings.md G3](findings.md#gaps)).
+**Spec:** Transitions re-check state atomically ([connection.md §2](connection.md#2-state)); readiness needs no socket lookup ([input.md §3](input.md#3-readiness)); a stale socket only yields an ignored failure ([concurrency.md §3](concurrency.md#3-shared-state)); end of stream is signalled after every received byte ([input.md §4](input.md#4-receiving-and-decoding)).
 
 ---
 
@@ -284,7 +284,7 @@ whether it sends.
 
 Sources: 664d649f0 (origin), ce0f954ee, 1a539eb90, #5309.
 
-**Spec:** Covered: [output.md §3](output.md#3-lifecycle), reset is stop then start.
+**Spec:** Reset is stop then start, leaving the output started and connecting ([output.md §3](output.md#3-lifecycle)).
 
 ---
 
@@ -317,7 +317,7 @@ still connects. Accept during stop: no socket is left open.
 Sources: c02ecbed2, cd78f705b, 38b029286, d98c597a9, 1f423a495, da559204f,
 #2556.
 
-**Spec:** Covered: the listening socket lives until a stopping disconnect ([listener.md §3](listener.md#3-socket-setup), [§8](listener.md#8-disconnect)). Not covered: [findings.md D5, D6](findings.md#defects).
+**Spec:** The listening socket lives as long as the connection is wanted ([listener.md §2](listener.md#2-state)); registrations persist and a failed accept leaves the listener armed ([listener.md §4](listener.md#4-connect), [poll.md §2](poll.md#2-registering-and-removing)); an accept landing after release is closed ([connection.md §2](connection.md#2-state)).
 
 ---
 
@@ -361,7 +361,7 @@ non-blocking listening socket inherits non-blocking mode.
 Sources: 1f423a495, 9fc663746, c0c74f2f2, 192bbae15, 483706c95, d98c597a9,
 6b7236def, ad62e02ad, fdb783b97, 7d120e137.
 
-**Spec:** Described: [poll.md §2–§3](poll.md#2-registering-and-removing), [concurrency.md §3](concurrency.md#3-shared-state). Not covered: [findings.md D7, D11, G3](findings.md#defects), V2, V10.
+**Spec:** One owner for the set and table, persistent registrations, tolerant removal, a loop that never sleeps while its set holds a socket ([poll.md](poll.md)); the blocking mode is set by the socket's owner ([poll.md §2](poll.md#2-registering-and-removing)).
 
 ---
 
@@ -388,7 +388,7 @@ dead host, shutdown completes within one connection deadline.
 Sources: 1f26595f4, 67d0ecf95, 4d223afca, CHANGES.md 2.2.4 ("dynamically
 created sources").
 
-**Spec:** Covered: [library.md §4](library.md#4-shutdown), a weak registry and one flag.
+**Spec:** One shutdown step: the flag, then a bounded release of every operator, found through a registry that does not keep them alive ([library.md §4](library.md#4-shutdown), [connection.md §9](connection.md#9-stopping)).
 
 ---
 
@@ -419,7 +419,7 @@ operator holds no socket and the last event fired is `on_disconnect`. Call
 
 Sources: 7802d3e64, 7d120e137, 977e17429, a4f2f4e3f.
 
-**Spec:** Covered: the socket is stored after `on_connect` ([caller.md §4](caller.md#4-connect)). Not covered: [findings.md D8, D9, D12](findings.md#defects).
+**Spec:** The caller's state is one value with four states, and attempts carry the identity of the transition that started them ([caller.md §2](caller.md#2-state)); `connect()` while active does nothing ([caller.md §4](caller.md#4-connect)).
 
 ---
 
@@ -454,7 +454,7 @@ Sources: ce0f954ee, 5c7819152, 5e8951ad7, 48cc9d7b2, fa52a0deb, 55fc9d6f2,
 01d559687, 0cd96e4f9, 646a82198, c31ab058d, 21ebfe7c1, 923ae2ef7, 24084719f,
 96e8df380, b8ee50ee7, a0c56dc00, 22bb40a97, #4364.
 
-**Spec:** Described: [input.md §7](input.md#7-pacing), [output.md §8](output.md#8-pacing). Not covered: [findings.md G1](findings.md#gaps).
+**Spec:** An input paces only while its connection is time-controlled, with the stream as the sync source's identity ([input.md §7](input.md#7-pacing)); the output never paces ([output.md §8](output.md#8-pacing)).
 
 ---
 
@@ -489,7 +489,7 @@ failed attempt fires nothing but a log line.
 Sources: a4f2f4e3f, a26e0933b, 6d04b4ab5, ebf419934, 329387501, 82dcc264c,
 aa8183484.
 
-**Spec:** Described: order in [common.md §3](common.md#3-callbacks); a failed attempt fires nothing ([caller.md §4](caller.md#4-connect)). Not covered: [findings.md A1](findings.md#asymmetries).
+**Spec:** Events pair per peer ([connection.md §8](connection.md#8-disconnect)); the operator's own reaction precedes callbacks ([common.md §3](common.md#3-callbacks)); order per operator and what synchronous holds back ([concurrency.md §2](concurrency.md#2-callbacks-and-locks)).
 
 ---
 
@@ -527,7 +527,7 @@ connection deadline applies to callers only.
 Sources: 3560f33d4, a8723b72d, d98c597a9, 4bcd5c70a, 11eef57ce, 192bbae15,
 #3520, #4256, #4257, #4325.
 
-**Spec:** Covered: option order per role ([connection.md §3](connection.md#3-socket-setup), [caller.md §3](caller.md#3-socket-setup), [listener.md §3–§4](listener.md#3-socket-setup)); passphrase length checked at evaluation ([common.md §1](common.md#1-parameters)). V1 is the inheritance claim.
+**Spec:** The role's options are set before `on_socket`, which comes before connect or bind ([connection.md §3](connection.md#3-socket-setup)); accepted sockets inherit the listening socket's options ([listener.md §3](listener.md#3-socket-setup), [library.md §7](library.md#7-libsrt-behaviour-assumed)); passphrase and other values validated at evaluation ([common.md §1](common.md#1-parameters)).
 
 ---
 
@@ -557,7 +557,7 @@ without pinning the family.
 Sources: 3472313eb, cfdc1c7b2, 8b3df606d, 255be7d06, 0021e959c, #4317,
 #4538, #4542.
 
-**Spec:** Covered: [library.md §5](library.md#5-address-resolution), IPv6-only default ([listener.md §3](listener.md#3-socket-setup)). Not covered: [findings.md G15](findings.md#gaps).
+**Spec:** The caller tries every resolved address in order ([library.md §5](library.md#5-address-resolution), [caller.md §4](caller.md#4-connect)); IPv6-only default for IPv6 binds ([listener.md §3](listener.md#3-socket-setup)); tests run without pinning ([conformance.md §1](conformance.md#1-principles)).
 
 ---
 
@@ -581,7 +581,7 @@ harbor or telnet request is still answered within its usual time.
 
 Sources: fcd8bf488, b18d14a52, c9ca3eb3a, 8e4e38fb2, #4151, #4219, #5405.
 
-**Spec:** Described: [concurrency.md §1](concurrency.md#1-threads). Not covered: [findings.md G16](findings.md#gaps).
+**Spec:** No blocking call holds a shared bounded worker ([concurrency.md §1](concurrency.md#1-threads)); the readiness loop has a thread of its own ([poll.md §1](poll.md#1-model)).
 
 ---
 
@@ -609,7 +609,7 @@ baseline.
 Sources: 7802d3e64, 7d120e137, 1f423a495, 05715ef44, fdb783b97,
 CHANGES.md 2.2.5 ("listen socket polling callbacks").
 
-**Spec:** Covered: the decoder is closed on disconnect ([input.md §6](input.md#6-connect-and-disconnect-handlers)). Not covered: [findings.md D6, G11, G12](findings.md#defects).
+**Spec:** Every socket closed exactly once on every path, with its close event when it had a creation event ([connection.md §3](connection.md#3-socket-setup)); every encoder stopped exactly once ([output.md §4](output.md#4-encoder)); decoder and dump closed with the peer ([input.md §6](input.md#6-reactions-to-peers)).
 
 ---
 
@@ -637,7 +637,7 @@ evaluation and names the parameter and its valid values.
 Sources: 2dd7f12f8, c89f05345, 6e1afcd00, 45489de6c, 433ba80a2, f605bb717,
 #2809.
 
-**Spec:** Covered: validation messages ([common.md §1](common.md#1-parameters)), socket errors of kind `srt` ([socket-value.md §1](socket-value.md#1-the-value)). Not covered: [findings.md D1, D13](findings.md#defects).
+**Spec:** Validation names the parameter and its valid values ([common.md §1](common.md#1-parameters)); `sockets()`, `connect()` and `disconnect()` never raise; socket methods raise kind `srt` ([failures.md §7](failures.md#7-script-calls)).
 
 ---
 
@@ -668,7 +668,7 @@ third-party SRT peer. A skipped test is reported as missing coverage.
 Sources: 682c85838, 801f29d54, c81ebf458, 1e6abc293, e96cf1c74, 329387501,
 3472313eb, #2661.
 
-**Spec:** Described: [conformance.md](conformance.md). Not covered: [findings.md G13](findings.md#gaps).
+**Spec:** [conformance.md](conformance.md): data-crossing assertions, negative twins, a third-party peer, skipped checks reported.
 
 ---
 

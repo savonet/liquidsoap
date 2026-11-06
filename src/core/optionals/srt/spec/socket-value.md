@@ -7,17 +7,13 @@ A script sees an SRT socket as a value of type `srt_socket`. It prints as
 JSON raises an error of kind `json` with the message
 `SRT socket cannot be represented as json`.
 
-`srt.socket(s)` returns the same socket carrying the methods below. Where a
-socket reaches a script:
+Wherever a socket reaches a script (`on_socket`, `listen_callback`,
+`sockets()`), it carries the methods below and is typed with them.
+`srt.socket(s)` returns the same socket with its methods, for a value typed
+without them.
 
-| Where                                                            | Methods present                |
-| ---------------------------------------------------------------- | ------------------------------ |
-| `on_socket` callback ([common.md §3](common.md#3-callbacks))     | yes, though typed `srt_socket` |
-| `listen_callback` ([listener.md §3](listener.md#3-socket-setup)) | no                             |
-| `sockets()` ([common.md §4](common.md#4-methods))                | no                             |
-
-Every method but `id` calls libsrt; a libsrt error is raised to the script as
-an error of kind `srt`.
+Every method but `id` calls libsrt; a libsrt error, including one from a
+socket already closed, is raised to the script as an error of kind `srt`.
 
 ## 2. Options
 
@@ -51,23 +47,32 @@ setter `set_name(v)`.
 `rcvtimeout` and `sndtimeout` are the libsrt options `rcvtimeo` and
 `sndtimeo`. The transport type cannot be read or set from a script.
 
+The blocking mode and timeouts of a socket an operator uses for data are the
+operator's ([concurrency.md §1](concurrency.md#1-threads)): a script that
+changes them on such a socket may make the operator fail that peer.
+
 ## 3. Other methods
 
 | Method                                    | Result                                                                                                                 |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `id`                                      | int, the libsrt socket id (a value, not a function).                                                                   |
 | `status()`                                | One of `initialized`, `opened`, `listening`, `connecting`, `connected`, `broken`, `closing`, `closed`, `non_existant`. |
-| `close()`                                 | Closes the socket. The operator holding it is not told.                                                                |
+| `close()`                                 | Closes the socket.                                                                                                     |
 | `bstats(clear=null)`                      | Statistics record, §4.                                                                                                 |
 | `bistats(clear=null, instantaneous=null)` | Statistics record, §4.                                                                                                 |
 
 Null leaves the libsrt default for `clear` and `instantaneous`.
 
+A script that closes a socket an operator holds ends that peer as a failure,
+which the operator sees at its next exchange
+([connection.md §7](connection.md#7-peer-failure)). The operator still fires
+the `"close"` event for it once, when it releases the peer.
+
 ## 4. Statistics
 
 A record with one field per libsrt statistic, named as libsrt names them.
-Integer statistics are converted to the native integer, whatever their width
-or sign in libsrt. Fields marked (float) are floats.
+Integer statistics are converted to the native integer, saturating at its
+bounds. Fields marked (float) are floats.
 
 Fields: `msTimeStamp`, `pktSentTotal`, `pktRecvTotal`, `pktSndLossTotal`,
 `pktRcvLossTotal`, `pktRetransTotal`, `pktSentACKTotal`, `pktRecvACKTotal`,
