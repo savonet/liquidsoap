@@ -1204,7 +1204,17 @@
   (alias test_hls_timed_id3)
   (alias test_hls_init_segments)
   (alias test_hls_main_playlist_codecs)
-  (alias test_hls_write_error)))
+  (alias test_hls_write_error)
+  (alias test_hls_large_frames)
+  (alias test_hls_dropped_tracks)
+  (alias test_hls_copy_resume)
+  (alias test_hls_raw_encode)
+  (alias test_hls_input_round_trip)
+  (alias test_hls_codecs_at_stop)
+  (alias test_hls_x264_lookahead)
+  (alias test_hls_fmp4_extname_restart)
+  (alias test_hls_streams_extname)
+  (alias test_hls_iso_muxers)))
 
 ; HLS output conformance: copied H.264 with B-frames in three variants, AAC-LC
 ; and HE-AAC, a 2 s GOP whose key frames fall after or before each boundary.
@@ -1616,3 +1626,175 @@
    hls_write_error.liq
    --
    hls-gop4.ts)))
+
+(rule
+ (alias test_hls_fmp4_extname_restart)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_fmp4_extname_restart.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS fMP4 extname across a restart"
+   liquidsoap
+   hls_fmp4_extname_restart.liq)))
+
+(rule
+ (alias test_hls_streams_extname)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_streams_extname.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS streams() extname"
+   liquidsoap
+   hls_streams_extname.liq)))
+
+(rule
+ (alias test_hls_iso_muxers)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_iso_muxers.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "HLS mov and ipod muxers" liquidsoap hls_iso_muxers.liq)))
+
+(rule
+ (alias test_hls_x264_lookahead)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_x264_lookahead.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS libx264 lookahead segment durations"
+   liquidsoap
+   hls_x264_lookahead.liq)))
+
+(rule
+ (alias test_hls_codecs_at_stop)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_codecs_at_stop.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS main playlist codecs at stop"
+   liquidsoap
+   hls_codecs_at_stop.liq)))
+
+(rule
+ (alias test_hls_input_round_trip)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_input_round_trip.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS input.hls round trip"
+   liquidsoap
+   hls_input_round_trip.liq)))
+
+(rule
+ (alias test_hls_raw_encode)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_raw_encode.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "HLS raw FFmpeg encoding" liquidsoap hls_raw_encode.liq)))
+
+(rule
+ (alias test_hls_copy_resume)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_copy_resume.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS inline encode and copy resumed"
+   liquidsoap
+   hls_copy_resume.liq)))
+
+(rule
+ (alias test_hls_dropped_tracks)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_dropped_tracks.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS dropped tracks per variant"
+   liquidsoap
+   hls_dropped_tracks.liq)))
+
+(rule
+ (alias test_hls_large_frames)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_large_frames.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS large internal frames"
+   liquidsoap
+   hls_large_frames.liq)))

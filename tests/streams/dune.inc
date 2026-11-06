@@ -1206,6 +1206,37 @@
    hls_construction_variants.liq)))
 
 (rule
+ (alias test_hls_default_id)
+ (package liquidsoap)
+ (deps
+  hls_default_id.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} hls_default_id.liq liquidsoap hls_default_id.liq)))
+
+(rule
  (alias test_hls_deleted_segment)
  (package liquidsoap)
  (deps
@@ -1303,6 +1334,37 @@
   (run %{run_test} hls_file_modes.liq liquidsoap hls_file_modes.liq)))
 
 (rule
+ (alias test_hls_harbor_id)
+ (package liquidsoap)
+ (deps
+  hls_harbor_id.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} hls_harbor_id.liq liquidsoap hls_harbor_id.liq)))
+
+(rule
  (alias test_hls_harbor_serving)
  (package liquidsoap)
  (deps
@@ -1396,6 +1458,41 @@
   (run %{run_test} hls_id3_timestamp.liq liquidsoap hls_id3_timestamp.liq)))
 
 (rule
+ (alias test_hls_insert_tag_catchable)
+ (package liquidsoap)
+ (deps
+  hls_insert_tag_catchable.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_insert_tag_catchable.liq
+   liquidsoap
+   hls_insert_tag_catchable.liq)))
+
+(rule
  (alias test_hls_inserted_tags)
  (package liquidsoap)
  (deps
@@ -1460,6 +1557,41 @@
    hls_main_playlist_null.liq
    liquidsoap
    hls_main_playlist_null.liq)))
+
+(rule
+ (alias test_hls_main_playlist_writer_null)
+ (package liquidsoap)
+ (deps
+  hls_main_playlist_writer_null.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_main_playlist_writer_null.liq
+   liquidsoap
+   hls_main_playlist_writer_null.liq)))
 
 (rule
  (alias test_hls_metadata_covers)
@@ -1926,6 +2058,37 @@
    hls_tags_across_stop.liq
    liquidsoap
    hls_tags_across_stop.liq)))
+
+(rule
+ (alias test_hls_unwritable_dir)
+ (package liquidsoap)
+ (deps
+  hls_unwritable_dir.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} hls_unwritable_dir.liq liquidsoap hls_unwritable_dir.liq)))
 
 (rule
  (alias test_huge-playlist)
@@ -3371,14 +3534,18 @@
   (alias test_hls_cleanup)
   (alias test_hls_construction_errors)
   (alias test_hls_construction_variants)
+  (alias test_hls_default_id)
   (alias test_hls_deleted_segment)
   (alias test_hls_file_events)
   (alias test_hls_file_modes)
+  (alias test_hls_harbor_id)
   (alias test_hls_harbor_serving)
   (alias test_hls_id3_bytes)
   (alias test_hls_id3_timestamp)
+  (alias test_hls_insert_tag_catchable)
   (alias test_hls_inserted_tags)
   (alias test_hls_main_playlist_null)
+  (alias test_hls_main_playlist_writer_null)
   (alias test_hls_metadata_covers)
   (alias test_hls_metadata_cuts)
   (alias test_hls_mp3_vbr_bandwidth)
@@ -3393,6 +3560,7 @@
   (alias test_hls_sleep_no_persist)
   (alias test_hls_stop_start)
   (alias test_hls_tags_across_stop)
+  (alias test_hls_unwritable_dir)
   (alias test_huge-playlist)
   (alias test_icecast_last_meta)
   (alias test_icecast_no_restart)
