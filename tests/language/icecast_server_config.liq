@@ -59,6 +59,64 @@ def f() =
        name="filename" value="f"/></authentication></mount>'
     )
   test.equal(m.mount_name, "/x")
+  test.equal(m.url_auth, null)
+
+  # <mount>: URL listener authentication
+  def url_auth(options) =
+    icecast.server.config.mount.parse(
+      '<mount><authentication type="url">#{options}</authentication></mount>'
+    ).url_auth
+  end
+  auth =
+    null.get(
+      url_auth(
+        '<option name="listener_add" value="http://auth/add"/><option \
+         name="auth_header" value=" Icecast-Auth-User : OK "/>'
+      )
+    )
+  test.equal(auth.listener_add, "http://auth/add")
+  test.equal(auth.auth_header, ("icecast-auth-user", "ok"))
+  test.equal(auth.credentials, null)
+  auth =
+    null.get(
+      url_auth(
+        '<option name="listener_add" value="http://a"/><option name="username" \
+         value="u"/><option name="password" value="p"/>'
+      )
+    )
+  test.equal(auth.auth_header, null)
+  test.equal(auth.timelimit_header, null)
+  test.equal(auth.listener_remove, null)
+  test.equal(auth.credentials, ("u", "p"))
+  auth =
+    null.get(
+      url_auth(
+        '<option name="listener_remove" value="http://a/rm"/><option \
+         name="timelimit_header" value="X-Limit: "/>'
+      )
+    )
+  test.equal(auth.listener_add, null)
+  test.equal(auth.listener_remove, "http://a/rm")
+  test.equal(auth.timelimit_header, "x-limit")
+  test.equal(
+    url_auth(
+      '<option name="stream_auth" value="http://a"/>'
+    ),
+    null
+  )
+  try
+    ignore(
+      url_auth(
+        '<option name="listener_add" value="http://a"/><option \
+         name="auth_header" value="no-separator"/>'
+      )
+    )
+    test.fail(
+      "auth_header without ':' was accepted"
+    )
+  catch _ : [error.invalid] do
+    ()
+  end
 
   # <mount>: defaults when nothing is set
   m =
@@ -80,6 +138,12 @@ def f() =
          <burst-size>1</burst-size>
          <hidden>1</hidden>
          <http-headers><header name="X-Default" value="1" /></http-headers>
+         <authentication type="url">
+           <option name="listener_add" value="http://auth/add"/>
+         </authentication>
+         <max-listener-duration>3600</max-listener-duration>
+         <intro>/intro.mp3</intro>
+         <preroll>http://ads/preroll.aac</preroll>
        </mount>'
     )
   live =
@@ -109,6 +173,10 @@ def f() =
   test.equal(r.password, "global")
   test.equal(r.burst_size, 1)
   test.equal(r.http_headers, [("X-Default", "1")])
+  test.equal(null.get(r.url_auth).listener_add, "http://auth/add")
+  test.equal(r.max_listener_duration, 3600)
+  test.equal(r.intro, "/intro.mp3")
+  test.equal(r.preroll, "http://ads/preroll.aac")
 
   # <listen-socket>
   s =
@@ -189,10 +257,11 @@ def f() =
   # <paths>: tls-certificate wins over ssl-certificate
   p =
     icecast.server.config.paths(
-      "<paths><logdir>/var/log</logdir><ssl-certificate>/old.pem</ssl-certificate><tls-certificate>/new.pem</tls-certificate><tls-key>/key.pem</tls-key><alias \
+      "<paths><logdir>/var/log</logdir><webroot>/web</webroot><ssl-certificate>/old.pem</ssl-certificate><tls-certificate>/new.pem</tls-certificate><tls-key>/key.pem</tls-key><alias \
        source=\"/a\" dest=\"/b\"/></paths>"
     )
   test.equal(p.logdir, "/var/log")
+  test.equal(p.webroot, "/web")
   test.equal(p.tls_certificate, "/new.pem")
   test.equal(p.tls_key, "/key.pem")
   p =
@@ -251,6 +320,7 @@ def f() =
   c =
     icecast.server.config.parse(
       '<icecast>
+         <hostname>radio.example</hostname>
          <limits><sources>3</sources></limits>
          <authentication><source-password>pw</source-password></authentication>
          <logging><playlistlog>p.log</playlistlog></logging>
@@ -263,6 +333,7 @@ def f() =
        </icecast>'
     )
   test.equal(c.port, 9000)
+  test.equal(c.hostname, "radio.example")
   test.equal(c.password, "pw")
   test.equal(c.max_sources, 3)
   test.equal(c.http_headers, [("X-Global", "1")])
@@ -275,6 +346,7 @@ def f() =
 
   c = icecast.server.config.parse("<icecast/>")
   test.equal(c.port, null)
+  test.equal(c.hostname, null)
   test.equal(c.logging.accesslog, null)
   test.equal(c.mounts, [])
   test.equal(c.default_mount.mount_name, null)
