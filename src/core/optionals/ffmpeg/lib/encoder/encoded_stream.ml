@@ -497,6 +497,7 @@ module Video_writer = struct
       max t.next_slot (((abs * t.frame_rate) + main_rate - 1) / main_rate)
 
   let push t ~abs ~duration frame =
+    let frame = Avutil.Frame.dup frame in
     Avutil.Frame.set_pts frame (Some (Int64.of_int abs));
     Avutil.Frame.set_duration frame (Some (Int64.of_int duration));
     let format = Avutil.Video.frame_format frame in

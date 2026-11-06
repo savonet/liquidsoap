@@ -104,7 +104,12 @@ source is incompatible with it.
 A frame of length 0 carries no data and changes nothing. Raw frames are read
 from runs at their absolute positions (run start plus item position,
 [content.md §4.2](content.md#42-run-layer)); a gap between runs carries no
-frame. Each raw frame's parameters are read from the frame itself.
+frame. Each raw frame's parameters are read from the frame itself. A raw
+frame is shared with every other encoder reading the same content (two
+outputs, two HLS variants): the stream encoder MUST NOT change it, and sets
+its own timestamps on a reference copy. Reason: a duration written in main
+ticks over the frame's own would be read by the next encoder in the frame's
+time base.
 
 ## 4. Conversion
 
