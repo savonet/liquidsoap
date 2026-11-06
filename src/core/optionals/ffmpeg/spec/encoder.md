@@ -653,7 +653,10 @@ output stays conformant, and players are expected to support it.
 1. Every stream encoder drains (§12.8), in track order.
 2. The container is closed (codecs drained, trailer written).
 3. A new container is built by §3 step 3, with new stream encoders, and the
-   current metadata is set on it.
+   current metadata is set on it. After an HLS restart in the ISO base media
+   family, its `movflags` also carry `+frag_discont`. Reason: the muxer
+   otherwise starts the new container's fragment times at 0, whatever the
+   packet timestamps.
 4. The new container's streams are created (§5 step 1) from the current
    content of each field (a copy stream: the parameters of its current run,
    [content.md §4.2](content.md#42-run-layer)): at the next frame for a

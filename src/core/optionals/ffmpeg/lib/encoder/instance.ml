@@ -373,13 +373,27 @@ let chains t =
     | `Stream -> true
     | `Url u -> String.length u > 5 && String.sub u 0 5 = "file:"
 
+let iso_family = ["mp4"; "mov"; "ipod"; "ismv"]
+
+(* encoder.md §13.2 step 3. *)
+let continued_format (format : F.t) =
+  match (format.format, List.assoc_opt "movflags" format.opts) with
+    | Some m, Some (`String flags) when List.mem m iso_family ->
+        {
+          format with
+          opts =
+            F.set format.opts "movflags" (`String (flags ^ "+frag_discont"));
+        }
+    | _ -> format
+
 (* encoder.md §13.2: an HLS restart keeps the variant's timeline. *)
 let hls_restart t h =
   close_container t;
   let previous = t.current.copy in
   t.current <-
     open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
-      ~format:t.format ~pos:t.pos ~buffer:t.buffer ();
+      ~format:(continued_format t.format)
+      ~pos:t.pos ~buffer:t.buffer ();
   Copy_encoder.continue_from t.current.copy ~from:previous;
   t.header <- `Pending (Buffer.length t.buffer);
   h.id3_stream <- None;
@@ -496,7 +510,6 @@ let create ?interrupt ~pos ~name metadata format =
   }
 
 let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"]
-let iso_family = ["mp4"; "mov"; "ipod"; "ismv"]
 
 (* HLS variants.md §2: the segment formats of RFC 8216 §3. *)
 let segment_muxer = function
