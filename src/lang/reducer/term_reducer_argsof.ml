@@ -159,8 +159,13 @@ let builtin_args_of ~only ~except ~pos name =
     | None ->
         parse_error ~pos (Printf.sprintf "Builtin %s is not registered!" name)
 
+let rec strip_typeof (tm : Term.t) =
+  match tm with
+    | { term = `Typeof { holes = _; body } } -> strip_typeof body
+    | tm -> tm
+
 let args_of ~only ~except ~pos ~env name =
-  match List.assoc_opt name env with
+  match Option.map strip_typeof (List.assoc_opt name env) with
     | Some { term = `Fun { arguments } } ->
         let filtered_args =
           List.filter (fun { label } -> label <> "") arguments
@@ -190,7 +195,7 @@ let args_of ~only ~except ~pos ~env name =
     | Some _ -> parse_error ~pos (Printf.sprintf "%s is not a function!" name)
     | None -> builtin_args_of ~only ~except ~pos name
 
-let expand_argsof ~pos ~env ~to_term ~throw args =
+let expand_argsof ~pos ~env ~to_term ~typeof ~throw args =
   let anonymous_var_id = ref 0 in
   let mk_def, args =
     List.fold_left
@@ -219,7 +224,7 @@ let expand_argsof ~pos ~env ~to_term ~throw args =
                 typ =
                   (match typ with
                     | None -> mk_var ()
-                    | Some typ -> mk_parsed_ty ~env ~to_term typ);
+                    | Some typ -> mk_parsed_ty ~typeof typ);
                 default = Option.map (to_term ~env) default;
                 pos = Some (Pos.of_lexing_pos pos);
               }

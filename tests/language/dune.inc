@@ -771,6 +771,20 @@
   (run %{run_test} type_errors.liq liquidsoap type_errors.liq)))
 
 (rule
+ (alias test_typeof)
+ (package liquidsoap)
+ (deps
+  typeof.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} typeof.liq liquidsoap typeof.liq)))
+
+(rule
  (alias test_typing)
  (package liquidsoap)
  (deps
@@ -897,6 +911,7 @@
   (alias test_thread)
   (alias test_time)
   (alias test_type_errors)
+  (alias test_typeof)
   (alias test_typing)
   (alias test_url)
   (alias test_various)

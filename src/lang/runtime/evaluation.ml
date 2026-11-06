@@ -226,6 +226,7 @@ and eval_base_term ~eval_check (env : Env.t) tm =
                 }
           | v -> v)
     | `Cast { cast = e } -> Value.set_pos (eval ~eval_check env e) tm.t.Type.pos
+    | `Typeof { holes = _; body } -> eval ~eval_check env body
     | `Invoke { invoked = t; invoke_default; meth } -> (
         let v = eval ~eval_check env t in
         let invoked_value =
