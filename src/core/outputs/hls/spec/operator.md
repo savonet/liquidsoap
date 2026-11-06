@@ -35,8 +35,7 @@ Labelled, with defaults:
 | `strict_persist`       | `bool`                                                          | `false`                                   | [persistence.md §4](persistence.md#4-restoring)                           |
 | `reopen_on_error`      | `(error?) -> float?`                                            | `fun (_) -> 2.`                           | §6                                                                        |
 
-Plus the parameters common to every output: `id` (default: the main
-playlist's file name), `fallible` (default
+Plus the parameters common to every output: `id`, `fallible` (default
 `false`), `start` (default `true`), `register_telnet` (default `true`) and
 the `on_start` / `on_stop` callbacks.
 

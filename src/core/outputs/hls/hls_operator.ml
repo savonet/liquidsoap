@@ -265,7 +265,7 @@ class output p =
     inherit
       [unit] Output.encoded
         ~output_kind:"output.file.hls" ~infallible ~register_telnet ~autostart
-          ~export_cover_metadata:false ~name:playlist source_val as base
+          ~export_cover_metadata:false ~name:"output.file.hls" source_val as base
 
     val on_file_change : (Lang.value -> unit) Callbacks.t = Callbacks.create ()
     method register_on_file_change fn = Callbacks.register on_file_change fn

@@ -36,8 +36,7 @@ Here is a minimal script with two audio variants:
 ```
 
 Point a web server at `/var/www/hls` and give players the URL of
-`stream.m3u8`. The output's `id` is the main playlist's file name, here
-`stream.m3u8`, unless you set `id` yourself.
+`stream.m3u8`.
 
 ## Variants
 
