@@ -185,8 +185,8 @@ the rule that uses per-reply headers is
 
 `dedicated_encoder` gives each listener its own encoder, so each stream starts
 with its own container header and a listener can join any streamable container
-at any time. It costs one encoder per listener. It is a property of the mount
-output, fixed at creation; its delivery is the harbor output's
+at any time. It costs one encoder per listener. The mount's value wins over
+the server's. It is a property of the mount output, fixed at creation; its delivery is the harbor output's
 ([dedicated-encoder.md](../../../../core/outputs/spec/harbor/dedicated-encoder.md)).
 
 ## 6. Fallback

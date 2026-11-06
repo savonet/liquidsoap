@@ -68,6 +68,7 @@ let encoder ~pos shine =
     hls = Encoder_utils.mk_id3_hls ~pos encode;
     encode;
     stop;
+    encode_into = None;
     restart_offset = (fun () -> None);
   }
 

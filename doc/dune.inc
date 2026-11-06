@@ -1420,6 +1420,20 @@
    content/liq/icecast-server-complete.liq)))
 
 (rule
+ (alias test-doc-icecast-server-config-mount)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-config-mount.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-config-mount.liq)))
+
+(rule
  (alias test-doc-icecast-server-config)
  (package liquidsoap)
  (deps
@@ -2741,6 +2755,7 @@
   (alias test-doc-icecast-server-basic)
   (alias test-doc-icecast-server-complete)
   (alias test-doc-icecast-server-config)
+  (alias test-doc-icecast-server-config-mount)
   (alias test-doc-icecast-server-decisions)
   (alias test-doc-icecast-server-dedicated-encoder)
   (alias test-doc-icecast-server-forwarded)

@@ -71,6 +71,7 @@ Since it is a function, wildcards, defaults shared by several mounts or a lookup
 | `max_history`           | Titles kept in the mount's history, 10 by default.                                                       |
 | `health_password`       | Password of the mount's `/<mount>/health` page.                                                          |
 | `burst_size`            | The mount's own burst. `0` disables it whatever the server's value.                                      |
+| `dedicated_encoder`     | Give each listener its own encoder, whatever the server's value.                                         |
 | `http_headers`          | Headers added to the mount's listener replies (see [below](#http-headers)).                              |
 | `dump_file`             | File the mount's stream is recorded to, a `strftime` pattern expanded at each recording start.           |
 | `dump_file_size_limit`  | Bytes after which a recording stops.                                                                     |
@@ -243,7 +244,7 @@ The transport reads its certificate again at each `reload` and once a day on its
 
 ## Encoding and muxing
 
-By default, the listeners of a mount share one encoder. `dedicated_encoder = true` gives each listener its own. With copy encoders, such as `%ffmpeg(format = "matroska", %audio.copy)`, this is a cheap remux, and each listener gets a stream that starts with its own container header, so that listeners can join any streamable container at any time. With full re-encoding, it costs one encoder per listener:
+By default, the listeners of a mount share one encoder. `dedicated_encoder = true` gives each listener its own. With copy encoders, such as `%ffmpeg(format = "matroska", %audio.copy)`, this is a cheap remux, and each listener gets a stream that starts with its own container header, so that listeners can join any streamable container at any time. With full re-encoding, it costs one encoder per listener. A mount's own `dedicated_encoder` wins over the server's:
 
 ```{.liquidsoap include="icecast-server-dedicated-encoder.liq"}
 
@@ -286,6 +287,12 @@ Create liquidsoap sources once, outside the function: a mount follows its fallba
 ```
 
 The file is one way to build the record: you can change the result like any other record, for instance `icecast.server.config.load(path).{port = 8100}`, and reload it as [above](#reloading). The `compatibility` argument (`"icecast-2.5"` by default) is written into the record and also decides how mounts are matched and whether the `cors` header type exists. No element of the file sets it, because most files are valid for several implementations.
+
+A mount's settings come from the record's `mount` function, which the file fills in. To change one mount, wrap that function. It returns `null` for a path the file has no `<mount>` for, so start from `m ?? {}` to cover that case too:
+
+```{.liquidsoap include="icecast-server-config-mount.liq"}
+
+```
 
 The translation is best effort. It maps the common settings and ignores, with a warning naming it, every element it does not reproduce: the other settings keep working. A file that would be served less safely is rejected instead, with `error.icecast.server.invalid_parameters`:
 

@@ -41,23 +41,26 @@ let checked_mul a b =
   a * b
 
 (* [mul_div r a b] for [0 <= r < b] is the quotient and remainder of
-   [r × a / b], computed bit by bit so that no product exceeds [2b]. *)
+   [r × a / b], computed bit by bit when [r × a] overflows, so that no product
+   exceeds [2b]. *)
 let mul_div r a b =
-  let rec go bit q rem =
-    if bit < 0 then (q, rem)
-    else (
-      let q = checked_mul q 2 in
-      let q, rem =
-        if rem >= b - rem then (q + 1, rem - (b - rem)) else (q, rem * 2)
-      in
-      let q, rem =
-        if (a lsr bit) land 1 = 1 then
-          if rem >= b - r then (q + 1, rem - (b - r)) else (q, rem + r)
-        else (q, rem)
-      in
-      go (bit - 1) q rem)
-  in
-  go (Sys.int_size - 2) 0 0
+  if a = 0 || r <= max_int / a then (r * a / b, r * a mod b)
+  else (
+    let rec go bit q rem =
+      if bit < 0 then (q, rem)
+      else (
+        let q = checked_mul q 2 in
+        let q, rem =
+          if rem >= b - rem then (q + 1, rem - (b - rem)) else (q, rem * 2)
+        in
+        let q, rem =
+          if (a lsr bit) land 1 = 1 then
+            if rem >= b - r then (q + 1, rem - (b - r)) else (q, rem + r)
+          else (q, rem)
+        in
+        go (bit - 1) q rem)
+    in
+    go (Sys.int_size - 2) 0 0)
 
 let rescale ~src ~dst t =
   if not (is_valid src && is_valid dst) then

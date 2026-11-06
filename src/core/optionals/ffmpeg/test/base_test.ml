@@ -41,7 +41,9 @@ let rescale () =
   check "exact large"
     (r t (tb 1 90000) (tb 1 44100)
     = Some (int_of_float (Float.round (float t *. 44100. /. 90000.))));
-  check "symmetric" (r (-1014) (tb 1 44100) (tb 1 1000) = Some (-23))
+  check "symmetric" (r (-1014) (tb 1 44100) (tb 1 1000) = Some (-23));
+  check "exact when the product overflows"
+    (r ((1 lsl 40) - 1) (tb 1 (1 lsl 40)) (tb 1 (1 lsl 30)) = Some (1 lsl 30))
 
 type item = { mutable ts : Int64.t option; duration : Int64.t option }
 
@@ -217,7 +219,7 @@ let () =
   inline_aac ();
   edge_cases ();
   blit ();
-  let expected = 22 in
+  let expected = 23 in
   if !checks <> expected then
     failwith (Printf.sprintf "ran %d checks, expected %d" !checks expected);
   Printf.printf "base_test: %d checks passed\n" !checks

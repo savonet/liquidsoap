@@ -238,15 +238,30 @@ let copy_tracks c =
 let encoded_tracks c =
   List.filter_map (function _, `Encoded t -> Some t | _ -> None) c.tracks
 
-let take t =
-  let s = Buffer.contents t.buffer in
+let reset t =
   Buffer.clear t.buffer;
   t.returned_link_start <- t.link_start;
   t.link_start <- None;
-  (match t.header with
-    | `Pending _ -> t.header <- `Pending 0
-    | `Captured _ -> ());
+  match t.header with `Pending _ -> t.header <- `Pending 0 | `Captured _ -> ()
+
+let take t =
+  let s = Buffer.contents t.buffer in
+  reset t;
   Strings.of_string s
+
+(* The pending bytes handed to [f] straight from [buffer], which keeps its
+   capacity: nothing is allocated. *)
+let take_into t f =
+  Fun.protect
+    ~finally:(fun () -> reset t)
+    (fun () ->
+      f
+        {
+          Encoder.length = Buffer.length t.buffer;
+          blit =
+            (fun offset destination destination_offset length ->
+              Buffer.blit t.buffer offset destination destination_offset length);
+        })
 
 (* encoder.md §8.3: the box that starts every MP4 media segment. *)
 let styp = "\x00\x00\x00\x18stypmsdh\x00\x00\x00\x00msdhmsix"
@@ -476,7 +491,7 @@ let rec encode_frames t frame =
         encode_frames t (Frame.after frame position)
     | None -> encode_frame t frame
 
-let encode t frame =
+let encode_pending t frame =
   match t.state with
     | `Failed exn -> raise exn
     | `Stopped -> failwith "Encoder used after stop"
@@ -487,8 +502,15 @@ let encode t frame =
             if h.started && h.id3_queue <> [] then (
               List.iter (fun write -> write ()) (List.rev h.id3_queue);
               h.id3_queue <- []))
-          t.hls;
-        take t
+          t.hls
+
+let encode t frame =
+  encode_pending t frame;
+  take t
+
+let encode_into t frame f =
+  encode_pending t frame;
+  take_into t f
 
 let encode_metadata t m =
   let m = Frame.Metadata.Export.to_list m in
@@ -749,6 +771,7 @@ let create ?(hls = false) ?interrupt ~pos ~name metadata format =
         match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
     hls = hls_value;
     encode = encode t;
+    encode_into = Some (encode_into t);
     stop = (fun () -> stop t);
     restart_offset = (fun () -> t.returned_link_start);
   }
