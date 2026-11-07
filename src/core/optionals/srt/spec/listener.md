@@ -63,10 +63,13 @@ process, which its documentation states.
 The predicate's count is advisory, since a handshake it admits completes
 later. The limit is exact at accept (§4).
 
-**Accepted socket.** After [connection.md §3](connection.md#3-socket-setup)
-steps 6–7: the options the kind needs for exchanging data, then `on_socket`
-with `"incoming"`. Steps 1–5 do not apply: an accepted socket inherits the
-listening socket's options.
+**Accepted socket.** Steps 1–5 of
+[connection.md §3](connection.md#3-socket-setup) do not apply: an accepted
+socket inherits the listening socket's options, its non-blocking mode
+included ([library.md §7](library.md#7-libsrt-behaviour-relied-upon)). The
+listener sets it blocking, as the kinds exchange data with blocking calls,
+then steps 6–7: the options the kind needs for exchanging data, then
+`on_socket` with `"incoming"`.
 
 ## 4. Connect
 

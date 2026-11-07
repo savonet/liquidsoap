@@ -120,7 +120,11 @@ shutdown):
    the peer's latency has passed since, or after `write_timeout`, whichever
    comes first; then `on_disconnect` fires for it. The receiver holds data
    back for timestamp-based delivery during its latency, and a close that
-   arrives first makes it drop what it has not delivered yet.
+   arrives first makes it drop what it has not delivered yet. At shutdown,
+   with `write_timeout` null, the wait is bounded by `shutdown_drain`, so
+   that a peer that stops reading cannot hold the process
+   ([connection.md §9](connection.md#9-stopping)). Recommended value: 2
+   seconds.
 
 Step 1 runs on the thread that ends the peers, under the encoder's lock,
 so the trailer is delivered when the streaming thread no longer runs. The

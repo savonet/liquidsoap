@@ -146,4 +146,5 @@ output: each peer receives its pending bytes before its socket closes
 
 Process shutdown releases every operator (§8). The release MUST complete
 within a bound: no attempt keeps running, no socket stays open, and the
-wait for a clean end is limited by `write_timeout`.
+wait for a clean end is limited by `write_timeout`, or by `shutdown_drain`
+([output.md §6](output.md#6-stopping)) when it is null.

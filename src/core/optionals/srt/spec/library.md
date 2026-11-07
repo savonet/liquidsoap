@@ -15,9 +15,10 @@ time. It registers two application hooks and does nothing else:
       other value logs `Invalid value for "srt.log.verbosity"!` at level 2 and
       uses `error`), sets it, and installs the log handler of §2.
 2. A **final cleanup** hook, named `srt cleanup`, which runs after every SRT
-   socket of the process is closed, releases the readiness set of
-   [poll.md](poll.md), waits until no thread is inside a blocking libsrt
-   call, then cleans libsrt up. Cleaning libsrt up while a thread is inside
+   socket of the process is closed, stops the readiness loop of
+   [poll.md](poll.md), which releases its set, waits until no thread is
+   inside a libsrt call,
+   then cleans libsrt up. Cleaning libsrt up while a thread is inside
    one of its calls corrupts the process's memory: if a call has not
    returned within `cleanup_wait`, the cleanup is skipped and logged at
    level 2, and the process exits without it. Recommended value: 5 seconds.
