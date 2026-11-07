@@ -1,0 +1,50 @@
+; SRT conformance checks (src/core/optionals/srt/spec/conformance.md). Each
+; .liq file is one check; srt_peer.exe is the peer double of its §3.
+; Regenerate using dune build @gendune --auto-promote
+
+(include dune.inc)
+
+(rule
+ (alias gendune)
+ (deps
+  (source_tree .))
+ (target dune.inc.gen)
+ (action
+  (progn
+   (with-stdout-to
+    dune.inc.gen
+    (run ./gen_dune.exe))
+   (format-dune-file dune.inc.gen dune.inc.gen.formatted))))
+
+(rule
+ (alias gendune)
+ (action
+  (diff dune.inc dune.inc.gen.formatted)))
+
+(executable
+ (name gen_dune)
+ (libraries build_tools)
+ (modules gen_dune))
+
+(executable
+ (name srt_peer)
+ (libraries srt threads.posix unix)
+ (modules srt_peer))
+
+(rule
+ (target tone.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=4"
+   -c:a
+   aac
+   -f
+   mpegts
+   %{target})))
