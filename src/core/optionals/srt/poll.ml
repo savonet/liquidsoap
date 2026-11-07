@@ -20,12 +20,7 @@
 
  *****************************************************************************)
 
-(** The process-wide readiness loop (spec/poll.md). [register] arms a socket
-    until [remove]; handlers run on the loop's thread, one at a time, under its
-    lock, so [remove] returns only once the socket's handler is done. Callers of
-    [remove] hold no lock a handler takes. *)
-
-let log = Srt_lib.log
+let log = Library.log
 
 type state = {
   poll : Srt.Poll.t;
@@ -35,25 +30,24 @@ type state = {
 let m = Mutex.create ()
 let registered = Condition.create ()
 let state = ref None
+let stopped = ref false
 let loop_thread = ref None
 let on_loop () = !loop_thread = Some (Thread.id (Thread.self ()))
 
 let wait_ready { poll; handlers } =
   Mutex.protect m (fun () ->
-      while Hashtbl.length handlers = 0 do
+      while Hashtbl.length handlers = 0 && not !stopped do
         Condition.wait registered m
       done);
   match
-    Srt_lib.blocking (fun () ->
-        Srt.Poll.wait poll
-          ~timeout:(Srt_lib.ms_of_seconds Srt_lib.conf_timeout#get))
+    Srt.Poll.wait poll ~timeout:(Library.ms_of_seconds Library.conf_timeout#get)
   with
     | read, write -> List.sort_uniq compare (read @ write)
     | exception Srt.Error (`Etimeout, _, _) -> []
     (* The next iteration waits under the lock while nothing is registered; a
        socket libsrt already dropped is retried after the poll timeout. *)
     | exception Srt.Error (`Epollempty, _, _) ->
-        Thread.delay Srt_lib.conf_timeout#get;
+        Thread.delay Library.conf_timeout#get;
         []
     | exception exn ->
         log#severe "Error while processing SRT sockets: %s"
@@ -72,9 +66,15 @@ let handle { poll; handlers } socket =
                    (Printexc.to_string exn)))
         | None -> ( try Srt.Poll.remove_usock poll socket with _ -> ()))
 
-let rec loop state =
-  List.iter (handle state) (wait_ready state);
-  loop state
+let rec iterate state =
+  if Mutex.protect m (fun () -> !stopped) then Srt.Poll.release state.poll
+  else (
+    List.iter (handle state) (wait_ready state);
+    iterate state)
+
+let loop state =
+  loop_thread := Some (Thread.id (Thread.self ()));
+  iterate state
 
 let get () =
   match !state with
@@ -82,8 +82,7 @@ let get () =
     | None ->
         let s = { poll = Srt.Poll.create (); handlers = Hashtbl.create 4 } in
         state := Some s;
-        let thread = Thread.create loop s in
-        loop_thread := Some (Thread.id thread);
+        Library.spawn (fun () -> loop s);
         s
 
 let register socket handler =
@@ -105,8 +104,10 @@ let remove socket =
   in
   if on_loop () then remove () else Mutex.protect m remove
 
+(* The loop releases its own set on its way out, and cleanup waits for its
+   thread like any other. *)
 let () =
-  Srt_lib.release_poll :=
-    fun () ->
+  Lifecycle.before_final_cleanup ~name:"srt readiness loop" (fun () ->
       Mutex.protect m (fun () ->
-          Option.iter (fun { poll } -> Srt.Poll.release poll) !state)
+          stopped := true;
+          Condition.broadcast registered))

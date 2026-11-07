@@ -20,9 +20,6 @@
 
  *****************************************************************************)
 
-(** The script socket value (spec/socket-value.md). [to_value] gives a socket
-    with its methods, typed [t]. *)
-
 module Base = Value.MkCustom (struct
   type content = Srt.socket
 

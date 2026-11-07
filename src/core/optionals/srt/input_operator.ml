@@ -20,14 +20,10 @@
 
  *****************************************************************************)
 
-(** [input.srt] (spec/input.md). Each peer gets a reader thread that receives
-    and decodes into the source's buffer; the streaming thread takes frames from
-    it and, while the input paces its clock, waits for the reader. *)
-
 type reader = {
-  handle : Srt_connection.peer_handle;
+  handle : Connection.peer_handle;
   dump : out_channel option;
-  mutable thread : Thread.t option;
+  mutable finished : (unit -> unit) option;
   mutable paced : bool;
 }
 
@@ -41,8 +37,7 @@ let receiver reader =
   let read buffer offset len =
     if !position >= !length && not !ended then (
       match
-        Srt_lib.blocking (fun () ->
-            Srt.recvmsg reader.handle.socket received Srt.live_max_payload_size)
+        Srt.recvmsg reader.handle.socket received Srt.live_max_payload_size
       with
         | n when n > 0 ->
             Option.iter (fun dump -> output dump received 0 n) reader.dump;
@@ -93,8 +88,8 @@ let stream_name ~params reader =
     try Srt.getsockflag reader.handle.socket Srt.streamid with _ -> ""
   in
   let stream =
-    match params.Srt_connection.mode with
-      | `Caller -> Srt_lib.string_of_address reader.handle.address
+    match params.Connection.mode with
+      | `Caller -> Utils.name_of_sockaddr ~show_port:true reader.handle.address
       | `Listener -> Printf.sprintf "%s:%d" params.bind_address params.port
   in
   Printf.sprintf "srt://%s%s" stream
@@ -116,12 +111,12 @@ class input ~params ~read_timeout ~max ~self_sync ~dump ~content_type ~autostart
     val starved = Atomic.make true
 
     val mutable connection = None
-    method connection : reader Srt_connection.connection = Option.get connection
+    method connection : reader Connection.connection = Option.get connection
 
     initializer
       connection <-
         Some
-          (new Srt_connection.connection
+          (Common.connection
              ~log:(fun () -> self#log)
              ~name:"input.srt" ~params ~kind:self#kind ());
       self#on_wake_up (fun () ->
@@ -130,14 +125,8 @@ class input ~params ~read_timeout ~max ~self_sync ~dump ~content_type ~autostart
 
     method private kind =
       {
-        Srt_connection.client_limit =
-          (match params.Srt_connection.mode with
-            | `Listener -> Some 1
-            | `Caller -> None);
-        setup_socket =
-          (fun socket ->
-            Srt.setsockflag socket Srt.rcvsyn true;
-            Srt.setsockflag socket Srt.sndsyn true);
+        Connection.client_limit = Some 1;
+        setup_socket = ignore;
         connected = self#peer_connected;
         live = self#peer_live;
         ending = (fun _ ~clean:_ k -> k ());
@@ -150,28 +139,29 @@ class input ~params ~read_timeout ~max ~self_sync ~dump ~content_type ~autostart
         if dump = "" then None
         else Some (open_out_bin (Lang_string.home_unrelate dump))
       in
-      let reader = { handle; dump; thread = None; paced = false } in
+      let reader = { handle; dump; finished = None; paced = false } in
       Atomic.set starved true;
       let on_data () = Clock.Parker.unpark parker in
-      reader.thread <-
+      reader.finished <-
         Some
-          (Thread.create
-             (read_loop ~log:self#log ~ctype:self#content_type ~content_type
-                ~buffer:self#buffer ~on_data)
-             reader);
+          (Library.spawn_joinable (fun () ->
+               read_loop ~log:self#log ~ctype:self#content_type ~content_type
+                 ~buffer:self#buffer ~on_data reader));
       reader
 
     method private peer_live reader =
       if self_sync && paces reader.handle.socket then (
         reader.paced <- true;
-        Atomic.set pacing true;
+        (* The clock leaves the scheduler's pool for a thread on this sync
+           source, before any tick waits for data. *)
         self#set_sync_source
-          (Some (Srt_lib.sync_source (stream_name ~params reader))))
+          (Some (Library.sync_source (stream_name ~params reader)));
+        Atomic.set pacing true)
 
     method private peer_ended reader =
       Atomic.set pacing false;
       Clock.Parker.unpark parker;
-      Option.iter Thread.join reader.thread;
+      Option.iter (fun finished -> finished ()) reader.finished;
       if reader.paced then self#set_sync_source None
 
     method private start = self#connection#start
@@ -223,10 +213,10 @@ class input ~params ~read_timeout ~max ~self_sync ~dump ~content_type ~autostart
 
 let _ =
   Lang.add_operator ~base:Modules.input "srt" ~return_t:(Lang.univ_t ())
-    ~category:(`Input `Active) ~meth:(Srt_operator.meth ())
-    ~callbacks:(Srt_operator.callbacks () @ Start_stop.callbacks ~label:"input")
+    ~category:(`Input `Active) ~meth:(Common.meth ())
+    ~callbacks:(Common.callbacks () @ Start_stop.callbacks ~label:"input")
     ~descr:"Receive a SRT stream, as a listener or as a caller."
-    (Srt_operator.proto ~mode:`Listener
+    (Common.proto ~mode:`Listener
     @ Start_stop.active_source_proto ~fallible_opt:`Nope
     @ [
         ( "max",
@@ -250,9 +240,9 @@ let _ =
           Some "MIME type used to find a stream decoder." );
       ])
     (fun p ->
-      Srt_lib.init ();
-      let params, read_timeout, _ = Srt_operator.parse p in
-      let max = Srt_operator.check_positive p "max" in
+      Library.init ();
+      let params, read_timeout, _ = Common.parse p in
+      let max = Common.check_positive p "max" in
       new input
         ~params ~read_timeout ~max:(Option.get max)
         ~self_sync:(Lang.to_bool (List.assoc "self_sync" p))

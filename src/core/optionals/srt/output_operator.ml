@@ -20,12 +20,8 @@
 
  *****************************************************************************)
 
-(** [output.srt] (spec/output.md). The streaming thread encodes and cuts each
-    peer's bytes into payloads on that peer's queue; one sender thread per peer
-    hands them to libsrt, so the streaming thread never waits for a peer. *)
-
 type stream = {
-  handle : Srt_connection.peer_handle;
+  handle : Connection.peer_handle;
   payload_size : int;
   m : Mutex.t;
   ready : Condition.t;
@@ -77,25 +73,44 @@ let flush stream =
     enqueue stream (Buffer.contents stream.pending);
     Buffer.clear stream.pending)
 
+let shutdown_drain = 2.
+
+(** The longest a clean end may take (spec/output.md §6), [None] for no limit.
+*)
+let drain_limit ~write_timeout ~shutting_down =
+  match write_timeout with
+    | Some t -> Some t
+    | None -> if shutting_down then Some shutdown_drain else None
+
+let once k =
+  let called = Atomic.make false in
+  fun () -> if not (Atomic.exchange called true) then k ()
+
 (* The receiver drops what it holds back for timestamp-based delivery when the
-   close arrives first, so the close also waits for the peer's latency. *)
-let wait_sent ~write_timeout socket =
-  let deadline =
-    Option.map (fun t -> Unix.gettimeofday () +. t) write_timeout
-  in
-  let remaining () =
-    match deadline with None -> infinity | Some d -> d -. Unix.gettimeofday ()
-  in
+   close arrives first, so the close also waits for the peer's latency. The
+   drain limit closes the socket, which ends the wait. *)
+let wait_sent socket =
   try
     (* ponytail: libsrt has no wait for an empty send buffer; polls its statistics. *)
-    while
-      (Srt.Stats.bstats socket).Srt.Stats.pktSndBuf > 0 && remaining () > 0.
-    do
+    while (Srt.Stats.bstats socket).Srt.Stats.pktSndBuf > 0 do
       Thread.delay 0.01
     done;
-    let latency = float (Srt.getsockflag socket Srt.peerlatency) /. 1000. in
-    Thread.delay (Float.max 0. (Float.min latency (remaining ())))
+    Thread.delay (float (Srt.getsockflag socket Srt.peerlatency) /. 1000.)
   with _ -> ()
+
+(* A sender blocked on a peer that stopped reading returns once the socket
+   closes. *)
+let abort_drain stream =
+  let drain =
+    Mutex.protect stream.m (fun () ->
+        match stream.closing with
+          | `Drain k ->
+              stream.closing <- `Abort;
+              Condition.signal stream.ready;
+              Some k
+          | _ -> None)
+  in
+  Option.iter (fun k -> k ()) drain
 
 let next stream =
   Mutex.protect stream.m (fun () ->
@@ -112,20 +127,19 @@ let next stream =
       in
       wait ())
 
-let rec send_loop ~(log : Log.t) ~write_timeout stream =
+let rec send_loop ~(log : Log.t) stream =
   match next stream with
     | `Stop -> ()
     | `Drained k ->
-        wait_sent ~write_timeout stream.handle.socket;
+        wait_sent stream.handle.socket;
         k ()
     | `Send payload -> (
         match
-          Srt_lib.blocking (fun () ->
-              Srt.sendmsg stream.handle.socket
-                (Bytes.unsafe_of_string payload)
-                (-1) false)
+          Srt.sendmsg stream.handle.socket
+            (Bytes.unsafe_of_string payload)
+            (-1) false
         with
-          | _ -> send_loop ~log ~write_timeout stream
+          | _ -> send_loop ~log stream
           | exception exn -> (
               let closing =
                 Mutex.protect stream.m (fun () ->
@@ -140,7 +154,8 @@ let rec send_loop ~(log : Log.t) ~write_timeout stream =
                 | `Abort | `Stopped -> ()
                 | `Open ->
                     log#important "Sending to %s failed: %s"
-                      (Srt_lib.string_of_address stream.handle.address)
+                      (Utils.name_of_sockaddr ~show_port:true
+                         stream.handle.address)
                       (Printexc.to_string exn);
                     stream.handle.fail ()))
 
@@ -168,44 +183,38 @@ class output ~params ~write_timeout ~max_clients ~format_val ~infallible
     val mutable streams : stream list = []
 
     val mutable connection = None
-    method connection : stream Srt_connection.connection = Option.get connection
+    method connection : stream Connection.connection = Option.get connection
 
     initializer
       connection <-
         Some
-          (new Srt_connection.connection
+          (Common.connection
              ~log:(fun () -> self#log)
              ~name:"output.srt" ~params ~kind:self#kind ())
 
     method private kind =
       {
-        Srt_connection.client_limit =
-          (match params.Srt_connection.mode with
-            | `Listener -> max_clients
-            | `Caller -> None);
+        Connection.client_limit = max_clients;
         setup_socket =
           (fun socket ->
-            Srt.setsockflag socket Srt.sndsyn true;
-            Srt.setsockflag socket Srt.rcvsyn true;
             Srt.setsockflag socket Srt.sndtimeo
               (match write_timeout with
-                | Some t -> Srt_lib.ms_of_seconds t
+                | Some t -> Library.ms_of_seconds t
                 | None -> -1));
         connected =
           (fun handle ->
             let stream =
-              create_stream ~payload_size:params.Srt_connection.payload_size
-                handle
+              create_stream ~payload_size:params.Connection.payload_size handle
             in
-            ignore
-              (Thread.create (send_loop ~log:self#log ~write_timeout) stream);
+            Library.spawn (fun () -> send_loop ~log:self#log stream);
             stream);
         live =
           (fun stream ->
             Mutex.protect encoder_m (fun () -> streams <- stream :: streams));
         ending = self#end_stream;
         ended = (fun _ -> ());
-        shutdown_wait = Option.value ~default:0. write_timeout;
+        shutdown_wait =
+          Option.get (drain_limit ~write_timeout ~shutting_down:true);
       }
 
     method private stop_encoder ~deliver =
@@ -232,6 +241,7 @@ class output ~params ~write_timeout ~max_clients ~format_val ~infallible
     (* A clean end comes only from the output ending every peer itself, so the
        first stream to end delivers the trailer to all of them. *)
     method private end_stream stream ~clean k =
+      let k = once k in
       Mutex.protect encoder_m (fun () ->
           if clean then self#stop_encoder ~deliver:true;
           streams <- List.filter (fun s -> s != stream) streams;
@@ -250,6 +260,11 @@ class output ~params ~write_timeout ~max_clients ~format_val ~infallible
             drains)
       in
       if not drains then k ()
+      else
+        Option.iter
+          (fun limit -> Library.after limit (fun () -> abort_drain stream))
+          (drain_limit ~write_timeout
+             ~shutting_down:(Atomic.get Library.shutting_down))
 
     method private running_encoder =
       match (streams, encoder) with
@@ -315,18 +330,18 @@ let parse_max_clients p =
 let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:Modules.output "srt"
-    (Srt_operator.proto ~mode:`Caller
+    (Common.proto ~mode:`Caller
     @ (max_clients_proto :: Output.proto)
     @ [
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
       ])
-    ~return_t ~category:`Output ~meth:(Srt_operator.meth ())
-    ~callbacks:(Srt_operator.callbacks () @ Start_stop.output_callbacks ())
+    ~return_t ~category:`Output ~meth:(Common.meth ())
+    ~callbacks:(Common.callbacks () @ Start_stop.output_callbacks ())
     ~descr:"Send a SRT stream, as a caller or as a listener."
     (fun p ->
-      Srt_lib.init ();
-      let params, _, write_timeout = Srt_operator.parse p in
+      Library.init ();
+      let params, _, write_timeout = Common.parse p in
       new output
         ~params ~write_timeout ~max_clients:(parse_max_clients p)
         ~format_val:(Lang.assoc "" 1 p)

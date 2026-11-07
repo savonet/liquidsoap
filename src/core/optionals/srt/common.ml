@@ -20,12 +20,7 @@
 
  *****************************************************************************)
 
-(** What both operators share (spec/common.md): the parameters and their
-    validation, the role's callbacks and the script methods. Each operator calls
-    [proto] for its prototype, [parse] when built, then hands [meth] and
-    [callbacks] to [Lang.add_operator]. *)
-
-let socket_with_methods = Srt_socket_value.to_value
+let socket_with_methods = Socket_value.to_value
 
 let listen_callback_t =
   Lang.fun_t
@@ -33,7 +28,7 @@ let listen_callback_t =
       (false, "hs_version", Lang.int_t);
       (false, "peeraddr", Lang.string_t);
       (false, "streamid", Lang.nullable_t Lang.string_t);
-      (false, "", Srt_socket_value.t);
+      (false, "", Socket_value.t);
     ]
     Lang.bool_t
 
@@ -159,15 +154,18 @@ let parse_prefer_address p =
         parse s ~error:(fun () ->
             invalid value ("Valid values are: " ^ valid_addresses ^ "."))
     | None ->
-        let setting = Srt_lib.conf_prefer_address#get in
+        let setting = Library.conf_prefer_address#get in
         parse setting ~error:(fun () ->
             invalid (Lang.string setting)
               ("Invalid `settings.srt.prefer_address`! Valid values are: "
              ^ valid_addresses ^ "."))
 
+(* libsrt runs the predicate on its handshake thread, which the scheduler did
+   not prepare for script code. *)
 let parse_listen_callback p =
   Option.map
     (fun fn ~hs_version ~peeraddr ~streamid socket ->
+      Script_callback.uncollected @@ fun () ->
       Lang.to_bool
         (Lang.apply fn
            [
@@ -180,8 +178,6 @@ let parse_listen_callback p =
            ]))
     (Lang.to_option (List.assoc "listen_callback" p))
 
-(** The role's parameters, with [read_timeout] and [write_timeout], validated
-    (spec/common.md §1). *)
 let parse p =
   let get name f = f (List.assoc name p) in
   let mode =
@@ -229,7 +225,7 @@ let parse p =
   let write_timeout = check_positive p "write_timeout" in
   let params =
     {
-      Srt_connection.mode;
+      Connection.mode;
       host = get "host" Lang.to_string;
       port;
       bind_address = get "bind_address" Lang.to_string;
@@ -254,7 +250,7 @@ let meth () =
     [
       {
         name = "sockets";
-        scheme = ([], fun_t [] (list_t (product_t string_t Srt_socket_value.t)));
+        scheme = ([], fun_t [] (list_t (product_t string_t Socket_value.t)));
         descr = "The connected peers, with their IP address.";
         value =
           (fun s ->
@@ -319,11 +315,15 @@ let callbacks () =
            accepted (mode `\"incoming\"`), or about to be closed (mode \
            `\"close\"`)";
         register_deprecated_argument = true;
-        arg_t =
-          [(false, "mode", Lang.string_t); (false, "", Srt_socket_value.t)];
+        arg_t = [(false, "mode", Lang.string_t); (false, "", Socket_value.t)];
         register =
           (fun ~params:_ s f ->
             s#connection#register_on_socket (fun mode socket ->
                 f [("mode", Lang.string mode); ("", socket_with_methods socket)]));
       };
     ]
+
+let connection ~log ~name ~params ~kind () : _ Connection.connection =
+  match params.Connection.mode with
+    | `Caller -> (new Caller.connection ~log ~name ~params ~kind () :> _)
+    | `Listener -> (new Listener.connection ~log ~name ~params ~kind () :> _)

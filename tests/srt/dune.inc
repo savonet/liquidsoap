@@ -59,6 +59,25 @@
   (run %{run_test} srt-busy-listener.liq liquidsoap srt-busy-listener.liq)))
 
 (rule
+ (alias test_srt-callback-registers)
+ (package liquidsoap)
+ (deps
+  srt-callback-registers.liq
+  ./srt_peer.exe
+  ./helpers.inc
+  ./tone.ts
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   srt-callback-registers.liq
+   liquidsoap
+   srt-callback-registers.liq)))
+
+(rule
  (alias test_srt-callbacks-reentrant)
  (package liquidsoap)
  (deps
@@ -125,6 +144,21 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} srt-client-limit.liq liquidsoap srt-client-limit.liq)))
+
+(rule
+ (alias test_srt-copy-encoder)
+ (package liquidsoap)
+ (deps
+  srt-copy-encoder.liq
+  ./srt_peer.exe
+  ./helpers.inc
+  ./tone.ts
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} srt-copy-encoder.liq liquidsoap srt-copy-encoder.liq)))
 
 (rule
  (alias test_srt-disconnect-loop)
@@ -353,6 +387,36 @@
    srt-process-lifecycle.liq)))
 
 (rule
+ (alias test_srt-raw-pcm)
+ (package liquidsoap)
+ (deps
+  srt-raw-pcm.liq
+  ./srt_peer.exe
+  ./helpers.inc
+  ./tone.ts
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} srt-raw-pcm.liq liquidsoap srt-raw-pcm.liq)))
+
+(rule
+ (alias test_srt-shutdown-drain)
+ (package liquidsoap)
+ (deps
+  srt-shutdown-drain.liq
+  ./srt_peer.exe
+  ./helpers.inc
+  ./tone.ts
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} srt-shutdown-drain.liq liquidsoap srt-shutdown-drain.liq)))
+
+(rule
  (alias test_srt-silent-peer)
  (package liquidsoap)
  (deps
@@ -438,10 +502,12 @@
   (alias test_srt-av-reconnect)
   (alias test_srt-bind-failure)
   (alias test_srt-busy-listener)
+  (alias test_srt-callback-registers)
   (alias test_srt-callbacks-reentrant)
   (alias test_srt-caller-reconnect)
   (alias test_srt-client-failure)
   (alias test_srt-client-limit)
+  (alias test_srt-copy-encoder)
   (alias test_srt-disconnect-loop)
   (alias test_srt-dual-stack)
   (alias test_srt-encryption)
@@ -456,6 +522,8 @@
   (alias test_srt-output-payloads)
   (alias test_srt-pacing)
   (alias test_srt-process-lifecycle)
+  (alias test_srt-raw-pcm)
+  (alias test_srt-shutdown-drain)
   (alias test_srt-silent-peer)
   (alias test_srt-slow-peer)
   (alias test_srt-socket-options)

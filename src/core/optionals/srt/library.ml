@@ -20,14 +20,6 @@
 
  *****************************************************************************)
 
-(** Process-wide SRT state (spec/library.md): settings, the one-time libsrt
-    start and cleanup, shutdown, address resolution, failure classification, the
-    base socket setup, stream sync sources and the per-operator event queue.
-
-    Operators call [init] when built, [register_shutdown] to be released at
-    shutdown, then [resolve], [create_socket] and [is_permanent] while
-    connecting. *)
-
 let log = Log.make ["srt"]
 let conf = Dtools.Conf.void ~p:(Configure.conf#plug "srt") "SRT configuration"
 
@@ -64,21 +56,14 @@ let conf_timeout =
   Dtools.Conf.float ~p:(conf_poll#plug "timeout") ~d:0.1
     "Longest wait of the readiness loop, in seconds."
 
-let release_poll = ref (fun () -> ())
 let initialized = Atomic.make false
 
-(** Threads inside a blocking libsrt call: cleaning libsrt up under one of them
-    corrupts the process's memory. *)
+(* Threads that may call libsrt: cleaning libsrt up under one of them corrupts
+   the process's memory. *)
 let in_flight = Atomic.make 0
-
-let blocking fn =
-  Atomic.incr in_flight;
-  Fun.protect ~finally:(fun () -> Atomic.decr in_flight) fn
-
 let cleanup_wait = 5.
 
 let cleanup () =
-  !release_poll ();
   let deadline = Unix.gettimeofday () +. cleanup_wait in
   (* ponytail: polls the count; runs once, at exit. *)
   while Atomic.get in_flight > 0 && Unix.gettimeofday () < deadline do
@@ -87,7 +72,9 @@ let cleanup () =
   if Atomic.get in_flight > 0 then
     log#severe "libsrt is still in use after %.0fs: skipping its cleanup."
       cleanup_wait
-  else Srt.cleanup ()
+  else (
+    Srt.cleanup ();
+    log#info "libsrt cleaned up.")
 
 let verbosity () =
   match conf_verbosity#get with
@@ -132,8 +119,6 @@ let hooks_m = Mutex.create ()
 let hook_keys = Atomic.make 0
 let shutting_down = Atomic.make false
 
-(** The registry holds hooks weakly: the operator keeps its hook alive, and a
-    collected operator is forgotten. *)
 let register_shutdown run =
   let hook = { key = Atomic.fetch_and_add hook_keys 1; run } in
   Mutex.protect hooks_m (fun () -> Hooks.add hooks hook);
@@ -153,18 +138,7 @@ let () =
               (Printexc.to_string exn))
         hooks)
 
-(** Rounded up, so that a positive duration never becomes the library's "do not
-    wait". *)
 let ms_of_seconds s = int_of_float (Float.ceil (s *. 1000.))
-
-let string_of_address = function
-  | Unix.ADDR_INET (ip, port) ->
-      Printf.sprintf "%s:%d" (Unix.string_of_inet_addr ip) port
-  | Unix.ADDR_UNIX path -> path
-
-let ip_of_address = function
-  | Unix.ADDR_INET (ip, _) -> Unix.string_of_inet_addr ip
-  | Unix.ADDR_UNIX path -> path
 
 let is_ipv6 = function
   | Unix.ADDR_INET (ip, _) -> Unix.is_inet6_addr ip
@@ -186,10 +160,10 @@ let resolve ~prefer_address host port =
     | answers ->
         let addresses = List.map (fun { Unix.ai_addr } -> ai_addr) answers in
         log#debug "Address %s:%d resolved to: %s" host port
-          (String.concat ", " (List.map string_of_address addresses));
+          (String.concat ", "
+             (List.map (Utils.name_of_sockaddr ~show_port:true) addresses));
         addresses
 
-(** Permanent failures are those waiting cannot fix (spec/connection.md §4). *)
 let is_permanent = function
   | Srt.Error ((`Einvparam | `Einvop), _, _) -> true
   | Srt.Error (_, Some (Unix.EACCES | Unix.EPERM), _) -> true
@@ -197,7 +171,6 @@ let is_permanent = function
 
 let close_quietly socket = try Srt.close socket with _ -> ()
 
-(** Steps 1–5 of spec/connection.md §3. *)
 let create_socket ~payload_size ~messageapi () =
   let socket = Srt.create_socket () in
   try
@@ -211,10 +184,7 @@ let create_socket ~payload_size ~messageapi () =
     close_quietly socket;
     Printexc.raise_with_backtrace exn bt
 
-(** One sync source per stream name, for the life of the process: an identity
-    that changed between two ticks would look like a second sync source. *)
 let sync_sources = Hashtbl.create 4
-
 let sync_sources_m = Mutex.create ()
 
 let sync_source name =
@@ -226,81 +196,35 @@ let sync_source name =
             Hashtbl.replace sync_sources name sync_source;
             sync_source)
 
-(** An operator's events, run one at a time and in order on a thread that lives
-    while the queue is not empty (spec/concurrency.md §2). *)
-module Events = struct
-  type t = {
-    name : string;
-    m : Mutex.t;
-    jobs : (unit -> unit) Queue.t;
-    mutable running : bool;
-    mutable runner : int option;
-  }
+(* Counted from the call, as the scheduler may start the thread later. *)
+let spawn fn =
+  Atomic.incr in_flight;
+  Duppy.thread ~priority:`Threaded Scheduler.raw (fun () ->
+      Fun.protect ~finally:(fun () -> Atomic.decr in_flight) fn)
 
-  let create name =
+let spawn_joinable fn =
+  let m = Mutex.create () in
+  let finished_c = Condition.create () in
+  let finished = ref false in
+  let finish () =
+    Mutex.protect m (fun () ->
+        finished := true;
+        Condition.broadcast finished_c)
+  in
+  spawn (fun () -> Fun.protect ~finally:finish fn);
+  fun () ->
+    Mutex.protect m (fun () ->
+        while not !finished do
+          Condition.wait finished_c m
+        done)
+
+let after delay fn =
+  Scheduler.Task.add
     {
-      name;
-      m = Mutex.create ();
-      jobs = Queue.create ();
-      running = false;
-      runner = None;
+      Scheduler.Task.priority = `Non_blocking;
+      events = [`Delay delay];
+      handler =
+        (fun _ ->
+          fn ();
+          []);
     }
-
-  let on_runner t = t.runner = Some (Thread.id (Thread.self ()))
-
-  let next t =
-    Mutex.protect t.m (fun () ->
-        match Queue.take_opt t.jobs with
-          | Some job -> Some job
-          | None ->
-              t.running <- false;
-              t.runner <- None;
-              None)
-
-  let rec drain t =
-    match next t with
-      | Some job ->
-          (try job ()
-           with exn ->
-             let bt = Printexc.get_backtrace () in
-             Utils.log_exception ~log ~bt
-               (Printf.sprintf "%s: error while processing event: %s" t.name
-                  (Printexc.to_string exn)));
-          drain t
-      | None -> ()
-
-  let start t =
-    Mutex.protect t.m (fun () -> t.runner <- Some (Thread.id (Thread.self ())));
-    drain t
-
-  let post t job =
-    Mutex.protect t.m (fun () ->
-        Queue.push job t.jobs;
-        if not t.running then (
-          t.running <- true;
-          ignore (Thread.create start t)))
-
-  (** Runs [job] after the events already queued and returns its result. On the
-      event thread itself, runs it at once. *)
-  let run t job =
-    if on_runner t then job ()
-    else (
-      let m = Mutex.create () in
-      let c = Condition.create () in
-      let result = ref None in
-      post t (fun () ->
-          let r =
-            try Ok (job ())
-            with exn -> Error (exn, Printexc.get_raw_backtrace ())
-          in
-          Mutex.protect m (fun () ->
-              result := Some r;
-              Condition.signal c));
-      Mutex.protect m (fun () ->
-          while !result = None do
-            Condition.wait c m
-          done);
-      match Option.get !result with
-        | Ok v -> v
-        | Error (exn, bt) -> Printexc.raise_with_backtrace exn bt)
-end
