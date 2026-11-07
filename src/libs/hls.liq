@@ -265,6 +265,10 @@ def output.harbor.hls(
     )
   end
 
+  # Files above this size, the segments, are streamed so they are never held
+  # whole in memory; smaller ones, the playlists, keep a Content-Length.
+  stream_threshold = 65536
+
   def respond(request, response, content_type, generated, fname) =
     names = list.map(fun (h) -> string.case(lower=true, fst(h)), headers)
     generated =
@@ -278,20 +282,22 @@ def output.harbor.hls(
     if
       request.method == "GET"
     then
-      data =
-        try
-          file.contents(fname)
-        catch _ do
-          null
+      try
+        if
+          file.size(fname) > stream_threshold
+        then
+          stream = file.read(fname)
+          response.headers([...content_type, ...generated, ...headers])
+          response.data(getter({stream()}))
+        else
+          data = file.contents(fname)
+          length = data == "" ? [("Content-Length", "0")] : []
+          response.headers(
+            [...content_type, ...length, ...generated, ...headers]
+          )
+          response.data(getter(data))
         end
-      if
-        null.defined(data)
-      then
-        data = null.get(data)
-        length = data == "" ? [("Content-Length", "0")] : []
-        response.headers([...content_type, ...length, ...generated, ...headers])
-        response.data(data)
-      else
+      catch _ do
         response.status_code(404)
       end
     else
