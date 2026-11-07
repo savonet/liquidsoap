@@ -29,7 +29,19 @@
 (executable
  (name srt_peer)
  (libraries srt threads.posix unix)
+ (link_flags
+  (:include srt_peer_link_flags.sexp))
  (modules srt_peer))
+
+(executable
+ (name srt_peer_link_flags)
+ (libraries dune-configurator unix)
+ (modules srt_peer_link_flags))
+
+(rule
+ (target srt_peer_link_flags.sexp)
+ (action
+  (run ./srt_peer_link_flags.exe)))
 
 (rule
  (target tone.ts)
