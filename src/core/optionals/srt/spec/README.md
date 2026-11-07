@@ -8,8 +8,8 @@ used as in RFC 2119.
 clocks, encoders, decoders, the scheduler and the script runtime exist and are
 used through the contracts stated here. libsrt is used through the binding
 contract of [library.md §6](library.md#6-what-is-relied-upon-from-the-binding),
-and the libsrt behaviour this spec assumes is listed in
-[library.md §7](library.md#7-libsrt-behaviour-assumed).
+and the libsrt behaviour this spec relies upon is listed in
+[library.md §7](library.md#7-libsrt-behaviour-relied-upon).
 
 **Scope.** In: both operators in both connection roles, the shared readiness
 loop, the library lifecycle and settings, the script socket value. Out: libsrt
@@ -68,9 +68,8 @@ parameter at construction: four combinations, all exist.
 | [failures.md](failures.md)                 | Every failure and what an observer sees.                                  |
 | [conformance.md](conformance.md)           | What a test suite must check; what is binding, what is incidental.        |
 | [known-complexity.md](known-complexity.md) | What the history shows to be hard, each entry linked to the rule for it.  |
-| [ocaml-notes.md](ocaml-notes.md)           | Part B: notes on the OCaml implementation this spec was extracted from.   |
 
-Every file but [ocaml-notes.md](ocaml-notes.md) is Part A: behaviour any
+Every file is Part A: behaviour any
 runtime could meet.
 
 ## Cross-cutting concerns

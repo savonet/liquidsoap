@@ -20,29 +20,30 @@ socket already closed, is raised to the script as an error of kind `srt`.
 For each readable option, a getter `name()`; for each writable option, a
 setter `set_name(v)`.
 
-| Name                  | libsrt option          | Type   | Access     |
-| --------------------- | ---------------------- | ------ | ---------- |
-| `rcvdata`             | receive data available | int    | read       |
-| `messageapi`          | message API            | bool   | write      |
-| `payloadsize`         | payload size           | int    | write      |
-| `conntimeo`           | connect timeout, ms    | int    | write      |
-| `passphrase`          | passphrase             | string | write      |
-| `enforced_encryption` | enforced encryption    | bool   | write      |
-| `rcvsyn`              | blocking receive       | bool   | read/write |
-| `sndsyn`              | blocking send          | bool   | read/write |
-| `rcvtimeout`          | receive timeout, ms    | int    | read/write |
-| `sndtimeout`          | send timeout, ms       | int    | read/write |
-| `reuseaddr`           | reuse address          | bool   | read/write |
-| `rcvbuf`              | receive buffer         | int    | read/write |
-| `sndbuf`              | send buffer            | int    | read/write |
-| `udp_rcvbuf`          | UDP receive buffer     | int    | read/write |
-| `udp_sndbuf`          | UDP send buffer        | int    | read/write |
-| `streamid`            | stream id              | string | read/write |
-| `pbkeylen`            | key length             | int    | read/write |
-| `ipv6only`            | IPv6 only              | bool   | read/write |
-| `rcvlatency`          | receive latency, ms    | int    | read/write |
-| `peerlatency`         | peer latency, ms       | int    | read/write |
-| `latency`             | latency, ms            | int    | read/write |
+| Name                  | libsrt option            | Type   | Access     |
+| --------------------- | ------------------------ | ------ | ---------- |
+| `rcvdata`             | receive data available   | int    | read       |
+| `messageapi`          | message API              | bool   | write      |
+| `payloadsize`         | payload size             | int    | write      |
+| `conntimeo`           | connect timeout, ms      | int    | write      |
+| `passphrase`          | passphrase               | string | write      |
+| `enforced_encryption` | enforced encryption      | bool   | write      |
+| `rcvsyn`              | blocking receive         | bool   | read/write |
+| `sndsyn`              | blocking send            | bool   | read/write |
+| `rcvtimeout`          | receive timeout, ms      | int    | read/write |
+| `sndtimeout`          | send timeout, ms         | int    | read/write |
+| `reuseaddr`           | reuse address            | bool   | read/write |
+| `rcvbuf`              | receive buffer           | int    | read/write |
+| `sndbuf`              | send buffer              | int    | read/write |
+| `udp_rcvbuf`          | UDP receive buffer       | int    | read/write |
+| `udp_sndbuf`          | UDP send buffer          | int    | read/write |
+| `streamid`            | stream id                | string | read/write |
+| `pbkeylen`            | key length               | int    | read/write |
+| `ipv6only`            | IPv6 only                | bool   | read/write |
+| `rcvlatency`          | receive latency, ms      | int    | read/write |
+| `peerlatency`         | peer latency, ms         | int    | read/write |
+| `latency`             | latency, ms              | int    | read/write |
+| `tsbpdmode`           | timestamp-based delivery | bool   | read/write |
 
 `rcvtimeout` and `sndtimeout` are the libsrt options `rcvtimeo` and
 `sndtimeo`. The transport type cannot be read or set from a script.

@@ -23,7 +23,7 @@ columns say who reads each one; the others ignore it.
 | `read_timeout`        | float?                                                                        | `1.`                                  | both     | input  | Longest wait for data while the input paces its clock ([input.md §7](input.md#7-pacing)); null: no limit. |
 | `write_timeout`       | float?                                                                        | `1.`                                  | both     | output | Longest a peer may accept no data before it fails ([output.md §5](output.md#5-sending)); null: no limit.  |
 | `payload_size`        | int                                                                           | `1316`                                | both     | both   | libsrt payload size, and the output's message size ([output.md §10](output.md#10-wire-bytes)).            |
-| `messageapi`          | bool                                                                          | `true`                                | both     | both   | libsrt message API flag.                                                                                  |
+| `messageapi`          | bool                                                                          | `true`                                | both     | both   | libsrt message API flag; MUST be `true`.                                                                  |
 
 `1316` is seven 188-byte MPEG-TS packets, libsrt's live-mode default payload.
 The operators' documentation states these meanings, with the names of the
@@ -45,6 +45,11 @@ error on the parameter it names, and the message states the valid values:
 | a non-empty `passphrase` shorter than 10 bytes                                        | `Passphrase must be at least 10 characters long!`               |
 | `passphrase` longer than 79 bytes                                                     | `Passphrase must be at most 79 characters long!`                |
 | `polling_delay`, `connection_timeout`, `read_timeout` or `write_timeout` not positive | `Value must be positive!`                                       |
+| `messageapi` is `false`                                                               | `Live mode only carries messages: must be true!`                |
+
+A live-mode socket without the message API fails every send and receive,
+so `messageapi = false` can never carry data; the parameter stays for
+compatibility and is rejected at construction.
 
 When `prefer_address` is null, a bad `settings.srt.prefer_address` is
 reported against the setting, not the argument. Lengths are byte counts.

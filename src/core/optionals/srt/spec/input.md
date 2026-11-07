@@ -52,9 +52,11 @@ State lifetimes:
 
 The input is ready while the connection is wanted
 ([common.md §5](common.md#5-connection-wanted)) and its buffer holds at
-least one frame of decoded data. A connection with no data yet, or a peer
-that stays connected but silent, leaves the input not ready; the connection
-is kept. Readiness never depends on a socket the streaming thread would
+least one frame of decoded data. While it paces (§7), it also stays ready
+between frames, from its first full frame until a wait for data times out
+(§5): the frame in progress is waited for, and the clock keeps its pacer. A
+connection with no data yet, or a peer that stays connected but silent,
+leaves the input not ready; the connection is kept. Readiness never depends on a socket the streaming thread would
 have to look up: a peer ending between the readiness check and the frame
 only shortens the frame (§5).
 
@@ -121,16 +123,28 @@ synchronous `on_connect` sees the dump file open.
 ## 7. Pacing
 
 The input paces its clock only when the stream drives its latency: with
-`self_sync`, while a peer is connected **and** the connection delivers by
-sender timestamps (libsrt's timestamp-based packet delivery, negotiated in
-the handshake). A connection without time-controlled delivery arrives as
-fast as the sender pushes it, and the input does not pace.
+`self_sync`, while a peer is connected **and** its socket is in live mode
+with timestamp-based packet delivery, read once the peer is connected, so
+that a change made in `on_socket` counts. Every operator socket is in live
+mode, which turns timestamp-based delivery on by default; file mode turns it
+off, so reading the delivery option covers both conditions. With it
+off, libsrt hands packets over as they arrive, and the input does not pace.
+A receiver cannot observe a sender that turned timestamps off while the
+receiver kept them on
+([library.md §7](library.md#7-libsrt-behaviour-relied-upon)); a script that
+receives such a stream turns delivery off in `on_socket` or sets
+`self_sync = false`.
 
 While it paces, the input declares a sync source whose identity is the
-stream: `srt://<remote ip>:<remote port>`, followed by `?streamid=<id>` when
-the connection carries a stream id. Two inputs receiving the same stream
-share one sync source; two inputs receiving different streams in one clock
-are two sync sources, and the clock reports the conflict
+stream, followed by `?streamid=<id>` when the connection carries a stream
+id: for a caller, `srt://<listener ip>:<listener port>`; for a listener,
+`srt://<bind address>:<port>`, its own end, since each connection comes from
+a new ephemeral port. A stream keeps one identity for the life of the
+process, across reconnections: a source whose identity changed between two
+ticks is reported by the operators downstream one tick late, and the clock
+would see two sync sources. Two inputs receiving the same stream share one
+sync source; two inputs receiving different streams in one clock are two
+sync sources, and the clock reports the conflict
 ([clock spec, pacing §2](../../../clock/spec/pacing.md#2-sync-source)). The
 declaration is withdrawn when the peer ends.
 

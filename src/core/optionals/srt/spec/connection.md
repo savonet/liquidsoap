@@ -78,6 +78,14 @@ one of:
   times out or rejects the handshake. It is logged at level 3 with its cause
   and retried after `polling_delay` seconds while the connection is wanted.
 
+The error a failing library call reports
+([library.md §6](library.md#6-what-is-relied-upon-from-the-binding)) decides
+the class: a libsrt invalid-parameter or invalid-operation error, or a
+system error of permission denied or operation not permitted, is permanent;
+every other failure is transient. libsrt reports a bind refused by the
+system (port held by another program, privileged port, address not local)
+as one generic socket error, so the system error is what tells them apart.
+
 Retrying has no limit and no back-off. Connecting MUST NOT block the
 streaming thread, and MUST NOT hold a worker of a shared bounded pool for the
 duration of a blocking call ([concurrency.md §1](concurrency.md#1-threads)).

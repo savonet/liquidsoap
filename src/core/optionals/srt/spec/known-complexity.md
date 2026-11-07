@@ -527,7 +527,7 @@ connection deadline applies to callers only.
 Sources: 3560f33d4, a8723b72d, d98c597a9, 4bcd5c70a, 11eef57ce, 192bbae15,
 #3520, #4256, #4257, #4325.
 
-**Spec:** The role's options are set before `on_socket`, which comes before connect or bind ([connection.md §3](connection.md#3-socket-setup)); accepted sockets inherit the listening socket's options ([listener.md §3](listener.md#3-socket-setup), [library.md §7](library.md#7-libsrt-behaviour-assumed)); passphrase and other values validated at evaluation ([common.md §1](common.md#1-parameters)).
+**Spec:** The role's options are set before `on_socket`, which comes before connect or bind ([connection.md §3](connection.md#3-socket-setup)); accepted sockets inherit the listening socket's options ([listener.md §3](listener.md#3-socket-setup), [library.md §7](library.md#7-libsrt-behaviour-relied-upon)); passphrase and other values validated at evaluation ([common.md §1](common.md#1-parameters)).
 
 ---
 

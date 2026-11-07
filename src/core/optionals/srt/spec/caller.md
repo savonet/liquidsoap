@@ -89,8 +89,9 @@ pause.
 
 Releasing ([connection.md §8](connection.md#8-disconnect)) from each state:
 
-- **attempting**: the attempt is abandoned; whatever it later produces is
-  discarded and its socket closed;
+- **attempting**: the attempt is abandoned: its socket is closed, so that a
+  connect blocked on it returns, and whatever the attempt later produces is
+  discarded; the attempt fires the socket's `"close"` event;
 - **waiting**: the scheduled attempt is cancelled;
 - **connected**: the peer is ended.
 
@@ -99,5 +100,6 @@ The role is then idle.
 ## 9. Stopping
 
 At process shutdown the role is released (§8). An attempt blocked in the
-library is abandoned without waiting for its connect timeout; its socket is
-closed when the call returns, or by the library's cleanup.
+library is not waited for: releasing closes its socket, which makes the
+connect return at once, and the attempt then fires the socket's `"close"`
+event and discards its result (§2).

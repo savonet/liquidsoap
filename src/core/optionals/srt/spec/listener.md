@@ -33,6 +33,9 @@ losing a peer never touches it.
 steps 1–5:
 
 1. Resolve `bind_address`:`port` ([library.md §5](library.md#5-address-resolution)).
+   The IPv4 wildcard `0.0.0.0` means any address: under the `ipv6`
+   preference it resolves as the IPv6 wildcard `::`, so that the default
+   listener exists under every preference.
 2. IPv6-only flag: `ipv6only` if given; otherwise `true` when the resolved
    address is IPv6; otherwise left as is.
 3. `enforced_encryption`, `pbkeylen`, `passphrase`, each when given
@@ -75,7 +78,13 @@ from it ([connection.md §4](connection.md#4-connect)); a transient one logs at
 level 3 `Listening on srt://<ip>:<port> failed: <cause>` and moves to
 waiting for `polling_delay` seconds.
 
-**Accepting**, each time the listening socket reports a connection:
+The listening socket is registered after it listens. A handshake that
+completes in between makes it ready before it is registered, which the
+readiness loop does not report: right after registering, the role accepts
+once, as if the socket had reported a connection.
+
+**Accepting**, each time the listening socket reports a connection, until
+no connection is pending:
 
 1. Accept: (socket, origin).
 2. Log at level 4 `New connection from <ip>:<port>`.
@@ -93,8 +102,10 @@ accepting the next. Any failure in steps 4–5 ends that peer alone.
 
 `on_connect` fires once per admitted peer, after the kind's own reaction
 and before the peer is live. It never runs on the readiness loop's thread
-([concurrency.md §1](concurrency.md#1-threads)), so a slow `on_connect`
-delays only its own peer.
+([concurrency.md §1](concurrency.md#1-threads)): a slow `on_connect` delays
+the events of its own operator, which run one at a time
+([concurrency.md §2](concurrency.md#2-callbacks-and-locks)), while the
+listener keeps accepting and live peers keep exchanging data.
 
 ## 6. Sockets
 

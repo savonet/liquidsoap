@@ -51,7 +51,7 @@ too; the table names the entry where one applies.
 
 Doubles a harness needs: an SRT peer that can be told to stop reading, to
 vanish without closing, to send a stream id, to use a wrong passphrase, to
-send without timestamp-based delivery; a raw receiver that records each
+a raw receiver that records each
 payload's bytes and size; a third-party SRT tool for interoperability.
 
 Ports are unique across the suite, and each test releases what it opens on

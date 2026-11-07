@@ -29,8 +29,8 @@ rules:
   NOT occupy a worker of a pool other work depends on: enough failing
   callers would otherwise starve unrelated work.
 - **One operator never delays another.** User code (callbacks, socket
-  methods called from them) and one peer's slowness delay only their own
-  operator, and for the listener only their own peer. The exception is
+  methods called from them) delays only the events of its own operator; one
+  peer's slowness delays only that peer's data. The exception is
   `listen_callback`, which libsrt runs on its single handshake thread.
 
 ## 2. Callbacks and locks
@@ -55,16 +55,16 @@ rules:
 Every piece of state written from more than one thread has one owner and
 atomic transitions:
 
-| State                               | Owner                                                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
-| hold flag, shutdown flag            | atomic values                                                                                     |
-| role state (caller §2, listener §2) | one value per operator, changed by atomic transitions ([connection.md §2](connection.md#2-state)) |
-| peer list                           | part of the role state                                                                            |
-| output encoder                      | the streaming thread; other threads only mark peers joining or ended                              |
-| output peer queues                  | each queue has one producer (streaming thread) and one consumer (sending)                         |
-| input buffer                        | one producer (the reader), one consumer (the streaming thread)                                    |
-| input decoder, dump file            | the peer's reader                                                                                 |
-| readiness set and table             | the readiness loop ([poll.md §1](poll.md#1-model))                                                |
+| State                               | Owner                                                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| hold flag, shutdown flag            | atomic values                                                                                                       |
+| role state (caller §2, listener §2) | one value per operator, changed by atomic transitions ([connection.md §2](connection.md#2-state))                   |
+| peer list                           | part of the role state                                                                                              |
+| output encoder                      | one lock: the streaming thread encodes; the thread ending the peers stops it ([output.md §6](output.md#6-stopping)) |
+| output peer queues                  | each queue has one producer (streaming thread) and one consumer (sending)                                           |
+| input buffer                        | one producer (the reader), one consumer (the streaming thread)                                                      |
+| input decoder, dump file            | the peer's reader                                                                                                   |
+| readiness set and table             | the readiness loop ([poll.md §1](poll.md#1-model))                                                                  |
 
 **Check-then-act** over a peer is never a crash: a socket used after its
 peer ended yields a failure that §7 of

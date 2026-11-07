@@ -16,7 +16,11 @@ time. It registers two application hooks and does nothing else:
       uses `error`), sets it, and installs the log handler of §2.
 2. A **final cleanup** hook, named `srt cleanup`, which runs after every SRT
    socket of the process is closed, releases the readiness set of
-   [poll.md](poll.md), then cleans libsrt up.
+   [poll.md](poll.md), waits until no thread is inside a blocking libsrt
+   call, then cleans libsrt up. Cleaning libsrt up while a thread is inside
+   one of its calls corrupts the process's memory: if a call has not
+   returned within `cleanup_wait`, the cleanup is skipped and logged at
+   level 2, and the process exits without it. Recommended value: 5 seconds.
 
 libsrt starts when the application starts, after daemonising, because a
 forked child does not inherit libsrt's threads. It starts only if a script
@@ -84,9 +88,12 @@ first answer.
 
 ## 6. What is relied upon from the binding
 
-- A failing libsrt call raises an error carrying the libsrt error code and its
-  message, and clears libsrt's last error. The code is what failure
-  classification reads ([connection.md §4](connection.md#4-connect)).
+- A failing libsrt call raises an error carrying the libsrt error code, the
+  system error behind it when there is one, and libsrt's message, and
+  clears libsrt's last error. Failure classification reads the code and the
+  system error ([connection.md §4](connection.md#4-connect)).
+- After a refused connect, the socket gives the library's rejection reason
+  as text.
 - Blocking calls (connect, accept, send, receive, readiness wait) release the
   runtime while they block, so other threads run.
 - Closing a socket makes every call blocked on it return with an error.
@@ -102,29 +109,53 @@ first answer.
 - The readiness wait returns the read-ready and write-ready sockets, and
   fails with a timeout error when nothing became ready, and with an
   empty-set error when the set holds no socket.
+- Statistics include the number of packets still in a socket's send buffer.
 
-## 7. libsrt behaviour assumed
+## 7. libsrt behaviour relied upon
 
-Claims about libsrt this spec builds on, not checked against its
-documentation or a run. Each says what the spec needs if it does not hold.
+Checked against libsrt 1.5 with a probe of the binding. Each item says what
+the spec does with it.
 
-- Options set on a listening socket, encryption and latency included, apply
-  to the sockets it accepts. If not, accepted sockets get them in
-  [listener.md §3](listener.md#3-socket-setup).
-- Closing a socket removes it from every readiness set without notice;
-  waiting on an empty set fails at once; removing an absent socket fails.
-  The loop tolerates all three ([poll.md §3](poll.md#3-one-iteration)).
-- A socket accepted from a non-blocking listening socket inherits
-  non-blocking mode.
-- Whether a connected socket uses timestamp-based packet delivery can be read
-  after the handshake. If not, a live-mode connection is taken as
-  time-controlled ([input.md §7](input.md#7-pacing)).
-- Closing a socket wakes a receive blocked on it (§6). If not, the reader
-  bounds each receive by a short internal timeout and checks whether its
-  peer was ended.
-- The library can tell when a socket's send buffer is empty, so a clean end
-  closes after delivery ([output.md §6](output.md#6-stopping)).
-- Valid key lengths are 0 (the library's default), 16, 24 and 32.
-- What `messageapi = false` means for a live-mode socket.
+- Options set on a listening socket apply to the sockets it accepts:
+  latency, key length, encryption, and blocking mode. Accepted sockets
+  inherit the listening socket's non-blocking mode, so their owner sets the
+  mode it uses ([poll.md §2](poll.md#2-registering-and-removing)).
+- Removing a socket from a readiness set succeeds whether or not it is
+  there, closed sockets included; waiting on an empty set fails at once.
+  The loop tolerates both ([poll.md §3](poll.md#3-one-iteration)).
+- A blocking accept does not honour the receive timeout. The listener
+  accepts only when the readiness loop reports a pending connection.
+- Closing a socket wakes a receive blocked on it, which fails with
+  connection lost.
+- A remote close is seen by the receiver as connection lost, never as a
+  zero-length message; data the sender queued but libsrt had not sent yet is
+  lost.
+- Closing a socket discards what its send buffer still holds. A clean end
+  waits until the send buffer statistics reach zero, bounded by
+  `write_timeout`, before closing ([output.md §6](output.md#6-stopping)).
+- A receiver drops the data it holds back for timestamp-based delivery when
+  the sender's close arrives before that data is due: a sender that closes
+  as soon as its send buffer is empty loses its last latency's worth of
+  data, and with a short stream all of it. A clean end therefore also waits
+  for the peer's latency ([output.md §6](output.md#6-stopping)).
+- The timestamp-based delivery option, read on a connected socket, reports
+  that socket's own configuration. A receiver cannot tell whether its sender
+  turned timestamps off: the option and the statistics both report the
+  receiver's setting. The input paces on the receiving socket's
+  configuration ([input.md §7](input.md#7-pacing)).
+- Valid key lengths are 0 (the library's default), 16, 24 and 32; others
+  are rejected as invalid parameters.
+- Cleaning the library up while another thread is inside one of its calls,
+  a connect blocked on an unreachable peer for instance, corrupts the heap
+  ([§1](#1-initialisation)).
+- A closed socket stays known to the library for a short while: calls on it
+  may still succeed until its status reads closed or nonexistent, and fail
+  from then on ([socket-value.md §1](socket-value.md#1-the-value)).
+- A live-mode socket without the message API fails every send and receive
+  ([common.md §1](common.md#1-parameters)).
+- A message larger than the socket's payload size is refused; the payload
+  size accepts 1 to 1456.
+- Several SRT sockets of one process may bind the same port; the second to
+  listen on it fails with a duplicate-listen error, which is transient.
 - Unsigned 64-bit statistics past the native integer range saturate at its
   maximum ([socket-value.md §4](socket-value.md#4-statistics)).

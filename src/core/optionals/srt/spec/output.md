@@ -86,8 +86,8 @@ generic output adds `on_air` and `on_air_timestamp` to each metadata.
 
 Each peer has its own **stream**: the bytes it is owed, from its first byte
 (§4). The stream is cut into **payloads** of exactly `payload_size` bytes,
-counted from the peer's first byte. A payload is sent as one message when
-`messageapi` is set, otherwise as stream data. Fewer than `payload_size`
+counted from the peer's first byte. Each payload is sent as one message;
+the library refuses a message larger than `payload_size`. Fewer than `payload_size`
 bytes wait for more, except at a clean end (§6).
 
 **The streaming thread never waits for a peer.** It hands each peer's
@@ -116,11 +116,15 @@ shutdown):
    `Error while stopping encoder: <exn>`; the peers are ended anyway.
 2. Send each peer's remaining bytes, the last payload shorter than
    `payload_size` if need be.
-3. Close each peer once the library has sent everything queued for it, or
-   after `write_timeout`, whichever comes first; then `on_disconnect` fires
-   for it.
+3. Close each peer once the library has sent everything queued for it and
+   the peer's latency has passed since, or after `write_timeout`, whichever
+   comes first; then `on_disconnect` fires for it. The receiver holds data
+   back for timestamp-based delivery during its latency, and a close that
+   arrives first makes it drop what it has not delivered yet.
 
-This does not hold the streaming thread: a start that follows at once (a
+Step 1 runs on the thread that ends the peers, under the encoder's lock,
+so the trailer is delivered when the streaming thread no longer runs. The
+rest does not hold the streaming thread: a start that follows at once (a
 reset) proceeds while the old peers drain.
 
 ## 7. Reactions to peers
