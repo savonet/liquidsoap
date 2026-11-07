@@ -110,16 +110,16 @@ let encoder avi =
   in
   {
     Encoder.encode_metadata = (fun _ -> ());
-    hls = Encoder.dummy_hls encode;
     encode;
     header =
       (fun () ->
         if !need_header then Strings.empty else Strings.of_string header);
     stop = (fun () -> Strings.empty);
+    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 
 let () =
   Plug.register Encoder.plug "avi" ~doc:"Native avi encoder." (function
-    | Encoder.AVI avi -> Some (fun ?hls:_ ~pos:_ _ _ -> encoder avi)
+    | Encoder.AVI avi -> Some (fun ~pos:_ _ _ -> encoder avi)
     | _ -> None)

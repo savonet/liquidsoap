@@ -675,41 +675,6 @@ o.on_stop(synchronous=true, shutdown)
     (List.length (pkts `Video) = n `Video
     && List.length (pkts `Audio) = n `Audio)
 
-(* The media segments of an HLS playlist, each with the init segment that
-   precedes it, and the count of discontinuities. *)
-let hls_segments dir playlist =
-  let lines =
-    List.map String.trim
-      (String.split_on_char '\n'
-         (In_channel.with_open_bin
-            (Filename.concat dir playlist)
-            In_channel.input_all))
-  in
-  let map_prefix = {|#EXT-X-MAP:URI="|} in
-  let _, segments, discontinuities =
-    List.fold_left
-      (fun (init, segments, discontinuities) line ->
-        if String.starts_with ~prefix:map_prefix line then (
-          let n = String.length map_prefix in
-          ( Some (String.sub line n (String.length line - n - 1)),
-            segments,
-            discontinuities ))
-        else if line = "#EXT-X-DISCONTINUITY" then
-          (init, segments, discontinuities + 1)
-        else if line <> "" && line.[0] <> '#' then
-          (init, (Option.get init, line) :: segments, discontinuities)
-        else (init, segments, discontinuities))
-      (None, [], 0) lines
-  in
-  (List.rev segments, discontinuities)
-
-let concat_files out files =
-  Out_channel.with_open_bin out (fun oc ->
-      List.iter
-        (fun f ->
-          output_string oc (In_channel.with_open_bin f In_channel.input_all))
-        files)
-
 let ogg_links path =
   let data = In_channel.with_open_bin path In_channel.input_all in
   let rec count i n =
@@ -992,26 +957,12 @@ let kc7 () =
 let kc8 () =
   require
     [
-      "avoff.mp4";
       "latevideo.ts";
       "earlyaudio.ts";
       "sub_short.mkv";
       "sub_late.mkv";
       "sub_early.mkv";
     ];
-  Unix.mkdir "kc8_hls" 0o755;
-  let log =
-    run_ok "kc8_first_write"
-      {|audio.samplerate.set(48000)
-s = sequence([once(single("avoff.mp4"))])
-s = ffmpeg.encode.audio_video(%ffmpeg(%audio(codec="aac", ar=44100), %video(codec="libx264")), s)
-clock.assign_new(sync="none", [s])
-o = output.file.hls(fallible=true, segment_duration=2., "kc8_hls", [("v", %ffmpeg(format="mp4", movflags="+dash+skip_sidx+skip_trailer+frag_custom", frag_duration=2, %audio.copy, %video.copy))], s)
-o.on_stop(synchronous=true, shutdown)
-|}
-  in
-  check "kc8: the earliest packet reaches the muxer first"
-    (not (contains "avoid negative timestamp" log));
   let tracks = {|%audio(codec="aac"), %video(codec="libx264")|} in
   let log =
     run_ok "kc8_late" (live_script "latevideo.ts" tracks "kc8_late.nut")
@@ -1181,41 +1132,6 @@ let kc11 () =
     (List.length (packets "kc11_matrix.mkv" `Video) = 100);
   check "kc11: the display matrix difference is warned"
     (contains "Display Matrix differs" log);
-  Unix.mkdir "kc11_hls" 0o755;
-  Unix.mkdir "kc11_keep" 0o755;
-  ignore
-    (run_ok "kc11_hls"
-       {|settings.decoder.decoders.set(["ffmpeg"])
-settings.ffmpeg.content.copy.relaxed_compatibility_check := true
-s = sequence([once(single("h264_high.mp4")), once(single("h264_main.mp4"))])
-clock.assign_new(sync="none", [s])
-o = output.file.hls(fallible=true, segment_duration=1., "kc11_hls", [("v", %ffmpeg(format="mp4", %video.copy))], s)
-o.on_file_change(synchronous=true, fun ({state, path}) -> if state != "deleted" then file.copy(force=true, path, "kc11_keep/") end)
-o.on_stop(synchronous=true, shutdown)
-|});
-  let segments, discontinuities = hls_segments "kc11_keep" "v.m3u8" in
-  let inits = List.sort_uniq compare (List.map fst segments) in
-  check
-    (Printf.sprintf
-       "kc11: an fMP4 HLS variant restarts after a discontinuity with a new \
-        init (%d discontinuities, %d inits, %d segments)"
-       discontinuities (List.length inits) (List.length segments))
-    (discontinuities = 1 && List.length inits = 2);
-  let starts =
-    List.map
-      (fun (init, segment) ->
-        concat_files "kc11_segment.mp4"
-          [
-            Filename.concat "kc11_keep" init; Filename.concat "kc11_keep" segment;
-          ];
-        let video = packets "kc11_segment.mp4" `Video in
-        check "kc11: every HLS segment starts on a key packet"
-          (List.hd video).key;
-        (pts (List.hd video), pts (last video)))
-      segments
-  in
-  check "kc11: HLS timestamps rise across the restart"
-    (List.for_all (fun ((_, a), (b, _)) -> b > a) (pairs starts));
   let log =
     run_ok "kc11_ogg"
       (copy_script ["vq2.ogg"; "vq8.ogg"] "%audio.copy" "kc11_chain.ogg" "ogg")
@@ -1244,136 +1160,6 @@ let kc12 () =
 (* encoder.md §8.8: segment grid and playlist announcements of an MPEG-TS
    variant, by default over a video with a keyframe every 4 s and 1 s
    segments. *)
-let hls_variant ?(file = "gop4.mp4") ?(segment = 1.) name tracks =
-  Unix.mkdir name 0o755;
-  let keep = name ^ "_keep" in
-  Unix.mkdir keep 0o755;
-  let log =
-    run_ok name
-      (Printf.sprintf
-         {|settings.decoder.decoders.set(["ffmpeg"])
-s = once(single(%S))
-clock.assign_new(sync="none", [s])
-o = output.file.hls(fallible=true, segment_duration=%g, %S, [("v", %%ffmpeg(format="mpegts", %s))], s)
-o.on_file_change(synchronous=true, fun ({state, path}) -> if state != "deleted" then file.copy(force=true, path, %S) end)
-o.on_stop(synchronous=true, shutdown)
-|}
-         file segment name tracks (keep ^ "/"))
-  in
-  let lines =
-    List.map String.trim
-      (String.split_on_char '\n'
-         (In_channel.with_open_bin
-            (Filename.concat keep "v.m3u8")
-            In_channel.input_all))
-  in
-  let value prefix =
-    List.filter_map
-      (fun line ->
-        if String.starts_with ~prefix line then
-          Some
-            (String.sub line (String.length prefix)
-               (String.length line - String.length prefix))
-        else None)
-      lines
-  in
-  let target = int_of_string (List.hd (value "#EXT-X-TARGETDURATION:")) in
-  let durations =
-    List.map
-      (fun d -> float_of_string (List.hd (String.split_on_char ',' d)))
-      (value "#EXTINF:")
-  in
-  let segments =
-    List.filter (fun line -> line <> "" && line.[0] <> '#') lines
-  in
-  check
-    (Printf.sprintf "hls %s: no EXTINF exceeds the target duration" name)
-    (durations <> []
-    && List.for_all (fun d -> Float.to_int (Float.round d) <= target) durations
-    );
-  ( log,
-    List.mem "#EXT-X-INDEPENDENT-SEGMENTS" lines,
-    List.map (fun f -> packets (Filename.concat keep f) `Video) segments )
-
-let hls () =
-  (* A segment holding a split point is cut there before the bound, not at the
-     next keyframe ten seconds later. *)
-  ignore
-    (hls_variant ~file:"irrgop.mp4" ~segment:2. "hls_irregular" "%video.copy");
-  let log, independent, segments =
-    hls_variant "hls_copy" "%audio.copy, %video.copy"
-  in
-  check "hls copy: forced cuts are warned" (contains "segment cut at" log);
-  check "hls copy: EXT-X-INDEPENDENT-SEGMENTS is not announced"
-    (not independent);
-  check "hls copy: some segment starts without a key packet"
-    (List.exists (fun v -> v <> [] && not (List.hd v).key) segments);
-  let log, independent, segments =
-    hls_variant "hls_encode"
-      {|%audio(codec="aac"), %video(codec="libx264", preset="ultrafast")|}
-  in
-  check "hls encode: no forced cut" (not (contains "segment cut at" log));
-  check "hls encode: EXT-X-INDEPENDENT-SEGMENTS is announced" independent;
-  check "hls encode: every segment starts with a key frame"
-    (List.length segments >= 10
-    && List.for_all (fun v -> v <> [] && (List.hd v).key) segments);
-  Unix.mkdir "hls_restart" 0o755;
-  Unix.mkdir "hls_restart_keep" 0o755;
-  ignore
-    (run_ok "hls_restart"
-       {|settings.decoder.decoders.set(["ffmpeg"])
-settings.ffmpeg.content.copy.relaxed_compatibility_check := true
-v = sequence([once(single("h264_high.mp4")), once(single("h264_main.mp4"))])
-s = source({audio = source.tracks(once(sine(duration=4.))).audio, video = source.tracks(v).video})
-clock.assign_new(sync="none", [s])
-o = output.file.hls(fallible=true, segment_duration=1., "hls_restart", [("v", %ffmpeg(format="mp4", %audio(codec="aac"), %video.copy))], s)
-o.on_file_change(synchronous=true, fun ({state, path}) -> if state != "deleted" then file.copy(force=true, path, "hls_restart_keep/") end)
-o.on_stop(synchronous=true, shutdown)
-|});
-  let segments, _ = hls_segments "hls_restart_keep" "v.m3u8" in
-  let first_init = fst (List.hd segments) in
-  let before, after = List.partition (fun (i, _) -> i = first_init) segments in
-  let audio (init, segment) =
-    concat_files "hls_restart.mp4"
-      [
-        Filename.concat "hls_restart_keep" init;
-        Filename.concat "hls_restart_keep" segment;
-      ];
-    packets "hls_restart.mp4" `Audio
-  in
-  let rec until_discontinuity = function
-    | line :: rest when line <> "#EXT-X-DISCONTINUITY" ->
-        line :: until_discontinuity rest
-    | _ -> []
-  in
-  let boundary =
-    List.fold_left ( +. ) 0.
-      (List.filter_map
-         (fun line ->
-           if String.starts_with ~prefix:"#EXTINF:" line then
-             Some (Scanf.sscanf line "#EXTINF:%f," Fun.id)
-           else None)
-         (until_discontinuity
-            (List.map String.trim
-               (String.split_on_char '\n'
-                  (In_channel.with_open_bin
-                     (Filename.concat "hls_restart_keep" "v.m3u8")
-                     In_channel.input_all)))))
-  in
-  let last_before = last (audio (last before))
-  and first_after = List.hd (audio (List.hd after)) in
-  check
-    (Printf.sprintf
-       "hls restart: re-encoded audio continues the variant timeline (%.4f at \
-        a %.4f boundary)"
-       (pts first_after) boundary)
-    (after <> []
-    && near ~within:0.001 boundary (pts first_after)
-    && dts first_after > dts last_before)
-
-(* filters.md §12.3: a graph whose build fails ends its track, the output
-   streams from a fallback above it, and the graph is tried again after the
-   fault retry delay. *)
 let filters () =
   let log =
     run_ok "filters_build"
@@ -1785,7 +1571,6 @@ let checks =
     ("kc10", kc10);
     ("kc11", kc11);
     ("kc12", kc12);
-    ("hls", hls);
     ("filters", filters);
     ("ogg_stream", ogg_stream);
     ("io", io);

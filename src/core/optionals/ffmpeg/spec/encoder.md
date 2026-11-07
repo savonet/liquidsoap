@@ -80,9 +80,16 @@ In order:
    the stream's codec parameters, where the muxer and the codec string of
    §8.6 read it, whatever the container.
 2. **HLS defaults**, only when `hls` is true:
-   - `format="mp4"`: container option `movflags` defaults to
+   - `format` of the ISO base media family (`mp4`, `mov`, `ipod`,
+     `ismv`): container option `movflags` defaults to
      `"+frag_custom+dash+delay_moov"` (fragments are cut only when the
      encoder asks, §8.2).
+   - `format="mpegts"`: container option `avoid_negative_ts` defaults to
+     `"disabled"`. Reason: the muxer would otherwise shift the timeline by
+     the first packet's negative timestamp, which is the codec's priming,
+     so variants of one output with different codecs (AAC-LC, HE-AAC) would
+     carry different timestamps for the same media time. MPEG-TS stores
+     timestamps after its own positive delay.
    - `interleaved=Default` becomes `False`; an explicit value is kept.
      Reason: an interleaving muxer holds packets until every stream has
      written, which empties the first segment when a stream is sparse (the
@@ -292,17 +299,19 @@ returns an init segment, then `split_encode` for every later frame, and
 
 ### 8.1 `init ?id3_enabled ?id3_version ()`
 
+The result is the HLS ID3 mode of the HLS encoder contract
+([HLS encoder-contract §3](../../../outputs/hls/spec/encoder-contract.md#3-init)).
 By the muxer's name:
 
-| Muxer                        | `id3_enabled` | Result                                                                                                                        |
-| ---------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `mpegts`                     | not `false`   | a timed-ID3 data stream is added (§8.5); returns `true`                                                                       |
-| `mpegts`                     | `false`       | returns `false`                                                                                                               |
-| `adts`, `mp3`, `ac3`, `eac3` | `false`       | error: packed audio requires ID3                                                                                              |
-| `adts`, `mp3`, `ac3`, `eac3` | otherwise     | `insert_id3` returns a raw ID3 tag to prepend to the segment (the generic HLS ID3 builder, version default 3); returns `true` |
-| other                        | `true`        | error: the format carries no HLS ID3 metadata                                                                                 |
-| other                        | not `true`    | returns `false`                                                                                                               |
-| none (no muxer)              | any           | error: a format is required                                                                                                   |
+| Muxer                        | `id3_enabled` | Result                                                                                                                             |
+| ---------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `mpegts`                     | not `false`   | a timed-ID3 data stream is added (§8.5); returns `in_stream`                                                                       |
+| `mpegts`                     | `false`       | returns `none`                                                                                                                     |
+| `adts`, `mp3`, `ac3`, `eac3` | `false`       | error: packed audio requires ID3                                                                                                   |
+| `adts`, `mp3`, `ac3`, `eac3` | otherwise     | `insert_id3` returns a raw ID3 tag to prepend to the segment (the generic HLS ID3 builder, version default 3); returns `prepended` |
+| other                        | `true`        | error: the format carries no HLS ID3 metadata                                                                                      |
+| other                        | not `true`    | returns `none`                                                                                                                     |
+| none (no muxer)              | any           | error: a format is required                                                                                                        |
 
 Reason for the packed-audio row: an HLS packed-audio segment carries its
 timestamp in an ID3 tag (RFC 8216 §3.4).
@@ -324,7 +333,7 @@ A stream is **all-key** while every packet it has written is flagged key
 can be useful:
 
 1. Before a key packet of a participating stream that is not all-key, and
-   before the first packet at or after each grid boundary given by the HLS
+   before the first packet at or after each `boundary` given by the HLS
    output (§8.4), the hook flushes the muxer, so that the buffer holds
    exactly what precedes the packet, and records that position as a
    candidate, with the packet's media time as the split point's time.
@@ -336,6 +345,9 @@ can be useful:
    decision. When
    every other participating stream flags each packet as key (audio,
    subtitles, intra-only codecs), acceptance is immediate in practice.
+   A candidate decided by a key packet that takes a candidate of its own is
+   dropped in favour of that one: the two are one split point, and keeping
+   both would leave a segment of a few packets between them.
 3. Bytes written after an undecided candidate are held by the instance and
    returned in order once it is decided; no byte is dropped.
 
@@ -346,21 +358,19 @@ segment holds one fragment per candidate it contains.
 ### 8.3 `init_encode frame`
 
 The init segment is the container's header: the bytes the muxer writes before
-its first media data (fragmented MP4: `ftyp` and `moov`; WebM: the EBML
-header, segment information and tracks). For a format without one (MPEG-TS,
-ADTS, MP3) it is none.
+its first media data (fragmented MP4: `ftyp` and `moov`). For a format
+without one (MPEG-TS, ADTS, MP3) it is none. The HLS output accepts only the
+segment formats of RFC 8216
+([HLS variants §2](../../../outputs/hls/spec/variants.md#2-building-a-variant)).
 
 `init_encode ~boundary frame` encodes the frame (§5). It returns
 `Init (init, pieces)` once the header is known, where `pieces` (§8.4) hold
-every byte after the header; for MP4 they start with the `styp` box. Until the header is known it returns
+every byte after the header. For MP4 the header is the `ftyp` and `moov`
+boxes, and a media segment starts with its first fragment's boxes (`sidx`
+when the muxer writes one, `moof`). Until the header is known it returns
 `Pending`, and the bytes stay in the buffer for the next call: no frame's
 data is lost while the HLS output retries. An init segment MUST NOT be empty
 for a format that has a header.
-
-The `styp` box (24 bytes):
-`00 00 00 18 's' 't' 'y' 'p' 'm' 's' 'd' 'h' 00 00 00 00 'm' 's' 'd' 'h' 'm' 's' 'i' 'x'`
-— size 24, major brand `msdh`, minor version 0, compatible brands `msdh`, `msix`.
-It starts every MP4 media segment.
 
 ### 8.4 `split_encode frame`
 
@@ -371,14 +381,13 @@ piece = Bytes of bytes
       | Restart of { time : time; init : bytes option }
 ```
 
-`boundary` is the next grid boundary of the HLS output, in media time (§8.7).
+`boundary` is the next media time at which the HLS output wants a split point (§8.7).
 The frame is encoded (§5) and its output is returned as pieces, in byte
 order:
 
 - `Bytes`: output bytes no longer held (§8.2).
 - `Split`: an accepted split point between the bytes before and after it,
-  with its media time. For MP4, the bytes after it start with the `styp`
-  box.
+  with its media time. For MP4, the bytes after it start a fragment.
 - `Restart`: a container restart (§13) during the call. It is a split point
   that also starts a new container, with `init` its init segment (none for
   formats without one). It is returned in the call in which the new init
@@ -405,8 +414,8 @@ Holding (§8.2 step 3) only delays bytes, and never beyond a forced split.
 ### 8.5 Timed ID3 in mpegts
 
 `init` adds a data stream of codec `timed_id3`, time base `1/audio_rate`.
-`insert_id3 ~frame_position ~sample_position m` builds an ID3v2 tag (version
-default 3), makes a packet with pts = dts on the media timeline (output
+`insert_id3 ~time m` builds an ID3v2 tag (version
+default 3), makes a packet with pts = dts at `time` on the media timeline (output
 position minus `skipped`) as given by
 [timestamps.md §8](timestamps.md#8-timed-id3-hls-mpegts), and writes it to that
 stream. The timed-ID3 stream is generated by the encoder: it is not a member
@@ -419,19 +428,19 @@ prepended).
 
 ### 8.6 Properties
 
-| Query                     | Answer                                                                                                      |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `codec_attrs ()`          | the codec strings of the participating streams, joined by `,` in track order; none when any stream has none |
-| `independent_segments ()` | true when no participating stream is a copied stream whose codec is not intra-only (§8.7 item 6)            |
-| `bitrate ()`              | the sum of the bit rates the streams report; none if none                                                   |
-| `video_size ()`           | the single stream that reports a size; none with zero or several                                            |
+| Query                     | Answer                                                                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `codec_attrs ()`          | the codec strings of the participating streams, joined by `,` in track order; none when any stream has none                |
+| `independent_segments ()` | true when no participating stream is a copied stream whose codec is not intra-only (§8.4)                                  |
+| `bitrate ()`              | the sum of the participating streams' bit rates; none when any stream reports none (a partial sum understates the variant) |
+| `video_size ()`           | the single stream that reports a size; none with zero or several                                                           |
 
 A stream's codec string is the bindings' `codec_attr` of the stream
 ([avformat.md §4.4](../../../../modules/synced/ffmpeg/spec/avformat.md#44-output)).
 When the bindings give none, the stream falls back on its codec id: AAC →
 `mp4a.40.2`, MP3 → `mp4a.40.34`; otherwise none. When any stream has no codec
 string, `codec_attrs` is none and the encoder logs a warning naming the
-stream; the HLS output then omits `CODECS` (§8.7 item 7). Reason: the HLS `CODECS` attribute MUST list every format present in
+stream; the HLS output then omits `CODECS` ([HLS variants §3](../../../outputs/hls/spec/variants.md#3-derived-properties)). Reason: the HLS `CODECS` attribute MUST list every format present in
 the variant (RFC 8216 §4.3.4.2); a partial list is worse than none.
 
 Streams exist from the first frame (§5), so the properties are known once
@@ -439,54 +448,32 @@ Streams exist from the first frame (§5), so the properties are known once
 
 ### 8.7 Segment grid (HLS output side)
 
-The HLS output owns the segment grid; this section is its contract with the
-encoder, because the grid is only correct together with §8.4.
+The HLS output owns the segment grid, the cut rule, the target-duration
+bound and output-wide cuts
+([HLS segmenting](../../../outputs/hls/spec/segmenting.md)); the encoder
+seam is [HLS encoder-contract](../../../outputs/hls/spec/encoder-contract.md).
+What this encoder provides to them:
 
-1. **Grid.** Boundary _k_ is at `k × segment_duration` of media time (the
-   output position minus `skipped`,
-   [timestamps.md §1.4](timestamps.md#14-the-output-timeline)), counted from
-   the variant's start, in absolute terms. A boundary is never computed
-   from the previous segment's actual end.
-2. **Request.** With every frame, the HLS output passes the next boundary
-   _k_ to `split_encode`.
-3. **Cut.** The HLS output appends pieces to the open segment and keeps the
-   bytes after the segment's last split point pending. Once a split point
-   with time after _k_ arrives, or the stream ends, the segment is cut at the
-   last split point at or before _k_ inside the segment, and the pending
-   bytes after it start the next segment. When the segment holds no split
-   point at or before _k_, the cut is the first split point after _k_. A
-   segment is never cut anywhere but at a split point.
-4. **Leftovers.** The duration of a segment, and its `EXTINF`, is the media
-   time between its two cuts. A segment that ends early or late is shorter
-   or longer, and the next one correspondingly longer or shorter: the grid
-   does not move. Reason: codec frames do not match internal frames
-   (2048-sample HE-AAC against 960-sample frames), and a grid that moved by
-   the leftover would drift by a codec-dependent amount, so variants of one
-   source would drift apart.
-5. **Extra cuts.** The HLS output MAY cut at any other accepted split point
-   to open a segment for pending metadata or an inserted tag. An extra cut
-   does not move later boundaries. The HLS output calls `insert_id3` when it
-   opens a segment, with the segment's start position, so each segment that
-   needs a tag carries it from its start (§8.1, §8.5).
-6. **Bound.** The announced target duration is fixed for the playlist and is
-   at least `segment_duration`. RFC 8216 requires every `EXTINF`, rounded to
-   the nearest integer, to be at most the target duration. The wait for a
-   split point is bounded by `max_split_wait`: the time until the open
-   segment's rounded duration would exceed the target duration. When the
-   next frame would pass that bound and the segment holds no split point, the
-   HLS output passes `force` true. When a forced `Split` comes back, it logs a
-   warning naming the variant, and reports it through the output's
-   callbacks ([faults.md §5](faults.md#5-waiting)). A forced segment does not
-   start at a key packet of every stream, so a variant that can be forced
-   MUST NOT announce `EXT-X-INDEPENDENT-SEGMENTS`: the HLS output announces
-   it only for variants with no copied stream whose codec is not intra-only
-   (encoded streams make key frames at the boundaries).
-7. **Codec strings.** When `codec_attrs` is none (§8.6), the HLS output
-   omits `CODECS` for that variant with a warning (RFC 8216 makes it a
-   SHOULD).
-8. **Restart.** On `Restart`, the HLS output ends the segment with `before`,
-   marks the next segment as a discontinuity, gives it the new init segment
-   when there is one, and starts it with `after`.
+1. **Requested times.** With every frame the HLS output passes `boundary`,
+   the next media time at which it wants a split point: the next grid
+   boundary, or an earlier pending sync time. Media time is the output
+   position minus `skipped` ([timestamps.md §1.4](timestamps.md#14-the-output-timeline)),
+   and MUST equal the HLS output's media time. Each encoded video stream
+   makes its first image at or after `boundary` a key frame (§8.4), and the
+   hook takes a candidate before the first packet at or after it (§8.2), so
+   every variant has a split point at each requested time, within one
+   packet when its streams are all-key. The candidate is taken at the first
+   packet at or after the request even when no stream is video and the
+   request has not changed since the previous frame. A request stays
+   pending until a candidate is taken at it, also after a later request
+   arrives: packets trail the media time by the codec delay, and every
+   requested time gets its candidate, in order.
+2. **Split points** are the only places a segment may be cut (§8.2). With
+   MPEG-TS, the instance makes the muxer write a PAT and a PMT at each
+   candidate (the muxer's own header resend), so every segment starts with
+   them (RFC 8216 §3.2).
+3. **Force** is honoured as §8.4 states.
+4. **Restarts** are `Restart` pieces (§13).
 
 ### 8.8 Conformance
 
@@ -507,7 +494,7 @@ encoder, because the grid is only correct together with §8.4.
   first PTS of segment _n_ is equal across variants to within one codec frame.
 - An AAC MPEG-TS HLS output with 2 s segments: the first ten segments sum to
   20 s within one internal frame.
-- A WebM and an MP4 variant: the init segment is non-empty and the first media
+- An MP4 variant: the init segment is non-empty and the first media
   segment holds the first frame.
 
 ## 9. Outputs with a URL or file target
@@ -666,7 +653,10 @@ output stays conformant, and players are expected to support it.
 1. Every stream encoder drains (§12.8), in track order.
 2. The container is closed (codecs drained, trailer written).
 3. A new container is built by §3 step 3, with new stream encoders, and the
-   current metadata is set on it.
+   current metadata is set on it. After an HLS restart in the ISO base media
+   family, its `movflags` also carry `+frag_discont`. Reason: the muxer
+   otherwise starts the new container's fragment times at 0, whatever the
+   packet timestamps.
 4. The new container's streams are created (§5 step 1) from the current
    content of each field (a copy stream: the parameters of its current run,
    [content.md §4.2](content.md#42-run-layer)): at the next frame for a

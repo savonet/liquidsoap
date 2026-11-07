@@ -137,69 +137,12 @@ let mime = function
   | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.mime m
   | _ -> "application/octet-stream"
 
-(** Bitrate estimation in kbits per second. *)
+(** Bitrate estimation in bits per second. *)
 let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
   | _ -> raise Not_found
-
-(** HLS output of an encoder (ffmpeg spec encoder.md §8.4), times in main ticks
-    of media time: bytes, an accepted split point, or a container restart, which
-    is a split point that also starts a new container with its init segment.
-    [forced] marks a split made without its key-packet condition. *)
-type hls_split = { time : int; forced : bool }
-
-type hls_restart = { restart_time : int; init : Strings.t option }
-
-type hls_piece =
-  [ `Bytes of Strings.t | `Split of hls_split | `Restart of hls_restart ]
-
-(** [`Pending] keeps the bytes for the next call; [`Init (init, pieces)] gives
-    the init segment, none for a format without one, and every byte after it. *)
-type hls_init = [ `Pending | `Init of Strings.t option * hls_piece list ]
-
-(** The HLS output calls [init], then [init_encode] until it returns [`Init],
-    then [split_encode] for each later frame, with the next grid boundary;
-    [force] asks for a split before the frame whatever its packets. *)
-type hls = {
-  init : ?id3_enabled:bool -> ?id3_version:int -> unit -> bool;
-  init_encode : boundary:int -> Frame.t -> hls_init;
-  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
-  codec_attrs : unit -> string option;
-  independent_segments : unit -> bool;
-  insert_id3 :
-    frame_position:int ->
-    sample_position:int ->
-    (string * string) list ->
-    string option;
-  bitrate : unit -> int option;
-  (* width x height *)
-  video_size : unit -> (int * int) option;
-}
-
-(* Every frame start is a split point: the encoders using it write
-   self-contained units. *)
-let dummy_hls encode =
-  let time = ref 0 in
-  let encode f =
-    let data = encode f in
-    time := !time + Frame.position f;
-    data
-  in
-  {
-    init = (fun ?id3_enabled:_ ?id3_version:_ _ -> false);
-    init_encode = (fun ~boundary:_ f -> `Init (None, [`Bytes (encode f)]));
-    split_encode =
-      (fun ~boundary:_ ~force f ->
-        let split = `Split { time = !time; forced = force } in
-        [split; `Bytes (encode f)]);
-    codec_attrs = (fun () -> None);
-    independent_segments = (fun () -> false);
-    insert_id3 = (fun ~frame_position:_ ~sample_position:_ _ -> None);
-    bitrate = (fun () -> None);
-    video_size = (fun () -> None);
-  }
 
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
@@ -213,14 +156,38 @@ let dummy_hls encode =
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
-  hls : hls;
   encode : Frame.t -> Strings.t;
   stop : unit -> Strings.t;
+  bitrate : unit -> int option;
   restart_offset : unit -> int option;
 }
 
-type factory =
-  ?hls:bool -> pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
+type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
+type hls_id3_mode = [ `None | `In_stream | `Prepended ]
+
+type hls_piece =
+  | Bytes of Strings.t
+  | Split of { time : int; forced : bool }
+  | Restart of { time : int; init : string option }
+
+type hls_ready = { init : string option; pieces : hls_piece list }
+type hls_init = Pending | Init of hls_ready
+
+type hls_encoder = {
+  init : ?id3:bool -> ?id3_version:int -> unit -> (hls_id3_mode, string) result;
+  init_encode : boundary:int -> Frame.t -> hls_init;
+  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
+  insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
+  hls_stop : unit -> hls_ready;
+  codec_attrs : unit -> string option;
+  independent_segments : unit -> bool;
+  free_split : unit -> bool;
+  split_due : unit -> bool;
+  hls_bitrate : unit -> int option;
+  hls_video_size : unit -> (int * int) option;
+}
+
+type hls_factory = pos:Pos.t option -> string -> hls_encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)
@@ -231,56 +198,17 @@ let plug : plugin Plug.t =
 
 exception Found of factory
 
-let protect { encode_metadata; hls; encode; stop; header; restart_offset } =
+let protect { encode_metadata; encode; stop; header; bitrate; restart_offset } =
   let m = Mutex.create () in
   let encode_metadata metadata =
     Mutex.protect m (fun () -> encode_metadata metadata)
   in
   let header () = Mutex.protect m header in
-  let {
-    init;
-    init_encode;
-    split_encode;
-    codec_attrs;
-    independent_segments;
-    insert_id3;
-    bitrate;
-    video_size;
-  } =
-    hls
-  in
-  let init ?id3_enabled ?id3_version () =
-    Mutex.protect m (fun () -> init ?id3_enabled ?id3_version ())
-  in
-  let init_encode ~boundary frame =
-    Mutex.protect m (fun () -> init_encode ~boundary frame)
-  in
-  let split_encode ~boundary ~force frame =
-    Mutex.protect m (fun () -> split_encode ~boundary ~force frame)
-  in
-  let codec_attrs () = Mutex.protect m codec_attrs in
-  let independent_segments () = Mutex.protect m independent_segments in
-  let insert_id3 ~frame_position ~sample_position meta =
-    Mutex.protect m (fun () -> insert_id3 ~frame_position ~sample_position meta)
-  in
-  let bitrate () = Mutex.protect m bitrate in
-  let video_size () = Mutex.protect m video_size in
-  let hls =
-    {
-      init;
-      init_encode;
-      split_encode;
-      codec_attrs;
-      independent_segments;
-      insert_id3;
-      bitrate;
-      video_size;
-    }
-  in
   let encode frame = Mutex.protect m (fun () -> encode frame) in
   let stop () = Mutex.protect m stop in
+  let bitrate () = Mutex.protect m bitrate in
   let restart_offset () = Mutex.protect m restart_offset in
-  { encode_metadata; hls; encode; stop; header; restart_offset }
+  { encode_metadata; encode; stop; header; bitrate; restart_offset }
 
 (** Return the first available encoder factory for that format. *)
 let get_factory fmt =
@@ -288,5 +216,38 @@ let get_factory fmt =
     Plug.iter plug (fun _ f ->
         match f fmt with Some factory -> raise (Found factory) | None -> ());
     raise Not_found
-  with Found factory ->
-    fun ?hls ~pos name m -> protect (factory ?hls ~pos name m)
+  with Found factory -> fun ~pos name m -> protect (factory ~pos name m)
+
+let hls_plug : (format -> hls_factory option) Plug.t =
+  Plug.create ~doc:"Methods to encode HLS segments." "hls encoding formats"
+
+exception Found_hls of hls_factory
+
+let protect_hls e =
+  let m = Mutex.create () in
+  let p f = Mutex.protect m f in
+  {
+    init =
+      (fun ?id3 ?id3_version () -> p (fun () -> e.init ?id3 ?id3_version ()));
+    init_encode = (fun ~boundary f -> p (fun () -> e.init_encode ~boundary f));
+    split_encode =
+      (fun ~boundary ~force f ->
+        p (fun () -> e.split_encode ~boundary ~force f));
+    insert_id3 = (fun ~time m -> p (fun () -> e.insert_id3 ~time m));
+    hls_stop = (fun () -> p e.hls_stop);
+    codec_attrs = (fun () -> p e.codec_attrs);
+    independent_segments = (fun () -> p e.independent_segments);
+    free_split = (fun () -> p e.free_split);
+    split_due = (fun () -> p e.split_due);
+    hls_bitrate = (fun () -> p e.hls_bitrate);
+    hls_video_size = (fun () -> p e.hls_video_size);
+  }
+
+let get_hls_factory fmt =
+  try
+    Plug.iter hls_plug (fun _ f ->
+        match f fmt with
+          | Some factory -> raise (Found_hls factory)
+          | None -> ());
+    raise Not_found
+  with Found_hls factory -> fun ~pos name -> protect_hls (factory ~pos name)

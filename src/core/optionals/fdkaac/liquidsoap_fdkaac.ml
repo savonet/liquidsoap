@@ -110,13 +110,13 @@ let encoder ~pos aac =
   {
     Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);
-    hls = Encoder_utils.mk_id3_hls ~pos encode;
     encode;
     stop;
+    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 
 let () =
   Plug.register Encoder.plug "fdkaac" ~doc:"" (function
-    | Encoder.FdkAacEnc m -> Some (fun ?hls:_ ~pos _ _ -> encoder ~pos m)
+    | Encoder.FdkAacEnc m -> Some (fun ~pos _ _ -> encoder ~pos m)
     | _ -> None)

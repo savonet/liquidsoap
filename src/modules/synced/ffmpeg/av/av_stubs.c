@@ -18,6 +18,7 @@
 
 #include <libavutil/avstring.h>
 #include <libavutil/mem.h>
+#include <libavutil/opt.h>
 
 #define CUSTOM_IO_BUFFER_SIZE 32768
 #define SUBTITLE_PACKET_MAX (1024 * 1024)
@@ -1098,6 +1099,21 @@ CAMLprim value ocaml_av_set_metadata(value _container, value _index,
   CAMLreturn(Val_unit);
 }
 
+CAMLprim value ocaml_av_set_output_option(value _container, value _name,
+                                          value _option_value) {
+  CAMLparam3(_container, _name, _option_value);
+  container *record = exclusive(_container);
+  void *private_data = record->context->priv_data;
+  int error = AVERROR_OPTION_NOT_FOUND;
+
+  if (private_data)
+    error = av_opt_set(private_data, String_val(_name),
+                       String_val(_option_value), AV_OPT_SEARCH_CHILDREN);
+  done(record, error);
+
+  CAMLreturn(Val_unit);
+}
+
 /* Reading, spec/avformat.md §4.3. Av.read_input drives these steps. */
 
 static value indexed(int index, int kind, value _content) {
@@ -2158,11 +2174,18 @@ static int starts_with_start_code(const uint8_t *data, int size) {
          (size >= 3 && !data[0] && !data[1] && data[2] == 1);
 }
 
+/* An avcC record (ISO/IEC 14496-15) starts with version 1, then the
+   profile, constraint and level bytes of its SPS. */
 static int h264_attribute(const AVCodecParameters *parameters, char *text,
                           size_t text_size) {
   const uint8_t *data = parameters->extradata;
   int size = parameters->extradata_size;
   int offset;
+
+  if (data && size >= 4 && data[0] == 1) {
+    snprintf(text, text_size, "avc1.%02x%02x%02x", data[1], data[2], data[3]);
+    return 1;
+  }
 
   if (!data || !starts_with_start_code(data, size))
     return 0;

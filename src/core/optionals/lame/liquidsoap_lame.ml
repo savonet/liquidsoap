@@ -117,14 +117,13 @@ let () =
     let stop () = Strings.of_string (Lame.encode_flush enc) in
     {
       encode_metadata = (fun _ -> ());
-      hls = Encoder_utils.mk_id3_hls ~pos encode;
       encode;
       header = (fun () -> Strings.empty);
       stop;
+      bitrate = (fun () -> None);
       restart_offset = (fun () -> None);
     }
   in
   Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function
-    | Encoder.MP3 mp3 ->
-        Some (fun ?hls:_ ~pos _ meta -> mp3_encoder ~pos mp3 meta)
+    | Encoder.MP3 mp3 -> Some (fun ~pos _ meta -> mp3_encoder ~pos mp3 meta)
     | _ -> None)

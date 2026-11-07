@@ -547,6 +547,17 @@ val set_output_metadata : output container -> (string * string) list -> unit
     streams too. *)
 val set_metadata : (_, _, _) stream -> (string * string) list -> unit
 
+(** [set_output_option output name value] sets an option of the muxer of
+    [output], looking it up in the muxer's private options and their children.
+    It is accepted while the output is open, before and after its header is
+    written, so that a muxer option can change between two packet writes: the
+    mpegts muxer writes its tables again before the next packet once
+    [mpegts_flags] is set to [+resend_headers].
+
+    @raise Error with [`Option_not_found] when the muxer has no such option.
+    @raise Error with the mapped FFmpeg code when the value is invalid. *)
+val set_output_option : output container -> string -> string -> unit
+
 (** [new_stream_copy ~params output] adds a stream that receives packets encoded
     elsewhere, through {!write_packet}. It is {!new_uninitialized_stream_copy}
     followed by {!initialize_stream_copy}.
@@ -679,7 +690,8 @@ val new_data_stream :
     6381, computed from its codec parameters:
 
     - H.264: [avc1.] and the profile, constraint and level bytes of the SPS in
-      hexadecimal, when the extradata starts with an Annex-B SPS.
+      hexadecimal, when the extradata starts with an Annex-B SPS or is an [avcC]
+      record (ISO/IEC 14496-15), whose bytes 1 to 3 hold them.
     - HEVC: [hvc1.<profile>.4.L<level>.B01] when the codec tag is [hvc1] and the
       profile and level are known; else, for a codec tag that is set, the tag as
       its four characters.
@@ -746,6 +758,20 @@ val write_frame :
   ?on_packet:(encoded_packet -> unit) ->
   (output, 'media, [ `Frame ]) stream ->
   'media frame ->
+  unit
+
+(** [flush_encoder stream] drains the encoder of the stream and writes every
+    packet it still holds, as {!write_frame} writes the packets of a frame: the
+    header first when it is not written yet, the same timestamp conversion, and
+    [on_packet] with the same rules. It blocks with the runtime lock released.
+
+    The encoder is drained afterwards: {!close} writes no more packets for it,
+    and a later {!write_frame} or [flush_encoder] raises [Error `Eof].
+
+    @raise Error with [`Failure] when the stream has no encoder. *)
+val flush_encoder :
+  ?on_packet:(encoded_packet -> unit) ->
+  (output, 'media, [ `Frame ]) stream ->
   unit
 
 (** [write_subtitle_frame stream subtitle] encodes a subtitle and writes it as

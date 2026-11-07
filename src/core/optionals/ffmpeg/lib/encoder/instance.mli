@@ -27,7 +27,6 @@
     target (encoder.md §1). *)
 
 val create :
-  ?hls:bool ->
   ?interrupt:(unit -> bool) ->
   pos:Pos.t option ->
   name:string ->

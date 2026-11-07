@@ -184,6 +184,10 @@ module Socket_value = struct
     let compare = Stdlib.compare
   end)
 
+  (* Each read is an interpreted call, so files and HTTP bodies read through
+     this method cost one call per chunk. *)
+  let read_length = 65536
+
   let meths =
     let string_of_mode = function `Read -> "read" | `Write -> "write" in
     let wait_t ~mode t =
@@ -297,20 +301,29 @@ module Socket_value = struct
         ( [],
           wait_t ~mode:`Read
             (Lang.fun_t
-               [(true, "timeout", Lang.nullable_t Lang.float_t)]
+               [
+                 (true, "timeout", Lang.nullable_t Lang.float_t);
+                 (true, "length", Lang.int_t);
+               ]
                Lang.string_t) ),
-        "Read data from a socket. Reading is done when the function returns an \
-         empty string `\"\"`.",
+        "Read data from a socket, at most `length` bytes at a time. Reading is \
+         done when the function returns an empty string `\"\"`.",
         fun socket ->
-          let buflen = Utils.buflen in
-          let buf = Bytes.create buflen in
+          let buf = ref Bytes.empty in
           wait_meth ~mode:`Read socket
             (Lang.val_fun
-               [("timeout", "timeout", Some (Lang.float 10.))]
+               [
+                 ("timeout", "timeout", Some (Lang.float 10.));
+                 ("length", "length", Some (Lang.int read_length));
+               ]
                (fun p ->
                  let timeout =
                    Lang.to_valued_option Lang.to_float (List.assoc "timeout" p)
                  in
+                 let length = Lang.to_int (List.assoc "length" p) in
+                 if length <= 0 then
+                   Lang.raise_error ~pos:(Lang.pos p)
+                     ~message:"Read length must be positive!" "socket";
                  let start_time = Unix.gettimeofday () in
                  let check_timeout () =
                    match timeout with
@@ -327,8 +340,10 @@ module Socket_value = struct
                  in
                  Lang.protect ~kind:"socket" (fun () ->
                      check_timeout ();
-                     let n = socket#read buf 0 buflen in
-                     Lang.string (Bytes.sub_string buf 0 n)))) );
+                     if Bytes.length !buf < length then
+                       buf := Bytes.create length;
+                     let n = socket#read !buf 0 length in
+                     Lang.string (Bytes.sub_string !buf 0 n)))) );
       ( "closed",
         ([], Lang.fun_t [] Lang.bool_t),
         "`true` if the socket is already closed.",

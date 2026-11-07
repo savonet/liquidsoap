@@ -292,6 +292,7 @@ def output.youtube.live.rtmp(
 end
 %endif
 
+%ifdef output.file.hls
 # Stream to youtube using HLS.
 # @category Source / Output
 # @param ~id Force the value of the source ID.
@@ -356,6 +357,7 @@ def output.youtube.live.hls(
   o.on_file_change(synchronous=false, on_file_change)
   o
 end
+%endif
 
 # @flag hidden
 def add_text_builder(f) =

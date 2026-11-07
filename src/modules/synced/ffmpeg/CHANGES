@@ -29,6 +29,13 @@
   fails raises the write's `Error`, also when `on_packet` raised.
 * Add `Av.write_header`, which writes the header of an output before its
   first packet.
+* Add `Av.set_output_option`, which sets a muxer option of an open output,
+  also after its header is written, such as the mpegts muxer's
+  `mpegts_flags=+resend_headers` between two packets.
+* Add `Av.flush_encoder`, which drains the encoder of a stream before
+  `close`, reporting each packet to `?on_packet` as `Av.write_frame` does.
+* `Av.codec_attr` reads the H.264 profile and level from an `avcC` record, the
+  extradata of H.264 in mp4 and matroska, too.
 * Add `Avutil.Video.frame_force_keyframe`, which makes the encoder start a key
   frame at that picture, and `Avutil.Video.frame_set_colors`.
 * Add `BitstreamFilter.init ?time_base`, the input time base of the filter,

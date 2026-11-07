@@ -39,27 +39,18 @@ type container = {
 
 type state = [ `Built | `Started | `Failed of exn | `Stopped ]
 
-(* encoder.md §8: what an HLS instance accumulates between two calls of the
-   HLS output. [reference] is the first video track, whose key packets are the
-   split points; without one, splits are taken at frame starts on the grid. *)
+(* HLS mode (encoder.md §8). [key_due] are requested times whose image an
+   encoded video stream has made a key frame and whose key packet is not yet
+   seen: [force] is ignored meanwhile. *)
 type hls = {
-  header_format : bool;
-  mp4 : bool;
-  reference : string option;
-  mutable header : Strings.t option;
-  pending_header : Buffer.t;
-  mutable started : bool;
-  mutable pieces : Encoder.hls_piece list;
-  mutable split_boundary : int option;
-  mutable awaited_key : int option;
-  mutable seen_boundary : int option;
-  mutable reference_started : bool;
-  mutable id3 :
-    [ `None
-    | `Timed of (Avutil.output, [ `Data ], [ `Packet ]) Av.stream * int
-    | `Packed of int option ];
+  split : Hls_split.t;
+  mutable id3 : Encoder.hls_id3_mode;
+  mutable id3_version : int;
+  mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
   mutable id3_queue : (unit -> unit) list;
-  mutable restart_at : int option;
+  mutable media_written : bool;
+  mutable key_requests : int list;
+  mutable key_due : int list;
 }
 
 (* [header] is the current container's header (encoder.md §10): [`Pending
@@ -77,10 +68,10 @@ type t = {
   mutable current : container;
   mutable state : state;
   mutable position : int;
-  mutable hls : hls option;
   mutable header : [ `Pending of int | `Captured of Strings.t ];
   mutable link_start : int option;
   mutable returned_link_start : int option;
+  hls : hls option;
 }
 
 let convert_container_opts pos opts =
@@ -248,101 +239,41 @@ let take t =
     | `Captured _ -> ());
   Strings.of_string s
 
-(* encoder.md §8.3: the box that starts every MP4 media segment. *)
-let styp = "\x00\x00\x00\x18stypmsdh\x00\x00\x00\x00msdhmsix"
-let push h piece = h.pieces <- piece :: h.pieces
-
-(* The offset of the first top-level [moof] box: what precedes it is the
-   MP4 init segment. With [delay_moov] the muxer writes [ftyp] and [moov] with
-   the first fragment, not at the first packet. *)
-let first_moof data =
-  let length = String.length data in
-  let rec scan offset =
-    if offset + 8 > length then None
-    else (
-      let size =
-        Int32.to_int (String.get_int32_be data offset) land 0xffffffff
-      in
-      let kind = String.sub data (offset + 4) 4 in
-      if kind = "moof" then Some offset
-      else (
-        let size =
-          if size = 1 && offset + 16 <= length then
-            Int64.to_int (String.get_int64_be data (offset + 8))
-          else size
-        in
-        if size < 8 then None else scan (offset + size)))
-  in
-  scan 0
-
-(* encoder.md §8.4: a restart is returned once the new container's init
-   segment is known. *)
-let push_restart h =
-  Option.iter
-    (fun restart_time ->
-      h.restart_at <- None;
-      push h (`Restart { Encoder.restart_time; init = h.header }))
-    h.restart_at
-
-let bytes h data =
-  match (h.mp4, h.header) with
-    | true, None -> (
-        Buffer.add_string h.pending_header (Strings.to_string data);
-        let pending = Buffer.contents h.pending_header in
-        match first_moof pending with
-          | Some offset ->
-              Buffer.clear h.pending_header;
-              h.header <- Some (Strings.of_string (String.sub pending 0 offset));
-              push_restart h;
-              push h (`Bytes (Strings.of_string styp));
-              push h
-                (`Bytes
-                   (Strings.of_string
-                      (String.sub pending offset
-                         (String.length pending - offset))))
-          | None -> ())
-    | _ -> push h (`Bytes data)
-
-let split t h ~time ~forced =
+(* The hook every stream calls before a packet reaches the muxer. The bytes
+   before the first packet are the header; the bindings would only write it
+   with that packet, so it is written here. *)
+let hls_flush t () =
   Av.flush t.current.output;
-  (* With [delay_moov], the first flush writes [moov] alone and keeps the
-     samples for the next one. *)
-  if h.mp4 && h.header = None then Av.flush t.current.output;
-  bytes h (take t);
-  push h (`Split { Encoder.time; forced });
-  if h.mp4 && h.header <> None then push h (`Bytes (Strings.of_string styp))
+  if t.current.muxer = "mpegts" then
+    Av.set_output_option t.current.output "mpegts_flags" "+resend_headers"
 
-(* encoder.md §8.2: the hook every stream calls before a packet reaches the
-   muxer. The bytes before the first packet are the header; the bindings
-   would only write it with that packet, so it is written here. *)
+let encoded_video t =
+  List.filter_map
+    (function
+      | field, `Encode { F.options = `Video _; _ } -> Some field | _ -> None)
+    t.format.F.streams
+
 let on_packet t field ~key ~time =
-  (match t.header with
-    | `Pending start when t.hls = None ->
+  (match (t.header, t.hls) with
+    | `Pending _, Some _ ->
+        Av.write_header t.current.output;
+        t.header <- `Captured Strings.empty
+    | `Pending start, None ->
         Av.write_header t.current.output;
         t.header <-
           `Captured
             (Strings.of_string
                (Buffer.sub t.buffer start (Buffer.length t.buffer - start)))
     | _ -> ());
-  match t.hls with
-    | None -> ()
-    | Some h -> (
-        if not h.started then (
-          h.started <- true;
-          if h.header_format && not h.mp4 then (
-            h.header <- Some (take t);
-            push_restart h));
-        (* The reference's first key packet starts the first segment: a flush
-           there would make the MP4 muxer write [moov] before that track's
-           first timestamp. *)
-          match (key && h.reference = Some field, time) with
-          | true, _ when not h.reference_started -> h.reference_started <- true
-          | true, Some time ->
-              (match h.awaited_key with
-                | Some awaited when time >= awaited -> h.awaited_key <- None
-                | _ -> ());
-              split t h ~time ~forced:false
-          | _ -> ())
+  match (t.hls, time) with
+    | Some h, Some time ->
+        h.media_written <- true;
+        if key && List.mem field (encoded_video t) then (
+          h.key_due <- List.filter (fun b -> b > time) h.key_due;
+          h.key_requests <- List.filter (fun b -> b > time) h.key_requests);
+        Hls_split.packet h.split ~flush:(hls_flush t) ~field ~key ~time
+    | Some h, None -> h.media_written <- true
+    | None, _ -> ()
 
 let fail t exn =
   t.state <- `Failed exn;
@@ -362,6 +293,28 @@ let create_streams t frame =
         | _, `Drop -> ())
       c.tracks;
     c.streams_created <- true;
+    Option.iter
+      (fun h ->
+        List.iter
+          (function
+            | field, `Encoded _ when List.mem field (encoded_video t) ->
+                Hls_split.inter_coded h.split field
+            | field, `Copy track
+              when Copy_encoder.video_size track <> None
+                   && not (Copy_encoder.intra_only track) ->
+                Hls_split.inter_coded h.split field
+            | _ -> ())
+          c.tracks)
+      t.hls;
+    (match t.hls with
+      | Some ({ id3 = `In_stream; _ } as h) ->
+          h.id3_stream <-
+            Some
+              (Av.new_data_stream
+                 ~time_base:
+                   { Avutil.num = 1; den = Lazy.Mutexed.force Frame.audio_rate }
+                 ~codec:`Timed_id3 c.output)
+      | _ -> ());
     t.state <- `Started)
   else (
     let start = Option.value ~default:t.position c.wait_start in
@@ -420,51 +373,51 @@ let chains t =
     | `Stream -> true
     | `Url u -> String.length u > 5 && String.sub u 0 5 = "file:"
 
-(* encoder.md §13.2: an Ogg link starts its own timeline; an HLS variant keeps
-   its timeline across segments. *)
-let restart t =
+(* encoder.md §13.2 step 3. *)
+let continued_format (format : F.t) =
+  match (format.format, List.assoc_opt "movflags" format.opts) with
+    | Some m, Some (`String flags) when List.mem m F.iso_family ->
+        {
+          format with
+          opts =
+            F.set format.opts "movflags" (`String (flags ^ "+frag_discont"));
+        }
+    | _ -> format
+
+(* encoder.md §13.2: an HLS restart keeps the variant's timeline. *)
+let hls_restart t h =
   close_container t;
-  Option.iter
-    (fun h ->
-      bytes h (take t);
-      h.header <- None;
-      Buffer.clear h.pending_header;
-      h.started <- false;
-      h.reference_started <- false;
-      h.split_boundary <- None;
-      h.awaited_key <- None;
-      h.restart_at <- Some t.position)
-    t.hls;
+  let previous = t.current.copy in
   t.current <-
     open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
-      ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:(t.hls = None) ();
+      ~format:(continued_format t.format)
+      ~pos:t.pos ~buffer:t.buffer ();
+  Copy_encoder.continue_from t.current.copy ~from:previous;
   t.header <- `Pending (Buffer.length t.buffer);
-  if t.hls = None then (
-    t.link_start <- Some (Buffer.length t.buffer);
-    t.position <- 0);
+  h.id3_stream <- None;
+  h.media_written <- false;
+  Hls_split.container_start h.split ~first:false ~time:t.position;
   t.state <- `Built;
-  Av.set_output_metadata t.current.output t.metadata;
-  Option.iter
-    (fun h ->
-      (match h.id3 with
-        | `Timed (_, version) ->
-            let audio_rate = Lazy.Mutexed.force Frame.audio_rate in
-            h.id3 <-
-              `Timed
-                ( Av.new_data_stream
-                    ~time_base:{ Avutil.num = 1; den = audio_rate }
-                    ~codec:`Timed_id3 t.current.output,
-                  version )
-        | _ -> ());
-      if not h.header_format then push_restart h)
-    t.hls
+  Av.set_output_metadata t.current.output t.metadata
+
+(* encoder.md §13.2: an Ogg link starts its own timeline. *)
+let restart t =
+  close_container t;
+  t.current <-
+    open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
+      ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:true ();
+  t.header <- `Pending (Buffer.length t.buffer);
+  t.link_start <- Some (Buffer.length t.buffer);
+  t.position <- 0;
+  t.state <- `Built;
+  Av.set_output_metadata t.current.output t.metadata
 
 (* encoder.md §13.3: a source whose header properties the container cannot
    follow restarts it where the target defines a restart; the frame is cut at
    the switch, the part before it written to the old container. *)
 let rec encode_frames t frame =
   let switch =
-    if t.current.streams_created && (t.hls <> None || chains t) then
+    if t.current.streams_created && (chains t || t.hls <> None) then
       Copy_encoder.switch_position t.current.copy frame
     else None
   in
@@ -472,7 +425,7 @@ let rec encode_frames t frame =
     | Some position ->
         if position > 0 then encode_frame t (Frame.slice frame position);
         t.log#important "Source parameters changed: restarting the container";
-        restart t;
+        (match t.hls with Some h -> hls_restart t h | None -> restart t);
         encode_frames t (Frame.after frame position)
     | None -> encode_frame t frame
 
@@ -482,12 +435,6 @@ let encode t frame =
     | `Stopped -> failwith "Encoder used after stop"
     | `Built | `Started ->
         encode_frames t frame;
-        Option.iter
-          (fun h ->
-            if h.started && h.id3_queue <> [] then (
-              List.iter (fun write -> write ()) (List.rev h.id3_queue);
-              h.id3_queue <- []))
-          t.hls;
         take t
 
 let encode_metadata t m =
@@ -515,191 +462,13 @@ let stop t =
         t.state <- `Stopped;
         take t
 
-let header_formats = ["mp4"; "mov"; "ismv"; "ipod"; "webm"; "matroska"]
-let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"]
-
-let reference format =
-  List.find_map
-    (fun (field, track) ->
-      match track with
-        | `Encode { F.options = `Video _; _ } -> Some field
-        | `Copy _ when F.media_of_field field = Some `Video -> Some field
-        | _ -> None)
-    format.F.streams
-
-let hls_state t =
-  {
-    header_format = List.mem t.current.muxer header_formats;
-    mp4 = List.mem t.current.muxer ["mp4"; "mov"; "ismv"; "ipod"];
-    reference = reference t.format;
-    header = None;
-    pending_header = Buffer.create 4096;
-    started = false;
-    pieces = [];
-    split_boundary = None;
-    awaited_key = None;
-    seen_boundary = None;
-    reference_started = false;
-    id3 = `None;
-    id3_queue = [];
-    restart_at = None;
-  }
-
-(* encoder.md §8.1. *)
-let hls_init t h ?id3_enabled ?id3_version () =
-  match (t.current.muxer, id3_enabled) with
-    | "", _ -> error ?pos:t.pos "A format is required for HLS"
-    | "mpegts", Some false -> false
-    | "mpegts", _ ->
-        let audio_rate = Lazy.Mutexed.force Frame.audio_rate in
-        h.id3 <-
-          `Timed
-            ( Av.new_data_stream
-                ~time_base:{ Avutil.num = 1; den = audio_rate }
-                ~codec:`Timed_id3 t.current.output,
-              Option.value ~default:3 id3_version );
-        true
-    | muxer, Some false when List.mem muxer packed_audio ->
-        error ?pos:t.pos "Packed audio requires ID3 metadata in HLS"
-    | muxer, _ when List.mem muxer packed_audio ->
-        h.id3 <- `Packed id3_version;
-        true
-    | _, Some true -> error ?pos:t.pos "This format carries no HLS ID3 metadata"
-    | _ -> false
-
-(* encoder.md §8.5. *)
-let hls_insert_id3 t h ~frame_position ~sample_position m =
-  match h.id3 with
-    | `None -> None
-    | `Packed id3_version ->
-        Some
-          (Encoder_utils.mk_hls_id3 ?id3_version ~frame_position
-             ~sample_position m)
-    | `Timed (stream, version) ->
-        let audio_rate = Lazy.Mutexed.force Frame.audio_rate in
-        let ticks =
-          (frame_position * Lazy.Mutexed.force Frame.size) + sample_position
-        in
-        let ts =
-          Option.value ~default:0
-            (Time_base.rescale ~src:(Time_base.main ())
-               ~dst:{ Avutil.num = 1; den = audio_rate }
-               ticks)
-        in
-        let write () =
-          let packet =
-            Avcodec.Packet.create (Utils.id3v2_of_metadata ~version m)
-          in
-          Avcodec.Packet.set_pts packet (Some (Int64.of_int ts));
-          Avcodec.Packet.set_dts packet (Some (Int64.of_int ts));
-          try Av.write_packet stream { Avutil.num = 1; den = audio_rate } packet
-          with exn ->
-            t.log#important "Timed ID3 tag dropped: %s" (Printexc.to_string exn)
-        in
-        if h.started then write () else h.id3_queue <- write :: h.id3_queue;
-        None
-
-(* encoder.md §8.3 and §8.4. *)
-let hls_encode t h ~boundary ~force frame =
-  List.iter
-    (fun (field, track) ->
-      match track with
-        | `Encoded track ->
-            track.Encoded_stream.request_keyframe boundary;
-            if h.reference = Some field && h.split_boundary <> Some boundary
-            then (
-              h.split_boundary <- Some boundary;
-              h.awaited_key <- Some boundary)
-        | _ -> ())
-    t.current.tracks;
-  if force && h.started && h.awaited_key = None && h.restart_at = None then
-    split t h ~time:t.position ~forced:true
-  else (
-    match h.seen_boundary with
-      | Some previous
-        when h.reference = None && h.started && previous <> boundary
-             && t.position >= previous ->
-          split t h ~time:t.position ~forced:false
-      | _ -> ());
-  h.seen_boundary <- Some boundary;
-  bytes h (encode t frame);
-  let pieces = List.rev h.pieces in
-  h.pieces <- [];
-  pieces
-
-let hls_init_encode t h ~boundary frame : Encoder.hls_init =
-  let pieces = hls_encode t h ~boundary ~force:false frame in
-  match (h.header_format, h.header) with
-    | false, _ -> `Init (None, pieces)
-    | true, Some header -> `Init (Some header, pieces)
-    | true, None ->
-        h.pieces <- List.rev pieces;
-        `Pending
-
-(* encoder.md §8.6. *)
-let codec_attrs t =
-  let attrs =
-    List.filter_map
-      (function
-        | field, `Encoded track ->
-            Some (field, track.Encoded_stream.codec_attr ())
-        | field, `Copy track -> Some (field, Copy_encoder.codec_attr track)
-        | _, `Drop -> None)
-      t.current.tracks
-  in
-  match List.find_opt (fun (_, attr) -> attr = None) attrs with
-    | Some (field, _) ->
-        t.log#important "No codec string for track %s: CODECS omitted" field;
-        None
-    | None -> Some (String.concat "," (List.filter_map snd attrs))
-
-(* encoder.md §8.7 item 6: a copied stream that is not intra-only can be cut by
-   a forced split. *)
-let independent_segments t =
-  List.for_all
-    (function _, `Copy track -> Copy_encoder.intra_only track | _ -> true)
-    t.current.tracks
-
-let bitrate t =
-  match
-    List.filter_map
-      (function
-        | _, `Encoded track -> track.Encoded_stream.bitrate ()
-        | _, `Copy track -> Copy_encoder.bitrate track
-        | _, `Drop -> None)
-      t.current.tracks
-  with
-    | [] -> None
-    | rates -> Some (List.fold_left ( + ) 0 rates)
-
-let video_size t =
-  match
-    List.filter_map
-      (function
-        | _, `Encoded track -> track.Encoded_stream.video_size ()
-        | _, `Copy track -> Copy_encoder.video_size track
-        | _, `Drop -> None)
-      t.current.tracks
-  with
-    | [size] -> Some size
-    | _ -> None
-
-(* encoder.md §3 step 2. *)
-let hls_defaults (format : F.t) =
-  let opts =
-    if format.format = Some "mp4" && not (List.mem_assoc "movflags" format.opts)
-    then F.set format.opts "movflags" (`String "+frag_custom+dash+delay_moov")
-    else format.opts
-  in
-  let interleaved =
-    match format.interleaved with `Default -> `False | other -> other
-  in
-  { format with opts; interleaved }
-
-let create ?(hls = false) ?interrupt ~pos ~name metadata format =
-  let format = if hls then hls_defaults format else format in
+let make ?hls ?interrupt ~pos ~name metadata format =
   let log = Log.make ["ffmpeg"; "encoder"; name] in
-  let buffer = Buffer.create 4096 in
+  let buffer =
+    match hls with
+      | Some h -> Hls_split.buffer h.split
+      | None -> Buffer.create 4096
+  in
   let self = ref None in
   let hook field ~key ~time =
     Option.iter (fun t -> on_packet t field ~key ~time) !self
@@ -716,47 +485,267 @@ let create ?(hls = false) ?interrupt ~pos ~name metadata format =
         open_container ?interrupt ~on_packet:hook ~log ~format ~pos ~buffer ();
       state = `Built;
       position = 0;
-      hls = None;
       header = `Pending 0;
       link_start = None;
       returned_link_start = None;
+      hls;
     }
   in
   self := Some t;
   encode_metadata t metadata;
-  let hls_value =
-    if hls then (
-      let h = hls_state t in
-      t.hls <- Some h;
-      {
-        Encoder.init = hls_init t h;
-        init_encode =
-          (fun ~boundary frame -> hls_init_encode t h ~boundary frame);
-        split_encode =
-          (fun ~boundary ~force frame -> hls_encode t h ~boundary ~force frame);
-        codec_attrs = (fun () -> codec_attrs t);
-        independent_segments = (fun () -> independent_segments t);
-        insert_id3 = hls_insert_id3 t h;
-        bitrate = (fun () -> bitrate t);
-        video_size = (fun () -> video_size t);
-      })
-    else Encoder.dummy_hls (encode t)
+  t
+
+let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"]
+
+(* HLS variants.md §2: the segment formats of RFC 8216 §3. *)
+let segment_muxer = function
+  | Some m ->
+      m = "mpegts" || m = "webvtt" || List.mem m packed_audio
+      || List.mem m F.iso_family
+  | None -> false
+
+(* encoder.md §3 step 2. *)
+let hls_defaults (format : F.t) =
+  let default key value opts =
+    if List.mem_assoc key opts then opts else F.set opts key (`String value)
   in
+  let opts =
+    match format.format with
+      | Some m when List.mem m F.iso_family ->
+          default "movflags" "+frag_custom+dash+delay_moov" format.opts
+      | Some "mpegts" -> default "avoid_negative_ts" "disabled" format.opts
+      | _ -> format.opts
+  in
+  let interleaved =
+    match format.interleaved with `Default -> `False | v -> v
+  in
+  { format with opts; interleaved; output = `Stream }
+
+(* The init segment of a fragmented MP4 container: its boxes before the first
+   fragment's. *)
+let mp4_init_length buffer offset =
+  let length = Buffer.length buffer in
+  let byte i = Char.code (Buffer.nth buffer i) in
+  let int32 i =
+    (byte i lsl 24)
+    lor (byte (i + 1) lsl 16)
+    lor (byte (i + 2) lsl 8)
+    lor byte (i + 3)
+  in
+  let rec scan pos =
+    if pos + 8 > length then None
+    else (
+      match Buffer.sub buffer (pos + 4) 4 with
+        | "styp" | "sidx" | "moof" -> Some (pos - offset)
+        | _ ->
+            let size = int32 pos in
+            if size < 8 then None else scan (pos + size))
+  in
+  scan offset
+
+let init_mode t ?id3 () =
+  match (t.current.muxer, id3) with
+    | "", _ -> Error "a format is required"
+    | "mpegts", Some false -> Ok `None
+    | "mpegts", _ -> Ok `In_stream
+    | m, Some false when List.mem m packed_audio ->
+        Error "packed audio requires ID3 (RFC 8216 §3.4)"
+    | m, _ when List.mem m packed_audio -> Ok `Prepended
+    | _, Some true -> Error "the format carries no HLS ID3 metadata"
+    | _ -> Ok `None
+
+let run_id3_queue h =
+  if h.media_written then (
+    let queue = List.rev h.id3_queue in
+    h.id3_queue <- [];
+    List.iter (fun f -> f ()) queue)
+
+let hls_encode t h ~boundary ~force frame =
+  Hls_split.request h.split boundary;
+  if encoded_video t <> [] && not (List.mem boundary h.key_requests) then
+    h.key_requests <- h.key_requests @ [boundary];
+  (* A stream ignores requests until it exists, and repeats of one. *)
+  List.iter
+    (fun track -> track.Encoded_stream.request_keyframe boundary)
+    (encoded_tracks t.current);
+  if
+    force && h.key_due = []
+    && (not (Hls_split.restart_pending h.split))
+    && Av.output_started t.current.output
+  then Hls_split.force h.split ~flush:(hls_flush t) ~time:t.position;
+  (match t.state with
+    | `Failed exn -> raise exn
+    | `Stopped -> failwith "Encoder used after stop"
+    | `Built | `Started -> encode_frames t frame);
+  h.key_due <- List.filter (fun b -> b < t.position) h.key_requests;
+  run_id3_queue h;
+  Hls_split.take h.split
+
+let insert_id3 t h ~time m =
+  let tag () =
+    Utils.id3v2_of_metadata ~version:h.id3_version
+      (Frame.Metadata.Export.to_list m)
+  in
+  match h.id3 with
+    | `None -> None
+    | `Prepended -> Some (Hls_id3.make ~version:h.id3_version ~time m)
+    | `In_stream ->
+        let tag = tag () in
+        let write () =
+          match h.id3_stream with
+            | None -> ()
+            | Some stream -> (
+                let rate = Lazy.Mutexed.force Frame.audio_rate in
+                let time_base = { Avutil.num = 1; den = rate } in
+                let ts =
+                  Time_base.rescale ~src:(Time_base.main ()) ~dst:time_base time
+                in
+                let packet = Avcodec.Packet.create tag in
+                Avcodec.Packet.set_pts packet (Option.map Int64.of_int ts);
+                Avcodec.Packet.set_dts packet (Option.map Int64.of_int ts);
+                try Av.write_packet stream time_base packet
+                with exn ->
+                  t.log#important "Timed ID3 tag dropped: %s"
+                    (Printexc.to_string exn))
+        in
+        h.id3_queue <- write :: h.id3_queue;
+        run_id3_queue h;
+        None
+
+type stream_attrs = {
+  codec_attr : string option;
+  bitrate : int option;
+  video_size : (int * int) option;
+}
+
+let streams_attrs t =
+  List.filter_map
+    (function
+      | _, `Copy track ->
+          Some
+            {
+              codec_attr = Copy_encoder.codec_attr track;
+              bitrate = Copy_encoder.bitrate track;
+              video_size = Copy_encoder.video_size track;
+            }
+      | _, `Encoded track ->
+          Some
+            {
+              codec_attr = track.Encoded_stream.codec_attr ();
+              bitrate = track.bitrate ();
+              video_size = track.video_size ();
+            }
+      | _, `Drop -> None)
+    t.current.tracks
+
+let codec_attrs t =
+  let attrs = List.map (fun a -> a.codec_attr) (streams_attrs t) in
+  if attrs <> [] && List.for_all Option.is_some attrs then
+    Some (String.concat "," (List.filter_map Fun.id attrs))
+  else (
+    t.log#important "A stream has no codec string: the variant announces none";
+    None)
+
+let bitrate t =
+  let rates = List.map (fun a -> a.bitrate) (streams_attrs t) in
+  if rates <> [] && List.for_all Option.is_some rates then
+    Some (List.fold_left (fun sum b -> sum + Option.get b) 0 rates)
+  else None
+
+let video_size t =
+  match List.filter_map (fun a -> a.video_size) (streams_attrs t) with
+    | [v] -> Some v
+    | _ -> None
+
+let independent_segments t =
+  List.for_all
+    (function _, `Copy track -> Copy_encoder.intra_only track | _ -> true)
+    t.current.tracks
+
+let hls_stop t h =
+  (match t.state with
+    | `Stopped -> ()
+    | `Failed _ -> ( try close_output t.current with _ -> ())
+    | `Built | `Started -> close_container t);
+  t.state <- `Stopped;
+  let taken = Hls_split.take h.split in
+  let buffer = Hls_split.buffer h.split in
+  let held = Buffer.contents buffer in
+  Buffer.clear buffer;
+  {
+    Encoder.init = Option.join taken.init;
+    pieces =
+      (taken.pieces
+      @ if held = "" then [] else [Encoder.Bytes (Strings.of_string held)]);
+  }
+
+let create_hls ~pos ~name format : Encoder.hls_encoder =
+  let format = hls_defaults format in
+  let fields = List.map fst (non_drop format) in
+  let muxer = ref "" in
+  let init_length buffer offset =
+    if List.mem !muxer F.iso_family then mp4_init_length buffer offset
+    else Some 0
+  in
+  let h =
+    {
+      split = Hls_split.create ~fields ~init_length ();
+      id3 = `None;
+      id3_version = 3;
+      id3_stream = None;
+      id3_queue = [];
+      media_written = false;
+      key_requests = [];
+      key_due = [];
+    }
+  in
+  let t = make ~hls:h ~pos ~name Frame.Metadata.Export.empty format in
+  muxer := t.current.muxer;
+  Hls_split.container_start h.split ~first:true ~time:0;
+  {
+    init =
+      (fun ?id3 ?id3_version () ->
+        Option.iter (fun v -> h.id3_version <- v) id3_version;
+        let mode = init_mode t ?id3 () in
+        Result.iter (fun m -> h.id3 <- m) mode;
+        mode);
+    init_encode =
+      (fun ~boundary frame ->
+        match hls_encode t h ~boundary ~force:false frame with
+          | { init = Some init; pieces } -> Init { init; pieces }
+          | { init = None; _ } -> Pending);
+    split_encode =
+      (fun ~boundary ~force frame ->
+        (hls_encode t h ~boundary ~force frame).pieces);
+    insert_id3 = (fun ~time m -> insert_id3 t h ~time m);
+    hls_stop = (fun () -> hls_stop t h);
+    codec_attrs = (fun () -> codec_attrs t);
+    independent_segments = (fun () -> independent_segments t);
+    free_split = (fun () -> Hls_split.all_key h.split);
+    split_due = (fun () -> h.key_due <> [] || Hls_split.restart_pending h.split);
+    hls_bitrate = (fun () -> bitrate t);
+    hls_video_size = (fun () -> video_size t);
+  }
+
+let create ?interrupt ~pos ~name metadata format =
+  let t = make ?interrupt ~pos ~name metadata format in
   {
     Encoder.encode_metadata = encode_metadata t;
     header =
       (fun () ->
         match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
-    hls = hls_value;
     encode = encode t;
     stop = (fun () -> stop t);
+    bitrate = (fun () -> bitrate t);
     restart_offset = (fun () -> t.returned_link_start);
   }
 
 let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder." (function
     | Encoder.Ffmpeg format ->
-        Some
-          (fun ?hls ~pos name metadata ->
-            create ?hls ~pos ~name metadata format)
+        Some (fun ~pos name metadata -> create ~pos ~name metadata format)
+    | _ -> None);
+  Plug.register Encoder.hls_plug "ffmpeg" ~doc:"FFmpeg HLS segments." (function
+    | Encoder.Ffmpeg format when segment_muxer format.F.format ->
+        Some (fun ~pos name -> create_hls ~pos ~name format)
     | _ -> None)

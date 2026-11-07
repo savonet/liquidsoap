@@ -32,14 +32,14 @@ let encoder ~pos _ =
   {
     Encoder.encode_metadata = (fun _ -> error ());
     header = error;
-    hls = Encoder.dummy_hls (fun _ -> error ());
     encode = (fun _ -> error ());
     stop = error;
+    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 
 let () =
   Plug.register Encoder.plug "ndi"
     ~doc:"NDI encoder. Only used with `output.ndi`." (function
-    | Encoder.NDI m -> Some (fun ?hls:_ ~pos _ _ -> encoder ~pos m)
+    | Encoder.NDI m -> Some (fun ~pos _ _ -> encoder ~pos m)
     | _ -> None)
