@@ -72,8 +72,8 @@ let stop_between_flush_and_removal () =
       teardown = (fun () -> Atomic.incr probe.teardowns);
     }
   in
-  assert (Group.publish group (member ~block:true blocked));
   assert (Group.publish group (member other));
+  assert (Group.publish group (member ~block:true blocked));
   wait_until "flush" (fun () -> Atomic.get in_flush);
   let stopped = Atomic.make false in
   let stopper =
