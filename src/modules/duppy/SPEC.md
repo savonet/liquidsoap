@@ -47,6 +47,15 @@ A task waiting on a descriptor that cannot be watched MUST become ready at once,
 
 The tasks returned by a handler are submitted when it returns, as if by the worker that ran it.
 
+### 2.2.1 Withdrawal
+
+A task MAY be submitted as withdrawable, which hands its submitter a function that withdraws it.
+
+- A withdrawal and the start of the handler race, and exactly one of them wins. Once a withdrawal has returned, the handler MUST NOT start unless it had already.
+- A withdrawal that finds the task waiting MUST remove it from the core before returning: its deadline is dropped and its descriptors are no longer watched, so that its submitter may close them.
+- Withdrawing a task again, or after its handler started, does nothing.
+- The tasks returned by a handler are not withdrawable.
+
 ### 2.3 Deadlines
 
 A `Delay` MUST NOT be reported before its deadline.
@@ -215,7 +224,9 @@ The binding is the only code that knows both sides. It:
 
 A handle is chosen by the binding and is valid from submission until the task is taken by a worker or dropped. The binding MUST NOT submit a handle that is still valid. The core treats it as opaque.
 
-The binding stores the handler under its handle before submitting the task, and removes it when the task is taken or dropped. A worker that receives a handle from the core therefore always finds its handler.
+The binding stores the handler under its handle before submitting the task, and removes it when the task is taken, withdrawn or dropped. A worker that receives a handle from the core therefore always finds its handler.
+
+A withdrawable task also carries a **ticket**, a number the binding never gives to two tasks. The core withdraws a waiting task by its ticket, never by its handle: a handle is reused once its task is taken, and a withdrawal may come after that.
 
 ## 13. Examples
 

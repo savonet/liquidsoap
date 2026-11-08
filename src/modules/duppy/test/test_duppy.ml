@@ -623,6 +623,67 @@ let test_unwatchable_descriptor () =
     fail "a wait on a file reported %d events" (List.length !fired);
   ok "a descriptor that cannot be watched reports its own events only"
 
+(* The handler of a withdrawn task is released at once, which is what shows the
+   core gave the task back rather than keeping it to its descriptor. *)
+let withdrawn_task s r ran =
+  let held = Weak.create 1 in
+  let payload = Bytes.create 64 in
+  Weak.set held 0 (Some payload);
+  let withdraw =
+    Duppy.Task.add_withdrawable s
+      {
+        Duppy.Task.priority = Blocking;
+        events = [`Read r];
+        handler =
+          (fun _ ->
+            ignore (Sys.opaque_identity payload);
+            Atomic.set ran true;
+            []);
+      }
+  in
+  (held, withdraw)
+
+let released held =
+  Gc.full_major ();
+  Gc.full_major ();
+  not (Weak.check held 0)
+
+let test_withdraw () =
+  let s = Duppy.create ~classify () in
+  let r, w = Unix.pipe () in
+  let ran = Atomic.make false in
+  let held_early, withdraw_early =
+    (Sys.opaque_identity withdrawn_task) s r ran
+  in
+  withdraw_early ();
+  Duppy.start ~pool:(`Domains 1) s;
+  let held, withdraw = (Sys.opaque_identity withdrawn_task) s r ran in
+  withdraw ();
+  withdraw ();
+  if not (released held_early) then
+    fail "a task withdrawn before start kept its handler";
+  if not (released held) then fail "a withdrawn task kept its handler";
+  ignore (Unix.write w (Bytes.of_string "x") 0 1);
+  let l = latch () in
+  let fired = ref (fun () -> ()) in
+  fired :=
+    Duppy.Task.add_withdrawable s
+      {
+        Duppy.Task.priority = Blocking;
+        events = [`Read r];
+        handler =
+          (fun _ ->
+            bump l;
+            []);
+      };
+  await l 1;
+  !fired ();
+  Duppy.stop s;
+  Unix.close r;
+  Unix.close w;
+  if Atomic.get ran then fail "a withdrawn task ran";
+  ok "a withdrawn task never runs, and a late withdrawal does nothing"
+
 let test_suspend () =
   let s = Duppy.create ~classify () in
   Duppy.start ~pool:(`Domains 1) s;
@@ -901,6 +962,7 @@ let () =
   test_selective_domains ();
   test_burst_threads_retire ();
   test_unwatchable_descriptor ();
+  test_withdraw ();
   test_suspend ();
   test_suspend_delay ();
   test_thread ();
