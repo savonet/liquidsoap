@@ -11,7 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define EXPECTED_CHECKS 118
+#define EXPECTED_CHECKS 132
 #define CAPACITY 256
 
 static int checks = 0;
@@ -61,7 +61,8 @@ static int submit(duppy_core *core, intptr_t handle, duppy_class task_class,
                      delay,
                      fd >= 0 ? 1 : 0,
                      &fd,
-                     &interest};
+                     &interest,
+                     0};
   return duppy_core_submit(core, &task);
 }
 
@@ -155,6 +156,58 @@ static void test_descriptors(int force_fallback) {
   close_core(&opened);
 }
 
+static int submit_ticket(duppy_core *core, intptr_t handle, double delay,
+                         int fd, uint64_t ticket) {
+  int interest = DUPPY_READ;
+  duppy_task task = {handle,
+                     0,
+                     DUPPY_IMMEDIATE,
+                     DUPPY_ANY_WORKER,
+                     DUPPY_EVERY_WORKER,
+                     delay,
+                     fd >= 0 ? 1 : 0,
+                     &fd,
+                     &interest,
+                     ticket};
+  return duppy_core_submit(core, &task);
+}
+
+static void test_withdraw(int force_fallback) {
+  fixture opened = open_core(force_fallback);
+  duppy_core *core = opened.core;
+  intptr_t out[CAPACITY];
+  size_t written;
+  intptr_t handle = 0;
+  int ends[2];
+  if (pipe(ends) != 0)
+    abort();
+  duppy_core_start(core, 1, 4);
+
+  submit_ticket(core, 1, -1., ends[0], 7);
+  submit_ticket(core, 2, 0.02, -1, 8);
+  check(duppy_core_withdraw(core, 7, &handle) == 1 && handle == 1,
+        "a task waiting on a descriptor is withdrawn, with its handle");
+  check(duppy_core_withdraw(core, 8, &handle) == 1 && handle == 2,
+        "a task waiting on its deadline is withdrawn");
+  check(duppy_core_withdraw(core, 7, &handle) == 0,
+        "a withdrawn task is not withdrawn again");
+  check(write(ends[1], "x", 1) == 1, "pipe write");
+  submit(core, 3, DUPPY_IMMEDIATE, 0, 0.05, -1, 0);
+  check(next(core, 0, out, &written) == DUPPY_BATCH && written == 2 &&
+            out[0] == 3,
+        "neither withdrawn task becomes ready");
+
+  submit_ticket(core, 4, 0., -1, 9);
+  check(duppy_core_withdraw(core, 9, &handle) == 0,
+        "a ready task is not withdrawn");
+  check(take(core, 0, out, &written) == DUPPY_BATCH && out[0] == 4,
+        "and is still taken");
+
+  close(ends[0]);
+  close(ends[1]);
+  close_core(&opened);
+}
+
 static void test_unwatchable(void) {
 #ifdef __linux__
   fixture opened = open_core(0);
@@ -168,7 +221,7 @@ static void test_unwatchable(void) {
   int fds[] = {ends[0], file};
   int interests[] = {DUPPY_READ, DUPPY_READ};
   duppy_task task = {9,   0, DUPPY_DIRECT, DUPPY_ANY_WORKER, DUPPY_EVERY_WORKER,
-                     -1., 2, fds,          interests};
+                     -1., 2, fds,          interests,        0};
   duppy_core_start(core, 1, 4);
   check(duppy_core_submit(core, &task) == 0, "an unwatchable task is accepted");
   check(take(core, 0, out, &written) == DUPPY_ONE_DIRECT && written == 4 &&
@@ -294,8 +347,8 @@ static void test_eligibility(int force_fallback) {
   duppy_core *core = opened.core;
   intptr_t out[CAPACITY];
   size_t written;
-  duppy_task task = {0,  0, DUPPY_DIRECT, 1,   DUPPY_EVERY_WORKER,
-                     0., 0, NULL,         NULL};
+  duppy_task task = {0,  0, DUPPY_DIRECT, 1,    DUPPY_EVERY_WORKER,
+                     0., 0, NULL,         NULL, 0};
   check(duppy_core_submit(core, &task) == -1 && errno == EINVAL,
         "a pin fails before the pool exists");
   duppy_core_start(core, 2, 4);
@@ -340,9 +393,16 @@ static void test_leftover_is_offered(int force_fallback) {
   duppy_core *core = opened.core;
   intptr_t out[CAPACITY];
   size_t written;
-  duppy_task task = {
-      1,    0,   DUPPY_THREADED, DUPPY_ANY_WORKER, DUPPY_EVERY_WORKER, 0., 0,
-      NULL, NULL};
+  duppy_task task = {1,
+                     0,
+                     DUPPY_THREADED,
+                     DUPPY_ANY_WORKER,
+                     DUPPY_EVERY_WORKER,
+                     0.,
+                     0,
+                     NULL,
+                     NULL,
+                     0};
   duppy_core_start(core, 2, 4);
   check(take(core, 0, out, &written) == DUPPY_NONE &&
             take(core, 1, out, &written) == DUPPY_NONE,
@@ -414,6 +474,7 @@ int main(void) {
     test_deadlines(force_fallback);
     test_elapsed_delay(force_fallback);
     test_descriptors(force_fallback);
+    test_withdraw(force_fallback);
     if (!force_fallback)
       test_unwatchable();
     test_order(force_fallback);

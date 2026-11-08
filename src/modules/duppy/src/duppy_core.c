@@ -73,6 +73,7 @@ typedef struct watch {
 
 struct task {
   intptr_t handle;
+  uint64_t ticket;
   uint64_t sequence;
   int rank;
   duppy_class task_class;
@@ -1081,6 +1082,7 @@ int duppy_core_submit(duppy_core *core, const duppy_task *request) {
     return -1;
   }
   entry->handle = request->handle;
+  entry->ticket = request->ticket;
   entry->rank = request->rank;
   entry->task_class = request->task_class;
   entry->pin = request->pin;
@@ -1136,6 +1138,25 @@ int duppy_core_submit(duppy_core *core, const duppy_task *request) {
     return -1;
   }
   return 0;
+}
+
+/* ponytail: a linear scan of the waiting tasks, a table by ticket if
+   withdrawals ever outnumber submissions. */
+int duppy_core_withdraw(duppy_core *core, uint64_t ticket, intptr_t *handle) {
+  pthread_mutex_lock(&core->mutex);
+  task *entry = core->waiting;
+  while (entry && entry->ticket != ticket)
+    entry = entry->waiting_next;
+  if (entry) {
+    task_stop_waiting(core, entry);
+    /* The event thread polls a snapshot, which still holds the descriptors. */
+    if (core->fallback && core->sleeping)
+      wake_event_thread(core);
+    *handle = entry->handle;
+    free(entry);
+  }
+  pthread_mutex_unlock(&core->mutex);
+  return entry != NULL;
 }
 
 static void drop_waiting(duppy_core *core) {

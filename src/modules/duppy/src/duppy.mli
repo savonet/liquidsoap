@@ -203,6 +203,14 @@ module Task : sig
       no started worker is on that domain or accepts the task's priority, and
       always on a thread pool, where workers share a domain. *)
   val add : ?domain:int -> 'a scheduler -> ('a, [< event ]) task -> unit
+
+  (** [add_withdrawable] schedules a task as {!add} does and returns a function
+      that withdraws it. Once that function has returned, the handler does not
+      start and the core has dropped the task's descriptors, which may then be
+      closed. Calling it after the handler started does nothing, and so does
+      calling it again. The tasks the handler returns cannot be withdrawn. *)
+  val add_withdrawable :
+    ?domain:int -> 'a scheduler -> ('a, [< event ]) task -> unit -> unit
 end
 
 (** {2 Direct-style computations}

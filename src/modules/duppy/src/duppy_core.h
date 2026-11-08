@@ -70,6 +70,8 @@ typedef struct {
   const duppy_fd *fds;
   /* A mask of DUPPY_READ and DUPPY_WRITE for each of fds. */
   const int *interests;
+  /* Names the task to duppy_core_withdraw; 0 for a task never withdrawn. */
+  uint64_t ticket;
 } duppy_task;
 
 /* Monotonic seconds, the clock of every delay. */
@@ -109,6 +111,11 @@ int duppy_core_slots(duppy_core *core);
 /* Returns 0, or -1 with errno set: EINVAL for a task outside the limits above
    or pinned to a worker that is unknown or does not accept it. */
 int duppy_core_submit(duppy_core *core, const duppy_task *task);
+
+/* Removes the waiting task submitted with ticket, writing its handle to
+   handle. Returns 1, or 0 when no waiting task has it: it is ready, taken,
+   dropped or was never submitted. */
+int duppy_core_withdraw(duppy_core *core, uint64_t ticket, intptr_t *handle);
 
 /* Each task taken is written to out as its handle, 1 if its delay elapsed or
    0, then the mask of events that occurred on each of its descriptors, so
