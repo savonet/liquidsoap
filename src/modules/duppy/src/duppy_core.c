@@ -368,15 +368,41 @@ static int fallback_snapshot(duppy_core *core) {
   return (int)count;
 }
 
+#ifdef _WIN32
+/* The watched descriptors that are no longer sockets, reported failed as poll
+   reports POLLNVAL; the wake-up socket at 0 is the core's own. */
+static int closed_sockets(duppy_core *core, int watched, fd_event *events) {
+  int count = 0;
+  for (int i = 1; i < watched && count < MAX_EVENTS; i++) {
+    int type;
+    int length = sizeof(type);
+    if (getsockopt(core->poll_fds[i].fd, SOL_SOCKET, SO_TYPE, (char *)&type,
+                   &length) == SOCKET_ERROR &&
+        WSAGetLastError() == WSAENOTSOCK) {
+      events[count].fd = core->poll_fds[i].fd;
+      events[count].flags = FD_FAILED;
+      count++;
+    }
+  }
+  return count;
+}
+#endif
+
 /* ponytail: poll counts in milliseconds, so a deadline is met up to one late;
    ppoll where it exists would remove that. */
 static int fallback_wait(duppy_core *core, int watched, double timeout,
                          fd_event *events) {
   int ready = poll(core->poll_fds, watched, (int)ceil(timeout * 1e3));
 #ifdef _WIN32
-  /* WSAPoll reports its failure through WSAGetLastError, not errno. */
+  /* WSAPoll reports its failure through WSAGetLastError, not errno, and fails
+     the whole call over one closed socket, where poll flags that entry. */
   if (ready == SOCKET_ERROR) {
     int failure = WSAGetLastError();
+    if (failure == WSAENOTSOCK) {
+      int closed = closed_sockets(core, watched, events);
+      if (closed > 0)
+        return closed;
+    }
     errno = failure == WSAEINTR ? EINTR : failure;
   }
 #endif
