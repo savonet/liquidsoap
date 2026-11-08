@@ -55,6 +55,7 @@ object
   method register_on_stop : (unit -> unit) -> unit -> unit
   method private video_dimensions : int * int
   method private reset : unit
+  method private on_unavailable_source : [ `Stop | `Hold ]
   method virtual private send_frame : Frame.t -> unit
   method virtual private start : unit
   method virtual private stop : unit

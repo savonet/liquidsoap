@@ -1,29 +1,50 @@
-# Start the icecast-compatible server
-server =
-  icecast.server(
-    port=8000,
-    password="source_password",
-    config="/etc/liquidsoap/icecast.xml"
+# Created once, outside `parameters`: after a reload, the mount keeps
+# following the same source.
+backup =
+  ffmpeg.encode.audio(
+    %ffmpeg(%audio(codec = "libmp3lame", sample_format = "fltp")),
+    mksafe(playlist("/srv/radio/backup"))
   )
 
-# When a DJ connects, log it and optionally do something
+def parameters() =
+  members = icecast.server.decision.htpasswd("/etc/radio/members.htpasswd")
+  {
+    hostname = "radio.example.org",
+    source_password = "change-me",
+    max_clients = 500,
+    access_log = "/var/log/radio/access.log",
+    mount =
+      fun (path) ->
+        if
+          path == "/live.mp3"
+        then
+          {max_listeners = 200, fallback = {source = backup}}
+        elsif
+          path == "/members.mp3"
+        then
+          {listener_decision = members, fallback = {mount = "/live.mp3"}}
+        else
+          null
+        end
+  }
+end
+
+server = icecast.server(parameters())
+
 server.on_source_connect(
   fun (r) ->
-    begin
-      log.important(
-        "DJ connected on #{r.mount}"
-      )
-      # You could trigger notifications, update a database, etc.
-    end
-)
-
-server.on_source_disconnect(
-  fun (r) ->
     log.important(
-      "DJ disconnected from #{r.mount}"
+      "DJ connected on #{r.mount} from #{r.agent}"
     )
 )
 
-# Output the stream
-# The server handles incoming connections automatically
-# and creates output.harbor instances for each mount
+ignore(
+  on_signal(
+    "hup",
+    fun () ->
+      begin
+        server.reload(parameters())
+        server.reopen_logs()
+      end
+  )
+)

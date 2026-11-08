@@ -28,7 +28,12 @@ val stop : t -> unit
 (** Encoded bytes, with the encoder's restart offset in them. *)
 type encoded
 
+(** Ends a {!hold}. *)
 val encode : t -> Frame.t -> encoded
+
+(** Marks the source unavailable until the next {!encode}: a listener joining
+    meanwhile gets no burst, since the stream before the gap is stale. *)
+val hold : t -> unit
 
 (** Publishes the output's start, and its stream start if any, then appends the
     bytes. *)

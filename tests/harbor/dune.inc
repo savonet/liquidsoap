@@ -242,6 +242,23 @@
    harbor_output_join_points.liq)))
 
 (rule
+ (alias test_harbor_output_keep_listeners)
+ (package liquidsoap)
+ (deps
+  harbor_output_keep_listeners.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_keep_listeners.liq
+   liquidsoap
+   harbor_output_keep_listeners.liq)))
+
+(rule
  (alias test_harbor_output_large_output)
  (package liquidsoap)
  (deps
@@ -308,6 +325,23 @@
    harbor_output_on_connect_disconnect.liq
    liquidsoap
    harbor_output_on_connect_disconnect.liq)))
+
+(rule
+ (alias test_harbor_output_on_dropped)
+ (package liquidsoap)
+ (deps
+  harbor_output_on_dropped.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_output_on_dropped.liq
+   liquidsoap
+   harbor_output_on_dropped.liq)))
 
 (rule
  (alias test_harbor_output_overflow)
@@ -395,6 +429,23 @@
    harbor_output_stop_during_admission.liq)))
 
 (rule
+ (alias test_harbor_routing_literal)
+ (package liquidsoap)
+ (deps
+  harbor_routing_literal.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   harbor_routing_literal.liq
+   liquidsoap
+   harbor_routing_literal.liq)))
+
+(rule
  (alias test_http)
  (package liquidsoap)
  (deps
@@ -434,10 +485,10 @@
   (run %{run_test} http3.liq liquidsoap http3.liq)))
 
 (rule
- (alias test_icecast_server_fallback)
+ (alias test_icecast_server_config_file)
  (package liquidsoap)
  (deps
-  icecast_server_fallback.liq
+  icecast_server_config_file.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -446,9 +497,26 @@
  (action
   (run
    %{run_test}
-   icecast_server_fallback.liq
+   icecast_server_config_file.liq
    liquidsoap
-   icecast_server_fallback.liq)))
+   icecast_server_config_file.liq)))
+
+(rule
+ (alias test_icecast_server_events)
+ (package liquidsoap)
+ (deps
+  icecast_server_events.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_events.liq
+   liquidsoap
+   icecast_server_events.liq)))
 
 (rule
  (alias test_icecast_server_listeners)
@@ -485,6 +553,40 @@
    icecast_server_logs.liq)))
 
 (rule
+ (alias test_icecast_server_matroska_video)
+ (package liquidsoap)
+ (deps
+  icecast_server_matroska_video.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_matroska_video.liq
+   liquidsoap
+   icecast_server_matroska_video.liq)))
+
+(rule
+ (alias test_icecast_server_mounts)
+ (package liquidsoap)
+ (deps
+  icecast_server_mounts.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_mounts.liq
+   liquidsoap
+   icecast_server_mounts.liq)))
+
+(rule
  (alias test_icecast_server_ogg_late_listener)
  (package liquidsoap)
  (deps
@@ -502,10 +604,10 @@
    icecast_server_ogg_late_listener.liq)))
 
 (rule
- (alias test_icecast_server_preroll)
+ (alias test_icecast_server_pages)
  (package liquidsoap)
  (deps
-  icecast_server_preroll.liq
+  icecast_server_pages.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -514,9 +616,9 @@
  (action
   (run
    %{run_test}
-   icecast_server_preroll.liq
+   icecast_server_pages.liq
    liquidsoap
-   icecast_server_preroll.liq)))
+   icecast_server_pages.liq)))
 
 (rule
  (alias test_icecast_server_reload)
@@ -570,10 +672,10 @@
    icecast_server_source_reconnect.liq)))
 
 (rule
- (alias test_icecast_server_url_auth)
+ (alias test_icecast_server_sources)
  (package liquidsoap)
  (deps
-  icecast_server_url_auth.liq
+  icecast_server_sources.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -582,9 +684,43 @@
  (action
   (run
    %{run_test}
-   icecast_server_url_auth.liq
+   icecast_server_sources.liq
    liquidsoap
-   icecast_server_url_auth.liq)))
+   icecast_server_sources.liq)))
+
+(rule
+ (alias test_icecast_server_url_auth_wire)
+ (package liquidsoap)
+ (deps
+  icecast_server_url_auth_wire.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_url_auth_wire.liq
+   liquidsoap
+   icecast_server_url_auth_wire.liq)))
+
+(rule
+ (alias test_input_harbor_accept)
+ (package liquidsoap)
+ (deps
+  input_harbor_accept.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   input_harbor_accept.liq
+   liquidsoap
+   input_harbor_accept.liq)))
 
 (rule
  (alias test_post)
@@ -630,26 +766,34 @@
   (alias test_harbor_output_icy_stamping)
   (alias test_harbor_output_idle_cost)
   (alias test_harbor_output_join_points)
+  (alias test_harbor_output_keep_listeners)
   (alias test_harbor_output_large_output)
   (alias test_harbor_output_listener_lifecycle)
   (alias test_harbor_output_many_listeners)
   (alias test_harbor_output_on_connect_disconnect)
+  (alias test_harbor_output_on_dropped)
   (alias test_harbor_output_overflow)
   (alias test_harbor_output_preroll)
   (alias test_harbor_output_routing)
   (alias test_harbor_output_shutdown)
   (alias test_harbor_output_stop_during_admission)
+  (alias test_harbor_routing_literal)
   (alias test_http)
   (alias test_http2)
   (alias test_http3)
-  (alias test_icecast_server_fallback)
+  (alias test_icecast_server_config_file)
+  (alias test_icecast_server_events)
   (alias test_icecast_server_listeners)
   (alias test_icecast_server_logs)
+  (alias test_icecast_server_matroska_video)
+  (alias test_icecast_server_mounts)
   (alias test_icecast_server_ogg_late_listener)
-  (alias test_icecast_server_preroll)
+  (alias test_icecast_server_pages)
   (alias test_icecast_server_reload)
   (alias test_icecast_server_shutdown)
   (alias test_icecast_server_source_reconnect)
-  (alias test_icecast_server_url_auth)
+  (alias test_icecast_server_sources)
+  (alias test_icecast_server_url_auth_wire)
+  (alias test_input_harbor_accept)
   (alias test_post)
   (alias test_put)))

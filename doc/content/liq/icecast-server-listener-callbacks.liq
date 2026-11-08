@@ -1,4 +1,4 @@
-server = icecast.server(password="hackme")
+server = icecast.server({source_password = "change-me"})
 
 server.on_listener_connect(
   fun (listener) ->

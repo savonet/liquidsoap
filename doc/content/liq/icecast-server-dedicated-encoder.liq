@@ -1,1 +1,1 @@
-icecast.server(port=8000, password="hackme", dedicated_encoder=true)
+icecast.server({source_password = "change-me", dedicated_encoder = true})

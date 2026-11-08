@@ -91,6 +91,11 @@ def f() =
   test.equal(string.index(substring="e", "abcde"), 4)
   test.equal(string.index(substring="xx", "abcde"), -1)
   test.equal(string.split.first(separator="xx", "abcxxdef"), ("abc", "def"))
+  test.equal(string.split.first(separator=":", "josé:pw"), ("josé", "pw"))
+  test.equal(
+    string.split.first(separator=":", "\xfc\xa1:pw"),
+    ("\xfc\xa1", "pw")
+  )
 
   # Test that we revert to ascii on invalid utf8 strings when encoding is not specified:
   invalid_utf8_string = "\xfc\xa1\xa1\xa1\xa1\xa1"
