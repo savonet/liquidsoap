@@ -663,6 +663,7 @@ let test_withdraw () =
   if not (released held_early) then
     fail "a task withdrawn before start kept its handler";
   if not (released held) then fail "a withdrawn task kept its handler";
+  ignore (Sys.opaque_identity (withdraw_early, withdraw));
   ignore (Unix.write w (Bytes.of_string "x") 0 1);
   let l = latch () in
   let fired = ref (fun () -> ()) in

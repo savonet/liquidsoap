@@ -431,9 +431,11 @@ module Task = struct
     check_domain ?domain s t;
     let t = t_of_task ?domain ~ticket:(Atomic.fetch_and_add tickets 1) t in
     add_t s [t];
+    (* Holding the withdrawal must not keep the handler alive. *)
+    let claimed = t.claimed and ticket = t.ticket in
     fun () ->
-      if Atomic.compare_and_set t.claimed false true then
-        remove_from_core s t.ticket
+      if Atomic.compare_and_set claimed false true then
+        remove_from_core s ticket
 end
 
 open Task
