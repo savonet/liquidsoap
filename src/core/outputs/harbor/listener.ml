@@ -3,6 +3,7 @@ type info = {
   ip : string;
   peer : string;
   uri : string;
+  query_string : string;
   protocol : string;
   headers : (string * string) list;
   connected_at : float;
@@ -13,17 +14,19 @@ type t = {
   log : Log.t;
   socket : Harbor.socket;
   wake : unit -> unit;
+  deadline : float option;
   bytes_sent : int Atomic.t;
   mutable last_progress : float;
   closed_at : float option Atomic.t;
 }
 
-let create ~log ~wake info socket =
+let create ?deadline ~log ~wake info socket =
   {
     info;
     log;
     socket;
     wake;
+    deadline;
     bytes_sent = Atomic.make 0;
     last_progress = 0.;
     closed_at = Atomic.make None;
@@ -58,6 +61,7 @@ let write t data offset length =
           (Printexc.to_string exn);
         -1
 
+let deadline t = t.deadline
 let last_progress t = t.last_progress
 let set_last_progress t time = t.last_progress <- time
 
@@ -82,6 +86,7 @@ let record_t =
       ("id", Lang.int_t);
       ("ip", Lang.string_t);
       ("uri", Lang.string_t);
+      ("query_string", Lang.string_t);
       ("protocol", Lang.string_t);
       ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("connected_at", Lang.float_t);
@@ -95,6 +100,7 @@ let to_record info ~duration ~bytes_sent =
       ("id", Lang.int info.id);
       ("ip", Lang.string info.ip);
       ("uri", Lang.string info.uri);
+      ("query_string", Lang.string info.query_string);
       ("protocol", Lang.string info.protocol);
       ( "headers",
         Lang.list

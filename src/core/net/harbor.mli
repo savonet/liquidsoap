@@ -94,6 +94,7 @@ module type T = sig
     data:(float -> string) ->
     headers:(string * string) list ->
     query:(string * string) list ->
+    query_string:string ->
     socket:socket ->
     string ->
     reply
