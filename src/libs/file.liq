@@ -178,15 +178,15 @@ end
 def file.contents(fname) =
   fn = file.read(fname)
 
-  cur = ref("")
+  chunks = ref([])
   next = ref(fn())
   while next() != "" do
-    cur := "#{cur()}#{next()}"
+    chunks := next()::chunks()
     next := fn()
 
   end
 
-  cur()
+  string.concat(list.rev(chunks()))
 end
 
 # Get the list of lines of a file.

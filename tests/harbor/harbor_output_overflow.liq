@@ -101,7 +101,7 @@ def throttled() =
   def rec read() =
     chunk =
       try
-        sock.read(timeout=5.)
+        sock.read(timeout=5., length=1024)
       catch _ do
         ""
       end

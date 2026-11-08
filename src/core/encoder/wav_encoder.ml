@@ -72,17 +72,17 @@ let encoder ~pos wav =
   in
   {
     Encoder.encode_metadata = (fun _ -> ());
-    hls = Encoder.dummy_hls encode;
     encode;
     header =
       (fun () ->
         if wav.header && not !need_header then Strings.of_string header
         else Strings.empty);
     stop = (fun () -> Strings.empty);
+    bitrate = (fun () -> None);
     restart_offset = (fun () -> None);
   }
 
 let () =
   Plug.register Encoder.plug "wav" ~doc:"Native wav encoder." (function
-    | Encoder.WAV w -> Some (fun ?hls:_ ~pos _ _ -> encoder ~pos w)
+    | Encoder.WAV w -> Some (fun ~pos _ _ -> encoder ~pos w)
     | _ -> None)

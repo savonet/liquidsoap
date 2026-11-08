@@ -466,14 +466,14 @@ result depends on no state of the old container's groups.
 
 ## 8. Timed ID3 (HLS, mpegts)
 
-`insert_id3 ~frame_position ~sample_position` (positions of the HLS output:
-whole frames and remaining main ticks since the output started):
+`insert_id3 ~time` (media time of the HLS output in main ticks,
+[HLS encoder-contract §7](../../../outputs/hls/spec/encoder-contract.md#7-insert_id3)):
 
 ```
-pts = dts = rescale(frame_position × frame_size + sample_position, main ticks → 1/audio_rate)
+pts = dts = rescale(time, main ticks → 1/audio_rate)
 ```
 
-where the positions are on the media timeline (output position less
+where the time is on the media timeline (output position less
 `skipped`, §1.4). Written to the `timed_id3` data stream in `1/audio_rate`;
 queued until the container header exists. The encoder generates this
 stream; it is not a member of any copy group, so it never prevents a

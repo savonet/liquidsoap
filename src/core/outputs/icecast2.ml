@@ -121,7 +121,7 @@ module Icecast = struct
           {
             quality = None;
             bitrate =
-              Option.map (fun b -> b / 1000) (encoder.Encoder.hls.bitrate ());
+              Option.map (fun b -> b / 1000) (encoder.Encoder.bitrate ());
             samplerate;
             channels;
           }

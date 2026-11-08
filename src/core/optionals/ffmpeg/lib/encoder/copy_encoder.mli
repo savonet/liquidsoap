@@ -89,3 +89,8 @@ val intra_only : track -> bool
 val codec_attr : track -> string option
 val bitrate : track -> int option
 val video_size : track -> (int * int) option
+
+(** [continue_from t ~from] gives [t]'s tracks the end of [from]'s track of the
+    same field, and its skipped time: an HLS restart keeps the variant's
+    timeline (timestamps.md §6.5). *)
+val continue_from : t -> from:t -> unit

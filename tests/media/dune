@@ -925,90 +925,6 @@
    video-with-subtitle.mkv)))
 
 (rule
- (alias test_ffmpeg_distributed_hls_setup)
- (package liquidsoap)
- (target hls_resume_output.done)
- (deps
-  long-video.mp4
-  test_ffmpeg_distributed_hls_setup.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (progn
-   (run
-    %{run_test}
-    "FFmpeg distributed HLS setup"
-    liquidsoap
-    test_ffmpeg_distributed_hls_setup.liq
-    --
-    long-video.mp4)
-   (bash "touch hls_resume_output.done"))))
-
-(rule
- (alias test_ffmpeg_distributed_hls)
- (package liquidsoap)
- (deps
-  long-video.mp4
-  test_ffmpeg_distributed_hls.liq
-  hls_resume_output.done
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg distributed HLS encoding"
-   liquidsoap
-   test_ffmpeg_distributed_hls.liq
-   --
-   long-video.mp4)))
-
-(rule
- (alias test_ffmpeg_hls_mp4)
- (package liquidsoap)
- (deps
-  long-video.mp4
-  test_ffmpeg_hls_mp4.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg HLS MP4 encoding"
-   liquidsoap
-   test_ffmpeg_hls_mp4.liq
-   --
-   long-video.mp4)))
-
-(rule
- (alias test_ffmpeg_hls_copy_mp4)
- (package liquidsoap)
- (deps
-  long-video.mp4
-  test_ffmpeg_hls_copy_mp4.liq
-  ../../src/bin/liquidsoap.exe
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   "FFmpeg HLS MP4 encoding"
-   liquidsoap
-   test_ffmpeg_hls_copy_mp4.liq
-   --
-   long-video.mp4)))
-
-(rule
  (alias test_ffmpeg_transparency_filter)
  (package liquidsoap)
  (deps
@@ -1261,7 +1177,6 @@
 (alias
  (name mediatest)
  (deps
-  (alias test_ffmpeg_distributed_hls)
   (alias test_ffmpeg_raw_implicit_conversion)
   (alias test_ffmpeg_complex_filter)
   (alias test_ffmpeg_copy_concat)
@@ -1273,7 +1188,6 @@
   (alias test_ffmpeg_video_format_change)
   (alias test_ffmpeg_raw_format_change)
   (alias test_ffmpeg_copy_subtitle)
-  (alias test_ffmpeg_hls_mp4)
   (alias test_ffmpeg_transparency_filter)
   (alias test_ffmpeg_filter_changing_rate)
   (alias test_ffmpeg_filter_array_args)
@@ -1281,4 +1195,644 @@
   (alias test_image_decoder_duration)
   (alias test_bitmap_subtitle_to_video)
   (alias test_subtitle_text_to_ass)
-  (alias test_ffmpeg_vp9_alpha)))
+  (alias test_ffmpeg_vp9_alpha)
+  (alias test_hls_field_scenario)
+  (alias test_hls_grid_drift)
+  (alias test_hls_bound)
+  (alias test_hls_mpegts_pat_pmt)
+  (alias test_hls_restart)
+  (alias test_hls_timed_id3)
+  (alias test_hls_init_segments)
+  (alias test_hls_main_playlist_codecs)
+  (alias test_hls_write_error)
+  (alias test_hls_large_frames)
+  (alias test_hls_dropped_tracks)
+  (alias test_hls_copy_resume)
+  (alias test_hls_raw_encode)
+  (alias test_hls_input_round_trip)
+  (alias test_hls_codecs_at_stop)
+  (alias test_hls_x264_lookahead)
+  (alias test_hls_fmp4_extname_restart)
+  (alias test_hls_streams_extname)
+  (alias test_hls_iso_muxers)
+  (alias test_hls_fmp4_short_stop)
+  (alias test_hls_harbor_iso_content_type)))
+
+; HLS output conformance: copied H.264 with B-frames in three variants, AAC-LC
+; and HE-AAC, a 2 s GOP whose key frames fall after or before each boundary.
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target hls-field-after.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc2=duration=62:size=320x180:rate=25"
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=62:sample_rate=44100"
+   -filter_complex
+   "[0:v]split=3[a][b][c];[b]scale=240:136[b2];[c]scale=160:90[c2]"
+   -map
+   "[a]"
+   -map
+   "[b2]"
+   -map
+   "[c2]"
+   -map
+   1:a
+   -map
+   1:a
+   -c:v
+   libx264
+   -pix_fmt
+   yuv420p
+   -bf
+   3
+   -g
+   50
+   -keyint_min
+   50
+   -sc_threshold
+   0
+   -c:a:0
+   aac
+   -c:a:1
+   libfdk_aac
+   -profile:a:1
+   aac_he
+   -ac
+   2
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target hls-field-before.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc2=duration=62:size=320x180:rate=25"
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=62:sample_rate=44100"
+   -filter_complex
+   "[0:v]split=3[a][b][c];[b]scale=240:136[b2];[c]scale=160:90[c2]"
+   -map
+   "[a]"
+   -map
+   "[b2]"
+   -map
+   "[c2]"
+   -map
+   1:a
+   -map
+   1:a
+   -c:v
+   libx264
+   -pix_fmt
+   yuv420p
+   -bf
+   3
+   -g
+   1000
+   -force_key_frames
+   "expr:gte(t,n_forced*2-0.28)"
+   -sc_threshold
+   0
+   -c:a:0
+   aac
+   -c:a:1
+   libfdk_aac
+   -profile:a:1
+   aac_he
+   -ac
+   2
+   %{target})))
+
+(rule
+ (alias test_hls_field_scenario)
+ (package liquidsoap)
+ (deps
+  hls-field-after.ts
+  hls_lib.liq
+  hls_field_scenario.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS field scenario, key frames after each boundary"
+   liquidsoap
+   hls_field_scenario.liq
+   --
+   hls-field-after.ts)))
+
+(rule
+ (alias test_hls_field_scenario)
+ (package liquidsoap)
+ (deps
+  hls-field-before.ts
+  hls_lib.liq
+  hls_field_scenario.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS field scenario, key frames before each boundary"
+   liquidsoap
+   hls_field_scenario.liq
+   --
+   hls-field-before.ts)))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target hls-gop4.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=20:size=320x240:rate=25"
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=20:sample_rate=44100"
+   -c:v
+   libx264
+   -pix_fmt
+   yuv420p
+   -g
+   100
+   -keyint_min
+   100
+   -sc_threshold
+   0
+   -c:a
+   aac
+   -ac
+   2
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target hls-restart-high.mkv)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=8:size=320x240:rate=25"
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=8:sample_rate=44100"
+   -c:v
+   libx264
+   -profile:v
+   high
+   -pix_fmt
+   yuv420p
+   -g
+   50
+   -keyint_min
+   50
+   -sc_threshold
+   0
+   -c:a
+   aac
+   -ac
+   2
+   %{target})))
+
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target hls-restart-baseline.mkv)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=8:size=320x240:rate=25"
+   -f
+   lavfi
+   -i
+   "sine=frequency=440:duration=8:sample_rate=44100"
+   -c:v
+   libx264
+   -profile:v
+   baseline
+   -pix_fmt
+   yuv420p
+   -g
+   50
+   -keyint_min
+   50
+   -sc_threshold
+   0
+   -c:a
+   aac
+   -ac
+   2
+   %{target})))
+
+(rule
+ (alias test_hls_grid_drift)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_grid_drift.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "HLS grid without drift" liquidsoap hls_grid_drift.liq)))
+
+(rule
+ (alias test_hls_bound)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  hls_lib.liq
+  hls_bound.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS target duration bound"
+   liquidsoap
+   hls_bound.liq
+   --
+   hls-gop4.ts)))
+
+(rule
+ (alias test_hls_mpegts_pat_pmt)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  hls_lib.liq
+  hls_mpegts_pat_pmt.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS MPEG-TS segments start with a PAT and a PMT"
+   liquidsoap
+   hls_mpegts_pat_pmt.liq
+   --
+   hls-gop4.ts)))
+
+(rule
+ (alias test_hls_restart)
+ (package liquidsoap)
+ (deps
+  hls-restart-high.mkv
+  hls-restart-baseline.mkv
+  hls_lib.liq
+  hls_restart.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS container restart at a copy switch"
+   liquidsoap
+   hls_restart.liq
+   --
+   hls-restart-high.mkv
+   hls-restart-baseline.mkv)))
+
+(rule
+ (alias test_hls_timed_id3)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_timed_id3.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "HLS timed ID3 in MPEG-TS" liquidsoap hls_timed_id3.liq)))
+
+(rule
+ (alias test_hls_init_segments)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  hls_lib.liq
+  hls_init_segments.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS fMP4 init segments"
+   liquidsoap
+   hls_init_segments.liq
+   --
+   hls-gop4.ts)))
+
+(rule
+ (alias test_hls_main_playlist_codecs)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  hls_lib.liq
+  hls_main_playlist_codecs.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS main playlist codec strings"
+   liquidsoap
+   hls_main_playlist_codecs.liq
+   --
+   hls-gop4.ts)))
+
+(rule
+ (alias test_hls_write_error)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  hls_lib.liq
+  hls_write_error.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS transient write errors"
+   liquidsoap
+   hls_write_error.liq
+   --
+   hls-gop4.ts)))
+
+(rule
+ (alias test_hls_fmp4_extname_restart)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_fmp4_extname_restart.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS fMP4 extname across a restart"
+   liquidsoap
+   hls_fmp4_extname_restart.liq)))
+
+(rule
+ (alias test_hls_streams_extname)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_streams_extname.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS streams() extname"
+   liquidsoap
+   hls_streams_extname.liq)))
+
+(rule
+ (alias test_hls_iso_muxers)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_iso_muxers.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "HLS mov and ipod muxers" liquidsoap hls_iso_muxers.liq)))
+
+(rule
+ (alias test_hls_x264_lookahead)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_x264_lookahead.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS libx264 lookahead segment durations"
+   liquidsoap
+   hls_x264_lookahead.liq)))
+
+(rule
+ (alias test_hls_codecs_at_stop)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_codecs_at_stop.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS main playlist codecs at stop"
+   liquidsoap
+   hls_codecs_at_stop.liq)))
+
+(rule
+ (alias test_hls_input_round_trip)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_input_round_trip.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS input.hls round trip"
+   liquidsoap
+   hls_input_round_trip.liq)))
+
+(rule
+ (alias test_hls_raw_encode)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_raw_encode.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} "HLS raw FFmpeg encoding" liquidsoap hls_raw_encode.liq)))
+
+(rule
+ (alias test_hls_copy_resume)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_copy_resume.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS inline encode and copy resumed"
+   liquidsoap
+   hls_copy_resume.liq)))
+
+(rule
+ (alias test_hls_dropped_tracks)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_dropped_tracks.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS dropped tracks per variant"
+   liquidsoap
+   hls_dropped_tracks.liq)))
+
+(rule
+ (alias test_hls_large_frames)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_large_frames.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS large internal frames"
+   liquidsoap
+   hls_large_frames.liq)))
+
+(rule
+ (alias test_hls_fmp4_short_stop)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_fmp4_short_stop.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS fMP4 variant stopped within its first segment"
+   liquidsoap
+   hls_fmp4_short_stop.liq)))
+
+(rule
+ (alias test_hls_harbor_iso_content_type)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_harbor_iso_content_type.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS ISO family segments served as video/iso.segment"
+   liquidsoap
+   hls_harbor_iso_content_type.liq)))
