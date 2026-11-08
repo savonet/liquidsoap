@@ -229,15 +229,30 @@ let copy_tracks c =
 let encoded_tracks c =
   List.filter_map (function _, `Encoded t -> Some t | _ -> None) c.tracks
 
-let take t =
-  let s = Buffer.contents t.buffer in
+let reset t =
   Buffer.clear t.buffer;
   t.returned_link_start <- t.link_start;
   t.link_start <- None;
-  (match t.header with
-    | `Pending _ -> t.header <- `Pending 0
-    | `Captured _ -> ());
+  match t.header with `Pending _ -> t.header <- `Pending 0 | `Captured _ -> ()
+
+let take t =
+  let s = Buffer.contents t.buffer in
+  reset t;
   Strings.of_string s
+
+(* The pending bytes handed to [f] straight from [buffer], which keeps its
+   capacity: nothing is allocated. *)
+let take_into t f =
+  Fun.protect
+    ~finally:(fun () -> reset t)
+    (fun () ->
+      f
+        {
+          Encoder.length = Buffer.length t.buffer;
+          blit =
+            (fun offset destination destination_offset length ->
+              Buffer.blit t.buffer offset destination destination_offset length);
+        })
 
 (* The hook every stream calls before a packet reaches the muxer. The bytes
    before the first packet are the header; the bindings would only write it
@@ -429,13 +444,19 @@ let rec encode_frames t frame =
         encode_frames t (Frame.after frame position)
     | None -> encode_frame t frame
 
-let encode t frame =
+let encode_pending t frame =
   match t.state with
     | `Failed exn -> raise exn
     | `Stopped -> failwith "Encoder used after stop"
-    | `Built | `Started ->
-        encode_frames t frame;
-        take t
+    | `Built | `Started -> encode_frames t frame
+
+let encode t frame =
+  encode_pending t frame;
+  take t
+
+let encode_into t frame f =
+  encode_pending t frame;
+  take_into t f
 
 let encode_metadata t m =
   let m = Frame.Metadata.Export.to_list m in
@@ -735,6 +756,7 @@ let create ?interrupt ~pos ~name metadata format =
       (fun () ->
         match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
     encode = encode t;
+    encode_into = Some (encode_into t);
     stop = (fun () -> stop t);
     bitrate = (fun () -> bitrate t);
     restart_offset = (fun () -> t.returned_link_start);

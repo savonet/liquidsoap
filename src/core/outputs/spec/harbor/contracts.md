@@ -102,6 +102,9 @@ An encoder instance is created by `factory(name, initial metadata)` and
 offers:
 
 - `encode(frame piece) → bytes`;
+- optionally `encode_into(frame piece, consumer)`: encodes as `encode` does and
+  hands the bytes to `consumer`, which copies them out during the call, so
+  that the caller keeps them without an allocation;
 - `encode_metadata(metadata)`: in-stream metadata, effective in later output;
 - `header() → bytes`: what a client joining now, at the start of the next
   output, needs first to decode; after a new logical stream began (an Ogg link

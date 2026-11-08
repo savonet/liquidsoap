@@ -68,6 +68,7 @@ let encoder ~pos shine =
     encode;
     stop;
     bitrate = (fun () -> None);
+    encode_into = None;
     restart_offset = (fun () -> None);
   }
 

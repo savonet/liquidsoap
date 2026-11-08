@@ -56,6 +56,11 @@ val video_size : format -> (int * int) option
 (** Bitrate estimation in bits per second. *)
 val bitrate : format -> int
 
+(** The bytes of one encoder output, readable only during the call that hands
+    them over: [blit offset destination destination_offset length] copies a
+    range of them. *)
+type output = { length : int; blit : int -> bytes -> int -> int -> unit }
+
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
     is really meant for inline metadata, i.e. in most cases, stream sources.
@@ -72,11 +77,16 @@ val bitrate : format -> int
     [restart_offset ()] is the offset, in the bytes the latest [encode] or
     [stop] returned, at which a new stream starts with its header pages (an Ogg
     link after a metadata change); [None] when those bytes start none. A
-    streaming output starts a late listener there rather than before it. *)
+    streaming output starts a late listener there rather than before it.
+
+    [encode_into frame f], when given, encodes as [encode] does and hands the
+    bytes to [f] instead of returning them, so that the caller copies them where
+    it keeps them, with no allocation. *)
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
+  encode_into : (Frame.t -> (output -> unit) -> unit) option;
   stop : unit -> Strings.t;
   bitrate : unit -> int option;
   restart_offset : unit -> int option;
