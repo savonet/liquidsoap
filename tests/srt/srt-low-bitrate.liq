@@ -19,19 +19,29 @@ output.srt(
   blank()
 )
 
+# Arrival time and size of each payload, and the time the peer stopped
+# reading, from its last line.
 def arrivals(file_name) =
-  list.map(
-    fun (l) ->
-      begin
-        let [t, n] =
-          string.split(
-            separator=" ",
-            l
-          )
-        (float_of_string(t), int_of_string(n))
-      end,
-    lines(file_name)
-  )
+  entries =
+    list.map(
+      fun (l) ->
+        string.split(
+          separator=" ",
+          l
+        ),
+      lines(file_name)
+    )
+  let [ended, _] = list.last(entries)
+  payloads =
+    list.map(
+      fun (e) ->
+        begin
+          let [t, n] = e
+          (float_of_string(t), int_of_string(n))
+        end,
+      list.prefix(list.length(entries) - 1, entries)
+    )
+  (payloads, float_of_string(ended))
 end
 
 def largest_gap(times) =
@@ -60,7 +70,7 @@ def check() =
       "peer did not connect, status #{code}"
     )
   end
-  received = arrivals("times.txt")
+  let (received, window_end) = arrivals("times.txt")
   if
     list.length(received) < 10
   then
@@ -90,9 +100,8 @@ def check() =
     )
   end
 
-  # The end of the peer's reading window counts as an arrival, so that bytes
-  # held until the end count too. The window starts as the header arrives.
-  window_end = fst(list.hd(received)) + duration
+  # The end of the peer's reading counts as an arrival, so that bytes held
+  # until the end count too.
   gap = largest_gap(list.append(list.map(fst, received), [window_end]))
   if
     gap > bound + margin

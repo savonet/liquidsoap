@@ -359,10 +359,10 @@ let max_payload_delay_proto =
 let parse_max_payload_delay p =
   let value = List.assoc "max_payload_delay" p in
   match Lang.to_valued_option Lang.to_float value with
-    | Some delay when delay < 0. ->
+    | Some delay when Float.is_nan delay || delay < 0. ->
         raise
           (Error.Invalid_value
-             (value, "Maximum payload delay must not be negative!", []))
+             (value, "Maximum payload delay must be a non-negative number!", []))
     | delay -> delay
 
 let parse_max_clients p =

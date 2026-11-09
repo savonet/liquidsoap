@@ -44,7 +44,8 @@ let spec =
       "file receiving one payload size per line" );
     ( "--times",
       Arg.Set_string times_file,
-      "file receiving each payload's arrival time and size, one per line" );
+      "file receiving each payload's arrival time and size, one per line, then \
+       the time reading ended and the word end" );
     ("--bytes", Arg.Set_string bytes_file, "file receiving the received bytes");
     ("--file", Arg.Set_string file, "file to send");
     ("--payload", Arg.Set_int payload, "payload size");
@@ -120,7 +121,11 @@ let receive s =
      done
    with Srt.Error _ -> ());
   Option.iter close_out sizes;
-  Option.iter close_out times;
+  Option.iter
+    (fun c ->
+      Printf.fprintf c "%f end\n" (Unix.gettimeofday ());
+      close_out c)
+    times;
   Option.iter close_out bytes
 
 let read_file name =

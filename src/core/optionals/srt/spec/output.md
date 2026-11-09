@@ -26,8 +26,9 @@ The value returned carries the methods and callbacks of
 ## 2. Construction
 
 1. Validate the common parameters ([common.md §1](common.md#1-parameters))
-   and `max_clients`. `max_payload_delay` MUST NOT be negative: invalid-value
-   error `Maximum payload delay must not be negative!`.
+   and `max_clients`. `max_payload_delay` MUST be a non-negative number (NaN is
+   refused): invalid-value error
+   `Maximum payload delay must be a non-negative number!`.
 2. Look up an encoder factory for the format. None found: invalid-value error
    on the format, `Cannot get a stream encoder for that format`.
 3. Build the operator with the role `mode` names. The generic output checks

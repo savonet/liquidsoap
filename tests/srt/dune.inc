@@ -319,6 +319,21 @@
   (run %{run_test} srt-log-flood.liq liquidsoap srt-log-flood.liq)))
 
 (rule
+ (alias test_srt-low-bitrate-ts)
+ (package liquidsoap)
+ (deps
+  srt-low-bitrate-ts.liq
+  ./srt_peer.exe
+  ./helpers.inc
+  ./tone.ts
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} srt-low-bitrate-ts.liq liquidsoap srt-low-bitrate-ts.liq)))
+
+(rule
  (alias test_srt-low-bitrate)
  (package liquidsoap)
  (deps
@@ -534,6 +549,7 @@
   (alias test_srt-listener-survives)
   (alias test_srt-log-flood)
   (alias test_srt-low-bitrate)
+  (alias test_srt-low-bitrate-ts)
   (alias test_srt-no-leak)
   (alias test_srt-output-payloads)
   (alias test_srt-pacing)
