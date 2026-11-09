@@ -4,7 +4,17 @@
 %include "helpers.inc"
 
 port = 19500
-o = output.srt(mode="listener", port=port, %ogg(%vorbis), sine())
+
+# The delay bound is off: a quiet Vorbis stream may fall below one payload
+# per bound and release shorter payloads, which srt-low-bitrate checks.
+o =
+  output.srt(
+    mode="listener",
+    port=port,
+    max_payload_delay=null,
+    %ogg(%vorbis),
+    sine()
+  )
 
 def stop_after_streaming() =
   wait_until(

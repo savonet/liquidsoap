@@ -18,6 +18,7 @@ let streamid = ref ""
 let stop_reading_after = ref (-1)
 let duration = ref 10.
 let sizes_file = ref ""
+let times_file = ref ""
 let bytes_file = ref ""
 let file = ref ""
 let payload = ref 1316
@@ -41,6 +42,9 @@ let spec =
     ( "--sizes",
       Arg.Set_string sizes_file,
       "file receiving one payload size per line" );
+    ( "--times",
+      Arg.Set_string times_file,
+      "file receiving each payload's arrival time and size, one per line" );
     ("--bytes", Arg.Set_string bytes_file, "file receiving the received bytes");
     ("--file", Arg.Set_string file, "file to send");
     ("--payload", Arg.Set_int payload, "payload size");
@@ -85,6 +89,7 @@ let deadline () = Unix.gettimeofday () +. !duration
 
 let receive s =
   let sizes = if !sizes_file = "" then None else Some (open_out !sizes_file) in
+  let times = if !times_file = "" then None else Some (open_out !times_file) in
   let bytes =
     if !bytes_file = "" then None else Some (open_out_bin !bytes_file)
   in
@@ -103,6 +108,10 @@ let receive s =
                Option.iter (fun c -> Printf.fprintf c "%d\n%!" n) sizes;
                Option.iter
                  (fun c ->
+                   Printf.fprintf c "%f %d\n%!" (Unix.gettimeofday ()) n)
+                 times;
+               Option.iter
+                 (fun c ->
                    output c buffer 0 n;
                    flush c)
                  bytes
@@ -111,6 +120,7 @@ let receive s =
      done
    with Srt.Error _ -> ());
   Option.iter close_out sizes;
+  Option.iter close_out times;
   Option.iter close_out bytes
 
 let read_file name =

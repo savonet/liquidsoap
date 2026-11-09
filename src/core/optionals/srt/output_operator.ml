@@ -23,24 +23,28 @@
 type stream = {
   handle : Connection.peer_handle;
   payload_size : int;
+  max_payload_delay : float option;
   m : Mutex.t;
   ready : Condition.t;
   payloads : string Queue.t;
   mutable queued : int;
   pending : Buffer.t;
+  mutable waiting_since : float option;
   mutable joined : bool;
   mutable closing : [ `Open | `Drain of unit -> unit | `Abort | `Stopped ];
 }
 
-let create_stream ~payload_size handle =
+let create_stream ~payload_size ~max_payload_delay handle =
   {
     handle;
     payload_size;
+    max_payload_delay;
     m = Mutex.create ();
     ready = Condition.create ();
     payloads = Queue.create ();
     queued = 0;
     pending = Buffer.create payload_size;
+    waiting_since = None;
     joined = false;
     closing = `Open;
   }
@@ -53,8 +57,17 @@ let enqueue stream payload =
   stream.queued <- stream.queued + String.length payload;
   Condition.signal stream.ready
 
-(** Under [stream.m]. [false] once the stream is past [peer_backlog_limit]. *)
-let push stream data =
+let flush stream =
+  if Buffer.length stream.pending > 0 then (
+    enqueue stream (Buffer.contents stream.pending);
+    Buffer.clear stream.pending);
+  stream.waiting_since <- None
+
+(** Under [stream.m]. [false] once the stream is past [peer_backlog_limit].
+    [now] is the stream time at the end of [data]: bytes waiting for a full
+    payload longer than [max_payload_delay] leave as one shorter payload
+    (spec/output.md §5). *)
+let push ~now stream data =
   Strings.iter (Buffer.add_substring stream.pending) data;
   let size = stream.payload_size in
   let length = Buffer.length stream.pending in
@@ -65,13 +78,17 @@ let push stream data =
       enqueue stream (String.sub contents (i * size) size)
     done;
     Buffer.clear stream.pending;
-    Buffer.add_substring stream.pending contents full (length - full));
+    Buffer.add_substring stream.pending contents full (length - full);
+    (* What remains came with [data]. *)
+    stream.waiting_since <- None);
+  if Buffer.length stream.pending = 0 then stream.waiting_since <- None
+  else (
+    let since = Option.value ~default:now stream.waiting_since in
+    stream.waiting_since <- Some since;
+    match stream.max_payload_delay with
+      | Some delay when now -. since >= delay -> flush stream
+      | _ -> ());
   stream.queued <= peer_backlog_limit
-
-let flush stream =
-  if Buffer.length stream.pending > 0 then (
-    enqueue stream (Buffer.contents stream.pending);
-    Buffer.clear stream.pending)
 
 let shutdown_drain = 2.
 
@@ -159,8 +176,8 @@ let rec send_loop ~(log : Log.t) stream =
                       (Printexc.to_string exn);
                     stream.handle.fail ()))
 
-class output ~params ~write_timeout ~max_clients ~format_val ~infallible
-  ~register_telnet ~autostart source_val =
+class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
+  ~infallible ~register_telnet ~autostart source_val =
   let factory =
     match Encoder.get_factory (Lang.to_format format_val) with
       | factory -> factory ~hls:false ~pos:(Value.pos format_val)
@@ -178,6 +195,9 @@ class output ~params ~write_timeout ~max_clients ~format_val ~infallible
 
     val encoder_m = Mutex.create ()
     val mutable encoder : Encoder.encoder option = None
+
+    (** Seconds of stream encoded, under [encoder_m]. *)
+    val mutable stream_time = 0.
 
     (** Streams of live peers, under [encoder_m]. *)
     val mutable streams : stream list = []
@@ -204,7 +224,8 @@ class output ~params ~write_timeout ~max_clients ~format_val ~infallible
         connected =
           (fun handle ->
             let stream =
-              create_stream ~payload_size:params.Connection.payload_size handle
+              create_stream ~payload_size:params.Connection.payload_size
+                ~max_payload_delay handle
             in
             Library.spawn (fun () -> send_loop ~log:self#log stream);
             stream);
@@ -235,7 +256,9 @@ class output ~params ~write_timeout ~max_clients ~format_val ~infallible
               List.iter
                 (fun s ->
                   if s.joined then
-                    ignore (Mutex.protect s.m (fun () -> push s final)))
+                    ignore
+                      (Mutex.protect s.m (fun () ->
+                           push ~now:stream_time s final)))
                 streams
 
     (* A clean end comes only from the output ending every peer itself, so the
@@ -289,12 +312,17 @@ class output ~params ~write_timeout ~max_clients ~format_val ~infallible
                     Strings.sub data offset (Strings.length data - offset)
                 | None -> Strings.append (enc.Encoder.header ()) data)
           in
-          if not (Mutex.protect stream.m (fun () -> push stream data)) then
-            stream.handle.fail ())
+          if
+            not
+              (Mutex.protect stream.m (fun () ->
+                   push ~now:stream_time stream data))
+          then stream.handle.fail ())
         streams
 
     method private encode frame =
       Mutex.protect encoder_m (fun () ->
+          stream_time <-
+            stream_time +. Frame.seconds_of_main (Frame.position frame);
           Option.iter
             (fun enc -> self#distribute enc (enc.Encoder.encode frame))
             self#running_encoder)
@@ -319,6 +347,24 @@ let max_clients_proto =
       "Maximum number of clients, at least 1. `null` means no limit. Used only \
        in listener mode." )
 
+let max_payload_delay_proto =
+  ( "max_payload_delay",
+    Lang.nullable_t Lang.float_t,
+    Some (Lang.float 0.1),
+    Some
+      "Longest time, in seconds of stream, that encoded bytes wait for a full \
+       payload before they are sent in a shorter one. Keeps low-bitrate \
+       streams, such as compressed silence, flowing. `null` means no limit." )
+
+let parse_max_payload_delay p =
+  let value = List.assoc "max_payload_delay" p in
+  match Lang.to_valued_option Lang.to_float value with
+    | Some delay when delay < 0. ->
+        raise
+          (Error.Invalid_value
+             (value, "Maximum payload delay must not be negative!", []))
+    | delay -> delay
+
 let parse_max_clients p =
   let value = List.assoc "max_clients" p in
   match Lang.to_valued_option Lang.to_int value with
@@ -331,7 +377,7 @@ let _ =
   let return_t = Lang.univ_t () in
   Lang.add_operator ~base:Modules.output "srt"
     (Common.proto ~mode:`Caller
-    @ (max_clients_proto :: Output.proto)
+    @ (max_clients_proto :: max_payload_delay_proto :: Output.proto)
     @ [
         ("", Lang.format_t return_t, None, Some "Encoding format.");
         ("", Lang.source_t return_t, None, None);
@@ -344,6 +390,7 @@ let _ =
       let params, _, write_timeout = Common.parse p in
       new output
         ~params ~write_timeout ~max_clients:(parse_max_clients p)
+        ~max_payload_delay:(parse_max_payload_delay p)
         ~format_val:(Lang.assoc "" 1 p)
         ~infallible:(not (Lang.to_bool (List.assoc "fallible" p)))
         ~register_telnet:(Lang.to_bool (List.assoc "register_telnet" p))
