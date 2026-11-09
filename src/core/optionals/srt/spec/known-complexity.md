@@ -672,6 +672,39 @@ Sources: 682c85838, 801f29d54, c81ebf458, 1e6abc293, e96cf1c74, 329387501,
 
 ---
 
+## KC21. A low-bitrate stream is held back by a fixed payload size
+
+**Situation.** An output sends its encoder's bytes in payloads of a fixed
+size. The encoder's output rate drops far below its usual rate for a while:
+a lossless codec compressing digital silence, typically at the end of a
+track or between tracks. The receiver waits for data with a deadline.
+
+**What went wrong.** FLAC compresses digital silence to a few hundred bytes
+per second; a 1316-byte payload then took several seconds to fill. The
+receiver got nothing for longer than its one-second read deadline, timed out
+and reconnected, and then received the held bytes as a burst. Its buffer
+emptied and refilled, and the stream played faster for a moment. A user
+worked around it by adding inaudible noise to the signal, which keeps the
+encoder's rate up but makes the source never silent, so a fallback can no
+longer switch away from it.
+
+**Why it is hard.** A fixed payload size is a sound default at normal
+bitrates and an unbounded delay at low ones; the bitrate is the encoder's
+and the content's, not the transport's. Tests use constant tones or
+high-bitrate codecs, which fill a payload in a few milliseconds.
+
+**How to tell.** Send a FLAC encoding of silence for several seconds. Every
+payload must arrive within the delay bound of the bytes it carries, plus a
+scheduling margin; the receiver must not time out.
+
+Sources: field report from a production deployment, 2026-11 (FLAC over SRT,
+with and without Ogg).
+
+**Spec:** Covered: the delay bound ([output.md §5](output.md#5-sending)),
+checked by [conformance.md](conformance.md).
+
+---
+
 ## Part B notes
 
 - The binding must copy a send buffer before releasing the runtime lock; the

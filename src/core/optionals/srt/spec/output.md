@@ -5,19 +5,20 @@ listener or as a listener to every accepted caller.
 
 ## 1. Interface
 
-`output.srt(<common>, max_clients, start, fallible, register_telnet, id,
+`output.srt(<common>, max_clients, max_payload_delay, start, fallible, register_telnet, id,
 format, source)`.
 
-| Parameter                              | Type    | Default | Meaning                                                               |
-| -------------------------------------- | ------- | ------- | --------------------------------------------------------------------- |
-| [common.md §1](common.md#1-parameters) |         |         | `mode` defaults to `"caller"`.                                        |
-| `max_clients`                          | int?    | null    | Client limit of the listener role, at least 1; ignored by the caller. |
-| `start`                                | bool    | `true`  | Start as soon as the source is available.                             |
-| `fallible`                             | bool    | `false` | Accept a fallible source.                                             |
-| `register_telnet`                      | bool    | `true`  | Register the generic server commands.                                 |
-| `id`                                   | string? | null    | Operator id.                                                          |
-| (unlabeled)                            | format  | —       | The encoder.                                                          |
-| (unlabeled)                            | source  | —       | The source.                                                           |
+| Parameter                              | Type    | Default | Meaning                                                                             |
+| -------------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------- |
+| [common.md §1](common.md#1-parameters) |         |         | `mode` defaults to `"caller"`.                                                      |
+| `max_clients`                          | int?    | null    | Client limit of the listener role, at least 1; ignored by the caller.               |
+| `max_payload_delay`                    | float?  | `0.1`   | Longest a byte waits for a full payload, in seconds of stream (§5); null: no limit. |
+| `start`                                | bool    | `true`  | Start as soon as the source is available.                                           |
+| `fallible`                             | bool    | `false` | Accept a fallible source.                                                           |
+| `register_telnet`                      | bool    | `true`  | Register the generic server commands.                                               |
+| `id`                                   | string? | null    | Operator id.                                                                        |
+| (unlabeled)                            | format  | —       | The encoder.                                                                        |
+| (unlabeled)                            | source  | —       | The source.                                                                         |
 
 The value returned carries the methods and callbacks of
 [common.md §3–§4](common.md#3-callbacks) and the generic output ones.
@@ -25,7 +26,8 @@ The value returned carries the methods and callbacks of
 ## 2. Construction
 
 1. Validate the common parameters ([common.md §1](common.md#1-parameters))
-   and `max_clients`.
+   and `max_clients`. `max_payload_delay` MUST NOT be negative: invalid-value
+   error `Maximum payload delay must not be negative!`.
 2. Look up an encoder factory for the format. None found: invalid-value error
    on the format, `Cannot get a stream encoder for that format`.
 3. Build the operator with the role `mode` names. The generic output checks
@@ -86,9 +88,31 @@ generic output adds `on_air` and `on_air_timestamp` to each metadata.
 
 Each peer has its own **stream**: the bytes it is owed, from its first byte
 (§4). The stream is cut into **payloads** of exactly `payload_size` bytes,
-counted from the peer's first byte. Each payload is sent as one message;
+counted from the peer's first byte, and again from the byte after each
+shorter payload. Each payload is sent as one message;
 the library refuses a message larger than `payload_size`. Fewer than `payload_size`
-bytes wait for more, except at a clean end (§6).
+bytes wait for more, until one of:
+
+- a clean end (§6);
+- **the delay bound**: the oldest waiting byte was encoded `max_payload_delay`
+  seconds of stream ago or more. Everything waiting is then sent as one
+  payload shorter than `payload_size`, and counting starts again from the
+  next byte.
+
+Stream time is the duration the encoder has been given since it started,
+measured at the end of each piece of a frame it encodes. The bound is
+checked for every peer each time a piece is encoded, whether or not the
+encoder produced bytes for it, so a stretch where the encoder produces
+little or nothing still releases what it produced. Recommended value: 0.1
+second.
+
+The bound exists because a low-bitrate stream fills a payload slowly: an
+encoder that compresses silence to a few hundred bytes per second takes
+seconds to fill 1316 bytes, longer than a receiver waits for data. It is
+measured in stream time because the receiver consumes the stream at the
+stream's pace. A stream that steadily produces more than
+`payload_size / max_payload_delay` bytes per second of stream (about 105
+kbit/s with the defaults) fills each payload before the bound.
 
 **The streaming thread never waits for a peer.** It hands each peer's
 payloads to that peer's queue and goes on; payloads leave the queue as the
@@ -157,7 +181,8 @@ own.
 A peer receives the encoder's byte output, from its join point (§4),
 concatenated and cut into SRT payloads of exactly `payload_size` bytes. A
 cut falls where the count says, whatever the encoder's own packet
-boundaries. Only the last payload of a clean end may be shorter. Receivers
+boundaries. A payload is shorter only when the delay bound releases it (§5)
+or at a clean end. Receivers
 SHOULD accept payloads of any size up to the library's largest live payload.
 
 Example, `payload_size = 1316`, one peer from the encoder's start:
@@ -175,4 +200,20 @@ header's first byte, independently of the first peer's.
 
 With an MPEG-TS encoder every payload is seven whole TS packets, since each
 peer's stream starts on a block, the TS encoder's blocks start on a packet
-boundary, and 1316 is a multiple of 188.
+boundary, and 1316 is a multiple of 188. A payload the delay bound releases is a whole
+number of TS packets too: the bytes waiting are what follows the last full
+payload of whole blocks, and blocks end on a packet boundary.
+
+Example, `max_payload_delay = 0.1`, pieces of 0.04 seconds, an encoder that
+outputs 25 bytes in the pieces ending at 0.08, 0.16 and 0.24 seconds and
+nothing in the others:
+
+| Piece ends at | Encoder output | Oldest waiting byte | Sent                |
+| ------------- | -------------- | ------------------- | ------------------- |
+| 0.08          | 25 bytes       | 0.08                | nothing             |
+| 0.12          | none           | 0.08 (0.04 old)     | nothing             |
+| 0.16          | 25 bytes       | 0.08 (0.08 old)     | nothing             |
+| 0.20          | none           | 0.08 (0.12 old)     | one 50-byte payload |
+| 0.24          | 25 bytes       | 0.24                | nothing             |
+
+A byte waits at most the bound plus one piece.
