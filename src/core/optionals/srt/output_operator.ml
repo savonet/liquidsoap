@@ -180,7 +180,7 @@ class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
   ~infallible ~register_telnet ~autostart source_val =
   let factory =
     match Encoder.get_factory (Lang.to_format format_val) with
-      | factory -> factory ~hls:false ~pos:(Value.pos format_val)
+      | factory -> factory ~pos:(Value.pos format_val)
       | exception Not_found ->
           raise
             (Error.Invalid_value

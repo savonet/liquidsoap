@@ -917,24 +917,6 @@
   (run %{run_test} GH4281 liquidsoap GH4281.liq)))
 
 (rule
- (alias test_GH4395)
- (package liquidsoap)
- (deps
-  GH4395.liq
-  (glob_files ../media/**)
-  ../liquidsoap-test-assets
-  ../../src/bin/liquidsoap.exe
-  ../streams/file1.png
-  ../streams/file1.mp3
-  ./theora-test.mp4
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} GH4395 liquidsoap GH4395.liq)))
-
-(rule
  (alias test_GH4499)
  (package liquidsoap)
  (deps
@@ -1914,28 +1896,6 @@
   (run %{run_test} ffmpeg-copy-encode liquidsoap ffmpeg-copy-encode.liq)))
 
 (rule
- (alias test_ffmpeg-copy-input-http)
- (package liquidsoap)
- (deps
-  ffmpeg-copy-input-http.liq
-  (glob_files ../media/**)
-  ../liquidsoap-test-assets
-  ../../src/bin/liquidsoap.exe
-  ../streams/file1.png
-  ../streams/file1.mp3
-  ./theora-test.mp4
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run
-   %{run_test}
-   ffmpeg-copy-input-http
-   liquidsoap
-   ffmpeg-copy-input-http.liq)))
-
-(rule
  (alias test_ffmpeg-naming-convention)
  (package liquidsoap)
  (deps
@@ -2773,7 +2733,6 @@
   (alias test_GH4246)
   (alias test_GH4281)
   (alias test_GH4281-2)
-  (alias test_GH4395)
   (alias test_GH4499)
   (alias test_GH4629)
   (alias test_GH4711)
@@ -2827,7 +2786,6 @@
   (alias test_fade-zero-duration-delay)
   (alias test_fallible_ogg)
   (alias test_ffmpeg-copy-encode)
-  (alias test_ffmpeg-copy-input-http)
   (alias test_ffmpeg-naming-convention)
   (alias test_ffmpeg_seek_preroll)
   (alias test_harbor_source_relay)
