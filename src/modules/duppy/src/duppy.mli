@@ -154,6 +154,10 @@ val create :
   * pool. Default: [64]
   * @param grow_after Seconds of saturation before a growing pool adds a
   * domain. Default: [1.]
+  * @param idle_thread_timeout Seconds an auxiliary thread may stay parked
+  * without running a task before it exits; each worker keeps one, and
+  * [infinity] keeps them all. It must be positive. Unused by a thread pool.
+  * Default: [30.]
   * @param log Logging function. Default: no logging *)
 val start :
   ?pool:
@@ -163,6 +167,7 @@ val start :
     | `Threads of ('a -> bool) list ] ->
   ?max_blocking:int ->
   ?grow_after:float ->
+  ?idle_thread_timeout:float ->
   ?log:(string -> unit) ->
   'a scheduler ->
   unit
