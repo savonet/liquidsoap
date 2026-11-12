@@ -1042,8 +1042,7 @@ int duppy_core_sleep(duppy_core *core, double delay) {
   deadline_after(&deadline, delay);
   pthread_mutex_lock(&core->mutex);
   while (!core->stopped && pthread_cond_timedwait(&core->stop_condition,
-                                                  &core->mutex,
-                                                  &deadline) == 0)
+                                                  &core->mutex, &deadline) == 0)
     ;
   int stopped = core->stopped;
   pthread_mutex_unlock(&core->mutex);
