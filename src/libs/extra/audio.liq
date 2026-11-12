@@ -609,7 +609,12 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   end
 
   special =
-    fallback([special.{on_select = to_special}, blank().{on_select = to_blank}])
+    fallback(
+      [
+        special.{track_sensitive = false, on_select = to_special},
+        blank().{on_select = to_blank}
+      ]
+    )
 
   add(normalize=false, [normal, special])
 end

@@ -2316,6 +2316,24 @@
   (run %{run_test} shoutcast-args liquidsoap shoutcast-args.liq)))
 
 (rule
+ (alias test_smooth_add)
+ (package liquidsoap)
+ (deps
+  smooth_add.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} smooth_add liquidsoap smooth_add.liq)))
+
+(rule
  (alias test_source_cleanup)
  (package liquidsoap)
  (deps
@@ -2848,6 +2866,7 @@
   (alias test_seek_track_map)
   (alias test_server.insert_metadata)
   (alias test_shoutcast-args)
+  (alias test_smooth_add)
   (alias test_source_cleanup)
   (alias test_source_dynamic)
   (alias test_switch_autodj_jingle_metadata)
