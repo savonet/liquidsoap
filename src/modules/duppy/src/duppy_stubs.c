@@ -107,6 +107,15 @@ CAMLprim value duppy_stub_await_growth(value _core, value _delay) {
   return Val_int(index);
 }
 
+CAMLprim value duppy_stub_sleep(value _core, value _delay) {
+  duppy_core *core = Core_val(_core);
+  double delay = Double_val(_delay);
+  caml_enter_blocking_section();
+  int stopped = duppy_core_sleep(core, delay);
+  caml_leave_blocking_section();
+  return Val_bool(stopped);
+}
+
 CAMLprim value duppy_stub_stop(value _core) {
   duppy_core *core = Core_val(_core);
   caml_enter_blocking_section();

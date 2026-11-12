@@ -99,6 +99,10 @@ int duppy_core_start_growing(duppy_core *core, int worker_count, int initial,
    stopped or every worker is handed out. */
 int duppy_core_await_growth(duppy_core *core, double delay);
 
+/* Blocks for delay seconds, or until the core is stopped. Returns whether it
+   is. */
+int duppy_core_sleep(duppy_core *core, double delay);
+
 /* Drops every task not yet taken, wakes every worker and joins the event
    thread. */
 void duppy_core_stop(duppy_core *core);
