@@ -887,8 +887,8 @@ let thread_count () =
   with Sys_error _ -> None
 
 (* One worker alone accepts the tasks, so it holds the whole budget at once;
-   it keeps only its share of the threads that took. *)
-let test_burst_threads_retire () =
+   it keeps only [kept] of the threads that took, [budget] being 16. *)
+let burst_leaves_parked ?idle_thread_timeout ~kept describe =
   match thread_count () with
     | None -> print_endline "skipped: threads cannot be counted here"
     | Some _ ->
@@ -896,7 +896,7 @@ let test_burst_threads_retire () =
         let budget = 16 in
         Duppy.start
           ~pool:(`Selective_domains [(fun _ -> false); (fun _ -> true)])
-          ~max_blocking:budget s;
+          ~max_blocking:budget ?idle_thread_timeout s;
         (* The first task brings up one auxiliary thread and whatever the
            runtime starts along with a domain's first thread. *)
         let warm = latch () in
@@ -923,7 +923,7 @@ let test_burst_threads_retire () =
         await finished budget;
         if peak < baseline + budget then
           fail "%d tasks in flight on %d threads" budget (peak - baseline);
-        let kept = budget / 2 in
+        let kept = kept budget in
         let deadline = Unix.gettimeofday () +. 2. in
         while
           Option.get (thread_count ()) > baseline + kept
@@ -935,7 +935,15 @@ let test_burst_threads_retire () =
         if parked > kept then
           fail "%d threads stayed parked, %d expected" parked kept;
         Duppy.stop s;
-        ok "a burst of %d blocking tasks left %d threads parked" budget parked
+        ok "a burst of %d blocking tasks left %d threads parked%s" budget parked
+          describe
+
+let test_burst_threads_retire () =
+  burst_leaves_parked ~kept:(fun budget -> budget / 2) ""
+
+(* The worker's share goes too once unused for a sweep, all but one thread. *)
+let test_unused_threads_retire () =
+  burst_leaves_parked ~idle_thread_timeout:0.1 ~kept:(fun _ -> 1) " once unused"
 
 let () =
   watchdog 60.;
@@ -962,6 +970,7 @@ let () =
   test_current_domain ();
   test_selective_domains ();
   test_burst_threads_retire ();
+  test_unused_threads_retire ();
   test_unwatchable_descriptor ();
   test_withdraw ();
   test_suspend ();

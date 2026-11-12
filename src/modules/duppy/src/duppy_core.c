@@ -164,6 +164,8 @@ struct duppy_core {
   /* Since when ready work has found no idle worker, or 0. */
   double starved_since;
   pthread_cond_t growth_condition;
+  /* Broadcast on stop, for duppy_core_sleep. */
+  pthread_cond_t stop_condition;
   int max_blocking;
   int reserved;
   int slots;
@@ -985,6 +987,7 @@ static void wake_every_worker(duppy_core *core) {
   for (int i = 0; i < core->worker_count; i++)
     wake_worker(&core->workers[i]);
   pthread_cond_broadcast(&core->growth_condition);
+  pthread_cond_broadcast(&core->stop_condition);
 }
 
 static void deadline_after(struct timespec *deadline, double seconds) {
@@ -1032,6 +1035,18 @@ int duppy_core_await_growth(duppy_core *core, double delay) {
   }
   pthread_mutex_unlock(&core->mutex);
   return index;
+}
+
+int duppy_core_sleep(duppy_core *core, double delay) {
+  struct timespec deadline;
+  deadline_after(&deadline, delay);
+  pthread_mutex_lock(&core->mutex);
+  while (!core->stopped && pthread_cond_timedwait(&core->stop_condition,
+                                                  &core->mutex, &deadline) == 0)
+    ;
+  int stopped = core->stopped;
+  pthread_mutex_unlock(&core->mutex);
+  return stopped;
 }
 
 static void update_slots(duppy_core *core) {
@@ -1293,7 +1308,8 @@ duppy_core *duppy_core_create(duppy_fd wake_read, duppy_fd wake_write,
   if (core->buckets == NULL ||
       (!core->fallback && native_set(core, wake_read, DUPPY_READ) != 0) ||
       pthread_mutex_init(&core->mutex, NULL) != 0 ||
-      pthread_cond_init(&core->growth_condition, NULL) != 0) {
+      pthread_cond_init(&core->growth_condition, NULL) != 0 ||
+      pthread_cond_init(&core->stop_condition, NULL) != 0) {
     int failure = errno ? errno : ENOMEM;
 #ifndef _WIN32
     if (core->native >= 0)
@@ -1380,6 +1396,7 @@ void duppy_core_free(duppy_core *core) {
     close(core->timer);
 #endif
   pthread_cond_destroy(&core->growth_condition);
+  pthread_cond_destroy(&core->stop_condition);
   pthread_mutex_destroy(&core->mutex);
   free(core->workers);
   free(core->heap);
