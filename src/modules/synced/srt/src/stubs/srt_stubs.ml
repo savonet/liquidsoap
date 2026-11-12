@@ -67,6 +67,11 @@ module Def (F : Cstubs.FOREIGN) = struct
       (int @-> socket_opt @-> ptr void @-> ptr int @-> returning int)
 
   let getsockstate = foreign "srt_getsockstate" (int @-> returning socket_status)
+  let getrejectreason = foreign "srt_getrejectreason" (int @-> returning int)
+
+  let rejectreason_str =
+    foreign "srt_rejectreason_str" (int @-> returning const_string)
+
   let setloglevel = foreign "srt_setloglevel" (int @-> returning void)
   let close = foreign "srt_close" (int @-> returning int)
   let epoll_create = foreign "srt_epoll_create" (void @-> returning int)

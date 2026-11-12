@@ -1,5 +1,5 @@
 (lang dune 3.23)
-(version 0.3.4)
+(version 0.4.0)
 (name srt)
 (source (github savonet/ocaml-srt))
 (license GPL-2.0-or-later)
@@ -22,7 +22,7 @@
  (depends
   (conf-srt :build)
   (conf-pkg-config :build)
-  (ocaml (>= 4.12))
+  (ocaml (>= 5.1))
   (dune-configurator :build)
   ocamlfind
   (ctypes (>= 0.21.1))

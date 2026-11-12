@@ -10,7 +10,7 @@
   (= %{read:../detect/srt_available} true))
  (foreign_stubs
   (language c)
-  (names srt_generated_stubs srt_generated_stubs_locked)
+  (names srt_generated_stubs srt_generated_stubs_locked srt_unix_error)
   (flags
    (:include ../detect/srt_c_flags.sexp)))
  (c_library_flags

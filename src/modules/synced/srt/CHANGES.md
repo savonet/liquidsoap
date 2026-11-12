@@ -1,4 +1,20 @@
-# 0.3.4 (2025-05-01)
+# 0.4.0 (unreleased)
+
+- Breaking: `Error` carries the system error behind a failure, when there is
+  one: `Error of errno * Unix.error option * string`.
+- Require OCaml 5.1.
+- Added `tsbpdmode`, `getrejectreason` and `live_max_payload_size`.
+- Fix `peerlatency`, which raised `Not_found`.
+- Fix `Poll.update_usock` dropping the socket from `Poll.sockets`.
+- Fix concurrent `close` and `listen_callback` racing on the callback table.
+- Fix heap corruption: buffers passed to libsrt calls, which run without the
+  runtime lock, could be freed by a collection on another thread before the
+  call returned.
+- Fix reading the `streamid` option, which always failed for a non-empty id.
+- Log handler: append in constant time, so a log flood does not stall
+  libsrt's threads; fix the copied `area` and `line` fields.
+
+  # 0.3.4 (2025-05-01)
 
 - Copy send message before releasing the global lock.
 - Use fixed posix socket API for allocating socket address

@@ -7,7 +7,7 @@ open Srt_locked
 open Unsigned
 
 exception Invalid_argument of string
-exception Error of errno * string
+exception Error of errno * Unix.error option * string
 
 type errno = Srt.errno
 type transtype = Srt.transtype
@@ -16,6 +16,9 @@ type socket = Srt.socket
 
 let socket_id s = s
 let resources = Hashtbl.create 0
+let resources_m = Mutex.create ()
+
+external unix_error_of_code : int -> Unix.error = "ocaml_srt_unix_error_of_code"
 
 let string_of_errno = function
   | `Easyncfail -> "Easyncfail"
@@ -62,18 +65,28 @@ let string_of_errno = function
 
 let () =
   Printexc.register_printer (function
-    | Error (errno, msg) ->
+    | Error (errno, None, msg) ->
         Some (Printf.sprintf "Error(%s,%s)" (string_of_errno errno) msg)
+    | Error (errno, Some system_error, msg) ->
+        Some
+          (Printf.sprintf "Error(%s,%s: %s)" (string_of_errno errno) msg
+             (Unix.error_message system_error))
     | _ -> None)
 
 let check_err ret =
   if ret = -1 then begin
-    match getlasterror (from_voidp Ctypes.int Ctypes.null) with
+    let system_errno = allocate Ctypes.int 0 in
+    match getlasterror system_errno with
       | `Success -> assert false
       | errno ->
           let msg = getlasterror_str () in
+          let system_error =
+            match !@system_errno with
+              | 0 -> None
+              | code -> Some (unix_error_of_code code)
+          in
           clearlasterror ();
-          raise (Error (errno, msg))
+          raise (Error (errno, system_error, msg))
   end;
   ret
 
@@ -100,6 +113,7 @@ type (_, _) socket_opt =
   | Ipv6only : ([ `Read | `Write ], bool) socket_opt
   | Latency : ([ `Read | `Write ], int) socket_opt
   | Peerlatency : ([ `Read | `Write ], int) socket_opt
+  | Tsbpdmode : ([ `Read | `Write ], bool) socket_opt
 
 let messageapi = Messageapi
 let payloadsize = Payloadsize
@@ -123,6 +137,7 @@ let streamid = Streamid
 let ipv6only = Ipv6only
 let latency = Latency
 let peerlatency = Peerlatency
+let tsbpdmode = Tsbpdmode
 
 let srt_socket_opt_of_socket_opt (type a b) :
     (a, b) socket_opt -> Srt.socket_opt = function
@@ -148,7 +163,10 @@ let srt_socket_opt_of_socket_opt (type a b) :
   | Ipv6only -> `Ipv6only
   | Latency -> `Latency
   | Peerlatency -> `Peerlatency
+  | Tsbpdmode -> `Tsbpdmode
 
+(* [SRT_LIVE_MAX_PLSIZE] is a [static const] in [srt.h], out of reach of ctypes. *)
+let live_max_payload_size = 1456
 let srtt_live = Int64.to_int srtt_live
 let srtt_file = Int64.to_int srtt_file
 let srtt_invalid = Int64.to_int srtt_invalid
@@ -167,7 +185,15 @@ let transtype_of_int = function
 
 open Ctypes
 
-let apply_sockaddr fn sockaddr = fn sockaddr (sockaddr_len sockaddr)
+(* Calls into libsrt release the runtime: a buffer they use must stay
+   reachable until they return, or a collection on another thread frees it
+   under libsrt. *)
+let keep_alive v = ignore (Sys.opaque_identity v)
+
+let apply_sockaddr fn sockaddr =
+  let result = fn sockaddr (sockaddr_len sockaddr) in
+  keep_alive sockaddr;
+  result
 
 let bind_posix_socket socket socketaddr =
   ignore (check_err (apply_sockaddr (bind socket) socketaddr))
@@ -187,12 +213,15 @@ let connect socket socketaddr =
 let accept_no_origin socket =
   let sockaddr = from_voidp Sockaddr.t null in
   let socklen = allocate int 0 in
-  check_err (accept socket sockaddr socklen)
+  let socket = check_err (accept socket sockaddr socklen) in
+  keep_alive socklen;
+  socket
 
 let accept socket =
   let sockaddr = Sockaddr.from_sockaddr_storage (sockaddr_storage ()) in
   let socklen = allocate int sockaddr_storage_len in
   let socket = check_err (accept socket sockaddr socklen) in
+  keep_alive socklen;
   (socket, to_unix_sockaddr sockaddr)
 
 let rendez_vous_posix_socket socket sockaddr1 sockaddr2 =
@@ -228,7 +257,7 @@ let listen_callback sock fn =
      let bt = Printexc.get_raw_backtrace () in
      cleanup ();
      Printexc.raise_with_backtrace exn bt);
-  Hashtbl.add resources sock cleanup
+  Mutex.protect resources_m (fun () -> Hashtbl.add resources sock cleanup)
 
 let listen sock backlog = ignore (check_err (listen sock backlog))
 
@@ -236,18 +265,23 @@ let send sock msg =
   let len = Bytes.length msg in
   let ptr = allocate_n char ~count:len in
   memcpy_str ptr (ocaml_string_start (Bytes.unsafe_to_string msg)) len;
-  check_err (send sock ptr len)
+  let sent = check_err (send sock ptr len) in
+  keep_alive ptr;
+  sent
 
 let sendmsg sock msg b v =
   let len = Bytes.length msg in
   let ptr = allocate_n char ~count:len in
   memcpy_str ptr (ocaml_string_start (Bytes.unsafe_to_string msg)) len;
-  check_err (sendmsg sock ptr len b v)
+  let sent = check_err (sendmsg sock ptr len b v) in
+  keep_alive ptr;
+  sent
 
 let mk_recv fn sock buf len =
   if Bytes.length buf < len then raise (Invalid_argument "buffer too short!");
   let ptr = allocate_n char ~count:len in
   let length = check_err (fn sock ptr len) in
+  keep_alive ptr;
   memcpy (ocaml_bytes_start buf) ptr length;
   length
 
@@ -256,18 +290,30 @@ let recvmsg = mk_recv recvmsg
 
 let getsockflag : type a b. socket -> (a, b) socket_opt -> b =
  fun sock opt ->
+  let read (type c) (arg : c ptr) size =
+    let arglen = allocate int size in
+    ignore
+      (check_err
+         (getsockflag sock
+            (srt_socket_opt_of_socket_opt opt)
+            (to_voidp arg) arglen));
+    keep_alive arg;
+    !@arglen
+  in
   let arg = allocate int 0 in
-  let arglen = allocate int (sizeof int) in
-  ignore
-    (check_err
-       (getsockflag sock
-          (srt_socket_opt_of_socket_opt opt)
-          (to_voidp arg) arglen));
-  let to_bool () = !@arg <> 0 in
-  let to_int () = !@arg in
+  let to_bool () =
+    ignore (read arg (sizeof int));
+    !@arg <> 0
+  in
+  let to_int () =
+    ignore (read arg (sizeof int));
+    !@arg
+  in
+  (* Large enough for the longest string option, the 512-byte stream id. *)
   let to_string () =
-    let arg = coerce (ptr int) (ptr char) arg in
-    string_from_ptr arg ~length:!@arglen
+    let buffer = allocate_n char ~count:1024 in
+    let length = read buffer 1024 in
+    string_from_ptr buffer ~length
   in
   match opt with
     | Enforced_encryption -> to_bool ()
@@ -286,12 +332,13 @@ let getsockflag : type a b. socket -> (a, b) socket_opt -> b =
     | Payloadsize -> to_int ()
     | Rcvdata -> to_int ()
     | Rcvlatency -> to_int ()
-    | Transtype -> transtype_of_int !@arg
+    | Transtype -> transtype_of_int (to_int ())
     | Passphrase -> to_string ()
     | Streamid -> to_string ()
     | Ipv6only -> to_bool ()
     | Latency -> to_int ()
     | Peerlatency -> to_int ()
+    | Tsbpdmode -> to_bool ()
 
 let setsockflag : type a b. socket -> (a, b) socket_opt -> b -> unit =
  fun sock opt v ->
@@ -333,16 +380,26 @@ let setsockflag : type a b. socket -> (a, b) socket_opt -> b -> unit =
       | Ipv6only -> of_bool v
       | Latency -> of_int v
       | Peerlatency -> of_int v
+      | Tsbpdmode -> of_bool v
   in
   ignore
-    (check_err (setsockflag sock (srt_socket_opt_of_socket_opt opt) arg arglen))
+    (check_err (setsockflag sock (srt_socket_opt_of_socket_opt opt) arg arglen));
+  keep_alive arg
 
 let close s =
-  ignore (check_err (close s));
-  List.iter (fun fn -> fn ()) (Hashtbl.find_all resources s);
-  Hashtbl.remove resources s
+  let release () =
+    let cleanups =
+      Mutex.protect resources_m (fun () ->
+          let cleanups = Hashtbl.find_all resources s in
+          List.iter (fun _ -> Hashtbl.remove resources s) cleanups;
+          cleanups)
+    in
+    List.iter (fun fn -> fn ()) cleanups
+  in
+  Fun.protect ~finally:release (fun () -> ignore (check_err (close s)))
 
 let getsockstate = getsockstate
+let getrejectreason s = rejectreason_str (getrejectreason s)
 let create_socket = create_socket
 
 module SocketSet = Set.Make (struct
@@ -373,6 +430,7 @@ module Poll = struct
             allocate Ctypes.int flags
     in
     ignore (check_err (epoll_add_usock h.eid s flags));
+    keep_alive flags;
     h.sockets <- SocketSet.add s h.sockets
 
   let remove_usock h s =
@@ -392,7 +450,7 @@ module Poll = struct
             allocate Ctypes.int flags
     in
     ignore (check_err (epoll_update_usock h.eid s flags));
-    h.sockets <- SocketSet.remove s h.sockets
+    keep_alive flags
 
   let release h = ignore (check_err (epoll_release h.eid))
 

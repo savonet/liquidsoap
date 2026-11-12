@@ -6,6 +6,7 @@ module Event = Event
 module Settings = Settings
 module Status = Status
 module Sync_source = Sync_source
+module Parker = Parker
 
 let on_event = Event.on_event
 let string_of_sync_mode = string_of_sync_mode

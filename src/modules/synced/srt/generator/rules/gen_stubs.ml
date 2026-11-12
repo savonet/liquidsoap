@@ -23,6 +23,9 @@ typedef struct {
 static pthread_cond_t log_condition = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 static log_msg_t top_level_log_msg = {0, "", 0, "", "", NULL};
+/* Appending in constant time keeps libsrt's threads from waiting on a long
+   queue during a log flood. */
+static log_msg_t *last_log_msg = &top_level_log_msg;
 
 CAMLprim value ocaml_srt_process_log(value cb) {
   CAMLparam1(cb);
@@ -38,6 +41,7 @@ CAMLprim value ocaml_srt_process_log(value cb) {
 
     log_msg = top_level_log_msg.next;
     top_level_log_msg.next = NULL;
+    last_log_msg = &top_level_log_msg;
     pthread_mutex_unlock(&log_mutex);
 
     caml_acquire_runtime_system();
@@ -63,26 +67,20 @@ CAMLprim value ocaml_srt_process_log(value cb) {
 
 void ocaml_srt_log_handler(void *opaque, int level, const char *file, int line,
                            const char *area, const char *message) {
-  pthread_mutex_lock(&log_mutex);
+  log_msg_t *log_msg = malloc(sizeof(log_msg_t));
+  if (log_msg == NULL)
+    return;
 
-  log_msg_t *log_msg = &top_level_log_msg;
-
-  while (log_msg->next != NULL) {
-    log_msg = log_msg->next;
-  }
-
-  // TODO: check for NULL here
-  log_msg->next = malloc(sizeof(log_msg_t));
-
-  log_msg = (log_msg_t *)log_msg->next;
   log_msg->next = NULL;
-
   log_msg->level = level;
-  memcpy(log_msg->file, file, strnlen(file, MAX_LOG_STRING));
-  log_msg->line -= line;
-  memcpy(log_msg->area, message, strnlen(area, MAX_LOG_STRING));
-  memcpy(log_msg->message, message, strnlen(message, MAX_LOG_STRING));
+  log_msg->line = line;
+  snprintf(log_msg->file, MAX_LOG_STRING, "%s", file ? file : "");
+  snprintf(log_msg->area, MAX_LOG_STRING, "%s", area ? area : "");
+  snprintf(log_msg->message, MAX_LOG_STRING, "%s", message ? message : "");
 
+  pthread_mutex_lock(&log_mutex);
+  last_log_msg->next = log_msg;
+  last_log_msg = log_msg;
   pthread_cond_signal(&log_condition);
   pthread_mutex_unlock(&log_mutex);
 }

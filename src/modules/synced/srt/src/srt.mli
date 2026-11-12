@@ -69,6 +69,12 @@ val ipv6only : ([ `Read | `Write ], bool) socket_opt
 val latency : ([ `Read | `Write ], int) socket_opt
 val peerlatency : ([ `Read | `Write ], int) socket_opt
 
+(** Timestamp-based packet delivery, as configured on this socket. *)
+val tsbpdmode : ([ `Read | `Write ], bool) socket_opt
+
+(** Largest payload of a live-mode message. *)
+val live_max_payload_size : int
+
 type errno =
   [ `Easyncfail
   | `Easyncrcv
@@ -112,13 +118,19 @@ type errno =
   | `Ewrperm
   | `Success ]
 
-exception Error of errno * string
+(** A failed libsrt call: its error code, the system error behind it when there
+    is one, and libsrt's message. *)
+exception Error of errno * Unix.error option * string
 
 val startup : unit -> unit
 val cleanup : unit -> unit
 val create_socket : unit -> socket
 val socket_id : socket -> int
 val getsockstate : socket -> socket_status
+
+(** Why the last connection attempt on this socket was rejected. *)
+val getrejectreason : socket -> string
+
 val bind : socket -> Unix.sockaddr -> unit
 val bind_posix_socket : socket -> Posix_socket.sockaddr Ctypes.ptr -> unit
 val listen_callback : socket -> listen_callback -> unit

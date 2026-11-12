@@ -17,5 +17,4 @@
   duppy.stdlib_utils
   threads.posix
   unix)
- (wrapped false)
  (optional))
