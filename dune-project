@@ -1,4 +1,4 @@
-(lang dune 3.23)
+(lang dune 3.25)
 (using menhir 2.1)
 (using dune_site 0.1)
 (name liquidsoap)
