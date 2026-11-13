@@ -28,17 +28,9 @@ jobs:
           cd /tmp/liquidsoap
           sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
           sudo -u opam git checkout ${{ inputs.sha }}
-      - name: Install npm
-        run: |
-          apt-get update
-          apt-get install -y npm
       - name: Build JS
         run: |
           cd /tmp/liquidsoap
-          sudo -u opam -E opam remove -y conf-pkg-config conf-lame
-          sudo -u opam -E opam update
-          sudo -u opam -E opam upgrade -y
-          sudo -u opam -E opam install -y domain_shims xml-light
           sudo -u opam -E opam exec -- dune build --profile release src/js --verbose
       - name: Upload JS artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -10,6 +10,10 @@ opam switch create "$OCAML_VERSION" \
   "ocaml-variants.$OCAML_VERSION+options" "$@"
 opam update -y
 
+# dune 3.25 installs in-build packages under _build/install/default/.packages,
+# where dune-site does not look, so in-tree runs lose the standard library.
+opam pin add -yn dune 3.24.2
+
 # The global-root checks of ocaml/ocaml#15027, active in every runtime variant.
 # Build with an empty OCAML_PATCH_URL for a stock compiler.
 if [ -n "$OCAML_PATCH_URL" ]; then

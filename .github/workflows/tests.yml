@@ -71,17 +71,6 @@ jobs:
         run: |
           sudo -u opam -E /tmp/liquidsoap/.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
-      - name: Install additional packages for @doc
-        if: matrix.target == '@doctest'
-        run: |
-          apt-get -y update
-          apt-get -y install frei0r-plugins
-          sudo -u opam -E opam install odoc
-      - name: Install additional packages for @citest
-        if: startsWith(matrix.name, 'citest')
-        run: |
-          apt-get -y update
-          apt-get -y install gnuplot
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}

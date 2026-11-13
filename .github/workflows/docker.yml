@@ -111,8 +111,6 @@ jobs:
         platform: ${{ fromJson(inputs.build_platform) }}
         ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
         include: ${{ fromJson(inputs.build_include) }}
-        exclude:
-          - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -218,8 +216,6 @@ jobs:
         platform: ${{ fromJson(inputs.build_platform) }}
         ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
         include: ${{ fromJson(inputs.build_include) }}
-        exclude:
-          - ocaml_version: 5.2.0-ox
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
