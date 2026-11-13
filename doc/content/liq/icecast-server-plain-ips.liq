@@ -1,1 +1,1 @@
-icecast.server(password="hackme", ip_hash=fun (ip) -> ip)
+icecast.server({source_password = "change-me", address_hash = fun (ip) -> ip})

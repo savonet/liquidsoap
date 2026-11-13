@@ -623,6 +623,68 @@ let test_unwatchable_descriptor () =
     fail "a wait on a file reported %d events" (List.length !fired);
   ok "a descriptor that cannot be watched reports its own events only"
 
+(* The handler of a withdrawn task is released at once, which is what shows the
+   core gave the task back rather than keeping it to its descriptor. *)
+let withdrawn_task s r ran =
+  let held = Weak.create 1 in
+  let payload = Bytes.create 64 in
+  Weak.set held 0 (Some payload);
+  let withdraw =
+    Duppy.Task.add_withdrawable s
+      {
+        Duppy.Task.priority = Blocking;
+        events = [`Read r];
+        handler =
+          (fun _ ->
+            ignore (Sys.opaque_identity payload);
+            Atomic.set ran true;
+            []);
+      }
+  in
+  (held, withdraw)
+
+let released held =
+  Gc.full_major ();
+  Gc.full_major ();
+  not (Weak.check held 0)
+
+let test_withdraw () =
+  let s = Duppy.create ~classify () in
+  let r, w = Unix.pipe () in
+  let ran = Atomic.make false in
+  let held_early, withdraw_early =
+    (Sys.opaque_identity withdrawn_task) s r ran
+  in
+  withdraw_early ();
+  Duppy.start ~pool:(`Domains 1) s;
+  let held, withdraw = (Sys.opaque_identity withdrawn_task) s r ran in
+  withdraw ();
+  withdraw ();
+  if not (released held_early) then
+    fail "a task withdrawn before start kept its handler";
+  if not (released held) then fail "a withdrawn task kept its handler";
+  ignore (Sys.opaque_identity (withdraw_early, withdraw));
+  ignore (Unix.write w (Bytes.of_string "x") 0 1);
+  let l = latch () in
+  let fired = ref (fun () -> ()) in
+  fired :=
+    Duppy.Task.add_withdrawable s
+      {
+        Duppy.Task.priority = Blocking;
+        events = [`Read r];
+        handler =
+          (fun _ ->
+            bump l;
+            []);
+      };
+  await l 1;
+  !fired ();
+  Duppy.stop s;
+  Unix.close r;
+  Unix.close w;
+  if Atomic.get ran then fail "a withdrawn task ran";
+  ok "a withdrawn task never runs, and a late withdrawal does nothing"
+
 let test_suspend () =
   let s = Duppy.create ~classify () in
   Duppy.start ~pool:(`Domains 1) s;
@@ -825,8 +887,8 @@ let thread_count () =
   with Sys_error _ -> None
 
 (* One worker alone accepts the tasks, so it holds the whole budget at once;
-   it keeps only its share of the threads that took. *)
-let test_burst_threads_retire () =
+   it keeps only [kept] of the threads that took, [budget] being 16. *)
+let burst_leaves_parked ?idle_thread_timeout ~kept describe =
   match thread_count () with
     | None -> print_endline "skipped: threads cannot be counted here"
     | Some _ ->
@@ -834,7 +896,7 @@ let test_burst_threads_retire () =
         let budget = 16 in
         Duppy.start
           ~pool:(`Selective_domains [(fun _ -> false); (fun _ -> true)])
-          ~max_blocking:budget s;
+          ~max_blocking:budget ?idle_thread_timeout s;
         (* The first task brings up one auxiliary thread and whatever the
            runtime starts along with a domain's first thread. *)
         let warm = latch () in
@@ -861,7 +923,7 @@ let test_burst_threads_retire () =
         await finished budget;
         if peak < baseline + budget then
           fail "%d tasks in flight on %d threads" budget (peak - baseline);
-        let kept = budget / 2 in
+        let kept = kept budget in
         let deadline = Unix.gettimeofday () +. 2. in
         while
           Option.get (thread_count ()) > baseline + kept
@@ -873,7 +935,15 @@ let test_burst_threads_retire () =
         if parked > kept then
           fail "%d threads stayed parked, %d expected" parked kept;
         Duppy.stop s;
-        ok "a burst of %d blocking tasks left %d threads parked" budget parked
+        ok "a burst of %d blocking tasks left %d threads parked%s" budget parked
+          describe
+
+let test_burst_threads_retire () =
+  burst_leaves_parked ~kept:(fun budget -> budget / 2) ""
+
+(* The worker's share goes too once unused for a sweep, all but one thread. *)
+let test_unused_threads_retire () =
+  burst_leaves_parked ~idle_thread_timeout:0.1 ~kept:(fun _ -> 1) " once unused"
 
 let () =
   watchdog 60.;
@@ -900,7 +970,9 @@ let () =
   test_current_domain ();
   test_selective_domains ();
   test_burst_threads_retire ();
+  test_unused_threads_retire ();
   test_unwatchable_descriptor ();
+  test_withdraw ();
   test_suspend ();
   test_suspend_delay ();
   test_thread ();

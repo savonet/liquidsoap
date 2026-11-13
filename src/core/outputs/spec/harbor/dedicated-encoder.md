@@ -22,14 +22,26 @@ has its piece.
   output's id, with the last metadata as initial metadata;
 - a queue of bytes owed;
 - the length of the stream bytes owed that precede the newest encoder output,
-  for the overflow rule.
+  for the overflow rule;
+- the length of the preroll still owed.
+
+Queued bytes are slices of what they come from. The head, the preroll, the
+header and ICY blocks are strings, so a preroll shared by many listeners is not
+copied per listener. Stream bytes are copied into the listener's chunks: fixed
+buffers it reuses, each returned to its pool once no queued slice refers to
+it, so a listener caught up with the stream keeps reusing one. The pool keeps
+a few chunks; the others are released. An encoder with
+`encode_into` ([contracts.md §4](contracts.md#4-encoder)) hands its bytes
+straight to the chunks; the bytes another encoder returns are queued as a
+string.
 
 Every use of a listener's encoder is serialised: encoding, in-stream
 metadata, and its stop never overlap.
 
 ## 2. Initial bytes
 
-The encoder's header, with ICY blocks inserted
+The preroll, if any, with empty ICY blocks inserted, then the encoder's
+header, with ICY blocks inserted
 ([icy.md §4](icy.md#4-cadence-and-change-detection)) stamped with the last
 metadata, queued after the response head.
 
@@ -39,8 +51,10 @@ The queue is non-empty.
 
 ## 4. Flush
 
-Offer the front of the queue in one write, as much of it as the staging
-area holds ([§10](#10-staging)), and drop from it what was accepted. On −1,
+Offer the front of the queue in one write and drop from it what was accepted.
+A large slice of a chunk at the front is offered from its chunk; otherwise the
+front is offered through the staging area, as much of it as that holds
+([§10](#10-staging)). On −1,
 mark the listener closed. Appends from send and drops by flush MUST NOT lose
 or reorder bytes when they run at the same time.
 
@@ -50,7 +64,8 @@ _Encode_ keeps the frame piece and returns nothing.
 
 _Send_, when a piece is kept, with `M` the last metadata:
 
-1. For each listener published and not marked closed: encode the piece with
+1. For each listener published, not marked closed, and not owing any of its
+   preroll: encode the piece with
    its encoder, insert ICY blocks into the result stamped with `M`, append
    the result to its queue, then check overflow
    ([modes.md §4](modes.md#4-flush)) and disconnect it if it is over.

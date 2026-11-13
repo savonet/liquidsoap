@@ -470,9 +470,11 @@ def harbor.http.register.regexp(%argsof(harbor.http.register), path, handler) =
         data = data,
         headers = request.headers,
         http_version = request.http_version,
+        ip = request.ip,
         method = request.method,
         path = request.path,
-        query = request.query
+        query = request.query,
+        query_string = request.query_string
       }
 
     handler =
@@ -500,7 +502,9 @@ end
 # as well as fragment matches, i.e. `"/user/:id"`, `"/users/:id/collabs/:cid"`,
 # etc. If you need more advanced matching, use `harbor.http.register.regexp`
 # to match regular expressions. Paths are resolved in the order they are declared
-# and can override default harbor paths such as metadata handlers. Registering a
+# and can override default harbor paths such as metadata handlers. An
+# `output.harbor` mount on the same port beats every registered path, whatever
+# the order. Registering a
 # path already registered with the same method on the port raises an error. The
 # returned value's `remove` method removes this registration.
 # The handler receives the request details as a record and a response

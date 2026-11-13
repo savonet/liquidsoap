@@ -237,6 +237,20 @@
   (run %{run_test} file_protocol.liq liquidsoap file_protocol.liq)))
 
 (rule
+ (alias test_file_read_length)
+ (package liquidsoap)
+ (deps
+  file_read_length.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} file_read_length.liq liquidsoap file_read_length.liq)))
+
+(rule
  (alias test_functions)
  (package liquidsoap)
  (deps
@@ -265,6 +279,24 @@
   (run %{run_test} getter.liq liquidsoap getter.liq)))
 
 (rule
+ (alias test_icecast_server_addresses)
+ (package liquidsoap)
+ (deps
+  icecast_server_addresses.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_addresses.liq
+   liquidsoap
+   icecast_server_addresses.liq)))
+
+(rule
  (alias test_icecast_server_config)
  (package liquidsoap)
  (deps
@@ -283,10 +315,10 @@
    icecast_server_config.liq)))
 
 (rule
- (alias test_icecast_server_tables)
+ (alias test_icecast_server_decisions)
  (package liquidsoap)
  (deps
-  icecast_server_tables.liq
+  icecast_server_decisions.liq
   ../../src/bin/liquidsoap.exe
   (package liquidsoap)
   (source_tree ../../src/libs)
@@ -296,9 +328,99 @@
  (action
   (run
    %{run_test}
-   icecast_server_tables.liq
+   icecast_server_decisions.liq
    liquidsoap
-   icecast_server_tables.liq)))
+   icecast_server_decisions.liq)))
+
+(rule
+ (alias test_icecast_server_log_files)
+ (package liquidsoap)
+ (deps
+  icecast_server_log_files.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_log_files.liq
+   liquidsoap
+   icecast_server_log_files.liq)))
+
+(rule
+ (alias test_icecast_server_parameters)
+ (package liquidsoap)
+ (deps
+  icecast_server_parameters.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_parameters.liq
+   liquidsoap
+   icecast_server_parameters.liq)))
+
+(rule
+ (alias test_icecast_server_prerolls)
+ (package liquidsoap)
+ (deps
+  icecast_server_prerolls.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_prerolls.liq
+   liquidsoap
+   icecast_server_prerolls.liq)))
+
+(rule
+ (alias test_icecast_server_replies)
+ (package liquidsoap)
+ (deps
+  icecast_server_replies.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_replies.liq
+   liquidsoap
+   icecast_server_replies.liq)))
+
+(rule
+ (alias test_icecast_server_stats)
+ (package liquidsoap)
+ (deps
+  icecast_server_stats.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   icecast_server_stats.liq
+   liquidsoap
+   icecast_server_stats.liq)))
 
 (rule
  (alias test_implicit_float_casting)
@@ -827,6 +949,20 @@
   (run %{run_test} various.liq liquidsoap various.liq)))
 
 (rule
+ (alias test_xml_helpers)
+ (package liquidsoap)
+ (deps
+  xml_helpers.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} xml_helpers.liq liquidsoap xml_helpers.liq)))
+
+(rule
  (alias test_xml_test)
  (package liquidsoap)
  (deps
@@ -874,10 +1010,17 @@
   (alias test_file.watch2)
   (alias test_file.watch3)
   (alias test_file_protocol)
+  (alias test_file_read_length)
   (alias test_functions)
   (alias test_getter)
+  (alias test_icecast_server_addresses)
   (alias test_icecast_server_config)
-  (alias test_icecast_server_tables)
+  (alias test_icecast_server_decisions)
+  (alias test_icecast_server_log_files)
+  (alias test_icecast_server_parameters)
+  (alias test_icecast_server_prerolls)
+  (alias test_icecast_server_replies)
+  (alias test_icecast_server_stats)
   (alias test_implicit_float_casting)
   (alias test_interactive)
   (alias test_json)
@@ -915,5 +1058,6 @@
   (alias test_typing)
   (alias test_url)
   (alias test_various)
+  (alias test_xml_helpers)
   (alias test_xml_test)
   (alias test_yaml)))

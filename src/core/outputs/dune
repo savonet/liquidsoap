@@ -1,6 +1,6 @@
 ; Outputs.
 ;
-; The output framework and the outputs built on it: icecast, harbor, HLS,
+; The output framework and the outputs built on it: icecast, harbor,
 ; pipes.
 
 (library

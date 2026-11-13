@@ -104,7 +104,12 @@ source is incompatible with it.
 A frame of length 0 carries no data and changes nothing. Raw frames are read
 from runs at their absolute positions (run start plus item position,
 [content.md §4.2](content.md#42-run-layer)); a gap between runs carries no
-frame. Each raw frame's parameters are read from the frame itself.
+frame. Each raw frame's parameters are read from the frame itself. A raw
+frame is shared with every other encoder reading the same content (two
+outputs, two HLS variants): the stream encoder MUST NOT change it, and sets
+its own timestamps on a reference copy. Reason: a duration written in main
+ticks over the frame's own would be read by the next encoder in the frame's
+time base.
 
 ## 4. Conversion
 
@@ -264,7 +269,11 @@ streams ignore it.
 - **Video.** The current frame-rate converter is drained (§4.6).
 - **Subtitle.** Nothing is held.
 
-The codec itself is drained by the container close
+Then the codec of an audio or video stream is drained, each packet through
+the instance's hook (§7) before it reaches the muxer. Reason: the HLS mode
+takes split points before packets ([encoder.md §8.2](encoder.md#82-keyframe-hooks)),
+and an encoder with lookahead holds the packets of its last frames until
+this drain. The container close finds the codec drained
 ([encoder.md §7](encoder.md#7-stop)). `flush` runs at `stop` and before a
 container restart ([encoder.md §13.2](encoder.md#132-what-a-restart-does)); a
 restart then builds new stream encoders, with new stages and a new codec.

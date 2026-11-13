@@ -73,6 +73,7 @@ typedef struct watch {
 
 struct task {
   intptr_t handle;
+  uint64_t ticket;
   uint64_t sequence;
   int rank;
   duppy_class task_class;
@@ -163,6 +164,8 @@ struct duppy_core {
   /* Since when ready work has found no idle worker, or 0. */
   double starved_since;
   pthread_cond_t growth_condition;
+  /* Broadcast on stop, for duppy_core_sleep. */
+  pthread_cond_t stop_condition;
   int max_blocking;
   int reserved;
   int slots;
@@ -368,15 +371,41 @@ static int fallback_snapshot(duppy_core *core) {
   return (int)count;
 }
 
+#ifdef _WIN32
+/* The watched descriptors that are no longer sockets, reported failed as poll
+   reports POLLNVAL; the wake-up socket at 0 is the core's own. */
+static int closed_sockets(duppy_core *core, int watched, fd_event *events) {
+  int count = 0;
+  for (int i = 1; i < watched && count < MAX_EVENTS; i++) {
+    int type;
+    int length = sizeof(type);
+    if (getsockopt(core->poll_fds[i].fd, SOL_SOCKET, SO_TYPE, (char *)&type,
+                   &length) == SOCKET_ERROR &&
+        WSAGetLastError() == WSAENOTSOCK) {
+      events[count].fd = core->poll_fds[i].fd;
+      events[count].flags = FD_FAILED;
+      count++;
+    }
+  }
+  return count;
+}
+#endif
+
 /* ponytail: poll counts in milliseconds, so a deadline is met up to one late;
    ppoll where it exists would remove that. */
 static int fallback_wait(duppy_core *core, int watched, double timeout,
                          fd_event *events) {
   int ready = poll(core->poll_fds, watched, (int)ceil(timeout * 1e3));
 #ifdef _WIN32
-  /* WSAPoll reports its failure through WSAGetLastError, not errno. */
+  /* WSAPoll reports its failure through WSAGetLastError, not errno, and fails
+     the whole call over one closed socket, where poll flags that entry. */
   if (ready == SOCKET_ERROR) {
     int failure = WSAGetLastError();
+    if (failure == WSAENOTSOCK) {
+      int closed = closed_sockets(core, watched, events);
+      if (closed > 0)
+        return closed;
+    }
     errno = failure == WSAEINTR ? EINTR : failure;
   }
 #endif
@@ -958,6 +987,7 @@ static void wake_every_worker(duppy_core *core) {
   for (int i = 0; i < core->worker_count; i++)
     wake_worker(&core->workers[i]);
   pthread_cond_broadcast(&core->growth_condition);
+  pthread_cond_broadcast(&core->stop_condition);
 }
 
 static void deadline_after(struct timespec *deadline, double seconds) {
@@ -1005,6 +1035,18 @@ int duppy_core_await_growth(duppy_core *core, double delay) {
   }
   pthread_mutex_unlock(&core->mutex);
   return index;
+}
+
+int duppy_core_sleep(duppy_core *core, double delay) {
+  struct timespec deadline;
+  deadline_after(&deadline, delay);
+  pthread_mutex_lock(&core->mutex);
+  while (!core->stopped && pthread_cond_timedwait(&core->stop_condition,
+                                                  &core->mutex, &deadline) == 0)
+    ;
+  int stopped = core->stopped;
+  pthread_mutex_unlock(&core->mutex);
+  return stopped;
 }
 
 static void update_slots(duppy_core *core) {
@@ -1055,6 +1097,7 @@ int duppy_core_submit(duppy_core *core, const duppy_task *request) {
     return -1;
   }
   entry->handle = request->handle;
+  entry->ticket = request->ticket;
   entry->rank = request->rank;
   entry->task_class = request->task_class;
   entry->pin = request->pin;
@@ -1110,6 +1153,25 @@ int duppy_core_submit(duppy_core *core, const duppy_task *request) {
     return -1;
   }
   return 0;
+}
+
+/* ponytail: a linear scan of the waiting tasks, a table by ticket if
+   withdrawals ever outnumber submissions. */
+int duppy_core_withdraw(duppy_core *core, uint64_t ticket, intptr_t *handle) {
+  pthread_mutex_lock(&core->mutex);
+  task *entry = core->waiting;
+  while (entry && entry->ticket != ticket)
+    entry = entry->waiting_next;
+  if (entry) {
+    task_stop_waiting(core, entry);
+    /* The event thread polls a snapshot, which still holds the descriptors. */
+    if (core->fallback && core->sleeping)
+      wake_event_thread(core);
+    *handle = entry->handle;
+    free(entry);
+  }
+  pthread_mutex_unlock(&core->mutex);
+  return entry != NULL;
 }
 
 static void drop_waiting(duppy_core *core) {
@@ -1246,7 +1308,8 @@ duppy_core *duppy_core_create(duppy_fd wake_read, duppy_fd wake_write,
   if (core->buckets == NULL ||
       (!core->fallback && native_set(core, wake_read, DUPPY_READ) != 0) ||
       pthread_mutex_init(&core->mutex, NULL) != 0 ||
-      pthread_cond_init(&core->growth_condition, NULL) != 0) {
+      pthread_cond_init(&core->growth_condition, NULL) != 0 ||
+      pthread_cond_init(&core->stop_condition, NULL) != 0) {
     int failure = errno ? errno : ENOMEM;
 #ifndef _WIN32
     if (core->native >= 0)
@@ -1333,6 +1396,7 @@ void duppy_core_free(duppy_core *core) {
     close(core->timer);
 #endif
   pthread_cond_destroy(&core->growth_condition);
+  pthread_cond_destroy(&core->stop_condition);
   pthread_mutex_destroy(&core->mutex);
   free(core->workers);
   free(core->heap);

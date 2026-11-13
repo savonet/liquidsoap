@@ -206,7 +206,9 @@ other input.
 `"source"`, `password` `"hackme"`, `port` `8005`, `transport`, `icy` `false`,
 `icy_metadata_charset`, `metadata_charset`, `replay_metadata` `false`, `auth`,
 `dumpfile`, `logfile`, `debug` `false`), an unlabeled `regexp` mountpoint, and
-a required `on_connect`. It returns `unit`. `buffer >= max` is a script error
+a required `on_connect`. It returns `unit`. `timeout` is a getter, read once
+when each client connects: that value bounds the client's reads and its
+deadline. `buffer >= max` is a script error
 raised on `max` (example message:
 `Maximum buffering inferior to pre-buffered data`).
 
@@ -224,7 +226,8 @@ converted by `harbor.http.regexp_of_path`.
                 pixel_format? : string, samplerate? : int, type : string,
                 width? : int }],
    uri : string })
--> (source('a).{ …, buffer_length : () -> float, connected_client : () -> string?,
+-> (source('a).{ …, buffer_length : () -> float, bytes_read : () -> int,
+                 connected_client : () -> string?,
                  on_connect : (synchronous : bool, (([string * string]) -> unit)) -> {release : () -> unit},
                  on_disconnect : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
                  status : () -> string, stop : () -> unit })
@@ -232,7 +235,8 @@ converted by `harbor.http.regexp_of_path`.
 ```
 
 The source handed to the inner function carries every generic source method
-(`id`, `is_ready`, …) plus the methods and callbacks listed.
+(`id`, `is_ready`, …) plus the methods and callbacks listed. `bytes_read()`
+is the number of bytes the client read function has returned so far.
 
 ### 1.4 `output.url`
 
@@ -794,7 +798,7 @@ state into `Ended` ends the client, exactly once and in order: stop the feed
 task; drain the decoder when the cause is an end of input (§10.6), else
 discard; close the decoder, or the container when no decoder was built;
 close the client connection; remove the client's table entry; run the
-source's `on_disconnect` callbacks when its `on_connect` callbacks ran.
+source's `on_disconnect` callbacks when the source was handed to the handler.
 
 Every way a client ends other than a clean end of input, a sleep, a `stop()`
 or shutdown is a source fault of the client's source

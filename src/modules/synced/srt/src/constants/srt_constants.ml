@@ -34,7 +34,8 @@ module Def (S : Cstubs.Types.TYPE) = struct
     | `Streamid
     | `Ipv6only
     | `Latency
-    | `Peerlatency ]
+    | `Peerlatency
+    | `Tsbpdmode ]
 
   type transtype = [ `Live | `File | `Invalid ]
   type poll_flag = [ `Read | `Write | `Error ]
@@ -122,7 +123,8 @@ module Def (S : Cstubs.Types.TYPE) = struct
         (`Streamid, constant "SRTO_STREAMID" int64_t);
         (`Ipv6only, constant "SRTO_IPV6ONLY" int64_t);
         (`Latency, constant "SRTO_LATENCY" int64_t);
-        (`Latency, constant "SRTO_PEERLATENCY" int64_t);
+        (`Peerlatency, constant "SRTO_PEERLATENCY" int64_t);
+        (`Tsbpdmode, constant "SRTO_TSBPDMODE" int64_t);
       ]
 
   let srtt_live = constant "SRTT_LIVE" int64_t

@@ -411,6 +411,9 @@ let set_output_metadata container metadata =
 let set_metadata stream metadata =
   set_container_metadata stream.container stream.index metadata
 
+external set_output_option : output container -> string -> string -> unit
+  = "ocaml_av_set_output_option"
+
 type uninitialized_stream_copy = { output : output container; reserved : int }
 
 external reserve_stream_copy : output container -> int
@@ -573,13 +576,17 @@ let rec write_available ?on_packet container index =
           notified;
         write_available ?on_packet container index
 
-let write_frame ?on_packet { container; index } frame =
+(* [None] drains the encoder. *)
+let encode ?on_packet { container; index } frame =
   let rec send () =
     write_available ?on_packet container index;
-    if not (send_frame container index (Some frame)) then send ()
+    if not (send_frame container index frame) then send ()
   in
   send ();
   write_available ?on_packet container index
+
+let write_frame ?on_packet stream frame = encode ?on_packet stream (Some frame)
+let flush_encoder ?on_packet stream = encode ?on_packet stream None
 
 external write_subtitle : output container -> int -> Subtitle.frame -> unit
   = "ocaml_av_write_subtitle"

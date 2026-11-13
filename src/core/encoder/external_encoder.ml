@@ -162,14 +162,15 @@ let encoder id ext =
   {
     Encoder.encode_metadata;
     header = (fun () -> Strings.empty);
-    hls = Encoder.dummy_hls encode;
     encode;
     stop;
+    bitrate = (fun () -> None);
+    encode_into = None;
     restart_offset = (fun () -> None);
   }
 
 let () =
   Plug.register Encoder.plug "external" ~doc:"Encode using external programs."
     (function
-    | Encoder.External m -> Some (fun ?hls:_ ~pos:_ s _ -> encoder s m)
+    | Encoder.External m -> Some (fun ~pos:_ s _ -> encoder s m)
     | _ -> None)

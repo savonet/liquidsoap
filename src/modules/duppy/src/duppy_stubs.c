@@ -107,6 +107,15 @@ CAMLprim value duppy_stub_await_growth(value _core, value _delay) {
   return Val_int(index);
 }
 
+CAMLprim value duppy_stub_sleep(value _core, value _delay) {
+  duppy_core *core = Core_val(_core);
+  double delay = Double_val(_delay);
+  caml_enter_blocking_section();
+  int stopped = duppy_core_sleep(core, delay);
+  caml_leave_blocking_section();
+  return Val_bool(stopped);
+}
+
 CAMLprim value duppy_stub_stop(value _core) {
   duppy_core *core = Core_val(_core);
   caml_enter_blocking_section();
@@ -146,7 +155,7 @@ CAMLprim value duppy_stub_error(value _core) {
 CAMLprim value duppy_stub_submit(value _core, value _handle, value _rank,
                                  value _task_class, value _pin,
                                  value _accepted_by, value _delay, value _fds,
-                                 value _interests) {
+                                 value _interests, value _ticket) {
   duppy_fd fds[DUPPY_MAX_FDS];
   int interests[DUPPY_MAX_FDS];
   size_t fd_count = Wosize_val(_fds);
@@ -164,7 +173,8 @@ CAMLprim value duppy_stub_submit(value _core, value _handle, value _rank,
                      Double_val(_delay),
                      fd_count,
                      fds,
-                     interests};
+                     interests,
+                     (uint64_t)Long_val(_ticket)};
   if (duppy_core_submit(Core_val(_core), &task) != 0) {
     if (errno == ENOMEM)
       caml_raise_out_of_memory();
@@ -175,9 +185,18 @@ CAMLprim value duppy_stub_submit(value _core, value _handle, value _rank,
 
 CAMLprim value duppy_stub_submit_bytecode(value *arguments, int count) {
   (void)count;
-  return duppy_stub_submit(arguments[0], arguments[1], arguments[2],
-                           arguments[3], arguments[4], arguments[5],
-                           arguments[6], arguments[7], arguments[8]);
+  return duppy_stub_submit(
+      arguments[0], arguments[1], arguments[2], arguments[3], arguments[4],
+      arguments[5], arguments[6], arguments[7], arguments[8], arguments[9]);
+}
+
+/* The handle of the withdrawn task, or -1. */
+CAMLprim value duppy_stub_withdraw(value _core, value _ticket) {
+  intptr_t handle;
+  if (!duppy_core_withdraw(Core_val(_core), (uint64_t)Long_val(_ticket),
+                           &handle))
+    return Val_long(-1);
+  return Val_long(handle);
 }
 
 /* No allocation and no blocking section: the runtime cannot suspend the

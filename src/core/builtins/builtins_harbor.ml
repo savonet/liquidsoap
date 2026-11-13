@@ -34,7 +34,9 @@ let request_t =
       ("data", Lang.fun_t [(true, "timeout", Lang.float_t)] Lang.string_t);
       ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("query", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
+      ("query_string", Lang.string_t);
       ("socket", Builtins_socket.Socket_value.t);
+      ("ip", Lang.string_t);
       ("path", Lang.string_t);
     ]
 
@@ -66,7 +68,7 @@ let parse_register_args p =
   let verb = Harbor.verb_of_string (Lang.to_string (List.assoc "method" p)) in
   let uri = Lang.to_regexp (Lang.assoc "" 1 p) in
   let f = Lang.assoc "" 2 p in
-  let handler ~protocol ~meth ~data ~headers ~query ~socket path =
+  let handler ~protocol ~meth ~data ~headers ~query ~query_string ~socket path =
     let meth = Harbor.string_of_verb meth in
     let headers =
       List.map
@@ -80,6 +82,13 @@ let parse_register_args p =
         query
     in
     let query = Lang.list query in
+    (* The peer address as is: no reverse DNS, empty once the peer is gone. *)
+    let ip =
+      try
+        Utils.name_of_sockaddr ~rev_dns:false
+          (Unix.getpeername (Harbor.file_descr_of_socket socket))
+      with _ -> ""
+    in
     let socket =
       Builtins_socket.Socket_value.to_value
         (socket :> Builtins_socket.Socket_value.content)
@@ -91,7 +100,9 @@ let parse_register_args p =
           ("method", Lang.string meth);
           ("headers", headers);
           ("query", query);
+          ("query_string", Lang.string query_string);
           ("socket", socket);
+          ("ip", Lang.string ip);
           ( "data",
             Lang.val_fun
               [("timeout", "timeout", Some (Lang.float 10.))]

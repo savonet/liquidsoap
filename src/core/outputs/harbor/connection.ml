@@ -35,32 +35,24 @@ let unauthorized = function
 let mount_taken =
   Harbor.challenge_page 403 "Mountpoint already taken" "Mountpoint in use"
 
-let empty_reply ~protocol status =
-  Printf.sprintf "HTTP/%s %s\r\nContent-Length: 0\r\n\r\n" protocol status
+let header_line (name, value) = name ^ ": " ^ value ^ "\r\n"
 
-let forbidden ~protocol = empty_reply ~protocol "403 Forbidden"
-let unavailable ~protocol = empty_reply ~protocol "503 Service Unavailable"
+let forbidden =
+  { Harbor_refusal.status = 403; reason = "Forbidden"; headers = [] }
 
-let is_token name =
-  name <> ""
-  && String.for_all
-       (function
-         | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> true
-         | '!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '.' | '^'
-         | '_' | '`' | '|' | '~' ->
-             true
-         | _ -> false)
-       name
+let unavailable ~protocol =
+  Harbor_refusal.reply ~protocol
+    { status = 503; reason = "Service Unavailable"; headers = [] }
 
 let response_head ~protocol ~mime ~metaint headers =
-  let line (name, value) = name ^ ": " ^ value ^ "\r\n" in
   String.concat ""
     ([
        "HTTP/" ^ protocol ^ " 200 OK\r\n";
-       line ("Content-type", mime);
-       line ("Connection", "close");
+       header_line ("Content-type", mime);
+       header_line ("Connection", "close");
      ]
     @ (match metaint with
-      | Some metaint -> [line ("icy-metaint", string_of_int metaint)]
+      | Some metaint -> [header_line ("icy-metaint", string_of_int metaint)]
       | None -> [])
-    @ List.map line headers @ ["\r\n"])
+    @ List.map header_line headers
+    @ ["\r\n"])

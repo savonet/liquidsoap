@@ -77,9 +77,20 @@ Shared with `output.icecast`. From the encoding format argument:
 - Parameters `start`, `fallible`, `register_telnet`, `id`; methods and
   callbacks of every output; the infallibility check; telnet commands.
 - The start/stop state machine: start when the source becomes ready (if
-  `start` is true), stop when the source ends or fails (fallible outputs),
-  `start` and `stop` methods. The operator's start and stop are called on
-  transitions and serialised ([operator.md §7](operator.md#7-lifecycle)).
+  `start` is true), stop when the source ends or fails (fallible outputs,
+  unless `keep_listeners` holds the output, [operator.md §7](operator.md#7-lifecycle)),
+  `start` and `stop` methods, and `shutdown()`, which stops the output for
+  good. The operator's start and stop are called on transitions and
+  serialised ([operator.md §7](operator.md#7-lifecycle)).
+- While the source is unavailable and the output is kept started
+  (`keep_listeners`), the base's unavailable-source hook skips encode and send
+  for the cycle and does not call _metadata_. When the source is available
+  again the base resumes with the next piece, and the encoder follows the
+  source as for any switch
+  ([encoder-copy.md §12](../../../optionals/ffmpeg/spec/encoder-copy.md#12-source-switching-and-per-source-state)).
+  A source that ends for good is treated the same way: the output is held
+  until `stop`, `shutdown()` or process shutdown, since the caller owns the
+  end in this mode.
 - Per frame: the frame is cut at the positions of its metadata. For each
   non-empty piece: if a metadata lies in it, the first one is passed to
   _metadata_; then _encode_ the piece, then _send_ the result. Metadata comes
@@ -91,6 +102,9 @@ An encoder instance is created by `factory(name, initial metadata)` and
 offers:
 
 - `encode(frame piece) → bytes`;
+- optionally `encode_into(frame piece, consumer)`: encodes as `encode` does and
+  hands the bytes to `consumer`, which copies them out during the call, so
+  that the caller keeps them without an allocation;
 - `encode_metadata(metadata)`: in-stream metadata, effective in later output;
 - `header() → bytes`: what a client joining now, at the start of the next
   output, needs first to decode; after a new logical stream began (an Ogg link

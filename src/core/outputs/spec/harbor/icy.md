@@ -89,8 +89,10 @@ block. A block immediately precedes the stream byte that follows every
 stream byte is preceded by a block and the position restarts at 0. A block
 is sent together with, or before, the stream byte it precedes, never on its
 own at the end of the available data; the byte stream is the same either
-way once more data arrives. The response head is not counted; the mode's
-initial bytes (codec header, burst) are counted like any stream data.
+way once more data arrives. The response head is not counted; a preroll and
+the mode's initial bytes (codec header, burst) are counted like any stream
+data. Blocks inside a preroll are empty, so the first block after it carries
+the metadata in effect where the listener joins.
 
 **Metadata events.** Every metadata the source produces is one event, with a
 generation number, increasing per output, and its converted values

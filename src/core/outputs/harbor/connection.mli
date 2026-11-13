@@ -18,8 +18,8 @@ val credentials :
 
 val unauthorized : [ `No_credentials | `Wrong_credentials ] -> string
 val mount_taken : string
-val forbidden : protocol:string -> string
-val unavailable : protocol:string -> string
 
-(** Whether a header name is an HTTP token. *)
-val is_token : string -> bool
+(** The refusal of a predicate that failed. *)
+val forbidden : Harbor_refusal.t
+
+val unavailable : protocol:string -> string

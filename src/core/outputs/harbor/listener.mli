@@ -13,15 +13,24 @@ type info = {
   ip : string;
   peer : string;
   uri : string;
+  query_string : string;
   protocol : string;
   headers : (string * string) list;
   connected_at : float;
 }
 
 (** [wake] is called by the winner of {!mark_closed}, so the listener's group
-    removes it promptly. *)
-val create : log:Log.t -> wake:(unit -> unit) -> info -> Harbor.socket -> t
+    removes it promptly. Past [deadline], on the {!now} clock, the group closes
+    the listener. *)
+val create :
+  ?deadline:float ->
+  log:Log.t ->
+  wake:(unit -> unit) ->
+  info ->
+  Harbor.socket ->
+  t
 
+val deadline : t -> float option
 val info : t -> info
 val log : t -> Log.t
 val socket : t -> Harbor.socket
@@ -40,6 +49,12 @@ val last_progress : t -> float
 (** Set by the group: at publication, and by a pass whose flush sent bytes. *)
 val set_last_progress : t -> float -> unit
 
+(** Whether the group's last pass left the listener owed nothing: its next owed
+    bytes restart the no-progress timeout. Set by the group. *)
+val owed_nothing : t -> bool
+
+val set_owed_nothing : t -> bool -> unit
+
 (** Idempotent; exactly one caller wins, records the disconnection time, logs
     and wakes the group. *)
 val mark_closed : t -> unit
@@ -50,8 +65,18 @@ val is_closed : t -> bool
     closed already. *)
 val close_for_overflow : t -> unit
 
-(** Errors are ignored. Called once, by the socket's owner. *)
+(** Errors are ignored. Called once, by the socket's owner, while it is the only
+    user. *)
 val close_socket : t -> unit
+
+(** Adds a user of the socket besides its owner: the hang-up watch, which waits
+    on its descriptor. *)
+val hold_socket : t -> unit
+
+(** Gives up one use of the socket. The last user closes it and gets [true]. The
+    [`Owner] shuts the socket down first when a watch still holds it, so that
+    the watch wakes up and ends. *)
+val release_socket : t -> [ `Owner | `Watch ] -> bool
 
 val record_t : Lang.t
 

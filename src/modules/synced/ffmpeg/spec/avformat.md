@@ -101,6 +101,7 @@ bases of the streams among them, is known after the first write.
 | `initialize_stream_copy`                                           | initialises the stream         | failure: header written       | failed error             | closed error |
 | `set_output_metadata`, `set_metadata`                              | replaces the metadata          | failure: header written       | failed error             | closed error |
 | `set_time_base`, `set_avg_frame_rate`                              | writes the field               | failure: header written       | failed error             | closed error |
+| `set_output_option`                                                | sets the option                | sets the option               | failed error             | closed error |
 | `write_packet`, `write_frame`, `write_subtitle_frame`              | writes the header, then writes | writes                        | failed error             | closed error |
 | `write_header`                                                     | writes the header, flushes I/O | nothing                       | failed error             | closed error |
 | `flush`                                                            | nothing                        | flushes the muxer and the I/O | failed error             | closed error |
@@ -615,6 +616,21 @@ Entries present before and absent from the list are gone; a key that appears
 twice keeps its last value. On failure the metadata is unchanged.
 `set_metadata` accepts input streams too.
 
+```ocaml
+val set_output_option : output container -> string -> string -> unit
+```
+
+`set_output_option output name value` sets the option `name` of the
+output's muxer to `value`, searching the muxer's private options and their
+children (`av_opt_set` on the private data with `AV_OPT_SEARCH_CHILDREN`).
+It is accepted on an open and on a started output, so a muxer option can
+change between two packet writes; a one-shot flag such as the mpegts muxer's
+`mpegts_flags=+resend_headers` takes effect at the next packet. A muxer with
+no such option, or with no private options, raises
+``Error `Option_not_found``; an invalid value raises the mapped FFmpeg code.
+It is a setter: it takes the container exclusively and keeps the runtime
+lock.
+
 **Adding a stream.** Every creation function below:
 
 - performs the state check;
@@ -701,16 +717,16 @@ val codec_attr : _ stream -> string option
 The codec string of the stream for an HLS playlist (RFC 6381 style), from its
 codec parameters. `None` for every case not listed.
 
-| Codec  | Result                                                                                                                                                                                     |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| H.264  | `avc1.` followed by the three bytes after the SPS NAL header, as two lowercase hex digits each, when the extradata starts with an Annex-B SPS and is long enough to hold them; else `None` |
-| HEVC   | below                                                                                                                                                                                      |
-| AAC    | `mp4a.40.` followed by the profile plus one, when the profile is known; else `None`                                                                                                        |
-| MP2    | `mp4a.40.33`                                                                                                                                                                               |
-| MP3    | `mp4a.40.34`                                                                                                                                                                               |
-| AC-3   | `ac-3`                                                                                                                                                                                     |
-| E-AC-3 | `ec-3`                                                                                                                                                                                     |
-| FLAC   | `fLaC`                                                                                                                                                                                     |
+| Codec  | Result                                                                                                                                                                                                                                                                                                                                  |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H.264  | `avc1.` followed by three bytes, as two lowercase hex digits each: the three bytes after the SPS NAL header when the extradata starts with an Annex-B SPS, or bytes 1 to 3 when the extradata is an `avcC` record (ISO/IEC 14496-15: its first byte is 1); `None` when the extradata is too short to hold them, and in every other case |
+| HEVC   | below                                                                                                                                                                                                                                                                                                                                   |
+| AAC    | `mp4a.40.` followed by the profile plus one, when the profile is known; else `None`                                                                                                                                                                                                                                                     |
+| MP2    | `mp4a.40.33`                                                                                                                                                                                                                                                                                                                            |
+| MP3    | `mp4a.40.34`                                                                                                                                                                                                                                                                                                                            |
+| AC-3   | `ac-3`                                                                                                                                                                                                                                                                                                                                  |
+| E-AC-3 | `ec-3`                                                                                                                                                                                                                                                                                                                                  |
+| FLAC   | `fLaC`                                                                                                                                                                                                                                                                                                                                  |
 
 HEVC: the profile and level are those of the codec parameters, replaced by the
 ones read from the SPS when the extradata holds an Annex-B SPS. When the codec
@@ -766,6 +782,23 @@ becomes available.
 - The caller's frame is unchanged (A4).
 
 ```ocaml
+val flush_encoder :
+  ?on_packet:(encoded_packet -> unit) -> (output, 'media, [ `Frame ]) stream ->
+  unit
+```
+
+Drains the stream's encoder and writes every packet it still holds, with the
+rules of `write_frame`: the header is written first when needed, timestamps
+are converted the same way, and `on_packet` is called before each packet is
+given to the muxer (§7.2). A caller that cuts the output at packet boundaries
+sees the packets of the frames the encoder held, before `close`.
+
+- The encoder is then drained: `close` writes no more packets for it and
+  succeeds.
+- A later `write_frame` or `flush_encoder` on the stream raises
+  ``Error `Eof``.
+
+```ocaml
 val write_subtitle_frame :
   (output, subtitle, [ `Frame ]) stream -> Avutil.Subtitle.frame -> unit
 ```
@@ -814,7 +847,7 @@ val close : _ container -> unit
 | Raised                                    | By                                                                                                                                                       |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Error e`, `e` mapped from an FFmpeg code | every operation that calls a fallible FFmpeg function                                                                                                    |
-| ``Error `Eof``                            | `read_input` at the end of the input                                                                                                                     |
+| ``Error `Eof``                            | `read_input` at the end of the input; `write_frame` and `flush_encoder` on a drained encoder                                                             |
 | ``Error `Exit``                           | a blocking operation the interrupt function aborted                                                                                                      |
 | ``Error `Stream_not_found``               | `find_best_*_stream`                                                                                                                                     |
 | ``Error `Decoder_not_found``              | `read_input`, for a frame-mode stream with no decoder                                                                                                    |
@@ -835,7 +868,7 @@ propagates: `` `Other `` of that code when FFmpeg passes it through unchanged.
 
 The runtime lock is released (contract M1, M4) around every open, probing,
 `find_best_*_stream`, `read_input`, `seek`, the creation of an encoding
-stream, the three writes, `write_header`, `flush`, `tell`, `close`, and release by
+stream, the three writes, `flush_encoder`, `write_header`, `flush`, `tell`, `close`, and release by
 collection. `Format.find_input_format` and
 `Format.guess_output_format` MAY release it.
 
@@ -843,9 +876,9 @@ collection. `Format.find_input_format` and
 
 A container has one guard, shared by its streams (M9).
 
-| Exclusive                                                                                                                                                      | Shared                                       |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `write_header`, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
+| Exclusive                                                                                                                                                                       | Shared                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `find_best_*_stream`, `read_input`, `seek`, every stream creation and initialisation, every setter, the three writes, `flush_encoder`, `write_header`, `flush`, `tell`, `close` | every getter, the stream lists, option reads |
 
 The container is not in use while a function of §7.2 runs: `on_packet` may
 call `write_header`, `flush` or `tell` on its own container.
@@ -909,11 +942,11 @@ hands over at a time.
 
 They follow the contract's §7.2.
 
-| Function              | Called from   | State when called, and after it raises                                                                                                                                                                                                                                       |
-| --------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `configure_*_stream`  | `open_input`  | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                                                                                                         |
-| `on_unhandled_packet` | `read_input`  | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                                                                                              |
-| `on_packet`           | `write_frame` | A packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. A write that fails raises its own error, whether or not the function raised. Packets still in the encoder are written by the next write or by `close`. |
+| Function              | Called from                    | State when called, and after it raises                                                                                                                                                                                                                                       |
+| --------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `configure_*_stream`  | `open_input`                   | The input is opened and not yet probed; no container value exists. An exception releases everything.                                                                                                                                                                         |
+| `on_unhandled_packet` | `read_input`                   | The packet is the function's own. An exception ends the read; the container stays usable and the next read continues with the following packet.                                                                                                                              |
+| `on_packet`           | `write_frame`, `flush_encoder` | A packet is about to be written. An exception does not lose it: the packet is written, then the exception propagates. A write that fails raises its own error, whether or not the function raised. Packets still in the encoder are written by the next write or by `close`. |
 
 ## 8. Data transfer
 

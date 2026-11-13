@@ -169,6 +169,25 @@ Things to note:
   - `xml_text`, present when the node is a text node. In this case, `xml_params` and `xml_children` are empty.
 - By convention, text nodes are labeled `xml_text` and are of the form: `{ xml_text: "node content" }`
 
+## Navigating the formal representation
+
+A configuration file is a good fit for the formal representation: elements repeat, their order matters, and you want to warn about the ones you do not know. Writing the type annotation for every section quickly becomes tedious, so `xml.tree` parses a document once into the formal representation and a few helpers navigate it:
+
+- `xml.children(tag, node)` and `xml.child(tag, node)` return the child elements with a given tag, or the first one (`null` if there is none).
+- `xml.tags(node)` returns the tags of the child elements, which is useful to warn about unknown elements.
+- `xml.string(node)` returns the text of a node, as written. With `attribute="name"`, it reads that attribute instead.
+- `xml.int`, `xml.float` and `xml.bool` read values the same way, trim them and convert them. Booleans are `1`, `true`, `yes`, `on` and `0`, `false`, `no`, `off`.
+
+Every helper accepts a `null` node, so lookups chain: `xml.int(xml.child("port", xml.child("listen", config)))` is `null` when either element is absent. The readers return `null` when the value is absent and raise `error.xml` when it is present but malformed, so a typo never goes unnoticed.
+
+A node has text only when text is its sole content: in `<a> x <b/> </a>`, the text of `a` is `null`.
+
+Since types in the language are not recursive, the tree has a fixed depth: the root and five levels of descendants. Deeper elements are dropped, and `xml.tags` does not see them.
+
+```{.liquidsoap include="xml-tree.liq"}
+
+```
+
 ## Rendering XML values
 
 XML values can be converted back to strings using `xml.stringify`.

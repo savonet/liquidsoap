@@ -18,6 +18,7 @@ type source =
 module Settings = Settings
 module Status = Status
 module Sync_source = Sync_source
+module Parker = Parker
 
 type sync_mode = Status.sync_mode
 

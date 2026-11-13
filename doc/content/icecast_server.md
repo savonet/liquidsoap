@@ -1,559 +1,335 @@
-# Icecast Server Emulation
+# Icecast Server
 
-Liquidsoap can act as an icecast-compatible server, accepting source client connections using the `icecast.server` operator. You can use it to receive streams from butt, Mixxx or any other icecast-compatible source client. To send your stream to an external Icecast server, see [streaming to Icecast and Shoutcast](./icecast.md).
+Liquidsoap can be the Icecast server itself. `icecast.server` accepts source clients such as butt, Mixxx or another liquidsoap, serves their streams to listeners, and speaks the protocols that players, statistics tools and listener authentication backends written for Icecast, RSAS or Icecast-KH expect. You can also feed its mounts from your own liquidsoap sources. To send your stream to an external Icecast server instead, see [streaming to Icecast and Shoutcast](./icecast.md).
 
-## Experimental Feature
+## Starting a server
 
-This functionality is still experimental. It works for many common use cases, but some features may change in future releases and some icecast configuration options are not supported yet.
-
-## Basic Usage
-
-The simplest way to start an icecast-compatible server:
+A server is described by one record, its _parameters_. Every field is optional and takes its default when missing, so a server needs little more than a source password. Here it also logs its sources coming and going:
 
 ```{.liquidsoap include="icecast-server-basic.liq"}
 
 ```
 
-This starts a server on port 8000 with the default password "hackme".
+This listens on port 8000 for source clients and listeners, and serves the Shoutcast source protocol on port 8001. A source client logs in with the user `source` and the `source_password`. It can then stream to any mount, for instance `/live.mp3`, and listeners find it at `http://localhost:8000/live.mp3`.
 
-### Parameters
+Source clients connect with HTTP `PUT` or `POST`, Icecast's legacy `SOURCE` method, a WebSocket, or the Shoutcast protocol, which feeds the mount named by `shoutcast_mount`. Some paths are never mounts because the server answers them itself: `/`, `/status.json`, `/status-json.xsl`, `/metrics`, `/admin`, `/admin.cgi`, anything under `/admin/`, and anything ending in `/health` or `/manage`.
 
-- `port`: Port to listen on (default: 8000)
-- `password`: Source password for authentication (default: "hackme")
-- `name`: Namespace of the server's telnet commands (default: `"icecast.server"`)
-- `config`: Optional path to an icecast XML configuration file
-- `dedicated_encoder`: Allocate one encoder per listener (see [below](#dedicated_encoder))
-- `serve`: Enable or disable the built-in status page (default: `true`, see [below](#status-page))
-- `serve_auth`: Optional callback `(request) -> bool` for access control on status endpoints
-- `serve_json`: Optional callback `(stats) -> string` to replace the built-in JSON renderer
-- `serve_html`: Optional callback `(stats) -> string` to replace the built-in HTML renderer
-- `x_forwarded_for_proxy_ips`: List of known reverse-proxy IPs for real-IP extraction (see [below](#reverse-proxy-and-x-forwarded-for))
-- `x_forwarded_for`: Advanced callback to fully override real-IP extraction logic (see [below](#reverse-proxy-and-x-forwarded-for))
-- `format_options`: Optional callback `(string) -> [(string * string)]` that returns muxer options for a given container format name. When `null`, falls back to `settings.icecast.server.default_muxer_options` (see [below](#live-streaming-muxer-options))
-- `ip_hash`: Function applied to every listener IP before it is exposed anywhere (see [below](#listener-privacy))
-- `access_log`: Path of an icecast-style access log, `-` for standard error (see [below](#log-files))
-- `playlist_log`: Path of an icecast-style playlist log, `-` for standard error
-- `admin_user`: User name for the admin listener page (default: `"admin"`)
-- `admin_password`: Password for the admin listener page, which is disabled without one (see [below](#admin-listener-page))
+The main server parameters are:
 
-Parameters passed explicitly take precedence over the values of a configuration file.
+| Field             | Default            | Meaning                                                                 |
+| ----------------- | ------------------ | ----------------------------------------------------------------------- |
+| `port`            | `8000`             | Port for sources and listeners. The Shoutcast protocol uses `port + 1`. |
+| `bind_address`    | all interfaces     | Local address to bind.                                                  |
+| `transport`       | plain HTTP         | The HTTP transport of the port, for instance TLS (see [below](#tls)).   |
+| `compatibility`   | `"icecast-2.5"`    | Which implementation to mimic (see [below](#compatibility)).            |
+| `hostname`        | `"localhost"`      | The name the server gives itself in status pages and to backends.       |
+| `source_password` | `"hackme"`         | Password of source clients when their mount has none of its own.        |
+| `shoutcast_mount` | `"/stream"`        | Mount fed by a Shoutcast source client.                                 |
+| `max_sources`     | unlimited          | Most simultaneous source clients.                                       |
+| `max_clients`     | unlimited          | Most simultaneous listeners over all mounts.                            |
+| `source_timeout`  | `10.`              | Seconds of silence after which a source client is dropped.              |
+| `client_timeout`  | `30.`              | Seconds a listener's connection may stall before it is dropped.         |
+| `burst_size`      | `65536`            | Bytes sent at once to a new listener, so that playback starts quickly.  |
+| `name`            | `"icecast.server"` | Label of the server in logs.                                            |
 
-### Return Value
+The server warns while a mount accepts the default `hackme` password.
 
-The `icecast.server` function returns a record with the following methods:
+### The server value
 
-- `mounts()`: Returns a list of currently active mount points
-- `get_source(mount)`: Returns the source for a given mount point
-- `get_config(mount)`: Returns the current `{format, streams}` record for a mount, or `null` if the mount is not active
-- `stats()`: Returns the current mount stats list (see [below](#custom-json-renderer) for its fields)
-- `on_source_connect(handler)`: Register a handler called when a source connects
-- `on_source_disconnect(handler)`: Register a handler called when a source disconnects
-- `on_listener_connect(handler)`: Register a handler called when a listener connects (see [below](#listener-callbacks))
-- `on_listener_disconnect(handler)`: Register a handler called when a listener disconnects
-- `on_metadata(handler)`: Register a handler called when a mount's metadata changes
-- `reload()`: Read the configuration file again and apply it (see [below](#reloading-the-configuration))
+`icecast.server` returns a value with these methods:
 
-Every `on_*` method takes an optional `synchronous` argument, `false` by default, in which case the handler runs in its own thread.
+- `on_source_connect`, `on_source_disconnect`, `on_listener_connect`, `on_listener_disconnect` and `on_metadata` register handlers for events (see [below](#events));
+- `stats()` returns a snapshot of the server's statistics;
+- `reload(parameters)` replaces the parameters of the running server (see [below](#reloading));
+- `reopen_logs()` reopens the log files after an external tool moved them;
+- `attach_source(~format, ~headers, mount, source)` and `detach_source(mount)` feed a mount from a liquidsoap source (see [below](#feeding-a-mount-from-liquidsoap)).
 
-## Listener Callbacks
+## Mounts
 
-Knowing who listens, for how long, and what they were listening to is what most station tooling is built on: listener statistics, royalty reports, dashboards or a Prometheus exporter. `icecast.server` reports every listener session through callbacks, so you can feed that data wherever you need it:
+Most stations have more than one mount: the live show, an automated backup, a members-only stream, a low-bitrate version. Each needs its own credentials, limits or fallback. All of this comes from one callback, `mount`: the server calls it with a mount's path, and it answers the parameters of that mount, or `null` when the mount has none of its own:
+
+```{.liquidsoap include="icecast-server-mounts.liq"}
+
+```
+
+Since it is a function, wildcards, defaults shared by several mounts or a lookup in your own table are just code. A source client may create any mount the other rules allow, as on Icecast: the callback configures mounts, it does not declare them.
+
+| Field                   | Meaning                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| `source_user`           | User name source clients present, `"source"` by default.                                                 |
+| `source_password`       | Password of the mount's source clients, the server's by default.                                         |
+| `source_decision`       | A function `(request) -> bool` replacing the user and password check of source clients.                  |
+| `on_connect`            | Called in the background when something starts feeding the mount.                                        |
+| `on_disconnect`         | Called in the background when it stops.                                                                  |
+| `max_listeners`         | Most simultaneous listeners on the mount.                                                                |
+| `listener_decision`     | Decides each listener (see [below](#deciding-on-listeners)).                                             |
+| `max_listener_duration` | Seconds after which a listener is disconnected.                                                          |
+| `fallback`              | What feeds the mount while it has no source: `{mount = "/other.mp3"}` or `{source = s}`.                 |
+| `fallback_when_full`    | Redirect listeners past `max_listeners` along the fallback mounts, with `307`, instead of refusing them. |
+| `linger`                | Seconds the mount keeps its listeners, waiting, when its source drops and nothing else feeds it.         |
+| `hidden`                | Keep the mount off the public status pages.                                                              |
+| `max_history`           | Titles kept in the mount's history, 10 by default.                                                       |
+| `health_password`       | Password of the mount's `/<mount>/health` page.                                                          |
+| `burst_size`            | The mount's own burst. `0` disables it whatever the server's value.                                      |
+| `dedicated_encoder`     | Give each listener its own encoder, whatever the server's value.                                         |
+| `http_headers`          | Headers added to the mount's listener replies (see [below](#http-headers)).                              |
+| `dump_file`             | File the mount's stream is recorded to, a `strftime` pattern expanded at each recording start.           |
+| `dump_file_size_limit`  | Bytes after which a recording stops.                                                                     |
+| `dump_file_time_limit`  | Seconds after which a recording stops.                                                                   |
+
+### Fallbacks
+
+Liquidsoap does not just relay the bytes it receives: it reads the stream it serves. When a mount loses its source, it switches to its fallback at the next packet, and back to its own source as soon as that one returns. Listeners never leave their mount: their connection, headers and limits stay the same, and the switch is invisible to their player. A fallback mount without a source of its own passes on to its own fallback, up to ten mounts.
+
+A fallback must carry the same format as the mount. A mount with no fallback that loses its source keeps its listeners for `linger` seconds, so that a DJ whose connection blips does not lose the audience.
+
+### Feeding a mount from liquidsoap
+
+A mount does not need a source client. `attach_source` feeds it from a liquidsoap source of encoded content, so that your automation is served next to the live mounts:
+
+```{.liquidsoap include="icecast-server-attach.liq"}
+
+```
+
+`format` is the encoder that writes the content for listeners, here a copy of the MP3 data, and `headers` are the stream identity headers (`ice-name`, `ice-genre`, …) a source client would have sent. The same kind of source can be a mount's `fallback`, as in the [complete example](#a-complete-example).
+
+## Deciding on listeners
+
+Paid streams, geo-restricted content, a members area or a per-listener ad all need a decision on each listener before the stream starts. A mount's `listener_decision` is a function from the listener's request to an outcome, a record whose fields are all optional:
+
+| Field        | Meaning                                                                            |
+| ------------ | ---------------------------------------------------------------------------------- |
+| `refuse`     | Refuse the listener, or redirect it, with `icecast.server.refusal` or `.redirect`. |
+| `time_limit` | Seconds after which the listener is disconnected.                                  |
+| `preroll`    | Bytes sent before the stream (see [below](#prerolls)).                             |
+| `exempt`     | Skip `max_listeners`, for instance for a trusted relay.                            |
+| `on_release` | Called once when the listener leaves.                                              |
+| `user`       | A new user name for the listener.                                                  |
+
+The request carries the listener's `address`, `headers`, `user` and `password` (from HTTP Basic credentials), `mount`, `query`, the mount's current `listeners`, and `user_listeners(user)`, the number of listeners that user already has on the mount.
+
+The standard library has ready-made decisions, and `icecast.server.decision.all` composes several in order, the first refusal winning:
+
+```{.liquidsoap include="icecast-server-decisions.liq"}
+
+```
+
+- `icecast.server.decision.access_lists(~deny, ~allow, ~agents)` refuses addresses from a deny file, addresses missing from an allow file, and `User-Agent` values from an agents file. Lines are addresses or wildcard patterns.
+- `icecast.server.decision.htpasswd(file)` checks HTTP Basic credentials against a file of `user:md5` lines. Without valid credentials the listener is refused with `401`, which makes a browser ask for them.
+- `icecast.server.decision.url_auth(~cache, options)` asks a web service of yours, with Icecast's protocol (see below).
+
+The files are read again when they change.
+
+### URL authentication
+
+Icecast leaves the decision to a web service, and `icecast.server` speaks the same protocol, extended the way RSAS and Icecast-KH extend it, so that an existing backend keeps working:
+
+```{.liquidsoap include="icecast-server-url-auth.liq"}
+
+```
+
+For each listener, the server POSTs Icecast's form fields to `listener_add`: `action`, `server`, `port`, `client`, `mount`, `user`, `pass`, `ip`, `agent`, then the fields RSAS and Icecast-KH add. The reply admits the listener with `icecast-auth-user: 1` (or `x-icecast-auth-result: ok`), and can set a time limit, redirect the listener, refuse it with its own status and message, or choose a preroll. A request that fails refuses the listener with `401`, unless `presume_innocent` is set. When an admitted listener leaves, the server POSTs to `listener_remove` with the session's duration, which is what billing and concurrent-session tracking need.
+
+The options keep Icecast's names: `listener_add`, `listener_remove`, `username`, `password`, `auth_header`, `timelimit_header`, `header_auth`, `header_timelimit`, `header_message`, `header_alter_action`, `header_alter_argument`, `action_add`, `action_remove`, `headers`, `header_prefix`, `timeout`, `presume_innocent` and `on_error_wait`.
+
+### Listener limits
+
+A listener past the mount's `max_listeners` or the server's `max_clients` is refused with the status the chosen implementation sends: `503 Service Unavailable` under `"icecast-2.5"` and `"rsas"`, `403 Forbidden` under `"icecast-2.4"` and `"kh"`. Players retry on `503` and not on `403`, so some tools need the older one:
+
+```{.liquidsoap include="icecast-server-status-codes.liq"}
+
+```
+
+### Prerolls
+
+A preroll is a short file a listener hears before joining the stream: a station jingle, a sponsor message, or an ad an ad server chose for that listener. A decision gives it as bytes, and `icecast.server.preroll_cache` loads them from a local file or a URL:
+
+```{.liquidsoap include="icecast-server-preroll.liq"}
+
+```
+
+The file is sent as it is, before the stream, so it must use the stream's codec and parameters: for an MP3 stream, an MP3 file with the same sample rate and channels. Files are kept in memory and shared by every listener, up to `settings.icecast.server.preroll_cache_size` bytes in all, the least recently used dropped first. A local file is read again when it changes, and a URL is checked again after two hours using its ETag. A file that cannot be loaded is logged, and the listener gets the stream without a preroll.
+
+## Events
+
+Listener statistics, royalty reports, dashboards and notifications are all built on knowing who connects and when. The server reports each event to the handlers you register:
 
 ```{.liquidsoap include="icecast-server-listener-callbacks.liq"}
 
 ```
 
-Listener handlers receive a record with the following fields:
+Listener handlers receive a record with `id`, `mount`, `ip` (hashed, see [privacy](#listener-privacy)), `user`, `user_agent`, `referer`, `uri`, `protocol`, `connected_at`, `duration` and `bytes_sent`: zero on connect, the session's totals on disconnect. Source handlers receive `mount`, `ip` (the source client's address, not hashed), `agent`, `server` (`{hostname, port, instance}`) and `compatibility`, and on connect the liquidsoap `source` feeding the mount, its `format` and the `headers` the source client sent. `on_metadata` handlers receive `mount`, `metadata` and the mount's `listeners`.
 
-| Field          | Type      | Description                                                                     |
-| -------------- | --------- | ------------------------------------------------------------------------------- |
-| `id`           | `int`     | Connection identifier, unique per mount output                                  |
-| `mount`        | `string`  | Mount the listener is connected to                                              |
-| `ip`           | `string`  | Listener address after X-Forwarded-For resolution, hashed by default            |
-| `user_agent`   | `string?` | `User-Agent` request header                                                     |
-| `referer`      | `string?` | `Referer` request header                                                        |
-| `uri`          | `string`  | Requested path                                                                  |
-| `protocol`     | `string`  | HTTP protocol version, e.g. `"1.1"`                                             |
-| `connected_at` | `float`   | Connection time, in seconds since the epoch                                     |
-| `duration`     | `float`   | Seconds connected: `0.` on connect, the session length on disconnect            |
-| `bytes_sent`   | `int`     | Bytes sent, HTTP response headers included: `0` on connect, total on disconnect |
+Every method takes `synchronous`, `false` by default. An asynchronous handler runs in its own thread and never delays the stream, but no order is guaranteed between such handlers, so counters they share must use `atomic`. A synchronous handler runs in order with the event and must be short. Every admitted listener produces exactly one connect and one disconnect event.
 
-Raw request headers are not passed on: they can carry the listener's address, for instance in `X-Forwarded-For`.
+## Status pages and statistics
 
-Synchronous disconnect handlers are called exactly once per listener, and always after its synchronous connect handlers. Asynchronous handlers each run in their own thread, so that order is not guaranteed for them.
+The server answers a few pages on its own port:
 
-`on_metadata` handlers receive a record with the `mount`, its new `metadata` and the current number of `listeners`.
+- `/`: an HTML page with each mount's name, format, now playing, listener count and a player;
+- `/status.json`: the same data as JSON;
+- `/status-json.xsl`: Icecast's JSON, which players and website widgets read;
+- `/health` and `/<mount>/health`: RSAS's health document, protected by `health_password` when set;
+- `/metrics`: a Prometheus export, when `metrics` is `true`.
 
-## Log Files
-
-Many log analyzers and statistics tools read the logs written by icecast. `icecast.server` writes the same access, playlist and error logs, so these tools keep working when liquidsoap takes over serving listeners:
-
-```{.liquidsoap include="icecast-server-access-log.liq"}
-
-```
-
-When an icecast configuration file is used, the logs follow its `<logging>` section instead, see the [configuration reference](#logging). The error log is only set up there.
-
-### Access log
-
-One line is written when a listener disconnects, in icecast's variant of the combined log format, with the session length in seconds appended:
-
-```
-8c2f0e7a1d4b9f36 - - [14/Sep/2026:21:40:58 +0200] "GET /live HTTP/1.1" 200 1843200 "-" "VLC/3.0.20 LibVLC/3.0.20" 115
-```
-
-The fields are the listener IP (hashed by default), identity and user (always `-`), disconnection time, request, status code, bytes sent including the HTTP response headers, referer, user agent and duration. As in icecast, control characters, spaces, `!`, `"`, `` ` `` and `\` are written as `\xHH` escapes, except that spaces are kept in the referer and user agent. Bytes above `0x7f` are written as-is, so UTF-8 text stays readable.
-
-Some tools validate the first field as an IP address and reject hashed values. For instance, [GoAccess](https://goaccess.io/) needs `--no-ip-validation`. You can also [log plain IPs](#listener-privacy).
-
-Unlike icecast, only listener sessions are logged: source client connections and requests to the status pages are not.
-
-### Playlist log
-
-One line is written each time a mount's metadata changes:
-
-```
-14/Sep/2026:21:40:58 +0200|/live|12|Artist - Title
-```
-
-The fields are the time, mount, number of listeners and the `artist - title` text. Icecast writes the text as-is. Liquidsoap turns `|` characters and line breaks into spaces, so that each update stays on one parseable line.
-
-### Error log
-
-The error log records the server's own events, such as sources logging in and out, rejected source connections and configuration reloads. It is a file of its own and does not change liquidsoap's log. Lines follow icecast's format, local time, level, `category/function` and message:
-
-```
-[2026-09-25  15:17:57] INFO connection-handle/_handle_source_request Source logging in at mountpoint "/live"
-```
-
-Levels are `EROR`, `WARN`, `INFO` and `DBUG`, and `<loglevel>` sets the most verbose one written, `INFO` by default. Categories and messages reuse icecast's where there is an equivalent, so existing log parsers keep matching. Every event is also written to liquidsoap's log.
-
-### Rotation
-
-Log files are kept open, as in icecast. After an external tool like `logrotate` moves one, send `SIGHUP` or `SIGUSR1` to reopen it at its configured path, for instance with `postrotate kill -HUP <pid>`, which is also what icecast's packages do. `SIGUSR1` reopens liquidsoap's own log file too. `logrotate`'s `copytruncate` option works without any signal.
-
-Liquidsoap also rotates the logs the way icecast does: once a file grows past `<logsize>`, it is renamed to `<file>.old`, or to `<file>.YYYYmmdd_HHMMSS` when `<logarchive>` is set. Without `<logsize>`, the limit is 1GB.
-
-## Listener Privacy
-
-A listener's IP address is personal data. By default, `icecast.server` replaces it with a hash everywhere it is exposed: callbacks, `stats()`, the admin page and the logs. The hash is a 16-character MD5 digest of the address. It is the same on every run, so a listener can be followed across connections and restarts, for instance to count unique listeners.
-
-This is a surface-level protection: it keeps addresses out of logs and dashboards. The key used by the default hash is public, so anyone can hash a guessed address and compare. If this matters to you, pass your own function with the `ip_hash` parameter, for instance with a secret key:
-
-```{.liquidsoap include="icecast-server-ip-hash.liq"}
-
-```
-
-If you need the actual addresses and are allowed to keep them, you have to opt in explicitly:
-
-```{.liquidsoap include="icecast-server-plain-ips.liq"}
-
-```
-
-Keep in mind that some data still contains raw addresses:
-
-- Liquidsoap's own log mentions each listener's `ip:port` at level 4 (info) and above.
-- The `x_forwarded_for` callback sees the raw address and headers, since it runs before hashing.
-
-## `dedicated_encoder`
-
-By default, all listeners on a mount share a single encoder instance. Setting `dedicated_encoder=true` allocates one independent encoder per listener.
-
-With copy-based encoders (e.g. `copy_encoder("matroska")` or `%ffmpeg` with `%audio.copy` / `%video.copy`), each listener gets its own remuxer. A remux costs little CPU, and each listener receives a self-contained stream that starts on a frame boundary, with its own container header.
-
-```{.liquidsoap include="icecast-server-dedicated-encoder.liq"}
-
-```
-
-Each listener that connects gets their own stream, starting from a frame boundary at the time they join.
-
-With full re-encoding (e.g. `%mp3`, `%aac`), `dedicated_encoder=true` creates a complete encoder per listener, which can use a lot of CPU with many listeners. Use copy-based encoders with `dedicated_encoder`.
-
-## Reverse Proxy and X-Forwarded-For
-
-When `icecast.server` runs behind a reverse proxy (e.g. nginx), every listener connects from the proxy's IP. Set `x_forwarded_for_proxy_ips` to record the listener's own IP.
-
-`x_forwarded_for_proxy_ips` takes a list of known proxy IPs. The default implementation (`icecast.server.x_forwarded_for`) walks the `X-Forwarded-For` header from right to left, skips any IP in the list, and returns the first non-proxy IP. A client can send a forged `X-Forwarded-For` header, but each proxy appends the IP it received the connection from as the rightmost entry, and that entry is the one used.
-
-```liquidsoap
-# Single nginx proxy at 10.0.0.1
-icecast.server(
-  x_forwarded_for_proxy_ips=["10.0.0.1"],
-  password="hackme"
-)
-
-# CDN + nginx in front
-icecast.server(
-  x_forwarded_for_proxy_ips=["10.0.0.1", "203.0.113.42"],
-  password="hackme"
-)
-```
-
-For custom header names, CIDR matching or CDN-specific headers like `CF-Connecting-IP`, pass your own callback with `x_forwarded_for`. The callback receives a record with `ip` (connection IP), `headers`, `protocol`, `uri`, and `proxy_ips` (from `x_forwarded_for_proxy_ips`, or `[]` if not set), and must return a string IP:
-
-```liquidsoap
-# Trust Cloudflare's CF-Connecting-IP header
-icecast.server(
-  x_forwarded_for=fun ({ip, headers, ...}) ->
-    list.assoc(default=ip, "cf-connecting-ip", headers),
-  password="hackme"
-)
-```
-
-## Status Page
-
-By default, `icecast.server` registers two HTTP endpoints on the icecast port:
-
-- `/`: an HTML status page showing active mounts, listener counts and a player for each mount
-- `/status.json`: a JSON endpoint with the same data, polled by the HTML page every 5 seconds
-
-### Disabling the Status Page
-
-Pass `serve=false` to disable both endpoints:
-
-```liquidsoap
-icecast.server(serve=false, password="hackme")
-```
-
-### Access Control
-
-Use `serve_auth` to gate both endpoints behind a check. The callback receives the HTTP request and must return `true` to allow access:
+They show counts only, never listener addresses, and leave out hidden mounts. `status_page = false` turns off the first three, `/health` and `/<mount>/health`; under `"rsas"` the health pages stay, as RSAS serves them on their own. `status_access` gates the first three and `/metrics` behind a check of your own:
 
 ```{.liquidsoap include="icecast-server-serve-auth.liq"}
 
 ```
 
-Any request that fails the check receives a `401 Unauthorized` response with a `WWW-Authenticate` header.
-
-### Admin Listener Page
-
-The public status page only shows listener counts. For operators, `icecast.server` also serves a listener page protected by HTTP Basic authentication:
-
-- `/admin/listeners`: an HTML page listing each mount's listeners, with their (hashed) IP, user agent, connection time and bytes sent, plus the mount's peak listeners, connection count and total listening time
-- `/admin/listeners.json`: the same data as JSON
-
-The page is enabled by setting an admin password, either with the `admin_password` parameter or with `<admin-password>` in the configuration file. The user name defaults to `admin`. Without a password, the page is not registered at all. Like the status page, it is disabled by `serve=false`.
-
-### Custom JSON Renderer
-
-Use `serve_json` to replace the built-in `/status.json` output. The callback receives the stats list and must return a JSON string. The example below also replaces the HTML page with a short not-found message using `serve_html`:
+`status_json` and `status_html` replace the rendering of `/status.json` and `/`. Each receives the `stats()` snapshot, hidden mounts included, so a public page filters them on `hidden`. Its `mounts` hold, per mount, `mount`, `name`, `listeners`, `peak_listeners`, `connections`, `listening_time`, `bytes_sent`, `metadata`, `history` and the stream's identity:
 
 ```{.liquidsoap include="icecast-server-serve-json.liq"}
 
 ```
 
-The stats list passed to both `serve_json` and `serve_html` is a list of `(mount, stats)` pairs where each `stats` record contains:
+With an `admin_password` (user `admin_user`, `"admin"` by default), the server also serves the admin pages: `/admin/listeners` is a page to watch each mount and its listeners, update a mount's metadata or disconnect its source, `/admin/listeners.json` lists each mount's listeners, and `/admin/stats`, `/admin/listmounts` and `/admin/listclients` answer Icecast's XML for administration tools. The admin commands `metadata`, `killsource` and `fallbacks` work as on Icecast.
 
-- `name`, `content_type`, `mime_type`: information about the mount's stream
-- `started`: when the current source connected
-- `listeners`: the connected listeners, as [listener records](#listener-callbacks)
-- `peak_listeners`: the largest number of simultaneous listeners
-- `connections`: the number of listener connections so far
-- `listening_time`, `bytes_sent`: totals over finished listener sessions
-- `current_metadata`: the mount's latest metadata
+## Log files
 
-Listener records contain hashed IPs unless `ip_hash` says otherwise. Keep that in mind before publishing them from a custom renderer.
+Log analyzers and statistics tools read the files Icecast writes. `icecast.server` writes the same access, playlist and error logs:
 
-## Live Streaming Muxer Options
-
-Some container formats require specific muxer flags to produce a valid live stream. For example, the Matroska and WebM muxers write an index by seeking back into the file when it ends. A live stream cannot seek, so these muxers must be told that they write a live stream.
-
-`icecast.server` automatically applies these options when remuxing an incoming stream via `copy_encoder`. The defaults are controlled by `settings.icecast.server.default_muxer_options`, which maps container format names to lists of FFmpeg muxer options:
-
-| Format     | Default options    | Effect                                                                 |
-| ---------- | ------------------ | ---------------------------------------------------------------------- |
-| `matroska` | `dash=1`, `live=1` | Clusters follow the WebM DASH specification, output is written as live |
-| `webm`     | `dash=1`, `live=1` | Same as matroska (WebM is a subset)                                    |
-
-To override the defaults globally, set the setting before starting the server:
-
-```liquidsoap
-settings.icecast.server.default_muxer_options :=
-  [("matroska", [("dash", "1"), ("live", "1")]),
-   ("webm",     [("dash", "1"), ("live", "1")])]
-```
-
-To override per-server instance, use the `format_options` parameter. The callback receives the detected container format name and returns the options list to apply:
-
-```liquidsoap
-# Disable all extra muxer options
-icecast.server(format_options=fun (_) -> [], password="hackme")
-
-# Custom options for matroska, defaults for everything else
-icecast.server(
-  format_options=fun (fmt) ->
-    if fmt == "matroska" then [("dash", "1"), ("live", "1"), ("cluster_size_limit", "1000000")]
-    else list.assoc(default=[], fmt, settings.icecast.server.default_muxer_options())
-    end,
-  password="hackme"
-)
-```
-
-When `format_options` is `null` (the default), `settings.icecast.server.default_muxer_options` is used. When provided, the callback alone decides: it returns the complete list of options for every format.
-
-## Key Differences from Icecast
-
-Icecast relays the encoded data it receives from a source client to its listeners. Liquidsoap demuxes the incoming stream, passes its encoded packets through a regular liquidsoap source and remuxes them for the mount's output. The content is never decoded or re-encoded, so CPU and memory usage stay low.
-
-This gives `icecast.server` the following behavior:
-
-- Fallback happens inside the mount's output. When a source disconnects, the mount switches to the source of its `<fallback-mount>` and listeners stay connected to the same mount. When the source reconnects, the mount switches back to it.
-- With `dedicated_encoder=true` and copy encoders, each listener gets a stream that starts with its own container header. Listeners can then join a stream in any streamable container format at any time.
-- Listeners receive the stream identity the source sent, as `ice-*` or `icy-*` headers, as `icy-name`, `icy-description`, `icy-genre`, `icy-url`, `icy-br` and `icy-pub` headers.
-- Sources cannot use the mount points of the status pages (`/`, `/status.json`) or anything under `/admin`.
-
-Because of this architecture, the following icecast options do not apply:
-
-- `fallback-override`: in icecast, a source that reconnects takes its listeners back from the fallback mount. In liquidsoap, listeners always stay on their mount, which switches back to its source as soon as the source reconnects.
-- `fallback-when-full`: in icecast, listeners are redirected to a fallback mount once `max-listeners` is reached. `icecast.server` refuses them with `403 Forbidden` instead.
-
-## Using an Icecast Configuration File
-
-You can use a standard icecast XML configuration file:
-
-```{.liquidsoap include="icecast-server-config.liq"}
+```{.liquidsoap include="icecast-server-access-log.liq"}
 
 ```
 
-Liquidsoap reads the supported settings from the file and logs a message for each unsupported option it recognizes. The [configuration reference](#configuration-reference) below lists which options are supported.
+- The **access log** gets one line per listener session, in Icecast's combined log format with the session length appended.
+- The **playlist log** gets one line per metadata change: time, mount, listener count and `artist - title`.
+- The **error log** gets the server's own events, in Icecast's format, levels and categories, up to `log_level` (on liquidsoap's scale: 4, info, by default). Every event also goes to liquidsoap's own log.
 
-### Example Configuration File
+`"-"` writes to standard error. Files rotate past `log_size` bytes, to `<file>.old`, or to a timestamped name with `log_archive`. After `logrotate` moves a file, `reopen_logs()` opens it again at its path. The server takes no signal itself: the example binds `SIGHUP` with `on_signal`. A setup that also reloads on `SIGHUP` reopens the logs in the same handler, as the [reload example](#reloading) does, since a reload keeps files whose path did not change open.
 
-```xml
-<icecast>
-    <limits>
-        <sources>10</sources>
-    </limits>
+## Listener privacy
 
-    <authentication>
-        <source-password>mysecretpassword</source-password>
-    </authentication>
+A listener's address is personal data. The server applies `address_hash` to every listener address before anything sees it: event handlers, `stats()`, the admin pages and the logs. Source client addresses are the operator's own side and are not hashed. The default is a 16-character MD5 digest, the same on every run, so that you can still count unique listeners. Its key is public, so anyone can hash a guessed address and compare. A secret key protects them better:
 
-    <listen-socket>
-        <port>8000</port>
-    </listen-socket>
-
-    <http-headers>
-        <header name="Access-Control-Allow-Origin" value="*" />
-    </http-headers>
-
-    <!-- Default settings for all mounts -->
-    <mount type="default">
-        <burst-size>65536</burst-size>
-    </mount>
-
-    <!-- Specific mount configuration -->
-    <mount type="normal">
-        <mount-name>/live.mp3</mount-name>
-        <username>dj</username>
-        <password>djpassword</password>
-        <max-listeners>100</max-listeners>
-        <fallback-mount>/fallback.mp3</fallback-mount>
-        <on-connect>/path/to/script.sh</on-connect>
-        <on-disconnect>/path/to/script.sh</on-disconnect>
-    </mount>
-</icecast>
-```
-
-## Reloading the Configuration
-
-A running server usually has sources and listeners connected, and restarting it
-to change a password or a fallback would drop all of them. When the server is
-started with a `config` file, sending it `SIGHUP` reads the file again and
-applies it in place: connected sources and listeners stay connected. With
-systemd, this is what `systemctl reload` does given:
+```{.liquidsoap include="icecast-server-ip-hash.liq"}
 
 ```
-ExecReload=/bin/kill -HUP $MAINPID
+
+If you need the plain addresses and are allowed to keep them, opt in explicitly:
+
+```{.liquidsoap include="icecast-server-plain-ips.liq"}
+
 ```
 
-The same reload is available from the script through the `reload()` method,
-for instance to follow changes to the file:
+Listener decisions and URL authentication backends receive the plain address, as on Icecast.
+
+### Behind a reverse proxy
+
+Behind a proxy such as nginx, every listener connects from the proxy's address. List your proxies in `proxy_ips`, as addresses or CIDR ranges, and the server takes the listener's address from `X-Forwarded-For`, walking it from the right and skipping trusted proxies. An empty list trusts the rightmost entry. For other headers, `forwarded_address` is a function of the request that answers the address:
+
+```{.liquidsoap include="icecast-server-forwarded.liq"}
+
+```
+
+## HTTP headers
+
+`http_headers`, on the server and per mount, adds headers to listener replies. An entry is `{name, value}`, or `{name, compute}`, where `compute` is a function of the request and the reply's status, for headers that depend on them. An entry with a `status` applies only to replies with that status. A reply's list is, in order, the listener decision's headers, the stream identity, the server's entries, then the mount's, and the first entry of a name wins: a mount cannot override a header the server sets. `icecast.server.headers.cors(~origins, ~expose)` builds the CORS headers web players need:
+
+```{.liquidsoap include="icecast-server-headers.liq"}
+
+```
+
+## TLS
+
+TLS is a property of the port's transport. Pass one built with `http.transport.tls` or `http.transport.ssl`:
+
+```{.liquidsoap include="icecast-server-tls.liq"}
+
+```
+
+The transport reads its certificate again at each `reload` and once a day on its own, so that a renewed certificate is used without a restart. See [Renewing certificates](./harbor.md#renewing-certificates).
+
+## Encoding and muxing
+
+By default, the listeners of a mount share one encoder. `dedicated_encoder = true` gives each listener its own. With copy encoders, such as `%ffmpeg(format = "matroska", %audio.copy)`, this is a cheap remux, and each listener gets a stream that starts with its own container header, so that listeners can join any streamable container at any time. With full re-encoding, it costs one encoder per listener. A mount's own `dedicated_encoder` wins over the server's:
+
+```{.liquidsoap include="icecast-server-dedicated-encoder.liq"}
+
+```
+
+Some containers need options to be written live: Matroska and WebM get `live=1` by default. `muxer_options` is a function from a container name to the options to use, and `settings.icecast.server.default_muxer_options` holds the defaults.
+
+## Compatibility
+
+Icecast 2.4, Icecast 2.5, RSAS and Icecast-KH differ in small, visible ways: the status of a refused listener, the details of URL authentication, the status pages, the CORS headers. `compatibility` chooses which one the server mimics: `"icecast-2.5"` (default), `"icecast-2.4"`, `"rsas"` or `"kh"`. Wherever they differ, the chosen one wins. A behaviour only another implementation has, and that conflicts with nothing, is kept too, so that a backend written for any of them keeps working.
+
+`compatibility` is read once, at startup. A reload with another value keeps the running one and logs it.
+
+Some behaviours are the same under every value, because the server reads the streams it serves: listeners stay on their mount through fallbacks and come back with their source, a mount keeps its listeners for `linger` seconds through a source drop, one `transport` replaces Icecast's TLS modes, and `proxy_ips` takes CIDR ranges.
+
+## Reloading
+
+A running server usually has sources and listeners connected, and restarting it to change a password or a fallback would drop all of them. `reload(parameters)` replaces the whole record in place. The new record is checked first: when it is invalid, `reload` raises `error.icecast.server.invalid_parameters` and nothing changes. Otherwise it applies in one step, and no source or listener is disconnected.
+
+Build the record in one function, called for the first start and for every reload, so that each reload computes it whole, overrides included:
 
 ```{.liquidsoap include="icecast-server-reload.liq"}
 
 ```
 
-Parameters passed explicitly to `icecast.server` keep taking precedence over the
-file. If the file is invalid, `reload()` raises an error, or logs it on
-`SIGHUP`, and the previous configuration stays in use.
+Parameters apply at different times:
 
-Settings apply at different times:
+- `name`, `port`, `bind_address`, `transport` and `compatibility` are read at startup only. A reload that changes the name, port, address or compatibility logs that it was not applied.
+- `client_timeout`, `burst_on_connect`, `burst_size`, `http_headers`, `dedicated_encoder` and `muxer_options` apply when a mount output is next created. A running mount keeps the values it started with.
+- Everything else applies at its next use: the next listener, the next source connection, the next log line, the next event. A live mount follows a changed `fallback` at once, and one left with nothing to send is shut down.
 
-- **Right away**: source authentication (passwords, usernames, `<sources>`), the
-  admin page credentials, the log files and their `<logging>` settings, and the
-  `<fallback-mount>` of live mounts. A mount whose source is gone and whose
-  fallback is removed is shut down, since it has nothing left to send.
-- **On the next connection**: `<on-connect>` and `<on-disconnect>` commands.
-- **When a mount is next created**: HTTP headers, burst size and client
-  timeout. A running mount keeps the settings it started with.
-- **After a restart only**: port, bind address, TLS on or off and source
-  timeout. A reload that changes one of them logs that it was not applied.
+Create liquidsoap sources once, outside the function: a mount follows its fallback source by identity, and a source rebuilt at each reload would be a new one. Handlers registered with the `on_*` methods are kept by a reload. `event_bindings`, which are part of the record, are replaced.
 
-The TLS certificate and key are read again on every reload, and also once a
-day on their own, see [Renewing certificates](./harbor.md#renewing-certificates).
+## Using an Icecast configuration file
 
-## Configuration Reference
+`icecast.server.config.load(path)` turns an Icecast, RSAS or Icecast-KH XML configuration file into parameters, so that an existing setup moves over as it is:
 
-This section lists the icecast XML configuration options and their status in `icecast.server`. Options marked as not implemented may be added later. Incompatible options do not fit liquidsoap's architecture, see [Key Differences from Icecast](#key-differences-from-icecast).
+```{.liquidsoap include="icecast-server-config.liq"}
 
-### listen-socket
-
-| Option            | Status          | Notes                                                                                                          |
-| ----------------- | --------------- | -------------------------------------------------------------------------------------------------------------- |
-| `port`            | Supported       | Server listening port                                                                                          |
-| `bind-address`    | Supported       | Sets `settings.harbor.bind_addrs`                                                                              |
-| `tls` / `ssl`     | Supported       | Icecast 2.4: `0`/`1`. Icecast 2.5: `disabled`/`auto_no_plain`. Other 2.5 values log a warning and disable TLS. |
-| `shoutcast-mount` | Not implemented | Shoutcast compatibility mount                                                                                  |
-
-Note: Only the first `listen-socket` entry is used. Multiple listen sockets are not supported; a warning is logged if more than one is found.
-
-### authentication
-
-| Option            | Status    | Notes                                     |
-| ----------------- | --------- | ----------------------------------------- |
-| `source-password` | Supported | Global password for source clients        |
-| `admin-user`      | Supported | User name for the admin listener page     |
-| `admin-password`  | Supported | Password enabling the admin listener page |
-
-### limits
-
-| Option             | Status    | Notes                                                  |
-| ------------------ | --------- | ------------------------------------------------------ |
-| `sources`          | Supported | Maximum number of simultaneous source connections      |
-| `clients`          | Supported | Maximum number of listeners across all mounts          |
-| `source-timeout`   | Supported | Timeout in seconds for source connections (float)      |
-| `client-timeout`   | Supported | Timeout in seconds for client connections (float)      |
-| `burst-size`       | Supported | Burst size for new listeners (bytes), 65534 when unset |
-| `burst-on-connect` | Supported | Set to 0 to disable burst entirely                     |
-| `queue-size`       | Not used  | Liquidsoap manages queues differently                  |
-| `header-timeout`   | Not used  | Liquidsoap handles headers differently                 |
-
-### paths
-
-| Option                                | Status          | Notes                                                                                                                          |
-| ------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `basedir`                             | Not implemented |                                                                                                                                |
-| `logdir`                              | Supported       | Directory of the log files set in `<logging>`                                                                                  |
-| `pidfile`                             | Not supported   |                                                                                                                                |
-| `tls-certificate` / `ssl-certificate` | Supported       | Path to TLS certificate file (required when TLS is enabled). May include the private key. Read again on reload and once a day. |
-| `tls-key`                             | Supported       | Path to separate TLS private key file (icecast 2.5 only)                                                                       |
-| `webroot`                             | Not implemented | Static files are not served, see the [status page](#status-page)                                                               |
-| `adminroot`                           | Not implemented | Icecast's admin interface is not available, see the [admin listener page](#admin-listener-page)                                |
-| `allow-ip`                            | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
-| `deny-ip`                             | Not implemented | Use a reverse proxy (nginx) or firewall instead                                                                                |
-| `ssl-allowed-ciphers`                 | Not implemented | TLS cipher configuration not exposed                                                                                           |
-| `alias`                               | Not implemented | URL aliasing not supported                                                                                                     |
-
-### logging
-
-Log files are created in `<paths><logdir>`. Without a `logdir`, only the `-` value (console output) takes effect.
-
-| Option          | Status          | Notes                                                                                            |
-| --------------- | --------------- | ------------------------------------------------------------------------------------------------ |
-| `accesslog`     | Supported       | Access log file, `access.log` by default. `-` writes to standard error. See [above](#access-log) |
-| `errorlog`      | Supported       | Error log file, `error.log` by default. `-` writes to standard error. See [above](#error-log)    |
-| `playlistlog`   | Supported       | Playlist log file, disabled by default. See [above](#playlist-log)                               |
-| `loglevel`      | Supported       | Most verbose error log level, `1`/`error` to `4`/`debug`, `3`/`info` by default                  |
-| `logsize`       | Supported       | Size in KiB past which log files are rotated, 1GB by default                                     |
-| `logarchive`    | Supported       | When `1`, rotated logs keep a timestamped name instead of replacing `<file>.old`                 |
-| `memorybacklog` | Not implemented | Icecast's in-memory log view is not available                                                    |
-
-The `accesslog` and `playlistlog` settings are overridden by the `access_log` and `playlist_log` parameters.
-
-### http-headers
-
-Global HTTP headers are fully supported. Use the standard icecast format:
-
-```xml
-<http-headers>
-    <header name="Access-Control-Allow-Origin" value="*" />
-    <header name="X-Custom-Header" value="value" />
-</http-headers>
 ```
 
-### mount
+The file is one way to build the record: you can change the result like any other record, for instance `icecast.server.config.load(path).{port = 8100}`, and reload it as [above](#reloading). The `compatibility` argument (`"icecast-2.5"` by default) is written into the record and also decides how mounts are matched and whether the `cors` header type exists. No element of the file sets it, because most files are valid for several implementations.
 
-Mount configurations support both `type="default"` (settings applied to all mounts) and `type="normal"` (specific mount configurations).
+A mount's settings come from the record's `mount` function, which the file fills in. To change one mount, wrap that function. It returns `null` for a path the file has no `<mount>` for, so start from `m ?? {}` to cover that case too:
 
-#### Supported Mount Options
+```{.liquidsoap include="icecast-server-config-mount.liq"}
 
-| Option           | Description                                                                                |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| `mount-name`     | Mount point path (e.g., `/live.mp3`)                                                       |
-| `username`       | Source client username (default: "source")                                                 |
-| `password`       | Mount-specific password (overrides global)                                                 |
-| `dump-file`      | Not implemented: ignored with a warning                                                    |
-| `burst-size`     | Initial burst size for new listeners (bytes)                                               |
-| `max-listeners`  | Maximum number of listeners on this mount; more are refused with `403 Forbidden`           |
-| `fallback-mount` | Mount to fall back to when this source disconnects. A reload applies it to live mounts too |
-| `on-connect`     | Shell command to execute when source connects                                              |
-| `on-disconnect`  | Shell command to execute when source disconnects                                           |
-| `http-headers`   | Custom HTTP headers for this mount's responses                                             |
+```
 
-#### Unsupported Mount Options
+The translation is best effort. It maps the common settings and ignores, with a warning naming it, every element it does not reproduce: the other settings keep working. A file that would be served less safely is rejected instead, with `error.icecast.server.invalid_parameters`:
 
-These options are not yet implemented:
+- malformed XML, a root other than `<icecast>`, or a value of the wrong kind, such as a non-numeric `<port>`;
+- a mount `<authentication>` other than `url` or `htpasswd`, or one using `<role>`: ignoring it would open the mount to everyone;
+- a `<tls>` mode that serves TLS and plain HTTP on one port (`auto`, `auto_no_plain`, `rfc2817`), or a certificate with no `<tls>` mode, which Icecast takes to mean the same. Set `<tls>` to `rfc2818` for TLS or `disabled` for plain HTTP.
 
-| Option                  | Reason                                         |
-| ----------------------- | ---------------------------------------------- |
-| `hidden`                | Not yet implemented                            |
-| `public`                | Directory listing registration not implemented |
-| `intro`                 | Intro file playback not implemented            |
-| `max-listener-duration` | Listener duration limits not implemented       |
-| `authentication`        | URL-based authentication not implemented       |
+### What is translated
 
-#### Incompatible Mount Options
+| Element                                                                                                                    | Becomes                                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `hostname`, `location`, `admin`, `server-id`                                                                               | `hostname`, `location`, `admin_contact`, `server_id`                                                         |
+| `listen-socket`: `port`, `bind-address`, `tls` or `ssl`, `shoutcast-mount`, `trusted-proxy`                                | `port`, `bind_address`, `transport`, `shoutcast_mount`, `proxy_ips`. Only the first `listen-socket` is used. |
+| `authentication`: `source-password`, `admin-user`, `admin-password`, `health-password`                                     | the parameters of the same names                                                                             |
+| `limits`: `sources`, `clients`, `client-timeout`, `source-timeout`, `burst-size`, `burst-on-connect`, `max-listeners` (KH) | `max_sources`, `max_clients`, the timeouts, the burst, and every mount's default `max_listeners`             |
+| `paths`: `logdir`, `webroot`, certificate and key, `x-forwarded-for`, `allow-ip`, `deny-ip`, `deny-agents`                 | log locations, the preroll directory, the TLS transport, `proxy_ips`, access lists on every mount            |
+| `logging`: `accesslog`, `errorlog`, `playlistlog`, `loglevel`, `logsize`, `logarchive`                                     | the log parameters; files go under `logdir`, and `logsize` is in KiB                                         |
+| `http-headers`, and RSAS's `custom-headers`                                                                                | `http_headers`, on the server or the mount                                                                   |
+| `event-bindings`                                                                                                           | `event_bindings`, running the `exec`, `url` and `log` actions                                                |
+| `mount`                                                                                                                    | the `mount` callback (see below)                                                                             |
 
-These options do not apply to liquidsoap's architecture, see [Key Differences from Icecast](#key-differences-from-icecast).
+In a `<mount>`, `mount-name`, `username`, `password`, `max-listeners`, `burst-size`, `fallback-mount`, `fallback-when-full`, `linger-for` (KH), `hidden`, `on-connect`, `on-disconnect`, `http-headers`, `max-listener-duration`, `max-history`, `intro`, `preroll` (RSAS), `dump-file` and its limits, `health-password` and `authentication` are translated.
 
-| Option               | Reason                                                                     |
-| -------------------- | -------------------------------------------------------------------------- |
-| `fallback-override`  | Listeners stay on their mount, which switches back when its source returns |
-| `fallback-when-full` | Listeners past `max-listeners` are refused, not redirected                 |
+A path takes the `type="normal"` mount of that name, completed field by field with the first `type="default"` mount whose `mount-name` pattern matches, or that has none. Under `"kh"`, every `mount-name` is a pattern and the lowest `priority` wins. `<authentication type="url">` becomes URL authentication with the same options, including `mount_add`, `mount_remove` and `stream_auth`. `type="htpasswd"` becomes the htpasswd decision, and `allow_duplicate_users` set to `0` or `connections-per-user` limits each user's listeners. Access lists come first in every mount's decision, then authentication, then the `intro` and the `preroll`.
 
-### Configuration Sections Not Supported
+`fallback-override` is accepted and changes nothing: listeners always come back to the mount's own source. Directory listings (YP), relays and master/slave setups, `fileserve`, `alias` and `security` are not available and warn.
 
-The following icecast configuration sections are ignored:
+## A complete example
 
-- `fileserve`: static file serving. Use [harbor HTTP handlers](./harbor_http.md).
-- `relay`: stream relaying. Use `input.http`.
-- `directory`: directory listings (YP).
-- `security`: `chroot` and user change. Use your service manager to run liquidsoap as the user you want.
-
-## Complete Example
-
-Here is an example that starts the server from a configuration file and logs DJ connections:
+This server keeps an automated backup behind its live mount, protects a members mount with an htpasswd file, writes an access log, and reloads on `SIGHUP`:
 
 ```{.liquidsoap include="icecast-server-complete.liq"}
 
 ```
 
-### Minimal Configuration File
+## See also
 
-```xml
-<icecast>
-    <authentication>
-        <source-password>changeme</source-password>
-    </authentication>
-
-    <listen-socket>
-        <port>8000</port>
-    </listen-socket>
-
-    <mount type="default">
-        <burst-size>65536</burst-size>
-        <fallback-mount>/fallback</fallback-mount>
-    </mount>
-
-    <mount type="normal">
-        <mount-name>/live</mount-name>
-    </mount>
-</icecast>
-```
-
-## See Also
-
-- [Harbor Input](./harbor.md): The underlying technology for receiving source connections
-- [Harbor HTTP](./harbor_http.md): HTTP interface capabilities
-- [HLS Output](./hls_output.md): Alternative streaming output method
+- [Harbor](./harbor.md): the input that receives streams, which `icecast.server` builds on.
+- [Harbor HTTP](./harbor_http.md): serving your own HTTP endpoints, on the same port if you like.
+- [HLS output](./hls_output.md): another way to deliver streams to listeners.

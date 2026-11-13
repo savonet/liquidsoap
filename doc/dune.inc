@@ -1266,6 +1266,90 @@
    content/liq/harbor.http.response.liq)))
 
 (rule
+ (alias test-doc-hls-basic)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-basic.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-basic.liq)))
+
+(rule
+ (alias test-doc-hls-copy)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-copy.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-copy.liq)))
+
+(rule
+ (alias test-doc-hls-files)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-files.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-files.liq)))
+
+(rule
+ (alias test-doc-hls-harbor-https)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-harbor-https.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-harbor-https.liq)))
+
+(rule
+ (alias test-doc-hls-harbor)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-harbor.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-harbor.liq)))
+
+(rule
+ (alias test-doc-hls-main-playlist)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-main-playlist.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-main-playlist.liq)))
+
+(rule
  (alias test-doc-hls-metadata)
  (package liquidsoap)
  (deps
@@ -1278,6 +1362,48 @@
    --check
    --no-fallible-check
    content/liq/hls-metadata.liq)))
+
+(rule
+ (alias test-doc-hls-persist)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-persist.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-persist.liq)))
+
+(rule
+ (alias test-doc-hls-playlists)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-playlists.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-playlists.liq)))
+
+(rule
+ (alias test-doc-hls-variants)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-variants.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-variants.liq)))
 
 (rule
  (alias test-doc-http-input)
@@ -1378,6 +1504,20 @@
    content/liq/icecast-server-access-log.liq)))
 
 (rule
+ (alias test-doc-icecast-server-attach)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-attach.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-attach.liq)))
+
+(rule
  (alias test-doc-icecast-server-basic)
  (package liquidsoap)
  (deps
@@ -1406,6 +1546,20 @@
    content/liq/icecast-server-complete.liq)))
 
 (rule
+ (alias test-doc-icecast-server-config-mount)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-config-mount.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-config-mount.liq)))
+
+(rule
  (alias test-doc-icecast-server-config)
  (package liquidsoap)
  (deps
@@ -1420,6 +1574,20 @@
    content/liq/icecast-server-config.liq)))
 
 (rule
+ (alias test-doc-icecast-server-decisions)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-decisions.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-decisions.liq)))
+
+(rule
  (alias test-doc-icecast-server-dedicated-encoder)
  (package liquidsoap)
  (deps
@@ -1432,6 +1600,34 @@
    --check
    --no-fallible-check
    content/liq/icecast-server-dedicated-encoder.liq)))
+
+(rule
+ (alias test-doc-icecast-server-forwarded)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-forwarded.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-forwarded.liq)))
+
+(rule
+ (alias test-doc-icecast-server-headers)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-headers.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-headers.liq)))
 
 (rule
  (alias test-doc-icecast-server-ip-hash)
@@ -1462,6 +1658,20 @@
    content/liq/icecast-server-listener-callbacks.liq)))
 
 (rule
+ (alias test-doc-icecast-server-mounts)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-mounts.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-mounts.liq)))
+
+(rule
  (alias test-doc-icecast-server-plain-ips)
  (package liquidsoap)
  (deps
@@ -1474,6 +1684,20 @@
    --check
    --no-fallible-check
    content/liq/icecast-server-plain-ips.liq)))
+
+(rule
+ (alias test-doc-icecast-server-preroll)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-preroll.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-preroll.liq)))
 
 (rule
  (alias test-doc-icecast-server-reload)
@@ -1516,6 +1740,48 @@
    --check
    --no-fallible-check
    content/liq/icecast-server-serve-json.liq)))
+
+(rule
+ (alias test-doc-icecast-server-status-codes)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-status-codes.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-status-codes.liq)))
+
+(rule
+ (alias test-doc-icecast-server-tls)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-tls.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-tls.liq)))
+
+(rule
+ (alias test-doc-icecast-server-url-auth)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/icecast-server-url-auth.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/icecast-server-url-auth.liq)))
 
 (rule
  (alias test-doc-icy-update)
@@ -1844,20 +2110,6 @@
    --check
    --no-fallible-check
    content/liq/multitrack2.liq)))
-
-(rule
- (alias test-doc-output.file.hls)
- (package liquidsoap)
- (deps
-  (alias_rec ../install)
-  (source_tree ../src/libs)
-  (:test_liq content/liq/output.file.hls.liq))
- (action
-  (run
-   %{bin:liquidsoap}
-   --check
-   --no-fallible-check
-   content/liq/output.file.hls.liq)))
 
 (rule
  (alias test-doc-playlists)
@@ -2515,6 +2767,20 @@
    --no-fallible-check
    content/liq/video-webcam.liq)))
 
+(rule
+ (alias test-doc-xml-tree)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/xml-tree.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/xml-tree.liq)))
+
 (alias
  (name doctest)
  (deps
@@ -2603,7 +2869,16 @@
   (alias test-doc-harbor-usage)
   (alias test-doc-harbor.http.register)
   (alias test-doc-harbor.http.response)
+  (alias test-doc-hls-basic)
+  (alias test-doc-hls-copy)
+  (alias test-doc-hls-files)
+  (alias test-doc-hls-harbor)
+  (alias test-doc-hls-harbor-https)
+  (alias test-doc-hls-main-playlist)
   (alias test-doc-hls-metadata)
+  (alias test-doc-hls-persist)
+  (alias test-doc-hls-playlists)
+  (alias test-doc-hls-variants)
   (alias test-doc-http-input)
   (alias test-doc-icecast-output-basic)
   (alias test-doc-icecast-output-callbacks)
@@ -2611,16 +2886,26 @@
   (alias test-doc-icecast-output-icy)
   (alias test-doc-icecast-output-multiple)
   (alias test-doc-icecast-server-access-log)
+  (alias test-doc-icecast-server-attach)
   (alias test-doc-icecast-server-basic)
   (alias test-doc-icecast-server-complete)
   (alias test-doc-icecast-server-config)
+  (alias test-doc-icecast-server-config-mount)
+  (alias test-doc-icecast-server-decisions)
   (alias test-doc-icecast-server-dedicated-encoder)
+  (alias test-doc-icecast-server-forwarded)
+  (alias test-doc-icecast-server-headers)
   (alias test-doc-icecast-server-ip-hash)
   (alias test-doc-icecast-server-listener-callbacks)
+  (alias test-doc-icecast-server-mounts)
   (alias test-doc-icecast-server-plain-ips)
+  (alias test-doc-icecast-server-preroll)
   (alias test-doc-icecast-server-reload)
   (alias test-doc-icecast-server-serve-auth)
   (alias test-doc-icecast-server-serve-json)
+  (alias test-doc-icecast-server-status-codes)
+  (alias test-doc-icecast-server-tls)
+  (alias test-doc-icecast-server-url-auth)
   (alias test-doc-icy-update)
   (alias test-doc-implicit-float-ok)
   (alias test-doc-jack-buffer)
@@ -2645,7 +2930,6 @@
   (alias test-doc-multitrack-add-video-track2)
   (alias test-doc-multitrack-default-video-track)
   (alias test-doc-multitrack2)
-  (alias test-doc-output.file.hls)
   (alias test-doc-playlists)
   (alias test-doc-prometheus-callback)
   (alias test-doc-prometheus-settings)
@@ -2693,4 +2977,5 @@
   (alias test-doc-video-text)
   (alias test-doc-video-transition)
   (alias test-doc-video-weather)
-  (alias test-doc-video-webcam)))
+  (alias test-doc-video-webcam)
+  (alias test-doc-xml-tree)))

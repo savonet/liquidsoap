@@ -27,15 +27,19 @@ type event = [ `Delay of float | `Write of fd | `Read of fd ]
 
 (** A submitted task: what it waits on and what to run with whichever of its
     events occurred. [fds] are the distinct descriptors of [events], in the
-    order the core reports on them. *)
+    order the core reports on them. [pinned] is the one worker allowed to run
+    it, by domain. A task given a [ticket] can be withdrawn, and [claimed] is
+    then set by whichever of its handler and its withdrawal comes first; [0] and
+    an unused flag otherwise. *)
 type 'a t = {
   prio : 'a;
   t0 : float;
   events : event list;
   fds : fd array;
   fire : event list -> 'a t list;
-  (* The one worker allowed to run it, by domain. *)
   pinned : int option;
+  ticket : int;
+  claimed : bool Atomic.t;
 }
 
 external time : unit -> float = "duppy_stub_now"
@@ -53,6 +57,7 @@ module Core = struct
     = "duppy_stub_start_growing"
 
   external await_growth : t -> float -> int = "duppy_stub_await_growth"
+  external sleep : t -> float -> bool = "duppy_stub_sleep"
   external stop : t -> unit = "duppy_stub_stop"
   external reserve : t -> int -> int = "duppy_stub_reserve" [@@noalloc]
   external slots : t -> int = "duppy_stub_slots" [@@noalloc]
@@ -68,7 +73,12 @@ module Core = struct
     float ->
     fd array ->
     int array ->
+    int ->
     unit = "duppy_stub_submit_bytecode" "duppy_stub_submit"
+
+  (** The handle of the waiting task with this ticket, now withdrawn, or -1. *)
+  external withdraw : t -> int -> int = "duppy_stub_withdraw"
+  [@@noalloc]
 
   external take : t -> int -> int array -> int = "duppy_stub_take" [@@noalloc]
   external wait : t -> int -> unit = "duppy_stub_wait"
@@ -218,6 +228,11 @@ type 'a worker = {
   mutable aux_pending : (unit -> unit) list;
   mutable aux_busy : int;
   mutable aux_total : int;
+  (* The fewest idle auxiliary threads since the last sweep: that many went
+     unused for the whole interval. *)
+  mutable aux_idle_low : int;
+  (* How many idle auxiliary threads the last sweep asked to exit. *)
+  mutable aux_retire : int;
 }
 
 type member = [ `Domain of unit Domain.t | `Thread of Thread.t ]
@@ -311,6 +326,10 @@ let accepted_by s prio =
       (fun mask w -> if w.accepts prio then mask lor (1 lsl w.index) else mask)
       0 s.workers
 
+let remove_from_core s ticket =
+  let handle = Core.withdraw s.core ticket in
+  if handle >= 0 then ignore (Slab.take s.tasks handle)
+
 let submit s t =
   if not (Atomic.get s.stopped) then begin
     let rank = s.rank t.prio in
@@ -330,14 +349,17 @@ let submit s t =
         | d -> Float.max 0. (t.t0 +. d -. time ())
     in
     let handle = Slab.add s.tasks t in
-    try
-      Core.submit s.core handle rank
-        (class_code (s.classify t.prio))
-        pin (accepted_by s t.prio) delay t.fds
-        (Array.map (fun fd -> interest_for fd t.events) t.fds)
-    with exn ->
-      ignore (Slab.take s.tasks handle);
-      raise exn
+    (try
+       Core.submit s.core handle rank
+         (class_code (s.classify t.prio))
+         pin (accepted_by s t.prio) delay t.fds
+         (Array.map (fun fd -> interest_for fd t.events) t.fds)
+         t.ticket
+     with exn ->
+       ignore (Slab.take s.tasks handle);
+       raise exn);
+    (* A withdrawal that ran while the task was held found nothing to remove. *)
+    if t.ticket <> 0 && Atomic.get t.claimed then remove_from_core s t.ticket
   end
 
 let flush_pending s =
@@ -369,8 +391,11 @@ module Task = struct
     handler : 'b list -> ('a, 'b) task list;
   }
 
-  let rec t_of_task ?domain (task : ('a, [< event ]) task) =
+  let unclaimed = Atomic.make false
+
+  let rec t_of_task ?domain ?(ticket = 0) (task : ('a, [< event ]) task) =
     let events = (task.events :> event list) in
+    let claimed = if ticket = 0 then unclaimed else Atomic.make false in
     {
       prio = task.priority;
       t0 = time ();
@@ -378,25 +403,45 @@ module Task = struct
       fds = Array.of_list (fds_of_events events);
       fire =
         (fun fired ->
-          let l =
-            List.filter (fun ev -> List.mem (ev :> event) fired) task.events
-          in
-          List.map (t_of_task ?domain) (task.handler l));
+          if ticket <> 0 && not (Atomic.compare_and_set claimed false true) then
+            []
+          else (
+            let l =
+              List.filter (fun ev -> List.mem (ev :> event) fired) task.events
+            in
+            List.map (fun t -> t_of_task ?domain t) (task.handler l)));
       pinned = domain;
+      ticket;
+      claimed;
     }
 
   (* A pin names a worker that has to exist and accept the task, so a wrong one
      fails here rather than leaving a task nobody will ever take. *)
-  let add ?domain s t =
-    (match domain with
+  let check_domain ?domain s t =
+    match domain with
       | None -> ()
       | Some d -> (
           if (not (Atomic.get s.running)) || s.threaded then
             raise (Unknown_domain d);
           match worker_for s d with
             | Some w when w.accepts t.priority -> ()
-            | _ -> raise (Unknown_domain d)));
+            | _ -> raise (Unknown_domain d))
+
+  let add ?domain s t =
+    check_domain ?domain s t;
     add_t s [t_of_task ?domain t]
+
+  let tickets = Atomic.make 1
+
+  let add_withdrawable ?domain s t =
+    check_domain ?domain s t;
+    let t = t_of_task ?domain ~ticket:(Atomic.fetch_and_add tickets 1) t in
+    add_t s [t];
+    (* Holding the withdrawal must not keep the handler alive. *)
+    let claimed = t.claimed and ticket = t.ticket in
+    fun () ->
+      if Atomic.compare_and_set claimed false true then
+        remove_from_core s ticket
 end
 
 open Task
@@ -424,8 +469,8 @@ let await ~priority s events =
                });
        })
 
-(* The delay and the resumer race on [resumed]. The loser stays a task that
-   does nothing: cancelling it would need a wake by handle in the core. *)
+(* The delay and the resumer race on [resumed]; a resumer withdraws the delay,
+   which then does nothing if it already fired. *)
 let suspend ?delay ~priority s register =
   ignore
     (Effect.perform
@@ -434,20 +479,25 @@ let suspend ?delay ~priority s register =
             park =
               (fun resume ->
                 let resumed = Atomic.make false in
-                let resume_after delay =
-                  Task.add s
-                    {
-                      priority;
-                      events = [`Delay delay];
-                      handler =
-                        (fun _ ->
-                          if Atomic.compare_and_set resumed false true then
-                            resume [];
-                          []);
-                    }
+                let after delay =
+                  {
+                    priority;
+                    events = [`Delay delay];
+                    handler =
+                      (fun _ ->
+                        if Atomic.compare_and_set resumed false true then
+                          resume [];
+                        []);
+                  }
                 in
-                Option.iter resume_after delay;
-                register (fun () -> resume_after 0.));
+                let withdraw_delay =
+                  match delay with
+                    | Some delay -> Task.add_withdrawable s (after delay)
+                    | None -> ignore
+                in
+                register (fun () ->
+                    withdraw_delay ();
+                    Task.add s (after 0.)));
           }))
 
 let reschedule ?(delay = 0.) ~priority s =
@@ -512,7 +562,8 @@ let run_task s fn =
 (** Auxiliary threads are kept parked between tasks, since a task in this class
     can be shorter than the spawn it would otherwise pay for. A worker keeps an
     even share of the budget parked: the threads a burst added beyond it exit
-    once idle.
+    once idle, and those of that share that stay unused for a sweep interval
+    exit too, down to one.
 
     Finishing a job leads back into the queue check under the same lock, so a
     thread with work waiting never parks and is never counted idle in the window
@@ -522,16 +573,19 @@ let aux_loop s w =
     let workers = List.length s.workers in
     (Core.slots s.core + workers - 1) / workers
   in
+  let retiring () = w.aux_retire > 0 && w.aux_total > 1 in
   let rec loop () =
     while
       w.aux_pending = []
       && (not (Atomic.get s.stopped))
       && w.aux_total <= kept ()
+      && not (retiring ())
     do
       Condition.wait w.aux_c w.aux_m
     done;
     match w.aux_pending with
       | [] ->
+          if w.aux_retire > 0 then w.aux_retire <- w.aux_retire - 1;
           w.aux_total <- w.aux_total - 1;
           Mutex.unlock w.aux_m
       | job :: rest ->
@@ -550,6 +604,21 @@ let aux_loop s w =
   in
   Mutex.lock w.aux_m;
   loop ()
+
+(* Held under [w.aux_m]. Queued jobs count against the parked threads that
+   will take them. *)
+let idle_auxiliaries w =
+  max 0 (w.aux_total - w.aux_busy - List.length w.aux_pending)
+
+(** Asks the auxiliary threads of [w] that went unused since the last sweep to
+    exit, keeping one. *)
+let sweep_auxiliaries w =
+  Mutex.protect w.aux_m (fun () ->
+      let idle = idle_auxiliaries w in
+      let unused = min w.aux_idle_low idle in
+      w.aux_retire <- max 0 (min unused (w.aux_total - 1));
+      w.aux_idle_low <- idle - w.aux_retire;
+      if w.aux_retire > 0 then Condition.broadcast w.aux_c)
 
 (** Blocking tasks run on an auxiliary systhread inside the worker's domain:
     once the task parks in a syscall it releases the runtime lock and the domain
@@ -570,6 +639,7 @@ let run_blocking s w fn =
   else begin
     Mutex.lock w.aux_m;
     w.aux_pending <- w.aux_pending @ [run];
+    w.aux_idle_low <- min w.aux_idle_low (idle_auxiliaries w);
     if
       w.aux_total - w.aux_busy < List.length w.aux_pending
       && w.aux_total < Core.slots s.core
@@ -644,7 +714,10 @@ let reserve_blocking s =
   let released = Atomic.make false in
   fun () -> if Atomic.compare_and_set released false true then change (-1)
 
-let start ?pool ?(max_blocking = 64) ?(grow_after = 1.) ?log:logger s =
+let start ?pool ?(max_blocking = 64) ?(grow_after = 1.)
+    ?(idle_thread_timeout = 30.) ?log:logger s =
+  if not (idle_thread_timeout > 0.) then
+    invalid_arg "Duppy.start: idle_thread_timeout must be positive";
   if not (Atomic.compare_and_set s.started false true) then
     failwith "Duppy.start: scheduler already started";
   s.log <- logger;
@@ -682,6 +755,8 @@ let start ?pool ?(max_blocking = 64) ?(grow_after = 1.) ?log:logger s =
           aux_pending = [];
           aux_busy = 0;
           aux_total = 0;
+          aux_idle_low = 0;
+          aux_retire = 0;
         })
       accepts
   in
@@ -737,7 +812,15 @@ let start ?pool ?(max_blocking = 64) ?(grow_after = 1.) ?log:logger s =
       grow ()
     end
   in
-  if initial < count then ignore (Thread.create (guard grow) ())
+  if initial < count then ignore (Thread.create (guard grow) ());
+  let rec sweep () =
+    if not (Core.sleep s.core idle_thread_timeout) then begin
+      List.iter sweep_auxiliaries s.workers;
+      sweep ()
+    end
+  in
+  if (not s.threaded) && Float.is_finite idle_thread_timeout then
+    ignore (Thread.create (guard sweep) ())
 
 let least_loaded load = function
   | [] -> None

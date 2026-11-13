@@ -330,6 +330,8 @@ let adts_extension f =
     | [(_, `Encode { codec = Some "aac" })] -> ("aac", "audio/aac")
     | _ -> ("adts", "application/octet-stream")
 
+let iso_family = ["mp4"; "mov"; "ipod"; "ismv"]
+
 let extension_and_mime f =
   match f.format with
     | Some "ogg" -> (Some "ogg", "application/ogg")
@@ -343,6 +345,7 @@ let extension_and_mime f =
         let extension, mime = adts_extension f in
         (Some extension, mime)
     | Some "mp4" -> (Some "mp4", "video/mp4")
+    | Some "webvtt" -> (Some "vtt", "text/vtt")
     | Some "webm" -> (Some "webm", "video/webm")
     | Some "wav" -> (Some "wav", "audio/wav")
     | _ -> (None, "application/octet-stream")

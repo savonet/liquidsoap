@@ -1,6 +1,5 @@
-server = icecast.server()
+server = icecast.server({source_password = "change-me"})
 
-# React when a source connects
 server.on_source_connect(
   fun (r) ->
     log.important(
@@ -8,7 +7,6 @@ server.on_source_connect(
     )
 )
 
-# React when a source disconnects
 server.on_source_disconnect(
   fun (r) ->
     log.important(

@@ -48,6 +48,7 @@ let write t frame =
 let feed t frame =
   let samples = Avutil.Audio.frame_nb_samples frame in
   if samples > 0 then (
+    let frame = Avutil.Frame.dup frame in
     Avutil.Frame.set_pts frame (Some (Int64.of_int t.fed));
     t.fed <- t.fed + samples;
     match t.reframer with

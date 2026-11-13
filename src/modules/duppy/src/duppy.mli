@@ -154,6 +154,10 @@ val create :
   * pool. Default: [64]
   * @param grow_after Seconds of saturation before a growing pool adds a
   * domain. Default: [1.]
+  * @param idle_thread_timeout Seconds an auxiliary thread may stay parked
+  * without running a task before it exits; each worker keeps one, and
+  * [infinity] keeps them all. It must be positive. Unused by a thread pool.
+  * Default: [30.]
   * @param log Logging function. Default: no logging *)
 val start :
   ?pool:
@@ -163,6 +167,7 @@ val start :
     | `Threads of ('a -> bool) list ] ->
   ?max_blocking:int ->
   ?grow_after:float ->
+  ?idle_thread_timeout:float ->
   ?log:(string -> unit) ->
   'a scheduler ->
   unit
@@ -203,6 +208,14 @@ module Task : sig
       no started worker is on that domain or accepts the task's priority, and
       always on a thread pool, where workers share a domain. *)
   val add : ?domain:int -> 'a scheduler -> ('a, [< event ]) task -> unit
+
+  (** [add_withdrawable] schedules a task as {!add} does and returns a function
+      that withdraws it. Once that function has returned, the handler does not
+      start and the core has dropped the task's descriptors, which may then be
+      closed. Calling it after the handler started does nothing, and so does
+      calling it again. The tasks the handler returns cannot be withdrawn. *)
+  val add_withdrawable :
+    ?domain:int -> 'a scheduler -> ('a, [< event ]) task -> unit -> unit
 end
 
 (** {2 Direct-style computations}

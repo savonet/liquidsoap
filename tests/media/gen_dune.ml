@@ -30,7 +30,6 @@ let standalone_tests =
     ("ffmpeg_inline_encode_decode.liq", []);
     ("ffmpeg_inline_encode_decode_audio.liq", []);
     ("ffmpeg_inline_encode_decode_video.liq", []);
-    ("ffmpeg_raw_hls.liq", []);
     ("pcm_s16_decode.liq", []);
     ("pcm_f32_decode.liq", []);
     ("subtitle_concat.liq", ["test-subtitle.srt"]);
@@ -38,6 +37,7 @@ let standalone_tests =
     ("subtitle_multi.liq", ["test-subtitle.srt"]);
     ("subtitle_copy_encode.liq", ["test-subtitle.srt"]);
     ("subtitle_reencode.liq", ["test-subtitle.srt"]);
+    ("hls_harbor_serving_fmp4.liq", []);
   ]
 
 let audio_formats = Test_media_formats.audio_formats

@@ -40,7 +40,7 @@ end
 
 def accept(_) =
   stop_and_wait("accept")
-  true
+  null
 end
 
 out =

@@ -17,6 +17,7 @@
 %include "utils.liq"
 %include "clock.liq"
 %include "metadata.liq"
+%include "xml.liq"
 %include "nfo.liq"
 %include "request.liq"
 %include "playlist.liq"

@@ -750,3 +750,12 @@ let video_size track =
     | Some { Copy_params.media = `Video p } ->
         Some (Avcodec.Video.get_width p, Avcodec.Video.get_height p)
     | _ -> None
+
+let continue_from t ~from =
+  t.skipped <- from.skipped;
+  List.iter
+    (fun track ->
+      match List.find_opt (fun o -> o.field = track.field) from.tracks with
+        | Some o -> track.track_end <- o.track_end
+        | None -> ())
+    t.tracks

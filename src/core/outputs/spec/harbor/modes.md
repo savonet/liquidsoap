@@ -23,9 +23,11 @@ has no history to send.
 
 What the mode keeps per listener besides the common fields (record, socket,
 closed flag, ICY position and last generation sent, last progress). Created
-during admission ([connection.md §6](connection.md#6-admission), step 5).
-When the mode's encoder state is not running, creation refuses the request
-with the 503 reply of that step.
+during admission with the initial bytes
+([connection.md §6](connection.md#6-admission), step 7), after `on_connect`.
+When the mode's encoder state has stopped by then, creation fails and the
+listener ends closed, with both callbacks, as for an output stopped after
+step 6 ([connection.md §7](connection.md#7-failure-paths)).
 
 ## 2. Initial bytes
 
@@ -33,6 +35,19 @@ What a new listener is owed before live data, queued during admission behind
 the response head ([connection.md §6](connection.md#6-admission), step 7). It
 runs before the listener is published, so nothing else touches the listener
 yet. Initial bytes do not count towards `buffer` ([§4](#4-flush)).
+
+A listener admitted with a preroll owes it right after the response head,
+before the mode's initial bytes. Its live data starts only once the preroll
+has been accepted by its socket, as Icecast's intros: a preroll longer than
+`buffer`, read by a slow client, never leads to overflow. The preroll's bytes
+are stream data for ICY ([icy.md §4](icy.md#4-cadence-and-change-detection)).
+A preroll MUST NOT be copied per listener: the same ad commonly goes to every
+listener.
+
+A listener that joins while the output is kept started with its source
+unavailable ([operator.md §7](operator.md#7-lifecycle)) is owed the response
+head and the initial bytes the mode defines, with no history of the stream
+before the gap.
 
 ## 3. Pending test
 

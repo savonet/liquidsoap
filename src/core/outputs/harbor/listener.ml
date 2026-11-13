@@ -3,6 +3,7 @@ type info = {
   ip : string;
   peer : string;
   uri : string;
+  query_string : string;
   protocol : string;
   headers : (string * string) list;
   connected_at : float;
@@ -13,20 +14,26 @@ type t = {
   log : Log.t;
   socket : Harbor.socket;
   wake : unit -> unit;
+  deadline : float option;
   bytes_sent : int Atomic.t;
   mutable last_progress : float;
+  mutable owed_nothing : bool;
   closed_at : float option Atomic.t;
+  socket_users : int Atomic.t;
 }
 
-let create ~log ~wake info socket =
+let create ?deadline ~log ~wake info socket =
   {
     info;
     log;
     socket;
     wake;
+    deadline;
     bytes_sent = Atomic.make 0;
     last_progress = 0.;
+    owed_nothing = false;
     closed_at = Atomic.make None;
+    socket_users = Atomic.make 1;
   }
 
 let info t = t.info
@@ -58,8 +65,11 @@ let write t data offset length =
           (Printexc.to_string exn);
         -1
 
+let deadline t = t.deadline
 let last_progress t = t.last_progress
 let set_last_progress t time = t.last_progress <- time
+let owed_nothing t = t.owed_nothing
+let set_owed_nothing t owed_nothing = t.owed_nothing <- owed_nothing
 
 let mark_closed t =
   if Atomic.compare_and_set t.closed_at None (Some (Unix.gettimeofday ())) then (
@@ -75,6 +85,17 @@ let close_for_overflow t =
     mark_closed t)
 
 let close_socket t = try t.socket#close with _ -> ()
+let hold_socket t = Atomic.incr t.socket_users
+
+(* The owner shuts the socket down while it still holds its use, so the
+   descriptor is still this listener's: a watch waiting on it wakes up. *)
+let release_socket t user =
+  if user = `Owner && Atomic.get t.socket_users > 1 then (
+    try Unix.shutdown t.socket#file_descr Unix.SHUTDOWN_ALL with _ -> ());
+  if Atomic.fetch_and_add t.socket_users (-1) = 1 then (
+    close_socket t;
+    true)
+  else false
 
 let record_t =
   Lang.record_t
@@ -82,6 +103,7 @@ let record_t =
       ("id", Lang.int_t);
       ("ip", Lang.string_t);
       ("uri", Lang.string_t);
+      ("query_string", Lang.string_t);
       ("protocol", Lang.string_t);
       ("headers", Lang.list_t (Lang.product_t Lang.string_t Lang.string_t));
       ("connected_at", Lang.float_t);
@@ -95,6 +117,7 @@ let to_record info ~duration ~bytes_sent =
       ("id", Lang.int info.id);
       ("ip", Lang.string info.ip);
       ("uri", Lang.string info.uri);
+      ("query_string", Lang.string info.query_string);
       ("protocol", Lang.string info.protocol);
       ( "headers",
         Lang.list

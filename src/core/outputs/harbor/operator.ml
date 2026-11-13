@@ -42,6 +42,7 @@ type parameters = {
   headers : (string * string) list;
   allow_unsynced_clock : bool;
   override_mount : bool;
+  keep_listeners : bool;
 }
 
 (* The encoder-mode contract of modes.md, as the operator uses it; [encode]
@@ -53,9 +54,11 @@ type mode = {
   running : unit -> bool;
   encode : Frame.t -> unit -> unit;
   metadata : Frame.Metadata.Export.t -> Icy.event -> unit;
+  hold : unit -> unit;
   join :
     head:string ->
     icy:bool ->
+    preroll:string option ->
     Listener.t ->
     (pending:(unit -> bool) ->
     flush:(scratch:bytes -> unit) ->
@@ -78,8 +81,10 @@ let shared_mode ~factory parameters =
         let encoded = Shared.encode t frame in
         fun () -> Shared.send t encoded);
     metadata = Shared.metadata t;
+    hold = (fun () -> Shared.hold t);
     join =
-      (fun ~head ~icy listener make -> Shared.join t ~head ~icy listener make);
+      (fun ~head ~icy ~preroll listener make ->
+        Shared.join t ~head ~icy ~preroll listener make);
   }
 
 let dedicated_mode ~factory parameters =
@@ -93,12 +98,78 @@ let dedicated_mode ~factory parameters =
     running = (fun () -> Dedicated.running t);
     encode = (fun frame () -> Dedicated.send t frame);
     metadata = Dedicated.metadata t;
+    hold = ignore;
     join =
-      (fun ~head ~icy listener make ->
-        Dedicated.join t ~head ~icy listener make);
+      (fun ~head ~icy ~preroll listener make ->
+        Dedicated.join t ~head ~icy ~preroll listener make);
   }
 
 let invalid value message = raise (Error.Invalid_value (value, message, []))
+let headers_t = Lang.list_t (Lang.product_t Lang.string_t Lang.string_t)
+
+let decision_t =
+  Lang.optional_record_t
+    [
+      ("refuse", Lang.nullable_t Harbor_refusal.t);
+      ("time_limit", Lang.nullable_t Lang.float_t);
+      ("preroll", Lang.nullable_t Lang.string_t);
+      ("headers", Lang.nullable_t headers_t);
+      ("on_dropped", Lang.nullable_t (Lang.fun_t [] Lang.unit_t));
+    ]
+
+(* [on_dropped] is called when the request ends before [on_connect]. *)
+type admission = {
+  time_limit : float option;
+  preroll : string option;
+  headers : (string * string) list;
+  on_dropped : Lang.value option;
+}
+
+let admit_all =
+  { time_limit = None; preroll = None; headers = []; on_dropped = None }
+
+let headers_of_value value =
+  List.map
+    (fun value ->
+      let name, content = Lang.to_product value in
+      let header = (Lang.to_string name, Lang.to_string content) in
+      Option.iter (invalid value) (Harbor_refusal.header_error header);
+      header)
+    (Lang.to_list value)
+
+(* [`Invalid] is an admitting decision that fails validation, with its
+   [on_dropped]. *)
+let decision_of_value value =
+  match Lang.to_option value with
+    | None -> `Admit admit_all
+    | Some value -> (
+        let fields, _ = Lang.split_meths value in
+        let field name convert =
+          Option.bind
+            (List.assoc_opt name fields)
+            (Lang.to_valued_option convert)
+        in
+        match field "refuse" Harbor_refusal.of_value with
+          | Some refusal -> `Refuse refusal
+          | None -> (
+              let on_dropped = field "on_dropped" Fun.id in
+              try
+                `Admit
+                  {
+                    time_limit =
+                      field "time_limit" (fun limit ->
+                          let limit = Lang.to_float limit in
+                          if limit < 0. || not (Float.is_finite limit) then
+                            invalid value
+                              "Time limit must be finite and not negative.";
+                          limit);
+                    preroll = field "preroll" Lang.to_string;
+                    headers =
+                      Option.value ~default:[]
+                        (field "headers" headers_of_value);
+                    on_dropped;
+                  }
+              with exn -> `Invalid (on_dropped, exn)))
 
 let parse p =
   let arg name = List.assoc name p in
@@ -122,18 +193,7 @@ let parse p =
     | Some burst when (not dedicated) && burst > buffer ->
         invalid (arg "buffer") "Maximum buffering inferior to burst length"
     | _ -> ());
-  let headers =
-    List.map
-      (fun header ->
-        let name, value = Lang.to_product header in
-        let name = Lang.to_string name and value = Lang.to_string value in
-        if not (Connection.is_token name) then
-          invalid header "Header name must be an HTTP token.";
-        if String.exists (fun c -> c = '\r' || c = '\n') value then
-          invalid header "Header value must not contain a line break.";
-        (name, value))
-      (Lang.to_list (arg "headers"))
-  in
+  let headers = headers_of_value (arg "headers") in
   let encoding =
     match Lang.to_string (arg "encoding") with
       | "" -> None
@@ -157,6 +217,7 @@ let parse p =
       headers;
       allow_unsynced_clock = Lang.to_bool (arg "allow_unsynced_clock");
       override_mount = Lang.to_bool (arg "override_mount");
+      keep_listeners = Lang.to_bool (arg "keep_listeners");
     },
     dedicated )
 
@@ -185,6 +246,12 @@ class output p =
     val mode =
       if dedicated then dedicated_mode ~factory parameters
       else shared_mode ~factory parameters
+
+    method! private on_unavailable_source =
+      if parameters.keep_listeners then (
+        mode.hold ();
+        `Hold)
+      else `Stop
 
     method private self_sync = (Lang.to_source source)#cached_self_sync
     val run : run option Atomic.t = Atomic.make None
@@ -351,22 +418,40 @@ class output p =
                              (Printexc.to_string exn));
                         refuse ""))
 
-    method private accepted info =
+    method private drop on_dropped =
+      Option.iter
+        (fun fn ->
+          try ignore (Lang.apply fn [])
+          with exn ->
+            let bt = Printexc.get_backtrace () in
+            Utils.log_exception ~log:self#log ~bt
+              (Printf.sprintf "Admission on_dropped failed: %s"
+                 (Printexc.to_string exn)))
+        on_dropped
+
+    method private decision info =
       match parameters.accept with
-        | None -> true
+        | None -> `Admit admit_all
         | Some accept -> (
-            try
-              Lang.to_bool
-                (Lang.apply accept [("", Listener.info_to_value info)])
-            with exn ->
+            let failed exn =
               let bt = Printexc.get_backtrace () in
               Utils.log_exception ~log:self#log ~bt
                 (Printf.sprintf "Admission predicate failed for %s: %s"
                    info.Listener.peer (Printexc.to_string exn));
-              false)
+              `Refuse Connection.forbidden
+            in
+            match
+              decision_of_value
+                (Lang.apply accept [("", Listener.info_to_value info)])
+            with
+              | (`Admit _ | `Refuse _) as decision -> decision
+              | `Invalid (on_dropped, exn) ->
+                  self#drop on_dropped;
+                  failed exn
+              | exception exn -> failed exn)
 
-    method private handle ~protocol ~meth:_ ~data:_ ~headers ~query ~socket uri
-        =
+    method private handle ~protocol ~meth:_ ~data:_ ~headers ~query
+        ~query_string ~socket uri =
       let sockaddr = Unix.getpeername socket#file_descr in
       let ip, peer = peer_address sockaddr in
       self#log#info "New listener connection from %s" peer;
@@ -385,30 +470,43 @@ class output p =
           ip;
           peer;
           uri;
+          query_string;
           protocol;
           headers;
           connected_at = Unix.gettimeofday ();
         }
       in
-      if not (self#accepted info) then (
-        self#log#info "Listener %s refused" peer;
-        Harbor.simple_reply (Connection.forbidden ~protocol));
-      if not (mode.running ()) then unavailable ();
+      let admission =
+        match self#decision info with
+          | `Admit admission -> admission
+          | `Refuse refusal ->
+              self#log#info "Listener %s refused: %d %s" peer
+                refusal.Harbor_refusal.status refusal.Harbor_refusal.reason;
+              Harbor.simple_reply (Harbor_refusal.reply ~protocol refusal)
+      in
       let group = groups.(info.id mod Array.length groups) in
+      if not (mode.running ()) then (
+        self#drop admission.on_dropped;
+        unavailable ());
       let listener =
-        Listener.create ~log:self#log
+        Listener.create
+          ?deadline:
+            (Option.map
+               (fun limit -> Listener.now () +. limit)
+               admission.time_limit)
+          ~log:self#log
           ~wake:(fun () -> Group.wake group)
           info socket
       in
       self#fire on_connect (Listener.to_value listener);
       Mutex.protect connected_lock (fun () ->
           Hashtbl.replace connected info.id listener);
-      self#admit ~protocol ~headers ~group listener;
+      self#admit ~protocol ~headers ~admission ~group listener;
       Harbor.custom ()
 
     (* Steps 7 to 9 of admission: from here on, every failure ends with the
        listener closed and both callbacks fired. *)
-    method private admit ~protocol ~headers ~group listener =
+    method private admit ~protocol ~headers ~admission ~group listener =
       let fail ?member reason =
         self#log#info "Listener %s failed to connect: %s"
           (Listener.info listener).peer reason;
@@ -422,10 +520,11 @@ class output p =
       let head =
         Connection.response_head ~protocol ~mime
           ~metaint:(if icy then Some parameters.metaint else None)
-          parameters.headers
+          (parameters.headers @ admission.headers)
       in
       match
-        mode.join ~head ~icy listener (fun ~pending ~flush ~teardown ->
+        mode.join ~head ~icy ~preroll:admission.preroll listener
+          (fun ~pending ~flush ~teardown ->
             {
               Group.listener;
               pending;
@@ -508,13 +607,24 @@ let proto frame_t =
            null, listeners are not asked for credentials." );
       ( "accept",
         Lang.nullable_t
-          (Lang.fun_t [(false, "", Listener.record_t)] Lang.bool_t),
+          (Lang.fun_t
+             [(false, "", Listener.record_t)]
+             (Lang.nullable_t decision_t)),
         Some Lang.null,
         Some
           "Admission predicate, called with the listener record of an \
-           authenticated request before `on_connect`: `false` refuses it with \
-           `403 Forbidden`. When null, every authenticated request is \
-           admitted." );
+           authenticated request before `on_connect`. It returns `null` to \
+           admit the request, or `{time_limit?, preroll?, headers?, \
+           on_dropped?}` to admit it, disconnect it after `time_limit` \
+           seconds, send it the bytes of `preroll` before the stream and \
+           `headers` after the output's own in the response, and call \
+           `on_dropped` if the request ends before `on_connect`; or `{refuse = \
+           {status, reason, headers?}}` to refuse it with that status line and \
+           those headers and an empty body. A preroll is sent as is: it must \
+           be in the stream's format, for instance MP3 or ADTS AAC with the \
+           same parameters. A predicate that raises, or returns an invalid \
+           decision, refuses with `403 Forbidden`. When null, every \
+           authenticated request is admitted." );
       ( "buffer",
         Lang.int_t,
         Some (Lang.int (5 * 65535)),
@@ -551,6 +661,14 @@ let proto frame_t =
           "Advanced: take over the mount when another registration on the port \
            already serves it, instead of failing to start. The most recent \
            registration serves the mount." );
+      ( "keep_listeners",
+        Lang.bool_t,
+        Some (Lang.bool false),
+        Some
+          "With a fallible source: stay started while the source is \
+           unavailable, keeping the listeners connected with no data, instead \
+           of stopping. The output then ends only by `stop`, `shutdown` or \
+           process shutdown." );
       ("", Lang.source_t frame_t, None, None);
     ]
 
