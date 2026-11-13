@@ -26,7 +26,7 @@ repos:
         exclude: (dune.inc|fixtures/)
 
   - repo: https://github.com/savonet/pre-commit-liquidsoap
-    rev: 1072125959f2082843c0ee9d5765c85dfd3c3570
+    rev: 075b88f4e5da266181fb48d6008c8dda2e236939
     hooks:
       - id: liquidsoap-prettier
         # Snapshot inputs: their exact text is what the snapshots cover.
