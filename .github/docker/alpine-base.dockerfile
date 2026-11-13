@@ -4,7 +4,7 @@ ENTRYPOINT bash
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
-ARG OCAML_VERSION=5.5.1
+ARG OCAML_VERSION
 ARG OCAML_PATCH_URL
 
 USER root
@@ -61,14 +61,15 @@ RUN \
     PACKAGES=`cat /tmp/packages | xargs echo` && \
     opam install --no-depexts -y liquidsoap $PACKAGES $EXT_PACKAGES && \
     opam uninstall --no-depexts -y liquidsoap-lang $PACKAGES ffmpeg-avutil && \
-    opam pin list --short | grep -v '^ocaml-compiler$' | xargs -r opam pin remove -y && \
+    opam pin list --short | grep -vxE 'ocaml-compiler|dune' | xargs -r opam pin remove -y && \
     rm -rf /tmp/liquidsoap && \
     opam clean
 
-# The compiler pin has to survive the pin cleanup above, or the patched compiler is
-# silently replaced by the release one.
+# The compiler and dune pins have to survive the pin cleanup above, or the release
+# versions silently replace them.
 RUN eval $(opam env) && \
-    (! opam var ocaml_patch_url >/dev/null 2>&1 || opam pin list --short | grep -qx ocaml-compiler)
+    (! opam var ocaml_patch_url >/dev/null 2>&1 || opam pin list --short | grep -qx ocaml-compiler) && \
+    opam pin list --short | grep -qx dune
 
 USER root
 

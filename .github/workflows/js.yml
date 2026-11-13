@@ -3,6 +3,9 @@ name: JS Build
 on:
   workflow_call:
     inputs:
+      ocaml_version:
+        required: true
+        type: string
       sha:
         required: true
         type: string
@@ -14,7 +17,7 @@ jobs:
   build_js:
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:129ae708d9cf644f63e08309efcff81c44c7c320159127996344397726434e0d
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-${{ inputs.ocaml_version }}
       options: --user root
     env:
       HOME: /home/opam
@@ -25,17 +28,9 @@ jobs:
           cd /tmp/liquidsoap
           sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
           sudo -u opam git checkout ${{ inputs.sha }}
-      - name: Install npm
-        run: |
-          apt-get update
-          apt-get install -y npm
       - name: Build JS
         run: |
           cd /tmp/liquidsoap
-          sudo -u opam -E opam remove -y conf-pkg-config conf-lame
-          sudo -u opam -E opam update
-          sudo -u opam -E opam upgrade -y
-          sudo -u opam -E opam install -y domain_shims xml-light
           sudo -u opam -E opam exec -- dune build --profile release src/js --verbose
       - name: Upload JS artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

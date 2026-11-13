@@ -53,9 +53,6 @@ jobs:
         ocaml_version: ${{ fromJson(inputs.ocaml_version) }}
         platform: ${{ fromJson(inputs.build_platform) }}
         include: ${{ fromJson(inputs.build_include) }}
-        exclude:
-          - os: alpine
-            ocaml_version: 5.2.0-ox
     container:
       image: ghcr.io/savonet/liquidsoap:ci-v2-${{ matrix.os }}-${{ matrix.ocaml_version }}
       options: --user root --privileged -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}

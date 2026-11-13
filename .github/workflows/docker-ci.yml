@@ -24,9 +24,8 @@ on:
         default: '["fedora:44"]'
         type: string
       fedora_ocaml_versions:
-        description: "OCaml versions for Fedora (JSON array)"
+        description: "OCaml versions for Fedora (JSON array), defaults to .github/ocaml-version"
         required: false
-        default: '["5.5.1"]'
         type: string
       debian_base_images:
         description: "Debian/Ubuntu base images (JSON array)"
@@ -34,14 +33,12 @@ on:
         default: '["debian:forky","debian:trixie","ubuntu:resolute","ubuntu:plucky","ubuntu:noble"]'
         type: string
       debian_ocaml_versions:
-        description: "OCaml versions for Debian/Ubuntu (JSON array)"
+        description: "OCaml versions for Debian/Ubuntu (JSON array), defaults to .github/ocaml-version"
         required: false
-        default: '["5.5.1"]'
         type: string
       alpine_ocaml_versions:
-        description: "OCaml versions for Alpine (JSON array)"
+        description: "OCaml versions for Alpine (JSON array), defaults to .github/ocaml-version"
         required: false
-        default: '["5.5.1"]'
         type: string
       push:
         description: "Push images to registry"
@@ -55,7 +52,11 @@ on:
         type: boolean
 
 jobs:
+  ocaml_version:
+    uses: ./.github/workflows/ocaml-version.yml
+
   build-debian-ci:
+    needs: ocaml_version
     if: ${{ inputs.build_debian }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -64,7 +65,7 @@ jobs:
         # 2.5.x targets: debian:trixie/forky, ubuntu:resolute/plucky
         # 2.4.x targets: debian:trixie/forky, ubuntu:noble/plucky
         base_image: ${{ fromJSON(inputs.debian_base_images) }}
-        ocaml_version: ${{ fromJSON(inputs.debian_ocaml_versions) }}
+        ocaml_version: ${{ fromJSON(inputs.debian_ocaml_versions || needs.ocaml_version.outputs.versions) }}
         platform: [amd64, arm64]
         include:
           - platform: amd64
@@ -106,13 +107,14 @@ jobs:
           sbom: false
 
   build-fedora-ci:
+    needs: ocaml_version
     if: ${{ inputs.build_fedora }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         base_image: ${{ fromJSON(inputs.fedora_base_images) }}
-        ocaml_version: ${{ fromJSON(inputs.fedora_ocaml_versions) }}
+        ocaml_version: ${{ fromJSON(inputs.fedora_ocaml_versions || needs.ocaml_version.outputs.versions) }}
         platform: [amd64, arm64]
         include:
           - platform: amd64
@@ -154,12 +156,13 @@ jobs:
           sbom: false
 
   build-alpine-ci:
+    needs: ocaml_version
     if: ${{ inputs.build_alpine }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
-        ocaml_version: ${{ fromJSON(inputs.alpine_ocaml_versions) }}
+        ocaml_version: ${{ fromJSON(inputs.alpine_ocaml_versions || needs.ocaml_version.outputs.versions) }}
         platform: [amd64, arm64]
         include:
           - platform: amd64
@@ -195,7 +198,7 @@ jobs:
   # usual tag as one multi-arch manifest. A family with a failed build is left
   # at its previous image.
   merge-ci:
-    needs: [build-debian-ci, build-fedora-ci, build-alpine-ci]
+    needs: [ocaml_version, build-debian-ci, build-fedora-ci, build-alpine-ci]
     if: ${{ !cancelled() && inputs.push }}
     runs-on: ubuntu-26.04
     steps:
@@ -210,11 +213,11 @@ jobs:
       - name: Push multi-arch manifests
         env:
           DEBIAN_IMAGES: ${{ needs.build-debian-ci.result == 'success' && inputs.debian_base_images || '[]' }}
-          DEBIAN_OCAML: ${{ inputs.debian_ocaml_versions }}
+          DEBIAN_OCAML: ${{ inputs.debian_ocaml_versions || needs.ocaml_version.outputs.versions }}
           FEDORA_IMAGES: ${{ needs.build-fedora-ci.result == 'success' && inputs.fedora_base_images || '[]' }}
-          FEDORA_OCAML: ${{ inputs.fedora_ocaml_versions }}
+          FEDORA_OCAML: ${{ inputs.fedora_ocaml_versions || needs.ocaml_version.outputs.versions }}
           ALPINE_IMAGES: ${{ needs.build-alpine-ci.result == 'success' && '["alpine"]' || '[]' }}
-          ALPINE_OCAML: ${{ inputs.alpine_ocaml_versions }}
+          ALPINE_OCAML: ${{ inputs.alpine_ocaml_versions || needs.ocaml_version.outputs.versions }}
         run: |
           merge() {
             for image in $(echo "$1" | jq -r '.[]'); do

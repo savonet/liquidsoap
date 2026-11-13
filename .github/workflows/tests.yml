@@ -3,6 +3,9 @@ name: Tests
 on:
   workflow_call:
     inputs:
+      ocaml_version:
+        required: true
+        type: string
       sha:
         required: true
         type: string
@@ -27,7 +30,7 @@ jobs:
     name: run_tests (${{ matrix.target }})
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:129ae708d9cf644f63e08309efcff81c44c7c320159127996344397726434e0d
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-${{ inputs.ocaml_version }}
       options: --user root --privileged --ulimit core=-1 --security-opt seccomp=unconfined -v ${{ github.workspace }}/${{ github.run_number }}:/tmp/${{ github.run_number }}
     strategy:
       fail-fast: false
@@ -68,17 +71,6 @@ jobs:
         run: |
           sudo -u opam -E /tmp/liquidsoap/.github/scripts/build-posix.sh "${{ steps.cpu_cores.outputs.count }}"
           cp /tmp/liquidsoap/_build/default/src/bin/liquidsoap.exe /tmp/${{ github.run_number }}/core/liquidsoap
-      - name: Install additional packages for @doc
-        if: matrix.target == '@doctest'
-        run: |
-          apt-get -y update
-          apt-get -y install frei0r-plugins
-          sudo -u opam -E opam install odoc
-      - name: Install additional packages for @citest
-        if: startsWith(matrix.name, 'citest')
-        run: |
-          apt-get -y update
-          apt-get -y install gnuplot
       - name: Run tests
         env:
           CPU_CORES: ${{ steps.cpu_cores.outputs.count }}

@@ -1,8 +1,7 @@
 history = ref([])
 
 try
-  let json.parse (saved : %typeof(history())) =
-    file.contents("history.json")
+  let json.parse (saved : %typeof(history())) = file.contents("history.json")
 
   history := saved
 catch _ do

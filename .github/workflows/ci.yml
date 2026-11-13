@@ -47,6 +47,7 @@ jobs:
       is_snapshot: ${{ steps.build_details.outputs.is_snapshot }}
       test_targets: ${{ steps.build_details.outputs.test_targets }}
       ocaml_version: ${{ steps.build_details.outputs.ocaml_version }}
+      ocaml_ci_version: ${{ steps.build_details.outputs.ocaml_ci_version }}
       ocaml_docker_release_version: ${{ steps.build_details.outputs.ocaml_docker_release_version }}
     steps:
       - name: Checkout code
@@ -61,6 +62,7 @@ jobs:
     uses: ./.github/workflows/build-no-depopts.yml
     needs: build_details
     with:
+      ocaml_version: ${{ needs.build_details.outputs.ocaml_ci_version }}
       sha: ${{ github.sha }}
       minimal_exclude_deps: ${{ needs.build_details.outputs.minimal_exclude_deps }}
 
@@ -68,6 +70,7 @@ jobs:
     uses: ./.github/workflows/js.yml
     needs: build_details
     with:
+      ocaml_version: ${{ needs.build_details.outputs.ocaml_ci_version }}
       sha: ${{ github.sha }}
       branch: ${{ needs.build_details.outputs.branch }}
 
@@ -84,6 +87,7 @@ jobs:
     uses: ./.github/workflows/tests.yml
     needs: build_details
     with:
+      ocaml_version: ${{ needs.build_details.outputs.ocaml_ci_version }}
       sha: ${{ github.sha }}
       branch: ${{ needs.build_details.outputs.branch }}
       is_fork: ${{ needs.build_details.outputs.is_fork }}
@@ -115,6 +119,7 @@ jobs:
     uses: ./.github/workflows/build-win32.yml
     needs: build_details
     with:
+      ocaml_version: ${{ needs.build_details.outputs.ocaml_ci_version }}
       sha: ${{ github.sha }}
       branch: ${{ needs.build_details.outputs.branch }}
       is_rolling_release: ${{ needs.build_details.outputs.is_rolling_release }}
@@ -126,6 +131,7 @@ jobs:
     needs: build_details
     if: needs.build_details.outputs.is_fork != 'true'
     with:
+      ocaml_version: ${{ needs.build_details.outputs.ocaml_ci_version }}
       is_rolling_release: ${{ needs.build_details.outputs.is_rolling_release }}
       is_release: ${{ needs.build_details.outputs.is_release }}
       build_stamp: ${{ needs.build_details.outputs.build_stamp }}
@@ -135,6 +141,7 @@ jobs:
     needs: [build_details, build_js]
     if: github.repository_owner == 'savonet' && needs.build_details.outputs.is_fork != 'true'
     with:
+      ocaml_version: ${{ needs.build_details.outputs.ocaml_ci_version }}
       sha: ${{ github.sha }}
       branch: ${{ needs.build_details.outputs.branch }}
       # Pull requests build the website without publishing it: nothing else here
@@ -193,3 +200,28 @@ jobs:
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  # The one required status check: the jobs it waits on can be renamed or added
+  # to without touching branch protection.
+  ci_passed:
+    if: always()
+    needs:
+      [
+        build_details,
+        build_no_depopts,
+        build_js,
+        parsers,
+        run_tests,
+        build_posix,
+        build_win32,
+      ]
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check that every required job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: ${RESULTS}"
+          for result in ${RESULTS}; do
+            [ "${result}" = success ] || exit 1
+          done
