@@ -14,7 +14,7 @@ jobs:
   build_js:
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:129ae708d9cf644f63e08309efcff81c44c7c320159127996344397726434e0d
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:1fe68820d3c74e54d393660c592212cbb34a57c316144abb42fcae4b7d71fa20
       options: --user root
     env:
       HOME: /home/opam
