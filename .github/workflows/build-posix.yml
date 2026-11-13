@@ -45,8 +45,6 @@ on:
 
 jobs:
   build_posix:
-    # Required status checks match this name, so it leaves out the OCaml version.
-    name: build_posix (${{ matrix.os }}, ${{ matrix.platform }})
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false

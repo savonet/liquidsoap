@@ -200,3 +200,28 @@ jobs:
     secrets:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  # The one required status check: the jobs it waits on can be renamed or added
+  # to without touching branch protection.
+  ci_passed:
+    if: always()
+    needs:
+      [
+        build_details,
+        build_no_depopts,
+        build_js,
+        parsers,
+        run_tests,
+        build_posix,
+        build_win32,
+      ]
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check that every required job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: ${RESULTS}"
+          for result in ${RESULTS}; do
+            [ "${result}" = success ] || exit 1
+          done
