@@ -1,0 +1,115 @@
+=== typeof.liq ===
+x = {foo = {bar = 1}}
+def f((v : %typeof(x.foo.bar))) =
+  v
+end
+(f(2) : %typeof(x).foo.bar)
+--- parsed ---
+{
+  "type": "block",
+  "value": [
+    {
+    "type": "binding",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "x" ] },
+    "arglist": null,
+    "cast": null,
+    "definition": {
+      "type": "methods",
+      "base": null,
+      "methods": [
+        {
+        "type": "method",
+        "name": "foo",
+        "value": {
+          "type": "methods",
+          "base": null,
+          "methods": [
+            {
+            "type": "method",
+            "name": "bar",
+            "value": { "type": "ground", "value": "1" }
+          }
+          ]
+        }
+      }
+      ]
+    }
+  },
+    {
+    "type": "def",
+    "decoration": null,
+    "pat": { "type": "pvar", "value": [ "f" ] },
+    "arglist": [
+      {
+      "type": "term",
+      "value": {
+        "type": "fun_arg",
+        "label": "",
+        "as_variable": { "type": "pvar", "value": [ "v" ] },
+        "typ": {
+          "type": "type_annotation",
+          "subtype": "typeof",
+          "value": {
+            "type": "invoke",
+            "invoked": {
+              "type": "invoke",
+              "invoked": { "type": "var", "value": "x" },
+              "optional": false,
+              "meth": { "type": "var", "value": "foo" }
+            },
+            "optional": false,
+            "meth": { "type": "var", "value": "bar" }
+          }
+        },
+        "default": null
+      }
+    }
+    ],
+    "cast": null,
+    "body": [ { "type": "var", "value": "v" } ]
+  },
+    {
+    "type": "cast",
+    "left": {
+      "type": "app",
+      "op": { "type": "var", "value": "f" },
+      "args": [
+        {
+        "type": "term",
+        "value": {
+          "type": "app_arg",
+          "label": "",
+          "value": { "type": "ground", "value": "2" }
+        }
+      }
+      ]
+    },
+    "right": {
+      "type": "type_annotation",
+      "subtype": "invoke",
+      "value": {
+        "type": "type_annotation",
+        "subtype": "invoke",
+        "value": {
+          "type": "type_annotation",
+          "subtype": "typeof",
+          "value": { "type": "var", "value": "x" }
+        },
+        "method": "foo"
+      },
+      "method": "bar"
+    }
+  }
+  ]
+}
+--- hash ---
+aeca841ed323f267edde3196bba088c2
+--- term ---
+x = {foo={bar=1}}
+f = fun (v) -> v
+(f(2) : 'A)
+--- type ---
+int
+--- value ---
+2

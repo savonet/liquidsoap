@@ -137,6 +137,7 @@ let rec to_string (v : t) =
           ^ ", ..." ^ to_string tm ^ "}"
       | `Cast { cast; typ } ->
           "(" ^ to_string cast ^ " : " ^ Type.to_string typ ^ ")"
+      | `Typeof { holes = _; body } -> to_string body
       | `Invoke { invoked = e; meth = l; invoke_default } -> (
           match invoke_default with
             | None -> to_string e ^ "." ^ l
@@ -236,6 +237,10 @@ let rec free_term_vars tm =
         in
         enc e
     | `Cast { cast = e } -> free_vars e
+    | `Typeof { holes; body } ->
+        List.fold_left
+          (fun v (_, tm) -> Vars.union v (free_vars tm))
+          (free_vars body) holes
     | `Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
     | `Hide (tm, l) ->
         free_vars
@@ -339,6 +344,7 @@ let children tm =
           []
       | `Tuple l | `List l -> l
       | `Cast { cast } -> [cast]
+      | `Typeof { holes; body } -> List.map snd holes @ [body]
       | `Open (a, b) | `Seq (a, b) -> [a; b]
       | `Let { def; body } -> [def; body]
       | `App (f, args) -> f :: List.map snd args
@@ -369,6 +375,9 @@ let map_children f tm =
       | `Tuple l -> `Tuple (List.map f l)
       | `List l -> `List (List.map f l)
       | `Cast c -> `Cast { c with cast = f c.cast }
+      | `Typeof { holes; body } ->
+          let holes = List.map (fun (hole, tm) -> (hole, f tm)) holes in
+          `Typeof { holes; body = f body }
       | `Open (a, b) -> `Open (f a, f b)
       | `Seq (a, b) -> `Seq (f a, f b)
       | `Let l -> `Let { l with def = f l.def; body = f l.body }
@@ -418,6 +427,10 @@ let check_unused ~throw ~lib tm =
                 Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
             }
       | `Cast { cast = e } -> check v e
+      | `Typeof { holes; body } ->
+          check ~toplevel
+            (List.fold_left (fun v (_, tm) -> check v tm) v holes)
+            body
       | `Invoke { invoked = e; invoke_default } -> (
           let v = check v e in
           match invoke_default with Some d -> check v d | None -> v)
@@ -590,6 +603,14 @@ let rec fresh ~handler { t; term; methods; flags } =
       | `List l -> `List (List.map (fresh ~handler) l)
       | `Cast { cast = t; typ } ->
           `Cast { cast = fresh ~handler t; typ = Type.Fresh.make handler typ }
+      | `Typeof { holes; body } ->
+          let holes =
+            List.map
+              (fun (hole, tm) ->
+                (Type.Fresh.make handler hole, fresh ~handler tm))
+              holes
+          in
+          `Typeof { holes; body = fresh ~handler body }
       | `App (t, l) ->
           `App
             ( fresh ~handler t,

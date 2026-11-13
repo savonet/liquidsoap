@@ -151,8 +151,8 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
           parse_error ~pos (Printf.sprintf "Invalid float value: %s" f))
     | `Null -> `Null
     | `Cast { cast = t; typ } ->
-        `Cast
-          { cast = to_term ~env t; typ = mk_parsed_ty ~pos ~env ~to_term typ }
+        with_typeof ~pos ~env ~to_term @@ fun ~typeof ->
+        `Cast { cast = to_term ~env t; typ = mk_parsed_ty ~pos ~typeof typ }
     | `Invoke { invoked; optional; meth } ->
         let default = if optional then Some (mk_parsed ~pos `Null) else None in
         mk_invoke ~pos ~env ?default ~to_term invoked meth
@@ -167,12 +167,17 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
           | _ -> ());
         let args = expand_appof ~pos ~env ~to_term args in
         `App (to_term ~env t, args)
-    | `Fun (args, body) -> `Fun (to_func ~throw ~pos ~env ~to_term args body)
+    | `Fun (args, body) ->
+        with_typeof ~pos ~env ~to_term @@ fun ~typeof ->
+        `Fun (to_func ~throw ~pos ~env ~to_term ~typeof args body)
     | `RFun (name, args, body) ->
-        `Fun (to_func ~throw ~pos ~env ~to_term ~name args body)
+        with_typeof ~pos ~env ~to_term @@ fun ~typeof ->
+        `Fun (to_func ~throw ~pos ~env ~to_term ~typeof ~name args body)
 
-and to_func ~pos ~env ~to_term ~throw ?name arguments body =
-  let mk_def, arguments = expand_argsof ~throw ~pos ~env ~to_term arguments in
+and to_func ~pos ~env ~to_term ~typeof ~throw ?name arguments body =
+  let mk_def, arguments =
+    expand_argsof ~throw ~pos ~env ~to_term ~typeof arguments
+  in
   { name; arguments; body = mk_def (to_term ~env body); free_vars = None }
 
 (* The scoping rule, in one place: a binding scopes over the statements that

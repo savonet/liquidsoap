@@ -72,6 +72,7 @@ open Parser_helper
 %token <bool> PP_IFDEF
 %token PP_IFVERSION
 %token ARGS_OF
+%token TYPE_OF
 %token <bool> PP_IFENCODER
 %token PP_ELSE PP_ENDIF
 %token PP_ENDL
@@ -401,6 +402,7 @@ ty:
   | VARLPAR RPAR                  { mk_named_ty ~pos:$loc $1 None }
   | VARLPAR ty RPAR               { mk_named_ty ~pos:$loc $1 (Some $2) }
   | VARLPAR ty_source_tracks RPAR { mk_source_ty ~pos:$loc $1 $2 }
+  | TYPE_OF LPAR expr RPAR        { `Typeof $3 }
 
 record_ty:
   |                         { [] }

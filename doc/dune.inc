@@ -1948,6 +1948,20 @@
    content/liq/json-stringify.liq)))
 
 (rule
+ (alias test-doc-json-typeof)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/json-typeof.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/json-typeof.liq)))
+
+(rule
  (alias test-doc-json1)
  (package liquidsoap)
  (deps
@@ -2904,6 +2918,7 @@
   (alias test-doc-jingle-hour)
   (alias test-doc-json-ex)
   (alias test-doc-json-stringify)
+  (alias test-doc-json-typeof)
   (alias test-doc-json1)
   (alias test-doc-labeled_arguments)
   (alias test-doc-live-switch)

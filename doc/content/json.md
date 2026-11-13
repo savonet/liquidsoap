@@ -226,6 +226,27 @@ gives the list
 Use `int?` as the value type if some values may be missing or of another type:
 these values are parsed as `null`.
 
+### Reusing the type of a value
+
+A script that saves its state to a JSON file reads it back with the type of
+that state. Writing this type out by hand is tedious, and it has to be kept
+in sync each time the state changes. Instead, `%typeof(...)` stands for the
+type of an expression:
+
+```{.liquidsoap include="json-typeof.liq"}
+
+```
+
+The type of `history()` is only known once `save_track` adds records to it,
+after the annotation. This is enough: the parser uses the type as it ends up
+once the whole script is checked, here
+`[{artist : string, title : string}]`.
+
+The expression inside `%typeof(...)` is never evaluated: `history()` is not
+called when the file is read. It can be any expression, so
+`%typeof(x.foo)` and `%typeof(x).foo` are both the type of the `foo` field of
+`x`.
+
 ## Handling errors
 
 A parsing error raises an `error.json` error, which you can catch:
