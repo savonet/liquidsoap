@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       ocaml_versions:
-        description: "OCaml versions (JSON array)"
+        description: "OCaml versions (JSON array), defaults to .github/ocaml-version"
         required: false
-        default: '["5.5.1"]'
         type: string
       no_cache:
         description: "Disable Docker layer cache"
@@ -20,12 +19,16 @@ on:
         type: boolean
 
 jobs:
+  ocaml_version:
+    uses: ./.github/workflows/ocaml-version.yml
+
   build-win32-ci:
+    needs: ocaml_version
     runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
-        ocaml_version: ${{ fromJSON(inputs.ocaml_versions) }}
+        ocaml_version: ${{ fromJSON(inputs.ocaml_versions || needs.ocaml_version.outputs.versions) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Login to GitHub Container Registry

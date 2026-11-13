@@ -1,4 +1,5 @@
-FROM ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1
+ARG OCAML_VERSION
+FROM ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-${OCAML_VERSION}
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 

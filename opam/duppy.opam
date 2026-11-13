@@ -9,7 +9,7 @@ homepage: "https://github.com/savonet/liquidsoap"
 bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.25"}
-  "ocaml" {>= "5.5.1"}
+  "ocaml" {>= "5.5.2"}
   "re" {>= "1.11.0"}
   "odoc" {with-doc}
 ]

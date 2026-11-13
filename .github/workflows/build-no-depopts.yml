@@ -3,6 +3,9 @@ name: Build without optional dependencies
 on:
   workflow_call:
     inputs:
+      ocaml_version:
+        required: true
+        type: string
       sha:
         required: true
         type: string
@@ -14,7 +17,7 @@ jobs:
   build_no_depopts:
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-5.5.1@sha256:129ae708d9cf644f63e08309efcff81c44c7c320159127996344397726434e0d
+      image: ghcr.io/savonet/liquidsoap:ci-v2-debian_trixie-${{ inputs.ocaml_version }}
       options: --user opam
     env:
       HOME: /home/opam

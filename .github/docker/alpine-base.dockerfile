@@ -4,7 +4,7 @@ ENTRYPOINT bash
 
 MAINTAINER The Savonet Team <contact@liquidsoap.info>
 
-ARG OCAML_VERSION=5.5.1
+ARG OCAML_VERSION
 ARG OCAML_PATCH_URL
 
 USER root

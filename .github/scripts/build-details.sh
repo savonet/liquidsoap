@@ -97,11 +97,8 @@ TEST_TARGETS=$(git grep -lw citest -- 'tests/*/dune' 'tests/*/dune.inc' | cut -d
       + [{name: "doctest", target: "@doctest"}, {name: "mediatest", target: "@mediatest"}]')
 echo "Test targets: ${TEST_TARGETS}"
 
-echo "Ocaml version to build: 5.5.1"
-OCAML_VERSION='["5.5.1"]'
-
-echo "OCaml docker release version: 5.5.1"
-OCAML_DOCKER_RELEASE_VERSION="5.5.1"
+OCAML_VERSION=$(cat .github/ocaml-version)
+echo "OCaml version to build: ${OCAML_VERSION}"
 
 {
   echo "branch=${BRANCH}"
@@ -120,6 +117,7 @@ OCAML_DOCKER_RELEASE_VERSION="5.5.1"
   echo "save_traces=${SAVE_TRACES}"
   echo "is_snapshot=${IS_SNAPSHOT}"
   echo "test_targets=${TEST_TARGETS}"
-  echo "ocaml_version=${OCAML_VERSION}"
-  echo "ocaml_docker_release_version=${OCAML_DOCKER_RELEASE_VERSION}"
+  echo "ocaml_version=[\"${OCAML_VERSION}\"]"
+  echo "ocaml_ci_version=${OCAML_VERSION}"
+  echo "ocaml_docker_release_version=${OCAML_VERSION}"
 } >> "${GITHUB_OUTPUT}"

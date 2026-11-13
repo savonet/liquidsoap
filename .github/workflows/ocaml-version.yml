@@ -1,0 +1,24 @@
+name: OCaml version
+
+# Reads .github/ocaml-version for workflows that have no build details job.
+on:
+  workflow_call:
+    outputs:
+      version:
+        value: ${{ jobs.read.outputs.version }}
+      versions:
+        value: ${{ jobs.read.outputs.versions }}
+
+jobs:
+  read:
+    runs-on: ubuntu-26.04
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+      versions: ${{ steps.read.outputs.versions }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: read
+        run: |
+          version=$(cat .github/ocaml-version)
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "versions=[\"${version}\"]" >> "${GITHUB_OUTPUT}"

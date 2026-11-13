@@ -7,7 +7,7 @@ BASE_DIR=$(cd "${PWD}/../.." && pwd)
 
 DOCKER_IMAGE=savonet/liquidsoap-github-actions-website
 
-docker build --no-cache --tag "${DOCKER_IMAGE}" --file "${BASE_DIR}/.github/docker/website.dockerfile" .
+docker build --no-cache --build-arg OCAML_VERSION="$(cat "${BASE_DIR}/.github/ocaml-version")" --tag "${DOCKER_IMAGE}" --file "${BASE_DIR}/.github/docker/website.dockerfile" .
 
 id="$(docker create "${DOCKER_IMAGE}")"
 docker cp "$id:/tmp/liquidsoap-full/website/html" html/
