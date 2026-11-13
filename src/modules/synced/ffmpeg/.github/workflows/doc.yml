@@ -20,7 +20,7 @@ jobs:
       - name: Setup OCaml
         uses: toots/setup-ocaml@fc025b8adbeab94c857af17d6bc53ca55f082871 # master
         with:
-          ocaml-compiler: 4.14.x
+          ocaml-compiler: 5.5.2
       - name: Pin locally
         run: opam pin -y add --no-action .
       - name: Install locally

@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-24.04]
-        compiler: [4.14.2, 5.2.0]
+        compiler: [5.2.0, 5.5.2]
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

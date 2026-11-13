@@ -32,7 +32,7 @@ runs:
       shell: bash
       run: |
         brew install --only-dependencies ffmpeg
-        brew install lame theora libvpx libvorbis libsoxr libogg
+        brew install lame theora libvpx libvorbis libsoxr libogg x264
     - name: Build FFmpeg
       if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
       shell: bash
@@ -51,13 +51,15 @@ runs:
           VPX_PREFIX=$(brew --prefix libvpx)
           VORBIS_PREFIX=$(brew --prefix libvorbis)
           OGG_PREFIX=$(brew --prefix libogg)
-          EXTRA_CFLAGS="-I${LAME_PREFIX}/include -I${SOXR_PREFIX}/include -I${THEORA_PREFIX}/include -I${VPX_PREFIX}/include -I${VORBIS_PREFIX}/include -I${OGG_PREFIX}/include"
-          EXTRA_LDFLAGS="-L${LAME_PREFIX}/lib -L${SOXR_PREFIX}/lib -L${THEORA_PREFIX}/lib -L${VPX_PREFIX}/lib -L${VORBIS_PREFIX}/lib -L${OGG_PREFIX}/lib"
+          X264_PREFIX=$(brew --prefix x264)
+          EXTRA_CFLAGS="-I${LAME_PREFIX}/include -I${SOXR_PREFIX}/include -I${THEORA_PREFIX}/include -I${VPX_PREFIX}/include -I${VORBIS_PREFIX}/include -I${OGG_PREFIX}/include -I${X264_PREFIX}/include"
+          EXTRA_LDFLAGS="-L${LAME_PREFIX}/lib -L${SOXR_PREFIX}/lib -L${THEORA_PREFIX}/lib -L${VPX_PREFIX}/lib -L${VORBIS_PREFIX}/lib -L${OGG_PREFIX}/lib -L${X264_PREFIX}/lib"
         fi
         ./configure --prefix=$PREFIX --enable-gpl \
                     --enable-nonfree --disable-doc --disable-xlib \
                     --enable-shared --enable-libtheora --enable-libvpx \
                     --enable-libmp3lame --enable-libvorbis --enable-libsoxr \
+                    --enable-libx264 \
                     --extra-cflags="$EXTRA_CFLAGS" --extra-ldflags="$EXTRA_LDFLAGS"
         make -j4
     - name: Save FFmpeg cache
