@@ -242,7 +242,7 @@ build_rpm() {
   rm -rf "${stage}"
 
   while IFS= read -r rpm; do
-    # The dist tag, .fc44, is the VERSION_ID setup.sh looks the directory up by.
+    # The dist tag, .fc<N>, carries the Fedora VERSION_ID setup.sh looks the directory up by.
     local fedora
     fedora=$(rpm -qp --qf '%{RELEASE}' "${rpm}" | sed -n 's/.*\.fc\([0-9]*\)$/\1/p')
     [ -n "${fedora}" ] || fail "no fedora release in ${rpm}"
