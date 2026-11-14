@@ -242,7 +242,7 @@ build_rpm() {
   rm -rf "${stage}"
 
   while IFS= read -r rpm; do
-    # The dist tag, .fc44, is the VERSION_ID setup.sh looks the directory up by.
+    # The dist tag, .fc<N>, carries the Fedora VERSION_ID setup.sh looks the directory up by.
     local fedora
     fedora=$(rpm -qp --qf '%{RELEASE}' "${rpm}" | sed -n 's/.*\.fc\([0-9]*\)$/\1/p')
     [ -n "${fedora}" ] || fail "no fedora release in ${rpm}"
@@ -275,11 +275,11 @@ build_rpm() {
     cat > "${out}/liquidsoap.repo" << EOF
 [liquidsoap]
 name=Liquidsoap ${channel}
-baseurl=${BASE_URL}/${channel}/fedora/${fedora}
+baseurl=${BASE_URL}/${channel}/fedora/\$releasever
 enabled=1
 gpgcheck=0
 repo_gpgcheck=1
-skip_if_unavailable=False
+skip_if_unavailable=True
 metadata_expire=10m
 gpgkey=${BASE_URL}/liquidsoap.asc
 EOF

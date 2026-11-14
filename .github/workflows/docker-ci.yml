@@ -18,11 +18,6 @@ on:
         required: false
         default: true
         type: boolean
-      fedora_base_images:
-        description: "Fedora base images (JSON array)"
-        required: false
-        default: '["fedora:44"]'
-        type: string
       fedora_ocaml_versions:
         description: "OCaml versions for Fedora (JSON array), defaults to .github/ocaml-version"
         required: false
@@ -113,7 +108,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        base_image: ${{ fromJSON(inputs.fedora_base_images) }}
         ocaml_version: ${{ fromJSON(inputs.fedora_ocaml_versions || needs.ocaml_version.outputs.versions) }}
         platform: [amd64, arm64]
         include:
@@ -132,11 +126,11 @@ jobs:
       - name: Compute build args
         id: build_args
         env:
-          BASE_IMAGE: ${{ matrix.base_image }}
           OCAML_VERSION: ${{ matrix.ocaml_version }}
         run: |
-          TAG=$(echo ${BASE_IMAGE} | sed -e 's#/#_#g' -e 's#:#_#g')
-          echo "tag=ghcr.io/savonet/liquidsoap:ci-v2-${TAG}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
+          FEDORA_VERSION=$(cat .github/fedora-version)
+          echo "base_image=fedora:${FEDORA_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=ghcr.io/savonet/liquidsoap:ci-v2-fedora_${FEDORA_VERSION}-${OCAML_VERSION}" >> "${GITHUB_OUTPUT}"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Build and push
@@ -144,7 +138,7 @@ jobs:
         with:
           build-args: |
             OCAML_VERSION=${{ matrix.ocaml_version }}
-            BASE_IMAGE=${{ matrix.base_image }}
+            BASE_IMAGE=${{ steps.build_args.outputs.base_image }}
             LIQUIDSOAP_SHA=${{ github.sha }}
           context: .
           file: .github/docker/fedora-base.dockerfile
@@ -202,6 +196,7 @@ jobs:
     if: ${{ !cancelled() && inputs.push }}
     runs-on: ubuntu-26.04
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Login to GitHub Container Registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
@@ -214,7 +209,7 @@ jobs:
         env:
           DEBIAN_IMAGES: ${{ needs.build-debian-ci.result == 'success' && inputs.debian_base_images || '[]' }}
           DEBIAN_OCAML: ${{ inputs.debian_ocaml_versions || needs.ocaml_version.outputs.versions }}
-          FEDORA_IMAGES: ${{ needs.build-fedora-ci.result == 'success' && inputs.fedora_base_images || '[]' }}
+          FEDORA_BUILT: ${{ needs.build-fedora-ci.result == 'success' }}
           FEDORA_OCAML: ${{ inputs.fedora_ocaml_versions || needs.ocaml_version.outputs.versions }}
           ALPINE_IMAGES: ${{ needs.build-alpine-ci.result == 'success' && '["alpine"]' || '[]' }}
           ALPINE_OCAML: ${{ inputs.alpine_ocaml_versions || needs.ocaml_version.outputs.versions }}
@@ -228,5 +223,9 @@ jobs:
             done
           }
           merge "${DEBIAN_IMAGES}" "${DEBIAN_OCAML}"
+          FEDORA_IMAGES='[]'
+          if [ "${FEDORA_BUILT}" = true ]; then
+            FEDORA_IMAGES="[\"fedora:$(cat .github/fedora-version)\"]"
+          fi
           merge "${FEDORA_IMAGES}" "${FEDORA_OCAML}"
           merge "${ALPINE_IMAGES}" "${ALPINE_OCAML}"
