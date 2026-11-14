@@ -196,6 +196,7 @@ jobs:
     if: ${{ !cancelled() && inputs.push }}
     runs-on: ubuntu-26.04
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Login to GitHub Container Registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
@@ -208,7 +209,7 @@ jobs:
         env:
           DEBIAN_IMAGES: ${{ needs.build-debian-ci.result == 'success' && inputs.debian_base_images || '[]' }}
           DEBIAN_OCAML: ${{ inputs.debian_ocaml_versions || needs.ocaml_version.outputs.versions }}
-          FEDORA_IMAGES: ${{ needs.build-fedora-ci.result == 'success' && inputs.fedora_base_images || '[]' }}
+          FEDORA_BUILT: ${{ needs.build-fedora-ci.result == 'success' }}
           FEDORA_OCAML: ${{ inputs.fedora_ocaml_versions || needs.ocaml_version.outputs.versions }}
           ALPINE_IMAGES: ${{ needs.build-alpine-ci.result == 'success' && '["alpine"]' || '[]' }}
           ALPINE_OCAML: ${{ inputs.alpine_ocaml_versions || needs.ocaml_version.outputs.versions }}
@@ -222,5 +223,9 @@ jobs:
             done
           }
           merge "${DEBIAN_IMAGES}" "${DEBIAN_OCAML}"
+          FEDORA_IMAGES='[]'
+          if [ "${FEDORA_BUILT}" = true ]; then
+            FEDORA_IMAGES="[\"fedora:$(cat .github/fedora-version)\"]"
+          fi
           merge "${FEDORA_IMAGES}" "${FEDORA_OCAML}"
           merge "${ALPINE_IMAGES}" "${ALPINE_OCAML}"
