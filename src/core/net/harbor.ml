@@ -804,8 +804,18 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
 
   exception Websocket_closed
 
+  (* Close codes of the webcast protocol:
+     https://github.com/webcast/webcast.js/blob/main/SPECS.md *)
+  let webcast_protocol_error = 4400
+  let webcast_unauthorized = 4401
+  let webcast_unknown_mount = 4404
+  let webcast_mount_taken = 4409
+
   let handle_websocket_request ~port h mount headers =
-    let json_string_of = function `String s -> s | _ -> raise Not_found in
+    let string_value = function `String s -> Some s | _ -> None in
+    let string_field name data =
+      Option.bind (List.assoc_opt name data) string_value
+    in
     let extract_packet s =
       let json =
         match Json.from_string s with
@@ -818,31 +828,43 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           | _ -> raise Not_found
       in
       let data =
-        match List.assoc "data" json with `Assoc data -> Some data | _ -> None
+        match List.assoc_opt "data" json with
+          | Some (`Assoc data) -> data
+          | _ -> []
       in
       (packet_type, data)
     in
     let websocket_read = Websocket.read () in
     let read_hello s =
-      let error () = simple_reply (websocket_error 1002 "Invalid hello.") in
-      try
-        match websocket_read s with
-          | `Text s -> (
-              log#debug "Hello packet: %s\n%!" s;
-              match extract_packet s with
-                | "hello", data ->
-                    let data = Option.get data in
-                    let mime = json_string_of (List.assoc "mime" data) in
-                    let user = json_string_of (List.assoc "user" data) in
-                    let password =
-                      json_string_of (List.assoc "password" data)
-                    in
-                    (mime, mount, user, password)
-                | _ -> error ())
-          | _ -> error ()
-      with
-        | Reply _ as e -> raise e
-        | _ -> error ()
+      let invalid () =
+        simple_reply (websocket_error webcast_protocol_error "Invalid hello.")
+      in
+      let hello =
+        try
+          match websocket_read s with
+            | `Text s -> (
+                log#debug "Hello packet: %s" s;
+                match extract_packet s with
+                  | "hello", data -> Some data
+                  | _ -> None)
+            | _ -> None
+        with _ -> None
+      in
+      match hello with
+        | None -> invalid ()
+        | Some data -> (
+            match
+              ( string_field "mime" data,
+                string_field "user" data,
+                string_field "password" data )
+            with
+              | None, _, _ -> invalid ()
+              | Some mime, Some user, Some password ->
+                  (mime, mount, user, password)
+              | Some _, _, _ ->
+                  simple_reply
+                    (websocket_error webcast_unauthorized
+                       "Authentication required."))
     in
     let () =
       Io.write ?timeout:(Some conf_timeout#get) ~priority:`Non_blocking h
@@ -864,7 +886,9 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
       try find_source huri port
       with Not_found ->
         log#info "Request failed: no mountpoint '%s'!" huri;
-        simple_reply (websocket_error 1011 "This mountpoint isn't available.")
+        simple_reply
+          (websocket_error webcast_unknown_mount
+             "This mountpoint isn't available.")
     in
     let _, auth_f = source.login in
     let () =
@@ -882,7 +906,12 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
           }
       with Not_authenticated ->
         log#info "Authentication failed!";
-        simple_reply (websocket_error 1011 "Authentication failed.")
+        simple_reply
+          (websocket_error webcast_unauthorized "Authentication failed.")
+    in
+    let close socket reason =
+      (try Websocket.write socket (`Close reason) with _ -> ());
+      raise Websocket_closed
     in
     let read_socket socket =
       match websocket_read socket with
@@ -890,23 +919,44 @@ module Make (T : Transport_t) : T with type socket = T.socket = struct
         | `Text s -> (
             match extract_packet s with
               | "metadata", data ->
-                  log#debug "Metadata packet: %s\n%!" s;
-                  let data = Option.get data in
-                  let m = List.map (fun (l, v) -> (l, json_string_of v)) data in
-                  let m = Frame.Metadata.from_list m in
-                  source.encode_metadata ~mount m;
+                  log#debug "Metadata packet: %s" s;
+                  (* Values other than strings are ignored, as the protocol
+                     allows. *)
+                  let m =
+                    List.filter_map
+                      (fun (label, value) ->
+                        Option.map (fun v -> (label, v)) (string_value value))
+                      data
+                  in
+                  source.encode_metadata ~mount (Frame.Metadata.from_list m);
                   raise Retry
-              | _ -> raise Retry)
-        | `Close _ -> raise Websocket_closed
-        | _ -> raise Retry
+              | "hello", _ ->
+                  close socket
+                    (Some (webcast_protocol_error, "Repeated hello."))
+              | _ -> raise Retry
+              | exception _ ->
+                  close socket
+                    (Some (webcast_protocol_error, "Invalid message.")))
+        | `Ping data ->
+            Websocket.write socket (`Pong data);
+            raise Retry
+        | `Close reason ->
+            (* RFC 6455 requires echoing the close frame. *)
+            close socket (Option.map (fun (code, _) -> (code, "")) reason)
+        | `Pong _ -> raise Retry
     in
     let read socket buf ofs len =
       if Strings.Mutable.is_empty binary_data then read_socket socket;
       Strings.Mutable.take binary_data buf ofs len
     in
     let release =
-      source.relay
-        { uri = huri; groups; stype; headers; read = Some read; socket }
+      try
+        source.relay
+          { uri = huri; groups; stype; headers; read = Some read; socket }
+      with Mount_taken ->
+        log#info "Request failed: mountpoint '%s' is in use." huri;
+        simple_reply
+          (websocket_error webcast_mount_taken "Mount already in use.")
     in
     relayed "" release
 

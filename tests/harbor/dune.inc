@@ -463,6 +463,19 @@
    harbor_routing_literal.liq)))
 
 (rule
+ (alias test_harbor_webcast)
+ (package liquidsoap)
+ (deps
+  harbor_webcast.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} harbor_webcast.liq liquidsoap harbor_webcast.liq)))
+
+(rule
  (alias test_http)
  (package liquidsoap)
  (deps
@@ -796,6 +809,7 @@
   (alias test_harbor_output_shutdown)
   (alias test_harbor_output_stop_during_admission)
   (alias test_harbor_routing_literal)
+  (alias test_harbor_webcast)
   (alias test_http)
   (alias test_http2)
   (alias test_http3)

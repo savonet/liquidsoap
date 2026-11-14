@@ -208,6 +208,10 @@ class virtual http_input_base ~dumpfile ~logfile ~bufferize ~max ~replay_meta
               f ()
             with
               | Tutils.Exit -> 0
+              | Harbor.Websocket_closed ->
+                  self#log#info "Client closed the connection.";
+                  (try self#disconnect_connection c with _ -> ());
+                  0
               | e ->
                   let bt = Printexc.get_backtrace () in
                   Utils.log_exception ~log:self#log ~bt
