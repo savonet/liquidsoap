@@ -275,11 +275,11 @@ build_rpm() {
     cat > "${out}/liquidsoap.repo" << EOF
 [liquidsoap]
 name=Liquidsoap ${channel}
-baseurl=${BASE_URL}/${channel}/fedora/${fedora}
+baseurl=${BASE_URL}/${channel}/fedora/\$releasever
 enabled=1
 gpgcheck=0
 repo_gpgcheck=1
-skip_if_unavailable=False
+skip_if_unavailable=True
 metadata_expire=10m
 gpgkey=${BASE_URL}/liquidsoap.asc
 EOF
