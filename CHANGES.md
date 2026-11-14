@@ -69,6 +69,7 @@
 
 ## Changed:
 
+- Websocket sources of `input.harbor` follow the [webcast protocol specification](https://github.com/webcast/webcast.js/blob/main/SPECS.md): errors close the connection with its codes (`4400` for a malformed or repeated `hello` and invalid messages, `4401` for missing or wrong credentials, `4404` for an unknown mount, `4409` for a mount in use), and metadata values other than strings are ignored instead of dropping the connection.
 - Liquidsoap now requires OCaml 5.5 to build.
 - Removed the deprecated `input.udp` and `output.udp` operators. Use `input.srt`/`output.srt`
   for low-latency network streaming.
@@ -213,6 +214,7 @@
 
 ## Fixed:
 
+- Websocket sources of `input.harbor` answer pings and echo the client's close frame, as RFC 6455 requires. A client stopping its stream no longer sees an abnormal closure (`1006`), and its mount is released right away.
 - A listener joining a `%ffmpeg` `output.harbor` stream after its start, including an
   `icecast.server` mount, receives the container header first. An Ogg/Opus listener used
   to get no `OpusHead` and could not decode the stream (#5542).
