@@ -2,363 +2,79 @@
 
 ## New:
 
-- Added `getter(t)` type annotation syntax for getter types (#5078).
-- Added the `%typeof(e)` type annotation, which stands for the type of `e` without evaluating it. Reading back a saved state with `let json.parse (saved : %typeof(state())) = ...` no longer requires writing its type out and keeping it in sync (#5614).
-- Added `atomic(f)`, which runs `f` without letting any other atomic section run at the same time. Script code now runs on several cores at once, so a group of changes that must not be observed half-done — writing several references together, or checking a flag and setting it — needs to say so.
-- Added `r.exchange(v)`, which sets a reference and returns the value it replaced in one
-  indivisible step. Now that script code runs on several cores at once, a flag guarding
-  work that must happen only once cannot be read and set separately: two threads both see
-  it unset and both do the work.
-- Added `source.content` operator returning an associative list of frame field names to their content format, `track.format` returning the content format of a single track, and `format.description` returning a typed record description of a content format.
-- Renamed the internal video content type from `canvas` to `yuv420p`, which better reflects the
-  actual content; the content itself is still organized as a canvas of `yuv420p` layers. Type
-  annotations such as `source(video=canvas)` must be updated to `source(video=yuv420p)`.
-- Added subtitles support as a dedicated content type. Includes native SRT decoding,
-  FFmpeg subtitle encoding/decoding (`%subtitle`), passthrough for bitmap subtitles
-  (`%subtitle.copy`), callbacks (`on_subtitle`), transformations (`subtitles.map`),
-  and dynamic insertion (`subtitles.insert`) (#4860, #4861, #4862).
-- Video dimensions (`video.frame.width`/`height`) are now automatically detected
-  from the first decoded video file. This can be disabled by setting `settings.video.detect_dimensions`
-  to `false` or by explicitly setting the video dimensions.
-- Videos stored with a rotation, such as phone recordings, are now decoded upright, and their container cropping is applied. Set `settings.ffmpeg.autorotate` to `false` to decode the picture as stored. `track.ffmpeg.side_data` and `track.ffmpeg.raw.side_data` read and change the rotation of a track, and `ffmpeg.autorotate.on_undecided` decides the cases liquidsoap leaves alone, such as a rotation that is not a quarter turn (#5525).
-- Video whose size, pixel format or colour properties change in the middle of a stream now plays through `ffmpeg.raw` content, `ffmpeg.filter` graphs and raw encoders: raw frames are fitted to the format of the first one, and filter graphs are rebuilt with a warning. `settings.ffmpeg.format_change.color` and `settings.ffmpeg.format_change.pixel_aspect` select which changes count (#5541).
-- Added support for XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`,
-  `file.nfo.metadata`) (#4910).
-- Added Icecast-compatible streaming server (`icecast.server`) with support for source
-  authentication, mount points, relay, and per-listener encoding (#4915). It writes icecast's
-  access, playlist and error logs, reports listener sessions through callbacks, serves an admin listener
-  page, and hashes listener IPs by default (#5408). Its configuration file is reloaded on
-  `SIGHUP` or `reload()` without disconnecting sources or listeners (#5418). Like Icecast, it
-  bursts to new listeners, passes the source's stream name and genre to them, and enforces
-  `<max-listeners>` and `<clients>` (#5580).
-- Added `on_signal`, which runs a function when the process receives a signal such as
-  `SIGHUP` or `SIGUSR2`, and returns a `release` method (#5418).
-- Added dedicated encoder mode to `output.harbor`: each listener gets its own encoder, so its
-  stream starts from an encoder's first byte (#5003).
-- Rewrote JACK I/O using native OCaml bindings, removing the dependency on the `bjack`
-  C library (#5028).
-- Added `settings.clock.child.max_buffer`, the amount of data an operator such as
-  `crossfade` or `stretch` may buffer from its child source. Operators sharing a child
-  source must consume it at converging rates; past this value, an error names the operator
-  that fell behind instead of letting the buffer grow without bound (#5267).
-- Source callbacks (`on_track`, `on_metadata`, `on_frame`, `on_connect`, ...) now return a
-  `release` method taking the callback back, so a function registering on a source it is given
-  can release what it registered instead of keeping it alive for as long as that source lives.
-  Existing scripts are unaffected, the returned value being still ignorable; see the new
-  [source callbacks](doc/content/callbacks.md) page.
-- Added `source.collect_callback_releases`, which runs a function and gathers the callbacks
-  it registered on a given list of sources into a single `release`. This is what `switch` and
-  `cross` use, available to scripts calling their own functions more than once.
-- Clocks created by script code running after startup are now started by the code that
-  created them, through an effect handler scoped to that code, instead of a global registry
-  polled after every script application.
-- Added the `source(_)` type: a source whose content is unknown. Any source can be used where
-  one is expected, so sources of different content can be held together, for instance in a list,
-  without unifying their content types, while nothing can be assumed about what a `source(_)`
-  streams.
-- Added `domain` to `thread.run`, pinning the function and every rerun to the
-  scheduler worker on that domain. An object is only collected by a GC on the
-  domain that allocated it, which makes this the way to ask for one.
-- `http.transport.tls` and `http.transport.ssl` read their certificate and key again once a
-  day, so a renewed certificate applies without a restart or dropping connections. The
-  `reload_on` argument changes when, `reload()` applies it at once, and the certificate and key
-  arguments now accept getters (#5418).
-- Added Fedora packages for the current Fedora release, on `x86_64` and `aarch64`, and a
-  matching dnf repository: `curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh`
-  now configures it on Fedora as it does apt and apk elsewhere.
-- Added an `override` parameter to `insert_metadata`: when `false`, metadata the source
-  provides itself takes precedence over the inserted one. The composition profiles use it
-  so that replaying metadata on selection never overwrites a fresh track's own metadata.
+- Added `icecast.server`, an Icecast-compatible streaming server with source authentication, mount points, relay, per-listener encoding, icecast-style logs and limits, and configuration reload on `SIGHUP` or `reload()` ([#4915](https://github.com/savonet/liquidsoap/pull/4915), [#5414](https://github.com/savonet/liquidsoap/pull/5414), [#5451](https://github.com/savonet/liquidsoap/pull/5451), [#5580](https://github.com/savonet/liquidsoap/pull/5580)).
+- Added subtitles as a dedicated content type: native SRT decoding, FFmpeg encoding/decoding (`%subtitle`, `%subtitle.copy`), `on_subtitle`, `subtitles.map` and `subtitles.insert` ([#4860](https://github.com/savonet/liquidsoap/pull/4860), [#4861](https://github.com/savonet/liquidsoap/pull/4861), [#4862](https://github.com/savonet/liquidsoap/pull/4862)).
+- Rewrote JACK I/O with native OCaml bindings, removing the `bjack` dependency ([#5028](https://github.com/savonet/liquidsoap/pull/5028)).
+- Rotated videos, e.g. phone recordings, are decoded upright with their container cropping applied. Disable with `settings.ffmpeg.autorotate := false`; see also `track.ffmpeg.side_data` and `ffmpeg.autorotate.on_undecided` ([#5525](https://github.com/savonet/liquidsoap/pull/5525)).
+- Video dimensions are detected from the first decoded file. Disable with `settings.video.detect_dimensions := false` or by setting them explicitly ([#4881](https://github.com/savonet/liquidsoap/pull/4881)).
+- Video whose size, pixel format or colour properties change mid-stream now plays through `ffmpeg.raw` content, `ffmpeg.filter` and raw encoders. See `settings.ffmpeg.format_change.*` ([#5541](https://github.com/savonet/liquidsoap/pull/5541)).
+- Added a dedicated encoder mode to `output.harbor`: each listener gets its own encoder ([#5003](https://github.com/savonet/liquidsoap/pull/5003)).
+- Source callbacks (`on_track`, `on_metadata`, ...) return a `release` method. `source.collect_callback_releases` gathers the callbacks a function registers. See the [source callbacks](doc/content/callbacks.md) page ([#5338](https://github.com/savonet/liquidsoap/pull/5338)).
+- Added `atomic(f)` and `r.exchange(v)` for script code that must not be observed half-done, now that it runs on several cores at once ([#5364](https://github.com/savonet/liquidsoap/pull/5364)).
+- Added Fedora packages (`x86_64`, `aarch64`) and a dnf repository, configured by `curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh` ([#5473](https://github.com/savonet/liquidsoap/pull/5473)).
+- `http.transport.tls` and `http.transport.ssl` reload their certificate and key daily (`reload_on`, `reload()`), accept getters for them, and no longer require `key` when the certificate file contains it ([#5450](https://github.com/savonet/liquidsoap/pull/5450)).
+- Added `on_signal` to run a function when the process receives a signal ([#5456](https://github.com/savonet/liquidsoap/pull/5456)).
+- Added the `source(_)` type: a source of unknown content, so sources of different content can be held together, e.g. in a list ([#5337](https://github.com/savonet/liquidsoap/pull/5337)).
+- Added `settings.clock.child.max_buffer`, bounding what operators such as `crossfade` or `stretch` buffer from their child source ([#5267](https://github.com/savonet/liquidsoap/pull/5267)).
+- Added XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`, `file.nfo.metadata`) ([#4910](https://github.com/savonet/liquidsoap/pull/4910)).
+- Added `source.content`, `track.format` and `format.description` to inspect content formats ([#5096](https://github.com/savonet/liquidsoap/pull/5096)).
+- Added `getter(t)` type annotations ([#5078](https://github.com/savonet/liquidsoap/pull/5078)) and `%typeof(e)`, the type of `e` without evaluating it, e.g. `let json.parse (saved : %typeof(state())) = ...` ([#5614](https://github.com/savonet/liquidsoap/pull/5614)).
+- Added `domain` to `thread.run` to pin a function to one scheduler domain ([#5397](https://github.com/savonet/liquidsoap/pull/5397)).
+- Added an `override` parameter to `insert_metadata` ([#5077](https://github.com/savonet/liquidsoap/pull/5077)).
 
 ## Changed:
 
-- A source passed to an output must have exactly the tracks its format encodes, and the sources or formats of one list must have the same tracks. Extra tracks used to be dropped silently: an audio format fed an audio and video source, or HLS variants mixing audio-only and video formats, encoded no video. This is now a type error; use `source.drop.video` and similar to drop a track (#5627).
-- Websocket sources of `input.harbor` follow the [webcast protocol specification](https://github.com/webcast/webcast.js/blob/main/SPECS.md): errors close the connection with its codes (`4400` for a malformed or repeated `hello` and invalid messages, `4401` for missing or wrong credentials, `4404` for an unknown mount, `4409` for a mount in use), and metadata values other than strings are ignored instead of dropping the connection. (#5625)
-- Liquidsoap now requires OCaml 5.5 to build.
-- Removed the deprecated `input.udp` and `output.udp` operators. Use `input.srt`/`output.srt`
-  for low-latency network streaming.
-- The FFmpeg layer (`%ffmpeg`, the FFmpeg decoders, inline encoders and decoders, filters, `input.ffmpeg`,
-  `output.url`) was rewritten from a specification (#5541). Scripts keep the same syntax, operators and
-  settings. What changes:
-  - Copied streams start each source on a keyframe of every track together. The wait is bounded by the new
-    `settings.ffmpeg.content.copy.max_keyframe_wait` (20 s), after which the ready tracks start with a warning;
-    audio is no longer withheld indefinitely. In outputs mixing copied and re-encoded streams, a source switched
-    in the middle of a GOP keeps a gap the length of its wait and stays in sync instead of drifting (#2333).
-  - Copied and raw tracks keep a length equal to the media they carry, so a copy relay keeps audio and video
-    together over hours of streaming instead of dropping content when one track's buffer fills (#4502).
-    `%audio.raw` and `%video.raw` streams keep continuous timestamps across a source switch (#3329).
-  - A copied file whose codec, bitstream form (AVCC or Annex B, raw AAC or ADTS), size, sample rate or channel
-    layout differs from the stream is skipped when opened. A file that differs only in its codec headers is
-    accepted: MPEG-TS and ADTS outputs take it, HLS with MP4 segments starts a new segment after a
-    discontinuity, Ogg chains a new link, and other file outputs stop with an error naming both parameter sets.
-    Rotation, HDR or colour differences are played with a warning.
-  - `output.file` with Ogg chains a new link at each metadata change, and `output.file(append=true)` with
-    `%ffmpeg` appends instead of overwriting.
-  - `%audio.raw` and `%video.raw` take the parameters they do not set from the first frame: a mono input stays
-    mono unless `channels=2` is given. A filter input takes its format from its track.
-  - Script errors are caught earlier: a field named twice, unused `%ffmpeg` or inline encoder options, unknown
-    FFmpeg option names, invalid `settings.ffmpeg.log.verbosity` or `scaling_algorithm`, and configuration
-    errors of `output.url` fail at evaluation or at the first start instead of retrying forever.
-  - `input.ffmpeg` takes a `timeout` (10 s): a read stalled longer reconnects (#2358).
-  - HLS playlists announce `EXT-X-INDEPENDENT-SEGMENTS` when no copied stream can be cut off a keyframe, and
-    re-encoded audio continues the variant's timeline across a restart.
-  - FFmpeg errors and warnings show at log levels 2 and 3 whatever `settings.ffmpeg.log.level`;
-    `settings.ffmpeg.log.verbosity` quietens FFmpeg.
-  - A filter graph whose outputs are consumed at different rates drops the excess beyond
-    `settings.ffmpeg.filter_max_buffer` with a warning instead of failing; a graph that cannot be built ends
-    its track and is retried.
-  - An encoded track that keeps failing restarts the output under its restart policy.
-  - Media without timestamps, such as bare H.264 elementary streams, fail visibly.
-- `ffmpeg` log messages now go through liquidsoap's logger by default, with the same timestamps, log file and levels as the rest of the logs. Set `settings.ffmpeg.log.capture := false` to print them to standard error as before.
-- `output.harbor`'s `on_connect` and `on_disconnect` callbacks now receive a listener record with
-  its session duration and bytes sent, and a new `listeners` method lists connected listeners. The
-  `ip` field no longer includes the client port (#5408). A new `accept` argument admits or
-  refuses listeners. Mounts match literally, and a newer output takes over a served mount only
-  with `override_mount`. Clocks not paced in real time are refused unless `allow_unsynced_clock`
-  is set. `dumpfile` and the deprecated `on_connect` and `on_disconnect` arguments were removed:
-  use the methods of the same names (#5580).
-- `harbor.http.register` and its variants return a value with a `remove` method, which replaces
-  `harbor.remove`. Registering a path already registered with the same method on a port raises an
-  error (#5580).
-- Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
-  taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
-  Heavy work in a callback or a request resolution no longer stalls playback either.
-- Added `settings.scheduler.legacy`, a fail-safe for a script that concurrent execution breaks: tasks run on
-  threads, one at a time, as they did before. It will be removed in a later version once the concurrent
-  scheduler has settled.
-- Removed optional `faad` decoder, superseded by `ffmpeg` (#5444)
-- The `prometheus.latency` metrics end in `_ratio` instead of `_seconds`: their values are ratios of the frame duration.
-- Deprecated `settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and
-  `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from its workload and there is
-  nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
-  warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
-  resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to 64 (#5493),
-  whatever the number of cores, so tasks that wait on a socket or a slow mount do not queue behind each other. Raising it pays off
-  when those tasks truly wait. A task that uses a core instead of waiting on one, such as probing a
-  file for its decoder, only takes cores the streaming threads need.
-- Clocks run as scheduler tasks rather than each on a thread of its own. A clock that is ahead
-  of real time parks and is resumed by the scheduler's timer, so a machine running many outputs
-  has as many busy threads as cores instead of one per clock competing for them. A clock
-  catching up yields its domain to the others after each burst of frames. Ticks run directly on
-  a scheduler domain, one at a time, ahead of request resolution.
-  A clock driving JACK input or output keeps a thread of its own, since it rests by waiting on the
-  JACK server. `settings.clock.task := false` restores a thread per clock everywhere.
-- The scheduler starts with two domains and adds one whenever ready tasks keep finding every domain busy, up
-  to `settings.scheduler.domains`, the number of cores by default. Each domain costs memory, and most scripts
-  never need more than two (#5507).
-- When the scheduler is busy, quick work is served before slow work: the server, then request resolutions, then
-  long tasks such as last.fm submissions. The order used to be arbitrary and often favoured the slow ones.
-
-- Bindings written without `let` accept the same targets as `let` — destructuring patterns, field paths and type
-  annotations — so `(x, y) = (1, 2)`, `r.field = 1` and `(n : int) = 2` are all valid, and an invalid left-hand side
-  reports what is allowed instead of a bare syntax error. A leading binding inside the `{ … }` function shorthand
-  still requires `let`, since `{ x = 1 }` is a record literal.
-- String interpolation accepts any expression: `"#{m["key"]}"`, `"#{ {a = 1}.a }"` and nested interpolated strings
-  now work. Error positions inside `#{ … }` point at the offending code rather than at the start of the string.
-- `http.transport.ssl` and `http.transport.tls`: `key` parameter is now optional in server mode when the certificate file also contains the private key.
-- `switch`, `fallback`, `rotate`, `random`: replaced the parallel list parameters
-  (`transitions`, `transition_length`, `override`, `track_sensitive`,
-  `replay_metadata`, `single`, `weights`) with per-source composition methods
-  (`composition_type`, `track_sensitive`, `replay_metadata`, `single`, `weight`,
-  `on_select`, `on_leave`) registered on every source, switching behavior now
-  defaulting automatically based on whether a source is file-based or live. See the
-  new [source composition](doc/content/composition.md) page, and
-  `doc/content/migrating.md` for the parameter-by-parameter mapping (#5074).
-- **Switching now fades by default**: a switch cutting into a playing track fades the
-  leaving source out over up to `settings.source.composition.max_fade` seconds (default
-  `1.`) when it carries only PCM audio, handoffs happening at a track boundary being
-  unchanged since nothing was interrupted. Use `source.composition.legacy_on_select` to
-  restore the previous behavior.
-- Deprecated `fallback.skip`. A source with `track_sensitive` set to `false` can be cut
-  into mid-track and the `file` composition profile skips a source it was left in the
-  middle of, so `fallback([main, fallback_source.{track_sensitive = getter(false)}])`
-  now does natively what the operator polled for on every frame.
-- Simplified the `cross`/`crossfade` implementation: `start_duration` and `end_duration` are
-  replaced by a single `duration` parameter, the metadata overrides `liq_cross_start_duration`
-  and `liq_cross_end_duration` by `liq_cross_duration`, and the `start_duration()` and
-  `end_duration()` methods by `cross_duration()`. Autocue-specific code and the
-  `assume_autocue` setting are removed (#4893).
-- Add metadata from all sources/tracks in `add` operators (#4892).
-- Make sure script fails on `on_close` errors in `output.file` to prevent
-  fatal errors from being ignored. Use `reopen_on_error` to ignore errors
-  from the callback.
-- Allow implicit casting of an integer as a float (#2887).
-- Removed `settings.decoder.ffmpeg.max_interleave_delta`. The setting was never read by
-  the decoder; stream interleaving is bounded by
-  `settings.decoder.ffmpeg.max_interleave_duration` alone.
-- Overhauled the FFmpeg filter graph implementation, fixing frame loss, dropped
-  track marks and a hang. A graph is now a single source whose outputs share one
-  buffer and one set of track marks, so a track boundary cuts all of them, `id`
-  on any output names the graph, and outputs consumed at diverging rates raise
-  past `settings.ffmpeg.filter_max_buffer`.
-- `xml-light` and `miniyaml` are now required dependencies of `liquidsoap-lang`, making XML and
-  YAML support always available. YAML integers parse as `int` instead of `float` (#5233).
-- YAML parsing and rendering now go through `miniyaml`, which covers the subset of YAML usually
-  hand-written in configuration files. Block scalars (`|` and `>`), anchors, aliases, tags and
-  multi-document streams are now rejected with an explicit error instead of being parsed, and
-  `yaml.stringify` lost its `scalar_style` and `layout_style` arguments: it always renders in
-  block style with plain scalars, quoting only where needed.
-- FFmpeg encoders and decoders now pick their thread count automatically, as the `ffmpeg`
-  command-line tools do, instead of running on a single thread. Transcoding no longer
-  bottlenecks on one core: an `%ffmpeg` output using `libx265` and a 4K input is about 2.5
-  times faster. Pass `threads=1` to an `%ffmpeg` encoder to get the previous behavior back
-  (#5014).
-- Video scaling can be split across cores through `settings.ffmpeg.scaling_threads`, as
-  `ffmpeg` does through its filter graphs. It defaults to `1`, scaling on the calling thread:
-  splitting a frame costs a fan-out and a join every frame, which a stream held to real time
-  pays continuously and, on our measurements, does not earn back. `0` uses one thread per
-  core (#5014).
-- Removed daemon mode: the `-d`/`--daemon` command-line option, the `settings.init.daemon`
-  settings and the pidfile they wrote. Detaching from the terminal meant forking, which is
-  unsafe now that liquidsoap runs on several cores. Use a service manager such as `systemd`
-  or `launchd` to run liquidsoap in the background; both handle pidfiles, log redirection and
-  privilege dropping.
+- Script callbacks, requests, harbor clients and `thread.run` handlers run concurrently on several cores, and clocks run as scheduler tasks instead of one thread each. Domains are added on demand up to `settings.scheduler.domains` ([#5539](https://github.com/savonet/liquidsoap/pull/5539)). `settings.scheduler.blocking_tasks` (default 64) limits concurrent slow tasks and replaces the deprecated `settings.scheduler.*_queues` ([#5493](https://github.com/savonet/liquidsoap/pull/5493)). `settings.scheduler.legacy` and `settings.clock.task := false` restore the previous behavior ([#5359](https://github.com/savonet/liquidsoap/pull/5359), [#5397](https://github.com/savonet/liquidsoap/pull/5397)).
+- The FFmpeg layer was rewritten ([#5541](https://github.com/savonet/liquidsoap/pull/5541)). Scripts keep the same syntax and settings. What changes:
+  - Copied streams start each source on a keyframe of every track, waiting at most `settings.ffmpeg.content.copy.max_keyframe_wait` (20 s), and stay in sync across switches and long relays ([#2333](https://github.com/savonet/liquidsoap/issues/2333), [#4502](https://github.com/savonet/liquidsoap/issues/4502), [#3329](https://github.com/savonet/liquidsoap/issues/3329)).
+  - Copied files with incompatible stream parameters are skipped when opened.
+  - `%audio.raw` and `%video.raw` take unset parameters from the first frame.
+  - Script and configuration errors fail at evaluation or first start instead of retrying forever.
+  - `input.ffmpeg` takes a `timeout` (10 s) ([#2358](https://github.com/savonet/liquidsoap/issues/2358)).
+  - Filter graphs share one buffer and track marks across outputs, drop excess beyond `settings.ffmpeg.filter_max_buffer`, and are rebuilt when their input comes back ([#5302](https://github.com/savonet/liquidsoap/pull/5302), [#5332](https://github.com/savonet/liquidsoap/pull/5332)).
+  - Encoders and decoders pick their thread count automatically ([#5388](https://github.com/savonet/liquidsoap/pull/5388)). `threads=1` restores single-threaded encoding, and `settings.ffmpeg.scaling_threads` splits scaling.
+  - FFmpeg logs go through liquidsoap's logger. `settings.ffmpeg.log.capture := false` restores standard error ([#5469](https://github.com/savonet/liquidsoap/pull/5469)).
+- `switch`, `fallback`, `rotate` and `random` replace their list parameters (`transitions`, `override`, `track_sensitive`, `weights`, ...) with per-source composition methods. See [source composition](doc/content/composition.md) and `doc/content/migrating.md` ([#5074](https://github.com/savonet/liquidsoap/pull/5074)).
+- Switching cuts into a playing track with a fade of up to `settings.source.composition.max_fade` (1 s). `source.composition.legacy_on_select` restores the previous behavior ([#5077](https://github.com/savonet/liquidsoap/pull/5077)).
+- A source passed to an output must have exactly the tracks its format encodes, and sources or formats of one list must have the same tracks. Extra tracks used to be dropped silently; use `source.drop.video` and similar ([#5627](https://github.com/savonet/liquidsoap/pull/5627)).
+- `cross`/`crossfade`: `start_duration`/`end_duration` are replaced by `duration`, `liq_cross_*_duration` by `liq_cross_duration`, and the methods by `cross_duration()`. `assume_autocue` is removed ([#4893](https://github.com/savonet/liquidsoap/pull/4893)). Transitions no longer replay track metadata: a custom transition reads it from its arguments' `metadata` field ([#5377](https://github.com/savonet/liquidsoap/pull/5377)).
+- Liquidsoap requires OCaml 5.5 ([#5366](https://github.com/savonet/liquidsoap/pull/5366)).
+- Removed daemon mode (`-d`/`--daemon`, `settings.init.daemon`): use a service manager such as `systemd` or `launchd` ([#5392](https://github.com/savonet/liquidsoap/pull/5392)).
+- Removed `input.udp` and `output.udp` (use `input.srt`/`output.srt`), the `faad` decoder ([#5444](https://github.com/savonet/liquidsoap/pull/5444)) and the unused `settings.decoder.ffmpeg.max_interleave_delta`.
+- Renamed the `canvas` video content type to `yuv420p`: `source(video=canvas)` becomes `source(video=yuv420p)` ([#5096](https://github.com/savonet/liquidsoap/pull/5096)).
+- `output.harbor`: `on_connect`/`on_disconnect` receive a listener record, `listeners` lists them, `accept` filters them, and `ip` no longer includes the port ([#5414](https://github.com/savonet/liquidsoap/pull/5414)). Mounts match literally, `override_mount` is needed to take over a served mount, and unsynced clocks need `allow_unsynced_clock`. Removed `dumpfile` and the deprecated `on_connect`/`on_disconnect` arguments ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
+- `harbor.http.register` returns a value with a `remove` method, replacing `harbor.remove`. Registering the same path and method twice raises an error ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
+- `input.harbor` websockets follow the [webcast specification](https://github.com/webcast/webcast.js/blob/main/SPECS.md) and RFC 6455: errors close with defined codes, pings are answered, and non-string metadata is ignored ([#5625](https://github.com/savonet/liquidsoap/pull/5625)).
+- YAML goes through `miniyaml`, now required along with `xml-light`. Integers parse as `int`. Block scalars, anchors, aliases, tags and multi-document streams are rejected. `yaml.stringify` lost `scalar_style` and `layout_style` ([#5233](https://github.com/savonet/liquidsoap/pull/5233)).
+- Deprecated `fallback.skip`: use `track_sensitive = getter(false)` on the fallback source.
+- `output.file` fails on `on_close` errors unless `reopen_on_error` handles them ([#4879](https://github.com/savonet/liquidsoap/pull/4879)).
+- `add` keeps the metadata of all its sources ([#4892](https://github.com/savonet/liquidsoap/pull/4892)).
+- `prometheus.latency` metrics end in `_ratio` instead of `_seconds` ([#5470](https://github.com/savonet/liquidsoap/pull/5470)).
+- Record fields are evaluated when the record is built, even if they are never used ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
+- Bindings without `let` accept destructuring, field paths and type annotations, e.g. `(x, y) = (1, 2)` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
+- String interpolation accepts any expression, e.g. `"#{m["key"]}"` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
+- Integers are implicitly cast to floats ([#2887](https://github.com/savonet/liquidsoap/pull/2887)).
 
 ## Fixed:
 
-- Websocket sources of `input.harbor` answer pings and echo the client's close frame, as RFC 6455 requires. A client stopping its stream no longer sees an abnormal closure (`1006`), and its mount is released right away (#5625).
-- `output.harbor` changes ICY titles at their position in the stream, sends the final Ogg pages
-  to listeners at stop, and no longer lets a slow HTTPS listener delay the others (#5580).
-- A listener joining a `%ffmpeg` `output.harbor` stream after its start, including an
-  `icecast.server` mount, receives the container header first. An Ogg/Opus listener used
-  to get no `OpusHead` and could not decode the stream (#5542).
-- `output.harbor` no longer interleaves ICY metadata into Ogg streams when a listener
-  sends `Icy-MetaData: 1`, as Icecast does. Clients that always ask for it and do not
-  strip it could not demultiplex the stream (#5542).
-- A listener joining an Ogg `output.harbor` stream after a metadata change starts at the
-  current link, with its header pages, and can decode the stream. It used to receive the
-  current link's header followed by pages of earlier links (#5546).
-- `time.predicate` now parses predicates combined with `and`, `or`, `not` and parentheses. It used to read only the first predicate of the string and silently ignore the rest, so `"0w and 3h"` held all Sunday (#5532).
-- Active inputs such as `input.ffmpeg` replaced through `source.dynamic` are now stopped and
-  released. They used to keep their connection, decoder and threads alive for the lifetime of
-  the script (#5389).
-- A transition that drops the incoming source no longer drops that track's announcement with
-  it. `cross` had already consumed the metadata into the buffer it hands the transition, so
-  the track played on, audible and unannounced, once the transition was over. It is now
-  announced on the tail, where that audio starts, and only when the transition did not
-  announce it itself (#5360).
-
-- `cross` no longer replays either track's metadata into the transition. The outgoing one was
-  announced a second time by a transition keeping that source, and with an `add`-shaped
-  transition both replays landed at the same frame position, so only one survived and the
-  incoming track's own announcement was dropped. The incoming one is already inside the
-  buffered data it was replayed into, so it only ever fired when there was nothing to replay,
-  announcing an empty metadata. The transition still receives both as the `metadata` field of
-  its arguments, so a transition that read a track's fade overrides off the stream must now
-  read them from that argument, as `cross.simple` and `cross.plot` do (#5360).
-
-- `metadata.deduplicate` no longer compares across a track mark, which dropped the metadata of
-  a track repeating the one before it, e.g. a single file on a loop (#5360).
-
-- `time.zone.set` now takes effect. Setting the time zone was silently ignored once anything had already
-  read the local time, which in practice meant always.
-- Rendering a type no longer goes through `Format.str_formatter`, which is per-domain and shared with whatever else
-  formats a value there: a type printed from a scheduler task came out empty.
-- Log entries written during shutdown are no longer dropped: the logging thread returned without a final flush.
-- Error messages naming a type no longer come out with the type missing, which could happen when the error was
-  raised from a callback or a `thread.run` handler.
-- The last lines of the log are no longer lost on shutdown.
-
-- Callbacks a script registers on the sources `switch` and `cross` hand to `on_select`,
-  `on_leave` and transition functions are now released when the selection or the crossing
-  ends, instead of accumulating on those sources for as long as they live.
-- An FFmpeg filter graph is no longer finished off by an input that runs dry. A source
-  going unavailable for a passing reason, a `buffer` filling up or a queue waiting on a
-  request, still tears the graph down, since avfilter cannot reopen a graph that has seen
-  end of file, but the graph is now rebuilt when the input comes back, each generation
-  announced as a new stream so its timestamps line up with the last (#3944).
-- An FFmpeg filter graph dropped the tail its filters were holding at end of
-  stream: the sink never asked its duration converter for what it had left. A
-  5.00s source through `loudnorm` produced 2.08s, and now produces 4.98s.
-- Fixed the ffmpeg decoder leaving up to ~150ms of silence after a seek: the
-  packets between the seek point and the target were dropped without being
-  decoded, so codecs carrying state across packets, mp3 and its bit reservoir
-  in particular, started cold. This is what made a CUE playlist click between
-  tracks (#3971).
-- Anything logged while evaluating the script, deprecation warnings in
-  particular, was silently dropped when liquidsoap exited before reaching the
-  streaming loop, e.g. on `No output defined, nothing to do.` (#3375).
-- Liquidsoap no longer exits when started as `root`: it now logs a warning
-  instead. Container detection through `/proc/1/cgroup` does not work under
-  cgroup v2, which made the check fire on plain `docker run` (#3406).
-- Fixed `output.file` and the other piped outputs ignoring the delay returned by
-  `reopen_on_error` when the failure happened while opening the file: the output
-  stays `Idle` in that case and was retried on every streaming cycle (#2437).
-- `output.file` reports `Unix` errors, e.g. `Permission denied` when creating the
-  destination directory, as `system` errors, like it already did for `Sys_error`
-  (#2437).
-- Fixed `%mp3` segfaulting on musl-based systems such as Alpine: the lame
-  bindings held their 144KB output buffer on the stack, more than a musl thread
-  stack can take (#3936).
-- `rotate` and `random` name the switch they build internally after themselves,
-  e.g. `schedule_rotate`, instead of leaving it with an anonymous id (#3851).
-- Fixed `clock.create` documenting and reporting sync modes, `"CPU"` and
-  `"unsynced"`, that it does not accept. The accepted values are `"auto"`,
-  `"cpu"`, `"none"` and `"passive"`.
-- Fixed `file.watch` losing track of a file that gets replaced rather than written in
-  place: an inotify watch follows the inode, so a writer doing the usual
-  write-to-temporary-then-rename silenced the watcher for good, and the containing
-  directory is watched instead. `playlist` with `reload_mode="watch"` also waits for a
-  burst of events to settle before reloading, so a writer that truncates before writing
-  no longer triggers two racing reloads and plays tracks out of order (#3343).
-- Fixed HLS segment boundaries drifting away from `segment_duration`: a segment
-  closing on a stale split position re-anchored the next boundary on it instead
-  of the segment grid. The drift rate depends on the encoder's frame size, so
-  variants using different codecs, e.g. HE-AAC and AAC-LC, diverged from each
-  other without bound (#5319).
-- The names liquidsoap's syntactic sugar expands to are no longer writable in a script: they now start with an
-  underscore followed by a digit, which the lexer does not accept as an identifier, so user code cannot shadow what
-  `let eval`, `let json.parse`, `let xml.parse`, `let yaml.parse`, `let sqlite.row`/`sqlite.query` or `%argsof` expand
-  to. `_null` is unchanged, being a real callable builtin.
-- Record fields are evaluated when the record is built, whether or not they are ever invoked. Previously a field of a
-  record that was invoked directly, as in `{a = 1, b = f()}.a`, was dropped along with its effects when running a
-  script normally, but not under `--interactive` or in the standard library, and not if the record was bound to a name
-  first.
-- Inline `ffmpeg.encode.*` operators report unrecognized codec options, as the
-  container encoder does.
-- Fixed `%ffmpeg` copy encoder initializing the video stream twice and setting the
-  average frame rate on the one it discarded, so copied video carried no frame rate.
-- Fixed inline `ffmpeg.encode.*` operators losing their codec options after the
-  first track: the encoder consumed them from the format's own table, which was
-  then empty when the encoder was rebuilt at the next track boundary.
-- Fixed `%ffmpeg` video streams being printed as `%%video(...)`.
-- Fixed FFmpeg stream descriptions listing video and subtitle streams in reverse
-  order.
-- Fixed `delay` getting stuck after its first track and dropping the following
-  track's metadata (#5282).
-- Fixed `sequence` dropping the first chunk of a source, along with its
-  metadata, when the source it follows leaves no room in the current frame.
-  This showed up as the track after a `cross`/`crossfade` transition built with
-  `sequence` keeping the previous track's metadata until the next track
-  boundary (#5296).
-- Fixed `output.file.hls` terminating the process on transient filesystem
-  errors. The output now supports a `reopen_on_error` callback (#5259).
-- Fixed `output.file.hls` accepting unwritable output, temporary and
-  `persist_at` directories during initialization (#5261).
-- Fixed ID3 timed metadata missing from first mpegts HLS segment: metadata is
-  now registered before the segment is opened and before data is encoded (#5084).
-- Make active `stereotool` really be active.. (#4882)
-- Fixed `fMP4` HLS support for audio+video streams (#4841)
-- Fixed crossfade clocks inconsistencies leading to weird caching audio glitches (#4851)
-- Fixed first frame of new track getting lost when crossfading with `fade.in` duration is set to `0.` (#4887)
-- Fixed race condition when registering harbor endpoint and mounts (#5292)
-- Fixed crash with concurrent `stop`/`start` operations (#4849)
-- Fixed metadata leak from underlying ffmpeg `ogg` demuxer in `ffmpeg` stream
-  decoder (#4848)
-- Make sure `output.file` does not create files without data (#4899)
-- Fixed deadlock when a GC finalizer logged from inside another log call: the log
-  queue no longer allocates while holding its mutex.
-- Fixed a stall of the full connection timeout on Windows when a host's first address
-  refuses the connection, e.g. `output.icecast` to `localhost` with an IPv4-only server,
-  on connection and on every metadata update (#5484).
-- Fixed typechecking that never finished and ran out of memory on scripts mixing a doubly
-  nullable value, such as `x?.field` on a nullable field, with another instance of the same
-  type, for instance a `reload` of `icecast.server` with a record loaded from a file (#5601).
+- `%mp3` no longer segfaults on musl systems such as Alpine ([#5322](https://github.com/savonet/liquidsoap/pull/5322)).
+- The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
+- `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
+- Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
+- `output.file.hls` handles transient filesystem errors with `reopen_on_error` ([#5263](https://github.com/savonet/liquidsoap/pull/5263)), rejects unwritable directories at startup ([#5264](https://github.com/savonet/liquidsoap/pull/5264)), and puts ID3 metadata in the first mpegts segment ([#5117](https://github.com/savonet/liquidsoap/pull/5117)).
+- Fixed typechecking running out of memory on some scripts mixing doubly nullable values ([#5601](https://github.com/savonet/liquidsoap/pull/5601)).
+- `time.predicate` parses predicates combined with `and`, `or`, `not` and parentheses ([#5534](https://github.com/savonet/liquidsoap/pull/5534)).
+- A `cross` transition that drops the incoming source no longer loses that track's announcement ([#5383](https://github.com/savonet/liquidsoap/pull/5383)).
+- FFmpeg filter graphs no longer drop the tail their filters hold at end of stream ([#5332](https://github.com/savonet/liquidsoap/pull/5332)).
+- `%ffmpeg` copied video carries its frame rate, and inline `ffmpeg.encode.*` operators report unknown options and keep them past the first track ([#5302](https://github.com/savonet/liquidsoap/pull/5302)).
+- `delay` no longer gets stuck after its first track ([#5282](https://github.com/savonet/liquidsoap/pull/5282)).
+- Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
+- Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
+- `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
 
 ## Optimized:
 
-- Scripts typecheck about four times faster and with less memory: checking the standard
-  library without cache drops from 10 s to under 3 s (#5600).
+- Scripts typecheck about four times faster with less memory ([#5600](https://github.com/savonet/liquidsoap/pull/5600)).
 
 ---
 
