@@ -107,13 +107,22 @@ let send_stop ~log t =
             try close_out process.p.stdin with _ -> ())
         | _ -> ())
 
+(* Windows only supports SIGKILL. *)
+let kill_signal = if Sys.win32 then Sys.sigkill else Sys.sigterm
+
+(* Only the shell's pid is signaled: a command the shell does not exec into
+   keeps running. *)
+let signal_process { stdout; stdin; stderr } =
+  Unix.kill (Unix.process_full_pid (stdout, stdin, stderr)) kill_signal
+
 let _kill = function
-  | Some { p; in_pipe; out_pipe } ->
+  | Some { p; in_pipe; out_pipe; status } ->
       let silent f = try f () with _ -> () in
       List.iter silent
         [
           (fun () -> Unix.close in_pipe);
           (fun () -> Unix.close out_pipe);
+          (fun () -> if Atomic.get status = None then signal_process p);
           (fun () -> ignore (close_process p));
         ]
   | None -> ()
