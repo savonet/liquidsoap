@@ -40,7 +40,7 @@ let strip_source_tracks ty =
           }
     | _ -> ty
 
-let eval_check ~env:_ ~tm v =
+let eval_check ~tm v =
   if Lang_source.Source_val.is_value v then (
     let s = Lang_source.Source_val.of_value v in
     if not s#has_content_type then (
@@ -66,6 +66,22 @@ let eval_check ~env:_ ~tm v =
             in
             try Typing.(source#frame_type <: frame_t)
             with _ when is_nullable tm.Term.t -> ())))
+
+(* The types compared here are built from the value at runtime and carry no
+   position: report the error at the term that produced the value. *)
+let at_term ~tm check =
+  let pos = tm.Term.t.Type.pos in
+  try check () with
+    | Repr.Type_error (flipped, ta, tb, a, b) ->
+        let bt = Printexc.get_raw_backtrace () in
+        Printexc.raise_with_backtrace
+          (Repr.Type_error (flipped, { ta with Type.pos }, tb, a, b))
+          bt
+    | Repr.Track_error error ->
+        let bt = Printexc.get_raw_backtrace () in
+        Printexc.raise_with_backtrace (Repr.Track_error { error with pos }) bt
+
+let eval_check ~env:_ ~tm v = at_term ~tm (fun () -> eval_check ~tm v)
 
 (* A clock is a custom type and a source's methods are a table of values, so
    neither can be built where liquidsoap's core is not linked -- unlike the
