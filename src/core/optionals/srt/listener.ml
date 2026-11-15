@@ -114,9 +114,11 @@ class ['reaction] connection ~log ~name ~params ~kind () =
     method private admitted_count generation =
       Mutex.protect m (fun () ->
           match state with
-            | Listening { peers } when self#current generation ->
-                Some (List.length peers)
-            | _ -> None)
+            | _ when not (self#current generation) -> None
+            | Listening { peers } -> Some (List.length peers)
+            (* Handshakes start at [Srt.listen], before the state is
+               [Listening]; the accept that follows picks them up. *)
+            | _ -> Some 0)
 
     method private admit generation socket hs_version peeraddr streamid =
       match (self#admitted_count generation, kind.client_limit) with
