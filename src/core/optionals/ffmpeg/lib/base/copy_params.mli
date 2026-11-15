@@ -63,6 +63,9 @@ val intra_only : t -> bool
 (** Whether the stream declares a reorder delay (B-frames). *)
 val has_reordering : t -> bool
 
+(** The codec extradata; empty when the parameters carry none. *)
+val extradata : t -> string
+
 val bitstream_form : t -> Liquidsoap_ffmpeg_formats.Copy_changes.form
 
 (** [settings.ffmpeg.content.copy.relaxed_compatibility_check]. *)

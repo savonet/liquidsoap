@@ -8,7 +8,9 @@ output.file.hls(
   segments=8,
   segments_overhead=10,
   prefix="https://cdn.example.org/live",
-  extra_tags=["#EXT-X-INDEPENDENT-SEGMENTS"],
+  extra_tags=[
+    "#EXT-X-SESSION-DATA:DATA-ID=\"com.example.title\",VALUE=\"Radio\""
+  ],
   [
     (
       "aac",

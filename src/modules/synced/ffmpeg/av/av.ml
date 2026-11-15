@@ -402,6 +402,9 @@ let open_output_stream ?opts ?interleaved ?seek write format =
 
 external output_started : output container -> bool = "ocaml_av_output_started"
 
+external output_wants_global_header : output container -> bool
+  = "ocaml_av_output_wants_global_header"
+
 external set_container_metadata :
   _ container -> int -> (string * string) list -> unit = "ocaml_av_set_metadata"
 

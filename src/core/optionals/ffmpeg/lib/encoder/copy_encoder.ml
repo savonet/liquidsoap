@@ -138,6 +138,24 @@ let first_params track frame =
     (fun (_, (r : Ffmpeg_content.Copy.Data.run)) -> r.source_params)
     (data track frame).runs
 
+(* encoder-copy.md §2 step 4: the muxer judges the stream, so this only warns. *)
+let warn_missing_extradata track params =
+  let t = track.shared in
+  match params.Copy_params.media with
+    | `Subtitle _ -> ()
+    | `Audio _ | `Video _ ->
+        if
+          Av.output_wants_global_header t.container
+          && Copy_params.extradata params = ""
+        then
+          t.log#important
+            "Track %s: the format wants global headers but the copied %s \
+             stream has no extradata. Set flags=\"+global_header\" on the \
+             encoder that produced it, or apply \
+             ffmpeg.filter.bitstream.extract_extradata upstream."
+            (name track)
+            (Copy_params.codec_name params)
+
 let mk_stream track frame =
   match first_params track frame with
     | None -> failwith "Copy stream created without parameters"
@@ -152,6 +170,7 @@ let mk_stream track frame =
                 `Video s
             | `Subtitle p -> `Subtitle (Av.new_stream_copy ~params:p container)
         in
+        warn_missing_extradata track params;
         track.stream <- Some stream;
         track.header <- Some params;
         track.intra <- Copy_params.intra_only params;

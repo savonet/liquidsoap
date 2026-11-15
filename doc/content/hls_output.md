@@ -46,9 +46,11 @@ The second argument is a list of `(name, format)` pairs, one per variant. The
 name is the base name of the variant's media playlist (`<name>.m3u8`) and of
 its segments, so it must be non-empty and unique within the output.
 
-Every variant encodes the same source. Within one output, all formats must
-carry the same tracks: either every variant has video, or none does. To offer
-an audio-only rendition of a video stream, use a second output.
+Every variant encodes the same source, so all variants of one output carry the
+same tracks. When some formats have video and others do not, the output's
+content type is the one they share: the stream is audio-only and the video
+formats encode no video. To offer an audio-only rendition of a video stream,
+use a second output.
 
 Players choose a variant from what the main playlist announces about it. You
 can set these values yourself by adding fields to the format:
@@ -63,7 +65,7 @@ can set these values yourself by adding fields to the format:
 | `codecs`      | `string`    | Announced codecs, such as `"mp4a.40.2"` or `"avc1.64001f,mp4a.40.2"`.                      |
 | `extname`     | `string`    | Extension of the segment files.                                                            |
 | `video_size`  | `int * int` | Announced resolution, width then height.                                                   |
-| `id3`         | `bool`      | Carry track metadata as ID3, see [metadata](#metadata).                                    |
+| `id3`         | `bool`      | Carry track metadata as ID3 (MPEG-TS only), see [metadata](#metadata).                     |
 | `id3_version` | `int`       | ID3v2 version; default `3`.                                                                |
 | `replay_id3`  | `bool`      | Repeat the current track's metadata in later segments; default `true`.                     |
 | `extra_tags`  | `[string]`  | Playlist tags written at the top of this variant's media playlist, such as `#EXT-X-START`. |
@@ -83,8 +85,8 @@ WebM or Ogg, is refused when the script starts, with an error naming the
 variant.
 
 MPEG-TS (`format="mpegts"`) plays almost everywhere and suits most streams.
-Fragmented MP4 is the format Apple requires for HEVC video. Packed audio (`%mp3`, `%fdkaac`, `%ffmpeg` with `adts`) is the
-lightest choice for radio.
+Fragmented MP4 is the format Apple requires for HEVC video. Packed audio
+(`%mp3`, `%fdkaac`, `%ffmpeg` with `adts`) is the lightest choice for radio.
 
 With fragmented MP4, media segments use the `.m4s` extension and the init
 segment keeps `.mp4`.
@@ -174,8 +176,8 @@ it.
 A live playlist lists only the latest segments. `segments` (default `10`) sets
 how many. Players start a few segments from the end, so a longer window gives
 them more room to absorb network trouble, at the cost of a playlist that
-covers more past content. Apple recommends at least 6 segments; a lower value
-is accepted with a warning.
+covers more past content. Apple's authoring specification requires at least 6
+segments; a lower value is accepted with a warning.
 
 The window always covers at least three target durations, as HLS requires: the
 output keeps more than `segments` segments when some are short.
@@ -189,12 +191,14 @@ output keeps more than `segments` segments when some are short.
 A player may still be working through a playlist it downloaded a moment ago,
 so a segment that leaves the window must stay on disk a little longer. The
 output keeps it until the stream has moved on by the segment's length plus the
-duration of the playlists that listed it.
+duration of the longest playlist that listed it.
 
 `segments_overhead` (default `5`) keeps at least that many more segments
 after they leave the window, which helps slow caches and players far behind
 live. With `segments_overhead=null`, no segment is ever deleted while the
-output runs, for instance to keep a recording.
+output runs, for instance to keep a recording. Files are still removed when
+the script ends, unless `persist_at` is set (see
+[stopping for good](#stopping-for-good)).
 
 ### URIs and `prefix`
 
@@ -230,7 +234,7 @@ yourself. It writes one `#EXT-X-STREAM-INF` line per variant, for example:
 ```
 #EXTM3U
 #EXT-X-VERSION:6
-#EXT-X-STREAM-INF:BANDWIDTH=140800,CODECS="mp4a.40.2"
+#EXT-X-STREAM-INF:BANDWIDTH=140800,CODECS="mp4a.40.29"
 aac.m3u8
 #EXT-X-STREAM-INF:BANDWIDTH=140800,CODECS="mp4a.40.34"
 mp3.m3u8
@@ -266,10 +270,13 @@ they are carried depends on the format:
 - **MPEG-TS**: metadata is sent as timed ID3 inside the stream, at the moment
   it changes. With `replay_id3=true`, it is repeated at the start of each
   segment for players that join later.
+- **Fragmented MP4 and WebVTT**: no ID3 is carried.
 
-`id3=false` turns ID3 off for a variant, and `id3_version` picks the ID3v2
-version. Only text metadata is sent: cover art and other binary entries are
-left out.
+The `id3` field only applies to MPEG-TS, where `id3=false` turns ID3 off.
+Packed audio requires ID3 (RFC 8216 §3.4), so `id3=false` is refused there,
+and `id3=true` is refused for fragmented MP4 and WebVTT. `id3_version` picks
+the ID3v2 version. Only text metadata is sent: cover art and other binary
+entries are left out.
 
 ```{.liquidsoap include="hls-metadata.liq" from="BEGIN" to="END"}
 
@@ -368,16 +375,19 @@ the playlist that drops it is written.
 
 A callback registered with `synchronous=true` runs in the streaming loop: an
 error it raises ends the run like any other output error, and a slow one holds
-up streaming. The example above runs each upload in its own thread, so
-uploads may finish in a different order than their events.
+up streaming. The example above runs each upload in its own thread, which
+gives up this ordering: a playlist can reach the CDN before the segment it
+lists, and a deletion before the upload it follows. Upload from the callback
+itself when the order matters.
 
 ### Stopping for good
 
 When the script ends, or the output is shut down, without `persist_at`, the
-output removes everything it wrote: the main playlist first, then the media playlists, then segments and
-init segments, so that no player is sent to a missing file. Files you placed
-in the directory yourself are left alone. With `persist_at`, every file is
-kept for the next run.
+output removes every file it wrote: the main playlist first, then the media
+playlists, then segments and init segments, so that no player is sent to a
+missing file. Directories created for segment names are kept, and files you
+placed in the directory yourself are left alone. With `persist_at`, every file
+is kept for the next run.
 
 ## Restarts and errors
 
@@ -396,9 +406,9 @@ file after every segment and at every stop. On the next start, the output
 reads it back, reuses the segments still on disk, and continues the numbering
 after a discontinuity.
 
-A relative `persist_at` is relative to the output directory. A listed segment
-whose file has gone missing is dropped with a warning, together with every
-older one.
+A relative `persist_at` is relative to the output directory. A saved segment
+whose file, or init segment, has gone missing is dropped with a warning,
+together with every older one.
 
 When the state file cannot be read back, the output logs a warning and starts
 fresh. With `strict_persist=true` it fails instead, which suits setups where a

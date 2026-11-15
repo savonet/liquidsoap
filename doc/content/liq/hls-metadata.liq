@@ -9,9 +9,18 @@ o =
       ("aac", %fdkaac(bitrate = 128).{id3_version = 4}),
       (
         "ts",
-        %ffmpeg(format = "mpegts", %audio(codec = "aac")).{replay_id3 = false}
+        %ffmpeg(format = "mpegts", %audio(codec = "aac", b = "128k")).{
+          replay_id3 = false,
+          bandwidth = 250000
+        }
       ),
-      ("plain", %mp3(bitrate = 128).{id3 = false})
+      (
+        "plain",
+        %ffmpeg(format = "mpegts", %audio(codec = "aac", b = "64k")).{
+          id3 = false,
+          bandwidth = 200000
+        }
+      )
     ],
     radio
   )

@@ -13,6 +13,7 @@
   count below 1.
 * `Swscale` ignores the buffers after the ones a pixel format needs.
 * Report native memory to the OCaml GC.
+* Add `Av.output_wants_global_header`.
 * Add side data: every kind FFmpeg defines is readable and writable on
   frames, packets and codec parameters (`Frame.side_data`,
   `Packet.raw_side_data`, `Avcodec.params_side_data`), and encoders take

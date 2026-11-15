@@ -137,8 +137,9 @@ connected:
 The log shows each change:
 
 ```
-[clock.output:3] Now paced by sync source srt
-[clock.output:3] Sync source srt left: the clock paces the stream (latency: 0.10s, maximum latency: 60.00s)
+[clock.output:3] Animator changes from task to thread (blocks: srt://0.0.0.0:8000)
+[clock.output:3] Now paced by sync source srt://0.0.0.0:8000
+[clock.output:3] Sync source srt://0.0.0.0:8000 left: the clock paces the stream (latency: 0.10s, maximum latency: 60.00s)
 ```
 
 Which of the two is playing at a given moment is a separate question, answered

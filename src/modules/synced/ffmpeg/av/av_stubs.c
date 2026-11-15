@@ -1521,6 +1521,15 @@ CAMLprim value ocaml_av_output_started(value _container) {
   return Val_bool(started);
 }
 
+CAMLprim value ocaml_av_output_wants_global_header(value _container) {
+  container *record = shared(_container);
+  int wants = (record->context->oformat->flags & AVFMT_GLOBALHEADER) != 0;
+
+  ocaml_avutil_guard_release_shared(&record->guard);
+
+  return Val_bool(wants);
+}
+
 /* An output whose header is not written, its guard taken exclusively: the
    state in which streams are added. Raises, the guard released and
    [options], which may be null, freed. */

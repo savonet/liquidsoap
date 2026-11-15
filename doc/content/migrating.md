@@ -108,6 +108,18 @@ o.on_disconnect(fun (ip) -> log("#{ip} disconnected"))
 o.on_disconnect(fun (listener) -> log("#{listener.ip} disconnected"))
 ```
 
+### `output.harbor` and harbor HTTP handlers
+
+- The `on_connect` and `on_disconnect` arguments are removed: use the methods of the same names, as above. The `dumpfile` argument is removed.
+- Mounts are matched literally instead of as regular expressions.
+- An output on a clock that is not paced in real time, such as `sync="none"` or a passive clock, fails to start unless `allow_unsynced_clock=true` is passed.
+- `harbor.remove` is removed. `harbor.http.register` and its variants return a value whose `remove()` method removes that registration. Registering the same path with the same method twice on a port raises an error.
+
+### FFmpeg
+
+- `%audio.raw` and `%video.raw` take the parameters they do not set from the first frame: a mono input stays mono unless `channels=2` is given.
+- Unused or unknown `%ffmpeg` and inline encoder options are errors, raised when the script is evaluated.
+
 ### Crossfade simplification
 
 The `cross` and `crossfade` operators have been simplified. The separate `start_duration` and `end_duration` parameters have been replaced by a single unified `duration` parameter. The crossfade now buffers the same duration from both ending and starting tracks.
@@ -229,7 +241,7 @@ For a check-and-set, `r.exchange(v)` writes and returns the previous value in on
 
 See [sharing state between tasks](./scheduling.md#sharing-state-between-tasks) for the rules a section must follow.
 
-`settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and `settings.scheduler.non_blocking_queues` are deprecated: the scheduler sizes itself from the number of cores. Setting them logs a warning. `settings.scheduler.blocking_tasks` caps how many slow tasks run at once.
+`settings.scheduler.generic_queues`, `settings.scheduler.fast_queues` and `settings.scheduler.non_blocking_queues` are deprecated: the scheduler sizes itself from its workload, up to `settings.scheduler.domains` domains. They only configure the legacy scheduler, and setting them without it logs a warning. `settings.scheduler.blocking_tasks` caps how many slow tasks run at once.
 
 If concurrent execution breaks a script and it cannot be fixed right away, `settings.scheduler.legacy := true` brings back the previous behavior, threads and queues included. It is a fail-safe and will be removed in a later version.
 
