@@ -123,13 +123,13 @@ The same approach works with `playlist` or `request.dynamic`.
 
 Phone recordings are often stored sideways, with a rotation written next to the video for the player to apply. Some containers also declare a border to crop. The ffmpeg decoder applies both, as the `ffmpeg` command-line tool does, so the picture comes out upright in internal content and in `ffmpeg.raw` content. Streams relayed as `ffmpeg.copy` keep their rotation, which the muxer writes to the output.
 
-Liquidsoap applies quarter turns, flips and valid croppings. It leaves the other cases alone, logs a warning and shows the picture as stored: a rotation that is not a quarter turn, a cropping that does not fit the picture, a hardware frame. A function installed with `ffmpeg.autorotate.on_undecided` decides those cases by returning the FFmpeg filters to apply:
+Liquidsoap applies quarter turns, flips and valid croppings. It leaves the other cases alone, logs a warning and shows the picture as stored: a rotation that is not a quarter turn, a cropping that does not fit the picture, a hardware frame. A function installed with `ffmpeg.autorotate.on_undecided` decides those cases by returning the FFmpeg filters to apply. The `rotation` it receives is a clockwise angle, in degrees:
 
 ```{.liquidsoap include="ffmpeg-autorotate.liq"}
 
 ```
 
-`track.ffmpeg.side_data` reads and changes the rotation of an `ffmpeg.copy` video track, and `track.ffmpeg.raw.side_data` does the same on a raw video track. The returned track has `rotation()` and `side_data()` methods:
+`track.ffmpeg.side_data` reads and changes the rotation of an `ffmpeg.copy` video track, and `track.ffmpeg.raw.side_data` does the same on a raw video track. Their `rotation` is in degrees counter-clockwise, as in FFmpeg's display matrix. The returned track has `rotation()` and `side_data()` methods:
 
 ```{.liquidsoap include="ffmpeg-rotation.liq" from="BEGIN" to="END"}
 

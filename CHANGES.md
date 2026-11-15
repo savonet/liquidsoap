@@ -20,8 +20,8 @@
 - Video dimensions (`video.frame.width`/`height`) are now automatically detected
   from the first decoded video file. This can be disabled by setting `settings.video.detect_dimensions`
   to `false` or by explicitly setting the video dimensions.
-- Videos stored with a rotation, such as phone recordings, are now decoded upright, and their container cropping is applied. Set `settings.ffmpeg.autorotate` to `false` to decode the picture as stored. `track.ffmpeg.side_data` and `track.ffmpeg.raw.side_data` read and change the rotation of a track, and `ffmpeg.autorotate.on_undecided` decides the cases liquidsoap leaves alone, such as a rotation that is not a quarter turn.
-- Video whose size, pixel format or colour properties change in the middle of a stream now plays through `ffmpeg.raw` content, `ffmpeg.filter` graphs and raw encoders: raw frames are fitted to the format of the first one, and filter graphs are rebuilt with a warning. `settings.ffmpeg.format_change.color` and `settings.ffmpeg.format_change.pixel_aspect` select which changes count.
+- Videos stored with a rotation, such as phone recordings, are now decoded upright, and their container cropping is applied. Set `settings.ffmpeg.autorotate` to `false` to decode the picture as stored. `track.ffmpeg.side_data` and `track.ffmpeg.raw.side_data` read and change the rotation of a track, and `ffmpeg.autorotate.on_undecided` decides the cases liquidsoap leaves alone, such as a rotation that is not a quarter turn (#5525).
+- Video whose size, pixel format or colour properties change in the middle of a stream now plays through `ffmpeg.raw` content, `ffmpeg.filter` graphs and raw encoders: raw frames are fitted to the format of the first one, and filter graphs are rebuilt with a warning. `settings.ffmpeg.format_change.color` and `settings.ffmpeg.format_change.pixel_aspect` select which changes count (#5541).
 - Added support for XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`,
   `file.nfo.metadata`) (#4910).
 - Added Icecast-compatible streaming server (`icecast.server`) with support for source
@@ -30,7 +30,7 @@
   page, and hashes listener IPs by default (#5408). Its configuration file is reloaded on
   `SIGHUP` or `reload()` without disconnecting sources or listeners (#5418). Like Icecast, it
   bursts to new listeners, passes the source's stream name and genre to them, and enforces
-  `<max-listeners>` and `<clients>`.
+  `<max-listeners>` and `<clients>` (#5580).
 - Added `on_signal`, which runs a function when the process receives a signal such as
   `SIGHUP` or `SIGUSR2`, and returns a `release` method (#5418).
 - Added dedicated encoder mode to `output.harbor`: each listener gets its own encoder, so its
@@ -66,16 +66,19 @@
 - Added Fedora packages for the current Fedora release, on `x86_64` and `aarch64`, and a
   matching dnf repository: `curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh`
   now configures it on Fedora as it does apt and apk elsewhere.
+- Added an `override` parameter to `insert_metadata`: when `false`, metadata the source
+  provides itself takes precedence over the inserted one. The composition profiles use it
+  so that replaying metadata on selection never overwrites a fresh track's own metadata.
 
 ## Changed:
 
-- Websocket sources of `input.harbor` follow the [webcast protocol specification](https://github.com/webcast/webcast.js/blob/main/SPECS.md): errors close the connection with its codes (`4400` for a malformed or repeated `hello` and invalid messages, `4401` for missing or wrong credentials, `4404` for an unknown mount, `4409` for a mount in use), and metadata values other than strings are ignored instead of dropping the connection.
+- Websocket sources of `input.harbor` follow the [webcast protocol specification](https://github.com/webcast/webcast.js/blob/main/SPECS.md): errors close the connection with its codes (`4400` for a malformed or repeated `hello` and invalid messages, `4401` for missing or wrong credentials, `4404` for an unknown mount, `4409` for a mount in use), and metadata values other than strings are ignored instead of dropping the connection. (#5625)
 - Liquidsoap now requires OCaml 5.5 to build.
 - Removed the deprecated `input.udp` and `output.udp` operators. Use `input.srt`/`output.srt`
   for low-latency network streaming.
 - The FFmpeg layer (`%ffmpeg`, the FFmpeg decoders, inline encoders and decoders, filters, `input.ffmpeg`,
-  `output.url`) was rewritten from a specification. Scripts keep the same syntax, operators and settings. What
-  changes:
+  `output.url`) was rewritten from a specification (#5541). Scripts keep the same syntax, operators and
+  settings. What changes:
   - Copied streams start each source on a keyframe of every track together. The wait is bounded by the new
     `settings.ffmpeg.content.copy.max_keyframe_wait` (20 s), after which the ready tracks start with a warning;
     audio is no longer withheld indefinitely. In outputs mixing copied and re-encoded streams, a source switched
@@ -91,7 +94,7 @@
   - `output.file` with Ogg chains a new link at each metadata change, and `output.file(append=true)` with
     `%ffmpeg` appends instead of overwriting.
   - `%audio.raw` and `%video.raw` take the parameters they do not set from the first frame: a mono input stays
-    mono unless `channels=2` is given. `ffmpeg.filter.audio.input` no longer takes `channels`.
+    mono unless `channels=2` is given. A filter input takes its format from its track.
   - Script errors are caught earlier: a field named twice, unused `%ffmpeg` or inline encoder options, unknown
     FFmpeg option names, invalid `settings.ffmpeg.log.verbosity` or `scaling_algorithm`, and configuration
     errors of `output.url` fail at evaluation or at the first start instead of retrying forever.
@@ -110,14 +113,12 @@
   its session duration and bytes sent, and a new `listeners` method lists connected listeners. The
   `ip` field no longer includes the client port (#5408). A new `accept` argument admits or
   refuses listeners. Mounts match literally, and a newer output takes over a served mount only
-  with `override_mount`.
-  ICY titles change at their position in the stream, final Ogg pages reach listeners at stop,
-  and a slow HTTPS listener no longer delays the others. Clocks not paced in real time are refused
-  unless `allow_unsynced_clock` is set. `dumpfile` and the deprecated `on_connect` and
-  `on_disconnect` arguments were removed: use the methods of the same names.
+  with `override_mount`. Clocks not paced in real time are refused unless `allow_unsynced_clock`
+  is set. `dumpfile` and the deprecated `on_connect` and `on_disconnect` arguments were removed:
+  use the methods of the same names (#5580).
 - `harbor.http.register` and its variants return a value with a `remove` method, which replaces
   `harbor.remove`. Registering a path already registered with the same method on a port raises an
-  error.
+  error (#5580).
 - Scheduled work — requests, harbor clients, script callbacks, `thread.run` handlers — is now fully concurrent,
   taking advantage of OCaml 5's core-based concurrency, so a busy instance keeps up with much more of it at once.
   Heavy work in a callback or a request resolution no longer stalls playback either.
@@ -130,7 +131,7 @@
   `settings.scheduler.non_blocking_queues`: the scheduler sizes itself from its workload and there is
   nothing left to tune. They now only configure the legacy scheduler, and setting them without it logs a
   warning. `settings.scheduler.blocking_tasks` replaces them, limiting how many slow tasks — request
-  resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to 64,
+  resolutions, `thread.run` handlers, last.fm submissions — may run at once. It defaults to 64 (#5493),
   whatever the number of cores, so tasks that wait on a socket or a slow mount do not queue behind each other. Raising it pays off
   when those tasks truly wait. A task that uses a core instead of waiting on one, such as probing a
   file for its decoder, only takes cores the streaming threads need.
@@ -214,7 +215,9 @@
 
 ## Fixed:
 
-- Websocket sources of `input.harbor` answer pings and echo the client's close frame, as RFC 6455 requires. A client stopping its stream no longer sees an abnormal closure (`1006`), and its mount is released right away.
+- Websocket sources of `input.harbor` answer pings and echo the client's close frame, as RFC 6455 requires. A client stopping its stream no longer sees an abnormal closure (`1006`), and its mount is released right away (#5625).
+- `output.harbor` changes ICY titles at their position in the stream, sends the final Ogg pages
+  to listeners at stop, and no longer lets a slow HTTPS listener delay the others (#5580).
 - A listener joining a `%ffmpeg` `output.harbor` stream after its start, including an
   `icecast.server` mount, receives the container header first. An Ogg/Opus listener used
   to get no `OpusHead` and could not decode the stream (#5542).
@@ -344,9 +347,6 @@
 - Make sure `output.file` does not create files without data (#4899)
 - Fixed deadlock when a GC finalizer logged from inside another log call: the log
   queue no longer allocates while holding its mutex.
-- Added an `override` parameter to `insert_metadata`: when `false`, metadata the source
-  provides itself takes precedence over the inserted one. The composition profiles use it
-  so that replaying metadata on selection never overwrites a fresh track's own metadata.
 - Fixed a stall of the full connection timeout on Windows when a host's first address
   refuses the connection, e.g. `output.icecast` to `localhost` with an IPv4-only server,
   on connection and on every metadata update (#5484).

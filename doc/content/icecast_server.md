@@ -16,23 +16,27 @@ Source clients connect with HTTP `PUT` or `POST`, Icecast's legacy `SOURCE` meth
 
 The main server parameters are:
 
-| Field             | Default            | Meaning                                                                 |
-| ----------------- | ------------------ | ----------------------------------------------------------------------- |
-| `port`            | `8000`             | Port for sources and listeners. The Shoutcast protocol uses `port + 1`. |
-| `bind_address`    | all interfaces     | Local address to bind.                                                  |
-| `transport`       | plain HTTP         | The HTTP transport of the port, for instance TLS (see [below](#tls)).   |
-| `compatibility`   | `"icecast-2.5"`    | Which implementation to mimic (see [below](#compatibility)).            |
-| `hostname`        | `"localhost"`      | The name the server gives itself in status pages and to backends.       |
-| `source_password` | `"hackme"`         | Password of source clients when their mount has none of its own.        |
-| `shoutcast_mount` | `"/stream"`        | Mount fed by a Shoutcast source client.                                 |
-| `max_sources`     | unlimited          | Most simultaneous source clients.                                       |
-| `max_clients`     | unlimited          | Most simultaneous listeners over all mounts.                            |
-| `source_timeout`  | `10.`              | Seconds of silence after which a source client is dropped.              |
-| `client_timeout`  | `30.`              | Seconds a listener's connection may stall before it is dropped.         |
-| `burst_size`      | `65536`            | Bytes sent at once to a new listener, so that playback starts quickly.  |
-| `name`            | `"icecast.server"` | Label of the server in logs.                                            |
+| Field              | Default            | Meaning                                                                 |
+| ------------------ | ------------------ | ----------------------------------------------------------------------- |
+| `port`             | `8000`             | Port for sources and listeners. The Shoutcast protocol uses `port + 1`. |
+| `bind_address`     | all interfaces     | Local address to bind.                                                  |
+| `transport`        | plain HTTP         | The HTTP transport of the port, for instance TLS (see [below](#tls)).   |
+| `compatibility`    | `"icecast-2.5"`    | Which implementation to mimic (see [below](#compatibility)).            |
+| `hostname`         | `"localhost"`      | The name the server gives itself in status pages and to backends.       |
+| `source_password`  | `"hackme"`         | Password of source clients when their mount has none of its own.        |
+| `shoutcast_mount`  | `"/stream"`        | Mount fed by a Shoutcast source client.                                 |
+| `max_sources`      | unlimited          | Maximum number of simultaneous source clients.                          |
+| `max_clients`      | unlimited          | Maximum number of simultaneous listeners over all mounts.               |
+| `source_timeout`   | `10.`              | Seconds without data after which a source client is dropped.            |
+| `client_timeout`   | `30.`              | Seconds a listener's connection may stall before it is dropped.         |
+| `burst_on_connect` | `true`             | Whether new listeners get a burst.                                      |
+| `burst_size`       | `65536`            | Bytes sent at once to a new listener, so that playback starts quickly.  |
+| `max_history`      | `10`               | Titles kept in each mount's history, 1 to 256.                          |
+| `name`             | `"icecast.server"` | Label of the server in logs.                                            |
 
-The server warns while a mount accepts the default `hackme` password.
+The server warns at startup and at each reload when its source password, or that of a live mount, is the default `hackme`.
+
+Two settings reach beyond the server. `bind_address` sets `settings.harbor.bind_addrs`, which every harbor port uses. Starting a server sets the default frame duration to `0.2` s; a script that sets `settings.frame.duration` itself keeps its value. Routes registered with `harbor.http.register` on the server's port before `icecast.server` is called take precedence over its pages; `GET` routes registered after it are shadowed.
 
 ### The server value
 
@@ -42,7 +46,7 @@ The server warns while a mount accepts the default `hackme` password.
 - `stats()` returns a snapshot of the server's statistics;
 - `reload(parameters)` replaces the parameters of the running server (see [below](#reloading));
 - `reopen_logs()` reopens the log files after an external tool moved them;
-- `attach_source(~format, ~headers, mount, source)` and `detach_source(mount)` feed a mount from a liquidsoap source (see [below](#feeding-a-mount-from-liquidsoap)).
+- `attach_source(~format, ?headers, mount, source)` and `detach_source(mount)` feed a mount from a liquidsoap source (see [below](#feeding-a-mount-from-liquidsoap)).
 
 ## Mounts
 
@@ -61,14 +65,14 @@ Since it is a function, wildcards, defaults shared by several mounts or a lookup
 | `source_decision`       | A function `(request) -> bool` replacing the user and password check of source clients.                  |
 | `on_connect`            | Called in the background when something starts feeding the mount.                                        |
 | `on_disconnect`         | Called in the background when it stops.                                                                  |
-| `max_listeners`         | Most simultaneous listeners on the mount.                                                                |
+| `max_listeners`         | Maximum number of simultaneous listeners on the mount.                                                   |
 | `listener_decision`     | Decides each listener (see [below](#deciding-on-listeners)).                                             |
 | `max_listener_duration` | Seconds after which a listener is disconnected.                                                          |
 | `fallback`              | What feeds the mount while it has no source: `{mount = "/other.mp3"}` or `{source = s}`.                 |
 | `fallback_when_full`    | Redirect listeners past `max_listeners` along the fallback mounts, with `307`, instead of refusing them. |
 | `linger`                | Seconds the mount keeps its listeners, waiting, when its source drops and nothing else feeds it.         |
 | `hidden`                | Keep the mount off the public status pages.                                                              |
-| `max_history`           | Titles kept in the mount's history, 10 by default.                                                       |
+| `max_history`           | Titles kept in the mount's history, the server's `max_history` by default.                               |
 | `health_password`       | Password of the mount's `/<mount>/health` page.                                                          |
 | `burst_size`            | The mount's own burst. `0` disables it whatever the server's value.                                      |
 | `dedicated_encoder`     | Give each listener its own encoder, whatever the server's value.                                         |
@@ -91,22 +95,22 @@ A mount does not need a source client. `attach_source` feeds it from a liquidsoa
 
 ```
 
-`format` is the encoder that writes the content for listeners, here a copy of the MP3 data, and `headers` are the stream identity headers (`ice-name`, `ice-genre`, …) a source client would have sent. The same kind of source can be a mount's `fallback`, as in the [complete example](#a-complete-example).
+`format` is the encoder that writes the content for listeners, here a copy of the MP3 data, and `headers` are the stream identity headers (`ice-name`, `ice-genre`, …) a source client would have sent. `attach_source` raises `error.icecast.server.reserved_path` on a path the server answers itself, and `error.icecast.server.mount_taken` when the mount already has a feeder. The same kind of source can be a mount's `fallback`, as in the [complete example](#a-complete-example).
 
 ## Deciding on listeners
 
 Paid streams, geo-restricted content, a members area or a per-listener ad all need a decision on each listener before the stream starts. A mount's `listener_decision` is a function from the listener's request to an outcome, a record whose fields are all optional:
 
-| Field        | Meaning                                                                            |
-| ------------ | ---------------------------------------------------------------------------------- |
-| `refuse`     | Refuse the listener, or redirect it, with `icecast.server.refusal` or `.redirect`. |
-| `time_limit` | Seconds after which the listener is disconnected.                                  |
-| `preroll`    | Bytes sent before the stream (see [below](#prerolls)).                             |
-| `exempt`     | Skip `max_listeners`, for instance for a trusted relay.                            |
-| `on_release` | Called once when the listener leaves.                                              |
-| `user`       | A new user name for the listener.                                                  |
+| Field        | Meaning                                                                                      |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| `refuse`     | Refuse or redirect the listener, with `icecast.server.refusal` or `icecast.server.redirect`. |
+| `time_limit` | Seconds after which the listener is disconnected.                                            |
+| `preroll`    | Bytes sent before the stream (see [below](#prerolls)).                                       |
+| `exempt`     | Skip `max_listeners`, for instance for a trusted relay.                                      |
+| `on_release` | Called once when the listener leaves.                                                        |
+| `user`       | A new user name for the listener.                                                            |
 
-The request carries the listener's `address`, `headers`, `user` and `password` (from HTTP Basic credentials), `mount`, `query`, the mount's current `listeners`, and `user_listeners(user)`, the number of listeners that user already has on the mount.
+The request carries the listener's `id`, `address`, `headers`, `user` and `password` (from HTTP Basic credentials), `mount`, `query`, the mount's current `listeners`, and `user_listeners(user)`, the number of listeners that user already has on the mount, as well as `protocol`, `server` and `compatibility`.
 
 The standard library has ready-made decisions, and `icecast.server.decision.all` composes several in order, the first refusal winning:
 
@@ -130,7 +134,7 @@ Icecast leaves the decision to a web service, and `icecast.server` speaks the sa
 
 For each listener, the server POSTs Icecast's form fields to `listener_add`: `action`, `server`, `port`, `client`, `mount`, `user`, `pass`, `ip`, `agent`, then the fields RSAS and Icecast-KH add. The reply admits the listener with `icecast-auth-user: 1` (or `x-icecast-auth-result: ok`), and can set a time limit, redirect the listener, refuse it with its own status and message, or choose a preroll. A request that fails refuses the listener with `401`, unless `presume_innocent` is set. When an admitted listener leaves, the server POSTs to `listener_remove` with the session's duration, which is what billing and concurrent-session tracking need.
 
-The options keep Icecast's names: `listener_add`, `listener_remove`, `username`, `password`, `auth_header`, `timelimit_header`, `header_auth`, `header_timelimit`, `header_message`, `header_alter_action`, `header_alter_argument`, `action_add`, `action_remove`, `headers`, `header_prefix`, `timeout`, `presume_innocent` and `on_error_wait`.
+The options keep Icecast's names: `listener_add`, `listener_remove`, `username`, `password`, `auth_header`, `timelimit_header`, `header_auth`, `header_timelimit`, `header_message`, `header_alter_action`, `header_alter_argument`, `action_add`, `action_remove`, `headers`, `header_prefix`, `timeout`, `presume_innocent` and `on_error_wait`. `client_add` and `client_remove` are accepted as aliases of `listener_add` and `listener_remove`.
 
 ### Listener limits
 
@@ -158,9 +162,9 @@ Listener statistics, royalty reports, dashboards and notifications are all built
 
 ```
 
-Listener handlers receive a record with `id`, `mount`, `ip` (hashed, see [privacy](#listener-privacy)), `user`, `user_agent`, `referer`, `uri`, `protocol`, `connected_at`, `duration` and `bytes_sent`: zero on connect, the session's totals on disconnect. Source handlers receive `mount`, `ip` (the source client's address, not hashed), `agent`, `server` (`{hostname, port, instance}`) and `compatibility`, and on connect the liquidsoap `source` feeding the mount, its `format` and the `headers` the source client sent. `on_metadata` handlers receive `mount`, `metadata` and the mount's `listeners`.
+Listener handlers receive a record with `id`, `mount`, `ip` (hashed, see [privacy](#listener-privacy)), `user`, `user_agent`, `referer`, `uri`, `protocol`, `connected_at`, `duration` and `bytes_sent`: zero on connect, the session's totals on disconnect. Source handlers receive `mount`, `ip` (the source client's address, not hashed), `agent`, `server` (`{hostname, port, instance}`) and `compatibility`, and on connect the liquidsoap `source` feeding the mount, its `format`, the `headers` the source client sent and its `streams`, the descriptions of its streams. `on_metadata` handlers receive `mount`, `metadata` and the mount's `listeners`.
 
-Every method takes `synchronous`, `false` by default. An asynchronous handler runs in its own thread and never delays the stream, but no order is guaranteed between such handlers, so counters they share must use `atomic`. A synchronous handler runs in order with the event and must be short. Every admitted listener produces exactly one connect and one disconnect event.
+Every `on_*` method takes `synchronous`, `false` by default. An asynchronous handler runs in its own thread and never delays the stream, but no order is guaranteed between such handlers, so counters they share must use `atomic`. A synchronous handler runs in order with the event and must be short. Every admitted listener produces exactly one connect and one disconnect event.
 
 ## Status pages and statistics
 
@@ -184,7 +188,9 @@ They show counts only, never listener addresses, and leave out hidden mounts. `s
 
 ```
 
-With an `admin_password` (user `admin_user`, `"admin"` by default), the server also serves the admin pages: `/admin/listeners` is a page to watch each mount and its listeners, update a mount's metadata or disconnect its source, `/admin/listeners.json` lists each mount's listeners, and `/admin/stats`, `/admin/listmounts` and `/admin/listclients` answer Icecast's XML for administration tools. The admin commands `metadata`, `killsource` and `fallbacks` work as on Icecast.
+With an `admin_password` (user `admin_user`, `"admin"` by default), the server also serves the admin pages: `/admin/listeners` is a page to watch each mount and its listeners, update a mount's metadata or disconnect its source, `/admin/listeners.json` lists each mount's listeners, and `/admin/stats`, `/admin/listmounts` and `/admin/listclients` answer Icecast's XML for administration tools. Without an `admin_password`, the admin pages refuse everyone with `401`.
+
+The admin commands `metadata`, `killsource` and `fallbacks` work as on Icecast. They authenticate with the mount's source credentials or the admin's; `/admin.cgi` also takes them as `user` and `pass` query arguments.
 
 ## Log files
 
@@ -202,7 +208,7 @@ Log analyzers and statistics tools read the files Icecast writes. `icecast.serve
 
 ## Listener privacy
 
-A listener's address is personal data. The server applies `address_hash` to every listener address before anything sees it: event handlers, `stats()`, the admin pages and the logs. Source client addresses are the operator's own side and are not hashed. The default is a 16-character MD5 digest, the same on every run, so that you can still count unique listeners. Its key is public, so anyone can hash a guessed address and compare. A secret key protects them better:
+A listener's address is personal data. The server applies `address_hash` to every listener address before anything sees it: event handlers, `stats()`, the admin pages and the logs. Source client addresses are the operator's own side and are not hashed. The default is a 16-character MD5 digest, the same on every run, so that you can still count unique listeners. It has no key, so anyone can hash a guessed address and compare. A secret key protects them better:
 
 ```{.liquidsoap include="icecast-server-ip-hash.liq"}
 
@@ -272,7 +278,7 @@ Build the record in one function, called for the first start and for every reloa
 
 Parameters apply at different times:
 
-- `name`, `port`, `bind_address`, `transport` and `compatibility` are read at startup only. A reload that changes the name, port, address or compatibility logs that it was not applied.
+- `name`, `port`, `bind_address`, `transport` and `compatibility` are read at startup only. A reload that changes the name, port, address, transport or compatibility logs that it was not applied.
 - `client_timeout`, `burst_on_connect`, `burst_size`, `http_headers`, `dedicated_encoder` and `muxer_options` apply when a mount output is next created. A running mount keeps the values it started with.
 - Everything else applies at its next use: the next listener, the next source connection, the next log line, the next event. A live mount follows a changed `fallback` at once, and one left with nothing to send is shut down.
 
@@ -298,7 +304,7 @@ The translation is best effort. It maps the common settings and ignores, with a 
 
 - malformed XML, a root other than `<icecast>`, or a value of the wrong kind, such as a non-numeric `<port>`;
 - a mount `<authentication>` other than `url` or `htpasswd`, or one using `<role>`: ignoring it would open the mount to everyone;
-- a `<tls>` mode that serves TLS and plain HTTP on one port (`auto`, `auto_no_plain`, `rfc2817`), or a certificate with no `<tls>` mode, which Icecast takes to mean the same. Set `<tls>` to `rfc2818` for TLS or `disabled` for plain HTTP.
+- a `<tls>` mode that serves TLS and plain HTTP on one port (`auto`, `auto_no_plain`, `rfc2817`), or a certificate with no `<tls>` mode, which Icecast takes to mean the same, and a `<tls>` mode that enables TLS with no certificate. Set `<tls>` to `rfc2818` for TLS or `disabled` for plain HTTP.
 
 ### What is translated
 
@@ -316,7 +322,7 @@ The translation is best effort. It maps the common settings and ignores, with a 
 
 In a `<mount>`, `mount-name`, `username`, `password`, `max-listeners`, `burst-size`, `fallback-mount`, `fallback-when-full`, `linger-for` (KH), `hidden`, `on-connect`, `on-disconnect`, `http-headers`, `max-listener-duration`, `max-history`, `intro`, `preroll` (RSAS), `dump-file` and its limits, `health-password` and `authentication` are translated.
 
-A path takes the `type="normal"` mount of that name, completed field by field with the first `type="default"` mount whose `mount-name` pattern matches, or that has none. Under `"kh"`, every `mount-name` is a pattern and the lowest `priority` wins. `<authentication type="url">` becomes URL authentication with the same options, including `mount_add`, `mount_remove` and `stream_auth`. `type="htpasswd"` becomes the htpasswd decision, and `allow_duplicate_users` set to `0` or `connections-per-user` limits each user's listeners. Access lists come first in every mount's decision, then authentication, then the `intro` and the `preroll`.
+A path takes the `type="normal"` mount of that name, completed field by field with the first `type="default"` mount whose `mount-name` pattern matches, or that has none. Under `"kh"`, every `mount-name` is a pattern: an exact name wins, then the lowest `priority`, then file order. `<authentication type="url">` becomes URL authentication with the same options, including `mount_add`, `mount_remove` and `stream_auth`. `type="htpasswd"` becomes the htpasswd decision, and `allow_duplicate_users` set to `0` or `connections-per-user` limits each user's listeners. Access lists come first in every mount's decision, then authentication, then the `intro` and the `preroll`.
 
 `fallback-override` is accepted and changes nothing: listeners always come back to the mount's own source. Directory listings (YP), relays and master/slave setups, `fileserve`, `alias` and `security` are not available and warn.
 
@@ -331,5 +337,5 @@ This server keeps an automated backup behind its live mount, protects a members 
 ## See also
 
 - [Harbor](./harbor.md): the input that receives streams, which `icecast.server` builds on.
-- [Harbor HTTP](./harbor_http.md): serving your own HTTP endpoints, on the same port if you like.
+- [Harbor HTTP](./harbor_http.md): serving your own HTTP endpoints, on the same port when registered before `icecast.server`.
 - [HLS output](./hls_output.md): another way to deliver streams to listeners.
