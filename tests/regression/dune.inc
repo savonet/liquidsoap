@@ -2236,6 +2236,28 @@
   (run %{run_test} seek_track_map liquidsoap seek_track_map.liq)))
 
 (rule
+ (alias test_sequence_merge_into_last)
+ (package liquidsoap)
+ (deps
+  sequence_merge_into_last.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   sequence_merge_into_last
+   liquidsoap
+   sequence_merge_into_last.liq)))
+
+(rule
  (alias test_server.insert_metadata)
  (package liquidsoap)
  (deps
@@ -2840,6 +2862,7 @@
   (alias test_scheduler_parallel)
   (alias test_seek_cue_out)
   (alias test_seek_track_map)
+  (alias test_sequence_merge_into_last)
   (alias test_server.insert_metadata)
   (alias test_shoutcast-args)
   (alias test_smooth_add)

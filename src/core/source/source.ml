@@ -1004,6 +1004,7 @@ class virtual generate_from_multiple_sources
             false
 
     val mutable current_source = None
+    method private started = Option.is_some current_source
 
     method private begin_track buf =
       if merge () then Frame.drop_track_marks buf

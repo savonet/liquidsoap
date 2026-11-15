@@ -39,7 +39,21 @@ class sequence ?(name = "sequence") ?(merge = false)
         ~new_track_on_source_switch:(fun () -> new_track_on_source_switch)
         ~merge:(fun () -> merge && List.length (Atomic.get seq_sources) <> 1)
         ~track_sensitive:(fun () -> true)
-        ()
+        () as generator
+
+    (* A track begins either when the stream starts or when we advance to the
+       next source. [merge] above cannot tell them apart: the queue has already
+       advanced when the switch is handled, so it sees the last source alone and
+       keeps the mark, while at the start it drops the mark of the first track. *)
+    method! private begin_track buf =
+      if not self#started then (
+        let buf =
+          if Frame.position buf > 0 then Frame.add_track_mark buf 0 else buf
+        in
+        self#execute_on_track buf;
+        buf)
+      else if merge then Frame.drop_track_marks buf
+      else generator#begin_track buf
 
     method private self_sync =
       ( self_sync_type (),
