@@ -61,7 +61,9 @@ operator lock; a slow `listen_callback` delays every handshake of the
 process, which its documentation states.
 
 The predicate's count is advisory, since a handshake it admits completes
-later. The limit is exact at accept (§4).
+later. The limit is exact at accept (§4). Handshakes can arrive between
+listening (step 7) and the state becoming listening: the predicate counts no
+peers for them, and they wait in the backlog for the first accept.
 
 **Accepted socket.** Steps 1–5 of
 [connection.md §3](connection.md#3-socket-setup) do not apply: an accepted
