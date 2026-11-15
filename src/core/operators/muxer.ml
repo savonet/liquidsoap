@@ -192,13 +192,22 @@ let muxer_operator p =
         target_fields)
       Frame.Fields.empty tracks
   in
-  Typing.(
-    s#frame_type
-    <: Lang.frame_t
-         (match base with
-           | Some s -> (Source_tracks.source s)#frame_type
-           | None -> Lang.univ_t ())
-         target_fields);
+  let base_frame_t =
+    match base with
+      | Some (Value.Custom { dynamic_methods } as v) ->
+          (* Tracks removed with [let {video = _, ...tracks}] are hidden on the
+             value only: the base source still has them. *)
+          let hidden =
+            match dynamic_methods with
+              | Some { hidden_methods } -> hidden_methods
+              | None -> []
+          in
+          List.fold_left
+            (fun t l -> Type.hide_meth l t)
+            (Source_tracks.source v)#frame_type hidden
+      | _ -> Lang.univ_t ()
+  in
+  Typing.(s#frame_type <: Lang.frame_t base_frame_t target_fields);
   s
 
 let source =
