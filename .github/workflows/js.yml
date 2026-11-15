@@ -28,10 +28,19 @@ jobs:
           cd /tmp/liquidsoap
           sudo -u opam git fetch --depth 1 origin ${{ inputs.sha }}
           sudo -u opam git checkout ${{ inputs.sha }}
+      - name: Install npm
+        run: |
+          apt-get update
+          apt-get install -y npm
       - name: Build JS
         run: |
           cd /tmp/liquidsoap
           sudo -u opam -E opam exec -- dune build --profile release src/js --verbose
+          # Without npm, dune writes a stub bundle and the build still passes.
+          if grep -q 'npm was not installed' _build/default/src/js/playground.bundle.js; then
+            echo "playground.bundle.js is the no-npm stub" >&2
+            exit 1
+          fi
       - name: Upload JS artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
