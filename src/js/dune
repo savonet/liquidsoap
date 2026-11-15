@@ -104,7 +104,7 @@
   (run ../bin/liquidsoap.exe --stdlib %{stdlib} --cache-js-stdlib %{target})))
 
 (rule
- (target filesystem.js)
+ (target filesystem_contents.js)
  (enabled_if %{bin-available:js_of_ocaml})
  (deps
   ./stdlib_js.liq
@@ -112,6 +112,16 @@
   (glob_files ../libs/*.liq))
  (action
   (run js_of_ocaml build-fs -I . -I ../libs -o %{target} %{deps})))
+
+(rule
+ (target filesystem.js)
+ (enabled_if %{bin-available:js_of_ocaml})
+ (action
+  (with-stdout-to
+   %{target}
+   (progn
+    (cat build_fs_prelude.js)
+    (cat filesystem_contents.js)))))
 
 (rule
  (alias serve-playground)
