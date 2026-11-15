@@ -130,6 +130,7 @@
   (synopsis "Task scheduler for OCaml 5 domains")
   (depends
     (ocaml (>= 5.5.2))
+    dune-configurator
     (re (>= 1.11.0))))
 
 (package

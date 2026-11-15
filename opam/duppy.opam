@@ -10,6 +10,7 @@ bug-reports: "https://github.com/savonet/liquidsoap/issues"
 depends: [
   "dune" {>= "3.23"}
   "ocaml" {>= "5.5.2"}
+  "dune-configurator"
   "re" {>= "1.11.0"}
   "odoc" {with-doc}
 ]
