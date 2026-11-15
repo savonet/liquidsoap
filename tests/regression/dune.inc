@@ -2312,6 +2312,24 @@
   (run %{run_test} source_cleanup liquidsoap source_cleanup.liq)))
 
 (rule
+ (alias test_source_drop_tracks)
+ (package liquidsoap)
+ (deps
+  source_drop_tracks.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} source_drop_tracks liquidsoap source_drop_tracks.liq)))
+
+(rule
  (alias test_source_dynamic)
  (package liquidsoap)
  (deps
@@ -2826,6 +2844,7 @@
   (alias test_shoutcast-args)
   (alias test_smooth_add)
   (alias test_source_cleanup)
+  (alias test_source_drop_tracks)
   (alias test_source_dynamic)
   (alias test_switch_autodj_jingle_metadata)
   (alias test_switch_copy_default_on_select)
