@@ -18,6 +18,9 @@ on:
       is_release:
         required: false
         type: string
+      prerelease:
+        required: false
+        type: string
       build_stamp:
         required: false
         type: string
@@ -62,6 +65,7 @@ jobs:
           BRANCH: ${{ github.head_ref || github.ref_name }}
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
+          PRERELEASE: ${{ inputs.prerelease }}
           BUILD_STAMP: ${{ inputs.build_stamp }}
           PACKAGE_SUFFIX: -asan
           LIQ_TMP_DIR: /tmp/artifacts

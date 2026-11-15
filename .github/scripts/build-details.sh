@@ -20,7 +20,30 @@ if [ "${IS_FORK}" == "true" ]; then
   IS_FORK=true
 fi
 
+# The pre-release part of version tag $1: rc2 for v2.5.0-rc2, nothing for
+# v2.5.0. A tag naming another version than the tree, or any other suffix, fails
+# the build: packaged as the plain version, it would collide with the final
+# release. Leading zeros are refused because rc01 and rc1 compare equal.
+prerelease() {
+  local version suffix
+  version=$(sed -n 's/^version: "\(.*\)"$/\1/p' opam/liquidsoap.opam)
+  case "$1" in
+    "v${version}") return 0 ;;
+    "v${version}-"*) suffix="${1#"v${version}-"}" ;;
+    *)
+      echo "Tag $1 does not match version ${version}" >&2
+      return 1
+      ;;
+  esac
+  if [[ ! "${suffix}" =~ ^(alpha|beta|rc)[1-9][0-9]*$ ]]; then
+    echo "Unsupported pre-release suffix ${suffix} in tag $1" >&2
+    return 1
+  fi
+  echo "${suffix}"
+}
+
 RELEASE_TAG="${BRANCH}"
+PRERELEASE=
 IS_ROLLING_RELEASE=
 IS_RELEASE=
 DOCKER_RELEASE=
@@ -49,6 +72,7 @@ elif [ "${IS_FORK}" != "true" ] && [[ "${BRANCH}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]
   echo "Branch is release branch"
   IS_RELEASE=true
   DOCKER_RELEASE=true
+  PRERELEASE=$(prerelease "${BRANCH}")
 else
   echo "Branch is not release branch"
 fi
@@ -105,6 +129,7 @@ echo "OCaml version to build: ${OCAML_VERSION}"
   echo "branch=${BRANCH}"
   echo "release_tag=${RELEASE_TAG}"
   echo "is_release=${IS_RELEASE}"
+  echo "prerelease=${PRERELEASE}"
   echo "build_os=${BUILD_OS}"
   echo "build_platform=${BUILD_PLATFORM}"
   echo "build_include=${BUILD_INCLUDE}"

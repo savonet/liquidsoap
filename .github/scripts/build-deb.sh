@@ -26,6 +26,7 @@ if [ -n "${IS_ROLLING_RELEASE}" ]; then
   LIQ_VERSION="${LIQ_VERSION}~${BUILD_STAMP}.${COMMIT_SHORT}"
 elif [ -n "${IS_RELEASE}" ]; then
   LIQ_PACKAGE="liquidsoap"
+  [ -z "${PRERELEASE}" ] || LIQ_VERSION="${LIQ_VERSION}~${PRERELEASE}"
 else
   TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
   LIQ_PACKAGE="liquidsoap-${TAG}"

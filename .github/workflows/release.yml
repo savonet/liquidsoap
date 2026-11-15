@@ -12,6 +12,9 @@ on:
       is_rolling_release:
         required: true
         type: string
+      prerelease:
+        required: true
+        type: string
     secrets:
       LIQUIDSOAP_RELEASE_ASSETS_TOKEN:
         required: true
@@ -73,7 +76,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ inputs.branch }}
           files: ${{ steps.release_assets.outputs.release_assets }}
-          prerelease: ${{ inputs.is_rolling_release }}
+          prerelease: ${{ inputs.is_rolling_release == 'true' || inputs.prerelease != '' }}
           body: ${{ steps.release_notes.outputs.release_notes }}
           draft: ${{ inputs.is_rolling_release != 'true' }}
       - name: Manage release assets repo limit
@@ -161,6 +164,6 @@ jobs:
           tag_name: ${{ inputs.branch }}
           files: ${{ steps.release_assets.outputs.release_assets }}
           repository: savonet/liquidsoap-release-assets
-          prerelease: ${{ inputs.is_rolling_release }}
+          prerelease: ${{ inputs.is_rolling_release == 'true' || inputs.prerelease != '' }}
           body: ${{ steps.release_assets_notes.outputs.release_notes }}
           draft: ${{ inputs.is_rolling_release != 'true' }}

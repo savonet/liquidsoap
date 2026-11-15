@@ -22,6 +22,7 @@ if [ -n "${IS_ROLLING_RELEASE}" ]; then
   APK_VERSION="${APK_VERSION}_rc${BUILD_STAMP}"
 elif [ -n "${IS_RELEASE}" ]; then
   APK_PACKAGE="liquidsoap"
+  [ -z "${PRERELEASE}" ] || APK_VERSION="${APK_VERSION}_${PRERELEASE}"
 else
   ALPINE_BRANCH=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9^a-z^A-Z^.^-]#-#g')
   APK_PACKAGE="liquidsoap-${ALPINE_BRANCH}"

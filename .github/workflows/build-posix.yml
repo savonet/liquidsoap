@@ -18,6 +18,9 @@ on:
       is_release:
         required: true
         type: string
+      prerelease:
+        required: true
+        type: string
       is_snapshot:
         required: true
         type: string
@@ -91,6 +94,7 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
+          PRERELEASE: ${{ inputs.prerelease }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
           BUILD_STAMP: ${{ inputs.build_stamp }}
           DEB_RELEASE: 1
@@ -127,6 +131,7 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
+          PRERELEASE: ${{ inputs.prerelease }}
           BUILD_STAMP: ${{ inputs.build_stamp }}
         run: |
           mkdir -p "${LIQ_TMP_DIR}"
@@ -162,6 +167,7 @@ jobs:
           ALPINE_ARCH: ${{ matrix.alpine-arch }}
           IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
           IS_RELEASE: ${{ inputs.is_release }}
+          PRERELEASE: ${{ inputs.prerelease }}
           MINIMAL_EXCLUDE_DEPS: ${{ inputs.minimal_exclude_deps }}
           BUILD_STAMP: ${{ inputs.build_stamp }}
           APK_RELEASE: 0

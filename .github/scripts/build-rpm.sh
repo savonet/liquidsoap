@@ -17,7 +17,9 @@ if [ -n "${IS_ROLLING_RELEASE}" ]; then
   RPM_RELEASE="0.${BUILD_STAMP}.${COMMIT_SHORT}"
 elif [ -n "${IS_RELEASE}" ]; then
   RPM_PACKAGE="liquidsoap"
+  # 0. sorts below the final release's 1, as for rolling builds.
   RPM_RELEASE=1
+  [ -z "${PRERELEASE}" ] || RPM_RELEASE="0.1.${PRERELEASE}"
 else
   TAG=$(echo "${BRANCH}" | tr '[:upper:]' '[:lower:]' | sed -e 's#[^0-9a-z.-]#-#g')
   RPM_PACKAGE="liquidsoap-${TAG}"
