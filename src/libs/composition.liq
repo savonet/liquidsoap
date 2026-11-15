@@ -18,10 +18,11 @@ let settings.source.composition.max_fade =
 
 # Default on_select for both file and live composition profiles. When `ending`
 # is non-null (the ending source was preempted mid-track) and has only PCM audio
-# content: if it has at most `settings.source.composition.max_fade` seconds
-# remaining, sequences it with the starting source so it finishes naturally;
-# otherwise fades it out for `max_fade` seconds. Any other content switches
-# immediately: the body is typed for PCM audio, and the runtime type checks
+# content: the starting source plays right away and the ending one is mixed
+# underneath it. If the ending source has at most
+# `settings.source.composition.max_fade` seconds remaining, it finishes
+# naturally; otherwise it fades out over `max_fade` seconds. Any other content
+# switches immediately: the body is typed for PCM audio, and the runtime type checks
 # reject any source it builds from other content. When `replay_metadata` is
 # true, replays the latest metadata on the starting source.
 def source.composition.default_on_select(
@@ -80,26 +81,46 @@ def source.composition.default_on_select(
         not has_pcm_audio
       then
         starting()
-      elsif
-        rem > 0. and rem <= max_fade
-      then
-        (sequence([(leaving : source), starting()]) : source)
       else
-        log.important(
-          label=id(),
-          "Ending #{id()} with a #{max_fade}s fade out.."
-        )
+        overlap =
+          if
+            rem > 0. and rem <= max_fade
+          then
+            log.important(
+              label=id(),
+              "Letting #{id()} finish under the starting source.."
+            )
+            rem
+          else
+            log.important(
+              label=id(),
+              "Ending #{id()} with a #{max_fade}s fade out.."
+            )
+            max_fade
+          end
 
-        leaving = fade.out(duration=max_fade, max_duration(max_fade, leaving))
+        tail = max_duration(overlap, leaving)
+        tail =
+          overlap < rem or rem < 0. ? fade.out(duration=overlap, tail) : tail
 
-        count = ref(0)
-        def next() =
-          c = count()
-          ref.incr(count)
-          if c == 0 then leaving elsif c == 1 then starting() else null end
-        end
+        # A live source keeps producing whether it is read or not, so the
+        # starting source is read from the first frame on. The mix keeps its
+        # track marks and metadata; the tail only contributes audio.
+        starting = starting()
+        tracks = source.tracks(starting)
+        mix =
+          source(
+            tracks.{
+              audio =
+                track.audio.add(
+                  normalize=false,
+                  [tracks.audio, source.tracks(tail).audio]
+                )
+            }
+          )
 
-        source.dynamic(track_sensitive=true, next)
+        # Dropping the mix once the tail is over releases the leaving source.
+        (sequence(merge=true, [max_duration(overlap, mix), starting]) : source)
       end
     else
       starting()

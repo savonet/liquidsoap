@@ -213,7 +213,7 @@ s = fallback([s1.{on_select = my_on_select}, s2])
 
 Bound `ending` with `max_duration` as above. The source being left is cleaned up only once your transition stops pulling from it. See [writing your own transition](./composition.md#writing-your-own-transition).
 
-Switching now fades out the ending source by default. The default `on_select` sequences the ending source with the starting one when the ending source has between `0.` and `settings.source.composition.max_fade` seconds left, so it finishes naturally. When more time is left and the ending source carries only PCM audio, it is faded out over `max_fade` seconds (default `1.`). Otherwise switching is immediate.
+Switching now fades out the ending source by default. When the ending source carries only PCM audio, the default `on_select` starts the new source right away and mixes the ending one underneath it: if it has between `0.` and `settings.source.composition.max_fade` seconds left it finishes naturally, otherwise it is faded out over `max_fade` seconds (default `1.`). Otherwise switching is immediate.
 
 `input.http` is a live source, so it now cuts in immediately. For a relay that carries a playlist, set `s.composition_type := "file"` on it. See [a relay that carries a playlist](./composition.md#a-relay-that-carries-a-playlist).
 
