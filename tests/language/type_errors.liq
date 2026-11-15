@@ -435,6 +435,44 @@ ignore(x / 2.)")
   end
 
   list.iter(check_stereo_syntax, audio_formats_with_stereo)
+
+  section("TRACKS")
+  av =
+    '(single("x.mp4") : source(audio=pcm(stereo), video=yuv420p))'
+  incorrect(
+    'ignore(fun () -> output.file(%mp3, "x.mp3", #{av}))'
+  )
+  correct(
+    'ignore(fun () -> output.file(%mp3, "x.mp3", source.drop.video(#{av})))'
+  )
+  correct(
+    'ignore(fun () -> output.file(%ffmpeg(%audio(codec="aac"), %video.drop), \
+     "x.mp4", #{av}))'
+  )
+  correct(
+    'ignore(fun () -> output.file(%ffmpeg(%audio(codec="aac"), \
+     %video(codec="libx264")), "x.mp4", #{av}))'
+  )
+  correct(
+    'ignore(fun () -> output.file(%mp3, "x.mp3", playlist("foo")))'
+  )
+  incorrect(
+    'ignore(fallback([#{av}, sine()]))'
+  )
+
+  # HLS variants share one source: mixing audio-only and video formats is
+  # an error in either order.
+  audio =
+    '("a", %mp3)'
+  video =
+    '("v", %ffmpeg(format="mpegts", %audio(codec="aac"), \
+     %video(codec="libx264")))'
+  incorrect(
+    'ignore(fun () -> output.file.hls("x", [#{audio}, #{video}], sine()))'
+  )
+  incorrect(
+    'ignore(fun () -> output.file.hls("x", [#{video}, #{audio}], sine()))'
+  )
   test.pass()
 end
 

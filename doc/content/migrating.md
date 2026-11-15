@@ -62,6 +62,25 @@ def f(b) = if b then 1. else 2 end end
 
 In these cases, the type checker cannot safely reconcile the mixed `int` and `float` types. Use explicit float literals (`1.`, `2.`, etc.) when you encounter these situations.
 
+### Sources and formats must carry the same tracks
+
+An encoder now gets exactly the tracks its format names. Feeding a source with a track the format does not encode is a type error, where it used to drop that track silently. This typically happens when the same source feeds both a video and an audio-only output:
+
+```liquidsoap
+s = single("video.mp4")
+output.file(
+  %ffmpeg(%audio(codec="aac"), %video(codec="libx264")),
+  "archive.mp4",
+  s
+)
+output.icecast(%mp3, mount="radio", s) # ERROR: s has a video track
+
+# Drop the track explicitly:
+output.icecast(%mp3, mount="radio", source.drop.video(s))
+```
+
+The same goes for a list of sources or formats whose elements have different tracks, such as a `fallback` between a video source and an audio-only one, or HLS variants mixing audio-only and video formats. Drop or add the missing track (`source.drop.video`, `source.mux.video`) so that every element has the same ones. Sources whose type is not fixed yet, such as a `playlist`, and formats with `.drop` tracks are not affected.
+
 ### Metadata in `add` operators
 
 The `add` operator (and related track-level `track.audio.add` and `track.video.add` operators) now relays metadata from all the sources being summed.

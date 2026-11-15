@@ -162,6 +162,9 @@ let rec describe ~lexbuf ~bt = function
             (* [print_type_error] prints the header itself, at [ta]'s position. *)
             error_diagnostic 5 ta.Type.pos (fun formatter ->
                 Repr.print_type_error ~formatter (fun _ -> ()) explain)
+        | Repr.Track_error ({ pos; _ } as error) ->
+            error_diagnostic 5 pos (fun formatter ->
+                Repr.print_track_error ~formatter error)
         | Typechecking.No_method (name, typ) ->
             error_diagnostic 5 typ.Type.pos (fun formatter ->
                 Format.fprintf formatter

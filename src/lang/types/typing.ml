@@ -284,6 +284,41 @@ let () =
 
 (** Ensure that a type satisfies a given constraint, i.e. morally that b <: c.
 *)
+
+(* An encoder writes every track its frame type names, and a source must not
+   carry tracks a closed frame type lacks: those would be dropped silently.
+   Only the set of tracks is compared, the methods of each track keep their
+   variance. An open frame type takes any extra track. *)
+(* A hidden track, removed by [source.drop.video] or annotated [none], stays in
+   the type as a method of type [never]. *)
+let track_names ~required t =
+  List.filter_map
+    (fun m ->
+      let _, ty = m.scheme in
+      if (deref ty).descr = Never || (required && m.optional) then None
+      else Some m.meth)
+    (fst (split_meths t))
+
+(* [value] is the frame type of what is passed where [expected] is. A [`Missing]
+   track is required by [expected] and absent from a closed [value], an
+   [`Extra] one is present in [value] and absent from a closed [expected]. *)
+let find_track ~constructor ~kind ~value ~expected =
+  let closed, present, wanted =
+    match kind with
+      | `Missing -> (value, value, track_names ~required:true expected)
+      | `Extra -> (expected, expected, track_names ~required:false value)
+  in
+  match (demeth closed).descr with
+    | Var _ -> ()
+    | _ -> (
+        let present = track_names ~required:false present in
+        match List.find_opt (fun l -> not (List.mem l present)) wanted with
+          | None -> ()
+          | Some track ->
+              raise
+                (Repr.Track_error
+                   { constructor; track; kind; value; expected; pos = None }))
+
 let rec satisfies_constraint b c =
   match (deref b).descr with
     | Var { contents = Free v } ->
@@ -444,6 +479,7 @@ and ( <: ) a b =
           Constr { constructor = "source"; params = _ :: _ } ) ->
           raise (Error (Repr.make a, Repr.make b))
       | Constr c1, Constr c2 when c1.constructor = c2.constructor ->
+          let closed_frame = List.mem c1.constructor ["source"; "format"] in
           let rec aux pre p1 p2 =
             match (p1, p2) with
               | (v1, h1) :: t1, (v2, h2) :: t2 ->
@@ -453,7 +489,13 @@ and ( <: ) a b =
                       | `Covariant -> h1 <: h2
                       | `Invariant ->
                           mk_invariant h2;
+                          if closed_frame then
+                            find_track ~constructor:c1.constructor
+                              ~kind:`Missing ~value:h1 ~expected:h2;
                           h1 <: h2;
+                          if closed_frame then
+                            find_track ~constructor:c1.constructor ~kind:`Extra
+                              ~value:h1 ~expected:h2;
                           mk_invariant h2
                   with Error (a, b) ->
                     let bt = Printexc.get_raw_backtrace () in
@@ -649,14 +691,16 @@ and ( <: ) a b =
           let b = Repr.make ~filter_out:(filter ()) b in
           raise (Error (a, b)))
 
-let ( >: ) a b =
-  try b <: a
-  with Error (y, x) ->
-    let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Repr.Type_error (true, b, a, y, x)) bt
+let check ~flipped a b =
+  try a <: b with
+    | Error (x, y) ->
+        let bt = Printexc.get_raw_backtrace () in
+        Printexc.raise_with_backtrace (Repr.Type_error (flipped, a, b, x, y)) bt
+    | Repr.Track_error ({ pos = None; _ } as e) ->
+        let bt = Printexc.get_raw_backtrace () in
+        Printexc.raise_with_backtrace
+          (Repr.Track_error { e with pos = a.pos })
+          bt
 
-let ( <: ) a b =
-  try a <: b
-  with Error (x, y) ->
-    let bt = Printexc.get_raw_backtrace () in
-    Printexc.raise_with_backtrace (Repr.Type_error (false, a, b, x, y)) bt
+let ( >: ) a b = check ~flipped:true b a
+let ( <: ) a b = check ~flipped:false a b

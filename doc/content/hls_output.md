@@ -46,11 +46,10 @@ The second argument is a list of `(name, format)` pairs, one per variant. The
 name is the base name of the variant's media playlist (`<name>.m3u8`) and of
 its segments, so it must be non-empty and unique within the output.
 
-Every variant encodes the same source, so all variants of one output carry the
-same tracks. When some formats have video and others do not, the output's
-content type is the one they share: the stream is audio-only and the video
-formats encode no video. To offer an audio-only rendition of a video stream,
-use a second output.
+Every variant encodes the same source, so all variants of one output must carry
+the same tracks: either every variant has video, or none does. Mixing them is a
+type error. To offer an audio-only rendition of a video stream, use a second
+output fed with `source.drop.video`.
 
 Players choose a variant from what the main playlist announces about it. You
 can set these values yourself by adding fields to the format:

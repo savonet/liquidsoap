@@ -29,7 +29,7 @@ let raise_error ~pos message =
 
 let format_t ?pos k =
   Type.make ?pos
-    (Type.Constr { Type.constructor = "format"; params = [(`Covariant, k)] })
+    (Type.Constr { Type.constructor = "format"; params = [(`Invariant, k)] })
 
 let audio_type ~pcm_kind n =
   Fields.make
