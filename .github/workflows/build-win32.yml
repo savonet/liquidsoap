@@ -18,6 +18,9 @@ on:
       is_release:
         required: true
         type: string
+      prerelease:
+        required: true
+        type: string
       is_snapshot:
         required: true
         type: string
@@ -32,6 +35,7 @@ jobs:
       IS_SNAPSHOT: ${{ inputs.is_snapshot == 'true' }}
       IS_ROLLING_RELEASE: ${{ inputs.is_rolling_release }}
       IS_RELEASE: ${{ inputs.is_release }}
+      PRERELEASE: ${{ inputs.prerelease }}
       BRANCH: ${{ inputs.branch }}
       TOOLPREF64: /usr/src/mxe/usr/bin/x86_64-w64-mingw32.static-
     steps:

@@ -14,6 +14,8 @@ Every build has three boolean properties.
 | Rolling  | `is_rolling_release` | The build's assets are published to the rolling channel of its version line, replacing the last set. |
 | Snapshot | `is_snapshot`        | The build's version identifies the commit it was built from.                                         |
 
+A version tag also carries a pre-release part, `prerelease`: `rc2` for `v2.5.0-rc2`, empty for `v2.5.0` and for every build that is not of a version tag. It is decided along with the properties.
+
 The properties MUST be decided once per build, in one place, from the ref being built and the release matrix. Every other decision MUST be derived from the properties and MUST NOT inspect the ref again.
 
 Snapshot is not independent: a build is a snapshot if and only if it is not a release or it is rolling.
@@ -32,7 +34,7 @@ The properties combine into four kinds of build.
 A build's kind is determined as follows.
 
 1. A build from a fork MUST be a development build, whatever its ref.
-2. A build of a version tag MUST be a final release.
+2. A build of a version tag MUST be a final release. A version tag MUST name the version of the tree it tags, optionally followed by `-alpha`, `-beta` or `-rc` and a number without leading zeros; any other version tag MUST fail the build.
 3. A build of a branch that the release matrix assigns to a version line MUST be rolling. It MUST be a release unless the matrix marks that version line as work in progress.
 4. Any other build MUST be a development build.
 
@@ -77,6 +79,7 @@ Rolling builds are transient: each one replaces the previous one and none is kep
 ### Final releases
 
 - They MUST be published as drafts. Making one available to users is a manual decision.
+- A final release with a pre-release part MUST be published as a pre-release. Its version MUST carry the pre-release part and, where the package format orders versions, MUST sort below the final release of the same version and above the pre-releases before it.
 
 ## Consequences
 

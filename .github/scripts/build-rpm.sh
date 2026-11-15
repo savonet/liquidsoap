@@ -17,7 +17,6 @@ if [ -n "${IS_ROLLING_RELEASE}" ]; then
   RPM_RELEASE="0.${BUILD_STAMP}.${COMMIT_SHORT}"
 elif [ -n "${IS_RELEASE}" ]; then
   RPM_PACKAGE="liquidsoap"
-  PRERELEASE=$(./.github/scripts/prerelease.sh "${BRANCH}" "${RPM_VERSION}")
   # 0. sorts below the final release's 1, as for rolling builds.
   RPM_RELEASE=1
   [ -z "${PRERELEASE}" ] || RPM_RELEASE="0.1.${PRERELEASE}"

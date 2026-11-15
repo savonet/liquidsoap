@@ -10,6 +10,7 @@ if [ -n "${IS_ROLLING_RELEASE}" ]; then
   TAG="${COMMIT_SHORT}-"
 elif [ -n "${IS_RELEASE}" ]; then
   TAG=""
+  [ -z "${PRERELEASE}" ] || VERSION="${VERSION}-${PRERELEASE}"
 else
   TAG="${BRANCH}-"
 fi
