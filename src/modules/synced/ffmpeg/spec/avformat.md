@@ -106,6 +106,7 @@ bases of the streams among them, is known after the first write.
 | `write_header`                                                     | writes the header, flushes I/O | nothing                       | failed error             | closed error |
 | `flush`                                                            | nothing                        | flushes the muxer and the I/O | failed error             | closed error |
 | `output_started`                                                   | `false`                        | `true`                        | failed error             | closed error |
+| `output_wants_global_header`                                       | performed                      | performed                     | failed error             | closed error |
 | getters                                                            | performed                      | performed                     | failed error             | closed error |
 | `close`                                                            | per "Release"                  | per "Release"                 | releases, writes nothing | nothing      |
 | collection                                                         | releases                       | releases                      | releases                 | nothing      |
@@ -605,6 +606,13 @@ val output_started : output container -> bool
 ```
 
 Whether the header is written.
+
+```ocaml
+val output_wants_global_header : output container -> bool
+```
+
+Whether the output format wants codec headers out of band, in the extradata
+of its streams (FFmpeg's `AVFMT_GLOBALHEADER` flag).
 
 ```ocaml
 val set_output_metadata : output container -> (string * string) list -> unit

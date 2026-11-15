@@ -536,6 +536,10 @@ val open_output_stream :
 (** Whether the header of the output is written. *)
 val output_started : output container -> bool
 
+(** Whether the output format wants codec headers out of band, in the extradata
+    of its streams (FFmpeg's [AVFMT_GLOBALHEADER] flag). *)
+val output_wants_global_header : output container -> bool
+
 (** Replaces the whole metadata of the output with the list. Entries absent from
     the list are removed; a key that appears twice keeps its last value. On
     failure the metadata is unchanged.
