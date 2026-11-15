@@ -72,6 +72,7 @@
 
 ## Changed:
 
+- A source passed to an output must have exactly the tracks its format encodes, and the sources or formats of one list must have the same tracks. Extra tracks used to be dropped silently: an audio format fed an audio and video source, or HLS variants mixing audio-only and video formats, encoded no video. This is now a type error; use `source.drop.video` and similar to drop a track (#5627).
 - Websocket sources of `input.harbor` follow the [webcast protocol specification](https://github.com/webcast/webcast.js/blob/main/SPECS.md): errors close the connection with its codes (`4400` for a malformed or repeated `hello` and invalid messages, `4401` for missing or wrong credentials, `4404` for an unknown mount, `4409` for a mount in use), and metadata values other than strings are ignored instead of dropping the connection. (#5625)
 - Liquidsoap now requires OCaml 5.5 to build.
 - Removed the deprecated `input.udp` and `output.udp` operators. Use `input.srt`/`output.srt`

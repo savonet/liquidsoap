@@ -232,7 +232,7 @@ def f() =
   # This one is more subtle than it seems because we have no field video on the
   # left and a video:never field on the right when testing for the subtyping,
   # see #3210.
-  s = (sine() : source(video=none))
+  s = (sine() : source(audio=pcm(stereo), video=none))
   s = (sine() : source(video=none, ...))
 
   # Allow float params.

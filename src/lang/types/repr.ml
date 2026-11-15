@@ -547,3 +547,50 @@ let print_type_error ~formatter error_header
                 Printf.sprintf " the type of the value at %s"
                   (Pos.to_string ~prefix:"" p))
           print b (inferred_pos tb)
+
+type track_error = {
+  constructor : string;
+  track : string;
+  kind : [ `Extra | `Missing ];
+  value : Type_base.t;  (** Frame type of what is passed. *)
+  expected : Type_base.t;  (** Frame type of what it is passed as. *)
+  pos : Pos.Option.t;
+}
+
+exception Track_error of track_error
+
+(* Hidden tracks are [never] methods shadowing the original track. *)
+let visible_frame t =
+  let meths, base = Type_base.split_meths t in
+  List.fold_right
+    (fun m t -> Type_base.make (Meth (m, t)))
+    (List.filter
+       (fun Type_base.{ scheme = _, ty; _ } -> (deref ty).descr <> Never)
+       meths)
+    base
+
+let print_track_error ~formatter
+    { constructor; track; kind; value; expected; _ } =
+  let what, has, lacks =
+    if constructor = "format" then
+      ("a format", "encoding", "that does not encode one")
+    else ("a source", "with", "without one")
+  in
+  (match kind with
+    | `Extra ->
+        Format.fprintf formatter
+          "%s %s a `%s` track is used where a %s %s is expected.@." what has
+          track constructor lacks
+    | `Missing ->
+        Format.fprintf formatter
+          "%s without a `%s` track is used where a %s %s one is expected.@."
+          what track constructor has);
+  if kind = `Extra && constructor = "source" then
+    Format.fprintf formatter "  Drop it with `source.drop.%s`.@." track;
+  let show t =
+    string_of_type
+      (Type_base.make
+         (Constr { constructor; params = [(`Invariant, visible_frame t)] }))
+  in
+  Format.fprintf formatter "@[<2>  Used:     %s@]@." (show value);
+  Format.fprintf formatter "@[<2>  Expected: %s@]@]@." (show expected)
