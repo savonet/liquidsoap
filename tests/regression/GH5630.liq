@@ -1,5 +1,7 @@
 # Commands cancelled by `process.run`'s timeout must be terminated, not left
 # running in the background.
+%include "../test.liq"
+
 def pid_file() =
   f = file.temp("liq-gh5630", ".pid")
   file.remove(f)
@@ -14,10 +16,10 @@ def is_running(f) =
     0
 end
 
-def check_terminated(~timeout_status, ~delay, f, cont) =
+def check_terminated(~timeout_status, ~check_after, f, cont) =
   if timeout_status != "timeout" then test.fail() end
   thread.run(
-    delay=delay,
+    delay=check_after,
     {
       if is_running(f) then test.fail() end
       cont()
@@ -33,7 +35,7 @@ def ignores_sigterm() =
       timeout=0.5,
       "trap '' TERM; echo $$ > #{process.quote(f)}; sleep 10"
     )
-  check_terminated(timeout_status=p.status, delay=7., f, test.pass)
+  check_terminated(timeout_status=p.status, check_after=7., f, test.pass)
 end
 
 # The shell execs into the command: the command itself gets the signal.
@@ -44,7 +46,7 @@ def execs() =
       timeout=0.5,
       "echo $$ > #{process.quote(f)}; exec sleep 10"
     )
-  check_terminated(timeout_status=p.status, delay=1., f, ignores_sigterm)
+  check_terminated(timeout_status=p.status, check_after=1., f, ignores_sigterm)
 end
 
 output.dummy(blank())
