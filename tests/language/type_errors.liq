@@ -155,8 +155,18 @@ def f() =
   # Video generators only produce video (#3344).
   incorrect('output.file(%wav,"",video.testsrc())')
   incorrect('output.file(%wav,"",video.board())')
-  incorrect('output.file(%wav,"",video.text("x"))')
-  correct('output.dummy(video.testsrc())')
+  incorrect(
+    'fallback([(blank():source(audio=pcm,video=yuv420p)),video.testsrc()])'
+  )
+  incorrect(
+    'fallback([(blank():source(audio=pcm,video=yuv420p)),video.board()])'
+  )
+  incorrect(
+    'fallback([(blank():source(audio=pcm,video=yuv420p)),video.text("x")])'
+  )
+  correct(
+    'ignore(fun () -> output.dummy(video.testsrc()))'
+  )
   section(
     "TRACK TYPES"
   )

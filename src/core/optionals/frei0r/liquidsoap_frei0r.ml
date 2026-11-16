@@ -303,8 +303,11 @@ let register_plugin fname =
       | Frei0r.Mixer3 -> (3, 1)
   in
   if inputs > 2 then raise Unhandled_number_of_inputs;
+  (* Filters pass the other tracks of their input through; a source only
+     produces video. *)
   let return_t =
-    Lang.frame_t (Lang.univ_t ())
+    Lang.frame_t
+      (if inputs = 0 then Lang.unit_t else Lang.univ_t ())
       (Frame.Fields.make ~video:(Format_type.video ()) ())
   in
   let liq_params, params = params plugin info in
