@@ -71,6 +71,7 @@
 - Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
 - Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
 - `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
+- Clock conflicts raised while building sources at runtime can be caught with `try ... catch e : [error.clock]` ([#5641](https://github.com/savonet/liquidsoap/pull/5641)).
 - `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
 - `video.testsrc`, `video.board`, `video.text` and frei0r source plugins have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
 - `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
