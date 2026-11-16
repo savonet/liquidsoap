@@ -56,32 +56,42 @@ module Make (P : T) : S with type t = P.t = struct
 
   let h = WeakHash.create 10
 
+  (* Weak hash sets are not thread-safe: requests are created and looked up
+     from every clock's thread, and a resize racing another access corrupts
+     the table. *)
+  let lock = Mutex.create ()
+  let locked fn = Mutex.protect lock fn
+
   let find id =
-    match WeakHash.find_opt h (P.destroyed id) with
+    match locked (fun () -> WeakHash.find_opt h (P.destroyed id)) with
       | Some v when not (P.is_destroyed v) -> Some v
       | _ -> None
 
-  let fold f =
-    WeakHash.fold
-      (fun v cur -> if P.is_destroyed v then cur else f (P.id v) v cur)
-      h
+  let fold f init =
+    locked (fun () ->
+        WeakHash.fold
+          (fun v cur -> if P.is_destroyed v then cur else f (P.id v) v cur)
+          h init)
 
   let iter f =
-    WeakHash.iter
-      (fun entry -> if not (P.is_destroyed entry) then f (P.id entry) entry)
-      h
+    locked (fun () ->
+        WeakHash.iter
+          (fun entry -> if not (P.is_destroyed entry) then f (P.id entry) entry)
+          h)
 
-  let remove id = WeakHash.remove h (P.destroyed id)
+  let remove id = locked (fun () -> WeakHash.remove h (P.destroyed id))
   let current_id = Atomic.make 0
 
   let add fn =
     let rec f () =
       let id = Atomic.fetch_and_add current_id 1 in
       let v = fn id in
-      match WeakHash.merge h v with v' when v == v' -> v | _ -> f ()
+      match locked (fun () -> WeakHash.merge h v) with
+        | v' when v == v' -> v
+        | _ -> f ()
     in
     f ()
 
-  let size () = WeakHash.count h
-  let clear () = WeakHash.clear h
+  let size () = locked (fun () -> WeakHash.count h)
+  let clear () = locked (fun () -> WeakHash.clear h)
 end
