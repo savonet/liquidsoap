@@ -1,12 +1,17 @@
 %include "../test.liq"
 
 # When blank.strip's source resumes after a blank with a new track, the track
-# mark and metadata it resumes with reach the output, even though the frame
-# that carries them is read by the blank check before anything selects it.
+# mark and metadata it resumes with reach the output, also when the source
+# had a title before the blank.
 
 live =
   sequence(
     [
+      metadata.map(
+        insert_missing=true,
+        fun (_) -> [("title", "before")],
+        sine(660., duration=1.)
+      ),
       blank(duration=2.),
       metadata.map(
         insert_missing=true,

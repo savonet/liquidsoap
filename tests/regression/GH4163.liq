@@ -38,8 +38,10 @@ s =
     ]
   )
 
-# We want to make sure that blank.strip keeps eating the blank source before switching back:
-expected_titles = ["fallback", "after_blank"]
+# blank.strip keeps streaming without failing. With `track_sensitive`, the
+# first track's mark ends the starting blank, so that track plays with its
+# title, then the next one.
+expected_titles = ["first_blank", "after_blank"]
 seen_titles = ref([])
 
 def on_metadata(m) =
