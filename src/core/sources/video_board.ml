@@ -128,7 +128,9 @@ let _ =
         Some Lang.null,
         Some "Initial height of the video (defaults to the same as frame)." );
     ]
-    ~return_t:(Lang.internal_tracks_t ())
+    ~return_t:
+      (Lang.frame_t Lang.unit_t
+         (Frame.Fields.make ~video:(Format_type.video ()) ()))
     ~category:`Video ~descr:"A plane where one can draw."
     ~meth:
       Lang.

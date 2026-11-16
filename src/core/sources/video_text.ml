@@ -83,7 +83,7 @@ class text init render_text ttf ttf_size color duration text =
 let register name init render_text =
   let add_operator op =
     let return_t =
-      Lang.frame_t (Lang.univ_t ())
+      Lang.frame_t Lang.unit_t
         (Frame.Fields.make ~video:(Format_type.video ()) ())
     in
     Lang.add_operator ~base:video_text op

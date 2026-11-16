@@ -151,6 +151,12 @@ def f() =
   )
 
   incorrect('add([mean(blank()),audio_to_stereo(add([]))])')
+
+  # Video generators only produce video (#3344).
+  incorrect('output.file(%wav,"",video.testsrc())')
+  incorrect('output.file(%wav,"",video.board())')
+  incorrect('output.file(%wav,"",video.text("x"))')
+  correct('output.dummy(video.testsrc())')
   section(
     "TRACK TYPES"
   )
