@@ -46,3 +46,15 @@ let raise ?bt ?(message = "") ~pos kind =
   let e = Runtime_error err in
   let bt = match bt with None -> Printexc.get_callstack 0 | Some bt -> bt in
   Printexc.raise_with_backtrace e bt
+
+let catchables = Atomic.make []
+
+let register_catchable fn =
+  let rec register () =
+    let current = Atomic.get catchables in
+    if not (Atomic.compare_and_set catchables current (fn :: current)) then
+      register ()
+  in
+  register ()
+
+let catchable exn = List.find_map (fun fn -> fn exn) (Atomic.get catchables)

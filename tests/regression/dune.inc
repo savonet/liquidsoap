@@ -989,6 +989,24 @@
   (run %{run_test} GH4711 liquidsoap GH4711.liq)))
 
 (rule
+ (alias test_GH4734)
+ (package liquidsoap)
+ (deps
+  GH4734.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH4734 liquidsoap GH4734.liq)))
+
+(rule
  (alias test_GH4745)
  (package liquidsoap)
  (deps
@@ -2867,6 +2885,7 @@
   (alias test_GH4499)
   (alias test_GH4629)
   (alias test_GH4711)
+  (alias test_GH4734)
   (alias test_GH4745)
   (alias test_GH4748)
   (alias test_GH4819)

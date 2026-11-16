@@ -171,16 +171,25 @@ let _ =
         match catch with
           | None -> body []
           | Some catch -> (
-              try body []
-              with
-              | Runtime_error.(Runtime_error { kind; msg }) when catches kind ->
+              let catch kind msg =
                 catch
                   [
                     ( "",
                       Error.to_value
                         (Runtime_error.make ~pos:(Lang_core.pos p) ~message:msg
                            kind) );
-                  ])
+                  ]
+              in
+              try body [] with
+                | Runtime_error.(Runtime_error { kind; msg }) when catches kind
+                  ->
+                    catch kind msg
+                | exn -> (
+                    match Runtime_error.catchable exn with
+                      | Some (kind, msg) when catches kind -> catch kind msg
+                      | _ ->
+                          Printexc.raise_with_backtrace exn
+                            (Printexc.get_raw_backtrace ())))
       in
       (* An error raised by [finally] itself propagates as is, so [finally]
          runs exactly once on every path. *)

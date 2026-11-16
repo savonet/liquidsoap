@@ -35,3 +35,11 @@ val raise :
   pos:Pos.t list ->
   string ->
   'a
+
+(** Register a function telling which other exceptions a script may catch, as
+    the error kind and message it sees. They keep being reported as they are
+    when nothing catches them. *)
+val register_catchable : (exn -> (string * string) option) -> unit
+
+(** The error kind and message under which a script may catch [exn], if any. *)
+val catchable : exn -> (string * string) option
