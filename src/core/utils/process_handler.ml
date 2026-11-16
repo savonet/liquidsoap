@@ -29,6 +29,8 @@ type _t = {
   p : process;
   status : status option Atomic.t;
   stopped : bool Atomic.t;
+  reaped : bool Atomic.t;
+  terminated : bool Atomic.t;
   priority : Scheduler.priority Atomic.t;
 }
 
@@ -91,13 +93,6 @@ let stop t =
         | Some { in_pipe } -> (
             try ignore (Unix_utils.write in_pipe stop_c 0 1) with _ -> ()))
 
-let kill t =
-  Mutex.protect t.mutex (fun () ->
-      match t.process with
-        | None -> raise Finished
-        | Some { in_pipe } -> (
-            try ignore (Unix_utils.write in_pipe kill_c 0 1) with _ -> ()))
-
 let send_stop ~log t =
   Mutex.protect t.mutex (fun () ->
       let process = get_process t in
@@ -107,13 +102,40 @@ let send_stop ~log t =
             try close_out process.p.stdin with _ -> ())
         | _ -> ())
 
+let kill_grace_period = 5.
+
+(* Only the shell's pid is signaled: a command the shell does not exec into
+   keeps running. Windows only supports SIGKILL. *)
+let terminate { p = { stdout; stdin; stderr }; reaped; terminated } =
+  let pid = Unix.process_full_pid (stdout, stdin, stderr) in
+  let signal s = if not (Atomic.get reaped) then Unix.kill pid s in
+  if Atomic.compare_and_set terminated false true then
+    if Sys.win32 then signal Sys.sigkill
+    else (
+      signal Sys.sigterm;
+      ignore
+        (Thread.create
+           (fun () ->
+             Thread.delay kill_grace_period;
+             try signal Sys.sigkill with _ -> ())
+           ()))
+
+let kill t =
+  Mutex.protect t.mutex (fun () ->
+      match t.process with
+        | None -> raise Finished
+        | Some ({ in_pipe } as process) -> (
+            (try terminate process with _ -> ());
+            try ignore (Unix_utils.write in_pipe kill_c 0 1) with _ -> ()))
+
 let _kill = function
-  | Some { p; in_pipe; out_pipe } ->
+  | Some ({ p; in_pipe; out_pipe } as process) ->
       let silent f = try f () with _ -> () in
       List.iter silent
         [
           (fun () -> Unix.close in_pipe);
           (fun () -> Unix.close out_pipe);
+          (fun () -> terminate process);
           (fun () -> ignore (close_process p));
         ]
   | None -> ()
@@ -151,6 +173,8 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         priority = Atomic.make priority;
         stopped = Atomic.make false;
         status = Atomic.make None;
+        reaped = Atomic.make false;
+        terminated = Atomic.make false;
       }
     in
     ignore
@@ -158,6 +182,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
          (fun () ->
            try
              let _, status = wait p in
+             Atomic.set process.reaped true;
              Mutex.protect mutex (fun () ->
                  if Atomic.compare_and_set process.status None (Some status)
                  then (

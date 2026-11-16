@@ -1156,6 +1156,24 @@
   (run %{run_test} GH4995 liquidsoap GH4995.liq)))
 
 (rule
+ (alias test_GH5012)
+ (package liquidsoap)
+ (deps
+  GH5012.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5012 liquidsoap GH5012.liq)))
+
+(rule
  (alias test_GH5019)
  (package liquidsoap)
  (targets GH5019.wav)
@@ -1461,6 +1479,24 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} GH5581 liquidsoap GH5581.liq)))
+
+(rule
+ (alias test_GH5630)
+ (package liquidsoap)
+ (deps
+  GH5630.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5630 liquidsoap GH5630.liq)))
 
 (rule
  (alias test_LS268)
@@ -2414,6 +2450,28 @@
    switch_copy_default_on_select.liq)))
 
 (rule
+ (alias test_switch_default_transition_finish)
+ (package liquidsoap)
+ (deps
+  switch_default_transition_finish.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_default_transition_finish
+   liquidsoap
+   switch_default_transition_finish.liq)))
+
+(rule
  (alias test_switch_infallible_across_transition)
  (package liquidsoap)
  (deps
@@ -2800,6 +2858,7 @@
   (alias test_GH4922)
   (alias test_GH4992)
   (alias test_GH4995)
+  (alias test_GH5012)
   (alias test_GH5019)
   (alias test_GH5110)
   (alias test_GH5148)
@@ -2817,6 +2876,7 @@
   (alias test_GH5557)
   (alias test_GH5581)
   (alias test_GH5581-2)
+  (alias test_GH5630)
   (alias test_LS268)
   (alias test_LS354-1)
   (alias test_LS354-2)
@@ -2867,6 +2927,7 @@
   (alias test_source_dynamic)
   (alias test_switch_autodj_jingle_metadata)
   (alias test_switch_copy_default_on_select)
+  (alias test_switch_default_transition_finish)
   (alias test_switch_infallible_across_transition)
   (alias test_switch_on_leave_chained)
   (alias test_switch_on_leave_track_boundary)

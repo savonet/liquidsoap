@@ -1,3 +1,0 @@
-[merge "gendune"]
-	name = Regenerate dune.inc via gendune
-	driver = .scripts/merge-dune-inc.sh %O %A %B %L %P
