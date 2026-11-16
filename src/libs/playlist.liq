@@ -1014,7 +1014,7 @@ end
 #  which the playlist is reloaded; 0 means never.
 # @param ~reload_mode Unit of the reload parameter, either "never" (never reload \
 #  the playlist), "rounds", "seconds" or "watch" (reload the file whenever it is \
-#  changed).
+#  changed, keeping the requests already queued).
 # @param ~register_server_commands Register corresponding server commands
 # @param ~timeout Timeout (in sec.) to resolve the request. Defaults to `settings.request.timeout` when `null`.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.
@@ -1246,7 +1246,10 @@ def replaces playlist(
           fun () ->
             begin
               reload_scheduled := false
-              s.reload()
+
+              # Queued requests are kept: destroying a temporary one deletes
+              # its file, a change that fires the watcher again.
+              s.reload(empty_queue=false)
             end
         )
       end
