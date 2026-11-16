@@ -1661,6 +1661,28 @@
   (run %{run_test} append liquidsoap append.liq)))
 
 (rule
+ (alias test_blank_strip_resume_metadata)
+ (package liquidsoap)
+ (deps
+  blank_strip_resume_metadata.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   blank_strip_resume_metadata
+   liquidsoap
+   blank_strip_resume_metadata.liq)))
+
+(rule
  (alias test_callback_counts)
  (package liquidsoap)
  (deps
@@ -2904,6 +2926,7 @@
   (alias test_append)
   (alias test_append-merge)
   (alias test_append-merge2)
+  (alias test_blank_strip_resume_metadata)
   (alias test_callback_counts)
   (alias test_callback_from_task)
   (alias test_callback_release)

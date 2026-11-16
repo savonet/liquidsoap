@@ -53,6 +53,12 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
       end;
       Atomic.set state s
 
+    method private has_noise s =
+      let rms = AFrame.rms s 0 (AFrame.position s) in
+      Atomic.set dB_levels (Some rms);
+      let threshold = threshold () in
+      Array.exists (fun r -> r > threshold) rms
+
     (** This method should be called after the frame [s] has been filled, where
         [p0] is the position in [s] before filling. *)
     method private check_blank s =
@@ -63,12 +69,7 @@ class virtual base ~start_blank ~track_sensitive ~max_blank ~min_noise
         then self#set_state (`Noise 0))
       else (
         let len = AFrame.position s in
-        let rms = AFrame.rms s 0 len in
-        Atomic.set dB_levels (Some rms);
-        let threshold = threshold () in
-        let noise =
-          Array.fold_left (fun noise r -> noise || r > threshold) false rms
-        in
+        let noise = self#has_noise s in
         match Atomic.get state with
           | `Noise blank_len ->
               if noise then (if blank_len <> 0 then self#set_state (`Noise 0))
@@ -143,10 +144,43 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
 
     method abort_track = source#abort_track
     method private self_sync = source#cached_self_sync
-    method private generate_frame = source#get_frame
+
+    (* The frame where sound resumes after a blank is read by our own blank
+       check, before we are ready: nothing downstream has read it unless we
+       were already pulled during that cycle. Its track mark and metadata are
+       then carried over to the first frame that is read. A track mark alone
+       also ends a blank, but a silent track's metadata stays stripped. *)
+    val mutable pulled = false
+    val mutable resumed = None
+
+    initializer
+      self#on_before_streaming_cycle (fun () ->
+          (match resumed with
+            | Some (metadata, new_track) when not pulled ->
+                self#insert_metadata ~override:false ~new_track metadata
+            | _ -> ());
+          resumed <- None;
+          pulled <- false)
+
+    method private generate_frame =
+      pulled <- true;
+      source#get_frame
 
     method private output =
-      if source#is_ready then self#check_blank source#get_frame
+      if source#is_ready then (
+        let was_blank = self#is_blank in
+        let buf = source#get_frame in
+        self#check_blank buf;
+        if was_blank && (not self#is_blank) && self#has_noise buf then (
+          let metadata =
+            List.fold_left
+              (fun m (_, m') -> Frame.Metadata.append m m')
+              Frame.Metadata.empty
+              (Frame.get_all_metadata buf)
+          in
+          let new_track = Frame.has_track_marks buf in
+          if new_track || not (Frame.Metadata.is_empty metadata) then
+            resumed <- Some (metadata, new_track)))
 
     method reset = ()
   end
