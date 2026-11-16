@@ -88,8 +88,9 @@ let numbered ~formatter number pos error =
 
 let () =
   Runtime_error.register_catchable (function
-    | (Conflict _ | Loop _ | Controller_conflict _ | Sync_error _) as error ->
-        Some ("clock", Printexc.to_string error)
+    | Conflict { pos } | Loop { pos } | Controller_conflict { pos } ->
+        Some ("clock", Option.to_list pos)
+    | Sync_error _ -> Some ("clock", [])
     | _ -> None)
 
 let () =

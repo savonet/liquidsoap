@@ -236,7 +236,7 @@ while the script is running, for instance from a server command or a
 callback, a conflict is raised as an error of kind `clock` instead, which you
 can catch:
 
-```{.liquidsoap include="clock-catch-conflict.liq" from=3}
+```{.liquidsoap include="clock-catch-conflict.liq" from=1}
 
 ```
 

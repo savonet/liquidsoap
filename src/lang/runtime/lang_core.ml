@@ -465,8 +465,10 @@ let error_message = function
   | exn -> Printexc.to_string exn
 
 let runtime_error_of_exception ~bt ~kind exn =
-  match exn with
-    | Runtime_error.Runtime_error error -> error
+  match (exn, Runtime_error.catchable exn) with
+    | Runtime_error.Runtime_error error, _ -> error
+    | _, Some (kind, pos) ->
+        Runtime_error.make ~pos ~message:(error_message exn) kind
     | _ ->
         let pos =
           match Printexc.backtrace_slots bt with

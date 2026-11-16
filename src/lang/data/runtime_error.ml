@@ -48,13 +48,6 @@ let raise ?bt ?(message = "") ~pos kind =
   Printexc.raise_with_backtrace e bt
 
 let catchables = Atomic.make []
-
-let register_catchable fn =
-  let rec register () =
-    let current = Atomic.get catchables in
-    if not (Atomic.compare_and_set catchables current (fn :: current)) then
-      register ()
-  in
-  register ()
-
+let register_catchable fn = Atomic.set catchables (fn :: Atomic.get catchables)
 let catchable exn = List.find_map (fun fn -> fn exn) (Atomic.get catchables)
+let notify err = List.iter (fun fn -> fn err) (Atomic.get listeners)

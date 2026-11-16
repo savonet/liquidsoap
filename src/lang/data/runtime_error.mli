@@ -37,9 +37,13 @@ val raise :
   'a
 
 (** Register a function telling which other exceptions a script may catch, as
-    the error kind and message it sees. They keep being reported as they are
-    when nothing catches them. *)
-val register_catchable : (exn -> (string * string) option) -> unit
+    the error kind and script positions it sees them with. They keep being
+    reported as they are when nothing catches them. *)
+val register_catchable : (exn -> (string * Pos.t list) option) -> unit
 
-(** The error kind and message under which a script may catch [exn], if any. *)
-val catchable : exn -> (string * string) option
+(** The error kind and positions under which a script may catch [exn], if any.
+*)
+val catchable : exn -> (string * Pos.t list) option
+
+(** Run the [on_error] listeners on an error that is not raised. *)
+val notify : runtime_error -> unit
