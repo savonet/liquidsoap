@@ -58,27 +58,36 @@ module Make (P : T) : S with type t = P.t = struct
 
   (* Weak hash sets are not thread-safe: requests are created and looked up
      from every clock's thread, and a resize racing another access corrupts
-     the table. *)
+     the table. The lock is held across allocations, where GC finalisers can
+     run script callbacks on the same thread: those re-enter without locking
+     again instead of deadlocking. *)
   let lock = Mutex.create ()
-  let locked fn = Mutex.protect lock fn
+  let owner = Atomic.make None
+
+  let locked fn =
+    let self = Thread.id (Thread.self ()) in
+    if Atomic.get owner = Some self then fn ()
+    else
+      Mutex.protect lock (fun () ->
+          Atomic.set owner (Some self);
+          Fun.protect ~finally:(fun () -> Atomic.set owner None) fn)
 
   let find id =
     match locked (fun () -> WeakHash.find_opt h (P.destroyed id)) with
       | Some v when not (P.is_destroyed v) -> Some v
       | _ -> None
 
-  let fold f init =
+  (* Callbacks run outside the lock, on a snapshot of the live entries. *)
+  let live () =
     locked (fun () ->
         WeakHash.fold
-          (fun v cur -> if P.is_destroyed v then cur else f (P.id v) v cur)
-          h init)
+          (fun v cur -> if P.is_destroyed v then cur else v :: cur)
+          h [])
 
-  let iter f =
-    locked (fun () ->
-        WeakHash.iter
-          (fun entry -> if not (P.is_destroyed entry) then f (P.id entry) entry)
-          h)
+  let fold f init =
+    List.fold_left (fun cur v -> f (P.id v) v cur) init (live ())
 
+  let iter f = List.iter (fun v -> f (P.id v) v) (live ())
   let remove id = locked (fun () -> WeakHash.remove h (P.destroyed id))
   let current_id = Atomic.make 0
 
