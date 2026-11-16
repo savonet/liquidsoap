@@ -82,30 +82,25 @@ def source.composition.default_on_select(
       then
         starting()
       else
-        # Both bound the tail, which releases the leaving source once it is
-        # over.
+        fade_duration = rem > 0. and rem <= max_fade ? rem : max_fade
+        log.important(
+          label=id(),
+          "Ending #{id()} with a #{fade_duration}s fade out.."
+        )
+
+        # The tail stops at the end of the leaving track.
         tail =
-          if
-            rem > 0. and rem <= max_fade
-          then
-            log.important(
-              label=id(),
-              "Letting #{id()} finish under the starting source.."
-            )
-            once(leaving)
-          else
-            log.important(
-              label=id(),
-              "Ending #{id()} with a #{max_fade}s fade out.."
-            )
-            fade.out(duration=max_fade, max_duration(max_fade, leaving))
-          end
+          fade.out(
+            duration=fade_duration,
+            max_duration(max_fade, once(leaving))
+          )
 
         # A live source keeps producing whether it is read or not, so the
         # starting source is read from the first frame on. The mix keeps its
         # track marks and metadata; the tail only contributes audio.
-        tracks = source.tracks(starting())
-        (
+        starting = starting()
+        tracks = source.tracks(starting)
+        mix =
           source(
             tracks.{
               audio =
@@ -114,6 +109,29 @@ def source.composition.default_on_select(
                   [tracks.audio, source.tracks(tail).audio]
                 )
             }
+          )
+        mix = source.available(mix, {source.is_ready(tail)})
+
+        # Once the tail is over, hand over to the starting source itself at a
+        # frame boundary, which releases the leaving source. That boundary is
+        # not a new track: merge it, and only it.
+        handing_over = ref(false)
+        def next() =
+          if
+            source.is_ready(mix)
+          then
+            mix
+          else
+            handing_over := true
+            starting
+          end
+        end
+
+        (
+          source.dynamic(
+            track_sensitive=true,
+            merge={handing_over.exchange(false)},
+            next
           )
         :
           source
