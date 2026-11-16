@@ -151,6 +151,22 @@ def f() =
   )
 
   incorrect('add([mean(blank()),audio_to_stereo(add([]))])')
+
+  # Video generators only produce video (#3344).
+  incorrect('output.file(%wav,"",video.testsrc())')
+  incorrect('output.file(%wav,"",video.board())')
+  incorrect(
+    'fallback([(blank():source(audio=pcm,video=yuv420p)),video.testsrc()])'
+  )
+  incorrect(
+    'fallback([(blank():source(audio=pcm,video=yuv420p)),video.board()])'
+  )
+  incorrect(
+    'fallback([(blank():source(audio=pcm,video=yuv420p)),video.text("x")])'
+  )
+  correct(
+    'ignore(fun () -> output.dummy(video.testsrc()))'
+  )
   section(
     "TRACK TYPES"
   )
