@@ -71,6 +71,7 @@
 - Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
 - Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
 - `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
+- `video.testsrc`, `video.board` and `video.text` have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
 
 ## Optimized:
 
