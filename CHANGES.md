@@ -71,6 +71,7 @@
 - Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
 - Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
 - `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
+- `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
 
 ## Optimized:
 

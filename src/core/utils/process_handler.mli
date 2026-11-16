@@ -94,7 +94,8 @@ val set_priority : t -> Scheduler.priority -> unit
     future. *)
 val stop : t -> unit
 
-(** Asynchronous kill. The process will be killed some time in the future. *)
+(** Send the process a termination signal, escalating to SIGKILL if it is still
+    running after a grace period. Cleanup happens asynchronously. *)
 val kill : t -> unit
 
 (** Whether the process was stopped. *)
