@@ -71,7 +71,6 @@
 - Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
 - Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
 - `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
-- `sequence(merge=true, ...)` merges the boundary into its last source and keeps the track mark that starts the stream ([#5632](https://github.com/savonet/liquidsoap/pull/5632)).
 
 ## Optimized:
 

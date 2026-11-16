@@ -82,7 +82,9 @@ def source.composition.default_on_select(
       then
         starting()
       else
-        overlap =
+        # Both bound the tail, which releases the leaving source once it is
+        # over.
+        tail =
           if
             rem > 0. and rem <= max_fade
           then
@@ -90,25 +92,20 @@ def source.composition.default_on_select(
               label=id(),
               "Letting #{id()} finish under the starting source.."
             )
-            rem
+            once(leaving)
           else
             log.important(
               label=id(),
               "Ending #{id()} with a #{max_fade}s fade out.."
             )
-            max_fade
+            fade.out(duration=max_fade, max_duration(max_fade, leaving))
           end
-
-        tail = max_duration(overlap, leaving)
-        tail =
-          overlap < rem or rem < 0. ? fade.out(duration=overlap, tail) : tail
 
         # A live source keeps producing whether it is read or not, so the
         # starting source is read from the first frame on. The mix keeps its
         # track marks and metadata; the tail only contributes audio.
-        starting = starting()
-        tracks = source.tracks(starting)
-        mix =
+        tracks = source.tracks(starting())
+        (
           source(
             tracks.{
               audio =
@@ -118,9 +115,9 @@ def source.composition.default_on_select(
                 )
             }
           )
-
-        # Dropping the mix once the tail is over releases the leaving source.
-        (sequence(merge=true, [max_duration(overlap, mix), starting]) : source)
+        :
+          source
+        )
       end
     else
       starting()

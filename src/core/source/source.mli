@@ -484,14 +484,6 @@ object
   method virtual private set_last_metadata : Frame.t -> unit
   method virtual log : Log.t
   method virtual id : string
-
-  (** Whether a frame has been generated yet. *)
-  method private started : bool
-
-  (** Called when a track begins: at the start of the stream or when switching
-      to another source. *)
-  method private begin_track : Frame.t -> Frame.t
-
   method private on_source_switch : Frame.t -> Frame.t
   method private can_reselect : reselect:reselect -> source -> bool
   method private can_generate_frame : bool
