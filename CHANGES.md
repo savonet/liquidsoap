@@ -71,6 +71,7 @@
 - Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
 - Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
 - `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
+- `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
 
 ## Optimized:
 
