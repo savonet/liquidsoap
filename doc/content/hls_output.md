@@ -364,16 +364,16 @@ when the output starts and add the media produced before each segment:
 
 Each segment then starts exactly where the previous one ends, and a segment
 crossing an hour boundary stays in the directory of the hour it starts in.
-`on_start` resets the count when the output
-restarts, for instance after its source was unavailable, so the names follow
-the wall clock again. The variant named `index` writes `index.m3u8`, and a
+`on_start` resets the count when the output restarts, for instance after its
+source was unavailable. The variant named `index` writes `index.m3u8`, and a
 `main_playlist_writer` returning `null` writes no main playlist, as ffmpeg does
 for a single stream.
 
-Counting media time is deliberate: the wall clock jumps with NTP adjustments
-and daylight saving changes, while media time only moves forward. To follow
-the wall clock instead, as ffmpeg does, use `time() - s.duration` inside
-`segment_name`: it is as imprecise as ffmpeg's names.
+Counting media time is deliberate: it only moves forward, while the wall clock
+can jump, for instance when NTP corrects it, which would give segments
+overlapping or out-of-order names. To name segments from the wall clock
+instead, use `time() - s.duration` inside `segment_name`. Like ffmpeg's names,
+the result is late by the time it took to close the segment.
 
 A segment shorter than a second, cut by `insert_tag` or `cut_on_metadata`,
 gives the next one the same name and makes the output fail. Add milliseconds
