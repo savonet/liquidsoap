@@ -108,6 +108,7 @@ Where:
 - `%audio.copy` passes data through without decoding or re-encoding. This avoids CPU usage but the data cannot be processed by operators like `fade.{in,out}` or `smart_cross`. Every source of a copied stream must share its data format: see [switching between copied sources](./ffmpeg.md#switching-between-copied-sources).
 - `%video(...)` sets options for the video codec. Unused options raise an exception. Any option supported by `ffmpeg` may be passed.
 - `%video.raw` and `%video.copy` behave like their `%audio` counterparts.
+- `framerate` (or `r`) in `%video(...)` and `%video.raw(...)` is the output frame rate, `settings.frame.video.framerate` by default. It takes an integer or a fraction string, e.g. `framerate="30000/1001"` for 29.97 fps, while liquidsoap itself runs at an integer rate. Frames are retimed onto the output rate.
 - Generic options are passed to audio, video, and format (container) setup. Unused options raise an exception.
 
 The streams of the container are created in the order of the tracks in the encoder.

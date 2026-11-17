@@ -62,7 +62,7 @@ let mul_div r a b =
     in
     go (Sys.int_size - 2) 0 0)
 
-let rescale ~src ~dst t =
+let rescale ?(rounding = `Nearest) ~src ~dst t =
   if not (is_valid src && is_valid dst) then
     invalid_arg
       (Printf.sprintf "Invalid time base %s -> %s" (to_string src)
@@ -75,7 +75,12 @@ let rescale ~src ~dst t =
     let q, r = (t / b, t mod b) in
     let q', rem = mul_div r a b in
     let result = checked_add (checked_mul q a) q' in
-    let result = if rem >= b - rem then checked_add result 1 else result in
+    let round_away =
+      match rounding with
+        | `Nearest -> rem >= b - rem
+        | `Up -> rem > 0 && not negative
+    in
+    let result = if round_away then checked_add result 1 else result in
     Some (if negative then -result else result)
   with Out_of_range -> None
 
@@ -86,4 +91,6 @@ let rescale_int64 ~src ~dst t =
   then None
   else rescale ~src ~dst (Int64.to_int t)
 
+let frame_rate (num, den) = { Avutil.num; den }
+let per_frame { Avutil.num; den } = { Avutil.num = den; den = num }
 let to_main ~src t = rescale ~src ~dst:(main ()) t

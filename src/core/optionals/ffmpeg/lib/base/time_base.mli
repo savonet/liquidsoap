@@ -37,15 +37,23 @@ val video : unit -> t
 (** A time base read from media is valid when both components are positive. *)
 val is_valid : t -> bool
 
-(** [rescale ~src ~dst t] is [t × src / dst] rounded to nearest, halves away
-    from zero, exactly; [None] when the result is outside the native integer
-    range.
+(** [rescale ~src ~dst t] is [t × src / dst] rounded exactly: to nearest, halves
+    away from zero, by default, towards positive infinity with [~rounding:`Up];
+    [None] when the result is outside the native integer range.
 
     @raise Invalid_argument when [src] or [dst] is not valid. *)
-val rescale : src:t -> dst:t -> int -> int option
+val rescale :
+  ?rounding:[ `Nearest | `Up ] -> src:t -> dst:t -> int -> int option
 
 (** [rescale_int64] reads a timestamp the bindings give. *)
 val rescale_int64 : src:t -> dst:t -> Int64.t -> int option
+
+(** The [(numerator, denominator)] frame rate of an encoder format. *)
+val frame_rate : int * int -> Avutil.rational
+
+(** [per_frame rate] is the time base of one frame at [rate] frames per second.
+*)
+val per_frame : Avutil.rational -> t
 
 (** [to_main ~src t] is {!rescale} into {!main}. *)
 val to_main : src:t -> int -> int option

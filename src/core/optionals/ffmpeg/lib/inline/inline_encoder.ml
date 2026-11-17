@@ -220,7 +220,7 @@ let video ~(log : Log.t) ~(encoded : F.encoded) ~(v : F.video) :
   in
   let width = Lazy.Mutexed.force v.width in
   let height = Lazy.Mutexed.force v.height in
-  let frame_rate = Lazy.Mutexed.force v.framerate in
+  let frame_rate = Time_base.frame_rate (Lazy.Mutexed.force v.framerate) in
   let codec =
     match encoded.mode with
       | `Internal ->
@@ -268,15 +268,11 @@ let video ~(log : Log.t) ~(encoded : F.encoded) ~(v : F.video) :
               ?device:v.hwaccel_device ~opts ~target ~width ~height codec
           in
           let encoder =
-            Avcodec.Video.create_encoder ~opts
-              ~frame_rate:{ Avutil.num = frame_rate; den = 1 }
-              ?hardware_context ~pixel_format ~width ~height ~time_base:fps_tb
-              codec
+            Avcodec.Video.create_encoder ~opts ~frame_rate ?hardware_context
+              ~pixel_format ~width ~height ~time_base:fps_tb codec
           in
           let params =
-            Copy_params.make
-              ~frame_rate:{ Avutil.num = frame_rate; den = 1 }
-              (`Video (Avcodec.params encoder))
+            Copy_params.make ~frame_rate (`Video (Avcodec.params encoder))
           in
           merge_params output (Ffmpeg_content.Copy.of_params params);
           let time_base = Avcodec.time_base encoder in

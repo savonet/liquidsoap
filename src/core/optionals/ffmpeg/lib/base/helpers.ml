@@ -55,7 +55,10 @@ module Fps = struct
 
   let filters ~target (start : start) =
     let fps rest =
-      ("fps", `Pair ("fps", `String (Printf.sprintf "%d/1" target)) :: rest)
+      ( "fps",
+        `Pair
+          ("fps", `String (Printf.sprintf "%d/%d" target.Avutil.num target.den))
+        :: rest )
     in
     match start with
       | `None ->
@@ -73,7 +76,8 @@ module Fps = struct
 
   let create ?source_rate ~target ~start ~time_base format : t =
     match source_rate with
-      | Some { Avutil.num; den } when den > 0 && num = target * den ->
+      | Some { Avutil.num; den }
+        when den > 0 && num * target.Avutil.den = target.num * den ->
           `Pass time_base
       | _ -> `Chain (Chain.create ~time_base format (filters ~target start))
 
