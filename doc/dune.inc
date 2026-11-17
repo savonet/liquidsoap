@@ -1406,6 +1406,20 @@
    content/liq/hls-playlists.liq)))
 
 (rule
+ (alias test-doc-hls-strftime)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-strftime.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-strftime.liq)))
+
+(rule
  (alias test-doc-hls-variants)
  (package liquidsoap)
  (deps
@@ -2893,6 +2907,7 @@
   (alias test-doc-hls-metadata)
   (alias test-doc-hls-persist)
   (alias test-doc-hls-playlists)
+  (alias test-doc-hls-strftime)
   (alias test-doc-hls-variants)
   (alias test-doc-http-input)
   (alias test-doc-icecast-output-basic)
