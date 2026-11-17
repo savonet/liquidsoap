@@ -343,6 +343,37 @@ directory (relative, with no `..`), and must not be a playlist name or a file
 the output already has. Otherwise the output fails: a naming function that
 returns such a name is a script error that retrying would not fix.
 
+#### Naming segments after their start time
+
+Archivers, uploaders and players that seek by wall clock often expect segments
+named after the time they start, sorted into time-bucketed directories. This is
+the layout ffmpeg produces with:
+
+```
+ffmpeg ... -f hls -hls_time 30 -strftime 1 -strftime_mkdir 1 \
+  -hls_segment_filename '/out/%Y/%m/%d/%Hh/%s.ts' /out/index.m3u8
+```
+
+Because `segment_name` is called when the segment is complete, `time()` inside
+it is the segment's end, not its start. Instead, take the wall-clock time once
+when the output starts and add the media produced before each segment:
+
+```{.liquidsoap include="hls-strftime.liq" from="BEGIN" to="END"}
+
+```
+
+Each segment then starts exactly where the previous one ends, and a segment
+crossing an hour boundary stays in the directory of the hour it starts in.
+Unlike ffmpeg, which reads the clock when it opens each file, the names do not
+depend on processing latency. `on_start` resets the count when the output
+restarts, for instance after its source was unavailable, so the names follow
+the wall clock again. The variant named `index` writes `index.m3u8`, and a
+`main_playlist_writer` returning `null` writes no main playlist, as ffmpeg does
+for a single stream.
+
+To archive the segments, which the output otherwise deletes once they leave
+the playlist, see [keeping old segments on disk](#keeping-old-segments-on-disk).
+
 ### Permissions and temporary files
 
 `perm` (default `0o666`) and `dir_perm` (default `0o777`) set the mode of
