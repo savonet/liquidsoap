@@ -1586,10 +1586,24 @@ CAMLprim value ocaml_av_reserve_stream_copy(value _container) {
   CAMLreturn(Val_int(index));
 }
 
-/* The codec tag is cleared for the muxer to choose its own. */
+/* Without a requested tag, the same rule as the ffmpeg CLI stream copy: the
+   source tag is kept when the output format maps it to the same codec or has
+   no tag for that codec, and cleared otherwise for the muxer to choose its
+   own. */
+static int keeps_source_codec_tag(const AVOutputFormat *format,
+                                  const AVCodecParameters *parameters) {
+  const struct AVCodecTag *const *tags = format->codec_tag;
+  unsigned int format_tag;
+
+  return !tags ||
+         av_codec_get_id(tags, parameters->codec_tag) == parameters->codec_id ||
+         !av_codec_get_tag2(tags, parameters->codec_id, &format_tag);
+}
+
 CAMLprim value ocaml_av_initialize_stream_copy(value _container, value _index,
+                                               value _codec_tag,
                                                value _parameters) {
-  CAMLparam3(_container, _index, _parameters);
+  CAMLparam4(_container, _index, _codec_tag, _parameters);
   container *record = configurable_output(_container, NULL);
   intnat index = Long_val(_index);
   AVStream *stream;
@@ -1602,7 +1616,12 @@ CAMLprim value ocaml_av_initialize_stream_copy(value _container, value _index,
   error = avcodec_parameters_copy(stream->codecpar,
                                   CodecParameters_val(_parameters));
   if (error >= 0) {
-    stream->codecpar->codec_tag = 0;
+    if (Is_some(_codec_tag))
+      stream->codecpar->codec_tag =
+          (unsigned int)Long_val(Some_val(_codec_tag));
+    else if (!keeps_source_codec_tag(record->context->oformat,
+                                     stream->codecpar))
+      stream->codecpar->codec_tag = 0;
     record->streams[index].copy_reserved = 0;
   }
   done(record, error);

@@ -647,12 +647,12 @@ lock.
 
 ```ocaml
 val new_stream_copy :
-  params:'mode Avcodec.params -> output container ->
+  ?codec_tag:int -> params:'mode Avcodec.params -> output container ->
   (output, 'mode, [ `Packet ]) stream
 type uninitialized_stream_copy
 val new_uninitialized_stream_copy : output container -> uninitialized_stream_copy
 val initialize_stream_copy :
-  params:'mode Avcodec.params -> uninitialized_stream_copy ->
+  ?codec_tag:int -> params:'mode Avcodec.params -> uninitialized_stream_copy ->
   (output, 'mode, [ `Packet ]) stream
 ```
 
@@ -661,7 +661,10 @@ A stream that receives packets encoded elsewhere.
 - `new_uninitialized_stream_copy` reserves the stream, so that its index is
   known before its parameters are.
 - `initialize_stream_copy` gives the reserved stream a copy of `params`. The
-  codec tag is cleared so that the muxer chooses its own.
+  codec tag is `codec_tag` when given. Otherwise the tag of `params` is kept
+  when the output format maps it to the same codec or has no tag for that
+  codec, as the ffmpeg command line does, and is cleared for the muxer to
+  choose its own when not.
 - `new_stream_copy` is the two in sequence.
 
 Only the codec parameters are copied. The time base is the muxer's choice
