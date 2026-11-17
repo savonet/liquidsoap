@@ -7,6 +7,24 @@ avc1_file =
 encoded_file = file.temp(cleanup=true, "encoded", ".mp4")
 kept_file = file.temp(cleanup=true, "kept", ".mp4")
 override_file = file.temp(cleanup=true, "override", ".mp4")
+integer_file = file.temp(cleanup=true, "integer", ".mp4")
+
+# A printed format parses back to the same format.
+def round_trip(enc) =
+  printed = string(enc)
+  let eval (reprinted : string) = "string(#{printed})"
+  if
+    reprinted != printed
+  then
+    print(
+      "#{printed} prints back as #{reprinted}"
+    )
+    test.fail()
+  end
+end
+
+round_trip(%ffmpeg(%video.copy(ignore_keyframe, codec_tag = "hvc1")))
+round_trip(%ffmpeg(%video(codec = "libx264", codec_tag = "avc3")))
 
 def video_tag(probed_file) =
   let json.parse ({streams} :
@@ -38,13 +56,28 @@ def remux(label, enc, source_file, (target_file:string), next) =
   )
 end
 
+# libavcodec's own integer form of the tag.
+def integer() =
+  remux(
+    "integer",
+    %ffmpeg(
+      format = "mp4",
+      %audio.copy,
+      %video(codec = "libx264", codec_tag = 862156385)
+    ),
+    avc1_file,
+    integer_file,
+    test.pass
+  )
+end
+
 def override() =
   remux(
     "override",
     %ffmpeg(format = "mp4", %audio.copy, %video.copy(codec_tag = "avc3")),
     avc1_file,
     override_file,
-    test.pass
+    integer
   )
 end
 

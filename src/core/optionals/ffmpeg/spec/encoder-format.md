@@ -141,16 +141,22 @@ For a copy track the arguments are:
 
 Starting from `Wait_for_keyframe` and no codec tag, each argument in order:
 
-| Argument                      | Result                                                              |
-| ----------------------------- | ------------------------------------------------------------------- |
-| anonymous `wait_for_keyframe` | `keyframe` is `Wait_for_keyframe`                                   |
-| anonymous `ignore_keyframe`   | `keyframe` is `Ignore_keyframe`                                     |
-| `codec_tag = s`               | `codec_tag` is `s`; not four characters is an error at its position |
-| anything else                 | error naming the first argument not accepted                        |
+| Argument                            | Result                                                              |
+| ----------------------------------- | ------------------------------------------------------------------- |
+| first anonymous `wait_for_keyframe` | `keyframe` is `Wait_for_keyframe`                                   |
+| first anonymous `ignore_keyframe`   | `keyframe` is `Ignore_keyframe`                                     |
+| `codec_tag = s`                     | `codec_tag` is `s`; not four characters is an error at its position |
+| anything else                       | error naming the first argument not accepted                        |
 
-On an encoded track, `codec_tag = s` is the codec option `codec_tag` with the
-little-endian integer of `s`, as libav stores a tag; not four characters is an
-error at its position.
+A second keyframe argument is an error: the two contradict or repeat each
+other.
+
+On an encoded track, `codec_tag = s` is kept as the string `s`, and given to
+the codec as the option `codec_tag` with the little-endian integer of `s`, as
+libav stores a tag; not four characters is an error at its position. An
+integer `codec_tag` is that integer, as libav's own option takes it. A literal
+`codec_tag` that is not four characters is rejected at type checking too, on
+copy and encoded tracks alike.
 
 A drop track accepts no arguments: any argument is an error. Reason: an
 argument on a dropped track has no effect, and a silent no-op hides a typo in

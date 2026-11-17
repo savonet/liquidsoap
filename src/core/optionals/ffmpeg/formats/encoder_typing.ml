@@ -91,22 +91,33 @@ let alpha params =
       | _ -> alpha)
     false params
 
+(* A tag that is not a literal is checked at run time. *)
+let check_codec_tag = function
+  | `Labelled ("codec_tag", ({ Term.term = `String tag } as tm)) -> (
+      try ignore (F.fourcc tag)
+      with Failure message -> error ?pos:(position tm) message)
+  | _ -> ()
+
 let check_copy_params params =
-  List.iter
-    (function
-      | `Anonymous ("wait_for_keyframe" | "ignore_keyframe")
-      | `Labelled ("codec_tag", _) ->
-          ()
-      | arg ->
-          let pos, name =
-            match arg with
-              | `Anonymous s -> (None, s)
-              | `Labelled (l, tm) -> (position tm, l)
-              | `Encoder (e, _) -> (None, "%" ^ e)
-          in
-          error ?pos
-            (Printf.sprintf "Invalid argument %s for a copy track" name))
-    params
+  ignore
+    (List.fold_left
+       (fun has_keyframe arg ->
+         check_codec_tag arg;
+         match arg with
+           | `Anonymous ("wait_for_keyframe" | "ignore_keyframe")
+             when not has_keyframe ->
+               true
+           | `Labelled ("codec_tag", _) -> has_keyframe
+           | arg ->
+               let pos, name =
+                 match arg with
+                   | `Anonymous s -> (None, s)
+                   | `Labelled (l, tm) -> (position tm, l)
+                   | `Encoder (e, _) -> (None, "%" ^ e)
+               in
+               error ?pos
+                 (Printf.sprintf "Invalid argument %s for a copy track" name))
+       false params)
 
 let shape_of_encoded ~mode ~field params : F.shape =
   match
@@ -135,7 +146,9 @@ let shape_of_track ~container (name, params) =
       | `Copy ->
           check_copy_params params;
           `Copy (Copy_changes.of_container container)
-      | (`Internal | `Raw) as mode -> shape_of_encoded ~mode ~field params
+      | (`Internal | `Raw) as mode ->
+          List.iter check_codec_tag params;
+          shape_of_encoded ~mode ~field params
   in
   (field, shape)
 

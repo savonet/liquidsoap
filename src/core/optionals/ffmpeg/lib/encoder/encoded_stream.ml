@@ -55,8 +55,14 @@ let check_opts ?pos opts =
     | Some message -> error ?pos message
     | None -> ()
 
+(* libavcodec takes a codec tag as its integer value. *)
+let codec_tag_opt = function
+  | "codec_tag", `String tag -> ("codec_tag", `Int (F.fourcc tag))
+  | opt -> opt
+
 (* encoder.md §3 step 1. *)
 let stream_opts (opts : F.opts) =
+  let opts = List.map codec_tag_opt opts in
   match List.assoc_opt "flags" opts with
     | Some (`String s)
       when List.mem "global_header"
