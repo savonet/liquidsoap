@@ -16,12 +16,13 @@ it affects.
 Apply it to every rule in the as-built spec, not only to the one that
 prompted it. Known instances, each to be replaced by a stated signal:
 
-| Today (inferred)                                                      | Who actually knows                                           |
-| --------------------------------------------------------------------- | ------------------------------------------------------------ |
-| "I was not animated for more than one tick, so my selection is stale" | The parent: it preempted the child or left it at a boundary. |
-| "A track mark was generated, so a track played"                       | The consumer: it took the data or did not.                   |
-| "My readiness was asked, so I am about to be read"                    | The asker: it is probing or committing.                      |
-| "A search is running, so a track ended"                               | The switch: it knows why it searches.                        |
+| Today (inferred)                                                      | Who actually knows                                            |
+| --------------------------------------------------------------------- | ------------------------------------------------------------- |
+| "I was not animated for more than one tick, so my selection is stale" | The parent: it preempted the child or left it at a boundary.  |
+| "A track mark was generated, so a track played"                       | The consumer: it took the data or did not.                    |
+| "My readiness was asked, so I am about to be read"                    | The asker: it is probing or committing.                       |
+| "A search is running, so a track ended"                               | The switch: it knows why it searches.                         |
+| "More than one item is left, so this join is merged"                  | The operator that advances: it knows which join it is making. |
 
 ## 2. Direction for the resume rule
 
@@ -74,6 +75,13 @@ into the song. Binding: as S2, and the cut song does not resume.
 **S3. Child clock.** A rotation inside an operator that reads its child on
 some ticks only. Binding: weights are honoured and no track is cut short.
 
+**S4. Merged sequence.** A two-item sequence asked to merge: a short item
+titled "first", then a longer one titled "last". Binding: exactly one track is
+reported, at the start of the stream, with the first item's metadata; a join
+inside the very first frame is not merged into the stream start; skipping or
+aborting the merged sequence still produces a track boundary. Both a join
+that falls mid-frame and one that falls on a frame boundary behave the same.
+
 ## 4. Questions the normative pass must ask before rewriting
 
 - Which of the script-visible names in [README.md](README.md) are frozen.
@@ -81,7 +89,12 @@ some ticks only. Binding: weights are honoured and no track is cut short.
 - Whether `rotate` and `random` stay script-level policies, which requires a
   stated predicate contract and a "track heard" event, or move into the
   operator.
-- Whether the frame-assembly seam may change for `cross` and `sequence` too.
+- Whether the frame-assembly seam may change for `cross`, `sequence` and
+  `source.dynamic` too. A fix to merged sequences is waiting for this rebuild
+  and assumes it may ([findings.md](findings.md) D9). If so: what happens to
+  the callers D9 lists, whose track start moves.
+- Whether `source.dynamic` and the merged looping rotation join the scope
+  (findings G8).
 
 ## 5. Constraints on the rebuild
 

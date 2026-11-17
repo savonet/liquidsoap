@@ -212,8 +212,15 @@ selection is kept until its child's track boundary whatever the predicates say.
 A child whose track ends mid-frame is followed within the same frame. No child
 appears twice, non-contiguously, in one frame.
 
-**Count / traces.** 9 fixes, 1 revert, 6 issues.
-#1999 b4d53d129; #3645 85e2a31e1; #3654 bcbb74c81; #4102 #4108 59de576ec; #4786
+A join can also be asked to merge: whether a given join is merged was read
+from the operator's state after it had already moved past that join. Seen: a
+two-item merged sequence reported the second item's track instead of the
+first's, and the stream's first mark was dropped. Check: the track reported
+for a merged sequence is the first item's, once, at the stream start, for
+mid-frame and frame-aligned joins alike.
+
+**Count / traces.** 10 fixes (1 closed as incomplete), 1 revert, 7 issues.
+#5634 #5632 (open); #1999 b4d53d129; #3645 85e2a31e1; #3654 bcbb74c81; #4102 #4108 59de576ec; #4786
 2b3aa2ea7; 3c089a3f0; #5083 e30598ef2 reverted f998363bc; #5379 1f1fda60a;
 #5633 #5640 275d242b6; #3283; #2026; #3731; #1366 (read only).
 

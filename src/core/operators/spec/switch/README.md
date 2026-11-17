@@ -12,8 +12,8 @@ framing the later passes must apply.
 `cross` and `sequence`; source composition (tags, profiles, the default
 handoff); the three selection policies built on `switch`: `fallback`,
 `rotate`, `random`. Sources, frames and the clock appear only as the contracts
-the switch relies on. `cross` and `sequence` appear only as other users of the
-seam.
+the switch relies on. `cross`, `sequence` and `source.dynamic` appear only as
+other users of the seam.
 
 **Reading order.**
 

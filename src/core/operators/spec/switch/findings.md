@@ -69,6 +69,32 @@ Readiness runs a selection: predicates, `on_select`, wake, sleep, logs. A
 parent's search tests readiness last, so a child found ready is chosen; but
 D7's flag, and any other reader of readiness, triggers it without choosing.
 
+**D9. `merge` describes the wrong join.** _Checked_ for `sequence`; _read
+only_ for the other two places.
+The seam asks the operator whether to merge after the operator has moved on
+([frame-assembly.md §8](frame-assembly.md#8-when-merge-is-read)). In a merged
+sequence the join into the last item is never merged and the stream's first
+track mark is dropped: the track reported is the last item's, where the first
+item's is expected. The same late read is in two more places: a change of
+source that does not begin a track keeps a mid-frame mark but drops a
+frame-aligned one; and the continuation of the same source past its own
+boundary drops marks when `merge()` holds, although that is not a join
+between sources. A targeted fix in `sequence` was tried and closed as
+incomplete; the fix is on hold for the rebuild.
+
+Intended, as stated by the session that analysed it: merging is decided per
+join, from the source being left. Nothing left (stream start): never merged.
+Same source continuing: not a join, never merged by `sequence`. Another
+source: merged when the operator says so. The operator that advances is the
+one that knows and should say so for that join.
+
+Behaviour that today's callers rely on, and that a fix moves:
+
+- A looping merged rotation pads each round with one frame of silence, so that
+  the mark kept at the last join separates the rounds.
+- A delayed fade-in and a merged prepend would have their track start, and the
+  metadata given to track callbacks, move to the leading silence or jingle.
+
 ## Asymmetries
 
 **A1.** `cross` and `sequence` turn `force` into `ok`; `switch` honours it
@@ -86,6 +112,9 @@ resuming (D1).
 **A4.** Track sensitivity is per pair for a takeover but switch-wide for the
 reselect mode: one non-track-sensitive child makes every cycle a search, and
 every predicate run every cycle. _Read only._
+
+**A5.** A merged join keeps or drops the mark depending on whether it falls
+mid-frame or on a frame boundary (D9). _Read only._
 
 ## Gaps
 
@@ -109,6 +138,12 @@ keeps old proxies up. _Read only._
 
 **G7.** An `on_select` that raises leaves a proxy that was never woken and no
 record of the attempt ([switch.md §12](switch.md#12-failure)). _Read only._
+
+**G8.** Two users of the seam and one policy were left out of this snapshot's
+scope and are described only where they touch it: `source.dynamic` (used by
+the default handoff), and the merged looping rotation built on `rotate`, which
+overrides `on_select` on its first child and wraps the result in a `switch`
+whose two predicates read one flag.
 
 ## To verify
 

@@ -96,11 +96,32 @@ State kept across cycles: `current`, the last source used.
 
 ## 7. Users
 
-| Operator   | `track_sensitive` | `merge`                            | New track on switch                   |
-| ---------- | ----------------- | ---------------------------------- | ------------------------------------- |
-| `switch`   | all children are  | never                              | always                                |
-| `cross`    | never             | never                              | only when moving to the "after" phase |
-| `sequence` | always            | configurable, off on the last item | configurable                          |
+| Operator         | `track_sensitive`   | `merge`                            | New track on switch                   |
+| ---------------- | ------------------- | ---------------------------------- | ------------------------------------- |
+| `switch`         | all children are    | never                              | always                                |
+| `cross`          | never               | never                              | only when moving to the "after" phase |
+| `sequence`       | always              | configurable, off on the last item | configurable                          |
+| `source.dynamic` | configurable getter | configurable getter                | always                                |
 
 `cross` and `sequence` map `force` to `ok` in their `get_source`. `sequence`
 turns `after_position` into `force` to play one track per item.
+
+`cross` reaches the seam twice: directly, and through the `sequence` it builds
+for its transitions. The default handoff
+([composition.md §4](composition.md#4-default-handoff)) uses `source.dynamic`
+with `merge` on for one join only.
+
+## 8. When `merge` is read
+
+`merge()` and `new_track_on_source_switch()` are read at the join (§5), after
+`get_source` has returned. They describe the operator's state after it moved,
+not the join that is being made.
+
+`sequence` computes `merge` as "merging was asked and more than one item is
+left". Its `get_source` drops the finished item before returning the next. So
+at the join into the last item the answer is already "no": that join is never
+merged, and with two items `merge` has no effect. At the very first chunk of
+the stream, when nothing was left, the same value is read and the stream's
+first track mark is dropped. Checked: a merged sequence of a one-second item
+titled "first" and a two-second item titled "last" reports one track, titled
+"last".
