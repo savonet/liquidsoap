@@ -90,6 +90,13 @@ In order:
      so variants of one output with different codecs (AAC-LC, HE-AAC) would
      carry different timestamps for the same media time. MPEG-TS stores
      timestamps after its own positive delay.
+   - Every encoded video track: `+cgop` (closed GOP) is added to `flags`,
+     combined the way step 1 combines the global-header flag, unless the
+     written `flags` names `cgop` or is a number. Reason: the key frames
+     forced at segment boundaries (§8.4) must let a decoder start there. In an
+     open GOP, libx264 makes them recovery-point I-frames without parameter
+     sets and libx265 makes them CRA pictures, so a player joining at such a
+     segment cannot decode it, or drops its leading pictures.
    - `interleaved=Default` becomes `False`; an explicit value is kept.
      Reason: an interleaving muxer holds packets until every stream has
      written, which empties the first segment when a stream is sparse (the

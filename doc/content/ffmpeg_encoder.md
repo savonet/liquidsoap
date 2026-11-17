@@ -117,7 +117,7 @@ The streams of the container are created in the order of the tracks in the encod
 
 The `%ffmpeg` encoder is the primary encoder for HLS output, as it is the only encoder that produces MPEG-TS muxed data, which most HLS clients require.
 
-Segments are cut at a keyframe of every stream at or before each segment boundary. A copied video whose keyframes are too far apart is cut without one, with a warning, so that no segment exceeds the target duration; a playlist announces `EXT-X-INDEPENDENT-SEGMENTS` only when no copied stream can be cut that way. When a copied source brings codec headers an MP4 segment cannot carry, the variant starts a new segment after a discontinuity, with its own init segment, and re-encoded streams continue their timeline across it.
+Segments are cut at a keyframe of every stream at or before each segment boundary. Re-encoded video uses a closed GOP (`flags="+cgop"`), so that a player can start decoding at any segment; set `flags="-cgop"` to keep open GOPs. A copied video whose keyframes are too far apart is cut without one, with a warning, so that no segment exceeds the target duration; a playlist announces `EXT-X-INDEPENDENT-SEGMENTS` only when no copied stream can be cut that way. When a copied source brings codec headers an MP4 segment cannot carry, the variant starts a new segment after a discontinuity, with its own init segment, and re-encoded streams continue their timeline across it.
 
 ### File output
 

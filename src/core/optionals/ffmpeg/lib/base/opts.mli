@@ -31,6 +31,17 @@ val unused_message : (string * Avutil.opts) list -> string option
 
 val string_of_value : Avutil.value -> string
 
+(** [names_flag opts name] is [true] when a string [flags] option sets or clears
+    [name] ([+name] or [-name]). *)
+val names_flag : Liquidsoap_ffmpeg_formats.Encoder_format.opts -> string -> bool
+
+(** [add_named_flag opts name] appends [+name] to the [flags] option, unless it
+    already names [name]. A numeric [flags] is left as written. *)
+val add_named_flag :
+  Liquidsoap_ffmpeg_formats.Encoder_format.opts ->
+  string ->
+  Liquidsoap_ffmpeg_formats.Encoder_format.opts
+
 (** [add_flag opts ~name flag] combines [flag] into the [flags] option: OR-ed
     into a number, [+name] appended to a string (encoder-format.md §8). *)
 val add_flag :
