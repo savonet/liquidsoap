@@ -2208,10 +2208,13 @@ static int h264_attribute(const AVCodecParameters *parameters, char *text,
                           size_t text_size) {
   const uint8_t *data = parameters->extradata;
   int size = parameters->extradata_size;
+  const char *entry =
+      parameters->codec_tag == MKTAG('a', 'v', 'c', '3') ? "avc3" : "avc1";
   int offset;
 
   if (data && size >= 4 && data[0] == 1) {
-    snprintf(text, text_size, "avc1.%02x%02x%02x", data[1], data[2], data[3]);
+    snprintf(text, text_size, "%s.%02x%02x%02x", entry, data[1], data[2],
+             data[3]);
     return 1;
   }
 
@@ -2222,7 +2225,7 @@ static int h264_attribute(const AVCodecParameters *parameters, char *text,
   if (size < offset + 4 || (data[offset] & 0x1f) != 7)
     return 0;
 
-  snprintf(text, text_size, "avc1.%02x%02x%02x", data[offset + 1],
+  snprintf(text, text_size, "%s.%02x%02x%02x", entry, data[offset + 1],
            data[offset + 2], data[offset + 3]);
 
   return 1;
@@ -2234,6 +2237,7 @@ static int hevc_attribute(const AVCodecParameters *parameters, char *text,
                           size_t text_size) {
   int profile = parameters->profile;
   int level = parameters->level;
+  const char *entry;
   int sps_size = 0;
   const uint8_t *sps = NULL;
 
@@ -2245,18 +2249,19 @@ static int hevc_attribute(const AVCodecParameters *parameters, char *text,
     level = sps[12];
   }
 
-  if (parameters->codec_tag == MKTAG('h', 'v', 'c', '1') &&
-      profile != AV_PROFILE_UNKNOWN && level != AV_LEVEL_UNKNOWN) {
-    snprintf(text, text_size, "hvc1.%d.4.L%d.B01", profile, level);
-    return 1;
-  }
-
-  if (!parameters->codec_tag)
+  /* Other tags, such as the "HEVC" of an mpegts source, are no sample entry
+     name. */
+  if (parameters->codec_tag == MKTAG('h', 'v', 'c', '1'))
+    entry = "hvc1";
+  else if (parameters->codec_tag == MKTAG('h', 'e', 'v', '1'))
+    entry = "hev1";
+  else
     return 0;
-  snprintf(text, text_size, "%c%c%c%c", parameters->codec_tag & 0xff,
-           (parameters->codec_tag >> 8) & 0xff,
-           (parameters->codec_tag >> 16) & 0xff,
-           (parameters->codec_tag >> 24) & 0xff);
+
+  if (profile != AV_PROFILE_UNKNOWN && level != AV_LEVEL_UNKNOWN)
+    snprintf(text, text_size, "%s.%d.4.L%d.B01", entry, profile, level);
+  else
+    snprintf(text, text_size, "%s", entry);
 
   return 1;
 }

@@ -114,3 +114,24 @@ CAMLprim value test_params_with_extradata(value _params, value _extradata) {
 
   CAMLreturn(_copy);
 }
+
+/* HEVC parameters with a known profile and level, and no extradata. */
+CAMLprim value test_hevc_params(value _codec_tag) {
+  CAMLparam1(_codec_tag);
+  CAMLlocal1(_params);
+  AVCodecParameters *params = avcodec_parameters_alloc();
+
+  if (!params)
+    caml_raise_out_of_memory();
+  params->codec_type = AVMEDIA_TYPE_VIDEO;
+  params->codec_id = AV_CODEC_ID_HEVC;
+  params->codec_tag = (unsigned int)Long_val(_codec_tag);
+  params->profile = 1;
+  params->level = 93;
+  params->width = 320;
+  params->height = 240;
+  _params = ocaml_avcodec_copy_parameters(params);
+  avcodec_parameters_free(&params);
+
+  CAMLreturn(_params);
+}
