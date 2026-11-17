@@ -759,6 +759,34 @@
   (run %{pool_test})))
 
 (executable
+ (name request_leak_test)
+ (modules request_leak_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias request_leak_test)
+ (package liquidsoap)
+ (deps
+  (:request_leak_test request_leak_test.exe))
+ (action
+  (run %{request_leak_test})))
+
+(executable
  (name runtime_error_kinds_test)
  (modules runtime_error_kinds_test)
  (libraries
@@ -1184,6 +1212,7 @@
   (alias parsesrt)
   (alias playlist_basic_test)
   (alias pool_test)
+  (alias request_leak_test)
   (alias runtime_error_kinds_test)
   (alias scheduler_test)
   (alias source_sync_test)

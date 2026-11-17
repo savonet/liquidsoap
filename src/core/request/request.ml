@@ -468,32 +468,33 @@ let leak_warning =
   Dtools.Conf.int ~p:(conf#plug "leak_warning") ~d:100
     "Number of requests at which a leak warning should be issued."
 
-let destroy ?force t =
-  if Atomic.get t.status <> `Destroyed then
-    if force = Some true || not t.persistent then (
-      Queue.iter t.indicators (fun i ->
-          if i.temporary && file_exists i.uri then (
-            try Unix.unlink i.uri
-            with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)));
+(* Requests not destroyed yet. The weak pool keeps destroyed requests until
+   they are collected, so it cannot count them. *)
+let live = Atomic.make 0
 
-      Queue.flush_iter t.indicators (fun _ -> ());
-      Hashtbl.reset t.decoders;
-      Atomic.set t.status `Destroyed;
-      add_log t "Request destroyed.")
+let destroy ?force t =
+  if
+    (force = Some true || not t.persistent)
+    && Atomic.exchange t.status `Destroyed <> `Destroyed
+  then (
+    Atomic.decr live;
+    Queue.iter t.indicators (fun i ->
+        if i.temporary && file_exists i.uri then (
+          try Unix.unlink i.uri
+          with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)));
+    Queue.flush_iter t.indicators (fun _ -> ());
+    Hashtbl.reset t.decoders;
+    add_log t "Request destroyed.")
 
 let finalise = destroy ~force:true
-
-let cleanup () =
-  Pool.iter (fun _ r ->
-      if Atomic.get r.status <> `Destroyed then destroy ~force:true r);
-  Pool.clear ()
+let cleanup () = Pool.iter (fun _ r -> destroy ~force:true r)
 
 let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
     ?metadata ?(persistent = false) ?temporary ~cue_in_metadata
     ~cue_out_metadata uri =
   (* Find instantaneous request loops *)
-  let n = Pool.size () in
-  if n > 0 && n mod leak_warning#get = 0 then
+  let n = Atomic.fetch_and_add live 1 + 1 in
+  if n mod leak_warning#get = 0 then
     log#severe
       "There are currently %d RIDs, possible request leak! Please check that \
        you don't have a loop on empty/unavailable requests."
