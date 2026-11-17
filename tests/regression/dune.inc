@@ -1661,10 +1661,10 @@
   (run %{run_test} append liquidsoap append.liq)))
 
 (rule
- (alias test_blank_strip_keeps_pulling)
+ (alias test_blank_strip_metadata_during_blank)
  (package liquidsoap)
  (deps
-  blank_strip_keeps_pulling.liq
+  blank_strip_metadata_during_blank.liq
   (glob_files ../media/**)
   ../liquidsoap-test-assets
   ../../src/bin/liquidsoap.exe
@@ -1678,9 +1678,9 @@
  (action
   (run
    %{run_test}
-   blank_strip_keeps_pulling
+   blank_strip_metadata_during_blank
    liquidsoap
-   blank_strip_keeps_pulling.liq)))
+   blank_strip_metadata_during_blank.liq)))
 
 (rule
  (alias test_blank_strip_resume_metadata)
@@ -2948,7 +2948,7 @@
   (alias test_append)
   (alias test_append-merge)
   (alias test_append-merge2)
-  (alias test_blank_strip_keeps_pulling)
+  (alias test_blank_strip_metadata_during_blank)
   (alias test_blank_strip_resume_metadata)
   (alias test_callback_counts)
   (alias test_callback_from_task)

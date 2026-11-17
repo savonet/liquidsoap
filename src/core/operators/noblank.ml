@@ -130,35 +130,47 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     inherit base ~track_sensitive ~start_blank ~max_blank ~min_noise ~threshold
     method fallible = true
 
-    (* The blank check runs once per cycle, before our readiness is settled,
-       so that the frame where sound resumes is streamed with its track mark
-       and metadata. Going through [is_ready] opens and releases the cycle
-       even when nothing downstream asks for it, which keeps the source pulled
-       at every tick. *)
-    val checked : unit Source.Per_cycle.t = Source.Per_cycle.make ()
-
-    method private check =
-      self#per_cycle checked (fun () ->
-          if source#is_ready then self#check_blank source#get_frame)
-
     method private can_generate_frame =
-      self#check;
-      (not self#is_blank) && source#is_ready
+      (* This needs to be computed at all times as it makes sure that the
+         source is ready to be ready from in [#output]. *)
+      let is_source_ready = source#is_ready in
+      (not self#is_blank) && is_source_ready
 
-    method private is_stripping =
-      ignore self#is_ready;
-      self#is_blank
-
-    method remaining = if self#is_stripping then 0 else source#remaining
+    method remaining = if self#is_blank then 0 else source#remaining
 
     method effective_source =
-      if self#is_stripping then (self :> Source.source)
-      else source#effective_source
+      if self#is_blank then (self :> Source.source) else source#effective_source
 
     method abort_track = source#abort_track
     method private self_sync = source#cached_self_sync
-    method private generate_frame = source#get_frame
-    method private output = ignore self#is_ready
+
+    (* Frames pulled while stripping are dropped: the stream resumes with a new
+       track carrying the source's latest metadata. *)
+    val mutable last_metadata = None
+    val mutable resuming = false
+
+    method private generate_frame =
+      let buf = source#get_frame in
+      if resuming then (
+        resuming <- false;
+        let buf =
+          if Frame.has_track_mark buf 0 then buf else Frame.add_track_mark buf 0
+        in
+        match (last_metadata, Frame.get_metadata buf 0) with
+          | Some m, None -> Frame.add_metadata buf 0 m
+          | _ -> buf)
+      else buf
+
+    method private output =
+      if source#is_ready then (
+        let buf = source#get_frame in
+        let was_blank = self#is_blank in
+        self#check_blank buf;
+        (match List.rev (Frame.get_all_metadata buf) with
+          | (_, m) :: _ -> last_metadata <- Some m
+          | [] -> ());
+        if was_blank && not self#is_blank then resuming <- true)
+
     method reset = ()
   end
 

@@ -38,10 +38,10 @@ s =
     ]
   )
 
-# blank.strip keeps streaming without failing. With `track_sensitive`, the
-# first track's mark ends the starting blank, so that track plays with its
-# title, then the next one.
-expected_titles = ["first_blank", "after_blank"]
+# blank.strip keeps streaming without failing. The first track's mark ends the
+# starting blank (`track_sensitive`), so the strip resumes on the next frame
+# with that track's metadata.
+expected_titles = ["fallback", "first_blank", "after_blank"]
 seen_titles = ref([])
 
 def on_metadata(m) =
@@ -51,7 +51,7 @@ def on_metadata(m) =
   then
     test.pass()
   elsif
-    list.length(seen_titles()) == 2
+    list.length(seen_titles()) == 3
   then
     test.fail()
   end
