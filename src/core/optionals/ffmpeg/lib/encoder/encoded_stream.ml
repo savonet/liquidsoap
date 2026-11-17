@@ -446,18 +446,13 @@ module Video_writer = struct
       requested = None;
     }
 
-  let slot_time_base t =
-    { Avutil.num = t.frame_rate.den; den = t.frame_rate.num }
+  let slot_time_base t = Time_base.per_frame t.frame_rate
 
   (* The first slot starting at or after [time], in main ticks. *)
   let first_slot t time =
-    let main = Time_base.main () and slots = slot_time_base t in
-    match Time_base.rescale ~src:main ~dst:slots time with
-      | None -> t.next_slot
-      | Some slot -> (
-          match Time_base.rescale ~src:slots ~dst:main slot with
-            | Some start when start < time -> slot + 1
-            | _ -> slot)
+    Option.value ~default:t.next_slot
+      (Time_base.rescale ~rounding:`Up ~src:(Time_base.main ())
+         ~dst:(slot_time_base t) time)
 
   (* ffmpeg spec encoder.md §8.4: the first image at or after [time] is a key
      frame. *)
@@ -574,10 +569,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     ~on_packet output =
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
-  let frame_rate =
-    let num, den = Lazy.Mutexed.force v.framerate in
-    { Avutil.num; den }
-  in
+  let frame_rate = Time_base.frame_rate (Lazy.Mutexed.force v.framerate) in
   let width = Lazy.Mutexed.force v.width in
   let height = Lazy.Mutexed.force v.height in
   let state = ref None in
@@ -616,7 +608,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
       try
         Av.new_video_stream ~opts ?side_data ~frame_rate ?hardware_context
           ~pixel_format ~width ~height
-          ~time_base:{ Avutil.num = frame_rate.den; den = frame_rate.num }
+          ~time_base:(Time_base.per_frame frame_rate)
           ~codec output
       with Avutil.Error e ->
         let message =

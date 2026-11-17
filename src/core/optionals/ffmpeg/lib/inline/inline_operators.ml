@@ -112,17 +112,17 @@ let startup_check value (encoded : F.encoded) () =
                       codec)
              | `Video (v : F.video) ->
                  let codec = Avcodec.Video.find_encoder_by_name name in
-                 let num, den = Lazy.Mutexed.force v.framerate in
+                 let rate =
+                   Time_base.frame_rate (Lazy.Mutexed.force v.framerate)
+                 in
                  ignore
-                   (Avcodec.Video.create_encoder ~opts
-                      ~frame_rate:{ Avutil.num; den }
+                   (Avcodec.Video.create_encoder ~opts ~frame_rate:rate
                       ~pixel_format:
                         (Pixel_formats.for_encoder ?configured:v.pixel_format
                            ~alpha:v.alpha codec)
                       ~width:(Lazy.Mutexed.force v.width)
                       ~height:(Lazy.Mutexed.force v.height)
-                      ~time_base:{ Avutil.num = den; den = num }
-                      codec)
+                      ~time_base:(Time_base.per_frame rate) codec)
              | `Subtitle _ -> ()
          with Avutil.Error e -> invalid value (Avutil.string_of_error e));
         match Opts.unused_message [("stream", opts)] with
