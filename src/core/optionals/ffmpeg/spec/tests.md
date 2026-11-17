@@ -283,7 +283,7 @@ Additional checks:
 2. The media type of an encoded track is found by each rule of [encoder-format.md §2.1](encoder-format.md#21-media-type-of-an-encoded-track) in turn: content argument, field name, literal codec; a track that matches none is rejected at run time and typed unconstrained at type check.
 3. Input sample formats `pcm_s16` and `pcm_f32` are accepted by `%ffmpeg` and rejected by every other encoder format with error kind `encoder`.
 4. HLS bit rate: absent when no stream reports one; with two fields each setting `b`, the sum of both.
-5. A field named twice, any argument on a `.drop` track, and a `.copy` argument other than `wait_for_keyframe` and `ignore_keyframe` are each rejected at type check (`liquidsoap --check`), not only at run time.
+5. A field named twice, any argument on a `.drop` track, and a `.copy` argument other than `wait_for_keyframe`, `ignore_keyframe` and `codec_tag` are each rejected at type check (`liquidsoap --check`), not only at run time.
 
 ## 10. Encoder: container, HLS, restart
 

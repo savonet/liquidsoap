@@ -420,7 +420,10 @@ let () =
             mime_type = None;
             output = `Url ("file:" ^ output);
             streams =
-              List.map (fun (f, _) -> (f, `Copy `Wait_for_keyframe)) fields;
+              List.map
+                (fun (f, _) ->
+                  (f, `Copy Liquidsoap_ffmpeg_formats.Encoder_format.copy))
+                fields;
             interleaved = `Default;
             metadata = [];
             opts = [];

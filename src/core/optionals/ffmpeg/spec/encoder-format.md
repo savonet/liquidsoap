@@ -36,8 +36,9 @@ own and would leave a stream in the container that is never fed.
 A track mode is one of:
 
 - `Drop`: the field is not muxed.
-- `Copy of copy_opt`: packets are remuxed as they come; `copy_opt` is
-  `Wait_for_keyframe` or `Ignore_keyframe`.
+- `Copy of copy_opt`: packets are remuxed as they come; `copy_opt` holds
+  `keyframe` (`Wait_for_keyframe` or `Ignore_keyframe`) and `codec_tag` (four
+  characters or none).
 - `Encode of encoded_stream`: the content is encoded. `encoded_stream` holds
   `mode` (`Internal` or `Raw`), `codec` (string or none), `options` (audio,
   video or subtitle options, §5–§7) and `opts` (codec options, key → value).
@@ -138,12 +139,18 @@ Every track's arguments are read left to right. For an encoded track:
 
 For a copy track the arguments are:
 
-| Arguments                         | Result                                       |
-| --------------------------------- | -------------------------------------------- |
-| none                              | `Copy Wait_for_keyframe`                     |
-| one anonymous `wait_for_keyframe` | `Copy Wait_for_keyframe`                     |
-| one anonymous `ignore_keyframe`   | `Copy Ignore_keyframe`                       |
-| anything else                     | error naming the first argument not accepted |
+Starting from `Wait_for_keyframe` and no codec tag, each argument in order:
+
+| Argument                      | Result                                                              |
+| ----------------------------- | ------------------------------------------------------------------- |
+| anonymous `wait_for_keyframe` | `keyframe` is `Wait_for_keyframe`                                   |
+| anonymous `ignore_keyframe`   | `keyframe` is `Ignore_keyframe`                                     |
+| `codec_tag = s`               | `codec_tag` is `s`; not four characters is an error at its position |
+| anything else                 | error naming the first argument not accepted                        |
+
+On an encoded track, `codec_tag = s` is the codec option `codec_tag` with the
+little-endian integer of `s`, as libav stores a tag; not four characters is an
+error at its position.
 
 A drop track accepts no arguments: any argument is an error. Reason: an
 argument on a dropped track has no effect, and a silent no-op hides a typo in
@@ -343,7 +350,7 @@ Tracks:
 | Track    | Rendering                                                                                                                                                                       |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | drop     | `%f.drop`                                                                                                                                                                       |
-| copy     | `%f.copy(wait_for_keyframe)` or `%f.copy(ignore_keyframe)`                                                                                                                      |
+| copy     | `%f.copy(wait_for_keyframe)` or `%f.copy(ignore_keyframe)`, then `codec_tag` when set                                                                                           |
 | raw      | `%f.raw(…)`, contents as for internal                                                                                                                                           |
 | audio    | `%f(…)`: content marker, PCM marker, `codec`, `channel_layout` when named else `channels`, `samplerate`, `sample_format` when set, then the codec options                       |
 | video    | `%f(…)`: content marker, `codec`, `width`, `height`, `framerate`, `pixel_format` when set, `hwaccel`, `hwaccel_device`, `hwaccel_pixel_format` when set, then the codec options |

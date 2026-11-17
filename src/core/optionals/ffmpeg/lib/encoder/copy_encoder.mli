@@ -55,8 +55,10 @@ val create :
   t
 
 (** [on_packet] is called before each packet reaches the muxer, with its key
-    flag and media time (encoder.md §8.2). *)
+    flag and media time (encoder.md §8.2). [codec_tag] replaces the source's tag
+    on the stream. *)
 val track :
+  ?codec_tag:int ->
   t ->
   field:Frame.field ->
   keyframe:Liquidsoap_ffmpeg_formats.Encoder_format.keyframe ->

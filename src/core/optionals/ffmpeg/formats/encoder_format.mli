@@ -77,7 +77,19 @@ type encoded = {
 }
 
 type keyframe = [ `Wait_for_keyframe | `Ignore_keyframe ]
-type track = [ `Drop | `Copy of keyframe | `Encode of encoded ]
+
+(** [codec_tag] is four characters. *)
+type copy = { keyframe : keyframe; codec_tag : string option }
+
+type track = [ `Drop | `Copy of copy | `Encode of encoded ]
+
+(** Waits for a keyframe, keeps the source's codec tag. *)
+val copy : copy
+
+(** The little-endian integer of a four-character codec tag, as libav stores it.
+
+    @raise Failure when [tag] is not four characters. *)
+val fourcc : string -> int
 
 type t = {
   format : string option;

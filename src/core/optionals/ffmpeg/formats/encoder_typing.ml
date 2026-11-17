@@ -92,16 +92,21 @@ let alpha params =
     false params
 
 let check_copy_params params =
-  match params with
-    | [] | [`Anonymous ("wait_for_keyframe" | "ignore_keyframe")] -> ()
-    | arg :: _ ->
-        let pos, name =
-          match arg with
-            | `Anonymous s -> (None, s)
-            | `Labelled (l, tm) -> (position tm, l)
-            | `Encoder (e, _) -> (None, "%" ^ e)
-        in
-        error ?pos (Printf.sprintf "Invalid argument %s for a copy track" name)
+  List.iter
+    (function
+      | `Anonymous ("wait_for_keyframe" | "ignore_keyframe")
+      | `Labelled ("codec_tag", _) ->
+          ()
+      | arg ->
+          let pos, name =
+            match arg with
+              | `Anonymous s -> (None, s)
+              | `Labelled (l, tm) -> (position tm, l)
+              | `Encoder (e, _) -> (None, "%" ^ e)
+          in
+          error ?pos
+            (Printf.sprintf "Invalid argument %s for a copy track" name))
+    params
 
 let shape_of_encoded ~mode ~field params : F.shape =
   match

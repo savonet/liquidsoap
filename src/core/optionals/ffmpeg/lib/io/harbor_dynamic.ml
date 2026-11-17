@@ -147,9 +147,7 @@ let copy_encoder ~(description : Stream_description.t) ~mime_type =
             match stream.media with
               | `Data _ -> None
               | _ ->
-                  Some
-                    ( Frame.Fields.string_of_field stream.field,
-                      `Copy `Wait_for_keyframe ))
+                  Some (Frame.Fields.string_of_field stream.field, `Copy F.copy))
           description.streams
       in
       Lang_encoder.L.format
