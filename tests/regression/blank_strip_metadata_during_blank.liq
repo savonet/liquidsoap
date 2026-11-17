@@ -3,8 +3,12 @@
 # Metadata the source emits while blank.strip strips its blank reaches the
 # output with the new track the strip resumes with.
 
-live = sequence([sine(660., duration=1.), blank(duration=2.), sine(880.)])
+# Sound stops at 1s and resumes at 3s, without track marks.
+volume = ref(1.)
+live = amplify({volume()}, sine())
+thread.run(delay=1., {volume := 0.})
 thread.run(delay=2., {live.insert_metadata([("title", "live")])})
+thread.run(delay=3., {volume := 1.})
 
 live = blank.strip(max_blank=0.5, live)
 
