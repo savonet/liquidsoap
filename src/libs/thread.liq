@@ -165,11 +165,33 @@ end
 
 # @flag hidden
 def default_error_handler(~backtrace, err) =
+  let {kind, message, trace, origin} = error.methods(err)
+  name = r/^error\./.test(kind) ? kind : "error.#{kind}"
   log(
     label="runtime",
     level=1,
-    "Uncaught error #{err}!"
+    "Uncaught #{name}: #{message}"
   )
+  list.iter(
+    fun (pos) ->
+      log(
+        label="runtime",
+        level=1,
+        pos.to_string(
+          prefix="  at "
+        )
+      ),
+    trace
+  )
+  if
+    null.defined(origin)
+  then
+    log(
+      label="runtime",
+      level=4,
+      "Raised from OCaml exception: #{null.get(origin)}"
+    )
+  end
   log(label="runtime", level=4, backtrace)
 end
 

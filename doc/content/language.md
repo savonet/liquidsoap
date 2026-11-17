@@ -1375,8 +1375,9 @@ where `l` is a list of error names that we want to handle here.
 
 Errors coming from Liquidsoap's internals are caught the same way, for
 instance when creating a source at runtime: an invalid parameter value raises
-`error.invalid`, a clock conflict raises `error.clock` and other internal
-errors raise `error.eval`.
+`error.invalid` and a clock conflict raises `error.clock`. For those, the
+error's `origin` method gives the internal error it comes from, which is useful
+when reporting a bug.
 
 Errors can be raised from Liquidsoap with the function `error.raise`, which
 takes as arguments the error to raise and the error message. For instance:

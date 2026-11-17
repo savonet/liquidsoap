@@ -1,9 +1,31 @@
-(* Scripts catch OCaml exceptions raised by builtins under a kind, and a
-   [catch] filtering on another kind lets them through with that kind. *)
+(* Scripts catch liquidsoap errors, registered exceptions and standard OCaml
+   exceptions under a kind, and a [catch] filtering on another kind lets them
+   through with that kind. Any other exception is never caught. *)
 
-exception Custom
+exception Registered
+exception Unregistered
 
-let exceptions =
+let registered_pos =
+  Pos.of_lexing_pos
+    ( {
+        Lexing.pos_fname = "registered.ml";
+        pos_lnum = 1;
+        pos_bol = 0;
+        pos_cnum = 0;
+      },
+      {
+        Lexing.pos_fname = "registered.ml";
+        pos_lnum = 1;
+        pos_bol = 0;
+        pos_cnum = 1;
+      } )
+
+let () =
+  Runtime_error.register_catchable (function
+    | Registered -> Some ("registered", [registered_pos])
+    | _ -> None)
+
+let catchable =
   [|
     ("not_found", Not_found);
     ("failure", Failure "failure");
@@ -11,9 +33,11 @@ let exceptions =
     ("system", Sys_error "system");
     ("system", Unix.Unix_error (Unix.ENOENT, "open", "file"));
     ("eval", Division_by_zero);
-    ("eval", Custom);
+    ("registered", Registered);
     ("custom", Runtime_error.Runtime_error (Runtime_error.make ~pos:[] "custom"));
   |]
+
+let uncatchable = [| Unregistered; Out_of_memory; Assert_failure ("x", 1, 1) |]
 
 let () =
   ignore
@@ -23,19 +47,17 @@ let () =
        Lang.unit_t
        (fun p ->
          match List.assoc "" p |> Lang.to_int with
-           | -1 -> raise Out_of_memory
-           | n -> raise (snd exceptions.(n))))
+           | n when n < 0 -> raise uncatchable.(-n - 1)
+           | n -> raise (snd catchable.(n))))
 
 let eval script =
   Lang_eval.eval ~cache:false ~typecheck:true ~stdlib:`Disabled script
-
-let caught_kind script = Lang.to_string (eval script)
 
 let () =
   Array.iteri
     (fun n (kind, _) ->
       let check name script =
-        let caught = caught_kind script in
+        let caught = Lang.to_string (eval script) in
         if caught <> kind then
           failwith
             (Printf.sprintf "%s %d: caught as %S, expected %S" name n caught
@@ -49,8 +71,23 @@ let () =
         (Printf.sprintf
            {|try try test_raise(%d) "none" catch _ : [error.register("other")] do "other" end catch e do error.methods(e).kind end|}
            n))
-    exceptions;
-  match eval {|try test_raise(-1) catch _ do () end|} with
-    | _ -> failwith "Out_of_memory was caught"
-    (* Reported, then raised as an already reported error. *)
-    | exception Runtime.Error -> ()
+    catchable;
+  let position =
+    Lang.to_string
+      (eval
+         {|try test_raise(6) "" catch e do
+             let [p, ..._] = error.methods(e).trace
+             p.filename
+           end|})
+  in
+  if position <> "registered.ml" then
+    failwith (Printf.sprintf "registered position: %S" position);
+  Array.iteri
+    (fun n exn ->
+      match
+        eval (Printf.sprintf {|try test_raise(%d) catch _ do () end|} (-n - 1))
+      with
+        | _ -> failwith (Printexc.to_string exn ^ " was caught")
+        (* Reported, then raised as an already reported error. *)
+        | exception Runtime.Error -> ())
+    uncatchable

@@ -479,44 +479,44 @@ let stdlib_error_kind = function
   | Division_by_zero | End_of_file -> Some "eval"
   | _ -> None
 
-(* Out of memory and interruptions are never caught by scripts. *)
-let kind_of_exception = function
-  | Out_of_memory | Sys.Break -> None
-  | Runtime_error.Runtime_error { kind } -> Some kind
-  | exn -> (
-      match (Runtime_error.catchable exn, stdlib_error_kind exn) with
-        | Some (kind, _), _ | None, Some kind -> Some kind
-        | None, None -> Some "eval")
+let backtrace_pos bt =
+  match Printexc.backtrace_slots bt with
+    | None -> []
+    | Some entries ->
+        List.fold_left
+          (fun pos slot ->
+            match Printexc.Slot.location slot with
+              | None -> pos
+              | Some
+                  {
+                    Printexc.filename = pos_fname;
+                    line_number = pos_lnum;
+                    start_char = pos_bol;
+                    end_char = pos_cnum;
+                  } ->
+                  let p = { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } in
+                  Pos.of_lexing_pos (p, p) :: pos)
+          []
+          (List.rev (Array.to_list entries))
+
+let of_exception ~pos ~kind exn =
+  Runtime_error.make ~pos ~message:(error_message exn)
+    ~origin:(Printexc.to_string exn) kind
+
+let catchable_error ~bt exn =
+  match (exn, Runtime_error.catchable exn) with
+    | Runtime_error.Runtime_error error, _ -> Some error
+    | _, Some (kind, pos) -> Some (of_exception ~pos ~kind exn)
+    | _, None ->
+        Option.map
+          (fun kind -> of_exception ~pos:(backtrace_pos bt) ~kind exn)
+          (stdlib_error_kind exn)
 
 let runtime_error_of_exception ~bt ~kind exn =
   match (exn, Runtime_error.catchable exn) with
     | Runtime_error.Runtime_error error, _ -> error
-    | _, Some (kind, pos) ->
-        Runtime_error.make ~pos ~message:(error_message exn) kind
-    | _ ->
-        let pos =
-          match Printexc.backtrace_slots bt with
-            | None -> []
-            | Some entries ->
-                List.fold_left
-                  (fun pos slot ->
-                    match Printexc.Slot.location slot with
-                      | None -> pos
-                      | Some
-                          {
-                            Printexc.filename = pos_fname;
-                            line_number = pos_lnum;
-                            start_char = pos_bol;
-                            end_char = pos_cnum;
-                          } ->
-                          let p =
-                            { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum }
-                          in
-                          Pos.of_lexing_pos (p, p) :: pos)
-                  []
-                  (List.rev (Array.to_list entries))
-        in
-        Runtime_error.make ~pos ~message:(error_message exn) kind
+    | _, Some (kind, pos) -> of_exception ~pos ~kind exn
+    | _, None -> of_exception ~pos:(backtrace_pos bt) ~kind exn
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with

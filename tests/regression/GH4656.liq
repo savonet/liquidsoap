@@ -21,7 +21,13 @@ def caught_kind() =
       "not_found"
     end
   catch e : [error.invalid] do
-    e.kind
+    if
+      r/Invalid_value/.test(e.origin ?? "")
+    then
+      e.kind
+    else
+      "no origin: #{e.origin ?? "none"}"
+    end
   end
 end
 

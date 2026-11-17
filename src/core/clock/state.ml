@@ -90,7 +90,10 @@ let () =
   Runtime_error.register_catchable (function
     | Conflict { pos } | Loop { pos } | Controller_conflict { pos } ->
         Some ("clock", Option.to_list pos)
-    | Sync_error _ -> Some ("clock", [])
+    | Sync_error { reported } ->
+        Some
+          ( "clock",
+            List.concat_map (fun ({ stack } : reported) -> stack) reported )
     | _ -> None)
 
 let () =

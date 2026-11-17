@@ -212,11 +212,14 @@ val raise_error :
 *)
 val stdlib_error_kind : exn -> string option
 
-(** The error kind under which scripts catch [exn], [None] when they never do.
-*)
-val kind_of_exception : exn -> string option
+(** The error a script catches [exn] as: liquidsoap errors, exceptions
+    registered with [Runtime_error.register_catchable] and standard OCaml
+    exceptions. [None] for any other exception, which scripts never catch. *)
+val catchable_error :
+  bt:Printexc.raw_backtrace -> exn -> Runtime_error.runtime_error option
 
-(** Convert an exception into a runtime error. *)
+(** Convert an exception into a runtime error. Registered exceptions keep their
+    own kind, any other exception gets [kind]. *)
 val runtime_error_of_exception :
   bt:Printexc.raw_backtrace -> kind:string -> exn -> Runtime_error.runtime_error
 

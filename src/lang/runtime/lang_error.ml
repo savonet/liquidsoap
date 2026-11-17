@@ -30,6 +30,7 @@ type error = Runtime_error.runtime_error = private {
   kind : string;
   msg : string;
   pos : Pos.List.t;
+  origin : string option;
 }
 
 module ErrorDef = struct
@@ -37,7 +38,7 @@ module ErrorDef = struct
 
   let name = "error"
 
-  let to_string { kind; msg; pos } =
+  let to_string { kind; msg; pos; _ } =
     let pos =
       if pos <> [] then
         Printf.sprintf ",positions=%s"
@@ -73,6 +74,13 @@ module Error = struct
         ([], Lang_core.Stacktrace.t),
         "Error stacktrace.",
         fun { pos } -> Lang_core.Stacktrace.to_value pos );
+      ( "origin",
+        ([], Lang_core.nullable_t Lang_core.string_t),
+        "OCaml exception the error comes from, if any.",
+        fun { origin } ->
+          match origin with
+            | Some origin -> Lang_core.string origin
+            | None -> Lang_core.null );
     ]
 
   let base_t = t
@@ -171,30 +179,30 @@ let _ =
         match catch with
           | None -> body []
           | Some catch -> (
-              let catch kind msg pos =
-                catch
-                  [
-                    ( "",
-                      Error.to_value (Runtime_error.make ~pos ~message:msg kind)
-                    );
-                  ]
-              in
-              try body [] with
-                | Runtime_error.(Runtime_error { kind; msg }) when catches kind
-                  ->
-                    catch kind msg (Lang_core.pos p)
-                | exn -> (
-                    let bt = Printexc.get_raw_backtrace () in
-                    match Lang_core.kind_of_exception exn with
-                      | Some kind when catches kind ->
-                          let { Runtime_error.msg; pos } =
-                            Lang_core.runtime_error_of_exception ~bt ~kind exn
-                          in
-                          let pos = pos @ Lang_core.pos p in
-                          Runtime_error.notify
-                            (Runtime_error.make ~pos ~message:msg kind);
-                          catch kind msg pos
-                      | _ -> Printexc.raise_with_backtrace exn bt))
+              try body []
+              with exn -> (
+                let bt = Printexc.get_raw_backtrace () in
+                match Lang_core.catchable_error ~bt exn with
+                  | Some { kind; msg = message; pos; origin } when catches kind
+                    ->
+                      (* Liquidsoap errors are located at the [try] and
+                         monitors saw them when raised. *)
+                      let error =
+                        match exn with
+                          | Runtime_error.Runtime_error _ ->
+                              Runtime_error.make ~pos:(Lang_core.pos p) ~message
+                                ?origin kind
+                          | _ ->
+                              let error =
+                                Runtime_error.make
+                                  ~pos:(pos @ Lang_core.pos p)
+                                  ~message ?origin kind
+                              in
+                              Runtime_error.notify error;
+                              error
+                      in
+                      catch [("", Error.to_value error)]
+                  | _ -> Printexc.raise_with_backtrace exn bt))
       in
       (* An error raised by [finally] itself propagates as is, so [finally]
          runs exactly once on every path. *)

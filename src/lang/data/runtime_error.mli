@@ -22,12 +22,20 @@
 
 (** An error at runtime. *)
 
-type runtime_error = private { kind : string; msg : string; pos : Pos.t list }
+(** [origin] is the OCaml exception the error was converted from, as text. *)
+type runtime_error = private {
+  kind : string;
+  msg : string;
+  pos : Pos.t list;
+  origin : string option;
+}
 
 exception Runtime_error of runtime_error
 
 val on_error : (runtime_error -> unit) -> unit
-val make : ?message:string -> pos:Pos.t list -> string -> runtime_error
+
+val make :
+  ?message:string -> ?origin:string -> pos:Pos.t list -> string -> runtime_error
 
 val raise :
   ?bt:Printexc.raw_backtrace ->

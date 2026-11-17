@@ -240,6 +240,11 @@ can catch:
 
 ```
 
+Catching the error does not undo what was done before the conflict: clocks
+already merged while creating the failing source stay merged. Use it to log
+the problem and keep the script running, not to try other combinations of the
+same sources.
+
 ## Resolving conflicts with buffers
 
 The standard solution for clock conflicts is the `buffer` operator. It sits
