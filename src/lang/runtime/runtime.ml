@@ -224,17 +224,20 @@ let rec describe ~lexbuf ~bt = function
                 Format.fprintf formatter "Internal error: %s,@ stack:\n%s\n@]@."
                   e
                   (Pos.List.to_string ~newlines:true pos))
-        | Runtime_error.(Runtime_error { kind; msg; pos }) ->
+        | Runtime_error.(Runtime_error { kind; msg; pos; origin }) ->
             error_diagnostic 14
               (try Some (Pos.List.to_pos pos) with _ -> None)
               (fun formatter ->
                 Format.fprintf formatter
                   "Uncaught runtime error:@ type: %s,@ message: %s,@\n\
-                   stack: %s\n\
-                   @]@."
+                   stack: %s\n"
                   kind
                   (Lang_string.quote_string msg)
-                  (Pos.List.to_string ~newlines:true pos))
+                  (Pos.List.to_string ~newlines:true pos);
+                Option.iter
+                  (Format.fprintf formatter "raised from OCaml exception: %s\n")
+                  origin;
+                Format.fprintf formatter "@]@.")
         | Sedlexing.MalFormed -> lexbuf_error 15 "Malformed UTF8 content."
         | Term.Missing_arguments (pos, args) ->
             let args =
