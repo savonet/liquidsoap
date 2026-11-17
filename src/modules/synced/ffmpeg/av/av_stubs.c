@@ -17,6 +17,7 @@
 #include "av_stubs.h"
 
 #include <libavutil/avstring.h>
+#include <libavutil/bprint.h>
 #include <libavutil/mem.h>
 #include <libavutil/opt.h>
 
@@ -2233,6 +2234,37 @@ static int h264_attribute(const AVCodecParameters *parameters, char *text,
 
 /* The general profile and level of an HEVC SPS: its profile is in the
    second payload byte and its level twelve bytes in. */
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(62, 7, 100)
+/* FFmpeg's own codec string reads the tier, compatibility flags, level and
+   constraints of an Annex-B SPS. It only names hvc1: the hev1 string differs
+   by its sample entry name alone. */
+static int ffmpeg_hevc_attribute(const AVCodecParameters *parameters,
+                                 const char *entry, char *text,
+                                 size_t text_size) {
+  AVCodecParameters *tagged = avcodec_parameters_alloc();
+  AVBPrint buffer;
+  int error = AVERROR(ENOMEM);
+
+  if (tagged)
+    error = avcodec_parameters_copy(tagged, parameters);
+  if (error >= 0) {
+    tagged->codec_tag = MKTAG('h', 'v', 'c', '1');
+    av_bprint_init_for_buffer(&buffer, text, text_size);
+    error = av_mime_codec_str(tagged, av_make_q(1, 0), &buffer);
+    if (error >= 0 && !av_bprint_is_complete(&buffer))
+      error = AVERROR(ENOSPC);
+  }
+  avcodec_parameters_free(&tagged);
+
+  if (error < 0)
+    return 0;
+  memcpy(text, entry, 4);
+  return 1;
+}
+#endif
+
+/* Without FFmpeg's codec string, the compatibility flags and constraints are
+   fixed. */
 static int hevc_attribute(const AVCodecParameters *parameters, char *text,
                           size_t text_size) {
   int profile = parameters->profile;
@@ -2257,6 +2289,11 @@ static int hevc_attribute(const AVCodecParameters *parameters, char *text,
     entry = "hev1";
   else
     return 0;
+
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(62, 7, 100)
+  if (ffmpeg_hevc_attribute(parameters, entry, text, text_size))
+    return 1;
+#endif
 
   if (profile != AV_PROFILE_UNKNOWN && level != AV_LEVEL_UNKNOWN)
     snprintf(text, text_size, "%s.%d.4.L%d.B01", entry, profile, level);

@@ -77,6 +77,30 @@ let requirement_3_30 () =
   equal (Some "hvc1.1.4.L93.B01") (hevc "hvc1") "an hvc1 tag";
   equal (Some "hev1.1.4.L93.B01") (hevc "hev1") "an hev1 tag";
   equal None (hevc "HEVC") "the tag of an mpegts source is no sample entry";
-  equal None (attribute_of_params ~name:"hevc.ts" (hevc_params 0)) "no tag"
+  equal None (attribute_of_params ~name:"hevc.ts" (hevc_params 0)) "no tag";
+  (* The VPS, SPS and PPS of libx265 for 160x120 yuv420p. Its SPS escapes a
+     zero run, so the level is not at a fixed byte. *)
+  let main_extradata =
+    let hex =
+      "0000000140010c01ffff0160000003009000000300000300"
+      ^ "1e9598090000000001420101016000000300900000030000"
+      ^ "03001ea014207965959a4932bc05a0200000030020000003"
+      ^ "032100000000014401c172b46240"
+    in
+    String.init
+      (String.length hex / 2)
+      (fun index ->
+        Char.chr (int_of_string ("0x" ^ String.sub hex (2 * index) 2)))
+  in
+  let main tag =
+    attribute_of_params ~name:"hevc.ts"
+      (params_with_extradata (hevc_params (fourcc tag)) main_extradata)
+  in
+  (* av_mime_codec_str, from libavformat 62.7.100. *)
+  if (Av.avformat_version.major, Av.avformat_version.minor) >= (62, 7) then (
+    equal (Some "hvc1.1.6.L30.90") (main "hvc1")
+      "the string of FFmpeg's HLS muxer";
+    equal (Some "hev1.1.6.L30.90") (main "hev1")
+      "the same string with the hev1 sample entry")
 
 let requirements = [("3.29", requirement_3_29); ("3.30", requirement_3_30)]

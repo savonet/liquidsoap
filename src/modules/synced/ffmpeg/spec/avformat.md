@@ -744,7 +744,10 @@ ones read from the SPS when the extradata holds an Annex-B SPS. With the codec
 tag `hvc1` or `hev1` and both known, the result is
 `<tag>.<profile>.4.L<level>.B01`, and the bare tag when either is unknown.
 Any other tag, unset or not a sample entry name (the `HEVC` of an mpegts
-source), gives `None`.
+source), gives `None`. From libavformat 62.7.100, a tagged stream first
+takes the string of `av_mime_codec_str`, which reads the tier, compatibility
+flags, level and constraints of an Annex-B SPS, with its sample entry name
+replaced by the tag's; the rule above applies when it gives none.
 
 No read goes past the end of the extradata.
 
