@@ -354,6 +354,20 @@
    content/liq/clock-alsa-pulseaudio-self-sync.liq)))
 
 (rule
+ (alias test-doc-clock-catch-conflict)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/clock-catch-conflict.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/clock-catch-conflict.liq)))
+
+(rule
  (alias test-doc-clock-decoupling-conflict)
  (package liquidsoap)
  (deps
@@ -2803,6 +2817,7 @@
   (alias test-doc-clock-alsa-pulseaudio-buffer)
   (alias test-doc-clock-alsa-pulseaudio-conflict)
   (alias test-doc-clock-alsa-pulseaudio-self-sync)
+  (alias test-doc-clock-catch-conflict)
   (alias test-doc-clock-decoupling)
   (alias test-doc-clock-decoupling-conflict)
   (alias test-doc-clock-inspect)

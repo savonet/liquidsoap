@@ -87,6 +87,16 @@ let numbered ~formatter number pos error =
   true
 
 let () =
+  Runtime_error.register_catchable (function
+    | Conflict { pos } | Loop { pos } | Controller_conflict { pos } ->
+        Some ("clock", Option.to_list pos)
+    | Sync_error { reported } ->
+        Some
+          ( "clock",
+            List.concat_map (fun ({ stack } : reported) -> stack) reported )
+    | _ -> None)
+
+let () =
   Runtime.on_error_print (fun ~formatter error ->
       match error with
         | Conflict { pos } -> numbered ~formatter 10 pos error

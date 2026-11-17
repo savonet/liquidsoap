@@ -71,6 +71,7 @@
 - Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
 - Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
 - `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
+- Scripts can catch errors raised by Liquidsoap's internals, such as invalid parameter values (`error.invalid`) or clock conflicts (`error.clock`), in `try`, `thread.run` error handlers and error monitors. Uncaught errors are logged with their script name, message and positions, and with the internal exception and its backtrace at log level 4 ([#5641](https://github.com/savonet/liquidsoap/pull/5641)).
 - Fixed a race on the request pool that could make `request.create` fail with `index out of bounds` when requests are created from several clocks ([#5639](https://github.com/savonet/liquidsoap/pull/5639)).
 - `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
 - `video.testsrc`, `video.board`, `video.text` and frei0r source plugins have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
