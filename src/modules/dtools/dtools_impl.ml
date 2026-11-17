@@ -604,20 +604,25 @@ module Log = struct
 
   let rotate_queue () = List.rev (Atomic.exchange log_queue [])
 
-  (* Held while printing, so that a [flush] racing with the log thread waits for
-     the entries that thread already took off the queue. *)
+  (* Taken from rotating a batch until it is printed, so that [flush] also
+     waits for a batch the log thread already took off the queue. Held per
+     batch: the log thread releases it between batches. Not re-entrant: a
+     custom log or finalizer running inside [print] must not call [flush]. *)
   let print_mutex = Mutex.create ()
 
-  let flush_queue () =
-    let rec flush = function
-      | [] -> ()
-      | entries ->
-          List.iter print entries;
-          flush (rotate_queue ())
-    in
-    Mutex.protect print_mutex (fun () -> flush (rotate_queue ()))
+  let print_batch () =
+    Mutex.protect print_mutex (fun () ->
+        match rotate_queue () with
+          | [] -> false
+          | entries ->
+              List.iter print entries;
+              true)
 
-  let flush () = flush_queue ()
+  let rec flush_queue () = if print_batch () then flush_queue ()
+
+  (* One batch: entries pushed before the call are either in it or in the batch
+     being printed, which it waits for. *)
+  let flush () = ignore (print_batch ())
 
   let log_thread_fn () =
     let rec f () =
@@ -697,13 +702,14 @@ module Log = struct
       log_ch := Some (open_out_gen opts log_file_perms log_file_path);
       reopen_log :=
         fun () ->
-          begin match !log_ch with
-            | None -> ()
-            | Some ch ->
-                log_ch := None;
-                close_out ch
-          end;
-          log_ch := Some (open_out_gen opts log_file_perms log_file_path)
+          Mutex.protect print_mutex (fun () ->
+              begin match !log_ch with
+                | None -> ()
+                | Some ch ->
+                    log_ch := None;
+                    close_out ch
+              end;
+              log_ch := Some (open_out_gen opts log_file_perms log_file_path))
     end;
     print
       {
@@ -733,11 +739,12 @@ module Log = struct
     (* The thread returns as soon as it sees [log_stop], so entries queued
        during shutdown are still pending here. *)
     flush_queue ();
-    match !log_ch with
-      | None -> ()
-      | Some ch ->
-          log_ch := None;
-          close_out ch
+    Mutex.protect print_mutex (fun () ->
+        match !log_ch with
+          | None -> ()
+          | Some ch ->
+              log_ch := None;
+              close_out ch)
 
   let stop = Init.make ~name:"init-log-stop" ~after:[Init.stop] close
 

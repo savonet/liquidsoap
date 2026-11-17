@@ -1,0 +1,14 @@
+(executable
+ (name test_log_flush)
+ (libraries dtools threads.posix))
+
+(rule
+ (alias runtest)
+ (action
+  (run ./test_log_flush.exe)))
+
+(rule
+ (alias citest)
+ (deps
+  (alias runtest))
+ (action (progn)))
