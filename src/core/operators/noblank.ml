@@ -145,20 +145,21 @@ class strip ~start_blank ~max_blank ~min_noise ~threshold ~track_sensitive
     method private self_sync = source#cached_self_sync
 
     (* Frames pulled while stripping are dropped: the stream resumes with a new
-       track carrying the source's last metadata. *)
+       track carrying the source's last metadata, unless the source starts one
+       itself. Metadata in the frame is newer than the last one. *)
     val mutable resuming = false
 
     method private generate_frame =
       let buf = source#get_frame in
-      if resuming then (
-        resuming <- false;
-        let buf =
-          if Frame.has_track_mark buf 0 then buf else Frame.add_track_mark buf 0
-        in
-        match (source#last_metadata, Frame.get_metadata buf 0) with
-          | Some (_, m), None -> Frame.add_metadata buf 0 m
+      let resume = resuming in
+      resuming <- false;
+      if (not resume) || Frame.has_track_marks buf then buf
+      else (
+        let buf = Frame.add_track_mark buf 0 in
+        match source#last_metadata with
+          | Some (_, m) when not (Frame.has_metadata buf) ->
+              Frame.add_metadata buf 0 m
           | _ -> buf)
-      else buf
 
     method private output =
       if source#is_ready then (
