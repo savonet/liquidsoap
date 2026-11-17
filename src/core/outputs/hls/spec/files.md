@@ -24,8 +24,9 @@ parent of every file before it is published, since a name may contain `/`.
 
 `segment_name` is called with `{position, start_time, extname, duration,
 ticks, stream_name}` and returns a name relative to the output directory.
-`start_time` is the wall-clock time (as `time()`) when the segment was
-opened, so names can follow the segment's start like ffmpeg's `-strftime`.
+`start_time` is the segment's start in media time, in seconds since the run
+began: it resets to 0 at each run, and a segment's `start_time + duration`
+is the media the source produced in the run up to the segment's end.
 
 - **Media segment**: called when the segment is published, so `duration`
   (seconds) and `ticks` are its final length; `position` its position
@@ -33,9 +34,10 @@ opened, so names can follow the segment's start like ffmpeg's `-strftime`.
   the variant's extension.
 - **Init segment**: called when it is written, with `position` the
   variant's init position (§6), `extname` the container's file extension
-  (`mp4` for fragmented MP4, whatever the variant's `extname`), `duration` 0,
-  `ticks` 0 and `start_time` the time it is written. Reason: an init segment named with the media segments'
-  extension takes a name a media segment of the next run uses.
+  (`mp4` for fragmented MP4, whatever the variant's `extname`), `duration` 0
+  and `ticks` 0. Reason: an init segment named with the media segments'
+  extension takes a name a media segment of the next run uses. Its
+  `start_time` is that of the first segment referring to it.
 
 Default: `"#{stream_name}_#{position}.#{extname}"`. The function is called
 once per file and may be impure.

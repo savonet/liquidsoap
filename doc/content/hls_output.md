@@ -326,8 +326,9 @@ on one variant causes a cut only when the output has a single variant.
 
 `segment_name` gives the file name of each segment. It receives a record with
 `stream_name` (the variant), `position` (the segment's number), `extname`,
-`duration` in seconds and `ticks`, and returns a name relative to the output
-directory. The default is `"#{stream_name}_#{position}.#{extname}"`.
+`duration` in seconds, `ticks`, and `start_time`, the segment's start in
+seconds of media since the output started (reset to 0 when it restarts), and
+returns a name relative to the output directory. The default is `"#{stream_name}_#{position}.#{extname}"`.
 
 The name may contain `/`: missing sub-directories are created. Putting each
 variant in its own directory keeps large outputs tidy:

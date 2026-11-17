@@ -337,12 +337,12 @@ class output p =
            segments in a live playlist.";
       self#on_sleep (fun () -> self#final_stop)
 
-    method private segment_name v ~position ~extname ~ticks ~start_time =
+    method private segment_name v ~position ~extname ~ticks ~start =
       let record =
         Lang.record
           [
             ("position", Lang.int position);
-            ("start_time", Lang.float start_time);
+            ("start_time", Lang.float (seconds start));
             ("extname", Lang.string extname);
             ("duration", Lang.float (seconds ticks));
             ("ticks", Lang.int ticks);
@@ -359,7 +359,7 @@ class output p =
       name
 
     (* spec/files.md §6. *)
-    method private set_init v init =
+    method private set_init v ~start init =
       match init with
         | Some "" ->
             self#log#important "Variant %s: empty init segment, ignored"
@@ -370,7 +370,7 @@ class output p =
             let position = Window.next_init_position v.window in
             let name =
               self#segment_name v ~position ~extname:(Variant.init_extension v)
-                ~ticks:0 ~start_time:(Unix.gettimeofday ())
+                ~ticks:0 ~start
             in
             File_store.write_now self#store ~name (`Init v.name)
               (Strings.of_string bytes);
@@ -382,7 +382,12 @@ class output p =
     method private apply_init v r (ready : Encoder.hls_ready) =
       (try r.Variant.properties <- Some (Variant.read_properties r.encoder)
        with _ when r.encoder_stopped -> ());
-      self#set_init v ready.init;
+      let start =
+        match Segmenter.current r.segmenter with
+          | Some s -> s.start
+          | None -> Segmenter.media_time r.segmenter
+      in
+      self#set_init v ~start ready.init;
       (match Segmenter.current r.segmenter with
         | Some s -> s.init <- v.current_init
         | None -> ());
@@ -393,7 +398,6 @@ class output p =
       let segment =
         {
           Variant.start;
-          opened_at = Unix.gettimeofday ();
           discontinuous = v.pending_discontinuity;
           tags = Variant.take_tags v;
           init = v.current_init;
@@ -452,7 +456,7 @@ class output p =
           let name =
             self#segment_name v ~position:v.Variant.window.next_position
               ~extname:(Variant.segment_extension v)
-              ~ticks:closed.length ~start_time:segment.opened_at
+              ~ticks:closed.length ~start:segment.start
           in
           ( name,
             File_store.write self#store ~name (`Segment v.name) closed.bytes )
@@ -948,7 +952,7 @@ class output p =
                   v.name (seconds time);
               Segmenter.split r.segmenter ~time ~forced
           | Encoder.Restart { time; init } ->
-              self#set_init v init;
+              self#set_init v ~start:time init;
               Segmenter.restart r.segmenter ~time;
               r.properties <- Some (Variant.read_properties r.encoder);
               List.iter
