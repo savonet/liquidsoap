@@ -471,18 +471,22 @@ let () =
         Some ("invalid", Option.to_list (Value.pos v) @ stack)
     | _ -> None)
 
+let stdlib_error_kind = function
+  | Sys_error _ | Unix.Unix_error _ -> Some "system"
+  | Failure _ -> Some "failure"
+  | Invalid_argument _ -> Some "invalid"
+  | Not_found -> Some "not_found"
+  | Division_by_zero | End_of_file -> Some "eval"
+  | _ -> None
+
 (* Out of memory and interruptions are never caught by scripts. *)
 let kind_of_exception = function
   | Out_of_memory | Sys.Break -> None
   | Runtime_error.Runtime_error { kind } -> Some kind
   | exn -> (
-      match (Runtime_error.catchable exn, exn) with
-        | Some (kind, _), _ -> Some kind
-        | None, Not_found -> Some "not_found"
-        | None, Failure _ -> Some "failure"
-        | None, Invalid_argument _ -> Some "invalid"
-        | None, (Sys_error _ | Unix.Unix_error _) -> Some "system"
-        | None, _ -> Some "eval")
+      match (Runtime_error.catchable exn, stdlib_error_kind exn) with
+        | Some (kind, _), _ | None, Some kind -> Some kind
+        | None, None -> Some "eval")
 
 let runtime_error_of_exception ~bt ~kind exn =
   match (exn, Runtime_error.catchable exn) with
@@ -518,10 +522,9 @@ let raise_as_runtime ~bt ~kind exn =
   match exn with
     | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | _ ->
-        Printexc.raise_with_backtrace
-          (Runtime_error.Runtime_error
-             (runtime_error_of_exception ~bt ~kind exn))
-          bt
+        let error = runtime_error_of_exception ~bt ~kind exn in
+        Runtime_error.notify error;
+        Printexc.raise_with_backtrace (Runtime_error.Runtime_error error) bt
 
 (* The script position is added by the caller's application, so OCaml frames
    stay in the backtrace instead of the error's position. *)

@@ -2,7 +2,8 @@
 
 # OCaml exceptions raised by builtins, here an invalid operator parameter, are
 # caught by scripts with their kind: in `try`, by `thread.run` error handlers
-# and by error monitors. A `try` filtering on another kind lets them through.
+# and by error monitors, once per error. A `try` filtering on another kind lets
+# them through.
 
 def bad() =
   ignore(filter.rc(mode="foo", frequency=100., sine()))
@@ -57,10 +58,10 @@ thread.run(
         "thread.run's on_error got \"#{handled()}\""
       )
     elsif
-      not list.mem("invalid", monitored())
+      list.length(list.filter(fun (k) -> k == "invalid", monitored())) != 3
     then
       test.fail(
-        "error monitors did not see the error"
+        "error monitors saw: #{monitored()}"
       )
     else
       test.pass()

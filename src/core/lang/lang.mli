@@ -318,6 +318,10 @@ val raise_error :
   string ->
   'a
 
+(** The error kind of a standard OCaml exception, [None] for other exceptions.
+*)
+val stdlib_error_kind : exn -> string option
+
 (** The error kind under which scripts catch [exn], [None] when they never do.
 *)
 val kind_of_exception : exn -> string option
