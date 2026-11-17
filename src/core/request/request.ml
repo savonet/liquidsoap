@@ -472,18 +472,35 @@ let leak_warning =
    they are collected, so it cannot count them. *)
 let live = Atomic.make 0
 
+(* Highest count warned about, so that a count going up and down around a
+   multiple of the threshold warns once. *)
+let warned = Atomic.make 0
+
+let check_leak n =
+  let w = Atomic.get warned in
+  if n mod leak_warning#get = 0 && n > w && Atomic.compare_and_set warned w n
+  then
+    log#severe
+      "There are currently %d RIDs, possible request leak! Please check that \
+       you don't have a loop on empty/unavailable requests."
+      n
+
+(* Indicators are taken off the queue, so each temporary file is unlinked
+   once. *)
+let release t =
+  Queue.flush_iter t.indicators (fun i ->
+      if i.temporary && file_exists i.uri then (
+        try Unix.unlink i.uri
+        with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)));
+  Hashtbl.reset t.decoders
+
 let destroy ?force t =
   if
     (force = Some true || not t.persistent)
     && Atomic.exchange t.status `Destroyed <> `Destroyed
   then (
     Atomic.decr live;
-    Queue.iter t.indicators (fun i ->
-        if i.temporary && file_exists i.uri then (
-          try Unix.unlink i.uri
-          with e -> log#severe "Unlink failed: %S" (Printexc.to_string e)));
-    Queue.flush_iter t.indicators (fun _ -> ());
-    Hashtbl.reset t.decoders;
+    release t;
     add_log t "Request destroyed.")
 
 let finalise = destroy ~force:true
@@ -492,13 +509,6 @@ let cleanup () = Pool.iter (fun _ r -> destroy ~force:true r)
 let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
     ?metadata ?(persistent = false) ?temporary ~cue_in_metadata
     ~cue_out_metadata uri =
-  (* Find instantaneous request loops *)
-  let n = Atomic.fetch_and_add live 1 + 1 in
-  if n mod leak_warning#get = 0 then
-    log#severe
-      "There are currently %d RIDs, possible request leak! Please check that \
-       you don't have a loop on empty/unavailable requests."
-      n;
   let t =
     let req =
       {
@@ -524,6 +534,8 @@ let create ?(resolve_metadata = true) ?(excluded_metadata_resolvers = [])
   in
   push_indicator t (indicator ?metadata ?temporary uri);
   Gc.finalise finalise t;
+  (* Find instantaneous request loops *)
+  check_leak (Atomic.fetch_and_add live 1 + 1);
   t
 
 let get_cue ~r = function
@@ -676,12 +688,9 @@ let () =
   Lifecycle.before_core_shutdown ~name:"Requests shutdown" (fun () ->
       Atomic.set should_fail true)
 
-let resolve_req t timeout =
+let resolve_req ~since ~resolved t timeout resolving =
   let timeout = Option.value ~default:conf_timeout#get timeout in
   log#debug "Resolving request %s." (string_of_indicators t);
-  let since = Unix.gettimeofday () in
-  Atomic.set t.status
-    (`Resolving { since; resolved = Scheduler.Condition.create () });
   let maxtime = since +. timeout in
   let rec resolve i =
     if Atomic.get should_fail then raise No_indicator;
@@ -756,14 +765,21 @@ let resolve_req t timeout =
       "Time limit exceeded by %.2f secs for request %s (timeout: %.2f)!" excess
       (string_of_indicators t) timeout;
   let status = if result <> `Resolved then `Failed else `Ready in
-  (match Atomic.exchange t.status status with
-    | `Resolving { resolved } -> Scheduler.Condition.signal resolved
-    | _ -> assert false);
-  result
+  let destroyed = not (Atomic.compare_and_set t.status resolving status) in
+  (* Destroyed while resolving: release what the resolution pushed since. *)
+  if destroyed then release t;
+  Scheduler.Condition.signal resolved;
+  if destroyed then `Failed else result
 
 let rec resolve ?timeout t =
   match Atomic.get t.status with
-    | `Idle -> resolve_req t timeout
+    | `Idle ->
+        let since = Unix.gettimeofday () in
+        let resolved = Scheduler.Condition.create () in
+        let resolving = `Resolving { since; resolved } in
+        if Atomic.compare_and_set t.status `Idle resolving then
+          resolve_req ~since ~resolved t timeout resolving
+        else resolve ?timeout t
     | `Resolving { resolved } ->
         let resolving () =
           match Atomic.get t.status with `Resolving _ -> true | _ -> false

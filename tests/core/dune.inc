@@ -759,6 +759,34 @@
   (run %{pool_test})))
 
 (executable
+ (name request_destroy_test)
+ (modules request_destroy_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias request_destroy_test)
+ (package liquidsoap)
+ (deps
+  (:request_destroy_test request_destroy_test.exe))
+ (action
+  (run %{request_destroy_test})))
+
+(executable
  (name request_leak_test)
  (modules request_leak_test)
  (libraries
@@ -1212,6 +1240,7 @@
   (alias parsesrt)
   (alias playlist_basic_test)
   (alias pool_test)
+  (alias request_destroy_test)
   (alias request_leak_test)
   (alias runtime_error_kinds_test)
   (alias scheduler_test)

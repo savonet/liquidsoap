@@ -17,7 +17,10 @@ let fill () =
   assert (count () = 100);
   assert (List.map (fun { id; _ } -> id) l = List.init 100 Fun.id);
   assert (Pool.find 15 = Some (List.nth l 15));
-  ignore (Sys.opaque_identity l)
+  let destroyed = Pool.add (fun id -> { id; destroyed = true }) in
+  assert (Pool.find destroyed.id = None);
+  assert (count () = 100);
+  ignore (Sys.opaque_identity (l, destroyed))
 
 let () =
   fill ();
