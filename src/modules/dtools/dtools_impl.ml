@@ -604,6 +604,10 @@ module Log = struct
 
   let rotate_queue () = List.rev (Atomic.exchange log_queue [])
 
+  (* Held while printing, so that a [flush] racing with the log thread waits for
+     the entries that thread already took off the queue. *)
+  let print_mutex = Mutex.create ()
+
   let flush_queue () =
     let rec flush = function
       | [] -> ()
@@ -611,7 +615,7 @@ module Log = struct
           List.iter print entries;
           flush (rotate_queue ())
     in
-    flush (rotate_queue ())
+    Mutex.protect print_mutex (fun () -> flush (rotate_queue ()))
 
   let flush () = flush_queue ()
 
