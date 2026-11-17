@@ -42,6 +42,21 @@ let positive v =
   if n < 1 then error ?pos:(pos v) "a positive integer is expected";
   n
 
+let frame_rate v =
+  let invalid () =
+    error ?pos:(pos v)
+      "a positive integer or a fraction such as \"30000/1001\" is expected"
+  in
+  match v with
+    | Value.String { value } when String.contains value '/' -> (
+        match Scanf.sscanf value " %d / %d %!" (fun num den -> (num, den)) with
+          | (num, den) as rate when num > 0 && den > 0 -> rate
+          | _ -> invalid ()
+          | exception _ -> invalid ())
+    | Value.Float { value } when not (Float.is_integer value) -> invalid ()
+    | _ -> (
+        match integer v with rate when rate > 0 -> (rate, 1) | _ -> invalid ())
+
 let float v =
   match v with
     | Value.Int { value } -> float value
@@ -138,7 +153,7 @@ let hwaccel v =
 
 let video_option (vf : F.video) = function
   | `Labelled (("framerate" | "r"), v) ->
-      Some { vf with framerate = Lazy.Mutexed.from_val (positive v) }
+      Some { vf with framerate = Lazy.Mutexed.from_val (frame_rate v) }
   | `Labelled ("width", v) ->
       Some { vf with width = Lazy.Mutexed.from_val (positive v) }
   | `Labelled ("height", v) ->
@@ -185,7 +200,7 @@ let default_options : F.media -> F.options = function
         {
           F.framerate =
             Lazy.Mutexed.from_fun (fun () ->
-                Lazy.Mutexed.force Frame.video_rate);
+                (Lazy.Mutexed.force Frame.video_rate, 1));
           width;
           height;
           pixel_format = None;

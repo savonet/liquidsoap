@@ -56,7 +56,7 @@ let build t ~time_base ~source_id (format : Avutil.Video.frame_format) =
     source_id;
     fps =
       Helpers.Fps.create
-        ~target:(Lazy.Mutexed.force Frame.video_rate)
+        ~target:{ Avutil.num = Lazy.Mutexed.force Frame.video_rate; den = 1 }
         ~start:`None ~time_base format;
     scaler =
       Scaler.create

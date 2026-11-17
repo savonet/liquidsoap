@@ -38,6 +38,7 @@ let standalone_tests =
     ("subtitle_copy_encode.liq", ["test-subtitle.srt"]);
     ("subtitle_reencode.liq", ["test-subtitle.srt"]);
     ("hls_harbor_serving_fmp4.liq", []);
+    ("ffmpeg_fractional_framerate.liq", []);
   ]
 
 let audio_formats = Test_media_formats.audio_formats

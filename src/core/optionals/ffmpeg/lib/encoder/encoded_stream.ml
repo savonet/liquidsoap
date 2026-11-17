@@ -426,7 +426,7 @@ module Video_writer = struct
   type t = {
     log : Log.t;
     stream : (Avutil.output, Avutil.video, [ `Frame ]) Av.stream;
-    frame_rate : int;
+    frame_rate : Avutil.rational;
     mutable next_slot : int;
     mutable stage : stage option;
     on_packet : on_packet;
@@ -446,14 +446,25 @@ module Video_writer = struct
       requested = None;
     }
 
+  let slot_time_base t =
+    { Avutil.num = t.frame_rate.den; den = t.frame_rate.num }
+
+  (* The first slot starting at or after [time], in main ticks. *)
+  let first_slot t time =
+    let main = Time_base.main () and slots = slot_time_base t in
+    match Time_base.rescale ~src:main ~dst:slots time with
+      | None -> t.next_slot
+      | Some slot -> (
+          match Time_base.rescale ~src:slots ~dst:main slot with
+            | Some start when start < time -> slot + 1
+            | _ -> slot)
+
   (* ffmpeg spec encoder.md §8.4: the first image at or after [time] is a key
      frame. *)
   let request_keyframe t time =
     if t.requested <> Some time then (
       t.requested <- Some time;
-      let main_rate = Lazy.Mutexed.force Frame.main_rate in
-      t.keyframe_slots <-
-        t.keyframe_slots @ [((time * t.frame_rate) + main_rate - 1) / main_rate])
+      t.keyframe_slots <- t.keyframe_slots @ [first_slot t time])
 
   let write t fps frame =
     let slot =
@@ -462,7 +473,7 @@ module Video_writer = struct
             match
               Time_base.rescale_int64
                 ~src:(Helpers.Fps.time_base fps)
-                ~dst:(per_unit t.frame_rate) pts
+                ~dst:(slot_time_base t) pts
             with
               | Some slot -> slot
               | None -> t.next_slot)
@@ -492,9 +503,7 @@ module Video_writer = struct
   (* After a gap the grid continues at the first slot past the gap. *)
   let gap t ~abs =
     drain t;
-    let main_rate = Lazy.Mutexed.force Frame.main_rate in
-    t.next_slot <-
-      max t.next_slot (((abs * t.frame_rate) + main_rate - 1) / main_rate)
+    t.next_slot <- max t.next_slot (first_slot t abs)
 
   let push t ~abs ~duration frame =
     let frame = Avutil.Frame.dup frame in
@@ -511,7 +520,10 @@ module Video_writer = struct
                 (Pixel_formats.describe_video format);
             let fps =
               Helpers.Fps.create ~target:t.frame_rate
-                ~start:(`Time (float t.next_slot /. float t.frame_rate))
+                ~start:
+                  (`Time
+                     (float t.next_slot *. float t.frame_rate.den
+                    /. float t.frame_rate.num))
                 ~time_base:(Time_base.main ()) format
             in
             let s = { key = format; fps } in
@@ -562,7 +574,10 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     ~on_packet output =
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
-  let frame_rate = Lazy.Mutexed.force v.framerate in
+  let frame_rate =
+    let num, den = Lazy.Mutexed.force v.framerate in
+    { Avutil.num; den }
+  in
   let width = Lazy.Mutexed.force v.width in
   let height = Lazy.Mutexed.force v.height in
   let state = ref None in
@@ -599,14 +614,16 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     in
     let stream =
       try
-        Av.new_video_stream ~opts ?side_data
-          ~frame_rate:{ Avutil.num = frame_rate; den = 1 }
-          ?hardware_context ~pixel_format ~width ~height
-          ~time_base:(per_unit frame_rate) ~codec output
+        Av.new_video_stream ~opts ?side_data ~frame_rate ?hardware_context
+          ~pixel_format ~width ~height
+          ~time_base:{ Avutil.num = frame_rate.den; den = frame_rate.num }
+          ~codec output
       with Avutil.Error e ->
         let message =
-          Printf.sprintf "Cannot create %s stream (%dx%d, %d fps): %s" kind
-            width height frame_rate (Avutil.string_of_error e)
+          Printf.sprintf "Cannot create %s stream (%dx%d, %s fps): %s" kind
+            width height
+            (Time_base.to_string frame_rate)
+            (Avutil.string_of_error e)
         in
         log#severe "%s" message;
         error ?pos message
