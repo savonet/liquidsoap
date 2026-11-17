@@ -17,6 +17,7 @@
 #include "av_stubs.h"
 
 #include <libavutil/avstring.h>
+#include <libavutil/bprint.h>
 #include <libavutil/mem.h>
 #include <libavutil/opt.h>
 
@@ -1586,10 +1587,24 @@ CAMLprim value ocaml_av_reserve_stream_copy(value _container) {
   CAMLreturn(Val_int(index));
 }
 
-/* The codec tag is cleared for the muxer to choose its own. */
+/* Without a requested tag, the same rule as the ffmpeg CLI stream copy: the
+   source tag is kept when the output format maps it to the same codec or has
+   no tag for that codec, and cleared otherwise for the muxer to choose its
+   own. */
+static int keeps_source_codec_tag(const AVOutputFormat *format,
+                                  const AVCodecParameters *parameters) {
+  const struct AVCodecTag *const *tags = format->codec_tag;
+  unsigned int format_tag;
+
+  return !tags ||
+         av_codec_get_id(tags, parameters->codec_tag) == parameters->codec_id ||
+         !av_codec_get_tag2(tags, parameters->codec_id, &format_tag);
+}
+
 CAMLprim value ocaml_av_initialize_stream_copy(value _container, value _index,
+                                               value _codec_tag,
                                                value _parameters) {
-  CAMLparam3(_container, _index, _parameters);
+  CAMLparam4(_container, _index, _codec_tag, _parameters);
   container *record = configurable_output(_container, NULL);
   intnat index = Long_val(_index);
   AVStream *stream;
@@ -1602,7 +1617,12 @@ CAMLprim value ocaml_av_initialize_stream_copy(value _container, value _index,
   error = avcodec_parameters_copy(stream->codecpar,
                                   CodecParameters_val(_parameters));
   if (error >= 0) {
-    stream->codecpar->codec_tag = 0;
+    if (Is_some(_codec_tag))
+      stream->codecpar->codec_tag =
+          (unsigned int)Long_val(Some_val(_codec_tag));
+    else if (!keeps_source_codec_tag(record->context->oformat,
+                                     stream->codecpar))
+      stream->codecpar->codec_tag = 0;
     record->streams[index].copy_reserved = 0;
   }
   done(record, error);
@@ -2189,10 +2209,13 @@ static int h264_attribute(const AVCodecParameters *parameters, char *text,
                           size_t text_size) {
   const uint8_t *data = parameters->extradata;
   int size = parameters->extradata_size;
+  const char *entry =
+      parameters->codec_tag == MKTAG('a', 'v', 'c', '3') ? "avc3" : "avc1";
   int offset;
 
   if (data && size >= 4 && data[0] == 1) {
-    snprintf(text, text_size, "avc1.%02x%02x%02x", data[1], data[2], data[3]);
+    snprintf(text, text_size, "%s.%02x%02x%02x", entry, data[1], data[2],
+             data[3]);
     return 1;
   }
 
@@ -2203,7 +2226,7 @@ static int h264_attribute(const AVCodecParameters *parameters, char *text,
   if (size < offset + 4 || (data[offset] & 0x1f) != 7)
     return 0;
 
-  snprintf(text, text_size, "avc1.%02x%02x%02x", data[offset + 1],
+  snprintf(text, text_size, "%s.%02x%02x%02x", entry, data[offset + 1],
            data[offset + 2], data[offset + 3]);
 
   return 1;
@@ -2211,10 +2234,42 @@ static int h264_attribute(const AVCodecParameters *parameters, char *text,
 
 /* The general profile and level of an HEVC SPS: its profile is in the
    second payload byte and its level twelve bytes in. */
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(62, 7, 100)
+/* FFmpeg's own codec string reads the tier, compatibility flags, level and
+   constraints of an Annex-B SPS. It only names hvc1: the hev1 string differs
+   by its sample entry name alone. */
+static int ffmpeg_hevc_attribute(const AVCodecParameters *parameters,
+                                 const char *entry, char *text,
+                                 size_t text_size) {
+  AVCodecParameters *tagged = avcodec_parameters_alloc();
+  AVBPrint buffer;
+  int error = AVERROR(ENOMEM);
+
+  if (tagged)
+    error = avcodec_parameters_copy(tagged, parameters);
+  if (error >= 0) {
+    tagged->codec_tag = MKTAG('h', 'v', 'c', '1');
+    av_bprint_init_for_buffer(&buffer, text, text_size);
+    error = av_mime_codec_str(tagged, av_make_q(1, 0), &buffer);
+    if (error >= 0 && !av_bprint_is_complete(&buffer))
+      error = AVERROR(ENOSPC);
+  }
+  avcodec_parameters_free(&tagged);
+
+  if (error < 0)
+    return 0;
+  memcpy(text, entry, 4);
+  return 1;
+}
+#endif
+
+/* Without FFmpeg's codec string, the compatibility flags and constraints are
+   fixed. */
 static int hevc_attribute(const AVCodecParameters *parameters, char *text,
                           size_t text_size) {
   int profile = parameters->profile;
   int level = parameters->level;
+  const char *entry;
   int sps_size = 0;
   const uint8_t *sps = NULL;
 
@@ -2226,18 +2281,24 @@ static int hevc_attribute(const AVCodecParameters *parameters, char *text,
     level = sps[12];
   }
 
-  if (parameters->codec_tag == MKTAG('h', 'v', 'c', '1') &&
-      profile != AV_PROFILE_UNKNOWN && level != AV_LEVEL_UNKNOWN) {
-    snprintf(text, text_size, "hvc1.%d.4.L%d.B01", profile, level);
-    return 1;
-  }
-
-  if (!parameters->codec_tag)
+  /* Other tags, such as the "HEVC" of an mpegts source, are no sample entry
+     name. */
+  if (parameters->codec_tag == MKTAG('h', 'v', 'c', '1'))
+    entry = "hvc1";
+  else if (parameters->codec_tag == MKTAG('h', 'e', 'v', '1'))
+    entry = "hev1";
+  else
     return 0;
-  snprintf(text, text_size, "%c%c%c%c", parameters->codec_tag & 0xff,
-           (parameters->codec_tag >> 8) & 0xff,
-           (parameters->codec_tag >> 16) & 0xff,
-           (parameters->codec_tag >> 24) & 0xff);
+
+#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(62, 7, 100)
+  if (ffmpeg_hevc_attribute(parameters, entry, text, text_size))
+    return 1;
+#endif
+
+  if (profile != AV_PROFILE_UNKNOWN && level != AV_LEVEL_UNKNOWN)
+    snprintf(text, text_size, "%s.%d.4.L%d.B01", entry, profile, level);
+  else
+    snprintf(text, text_size, "%s", entry);
 
   return 1;
 }

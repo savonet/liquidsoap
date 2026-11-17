@@ -25,9 +25,10 @@ Every timestamp rule is in [timestamps.md §6–§7](timestamps.md#6-copy-stream
 | `codec_attr`, `bitrate` | from the stream, once §2 has run; none before                             |
 | `video_size`            | width and height of the video parameters, once §2 has run; none otherwise |
 
-Options: the track `keyframe` choice only (`wait_for_keyframe`, the default,
-or `ignore_keyframe`,
-[encoder-format.md §4](encoder-format.md#4-track-arguments-common-rules)).
+Options: the track `keyframe` choice (`wait_for_keyframe`, the default, or
+`ignore_keyframe`) and `codec_tag`, which replaces the source's codec tag on
+the stream
+([encoder-format.md §4](encoder-format.md#4-track-arguments-common-rules)).
 
 ## 2. Stream creation
 

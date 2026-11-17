@@ -315,6 +315,16 @@ def f() =
   correct(
     '%ffmpeg(%audio.copy(wait_for_keyframe), %video.copy(wait_for_keyframe))'
   )
+  correct(
+    '%ffmpeg(%video.copy(ignore_keyframe, codec_tag="hvc1"))'
+  )
+  incorrect('%ffmpeg(%video.copy(codec_tag="hvc"))')
+  incorrect(
+    '%ffmpeg(%video.copy(wait_for_keyframe, ignore_keyframe))'
+  )
+  incorrect(
+    '%ffmpeg(%video(codec="libx264", codec_tag="hvc"))'
+  )
 
   # Conventions for content type in %ffmpeg encoder:
   correct(

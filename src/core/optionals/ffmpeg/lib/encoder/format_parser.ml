@@ -233,6 +233,26 @@ let codec_value params =
     (fun codec -> function `Labelled ("codec", v) -> Some v | _ -> codec)
     None params
 
+let codec_tag v =
+  try F.fourcc (string v) with Failure message -> error ?pos:(pos v) message
+
+let copy_param ((copy : F.copy), has_keyframe) = function
+  | `Anonymous "wait_for_keyframe" when not has_keyframe ->
+      ({ copy with keyframe = `Wait_for_keyframe }, true)
+  | `Anonymous "ignore_keyframe" when not has_keyframe ->
+      ({ copy with keyframe = `Ignore_keyframe }, true)
+  | `Labelled ("codec_tag", v) ->
+      ignore (codec_tag v);
+      ({ copy with codec_tag = Some (string v) }, has_keyframe)
+  | arg ->
+      let pos, name =
+        match arg with
+          | `Anonymous s -> (None, s)
+          | `Labelled (l, v) -> (pos v, l)
+          | `Encoder (e, _) -> (None, "%" ^ e)
+      in
+      error ?pos (Printf.sprintf "Invalid argument %s for a copy track" name)
+
 let encoded_track ~mode ~field params : F.track =
   let markers =
     List.filter_map
@@ -264,6 +284,11 @@ let encoded_track ~mode ~field params : F.track =
         match param with
           | `Labelled ("codec", v) -> (Some (string v), options, opts)
           | `Labelled (("q" | "qscale"), v) -> (codec, options, qscale opts v)
+          | `Labelled ("codec_tag", (Value.Int _ as v)) ->
+              (codec, options, F.set opts "codec_tag" (option_value v))
+          | `Labelled ("codec_tag", v) ->
+              ignore (codec_tag v);
+              (codec, options, F.set opts "codec_tag" (`String (string v)))
           | `Anonymous s when F.media_of_marker s <> None ->
               (codec, options, opts)
           | _ -> (
@@ -292,19 +317,7 @@ let track (name, params) =
           if params <> [] then
             error (Printf.sprintf "Track %%%s.drop takes no argument" field);
           `Drop
-      | `Copy -> (
-          match params with
-            | [] | [`Anonymous "wait_for_keyframe"] -> `Copy `Wait_for_keyframe
-            | [`Anonymous "ignore_keyframe"] -> `Copy `Ignore_keyframe
-            | arg :: _ ->
-                let pos, name =
-                  match arg with
-                    | `Anonymous s -> (None, s)
-                    | `Labelled (l, v) -> (pos v, l)
-                    | `Encoder (e, _) -> (None, "%" ^ e)
-                in
-                error ?pos
-                  (Printf.sprintf "Invalid argument %s for a copy track" name))
+      | `Copy -> `Copy (fst (List.fold_left copy_param (F.copy, false) params))
       | (`Internal | `Raw) as mode -> encoded_track ~mode ~field params
   in
   (field, track)

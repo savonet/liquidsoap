@@ -566,14 +566,17 @@ val set_output_option : output container -> string -> string -> unit
     elsewhere, through {!write_packet}. It is {!new_uninitialized_stream_copy}
     followed by {!initialize_stream_copy}.
 
-    The stream gets a copy of [params], with the codec tag cleared so that the
-    muxer chooses its own. Only the codec parameters are copied. The time base
+    The stream gets a copy of [params]. Its codec tag is [codec_tag] when given.
+    Otherwise the tag of [params] is kept when the output format maps it to the
+    same codec, or has no tag for that codec, and is cleared for the muxer to
+    choose its own when not. Only the codec parameters are copied. The time base
     is the muxer's choice unless {!set_time_base} is called. The average frame
     rate is not part of the codec parameters: set it with {!set_avg_frame_rate},
     typically from {!get_avg_frame_rate} of the source stream.
 
     @raise Error with [`Failure] once the header is written. *)
 val new_stream_copy :
+  ?codec_tag:int ->
   params:'mode Avcodec.params ->
   output container ->
   (output, 'mode, [ `Packet ]) stream
@@ -596,6 +599,7 @@ val new_uninitialized_stream_copy :
       with [`Failure] on a second initialisation of the same reservation, and
       once the header is written. *)
 val initialize_stream_copy :
+  ?codec_tag:int ->
   params:'mode Avcodec.params ->
   uninitialized_stream_copy ->
   (output, 'mode, [ `Packet ]) stream

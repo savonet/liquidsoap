@@ -21,6 +21,7 @@
 - Added `getter(t)` type annotations ([#5078](https://github.com/savonet/liquidsoap/pull/5078)) and `%typeof(e)`, the type of `e` without evaluating it, e.g. `let json.parse (saved : %typeof(state())) = ...` ([#5614](https://github.com/savonet/liquidsoap/pull/5614)).
 - Added `domain` to `thread.run` to pin a function to one scheduler domain ([#5397](https://github.com/savonet/liquidsoap/pull/5397)).
 - Added an `override` parameter to `insert_metadata` ([#5077](https://github.com/savonet/liquidsoap/pull/5077)).
+- Added `codec_tag` to FFmpeg copied and encoded tracks, e.g. `%video.copy(codec_tag="hvc1")` for HEVC HLS on Apple players. Copied tracks keep their source's codec tag when the output format accepts it ([#5643](https://github.com/savonet/liquidsoap/issues/5643)).
 
 ## Changed:
 
