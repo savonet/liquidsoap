@@ -459,10 +459,30 @@ let () =
 let error_message = function
   | Sys_error message | Failure message | Invalid_argument message -> message
   | Unix.Unix_error (code, call, param) -> unix_error_message code call param
+  | Error.Invalid_value (_, message, _) -> "Invalid value: " ^ message
   | Not_found -> "Not found"
   | Division_by_zero -> "Division by zero"
   | End_of_file -> "End of file"
   | exn -> Printexc.to_string exn
+
+let () =
+  Runtime_error.register_catchable (function
+    | Error.Invalid_value (v, _, stack) ->
+        Some ("invalid", Option.to_list (Value.pos v) @ stack)
+    | _ -> None)
+
+(* Out of memory and interruptions are never caught by scripts. *)
+let kind_of_exception = function
+  | Out_of_memory | Sys.Break -> None
+  | Runtime_error.Runtime_error { kind } -> Some kind
+  | exn -> (
+      match (Runtime_error.catchable exn, exn) with
+        | Some (kind, _), _ -> Some kind
+        | None, Not_found -> Some "not_found"
+        | None, Failure _ -> Some "failure"
+        | None, Invalid_argument _ -> Some "invalid"
+        | None, (Sys_error _ | Unix.Unix_error _) -> Some "system"
+        | None, _ -> Some "eval")
 
 let runtime_error_of_exception ~bt ~kind exn =
   match (exn, Runtime_error.catchable exn) with

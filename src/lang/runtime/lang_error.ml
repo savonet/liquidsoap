@@ -185,10 +185,12 @@ let _ =
                     catch kind msg (Lang_core.pos p)
                 | exn -> (
                     let bt = Printexc.get_raw_backtrace () in
-                    match Runtime_error.catchable exn with
-                      | Some (kind, pos) when catches kind ->
+                    match Lang_core.kind_of_exception exn with
+                      | Some kind when catches kind ->
+                          let { Runtime_error.msg; pos } =
+                            Lang_core.runtime_error_of_exception ~bt ~kind exn
+                          in
                           let pos = pos @ Lang_core.pos p in
-                          let msg = Lang_core.error_message exn in
                           Runtime_error.notify
                             (Runtime_error.make ~pos ~message:msg kind);
                           catch kind msg pos

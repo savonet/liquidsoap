@@ -318,6 +318,10 @@ val raise_error :
   string ->
   'a
 
+(** The error kind under which scripts catch [exn], [None] when they never do.
+*)
+val kind_of_exception : exn -> string option
+
 (** Convert an exception into a runtime error. *)
 val runtime_error_of_exception :
   bt:Printexc.raw_backtrace -> kind:string -> exn -> Runtime_error.runtime_error
