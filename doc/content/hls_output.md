@@ -364,22 +364,20 @@ when the output starts and add the media produced before each segment:
 
 Each segment then starts exactly where the previous one ends, and a segment
 crossing an hour boundary stays in the directory of the hour it starts in.
-Unlike ffmpeg, which reads the clock when it opens each file, the names do not
-depend on processing latency. `on_start` resets the count when the output
+`on_start` resets the count when the output
 restarts, for instance after its source was unavailable, so the names follow
 the wall clock again. The variant named `index` writes `index.m3u8`, and a
 `main_playlist_writer` returning `null` writes no main playlist, as ffmpeg does
 for a single stream.
 
-Two limits follow from counting media time. Over a long run, media time and
-wall-clock time drift apart, for instance after the clock catches up on
-latency or when a live sender's clock runs off, and the names drift with
-them until the output restarts. ffmpeg reads the clock for every file and
-does not drift, at the cost of names that depend on processing latency.
-Names also have one-second precision: a segment shorter than a second, cut
-by `insert_tag` or `cut_on_metadata`, gives the next segment the same name,
-which makes the output fail. When segments can be cut short, add finer
-precision to the name, such as the milliseconds of `start`.
+Counting media time is deliberate: the wall clock jumps with NTP adjustments
+and daylight saving changes, while media time only moves forward. To follow
+the wall clock instead, as ffmpeg does, use `time() - s.duration` inside
+`segment_name`: it is as imprecise as ffmpeg's names.
+
+A segment shorter than a second, cut by `insert_tag` or `cut_on_metadata`,
+gives the next one the same name and makes the output fail. Add milliseconds
+to the name if that can happen.
 
 To archive the segments, which the output otherwise deletes once they leave
 the playlist, see [keeping old segments on disk](#keeping-old-segments-on-disk).
