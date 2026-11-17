@@ -4,16 +4,20 @@ Notes on the implementation this was extracted from. Not normative.
 
 ## Where things are
 
-| Spec                                     | Code                                                                                   |
-| ---------------------------------------- | -------------------------------------------------------------------------------------- |
-| [switch.md](switch.md)                   | `src/core/operators/switch.ml`, class `switch`                                         |
-| Proxy                                    | same file, class `insert_initial_track_mark`                                           |
-| [frame-assembly.md](frame-assembly.md)   | `src/core/source/source.ml`, class `generate_from_multiple_sources`                    |
-| [source-contract.md](source-contract.md) | `src/core/source/source.ml`, `source.mli`                                              |
-| Tags, profiles, per-source methods       | `src/core/source/source.ml` (`resolved_composition`), `src/core/source/lang_source.ml` |
-| Default handoff, profile values          | `src/libs/composition.liq`                                                             |
-| Policies                                 | `src/libs/switches.liq`                                                                |
-| Other seam users                         | `src/core/operators/cross.ml`, `sequence.ml`                                           |
+| Spec                                         | Code                                                                                   |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [switch.md](switch.md)                       | `src/core/operators/switch.ml`, class `switch`                                         |
+| Proxy                                        | same file, class `insert_initial_track_mark`                                           |
+| [frame-assembly.md](frame-assembly.md)       | `src/core/source/source.ml`, class `generate_from_multiple_sources`                    |
+| [source-contract.md](source-contract.md)     | `src/core/source/source.ml`, `source.mli`                                              |
+| Tags, profiles, per-source methods           | `src/core/source/source.ml` (`resolved_composition`), `src/core/source/lang_source.ml` |
+| Default handoff, profile values              | `src/libs/composition.liq`                                                             |
+| Policies                                     | `src/libs/switches.liq`                                                                |
+| [sequence.md](sequence.md)                   | `src/core/operators/sequence.ml`                                                       |
+| [dynamic.md](dynamic.md)                     | `src/core/operators/dyn_op.ml`                                                         |
+| [cross-seam.md](cross-seam.md)               | `src/core/operators/cross.ml` (`get_source`, the compound)                             |
+| [rotate-merge.md](rotate-merge.md)           | `src/libs/extra/source.liq`                                                            |
+| `once`, `prepend`, `append`, delayed fade-in | `src/libs/source.liq`, `src/libs/fades.liq`                                            |
 
 ## Mechanisms specific to this implementation
 

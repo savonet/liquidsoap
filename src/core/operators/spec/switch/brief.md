@@ -23,6 +23,15 @@ prompted it. Known instances, each to be replaced by a stated signal:
 | "My readiness was asked, so I am about to be read"                    | The asker: it is probing or committing.                       |
 | "A search is running, so a track ended"                               | The switch: it knows why it searches.                         |
 | "More than one item is left, so this join is merged"                  | The operator that advances: it knows which join it is making. |
+| "This item is not ready, or gave a short frame, so it is finished"    | The item: it ended its track, or it is only late.             |
+
+## 1b. One file per operator
+
+Each operator is specified in isolation: its own file, answering every clause
+of the seam contract
+([frame-assembly.md §7](frame-assembly.md#7-contract-clauses)). A rule for one
+user of the seam that its siblings do not meet is a gap to close, not a
+footnote.
 
 ## 2. Direction for the resume rule
 
@@ -82,6 +91,11 @@ inside the very first frame is not merged into the stream start; skipping or
 aborting the merged sequence still produces a track boundary. Both a join
 that falls mid-frame and one that falls on a frame boundary behave the same.
 
+**S5. Merged rotation.** Three children with short titled tracks, rotated and
+merged. Binding: one track is reported per round, at the start of the round;
+within a round the three children are heard in order, each for one full
+track; this repeats for every round.
+
 ## 4. Questions the normative pass must ask before rewriting
 
 - Which of the script-visible names in [README.md](README.md) are frozen.
@@ -89,12 +103,14 @@ that falls mid-frame and one that falls on a frame boundary behave the same.
 - Whether `rotate` and `random` stay script-level policies, which requires a
   stated predicate contract and a "track heard" event, or move into the
   operator.
-- Whether the frame-assembly seam may change for `cross`, `sequence` and
-  `source.dynamic` too. A fix to merged sequences is waiting for this rebuild
-  and assumes it may ([findings.md](findings.md) D9). If so: what happens to
-  the callers D9 lists, whose track start moves.
-- Whether `source.dynamic` and the merged looping rotation join the scope
-  (findings G8).
+- Whether the frame-assembly seam may change for all its users. A fix to
+  merged sequences is waiting for this rebuild and assumes it may
+  ([findings.md](findings.md) D9). If so: what happens to the callers D9
+  lists, whose track start moves.
+- Whether the merged rotation is kept as it is built today
+  ([findings.md](findings.md) D10, G10) or redefined.
+- Whether the rest of `cross` gets its own extraction before the seam changes
+  under it (findings G8).
 
 ## 5. Constraints on the rebuild
 

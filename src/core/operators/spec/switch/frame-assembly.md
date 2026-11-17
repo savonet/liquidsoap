@@ -94,21 +94,31 @@ State kept across cycles: `current`, the last source used.
   started a track that nobody has heard. Checked on a nested `rotate`: the
   chunk is served when the operator is next read, however much later.
 
-## 7. Users
+## 7. Contract clauses
 
-| Operator         | `track_sensitive`   | `merge`                            | New track on switch                   |
-| ---------------- | ------------------- | ---------------------------------- | ------------------------------------- |
-| `switch`         | all children are    | never                              | always                                |
-| `cross`          | never               | never                              | only when moving to the "after" phase |
-| `sequence`       | always              | configurable, off on the last item | configurable                          |
-| `source.dynamic` | configurable getter | configurable getter                | always                                |
+Every user of the seam answers these, in this order, under the heading "Seam
+answers" of its own file:
 
-`cross` and `sequence` map `force` to `ok` in their `get_source`. `sequence`
-turns `after_position` into `force` to play one track per item.
+| Clause | Question                                                                                   |
+| ------ | ------------------------------------------------------------------------------------------ |
+| C1     | Which source does `get_source` designate, for each reselect mode, and what does it change? |
+| C2     | `track_sensitive()`: which mode readiness uses.                                            |
+| C3     | `merge()`: its value, and when that value changes.                                         |
+| C4     | `new_track_on_source_switch()`.                                                            |
+| C5     | Who wakes the designated sources and who puts them to sleep.                               |
+| C6     | Remaining, abort track, effective source, self-sync.                                       |
+| C7     | Fallibility.                                                                               |
+
+| User             | File                           |
+| ---------------- | ------------------------------ |
+| `switch`         | [switch.md](switch.md)         |
+| `sequence`       | [sequence.md](sequence.md)     |
+| `source.dynamic` | [dynamic.md](dynamic.md)       |
+| `cross`          | [cross-seam.md](cross-seam.md) |
 
 `cross` reaches the seam twice: directly, and through the `sequence` it builds
-for its transitions. The default handoff
-([composition.md §4](composition.md#4-default-handoff)) uses `source.dynamic`
+around its transitions. The default handoff
+([composition.md §4](composition.md#4-default-handoff)) is a `source.dynamic`
 with `merge` on for one join only.
 
 ## 8. When `merge` is read

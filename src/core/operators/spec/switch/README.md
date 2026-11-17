@@ -8,12 +8,13 @@ it does not judge. Defects and open questions are in
 pass rewrites it from these documents alone. [brief.md](brief.md) carries the
 framing the later passes must apply.
 
-**Scope.** The `switch` operator; the frame-assembly seam it shares with
-`cross` and `sequence`; source composition (tags, profiles, the default
-handoff); the three selection policies built on `switch`: `fallback`,
-`rotate`, `random`. Sources, frames and the clock appear only as the contracts
-the switch relies on. `cross`, `sequence` and `source.dynamic` appear only as
-other users of the seam.
+**Scope.** The frame-assembly seam and each operator built on it, each in its
+own file: `switch`, `sequence`, `source.dynamic`, and `cross` for its use of
+the seam only. Source composition (tags, profiles, the default handoff). The
+selection policies built on `switch`: `fallback`, `rotate`, `random`, and the
+merged rotation. Sources, frames and the clock appear only as the contracts
+these rely on. The rest of `cross` (buffering, analysis, durations, child
+clock) is not covered.
 
 **Reading order.**
 
@@ -22,11 +23,15 @@ other users of the seam.
 | [source-contract.md](source-contract.md)   | Part A. What the switch requires of a source, a frame and a clock.               |
 | [frame-assembly.md](frame-assembly.md)     | Part A. The seam: building one frame out of successive sources.                  |
 | [switch.md](switch.md)                     | Part A. Children, state, the selection algorithm, handoff, leaving.              |
+| [sequence.md](sequence.md)                 | Part A. Seam user: items played in order.                                        |
+| [dynamic.md](dynamic.md)                   | Part A. Seam user: the source a script function designates.                      |
+| [cross-seam.md](cross-seam.md)             | Part A. Seam user: `cross`, for its use of the seam only.                        |
 | [composition.md](composition.md)           | Part A. Composition tags, profiles, per-source methods, the default handoff.     |
 | [policies.md](policies.md)                 | Part A. The policy contract: what a predicate may assume.                        |
 | [fallback.md](fallback.md)                 | Part A. Policy: first ready child.                                               |
 | [rotate.md](rotate.md)                     | Part A. Policy: weighted round-robin.                                            |
 | [random.md](random.md)                     | Part A. Policy: weighted random.                                                 |
+| [rotate-merge.md](rotate-merge.md)         | Part A. Policy: rounds presented as single tracks.                               |
 | [conformance.md](conformance.md)           | The test suite, by principle.                                                    |
 | [known-complexity.md](known-complexity.md) | What the history shows to be hard, by situation.                                 |
 | [findings.md](findings.md)                 | Defects, asymmetries, gaps, things to verify. The agenda for the normative pass. |
@@ -49,6 +54,10 @@ streaming cycle; their failure behaviour is in
   `source.composition.default_on_select`,
   `settings.source.composition.max_fade`.
 - `fallback(~id, sources)`, `rotate(~id, sources)`, `random(~id, sources)`.
+- `rotate.merge(~id, sources)`.
+- `sequence(~id, ~merge, ~single_track, sources)`, with the method `queue()`.
+- `source.dynamic(~id, ~init, ~track_sensitive, ~infallible, ~self_sync, ~merge, next)`,
+  with the methods `current_source()` and `prepare(s)`.
 
 ## Vocabulary
 
@@ -79,6 +88,9 @@ streaming cycle; their failure behaviour is in
   without necessarily consuming it.
 - **Resuming**: the first cycle a switch is animated after one or more ticks in
   which it was not.
+- **Join**: a change of source inside a frame or between two frames.
+  **Merged** join: one with no track mark.
+- **Item**: a source in a sequence's queue.
 - **Policy**: a set of predicates that turns `switch` into `fallback`,
   `rotate` or `random`.
 - **Composition tag**: `file`, `live` or inherited. **Profile**: the defaults

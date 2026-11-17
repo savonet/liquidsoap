@@ -18,14 +18,35 @@ fix PRs, and the diffs of 12 fix commits. I mined the header comments of the
 14 `switch_*` regression tests and the 14 `GHnnnn` regression tests that use a
 switch, and the CHANGES.md entries that name a switch operator.
 
+**Extension to the frame-assembly seam (entries 12 to 18).** The seam is the
+code that fills one frame from several sources in turn; `switch`, `sequence`,
+`source.dynamic` and `cross` share it. It was created with the streaming model
+of December 2023 and has 16 commits of its own since; the file that holds it
+has 107 in the same period. `git log --follow` gives 94 commits on `sequence`
+since 2008 and 97 on `source.dynamic` since 2010. Pickaxe searches on the
+seam's vocabulary and title searches for sequence, source.dynamic, append,
+prepend, once, rotate.merge, merge_tracks and the seam's assertion messages
+returned about 150 issues and PRs, many of them unrelated. I read the body and
+maintainer replies of about 55, and the diffs of about 30 commits, including
+11 of the 16 on the seam itself. For `cross` I read only the commits and issues about which source it
+designates and how its joins are marked. I mined 13 regression and stream
+tests (GH3645, GH4159, GH5019, GH5148, GH5361, GH5389, GH5514, LS354, append,
+append-merge, append-merge2, cross-sequence-transition, cross_on_track) and the
+CHANGES.md entries naming these operators.
+
 **Not read.** Issues before 2019 except where a commit cites them (trac
 numbers); the ~105 matching issues whose title was the only part read (most are
 support questions); AzuraCast-generated scripts attached to issues; the crossfade
-operator's own history beyond where it shares the frame-assembly seam. Items
+operator's own history beyond where it shares the frame-assembly seam (its
+analysis, buffering and autocue); GitHub Discussions; `append` and `prepend`
+before they became scripted operators in 2023, beyond commit subjects. Items
 marked **read only** rest on an issue title or report without a confirmed fix
 or reproduction.
 
-Entries are ordered by how often the difficulty recurred.
+Entries 1 to 11 (the switch family) are ordered by how often the difficulty
+recurred. Entries 12 to 18 (the seam) are ordered the same way among
+themselves. A fix that belongs to two entries is listed in both and marked
+"shared".
 
 ---
 
@@ -128,6 +149,8 @@ it is read loses nothing at the moment it is selected. A skip applied on leave
 is complete before the next selection of that source is decided.
 
 **Count / traces.** 11 fixes, 10 issues. Entry 3 and #5594 are the same family.
+Entries 15 (an item's end guessed from what it returns) and 12 (last use
+guessed from reachability) are the same difficulty at the seam.
 #1327 9a3e7f84b; #5077 c48abb653 (switch_reselect_after_idle); #5348 #5349
 bc7d5f8e3 (GH5348); #5594 (open); #5287 #5295 b680cf284; #5012 #5633 daef21ea7;
 #4281 #4289 a9e7cc49a; #5282 5d0e50352; #5283 335055c18; #5291 d106f5d55; #5294
@@ -188,7 +211,9 @@ transition, or an add-shaped transition, can absorb marks. A child that
 crossfades its own tracks never shows a boundary. The policy can return the
 same child it just left. A child can come back into the same frame after
 another child (s1, s2, s1). A track-sensitive selection whose predicate turns
-false mid-track must still be kept.
+false mid-track must still be kept. A crossing changes source twice, into the
+transition and out of it to what follows, and only the first change is a
+content boundary.
 
 **What went wrong.** The default transition ate track marks, so the switch saw
 one track per selection and ignored its schedule. `on_track` after a crossfade
@@ -202,7 +227,12 @@ broke when one child appeared twice in a frame with another child between.
 operator can create, move, drop or merge. The switch both reads marks (to
 decide when it may change) and writes them (to announce a change). The
 mid-frame and frame-boundary cases take different paths and drift apart. A mark
-on an empty segment announces a track that has no audio.
+on an empty segment announces a track that has no audio. Whether a join begins
+a track is known to the operator that makes the join, not to the code that
+assembles the frame: a generic rule ("a change of source begins a track") is
+wrong for the second join of a crossing. Whether a source's very first frame
+begins a track was left without a convention when marks became explicit, and
+operators that used to start on a mark (fades) were switched to start at once.
 
 **How to tell.** Every change of the producing source puts exactly one track
 mark where the new source's data starts, at a frame boundary and mid-frame
@@ -210,19 +240,19 @@ alike, and never on an empty segment. Tracks counted at the output equal the
 number of handoffs plus the children's own internal marks. A track-sensitive
 selection is kept until its child's track boundary whatever the predicates say.
 A child whose track ends mid-frame is followed within the same frame. No child
-appears twice, non-contiguously, in one frame.
+appears twice, non-contiguously, in one frame. A crossing puts one mark, where
+the transition starts, and none where it ends. The first frame of a stream
+either always or never begins a track, and the choice is written down.
 
-A join can also be asked to merge: whether a given join is merged was read
-from the operator's state after it had already moved past that join. Seen: a
-two-item merged sequence reported the second item's track instead of the
-first's, and the stream's first mark was dropped. Check: the track reported
-for a merged sequence is the first item's, once, at the stream start, for
-mid-frame and frame-aligned joins alike.
+A join that is asked to merge (no boundary at all) is entry 16. A frame that
+holds several boundaries is entry 18. A source designated twice in one frame is
+entry 14.
 
-**Count / traces.** 10 fixes (1 closed as incomplete), 1 revert, 7 issues.
-#5634 #5632 (open); #1999 b4d53d129; #3645 85e2a31e1; #3654 bcbb74c81; #4102 #4108 59de576ec; #4786
-2b3aa2ea7; 3c089a3f0; #5083 e30598ef2 reverted f998363bc; #5379 1f1fda60a;
-#5633 #5640 275d242b6; #3283; #2026; #3731; #1366 (read only).
+**Count / traces.** 9 fixes, 1 revert, 1 convention change, 6 issues.
+#1999 b4d53d129; #3645 85e2a31e1; #3654 bcbb74c81; #4102 #4108 59de576ec; #4786
+2b3aa2ea7; 3c089a3f0; #5083 e30598ef2 reverted f998363bc; #5379 1f1fda60a
+(cross_on_track); #5633 #5640 275d242b6; #3577 #3612 a64945bde (convention);
+#3283; #2026; #3731; #1366 (read only).
 
 ---
 
@@ -298,7 +328,8 @@ child is always ready and always eligible stays ready at every cycle across
 complete transitions in both directions, including the cycle where a transition
 ends. A source never reports ready before its clock has started.
 
-**Count / traces.** 6 fixes, 5 issues.
+**Count / traces.** 6 fixes, 5 issues. Entry 14 holds the crashes where the
+source promised is the one that was just used.
 trac #403 3866cf8f3; LS-460 e0b832531; 76dcb23b8; #4420 3c047939d; #4163 #4164
 f2117c1e8; #4496 2c38b4475; #5073; #5077 (blank last source,
 switch_infallible_across_transition); #1584 (read only); #3644.
@@ -353,7 +384,9 @@ decide whether to sleep).
 not there. A per-frame auto-sync design was merged and reverted. Sync errors
 were unclear. Recomputing the sync role by walking the graph on every tick cost
 CPU. A notification-based replacement then leaked callbacks and kept stopped
-clocks alive. Some selection paths forgot to notify.
+clocks alive. Some selection paths forgot to notify. A sequence kept reporting
+its first item's sync source after it had moved to the second, so the clock
+paced the stream for a source that was no longer playing.
 
 **Why it is hard.** The value is cheap to define and expensive to keep current.
 A cache needs a notification from every path that changes what is producing,
@@ -364,9 +397,9 @@ the clock's view of the switch's sync source equals that of the source actually
 producing. The cost per cycle does not grow with the number of children.
 Nothing registered for a selection change outlives the switch.
 
-**Count / traces.** 7 fixes, 1 revert, 2 issues.
+**Count / traces.** 8 fixes, 1 revert, 2 issues.
 #1711 65bc80b8d; #1725 1c7a1c823; #1012 reverted 5e8951ad7; #3879 2ba67aba6;
-f4ebeba5b; #5133 #5153 6906e2a70; 70c75575e; #5505 a0c56dc00.
+f4ebeba5b; #5133 #5153 6906e2a70; 70c75575e; #5504 187bd8b59; #5505 a0c56dc00.
 
 ---
 
@@ -454,3 +487,334 @@ boundary, never inside one.
 
 **Count / traces.** 3 fixes. ff1206ed1; #5359 cdc894e3c; #5148 #5194 (crossfade,
 read only for switch).
+
+---
+
+## 12. Sources created or handed over while the stream runs
+
+**Situation.** A dynamic selector gets its sources from script code at run
+time. They can be created on the spot, created ahead of time and kept until
+needed, or be long-lived sources returned again and again. Each one must be
+woken before its first use (a file source has to be ready at once) and released
+after its last, exactly once. The same source can be in use elsewhere, can be
+part of both the old and the new answer (a mix rebuilt with one more input), or
+can be prepared and then never returned. A sequence holds all its items from
+the start and uses them one at a time. A live input owns a connection, a
+decoder and threads.
+
+**What went wrong.** Replaced sources were never released. Once they were,
+releasing the old answer shut down the sources it shared with the new one:
+adding a playlist to a running mix made the other playlists start a new track.
+Returning to a long-lived playlist restarted it from the top at each return. A
+source prepared ahead and never returned had its release tied to garbage
+collection; that created a reference cycle and nothing was released at all, so
+the release became an explicit handle given to the script. A replaced live
+input was detached but not stopped: one connection, decoder and thread pool
+leaked per replacement. A sequence kept finished items awake until the whole
+sequence was done, and earlier had to stay ready long enough to see an item's
+end before it could let it go. A timer that retried a failed source misbehaved
+with sources shorter than the timer, and a "set the source now" command had no
+defined moment of effect; both were removed. One activation cleanup was
+reverted the next day. `append` leaked a source per track (1.x).
+
+**Why it is hard.** Creation belongs to the script, use to the operator, and
+release needs both to agree on what "last use" is. Wake and release are
+counted per owner, and their order matters: the new answer must be woken
+before the old one is released. Reachability is not use, so the collector
+cannot be the signal. The maintainer's conclusion after the collector-based
+attempt: do what should have been done from the start, pass an explicit
+release and let the party that created the source call it.
+
+**How to tell.** After N replacements the number of live sources, threads and
+connections equals that after one. A source present in both the old and the
+new answer is neither stopped nor restarted, and its position continues. A
+long-lived source that is returned to either continues or restarts, and which
+one is written down. A source prepared and never returned is released when the
+script says so. A replaced live input is stopped in the cycle of its
+replacement, and its stop callback fires. An item a sequence has finished with
+is released when the sequence leaves it.
+
+**Count / traces.** 10 fixes, 1 revert, 1 design replaced, 5 issues.
+append leak (1.x CHANGES); eb4297578; 25b7e1e05 reverted 76fdccfbf; #4055
+4e447e7fe; #4156 1dc6faca0; #4268; #4713 #4725 c4eeb258d; #4995; #4810 59a223f34
+aa9dcd173 02937d577 replaced by #4835 d129f78a8; #5079 b0227a7d7; #5389 #5391
+138d0f8d8 (GH5389); #4796 (entry 5).
+
+---
+
+## 13. Data produced but not consumed
+
+**Situation.** A source produces a whole frame in a streaming cycle, but a
+reader may take only the start of it: up to a track boundary, up to the room
+left in its own frame, or up to the shortest of several sources it combines.
+What is left is the source's cached remainder and must come first in the next
+cycle. A mid-frame join puts the first chunk of the entering source into the
+room the leaving source left, which can be a few samples. A crossing hands its
+transition sources fed from data read ahead in a child clock. A wrapper may
+need a source's first frame, for its metadata, before it decides anything.
+
+**What went wrong.** A remainder was cut at the wrong offset. A new remainder
+replaced what was already cached instead of being queued with it. A source
+that held a remainder but could produce nothing new was asked to produce. The
+continuation of a source inside the frame was marked as a new track a second
+time. An operator combining several sources kept the shortest length and lost
+what the others had produced beyond it. A sequence dropped the first chunk of
+its next item, with its metadata, when both items had the same amount of data
+in the frame; the stream advertised the previous track until the next
+boundary. Exactly one frame of the entering track was lost when its fade-in
+was zero. The sources of a crossing were paced by the child clock instead of
+the reader's: a click at the mixing point when a cue-out fell exactly on a
+frame edge, gone with one sample less. A delay in front of a live source loses
+data (warning only). A chunk cached before a source was left played on return
+(open). Transitions skipped data after a track mark (1.x).
+
+**Why it is hard.** How much was consumed is known to the reader, how much was
+produced to the source, and when the remainder is carried over to the clock.
+The bugs need an exact alignment: a boundary on a frame edge, two items of
+equal length, a zero duration. Round test durations never hit them, and a lost
+chunk of 20 ms is inaudible while the metadata it carried is not. The reader
+must state what it consumed; it cannot be deduced from what it asked for.
+
+**How to tell.** For every source and every cycle: samples produced equal
+samples that reached a reader plus samples still cached. Nothing is dropped at
+a join and nothing is delivered twice. Test joins at every offset in a frame,
+including zero and a full frame, with item lengths of an exact number of
+frames and one sample more or less. Metadata on the first sample of an
+entering item is announced at the join. A reader that takes the shortest of
+several sources loses nothing from the others. With a zero fade or delay, the
+first sample of the entering track reaches the output. A source left with a
+remainder does not play it on return unless the remainder is still current.
+
+**Count / traces.** 10 fixes, 8 issues.
+#683 #652 (1.x CHANGES); #3695 ab8beafbf; #3718 b054da31b; #3720 707d004ea;
+0566ec0e7; 24362d387; #4828 #4851 ad75580e0; #4736 #4739 #4759 2e28966b9; #4887
+553752e1c; #5296 905c57fda (cross-sequence-transition; shared with 14); #4850
+(read only); #5594 (open); #5012 (entry 2).
+
+---
+
+## 14. The same source designated again inside one frame
+
+**Situation.** When a frame is not full after a source's chunk, the assembler
+asks which source comes next. The answer can be the source it just used.
+Either that source's next track starts later in the frame it already produced,
+and it can go on from where the last chunk stopped, or it has nothing beyond
+that point and must not be used again in this cycle. The difference is a
+position in that source's frame. The one who answers can be script code that
+returns the current source, a policy that comes back to a child it left
+earlier in the frame (s1, s2, s1), a sequence looping on its last item, or a
+crossing whose leaving side has run out.
+
+**What went wrong.** A track-sensitive fallback ignored a queue that had become
+ready, because at a boundary the same child was accepted again without a new
+selection. A sequence failed on its last item. A sequence applied the position
+reached in the item it had finished to the item it moved to, and rejected it.
+A child that came back after another child in one frame broke the single
+"last source" position: crash under an audio processor. A script selector
+returning a source with nothing more to give ended the process on an
+assertion, when alternating between two live inputs. A crossing handed back a
+leaving side that was not ready, and the two sides of a crossing followed the
+wrong re-selection rule. A selection made when readiness was answered differed
+from the one made at delivery ("not able to reselect"). The process exits on
+repeated skips (open, read only).
+
+**Why it is hard.** "The same source" means two things, continue or repeat,
+and only a position that belongs to that source and to this cycle tells them
+apart. One remembered position is wrong as soon as two sources alternate or
+the selector moves on between the measure and its use. Every user of the seam
+answers the question with its own exceptions. A wrong answer is an assertion
+that stops the stream, reachable from script.
+
+**How to tell.** A source contributes at most one contiguous span to a frame,
+and each sample of its frame is used at most once. A position is compared only
+with the frame of the source it was measured on. For every user of the seam,
+at a boundary in mid-frame: a different ready source is taken from its start;
+the same source with more data continues without a gap; the same source with
+nothing more ends the frame short, with no crash and no repeat. Run each with
+a script selector that always returns the same source, one that alternates
+between two on every call, and a source that ends exactly on a frame edge. No
+script can reach an assertion.
+
+**Count / traces.** 8 fixes, 4 issues.
+#3645 85e2a31e1 (GH3645; shared with 4); #3706 7bf657fce; c21588fc0; #4102
+#4108 59de576ec (shared with 4); #4159 #4172 7c8f2d9ed (GH4159); #4177
+4d1c2ea0b; #4420 3c047939d (shared with 6); #5296 905c57fda (shared with 13);
+#4238 (open, read only); #3881 (read only).
+
+---
+
+## 15. An item's end guessed from a mark, a short frame or a missing answer
+
+**Situation.** An operator that plays items in turn must know when an item is
+finished. Sources show it in three ways: a track mark, a frame shorter than
+asked, not being ready. None of them means "finished" on its own. A compound
+item (a transition) has marks inside it. A slow item (a request being
+resolved) is not ready yet. An item can have zero length, be shorter than a
+frame, or be shorter than the read-ahead taken from it. The last item loops by
+design. The list can be empty or hold one item.
+
+**What went wrong.** A sequence of a transition and its tail jumped to the tail
+at the transition's first mark (hotfix, then an option to play each item until
+it is unavailable). An item not ready when its turn came was dropped for good:
+`once` over a source that needs time to prepare never plays (rewrite proposed,
+not merged). A zero-length silence, used as an idiom to pass straight to the
+next item, stopped working when every source had to produce some data. An
+entering track shorter than the read-ahead of a crossing cut the track after
+next or repeated a jingle; only a warning was added. A sequence stayed ready
+forever and sent a mixer into an endless loop; before that it went unready
+without having seen the end, so its items were never shut down. A dynamic
+selector moving to a failing source inside a mixer produced a mark beyond the
+end of the data: crash. A merged rotation over an item that ends went to
+silence instead of looping (read only). A sequence that is left and reached
+again resumes where it stopped, without its first items (by design, reported
+as a bug, read only). "Infinite sequence of empty tracks" (open, read only).
+
+**Why it is hard.** The end is the item's decision, but the operator sees only
+by-products of it. Each by-product is right for a plain file and wrong for a
+compound, live or empty item. This is entry 2 at the scale of one frame: the
+party that knows does not say, and the party that needs to know guesses.
+
+**How to tell.** For each kind of item (file, live, compound with marks
+inside, zero length, shorter than a frame, shorter than the read-ahead, not
+ready at its turn and ready later), write down what ends it and test that
+nothing else does. An item not ready at its turn is either waited for or
+dropped; the rule is written and the drop is logged. An empty item takes no
+audio from its neighbours. A mark never lies beyond the data of its frame. The
+operator stops being ready within a bounded time after its last item ended,
+and not before that end was delivered.
+
+**Count / traces.** 8 fixes, 1 warning, 1 fix not merged, 8 issues.
+eb4297578; #115 3c35e2ccf; cc6fcf228; crossfade buffering (2.0 CHANGES); #3728
+#3729 8ae85b066; #3731 50eede125 (warning); #4736 #4759 2e28966b9 (shared with
+13); #4887 553752e1c (shared with 13); #4897 (not merged); #5044 #5054
+6f9f2bcc4; #478 #2872 #280 (read only).
+
+---
+
+## 16. Merge decided at the wrong moment, or by the wrong party
+
+**Situation.** A merged join has no boundary: the listener hears one track.
+The rule since 2013 is that joins between items are merged and consecutive
+tracks of the last item are not, because transitions are built from sequences.
+The decision is per join. The operator advances its own state when it names
+the next source, before the join is assembled. A join in mid-frame and a join
+on a frame edge are assembled on different paths. Several things are built on
+merging: a fade-in after a delay (silence, then the track), `prepend` and
+`append` with merge, a merged rotation (one round is one track), the head and
+tail around a crossing's transition.
+
+**What went wrong.** Merging with a single source was fixed, reverted, and
+redone with a separate operator for "merge everything" (2013). A fix for a
+sequence failing on its last item made the merge answer depend on how many
+items are left, read after the operator has advanced: the join into the last
+item is never merged, merge does nothing in a two-item sequence, the track
+reported is the second item's, and the first mark of the stream is dropped
+(open). A targeted fix was closed as incomplete: the path used by crossings
+read the same late answer, so a mid-frame join kept its mark and a
+frame-aligned one dropped it; a join inside the very first frame was taken for
+the stream start; a skip on a merged sequence lost its boundary. Callers had
+come to rely on the defect: the merged rotation pads each round with a frame of
+silence so that the mark left unmerged separates the rounds, and a delayed
+fade-in or a merged `prepend` would move its track start to the leading
+silence or jingle. `append` with merge took three fixes in ten days: the
+appended item fired the track callback, a two-track appended sequence
+announced its metadata wrongly, and the marks of a source continuing in the
+frame were not dropped.
+
+**Why it is hard.** The answer belongs to the join, that is to the source
+being left and the source entered. It is asked of the operator, whose state
+has already moved on. Two assembly paths must agree. Merging removes a
+boundary but must keep the entering item's metadata, a skip's boundary and the
+start of the stream. Fixing the rule changes what four stdlib operators report.
+
+**How to tell.** For a merged sequence of 1, 2 and 3 items: one track is
+announced, the first item's, at the start of the stream; each later item's
+metadata is announced at its join as metadata, with no boundary; the result is
+the same for joins in mid-frame, on a frame edge and inside the first frame.
+Consecutive tracks of the last item keep their boundaries. A skip on a merged
+sequence gives a boundary. Rounds of a merged rotation are separated by one
+boundary and no audio is inserted to get it. For a delayed fade-in and a
+merged `prepend`, where the track starts is written down and tested.
+
+**Count / traces.** 7 fixes, 1 revert, 2 fixes not merged, 2 issues.
+487aef08b (shared with 18); cf8a6f05f reverted 3f272c65a; 4fe509051; #3706
+7bf657fce (shared with 14; origin of #5634); #4152 a25ebbe93 (append,
+append-merge); #4153 (closed); #4156 1dc6faca0 (shared with 12); #4169
+fdb4b752c (append-merge2); #5379 1f1fda60a (entry 4); #5632 (closed); #5634
+(open); #3847 (read only).
+
+---
+
+## 17. Several reads of one source in one cycle
+
+**Situation.** In a streaming cycle a source computes its frame once and every
+reader sees the same frame. Readers are many: the consumer, a readiness probe,
+a script callback fired while the frame is being computed that asks the same
+source for its time or its frame, script code that makes a source compute its
+frame ahead of use to see its first metadata. A wrapper and the source it
+wraps can each hold a callback for the same boundary.
+
+**What went wrong.** A synchronous metadata callback that asked its own source
+for its elapsed time restarted the computation it was running in. The source
+produced several frames in one cycle; with a source that announces metadata
+again on each track the loop never ended (hang, or a crash after 600 MB of
+output). In the previous streaming model a prepend-style operator asked a
+source for data it had already advanced in the cycle: assertion, on `prepend`
+and `append` with merge. Selection ran from the readiness question and from
+generation at once and had to be made safe against itself. A fade held on a
+wrapper started from an end-of-track callback that fired, on a skip, after the
+inner source's new-track callback: the whole next track was muted. A fade-in
+whose start ran after the first samples of the new track were processed gave a
+click at full level. A change that computed frames early to cope with a
+zero-length item was reverted the next day and redone.
+
+**Why it is hard.** "Once per cycle" is a property of the whole graph, and
+each reader acts locally. Script callbacks make any reader re-entrant. The
+order of callbacks between a wrapper and what it wraps is stated nowhere, and
+fades depend on it. Entry 3 is the same difficulty seen from a selector.
+
+**How to tell.** Any number of reads of a source in a cycle, from anywhere,
+return the same frame, and the source computes once: the count of computations
+per cycle is 1. A callback fired during the computation that reads the same
+source gets a defined answer and returns. For one boundary, the order in which
+the callbacks of a wrapper and of the source it wraps fire is written down and
+is the same for a natural end and for a skip.
+
+**Count / traces.** 6 fixes, 1 revert, 5 issues.
+LS-354 908588f4e (LS354); #3125; 53b032acc reverted 27f1964bf; #4759 2e28966b9
+(shared with 13); #5019 #5062 e86a14b22 (GH5019); #5361 #5375 8446a9aaf
+(GH5361); #5514 #5516 7339f785e (GH5514).
+
+---
+
+## 18. More than one track boundary in a frame
+
+**Situation.** A track can be shorter than a frame. A skip can end a track in
+the frame where it began. A join adds a boundary next to a source's own. An
+inserted item can last a few milliseconds. So one frame can hold several
+boundaries. The streaming model before December 2023 allowed one boundary per
+read and asserted it. The current one lets a frame hold several marks, and a
+reader splits at the first.
+
+**What went wrong.** Merging operators left boundaries that meant nothing, and
+the one-per-read rule was introduced to forbid them (2008). Under that rule, a
+skip issued from a metadata callback below a `prepend` added one boundary too
+many and shut the stream down; the maintainer judged it not fixable in that
+model. In the current model, a dynamic selector alternating between live
+inputs ended the process with "multiple tracks in a single frame". A mark was
+put on an empty chunk (entry 4), and a mark was placed beyond the data (entry
+15).
+
+**Why it is hard.** A bound on boundaries per frame is a comfort for readers
+and a crash for writers, who cannot know how many other parties add one. With
+no bound, every reader must handle the second and third boundary, and tests
+exercise only the first.
+
+**How to tell.** A frame with 0, 1, 2 and 3 boundaries (tracks of a few
+samples, a skip in the first frame of a track, a join next to a source's own
+boundary) goes through every user of the seam with every track announced in
+order, none merged unless asked, and no assertion.
+
+**Count / traces.** 2 fixes, 1 redesign, 3 issues.
+trac #204 487aef08b; #3696; #3577 77cf76e88 (redesign); #4159 #4172 7c8f2d9ed
+(shared with 14); 3c089a3f0 (entry 4); #5044 #5054 (entry 15).

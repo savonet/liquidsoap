@@ -202,3 +202,20 @@ source that ran out of data without emitting a track mark was not preempted.
 
 `Switch to <id>.` on a first selection; `Switch to <id> at track boundary.` or
 `Switch to <id> with transition.` on a change. Level: important.
+
+## 14. Seam answers
+
+Clauses of [frame-assembly.md §7](frame-assembly.md#7-contract-clauses).
+
+- **C1.** [§6](#6-get_source). All three modes are honoured as given, except
+  that the search runs with `force` turned into `ok`. A call can evaluate
+  predicates, run a handoff and run `on_leave`.
+- **C2.** True when every child is track-sensitive in this cycle
+  ([§3](#3-cycle-start)).
+- **C3.** Never.
+- **C4.** Always.
+- **C5.** The switch wakes the effective source at the handoff and puts it to
+  sleep when the selection is replaced or cleared
+  ([§8](#8-handoff), [§10](#10-leaving)). Children are also woken by the
+  switch as its sources, for its whole life.
+- **C6, C7.** [§11](#11-other-properties).
