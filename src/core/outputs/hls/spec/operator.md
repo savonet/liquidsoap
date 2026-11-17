@@ -17,23 +17,23 @@ Positional, in order:
 
 Labelled, with defaults:
 
-| Label                  | Type                                                            | Default                                   | Owner                                                                     |
-| ---------------------- | --------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
-| `playlist`             | `string`                                                        | `"stream.m3u8"`                           | [playlists.md §3](playlists.md#3-main-playlist)                           |
-| `extra_tags`           | `[string]`                                                      | `[]`                                      | Main playlist tags, each trimmed.                                         |
-| `prefix`               | `string`                                                        | `""`                                      | [playlists.md §4](playlists.md#4-uris-and-prefix)                         |
-| `main_playlist_writer` | nullable function, below                                        | `null` natively; see §1.1                 | [playlists.md §3](playlists.md#3-main-playlist)                           |
-| `segment_duration`     | `float`, seconds                                                | `10.`                                     | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration) |
-| `segment_name`         | `({position, extname, duration, ticks, stream_name}) -> string` | `"#{stream_name}_#{position}.#{extname}"` | [files.md §2](files.md#2-file-names)                                      |
-| `segments`             | `int`                                                           | `10`                                      | [playlists.md §2](playlists.md#2-media-playlist)                          |
-| `segments_overhead`    | `int?`                                                          | `5`                                       | [files.md §5](files.md#5-retention)                                       |
-| `cut_on_metadata`      | `bool?`                                                         | `null`                                    | [metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags)                 |
-| `perm`                 | `int`                                                           | `0o666`                                   | [files.md §3](files.md#3-writing-a-file)                                  |
-| `dir_perm`             | `int`                                                           | `0o777`                                   | [files.md §1](files.md#1-directories)                                     |
-| `temp_dir`             | `string?`                                                       | `null`                                    | [files.md §3](files.md#3-writing-a-file)                                  |
-| `persist_at`           | `string?`                                                       | `null`                                    | [persistence.md](persistence.md)                                          |
-| `strict_persist`       | `bool`                                                          | `false`                                   | [persistence.md §4](persistence.md#4-restoring)                           |
-| `reopen_on_error`      | `(error?) -> float?`                                            | `fun (_) -> 2.`                           | §6                                                                        |
+| Label                  | Type                                                                        | Default                                   | Owner                                                                     |
+| ---------------------- | --------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
+| `playlist`             | `string`                                                                    | `"stream.m3u8"`                           | [playlists.md §3](playlists.md#3-main-playlist)                           |
+| `extra_tags`           | `[string]`                                                                  | `[]`                                      | Main playlist tags, each trimmed.                                         |
+| `prefix`               | `string`                                                                    | `""`                                      | [playlists.md §4](playlists.md#4-uris-and-prefix)                         |
+| `main_playlist_writer` | nullable function, below                                                    | `null` natively; see §1.1                 | [playlists.md §3](playlists.md#3-main-playlist)                           |
+| `segment_duration`     | `float`, seconds                                                            | `10.`                                     | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration) |
+| `segment_name`         | `({position, start_time, extname, duration, ticks, stream_name}) -> string` | `"#{stream_name}_#{position}.#{extname}"` | [files.md §2](files.md#2-file-names)                                      |
+| `segments`             | `int`                                                                       | `10`                                      | [playlists.md §2](playlists.md#2-media-playlist)                          |
+| `segments_overhead`    | `int?`                                                                      | `5`                                       | [files.md §5](files.md#5-retention)                                       |
+| `cut_on_metadata`      | `bool?`                                                                     | `null`                                    | [metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags)                 |
+| `perm`                 | `int`                                                                       | `0o666`                                   | [files.md §3](files.md#3-writing-a-file)                                  |
+| `dir_perm`             | `int`                                                                       | `0o777`                                   | [files.md §1](files.md#1-directories)                                     |
+| `temp_dir`             | `string?`                                                                   | `null`                                    | [files.md §3](files.md#3-writing-a-file)                                  |
+| `persist_at`           | `string?`                                                                   | `null`                                    | [persistence.md](persistence.md)                                          |
+| `strict_persist`       | `bool`                                                                      | `false`                                   | [persistence.md §4](persistence.md#4-restoring)                           |
+| `reopen_on_error`      | `(error?) -> float?`                                                        | `fun (_) -> 2.`                           | §6                                                                        |
 
 Plus the parameters common to every output: `id`, `fallible` (default
 `false`), `start` (default `true`), `register_telnet` (default `true`) and

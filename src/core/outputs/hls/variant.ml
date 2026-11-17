@@ -14,9 +14,11 @@ type metadata =
   | `Pending of Frame.Metadata.Export.t
   | `Sent of Frame.Metadata.Export.t ]
 
-(* [first_id3]: the metadata whose first ID3 tag this segment carries. *)
+(* [first_id3]: the metadata whose first ID3 tag this segment carries.
+   [opened_at]: wall-clock time the segment was opened. *)
 type segment = {
   start : int;
+  opened_at : float;
   mutable discontinuous : bool;
   mutable tags : string list;
   mutable init : string option;

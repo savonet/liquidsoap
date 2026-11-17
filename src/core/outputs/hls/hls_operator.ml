@@ -337,11 +337,12 @@ class output p =
            segments in a live playlist.";
       self#on_sleep (fun () -> self#final_stop)
 
-    method private segment_name v ~position ~extname ~ticks =
+    method private segment_name v ~position ~extname ~ticks ~start_time =
       let record =
         Lang.record
           [
             ("position", Lang.int position);
+            ("start_time", Lang.float start_time);
             ("extname", Lang.string extname);
             ("duration", Lang.float (seconds ticks));
             ("ticks", Lang.int ticks);
@@ -369,7 +370,7 @@ class output p =
             let position = Window.next_init_position v.window in
             let name =
               self#segment_name v ~position ~extname:(Variant.init_extension v)
-                ~ticks:0
+                ~ticks:0 ~start_time:(Unix.gettimeofday ())
             in
             File_store.write_now self#store ~name (`Init v.name)
               (Strings.of_string bytes);
@@ -392,6 +393,7 @@ class output p =
       let segment =
         {
           Variant.start;
+          opened_at = Unix.gettimeofday ();
           discontinuous = v.pending_discontinuity;
           tags = Variant.take_tags v;
           init = v.current_init;
@@ -450,7 +452,7 @@ class output p =
           let name =
             self#segment_name v ~position:v.Variant.window.next_position
               ~extname:(Variant.segment_extension v)
-              ~ticks:closed.length
+              ~ticks:closed.length ~start_time:segment.opened_at
           in
           ( name,
             File_store.write self#store ~name (`Segment v.name) closed.bytes )
@@ -1095,6 +1097,7 @@ let segment_name_t =
         Lang.record_t
           [
             ("position", Lang.int_t);
+            ("start_time", Lang.float_t);
             ("extname", Lang.string_t);
             ("duration", Lang.float_t);
             ("ticks", Lang.int_t);
