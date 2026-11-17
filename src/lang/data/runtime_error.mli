@@ -22,12 +22,20 @@
 
 (** An error at runtime. *)
 
-type runtime_error = private { kind : string; msg : string; pos : Pos.t list }
+(** [origin] is the OCaml exception the error was converted from, as text. *)
+type runtime_error = private {
+  kind : string;
+  msg : string;
+  pos : Pos.t list;
+  origin : string option;
+}
 
 exception Runtime_error of runtime_error
 
 val on_error : (runtime_error -> unit) -> unit
-val make : ?message:string -> pos:Pos.t list -> string -> runtime_error
+
+val make :
+  ?message:string -> ?origin:string -> pos:Pos.t list -> string -> runtime_error
 
 val raise :
   ?bt:Printexc.raw_backtrace ->
@@ -35,3 +43,15 @@ val raise :
   pos:Pos.t list ->
   string ->
   'a
+
+(** Register a function telling which other exceptions a script may catch, as
+    the error kind and script positions it sees them with. They keep being
+    reported as they are when nothing catches them. *)
+val register_catchable : (exn -> (string * Pos.t list) option) -> unit
+
+(** The error kind and positions under which a script may catch [exn], if any.
+*)
+val catchable : exn -> (string * Pos.t list) option
+
+(** Run the [on_error] listeners on an error that is not raised. *)
+val notify : runtime_error -> unit

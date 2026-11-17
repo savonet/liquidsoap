@@ -39,7 +39,7 @@ type audio = {
 type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
 
 type video = {
-  framerate : int Lazy.Mutexed.t;
+  framerate : (int * int) Lazy.Mutexed.t;
   width : int Lazy.Mutexed.t;
   height : int Lazy.Mutexed.t;
   pixel_format : string option;
@@ -60,7 +60,15 @@ type encoded = {
 }
 
 type keyframe = [ `Wait_for_keyframe | `Ignore_keyframe ]
-type track = [ `Drop | `Copy of keyframe | `Encode of encoded ]
+type copy = { keyframe : keyframe; codec_tag : string option }
+type track = [ `Drop | `Copy of copy | `Encode of encoded ]
+
+let copy = { keyframe = `Wait_for_keyframe; codec_tag = None }
+
+let fourcc tag =
+  if String.length tag <> 4 then
+    failwith (Printf.sprintf "codec_tag %S is not four characters" tag);
+  String.fold_right (fun c tag -> (tag lsl 8) lor Char.code c) tag 0
 
 type t = {
   format : string option;
@@ -256,10 +264,14 @@ let string_of_track (field, track) =
   in
   match track with
     | `Drop -> Printf.sprintf "%%%s.drop" field
-    | `Copy `Wait_for_keyframe ->
-        Printf.sprintf "%%%s.copy(wait_for_keyframe)" field
-    | `Copy `Ignore_keyframe ->
-        Printf.sprintf "%%%s.copy(ignore_keyframe)" field
+    | `Copy { keyframe; codec_tag } ->
+        let keyframe =
+          match keyframe with
+            | `Wait_for_keyframe -> "wait_for_keyframe"
+            | `Ignore_keyframe -> "ignore_keyframe"
+        in
+        Printf.sprintf "%%%s.copy(%s)" field
+          (String.concat ", " (keyframe :: opt "codec_tag" codec_tag))
     | `Encode { mode; codec; options; opts } ->
         let args =
           match options with
@@ -283,7 +295,9 @@ let string_of_track (field, track) =
                 @ [
                     Printf.sprintf "width=%d" (force v.width);
                     Printf.sprintf "height=%d" (force v.height);
-                    Printf.sprintf "framerate=%d" (force v.framerate);
+                    (match force v.framerate with
+                      | rate, 1 -> Printf.sprintf "framerate=%d" rate
+                      | num, den -> Printf.sprintf "framerate=\"%d/%d\"" num den);
                   ]
                 @ opt "pixel_format" v.pixel_format
                 @ opt "hwaccel" (Some (string_of_hwaccel v.hwaccel))

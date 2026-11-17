@@ -423,18 +423,19 @@ external reserve_stream_copy : output container -> int
   = "ocaml_av_reserve_stream_copy"
 
 external initialize_reserved_copy :
-  output container -> int -> _ Avcodec.params -> unit
+  output container -> int -> int option -> _ Avcodec.params -> unit
   = "ocaml_av_initialize_stream_copy"
 
 let new_uninitialized_stream_copy output =
   { output; reserved = reserve_stream_copy output }
 
-let initialize_stream_copy ~params { output; reserved } =
-  initialize_reserved_copy output reserved params;
+let initialize_stream_copy ?codec_tag ~params { output; reserved } =
+  initialize_reserved_copy output reserved codec_tag params;
   { container = output; index = reserved }
 
-let new_stream_copy ~params output =
-  initialize_stream_copy ~params (new_uninitialized_stream_copy output)
+let new_stream_copy ?codec_tag ~params output =
+  initialize_stream_copy ?codec_tag ~params
+    (new_uninitialized_stream_copy output)
 
 type audio_encoding = {
   channel_layout : Channel_layout.t;

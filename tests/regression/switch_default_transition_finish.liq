@@ -38,10 +38,13 @@ s.on_metadata(
 tracks = ref([])
 s.on_track(synchronous=true, fun (m) -> tracks := [...tracks(), m["title"]])
 
-# Past the end of "a" and of the second "b" would have started.
+# Two seconds into the starting source: past the end of "a", and "b" would
+# have started under it. Without `allow_partial=false`, the check would run at
+# the end of "a", before the switch is even complete.
 s.on_position(
   synchronous=true,
-  position=3.,
+  position=2.,
+  allow_partial=false,
   fun (_, _) ->
     if
       tracks() == ["a", "live"] and not list.mem("b", titles())

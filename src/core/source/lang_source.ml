@@ -38,9 +38,13 @@ let apply ?pos v env =
   try Clock.start_scope (fun () -> apply ?pos v env)
   with exn -> (
     let bt = Printexc.get_raw_backtrace () in
-    match exn with
-      | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
-      | _ ->
+    match (exn, catchable_error ~bt exn) with
+      | Runtime_error.Runtime_error _, _ -> Printexc.raise_with_backtrace exn bt
+      (* The caller's error handlers get to see it with its kind. *)
+      | _, Some error ->
+          Runtime_error.notify error;
+          Printexc.raise_with_backtrace (Runtime_error.Runtime_error error) bt
+      | _, None ->
           (Runtime.throw ~lexbuf:None ~bt ()) exn;
           Printexc.raise_with_backtrace Runtime.Error bt)
 

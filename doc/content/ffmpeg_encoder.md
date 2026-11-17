@@ -108,6 +108,7 @@ Where:
 - `%audio.copy` passes data through without decoding or re-encoding. This avoids CPU usage but the data cannot be processed by operators like `fade.{in,out}` or `smart_cross`. Every source of a copied stream must share its data format: see [switching between copied sources](./ffmpeg.md#switching-between-copied-sources).
 - `%video(...)` sets options for the video codec. Unused options raise an exception. Any option supported by `ffmpeg` may be passed.
 - `%video.raw` and `%video.copy` behave like their `%audio` counterparts.
+- `framerate` (or `r`) in `%video(...)` and `%video.raw(...)` is the output frame rate, `settings.frame.video.framerate` by default. It takes an integer or a fraction string, e.g. `framerate="30000/1001"` for 29.97 fps, while liquidsoap itself runs at an integer rate. Frames are retimed onto the output rate.
 - Generic options are passed to audio, video, and format (container) setup. Unused options raise an exception.
 
 The streams of the container are created in the order of the tracks in the encoder.
@@ -139,6 +140,21 @@ With `wait_for_keyframe`, the encoder discards packets at the start of a new str
 With `ignore_keyframe`, encoded data is passed through immediately. Content starts right away but playback may stall until a keyframe is received.
 
 Audio and subtitle tracks never wait for a keyframe of their own: every packet of theirs can start a stream.
+
+### Codec tag
+
+The codec tag is the four-character code a container uses to name a stream's codec, for instance `hvc1` or `hev1` for HEVC in mp4. Players can be picky about it: Apple players only play HEVC in fMP4 HLS when it is tagged `hvc1`, while the mp4 muxer writes `hev1` by default.
+
+A copied track keeps the codec tag of its source when the output format accepts it, so an `hvc1` mp4 file stays `hvc1` when remuxed. A source whose tag the output format does not know, such as an mpegts stream, gets the muxer's default instead.
+
+The `codec_tag` option sets the tag explicitly, on copied and encoded tracks alike, like `-tag:v` with the ffmpeg command line:
+
+```liquidsoap
+%ffmpeg(format="mp4", %audio.copy, %video.copy(codec_tag="hvc1"))
+%ffmpeg(format="mp4", %audio(codec="aac"), %video(codec="libx265", codec_tag="hvc1"))
+```
+
+The HLS `CODECS` attribute follows the tag.
 
 ### Hardware acceleration
 

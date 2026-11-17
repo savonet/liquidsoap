@@ -759,6 +759,34 @@
   (run %{pool_test})))
 
 (executable
+ (name runtime_error_kinds_test)
+ (modules runtime_error_kinds_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias runtime_error_kinds_test)
+ (package liquidsoap)
+ (deps
+  (:runtime_error_kinds_test runtime_error_kinds_test.exe))
+ (action
+  (run %{runtime_error_kinds_test})))
+
+(executable
  (name scheduler_test)
  (modules scheduler_test)
  (libraries
@@ -1156,6 +1184,7 @@
   (alias parsesrt)
   (alias playlist_basic_test)
   (alias pool_test)
+  (alias runtime_error_kinds_test)
   (alias scheduler_test)
   (alias source_sync_test)
   (alias start_stop_test)

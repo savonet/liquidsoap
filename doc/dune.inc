@@ -354,6 +354,20 @@
    content/liq/clock-alsa-pulseaudio-self-sync.liq)))
 
 (rule
+ (alias test-doc-clock-catch-conflict)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/clock-catch-conflict.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/clock-catch-conflict.liq)))
+
+(rule
  (alias test-doc-clock-decoupling-conflict)
  (package liquidsoap)
  (deps
@@ -1390,6 +1404,20 @@
    --check
    --no-fallible-check
    content/liq/hls-playlists.liq)))
+
+(rule
+ (alias test-doc-hls-strftime)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-strftime.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/hls-strftime.liq)))
 
 (rule
  (alias test-doc-hls-variants)
@@ -2803,6 +2831,7 @@
   (alias test-doc-clock-alsa-pulseaudio-buffer)
   (alias test-doc-clock-alsa-pulseaudio-conflict)
   (alias test-doc-clock-alsa-pulseaudio-self-sync)
+  (alias test-doc-clock-catch-conflict)
   (alias test-doc-clock-decoupling)
   (alias test-doc-clock-decoupling-conflict)
   (alias test-doc-clock-inspect)
@@ -2878,6 +2907,7 @@
   (alias test-doc-hls-metadata)
   (alias test-doc-hls-persist)
   (alias test-doc-hls-playlists)
+  (alias test-doc-hls-strftime)
   (alias test-doc-hls-variants)
   (alias test-doc-http-input)
   (alias test-doc-icecast-output-basic)

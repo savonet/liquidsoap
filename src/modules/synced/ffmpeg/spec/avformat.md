@@ -647,12 +647,12 @@ lock.
 
 ```ocaml
 val new_stream_copy :
-  params:'mode Avcodec.params -> output container ->
+  ?codec_tag:int -> params:'mode Avcodec.params -> output container ->
   (output, 'mode, [ `Packet ]) stream
 type uninitialized_stream_copy
 val new_uninitialized_stream_copy : output container -> uninitialized_stream_copy
 val initialize_stream_copy :
-  params:'mode Avcodec.params -> uninitialized_stream_copy ->
+  ?codec_tag:int -> params:'mode Avcodec.params -> uninitialized_stream_copy ->
   (output, 'mode, [ `Packet ]) stream
 ```
 
@@ -661,7 +661,10 @@ A stream that receives packets encoded elsewhere.
 - `new_uninitialized_stream_copy` reserves the stream, so that its index is
   known before its parameters are.
 - `initialize_stream_copy` gives the reserved stream a copy of `params`. The
-  codec tag is cleared so that the muxer chooses its own.
+  codec tag is `codec_tag` when given. Otherwise the tag of `params` is kept
+  when the output format maps it to the same codec or has no tag for that
+  codec, as the ffmpeg command line does, and is cleared for the muxer to
+  choose its own when not.
 - `new_stream_copy` is the two in sequence.
 
 Only the codec parameters are copied. The time base is the muxer's choice
@@ -725,22 +728,26 @@ val codec_attr : _ stream -> string option
 The codec string of the stream for an HLS playlist (RFC 6381 style), from its
 codec parameters. `None` for every case not listed.
 
-| Codec  | Result                                                                                                                                                                                                                                                                                                                                  |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H.264  | `avc1.` followed by three bytes, as two lowercase hex digits each: the three bytes after the SPS NAL header when the extradata starts with an Annex-B SPS, or bytes 1 to 3 when the extradata is an `avcC` record (ISO/IEC 14496-15: its first byte is 1); `None` when the extradata is too short to hold them, and in every other case |
-| HEVC   | below                                                                                                                                                                                                                                                                                                                                   |
-| AAC    | `mp4a.40.` followed by the profile plus one, when the profile is known; else `None`                                                                                                                                                                                                                                                     |
-| MP2    | `mp4a.40.33`                                                                                                                                                                                                                                                                                                                            |
-| MP3    | `mp4a.40.34`                                                                                                                                                                                                                                                                                                                            |
-| AC-3   | `ac-3`                                                                                                                                                                                                                                                                                                                                  |
-| E-AC-3 | `ec-3`                                                                                                                                                                                                                                                                                                                                  |
-| FLAC   | `fLaC`                                                                                                                                                                                                                                                                                                                                  |
+| Codec  | Result                                                                                                                                                                                                                                                                                                                                                                              |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H.264  | `avc3.` when the codec tag is `avc3`, else `avc1.`, followed by three bytes, as two lowercase hex digits each: the three bytes after the SPS NAL header when the extradata starts with an Annex-B SPS, or bytes 1 to 3 when the extradata is an `avcC` record (ISO/IEC 14496-15: its first byte is 1); `None` when the extradata is too short to hold them, and in every other case |
+| HEVC   | below                                                                                                                                                                                                                                                                                                                                                                               |
+| AAC    | `mp4a.40.` followed by the profile plus one, when the profile is known; else `None`                                                                                                                                                                                                                                                                                                 |
+| MP2    | `mp4a.40.33`                                                                                                                                                                                                                                                                                                                                                                        |
+| MP3    | `mp4a.40.34`                                                                                                                                                                                                                                                                                                                                                                        |
+| AC-3   | `ac-3`                                                                                                                                                                                                                                                                                                                                                                              |
+| E-AC-3 | `ec-3`                                                                                                                                                                                                                                                                                                                                                                              |
+| FLAC   | `fLaC`                                                                                                                                                                                                                                                                                                                                                                              |
 
 HEVC: the profile and level are those of the codec parameters, replaced by the
-ones read from the SPS when the extradata holds an Annex-B SPS. When the codec
-tag is `hvc1` and both are known, the result is
-`hvc1.<profile>.4.L<level>.B01`. Otherwise it is the codec tag as a
-four-character code, and `None` when the tag is unset.
+ones read from the SPS when the extradata holds an Annex-B SPS. With the codec
+tag `hvc1` or `hev1` and both known, the result is
+`<tag>.<profile>.4.L<level>.B01`, and the bare tag when either is unknown.
+Any other tag, unset or not a sample entry name (the `HEVC` of an mpegts
+source), gives `None`. From libavformat 62.7.100, a tagged stream first
+takes the string of `av_mime_codec_str`, which reads the tier, compatibility
+flags, level and constraints of an Annex-B SPS, with its sample entry name
+replaced by the tag's; the rule above applies when it gives none.
 
 No read goes past the end of the extradata.
 

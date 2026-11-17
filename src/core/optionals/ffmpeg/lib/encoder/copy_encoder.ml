@@ -85,6 +85,7 @@ and track = {
   shared : t;
   field : Frame.field;
   keyframe : F.keyframe;
+  codec_tag : int option;
   mutable stream : stream option;
   mutable header : Copy_params.t option;
   mutable intra : bool;
@@ -107,12 +108,13 @@ let create ~log ~whole_output ~muxer container =
     skipped = 0;
   }
 
-let track t ~field ~keyframe ~on_packet =
+let track ?codec_tag t ~field ~keyframe ~on_packet =
   let track =
     {
       shared = t;
       field;
       keyframe;
+      codec_tag;
       stream = None;
       header = None;
       intra = false;
@@ -161,14 +163,17 @@ let mk_stream track frame =
     | None -> failwith "Copy stream created without parameters"
     | Some params ->
         let container = track.shared.container in
+        let codec_tag = track.codec_tag in
         let stream =
           match params.Copy_params.media with
-            | `Audio p -> `Audio (Av.new_stream_copy ~params:p container)
+            | `Audio p ->
+                `Audio (Av.new_stream_copy ?codec_tag ~params:p container)
             | `Video p ->
-                let s = Av.new_stream_copy ~params:p container in
+                let s = Av.new_stream_copy ?codec_tag ~params:p container in
                 Av.set_avg_frame_rate s params.frame_rate;
                 `Video s
-            | `Subtitle p -> `Subtitle (Av.new_stream_copy ~params:p container)
+            | `Subtitle p ->
+                `Subtitle (Av.new_stream_copy ?codec_tag ~params:p container)
         in
         warn_missing_extradata track params;
         track.stream <- Some stream;

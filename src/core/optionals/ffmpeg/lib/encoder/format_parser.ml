@@ -42,6 +42,32 @@ let positive v =
   if n < 1 then error ?pos:(pos v) "a positive integer is expected";
   n
 
+let frame_rate v =
+  let invalid () =
+    error ?pos:(pos v)
+      "a positive integer or a fraction such as \"30000/1001\" is expected"
+  in
+  let rec gcd a b = if b = 0 then a else gcd b (a mod b) in
+  let whole rate =
+    if Float.is_integer rate && rate >= 1. then (int_of_float rate, 1)
+    else invalid ()
+  in
+  match v with
+    | Value.String { value } when String.contains value '/' -> (
+        match Scanf.sscanf value " %d / %d %!" (fun num den -> (num, den)) with
+          | num, den when num > 0 && den > 0 ->
+              let d = gcd num den in
+              (num / d, den / d)
+          | _ -> invalid ()
+          | exception _ -> invalid ())
+    | Value.Int { value } -> whole (float value)
+    | Value.Float { value } -> whole value
+    | Value.String { value } -> (
+        match Avutil.expr_parse_and_eval value with
+          | rate -> whole rate
+          | exception _ -> invalid ())
+    | _ -> invalid ()
+
 let float v =
   match v with
     | Value.Int { value } -> float value
@@ -138,7 +164,7 @@ let hwaccel v =
 
 let video_option (vf : F.video) = function
   | `Labelled (("framerate" | "r"), v) ->
-      Some { vf with framerate = Lazy.Mutexed.from_val (positive v) }
+      Some { vf with framerate = Lazy.Mutexed.from_val (frame_rate v) }
   | `Labelled ("width", v) ->
       Some { vf with width = Lazy.Mutexed.from_val (positive v) }
   | `Labelled ("height", v) ->
@@ -185,7 +211,7 @@ let default_options : F.media -> F.options = function
         {
           F.framerate =
             Lazy.Mutexed.from_fun (fun () ->
-                Lazy.Mutexed.force Frame.video_rate);
+                (Lazy.Mutexed.force Frame.video_rate, 1));
           width;
           height;
           pixel_format = None;
@@ -206,6 +232,26 @@ let codec_value params =
   List.fold_left
     (fun codec -> function `Labelled ("codec", v) -> Some v | _ -> codec)
     None params
+
+let codec_tag v =
+  try F.fourcc (string v) with Failure message -> error ?pos:(pos v) message
+
+let copy_param ((copy : F.copy), has_keyframe) = function
+  | `Anonymous "wait_for_keyframe" when not has_keyframe ->
+      ({ copy with keyframe = `Wait_for_keyframe }, true)
+  | `Anonymous "ignore_keyframe" when not has_keyframe ->
+      ({ copy with keyframe = `Ignore_keyframe }, true)
+  | `Labelled ("codec_tag", v) ->
+      ignore (codec_tag v);
+      ({ copy with codec_tag = Some (string v) }, has_keyframe)
+  | arg ->
+      let pos, name =
+        match arg with
+          | `Anonymous s -> (None, s)
+          | `Labelled (l, v) -> (pos v, l)
+          | `Encoder (e, _) -> (None, "%" ^ e)
+      in
+      error ?pos (Printf.sprintf "Invalid argument %s for a copy track" name)
 
 let encoded_track ~mode ~field params : F.track =
   let markers =
@@ -238,6 +284,11 @@ let encoded_track ~mode ~field params : F.track =
         match param with
           | `Labelled ("codec", v) -> (Some (string v), options, opts)
           | `Labelled (("q" | "qscale"), v) -> (codec, options, qscale opts v)
+          | `Labelled ("codec_tag", (Value.Int _ as v)) ->
+              (codec, options, F.set opts "codec_tag" (option_value v))
+          | `Labelled ("codec_tag", v) ->
+              ignore (codec_tag v);
+              (codec, options, F.set opts "codec_tag" (`String (string v)))
           | `Anonymous s when F.media_of_marker s <> None ->
               (codec, options, opts)
           | _ -> (
@@ -266,19 +317,7 @@ let track (name, params) =
           if params <> [] then
             error (Printf.sprintf "Track %%%s.drop takes no argument" field);
           `Drop
-      | `Copy -> (
-          match params with
-            | [] | [`Anonymous "wait_for_keyframe"] -> `Copy `Wait_for_keyframe
-            | [`Anonymous "ignore_keyframe"] -> `Copy `Ignore_keyframe
-            | arg :: _ ->
-                let pos, name =
-                  match arg with
-                    | `Anonymous s -> (None, s)
-                    | `Labelled (l, v) -> (pos v, l)
-                    | `Encoder (e, _) -> (None, "%" ^ e)
-                in
-                error ?pos
-                  (Printf.sprintf "Invalid argument %s for a copy track" name))
+      | `Copy -> `Copy (fst (List.fold_left copy_param (F.copy, false) params))
       | (`Internal | `Raw) as mode -> encoded_track ~mode ~field params
   in
   (field, track)

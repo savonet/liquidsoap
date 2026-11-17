@@ -37,7 +37,7 @@ module Fps : sig
 
   val create :
     ?source_rate:Avutil.rational ->
-    target:int ->
+    target:Avutil.rational ->
     start:start ->
     time_base:Avutil.rational ->
     Avutil.Video.frame_format ->

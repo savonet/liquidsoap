@@ -459,47 +459,72 @@ let () =
 let error_message = function
   | Sys_error message | Failure message | Invalid_argument message -> message
   | Unix.Unix_error (code, call, param) -> unix_error_message code call param
+  | Error.Invalid_value (_, message, _) -> "Invalid value: " ^ message
   | Not_found -> "Not found"
   | Division_by_zero -> "Division by zero"
   | End_of_file -> "End of file"
   | exn -> Printexc.to_string exn
 
+let () =
+  Runtime_error.register_catchable (function
+    | Error.Invalid_value (v, _, stack) ->
+        Some ("invalid", Option.to_list (Value.pos v) @ stack)
+    | _ -> None)
+
+let stdlib_error_kind = function
+  | Sys_error _ | Unix.Unix_error _ -> Some "system"
+  | Failure _ -> Some "failure"
+  | Invalid_argument _ -> Some "invalid"
+  | Not_found -> Some "not_found"
+  | Division_by_zero | End_of_file -> Some "eval"
+  | _ -> None
+
+let backtrace_pos bt =
+  match Printexc.backtrace_slots bt with
+    | None -> []
+    | Some entries ->
+        List.fold_left
+          (fun pos slot ->
+            match Printexc.Slot.location slot with
+              | None -> pos
+              | Some
+                  {
+                    Printexc.filename = pos_fname;
+                    line_number = pos_lnum;
+                    start_char = pos_bol;
+                    end_char = pos_cnum;
+                  } ->
+                  let p = { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum } in
+                  Pos.of_lexing_pos (p, p) :: pos)
+          []
+          (List.rev (Array.to_list entries))
+
+let of_exception ~pos ~kind exn =
+  Runtime_error.make ~pos ~message:(error_message exn)
+    ~origin:(Printexc.to_string exn) kind
+
+let catchable_error ~bt exn =
+  match (exn, Runtime_error.catchable exn) with
+    | Runtime_error.Runtime_error error, _ -> Some error
+    | _, Some (kind, pos) -> Some (of_exception ~pos ~kind exn)
+    | _, None ->
+        Option.map
+          (fun kind -> of_exception ~pos:(backtrace_pos bt) ~kind exn)
+          (stdlib_error_kind exn)
+
 let runtime_error_of_exception ~bt ~kind exn =
-  match exn with
-    | Runtime_error.Runtime_error error -> error
-    | _ ->
-        let pos =
-          match Printexc.backtrace_slots bt with
-            | None -> []
-            | Some entries ->
-                List.fold_left
-                  (fun pos slot ->
-                    match Printexc.Slot.location slot with
-                      | None -> pos
-                      | Some
-                          {
-                            Printexc.filename = pos_fname;
-                            line_number = pos_lnum;
-                            start_char = pos_bol;
-                            end_char = pos_cnum;
-                          } ->
-                          let p =
-                            { Lexing.pos_fname; pos_lnum; pos_bol; pos_cnum }
-                          in
-                          Pos.of_lexing_pos (p, p) :: pos)
-                  []
-                  (List.rev (Array.to_list entries))
-        in
-        Runtime_error.make ~pos ~message:(error_message exn) kind
+  match (exn, Runtime_error.catchable exn) with
+    | Runtime_error.Runtime_error error, _ -> error
+    | _, Some (kind, pos) -> of_exception ~pos ~kind exn
+    | _, None -> of_exception ~pos:(backtrace_pos bt) ~kind exn
 
 let raise_as_runtime ~bt ~kind exn =
   match exn with
     | Runtime_error.Runtime_error _ -> Printexc.raise_with_backtrace exn bt
     | _ ->
-        Printexc.raise_with_backtrace
-          (Runtime_error.Runtime_error
-             (runtime_error_of_exception ~bt ~kind exn))
-          bt
+        let error = runtime_error_of_exception ~bt ~kind exn in
+        Runtime_error.notify error;
+        Printexc.raise_with_backtrace (Runtime_error.Runtime_error error) bt
 
 (* The script position is added by the caller's application, so OCaml frames
    stay in the backtrace instead of the error's position. *)

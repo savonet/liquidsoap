@@ -198,12 +198,14 @@ let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
         (fun (field, track) ->
           match track with
             | `Drop -> (field, `Drop)
-            | `Copy keyframe ->
+            | `Copy { F.keyframe; codec_tag } ->
                 ( field,
                   `Copy
                     (Copy_encoder.track copy
                        ~field:(Frame.Fields.register field)
-                       ~keyframe ~on_packet:(on_packet field)) )
+                       ~keyframe
+                       ?codec_tag:(Option.map F.fourcc codec_tag)
+                       ~on_packet:(on_packet field)) )
             | `Encode encoded ->
                 ( field,
                   `Encoded

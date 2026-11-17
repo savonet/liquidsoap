@@ -231,6 +231,20 @@ The problem here is that `s` would need to be produced simultaneously at two
 different rates — normal speed and an accelerated speed for the crossfade
 lookahead — which is impossible for a source that controls its own timing.
 
+Most conflicts are detected when the script starts. When you build sources
+while the script is running, for instance from a server command or a
+callback, a conflict is raised as an error of kind `clock` instead, which you
+can catch:
+
+```{.liquidsoap include="clock-catch-conflict.liq" from=1}
+
+```
+
+Catching the error does not undo what was done before the conflict: clocks
+already merged while creating the failing source stay merged. Use it to log
+the problem and keep the script running, not to try other combinations of the
+same sources.
+
 ## Resolving conflicts with buffers
 
 The standard solution for clock conflicts is the `buffer` operator. It sits

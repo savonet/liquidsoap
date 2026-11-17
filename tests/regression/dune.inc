@@ -971,6 +971,24 @@
   (run %{run_test} GH4629 liquidsoap GH4629.liq)))
 
 (rule
+ (alias test_GH4656)
+ (package liquidsoap)
+ (deps
+  GH4656.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH4656 liquidsoap GH4656.liq)))
+
+(rule
  (alias test_GH4711)
  (package liquidsoap)
  (deps
@@ -987,6 +1005,24 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} GH4711 liquidsoap GH4711.liq)))
+
+(rule
+ (alias test_GH4734)
+ (package liquidsoap)
+ (deps
+  GH4734.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH4734 liquidsoap GH4734.liq)))
 
 (rule
  (alias test_GH4745)
@@ -1517,6 +1553,24 @@
   (run %{run_test} GH5630 liquidsoap GH5630.liq)))
 
 (rule
+ (alias test_GH5643)
+ (package liquidsoap)
+ (deps
+  GH5643.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} GH5643 liquidsoap GH5643.liq)))
+
+(rule
  (alias test_LS268)
  (package liquidsoap)
  (deps
@@ -1659,6 +1713,50 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} append liquidsoap append.liq)))
+
+(rule
+ (alias test_blank_strip_metadata_during_blank)
+ (package liquidsoap)
+ (deps
+  blank_strip_metadata_during_blank.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   blank_strip_metadata_during_blank
+   liquidsoap
+   blank_strip_metadata_during_blank.liq)))
+
+(rule
+ (alias test_blank_strip_resume_metadata)
+ (package liquidsoap)
+ (deps
+  blank_strip_resume_metadata.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   blank_strip_resume_metadata
+   liquidsoap
+   blank_strip_resume_metadata.liq)))
 
 (rule
  (alias test_callback_counts)
@@ -2888,7 +2986,9 @@
   (alias test_GH4281-2)
   (alias test_GH4499)
   (alias test_GH4629)
+  (alias test_GH4656)
   (alias test_GH4711)
+  (alias test_GH4734)
   (alias test_GH4745)
   (alias test_GH4748)
   (alias test_GH4819)
@@ -2918,6 +3018,7 @@
   (alias test_GH5581)
   (alias test_GH5581-2)
   (alias test_GH5630)
+  (alias test_GH5643)
   (alias test_LS268)
   (alias test_LS354-1)
   (alias test_LS354-2)
@@ -2926,6 +3027,8 @@
   (alias test_append)
   (alias test_append-merge)
   (alias test_append-merge2)
+  (alias test_blank_strip_metadata_during_blank)
+  (alias test_blank_strip_resume_metadata)
   (alias test_callback_counts)
   (alias test_callback_from_task)
   (alias test_callback_release)
