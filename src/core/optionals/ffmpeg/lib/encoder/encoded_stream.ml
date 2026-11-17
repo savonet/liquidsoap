@@ -57,13 +57,8 @@ let check_opts ?pos opts =
 
 (* encoder.md §3 step 1. *)
 let stream_opts (opts : F.opts) =
-  match List.assoc_opt "flags" opts with
-    | Some (`String s)
-      when List.mem "global_header"
-             (List.concat_map (String.split_on_char '-')
-                (String.split_on_char '+' s)) ->
-        opts
-    | _ -> Opts.add_flag opts ~name:"global_header" Avcodec.flag_global_header
+  if Opts.names_flag opts "global_header" then opts
+  else Opts.add_flag opts ~name:"global_header" Avcodec.flag_global_header
 
 (* encoder.md §5.2: past the fault bound, an output fault. *)
 let item_fault faults ~kind message =

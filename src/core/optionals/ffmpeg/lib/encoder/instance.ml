@@ -537,10 +537,23 @@ let hls_defaults (format : F.t) =
       | Some "mpegts" -> default "avoid_negative_ts" "disabled" format.opts
       | _ -> format.opts
   in
+  (* A forced key frame of an open GOP is not a decoder entry point: libx264
+     emits a recovery-point I-frame without parameter sets, libx265 a CRA. *)
+  let streams =
+    List.map
+      (function
+        | name, `Encode ({ F.options = `Video _; _ } as encoded) ->
+            ( name,
+              `Encode
+                { encoded with opts = Opts.add_named_flag encoded.opts "cgop" }
+            )
+        | stream -> stream)
+      format.streams
+  in
   let interleaved =
     match format.interleaved with `Default -> `False | v -> v
   in
-  { format with opts; interleaved; output = `Stream }
+  { format with opts; streams; interleaved; output = `Stream }
 
 (* The init segment of a fragmented MP4 container: its boxes before the first
    fragment's. *)

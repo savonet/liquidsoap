@@ -51,6 +51,25 @@ let unused_message scopes =
     | [] -> None
     | l -> Some ("Unrecognized options: " ^ String.concat "; " l)
 
+let names_flag opts name =
+  match List.assoc_opt "flags" opts with
+    | Some (`String s) ->
+        List.mem name
+          (List.concat_map (String.split_on_char '-')
+             (String.split_on_char '+' s))
+    | _ -> false
+
+let add_named_flag opts name =
+  match List.assoc_opt "flags" opts with
+    | _ when names_flag opts name -> opts
+    | Some (`String s) ->
+        Liquidsoap_ffmpeg_formats.Encoder_format.set opts "flags"
+          (`String (s ^ "+" ^ name))
+    | None ->
+        Liquidsoap_ffmpeg_formats.Encoder_format.set opts "flags"
+          (`String ("+" ^ name))
+    | Some _ -> opts
+
 let add_flag opts ~name flag =
   let flags : Liquidsoap_ffmpeg_formats.Encoder_format.value =
     match List.assoc_opt "flags" opts with
