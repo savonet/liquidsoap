@@ -22,7 +22,8 @@ soon as another child can play, with no tag set by the script.
 **Resolution** of `inherit`, in order: the tag of the source's effective
 source, when that is another source; for a switch with no selection, the tag
 of its first child, in list order, that has something to deliver; for a
-`source.dynamic` with no current source, the tag of its pending one; else
+`source.dynamic` with no current source, the tag of its pending one, or
+`file` before its function was ever asked; else
 `file` when the source has children and all resolve to `file`; else `live`.
 
 Rationale for the switch rule: a switch that has not selected yet will play

@@ -2338,6 +2338,28 @@
   (run %{run_test} playlist-id liquidsoap playlist-id.liq)))
 
 (rule
+ (alias test_probes_change_nothing)
+ (package liquidsoap)
+ (deps
+  probes_change_nothing.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   probes_change_nothing
+   liquidsoap
+   probes_change_nothing.liq)))
+
+(rule
  (alias test_replaygain)
  (package liquidsoap)
  (deps
@@ -2490,6 +2512,46 @@
   (run %{run_test} seek_track_map liquidsoap seek_track_map.liq)))
 
 (rule
+ (alias test_sequence_item_end)
+ (package liquidsoap)
+ (deps
+  sequence_item_end.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} sequence_item_end liquidsoap sequence_item_end.liq)))
+
+(rule
+ (alias test_sequence_join_offsets)
+ (package liquidsoap)
+ (deps
+  sequence_join_offsets.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   sequence_join_offsets
+   liquidsoap
+   sequence_join_offsets.liq)))
+
+(rule
  (alias test_sequence_merge_single_track)
  (package liquidsoap)
  (deps
@@ -2574,6 +2636,28 @@
    skip_from_another_thread.liq)))
 
 (rule
+ (alias test_skip_from_track_callback)
+ (package liquidsoap)
+ (deps
+  skip_from_track_callback.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   skip_from_track_callback
+   liquidsoap
+   skip_from_track_callback.liq)))
+
+(rule
  (alias test_smooth_add)
  (package liquidsoap)
  (deps
@@ -2646,6 +2730,28 @@
   (run %{run_test} source_dynamic liquidsoap source_dynamic.liq)))
 
 (rule
+ (alias test_source_dynamic_lifetimes)
+ (package liquidsoap)
+ (deps
+  source_dynamic_lifetimes.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   source_dynamic_lifetimes
+   liquidsoap
+   source_dynamic_lifetimes.liq)))
+
+(rule
  (alias test_switch_autodj_jingle_metadata)
  (package liquidsoap)
  (deps
@@ -2670,6 +2776,28 @@
    switch_autodj_jingle_metadata
    liquidsoap
    switch_autodj_jingle_metadata.liq)))
+
+(rule
+ (alias test_switch_composition_pairs)
+ (package liquidsoap)
+ (deps
+  switch_composition_pairs.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_composition_pairs
+   liquidsoap
+   switch_composition_pairs.liq)))
 
 (rule
  (alias test_switch_copy_default_on_select)
@@ -3048,6 +3176,28 @@
    switch_unread_while_leaving.liq)))
 
 (rule
+ (alias test_track_callbacks_inner_first)
+ (package liquidsoap)
+ (deps
+  track_callbacks_inner_first.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   track_callbacks_inner_first
+   liquidsoap
+   track_callbacks_inner_first.liq)))
+
+(rule
  (alias test_track_sensitive)
  (package liquidsoap)
  (deps
@@ -3253,6 +3403,7 @@
   (alias test_output_on_track)
   (alias test_output_reopen_on_error_delay)
   (alias test_playlist-id)
+  (alias test_probes_change_nothing)
   (alias test_replaygain)
   (alias test_request_pool_concurrent)
   (alias test_rotate_merge_rounds)
@@ -3261,15 +3412,20 @@
   (alias test_scheduler_parallel)
   (alias test_seek_cue_out)
   (alias test_seek_track_map)
+  (alias test_sequence_item_end)
+  (alias test_sequence_join_offsets)
   (alias test_sequence_merge_single_track)
   (alias test_server.insert_metadata)
   (alias test_shoutcast-args)
   (alias test_skip_from_another_thread)
+  (alias test_skip_from_track_callback)
   (alias test_smooth_add)
   (alias test_source_cleanup)
   (alias test_source_drop_tracks)
   (alias test_source_dynamic)
+  (alias test_source_dynamic_lifetimes)
   (alias test_switch_autodj_jingle_metadata)
+  (alias test_switch_composition_pairs)
   (alias test_switch_copy_default_on_select)
   (alias test_switch_default_transition_finish)
   (alias test_switch_infallible_across_transition)
@@ -3287,6 +3443,7 @@
   (alias test_switch_skipped_track_metadata)
   (alias test_switch_sync_source_follows_handoff)
   (alias test_switch_unread_while_leaving)
+  (alias test_track_callbacks_inner_first)
   (alias test_track_sensitive)
   (alias test_type_printing_from_task)
   (alias test_unified-pcm-types)

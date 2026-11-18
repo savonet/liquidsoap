@@ -142,10 +142,13 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
         | None -> (self :> Source.source)
 
     (* With nothing played yet, we compose like the source we are about to
-       play. *)
+       play. Before the function was ever asked there is none: we then wait
+       for track boundaries, which costs a cycle if the source turns out to
+       be live, where cutting in would cost a track if it is not. *)
     method! resolved_composition =
       match (self#composition, self#current_source, pending) with
         | `Passthrough, None, Some (_, s) -> s#resolved_composition
+        | `Passthrough, None, None -> `File
         | _ -> super#resolved_composition
 
     method private self_sync =
