@@ -32,6 +32,11 @@ again here.
 - **A streaming cycle is static.** What a source answers in a cycle does not
   change until the cycle is over. A source that answers ready delivers at
   once; nothing waits inside a cycle.
+- **Keep streaming, unless the error is major.** An error that leaves
+  enough context to go on with what the user would expect is logged and the
+  stream goes on. Only an error that breaks a promise the system was built
+  on stops it
+  ([source-contract.md §11](../switch/source-contract.md#11-concurrency)).
 - **Infallibility is never broken once established.** A source found
   infallible at start that leaves a frame short is a failure, raised loudly,
   not a glitch.
@@ -161,6 +166,10 @@ left open.
   track itself, told by passage.
 - **A transition that states a track end and then has nothing more,**
   without declaring exhaustion, puts a mark where it gives way.
+- **A transition function that raises is not a major error.** The crossing
+  plays its two sources in order
+  ([transition.md §3](transition.md#3-the-result)).
+- **`persist_overrides` stays** on `fade.in` and `fade.out`.
 - **The plan of [fades.md](fades.md) is adopted.** One script function,
   `cross.plan`, reads the fade keys and places both fades; the operator
   hands each track's metadata as the track carried it

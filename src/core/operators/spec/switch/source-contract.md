@@ -248,6 +248,13 @@ that source's selection, counters or track state.
   one never sees such a group part way through.
 - A condition the seam cannot serve on a fallible stream ends the frame and
   is logged ([frame-assembly.md §7](frame-assembly.md#7-bounds)).
+- **Keep streaming, unless the error is major.** An error that leaves
+  enough context to go on with what the script most plausibly meant MUST NOT
+  stop the stream: it is logged and the operator carries on with that. A
+  script function that raises while an operator runs it is of this kind. An
+  error is major, and fails the cycle, when carrying on would break a
+  promise the rest of the system was built on: the broken infallibility
+  below is the reference case.
 - **An infallible source that fails its contract is a failure, not a
   glitch.** A source declared infallible that leaves an output's frame short
   MUST fail the cycle, loudly, through the clock's source error rule: an

@@ -63,7 +63,10 @@ of the next track to buffer: the fade-in window of
   ([cross.md §6](cross.md#6-crossing), step 7).
 - A function that raises a script error is treated the same way: the error
   is logged, what the function registered is released, and the crossing
-  plays its two sources in order. The stream does not stop for it.
+  plays its two sources in order. The stream does not stop for it: there
+  is enough context to go on with what the script meant, so the error is
+  not major
+  ([source-contract.md §11](../switch/source-contract.md#11-concurrency)).
 
 ## 4. End of the transition
 
