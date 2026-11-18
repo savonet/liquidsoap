@@ -20,8 +20,15 @@ lets go of a source that has none. A silence of last resort MUST be left as
 soon as another child can play, with no tag set by the script.
 
 **Resolution** of `inherit`, in order: the tag of the source's effective
-source, when that is another source; else `file` when the source has
-children and all resolve to `file`; else `live`.
+source, when that is another source; for a switch with no selection, the tag
+of its first child, in list order, that has something to deliver; else `file`
+when the source has children and all resolve to `file`; else `live`.
+
+Rationale for the switch rule: a switch that has not selected yet will play
+its first available child. Resolving it from all its children would let a
+silence of last resort, which is `live`, make a playlist above it `live`
+before it has played anything, and a selector over such switches would cut
+into tracks.
 
 `composition_type` is a script reference on every non-output source. Reading
 it gives the resolved tag, `"file"` or `"live"`. Writing one of these two

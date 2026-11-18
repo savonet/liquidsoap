@@ -103,56 +103,82 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
             Request.destroy cur.req
           end
 
-    method private fetch_request =
-      assert (self#current = None);
-      try
-        match self#get_next_file with
-          | `Empty -> false
-          | `Request req
-            when Request.resolved req
-                 && Request.has_decoder ~ctype:self#content_type req ->
-              (* [Request.resolved] ensures that we can get a filename from the request,
-                 and it can be decoded. *)
-              let file = Option.get (Request.get_filename req) in
-              let decoder =
-                Option.get (Request.get_decoder ~ctype:self#content_type req)
-              in
-              self#log#important "Prepared %s (RID %d)."
-                (Lang_string.quote_string file)
-                (Request.id req);
+    (* The decoder of the request at the head of the queue, opened ahead of
+       its being played: opening it is what detects video dimensions, which
+       has to happen before anything is produced. The request stays in the
+       queue and is not on air until it is taken. *)
+    val mutable prepared : handler option = None
 
-              (* We use this mutex to avoid seeking and filling at the same time.. *)
-              let m = Mutex.create () in
-              Atomic.set current
-                (Some
-                   {
-                     req;
-                     fread =
-                       (fun len ->
-                         Mutex.protect m (fun () ->
-                             let buf = decoder.Decoder.fread len in
-                             remaining <- decoder.Decoder.remaining ();
-                             buf));
-                     seek =
-                       (fun len ->
-                         Mutex.protect m (fun () -> decoder.Decoder.fseek len));
-                     close = decoder.Decoder.fclose;
-                   });
-              remaining <- decoder.Decoder.remaining ();
-              Request.on_air ~source:(self :> Source.source) req;
-              first_fill <- true;
-              true
-          | `Request req ->
-              (* We got an unresolved request.. this shouldn't actually happen *)
-              self#log#critical "Failed to prepare track: request not ready.";
-              Request.destroy req;
-              false
-      with exn ->
-        let bt = Printexc.get_backtrace () in
-        Utils.log_exception ~log:self#log ~bt
-          (Printf.sprintf "Failed to fetch a new request: %s"
-             (Printexc.to_string exn));
-        false
+    method private drop_prepared =
+      Option.iter (fun handler -> handler.close ()) prepared;
+      prepared <- None
+
+    method private prepare req =
+      (* [Request.resolved] ensures that we can get a filename from the
+         request, and it can be decoded. *)
+      let file = Option.get (Request.get_filename req) in
+      let decoder =
+        Option.get (Request.get_decoder ~ctype:self#content_type req)
+      in
+      self#log#important "Prepared %s (RID %d)."
+        (Lang_string.quote_string file)
+        (Request.id req);
+
+      (* We use this mutex to avoid seeking and filling at the same time.. *)
+      let m = Mutex.create () in
+      {
+        req;
+        fread =
+          (fun len ->
+            Mutex.protect m (fun () ->
+                let buf = decoder.Decoder.fread len in
+                remaining <- decoder.Decoder.remaining ();
+                buf));
+        seek =
+          (fun len -> Mutex.protect m (fun () -> decoder.Decoder.fseek len));
+        close = decoder.Decoder.fclose;
+      }
+
+    (* Whether the request at the head of the queue can be played, opening
+       its decoder if needed. A queued request that cannot be played is
+       dropped, so that the ones behind it are reached. *)
+    method private prepare_next =
+      match (Queue.peek_opt retrieved, prepared) with
+        | None, _ ->
+            self#drop_prepared;
+            false
+        | Some { request }, Some handler when handler.req == request -> true
+        | Some { request }, _ -> (
+            self#drop_prepared;
+            match
+              if
+                Request.resolved request
+                && Request.has_decoder ~ctype:self#content_type request
+              then Some (self#prepare request)
+              else None
+            with
+              | Some handler ->
+                  prepared <- Some handler;
+                  true
+              | None | (exception _) ->
+                  self#log#critical
+                    "Dropping a queued request that cannot be played.";
+                  ignore (Queue.pop_opt retrieved);
+                  Request.destroy request;
+                  self#prepare_next)
+
+    (* Takes the prepared request: it leaves the queue and is on air. *)
+    method private take_request =
+      assert (self#current = None);
+      if self#prepare_next then (
+        let handler = Option.get prepared in
+        prepared <- None;
+        ignore (Queue.pop_opt retrieved);
+        self#log#info "Remaining %d requests" self#queue_size;
+        Atomic.set current (Some handler);
+        remaining <- 0;
+        Request.on_air ~source:(self :> Source.source) handler.req;
+        first_fill <- true)
 
     method private generate_from_current_request len =
       match self#current with
@@ -178,7 +204,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
        the queue only here, when the source is read: taking one earlier would
        start, and count as played, a track nobody has heard yet. *)
     method private generate_frame =
-      if self#current = None then ignore self#fetch_request;
+      if self#current = None then self#take_request;
       let buf =
         match self#current with
           | None ->
@@ -208,23 +234,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
         | None -> ()
         | Some _ -> Atomic.set should_skip true
 
-    (* Whether a request can be played, without taking it. A queued request
-       that turns out not to be playable is dropped here, so that the ones
-       behind it are reached. *)
-    method private is_request_ready =
-      self#current <> None
-      ||
-        match Queue.peek_opt retrieved with
-        | None -> false
-        | Some { request }
-          when Request.resolved request
-               && Request.has_decoder ~ctype:self#content_type request ->
-            true
-        | Some { request } ->
-            self#log#critical "Dropping a queued request that is not ready.";
-            ignore (Queue.pop_opt retrieved);
-            Request.destroy request;
-            self#is_request_ready
+    method private is_request_ready = self#current <> None || self#prepare_next
 
     method can_generate_frame =
       match self#is_request_ready with
@@ -278,6 +288,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
               (`Started (Unix.gettimeofday (), task))))
 
     method private clear_retrieved =
+      self#drop_prepared;
       let rec clear () =
         match Queue.pop_opt retrieved with
           | None -> ()
@@ -373,14 +384,6 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
           (Printf.sprintf "Error while fetching next request: %s"
              (Printexc.to_string exn));
         `Retry
-
-    (** Provide the unqueued [super] with resolved requests. *)
-    method private get_next_file =
-      match Queue.pop_opt retrieved with
-        | None -> `Empty
-        | Some r ->
-            self#log#info "Remaining %d requests" self#queue_size;
-            `Request r.request
   end
 
 let _ =

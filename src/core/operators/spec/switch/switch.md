@@ -75,8 +75,13 @@ by its source, and committing it is a handoff ([§5](#5-handoff)).
    predicate is evaluated.
 3. Otherwise take the first, in list order, of: a candidate whose predicate
    holds and which is available; `S` itself if its predicate holds.
-4. If there is none: keep `S` if it is track-sensitive; else the decision is
-   none.
+4. If there is none: keep `S` if it is track-sensitive; else decide as at a
+   boundary, which counts leaving children when nothing else can play.
+
+Rationale for the last step: a leave completes only when its transition has
+been read. A switch that answered none while its only other child was
+leaving would not be read, so the leave would never complete and the switch
+would never be ready again.
 
 A decision other than `S` is a **preemption**.
 
@@ -164,6 +169,10 @@ The switch never hands a child to script code directly. It makes one
 - On completion the switch calls the child's `on_leave` with `source` = the
   presented source and `preempted`, and drops the entry. The child is
   eligible again.
+- Which `on_leave` is called is settled when the child is left, not when the
+  leave completes: a child whose profile changes in between (a playlist
+  behind a silence of last resort, left while on the silence) is not handled
+  by a profile that was not in force when it was cut.
 - `preempted` is true when the switch cut into the child's track and that
   track had not ended when the leave completed. It is false when the child
   was left at its track end, when it had nothing to deliver, and when its

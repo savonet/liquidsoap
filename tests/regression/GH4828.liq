@@ -2,7 +2,9 @@
 
 log.level := 4
 
-expected_checksum = "6ccbccf00fb31c68bfe457b5eab01a6b"
+# One checksum per frame: it follows where frames are cut, not only what is
+# heard.
+expected_checksum = "2f680aefbf1eacd85373ab5f909141d3"
 
 settings.frame.checksum.metadata := true
 settings.frame.checksum.track_marks := true

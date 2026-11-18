@@ -217,7 +217,8 @@ let source =
       ([], Format_type.track_marks)
       (Type.meth ~optional:true "metadata" ([], Format_type.metadata) frame_t)
   in
-  Lang.add_operator "source" ~category:(`Input `Passive)
+  (* Not an input: it composes like what it muxes. *)
+  Lang.add_operator "source" ~category:`Track
     ~descr:"Create a source that muxes the given tracks." ~return_t:frame_t
     [("", tracks_t, None, Some "Tracks to mux")]
     muxer_operator

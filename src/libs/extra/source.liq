@@ -202,7 +202,10 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
   end
 
   s.on_frame(synchronous=true, f)
-  s
+
+  # Chopped, even an endless tone ends tracks: it is left at track
+  # boundaries.
+  s.{track_sensitive = true}
 end
 
 # Regularly skip tracks from a source (useful for testing skipping).

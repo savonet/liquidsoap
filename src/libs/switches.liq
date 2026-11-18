@@ -1,5 +1,5 @@
 # Type the children of a switch wrapper with their optional composition
-# methods and fill in the default `weight`. Shared by the wrappers below so
+# methods and fill in the defaults for `weight` and `track_sensitive`. Shared by the wrappers below so
 # that the method list is written down once.
 # @category Source / Track processing
 # @flag hidden
@@ -20,7 +20,15 @@ def source.composition.children(sources) =
       ]
     )
 
-  list.map(fun (s) -> s.{weight = s?.weight ?? getter(1)}, sources)
+  # These policies count tracks, so a child is always held until its track
+  # ends. Left to its profile, a child that is live when selected (a playlist
+  # still on its silence of last resort) would be cut at once, start a track
+  # by being entered, and be cut again.
+  list.map(
+    fun (s) ->
+      s.{weight = s?.weight ?? getter(1), track_sensitive = getter(true)},
+    sources
+  )
 end
 
 # At the beginning of each track, select the first ready child.

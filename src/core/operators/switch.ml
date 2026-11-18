@@ -84,7 +84,9 @@ type child = {
   predicate : Lang.value;
   source : source;
   on_select : source option -> source -> source;
-  on_leave : source -> bool -> unit;
+  (* Resolved when the child is left: the profile in force at that moment
+     governs the leave, whatever the child plays by the time it completes. *)
+  on_leave : unit -> source -> bool -> unit;
   track_sensitive : unit -> bool;
   single : bool;
   effective_track_sensitive : bool Source.Per_cycle.t;
@@ -106,6 +108,7 @@ type leaving = {
   left : child;
   leaving_proxy : insert_initial_track_mark;
   preempted : bool;
+  on_leave : source -> bool -> unit;
 }
 
 (** What a switch would read from here. Deciding changes nothing: the handoff
@@ -126,7 +129,7 @@ class switch children =
   let sources = List.map (fun c -> c.source) children in
   let self_sync_type = Source_sync.type_of_sources sources in
   object (self)
-    inherit operator ~name:"switch" sources
+    inherit operator ~name:"switch" sources as super
     inherit generate_from_multiple_sources ()
 
     (* Every track of a child is a track of the switch. *)
@@ -138,12 +141,18 @@ class switch children =
     method private push_leaving ~preempted s =
       s.proxy#leave;
       leaving <-
-        { left = s.child; leaving_proxy = s.proxy; preempted } :: leaving
+        {
+          left = s.child;
+          leaving_proxy = s.proxy;
+          preempted;
+          on_leave = s.child.on_leave ();
+        }
+        :: leaving
 
     (* A child was preempted when the switch cut into its track and that track
        had not run out by the time nothing read it any more. *)
     method private fire_on_leave l =
-      l.left.on_leave
+      l.on_leave
         (l.leaving_proxy :> source)
         (l.preempted && not l.leaving_proxy#track_ended)
 
@@ -224,7 +233,13 @@ class switch children =
         with
           | Some c when c == s.child -> `Keep
           | Some c -> `Preempt c
-          | None -> if self#is_track_sensitive s.child then `Keep else `Nothing)
+          | None when self#is_track_sensitive s.child -> `Keep
+          | None ->
+              (* The selection is not wanted any more and nothing else can
+                 play. A child that is still leaving may: without this, a
+                 switch nobody reads would wait for ever on a transition that
+                 only ends by being read. *)
+              self#decide_at_boundary)
 
     (* Where the selection has nothing left for its track, or there is none. A
        [single] child does not follow itself. *)
@@ -364,12 +379,21 @@ class switch children =
             s.effective_source#abort_track
         | None -> ()
 
-    (* With no selection this is [self], and [resolved_composition] then falls
-       back to the children, which is what we want. *)
     method effective_source =
       match self#selected with
         | Some s -> s.effective_source#effective_source
         | None -> (self :> Source.source)
+
+    (* With nothing selected yet, we compose like the child we would play: a
+       silence of last resort does not make a playlist above it a live
+       source. *)
+    method! resolved_composition =
+      match (self#composition, self#selected) with
+        | `Passthrough, None -> (
+            match List.find_opt (fun c -> c.source#is_ready) children with
+              | Some c -> c.source#resolved_composition
+              | None -> super#resolved_composition)
+        | _ -> super#resolved_composition
   end
 
 (** Common tools for Lang bindings of switch operators *)
@@ -483,9 +507,8 @@ let _ =
                 ignore (Lang.apply on_leave [("", record)])
               in
               match find_opt "on_leave" s_val with
-                | Some on_leave -> call on_leave
-                | None ->
-                    fun s preempted -> call (profile ()).on_leave s preempted
+                | Some on_leave -> fun () -> call on_leave
+                | None -> fun () -> call (profile ()).on_leave
             in
             let on_select =
               let call on_select ending starting =
