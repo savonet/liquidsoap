@@ -176,7 +176,13 @@ let create_stream_decoder ~ctype mime input =
   if is_image_mime mime then Input_options.add_image_options options;
   let read, seek = stream_io input in
   let { Input_options.format; opts } = options in
-  let container = Av.open_input_stream ?format ~opts ?seek read in
+  let configuration = stream_configuration () in
+  let container =
+    Av.open_input_stream ?format ~opts ?seek
+      ~configure_audio_stream:configuration.audio
+      ~configure_video_stream:configuration.video
+      ~configure_subtitle_stream:configuration.subtitle read
+  in
   Input_options.check_unused options;
   let description = describe ~options ~url:mime container in
   ignore (Stream_description.get_type ~ctype description);

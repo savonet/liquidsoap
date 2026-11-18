@@ -279,6 +279,13 @@ that exists but cannot open a given stream is a source fault of that input
 The duration and metadata resolvers decode nothing and open without this
 configuration.
 
+Conformance:
+
+- With `settings.decoder.ffmpeg.codecs.vp9` set to `libvpx-vp9`, a VP9
+  stream with an alpha plane in WebM keeps its alpha when received by a
+  stream input (`input.harbor`): the stream decoder applies the stream
+  configuration as the file decoder does.
+
 The stream decoder passes a seek function when its input can seek. It
 honours FFmpeg's `whence`:
 
