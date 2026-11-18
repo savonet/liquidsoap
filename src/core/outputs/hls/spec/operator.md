@@ -35,9 +35,8 @@ Labelled, with defaults:
 | `strict_persist`       | `bool`                                                          | `false`                                   | [persistence.md §4](persistence.md#4-restoring)                           |
 | `reopen_on_error`      | `(error?) -> float?`                                            | `fun (_) -> 2.`                           | §6                                                                        |
 
-Plus the parameters common to every output: `id`, `fallible` (default
-`false`), `start` (default `true`), `register_telnet` (default `true`) and
-the `on_start` / `on_stop` callbacks.
+Plus the parameters, methods and callbacks common to every output
+([output.md §1](../../spec/output.md#1-common-parameters-methods-and-callbacks)).
 
 `main_playlist_writer` has type
 `(extra_tags : [string], prefix : string, version : int, [string.{bandwidth : int, codecs : string, video_size? : (int * int)}]) -> string?`.
@@ -51,10 +50,9 @@ passes `main_playlist_writer=null` gets no main playlist.
 
 ## 2. Construction
 
-Done once, when the script builds the operator. Every error is an
-invalid-value error on the named argument and stops the script before
-streaming starts. Reason: an error that cannot heal by itself must not
-become a retry loop at runtime.
+Done once, when the script builds the operator. Every error is found at
+evaluation, on the named argument
+([principles.md 13](../../../../spec/principles.md#construction-and-lifetime)).
 
 1. **Output directory.** `~` is expanded. A missing directory is created
    with its missing ancestors ([files.md §1](files.md#1-directories)).
@@ -81,13 +79,14 @@ become a retry loop at runtime.
 
 ## 3. Lifecycle
 
-The output follows the start/stop state machine common to outputs: `idle`,
-`started`, `stopped`. `start` runs on entering `started`; `stop` on leaving
-it. The output's life runs from wake-up to **sleep**: the end of the
-process, but also `clock.stop()`, `o.shutdown()` and the like. A stop is
-**final** when it is part of going to sleep; every other stop — the `stop`
-method or command, a fallible source that ends, a clock catching up — is
-not.
+The output has the states and transitions of the output base
+([output.md §2](../../spec/output.md#2-states)); this section states its own
+`start` and `stop`. The output's life runs from wake-up to **sleep**, whose
+stop is the final stop. Every other stop is not final: the `stop` method or
+command, a fallible source that ends, and the stop of a reset
+([output.md §4](../../spec/output.md#4-reset)). For HLS a reset is a
+discontinuity: the run after it begins as §3.1 says, with a discontinuity in
+every variant.
 
 The output's **state** is, per variant, its counters (next position
 number, next init position, discontinuity count, pending inserted tags),
@@ -142,7 +141,9 @@ following, nor make its numbering go back.
 ## 4. Per-frame loop
 
 Each streaming cycle while `started`, the output pulls one frame and cuts it
-at each metadata position into chunks. For each non-empty chunk, in order:
+into chunks, metadata first, as the output base does
+([output.md §3](../../spec/output.md#3-a-streaming-cycle)). For each
+non-empty chunk, in order:
 
 1. Metadata starting in the chunk is given to every variant
    ([metadata.md §1](metadata.md#1-track-metadata)); a cut on metadata is
@@ -164,14 +165,14 @@ at each metadata position into chunks. For each non-empty chunk, in order:
   `id3_enabled`, `replay_id3`, `extra_tags`, `discontinuity_count`, and
   `insert_tag(tag)` for that variant alone. Values are read when called
   ([variants.md §3](variants.md#3-derived-properties)).
-- The start/stop methods common to outputs.
+- The methods common to outputs ([output.md §1](../../spec/output.md#1-common-parameters-methods-and-callbacks)).
 - `on_file_change({state, path})`: [files.md §8](files.md#8-file-change-events).
 - With `register_telnet`, the commands common to outputs.
 
 ## 6. Errors and reopening
 
 An exception raised while streaming — pulling the source, encoding, writing
-a file or playlist, a synchronous file-change callback — ends the run:
+a file or playlist — ends the run:
 
 1. Every variant's open segment is aborted
    ([segmenting.md §6](segmenting.md#6-opening-a-segment)): its temporary
@@ -185,6 +186,11 @@ a file or playlist, a synchronous file-change callback — ends the run:
 will re-open in <d>s`, and nothing is pulled or written for `d` seconds.
 4. Then a new run begins as in §3.1 steps 2–3: new encoders, a new grid
    origin, and a discontinuity in every variant.
+
+A callback that raises, synchronous or not (`on_file_change`, `on_start`,
+`on_stop`), never ends the run: it is logged at `severe` with its backtrace
+and the output goes on
+([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)).
 
 A file name that breaks [files.md §2](files.md#2-file-names), and a strict
 restore that fails ([persistence.md §4](persistence.md#4-restoring)), make

@@ -1,5 +1,8 @@
 # Icecast server: future work
 
+**Not normative.** A backlog: nothing here is a requirement, and an
+implementation is judged against the other documents only.
+
 Features that servers in this family have and that the specification leaves
 out, and enhancements Liquidsoap can make on its own. Each entry says what the
 feature is, which server has it, which Liquidsoap pieces would build it, and

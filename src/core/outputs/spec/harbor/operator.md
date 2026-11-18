@@ -8,7 +8,8 @@ number of listeners, on a port of the harbor server, at one mount.
 The names, types and defaults below are the script-facing API. A rebuild
 MUST keep every one of them unchanged; new optional parameters MAY be added.
 
-Shared with every output (generic output base, [contracts.md §3](contracts.md#3-output-base)):
+Shared with every output ([output.md §1](../output.md#1-common-parameters-methods-and-callbacks)),
+with what they mean here:
 
 | Name              | Type    | Default | Meaning                                                                                                      |
 | ----------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------ |
@@ -53,9 +54,9 @@ parameters.
 
 ## 2. Validation at construction
 
-Every check below MUST run when the operator is evaluated, and each failure
-MUST be an invalid-value error attached to the argument it names, so that a
-script error points at its cause:
+Every check below runs when the operator is evaluated, and fails on the
+argument it names
+([principles.md 13](../../../../spec/principles.md#construction-and-lifetime)):
 
 1. The encoder factory and the MIME type are resolved
    ([contracts.md §2](contracts.md#2-format-and-mime-derivation)). An
@@ -77,21 +78,23 @@ script error points at its cause:
 6. A non-empty `encoding` MUST name a charset the converter knows. An unknown
    name would otherwise fail later, on the streaming path, at the first
    metadata.
-7. The generic output base checks that the source is infallible unless
-   `fallible` is true, and unifies the frame types.
+7. The output base checks that the source is infallible unless `fallible`
+   is true ([output.md §1](../output.md#1-common-parameters-methods-and-callbacks)),
+   and unifies the frame types.
 
 ## 3. Methods
 
-The generic output methods (`start`, `stop`, `is_started`, and the source
-methods every output has), plus:
+The methods of every output
+([output.md §1](../output.md#1-common-parameters-methods-and-callbacks)) and
+the source methods every output has, plus:
 
 - `listeners()` returns the listener records ([§5](#5-the-listener-record)) of
   the listeners connected at call time: every listener whose `on_connect`
   handlers have run and that has not yet been marked closed
   ([delivery.md §6](delivery.md#6-disconnection)). `duration` and
   `bytes_sent` are read at call time. The order is unspecified.
-- `shutdown()`, the generic output method that ends the output for good: it
-  stops it, like `stop`, and the output does not start again. A caller that
+- `shutdown()` ends the output for good
+  ([output.md §2](../output.md#2-states)). A caller that
   holds the output with `keep_listeners` ends it this way
   ([§7](#7-lifecycle)).
 
@@ -101,10 +104,13 @@ already absent inside its own synchronous `on_disconnect` handlers.
 
 ## 4. Callbacks
 
-The generic output callbacks (`on_start`, `on_stop`, `on_output`), plus two
-listener callbacks, each taking one listener record. Each registration
-chooses `synchronous=true` (run in the actor that fires it) or
-`synchronous=false` (each handler runs on its own, in any order).
+The callbacks of every output
+([output.md §1](../output.md#1-common-parameters-methods-and-callbacks)) and
+`on_output`, plus two listener callbacks, each taking one listener record.
+Registration, `synchronous` and order are those of every source callback
+([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)):
+a synchronous handler runs in the actor that fires the event; handlers
+registered with `synchronous=false` run each on its own, in any order.
 
 - **`on_connect`** fires when a listener is admitted
   ([connection.md §6](connection.md#6-admission)), before any byte is written
@@ -115,9 +121,10 @@ chooses `synchronous=true` (run in the actor that fires it) or
   listener, so `bytes_sent` is final; `duration` is measured to the moment the
   listener was marked closed.
 
-A handler that raises MUST be logged with its backtrace
-(`Listener callback failed: …`) and MUST NOT prevent the other handlers or
-the listener's teardown. Accounting built on these callbacks (access logs,
+A handler that raises is logged at `severe` with its backtrace and does not
+prevent the other handlers
+([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)),
+nor the listener's teardown. Accounting built on these callbacks (access logs,
 listener counts) depends on this; see
 [concurrency.md §3](concurrency.md#3-guarantees).
 
@@ -159,18 +166,17 @@ Harbor-wide settings (`settings.harbor.*`) belong to the server
 
 ## 7. Lifecycle
 
-States follow the generic output: stopped and started. Start and stop are
-serialised per output; a start while started and a stop while stopped MUST
-do nothing.
+States, transitions and their serialisation are the output base's
+([output.md §2](../output.md#2-states)); this section states the operator's
+own `start` and `stop`.
 
 **Clock.** Listeners expect data at the real-time rate: a faster clock
-overflows them, a slower one starves them. The output's clock MUST therefore
-be paced in real time, by a synchronization source in its graph or by the
-CPU. A start on a clock with no synchronization (`none`) or driven from
-outside (passive) MUST fail with an error naming the clock, unless
-`allow_unsynced_clock` is true. `output.harbor` is not itself a
-synchronization source: network writes never pace its clock, and its
-self-sync is that of its source.
+overflows them, a slower one starves them. The clock requirement of a
+network output and the output's self-sync are the output base's
+([output.md §5](../output.md#5-sync-and-pacing)); network writes never pace
+the clock. Here a start on a clock with no synchronization (`none`) or a
+passive one fails with an error naming the clock, and
+`allow_unsynced_clock` true is what allows it.
 
 **Start**:
 
@@ -194,7 +200,8 @@ Stop MUST NOT wait on any listener: the last pass is one non-blocking write
 per listener. A request admitted concurrently with a stop MUST end closed,
 with both callbacks ([delivery.md §7](delivery.md#7-stopping)).
 
-**Restart.** A stop followed by a start creates new delivery groups and a new
+**Restart.** A stop followed by a start, a reset included
+([output.md §4](../output.md#4-reset)), creates new delivery groups and a new
 encoder state. The listener id counter and the last metadata
 ([icy.md §4](icy.md#4-cadence-and-change-detection)) are kept; no byte the
 previous encoder produced reaches a listener admitted after the restart
@@ -203,11 +210,13 @@ previous encoder produced reaches a listener admitted after the restart
 **Process shutdown.** When the core is about to shut down, every listener of
 every `output.harbor` MUST be marked closed, from the shutdown hook itself:
 waiting for the next frame would leave listeners connected when no frame
-comes. The output is then stopped by the generic shutdown.
+comes. The output is then stopped by the final stop
+([output.md §2](../output.md#2-states)).
 
 **Fallible source.** When the output is fallible and its source becomes
-unavailable, the generic base stops the output, which disconnects every
-listener; it starts again when the source is available.
+unavailable, the output base stops the output
+([output.md §2](../output.md#2-states)), which disconnects every listener;
+it starts again when the source is available.
 
 **`keep_listeners`.** Some callers hold a mount open across a gap in its
 source and decide themselves when to end it. With `keep_listeners` true, an

@@ -3,7 +3,11 @@
 What `output.harbor` MUST, SHOULD and MAY do, stated closely enough to build
 it without any other source. It is written for someone implementing the
 operator in OCaml inside Liquidsoap, on the same scheduler, clock, encoder and
-harbor server.
+harbor server. It sits under the [project specifications](../../../../spec/README.md)
+and the [outputs specification](../README.md): what every output does is the
+output base's ([output.md](../output.md)), the encoder interface is
+[encoder.md](../../../encoder/spec/encoder.md), and this tree states what is
+specific to harbor.
 
 **Scope.** The `output.harbor` operator: its script interface, how it accepts
 listeners on the harbor server, how it encodes and delivers the stream to each
@@ -11,8 +15,8 @@ listener, ICY metadata, and its lifecycle.
 
 **Out of scope, stated only as contracts** ([contracts.md](contracts.md)):
 the harbor HTTP server shared with `input.harbor` and `harbor.http.*`; the
-MIME derivation shared with `output.icecast`; encoders; the generic output
-base and its start/stop machinery; the scheduler. The spec states what it
+MIME derivation shared with `output.icecast`; and what harbor needs of the
+output base, the encoders and the scheduler beyond their own specifications. The spec states what it
 requires of them; a component that falls short is where the fix belongs. The
 `%ffmpeg` specifics of the MIME and mp3 options are owned by the FFmpeg spec,
 [io.md §12](../../../optionals/ffmpeg/spec/io.md#12-other-outputs-special-casing-ffmpeg).
@@ -25,9 +29,9 @@ acceptance checks.
 
 ## Design goals
 
-- **Blends into the scheduler.** The operator states what work exists, its
-  class (fast I/O, or allowed to block) and what it waits on; domains, thread
-  counts and placement are the scheduler's ([concurrency.md §1](concurrency.md#1-work)).
+- **Blends into the scheduler**, under the project's work classes
+  ([concurrency.md](../../../../spec/concurrency.md#1-work)); the operator's
+  work is listed in [concurrency.md §1](concurrency.md#1-work).
 - **Fast I/O.** Delivery is non-blocking, short tasks that never park a
   domain ([delivery.md §1](delivery.md#1-delivery-groups)).
 - **Minimal memory and CPU, low latency.** Per-listener memory independent of
@@ -54,14 +58,17 @@ acceptance checks.
 
 [modes.md](modes.md) is a seam: [shared-encoder.md](shared-encoder.md) and
 [dedicated-encoder.md](dedicated-encoder.md) answer every clause of it under
-the same section number. Each rule has one owner; other files link to it.
+the same section number, as [conventions.md §3](../../../../spec/conventions.md#3-documents-of-a-tree)
+asks of every seam.
 
 ## Cross-cutting concerns
 
 - **Concurrency and ownership**: [concurrency.md](concurrency.md). Several
   kinds of work touch a listener, and the exactly-once callback and close
   guarantees depend on who may do what.
-- **Failure classification** lives with the rules it governs: listener faults
+- **Failure classification** follows [faults.md](../../../../spec/faults.md)
+  (a listener fault is an output fault of one peer) and lives with the rules
+  it governs: listener faults
   in [delivery.md §6](delivery.md#6-disconnection), request faults in
   [connection.md §7](connection.md#7-failure-paths), construction errors in
   [operator.md §2](operator.md#2-validation-at-construction).
@@ -76,17 +83,16 @@ the same section number. Each rule has one owner; other files link to it.
 
 ## Two parts
 
-**Part A** is the documents above. **Part B**,
-[language-notes/ocaml.md](language-notes/ocaml.md), is advice on mapping them
-onto OCaml and Liquidsoap's internal APIs. Part A is complete without it and
-governs where they differ.
+**Part A** is the documents above. **Part B** is
+[language-notes/ocaml.md](language-notes/ocaml.md)
+([conventions.md §1](../../../../spec/conventions.md#1-normative-language)).
 
 ## Compatibility surface
 
 Frozen; a rebuild keeps it unchanged:
 
 - every parameter's name, type and default ([operator.md §1](operator.md#1-parameters));
-- the `listeners` method, the generic output methods, and the `on_connect` /
+- the `listeners` method, the methods of every output, and the `on_connect` /
   `on_disconnect` callbacks ([operator.md §3–§4](operator.md#3-methods));
 - the listener record: every field keeps its name, type and meaning; fields
   MAY be added ([operator.md §5](operator.md#5-the-listener-record)).

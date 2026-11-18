@@ -2,7 +2,13 @@
 
 **Normative.** What `output.file.hls` and its standard-library wrappers
 MUST, SHOULD and MAY do, exact enough to rebuild them. RFC 8216 and Apple's
-HLS authoring specification are cited where a rule comes from them.
+HLS authoring specification are cited where a rule comes from them. This
+tree sits under the [project specifications](../../../../spec/README.md) and
+the [outputs specification](../../spec/README.md): what every output does
+(states, start and stop, the per-frame loop, resets) is the output base's
+([output.md](../../spec/output.md)), and the encoder rules every output
+relies on are the [encoder spec](../../../encoder/spec/README.md). This tree
+states what is specific to HLS.
 
 **Reader.** Someone building the HLS output inside Liquidsoap: sources,
 clocks, frames, encoders and the HTTP server exist and are used through the
@@ -70,7 +76,8 @@ Build in this order, each layer with its checks of
 Encoder implementation files use the contract's section numbers: "§7" is
 `insert_id3` in all of them.
 
-**No document of their own**: concurrency (one streaming cycle runs every
+**No document of their own**: concurrency (the project's rules are
+[concurrency.md](../../../../spec/concurrency.md); one streaming cycle runs every
 call; `insert_tag` and the server's reads of the tracked files cross
 threads, [metadata.md §3](metadata.md#3-inserted-tags),
 [files.md](files.md));
@@ -84,11 +91,17 @@ with one owner.
 
 - **Variant**: one entry of the output's stream list, with its own encoder,
   media playlist and segments.
-- **Run**: from a start, or the rebuild after an error, to the next stop or
-  error. Every variant gets a new encoder at the start of a run. **Final
-  stop**: the stop at the end of the process.
+  The vocabulary of the [outputs specification](../../spec/README.md#vocabulary),
+  plus:
+
+- **Run**: the output base's run, and also from the rebuild after an error
+  ([operator.md §6](operator.md#6-errors-and-reopening)) to the next stop or
+  error. Every variant gets a new encoder at the start of a run.
 - **Main ticks**: the internal time unit. **Frame**: the configured frame
-  size in ticks. **Chunk**: the part of a frame between metadata positions.
+  size in ticks. **Chunk**: the output base's **piece**, the part of a frame
+  between metadata positions ([output.md §3](../../spec/output.md#3-a-streaming-cycle)).
+  In this tree, **pieces** are what an encoder returns for a chunk
+  ([encoder-contract.md](encoder-contract.md)).
 - **Media time**: ticks given to the encoders since the run started, the
   same for every variant.
 - **Grid**: the boundaries `k × D` of media time, `D` the segment duration.

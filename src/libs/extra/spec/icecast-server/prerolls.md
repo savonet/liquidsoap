@@ -65,6 +65,8 @@ what it loads; `directory` is the base directory of its local locations
 chose with `view.backend(location)`, which takes URLs only and gives an empty
 preroll for any other value or a failed load ([§4](#4-failures)). A reload, or a new `icecast.server.config.load`, builds new views
 and keeps the store warm: a preroll fetched before is not fetched again.
+Loads of a location not yet in the store are not merged: concurrent
+admissions on a cold store MAY each fetch the same URL.
 Observable rules:
 
 - **Budget.** The cached prerolls of all views together hold at most
@@ -137,7 +139,7 @@ second, after the authentication.
   authentication-chosen preroll is not replaced.
 - A backend location that is not an `http` or `https` URL is ignored and logged.
 - A local path under the base directory, none outside it.
-- One fetch per URL while fresh; revalidation after `preroll_revalidate`
+- One fetch per URL while fresh, once a first fetch is stored; revalidation after `preroll_revalidate`
   carries `If-None-Match` when an ETag was stored; `304` keeps, `2xx`
   replaces, failure keeps the copy.
 - A changed local file is read again at its next use.

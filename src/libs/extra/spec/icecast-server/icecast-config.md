@@ -77,14 +77,14 @@ translation multiplies by 1024.
 
 ### 3.1 listen-socket
 
-| Child                 | Status       | Translation                                                                                                                                                                                                                                             |
-| --------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `port`                | supported    | `port`.                                                                                                                                                                                                                                                 |
-| `bind-address`        | supported    | `bind_address`.                                                                                                                                                                                                                                         |
-| `tls`, `ssl`          | supported    | `transport`, see below.                                                                                                                                                                                                                                 |
-| `shoutcast-mount`     | supported    | `shoutcast_mount`.                                                                                                                                                                                                                                      |
-| `shoutcast-compat`    | incompatible | The Shoutcast protocol is always served on `port + 1`.                                                                                                                                                                                                  |
-| `trusted-proxy` (2.5) | supported    | The `client-ip` (address or CIDR range) of each listen socket it names is appended to `proxy_ips` ([listeners.md §8](listeners.md#8-the-listeners-address)). A chain across sockets with different settings is not reproduced: use `forwarded_address`. |
+| Child                 | Status       | Translation                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `port`                | supported    | `port`.                                                                                                                                                                                                                                                                                                                                                                                               |
+| `bind-address`        | supported    | `bind_address`.                                                                                                                                                                                                                                                                                                                                                                                       |
+| `tls`, `ssl`          | supported    | `transport`, see below.                                                                                                                                                                                                                                                                                                                                                                               |
+| `shoutcast-mount`     | supported    | `shoutcast_mount`.                                                                                                                                                                                                                                                                                                                                                                                    |
+| `shoutcast-compat`    | incompatible | The Shoutcast protocol is always served on `port + 1`.                                                                                                                                                                                                                                                                                                                                                |
+| `trusted-proxy` (2.5) | supported    | Names listen sockets by their `id`: the `client-ip` (address or CIDR range) of each one it names is appended to `proxy_ips` ([listeners.md §8](listeners.md#8-the-listeners-address)). A text that names no listen socket's `id` is itself appended, as an address or CIDR range; an empty one is ignored. A chain across sockets with different settings is not reproduced: use `forwarded_address`. |
 
 - A server has **one** listening port. When several `listen-socket` elements
   are present, the first is used and a warning says that the others are
@@ -166,7 +166,10 @@ translation multiplies by 1024.
 
 `mount` is the callback of [parameters.md §4](parameters.md#4-mount-parameters).
 The translation builds a table of the file's `<mount>` elements once, at
-`load`, and the callback is a lookup in it.
+`load`, and the callback is a lookup in it. Every record the table holds,
+merged as below, is validated at `load`
+([parameters.md §7](parameters.md#7-validation-and-errors)): an invalid one
+rejects the file ([§1](#1-scope-and-failure)).
 
 A `<mount>` is `type="normal"` (default when `type` is absent) or
 `type="default"`. A `<mount>` of another type is ignored with a warning. A
@@ -204,7 +207,7 @@ default mount alone, else `null`. Mount names have no other normalisation.
 | `linger-for` (KH)                                                                                                                                                                                                                                                                                                                                                                                                                                  | supported                          | `linger`, seconds ([mounts.md §1.1](mounts.md#11-linger)).                                                                                                                                                                             |
 | `wait-time` (KH)                                                                                                                                                                                                                                                                                                                                                                                                                                   | not implemented                    | Keeps the mount name reserved for that many seconds after its listeners have gone; unrelated to `linger`.                                                                                                                              |
 | `hidden`                                                                                                                                                                                                                                                                                                                                                                                                                                           | supported                          | `hidden`.                                                                                                                                                                                                                              |
-| `on-connect`, `on-disconnect`                                                                                                                                                                                                                                                                                                                                                                                                                      | supported                          | `on_connect`, `on_disconnect`: callbacks that run the command as a background process whose result is ignored.                                                                                                                         |
+| `on-connect`, `on-disconnect`                                                                                                                                                                                                                                                                                                                                                                                                                      | supported                          | `on_connect`, `on_disconnect`: callbacks that run the command, with the mount as its argument, as a background process whose result is ignored.                                                                                        |
 | `http-headers`                                                                                                                                                                                                                                                                                                                                                                                                                                     | supported                          | The mount's `http_headers` ([§8](#8-http-headers)).                                                                                                                                                                                    |
 | `max-listener-duration`                                                                                                                                                                                                                                                                                                                                                                                                                            | supported                          | `max_listener_duration`, seconds.                                                                                                                                                                                                      |
 | `max-history`                                                                                                                                                                                                                                                                                                                                                                                                                                      | supported                          | `max_history`; values outside 1 to 256 become 256, as Icecast does.                                                                                                                                                                    |
@@ -302,7 +305,8 @@ both are present, the default mount's values included; the base directory is
 ### 5.4 Unsupported authentication
 
 A mount `<authentication>` whose `type` is neither `url` nor `htpasswd`, and
-any `<role>`-based authentication, protects listeners in Icecast. Ignoring it
+any `<role>`-based authentication, in a mount or in the root
+`<authentication>`, protects listeners in Icecast. Ignoring it
 would open the mount to everyone, so the file MUST be rejected
 ([§1](#1-scope-and-failure)). Reason: a missing restriction is a security
 failure that a warning in a log does not catch.
@@ -377,7 +381,8 @@ listeners.md's.
   no `type="cors"`, so the attribute conflicts with nothing there. The set is
   the one the RSAS `<cors>` block builds; when both are present, the first
   entry of a name wins ([parameters.md §4.2](parameters.md#42-headers)). What it computes, and
-  the effect of a `value`, is [listeners.md §3.2](listeners.md#32-per-reply-headers)'s.
+  is [listeners.md §3.2](listeners.md#32-per-reply-headers)'s. A `cors`
+  header with a `value` is sent as that value, a `static` entry.
   A `cors` header with a name the set does not have and no value is skipped
   with a warning.
 - Under `"icecast-2.4"` and `"kh"`, which have no `cors` type, the `type`
@@ -411,15 +416,18 @@ mount carries that mount.
 | `source-listeners-is-zero`           | `listener_disconnect`                        | Fires only when the mount has no listener left. |
 | `source-flags-changed`, `dumpfile-*` | none                                         | not implemented                                 |
 
-| `type`      | Status          | Handler                                                                                                                            |
-| ----------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `exec`      | supported       | Runs the `executable` option as a background process with the arguments `argvtype` selects and `EVENT_TRIGGER` in its environment. |
-| `url`       | supported       | POSTs the event as form fields to the `url` option, with `username`, `password` and `action` as given.                             |
-| `log`       | supported       | Writes a line to the server's log, with the `prefix` and `level` options (Icecast's level, converted as in [§6.2](#62-logging)).   |
-| `terminate` | not implemented | A configuration should not stop the server.                                                                                        |
+| `type`      | Status          | Handler                                                                                                                                                                                                                                              |
+| ----------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `exec`      | supported       | Runs the `executable` option as a background process with the arguments `argvtype` selects and `EVENT_TRIGGER` in its environment: `no_defaults` gives no argument, `uri_and_trigger` the mount then the trigger, any other value or none the mount. |
+| `url`       | supported       | POSTs the event as form fields to the `url` option, with `username` and `password` as given: `action` (the option, default the trigger), `mount`, `trigger` and `listeners`.                                                                         |
+| `log`       | supported       | Writes a line to the server's log, with the `prefix` and `level` options (Icecast's level, converted as in [§6.2](#62-logging); default Icecast's `info`).                                                                                           |
+| `terminate` | not implemented | A configuration should not stop the server.                                                                                                                                                                                                          |
 
 An event with no `type`, no `trigger` or an unknown `type` is ignored with a
-warning, as Icecast logs an error and drops it.
+warning, as Icecast logs an error and drops it. Bindings inside a
+`type="default"` mount are ignored with a warning: a binding belongs to one
+mount. Under `"kh"`, a binding inside a mount whose `mount-name` is a pattern
+fires for every mount the pattern matches ([§5](#5-mount)).
 
 ## 10. Elements not supported
 

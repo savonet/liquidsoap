@@ -258,7 +258,9 @@ segment.
 and the counter in the playlist header counts those that have scrolled out,
 so the marker and the counter move at different times. A single output-wide
 flag cleared by the first variant that consumes it leaves the others
-unmarked. Clock resets for latency relief look like restarts and are not.
+unmarked. A clock reset for latency relief is a stop then a start
+([output.md §4](../../spec/output.md#4-reset)), so it is a restart, marked
+like any other ([operator.md §3](operator.md#3-lifecycle)).
 
 **How to tell.** Binding: stop and restart a three-variant output with
 persisted state: each variant's next segment carries a discontinuity marker,

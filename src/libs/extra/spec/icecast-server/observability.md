@@ -97,16 +97,18 @@ listener's address (for instance `X-Forwarded-For`).
 - A listener's disconnect handlers run after its connect handlers.
 - Every source that connects produces exactly one `on_source_disconnect`, after
   its `on_source_connect`.
-- A synchronous handler runs before the path that produced the event proceeds,
-  in registration order. It MUST be short: the streaming path waits for it. For
-  one listener, its synchronous connect handlers have all returned before any
+- Handlers are registered and run as every source callback
+  ([source-contract.md §10](../../../../core/source/spec/source-contract.md#10-callbacks)): a synchronous handler runs before the
+  path that produced the event proceeds, in registration order. For one
+  listener, its synchronous connect handlers have all returned before any
   of its synchronous disconnect handlers start.
 - An asynchronous handler cannot delay streaming. No order is guaranteed
   between asynchronous handlers, nor between an asynchronous handler and
   anything else. Concurrent asynchronous handlers MUST NOT be assumed to see
   state in event order, and counters they share MUST be atomic.
-- A handler that raises is logged at the `severe` level. It MUST NOT affect
-  streaming, other handlers or the session.
+- A handler that raises is logged at `severe` with its backtrace
+  ([source-contract.md §10](../../../../core/source/spec/source-contract.md#10-callbacks)). It MUST NOT affect streaming, other
+  handlers or the session.
 - The statistics of [§4](#4-statistics) include an event before any
   synchronous handler for it runs, so `stats()` called from a synchronous
   handler already counts it. The access and playlist log lines

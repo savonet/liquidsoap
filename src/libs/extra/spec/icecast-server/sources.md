@@ -340,7 +340,9 @@ uses its own URL.
   runs when the feeder leaves, with the record of the source-disconnect event,
   and is the one the mount had
   when the feeder connected: a reload between the two does not change it.
-  They run in the background; a failure is logged and never stops the stream.
+  They run in the background; a failure is logged at `severe` with its
+  backtrace and never stops the stream
+  ([faults.md §0](../../../../spec/faults.md#0-the-rule)).
   Icecast's `<on-connect>` and `<on-disconnect>` commands are callbacks that
   run a command ([icecast-config.md](icecast-config.md)).
 - **Events.** The server raises a source-connect and a source-disconnect event
