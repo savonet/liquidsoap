@@ -13,8 +13,14 @@ The clock is specified in
   turns only when the operator ticks it. It carries the name of the
   operator's clock and names the operator as its controller.
 - The **child output**: an output in the child clock, named
-  `<child id>.child`, whose only source is the child.
+  `<child id>.child`, whose only source is the child. It is created inside
+  the child clock: it is never, even for an instant, in a clock that
+  something else could start.
 - The **intake**: a FIFO store of stream data owned by the operator.
+
+The child belongs to the child clock. A child that something also reads
+from the operator's clock would put it in both: the clock specification
+refuses that when clocks are unified (a clock nested in itself).
 
 ## 2. A tick of the child clock
 

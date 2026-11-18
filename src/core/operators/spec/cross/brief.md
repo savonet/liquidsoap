@@ -117,6 +117,10 @@ Added by the as-built pass:
 - Callbacks a transition registers do not pile up over crossings
   (tests.md §8).
 
+Every entry of [known-complexity.md](known-complexity.md) carries a check,
+under "How to tell". Pass 2 answers each with a rule; pass 3 turns each
+into a conformance check.
+
 ## 5. Constraints
 
 - Target: OCaml, in this tree, on top of `switch-rewrite`.

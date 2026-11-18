@@ -16,17 +16,18 @@ a child clock, the clock. The seam and the source contract are specified in
 
 **Reading order.**
 
-| File                                 | Content                                                                    |
-| ------------------------------------ | -------------------------------------------------------------------------- |
-| [brief.md](brief.md)                 | The framing, the principles that bind, what pass 2 has to settle.          |
-| [child-clock.md](child-clock.md)     | Part A. The generic seam: a child read through its own clock.              |
-| [cross.md](cross.md)                 | Part A. The operator: phases, buffering, the compound, delivery, abort.    |
-| [transition.md](transition.md)       | Part A. The transition function: arguments, adjustments, result, its end.  |
-| [script-layer.md](script-layer.md)   | Part A. The wrapper, `cross.simple`, `crossfade`, the metadata keys.       |
-| [tests.md](tests.md)                 | The suite by principle: what is binding, what is not, what is not covered. |
-| [findings.md](findings.md)           | Defects, asymmetries, gaps, each checked or read only. Agenda for pass 2.  |
-| [ocaml-notes.md](ocaml-notes.md)     | Part B. Where things are in the code. Not for pass 3 unless asked.         |
-| [pass3-handoff.md](pass3-handoff.md) | For the rebuild session only.                                              |
+| File                                       | Content                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| [brief.md](brief.md)                       | The framing, the principles that bind, what pass 2 has to settle.                    |
+| [child-clock.md](child-clock.md)           | Part A. The generic seam: a child read through its own clock.                        |
+| [cross.md](cross.md)                       | Part A. The operator: phases, buffering, the compound, delivery, abort.              |
+| [transition.md](transition.md)             | Part A. The transition function: arguments, adjustments, result, its end.            |
+| [script-layer.md](script-layer.md)         | Part A. The wrapper, `cross.simple`, `crossfade`, the metadata keys.                 |
+| [tests.md](tests.md)                       | The suite by principle: what is binding, what is not, what is not covered.           |
+| [known-complexity.md](known-complexity.md) | What the history shows to be hard, by situation, each reconciled with this snapshot. |
+| [findings.md](findings.md)                 | Defects, asymmetries, gaps, each checked or read only. Agenda for pass 2.            |
+| [ocaml-notes.md](ocaml-notes.md)           | Part B. Where things are in the code. Not for pass 3 unless asked.                   |
+| [pass3-handoff.md](pass3-handoff.md)       | For the rebuild session only.                                                        |
 
 No document is given to crash safety, durability or security: `cross` holds
 no durable state and crosses no trust boundary. The script function it calls

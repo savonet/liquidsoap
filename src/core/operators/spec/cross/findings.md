@@ -127,6 +127,12 @@ Nothing states or enforces what the system relies on.
   Nothing says which of these may run ahead. _Checked_: the child's track
   event for `b` precedes the transition call.
 
+- **F27. Nothing makes the result independent of where frames are cut.**
+  The end of a track is read off the shape of a frame: short, or starting
+  with a mark. F2, F17, F18 and F21 are instances;
+  [known-complexity.md §10](known-complexity.md#10-results-that-depend-on-where-frames-are-cut)
+  is the history. _From the history; instances checked as stated._
+
 ## Tests
 
 - **F25.** The sample check compares one checksum per frame
