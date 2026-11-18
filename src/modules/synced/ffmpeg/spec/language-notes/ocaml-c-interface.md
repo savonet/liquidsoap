@@ -1,6 +1,6 @@
 # Language notes: the OCaml and C interface
 
-Advice about writing synced bindings in OCaml and C. It is not part of the
+Advice about writing these bindings in OCaml and C. It is not part of the
 contract and it describes no design to copy: the normative files say what must
 hold, and these notes say what the language makes easy to get wrong.
 
@@ -53,7 +53,7 @@ check.
 - A constructor's argument that is an option needs the `Some` block around the
   payload. A tuple stored directly where an option belongs is read as
   `Some (its first field)`.
-- A value handed to the C library must be the native object, not the handle that
+- A value handed to FFmpeg must be the native object, not the handle that
   wraps it; a value already converted to a variant must not be converted
   again. Both mistakes compile.
 
@@ -61,7 +61,7 @@ check.
 
 - A custom block holding one pointer is the usual handle. Its allocation call
   takes the size of the native memory it stands for; passing it is what makes
-  the collector pace itself on large buffers such as media frames.
+  the collector pace itself on frames and packets.
 - The runtime has two kinds of finaliser with different rights.
   - The one attached to a custom block runs when the block's memory is
     reclaimed. It must not allocate, call back into OCaml, release the runtime
@@ -81,7 +81,7 @@ check.
   an OCaml exception from C skips every cleanup written after the raise: free
   first, raise last.
 - Custom blocks compared or hashed with the default operations act on the
-  holder. Two handles on the same static C object are not structurally
+  holder. Two handles on the same static FFmpeg object are not structurally
   equal unless the handle type defines its own comparison.
 
 ## Roots held by native objects
@@ -92,12 +92,12 @@ check.
   many such branches.
 - A global root pins what the closure captures. A closure that captures the
   handle it is installed on then keeps that handle alive for ever.
-- Both problems disappear for callbacks that the C library only invokes during an
+- Both problems disappear for callbacks that FFmpeg only invokes during an
   operation on the handle: keep the closures in the OCaml value, reach them
   from C through the handle that the operation in progress has registered, and
-  give the library an opaque pointer that leads to that registered slot. No global
+  give FFmpeg an opaque pointer that leads to that registered slot. No global
   root is needed.
-- A callback that the C library may invoke from a thread of its own, outside any
+- A callback that FFmpeg may invoke from a thread of its own, outside any
   operation, does need a root with the lifetime of the installation.
 
 ## The runtime lock
@@ -107,20 +107,20 @@ check.
   it twice or releasing it twice does not fail at once on every platform.
 - Before the release, copy out every input that lives on the OCaml heap:
   strings, record fields, the pointer inside a custom block. An accessor macro
-  written in the argument list of the C call is evaluated after the
+  written in the argument list of the FFmpeg call is evaluated after the
   release.
 - Retake the lock before raising, and before any conversion that can raise.
-- A callback entered from the C library takes the lock, calls the closure through the
+- A callback entered from FFmpeg takes the lock, calls the closure through the
   exception-catching entry point, converts the result, and releases the lock.
-  An exception must not unwind through C frames.
+  An exception must not unwind through FFmpeg's frames.
 - The result of the exception-catching entry point, when the closure raised,
   is an encoded exception and not a value. Left in a registered local across
   an allocation, it crashes the collector: replace it with the extracted
   exception before anything else.
 - A callback cannot know by itself whether its thread holds the lock. The
-  binding must: every C call that can reach a callback is made with the
+  binding must: every FFmpeg call that can reach a callback is made with the
   lock released.
-- A thread created by the C library must be registered with the runtime before it
+- A thread created by FFmpeg must be registered with the runtime before it
   takes the lock, and unregistered when the thread exits, not when the
   callback returns. A thread-specific key with a destructor does that, on one
   condition: the key is created before the runtime creates the key that
@@ -151,8 +151,8 @@ check.
   visible dimension can be reduced after the fact when fewer elements were
   written than were allocated.
 - A bigarray over memory the runtime does not own has no finaliser of its own.
-  To tie it to a reference-counted native buffer, take a buffer reference
-  and release it from an OCaml-level finaliser registered on the bigarray.
+  To tie it to a reference-counted FFmpeg buffer, take a buffer reference and
+  release it from an OCaml-level finaliser registered on the bigarray.
 - Float arrays are read and written with the runtime's flat-float accessors,
   never copied as raw doubles. An empty float array built in C is not
   necessarily equal to `[||]` under structural comparison: return the atom

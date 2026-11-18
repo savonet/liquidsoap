@@ -59,7 +59,7 @@ the contract.
 - Preprocessor output contains line markers and everything the header
   includes. Locate an enumeration by its `enum Name {` opening and its closing
   brace, not by line patterns.
-- The variant constant of [build.md §3.2](../build.md#32-variant-constants-in-c) is a pure function of
+- The variant constant of [build.md](../build.md) §3.6 is a pure function of
   the name. Computing it in the generator's own language keeps the generator
   free of C stubs and of the host runtime's word size.
 - A build-time program must build where no native compiler exists: do not

@@ -1,14 +1,11 @@
 # Build, detection and enumeration generation
 
-The FFmpeg packages and libraries, what detection requires of each, the
-enumeration tables derived from FFmpeg's headers, the installed C headers and
-how the tests are wired into the build. Detection, gating, the install check,
-warnings, the source of truth of generated code, variant constants and the
-rules every installed header follows are the generic
-[build.md](../../spec/build.md); §2 answers its §2 under the same numbers.
+What decides which libraries are built, how the enumeration tables are derived
+from FFmpeg's headers, and how the libraries, their C headers and their tests
+are wired into the build.
 
 Advice specific to dune and the OCaml toolchain is in
-[language-notes/build-system.md](../../spec/language-notes/build-system.md).
+[language-notes/build-system.md](language-notes/build-system.md).
 
 ## 1. Packages and libraries
 
@@ -40,22 +37,123 @@ one OCaml library. The eighth is an umbrella. These names are frozen.
 
 ## 2. Availability detection
 
-D1 to D15 are the [generic build.md §2](../../spec/build.md#2-availability-detection), for
-each of the seven libraries of §1 in every context. FFmpeg's answers:
+### 2.1 What detection decides
 
-- **§2.1, D2.** The C libraries a library requires are those of its row in
-  §1, and the binding libraries it depends on are those of the same row.
-  `LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS` takes the library names of §1.
-- **§2.2.** pkg-config is selected per context by the generic rules; nothing
-  FFmpeg-specific.
-- **§2.3, D6.** The minimum version of each C library is the one it has in
-  FFmpeg 7.1, the floor of [compatibility.md](compatibility.md) V1, as listed
-  in its §1.3.
-- **§2.4, D7.** Applies unchanged.
-- **§2.5, D11.** The build reports the availability of each of the seven
-  libraries.
-- **§2.7, D15.** Both ends of the supported FFmpeg range are built in
-  continuous integration ([tests.md](tests.md) §8).
+For each binding library and each build context, detection decides whether the
+library is **available** and, when it is, the C flags its stubs compile with
+and the link flags they link with.
+
+- **D1.** Detection MUST be a build action that runs per library and per
+  context. It MUST NOT fail the build when a library is unavailable.
+- **D2.** A library is available when all of these hold:
+  1. its name is not excluded (§2.2);
+  2. pkg-config is found;
+  3. pkg-config reports every C library of its row in §2.3 at the stated
+     minimum version;
+  4. every binding library it depends on (§1) is available.
+- **D3.** The C flags of an available library are the flags pkg-config reports
+  for its C libraries. Its link flags are the link flags pkg-config reports
+  for them, after the filter of §2.4.
+- **D4.** Flags MUST travel as argument vectors from pkg-config to the
+  compiler. They MUST NOT be pasted into a shell command line.
+- **D5.** Detection MUST be re-evaluated when the environment it reads
+  changes, including an FFmpeg installed or upgraded under the same prefix
+  since the previous build.
+
+### 2.2 pkg-config selection and environment variables
+
+Selection algorithm, given the context name `C` passed by the build system:
+
+1. The effective context is the value of `LIQUIDSOAP_DUNE_TARGET` when that
+   variable is set, otherwise `C`.
+2. `<ctx>` is the effective context with every `.` replaced by `_`.
+3. When `PKG_CONFIG_PATH_<ctx>` is set, its value is the pkg-config search
+   path for this detection.
+4. When `PKG_CONFIG_<ctx>` is set, its value is the pkg-config executable for
+   this detection.
+5. Otherwise the ambient `PKG_CONFIG_PATH` and `PKG_CONFIG` apply.
+
+The substitutions affect only the detection being run.
+
+| Variable                              | Effect                                                                        |
+| ------------------------------------- | ----------------------------------------------------------------------------- |
+| `LIQUIDSOAP_DUNE_TARGET`              | Replaces the context name in the selection above, in every context.           |
+| `PKG_CONFIG_PATH_<ctx>`               | pkg-config search path for context `<ctx>`.                                   |
+| `PKG_CONFIG_<ctx>`                    | pkg-config executable for context `<ctx>`.                                    |
+| `PKG_CONFIG`, `PKG_CONFIG_PATH`       | Ambient pkg-config executable and search path.                                |
+| `LIQUIDSOAP_MINIMAL_EXCLUDE_DEPS`     | Space-separated list of library names of §1. A listed library is unavailable. |
+| `LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL` | When equal to `true`, disables the install-time check of §2.6.                |
+
+These names and meanings are compatibility surface.
+[cross-compilation.md](cross-compilation.md) §2 states what a cross build
+relies on.
+
+### 2.3 Per-library requirements
+
+The minimum versions are those of the oldest supported FFmpeg release
+([compatibility.md](compatibility.md) §1).
+
+| Library      | pkg-config requirement                                                         |
+| ------------ | ------------------------------------------------------------------------------ |
+| `avutil`     | `libavutil >= 59.39.100`, `libavcodec >= 61.19.100`                            |
+| `avcodec`    | `libavcodec >= 61.19.100`, `libavutil >= 59.39.100`                            |
+| `av`         | `libavformat >= 61.7.100`, `libavcodec >= 61.19.100`, `libavutil >= 59.39.100` |
+| `avfilter`   | `libavfilter >= 10.4.100`, `libavutil >= 59.39.100`                            |
+| `avdevice`   | `libavdevice >= 61.3.100`, `libavformat >= 61.7.100`                           |
+| `swscale`    | `libswscale >= 8.3.100`, `libavutil >= 59.39.100`                              |
+| `swresample` | `libswresample >= 5.3.100`, `libavutil >= 59.39.100`                           |
+
+- **D6.** Each minimum MUST be the version that library has in the oldest
+  supported release, and the bindings MUST compile and pass the conformance
+  suite against that release ([tests.md](tests.md) §8).
+
+### 2.4 Windows link-flag filter
+
+pkg-config for a static FFmpeg returns linker options written for a C link
+line. Some are rejected or misread when they pass through the OCaml toolchain.
+
+- **D7.** When the target's OS type is `Win32`, these link flags MUST be
+  removed and every other flag kept in order:
+  - every flag of three or more characters that starts with `-Wl`;
+  - `-static-libgcc`;
+  - `-lssp`;
+  - `-lmingw32`.
+- **D8.** For any other OS type the link flags are unchanged. The filter never
+  applies to C flags.
+
+### 2.5 Gating
+
+- **D9.** A binding library is part of the build exactly when it is
+  available. When unavailable, its stubs are not compiled and nothing can
+  depend on it.
+- **D10.** Availability is the only reason a library may be absent. With a
+  library available, any failure to generate its tables, compile its stubs or
+  resolve its dependencies MUST fail the build. No library may be declared
+  optional to the build system on top of its availability gate.
+- **D11.** The build MUST report, in its output, the availability of each of
+  the seven libraries.
+
+### 2.6 Install-time check
+
+Every package may legally be empty, so that an unavailable library does not
+break a workspace build.
+
+- **D12.** The installation target of each binding package MUST fail, with a
+  message naming the library, when that library is unavailable.
+- **D13.** The check is disabled when `LIQUIDSOAP_INSTALL_NO_OPTIONAL_FAIL`
+  equals `true`. A package whose library is unavailable then installs empty.
+
+### 2.7 Compiler warnings
+
+- **D14.** The stubs SHOULD be compiled with the compiler's general warning
+  sets enabled.
+- **D15.** A warning MUST NOT be an error in a packaged build. Warnings are
+  promoted to errors in the development profile and in continuous integration
+  only, where both ends of the supported FFmpeg range are built
+  ([tests.md](tests.md) §8).
+
+A warning promoted to an error is tested only on the versions someone builds;
+a packaged build meets versions nobody built.
 
 ## 3. Enumeration tables
 
@@ -76,10 +174,10 @@ table.
 
 ### 3.2 Source of truth
 
-The member set is obtained as the
-[generic build.md §3.1](../../spec/build.md#31-source-of-truth) states (G3), and the generator
-fails as G7 states, naming the header and the enumeration.
-
+- **G3.** The member set MUST be obtained by running the target's C compiler
+  as a preprocessor on a translation unit that includes the header by its
+  public include path, with the library's detected C flags. The compiler finds
+  the header exactly as it will when compiling the stubs.
 - **G4.** For an enumeration, the members are the enumerators of the named C
   `enum` as they appear after preprocessing, in declaration order. Members
   guarded by a false conditional are absent.
@@ -88,6 +186,10 @@ fails as G7 states, naming the header and the enumeration.
   are absent.
 - **G6.** The C value of a member is never read by the generator. The table
   refers to the C constant by name and the C compiler supplies its value.
+- **G7.** The generator MUST exit with a failure, naming the header and the
+  enumeration, when: the preprocessor cannot be run or fails; the header is
+  not found; the enumeration is not found; a table has no member. It MUST NOT
+  fall back to another way of reading the header.
 
 ### 3.3 Exclusions
 
@@ -189,12 +291,31 @@ does not read C values (G6), so it cannot order a list by them.
 
 ### 3.6 Variant constants in C
 
-The algorithm, G10 and G11 are the
-[generic build.md §3.2](../../spec/build.md#32-variant-constants-in-c).
+An OCaml constant polymorphic variant is an immediate integer. For a
+constructor name `s`, without the backquote:
+
+1. `h = 0`; for each byte `c` of `s`, `h = 223 * h + c`, in unsigned
+   arithmetic.
+2. Keep the low 31 bits of `h`.
+3. The constant is `2 * h + 1`, taken as a signed 32-bit integer and
+   sign-extended to the platform word.
+
+The number is directly comparable to an OCaml value received by a stub and can
+be returned as an OCaml value without further encoding.
+
+Known answers: `Jpeg` = 1652440465, `Unspecified` = -789514449, `Audio` =
+1968951661, `Video` = -1806497609, `None` = 1741061553, `_0rgb` =
+-1505465991.
+
+- **G10.** A variant constant used by hand-written stub code MUST come from
+  this algorithm, through generated definitions. A constant typed by hand is
+  not allowed.
+- **G11.** A variant constant MUST be held in C in a type wide enough for a
+  negative OCaml immediate. It MUST NOT pass through a C enumeration type.
 
 ### 3.7 Conversions
 
-[binding-contract.md](binding-contract.md) §3 and the generic contract own what a conversion does with
+[binding-contract.md](binding-contract.md) §3 owns what a conversion does with
 a value that has no entry and which constructor an aliased C value converts
 to.
 
@@ -209,11 +330,14 @@ dependent libraries include. The file names are frozen:
 | `ffmpeg-avcodec` | `avcodec_stubs.h`                                                             |
 | `ffmpeg-av`      | `av_stubs.h`                                                                  |
 
-H1 and H3 are the [generic build.md §4](../../spec/build.md#4-installed-c-headers).
-
+- **H1.** Every installed header MUST be includable by any number of
+  translation units of one program: it has an include guard and defines no
+  object or function with external linkage.
 - **H2.** The declarations a header carries are an interface between binding
   libraries of the same version (P1). Each library file states in its §1 what
   it provides to its dependents.
+- **H3.** A function declared in an installed header MUST state, in the
+  header, whether it requires the OCaml runtime lock and whether it can raise.
 
 ## 5. Tests in the build
 

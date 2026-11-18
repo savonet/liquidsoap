@@ -18,9 +18,12 @@ a tree states only where it departs, with its reason.
 - Every rule has one owner, the most general document where it holds. Other
   documents link to it, and do not restate it.
 - The levels, from most general: the project ([README](README.md)), the
-  streaming model and clocks, the generic seams of outputs, encoders and C
-  bindings, then components. A rule found in a component that holds beyond
-  it moves up.
+  streaming model and clocks, the generic seams of outputs and encoders, then
+  components. A rule found in a component that holds beyond it moves up.
+- **Exception: vendored modules.** Each directory under
+  `src/modules/synced/` is mirrored, alone, into a repository of its own. Its
+  specification is self-contained: it states the rules it relies on and links
+  nowhere outside its directory, even where a rule holds more widely.
 - A component that needs a different behaviour from a general rule states
   the departure next to the rule it departs from, with its reason, and links
   the general rule.

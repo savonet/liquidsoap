@@ -24,11 +24,10 @@ general level where it holds, and every level below links to it.
 
 ## Generic seams
 
-| Tree                                                    | Content                                                              |
-| ------------------------------------------------------- | -------------------------------------------------------------------- |
-| [core/outputs/spec](../core/outputs/spec/README.md)     | The output base: states, start and stop, the per-frame loop, resets. |
-| [core/encoder/spec](../core/encoder/spec/README.md)     | The encoder interface every output drives.                           |
-| [modules/synced/spec](../modules/synced/spec/README.md) | OCaml bindings to C libraries: handles, the runtime, build.          |
+| Tree                                                | Content                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------------- |
+| [core/outputs/spec](../core/outputs/spec/README.md) | The output base: states, start and stop, the per-frame loop, resets. |
+| [core/encoder/spec](../core/encoder/spec/README.md) | The encoder interface every output drives.                           |
 
 ## Components
 
@@ -45,3 +44,8 @@ general level where it holds, and every level below links to it.
 
 A new specification tree follows [conventions.md](conventions.md), links up
 for every rule of a level above, and is added to this index.
+
+The specifications of vendored bindings under `src/modules/synced/` are
+mirrored into standalone repositories with their module, so they are
+self-contained and link nowhere outside it
+([conventions.md §2](conventions.md#2-one-owner-per-rule)).

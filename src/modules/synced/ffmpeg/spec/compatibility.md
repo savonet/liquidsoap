@@ -1,9 +1,7 @@
 # FFmpeg and OCaml version compatibility
 
-The range of FFmpeg and OCaml versions the bindings build and run against,
-and what they rely on from the floor. The rules every binding follows about
-versions (V3, V5 to V7, V9, V10) are the generic
-[compatibility.md](../../spec/compatibility.md).
+The range of FFmpeg and OCaml versions the bindings build and run against, and
+the rules for behaviour that depends on a version.
 
 ## 1. FFmpeg range
 
@@ -11,15 +9,20 @@ versions (V3, V5 to V7, V9, V10) are the generic
 
 - **V1.** The oldest supported release is **FFmpeg 7.1**. The targets are
   FFmpeg 8 and FFmpeg 9.
-- **V2**, **V3**: the floor is enforced by detection, generic build D6,
-  answered in [build.md](build.md) §2.3, and is the oldest release the suite
-  runs against, by the
-  [generic V3](../../spec/compatibility.md#1-the-c-librarys-range).
+- **V2.** The floor is enforced by detection: a binding library is built only
+  when pkg-config reports its C libraries at the versions they have in the
+  floor release. [build.md](build.md) §2.3 owns the table.
+- **V3.** The floor stated to users, the floor detection enforces and the
+  oldest release the conformance suite runs against MUST be the same release
+  ([tests.md](tests.md) §8).
+
+A floor that detection accepts and nobody builds is found by users, in the
+middle of an install.
 
 ### 1.2 Ceiling
 
-There is no upper bound in the build. The ceiling is as the generic file
-defines it.
+There is no upper bound in the build. The newest release the conformance
+suite runs against is the newest supported release.
 
 ### 1.3 Library versions per release
 
@@ -48,9 +51,18 @@ What the floor guarantees, and the bindings rely on without a conditional:
 | coded side data on codec parameters                                     | [avformat.md](avformat.md) §4.4 |
 | frame-based scaling (`sws_scale_frame`) and the scaler `threads` option | [swscale.md](swscale.md) §4.5   |
 
-A conditional a later FFmpeg release makes necessary follows V5 to V7 of the
-[generic compatibility.md §2](../../spec/compatibility.md#2-version-dependent-behaviour). FFmpeg
-removes at each major release what the previous one deprecated (V7).
+Rules for a conditional a later FFmpeg release makes necessary:
+
+- **V5.** A conditional MUST compare a library version, and MUST name the
+  version at which the newer facility appeared. Both sides MUST be reachable
+  inside the supported range; a conditional with one reachable side is
+  removed.
+- **V6.** A feature test on a preprocessor name is allowed only for a name
+  checked to be a macro in the headers of every supported release. An
+  enumeration member is not a macro.
+- **V7.** The stubs MUST build without deprecation warnings against the newest
+  supported release. FFmpeg removes at each major release what the previous
+  one deprecated.
 
 ## 3. Enumerations follow the headers
 
@@ -71,7 +83,10 @@ time, not the headers the stubs were compiled against.
 ## 5. OCaml range
 
 - **V8.** The minimum is **OCaml 5.3**.
-- **V9**, **V10**: the [generic compatibility.md §3](../../spec/compatibility.md#3-ocaml-range).
+- **V9.** The bindings MUST be correct in a program that runs several domains
+  ([binding-contract.md](binding-contract.md) §6).
+- **V10.** The conformance suite runs on the minimum and on the newest
+  released OCaml ([tests.md](tests.md) §8).
 
 What the specification needs from the runtime exists in every OCaml 5: one
 threading model with domains, and a C interface that provides, under its
