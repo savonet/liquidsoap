@@ -38,9 +38,13 @@ def fallback(~id=null, sources) =
   switch(id=id, list.map(fun (s) -> ({true}, s), sources))
 end
 
-# Rotate between sources.
+# Rotate between sources: play `weight` tracks of each source in turn. A source
+# is always played until the end of its track: `track_sensitive` is not read on
+# the sources given here, since a turn is counted in tracks. To let a source
+# cut into the rotation, put it in a `fallback` or `switch` above it.
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
+# @param sources Sources to rotate between. Each can carry a `weight`, the number of tracks it gets per turn (default: `1`).
 def rotate(~id=null, sources) =
   sources = source.composition.children(sources)
   count = list.length(sources)
@@ -119,9 +123,12 @@ def rotate(~id=null, sources) =
   s
 end
 
-# At the beginning of every track, select a random ready child.
+# At the beginning of every track, select a random ready child. A source is
+# always played until the end of its track: `track_sensitive` is not read on the
+# sources given here, since a new one is drawn per track.
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
+# @param sources Sources to choose from. Each can carry a `weight`, its relative probability (default: `1`).
 def replaces random(~id=null, sources) =
   sources = source.composition.children(sources)
 

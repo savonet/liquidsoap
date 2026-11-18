@@ -58,7 +58,7 @@ callbacks run inside the streaming cycle; their failure is
 - `switch(~id, [(predicate, source)])`, with the method `selected()`.
 - Per-source methods read by a switch: `track_sensitive`, `replay_metadata`,
   `single`, `on_select`, `on_leave`. `weight` is read by `rotate` and
-  `random`.
+  `random`, which do not read `track_sensitive`.
 - `composition_type` on every non-output source.
 - `source.composition.file(profile)`, `source.composition.live(profile)`,
   `source.composition.default_on_select`,

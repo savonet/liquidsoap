@@ -48,8 +48,8 @@ jingles = playlist("~/jingles")
 radio = rotate([music.{weight = 3}, jingles.{weight = 1}])
 ```
 
-Both are file sources, so neither is willing to interrupt the other: when the
-jingle's turn comes up, the switch **waits for the current song to finish**.
+A rotation never interrupts a track: when the jingle's turn comes up, it
+**waits for the current song to finish**.
 The jingle then starts cleanly at the boundary, with no fade — nothing was
 interrupted, so there is nothing to fade.
 
@@ -61,6 +61,14 @@ change while the stream runs:
 ```liquidsoap
 radio = rotate([music.{weight = {if night() then 6 else 3 end}}, jingles])
 ```
+
+`rotate` and `random` always wait for the end of the current track before
+moving on, whatever the sources are: setting `track_sensitive = false` on one of
+their sources has no effect. Their turns are counted in tracks, and a source
+starts a track by being selected. If it could also be interrupted, its turn
+would be used up the moment it began and it would be cut at once, as would the
+next one. To let a source cut into a rotation, put it above the rotation, as in
+`fallback([live, rotate([music, jingles])])`.
 
 ## A show on a schedule
 

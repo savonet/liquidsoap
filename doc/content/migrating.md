@@ -185,6 +185,8 @@ Start with `track_sensitive`: each source now picks the right value on its own. 
 | `fallback.skip(main, fallback=backup)`         | `fallback([main, backup.{track_sensitive = false}])`   |
 | Switching mid-track with no fade (old default) | `s1.{on_select = source.composition.legacy_on_select}` |
 
+`rotate` and `random` hold each source until the end of its track: `track_sensitive = false` on one of their sources is ignored, since their turns are counted in tracks. A source that must cut in goes in a `fallback` or `switch` above the rotation.
+
 Each source now carries its own `weight`, defaulting to `1`. The old `weights` list was positional and was padded with `1` when shorter than the source list.
 
 A `transitions` function becomes an `on_select` method on the source being entered:

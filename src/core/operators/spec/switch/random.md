@@ -33,7 +33,10 @@ So a choice is made once per track played, whatever the weights.
 
 ## 5. Shape
 
-`random` behaves as one switch over the children with the predicates above.
+`random` behaves as one switch over the children with the predicates above,
+every child being track-sensitive whatever its own `track_sensitive` says,
+for the reason given in [rotate.md §5](rotate.md#5-shape): a draw is made
+per track played, and a child starts a track by being selected.
 
 - A child is chosen with a probability proportional to its weight among the
   available children.
