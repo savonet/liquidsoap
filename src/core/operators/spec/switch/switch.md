@@ -210,17 +210,20 @@ affected.
 
 Script code that raises is not a major error
 ([faults.md §0](../../../../spec/faults.md#0-the-rule)): it is logged at
-`severe` with its backtrace and the switch goes on.
+`severe` with its backtrace, at the bounded rate of
+[faults.md §4](../../../../spec/faults.md#4-item-faults-escalate), and the
+switch goes on.
 
-- A predicate or a getter that raises counts as false (a getter, as its
-  default) for that decision.
-- A handoff whose `on_select` raises is undone: the selection is as before,
-  the new presented source is released, and the attempt is logged.
+- A predicate that raises counts as false for that decision. A
+  `track_sensitive` or `replay_metadata` getter that raises counts as its
+  profile's value.
+- An `on_select` that raises, or whose result has a content type the
+  switch cannot carry, is treated like a result with nothing to deliver: the
+  child is played as it is, what the call registered is released, and the
+  attempt is logged. The result of `on_select` is checked before it delivers
+  any data.
 - An `on_leave` that raises counts as having done nothing: the child is
   left as it would otherwise be.
-- The result of `on_select` MUST have a content type compatible with the
-  switch's. This is checked before the result delivers any data; a mismatch
-  is an error of the handoff, handled as a raising `on_select`.
 - Nothing else in a switch raises or aborts
   ([frame-assembly.md §7](../../../source/spec/frame-assembly.md#7-bounds)).
 

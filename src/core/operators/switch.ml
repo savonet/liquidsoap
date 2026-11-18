@@ -26,6 +26,15 @@
 
 open Source
 
+(* Script code that raises is not a major error: it is logged and the switch
+   goes on with the most plausible meaning of the script. Getters and
+   predicates run every cycle, so their failures are logged at a bounded
+   rate. *)
+let script_faults = Faults.create (Log.make ["switch"])
+
+let script_failed ~what error backtrace =
+  Faults.script_error script_faults ~kind:what error backtrace
+
 class insert_initial_track_mark ~name src =
   object (self)
     inherit operator ~name [src] as super
@@ -152,9 +161,15 @@ class switch children =
     (* A child was preempted when the switch cut into its track and that track
        had not run out by the time nothing read it any more. *)
     method private fire_on_leave l =
-      l.on_leave
-        (l.leaving_proxy :> source)
-        (l.preempted && not l.leaving_proxy#track_ended)
+      try
+        l.on_leave
+          (l.leaving_proxy :> source)
+          (l.preempted && not l.leaving_proxy#track_ended)
+      with Runtime_error.Runtime_error _ as error ->
+        let backtrace = Printexc.get_raw_backtrace () in
+        script_failed
+          ~what:(Printf.sprintf "on_leave of %s" l.leaving_proxy#id)
+          error backtrace
 
     method private release_leaving ~force () =
       leaving <-
@@ -206,10 +221,23 @@ class switch children =
 
     method private evaluate_predicate c =
       self#per_cycle c.effective_predicate (fun () ->
-          Lang.to_bool (Lang.apply c.predicate []))
+          try Lang.to_bool (Lang.apply c.predicate [])
+          with Runtime_error.Runtime_error _ as error ->
+            let backtrace = Printexc.get_raw_backtrace () in
+            script_failed
+              ~what:(Printf.sprintf "The predicate of %s" c.source#id)
+              error backtrace;
+            false)
 
     method private is_track_sensitive c =
-      self#per_cycle c.effective_track_sensitive c.track_sensitive
+      self#per_cycle c.effective_track_sensitive (fun () ->
+          try c.track_sensitive ()
+          with Runtime_error.Runtime_error _ as error ->
+            let backtrace = Printexc.get_raw_backtrace () in
+            script_failed
+              ~what:(Printf.sprintf "track_sensitive of %s" c.source#id)
+              error backtrace;
+            (Lang_source.profile_of c.source).track_sensitive)
 
     method private can_play c = self#predicate_holds c && c.source#is_ready
 
@@ -310,34 +338,57 @@ class switch children =
           =
         Lang_source.collect_callback_releases
           (sources @ ((starting :> Source.source) :: Option.to_list ending))
-          (fun () -> child.on_select ending (starting :> source))
+          (fun () ->
+            try
+              let effective_source =
+                child.on_select ending (starting :> source)
+              in
+              Typing.(effective_source#frame_type <: self#frame_type);
+              Some effective_source
+            with
+            | ( Runtime_error.Runtime_error _ | Repr.Type_error _
+              | Repr.Track_error _ ) as error
+            ->
+              let backtrace = Printexc.get_raw_backtrace () in
+              script_failed
+                ~what:(Printf.sprintf "on_select of %s" child.source#id)
+                error backtrace;
+              None)
       in
-      Typing.(effective_source#frame_type <: self#frame_type);
 
-      (* A source built by [on_select] sits in a clock of its own until it is
-         made ours, and is never ready there. *)
-      Clock.unify ~pos:self#pos effective_source#clock self#clock;
-
-      (* Wake the new graph before putting the previous selection to sleep: when
-         it holds [previous.proxy] this keeps that source continuously up. *)
-      let a = effective_source#wake_up (self :> Clock.source) in
-      let sleep () =
-        effective_source#sleep a;
-        release_callbacks ()
+      (* We answered ready because the child is: when [on_select] gave nothing
+         that delivers now, the child is played as it is. *)
+      let play_child_itself () =
+        let a = starting#wake_up (self :> Clock.source) in
+        ((starting :> source), fun () -> starting#sleep a)
       in
-
-      (* We answered ready because the child is: what [on_select] returned
-         has to deliver now, or the child is played as it is. *)
       let effective_source, sleep =
-        if effective_source#is_ready then (effective_source, sleep)
-        else (
-          self#log#important
-            "The source selected for %s has nothing to deliver: playing %s \
-             itself."
-            child.source#id child.source#id;
-          let a = starting#wake_up (self :> Clock.source) in
-          sleep ();
-          ((starting :> source), fun () -> starting#sleep a))
+        match effective_source with
+          | None ->
+              release_callbacks ();
+              play_child_itself ()
+          | Some effective_source ->
+              (* A source built by [on_select] sits in a clock of its own until
+                 it is made ours, and is never ready there. *)
+              Clock.unify ~pos:self#pos effective_source#clock self#clock;
+
+              (* Wake the new graph before putting the previous selection to
+                 sleep: when it holds [previous.proxy] this keeps that source
+                 continuously up. *)
+              let a = effective_source#wake_up (self :> Clock.source) in
+              let sleep () =
+                effective_source#sleep a;
+                release_callbacks ()
+              in
+              if effective_source#is_ready then (effective_source, sleep)
+              else (
+                self#log#important
+                  "The source selected for %s has nothing to deliver: playing \
+                   %s itself."
+                  child.source#id child.source#id;
+                let played = play_child_itself () in
+                sleep ();
+                played)
       in
       Option.iter (self#push_leaving ~preempted) previous;
       self#exchange_selected
@@ -492,7 +543,17 @@ let _ =
             in
             let replay_metadata =
               match find_opt "replay_metadata" s_val with
-                | Some v -> Lang.to_bool_getter v
+                | Some v -> (
+                    let replay_metadata = Lang.to_bool_getter v in
+                    fun () ->
+                      try replay_metadata ()
+                      with Runtime_error.Runtime_error _ as error ->
+                        let backtrace = Printexc.get_raw_backtrace () in
+                        script_failed
+                          ~what:
+                            (Printf.sprintf "replay_metadata of %s" source#id)
+                          error backtrace;
+                        (profile ()).replay_metadata)
                 | None -> fun () -> (profile ()).replay_metadata
             in
             let on_leave =
