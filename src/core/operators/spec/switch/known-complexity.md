@@ -3,7 +3,8 @@
 What the history of the switch family shows to be hard, stated as situations a
 new implementation will meet again. Entries say nothing about the old code. The
 **Count / traces** line of each entry is the only place where issue numbers, PR
-numbers and commit hashes appear.
+numbers and commit hashes appear. The **Rule** line of each entry names
+the rule of this specification that answers it.
 
 **How the history was measured.** `git log --follow` on the switch operator
 gives 162 commits since 2008; 10 carry "fix" in their subject and 2 are reverts
@@ -91,6 +92,8 @@ in a row; an entering source whose first frame carries its own metadata; a live
 entering source with an inserted title. With replay disabled on a child, no
 replayed metadata comes from it, ever.
 
+**Rule.** Replay inserts the entering source's last metadata on its first sample and loses to metadata already there ([composition.md §4](composition.md#4-default-handoff)). A source's last metadata is cleared when its track ends or is aborted, and a source that produces unread keeps its track start and metadata for its first read ([source-contract.md §4](source-contract.md#4-metadata)). One presented source per selection, entered with one mark ([switch.md §5](switch.md#5-handoff), [switch.md §6](switch.md#6-presented-sources)).
+
 **Count / traces.** 12 fixes, 14 issues or tester reports.
 #208 8b36c9449; #2109 208877af4; #2138 9305b48f6; #1476; #3373 (open, read
 only); #3123 (open, read only); #3943; #4858; #4803 03bec767d; #4892 f49c071f0;
@@ -148,6 +151,8 @@ any length of time holds bounded memory. A source that produces whether or not
 it is read loses nothing at the moment it is selected. A skip applied on leave
 is complete before the next selection of that source is decided.
 
+**Rule.** No state is derived from probes, requests or ticks ([source-contract.md §9](source-contract.md#9-no-inference)). A selector commits only when its reader takes data past the decision point, so one left at a boundary has nothing to undo ([frame-assembly.md §3](frame-assembly.md#3-commit)). A reader that cuts into a source aborts it, and an aborted selector decides anew ([composition.md §2](composition.md#2-profiles), [switch.md §8](switch.md#8-abort)). Unread data is bounded and an abort discards it before the next decision ([source-contract.md §5](source-contract.md#5-consumption), [source-contract.md §6](source-contract.md#6-abort)).
+
 **Count / traces.** 11 fixes, 10 issues. Entry 3 and #5594 are the same family.
 Entries 15 (an item's end guessed from what it returns) and 12 (last use
 guessed from reachability) are the same difficulty at the seam.
@@ -197,6 +202,8 @@ from the tracks that reached the output, it plays in full, no fragment of
 another track precedes it, and the inner's play count equals the number of its
 tracks that reached the output. The same shape with a priority policy inside:
 on return, a child that became available meanwhile plays first.
+
+**Rule.** Probes have no observable effect ([source-contract.md §2](source-contract.md#2-probes)). Decisions change nothing and are committed by a request ([frame-assembly.md §2](frame-assembly.md#2-decisions), [frame-assembly.md §3](frame-assembly.md#3-commit)). Predicates change nothing; policy state advances on the track event, which fires for a track being played ([policies.md §6](policies.md#6-predicate-contract), [rotate.md §4](rotate.md#4-events)).
 
 **Count / traces.** 2 fixes, 5 issues.
 #1327 9a3e7f84b (GH1327); #1476; #2513; #3763 (read only); #5594 (open).
@@ -248,6 +255,8 @@ A join that is asked to merge (no boundary at all) is entry 16. A frame that
 holds several boundaries is entry 18. A source designated twice in one frame is
 entry 14.
 
+**Rule.** The user states at the end of the source being left whether its own track ends, and that statement fixes the entry of what follows, inside a frame and on a frame edge alike ([frame-assembly.md §5](frame-assembly.md#5-segments), [frame-assembly.md §6](frame-assembly.md#6-joins)). One contiguous span per source and per frame, no mark on an empty segment ([frame-assembly.md §7](frame-assembly.md#7-bounds)). A track-sensitive selection is kept to its track end ([switch.md §4](switch.md#4-decisions)). A crossing has one mark ([cross-seam.md §3](cross-seam.md#3-seam-answers)). Where a stream's first sample begins a track is each user's clause C4 and [source-contract.md §3](source-contract.md#3-tracks).
+
 **Count / traces.** 9 fixes, 1 revert, 1 convention change, 6 issues.
 #1999 b4d53d129; #3645 85e2a31e1; #3654 bcbb74c81; #4102 #4108 59de576ec; #4786
 2b3aa2ea7; 3c089a3f0; #5083 e30598ef2 reverted f998363bc; #5379 1f1fda60a
@@ -292,6 +301,8 @@ through it. After N handoffs, the number of live sources and registered
 callbacks is the same as after one. The leaving source's next track never plays
 during a fade-out of its current one.
 
+**Rule.** One leaving entry per child, completed when nothing reads it, with exactly one `on_leave` and a `preempted` flag settled at completion ([switch.md §7](switch.md#7-leaving)). The ending source stops at the end of its track ([switch.md §6](switch.md#6-presented-sources)). Callbacks registered during a handoff are released with the selection ([switch.md §5](switch.md#5-handoff)).
+
 **Count / traces.** 9 fixes, 3 reverts, 5 issues.
 transition_length (1.x CHANGES); #208 8b36c9449; #5077 c48abb653
 (switch_on_leave_chained, switch_on_leave_track_boundary,
@@ -327,6 +338,8 @@ delivery is the one decided when readiness was answered. A switch whose last
 child is always ready and always eligible stays ready at every cycle across
 complete transitions in both directions, including the cycle where a transition
 ends. A source never reports ready before its clock has started.
+
+**Rule.** A probe answer is stable for the cycle and is delivered by the next request ([source-contract.md §2](source-contract.md#2-probes), [frame-assembly.md §4](frame-assembly.md#4-readiness)). A decision is kept until committed ([frame-assembly.md §2](frame-assembly.md#2-decisions)). An infallible switch counts leaving children when nothing else can play, and falls back to `starting` when a hook's result has nothing to deliver ([switch.md §4](switch.md#4-decisions), [switch.md §5](switch.md#5-handoff), [switch.md §9](switch.md#9-other-properties)).
 
 **Count / traces.** 6 fixes, 5 issues. Entry 14 holds the crashes where the
 source promised is the one that was just used.
@@ -365,6 +378,8 @@ ratio of plays equals the weights from the first round on, when unavailable
 children are skipped, and when the policy is nested under a switch that preempts
 and resumes it.
 
+**Rule.** The predicate contract ([policies.md §6](policies.md#6-predicate-contract)): predicates change nothing, are read only for a decision, one snapshot per decision ([switch.md §3](switch.md#3-predicates)). Policy state advances on tracks played ([rotate.md §4](rotate.md#4-events), [random.md §4](random.md#4-events)).
+
 **Count / traces.** 7 fixes, 9 issues.
 #1129 568183780; #1279; #1327 9a3e7f84b; #1468 8b156278c; #1696; #1651 (open,
 read only); #2300 4d351c1fe; #5359 cdc894e3c; #5585 #5588 cb8ba5d32
@@ -397,6 +412,8 @@ the clock's view of the switch's sync source equals that of the source actually
 producing. The cost per cycle does not grow with the number of children.
 Nothing registered for a selection change outlives the switch.
 
+**Rule.** A user's sync source is that of what it reads after its last commit; every commit, release of a leaving source and loss of designation updates the clock's view at constant cost ([frame-assembly.md §9](frame-assembly.md#9-contract-clauses)), under the clock's rule ([pacing §3](../../../clock/spec/pacing.md#3-finding-the-sync-source)).
+
 **Count / traces.** 8 fixes, 1 revert, 2 issues.
 #1711 65bc80b8d; #1725 1c7a1c823; #1012 reverted 5e8951ad7; #3879 2ba67aba6;
 f4ebeba5b; #5133 #5153 6906e2a70; 70c75575e; #5504 187bd8b59; #5505 a0c56dc00.
@@ -427,6 +444,8 @@ the switch's before it produces any data. The default handoff selects and
 switches copied content without decoding and without error. User transition
 code receives the child the user named, not an internal wrapper. Mid-track cuts
 of non-PCM content follow a documented rule.
+
+**Rule.** The result of `on_select` is checked against the switch's content type before it delivers; a failed handoff is undone ([switch.md §10](switch.md#10-failure)). Hooks receive sources that present the child's id ([switch.md §6](switch.md#6-presented-sources)). Content that is not PCM audio is cut without a blend ([composition.md §4](composition.md#4-default-handoff)).
 
 **Count / traces.** 5 fixes, 4 issues.
 #3239 #3240 bc3b17792; 96c1f69f4; 55af07ddd; #4904; #5608 1d45dffbd
@@ -461,6 +480,8 @@ track is skipped. Test every pair. A last-resort silence child is left as soon
 as a higher-priority child is ready, without any extra tag. A handoff out of a
 live source never needs data after that source is gone.
 
+**Rule.** Track sensitivity of the pair decides cut or wait ([switch.md §4](switch.md#4-decisions)); the pair table states blend and fate of the leaving track ([composition.md §2](composition.md#2-profiles)). A source that never ends a track is `live` ([composition.md §1](composition.md#1-tags)).
+
 **Count / traces.** 1 redesign, 1 follow-up, 6 issues.
 #5074; #5077 c48abb653; #5633 daef21ea7; #2026; #4179 (open); #1547 (open); #719
 (open, read only); #5073.
@@ -484,6 +505,8 @@ inputs are not, and a race shows up rarely and far from its cause.
 **How to tell.** Everything a selection reads in a cycle comes from one
 consistent snapshot. Skips and aborts from other threads take effect at a cycle
 boundary, never inside one.
+
+**Rule.** One atomic snapshot per decision ([switch.md §3](switch.md#3-predicates), [source-contract.md §11](source-contract.md#11-concurrency)). An abort takes effect when the running cycle is over ([source-contract.md §6](source-contract.md#6-abort)).
 
 **Count / traces.** 3 fixes. ff1206ed1; #5359 cdc894e3c; #5148 #5194 (crossfade,
 read only for switch).
@@ -533,6 +556,8 @@ one is written down. A source prepared and never returned is released when the
 script says so. A replaced live input is stopped in the cycle of its
 replacement, and its stop callback fires. An item a sequence has finished with
 is released when the sequence leaves it.
+
+**Rule.** The entered source is awake before the one left is released; each is released exactly once, in the cycle it is replaced; reachability is not use ([frame-assembly.md §8](frame-assembly.md#8-lifetime)). A source designated again continues, and a prepared source is released by the script ([dynamic.md §3](dynamic.md#3-designation)). A sequence releases an item when it drops it ([sequence.md §3](sequence.md#3-items)).
 
 **Count / traces.** 10 fixes, 1 revert, 1 design replaced, 5 issues.
 append leak (1.x CHANGES); eb4297578; 25b7e1e05 reverted 76fdccfbf; #4055
@@ -585,6 +610,8 @@ several sources loses nothing from the others. With a zero fade or delay, the
 first sample of the entering track reaches the output. A source left with a
 remainder does not play it on return unless the remainder is still current.
 
+**Rule.** Samples produced equal samples used plus samples held, and held data belongs to the current track ([source-contract.md §5](source-contract.md#5-consumption)). A user of the seam holds no data ([frame-assembly.md §8](frame-assembly.md#8-lifetime)). An abort discards what was not used ([source-contract.md §6](source-contract.md#6-abort)). No operator reads ahead of its reader ([source-contract.md §1](source-contract.md#1-delivery)).
+
 **Count / traces.** 10 fixes, 8 issues.
 #683 #652 (1.x CHANGES); #3695 ab8beafbf; #3718 b054da31b; #3720 707d004ea;
 0566ec0e7; 24362d387; #4828 #4851 ad75580e0; #4736 #4739 #4759 2e28966b9; #4887
@@ -635,6 +662,8 @@ a script selector that always returns the same source, one that alternates
 between two on every call, and a source that ends exactly on a frame edge. No
 script can reach an assertion.
 
+**Rule.** One contiguous span per source and per frame; a decision the seam cannot serve ends the frame and is logged, never an error ([frame-assembly.md §7](frame-assembly.md#7-bounds)). The same source designated again continues ([dynamic.md §3](dynamic.md#3-designation)).
+
 **Count / traces.** 8 fixes, 4 issues.
 #3645 85e2a31e1 (GH3645; shared with 4); #3706 7bf657fce; c21588fc0; #4102
 #4108 59de576ec (shared with 4); #4159 #4172 7c8f2d9ed (GH4159); #4177
@@ -682,6 +711,8 @@ dropped; the rule is written and the drop is logged. An empty item takes no
 audio from its neighbours. A mark never lies beyond the data of its frame. The
 operator stops being ready within a bounded time after its last item ended,
 and not before that end was delivered.
+
+**Rule.** A segment says why it ended, and exhaustion is declared ([source-contract.md §1](source-contract.md#1-delivery), [source-contract.md §7](source-contract.md#7-lifecycle)). Only the item finishes itself; a late item is waited for; an item exhausted at its turn is skipped and logged ([sequence.md §3](sequence.md#3-items)). A merged rotation passes over a child with nothing to deliver ([rotate-merge.md §2](rotate-merge.md#2-rounds)).
 
 **Count / traces.** 8 fixes, 1 warning, 1 fix not merged, 8 issues.
 eb4297578; #115 3c35e2ccf; cc6fcf228; crossfade buffering (2.0 CHANGES); #3728
@@ -736,6 +767,8 @@ sequence gives a boundary. Rounds of a merged rotation are separated by one
 boundary and no audio is inserted to get it. For a delayed fade-in and a
 merged `prepend`, where the track starts is written down and tested.
 
+**Rule.** Merging is stated per join, when the source being left ends ([frame-assembly.md §5](frame-assembly.md#5-segments), [sequence.md §4](sequence.md#4-merging)). An abort of a merged unit gives a boundary ([sequence.md §5](sequence.md#5-abort)). Rounds are tracks with nothing inserted ([rotate-merge.md §3](rotate-merge.md#3-tracks)). Where the helpers' tracks start is in [helpers.md](helpers.md).
+
 **Count / traces.** 7 fixes, 1 revert, 2 fixes not merged, 2 issues.
 487aef08b (shared with 18); cf8a6f05f reverted 3f272c65a; 4fe509051; #3706
 7bf657fce (shared with 14; origin of #5634); #4152 a25ebbe93 (append,
@@ -780,6 +813,8 @@ source gets a defined answer and returns. For one boundary, the order in which
 the callbacks of a wrapper and of the source it wraps fire is written down and
 is the same for a natural end and for a skip.
 
+**Rule.** A segment is produced once and every reader sees it ([source-contract.md §1](source-contract.md#1-delivery)). Callback order at a boundary, and re-entrant reads ([source-contract.md §10](source-contract.md#10-callbacks)).
+
 **Count / traces.** 6 fixes, 1 revert, 5 issues.
 LS-354 908588f4e (LS354); #3125; 53b032acc reverted 27f1964bf; #4759 2e28966b9
 (shared with 13); #5019 #5062 e86a14b22 (GH5019); #5361 #5375 8446a9aaf
@@ -814,6 +849,8 @@ exercise only the first.
 samples, a skip in the first frame of a track, a join next to a source's own
 boundary) goes through every user of the seam with every track announced in
 order, none merged unless asked, and no assertion.
+
+**Rule.** A frame may hold any number of boundaries; each is a segment end ([source-contract.md §3](source-contract.md#3-tracks)). Every request delivers a sample or ends the frame ([frame-assembly.md §7](frame-assembly.md#7-bounds)).
 
 **Count / traces.** 2 fixes, 1 redesign, 3 issues.
 trac #204 487aef08b; #3696; #3577 77cf76e88 (redesign); #4159 #4172 7c8f2d9ed

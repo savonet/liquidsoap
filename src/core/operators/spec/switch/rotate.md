@@ -1,4 +1,4 @@
-# Rotate (Part A, as-built)
+# Rotate (Part A)
 
 Policy: play `weight` tracks from each child in turn. Sections follow
 [policies.md](policies.md).
@@ -6,49 +6,52 @@ Policy: play `weight` tracks from each child in turn. Sections follow
 ## 1. Children
 
 `rotate(~id, sources)`. `weight` of a child: how many tracks to take from it
-per round.
+per turn. A weight below 1 is 0: the child has no turn.
 
 ## 2. State
 
-- `picked`: index of the child whose turn it is. Starts at -1 (none).
-- `played`: per child, a count of tracks.
+- `cursor`: the child whose turn it is. None at start.
+- `played`: how many tracks of the current turn were played.
 
 ## 3. Predicates
 
-The predicate of child `i`:
+The **target** is computed from the state, the weights and probes, and
+changes nothing:
 
-1. If `picked` is -1: **pick**.
-2. If `picked` is not -1 and the picked child's weight is at most its
-   `played`: **pick**.
-3. Return `picked == i`.
+1. the `cursor` child, if there is one, `played` is below its weight, and it
+   is available;
+2. else the first available child with a weight of 1 or more, searched in
+   list order from the child after `cursor`, wrapping around and ending with
+   `cursor` itself; from the first child when there is no `cursor`;
+3. else the first available child in list order;
+4. else none.
 
-**Pick**: set every `played` to 0. If no child is ready, `picked` := -1. Else
-`picked` := the first ready child found from `picked + 1`, wrapping around.
+The predicate of a child holds when that child is the target. Weights are
+read at each computation.
 
-The weight getter is read at step 2, on every predicate call.
-
-A predicate call can therefore advance the rotation. Predicates are called in
-list order, each one time per search, so one search can pick at most once per
-child tested.
+Rule 3 is what keeps `rotate` infallible when a child is
+([policies.md §7](policies.md#7-fallibility)).
 
 ## 4. Events
 
-On each track of the inner switch: add 1 to `played` of the child the inner
-switch has selected. Synchronous: it runs while the frame is generated.
+On each track event of the switch
+([policies.md §6](policies.md#6-predicate-contract)), with `c` the child it
+comes from:
 
-The count goes up when the track's first chunk is generated, not when the
-track ends and not when it is heard.
+- `c` is `cursor`: `played` := `played` + 1;
+- otherwise: `cursor` := `c`, `played` := 1.
+
+So a track counts when it is played, once, and never when it was only
+decided. The rotation is the same whether `rotate` is read by an output, by
+an operator that reads it on some cycles only, or by a switch that leaves it
+and returns.
 
 ## 5. Shape
 
-Two nested switches:
+`rotate` behaves as one switch over the children with the predicates above.
 
-- **inner**: `switch` over the children with the predicates above, named
-  `<id>.rotate`;
-- **outer**: `fallback([inner, child1, …, childN])`, which is what `rotate`
-  returns and what carries `id`.
-
-The reason for the outer fallback is not recorded. Effects: `rotate` is
-infallible when a child is; when no predicate holds for a ready child the
-outer plays the first ready child directly; every `rotate` is a nested
-switch.
+- Each available child is played for `weight` consecutive tracks, then the
+  next available child in order, from the first round on.
+- A child that is not available at its turn is passed over; it is picked at
+  its next turn if available then.
+- Infallible when a child is.

@@ -1,7 +1,8 @@
-# Brief for the normative pass and the rebuild
+# Brief for the rebuild
 
-Framing set by the maintainer during the as-built pass. It applies to every
-session and every agent that works from this directory.
+Framing set by the maintainer. It applies to every session and every agent
+that works from this directory. The rules it led to are in the specification;
+this file keeps the reasons and the scenarios.
 
 ## 1. Principle: explicit signals, never inference from pulls
 
@@ -13,10 +14,10 @@ often it was asked for data: tick gaps, "not animated since", "read but not
 consumed", readiness probes. The party that makes a decision tells the parties
 it affects.
 
-Apply it to every rule in the as-built spec, not only to the one that
-prompted it. Known instances, each to be replaced by a stated signal:
+It applies to every rule, not only to the one that prompted it. The
+inferences it replaces:
 
-| Today (inferred)                                                      | Who actually knows                                            |
+| Inferred                                                              | Who actually knows                                            |
 | --------------------------------------------------------------------- | ------------------------------------------------------------- |
 | "I was not animated for more than one tick, so my selection is stale" | The parent: it preempted the child or left it at a boundary.  |
 | "A track mark was generated, so a track played"                       | The consumer: it took the data or did not.                    |
@@ -29,9 +30,22 @@ prompted it. Known instances, each to be replaced by a stated signal:
 
 Each operator is specified in isolation: its own file, answering every clause
 of the seam contract
-([frame-assembly.md §7](frame-assembly.md#7-contract-clauses)). A rule for one
+([frame-assembly.md §9](frame-assembly.md#9-contract-clauses)). A rule for one
 user of the seam that its siblings do not meet is a gap to close, not a
 footnote.
+
+## 1c. Marks sit on the logical start of content
+
+A track mark and its metadata are held together and sit on the logical
+start of a unit of content, typically a song. Over a playlist or any
+file-based source, an operator keeps the marks and metadata as the content
+gives them. Filler is not a track: the silence in front of a delayed fade-in
+is there so that the result can be mixed, and carries no mark; the one mark,
+with its metadata, is where the faded-in track starts. `prepend` adds a
+track before a track: a mark, with metadata when there is some, at each.
+
+This is the default. A `merge` the script asks for is a different request
+and is honoured: the merged units are one track.
 
 ## 2. Direction for the resume rule
 
@@ -48,7 +62,7 @@ happen when the consumer takes data past the boundary, not before. On return
 the selector is simply at a boundary and searches, with nothing to undo.
 
 **b. An aborted selection has ended.** A parent that preempts a child says so
-(today: `on_leave` with `track_sensitive = false`, and the file profile's
+(`on_leave` with `preempted = true`, and the file profile's
 skip). A selector told that its track was aborted treats its selection as
 ended and searches at its next read.
 
@@ -59,7 +73,7 @@ An earlier version of this section proposed rule b alone. It does not cover
 S2 as reported: there the programme source is a file source and the nested
 selector is left at a boundary, not preempted.
 
-## 3. Scenarios that must both hold
+## 3. Scenarios that must all hold
 
 They are conformance checks, not spec text.
 
@@ -96,28 +110,34 @@ merged. Binding: one track is reported per round, at the start of the round;
 within a round the three children are heard in order, each for one full
 track; this repeats for every round.
 
-## 4. Questions the normative pass must ask before rewriting
+## 4. Rulings
 
-- Which of the script-visible names in [README.md](README.md) are frozen.
-- Whether `all_predicates` survives ([findings.md](findings.md) D7).
-- Whether `rotate` and `random` stay script-level policies, which requires a
-  stated predicate contract and a "track heard" event, or move into the
-  operator.
-- Whether the frame-assembly seam may change for all its users. A fix to
-  merged sequences is waiting for this rebuild and assumes it may
-  ([findings.md](findings.md) D9). If so: what happens to the callers D9
-  lists, whose track start moves.
-- Whether the merged rotation is kept as it is built today
-  ([findings.md](findings.md) D10, G10) or redefined.
-- Whether the rest of `cross` gets its own extraction before the seam changes
-  under it (findings G8).
+Given by the maintainer before the normative pass.
+
+- **Reach of rule a.** It is part of the contract of every source, not only
+  of the seam's users: a source stops at its own decision points until its
+  reader continues, and operators in between relay that.
+- **Script surface.** The next release may break it. Confirmed changes:
+  `switch` loses `all_predicates`; the argument of `on_leave` is
+  `{source, preempted}`. Any further removal or rename is confirmed with the
+  maintainer first.
+- **Policies.** `rotate` and `random` stay script-level, on a stated
+  predicate contract: predicates change nothing, state advances on tracks
+  played.
+- **Merged rotation.** Specified by behaviour (S5); construction is free.
+- **Silence.** A source that never ends a track resolves to the `live`
+  profile.
+- **Cross.** The rest of `cross` gets its own extraction before the rebuild
+  changes it ([cross-seam.md §4](cross-seam.md#4-open)).
 
 ## 5. Constraints on the rebuild
 
-- Target: OCaml, in this tree, against the existing source and clock
-  contracts. The clock has its own spec at `src/core/clock/spec/`.
+- Target: OCaml, in this tree. The source contract changes as
+  [source-contract.md](source-contract.md) states, for every source. The
+  clock has its own specification at `src/core/clock/spec/`.
 - Fixes land on `main` only.
-- Read boundary for the rebuild session: the normative spec, the
+- Read boundary for the rebuild session: this specification, the
   known-complexity list, build and CI files, fixtures. Not the previous
-  `switch` source, not its tests, not `ocaml-notes.md` unless the maintainer
-  says so.
+  sources of `switch`, `sequence`, `source.dynamic`, `cross`, the source base
+  class or the script libraries built on them, not their tests, not
+  `ocaml-notes.md` unless the maintainer says so.

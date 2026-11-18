@@ -1,7 +1,8 @@
-# Sequence (Part A, as-built)
+# Sequence (Part A)
 
-Plays its items in order: one track from each, then the last one for as long
-as it has data. Frame building is [frame-assembly.md](frame-assembly.md).
+Plays its items in order: each one until it is finished, the last one for as
+long as it delivers. Segments, decisions, commits and joins are
+[frame-assembly.md](frame-assembly.md).
 
 ## 1. Parameters
 
@@ -9,84 +10,106 @@ as it has data. Frame building is [frame-assembly.md](frame-assembly.md).
 
 | Parameter      | Default | Meaning                                                                                |
 | -------------- | ------- | -------------------------------------------------------------------------------------- |
-| `merge`        | false   | Merge tracks when moving from one item to the next. Not on the last item's own tracks. |
-| `single_track` | true    | Move on at an item's track boundary. False: play each item until it is unavailable.    |
+| `merge`        | false   | Present the items as one track ([§4](#4-merging)).                                     |
+| `single_track` | true    | An item is finished at its first track end. False: an item is finished when exhausted. |
 
-One more parameter exists for operators built inside the core and is not
-visible to scripts: whether a move to the next item begins a track (default
-yes). `cross` sets it to no.
+Each item has an **entry**, `track` or `continue`
+([frame-assembly.md §6](frame-assembly.md#6-joins)). Scripts set it through
+`merge` only. An operator that builds a sequence internally MAY give each
+item its own entry.
 
 ## 2. State
 
 - `queue`: the items left, head first. Starts as the full list. `queue()`
   returns it.
-- `started`: false until, at some call, any item of the queue is ready; then
-  true for good.
+- The **current item** is the head.
 
-## 3. Designation
+The queue changes only in a commit, in an abort and when the sequence is
+released. A sequence that is left and read again resumes where it was.
 
-`get_source(mode)`:
+## 3. Items
 
-1. If not `started`, or the queue is empty: none.
-2. **One item left**: return it if it passes `can_reselect` with `force`
-   turned into `ok`; else none. The last item is never dropped.
-3. **Several items left**, head `s`: test `can_reselect(m, s)` where `m` is
-   `force` when the mode is `after_position`, `single_track` holds, and this
-   call has not already dropped an item; else the mode as given.
-   - Passes: return `s`.
-   - Fails: log "Finished with"; drop `s` from the queue; release it; start
-     again at step 1 with mode `ok` and "already dropped" set.
+**When an item is finished.** Only the item says so:
 
-Consequences:
+- with `single_track`: when its track ends (`track end`);
+- without: when it declares itself exhausted
+  ([source-contract.md §7](source-contract.md#7-lifecycle)).
 
-- With `single_track`, an item's track boundary always moves to the next
-  item: `force` never passes.
-- An item that is not ready when its turn comes is dropped for good, whatever
-  the reason.
-- The item moved to is tested with `ok`, not with the position computed on the
-  item just finished. Rationale recorded: carrying the position over rejected
-  an item with no more samples than the one before, losing its first chunk and
-  its metadata.
-- One call can drop several items.
+The last item is never finished: it stays the current item.
+
+`nothing`, `late` and a segment shorter than asked never finish an item. An
+item that has nothing to deliver and is not exhausted is **waited for**: the
+sequence delivers nothing until it does, before it has started and in the
+middle of its track alike.
+
+**Skipped items.** An item that is exhausted when its turn comes, without
+having delivered anything, is skipped. The skip is logged.
+
+**Decision at a boundary.** The first item of the queue, after the finished
+one, that is not exhausted; the last item if all others are. The decision is
+none when that item's probe answers `nothing`.
+
+**Commit.** The finished item and the skipped ones are dropped from the
+queue and released, each exactly once, after the item entered is awake. Each
+drop is logged.
+
+**Empty items.** An item that delivers no sample takes no audio from its
+neighbours: the next item's first sample follows the previous item's last.
 
 ## 4. Merging
 
-`merge()` is: merging was asked, and the queue holds more than one item. It is
-read at the join, after §3 has dropped the finished item
-([frame-assembly.md §8](frame-assembly.md#8-when-merge-is-read)).
+With `merge`, the sequence is one track:
 
-The parameter's help points to a `merge_tracks()` for merging the last item's
-own tracks. A script function of that name exists and is deprecated; it
-removes the track marks of a source. A core wrapper doing the same sits next
-to `sequence` and is reachable from nowhere.
+- the first item that delivers data is entered with `track`;
+- every later item is entered with `continue`: no boundary at the join, the
+  item's metadata announced at the join as metadata;
+- once the last item is the current one, its own later tracks keep their
+  boundaries: they are not joins.
 
-## 5. Other properties
+Without `merge`, every item is entered with `track`.
 
-- **Remaining**: with `merge` asked, the sum over the queue, unknown if any
-  item's is unknown; otherwise the head's.
-- **Abort track**: with `merge` asked, the queue becomes its last item only
-  (the items dropped this way are not released); then abort the head's track.
-- **Effective source**: the head's, or the sequence itself with an empty
-  queue.
-- **Self-sync**: the head's.
+**End statement.** When the current item's track ends:
 
-## 6. Seam answers
+- the item is finished: `pause` if the next item to be entered has the entry
+  `continue`, `track end` otherwise. The next item to be entered is known at
+  that moment: exhaustion is declared, not probed;
+- the item is not finished (the last item, or an item played until
+  exhausted): `track end`. The same item's next track is its own.
 
-- **C1.** §3. `force` is treated as `ok`. A call can drop and release items.
-- **C2.** Always.
-- **C3.** §4. Changes when the queue shrinks to one item.
-- **C4.** Yes, unless built with "no" (§1).
-- **C5.** Items are the sequence's sources: woken with it. A dropped item is
-  released at once.
-- **C6.** §5.
-- **C7.** Fallible exactly when the last item is.
+The result is the same wherever the join falls: inside a frame, on a frame
+edge, in the first frame of the stream.
 
-## 7. Built on it
+## 5. Abort
 
-- `once(s)`: `sequence([s, <a source that is never ready>])`. One track of
-  `s`, then nothing.
-- A delayed fade-in: `sequence(merge=true, [silence of the delay, s])`.
-- `prepend(merge)`: per track, `sequence(merge=merge, [prefix, s])` handed out
-  by a track-sensitive `source.dynamic`.
-- The merged looping rotation ([rotate-merge.md](rotate-merge.md)).
-- `cross`, around its transitions ([cross-seam.md](cross-seam.md)).
+- Without `merge`: forwarded to the current item. Its track has ended; with
+  `single_track` the item is finished.
+- With `merge`: the whole unit is aborted. Every item before the last is
+  dropped and released. If the current item was the last, its track is
+  aborted; otherwise the last item is entered at its start.
+
+In both cases the sequence is at a boundary: what it delivers next begins a
+track.
+
+## 6. Other properties
+
+- **Remaining**: with `merge`, the sum over the queue, unknown if any item's
+  is unknown; otherwise the current item's.
+- **Effective source**: the current item's, or the sequence itself with an
+  empty queue.
+- **Sync source**: by [frame-assembly.md §9](frame-assembly.md#9-contract-clauses).
+
+## 7. Seam answers
+
+- **C1.** [§3](#3-items). The commit drops and releases items.
+- **C2.** None: a sequence never re-decides while a track plays.
+- **C3.** [§4](#4-merging).
+- **C4.** The entry of the first item that delivers: `track`, unless an
+  internal builder gave it `continue`. After a wait, the stream continues
+  where it stopped: no entry is applied.
+- **C5.** Items are woken with the sequence. Each is released when it is
+  dropped; what is left is released with the sequence.
+- **C6.** [§5](#5-abort), [§6](#6-other-properties).
+- **C7.** Infallible when every item is infallible. Exhausted when the last
+  item is exhausted and every other item is finished, skipped or exhausted.
+  It then stops being ready, and not before the end of what it delivered was
+  taken.

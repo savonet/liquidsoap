@@ -1,6 +1,6 @@
-# Fallback (Part A, as-built)
+# Fallback (Part A)
 
-Policy: play the first ready child. Sections follow
+Policy: play the first available child. Sections follow
 [policies.md](policies.md).
 
 ## 1. Children
@@ -13,7 +13,8 @@ None.
 
 ## 3. Predicates
 
-Every predicate is the constant `true`.
+Every predicate holds, and is known to hold without being evaluated
+([switch.md §9](switch.md#9-other-properties)).
 
 ## 4. Events
 
@@ -23,9 +24,7 @@ None.
 
 One `switch`. List order is priority.
 
-Because the predicates are literally `true`, a fallback with an infallible,
-non-`single` child is infallible
-([switch.md §11](switch.md#11-other-properties)).
+A fallback with an infallible child that is not `single` is infallible.
 
-Whether a higher-priority child takes over mid-track is decided by track
-sensitivity alone ([switch.md §7](switch.md#7-search)).
+Whether a higher-priority child takes over in the middle of a track is
+decided by track sensitivity alone ([switch.md §4](switch.md#4-decisions)).

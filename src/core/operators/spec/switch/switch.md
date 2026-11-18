@@ -1,221 +1,236 @@
-# Switch (Part A, as-built)
+# Switch (Part A)
 
-Selects one of its children and streams it. Frame building is
-[frame-assembly.md](frame-assembly.md); the defaults of the per-child methods
-are [composition.md](composition.md).
+Selects one of its children and streams it. Segments, decisions, commits and
+joins are [frame-assembly.md](frame-assembly.md); the defaults of the
+per-child methods are [composition.md](composition.md).
 
 ## 1. Children
 
-`switch` takes an ordered list of children and one flag.
+`switch(~id, [(predicate, source)])`, with the method `selected()`.
 
 Each child has:
 
-| Field             | Meaning                                                                |
-| ----------------- | ---------------------------------------------------------------------- |
-| predicate         | Script function, no argument, returns a boolean.                       |
-| source            | The source to play.                                                    |
-| `track_sensitive` | Boolean getter.                                                        |
-| `replay_metadata` | Boolean getter.                                                        |
-| `single`          | Boolean, read once at creation.                                        |
-| `on_select`       | `{ending: source?, replay_metadata: bool, starting: source} -> source` |
-| `on_leave`        | `{source: source, track_sensitive: bool} -> unit`                      |
+| Field             | Meaning                                                                   |
+| ----------------- | ------------------------------------------------------------------------- |
+| predicate         | Script function, no argument, returns a boolean. See [§3](#3-predicates). |
+| source            | The source to play.                                                       |
+| `track_sensitive` | Boolean getter: the child is left, and started, at track boundaries.      |
+| `replay_metadata` | Boolean getter.                                                           |
+| `single`          | Boolean, read once at creation.                                           |
+| `on_select`       | `{ending: source?, replay_metadata: bool, starting: source} -> source`    |
+| `on_leave`        | `{source: source, preempted: bool} -> unit`                               |
 
-A method the child's value does not carry falls back to the profile of the
-child's source, resolved at each use
+A method the child's value does not carry is read from the profile of the
+child's source, at each use
 ([composition.md §3](composition.md#3-per-source-methods)).
 
-`all_predicates` (default false): when a selection is searched, every
-remaining child is also tested after the first match.
+List order is priority: where several children qualify, the first wins.
 
 ## 2. State
 
-| Field          | Meaning                                                               |
-| -------------- | --------------------------------------------------------------------- |
-| selection      | None, or: child, effective source, proxy, and how to put it to sleep. |
-| leaving        | List of (proxy, pending `on_leave` call).                             |
-| excluded       | Children already handed out in this cycle.                            |
-| last animated  | Tick count at which the switch's cycle last opened. Starts at -1.     |
-| resuming       | Boolean, set at each cycle start.                                     |
-| switch-wide ts | Whether every child is track-sensitive, set at each cycle start.      |
+| Field     | Meaning                                                                        |
+| --------- | ------------------------------------------------------------------------------ |
+| selection | None, or: child, presented source, effective source, and `playing` or `ended`. |
+| leaving   | Per child, at most one entry: presented source and whether it was cut.         |
+| last      | The child whose track the switch last delivered. None at start.                |
 
-Per cycle and per child, two settled values: the predicate's result and the
-`track_sensitive` getter's result.
+- The selection is `ended` when its effective source's track ended or the
+  switch was aborted ([§8](#8-abort)); `playing` otherwise.
+- The selection, `leaving` and `last` change only in a commit
+  ([frame-assembly.md §3](frame-assembly.md#3-commit)), in an abort, and when
+  the switch is released. A decision that finds nothing changes none of them.
+- `selected()` returns the selected child's source, or null with no
+  selection. It is the last committed selection: it MAY name a child that has
+  nothing to deliver now.
 
-`selected()` returns the selected child's source, or null.
+## 3. Predicates
 
-## 3. Cycle start
+- A predicate MUST NOT change anything when it is read
+  ([policies.md §6](policies.md#6-predicate-contract)).
+- Predicates are evaluated only to make a decision ([§4](#4-decisions)), and
+  only those the decision can depend on.
+- All predicates and `track_sensitive` getters read for one decision are read
+  together inside one atomic section
+  ([source-contract.md §11](source-contract.md#11-concurrency)): one
+  consistent snapshot per decision.
+- A decision that is kept is not evaluated again
+  ([frame-assembly.md §2](frame-assembly.md#2-decisions)).
 
-When the switch's cycle opens:
+## 4. Decisions
 
-1. `resuming` := the tick count is more than 1 above `last animated`.
-2. `last animated` := the tick count.
-3. `excluded` := empty.
-4. `switch-wide ts` := every child's `track_sensitive` is true. This reads
-   every child's getter, once per cycle.
+`S` is the selected child, if any. A child is **available** when the probe of
+what would be read for it does not answer `nothing`: for `S`, the effective
+source; for any other child, its source.
 
-Rationale recorded in the code: a selection only holds while the switch is
-animated; a parent that is not playing it does not animate it; when it is
-animated again the selection "has to be re-evaluated, and nothing is playing
-for a new one to interrupt". Being animated without being read (a child clock
-ticked by an operator that reads nothing in that tick) does not count as
-quiet.
+At a boundary, an `S` whose effective source answers `nothing` while its
+source does not is treated as a child that is not selected: it is available
+by its source, and committing it is a handoff ([§5](#5-handoff)).
 
-## 4. Predicates
+**Mid-track decision.** Made at the start of a cycle when the selection is
+`playing` and its effective source's probe answers `more`.
 
-- Predicates are not evaluated until a selection search needs one.
-- The first need in a cycle evaluates, inside one atomic section, **every**
-  child's predicate and `track_sensitive` getter. The results hold for the
-  cycle.
-- A selection that is kept (§6) costs no predicate call when its child is
-  track-sensitive.
+1. The **candidates** are the other children `c` that are not leaving and
+   such that `S` is not track-sensitive or `c` is not track-sensitive.
+2. If `S` is track-sensitive and there is no candidate: keep `S`. No
+   predicate is evaluated.
+3. Otherwise take the first, in list order, of: a candidate whose predicate
+   holds and which is available; `S` itself if its predicate holds.
+4. If there is none: keep `S` if it is track-sensitive; else the decision is
+   none.
 
-## 5. Readiness, frames
+A decision other than `S` is a **preemption**.
 
-By [frame-assembly.md](frame-assembly.md) with: `track_sensitive` =
-switch-wide ts; `merge` = never; a change of source always begins a track.
+**Boundary decision.** Made when there is no selection, when the selection
+is `ended`, or when its effective source's probe answers `new track` or
+`nothing`.
 
-So readiness asks `get_source(ok)` when all children are track-sensitive,
-`get_source(force)` otherwise; a track ending inside a frame asks
-`get_source(after_position(p))`.
+1. A child is **eligible** unless it is leaving, or it is `single` and it is
+   `last`.
+2. Take the first eligible child, in list order, whose predicate holds and
+   which is available.
+3. If there is none and some child is leaving: decide again with leaving
+   children counted as eligible. Committing such a decision first releases
+   the selection and completes every leave ([§7](#7-leaving)).
+4. If there is still none: the decision is none.
 
-## 6. get_source
+Consequences:
 
-Given a reselect mode:
+- A track-sensitive selection is kept until its track ends, whatever its
+  predicate says, unless a child that is not track-sensitive takes over.
+- A child that was left is not selected again while its transition runs,
+  unless nothing else can play.
+- A `single` child is never delivered for two consecutive tracks of the
+  switch. With no other child to play, the switch has nothing to deliver
+  until another child's track was delivered.
+- A selection whose effective source has nothing to deliver is passed over
+  like any unavailable child. The switch does not wait for it.
 
-**Keep.** If there is a selection, and not `resuming`, and its child is
-**still wanted**, and **keep-selected** holds: return its effective source.
+## 5. Handoff
 
-- _Still wanted_: the child is track-sensitive, or its predicate holds.
-- _Transition in progress_: some leaving proxy is still up.
-- _Keep-selected_, during a transition: `after_position` → the effective
-  source passes `can_reselect`; `ok`, `force` → yes.
-- _Keep-selected_, otherwise: `after_position`, `force` → no; `ok` → the
-  effective source is ready.
+Committing a decision ([frame-assembly.md §3](frame-assembly.md#3-commit)):
 
-**Otherwise re-select:**
+- **`S` again, at a boundary**: nothing. The selection is `playing`; the
+  child's next track comes with its own mark. `on_select` is not called.
+- **None**: nothing.
+- **Another child `c`**, or `S` by its source ([§4](#4-decisions)): a
+  handoff. In the second case the previous selection's leave completes in
+  the same commit, before the child is selected again.
 
-1. `boundary` := the mode is `after_position`; or there is no selection; or
-   `resuming`; or the selection's effective source is not ready.
-2. Search (§7), with `force` turned into `ok`.
-3. Act on (selection, found):
-   - none, none: nothing.
-   - some, none: add the selection to `leaving` with `track_sensitive = true`,
-     then clear the selection (§10). Every pending `on_leave` runs now.
-   - none, child: log; hand off (§8) with no ending.
-   - some, same child: nothing; the selection stays as it is.
-   - some, other child: log "at track boundary" or "with transition"; hand off
-     (§8) with ending = the old proxy unless `boundary`.
-4. If there is now a selection whose effective source is ready: add its child
-   to `excluded` and return the effective source. Else return none.
+A handoff:
 
-## 7. Search
-
-Return the first child, in list order, for which all three hold, tested in
-this order:
-
-1. its predicate holds (§4);
-2. it **may be selected**;
-3. its source is ready.
-
-_May be selected_:
-
-- It is the selected child: it is not `single`, and the selection's effective
-  source passes `can_reselect` for the mode.
-- Another child is selected: (`boundary`, or the selected child is not
-  track-sensitive, or this child is not track-sensitive), and this child is
-  not `excluded`.
-- Nothing is selected: this child is not `excluded`.
-
-Testing a child's readiness opens that child's cycle
-([source-contract.md §1](source-contract.md#1-readiness)).
-
-## 8. Handoff
-
-To select `child`, with an optional `ending`:
-
-1. Make a new **proxy** of the child's source (§9).
-2. Call the child's `on_select` with `ending`, `starting` = the proxy and
-   `replay_metadata` = the child's getter read now. The result is the
+1. Make a new presented source for `c` ([§6](#6-presented-sources)).
+2. Call `c`'s `on_select` with `starting` = that source, `replay_metadata` =
+   `c`'s getter read now, and `ending` = the previous selection's presented
+   source when this is a preemption, null otherwise. The result is the
    **effective source**.
-3. Callbacks that the call registers on any of the switch's children, on the
-   proxy or on `ending` are collected. They are released when this selection
-   is put to sleep.
-4. Wake the effective source.
-5. If there was a selection, add it to `leaving`, with
-   `track_sensitive` = (there is no `ending`).
-6. Replace the selection. The old effective source is put to sleep after the
-   new one is awake, so a proxy held by both stays up throughout.
+3. If the effective source's probe answers `nothing` while `starting`'s does
+   not: use `starting` as the effective source and log it.
+4. Wake the effective source. Callbacks that `on_select` registered on the
+   switch's children, on `starting` or on `ending` are collected; they are
+   released with this selection.
+5. The previous selection, if any, becomes a leaving entry, cut exactly when
+   `ending` was given. Its effective source is released after the new one is
+   awake.
+6. The selection is `c`, `playing`. Its first sample is entered with `track`
+   ([frame-assembly.md §6](frame-assembly.md#6-joins)).
 
-`ending` is given only when the old selection's track was cut: a handoff at a
+`ending` is given only when the previous track was cut: a handoff at a
 boundary has nothing to blend.
 
-## 9. Proxy
+Each track start the switch delivers fires its track events and sets `last`
+to the selected child. Since a track start is delivered only to a request,
+these events mean the track is being played.
 
-A proxy wraps one source for one selection.
+## 6. Presented sources
 
-- The first frame it gives carries a track mark at 0, added if absent.
-- It delegates to the wrapped source: fallibility, readiness, remaining,
-  abort track, self-sync, effective source, last metadata and clearing it.
-- It does not reset last metadata on track marks.
-- It keeps no data: what its reader consumes is reported straight to the
-  wrapped source, which keeps the rest.
+The switch never hands a child to script code directly. It makes one
+**presented source** per selection.
 
-## 10. Leaving
+- It presents the child's id and delegates to the child: fallibility,
+  probes, remaining, abort, sync source, effective source, last metadata.
+- The first sample it delivers begins a track: a mark is ensured on it.
+- It holds no data: what its reader uses is reported to the child, which
+  keeps the rest.
+- Given as `ending`, it delivers at most the rest of the child's current
+  track. When that track ends or is aborted it is exhausted
+  ([source-contract.md §7](source-contract.md#7-lifecycle)) and records that
+  the track ended. The child's next track is never delivered through it.
 
-- After each frame the switch generates: for every leaving entry whose proxy
-  is no longer up, call its `on_leave` with `source` = the proxy and the
-  recorded `track_sensitive`, and drop the entry.
-- When the selection becomes none, or the switch goes to sleep: put the
-  selection to sleep and call every pending `on_leave`, whether or not its
-  proxy is up.
+## 7. Leaving
 
-`track_sensitive` in `on_leave` is the switch's own verdict: true when the
-source had nothing left for its track, false when the switch cut into it. A
-source that ran out of data without emitting a track mark was not preempted.
+- A leave **completes** when nothing reads the entry's presented source any
+  more. The switch checks at each commit and at the end of each cycle in
+  which it delivered.
+- On completion the switch calls the child's `on_leave` with `source` = the
+  presented source and `preempted`, and drops the entry. The child is
+  eligible again.
+- `preempted` is true when the switch cut into the child's track and that
+  track had not ended when the leave completed. It is false when the child
+  was left at its track end, when it had nothing to deliver, and when its
+  track ran out under the transition.
+- When the switch is released: the selection is released and every pending
+  `on_leave` runs.
 
-## 11. Other properties
+There is at most one leaving entry per child, so the list is bounded by the
+number of children. Each handoff produces exactly one `on_leave` for the
+child that was left, chained handoffs included.
 
-- **Fallible**: unless some child has an infallible source, is not `single`,
-  and has a predicate that is literally the constant `true`.
-- **Remaining**: the effective source's, or 0 with no selection.
-- **Abort track**: clear the effective source's last metadata, then forward.
-  The selection itself is not changed. Rationale recorded: the metadata of a
-  dropped track must not be replayed on re-selection.
-- **Effective source**: the selection's effective source's effective source,
-  or the switch itself with no selection.
-- **Self-sync**: of the selection's effective source.
-- A child is handed out at most once per cycle by a re-selection (`excluded`).
-  A selection that is kept is not added to `excluded`.
+## 8. Abort
 
-## 12. Failure
+An abort of the switch ([frame-assembly.md §9](frame-assembly.md#9-contract-clauses)):
 
-- A predicate, getter, `on_select` or `on_leave` that raises propagates out of
-  the streaming cycle. Nothing is rolled back: an `on_select` that raises
-  leaves the previous selection in place and the new proxy unused.
-- The result of `on_select` must have a frame type compatible with the
-  switch's; a mismatch raises at the handoff.
-- The frame-assembly assertions
-  ([frame-assembly.md §4](frame-assembly.md#4-building-the-frame)) abort the
-  process path that hits them.
+1. is forwarded to the selection's effective source;
+2. makes the selection `ended`;
+3. drops a kept decision.
 
-## 13. Logs
+The next request makes a boundary decision. Leaving entries are not
+affected.
 
-`Switch to <id>.` on a first selection; `Switch to <id> at track boundary.` or
-`Switch to <id> with transition.` on a change. Level: important.
+## 9. Other properties
 
-## 14. Seam answers
+- **Infallible** when some child has an infallible source, is not `single`,
+  and has a predicate known to hold without being evaluated. Such a switch
+  MUST be ready in every cycle, the cycle where a transition ends included.
+- **Exhausted** when every child's source is.
+- **Remaining**: the effective source's; 0 with no selection.
+- **Effective source**: that of the selection's effective source; the switch
+  itself with no selection.
+- **Sync source**: by [frame-assembly.md §9](frame-assembly.md#9-contract-clauses).
 
-Clauses of [frame-assembly.md §7](frame-assembly.md#7-contract-clauses).
+## 10. Failure
 
-- **C1.** [§6](#6-get_source). All three modes are honoured as given, except
-  that the search runs with `force` turned into `ok`. A call can evaluate
-  predicates, run a handoff and run `on_leave`.
-- **C2.** True when every child is track-sensitive in this cycle
-  ([§3](#3-cycle-start)).
-- **C3.** Never.
-- **C4.** Always.
-- **C5.** The switch wakes the effective source at the handoff and puts it to
-  sleep when the selection is replaced or cleared
-  ([§8](#8-handoff), [§10](#10-leaving)). Children are also woken by the
-  switch as its sources, for its whole life.
-- **C6, C7.** [§11](#11-other-properties).
+- A predicate, getter, `on_select` or `on_leave` that raises fails the cycle
+  under the clock's source error rule. A handoff whose `on_select` raises is
+  undone: the selection is as before, the new presented source is released,
+  and the attempt is logged.
+- The result of `on_select` MUST have a content type compatible with the
+  switch's. This is checked before the result delivers any data; a mismatch
+  is an error of the handoff, handled as above.
+- Nothing else in a switch raises or aborts
+  ([frame-assembly.md §7](frame-assembly.md#7-bounds)).
+
+## 11. Logs
+
+Content is specified; wording is free.
+
+- A first selection; a handoff at a boundary; a preemption. Each names the
+  child.
+- An `on_select` result replaced by `starting`; a handoff undone.
+
+## 12. Seam answers
+
+Clauses of [frame-assembly.md §9](frame-assembly.md#9-contract-clauses).
+
+- **C1.** The boundary decision of [§4](#4-decisions). Its commit is
+  [§5](#5-handoff).
+- **C2.** Yes, at every cycle start while a track plays, by the mid-track
+  decision of [§4](#4-decisions). It evaluates nothing when every child is
+  track-sensitive. Its commit is a handoff with `ending`.
+- **C3.** Always `track end`: every track of a child is a track of the
+  switch.
+- **C4.** `track`.
+- **C5.** The switch wakes its children for its whole life. It wakes each
+  effective source at the handoff and releases it when the selection is
+  replaced or the switch is released.
+- **C6.** [§8](#8-abort), [§9](#9-other-properties).
+- **C7.** [§9](#9-other-properties).

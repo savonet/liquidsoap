@@ -1,6 +1,8 @@
 # OCaml notes (Part B)
 
-Notes on the implementation this was extracted from. Not normative.
+Notes on the implementation this was extracted from. Not normative. They describe
+the code as it was before the rebuild: where a note and the specification
+disagree, the specification is what to build.
 
 ## Where things are
 

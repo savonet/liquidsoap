@@ -1,113 +1,164 @@
-# Frame assembly (Part A, as-built)
+# Frame assembly (Part A)
 
-The seam shared by `switch`, `cross` and `sequence`: build one frame per cycle
-out of whichever source the operator designates, changing source inside the
-frame when the current one ends.
+The seam shared by `switch`, `sequence`, `source.dynamic` and `cross`: deliver
+one stream out of successive sources, changing source inside a frame when one
+ends. Sources are as in [source-contract.md](source-contract.md).
 
-## 1. What the operator provides
+## 1. Roles
 
-- **`get_source(reselect)`**: the source to read now, or none.
-- **`track_sensitive()`**: whether the operator re-decides only at track
-  boundaries.
-- **`merge()`**: whether to drop track marks where sources or tracks join.
-- **`new_track_on_source_switch()`**: whether a change of source begins a
-  track. Default: yes.
+- The **user** is the operator built on the seam.
+- Its **reader** is whatever requests its segments.
+- The **designated source** is the one the user currently reads.
+- A **join** is a change of designated source.
+- A **decision point** is a place in the user's stream where it chooses what
+  to read:
+  - **boundary**: nothing is designated; or the designated source's track
+    ended, was aborted, or the source answers `nothing`;
+  - **mid-track**: the start of a cycle while the designated source's track
+    is still playing.
 
-## 2. Reselect modes
+## 2. Decisions
 
-`get_source` is told why it is asked:
+A **decision** is the user's answer, at a decision point, to "which source
+would be read from here": a source or none.
 
-| Mode                | Meaning                                                                 |
-| ------------------- | ----------------------------------------------------------------------- |
-| `ok`                | Keep the current source whenever possible.                              |
-| `force`             | At least try to find another source.                                    |
-| `after_position(p)` | Keep the current source only if its frame for this cycle goes past `p`. |
+- A decision MUST NOT change anything a reader, a script callback, a policy
+  or the output can observe. It MAY probe sources.
+- A decision made at a point is kept until it is committed
+  ([§3](#3-commit)), until an abort, or until the cycle ends, whichever comes
+  first. Every probe and the following request see the same one.
+- A user that never re-decides while a track plays makes no mid-track
+  decision: it keeps its designated source.
+- A decision is made from stated facts only: the reason the last segment
+  ended, probe answers, an abort received, the user's own state. See
+  [source-contract.md §9](source-contract.md#9-no-inference).
 
-**`can_reselect(mode, s)`** is the shared test: `s` is ready, and: `ok` → yes;
-`force` → no; `after_position(p)` → `p <` position of `s`'s frame.
+## 3. Commit
 
-The `after_position` test reads `s`'s frame and marks it wholly consumed. It is
-a read-ahead: `s` generates its frame for the cycle, with every side effect
-that has, whether or not the caller ends up using the data past `p`.
+A decision is **committed** when the user's reader requests a segment past
+the decision point. Only then MAY the user:
 
-## 3. Readiness
+- change its designated source, wake and release sources;
+- run script code attached to the change;
+- fire track and metadata events;
+- change anything a policy counts.
 
-The operator can generate a frame when
-`get_source(track_sensitive() ? ok : force)` returns a ready source. That
-source is remembered as the one to start the frame with.
+A decision that keeps the designated source commits nothing.
 
-This runs once per cycle, when the operator's readiness is first asked.
+Consequence: a user left at a boundary by its reader has committed nothing
+past that boundary. When it is read again it is at a boundary and decides,
+with nothing to undo. A user left in the middle of a track resumes where it
+was, unless it was aborted
+([source-contract.md §6](source-contract.md#6-abort)).
 
-## 4. Building the frame
+## 4. Readiness
 
-State kept across cycles: `current`, the last source used.
+The user's probe answer ([source-contract.md §2](source-contract.md#2-probes))
+at a position is:
 
-1. **First chunk.** Read the remembered source `s`. Split its frame at its
-   first track mark.
-   - Mark at 0, and `s` is `current`: `s` is at the start of a new track of its
-     own. Clear the operator's last metadata (if it resets on track). Take
-     nothing.
-   - Mark at 0, and `s` is not `current`: clear last metadata likewise, take
-     the whole frame and **begin a track** (§5).
-   - Otherwise take the part before the mark (the whole frame if no mark). If
-     `s` is not `current` and the part is not empty, apply **source switch**
-     (§5).
+- mid-segment data it already produced: `more`;
+- at a decision point: `nothing` when the decision is none; else the probe
+  answer of the decided source, turned into `new track` when the entry will
+  ensure a mark ([§6](#6-joins)) and into `more` when it will remove one.
 
-   Only what is taken is reported as consumed.
+The request that follows MUST deliver from the decided source.
 
-2. **Loop** while the frame built so far is shorter than the frame size. Let
-   `p` be the position of the last chunk taken from its source, and `rem` the
-   room left. Record the last chunk's metadata as the operator's last
-   metadata. Ask `get_source(after_position(p))`.
-   - **Same source as the last chunk**: its frame MUST go past `p`; otherwise
-     the operator logs a critical error and aborts. Take the data between `p`
-     and `p + rem`. If `merge()`, drop its track marks. Append it.
-   - **Another source**: it MUST be ready; otherwise critical error and abort.
-     Split its frame: with a mark at 0 take the frame, else the part before
-     the mark; in both cases at most `rem`. Apply **source switch** (§5).
-     Append it.
-   - **None**: stop. The frame is short.
-3. Set `current` to the source of the last chunk.
+## 5. Segments
 
-## 5. Track marks at joins
+On a request, the user:
 
-- **Begin a track**: if `merge()`, drop the chunk's track marks. Otherwise put
-  a track mark at the chunk's position 0 (when the chunk is not empty) and run
-  the operator's track callbacks with it.
-- **Source switch**: if `new_track_on_source_switch()`, begin a track. Else if
-  `merge()`, drop the chunk's track marks. Else leave the chunk as is.
+1. At a decision point: takes the decision and commits it.
+2. Requests the designated source's next segment, limited to the room left in
+   its own frame.
+3. Applies the entry rule to the first sample when it follows a stated end
+   ([§6](#6-joins)).
+4. Ends its own segment where the designated source's ended, with:
 
-## 6. Consequences
+| Designated source ended with | The user's segment ends with                          |
+| ---------------------------- | ----------------------------------------------------- |
+| `full`                       | `full`.                                               |
+| `pause`                      | `pause`.                                              |
+| `late`                       | `late`.                                               |
+| `track end`                  | The user's **end statement**: `track end` or `pause`. |
 
-- A track ending mid-frame makes the operator ask `get_source` in the same
-  cycle, with `after_position`. A frame can hold the end of one track and the
-  start of the next.
-- A source whose frame has a mark at `p` is consumed up to `p` first. The rest
-  stays with the source ([source-contract.md §2](source-contract.md#2-frames))
-  and is what `after_position(p)` later finds.
-- A frame is generated whole, up to the frame size, the first time it is read
-  in a cycle. An operator built on this seam therefore crosses its own track
-  boundary while generating: it selects its next source, begins the next track
-  and runs its track callbacks, before its consumer has taken anything.
-- A consumer that stops at the mark and then reads something else leaves that
-  first chunk of the next track cached in the operator. The operator has
-  started a track that nobody has heard. Checked on a nested `rotate`: the
-  chunk is served when the operator is next read, however much later.
+The **end statement** says whether the user's own track ends where the
+designated source's does. The user MUST give it at that moment, from what it
+knows then, and it binds what follows: after `track end` the next data begins
+a track; after `pause` it continues the track. Each user states its rule
+under clause C3 ([§9](#9-contract-clauses)).
 
-## 7. Contract clauses
+Rationale: whether a join is merged belongs to the join. The user states it
+when the source being left ends, before it has moved on, and the same answer
+is used to assemble the join wherever it falls in a frame.
+
+## 6. Joins
+
+The first sample taken after a stated end, or at the user's first
+designation, is **entered** in one of two ways:
+
+- **`track`**: the sample begins a track. A mark is ensured on it: kept if
+  the source has one, added if not. The user's track events fire with the
+  metadata found on that sample, or none.
+- **`continue`**: the sample continues the current track. A mark on it is
+  removed. Its metadata stays where it is and is announced as metadata. No
+  track event fires.
+
+- After a `track end` statement the entry is `track`. After a `pause`
+  statement it is `continue`. It makes no difference whether the join falls
+  inside a frame, on a frame edge or in the first frame of the stream.
+- At the first designation, and after a period with nothing designated, the
+  entry is the one the user states under clause C4.
+- After an abort the entry is `track`.
+- A source change committed by a mid-track decision is entered with `track`
+  unless the user states otherwise.
+- A mark is never put on an empty segment.
+- Marks the designated source carries anywhere else are its own track
+  starts. They are never inside a segment
+  ([source-contract.md §3](source-contract.md#3-tracks)), so each one reaches
+  the user as a `track end` and gets an end statement.
+
+## 7. Bounds
+
+- A source contributes at most one contiguous span to one frame of the user.
+  A decision that designates a source which already contributed to this frame
+  and is not the designated one ends the frame with `late`. The decision
+  stands for the next cycle.
+- A request to the designated source that delivers no sample ends the
+  user's frame, with `late` or with that source's `track end`.
+- So every request either delivers a sample or ends the frame: no decision
+  loops inside a cycle.
+- A condition the seam cannot serve (a decided source that then delivers
+  nothing, a source that answers differently from its probe) ends the frame
+  and is logged. It MUST NOT abort the process or raise.
+
+## 8. Lifetime
+
+- The user holds no data of its own. What its reader reports as used is
+  forwarded, span by span, to the sources that produced it; what is not used
+  stays with them ([source-contract.md §5](source-contract.md#5-consumption)).
+- A source MUST be awake before it is first probed for a decision.
+- At a join the entered source is awake before the one left is released.
+- A source is released when its last sample was used or it was abandoned,
+  exactly once. A source present on both sides of a join is neither released
+  nor woken again.
+- Reachability is not use: no release depends on a collector.
+- Each user states who wakes and who releases under clause C5.
+
+## 9. Contract clauses
 
 Every user of the seam answers these, in this order, under the heading "Seam
-answers" of its own file:
+answers" of its own file. A clause one user answers and another cannot is a
+defect of the specification.
 
-| Clause | Question                                                                                   |
-| ------ | ------------------------------------------------------------------------------------------ |
-| C1     | Which source does `get_source` designate, for each reselect mode, and what does it change? |
-| C2     | `track_sensitive()`: which mode readiness uses.                                            |
-| C3     | `merge()`: its value, and when that value changes.                                         |
-| C4     | `new_track_on_source_switch()`.                                                            |
-| C5     | Who wakes the designated sources and who puts them to sleep.                               |
-| C6     | Remaining, abort track, effective source, self-sync.                                       |
-| C7     | Fallibility.                                                                               |
+| Clause | Question                                                                            |
+| ------ | ----------------------------------------------------------------------------------- |
+| C1     | Decision at a boundary: which source, from what facts; and what its commit does.    |
+| C2     | Mid-track decisions: whether the user makes them, when, and what their commit does. |
+| C3     | End statement: when the designated source's track ends, does the user's.            |
+| C4     | Entry at the first designation and after a period with nothing designated.          |
+| C5     | Who wakes the designated sources and who releases them.                             |
+| C6     | Remaining, abort track, effective source, sync source.                              |
+| C7     | Fallibility and exhaustion.                                                         |
 
 | User             | File                           |
 | ---------------- | ------------------------------ |
@@ -116,22 +167,14 @@ answers" of its own file:
 | `source.dynamic` | [dynamic.md](dynamic.md)       |
 | `cross`          | [cross-seam.md](cross-seam.md) |
 
-`cross` reaches the seam twice: directly, and through the `sequence` it builds
-around its transitions. The default handoff
-([composition.md §4](composition.md#4-default-handoff)) is a `source.dynamic`
-with `merge` on for one join only.
+**Sync source.** For every user: its sync source is that of what it reads
+after its last committed decision, transition sources included. Every commit
+that changes what is read, every release of a leaving source and every loss
+of designation MUST update the answer the clock tracks, at a cost that does
+not grow with the number of children. Nothing registered for this outlives
+the user.
 
-## 8. When `merge` is read
-
-`merge()` and `new_track_on_source_switch()` are read at the join (§5), after
-`get_source` has returned. They describe the operator's state after it moved,
-not the join that is being made.
-
-`sequence` computes `merge` as "merging was asked and more than one item is
-left". Its `get_source` drops the finished item before returning the next. So
-at the join into the last item the answer is already "no": that join is never
-merged, and with two items `merge` has no effect. At the very first chunk of
-the stream, when nothing was left, the same value is read and the stream's
-first track mark is dropped. Checked: a merged sequence of a one-second item
-titled "first" and a two-second item titled "last" reports one track, titled
-"last".
+**Abort.** For every user: an abort ends its own track
+([source-contract.md §6](source-contract.md#6-abort)). The user is then at a
+boundary and decides at its next request. This is how a reader that cuts into
+a user tells it that its selection is over.
