@@ -1795,6 +1795,24 @@
   (run %{run_test} callback_from_task liquidsoap callback_from_task.liq)))
 
 (rule
+ (alias test_callback_raises)
+ (package liquidsoap)
+ (deps
+  callback_raises.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} callback_raises liquidsoap callback_raises.liq)))
+
+(rule
  (alias test_callback_release)
  (package liquidsoap)
  (deps
@@ -3268,6 +3286,24 @@
    switch_reselect_after_idle.liq)))
 
 (rule
+ (alias test_switch_script_raises)
+ (package liquidsoap)
+ (deps
+  switch_script_raises.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} switch_script_raises liquidsoap switch_script_raises.liq)))
+
+(rule
  (alias test_switch_skipped_track_metadata)
  (package liquidsoap)
  (deps
@@ -3535,6 +3571,7 @@
   (alias test_blank_strip_resume_metadata)
   (alias test_callback_counts)
   (alias test_callback_from_task)
+  (alias test_callback_raises)
   (alias test_callback_release)
   (alias test_callback_release_mixed_content)
   (alias test_cleanup)
@@ -3608,6 +3645,7 @@
   (alias test_switch_per_source_single)
   (alias test_switch_predicates_on_selection)
   (alias test_switch_reselect_after_idle)
+  (alias test_switch_script_raises)
   (alias test_switch_skipped_track_metadata)
   (alias test_switch_sync_source_follows_handoff)
   (alias test_switch_unread_while_leaving)

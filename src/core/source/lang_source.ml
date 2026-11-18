@@ -166,7 +166,18 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
           (fun p ->
             let synchronous = Lang.to_bool (List.assoc "synchronous" p) in
             let fn = assoc "" 1 p in
-            let fn args = ignore (apply fn args) in
+            (* A handler that raises is logged and the source goes on
+               (src/spec/faults.md §0). Some fire every frame: the log is
+               bounded. *)
+            let faults = Faults.create s#log in
+            let fn args =
+              try ignore (apply fn args)
+              with Runtime_error.Runtime_error _ as error ->
+                let backtrace = Printexc.get_raw_backtrace () in
+                Faults.script_error faults
+                  ~kind:(Printf.sprintf "%s callback of %s" name s#id)
+                  error backtrace
+            in
             let fn =
               if synchronous then fn
               else fun args ->
