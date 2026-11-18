@@ -21,10 +21,58 @@
  *****************************************************************************)
 
 type input_format = (Avutil.input, Avutil.audio) Avutil.format
-type t = { format : input_format option; opts : Avutil.opts }
+
+type decoder_options = {
+  audio : Avutil.opts;
+  video : Avutil.opts;
+  subtitle : Avutil.opts;
+}
+
+type t = {
+  format : input_format option;
+  opts : Avutil.opts;
+  decoder : decoder_options;
+}
 
 let error message = Runtime_error.raise ~pos:[] ~message "ffmpeg_decoder"
-let none () = { format = None; opts = Hashtbl.create 0 }
+
+let no_decoder_options () =
+  {
+    audio = Hashtbl.create 0;
+    video = Hashtbl.create 0;
+    subtitle = Hashtbl.create 0;
+  }
+
+let none () =
+  { format = None; opts = Hashtbl.create 0; decoder = no_decoder_options () }
+
+let decoder_prefixes = ["audio."; "video."; "subtitle."]
+
+let split_decoder_options opts =
+  let decoder = no_decoder_options () in
+  let table_of_prefix = function
+    | "audio." -> decoder.audio
+    | "video." -> decoder.video
+    | _ -> decoder.subtitle
+  in
+  Hashtbl.filter_map_inplace
+    (fun key value ->
+      match
+        List.find_opt
+          (fun prefix -> String.starts_with ~prefix key)
+          decoder_prefixes
+      with
+        | None -> Some value
+        | Some prefix ->
+            let length = String.length prefix in
+            if String.length key = length then
+              error (Printf.sprintf "Decoder option without a name: %s" key);
+            Hashtbl.replace (table_of_prefix prefix)
+              (String.sub key length (String.length key - length))
+              value;
+            None)
+    opts;
+  decoder
 
 let find_format name =
   match Av.Format.find_input_format name with
@@ -71,7 +119,8 @@ let parse ~what s =
           | _ -> invalid ())
       None params
   in
-  { format; opts }
+  let decoder = split_decoder_options opts in
+  { format; opts; decoder }
 
 let of_metadata metadata =
   match Frame.Metadata.find_opt "ffmpeg_options" metadata with

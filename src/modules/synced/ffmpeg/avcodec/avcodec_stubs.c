@@ -227,6 +227,23 @@ CAMLprim value ocaml_avcodec_codec_name(value _codec) {
   CAMLreturn(caml_copy_string(name ? name : ""));
 }
 
+/* Searches the classes without an instance: AV_OPT_SEARCH_FAKE_OBJ takes a
+   pointer to a class pointer. */
+CAMLprim value ocaml_avcodec_decoder_has_option(value _codec, value _name) {
+  CAMLparam2(_codec, _name);
+  const AVCodec *codec = Codec_val(_codec);
+  const AVClass *generic_class = avcodec_get_class();
+  const char *name = String_val(_name);
+  int found =
+      av_opt_find(&generic_class, name, NULL, AV_OPT_FLAG_DECODING_PARAM,
+                  AV_OPT_SEARCH_FAKE_OBJ) != NULL ||
+      (codec->priv_class &&
+       av_opt_find((void *)&codec->priv_class, name, NULL,
+                   AV_OPT_FLAG_DECODING_PARAM, AV_OPT_SEARCH_FAKE_OBJ) != NULL);
+
+  CAMLreturn(Val_bool(found));
+}
+
 CAMLprim value ocaml_avcodec_codec_description(value _codec) {
   CAMLparam1(_codec);
   const char *long_name = Codec_val(_codec)->long_name;

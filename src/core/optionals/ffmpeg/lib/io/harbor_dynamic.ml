@@ -438,9 +438,7 @@ let open_client ~args ~handler ~connection ~(relay : Harbor.relay_info) client =
                        ~options:{ (Input_options.none ()) with format }
                        client#read)
                in
-               let options =
-                 { Input_options.format = None; opts = Hashtbl.create 0 }
-               in
+               let options = Input_options.none () in
                let description =
                  Ffmpeg_decoder.describe ~options ~url:relay.uri container
                in

@@ -177,13 +177,15 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
 
     method private open_container attempt url =
       let opts = Hashtbl.copy options in
-      let configure = Ffmpeg_decoder.stream_configuration () in
+      let decoder = Input_options.split_decoder_options opts in
+      let configure = Ffmpeg_decoder.stream_configuration ~decoder () in
       let container =
         Av.open_input ~interrupt:(self#interrupt attempt) ?format ~opts
           ~configure_audio_stream:configure.audio
           ~configure_video_stream:configure.video
           ~configure_subtitle_stream:configure.subtitle url
       in
+      configure.log_unapplied ();
       if Hashtbl.length opts > 0 then (
         Av.close container;
         raise
@@ -251,7 +253,7 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
       try
         let c = self#open_container attempt url in
         container := Some c;
-        let options = { Input_options.format; opts = Hashtbl.create 0 } in
+        let options = { (Input_options.none ()) with format } in
         let description = Ffmpeg_decoder.describe ~options ~url c in
         let ctype = self#content_type in
         if not (Decode_loop.can_produce ~ctype description) then

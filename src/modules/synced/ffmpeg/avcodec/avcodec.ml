@@ -12,6 +12,10 @@ type 'media decoder
 type 'media encoder
 type encode = [ `Encoder ]
 type decode = [ `Decoder ]
+
+external decoder_has_option : (_, decode) codec -> string -> bool
+  = "ocaml_avcodec_decoder_has_option"
+
 type profile = { id : int; profile_name : string }
 
 type descriptor = {

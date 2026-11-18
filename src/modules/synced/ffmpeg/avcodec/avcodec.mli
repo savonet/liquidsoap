@@ -77,6 +77,12 @@ type encode = [ `Encoder ]
 (** The ['mode] parameter of a {!codec} that decodes. *)
 type decode = [ `Decoder ]
 
+(** [decoder_has_option codec name] is [true] when [name] is an option a decoder
+    built from [codec] accepts: one of the codec's private options, or a generic
+    codec context option marked as a decoding parameter. It checks the name
+    only, not a value. *)
+val decoder_has_option : (_, decode) codec -> string -> bool
+
 (** A profile of a codec, as FFmpeg lists it in the codec's descriptor. [id] is
     FFmpeg's number for the profile (an [AV_PROFILE_*] constant) and
     [profile_name] is its name, the empty string when FFmpeg gives none. *)

@@ -255,6 +255,49 @@ Conformance:
 - `f=nosuchformat` is an error naming `nosuchformat`, at the probe and in
   both resolvers.
 
+### 4.4 Decoder options
+
+An option whose key starts with `audio.`, `video.` or `subtitle.` is a
+**decoder option**: the rest of the key names an option of the decoder of
+every stream of that media type. Every other option is a demuxer option, as
+in §4.1 to §4.3. A key that holds a dot is written quoted:
+
+```liquidsoap
+input.srt(content_type="application/ffmpeg;\"video.flags\"=\"low_delay\"")
+```
+
+The same split applies to the options of `input.ffmpeg` (`int_args`,
+`float_args`, `string_args`) and to `ffmpeg_options` metadata.
+
+- Decoder options reach a stream through the stream configuration of §5.1,
+  together with the preferred decoder, so they apply to the decoder FFmpeg
+  probes with and to the decoder that decodes. A copied stream (§6) has no
+  decoder and takes none.
+- A key with a prefix and nothing after it is an error of kind
+  `ffmpeg_decoder` naming the key.
+- Remaining decoder options are checked as remaining demuxer options are
+  (§4.3), once the decoders of the streams they apply to have been opened:
+  an option that no such decoder recognised is an error of kind
+  `ffmpeg_decoder` that lists it. Options for a media type the input has no
+  decoded stream of are not checked; they are logged at debug level.
+- No decoder option is set by default.
+
+The motivating option is `"video.flags"="low_delay"`. FFmpeg's default
+frame-threaded H.264 decoder holds about one frame per thread before
+returning the first picture, close to half a second on a ten-core machine at
+25 fps. A live input that must reach its viewers quickly trades that
+decoding throughput for latency; every other input keeps the default.
+
+Conformance:
+
+- `"video.nosuchoption"=1` on a stream with a video stream is an error
+  naming `video.nosuchoption`, raised when the stream is opened.
+- `"video.flags"="low_delay"` on a stream with an H.264 video stream is
+  accepted: neither the demuxer nor the decoder reports it as unused, which,
+  with the previous item, shows the decoder received it.
+- `"video.flags"="low_delay"` on an audio-only stream is accepted and logged.
+- `"video."` is an error naming the key.
+
 ## 5. Opening and probing
 
 ### 5.1 Opening

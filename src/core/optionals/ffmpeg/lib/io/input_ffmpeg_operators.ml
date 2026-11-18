@@ -36,7 +36,17 @@ let option_table p =
       (fun pair ->
         let name, value = Lang.to_product pair in
         let name = Lang.to_string name in
-        if not (List.mem name (Lazy.Mutexed.force input_option_names)) then
+        (* Decoder options (decoder.md §4.4) are checked when the stream's
+           decoder is known. *)
+        let is_decoder_option =
+          List.exists
+            (fun prefix -> String.starts_with ~prefix name)
+            Input_options.decoder_prefixes
+        in
+        if
+          (not is_decoder_option)
+          && not (List.mem name (Lazy.Mutexed.force input_option_names))
+        then
           Lang.raise_error
             ~pos:(Option.to_list (Value.pos v))
             ~message:(Printf.sprintf "Unknown FFmpeg input option: %s" name)

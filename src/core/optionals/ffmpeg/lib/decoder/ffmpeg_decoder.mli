@@ -26,17 +26,23 @@
     the request layer lowercases them.
 
     [input.ffmpeg] reuses the opening of §5 (decoder.md §15):
-    [stream_configuration], the preferred decoder per codec given to the
-    bindings' open, and [describe], the container's description logged as FFmpeg
-    recognizes it. *)
+    [stream_configuration], the preferred decoder and decoder options per codec
+    given to the bindings' open, and [describe], the container's description
+    logged as FFmpeg recognizes it. *)
 
+(** [log_unapplied] logs the decoder options of a media type no stream had; call
+    it once the open configured the streams. *)
 type stream_configuration = {
   audio : Avutil.audio Avcodec.params -> Avutil.audio Av.stream_config;
   video : Avutil.video Avcodec.params -> Avutil.video Av.stream_config;
   subtitle : Avutil.subtitle Avcodec.params -> Avutil.subtitle Av.stream_config;
+  log_unapplied : unit -> unit;
 }
 
-val stream_configuration : unit -> stream_configuration
+(** Its configure functions raise the [ffmpeg_decoder] error for a decoder
+    option the stream's decoder does not have (decoder.md §4.4). *)
+val stream_configuration :
+  ?decoder:Input_options.decoder_options -> unit -> stream_configuration
 
 (** Opens a byte stream as decoder.md §5.1 says: with the stream configuration,
     then the check of unconsumed options, closing the container when that check

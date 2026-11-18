@@ -1194,6 +1194,28 @@
    --
    alarm-clock-alpha.webm)))
 
+(rule
+ (alias test_ffmpeg_decoder_options)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  test-audio.wav
+  test_ffmpeg_decoder_options.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg decoder options"
+   liquidsoap
+   test_ffmpeg_decoder_options.liq
+   --
+   hls-gop4.ts
+   test-audio.wav)))
+
 (alias
  (name mediatest)
  (deps
@@ -1217,6 +1239,7 @@
   (alias test_subtitle_text_to_ass)
   (alias test_ffmpeg_vp9_alpha)
   (alias test_ffmpeg_stream_preferred_decoder)
+  (alias test_ffmpeg_decoder_options)
   (alias test_hls_field_scenario)
   (alias test_hls_grid_drift)
   (alias test_hls_bound)
