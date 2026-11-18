@@ -170,10 +170,14 @@ defect of the specification.
 | `cross`          | [cross-seam.md](cross-seam.md) |
 
 **Sync source.** For every user: its sync source is that of what it reads
-after its last committed decision, transition sources included. Every commit
-that changes what is read, every release of a leaving source and every loss
-of designation MUST update the answer the clock tracks, at a cost that does
-not grow with the number of children. Nothing registered for this outlives
+after its last committed decision, transition sources included. A commit
+happens at a read, after the sync sources of the cycle were settled
+([pacing §3](../../../clock/spec/pacing.md#3-finding-the-sync-source)). So a
+user that reads another source than before MUST say so to its clock, and the
+answers settled in that cycle are computed again before the clock's next
+pacing point: the clock follows the change at its next tick, as it does for
+a change found while preparing a cycle. A cycle in which no user changed
+source costs each source one check. Nothing registered for this outlives
 the user.
 
 **Abort.** For every user: an abort ends its own track

@@ -264,7 +264,21 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       if self_sync then Some self#self_sync_source else None
 
     val mutable settled_self_sync : self_sync option = None
-    method source_state = Option.bind settled_self_sync snd
+
+    (* Set when a source changed what it reads after the answers of a cycle
+       were settled. The answer is then computed again the next time it is
+       asked for, from the answers below it, which are refreshed the same way:
+       a source created during the cycle closes it after its reader, so
+       refreshing in closing order would read it too early. *)
+    val mutable settled_stale = false
+
+    method private current_settled =
+      if settled_stale && self#is_up then (
+        settled_stale <- false;
+        settled_self_sync <- Some self#self_sync);
+      settled_self_sync
+
+    method source_state = Option.bind self#current_settled snd
     val mutable own_sync_source : Clock.Sync_source.t option = None
 
     method private set_sync_source sync_source =
@@ -283,7 +297,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       if Atomic.get cycle_open then
         self#per_cycle cycle_self_sync (fun () -> self#self_sync)
       else (
-        match settled_self_sync with
+        match self#current_settled with
           | Some settled -> settled
           | None -> self#self_sync)
 
@@ -618,16 +632,36 @@ class virtual operator ?(stack = []) ?clock ~name sources =
             _cache <- None;
             buf))
 
+    (* Set from any thread, and from the callbacks of a cycle that is running.
+       The abort is carried out by the streaming thread once the running cycle
+       is over, or when the source's next cycle opens if that comes first: so
+       nothing changes under a cycle in progress, and any number of requests
+       amount to one. *)
+    val abort_requested = Atomic.make false
+
+    method private carry_out_abort =
+      if Atomic.exchange abort_requested false then self#abort_track
+
+    (* The source itself may be asleep: what it forwards the abort to is
+       not. With no clock running there is no cycle to wait for. *)
+    method request_abort =
+      Atomic.set abort_requested true;
+      match Clock.after_segment self#clock (fun () -> self#carry_out_abort) with
+        | () -> ()
+        | exception _ -> self#carry_out_abort
+
     (* The cycle counts as open only once its readiness is settled: a hook that
        closes the cycle and opens another one finds it not open yet. *)
     method private before_streaming_cycle =
       if not (Atomic.get cycle_open) then (
+        self#carry_out_abort;
         self#release_cycle_values;
         List.iter (fun fn -> fn ()) on_before_streaming_cycle;
         consumed <- 0;
         ignore self#readiness;
         Atomic.set cycle_open true;
         Clock.after_segment self#clock (fun () -> self#after_streaming_cycle);
+        settled_stale <- false;
         settled_self_sync <- Some self#cached_self_sync)
 
     method private after_streaming_cycle =
@@ -637,7 +671,9 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
       self#release_cycle_values;
-      Atomic.set cycle_open false
+      Atomic.set cycle_open false;
+
+      if Clock.sync_changed self#clock then settled_stale <- true
 
     (* Frame generation executes script callbacks which may read the source's
        frame again. Such a re-entrant call must not restart the generation, so
@@ -1035,6 +1071,7 @@ class virtual generate_from_multiple_sources () =
     method virtual clear_last_metadata : unit
     method virtual log : Log.t
     method virtual id : string
+    method virtual clock : Clock.t
     val mutable ready_source = None
 
     (* The track of the last source read ended or was aborted. *)
@@ -1157,6 +1194,8 @@ class virtual generate_from_multiple_sources () =
           at_boundary <- false;
           self#enter applied buf)
       in
+      (* The sync source we report was settled before we moved. *)
+      if not same_source then Clock.signal_sync_change self#clock;
       current_source <- Some s;
       if ended then (
         let next = self#next_entry in

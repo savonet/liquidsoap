@@ -83,6 +83,7 @@ let new_streaming ~force c =
     after_tick = Atomic.make [];
     after_segment = Atomic.make [];
     segment_requested = Atomic.make false;
+    sync_changed = Atomic.make false;
     animator = Atomic.make None;
     pace =
       Atomic.make
@@ -213,6 +214,7 @@ let rec wind_down c =
             Atomic.set st.after_tick [];
             Atomic.set st.after_segment [];
             Atomic.set st.segment_requested false;
+            Atomic.set st.sync_changed false;
             List.iter
               (fun { sub } ->
                 quietly c "stopping a sub-clock" (fun () ->
@@ -293,8 +295,14 @@ let rec prepare c st =
   pacing_point c st;
   each_sub c ~what:"prepare" prepare
 
-let rec cleanup c st =
+(* Ends the running segment: the sources close it, then the flag they read
+   while doing so is lowered. *)
+let end_segment st =
   take_callbacks st.after_segment;
+  Atomic.set st.sync_changed false
+
+let rec cleanup c st =
+  end_segment st;
   take_callbacks st.after_tick;
   apply_removals c st;
   each_sub c ~what:"cleanup" cleanup
@@ -307,7 +315,7 @@ let rec cleanup c st =
    loop. *)
 let rec continue_segments ~animate st =
   if Atomic.exchange st.segment_requested false then begin
-    take_callbacks st.after_segment;
+    end_segment st;
     List.iter (fun o -> animate o.source o.member) (Atomic.get st.outputs);
     continue_segments ~animate st
   end

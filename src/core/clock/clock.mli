@@ -167,6 +167,15 @@ val after_tick : t -> (unit -> unit) -> unit
     registers a one-shot callback for the end of the running segment. *)
 val after_segment : t -> (unit -> unit) -> unit
 
+(** For a source that changed what it reads while the running segment was being
+    produced: the sync sources settled when the segment was prepared are out of
+    date. Raises a flag that the clock lowers when the segment ends. *)
+val signal_sync_change : t -> unit
+
+(** Whether [signal_sync_change] was called for the running segment. Read by
+    sources when they close the segment, to refresh their sync source. *)
+val sync_changed : t -> bool
+
 (** Asks for another segment in the running tick. For an output whose frame
     stopped short of full at a track end, after it made progress. *)
 val request_segment : t -> unit

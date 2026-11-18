@@ -109,7 +109,9 @@ reach an error.
 - **C5.** The operator wakes what `next` returns, or adopts its activation,
   and releases it when it is replaced, in the cycle of the replacement.
 - **C6.** [§5](#5-other-properties).
-- **C7.** Fallible unless declared `infallible`. When declared and a request
-  finds nothing to deliver, the request fails with a script error saying the
-  operator could not prepare a source in time. A probe never fails. Never
-  exhausted.
+- **C7.** Fallible unless declared `infallible`. Declared infallible, it
+  answers ready to every probe, whatever the function returned: when a
+  request then finds nothing to deliver, the request fails with a script
+  error saying the operator could not prepare a source in time. The failure
+  is at the read, where it stops the cycle, and never a quiet "not ready".
+  A probe never fails. Never exhausted.

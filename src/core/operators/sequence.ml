@@ -63,18 +63,40 @@ class sequence ?(name = "sequence") ?(merge = false)
       (boundary && single_track) || s#exhausted
       || ((not s#is_ready) && last#is_ready)
 
-    method private get_source ~boundary () =
-      match self#queue with
-        | [] -> None
+    (* The items that are finished, and what is left of the queue with the
+       item to play at its head. [boundary] is about the head only. Changes
+       nothing. *)
+    method private next_item ~boundary =
+      let rec skip ~boundary finished = function
         | s :: rest
           when rest <> []
                && self#finished ~boundary ~last:(List.hd (List.rev rest)) s ->
+            skip ~boundary:false (s :: finished) rest
+        | queue -> (List.rev finished, queue)
+      in
+      skip ~boundary [] self#queue
+
+    (* What a probe decided: acted on when the frame is read. *)
+    val mutable decided = ([], [])
+
+    method! private choose_next_source ~boundary =
+      decided <- self#next_item ~boundary;
+      match snd decided with s :: _ -> s#is_ready | [] -> false
+
+    method! private enter_chosen_source =
+      let finished, queue = decided in
+      if finished <> [] then (
+        self#leave_source;
+        Atomic.set seq_sources queue;
+        List.iter
+          (fun s ->
             self#log#info "Finished with %s" s#id;
-            self#leave_source;
-            Atomic.set seq_sources rest;
-            self#release_source s;
-            self#get_source ~boundary:false ()
-        | s :: _ -> if s#is_ready then Some s else None
+            self#release_source s)
+          finished);
+      decided <- ([], queue);
+      match queue with s :: _ -> Some s | [] -> None
+
+    method private get_source ~boundary:_ () = self#enter_chosen_source
 
     method remaining =
       if merge then (

@@ -261,6 +261,10 @@ module State = struct
     (* Set by an output whose frame stopped short of full at a track end: the
        tick produces another segment. *)
     segment_requested : bool Atomic.t;
+    (* Set by a source that changed what it reads while the running segment
+       was being produced: the answers settled when the segment was prepared
+       are out of date, and the sources refresh theirs when it ends. *)
+    sync_changed : bool Atomic.t;
     (* What runs the clock's loop and why; [None] for a passive clock. *)
     animator : (animator * string) option Atomic.t;
     pace : pace Atomic.t;

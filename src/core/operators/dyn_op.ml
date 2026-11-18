@@ -22,7 +22,7 @@
 
 class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
   object (self)
-    inherit Source.source ~name:"source.dynamic" ()
+    inherit Source.source ~name:"source.dynamic" () as super
     inherit Source.generate_from_multiple_sources ()
     method private next_entry = if merge () then `Continue else `Track
     method fallible = not infallible
@@ -32,81 +32,102 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       Clock.unify ~pos:self#pos s#clock self#clock;
       s#wake_up (self :> Clock.source)
 
-    val current_source = Atomic.make None
-    method current_source = Option.map snd (Atomic.get current_source)
+    (* The source being played, with the activation that keeps it awake. *)
+    val current = Atomic.make None
+    method current_source = Option.map snd (Atomic.get current)
+
+    (* A source the function designated and that is not played yet. *)
+    val mutable pending = None
+
+    method private release held =
+      Option.iter (fun (activation, s) -> s#sleep activation) held
+
+    (* Keeps [s] as the source to play next. A source we already hold is not
+       woken again: an activation that came with it is one too many. *)
+    method private designate ~activation s =
+      let holds = function Some (_, held) -> held == s | None -> false in
+      if holds (Atomic.get current) || holds pending then
+        Option.iter s#sleep activation
+      else (
+        self#log#info "Preparing source %s" s#id;
+        let activation =
+          match activation with Some a -> a | None -> self#prepare s
+        in
+        self#release pending;
+        pending <- Some (activation, s))
 
     initializer
       self#on_wake_up (fun () ->
           match (self#current_source, init) with
-            | None, Some s -> ignore (self#switch ~activation:None s)
-            | _ -> ())
+            | None, Some s -> self#designate ~activation:None s
+            | _ -> ());
+      self#on_sleep (fun () ->
+          self#release (Atomic.exchange current None);
+          self#release pending;
+          pending <- None)
 
-    method private no_source id =
-      if infallible then
-        Lang.raise_error ~pos:[]
-          ~message:
-            (Printf.sprintf
-               "Infallible source.dynamic %s was not able to prepare %s in \
-                time! Make sure to either define infallible sources in the \
-                source's dynamic function or mark the source as fallible.."
-               self#id
-               (match id with
-                 | None -> "a source"
-                 | Some id -> Printf.sprintf "source %s" id))
-          "failure";
-      None
-
-    method private switch ~activation s =
-      self#log#info "Switching to source %s" s#id;
-      let a = match activation with None -> self#prepare s | Some a -> a in
-      Atomic.set current_source (Some (a, s));
-      if s#is_ready then Some s else self#no_source (Some s#id)
-
-    method private exchange ~activation s =
-      match Atomic.get current_source with
-        | Some (a', s') when s == s' ->
-            (match activation with Some a when a != a' -> s#sleep a | _ -> ());
-            Some s
-        | Some (a', s') ->
-            let ret = self#switch ~activation s in
-            s'#sleep a';
-            ret
-        | None -> self#switch ~activation s
-
-    method private get_next () =
+    (* Asks the function what to play. This runs script code and may wake a
+       source, but enters nothing: the function can be asked again without
+       its answer having been played. *)
+    method private consult () =
       self#mutable_lock
         (fun () ->
-          let v = Lang.to_option (Lang.apply next_fn []) in
-          let v =
-            Option.map
-              (fun v ->
+          (match Lang.to_option (Lang.apply next_fn []) with
+            | None -> ()
+            | Some v ->
                 let meth, v = Lang.split_meths v in
-                let a =
+                let activation =
                   Option.map Lang_source.Activation_val.of_value
                     (List.assoc_opt "activation" meth)
                 in
-                (a, Lang.to_source v))
-              v
-          in
-          match (v, self#current_source) with
-            | None, Some s when s#is_ready -> Some s
-            | Some (_, s), Some s' when s == s' ->
-                if s#is_ready then Some s else self#no_source None
-            | Some (activation, s), _ -> self#exchange ~activation s
-            | _ -> self#no_source None)
+                self#designate ~activation (Lang.to_source v));
+          match (pending, self#current_source) with
+            | Some (_, s), _ when s#is_ready -> `Pending
+            | Some _, _ -> `Nothing
+            | None, Some s when s#is_ready -> `Current
+            | None, _ -> `Nothing)
         ()
 
-    method private get_source ~boundary () =
-      match self#current_source with
-        | Some s when (not boundary) && track_sensitive () && s#is_ready ->
-            Some s
-        | _ -> self#get_next ()
+    (* What a probe decided: acted on when the frame is read. *)
+    val mutable decided = `Nothing
 
-    initializer
-      self#on_sleep (fun () ->
-          match Atomic.exchange current_source None with
-            | Some (a, s) -> s#sleep a
-            | None -> ())
+    method! private choose_next_source ~boundary =
+      decided <-
+        (match self#current_source with
+          | Some s when (not boundary) && track_sensitive () && s#is_ready ->
+              `Current
+          | _ -> self#consult ());
+
+      (* Declared infallible, we answer ready whatever we found: reading us
+         with nothing to deliver is the failure, and it is raised there. *)
+      infallible || decided <> `Nothing
+
+    method! private enter_chosen_source =
+      match decided with
+        | `Current -> self#current_source
+        | `Pending ->
+            let entered = Option.get pending in
+            self#log#info "Switching to source %s" (snd entered)#id;
+            pending <- None;
+
+            (* The source entered is awake before the one left is released. *)
+            self#release (Atomic.exchange current (Some entered));
+            decided <- `Current;
+            Some (snd entered)
+        | `Nothing ->
+            if infallible then
+              Lang.raise_error ~pos:[]
+                ~message:
+                  (Printf.sprintf
+                     "Infallible source.dynamic %s was not able to prepare a \
+                      source in time! Make sure to either define infallible \
+                      sources in the source's dynamic function or mark the \
+                      source as fallible.."
+                     self#id)
+                "failure";
+            None
+
+    method private get_source ~boundary:_ () = self#enter_chosen_source
 
     method remaining =
       match self#current_source with Some s -> s#remaining | None -> -1
@@ -119,6 +140,13 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       match self#current_source with
         | Some s -> s#effective_source
         | None -> (self :> Source.source)
+
+    (* With nothing played yet, we compose like the source we are about to
+       play. *)
+    method! resolved_composition =
+      match (self#composition, self#current_source, pending) with
+        | `Passthrough, None, Some (_, s) -> s#resolved_composition
+        | _ -> super#resolved_composition
 
     method private self_sync =
       match self_sync with

@@ -20,6 +20,10 @@ the contract:
 | Decision, then commit                 | `choose_next_source ~boundary`, then `enter_chosen_source`                                      |
 | End statement and entry               | `next_entry`, asked when the track of the source being read ends                                |
 | A user moving on from a source        | `leave_source`, called before the user forgets the source                                       |
+| Sequence decision, then commit        | `next_item`, then `enter_chosen_source` in `src/core/operators/sequence.ml`                     |
+| `source.dynamic` consult, then commit | `consult` and `designate`, then `enter_chosen_source` in `src/core/operators/dyn_op.ml`         |
+| Abort requested, then carried out     | `source#request_abort`, `carry_out_abort`                                                       |
+| A user changed the source it reads    | `Clock.signal_sync_change`; `settled_stale`, `current_settled` in `src/core/source/source.ml`   |
 | Switch decisions                      | `decide_mid_track`, `decide_at_boundary`, `handoff` in `src/core/operators/switch.ml`           |
 | Presented source                      | `insert_initial_track_mark`: `leave`, `track_ended`                                             |
 
@@ -45,14 +49,17 @@ Where the code stops short of the specification:
   of the previous one costs its reader one empty cycle
   ([source-contract.md §2](source-contract.md#2-probes)). Outputs follow at
   most `max_empty_segments` empty cycles in a row.
-- **`sequence`, `source.dynamic` and `cross` still commit when probed.** Only
-  `switch` separates the decision from the handoff.
+- **`cross` still commits when probed.** `switch`, `sequence`,
+  `source.dynamic` and the request sources separate the decision from what
+  it commits.
 - **An operator over several sources declares `pause`, never `track end`**,
   when one of them stopped: it cannot tell whose track is its own.
 - **`cross` builds its transition out of buffers that declare exhaustion**;
   the rest of it is as before
   ([cross-seam.md §4](cross-seam.md#4-open)).
-- **Aborts take effect at once**, not at the end of the cycle.
+- **Only the entry points of an abort are deferred** (`request_abort`, used
+  by the script `skip` and the output's). Operators forward and issue aborts
+  at once.
 
 ## Where things were
 

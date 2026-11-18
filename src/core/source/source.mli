@@ -374,6 +374,11 @@ object
   (** Manually mark amount of consumed data from the source. *)
   method consumed : int -> unit
 
+  (** Asks for the current track to be aborted. Safe from any thread and from a
+      callback of the streaming cycle: [abort_track] is called by the streaming
+      thread once the running cycle is over. *)
+  method request_abort : unit
+
   (** Whether the source never ends a track on its own: an endless tone or
       silence. Such a source composes as a live one. *)
   method endless : bool
@@ -490,6 +495,7 @@ class virtual generate_from_multiple_sources : unit -> object
   method virtual private execute_on_track : Frame.t -> unit
   method virtual log : Log.t
   method virtual id : string
+  method virtual clock : Clock.t
   method private frame_end : Frame.t -> segment_end
 
   (** States that the current track is over, on an abort. *)

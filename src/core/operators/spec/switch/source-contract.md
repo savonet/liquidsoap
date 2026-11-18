@@ -180,9 +180,21 @@ from the reason of the previous segment, or from the probe.
 
 - An operator MUST apply the abort to its own state and forward it to the
   sources it currently reads.
-- An abort issued while a cycle of the source's clock runs, from any thread
-  and from a callback of that cycle alike, takes effect when the cycle is
-  over. It MUST be complete before the first probe of the next cycle.
+- **An abort is requested, then carried out.** A request (a script's
+  `skip`, an output's `skip` command, a profile's `on_leave`) may come from
+  any thread and from a callback of a running cycle. It changes nothing by
+  itself. The streaming thread carries it out when the running cycle of the
+  source's clock is over, or when the source's next cycle opens if that
+  comes first: always before the first probe of that next cycle.
+- Until then the source is unchanged: what it delivers in the running cycle,
+  its remaining time and its last metadata are those of the track being
+  aborted.
+- Requests made before the abort is carried out amount to one abort.
+- With no clock running there is no cycle to wait for: the abort is carried
+  out at once.
+- Once carried out, an abort is forwarded by each operator at once
+  (the first rule above). An operator that aborts a child on its own does so
+  at once as well.
 - A source that was aborted MUST NOT play, on its return, anything of the
   aborted track.
 

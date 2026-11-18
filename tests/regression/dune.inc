@@ -2552,6 +2552,28 @@
   (run %{run_test} shoutcast-args liquidsoap shoutcast-args.liq)))
 
 (rule
+ (alias test_skip_from_another_thread)
+ (package liquidsoap)
+ (deps
+  skip_from_another_thread.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   skip_from_another_thread
+   liquidsoap
+   skip_from_another_thread.liq)))
+
+(rule
  (alias test_smooth_add)
  (package liquidsoap)
  (deps
@@ -2982,6 +3004,28 @@
    switch_skipped_track_metadata.liq)))
 
 (rule
+ (alias test_switch_sync_source_follows_handoff)
+ (package liquidsoap)
+ (deps
+  switch_sync_source_follows_handoff.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_sync_source_follows_handoff
+   liquidsoap
+   switch_sync_source_follows_handoff.liq)))
+
+(rule
  (alias test_switch_unread_while_leaving)
  (package liquidsoap)
  (deps
@@ -3220,6 +3264,7 @@
   (alias test_sequence_merge_single_track)
   (alias test_server.insert_metadata)
   (alias test_shoutcast-args)
+  (alias test_skip_from_another_thread)
   (alias test_smooth_add)
   (alias test_source_cleanup)
   (alias test_source_drop_tracks)
@@ -3240,6 +3285,7 @@
   (alias test_switch_predicates_on_selection)
   (alias test_switch_reselect_after_idle)
   (alias test_switch_skipped_track_metadata)
+  (alias test_switch_sync_source_follows_handoff)
   (alias test_switch_unread_while_leaving)
   (alias test_track_sensitive)
   (alias test_type_printing_from_task)

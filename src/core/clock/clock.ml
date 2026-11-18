@@ -94,6 +94,14 @@ let on_tick t fn = push (running_streaming (get t)).on_tick fn
 let after_tick t fn = push (running_streaming (get t)).after_tick fn
 let after_segment t fn = push (running_streaming (get t)).after_segment fn
 
+let signal_sync_change t =
+  match streaming t with
+    | Some st -> Atomic.set st.sync_changed true
+    | None -> ()
+
+let sync_changed t =
+  match streaming t with Some st -> Atomic.get st.sync_changed | None -> false
+
 let request_segment t =
   Atomic.set (running_streaming (get t)).segment_requested true
 

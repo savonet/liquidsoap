@@ -252,7 +252,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
           if skip then (
             self#log#important "Performing user-requested skip";
             skip <- false;
-            self#abort_track)))
+            self#request_abort)))
   end
 
 class dummy ?clock ~infallible ~autostart ~register_telnet source =
