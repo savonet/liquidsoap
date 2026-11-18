@@ -186,9 +186,9 @@ then:
 3. The **ending source** is the current part, whole. The **starting
    source** is the first `S` of the next part. Both are finite sources as
    in [transition.md §1](transition.md#1-arguments).
-4. The levels and the adjusted metadata of both sides are computed
-   ([§7](#7-level-analysis),
-   [transition.md §2](transition.md#2-metadata-adjustments)).
+4. The levels of both sides are computed ([§7](#7-level-analysis)). Each
+   side's metadata is handed as its track carried it
+   ([transition.md §2](transition.md#2-metadata)).
 5. The next track becomes the current track: the current part is what the
    next part held past `S`, its end found or not as it was; the per-track
    state of the ending track is dropped.
@@ -308,10 +308,8 @@ data. `cross` adds none, except by the announcement rule below.
 
 **A track's metadata** is the union, key by key, of every metadata `cross`
 buffered of that track since its first sample, the latest value winning. It
-starts empty with each track. It is what the transition function receives,
-after adjustment of a copy
-([transition.md §2](transition.md#2-metadata-adjustments)); the adjusted
-copy is used for nothing else.
+starts empty with each track. It is what the transition function receives
+([transition.md §2](transition.md#2-metadata)).
 
 Rationale: a metadata inserted in the middle of a track, a title update for
 instance, does not erase the fade keys the track opened with.

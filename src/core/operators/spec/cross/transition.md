@@ -13,7 +13,7 @@ fields:
 | ---------- | ---------------------------------------------------- | ----------------------------------------------------- |
 | `source`   | The ending source: the last `X` of the ending track. | The starting source: the first `S` of the next track. |
 | `db_level` | The ending level, in dB.                             | The starting level, in dB.                            |
-| `metadata` | The ending track's metadata, adjusted.               | The next track's metadata, adjusted.                  |
+| `metadata` | The ending track's metadata.                         | The next track's metadata.                            |
 
 `X`, `S` and the levels are [cross.md §6](cross.md#6-crossing) and
 [§7](cross.md#7-level-analysis); a track's metadata is
@@ -33,56 +33,20 @@ fields:
   serves a request. It is never called without a next track
   ([cross.md §5](cross.md#5-the-end-of-a-track)).
 
-## 2. Metadata adjustments
+## 2. Metadata
 
-Applied to the copies handed to the function, and to nothing else. They
-re-express what each track asks, by metadata, over the window `cross`
-actually holds. Values are written as decimal floats.
+Each side's `metadata` is the track's metadata as the track carried it
+([cross.md §9](cross.md#9-metadata)): `cross` changes none of its keys and
+adds none. A side with no metadata gets an empty one.
 
-**Ending side**, for a window `w` = `X` in seconds. Only when
-`liq_fade_out` is present:
+Where each fade sits in the crossing is not the operator's business. It is
+computed once, by the plan of
+[script-layer.md §2](script-layer.md#2-the-plan-of-a-crossing), from this
+metadata and from the exact lengths the two sources report.
 
-- not a float: logged, nothing else;
-- `liq_fade_out < w`: `liq_fade_out_delay` ← `w − liq_fade_out`;
-- `w < liq_fade_out`: `liq_fade_out` ← `w`, `liq_fade_out_delay` ← `0`;
-- then, when `liq_fade_out_start_next` is a float: it becomes
-  `max(0, start_next + w − fade_out − delay)`, with `fade_out` and `delay`
-  as they were before the adjustment, `delay` counting as zero when missing.
-
-Rationale: the fade has to reach silence on the last sample of the ending
-source. `liq_fade_out_start_next` is relative to the start of a window of
-`delay + fade_out` that ends where the track ends; when the window becomes
-`w`, the value moves so that it names the same place in the track.
-
-**Starting side**, for a window `w` = `S` in seconds. Only when
-`liq_fade_in` is present:
-
-- not a float: logged;
-- `w < liq_fade_in`: `liq_fade_in` ← `w`.
-
-The starting side also sets how much is buffered: the fade-in window of
-[cross.md §4](cross.md#4-reading-the-child). The next track's fade-in is
-buffered in full, whatever the ending track's duration.
-
-Each change SHOULD be logged with the amount, which is never negative.
-
-**Examples**, by the rules above.
-
-Ending track with `liq_fade_out = "3."`, `liq_fade_out_start_next = "1."`;
-next track with `liq_fade_in = "7."`, `liq_fade_in_delay = "1."`; `E` = 5 s.
-Then `W` = 8 s, `X` = 5 s, `S` = 8 s:
-
-```
-ending:   liq_fade_out = "3."  liq_fade_out_delay = "2."  liq_fade_out_start_next = "3."
-starting: liq_fade_in = "7."   liq_fade_in_delay = "1."
-```
-
-Ending track with `liq_fade_out = "3."`, `liq_fade_out_delay = "1."`,
-`liq_fade_out_start_next = "2.5"`; `X` = 2 s:
-
-```
-ending:   liq_fade_out = "2."  liq_fade_out_delay = "0."  liq_fade_out_start_next = "0.5"
-```
+The operator reads two of these keys for itself, and only to know how much
+of the next track to buffer: the fade-in window of
+[cross.md §4](cross.md#4-reading-the-child).
 
 ## 3. The result
 
@@ -97,6 +61,9 @@ ending:   liq_fade_out = "2."  liq_fade_out_delay = "0."  liq_fade_out_start_nex
   ([cross.md §12](cross.md#12-other-properties)).
 - A result that delivers nothing at once is replaced
   ([cross.md §6](cross.md#6-crossing), step 7).
+- A function that raises a script error is treated the same way: the error
+  is logged, what the function registered is released, and the crossing
+  plays its two sources in order. The stream does not stop for it.
 
 ## 4. End of the transition
 

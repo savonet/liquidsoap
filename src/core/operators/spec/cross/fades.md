@@ -1,10 +1,12 @@
 # Fades in a crossing: a proposal
 
-**Status: a recommendation, not specification.** Nothing here binds until
-the maintainer confirms it; the normative files describe the layering as it
-is. It is written from the documented interface only: `fade.in` and
-`fade.out` are outside what was extracted, so what they do internally is
-not known to this text.
+**Status: adopted by the maintainer** ([brief.md §6](brief.md#6-rulings)).
+The normative text is
+[script-layer.md §2 and §3](script-layer.md#2-the-plan-of-a-crossing); this
+file keeps the reasons. It was written from the documented interface only.
+What was built: the plan and its application. `fade.in` and `fade.out`
+themselves are unchanged and keep reading their track's keys when used on
+their own; a crossing no longer goes through them.
 
 Goals, set by the maintainer: easy for a plain overlap of two tracks,
 advanced use possible, a design as simple and clear as possible.
@@ -14,7 +16,7 @@ advanced use possible, a design as simple and clear as possible.
 One rule, where each fade sits in a crossing, is owned by three places:
 
 - the operator rewrites three keys in the metadata it hands over
-  ([transition.md §2](transition.md#2-metadata-adjustments));
+  ([script-layer.md §2](script-layer.md#2-the-plan-of-a-crossing));
 - `cross.simple` derives a fade-in delay from both metadata and both
   lengths ([script-layer.md §2](script-layer.md#2-crosssimple));
 - `fade.in` and `fade.out` are given "initial metadata" and persisting
@@ -39,7 +41,7 @@ cross.plan(~fade_in=3., ~fade_out=3., ending, starting) =
 ```
 
 It is the only reader of the `liq_fade_*` keys in a crossing. It holds the
-arithmetic of [transition.md §2](transition.md#2-metadata-adjustments) and
+arithmetic of [script-layer.md §2](script-layer.md#2-the-plan-of-a-crossing) and
 the delay of [script-layer.md §2](script-layer.md#2-crosssimple), computed
 from the keys and from the exact lengths of the two sources, which they
 report. The keys keep their names and meanings: what autocue and partners
@@ -80,7 +82,7 @@ end, s)
 
 ## 3. What it changes in this specification, if confirmed
 
-- [transition.md §2](transition.md#2-metadata-adjustments) leaves the
+- [script-layer.md §2](script-layer.md#2-the-plan-of-a-crossing) leaves the
   operator: the `metadata` fields are handed as the tracks carried them.
   The same arithmetic is specified once, for the plan.
 - The operator keeps one reading of the keys: the fade-in window, to know

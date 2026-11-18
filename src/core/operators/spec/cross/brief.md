@@ -150,3 +150,18 @@ Given by the maintainer for the normative pass.
   what comes. With nothing by the end of the track, no transition.
 - **`fade.in` and `fade.out`** may be redesigned: easy for a plain overlap,
   open to advanced use, as simple as possible. See [fades.md](fades.md).
+
+Given by the maintainer before the rebuild, on the points the normative pass
+left open.
+
+- **A level over an empty side is minus infinity.**
+- **A track's metadata is the union, key by key,** of what was buffered of
+  it. Nothing `cross` computes for one crossing is carried to the next.
+- **`liq_cross_replayed_metadata` is dropped.** `cross` announces the next
+  track itself, told by passage.
+- **A transition that states a track end and then has nothing more,**
+  without declaring exhaustion, puts a mark where it gives way.
+- **The plan of [fades.md](fades.md) is adopted.** One script function,
+  `cross.plan`, reads the fade keys and places both fades; the operator
+  hands each track's metadata as the track carried it
+  ([script-layer.md §2](script-layer.md#2-the-plan-of-a-crossing)).

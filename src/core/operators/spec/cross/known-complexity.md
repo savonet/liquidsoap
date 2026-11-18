@@ -91,7 +91,7 @@ levels over time, not frames.
 **Count / traces.** 8. #1351; #3688, #3716; #3704; #4492 reverted by #4591
 (#4563); #4605; #5562/#5563; #5581/#5587; #5589.
 
-**Rule.** [transition.md §2](transition.md#2-metadata-adjustments), over the overlap and the starting source of [cross.md §6](cross.md#6-crossing); the fade-in window is buffered in full ([cross.md §4](cross.md#4-reading-the-child)). Check: [conformance.md §5](conformance.md#5-the-transitions-arguments).
+**Rule.** [script-layer.md §2](script-layer.md#2-the-plan-of-a-crossing), over the overlap and the starting source of [cross.md §6](cross.md#6-crossing); the fade-in window is buffered in full ([cross.md §4](cross.md#4-reading-the-child)). Check: [conformance.md §5](conformance.md#5-the-transitions-arguments).
 
 ## 3. Being ready across the handovers
 

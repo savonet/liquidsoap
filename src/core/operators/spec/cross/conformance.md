@@ -113,15 +113,16 @@ nothing about what is heard.
   track.
 - **K2.** For ending fades shorter than, equal to and longer than the
   window, with and without a start-next offset, and starting fades longer
-  than the ending one. Binding: the adjusted values of
-  [transition.md §2](transition.md#2-metadata-adjustments); the remaining
+  than the ending one. Binding: the numbers of the plan
+  ([script-layer.md §2](script-layer.md#2-the-plan-of-a-crossing)); the
+  metadata handed to the function is what the tracks carried; the remaining
   time of the ending source is the overlap; that of the starting source
   covers the whole fade-in; through `crossfade`, the ending fade reaches
   silence on the last sample of the ending source and the next track
   becomes audible at the offset asked, compared by level over time.
 - A metadata inserted in the middle of the ending track does not remove the
   fade keys of its first sample from the ending metadata.
-- The adjusted values do not appear in the stream `cross` delivers.
+- The stream `cross` delivers carries the fade keys as the child gave them.
 - Levels: a tone of known amplitude gives its level within 0.1 dB on each
   side; an empty side gives minus infinity; the values are the same with
   two frame sizes.
@@ -140,6 +141,8 @@ nothing about what is heard.
   available.
 - A transition source that stops being ready without declaring exhaustion
   is passed over when the track can go on.
+- A transition function that raises a script error. Binding: the output
+  goes on, both tracks are heard in full, the next crossing is unaffected.
 - **S.** A transition that never ends plays on; the child is read no
   further than one cross duration meanwhile. Binding: the child's read
   position.

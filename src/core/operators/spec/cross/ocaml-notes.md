@@ -9,48 +9,36 @@ for the seam.
 | Spec                               | Code                                                                                         |
 | ---------------------------------- | -------------------------------------------------------------------------------------------- |
 | [cross.md](cross.md)               | `src/core/operators/cross.ml`, class `cross`                                                 |
-| Buffer source, fed or not          | same file, class `consumer` (`?fed`)                                                         |
-| Phase                              | `status`: `` `Idle ``, `` `Before ``, `` `After ``, each with an activation                  |
-| Stores, levels, kept metadata      | `gen_before`, `gen_after`, `rms_*`, `mem_before`, `before_metadata`, `after_metadata`        |
-| Resolve, reset, override           | `set_main_duration`, `reset_duration`, `process_override_metadata`                           |
-| `take`                             | `child_get ~is_first`, over `split_frame`                                                    |
-| Probe                              | `get_source`, called from the seam's `choose_next_source`                                    |
-| Start buffering, top up            | `prepare_before`, `buffer_before`                                                            |
-| The ending track is over           | `analyze_after`                                                                              |
-| Build                              | `create_after`                                                                               |
-| Designate, release                 | `set_status`, `prepare_source`, `release_transition`                                         |
-| Entry                              | `next_entry`: `` `Track `` in `After`, `` `As_is `` otherwise                                |
-| Abort                              | `abort_track`, `pending_abort_track`, hook on `on_before_streaming_cycle`                    |
-| [child-clock.md](child-clock.md)   | `src/core/operators/child_support.ml`: `base`, `child_output`, `child_get_frame`             |
-| Fallback announcement              | `src/core/operators/replay_metadata.ml`                                                      |
-| Sequences of the compound          | `src/core/operators/sequence.ml`, with `~new_track_on_source_switch:false`                   |
+| Ending and starting sources        | same file, class `consumer`, built by `finite_source`                                        |
+| Phase                              | `phase`: `` `Idle ``, `` `Track ``, `` `Transition `` with its source and activation         |
+| Buffer                             | `tracks`: one `track` per track of the child, with its data, duration, metadata, `recent`    |
+| Duration of a track                | `resolve_duration`, `cross_duration`, `persisted_duration`                                   |
+| Reading the child, top up          | `take_intake`, `buffer_track_data`, `wants_more`, `top_up`                                   |
+| Levels                             | `level`, `remember`, `ending_level`, `starting_level`                                        |
+| Crossing                           | `commit_crossing`                                                                            |
+| Delivery                           | `deliver`, `deliver_track`, `deliver_transition`, `enter`, `frame_end`                       |
+| Announcement by passage            | `announce`, the hidden key `passage_key`                                                     |
+| End of a transition                | `leave_transition`, `release_transition`                                                     |
+| Readiness                          | `can_generate_frame`, `track_can_deliver`                                                    |
+| Abort                              | `abort_track`, carried out by the base class after the cycle                                 |
+| [child-clock.md](child-clock.md)   | `src/core/operators/child_support.ml`: `base`, `child_output` (`set_on_track_end`)           |
+| Replacement of an empty transition | `src/core/operators/sequence.ml`                                                             |
 | Callback collection                | `Lang_source.collect_callback_releases`, an effect keyed on object ids                       |
 | [script-layer.md](script-layer.md) | `src/libs/fades.liq`; plots in `src/libs/extra/fades.liq`; autocue in `src/libs/autocue.liq` |
 
 ## Specific to this implementation
 
-- **Everything hangs off readiness.** `get_source` runs inside the
-  per-cycle readiness value, so the probe's work happens once per cycle.
-  `enter_chosen_source` is the seam's default: it returns what the probe
-  found.
-- **Three entries.** The seam here knows `` `Track ``, `` `Continue `` and
-  `` `As_is ``. The specification of the seam only has the first two.
-- **A mark at the end of a frame** is how a source states `track end`.
-  Appended to a store it becomes a mark on the first sample of what
-  follows.
+- **`cross` does not use the seam.** It reads one child through the child
+  clock and one transition source in its own clock, and assembles its
+  frames itself.
 - **A source built at run time is in its own clock** until unified:
-  `prepare_source` unifies before waking.
-- **The child is woken twice**: by the child output and by `cross`
-  directly.
-- **The cross class has no declared children**: the generic rules for
-  exhaustion and for a segment's end see none.
-- **`cross` caches like any source**: what its reader did not use of a
-  frame is kept by `cross`, though the seam's specification says a user
-  holds no data.
+  `wake` unifies before waking.
+- **What the reader did not use of a frame** is kept by the base class;
+  an abort drops it with `discard_held`.
 - **Floats** are parsed with `float_of_string` and printed with
   `string_of_float`.
-- **The level** uses the sum of squares over all channels of a frame,
-  divided by the sample count and the channel count.
+- **The level** uses the sum of squares over all channels, divided by the
+  sample count and the channel count.
 
 ## Things that bit while reading
 
