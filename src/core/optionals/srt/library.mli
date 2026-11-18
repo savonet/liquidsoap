@@ -45,10 +45,6 @@ val close_quietly : Srt.socket -> unit
 (** Steps 1–5 of spec/connection.md §3. *)
 val create_socket : payload_size:int -> messageapi:bool -> unit -> Srt.socket
 
-(** One sync source per stream name, for the life of the process: an identity
-    that changed between two ticks would look like a second sync source. *)
-val sync_source : string -> Clock.Sync_source.t
-
 (** Runs the function on a thread of its own, placed by the scheduler, so that
     blocking libsrt calls hold no worker of its pool. Cleanup waits for the
     thread to return, as cleaning libsrt up under a call in flight corrupts the

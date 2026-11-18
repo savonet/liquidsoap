@@ -149,13 +149,29 @@ class input ~params ~read_timeout ~max ~self_sync ~dump ~content_type ~autostart
                  ~buffer:self#buffer ~on_data reader));
       reader
 
+    (* The input is the pacing entity: two inputs pacing one clock are two
+       pacers, whatever stream they receive. One identity for the life of the
+       operator, across reconnections. *)
+    val mutable paced_sync_source = None
+
+    method private paced_sync_source reader =
+      match paced_sync_source with
+        | Some sync_source -> sync_source
+        | None ->
+            let sync_source =
+              Clock.Sync_source.make
+                ~name:(stream_name ~params reader)
+                `Self_paced
+            in
+            paced_sync_source <- Some sync_source;
+            sync_source
+
     method private peer_live reader =
       if self_sync && paces reader.handle.socket then (
         reader.paced <- true;
         (* The clock leaves the scheduler's pool for a thread on this sync
            source, before any tick waits for data. *)
-        self#set_sync_source
-          (Some (Library.sync_source (stream_name ~params reader)));
+        self#set_sync_source (Some (self#paced_sync_source reader));
         Atomic.set pacing true)
 
     method private peer_ended reader =

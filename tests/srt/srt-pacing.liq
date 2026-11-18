@@ -1,6 +1,6 @@
 # A connected time-controlled input paces its clock with the stream as the
-# sync source: two inputs of one stream share it, two different streams in one
-# clock are a conflict (spec/input.md §7).
+# sync source. Each input is a pacer of its own: two inputs in one clock are a
+# conflict, whether they receive one stream or two (spec/input.md §7).
 %include "../test.liq"
 %include "helpers.inc"
 
@@ -8,8 +8,8 @@ def run_script(~name, ~seconds, body) =
   file_name = "pacing-#{name}.liq"
   file.write(
     data="log.level := 4\n#{body}\nthread.run(delay=#{seconds}, \
-     shutdown)\nthread.run(every=0.2, {if a.is_ready() and b.is_ready() then \
-     thread.run(delay=2., shutdown) end})\n",
+     shutdown)\nthread.run(every=0.2, {if a.is_ready() and (b ?? a).is_ready() \
+     then thread.run(delay=2., shutdown) end})\n",
     file_name
   )
   r =
@@ -33,26 +33,17 @@ end
 def run() =
   let (code, log) =
     run_script(
-      name="same",
+      name="single",
       seconds=30.,
-      senders ^ caller("a", 19560) ^ caller("b", 19560) ^
-        "output.dummy(fallible=true, add([a, b]))"
+      senders ^ caller("a", 19560) ^
+        "b = null\n" ^
+        "output.dummy(fallible=true, a)"
     )
   if
     code != 0
   then
     test.fail(
-      "one stream twice: exit #{code}"
-    )
-  end
-  if
-    string.contains(
-      substring="multiple synchronization sources",
-      log
-    )
-  then
-    test.fail(
-      "two inputs of one stream conflict"
+      "one input: exit #{code}"
     )
   end
   if
@@ -65,23 +56,27 @@ def run() =
       "the clock is not paced by the stream"
     )
   end
-  let (_, log) =
-    run_script(
-      name="different",
-      seconds=30.,
-      senders ^ caller("a", 19560) ^ caller("b", 19562) ^
-        "output.dummy(fallible=true, add([a, b]))"
-    )
-  if
-    not string.contains(
-      substring="multiple synchronization sources",
-      log
-    )
-  then
-    test.fail(
-      "two different streams in one clock do not conflict"
-    )
+  def conflicts(~name, ~port) =
+    let (_, log) =
+      run_script(
+        name=name,
+        seconds=30.,
+        senders ^ caller("a", 19560) ^ caller("b", port) ^
+          "output.dummy(fallible=true, add([a, b]))"
+      )
+    if
+      not string.contains(
+        substring="multiple synchronization sources",
+        log
+      )
+    then
+      test.fail(
+        "two inputs in one clock do not conflict (#{name})"
+      )
+    end
   end
+  conflicts(name="same", port=19560)
+  conflicts(name="different", port=19562)
   test.pass()
 end
 
