@@ -71,7 +71,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   match it against a literal constructor. For every reader of a native
   object, set the value through FFmpeg and read it through the binding.
 - **Count** — 3 fixes. **Sources** — liq:`531973cbc`, liq:`58e3fb3de`; #114.
-- **Rule:** [binding-contract.md](binding-contract.md) §2.3 B2; [build.md](build.md) §3.6 G11; [tests.md](tests.md) 1.3, 2.4.
+- **Rule:** [binding-contract.md](binding-contract.md) §2.3 B2; [generic build.md](../../spec/build.md) §3.2 G11; [tests.md](tests.md) 1.3, 2.4.
 
 ### Native memory the collector cannot see
 
@@ -108,7 +108,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   roots, or frees memory only.
 - **Count** — 6 fixes, 1 revert. **Sources** — `2181f29`, `c5613c4`,
   `c8ced45`, `20929df`, `4bbbd57`, `9c80044`, `9e671f8`.
-- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L7 and L8; [avformat.md](avformat.md) §2.1, Release. The two kinds of finaliser are described in [language-notes/ocaml-c-interface.md](language-notes/ocaml-c-interface.md).
+- **Rule:** [binding-contract.md](binding-contract.md) §2.2 L7 and L8; [avformat.md](avformat.md) §2.1, Release. The two kinds of finaliser are described in [language-notes/ocaml-c-interface.md](../../spec/language-notes/ocaml-c-interface.md).
 
 ### Dependent handles that outlive their parent
 
@@ -782,7 +782,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   message naming the header.
 - **Count** — 5 fixes, 1 report. **Sources** — `d9b80c4`, `0b50a84`,
   `0dacc4c`, `b964722`, `c2465e4`; #77.
-- **Rule:** [build.md](build.md) §3.2 G3 and G7; [tests.md](tests.md) 9.1, 9.2.
+- **Rule:** [generic build.md](../../spec/build.md) §3.1 G3 and G7; [tests.md](tests.md) 9.1, 9.2.
 
 ### Enum members behind preprocessor conditionals
 
@@ -865,7 +865,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   bytecode-only switch.
 - **Count** — 4 fixes, 1 revert. **Sources** — `fdff66f`, `08543b3`,
   `c2465e4`, `422de27`; #21, #27.
-- **Rule:** [cross-compilation.md](cross-compilation.md) §1.2 X1–X3 and X15, §2.3 X8; [tests.md](tests.md) 9.7.
+- **Rule:** [generic cross-compilation.md](../../spec/cross-compilation.md) §1.2 X1–X3 and X15, §2.3 X8; [tests.md](tests.md) 9.7.
 
 ### Link flags from pkg-config on Windows
 
@@ -878,7 +878,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Cross-build every library against a static FFmpeg and
   link an executable.
 - **Count** — 1 fix. **Sources** — `39adbd5`.
-- **Rule:** [build.md](build.md) §2.4 D7; [cross-compilation.md](cross-compilation.md) X10.
+- **Rule:** [generic build.md](../../spec/build.md) §2.4 D7; [generic cross-compilation.md](../../spec/cross-compilation.md) X10.
 
 ### A library that silently drops out of the build
 
@@ -896,7 +896,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   rebuilding enables the libraries.
 - **Count** — 3 fixes. **Sources** — `9f41de7`, liq:`2465afdab`,
   liq:`a3e5f35a5`.
-- **Rule:** [build.md](build.md) §2.1 D5, §2.5 D9–D11, §5 T2; [tests.md](tests.md) 9.5, 9.6.
+- **Rule:** [generic build.md](../../spec/build.md) §2.1 D5, §2.5 D9–D11; [build.md](build.md) §5 T2; [generic tests.md](../../spec/tests.md) 4.1, 4.2.
 
 ### Warning flags
 
@@ -911,7 +911,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Build with the full warning set against the oldest and
   the newest supported FFmpeg.
 - **Count** — 2 fixes. **Sources** — liq:`afa508cf9`, liq:`3a3d1d66c`.
-- **Rule:** [build.md](build.md) §2.7; [tests.md](tests.md) §8.1.
+- **Rule:** [generic build.md](../../spec/build.md) §2.7; [generic tests.md](../../spec/tests.md) §1.
 
 ### C library functions the Windows toolchain lacks
 
@@ -923,7 +923,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — The stubs include only ISO C, the OCaml runtime, FFmpeg
   and POSIX threads. Cross-build to verify.
 - **Count** — 2 fixes. **Sources** — `4046247`, `f5371d7`.
-- **Rule:** [cross-compilation.md](cross-compilation.md) §2.5 X12 and X13; [tests.md](tests.md) 9.8.
+- **Rule:** [generic cross-compilation.md](../../spec/cross-compilation.md) §2.5 X12 and X13; [generic tests.md](../../spec/tests.md) 4.3.
 
 ### A library whose only job is registration
 
@@ -975,7 +975,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **Count** — 9 fixes, 4 reports. **Sources** — `e99156f`, `97c1fc4`,
   `7d5b396`, `1e5cbc3`, `8703012`, `dedf071`, `ce9b97f`, `8e648df`,
   `27bb428`; #43, #54, #77, #78.
-- **Rule:** [compatibility.md](compatibility.md) §2 V5 and V7.
+- **Rule:** [generic compatibility.md](../../spec/compatibility.md) §2 V5 and V7.
 
 ### An enum member is not a macro
 
@@ -988,7 +988,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Every feature test compares library versions, or tests a
   name checked to be a macro in the headers.
 - **Count** — 2 fixes. **Sources** — `0eeb255`, `ef67e71`.
-- **Rule:** [compatibility.md](compatibility.md) §2 V6.
+- **Rule:** [generic compatibility.md](../../spec/compatibility.md) §2 V6.
 
 ### Declared minimum versions the code does not meet
 
@@ -1004,7 +1004,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   passes detection.
 - **Count** — 4 changes, 4 reports. **Sources** — `93655ca`, `ae7573f`,
   liq:`58e3fb3de`, liq:`3a3d1d66c`; #56, #63, #69, #70.
-- **Rule:** [compatibility.md](compatibility.md) §1.1 V2 and V3; [build.md](build.md) §2.3 D6.
+- **Rule:** [compatibility.md](compatibility.md) §1.1 V1; [generic compatibility.md](../../spec/compatibility.md) §1 V3; [generic build.md](../../spec/build.md) §2.3 D6.
 
 ## Tests
 
@@ -1020,7 +1020,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
 - **How to tell** — Each test fails when it made no check. Break each
   behaviour on purpose once and see the test go red.
 - **Count** — 1 fix, 3 defects. **Sources** — liq:`2ef0317f5`; #114.
-- **Rule:** [tests.md](tests.md) §0 and §10 H1, H2, H4.
+- **Rule:** [tests.md](tests.md) §0; [generic tests.md](../../spec/tests.md) §2 H1, H2, H4.
 
 ### A regression fixture that does not trigger the condition
 
@@ -1034,7 +1034,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   recorded.
 - **Count** — 3 tests. **Sources** — liq:`797883677`, liq:`9cac50e42`,
   liq:`d9d649c45`.
-- **Rule:** [tests.md](tests.md) §11 and §10 H4.
+- **Rule:** [tests.md](tests.md) §11; [generic tests.md](../../spec/tests.md) §2 H4.
 
 ### Steps that depend on the FFmpeg build or the machine
 
@@ -1047,7 +1047,7 @@ in liquidsoap's tracker, `liq:` prefixes a commit of the embedded tree.
   reports skipped steps as skipped.
 - **Count** — 4 changes. **Sources** — `67656de`, `7ac2d7c`, `63b6de5`,
   `0c49fde`.
-- **Rule:** [tests.md](tests.md) §8.2 and §10 H3.
+- **Rule:** [tests.md](tests.md) §8.2; [generic tests.md](../../spec/tests.md) §2 H3.
 
 ## Reconciliation
 

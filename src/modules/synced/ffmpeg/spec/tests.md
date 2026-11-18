@@ -1,21 +1,26 @@
 # Conformance
 
-What a test suite for a conforming implementation must assert, and what it
-must not depend on.
+What a test suite for a conforming implementation of the FFmpeg bindings
+must assert, and what it must not depend on. It follows
+[testing.md](../../../../spec/testing.md) and the generic
+[tests.md](../../spec/tests.md), which own the harness, the version runs, the run
+configurations and the build checks every binding shares.
 
 ## 0. Principles
 
 - **A requirement is an assertion.** Each entry below names a value to
   compare or an error to expect. A step that only runs a call and passes when
   nothing crashes satisfies no requirement.
-- **Binding and incidental.** For each requirement the binding part is
-  stated. Everything else is incidental and a suite MUST NOT assert it: the
-  wording of messages (except the three texts of
-  [binding-contract.md](binding-contract.md) §5.3), log content, the order of
-  unordered results, file names, timing, the representation of handles.
-- **Misuse is tested like use.** For every operation that exists once per
-  media kind, the same misuse cases run on every kind (§12, "One operation
-  written once per media kind").
+- **Binding and incidental**
+  ([testing.md §2](../../../../spec/testing.md#2-binding-and-incidental)).
+  For each requirement the binding part is stated. Besides what testing.md
+  names incidental, a suite MUST NOT assert the order of unordered results,
+  file names or the representation of handles. The three texts of
+  [binding-contract.md](binding-contract.md) §5.3 are binding.
+- **Misuse is tested like use**
+  ([testing.md §3](../../../../spec/testing.md#3-fixtures-and-misuse)). For
+  every operation that exists once per media kind, the same misuse cases run
+  on every kind (§12, "One operation written once per media kind").
 - **Every known pitfall is a check.** §12.
 - **A check must be able to fail.** §10.
 
@@ -145,10 +150,9 @@ requirement verifies.
 
 ### 8.1 Versions
 
-- The suite MUST run against the oldest and the newest supported FFmpeg
-  release ([compatibility.md](compatibility.md) §1), with warnings as errors.
-- It MUST run on the minimum and on the newest released OCaml version.
-- It SHOULD run on Linux and macOS.
+The generic [tests.md §1](../../spec/tests.md#1-versions), with the FFmpeg floor and ceiling
+of [compatibility.md](compatibility.md) §1 and the OCaml minimum of its §5.
+The suite SHOULD run on Linux and macOS.
 
 ### 8.2 What the FFmpeg build must contain
 
@@ -165,49 +169,29 @@ an array option; a protocol that can block.
 
 ## 9. Build and cross-build
 
-| #   | Requirement                                                                                                                                                                      | Rule                                            |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| 9.1 | With two FFmpeg versions installed and pkg-config pointed at one, every generated table matches that one's headers.                                                              | [build.md](build.md) §3.2                       |
-| 9.2 | With the headers removed, or the preprocessor replaced by a failing program, the build fails and names the header.                                                               | build §3.2 G7                                   |
-| 9.3 | Every member of each C enumeration the installed headers declare, markers excepted, converts to OCaml and back. Checked at build time for every table.                           | build §3.3; contract E2                         |
-| 9.4 | Every hand-written constant is checked against the header at build time.                                                                                                         | contract E1                                     |
-| 9.5 | With FFmpeg present and one library's stubs broken, the build fails. With FFmpeg absent, the build succeeds, reports every library unavailable, and the install target fails.    | build §2.5, §2.6                                |
-| 9.6 | Installing FFmpeg and rebuilding, with no clean, enables the libraries. Upgrading it in place regenerates the tables.                                                            | build §2.1 D5                                   |
-| 9.7 | A cross build for Windows from a machine whose own FFmpeg is another version: tables match the target's headers; every library links into an executable against a static FFmpeg. | [cross-compilation.md](cross-compilation.md) §2 |
-| 9.8 | The stubs include nothing beyond what X12 allows.                                                                                                                                | cross-compilation X12                           |
-| 9.9 | Both invocations of cross-compilation §3 succeed unchanged.                                                                                                                      | cross-compilation §3                            |
+| #   | Requirement                                                                                                                                                                      | Rule                                                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| 9.1 | With two FFmpeg versions installed and pkg-config pointed at one, every generated table matches that one's headers.                                                              | [build.md](build.md) §3.2                                          |
+| 9.2 | With the headers removed, or the preprocessor replaced by a failing program, the build fails and names the header.                                                               | generic build G7                                                   |
+| 9.3 | Every member of each C enumeration the installed headers declare, markers excepted, converts to OCaml and back. Checked at build time for every table.                           | build §3.3; contract E2                                            |
+| 9.4 | Every hand-written constant is checked against the header at build time.                                                                                                         | contract E1                                                        |
+| 9.5 | The generic [tests.md](../../spec/tests.md) check 4.1, for FFmpeg and the seven libraries.                                                                                       | generic build D9–D12                                               |
+| 9.6 | The generic check 4.2: installing or upgrading FFmpeg in place enables the libraries and regenerates the tables.                                                                 | generic build D5                                                   |
+| 9.7 | A cross build for Windows from a machine whose own FFmpeg is another version: tables match the target's headers; every library links into an executable against a static FFmpeg. | generic [cross-compilation.md](../../spec/cross-compilation.md) §2 |
+| 9.8 | The generic check 4.3.                                                                                                                                                           | generic cross-compilation X12                                      |
+| 9.9 | The generic check 4.4, with the packages of [cross-compilation.md](cross-compilation.md).                                                                                        | generic cross-compilation §3                                       |
 
 ## 10. Harness
 
-- **H1. The suite asserts that it ran.** The suite counts the requirements it
-  checked and fails when the count is not the one expected for the
-  environment. A run that executed nothing, or less than intended, is a
-  failure. A build system that replays a cached result without executing the
-  steps does not count as a run.
-- **H2. A program asserts that it asserted.** A test program that made no
-  check fails.
-- **H3. Three outcomes.** A requirement is passed, failed or skipped. A skip
-  names its reason (a missing component, a missing device) and is counted and
-  printed. A skip is never reported as a pass, and the environment of §8
-  fixes which skips are allowed.
-- **H4. Seen to fail.** Each check of §12, and each regression check, is run
-  once against a deliberately broken build and seen to fail before its pass
-  counts. A sanitiser or leak detector is first shown to report a planted
-  defect.
-- **H5. Independence.** A failed requirement does not stop the others from
-  running or being reported. A requirement does not read a file another
-  requirement wrote.
-- **H6. Time limit.** Every step has a time limit; exceeding it is a failure.
-- **H7. A crash is a failure** that names the step: a death by signal is
-  reported as such.
-- **H8. Declared inputs.** The suite's result depends on the FFmpeg libraries
-  it loaded: changing them re-runs it.
+H1 to H8 are the generic [tests.md §2](../../spec/tests.md#2-harness). The environment of §8
+fixes which skips H3 allows.
+
 - **H9. The alias.** [build.md](build.md) §5.
 
 ## 11. Fixtures and doubles
 
 Each fixture records the property that makes it trigger the condition it is
-for. A convenient file that lacks the property passes for the wrong reason.
+for ([testing.md §3](../../../../spec/testing.md#3-fixtures-and-misuse)).
 
 | Fixture                               | Defining property                                                                                                     |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -239,19 +223,9 @@ suite: its "How to tell" paragraph is the check, by principle. The entry's
 "Rule" line names the rule it verifies. Where a requirement above already
 covers an entry, the entry names it.
 
-Three run configurations serve many entries and are part of the suite:
-
-- **Collection at every allocation.** Every operation that returns a compound
-  value or takes a closure runs under a runtime that collects and compacts at
-  each allocation, and its results are compared with a reference run
-  (contract B1). A small minor heap is not this check.
-- **Address and leak sanitisers.** The whole suite runs under both, with the
-  runtime's own lifetime allocations suppressed and nothing else (H4).
-- **Concurrent use.** For each handle with a guard, two threads, and two
-  domains, call its operations at once: every call returns or raises the
-  in-use error, and the sanitisers stay silent (contract M5, M6). An encoding
-  loop and a decoding loop run at the same speed, within measurement noise,
-  with the guards compiled out (contract M12).
+The three run configurations of the generic
+[tests.md §3](../../spec/tests.md#3-run-configurations) are part of the suite. The hot loops of
+the concurrent-use configuration are an encoding loop and a decoding loop.
 
 ## 13. Side data
 
