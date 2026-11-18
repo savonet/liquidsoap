@@ -10,7 +10,9 @@ def counted_true() =
   true
 end
 
-s = switch([(counted_true, sine())])
+# An endless tone is live by default: its selection would be reconsidered on
+# every cycle.
+s = switch([(counted_true, sine().{track_sensitive = true})])
 
 output.dummy(fallible=true, s)
 

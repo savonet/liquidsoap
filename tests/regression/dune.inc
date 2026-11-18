@@ -2142,6 +2142,28 @@
   (run %{run_test} infallible-shutdown liquidsoap infallible-shutdown.liq)))
 
 (rule
+ (alias test_infallible_stays_full)
+ (package liquidsoap)
+ (deps
+  infallible_stays_full.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   infallible_stays_full
+   liquidsoap
+   infallible_stays_full.liq)))
+
+(rule
  (alias test_init-error)
  (package liquidsoap)
  (deps
@@ -2356,6 +2378,24 @@
    request_pool_concurrent.liq)))
 
 (rule
+ (alias test_rotate_merge_rounds)
+ (package liquidsoap)
+ (deps
+  rotate_merge_rounds.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} rotate_merge_rounds liquidsoap rotate_merge_rounds.liq)))
+
+(rule
  (alias test_scheduler_legacy)
  (package liquidsoap)
  (deps
@@ -2426,6 +2466,28 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} seek_track_map liquidsoap seek_track_map.liq)))
+
+(rule
+ (alias test_sequence_merge_single_track)
+ (package liquidsoap)
+ (deps
+  sequence_merge_single_track.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   sequence_merge_single_track
+   liquidsoap
+   sequence_merge_single_track.liq)))
 
 (rule
  (alias test_server.insert_metadata)
@@ -3093,6 +3155,7 @@
   (alias test_ffmpeg_seek_preroll)
   (alias test_harbor_source_relay)
   (alias test_infallible-shutdown)
+  (alias test_infallible_stays_full)
   (alias test_init-error)
   (alias test_initial_request_queue)
   (alias test_input_rtmp)
@@ -3104,10 +3167,12 @@
   (alias test_playlist-id)
   (alias test_replaygain)
   (alias test_request_pool_concurrent)
+  (alias test_rotate_merge_rounds)
   (alias test_scheduler_legacy)
   (alias test_scheduler_parallel)
   (alias test_seek_cue_out)
   (alias test_seek_track_map)
+  (alias test_sequence_merge_single_track)
   (alias test_server.insert_metadata)
   (alias test_shoutcast-args)
   (alias test_smooth_add)

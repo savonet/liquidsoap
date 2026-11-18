@@ -871,6 +871,13 @@ let composition_setup_of_category = function
 *)
 let setup_composition ~category src =
   let tag_opt, descr_opt = composition_setup_of_category category in
+  let tag_opt =
+    (* A source that never ends a track is left like a live one: waiting for
+       its track boundary would hold on to it for ever. *)
+      match tag_opt with
+      | Some `File when src#endless -> Some `Live
+      | tag -> tag
+  in
   Option.iter src#set_composition tag_opt;
   match descr_opt with
     | None -> []

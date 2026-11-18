@@ -664,6 +664,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     method consumed n = consumed <- Int.max consumed n
 
+    (* Whether the source never ends a track on its own. A rule that waits for
+       a track boundary would never let go of it. *)
+    method endless = false
+
     (* Whether the source will never deliver again. Declared by the source,
        never deduced from its having nothing to deliver now. An operator is
        exhausted once everything it reads is. *)

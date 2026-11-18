@@ -87,13 +87,21 @@ class sequence ?(name = "sequence") ?(merge = false)
         | s :: _ -> s#effective_source
         | _ -> (self :> Source.source)
 
+    (* The track of the item being read is over. A merged sequence is one
+       track: aborting it also drops every item up to the last one, which is
+       then entered at its start. *)
     method abort_track =
       self#end_track;
-      if merge then (
-        match List.rev self#queue with
-          | [] -> assert false
-          | hd :: _ -> Atomic.set seq_sources [hd]);
-      match self#queue with hd :: _ -> hd#abort_track | _ -> ()
+      match self#queue with
+        | [] -> ()
+        | current :: rest ->
+            current#abort_track;
+            if merge && rest <> [] then (
+              let last = List.hd (List.rev rest) in
+              let dropped = List.filter (fun s -> s != last) self#queue in
+              self#leave_source;
+              Atomic.set seq_sources [last];
+              List.iter self#release_source dropped)
   end
 
 class merge_tracks source =

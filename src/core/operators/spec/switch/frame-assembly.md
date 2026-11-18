@@ -129,7 +129,9 @@ designation, is **entered** in one of two ways:
   loops inside a cycle.
 - A condition the seam cannot serve (a decided source that then delivers
   nothing, a source that answers differently from its probe) ends the frame
-  and is logged. It MUST NOT abort the process or raise.
+  and is logged. The seam itself does not raise; when the stream was
+  declared infallible, the output that gets the short frame fails the cycle
+  ([source-contract.md §11](source-contract.md#11-concurrency)).
 
 ## 8. Lifetime
 

@@ -1,10 +1,47 @@
 # OCaml notes (Part B)
 
-Notes on the implementation this was extracted from. Not normative. They describe
-the code as it was before the rebuild: where a note and the specification
-disagree, the specification is what to build.
+Notes on the implementation. Not normative: where a note and the
+specification disagree, the specification is what to build. The first
+section describes the rebuild; the rest describes the code it started from.
 
-## Where things are
+## The rebuild
+
+The rebuild kept the existing classes and cut them down. How it realises
+the contract:
+
+| Spec                                  | Code                                                                                            |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Cycles of a tick                      | `Clock.request_segment`, `Clock.after_segment`; `continue_segments` in `src/core/clock/life.ml` |
+| An output gathers a frame over cycles | `do_output` in `src/core/outputs/output.ml`                                                     |
+| Static cycle                          | `Source.Per_cycle`, released by `after_streaming_cycle`, which runs after each cycle            |
+| Reason a segment ended                | `source#segment_end`, computed by the private `frame_end`                                       |
+| Exhausted                             | `source#exhausted`                                                                              |
+| Seam                                  | `generate_from_multiple_sources` in `src/core/source/source.ml`                                 |
+| Decision, then commit                 | `choose_next_source ~boundary`, then `enter_chosen_source`                                      |
+| End statement and entry               | `next_entry`, asked when the track of the source being read ends                                |
+| A user moving on from a source        | `leave_source`, called before the user forgets the source                                       |
+| Switch decisions                      | `decide_mid_track`, `decide_at_boundary`, `handoff` in `src/core/operators/switch.ml`           |
+| Presented source                      | `insert_initial_track_mark`: `leave`, `track_ended`                                             |
+
+Where the code stops short of the specification:
+
+- **Probes answer readiness only.** No source tells `more` from
+  `new track`. A source that starts a track without having declared the end
+  of the previous one costs its reader one empty cycle
+  ([source-contract.md §2](source-contract.md#2-probes)). Outputs follow at
+  most `max_empty_segments` empty cycles in a row.
+- **`sequence`, `source.dynamic` and `cross` still commit when probed.** Only
+  `switch` separates the decision from the handoff.
+- **A request source takes its next request when probed**, not when read.
+  It no longer does so while producing.
+- **An operator over several sources declares `pause`, never `track end`**,
+  when one of them stopped: it cannot tell whose track is its own.
+- **`cross` builds its transition out of buffers that declare exhaustion**;
+  the rest of it is as before
+  ([cross-seam.md §4](cross-seam.md#4-open)).
+- **Aborts take effect at once**, not at the end of the cycle.
+
+## Where things were
 
 | Spec                                         | Code                                                                                   |
 | -------------------------------------------- | -------------------------------------------------------------------------------------- |

@@ -33,7 +33,8 @@ s =
     [
       ({use_boundary()}, at_boundary),
       ({use_preempted()}, preempted),
-      ({true}, blank(id="filler"))
+      # Endless silence is live by default and would cut into `at_boundary`.
+      ({true}, blank(id="filler").{track_sensitive = true})
     ]
   )
 

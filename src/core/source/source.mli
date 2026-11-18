@@ -374,6 +374,10 @@ object
   (** Manually mark amount of consumed data from the source. *)
   method consumed : int -> unit
 
+  (** Whether the source never ends a track on its own: an endless tone or
+      silence. Such a source composes as a live one. *)
+  method endless : bool
+
   (** Whether the source will never deliver again. Declared by the source, never
       deduced from its having nothing to deliver now. *)
   method exhausted : bool

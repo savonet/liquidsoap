@@ -95,8 +95,8 @@ cannot undo it.
 
 ## 2. Probes
 
-A **probe** asks a source what it could deliver beyond a position in its
-frame for this cycle. It answers one of:
+A **probe** asks a source what it could deliver in this cycle. It answers
+one of:
 
 | Answer      | Meaning                                 |
 | ----------- | --------------------------------------- |
@@ -108,13 +108,18 @@ frame for this cycle. It answers one of:
   the output can observe. Any number of probes in a cycle MUST leave the
   source as zero probes would. The one exception is stated in
   [dynamic.md §3](dynamic.md#3-designation).
-- The answer for one position MUST NOT change within a cycle.
+- The answer MUST NOT change within a cycle
+  ([§1](#1-streaming-cycle)).
 - A source that answered `more` or `new track` MUST deliver at least one
   sample to the next request at that position, of the kind it announced.
 - A source MUST answer `nothing` before its clock has started and while it is
   not awake.
-- A source is **ready** when a probe at the position it has delivered so far
-  does not answer `nothing`.
+- A source is **ready** when its probe does not answer `nothing`.
+
+A source that cannot tell `more` from `new track` before producing MAY
+answer `more` and then start a track. Its reader takes nothing of that
+segment, states the boundary with an empty segment ending `track end`, and
+reads the track in the next cycle.
 
 A reader therefore learns of every boundary before it takes data past it:
 from the reason of the previous segment, or from the probe.
@@ -229,6 +234,10 @@ that source's selection, counters or track state.
 
 - Script code can group writes in an atomic section. A reader running inside
   one never sees such a group part way through.
-- Nothing a script can write MUST be able to reach an assertion or end the
-  process from the streaming cycle. A condition the seam cannot serve ends the
-  frame and is logged ([frame-assembly.md §7](frame-assembly.md#7-bounds)).
+- A condition the seam cannot serve on a fallible stream ends the frame and
+  is logged ([frame-assembly.md §7](frame-assembly.md#7-bounds)).
+- **An infallible source that fails its contract is a failure, not a
+  glitch.** A source declared infallible that leaves an output's frame short
+  MUST fail the cycle, loudly, through the clock's source error rule: an
+  assertion at the output. Carrying on would let everything downstream run
+  on a broken promise.
