@@ -41,7 +41,9 @@ type state = [ `Built | `Started | `Failed of exn | `Stopped ]
 
 (* HLS mode (encoder.md §8). [key_due] are requested times whose image an
    encoded video stream has made a key frame and whose key packet is not yet
-   seen: [force] is ignored meanwhile. *)
+   seen: [force] is ignored meanwhile. [copy_written] is, for each copied
+   stream that is not all-key, the latest time of the packets it has written
+   (encoder.md §8.6). *)
 type hls = {
   split : Hls_split.t;
   mutable id3 : Encoder.hls_id3_mode;
@@ -51,6 +53,7 @@ type hls = {
   mutable media_written : bool;
   mutable key_requests : int list;
   mutable key_due : int list;
+  mutable copy_written : (string * int) list;
 }
 
 (* [header] is the current container's header (encoder.md §10): [`Pending
@@ -288,6 +291,10 @@ let on_packet t field ~key ~time =
         if key && List.mem field (encoded_video t) then (
           h.key_due <- List.filter (fun b -> b > time) h.key_due;
           h.key_requests <- List.filter (fun b -> b > time) h.key_requests);
+        h.copy_written <-
+          List.map
+            (fun (f, w) -> if f = field then (f, max w time) else (f, w))
+            h.copy_written;
         Hls_split.packet h.split ~flush:(hls_flush t) ~field ~key ~time
     | Some h, None -> h.media_written <- true
     | None, _ -> ()
@@ -319,6 +326,8 @@ let create_streams t frame =
             | field, `Copy track
               when Copy_encoder.video_size track <> None
                    && not (Copy_encoder.intra_only track) ->
+                if not (List.mem_assoc field h.copy_written) then
+                  h.copy_written <- (field, t.position) :: h.copy_written;
                 Hls_split.inter_coded h.split field
             | _ -> ())
           c.tracks)
@@ -596,6 +605,14 @@ let run_id3_queue h =
     h.id3_queue <- [];
     List.iter (fun f -> f ()) queue)
 
+(* encoder.md §8.6: how far the copied streams that are not all-key trail the
+   media time, at most the keyframe wait. *)
+let packet_lag t h =
+  let limit = Frame.main_of_seconds Settings.max_keyframe_wait#get in
+  List.fold_left
+    (fun lag (_, written) -> max lag (min limit (t.position - written)))
+    0 h.copy_written
+
 let hls_encode t h ~boundary ~force frame =
   Hls_split.request h.split boundary;
   if encoded_video t <> [] && not (List.mem boundary h.key_requests) then
@@ -733,6 +750,7 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
       media_written = false;
       key_requests = [];
       key_due = [];
+      copy_written = [];
     }
   in
   let t = make ~hls:h ~pos ~name Frame.Metadata.Export.empty format in
@@ -759,6 +777,7 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
     independent_segments = (fun () -> independent_segments t);
     free_split = (fun () -> Hls_split.all_key h.split);
     split_due = (fun () -> h.key_due <> [] || Hls_split.restart_pending h.split);
+    packet_lag = (fun () -> packet_lag t h);
     hls_bitrate = (fun () -> bitrate t);
     hls_video_size = (fun () -> video_size t);
   }

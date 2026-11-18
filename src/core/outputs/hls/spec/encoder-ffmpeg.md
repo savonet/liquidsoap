@@ -57,6 +57,9 @@ False otherwise. `split_due` is true while a key frame made for a request has
 not yet reached the muxer, or a restart is not yet returned: the cases in
 which the instance declines `force`
 ([encoder.md §8.4](../../../optionals/ffmpeg/spec/encoder.md#84-split_encode-frame)).
+`packet_lag` is the media time less the latest packet time written by a
+copied stream that is not all-key, the largest over such streams, at least 0
+and at most `max_keyframe_wait`; 0 without such a stream.
 
 ## 7. `insert_id3`
 

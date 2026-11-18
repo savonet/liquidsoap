@@ -189,6 +189,7 @@ type hls_encoder = {
   independent_segments : unit -> bool;
   free_split : unit -> bool;
   split_due : unit -> bool;
+  packet_lag : unit -> int;
   hls_bitrate : unit -> int option;
   hls_video_size : unit -> (int * int) option;
 }
@@ -268,6 +269,7 @@ let protect_hls e =
     independent_segments = (fun () -> p e.independent_segments);
     free_split = (fun () -> p e.free_split);
     split_due = (fun () -> p e.split_due);
+    packet_lag = (fun () -> p e.packet_lag);
     hls_bitrate = (fun () -> p e.hls_bitrate);
     hls_video_size = (fun () -> p e.hls_video_size);
   }

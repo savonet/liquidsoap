@@ -33,6 +33,7 @@ let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
     independent_segments = (fun () -> true);
     free_split = (fun () -> true);
     split_due = (fun () -> false);
+    packet_lag = (fun () -> 0);
     hls_bitrate = (fun () -> bitrate format);
     hls_video_size = (fun () -> None);
   }

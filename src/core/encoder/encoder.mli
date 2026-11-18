@@ -126,6 +126,7 @@ type hls_encoder = {
   independent_segments : unit -> bool;
   free_split : unit -> bool;
   split_due : unit -> bool;
+  packet_lag : unit -> int;
   hls_bitrate : unit -> int option;
   hls_video_size : unit -> (int * int) option;
 }

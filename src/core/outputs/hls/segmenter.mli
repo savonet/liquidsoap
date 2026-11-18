@@ -58,8 +58,10 @@ val request : 'a t -> int
 (** Applies the target-duration bound for a chunk of [length] ticks, opening the
     first segment if none is open. Returns [true] when the encoder must be asked
     to force a split; with [split_due] (a split point on its way from the
-    encoder) nothing is cut or forced. *)
-val bound : ?split_due:bool -> length:int -> 'a t -> bool
+    encoder) nothing is cut or forced. [lag] is how far the packets the encoder
+    has written trail the media time: the segment's length is measured that
+    much earlier. *)
+val bound : ?split_due:bool -> ?lag:int -> length:int -> 'a t -> bool
 
 val advance : 'a t -> int -> unit
 val add_bytes : 'a t -> Strings.t -> unit

@@ -977,7 +977,10 @@ class output p =
             (fun v ->
               let r = Option.get v.Variant.run in
               let split_due = r.properties <> None && r.encoder.split_due () in
-              let force = Segmenter.bound ~split_due ~length r.segmenter in
+              let lag =
+                if r.properties <> None then r.encoder.packet_lag () else 0
+              in
+              let force = Segmenter.bound ~split_due ~lag ~length r.segmenter in
               let boundary = Segmenter.request r.segmenter in
               if r.properties <> None then
                 r.encoder.split_encode ~boundary ~force chunk

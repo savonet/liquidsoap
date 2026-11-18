@@ -256,6 +256,44 @@ let () =
   check "without it the bound cuts"
     ((not (Segmenter.bound seg ~length:chunk)) && !closed = 1)
 
+(* §5: packets of a copied stream trail the media time by 0.9 s, key frames
+   every 2.002 s, 30 s segments. With the lag, every segment is 15 key-frame
+   intervals; measured on the media time, the bound cuts one interval early
+   and leaves a stub. *)
+let () =
+  let delay = 900 and step = 2002 and until = 200_000 in
+  let lagged lag =
+    let closed = ref [] in
+    let seg =
+      Segmenter.create
+        ~on_open:(fun ~start:_ -> ((), Strings.empty))
+        ~on_close:(fun (c : unit Segmenter.closed) ->
+          if c.publishable then closed := c.length :: !closed)
+        (config ~duration:30_000)
+    in
+    let keys = ref (every ~offset:100 ~step ~until) in
+    while Segmenter.media_time seg < until do
+      check "lagged: no force" (not (Segmenter.bound ~lag ~length:chunk seg));
+      Segmenter.advance seg chunk;
+      let rec emit () =
+        match !keys with
+          | k :: rest when k + delay < Segmenter.media_time seg ->
+              keys := rest;
+              Segmenter.add_bytes seg (Strings.of_string "x");
+              Segmenter.split seg ~time:k ~forced:false;
+              emit ()
+          | _ -> ()
+      in
+      emit ();
+      Segmenter.add_bytes seg (Strings.of_string "x")
+    done;
+    List.tl (List.rev !closed)
+  in
+  check "lagged packets: every later segment is 30.03 s"
+    (List.for_all (fun l -> l = 15 * step) (lagged delay));
+  check "lagged packets: without the lag, stubs of one interval"
+    (List.mem step (lagged 0))
+
 let () =
   check "T rounds 6.006 s to 6"
     (Segmenter.target_duration { duration = 6006; ticks_per_second = tps } = 6);

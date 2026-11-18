@@ -139,8 +139,9 @@ starts within 0.1 s in both.
 ## 5. The target-duration bound
 
 Before each chunk is given to `split_encode`, with `len` its length: if the
-open segment's length after the chunk, rounded to the nearest second, would
-exceed `T`, and the encoder has no split point due
+open segment's length after the chunk, less the encoder's packet lag
+([encoder-contract.md §6](encoder-contract.md#6-properties)) and rounded to
+the nearest second, would exceed `T`, and the encoder has no split point due
 ([encoder-contract.md §6](encoder-contract.md#6-properties)):
 
 1. If the segment holds a split point, cut at the latest one (§4.1); the
@@ -152,6 +153,14 @@ requested time, and the segment's length is measured on media the encoder
 still holds (lookahead, reordering), not on what it has written. Cutting at
 an earlier split point instead would halve segments behind an encoder
 whose delay exceeds half a target duration.
+
+Reason for the packet lag: the packets of a copied stream trail the media
+time (the source's interleaving, reordering), so a key packet reaches the
+output after the media time has passed it. Measured on the media time, a
+segment of 30.03 s (29.97 fps, key frames every 2.002 s, `D` = 30 s) is cut
+at the key frame before, as soon as the lag exceeds half a second, and the
+cut rule then leaves a stub of one key-frame interval at the next one (§4).
+The lag moves the measure to what the encoder has written.
 
 `force` is false otherwise. The encoder decides whether to honour it
 ([encoder-contract.md §5](encoder-contract.md#5-split_encode)). Each

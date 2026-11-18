@@ -104,6 +104,7 @@ The output relies on:
 | `independent_segments ()` | true when the encoder's split points, not counting forced ones, start with key packets                  |
 | `free_split ()`           | true when a split point is within one codec frame of every request                                      |
 | `split_due ()`            | true while a split point the encoder has committed to is on its way (§5): it declines `force` meanwhile |
+| `packet_lag ()`           | ticks by which the packets written so far trail the media time given to the encoder, 0 when they do not (§5) |
 | `bitrate ()`              | nominal bits per second, or none                                                                        |
 | `video_size ()`           | `(width, height)`, or none                                                                              |
 

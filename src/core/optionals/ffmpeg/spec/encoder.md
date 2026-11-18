@@ -439,6 +439,7 @@ prepended).
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `codec_attrs ()`          | the codec strings of the participating streams, joined by `,` in track order; none when any stream has none                |
 | `independent_segments ()` | true when no participating stream is a copied stream whose codec is not intra-only (§8.4)                                  |
+| `packet_lag ()`           | the media time less the latest packet time written by a copied stream that is not all-key, the largest over such streams, within 0 and `max_keyframe_wait`; 0 without such a stream ([HLS segmenting §5](../../../outputs/hls/spec/segmenting.md#5-the-target-duration-bound)) |
 | `bitrate ()`              | the sum of the participating streams' bit rates; none when any stream reports none (a partial sum understates the variant) |
 | `video_size ()`           | the single stream that reports a size; none with zero or several                                                           |
 
