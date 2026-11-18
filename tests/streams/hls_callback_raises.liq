@@ -1,8 +1,8 @@
 %include "../test.liq"
 
 # files.md §4, operator.md §6: a synchronous callback raising on a segment's
-# `created` event ends the run, the segment is still listed, and numbering
-# has no gap after the new run starts.
+# `created` event is logged and the run goes on: no reopen, the other handler
+# still sees every event, the segment is listed and numbering has no gap.
 dir = file.temp_dir("hls_callback_raises")
 on_cleanup({file.rmdir(dir)})
 out = "#{dir}/out"
@@ -82,10 +82,17 @@ def check(event) =
       event.path == "#{out}/b_8.mp3"
     then
       if
-        reopen_count() != 1
+        reopen_count() != 0
       then
         test.fail(
-          "reopen_on_error called #{reopen_count()} times, expected once"
+          "reopen_on_error called #{reopen_count()} times, expected none"
+        )
+      end
+      if
+        not raised()
+      then
+        test.fail(
+          "the raising callback never ran"
         )
       end
       if
