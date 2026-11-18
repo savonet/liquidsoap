@@ -180,6 +180,7 @@ Start with `track_sensitive`: each source now picks the right value on its own. 
 | `random(weights=[2, 1], [music, jingles])`     | `random([music.{weight = 2}, jingles])`                |
 | `transitions`, `transition_length`             | `on_select` on the source being entered                |
 | `override`                                     | Removed                                                |
+| `switch(all_predicates=true, [...])`           | Removed: predicates must not have side effects         |
 | `track_sensitive` on the switch                | Usually removed, else `track_sensitive` on each source |
 | `fallback.skip(main, fallback=backup)`         | `fallback([main, backup.{track_sensitive = false}])`   |
 | Switching mid-track with no fade (old default) | `s1.{on_select = source.composition.legacy_on_select}` |
@@ -215,9 +216,13 @@ Bound `ending` with `max_duration` as above. The source being left is cleaned up
 
 Switching now fades out the ending source by default. When the ending source carries only PCM audio, the default `on_select` starts the new source right away and mixes the ending one underneath it: if it has between `0.` and `settings.source.composition.max_fade` seconds left it finishes naturally, otherwise it is faded out over `max_fade` seconds (default `1.`). Otherwise switching is immediate.
 
+A source that never ends a track, such as `blank()` or `sine()` without a `duration`, is live too: listed last in a `fallback` or `switch`, it is left as soon as another source can play, and takes over as soon as none can. Set `track_sensitive = true` on it to make it wait for track boundaries.
+
 `input.http` is a live source, so it now cuts in immediately. For a relay that carries a playlist, set `s.composition_type := "file"` on it. See [a relay that carries a playlist](./composition.md#a-relay-that-carries-a-playlist).
 
-`rotate.merge` no longer takes `transitions` or `weights`. Set `weight` on the sources, as with `rotate`. `rotate.merge` installs its own `on_select` on the first source, so an `on_select` you set on that source is ignored.
+`rotate.merge` no longer takes `transitions` or `weights`, and does not read `weight`: each round plays one track of every available source. It no longer inserts a frame of silence between rounds.
+
+Predicates are read to decide what to play, possibly several times for one track and without the source being played afterwards. A predicate that changes state when read (a counter, a flag that is true once) no longer works: advance the state from `on_track` on the switch, or from the source's `on_select`.
 
 #### Stdlib operators that used to pin `track_sensitive`
 

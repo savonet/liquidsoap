@@ -266,3 +266,32 @@ at least once.
   the buffered track, and not on a probe.
 - A transition of several tracks is played to its end; its own marks pass.
 - Returning from the compound to buffering adds no boundary.
+
+## Checks in the tree
+
+Under `tests/regression/`. "Fails before" names what the check reported
+against the build the rebuild started from; a check without it passes there
+too and only guards against a regression.
+
+| Check                                       | Covers                                | Fails before                                 |
+| ------------------------------------------- | ------------------------------------- | -------------------------------------------- |
+| `switch_jingle_after_insert`                | S1, K3                                | jingle cut to one frame                      |
+| `switch_reselect_after_idle`                | S2, K2                                |                                              |
+| `switch_skipped_track_metadata`             | S2b, K1                               |                                              |
+| `rotate_under_child_clock`                  | S3                                    |                                              |
+| `sequence_merge_single_track`               | S4, K16                               | yes                                          |
+| `append-merge2`                             | K16                                   |                                              |
+| `rotate_merge_rounds`                       | S5, K16                               | yes                                          |
+| `switch_many_tracks_per_frame`              | K18, K14                              | 4513 sources played for 500 tracks announced |
+| `infallible_stays_full`                     | K6                                    | fails when the empty-cycle bound is removed  |
+| `switch_infallible_across_transition`       | K6                                    |                                              |
+| `switch_on_leave_track_boundary`            | K5: `preempted`                       |                                              |
+| `switch_on_leave_chained`                   | K5: one `on_leave` per handoff        |                                              |
+| `switch_per_source_no_reselect_during_fade` | K5: no reselection while leaving      |                                              |
+| `switch_default_transition_finish`          | K5, K10: track ran out under the fade |                                              |
+| `switch_predicates_on_selection`            | K7: no predicate read while kept      |                                              |
+| `switch_copy_default_on_select`             | K9                                    |                                              |
+
+Not covered by a check yet: K4 at every offset of a frame, K8, K11, K12,
+K13, K15 by kind of item, K17, the probe-count part of K3, and the pair
+table of [composition.md §2](composition.md#2-profiles) row by row.

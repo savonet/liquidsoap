@@ -2396,6 +2396,28 @@
   (run %{run_test} rotate_merge_rounds liquidsoap rotate_merge_rounds.liq)))
 
 (rule
+ (alias test_rotate_under_child_clock)
+ (package liquidsoap)
+ (deps
+  rotate_under_child_clock.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   rotate_under_child_clock
+   liquidsoap
+   rotate_under_child_clock.liq)))
+
+(rule
  (alias test_scheduler_legacy)
  (package liquidsoap)
  (deps
@@ -3168,6 +3190,7 @@
   (alias test_replaygain)
   (alias test_request_pool_concurrent)
   (alias test_rotate_merge_rounds)
+  (alias test_rotate_under_child_clock)
   (alias test_scheduler_legacy)
   (alias test_scheduler_parallel)
   (alias test_seek_cue_out)
