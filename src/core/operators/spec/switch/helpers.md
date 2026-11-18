@@ -15,8 +15,8 @@ with `merge`.
 
 `once(s)`: one track of `s`, then nothing.
 
-- `s` is waited for: a source that is not available yet is played when it
-  is.
+- `s` is kept until it has something to deliver: `once` is not ready in
+  the cycles before, and plays `s` when it is available.
 - After the track's end was taken, the operator is exhausted.
 - `once` over a source that never ends a track never ends.
 
@@ -44,8 +44,8 @@ builds from that track's metadata.
 - `merge` true: one track. A mark where the prepended track starts; the main
   track's metadata is announced at the join as metadata, with no boundary.
 - When `f` returns nothing the main track plays as it is.
-- The prepended source is waited for like any item
-  ([sequence.md §3](sequence.md#3-items)).
+- A prepended source that has nothing to deliver is passed over when the
+  main track can play ([sequence.md §3](sequence.md#3-items)).
 
 ## 4. Append
 

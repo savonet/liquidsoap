@@ -310,6 +310,20 @@ class switch children =
         effective_source#sleep a;
         release_callbacks ()
       in
+
+      (* We answered ready because the child is: what [on_select] returned
+         has to deliver now, or the child is played as it is. *)
+      let effective_source, sleep =
+        if effective_source#is_ready then (effective_source, sleep)
+        else (
+          self#log#important
+            "The source selected for %s has nothing to deliver: playing %s \
+             itself."
+            child.source#id child.source#id;
+          let a = starting#wake_up (self :> Clock.source) in
+          sleep ();
+          ((starting :> source), fun () -> starting#sleep a))
+      in
       Option.iter (self#push_leaving ~preempted) previous;
       self#exchange_selected
         (Some { child; effective_source; proxy = starting; sleep })

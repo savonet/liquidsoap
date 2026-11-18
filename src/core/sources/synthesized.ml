@@ -27,6 +27,12 @@ class virtual source ~name duration =
     method fallible = track_size <> None
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0
+    method! exhausted = remaining = Some 0
+
+    method! private frame_end frame =
+      if remaining = Some 0 then `Track_end
+      else if Frame.is_partial frame then `Late
+      else `Full
 
     method! seek x =
       match remaining with

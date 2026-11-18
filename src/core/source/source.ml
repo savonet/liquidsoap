@@ -663,6 +663,13 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       data
 
     method consumed n = consumed <- Int.max consumed n
+
+    (* Whether the source will never deliver again. Declared by the source,
+       never deduced from its having nothing to deliver now. An operator is
+       exhausted once everything it reads is. *)
+    method exhausted =
+      sources <> [] && List.for_all (fun (_, s) -> s#exhausted) sources
+
     val cycle_segment_end : segment_end Per_cycle.t = Per_cycle.make ()
 
     (* Why the data produced in this cycle stops where it does. Only the
@@ -1059,7 +1066,11 @@ class virtual generate_from_multiple_sources () =
        chooses next is another source even when it is the same object. *)
     val mutable left_source = false
 
+    (* Called while the source left is still the one the user reads: how what
+       follows is entered is settled before the user moves. *)
     method private leave_source =
+      if current_source <> None && entry = None then
+        entry <- Some self#next_entry;
       current_source <- None;
       at_boundary <- false;
       left_source <- true

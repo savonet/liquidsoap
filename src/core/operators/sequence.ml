@@ -49,33 +49,32 @@ class sequence ?(name = "sequence") ?(merge = false)
           | hd :: _ -> snd hd#cached_self_sync
           | [] -> None )
 
+    (* The last item plays whenever an earlier one has nothing to deliver. *)
     method fallible =
-      match List.rev sources with hd :: _ -> hd#fallible | [] -> true
+      match List.rev sources with last :: _ -> last#fallible | [] -> true
 
-    (* We have to wait until at least one source is ready. *)
-    val mutable has_started = false
     method queue = Atomic.get seq_sources
 
-    method private has_started =
-      match has_started with
-        | true -> true
-        | false ->
-            has_started <- List.exists (fun s -> s#is_ready) self#queue;
-            has_started
+    (* The item says that it is finished: its track ended, or it will never
+       deliver again. An item that only has nothing to deliver now is waited
+       for, unless the last item can play: the sequence then moves on rather
+       than deliver nothing. *)
+    method private finished ~boundary ~last s =
+      (boundary && single_track) || s#exhausted
+      || ((not s#is_ready) && last#is_ready)
 
     method private get_source ~boundary () =
-      match (self#has_started, self#queue) with
-        | _, [] -> None
-        | true, s :: [] -> if s#is_ready then Some s else None
-        | true, s :: rest ->
-            if (not (boundary && single_track)) && s#is_ready then Some s
-            else (
-              self#log#info "Finished with %s" s#id;
-              Atomic.set seq_sources rest;
-              self#release_source s;
-              self#leave_source;
-              self#get_source ~boundary:false ())
-        | _ -> None
+      match self#queue with
+        | [] -> None
+        | s :: rest
+          when rest <> []
+               && self#finished ~boundary ~last:(List.hd (List.rev rest)) s ->
+            self#log#info "Finished with %s" s#id;
+            self#leave_source;
+            Atomic.set seq_sources rest;
+            self#release_source s;
+            self#get_source ~boundary:false ()
+        | s :: _ -> if s#is_ready then Some s else None
 
     method remaining =
       if merge then (

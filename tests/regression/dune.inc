@@ -2632,6 +2632,28 @@
    switch_infallible_across_transition.liq)))
 
 (rule
+ (alias test_switch_jingle_after_insert)
+ (package liquidsoap)
+ (deps
+  switch_jingle_after_insert.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_jingle_after_insert
+   liquidsoap
+   switch_jingle_after_insert.liq)))
+
+(rule
  (alias test_switch_on_leave_chained)
  (package liquidsoap)
  (deps
@@ -3074,6 +3096,7 @@
   (alias test_switch_copy_default_on_select)
   (alias test_switch_default_transition_finish)
   (alias test_switch_infallible_across_transition)
+  (alias test_switch_jingle_after_insert)
   (alias test_switch_on_leave_chained)
   (alias test_switch_on_leave_track_boundary)
   (alias test_switch_per_source_no_reselect_during_fade)

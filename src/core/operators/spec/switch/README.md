@@ -44,7 +44,7 @@ callbacks run inside the streaming cycle; their failure is
 
 1. A source stops where going on would decide something, and decides only
    when its reader asks for more
-   ([source-contract.md §1](source-contract.md#1-delivery),
+   ([source-contract.md §1](source-contract.md#1b-delivery),
    [frame-assembly.md §3](frame-assembly.md#3-commit)).
 2. Nothing is deduced from being probed, read or ticked; every change of
    state has a named cause
@@ -73,10 +73,15 @@ For logs and errors the content is specified and the wording is free.
 
 ## Vocabulary
 
-- **Frame**: the data a source delivers in one streaming cycle, at most the
-  **frame size**. **Streaming cycle**: one tick of the clock.
-- **Segment**: a part of a frame, produced on one request, ending for a
-  stated reason: `full`, `track end`, `pause` or `late`.
+- **Tick**: one turn of the clock, in which each output gathers one frame of
+  at most the **frame size**.
+- **Streaming cycle**: the unit in which sources produce. A tick holds one
+  cycle, and one more each time an output's frame stopped short at a
+  `track end` or a `pause`. Within a cycle every property of a source is
+  settled once ([source-contract.md §1](source-contract.md#1-streaming-cycle)).
+- **Segment**: what a source delivers in one cycle, ending for a stated
+  reason: `full`, `track end`, `pause` or `late`. The segments of a tick,
+  end to end, are the frame.
 - **Request**: asking a source for its next segment. **Probe**: asking what
   it could deliver, with no effect.
 - **Available**: a probe does not answer `nothing`. **Ready**: available at

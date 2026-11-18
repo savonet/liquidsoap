@@ -610,7 +610,7 @@ several sources loses nothing from the others. With a zero fade or delay, the
 first sample of the entering track reaches the output. A source left with a
 remainder does not play it on return unless the remainder is still current.
 
-**Rule.** Samples produced equal samples used plus samples held, and held data belongs to the current track ([source-contract.md §5](source-contract.md#5-consumption)). A user of the seam holds no data ([frame-assembly.md §8](frame-assembly.md#8-lifetime)). An abort discards what was not used ([source-contract.md §6](source-contract.md#6-abort)). No operator reads ahead of its reader ([source-contract.md §1](source-contract.md#1-delivery)).
+**Rule.** Samples produced equal samples used plus samples held, and held data belongs to the current track ([source-contract.md §5](source-contract.md#5-consumption)). A user of the seam holds no data ([frame-assembly.md §8](frame-assembly.md#8-lifetime)). An abort discards what was not used ([source-contract.md §6](source-contract.md#6-abort)). No operator reads ahead of its reader ([source-contract.md §1](source-contract.md#1b-delivery)).
 
 **Count / traces.** 10 fixes, 8 issues.
 #683 #652 (1.x CHANGES); #3695 ab8beafbf; #3718 b054da31b; #3720 707d004ea;
@@ -712,7 +712,7 @@ audio from its neighbours. A mark never lies beyond the data of its frame. The
 operator stops being ready within a bounded time after its last item ended,
 and not before that end was delivered.
 
-**Rule.** A segment says why it ended, and exhaustion is declared ([source-contract.md §1](source-contract.md#1-delivery), [source-contract.md §7](source-contract.md#7-lifecycle)). Only the item finishes itself; a late item is waited for; an item exhausted at its turn is skipped and logged ([sequence.md §3](sequence.md#3-items)). A merged rotation passes over a child with nothing to deliver ([rotate-merge.md §2](rotate-merge.md#2-rounds)).
+**Rule.** A segment says why it ended, and exhaustion is declared ([source-contract.md §1](source-contract.md#1b-delivery), [source-contract.md §7](source-contract.md#7-lifecycle)). Only the item finishes itself; a late item is kept, or passed over when the last item can deliver; an item exhausted at its turn is skipped and logged ([sequence.md §3](sequence.md#3-items)). A merged rotation passes over a child with nothing to deliver ([rotate-merge.md §2](rotate-merge.md#2-rounds)).
 
 **Count / traces.** 8 fixes, 1 warning, 1 fix not merged, 8 issues.
 eb4297578; #115 3c35e2ccf; cc6fcf228; crossfade buffering (2.0 CHANGES); #3728
@@ -813,7 +813,7 @@ source gets a defined answer and returns. For one boundary, the order in which
 the callbacks of a wrapper and of the source it wraps fire is written down and
 is the same for a natural end and for a skip.
 
-**Rule.** A segment is produced once and every reader sees it ([source-contract.md §1](source-contract.md#1-delivery)). Callback order at a boundary, and re-entrant reads ([source-contract.md §10](source-contract.md#10-callbacks)).
+**Rule.** A segment is produced once and every reader sees it ([source-contract.md §1](source-contract.md#1b-delivery)). Callback order at a boundary, and re-entrant reads ([source-contract.md §10](source-contract.md#10-callbacks)).
 
 **Count / traces.** 6 fixes, 1 revert, 5 issues.
 LS-354 908588f4e (LS354); #3125; 53b032acc reverted 27f1964bf; #4759 2e28966b9

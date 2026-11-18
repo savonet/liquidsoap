@@ -374,6 +374,10 @@ object
   (** Manually mark amount of consumed data from the source. *)
   method consumed : int -> unit
 
+  (** Whether the source will never deliver again. Declared by the source, never
+      deduced from its having nothing to deliver now. *)
+  method exhausted : bool
+
   (** Why the data produced in this streaming cycle stops where it does.
       Declared by the source: a short frame alone does not say it. *)
   method segment_end : segment_end
@@ -487,8 +491,9 @@ class virtual generate_from_multiple_sources : unit -> object
   (** States that the current track is over, on an abort. *)
   method private end_track : unit
 
-  (** States that the user moved on from the source it was reading. What it
-      chooses next is another source, even when it is the same object. *)
+  (** States that the user moves on from the source it was reading. What it
+      chooses next is another source, even when it is the same object. To be
+      called before the user forgets the source it leaves. *)
   method private leave_source : unit
 
   method private can_generate_frame : bool

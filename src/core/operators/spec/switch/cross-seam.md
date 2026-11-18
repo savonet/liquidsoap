@@ -8,7 +8,7 @@ function's arguments are outside this specification ([§4](#4-open)).
 
 `cross` reads its child through a clock of its own and never hands the child
 itself to the seam. It is the child's consumer
-([source-contract.md §1](source-contract.md#1-delivery)): the child commits
+([source-contract.md §1](source-contract.md#1b-delivery)): the child commits
 relative to what `cross` buffers.
 
 | Phase    | What the seam reads                                                                           |

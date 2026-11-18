@@ -4,12 +4,57 @@ What every source MUST provide for the frame-assembly seam and its users to
 hold their guarantees. It applies to all sources, not only to the seam's
 users: one operator that breaks it between two selectors breaks them both.
 
-## 1. Delivery
+## 1. Streaming cycle
 
-A source delivers at most one **frame** per streaming cycle, of at most the
-frame size. The frame grows by **segments**. A segment is produced when a
-reader **requests** it: the first request of the cycle, then one request per
-continuation.
+A tick of the clock is made of one or more **streaming cycles**. The first
+always runs. Another runs, inside the same tick, each time an output's frame
+stopped short of full at a `track end` or a `pause`
+([§1b](#1b-delivery)): the sources close the cycle they were in and the
+outputs read again, until every frame is full or nothing more comes.
+
+**A cycle is static.** Once a cycle has started, what a source answers does
+not change until the cycle is over:
+
+- its readiness: every probe of the cycle gets the same answer;
+- the segment it delivers: produced once, the same for every reader;
+- its sync source, and the reason its segment ended;
+- for a selector: the snapshot of its predicates and its decision.
+
+Each of these is computed at its first read in the cycle and held until the
+cycle closes. A source MUST NOT recompute one inside a cycle, whatever
+happens meanwhile: a script callback, another thread, a reader that comes
+late.
+
+**Ready means delivering now.** A source that answers ready at the start of
+a cycle MUST deliver when it is read in that cycle, at once:
+
+- it MUST NOT wait: not for I/O, not for another thread, not for time to
+  pass, not for a source that is late. A source that has nothing now answers
+  not ready, and is asked again in the next cycle;
+- it MUST NOT answer ready on the strength of something it has not checked.
+  An operator that is ready because a child is reads that child, or one it
+  has probed in this cycle;
+- producing is fast: the work of a cycle is bounded and does not depend on
+  how long the source was left unread.
+
+So nothing in a cycle is waited for. "Kept", "passed over" and "not ready"
+in this specification always describe what a source answers at the start of
+a cycle, never a pause inside one.
+
+**Between two cycles of a tick** a source MAY answer differently: this is
+where what follows a track end is decided. Data produced and not used in a
+cycle is held and delivered first in the next one
+([§5](#5-consumption)).
+
+A cycle that brings an output no sample is followed by another only when it
+stated a `track end` or a `pause`, and a bounded number of times in a row.
+
+## 1b. Delivery
+
+A source delivers at most one **segment** per streaming cycle, of at most
+the room left in the frame being gathered. A segment is produced when a
+reader **requests** it, which is reading the source in that cycle. What an
+output gathers over the cycles of a tick is its **frame**.
 
 Each segment ends for one stated reason:
 

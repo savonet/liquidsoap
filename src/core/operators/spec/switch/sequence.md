@@ -37,10 +37,18 @@ released. A sequence that is left and read again resumes where it was.
 
 The last item is never finished: it stays the current item.
 
-`nothing`, `late` and a segment shorter than asked never finish an item. An
-item that has nothing to deliver and is not exhausted is **waited for**: the
-sequence delivers nothing until it does, before it has started and in the
-middle of its track alike.
+`nothing`, `late` and a segment shorter than asked do not say that an item is
+finished. What the sequence does with an item that has nothing to deliver
+and is not exhausted depends on its last item:
+
+- the last item can deliver: the item is **passed over**. It is dropped like
+  a finished one and the sequence moves on, so that a sequence whose last
+  item is available always has something to deliver;
+- the last item cannot: the item is **kept**. The sequence is not ready in
+  the cycles where the item has nothing; it plays the item when it has.
+
+Nothing blocks inside a cycle: a sequence that keeps an item answers
+`nothing` to probes until the item is available.
 
 **Skipped items.** An item that is exhausted when its turn comes, without
 having delivered anything, is skipped. The skip is logged.
@@ -109,7 +117,7 @@ track.
 - **C5.** Items are woken with the sequence. Each is released when it is
   dropped; what is left is released with the sequence.
 - **C6.** [§5](#5-abort), [§6](#6-other-properties).
-- **C7.** Infallible when every item is infallible. Exhausted when the last
+- **C7.** Infallible when its last item is infallible. Exhausted when the last
   item is exhausted and every other item is finished, skipped or exhausted.
   It then stops being ready, and not before the end of what it delivered was
   taken.

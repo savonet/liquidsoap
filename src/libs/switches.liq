@@ -35,86 +35,71 @@ end
 # @param ~id Force the value of the source ID.
 def rotate(~id=null, sources) =
   sources = source.composition.children(sources)
-  failed = (source.fail() : source)
+  count = list.length(sources)
+  indexes = list.init(count, fun (index) -> index)
 
-  # Currently selected index
-  picked_index = ref(-1)
+  # The child whose turn it is, and how many tracks of that turn were played.
+  # Both change when a track is played, never when a predicate is read.
+  cursor = ref(-1)
+  played = ref(0)
 
-  # Number of tracks played per selected source
-  # source IDs can change between calls..
-  tracks_played =
-    list.map(fun (s) -> ((fun () -> source.id(s)), ref(0)), sources)
+  def weight(index) =
+    getter.get(list.nth(sources, index).weight)
+  end
 
-  tracks_played =
-    fun () ->
-      list.map(
-        fun (x) ->
-          begin
-            label_fn = fst(x)
-            (label_fn(), snd(x))
-          end,
-        tracks_played
-      )
+  def available(index) =
+    source.is_ready(list.nth(sources, index))
+  end
 
-  # Find index of next source to play, i.e. first ready source after currently
-  # selected one.
-  def pick() =
-    list.iter((fun (el) -> snd(el) := 0), tracks_played())
+  # The child to play from here.
+  def target() =
     if
-      list.exists(source.is_ready, sources)
+      cursor() != -1 and played() < weight(cursor()) and available(cursor())
     then
-      def rec f(index) =
-        s = list.nth(default=failed, sources, index)
-        if
-          source.is_ready(s)
-        then
-          picked_index := index
-        else
-          f((index + 1) mod list.length(sources))
-        end
-      end
-
-      f((picked_index() + 1) mod list.length(sources))
+      cursor()
     else
-      picked_index := -1
-    end
-  end
+      # From the child after the cursor, wrapping around, the cursor last.
+      turns =
+        list.map(fun (offset) -> (cursor() + 1 + offset) mod count, indexes)
+      next_turn =
+        list.find(
+          default=-1,
+          fun (index) -> 1 <= weight(index) and available(index),
+          turns
+        )
 
-  # Add condition to i-th source.
-  def add_condition(index, s) =
-    def cond() =
-      if picked_index() == -1 then pick() end
       if
-        picked_index() != -1
+        next_turn != -1
       then
-        picked_source = list.nth(sources, picked_index())
-        fn = list.assoc(source.id(picked_source), tracks_played())
-        if getter.get(picked_source.weight) <= fn() then pick() end
+        next_turn
+      else
+        list.find(default=-1, available, indexes)
       end
-
-      picked_index() == index
     end
-
-    (cond, s)
   end
 
-  s = switch(list.mapi(add_condition, sources))
+  s = switch(list.mapi(fun (index, s) -> ({target() == index}, s), sources))
 
-  def f(_) =
+  def count_track(_) =
+    selected = s.selected()
     if
-      null.defined(s.selected())
+      null.defined(selected)
     then
-      selected_id = source.id(null.get(s.selected()))
+      index = list.index(fun (c) -> (c : source) == null.get(selected), sources)
       if
-        list.assoc.mem(selected_id, tracks_played())
+        index == cursor()
       then
-        played = list.assoc(selected_id, tracks_played())
         ref.incr(played)
+      elsif
+        index < count
+      then
+        cursor := index
+        played := 1
       end
     end
   end
 
-  s.on_track(synchronous=true, f)
+  s.on_track(synchronous=true, count_track)
 
   def replaces s =
     rotation = s
@@ -131,61 +116,44 @@ end
 # @param ~id Force the value of the source ID.
 def replaces random(~id=null, sources) =
   sources = source.composition.children(sources)
-  next_index = ref(-1)
 
-  def pick() =
-    def available_weighted_sources(cur, s) =
-      let (index, current_weight, indexes) = cur
-      let (current_weight, indexes) =
-        if
-          source.is_ready((s : source.{ weight: getter(int) }))
-        then
-          weight = getter.get(s.weight)
-          indexes = (current_weight, current_weight + weight, index)::indexes
-          (current_weight + weight, indexes)
-        else
-          (current_weight, indexes)
-        end
+  # Drawn again when a track is played, never when a predicate is read.
+  draw = ref(random.float())
 
-      (index + 1, current_weight, indexes)
-    end
-
-    let (_, total_weight, weighted_indexes) =
-      list.fold(available_weighted_sources, (0, 0, []), sources)
-
-    picked_weight =
-      if total_weight > 0 then random.int(min=0, max=total_weight) else 0 end
-
-    def pick_source(picked_index, el) =
-      let (lower_bound, upper_bound, index) = el
+  # The child to play from here: the available children of positive weight
+  # laid end to end, each as wide as its weight.
+  def target() =
+    def add_interval(laid_out, s) =
+      let (index, total, intervals) = laid_out
+      weight = getter.get(s.weight)
       if
-        lower_bound <= picked_weight and picked_weight < upper_bound
+        source.is_ready((s : source.{ weight: getter(int) })) and 1 <= weight
       then
-        index
+        (index + 1, total + weight, (total, total + weight, index)::intervals)
       else
-        picked_index
+        (index + 1, total, intervals)
       end
     end
 
-    next_index := list.fold(pick_source, -1, weighted_indexes)
+    let (_, total, intervals) = list.fold(add_interval, (0, 0, []), sources)
+    picked = draw() * float(total)
+    interval =
+      list.find(
+        default=(0, 0, -1),
+        fun (interval) ->
+          begin
+            let (lower, upper, _) = interval
+            float(lower) <= picked and picked < float(upper)
+          end,
+        intervals
+      )
+
+    let (_, _, index) = interval
+    if index != -1 then index else list.index(source.is_ready, sources) end
   end
 
-  def add_condition(index, s) =
-    def cond() =
-      if next_index() == -1 then pick() end
-      next_index() == index
-    end
-
-    (cond, s)
-  end
-
-  s = switch(list.mapi(add_condition, sources))
-
-  def f(_) =
-    next_index := -1
-  end
-
-  s.on_track(synchronous=true, f)
+  s = switch(list.mapi(fun (index, s) -> ({target() == index}, s), sources))
+  s.on_track(synchronous=true, fun (_) -> draw := random.float())
 
   def replaces s =
     selection = s

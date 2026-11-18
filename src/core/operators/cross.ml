@@ -23,11 +23,14 @@
 open Mm
 open Source
 
-class consumer ~name ~clock buffer =
+(* [fed] is set for a buffer that is still being filled: an empty one is then
+   only late. *)
+class consumer ?(fed = false) ~name ~clock buffer =
   object (self)
     inherit Source.source ~clock ~name ()
     method fallible = true
     method private can_generate_frame = 0 < Generator.length buffer
+    method! exhausted = (not fed) && Generator.length buffer = 0
 
     method private generate_frame =
       Generator.slice buffer (Lazy.Mutexed.force Frame.size)
@@ -133,7 +136,12 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
      * track limits. *)
     val mutable source = (None, s)
     method private source = snd source
-    method private prepare_source s = s#wake_up (self :> Clock.source)
+
+    (* A source built by the transition sits in a clock of its own until it
+       is made ours, and is never ready there. *)
+    method private prepare_source s =
+      Clock.unify ~pos:self#pos s#clock self#clock;
+      s#wake_up (self :> Clock.source)
 
     initializer
       self#on_wake_up (fun () ->
@@ -207,6 +215,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
       self#log#info "Buffering end of track...";
       let before =
         new consumer
+          ~fed:true
           ~name:(Printf.sprintf "%s.pre_buffer" self#id)
           ~clock:self#clock gen_before
       in

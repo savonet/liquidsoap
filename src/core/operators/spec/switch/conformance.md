@@ -199,10 +199,11 @@ at least once.
   frame. The last item plays for as long as it delivers.
 - K15: what finishes an item, for each kind: file, live, compound with
   marks inside, zero length, shorter than a frame, late at its turn.
-  Binding: nothing but its track end (or its exhaustion, when not
-  `single_track`) finishes it. A late item is waited for and then plays in
-  full. An item exhausted at its turn is skipped, with a log entry, and
-  takes no audio from its neighbours.
+  Binding: its track end or its exhaustion finishes it. A late item is kept
+  and then plays in full when the last item cannot deliver; it is passed
+  over when the last item can. A sequence whose last item is infallible is
+  ready in every cycle. An item exhausted at its turn is skipped, with a log
+  entry, and takes no audio from its neighbours.
 - A sequence is exhausted after its last item is, and not before the end of
   what it delivered was taken. Mixed with other sources it neither blocks
   nor fails them.
