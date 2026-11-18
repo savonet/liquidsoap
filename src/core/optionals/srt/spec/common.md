@@ -32,8 +32,11 @@ modes and settings exactly as they are.
 **Durations** become integer milliseconds rounded up, so a positive duration
 never becomes 0, which the library reads as "do not wait".
 
-**Validation**, at operator construction. Each failure is an invalid-value
-error on the parameter it names, and the message states the valid values:
+**Validation**, at operator construction: a configuration error found at
+evaluation ([principles.md 13](../../../../spec/principles.md#construction-and-lifetime),
+[faults.md §2](../../../../spec/faults.md#2-classes)). Each failure is an
+invalid-value error on the parameter it names, and the message states the
+valid values (example wording below):
 
 | Check                                                                                 | Message                                                         |
 | ------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
@@ -82,27 +85,19 @@ ones (`on_start`, `on_stop`, and `on_output` for the output):
 | `on_disconnect` | none                         | once per peer that fired `on_connect`, after its socket closed ([connection.md §8](connection.md#8-disconnect)) |
 | `on_socket`     | `mode: string`, `srt_socket` | `"connect"`, `"listen"`: socket created; `"incoming"`: socket accepted; `"close"`: socket about to close        |
 
-**Registration** is a method on the operator:
-`x.on_connect(synchronous=b, fn)`. It returns a value whose `release()`
-unregisters `fn`; a second `release()` does nothing.
-
-- `synchronous=true`: `fn` runs before the operator goes on with the event
-  that fired it, as [concurrency.md §2](concurrency.md#2-callbacks-and-locks)
-  states.
-- `synchronous=false`: firing queues `fn` on the scheduler's threaded queue,
-  and it runs there later.
-
-**Order.** For each event, the operator's own reaction completes first, then
-the callbacks run in registration order.
-
-**Exceptions** from a callback are logged at level 2 with the callback's
-name, and the operator goes on as if it had returned. `listen_callback` is
-the exception: raising rejects the handshake
+Registration (`x.on_connect(synchronous=b, fn)` and its `release()`), what
+`synchronous` means, the order (the operator's own reaction first, then the
+callbacks in registration order) and a raising handler (logged at `severe`
+with the callback's name, the operator going on) are those of every source
+callback ([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)).
+What a synchronous SRT callback holds back is
+[concurrency.md §2](concurrency.md#2-callbacks-and-locks).
+`listen_callback` gives a raise a meaning: raising rejects the handshake
 ([listener.md §3](listener.md#3-socket-setup)).
 
 **Deprecated arguments.** When deprecated features are enabled (the default),
 each of the three, and `on_start`/`on_stop`, is also an optional argument of
-the operator. Passing one logs at level 2
+the operator. Passing one logs at `severe`
 ``The `<name>` argument is deprecated! Please use the source's `<name>` method.``
 and registers it as `synchronous=true`.
 
@@ -118,14 +113,17 @@ socket reaches a script.
 | `connect()`    | `() -> unit`                    | Clear the hold (§5).                                                                                                                               |
 | `disconnect()` | `() -> unit`                    | Set the hold (§5).                                                                                                                                 |
 
-Every method MAY be called from any thread, callbacks included, and returns
-without waiting for another callback. Events a method causes fire after the
-callback that called it has returned.
+Every method MAY be called from any thread and returns without waiting
+([concurrency.md §2](../../../../spec/concurrency.md#2-the-streaming-thread)).
+For SRT that includes callbacks: a method returns without waiting for
+another callback, and events a method causes fire after the callback that
+called it has returned.
 
 Both kinds also carry the generic start/stop methods (`is_started`, `start`,
 `stop`) and the generic source methods. `start` and `stop` queue a transition
-that runs before the next streaming cycle; `connect` and `disconnect` take
-effect at once.
+that runs before the next streaming cycle (for the output,
+[output.md §2](../../../outputs/spec/output.md#2-states)); `connect` and
+`disconnect` take effect at once.
 
 ## 5. Connection wanted
 

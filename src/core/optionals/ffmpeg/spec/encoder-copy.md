@@ -84,7 +84,7 @@ hold or drop), then timestamps (§5) and writing (§6–§7).
 A packet of another media kind than the stream's is invalid content
 ([content.md §4.3](content.md#43-invalid-content)); content typing makes it
 unreachable. The copy track treats it as an item fault
-([faults.md §4](faults.md#4-item-faults-escalate)): dropped with a warning
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)): dropped with a warning
 naming the track, and counted (§10).
 
 ## 4. Conversion
@@ -127,7 +127,7 @@ group waits to start (§12.3). `flush`, before an output stop and before a
 container restart ([encoder.md §13.2](encoder.md#132-what-a-restart-does)),
 starts every waiting group as the wait limit does (§12.3), so held packets
 reach the muxer before the container closes
-([draining.md](draining.md#2-the-rule)). After that the track holds nothing;
+([draining.md](../../../source/spec/draining.md#2-the-rule)). After that the track holds nothing;
 the container close has no codec of this track to drain. A restart ends the
 track and its groups; the new container's track starts fresh, on a key
 packet unless its codec is intra-only (§12.5).
@@ -154,26 +154,26 @@ Conformance:
 ## 10. Options and errors
 
 No codec options, so the copy track has no configuration error of its own.
-Every fault it detects is classed by [faults.md §2](faults.md#2-classes). A
+Every fault it detects is classed by [faults.md §2](../../../../spec/faults.md#2-classes). A
 copy track is part of an output, not a source: it cannot end its upstream
 source's track, so its item faults escalate inside the output (below).
 
-| Fault                                                                                                | Class                                                  | Outcome                                                                                   | Owner                                                     |
-| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| decreasing or equal DTS within one source, PTS below DTS                                             | item fault                                             | packet dropped, warning, counted                                                          | [timestamps.md §6.3](timestamps.md#63-monotonicity-check) |
-| DTS the stream time base cannot represent                                                            | item fault                                             | packet dropped, warning, counted                                                          | [timestamps.md §6.3](timestamps.md#63-monotonicity-check) |
-| packet the muxer or its bitstream filter rejects as invalid data                                     | item fault                                             | packet dropped, warning, counted                                                          | §6                                                        |
-| packet of another media kind, packet in a run with id 0                                              | item fault                                             | packet dropped, warning, counted                                                          | §3, §12.1                                                 |
-| `max_consecutive_faults` consecutive item faults on one tenure, and every further run past the bound | escalation                                             | the source's group restarts with a keyframe wait (§12.3); warning; reported to the output | §12.3                                                     |
-| incompatible copy source, no clean container restart                                                 | unrecoverable                                          | the instance fails; the clock logs the message without a backtrace (user decision, D2)    | §12.7                                                     |
-| a failing byte sink                                                                                  | output fault                                           | [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults)                            | §6                                                        |
-| a group's keyframe wait reaches `max_keyframe_wait`                                                  | output-side wait ([faults.md §5](faults.md#5-waiting)) | the group starts without its late members; warning; reported to the output                | §12.3                                                     |
+| Fault                                                                                                | Class                                                                   | Outcome                                                                                   | Owner                                                     |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| decreasing or equal DTS within one source, PTS below DTS                                             | item fault                                                              | packet dropped, warning, counted                                                          | [timestamps.md §6.3](timestamps.md#63-monotonicity-check) |
+| DTS the stream time base cannot represent                                                            | item fault                                                              | packet dropped, warning, counted                                                          | [timestamps.md §6.3](timestamps.md#63-monotonicity-check) |
+| packet the muxer or its bitstream filter rejects as invalid data                                     | item fault                                                              | packet dropped, warning, counted                                                          | §6                                                        |
+| packet of another media kind, packet in a run with id 0                                              | item fault                                                              | packet dropped, warning, counted                                                          | §3, §12.1                                                 |
+| `max_consecutive_faults` consecutive item faults on one tenure, and every further run past the bound | escalation                                                              | the source's group restarts with a keyframe wait (§12.3); warning; reported to the output | §12.3                                                     |
+| incompatible copy source, no clean container restart                                                 | unrecoverable                                                           | the instance fails; the clock logs the message without a backtrace (user decision, D2)    | §12.7                                                     |
+| a failing byte sink                                                                                  | output fault                                                            | [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults)                            | §6                                                        |
+| a group's keyframe wait reaches `max_keyframe_wait`                                                  | output-side wait ([faults.md §5](../../../../spec/faults.md#5-waiting)) | the group starts without its late members; warning; reported to the output                | §12.3                                                     |
 
 `max_consecutive_faults` is the bound of
-[faults.md §4](faults.md#4-item-faults-escalate), used for every item fault of one tenure: the count
+[faults.md §4](../../../../spec/faults.md#4-item-faults-escalate), used for every item fault of one tenure: the count
 resets when a packet of the tenure is written. Every dropped packet counts:
 packets carry media. Warnings are rate-limited by `fault_log_interval`
-([faults.md §4](faults.md#4-item-faults-escalate)). A data fault never stops
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). A data fault never stops
 the output; the incompatible source of §12.7 is the only data case that can.
 Discards that the switching rules intend (before a keyframe, before the
 group start, a group that never starts, join overlap) are not faults; they
@@ -184,20 +184,20 @@ are counted and logged at info or warning level (§11).
 The wording below is an example; the levels and the facts each message
 carries are binding.
 
-| Level   | Facts                                                                        | When                                                                                                                       |
-| ------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| info    | track, source id, number of packets dropped before its keyframe              | a tenure becomes ready after dropping packets (§12.2)                                                                      |
-| info    | source id, number of held packets dropped before the group start             | a group starts and trims held packets (§12.3)                                                                              |
-| info    | track, source id, number of packets dropped as join overlap                  | [timestamps.md §6.3](timestamps.md#63-monotonicity-check)                                                                  |
-| warning | track, the two fixes                                                         | global headers wanted, no extradata (§2)                                                                                   |
-| warning | source id, the tracks still waiting                                          | a group starts at the wait limit (§12.3)                                                                                   |
-| warning | source id, the tracks                                                        | a group restarts after `max_consecutive_faults` drops (§12.3)                                                              |
-| warning | track, source id, number of held packets dropped                             | a group that never starts is discarded (§12.3)                                                                             |
-| warning | track, both parameter sets                                                   | incompatible parameters at a switch, container restarted (§12.7)                                                           |
-| warning | track, the property, both values                                             | a descriptive property differs at a switch (§12.7)                                                                         |
-| warning | track, source id, the jump                                                   | a forward DTS jump within one source above `max_keyframe_wait` ([timestamps.md §6.3](timestamps.md#63-monotonicity-check)) |
-| error   | track, both parameter sets                                                   | incompatible parameters at a switch, output stopped (§12.7)                                                                |
-| warning | track, source id, the fault and its values, the count since the last warning | an item fault (§10), at most once per `fault_log_interval` ([faults.md §4](faults.md#4-item-faults-escalate))              |
+| Level   | Facts                                                                        | When                                                                                                                           |
+| ------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| info    | track, source id, number of packets dropped before its keyframe              | a tenure becomes ready after dropping packets (§12.2)                                                                          |
+| info    | source id, number of held packets dropped before the group start             | a group starts and trims held packets (§12.3)                                                                                  |
+| info    | track, source id, number of packets dropped as join overlap                  | [timestamps.md §6.3](timestamps.md#63-monotonicity-check)                                                                      |
+| warning | track, the two fixes                                                         | global headers wanted, no extradata (§2)                                                                                       |
+| warning | source id, the tracks still waiting                                          | a group starts at the wait limit (§12.3)                                                                                       |
+| warning | source id, the tracks                                                        | a group restarts after `max_consecutive_faults` drops (§12.3)                                                                  |
+| warning | track, source id, number of held packets dropped                             | a group that never starts is discarded (§12.3)                                                                                 |
+| warning | track, both parameter sets                                                   | incompatible parameters at a switch, container restarted (§12.7)                                                               |
+| warning | track, the property, both values                                             | a descriptive property differs at a switch (§12.7)                                                                             |
+| warning | track, source id, the jump                                                   | a forward DTS jump within one source above `max_keyframe_wait` ([timestamps.md §6.3](timestamps.md#63-monotonicity-check))     |
+| error   | track, both parameter sets                                                   | incompatible parameters at a switch, output stopped (§12.7)                                                                    |
+| warning | track, source id, the fault and its values, the count since the last warning | an item fault (§10), at most once per `fault_log_interval` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) |
 
 ## 12. Source switching and per-source state
 
@@ -297,7 +297,7 @@ when every member is ready. It also starts:
 - at the **wait limit**: when the output position has advanced by
   `max_keyframe_wait` since the group's wait start, with the members that are
   ready, and with a warning naming the tracks still waiting. This is the
-  output-side wait of [faults.md §5](faults.md#5-waiting): the group proceeds
+  output-side wait of [faults.md §5](../../../../spec/faults.md#5-waiting): the group proceeds
   without the missing keyframe and the event is reported to the output
   ([encoder.md §5.2](encoder.md#52-data-faults-and-output-faults)), whose
   callbacks carry it to the script;
@@ -375,7 +375,7 @@ common case, [timestamps.md §6.3](timestamps.md#63-monotonicity-check)), the
 group restarts as a new group on the same id: every member's tenure reopens
 with the usual keyframe wait, a warning names the source and the tracks, and
 the event is reported to the output. Every further run past the bound
-restarts the group again ([faults.md §4](faults.md#4-item-faults-escalate));
+restarts the group again ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate));
 the output keeps streaming. Reason: a group restart repairs a timestamp
 restart, and a source that keeps faulting costs only its own packets.
 
@@ -482,7 +482,7 @@ when it opens, because its packets still decode against what the output
 already received. The group starts at the end of the frame and is rebased
 as usual. A seek
 discards the decoder's held data upstream and is not drained
-([draining.md §5](draining.md#5-discarded-on-purpose)).
+([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)).
 
 ### 12.7 Parameters across sources
 

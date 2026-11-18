@@ -4,11 +4,11 @@ This file owns the conformance specification of the layer: the rules a test harn
 
 ## 1. Harness rules
 
-These rules are binding. A suite that breaks one of them reports no conformance, whatever its tests say.
+These rules are binding. A suite that breaks one of them reports no conformance, whatever its tests say. The rules every suite follows are [testing.md](../../../../spec/testing.md)'s: a skip is never a pass and is named and counted, a timeout or a crash is a failure, a suite asserts that it ran, a check counts once seen to fail, an absence check has a positive control, and only what a rule binds is asserted. This section adds what the FFmpeg layer's harness needs on top.
 
 ### 1.1 Outcomes and reporting
 
-Each test ends in exactly one outcome:
+Each test ends in exactly one outcome, under [testing.md §1](../../../../spec/testing.md#1-a-pass-must-be-able-to-say-no):
 
 | Outcome | Reached by                                                                                  | Counts as |
 | ------- | ------------------------------------------------------------------------------------------- | --------- |
@@ -18,7 +18,7 @@ Each test ends in exactly one outcome:
 | timeout | no outcome before the test's deadline                                                       | failure   |
 | crash   | the process dies on a signal or an abort                                                    | failure   |
 
-- A run report lists the count of each outcome, and names every skipped test with its missing prerequisite. A skip is never reported or counted as a pass.
+- A run report lists the count of each outcome, and names every skipped test with its missing prerequisite.
 - A test MUST NOT skip unconditionally. A test that cannot run anywhere is removed or fixed, not skipped.
 - A missing fixture is a skip when the fixture is fetched (§2.2) and the network is unavailable, and a failure in every other case.
 - A conformance claim lists the items that were not checked (skipped, or not applicable on the host). An item never run is unknown, not passed.
@@ -27,13 +27,13 @@ Each test ends in exactly one outcome:
 
 ### 1.2 A check that can say the opposite
 
-A pass is evidence only when the same check would have failed on a broken implementation.
+A pass is evidence only when the same check would have failed on a broken implementation ([testing.md §1](../../../../spec/testing.md#1-a-pass-must-be-able-to-say-no)). For this layer:
 
-1. **Count what ran.** Every test declares what it examines (packets, frames, samples, cues, segments, assertions) and asserts, before passing, that the count examined reaches the declared value. A test that examined nothing fails.
+1. **Count what ran.** Every test declares what it examines (packets, frames, samples, cues, segments, assertions) and asserts, before passing, that the count examined reaches the declared value.
 2. **Pass after the oracle.** A test passes from the event that completes its oracles (output closed and probed, the last expected item seen), never from the first track, the first frame, a fixed delay, or any file close. A test whose subject is start-up states so and asserts on the start-up result (the type, the error, the first item's content).
 3. **Discriminating values.** Each asserted value is one the subsystem under test decides. The input differs from the expected output on that property, and no later stage forces the property on its own. Examples: a decoder's channel handling is asserted on the decoded content, or through an output whose parameters follow its input, never through an encoder configured to the asserted value; a filter's sample-format change is asserted through an encoder and container that keep that sample format.
 4. **Selected component.** A test of one implementation among several (a decoder, a resampler, a converter) asserts that this implementation ran, from the layer's own report of the chosen component. Raising another implementation's priority above it, or forcing another one, makes the test a test of something else.
-5. **Positive control.** A check that looks for an absence (no error logged, no gap, no warning) first sees the presence on a case built to have it, in the same harness.
+5. **Positive control** ([testing.md §1](../../../../spec/testing.md#1-a-pass-must-be-able-to-say-no)), in the same harness, for every absence this layer checks: no error logged, no gap, no warning.
 
 ### 1.3 Timestamps at packet level
 
@@ -58,30 +58,30 @@ A test that expects a rejection (a type error, an evaluation error, a start-up f
 - every item the owning rule says the error names (the field, the option key, the codec, the parameter sets);
 - the place: type check, evaluation, output start, or switch time, as the owning rule states.
 
-Any other error fails the test, a parse error in the test's own text first of all. An "expects an error" helper MUST fail when the call returns normally. Message wording is incidental unless the owning rule makes it binding.
+Any other error fails the test, a parse error in the test's own text first of all. An "expects an error" helper MUST fail when the call returns normally. Message wording is incidental ([testing.md §2](../../../../spec/testing.md#2-binding-and-incidental)).
 
 ### 1.5 Oracles
 
 - Media assertions use an oracle independent of the implementation under test: an external prober and transcoder for container, stream and packet properties, decoded sample and frame counts, extracted subtitle text, still frames and image similarity.
 - The prober's output is parsed against a declared shape; a missing required field fails the test.
 - Values the host's libraries choose and the layer does not decide are never pinned as literals: muxer-chosen time bases, codec-string profile and level digits, encoder-chosen frame sizes. Where such a value matters, the test computes the expected value from the produced file with the oracle (for example, the HLS `CODECS` entry against the codec string derived from the stream's own parameters) and asserts that the two agree.
-- Log lines are an oracle only for what the owning rule makes binding: that a warning or error was logged, at which level, naming which item. Wording is incidental.
+- Log lines are an oracle only for what the owning rule makes binding ([testing.md §2](../../../../spec/testing.md#2-binding-and-incidental)): that a warning or error was logged, at which level, naming which item.
 
 ### 1.6 Snapshots
 
-A snapshot check (printed types, dumps, stream descriptions) fails the run on any difference. Accepting a new snapshot is a separate, manual step, never part of a conformance or CI run. Snapshots hold only values the layer decides (§1.5).
+A snapshot check (printed types, dumps, stream descriptions) fails the run on any difference. Accepting a new snapshot follows [testing.md §2](../../../../spec/testing.md#2-binding-and-incidental): a separate, manual step, never part of a conformance or CI run. Snapshots hold only values the layer decides (§1.5).
 
 ### 1.7 Inventory and wiring
 
 - Every test of the conformance suite is reachable from the entry point the CI runs. The harness enumerates the suite from one list and fails when a listed test has no runner, or when the count of tests run plus tests skipped differs from the list's length.
-- **Surface coverage.** Every operator, builtin and settings key of the frozen surface (README "Frozen") that this layer defines has at least one test that exercises it and asserts on its effect under §1.2. The harness lists that surface from the running program and fails on any item with no covering test. An item that needs hardware or a library the host lacks is a named skip (§1.1).
-- **Error paths.** Every row of every failure summary ([encoder.md §11](encoder.md#11-failure-behaviour-summary), [io.md §9](io.md#9-failure-summary-inputffmpeg-inputhttp), [filters.md §18](filters.md#18-failure-summary), [inline-codecs.md §15](inline-codecs.md#15-failure-behaviour), [bitstream-filters.md §7](bitstream-filters.md#7-failure), [decoder.md §13.2](decoder.md#132-errors), [content.md §4.3](content.md#43-invalid-content)) has a test that provokes it and asserts the outcome of its fault class ([faults.md §2](faults.md#2-classes), §6.1).
+- **Surface coverage.** Every operator, builtin and settings key of the [compatibility surface](README.md#principles) (README, "Compatibility surface") that this layer defines has at least one test that exercises it and asserts on its effect under §1.2. The harness lists that surface from the running program and fails on any item with no covering test. An item that needs hardware or a library the host lacks is a named skip (§1.1).
+- **Error paths.** Every row of every failure summary ([encoder.md §11](encoder.md#11-failure-behaviour-summary), [io.md §9](io.md#9-failure-summary-inputffmpeg-inputhttp), [filters.md §18](filters.md#18-failure-summary), [inline-codecs.md §15](inline-codecs.md#15-failure-behaviour), [bitstream-filters.md §7](bitstream-filters.md#7-failure), [decoder.md §13.2](decoder.md#132-errors), [content.md §4.3](content.md#43-invalid-content)) has a test that provokes it and asserts the outcome of its fault class ([faults.md §2](../../../../spec/faults.md#2-classes), §6.1).
 
 ### 1.8 Pacing and deadlines
 
 - Media tests run on a clock without synchronisation (CPU-paced) unless their subject is real time. Long-run checks (hours of media) run CPU-paced on looped or generated input; what they count is joins, packets and ticks, not wall time.
 - Tests whose subject is real time (live inputs, `self_sync`, network retry delays, HLS segment publication) run on real time with a wall-clock deadline that fails the test. Their tolerances are the owning rule's.
-- Every test has a deadline; a deadline is a failure, never a skip.
+- Every test has a deadline; reaching it is a timeout ([testing.md §1](../../../../spec/testing.md#1-a-pass-must-be-able-to-say-no)).
 
 ### 1.9 Repetition
 
@@ -214,37 +214,37 @@ Also per configuration: [encoder-format.md §10.2](encoder-format.md#102-conform
 
 ### 6.1 Faults
 
-Items: [faults.md §6](faults.md#6-conformance).
+Items: [faults.md §6](../../../../spec/faults.md#6-conformance).
 
-Every fault check names the class of [faults.md §2](faults.md#2-classes) it provokes and asserts that class's outcome, and only that outcome:
+Every fault check names the class of [faults.md §2](../../../../spec/faults.md#2-classes) it provokes and asserts that class's outcome, and only that outcome:
 
-| Class               | The check asserts                                                                                                                                                                                                                                                                                                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| configuration error | the error before any data of the stream it concerns is written, at evaluation or at the output's first start, for every failure that follows from configuration and host; a failure at a later rebuild (restart, reopen, HLS restart) that is not deterministic by construction is an output fault under the restart policy ([faults.md §2](faults.md#2-classes)); the reason pinned (§1.4) |
-| item fault          | the item missing from the output and nothing else (packet oracle, §1.3); one warning for the first drop of the kind; repeats logged with their count at most once per `fault_log_interval`; the output still streaming                                                                                                                                                                      |
-| source fault        | end of track at the fault with the data before it drained; then not ready for a fallible source while the fault persists; for an infallible source that cannot produce content, a hard error that fails the script naming the source and the cause; one error-level log; the source's callbacks run                                                                                         |
-| output fault        | only a byte-sink, header or peer failure: the output stops or restarts under its restart policy, its callbacks run, and another output on the same clock keeps producing. An incompatible copy source past the merge with no clean restart is unrecoverable instead (user rule D2). A data fault never produces this class.                                                                 |
+| Class               | The check asserts                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| configuration error | the error before any data of the stream it concerns is written, at evaluation or at the output's first start, for every failure that follows from configuration and host; a failure at a later rebuild (restart, reopen, HLS restart) that is not deterministic by construction is an output fault under the restart policy ([faults.md §2](../../../../spec/faults.md#2-classes)); the reason pinned (§1.4) |
+| item fault          | the item missing from the output and nothing else (packet oracle, §1.3); one warning for the first drop of the kind; repeats logged with their count at most once per `fault_log_interval`; the output still streaming                                                                                                                                                                                       |
+| source fault        | end of track at the fault with the data before it drained; then not ready for a fallible source while the fault persists; for an infallible source that cannot produce content, a hard error that fails the script naming the source and the cause; one error-level log; the source's callbacks run                                                                                                          |
+| output fault        | only a byte-sink, header or peer failure: the output stops or restarts under its restart policy, its callbacks run, and another output on the same clock keeps producing. An incompatible copy source past the merge with no clean restart is unrecoverable instead (user rule D2). A data fault never produces this class.                                                                                  |
 
 Additional checks:
 
-1. **Escalation** ([faults.md §4](faults.md#4-item-faults-escalate)): every dropping site counts against the one bound `max_consecutive_faults`. On the input side, a run of the bound minus one media-carrying faults stays item faults, a run of the bound becomes a source fault, and one delivered item in between resets the count. Faults on items without media (a raising `on_undecided` handler, an unparsable tag, an unhonoured seek) never escalate, however many.
+1. **Escalation** ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)): every dropping site counts against the one bound `max_consecutive_faults`. On the input side, a run of the bound minus one media-carrying faults stays item faults, a run of the bound becomes a source fault, and one delivered item in between resets the count. Faults on items without media (a raising `on_undecided` handler, an unparsable tag, an unhonoured seek) never escalate, however many.
 2. **Output-side escalation**: the recording muxer rejects every packet of a copied field for longer than the bound: the field's group restarts on its next keyframe, and again at each further run past the bound; the output never stops. On an encoded field, a run past the bound rebuilds that stream's codec and the field resumes; a rebuild that fails is an output fault ([encoder.md §5.2](encoder.md#52-data-faults-and-output-faults)).
-3. **Fallible and infallible** ([faults.md §3](faults.md#3-source-faults-reach-the-script)): the undecodable-turning source, once typed fallible under a `fallback` (the fallback switches to its other branch within the bound, and switches back when the fixture recovers) and once infallible with no `fallback` (the script fails with an error naming the source and the cause). A positive control (§1.2 item 5) checks that the same fixture behind `mksafe` keeps the output running, the filler coming from `mksafe`.
+3. **Fallible and infallible** ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): the undecodable-turning source, once typed fallible under a `fallback` (the fallback switches to its other branch within the bound, and switches back when the fixture recovers) and once infallible with no `fallback` (the script fails with an error naming the source and the cause). A positive control (§1.2 item 5) checks that the same fixture behind `mksafe` keeps the output running, the filler coming from `mksafe`.
 4. **Nothing raises out of a fallible source**: in every scenario of §4 that injects a fault into input data of a fallible source (inline, bitstream-filter and side-data operators included, which follow their input's fallibility), the clock's error handler is never called and no source is detached.
-5. **No invented content** ([faults.md §3](faults.md#3-source-faults-reach-the-script)): in every fault scenario, each sample and frame a faulty source delivers is traced to data it received or computed. The oracle compares the source's output with its input, decoded independently: no silence, black or repeated frame appears where the input had undecodable data, and the source's output length during the fault is zero.
-6. **Bounded waits** ([faults.md §5](faults.md#5-waiting)): each named wait bound (keyframe wait, group members, interleave wait, split point) reached on a fixture that never meets its condition; the input-side wait becomes a source fault, the output-side wait proceeds with a warning.
+5. **No invented content** ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): in every fault scenario, each sample and frame a faulty source delivers is traced to data it received or computed. The oracle compares the source's output with its input, decoded independently: no silence, black or repeated frame appears where the input had undecodable data, and the source's output length during the fault is zero.
+6. **Bounded waits** ([faults.md §5](../../../../spec/faults.md#5-waiting)): each named wait bound (keyframe wait, group members, interleave wait, split point) reached on a fixture that never meets its condition; the input-side wait becomes a source fault, the output-side wait proceeds with a warning.
 7. **Log rate**: a source producing faulty items for a long run logs a bounded number of lines, each repeat line carrying a count, and the counts sum to the items dropped.
 
 ### 6.2 Common and draining
 
-Items: [common.md §1](common.md#1-settings), [§2](common.md#2-log-bridge), [§5](common.md#5-time-base-conversion), [§6.6](common.md#66-conformance), [§9](common.md#9-video-format-comparison), [§11](common.md#11-hardware-contexts); [draining.md §6](draining.md#6-conformance).
+Items: [common.md §1](common.md#1-settings), [§2](common.md#2-log-bridge), [§5](common.md#5-time-base-conversion), [§6.6](common.md#66-conformance), [§9](common.md#9-video-format-comparison), [§11](common.md#11-hardware-contexts); [draining.md §6](../../../source/spec/draining.md#6-conformance).
 
 Harness additions:
 
 - The duration-helper items of §6.6 run on the synthetic producer with the coarse time base; their 10-hour spans are pushed as data, not played.
 - Each settings key's default is read from a script that does not set it, through the surface inventory (§1.7).
-- The draining items run once per stage family of [draining.md §1](draining.md#1-stages): decoder, encoder, resampler, re-framer, frame-rate stage, filter graph, bitstream filter, interleaving queue, muxer. For each, the counts in equal the counts out, under each ending event of [draining.md §2](draining.md#2-the-rule): end of input, replacement mid-stream, end of stream, output stop. A seek and a stop by the reader discard instead ([draining.md §5](draining.md#5-discarded-on-purpose)); the check then asserts nothing reaches the output after the event from before it.
-- A partial final unit ([draining.md §4](draining.md#4-partial-final-units)) is checked with a sample count that is not a multiple of the codec frame size: decoded output trimmed as the container signals holds exactly the input samples.
+- The draining items run once per stage family of [draining.md §1](../../../source/spec/draining.md#1-stages): decoder, encoder, resampler, re-framer, frame-rate stage, filter graph, bitstream filter, interleaving queue, muxer. For each, the counts in equal the counts out, under each ending event of [draining.md §2](../../../source/spec/draining.md#2-the-rule): end of input, replacement mid-stream, end of stream, output stop. A seek and a stop by the reader discard instead ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)); the check then asserts nothing reaches the output after the event from before it.
+- A partial final unit ([draining.md §4](../../../source/spec/draining.md#4-partial-final-units)) is checked with a sample count that is not a multiple of the codec frame size: decoded output trimmed as the container signals holds exactly the input samples.
 
 Binding: counts and the level of log lines. Incidental: log wording, the order of hardware candidates the host lists.
 
@@ -291,7 +291,7 @@ Items: [encoder.md §3.1](encoder.md#31-conformance), [§4.1](encoder.md#41-conf
 
 Additional checks:
 
-1. Item faults ([encoder.md §5.2](encoder.md#52-data-faults-and-output-faults), [faults.md §2](faults.md#2-classes)): the recording muxer rejects one packet, and a codec refuses one frame; each item is missing, one warning names the field, the other streams are complete, the output keeps streaming. Repeated faults on one field log at most one warning per `fault_log_interval`, with the count.
+1. Item faults ([encoder.md §5.2](encoder.md#52-data-faults-and-output-faults), [faults.md §2](../../../../spec/faults.md#2-classes)): the recording muxer rejects one packet, and a codec refuses one frame; each item is missing, one warning names the field, the other streams are complete, the output keeps streaming. Repeated faults on one field log at most one warning per `fault_log_interval`, with the count.
 2. Output faults: a byte sink that fails; the output stops or restarts under its restart policy and reports through its callbacks (§6.1). Configuration failures: a failure deterministic by construction (codec or muxer lookup, a leftover option, a stream parameter the configured format rejects) fails the script at the output's first start; the same kind of stream-creation failure at a later restart or reopen (a hardware session cap, a device reset) is an output fault that retries.
 3. Restart at a source switch ([encoder.md §13](encoder.md#13-container-restart)): every member of the switching source's group moves to the new container and no packet of the new source is in the old one; the parameter sets are logged at warning on a restart and at error on a stop.
 4. HLS restart keeps user rule D5: on the variant timeline, the first DTS of the restarted stream is at or after the previous segment's end, the new codec's priming does not overlap it, and an Ogg restart starts a new timeline at 0.
@@ -313,7 +313,7 @@ Additional checks:
 3. Subtitles: subrip, ASS, mov_text and WebVTT encode beside audio and video; two subtitle fields in one file; a copied and an encoded subtitle field in one file. A custom `text_to_ass` receives each cue's index and text and its result becomes the cue's event fields, cue times unchanged.
 4. A bitmap subtitle track burned onto video: no subtitle stream in the output, and the still frame at a cue's time is similar to the reference above a stated threshold.
 5. Alpha: VP9 with alpha re-encoded with an alpha pixel format keeps `yuva420p`, and a transparent pixel of the input decodes transparent.
-6. Content gaps (raw content with gaps fixture): the re-encoded audio carries a PTS gap equal to the content gap within one codec frame ([timestamps.md §3](timestamps.md#3-audio-internal-and-raw)); the re-encoded video has no frame inside the gap and its frame count equals the input's, so the frame-rate converter repeats nothing across the gap ([faults.md §3](faults.md#3-source-faults-reach-the-script)).
+6. Content gaps (raw content with gaps fixture): the re-encoded audio carries a PTS gap equal to the content gap within one codec frame ([timestamps.md §3](timestamps.md#3-audio-internal-and-raw)); the re-encoded video has no frame inside the gap and its frame count equals the input's, so the frame-rate converter repeats nothing across the gap ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)).
 
 ## 12. Copied streams and switching
 
@@ -476,7 +476,7 @@ Each scenario runs end to end on the packet oracle (§1.3) and asserts, besides 
 8. **Fault containment (input side).** A playlist under a `fallback` feeding a running output, holding the corrupt packet file and the backward-packet Matroska (item faults: the item dropped with one warning, the playlist continues), the restarting Matroska (source fault: the track ends with an error, the playlist moves on), and the undecodable-turning source (source fault: the `fallback` switches away and back on recovery). The output never stops and the clock's error handler is never called.
 9. **Inline encode, sleep, copy.** An inline encoder put to sleep and woken, with a copy encoder downstream, with and without a sibling encoder awake: no packet dropped as non-monotonic, ids per [inline-codecs.md §5](inline-codecs.md#5-stream-index), outputs identical under memory reclamation at different moments.
 10. **Ten-hour relay.** The 10-hour relay input copied, CPU-paced: each stream's content length equals its media duration within one tick, no buffer grows past a constant, the output never fails.
-11. **Stop with data held.** Stop an output while a copy switch waits for a keyframe, while the resampler, the re-framer and the frame-rate stage hold data, and while an inline encoder holds its tail: every held item reaches the output before the trailer ([draining.md §3](draining.md#3-order)).
+11. **Stop with data held.** Stop an output while a copy switch waits for a keyframe, while the resampler, the re-framer and the frame-rate stage hold data, and while an inline encoder holds its tail: every held item reaches the output before the trailer ([draining.md §3](../../../source/spec/draining.md#3-order)).
 12. **Mixed mapping start.** A file decoded to PCM audio with copied H.264 video, played with a cue-in: both fields start at the same key packet, the last one at or before the cue-in when it is within `start_key_tolerance` of it, else the first one at or after it; positions agree within one audio frame ([decoder.md §8.5](decoder.md#85-start-and-seek-threshold)), and a downstream copy-plus-encode output starts both streams together.
 
 ## 23. Known-complexity checks
@@ -494,7 +494,7 @@ Each entry of [known-complexity.md](known-complexity.md) is checked by the items
 | 7     | [filters.md §11.7](filters.md#117-draining-a-generation), [§13.3](filters.md#133-decreasing-video-timestamps-from-a-filter); [common.md §6.6](common.md#66-conformance) (equal timestamps in arrival order) |
 | 8     | [decoder.md §8.4](decoder.md#84-waiting-for-all-streams); [encoder-copy.md §12.4](encoder-copy.md#124-sparse-sources); [encoder.md §8.8](encoder.md#88-conformance)                                         |
 | 9     | [encoder.md §8.8](encoder.md#88-conformance); §10 item 5                                                                                                                                                    |
-| 10    | [draining.md §6](draining.md#6-conformance); §6; [decoder.md §13.1](decoder.md#131-end-of-input); [inline-codecs.md §13](inline-codecs.md#13-flush-and-end); §22 item 11                                    |
+| 10    | [draining.md §6](../../../source/spec/draining.md#6-conformance); §6; [decoder.md §13.1](decoder.md#131-end-of-input); [inline-codecs.md §13](inline-codecs.md#13-flush-and-end); §22 item 11               |
 | 11    | [content.md §3.1.1](content.md#311-where-copy-parameters-are-merged); [encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources); §22 item 3                                                    |
 | 12    | [timestamps.md §1.4](timestamps.md#14-the-output-timeline); §22 item 2                                                                                                                                      |
 | 13    | [common.md §6.6](common.md#66-conformance); [decoder-copy.md §5](decoder-copy.md#5-timestamps); [inline-codecs.md §8](inline-codecs.md#8-chunker); §22 item 10                                              |

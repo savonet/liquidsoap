@@ -12,7 +12,7 @@ time. It registers two application hooks and does nothing else:
    1. starts libsrt;
    2. if `settings.srt.log` is `true`, maps `settings.srt.log.verbosity` to a
       libsrt log level (`critical`, `error`, `warning`, `notice`, `debug`; any
-      other value logs `Invalid value for "srt.log.verbosity"!` at level 2 and
+      other value logs `Invalid value for "srt.log.verbosity"!` at `severe` and
       uses `error`), sets it, and installs the log handler of §2.
 2. A **final cleanup** hook, named `srt cleanup`, which runs after every SRT
    socket of the process is closed, stops the readiness loop of
@@ -21,7 +21,7 @@ time. It registers two application hooks and does nothing else:
    then cleans libsrt up. Cleaning libsrt up while a thread is inside
    one of its calls corrupts the process's memory: if a call has not
    returned within `cleanup_wait`, the cleanup is skipped and logged at
-   level 2, and the process exits without it. Recommended value: 5 seconds.
+   `severe`, and the process exits without it. Recommended value: 5 seconds.
 
 libsrt starts when the application starts, after daemonising, because a
 forked child does not inherit libsrt's threads. It starts only if a script
@@ -65,8 +65,9 @@ At core shutdown, one step:
 2. Release every operator still alive
    ([connection.md §9](connection.md#9-stopping)).
 
-Operators are found through a registry that MUST NOT keep them alive: an
-operator built and dropped by a script is collected, and the registry
+Operators are found through a registry, which keeps nothing alive
+([principles.md 15](../../../../spec/principles.md#construction-and-lifetime)):
+an operator built and dropped by a script is collected, and the registry
 forgets it. A registry that holds operators strongly leaks every
 dynamically built one.
 
@@ -77,7 +78,7 @@ Both roles resolve a host name and port the same way:
 1. Ask the system resolver for `host` and the port as a decimal string, with
    hints: socket type datagram, and family IPv4 for `ipv4`, IPv6 for `ipv6`,
    none for `system`.
-2. Keep every answer, in the resolver's order. At log level 5, log
+2. Keep every answer, in the resolver's order. At `debug`, log
    `Address <host>:<port> resolved to: <ip>:<port>, ...`.
 3. No answer is a transient failure ([connection.md §4](connection.md#4-connect))
    with the message `Could not resolve address: <host>:<port>`.

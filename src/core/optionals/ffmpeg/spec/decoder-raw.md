@@ -81,7 +81,7 @@ what the encoder does with a new one is in
 
 ## 6. Flush
 
-Raw decoders drain on `Flush` ([draining.md](draining.md)), upstream first:
+Raw decoders drain on `Flush` ([draining.md](../../../source/spec/draining.md)), upstream first:
 
 | Decoder   | `Flush`                                                                                                    |
 | --------- | ---------------------------------------------------------------------------------------------------------- |
@@ -105,7 +105,7 @@ Not sparse.
 
 ## 8. Errors and logs
 
-Classes are those of [faults.md §2](faults.md#2-classes); escalation and
+Classes are those of [faults.md §2](../../../../spec/faults.md#2-classes); escalation and
 the bound are [decoder.md §8.2](decoder.md#82-one-decode-step)'s.
 
 | Event                                                    | Class        | Effect                                                                   |

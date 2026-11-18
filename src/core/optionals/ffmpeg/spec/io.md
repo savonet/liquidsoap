@@ -11,7 +11,7 @@ connection holds), failure classes and retries, interruption of blocking
 calls, buffering, metadata and clock behaviour. It relies on the decoder
 contract of [decoder.md](decoder.md) (how a container becomes a decoder,
 content-type negotiation, draining at end of input), on the encoder of
-[encoder.md](encoder.md), on [draining.md](draining.md) for what ending a
+[encoder.md](encoder.md), on [draining.md](../../../source/spec/draining.md) for what ending a
 stage means, on source identity in [content.md §5](content.md#5-stream_idx-and-time_base),
 on the clock spec (`src/core/clock/spec/`, chiefly
 [pacing.md](../../../clock/spec/pacing.md) and
@@ -24,19 +24,22 @@ Three principles hold for every operator of this file:
    (container, decoder, encoder, client socket, scheduled task) are owned by
    exactly one party, and ownership moves only with a state transition. The
    party that moves the state out of a connected state releases what the
-   connection holds, on every path.
+   connection holds, on every path. This applies
+   [concurrency.md §3–§4](../../../../spec/concurrency.md#3-shared-state)
+   (one owner, released exactly once) to connections.
 2. **A clean end of input is not an error.** It drains, ends the track, and
    reports no error. A would-block or retry signal from a transport is not an
    end of input.
 3. **No blocking call escapes a stop.** A connection is never opened on the
-   streaming thread. Every blocking call on a connection is aborted when the
+   streaming thread ([concurrency.md §2](../../../../spec/concurrency.md#2-the-streaming-thread)).
+   Every blocking call on a connection is aborted when the
    connection is stopped or the application shuts down. A read or write on
    the streaming thread is also bounded by a named timeout, except a
    listening input's read (§3).
-4. **Faults follow [faults.md](faults.md).** Every fault this file detects is
-   placed in one of the classes of [faults.md §2](faults.md#2-classes):
+4. **Faults follow [faults.md](../../../../spec/faults.md).** Every fault this file detects is
+   placed in one of the classes of [faults.md §2](../../../../spec/faults.md#2-classes):
    configuration errors fail the script before it streams; a lost or failed
-   connection is a source fault ([faults.md §3](faults.md#3-source-faults-reach-the-script))
+   connection is a source fault ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script))
    or an output fault; nothing raises out of a source while it streams. Every
    source of this file is fallible: while it cannot produce data it is not
    ready, so the script's `fallback` or `switch` decides what plays. No
@@ -126,10 +129,11 @@ Methods beyond the generic source ones:
 Example status string: `connected sine=frequency=440:duration=1`.
 
 A seek is a source switch downstream: the decoder discards what it holds
-([draining.md §5](draining.md#5-discarded-on-purpose)) and continues under a
+([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)) and continues under a
 new source id ([content.md §5](content.md#5-stream_idx-and-time_base)).
 
-Callbacks (each `(synchronous : bool, fn) -> {release}`):
+Callbacks, registered, ordered and guarded against raising handlers as every
+source callback ([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)):
 
 | Callback              | Argument                                                            | Fired                                                                                                                                                       |
 | --------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -423,7 +427,7 @@ remote can fix the cause. Only a failure that the script's own configuration
 fixes is given up on, and even that one is retried when the URL changes.
 
 Every failure of an attempt is a source fault
-([faults.md §3](faults.md#3-source-faults-reach-the-script)): the source is
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): the source is
 not ready while it lasts, and `on_error` carries it to the script.
 
 Reporting: log at error level (example: `Connection failed: <error>`), with
@@ -432,7 +436,7 @@ the failure; run every `on_error` callback. Inside them `status()` is
 `"starting"` or `"failed"`. A permanent failure is reported once. A
 transient failure runs `on_error` at each attempt; its log lines are
 rate-limited by `fault_log_interval`
-([faults.md §4](faults.md#4-item-faults-escalate)), so a remote down for
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)), so a remote down for
 hours does not flood the log.
 
 **Leaving `Failed`.** While `Failed (u, e)`, the source re-reads its URL
@@ -471,13 +475,13 @@ connection that ends because of shutdown is not an end of input (§2.5).
 A connection `c` ends in one of these ways. The party that moved the state
 out of `Connected (a, u, c)` ends it:
 
-| Cause         | Class                                                                     | Detected by                                                      | Data the decoder holds                                                                                                                                                              | `on_error` | Next state   |
-| ------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------ |
-| end of input  | none: a normal end of track                                               | `decode` returns end of input                                    | drained ([draining.md](draining.md), [decoder.md §13.1](decoder.md#131-end-of-input)) into the source's buffer, followed by the end of the track                                    | no         | `Starting b` |
-| feeding error | source fault ([faults.md §3](faults.md#3-source-faults-reach-the-script)) | `decode` returns a source fault (a read past `timeout` included) | what the decoder drained before reporting the fault ([decoder.md §13.2](decoder.md#132-errors): every stage but the one that failed) is delivered, followed by the end of the track | yes        | `Starting b` |
-| abort         | none                                                                      | `decode` returns an abort (§3)                                   | discarded: the connection was stopped or the application is shutting down                                                                                                           | no         | as the stop  |
-| stop          | none                                                                      | start/stop layer                                                 | discarded with the source's buffer: the reader has gone                                                                                                                             | no         | `Stopped`    |
-| shutdown      | none                                                                      | the shutdown flag                                                | discarded                                                                                                                                                                           | no         | `Stopped`    |
+| Cause         | Class                                                                                      | Detected by                                                      | Data the decoder holds                                                                                                                                                              | `on_error` | Next state   |
+| ------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------ |
+| end of input  | none: a normal end of track                                                                | `decode` returns end of input                                    | drained ([draining.md](../../../source/spec/draining.md), [decoder.md §13.1](decoder.md#131-end-of-input)) into the source's buffer, followed by the end of the track               | no         | `Starting b` |
+| feeding error | source fault ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)) | `decode` returns a source fault (a read past `timeout` included) | what the decoder drained before reporting the fault ([decoder.md §13.2](decoder.md#132-errors): every stage but the one that failed) is delivered, followed by the end of the track | yes        | `Starting b` |
+| abort         | none                                                                                       | `decode` returns an abort (§3)                                   | discarded: the connection was stopped or the application is shutting down                                                                                                           | no         | as the stop  |
+| stop          | none                                                                                       | start/stop layer                                                 | discarded with the source's buffer: the reader has gone                                                                                                                             | no         | `Stopped`    |
+| shutdown      | none                                                                                       | the shutdown flag                                                | discarded                                                                                                                                                                           | no         | `Stopped`    |
 
 Ending `c`, in order: clear the source's sync source (§7); drain or discard
 as above; close the decoder, which closes the container (a failure to close
@@ -511,7 +515,7 @@ runs `on_disconnect`, then `on_connect`, and plays again, without
 - A finite input of known length (a lavfi source with a duration, a file
   served over HTTP) delivers every sample and every frame of it per
   connection, with the codec's delay included (the counts of
-  [draining.md §6](draining.md#6-conformance)).
+  [draining.md §6](../../../source/spec/draining.md#6-conformance)).
 - Its end runs no `on_error` and logs nothing at error level.
 - A remote that closes every connection at once is reconnected no more often
   than every `poll_delay`.
@@ -609,9 +613,9 @@ the leading stream's data until the lagging one reaches one frame. When
 content added to the buffer makes it exceed `max_buffer`, the oldest excess
 is dropped (generic buffer behaviour; example:
 `Generator max buffered length exceeded (<max> < <len>)! Dropping content..`).
-Each such drop is an item fault ([faults.md §4](faults.md#4-item-faults-escalate)):
+Each such drop is an item fault ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)):
 logged as a warning, counted per source. After `max_consecutive_faults`
-([faults.md §4](faults.md#4-item-faults-escalate)) consecutive streaming cycles that
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) consecutive streaming cycles that
 each dropped, the source treats it as a feeding error (§2.5): a container
 whose streams stay that far apart is broken, and the script is told.
 
@@ -730,7 +734,7 @@ stream, a capture device); `video.testsrc.ffmpeg` (a generator) and
 
 ## 9. Failure summary (`input.ffmpeg`, `input.http`)
 
-Classes are those of [faults.md §2](faults.md#2-classes).
+Classes are those of [faults.md §2](../../../../spec/faults.md#2-classes).
 
 | Failure                                                                                      | Class                | Logged              | Callbacks                                       | Next                                                       |
 | -------------------------------------------------------------------------------------------- | -------------------- | ------------------- | ----------------------------------------------- | ---------------------------------------------------------- |
@@ -802,7 +806,7 @@ source's `on_disconnect` callbacks when the source was handed to the handler.
 
 Every way a client ends other than a clean end of input, a sleep, a `stop()`
 or shutdown is a source fault of the client's source
-([faults.md §3](faults.md#3-source-faults-reach-the-script)): an open,
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): an open,
 description or handler failure, a content-type mismatch, a feeding error, a
 read past `timeout`, the deadline. It is logged at error level with the
 client URI (the deadline at warning level), its track ends, and the source,
@@ -933,7 +937,7 @@ When the source wakes up in `Offered (k, d)`:
    inside the read function when the container needs more bytes. Feeding
    runs off the streaming thread.
 5. End of input (the read function returned 0): drain the decoder
-   ([draining.md](draining.md)) into the source's buffer, end the track, end
+   ([draining.md](../../../source/spec/draining.md)) into the source's buffer, end the track, end
    the client. A source fault returned by `decode`: deliver what the
    decoder drained before reporting it
    ([decoder.md §13.2](decoder.md#132-errors)), end the track, log at error
@@ -1004,7 +1008,7 @@ nor hastens a retry.
   failure there is handled as an encode failure (§11.3). In every state it
   becomes the current metadata.
 - **Stop** (any state → `Stopped`): in `Connected`, stop `enc`: it drains
-  every stage and writes the trailer ([draining.md](draining.md),
+  every stage and writes the trailer ([draining.md](../../../source/spec/draining.md),
   [encoder.md §7](encoder.md#7-stop)). In `Connecting a`, set `a`'s abort
   flag. In `Waiting`, nothing more.
 - **Reset**: nothing.
@@ -1019,9 +1023,9 @@ A failure of the attempt (§11.2 Start) or of an encode or metadata call in
 
 1. When in `Connected`: move the state out of it, then release `enc` without
    draining: a stage in error is released as it is
-   ([draining.md §5](draining.md#5-discarded-on-purpose)). When in
+   ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)). When in
    `Connecting a`: the attempt releases what it built.
-2. Classify the failure ([faults.md §2](faults.md#2-classes)):
+2. Classify the failure ([faults.md §2](../../../../spec/faults.md#2-classes)):
    - **Configuration error**: only failures deterministic by construction,
      which no later attempt can fix: a codec or muxer that the lookup does
      not find, an option no consumer recognised, and a stream parameter the
@@ -1043,7 +1047,7 @@ A failure of the attempt (§11.2 Start) or of an encode or metadata call in
      go on.
 3. Output fault: → `Waiting (now + restart_delay)`. Log at important level
    the delay (example: `Will try again in 2.00 seconds.`), rate-limited by
-   `fault_log_interval` ([faults.md §4](faults.md#4-item-faults-escalate)).
+   `fault_log_interval` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).
 4. With `restart_delay = null`, the script explicitly opts out of restarts
    (the default is `2.0`): instead of waiting, the output stops itself
    (`on_stop` runs) and stays stopped until its `start()` is called. The

@@ -10,7 +10,7 @@ script definitions built on them. It relies on the avfilter bindings
 ([avfilter.md](../../../../modules/synced/ffmpeg/spec/avfilter.md)), option
 introspection (`avutil.md` §4.15), the clock rules
 ([clock.md](../../../clock/spec/clock.md)), draining
-([draining.md](draining.md)), units and the duration helper
+([draining.md](../../../source/spec/draining.md)), units and the duration helper
 ([common.md](common.md)), raw content ([content.md](content.md)) and source
 identity ([content.md §5](content.md#5-stream_idx-and-time_base)). Bitstream
 filters are in [bitstream-filters.md](bitstream-filters.md).
@@ -334,7 +334,7 @@ between two pushes. When no generation runs it returns
 `process_command` logs a warning and returns FFmpeg's error message as its
 answer; it never raises. Reason: commands are typically sent from a
 source's frame callback (§17.2), and an error raised there would raise out
-of a streaming source ([faults.md §1](faults.md#1-why)).
+of a streaming source ([faults.md §1](../../../../spec/faults.md#1-why)).
 
 A command changes the running instance only. A new generation starts every
 instance from its creation arguments; the warning of §11.4 says so. A script
@@ -559,20 +559,19 @@ When any step raises, the build has failed (§11.6).
 
 ### 11.4 What ends a generation
 
-| Event               | Detected                                                                       | Then                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| input runs dry      | a fill needs data and some graph input's source is not ready (§12.2)           | drain (§11.7); next build when data comes back                                          |
-| format change       | a frame about to be pushed into a graph input differs from that input's format | drain; next build at once with the new format                                           |
-| every sink at end   | every sink has answered end of stream (`atrim`, a generator with a duration)   | drain; see below                                                                        |
-| graph source sleeps | the graph source goes to sleep                                                 | released without draining: nothing reads its output any more, and its buffer is dropped |
-| error               | a push, pull or build raised                                                   | released without draining ([draining.md §5](draining.md#5-discarded-on-purpose)); §11.6 |
+| Event               | Detected                                                                       | Then                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| input runs dry      | a fill needs data and some graph input's source is not ready (§12.2)           | drain (§11.7); next build when data comes back                                                               |
+| format change       | a frame about to be pushed into a graph input differs from that input's format | drain; next build at once with the new format                                                                |
+| every sink at end   | every sink has answered end of stream (`atrim`, a generator with a duration)   | drain; see below                                                                                             |
+| graph source sleeps | the graph source goes to sleep                                                 | released without draining: nothing reads its output any more, and its buffer is dropped                      |
+| error               | a push, pull or build raised                                                   | released without draining ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)); §11.6 |
 
 **Format change.** A video frame differs from the input's format when the
 comparison of [common.md §9](common.md#9-video-format-comparison) says so; an
 audio frame when its sample format, sample rate or channel layout differs.
 Only a frame being pushed counts: a frame held for a generation not yet
-built is pushed later and checked then. The input logs at warning level
-(level 3): `The format of <input id> changed in the middle of a stream, from
+built is pushed later and checked then. The input logs at `important`: `The format of <input id> changed in the middle of a stream, from
 <old> to <new>: rebuilding the filter graph. Its filters start over.`
 (example wording), the formats described as in
 [common.md §9](common.md#9-video-format-comparison). The generation is
@@ -609,20 +608,20 @@ inputs' formats depends on why the generation ended:
 
 ### 11.6 Errors while streaming
 
-Faults follow [faults.md](faults.md). Every error the script can cause by
+Faults follow [faults.md](../../../../spec/faults.md). Every error the script can cause by
 its description is a configuration error, reported at script time (§5.4,
 §6.3, §7.2, §15.3). While the graph streams, nothing raises out of the graph
 source or a graph input.
 
 **The graph source is fallible** (§9.3) and never invents content. A source
 fault of the graph source
-([faults.md §3](faults.md#3-source-faults-reach-the-script)):
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)):
 
 1. ends the graph source's track at the fault: the running generation is
    drained (§11.7) into the buffer, which delivers what it holds. When the
    generation itself failed (an FFmpeg error in it, a failed build), it is
    a stage in error and is released without draining
-   ([draining.md §5](draining.md#5-discarded-on-purpose));
+   ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose));
 2. puts the graph in the **failed** state, logged at error level with the
    graph and the cause: the graph source is not ready (§12.1), so a
    `fallback` or `switch` above it takes another source;
@@ -631,23 +630,23 @@ fault of the graph source
    when its inputs are, and the next fill builds a new generation.
 
 `fault_retry_delay` is defined in
-[faults.md §3](faults.md#3-source-faults-reach-the-script).
+[faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script).
 
 Faults of the graph, by class:
 
-| Fault                                                              | Class                                                         | Outcome                                                                                                                                                               |
-| ------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FFmpeg error pushing into or reading from a running generation     | item fault ([faults.md §4](faults.md#4-item-faults-escalate)) | the frame is dropped with a warning; the generation is released without draining; the next fill rebuilds                                                              |
-| a build or launch fails (a format the filters refuse)              | source fault                                                  | the steps above                                                                                                                                                       |
-| a rebuilt generation fails again before any sink produced a frame  | source fault                                                  | the steps above. Reason: a fault that returns at every rebuild would otherwise rebuild the graph on every frame, so the item fault escalates after one failed rebuild |
-| a raw frame at a graph input that breaks the content rules (§13.1) | item fault                                                    | dropped with a warning; `max_consecutive_faults` consecutive drops at one input escalate to a source fault                                                            |
-| a limit of §12.3                                                   | per §12.3                                                     | per §12.3                                                                                                                                                             |
-| a decreasing video PTS out of a filter (§13.3)                     | item fault, repaired                                          | the frame is kept and the timeline repaired, with a warning; nothing is lost, so it never escalates                                                                   |
-| a format change at an input (§11.4)                                | not a fault                                                   | the generation is rebuilt, with a warning                                                                                                                             |
-| `process_command` refused by FFmpeg (§6.3)                         | item fault of the command                                     | the answer carries FFmpeg's message, with a warning; nothing raises                                                                                                   |
+| Fault                                                              | Class                                                                          | Outcome                                                                                                                                                               |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FFmpeg error pushing into or reading from a running generation     | item fault ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) | the frame is dropped with a warning; the generation is released without draining; the next fill rebuilds                                                              |
+| a build or launch fails (a format the filters refuse)              | source fault                                                                   | the steps above                                                                                                                                                       |
+| a rebuilt generation fails again before any sink produced a frame  | source fault                                                                   | the steps above. Reason: a fault that returns at every rebuild would otherwise rebuild the graph on every frame, so the item fault escalates after one failed rebuild |
+| a raw frame at a graph input that breaks the content rules (§13.1) | item fault                                                                     | dropped with a warning; `max_consecutive_faults` consecutive drops at one input escalate to a source fault                                                            |
+| a limit of §12.3                                                   | per §12.3                                                                      | per §12.3                                                                                                                                                             |
+| a decreasing video PTS out of a filter (§13.3)                     | item fault, repaired                                                           | the frame is kept and the timeline repaired, with a warning; nothing is lost, so it never escalates                                                                   |
+| a format change at an input (§11.4)                                | not a fault                                                                    | the generation is rebuilt, with a warning                                                                                                                             |
+| `process_command` refused by FFmpeg (§6.3)                         | item fault of the command                                                      | the answer carries FFmpeg's message, with a warning; nothing raises                                                                                                   |
 
 `max_consecutive_faults` and `fault_log_interval` are defined in
-[faults.md §4](faults.md#4-item-faults-escalate): repeated warnings of one
+[faults.md §4](../../../../spec/faults.md#4-item-faults-escalate): repeated warnings of one
 kind are counted and logged with their count once per `fault_log_interval`.
 
 **Operator documentation.** The graph source is fallible, so a script reads
@@ -656,7 +655,7 @@ source.
 
 ### 11.7 Draining a generation
 
-A generation is a stage in the sense of [draining.md](draining.md). Draining
+A generation is a stage in the sense of [draining.md](../../../source/spec/draining.md). Draining
 it:
 
 1. Each graph input sends end of stream to its buffer source, once.
@@ -735,9 +734,9 @@ Each limit is `settings.ffmpeg.filter_max_buffer` seconds of media. A limit
 never stops the output and never raises: it logs a warning naming the graph,
 the output or input, the limit and what was dropped, then acts as the "When
 reached" column says. Repeats are counted and logged at a bounded rate
-([faults.md §4](faults.md#4-item-faults-escalate)). The two waits on input
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). The two waits on input
 data (held input, fill input) are input-side waits
-([faults.md §5](faults.md#5-waiting)): at their bound they become a source
+([faults.md §5](../../../../spec/faults.md#5-waiting)): at their bound they become a source
 fault of the graph source (§11.6). The generation is drained first (§11.7);
 the held frames, which no generation has taken yet, are dropped. The two
 others are item faults that never escalate: what they drop is the excess of
@@ -856,7 +855,7 @@ A filter's output is FFmpeg's to produce. A video sink that reads a frame
 whose PTS is below the previous frame's:
 
 1. logs a warning naming the graph output, the previous and the new PTS
-   (an item fault, repaired, [faults.md §4](faults.md#4-item-faults-escalate)),
+   (an item fault, repaired, [faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)),
    repeats counted and logged at a bounded rate;
 2. flushes its helper, so the previous frames keep their length (frame
    duration or previous step, [common.md §6.3](common.md#63-flush-t));
@@ -1012,7 +1011,7 @@ neither raises for them. A helper is single-use after `eof`.
 
 A helper never raises while streaming. An FFmpeg error during `convert`
 drops that frame, logs a warning, and rebuilds the helper on the next frame:
-an item fault ([faults.md §4](faults.md#4-item-faults-escalate)) of the
+an item fault ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) of the
 helper's owner, counted against the owner's bound. A filter the helper
 needs and the installed FFmpeg lacks (`setpts`, `fps`, `aformat`, `scale`,
 `pad`, `setsar`, `format`) is a configuration error: the layer checks for
@@ -1020,7 +1019,7 @@ them at start-up and fails the script when one is missing and the script
 uses an FFmpeg video or audio conversion.
 
 A helper that holds frames (Fps, AFormat) is a stage
-([draining.md](draining.md)): its owner calls `eof` before releasing or
+([draining.md](../../../source/spec/draining.md)): its owner calls `eof` before releasing or
 replacing it, and passes the result downstream before the replacement's
 first output. Fit holds nothing and needs no drain.
 
@@ -1065,7 +1064,7 @@ the rule's value that continues its timeline.
 
 **Gaps.** `fps` repeats the previous frame to fill a gap in its input
 timestamps. A frame repeated across a gap in the content would be invented
-content ([faults.md §3](faults.md#3-source-faults-reach-the-script)). An
+content ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)). An
 owner whose input has a gap in positions drains the stage at the gap (§16
 intro) and builds a new one after it, starting at the grid slot that follows
 the gap. Frame repetition within continuous input is the frame-rate
@@ -1176,7 +1175,7 @@ d=getter(""), v)`, with `v` a video pad value:
 6. `on_change()`: reads `x`, `y` and `d`; when the triple changed since the
    previous call, sends to each drawtext `process_command("reinit", "x=<x>:y=<y>:text=<escaped text>")`.
 7. `on_metadata(m)`: when `metadata` is set and `m[metadata]`, escaped, is
-   not empty, logs at level 3 under `ffmpeg.filter.drawtext`
+   not empty, logs at `important` under `ffmpeg.filter.drawtext`
    `Setting new text <text> from metadata <key>` (example wording) and sends
    `reinit` with `text=<text>` to each drawtext.
 8. Chains the drawtexts with `set_input` from `v` and returns the last output
@@ -1208,13 +1207,13 @@ request processed with `request.process`, the graph `audio.input` →
 `audio.output(id="filter_output")`, collecting every metadata of the result.
 `asetpts` rewrites the filter's PTS from the sample count, so that
 `lavfi.liq.pts` (§14.2), which reports the filter's own PTS, is a position:
-`ebur128`'s output PTS are not. Without `ebur128` it logs at level 2 under
+`ebur128`'s output PTS are not. Without `ebur128` it logs at `severe` under
 `autocue.internal` `ffmpeg.filter.ebur128 is not available, autocue
 disabled!` (example wording) and returns `[]`.
 
 ## 18. Failure summary
 
-Classes as in [faults.md §2](faults.md#2-classes).
+Classes as in [faults.md §2](../../../../spec/faults.md#2-classes).
 
 | Situation                                                   | When        | Class                     | Result                                                                        |
 | ----------------------------------------------------------- | ----------- | ------------------------- | ----------------------------------------------------------------------------- |

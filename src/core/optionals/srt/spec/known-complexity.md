@@ -454,7 +454,7 @@ Sources: ce0f954ee, 5c7819152, 5e8951ad7, 48cc9d7b2, fa52a0deb, 55fc9d6f2,
 01d559687, 0cd96e4f9, 646a82198, c31ab058d, 21ebfe7c1, 923ae2ef7, 24084719f,
 96e8df380, b8ee50ee7, a0c56dc00, 22bb40a97, #4364.
 
-**Spec:** An input paces only while its connection is time-controlled, with the stream as the sync source's identity ([input.md §7](input.md#7-pacing)); the output never paces ([output.md §8](output.md#8-pacing)).
+**Spec:** An input paces only while its connection is time-controlled, with one sync-source identity per input, kept across reconnections, so that two paced inputs in one clock are a conflict even on the same stream ([input.md §7](input.md#7-pacing)); the output never paces ([output.md §8](output.md#8-pacing)).
 
 ---
 

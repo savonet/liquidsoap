@@ -48,7 +48,7 @@ Conformance:
    ([side-data.md §3](side-data.md#3-autorotate-on-decoding)).
 3. Reads one frame from that stream in frame mode.
 4. Passes the frame through the display stage, then drains the stage
-   ([draining.md](draining.md)); the first frame the stage delivers is kept.
+   ([draining.md](../../../source/spec/draining.md)); the first frame the stage delivers is kept.
 5. The kept frame is converted, at its own width and height, from its pixel
    format to YUVA 4:2:0, with the configured scaling threads.
 6. Closes the container, in every case, and returns the picture.
@@ -64,9 +64,9 @@ alpha plane.
 | no video stream, open or read failure                    | source fault | error logged with the cause; no picture |
 | the display stage delivers no frame, or no frame is read | source fault | error logged; no picture                |
 
-Classes are those of [faults.md §2](faults.md#2-classes). `decode_image`
+Classes are those of [faults.md §2](../../../../spec/faults.md#2-classes). `decode_image`
 never raises: it returns a picture or none. The generic image decoding tries
 each image decoder in priority order and uses the first that returns a
 picture. When none does it logs at important level that no image decoder
 could decode the file, and reports no picture; the source that asked for the
-image then follows [faults.md §3](faults.md#3-source-faults-reach-the-script).
+image then follows [faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script).

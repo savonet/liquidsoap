@@ -96,10 +96,10 @@ matrix, and the EXIF orientation of images, onto each frame.
   matrix. Timestamps are unchanged.
 - `eof stage deliver`: an empty stage holds nothing. A converter stage
   drains: it flushes its graph and delivers every frame it held, before the
-  stage is released or replaced ([draining.md](draining.md)). The stage
+  stage is released or replaced ([draining.md](../../../source/spec/draining.md)). The stage
   stays usable after a drain.
 - A seek discards the stage's held frames instead
-  ([draining.md §5](draining.md#5-discarded-on-purpose)).
+  ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)).
 - The stage is used by one decoder from one thread and needs no lock.
 
 Conformance: a decoded rotated stream ending inside the converter's delay
@@ -153,14 +153,15 @@ instance (wording not binding):
 ```
 
 A script handler installed by §4 runs inside the conversion. When it raises,
-the stage logs the error at level 2 (severe) with the reason of the question,
-applies the default (no decision: video left as stored), and decoding
-continues. A chain answered by a handler that fails to build (an unknown
+it is script code that raises
+([faults.md §0](../../../../spec/faults.md#0-the-rule)): the stage logs the
+error at `severe` with the reason of the question, and goes on with the
+default (no decision: video left as stored); decoding continues. A chain answered by a handler that fails to build (an unknown
 filter name, a bad option) is logged the same way and the frames are
 delivered as stored. Both are item faults
-([faults.md §2](faults.md#2-classes)) whose item is the decision, not the
+([faults.md §2](../../../../spec/faults.md#2-classes)) whose item is the decision, not the
 frame: they carry no media, so they do not count toward
-`max_consecutive_faults` ([faults.md §4](faults.md#4-item-faults-escalate)).
+`max_consecutive_faults` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).
 Repeats are counted and logged at most once per `fault_log_interval`.
 
 Conformance: a handler that raises on every call leaves the stream decoding,
@@ -225,13 +226,13 @@ when its input is.
 
 With an infallible input, a persistent data fault (a rejected source) is a
 hard error and the script fails
-([faults.md §3](faults.md#3-source-faults-reach-the-script)). The operator's
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)). The operator's
 documentation says so and names `mksafe` and `fallback` as the way to keep
 streaming through such a fault.
 
 A name in `remove` that is not one of FFmpeg's packet side-data kind names is
 a configuration error at operator creation
-([faults.md §2](faults.md#2-classes)). Source ids pass through unchanged
+([faults.md §2](../../../../spec/faults.md#2-classes)). Source ids pass through unchanged
 ([content.md §5](content.md#5-stream_idx-and-time_base)).
 
 The output format is separate from the input format (`'b`, not `'a`). The
@@ -266,8 +267,8 @@ For each frame produced by the input:
       streaming. With the relaxed setting on, only codec id and media are
       compared.
 
-      Classes ([faults.md §2](faults.md#2-classes)): the rejected source is a source fault
-      ([faults.md §3](faults.md#3-source-faults-reach-the-script)): end of
+      Classes ([faults.md §2](../../../../spec/faults.md#2-classes)): the rejected source is a source fault
+      ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): end of
       track; while it persists, the operator is not ready when its input is
       fallible, and raises a hard error naming the source and both
       parameter sets when its input is infallible. It never invents

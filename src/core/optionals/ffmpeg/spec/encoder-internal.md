@@ -10,7 +10,7 @@ layout of [content.md](content.md), on the bindings' stream creation and
 `write_frame` ([avformat.md §4.4](../../../../modules/synced/ffmpeg/spec/avformat.md#44-output)),
 on the pixel format, scaling and hardware rules of [common.md](common.md), on
 the helper graphs of [filters.md §16](filters.md#16-helper-graphs), and on the
-draining rule of [draining.md](draining.md). Timestamps are in
+draining rule of [draining.md](../../../source/spec/draining.md). Timestamps are in
 [timestamps.md §3](timestamps.md#3-audio-internal-and-raw)–§5.
 
 ## 1. Interface
@@ -126,7 +126,7 @@ A resampler is keyed on the input's (sample rate, channel layout, sample
 format), read from each frame: identity when all three equal the target, else
 an FFmpeg-frame to FFmpeg-frame resampler. A frame whose key differs from the
 current resampler's drains the current one into the next stage
-([draining.md §2](draining.md#2-the-rule)), then builds a resampler for the
+([draining.md §2](../../../source/spec/draining.md#2-the-rule)), then builds a resampler for the
 new key. Producers deliver raw audio conformed to the field's format
 ([content.md §14](content.md#14-raw-audio-conformance)), so within one
 content format the key stays the same.
@@ -144,7 +144,7 @@ position ([timestamps.md §3](timestamps.md#3-audio-internal-and-raw)):
   earlier by less than one codec frame; no sample is invented or lost.
 - **Overlap.** Samples before the counter's position are dropped with a
   warning naming the overlap: an item fault
-  ([faults.md §2](faults.md#2-classes)), counted with the others of
+  ([faults.md §2](../../../../spec/faults.md#2-classes)), counted with the others of
   [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults).
 
 Both are computed from absolute positions, never accumulated.
@@ -195,7 +195,7 @@ a source switch does not rebuild it. It is drained and rebuilt:
 - when a frame's format differs from the current converter's;
 - at a gap in the raw content's positions: the converter is drained before
   the gap and a new one starts after it, so it never repeats a frame across
-  a gap ([faults.md §3](faults.md#3-source-faults-reach-the-script): no
+  a gap ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script): no
   invented content).
 
 Draining tells the converter end of stream; every frame it delivers is
@@ -242,7 +242,7 @@ Subtitles: `write_subtitle_frame`. A frame or subtitle the codec rejects, and
 a packet the muxer rejects, is an item fault: dropped with a warning, and the
 stream goes on, up to the bound of
 [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults). An I/O error
-of the byte sink is an output fault ([faults.md §2](faults.md#2-classes)).
+of the byte sink is an output fault ([faults.md §2](../../../../spec/faults.md#2-classes)).
 
 ## 7. Keyframes
 
@@ -258,14 +258,14 @@ streams ignore it.
 
 ## 8. Flush and end
 
-`flush` drains, upstream first ([draining.md §3](draining.md#3-order)):
+`flush` drains, upstream first ([draining.md §3](../../../source/spec/draining.md#3-order)):
 
 - **Audio.** The resampler is drained; its output goes through the
   re-framer. The re-framer is drained; its last frame is short when the input
   did not fill it. The short last frame goes to the codec as it is. A codec
   that does not accept a short last frame receives it padded with silence by
   FFmpeg, which records the padding in the packet durations so that a
-  container able to signal it does ([draining.md §4](draining.md#4-partial-final-units)).
+  container able to signal it does ([draining.md §4](../../../source/spec/draining.md#4-partial-final-units)).
 - **Video.** The current frame-rate converter is drained (§4.6).
 - **Subtitle.** Nothing is held.
 

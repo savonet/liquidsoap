@@ -24,11 +24,13 @@ remote address it reached or came from. A peer is **live** from the end of
 its `on_connect` (§5) until the role ends it (§8). Data flows only to and
 from live peers.
 
-Each role keeps its state as one value per operator, changed by atomic
-transitions. A transition that depends on the state (an attempt completing,
-an accept landing, a peer failing) MUST check the state in the same atomic
-step: a result that arrives after the state moved on is discarded, its
-socket closed, and no `on_connect` or `on_disconnect` fires for it.
+Each role keeps its state as one value per operator, with one owner and
+atomic transitions; a transition that depends on the state (an attempt
+completing, an accept landing, a peer failing) checks it in the same atomic
+step and a late result is discarded
+([concurrency.md §3](../../../../spec/concurrency.md#3-shared-state)). For a
+role, discarding a result closes its socket, and no `on_connect` or
+`on_disconnect` fires for it.
 
 ## 3. Socket setup
 
@@ -51,32 +53,36 @@ carries data, so options negotiated at handshake time can still be set.
 **Closing.** Every socket that received a creation event MUST receive
 exactly one `"close"` event, fired just before the role closes it, whatever
 the path: normal end, failure, stop, shutdown. A socket closed before its
-creation event fires receives none. Every socket a role creates MUST be
-closed exactly once, on every path, including when a later setup step
-fails.
+creation event fires receives none. Every socket a role creates is closed
+exactly once, on every path, including when a later setup step fails
+([concurrency.md §4](../../../../spec/concurrency.md#4-resources)).
 
 ## 4. Connect
 
 Each role states what starts when the operator comes to want a connection,
 and on which thread connecting happens.
 
-**Failure classification.** A failure to set up, bind, listen or connect is
-one of:
+**Failure classification.** A failure waiting cannot fix is not retried; a
+failure that may clear up later is retried after a bounded delay
+([faults.md §2](../../../../spec/faults.md#2-classes)). For SRT, a failure to
+set up, bind, listen or connect is one of:
 
-- **permanent**: waiting cannot fix it: the library rejects a parameter
-  value, or the system refuses the operation for lack of permission.
+- **permanent**: the library rejects a parameter value, or the system
+  refuses the operation for lack of permission.
   Validation at construction catches what it can
   ([common.md §1](common.md#1-parameters)). What remains is raised, with an
   error naming the operator and the cause, from the call that made the
   connection wanted (the operator's start, or `connect()`) when it happens
   there; what a failed start does to the process is the clock's handling of
-  a failed source. When it happens later, in background connection work, it
-  is logged at level 2 and the role stops trying until the connection is
+  a failed source ([clock.md §11](../../../clock/spec/clock.md#11-failure)).
+  When it happens later, in background connection work, it
+  is logged at `severe` and the role stops trying until the connection is
   wanted again.
-- **transient**: anything that may clear up later: an address in use or not
+- **transient**: an address in use or not
   yet available, a name that does not resolve, a peer that is unreachable,
-  times out or rejects the handshake. It is logged at level 3 with its cause
-  and retried after `polling_delay` seconds while the connection is wanted.
+  times out or rejects the handshake. It is logged at `important` with its
+  cause and retried after `polling_delay` seconds while the connection is
+  wanted.
 
 The error a failing library call reports
 ([library.md §6](library.md#6-what-is-relied-upon-from-the-binding)) decides
@@ -86,9 +92,10 @@ every other failure is transient. libsrt reports a bind refused by the
 system (port held by another program, privileged port, address not local)
 as one generic socket error, so the system error is what tells them apart.
 
-Retrying has no limit and no back-off. Connecting MUST NOT block the
-streaming thread, and MUST NOT hold a worker of a shared bounded pool for the
-duration of a blocking call ([concurrency.md §1](concurrency.md#1-threads)).
+Retrying has no limit and no back-off. Connecting is never done on the
+streaming thread and is work allowed to block
+([concurrency.md §1–§2](../../../../spec/concurrency.md#1-work)); how SRT
+places it is [concurrency.md §1](concurrency.md#1-threads).
 
 ## 5. Connected
 

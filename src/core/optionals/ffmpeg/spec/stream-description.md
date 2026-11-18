@@ -50,7 +50,7 @@ Data streams have no time base in the model.
 3. Describe the streams of each medium in container order (§3).
 4. If no stream of any medium was described: fail with an error saying that
    the container has no valid stream. This is a source fault of that input
-   ([faults.md §3](faults.md#3-source-faults-reach-the-script)): the caller
+   ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): the caller
    does not decode it, and nothing downstream stops.
 5. `streams` = audio streams, then video, then subtitle, then data, each in
    container order.
@@ -75,7 +75,7 @@ streams.
 Reading a stream's parameters can fail with an FFmpeg error. The stream is
 then left out of `streams`, and the failure is logged at warning level with
 the medium and the error. This is an item fault
-([faults.md §2](faults.md#2-classes)) whose item is the stream. It needs no
+([faults.md §2](../../../../spec/faults.md#2-classes)) whose item is the stream. It needs no
 escalation bound: a container has finitely many streams, and a container
 with none left is a source fault (§2 step 4). The stream keeps its rank: the next stream of that
 medium gets the next name, not the failed stream's. The decoder maps fields
@@ -88,7 +88,7 @@ Field names beyond the first (`audio_2`, `video_3`, …) are ordinary field
 names. A script MAY write them in annotations
 (`source(audio_2=ffmpeg.audio.raw)`); the type checker resolves them as it
 resolves `audio`. An unknown field name in an annotation is a configuration
-error ([faults.md §2](faults.md#2-classes)), never an internal exception. The type checker owns this; the decoder relies
+error ([faults.md §2](../../../../spec/faults.md#2-classes)), never an internal exception. The type checker owns this; the decoder relies
 on it.
 
 Conformance:
@@ -194,7 +194,7 @@ error of [content.md §3](content.md#3-parameters): it names the property
 that differs and prints both parameter sets. The caller does not decode that container
 ([decoder.md](decoder.md)); a source that was being opened is rejected, and
 nothing of it is produced. This is a source fault of that file or
-connection ([faults.md §3](faults.md#3-source-faults-reach-the-script)): a
+connection ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): a
 playlist moves on, a reconnecting input that keeps meeting it is not ready
 so a `fallback` moves on, and the output keeps streaming.
 

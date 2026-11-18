@@ -105,7 +105,7 @@ and HLS segments of one variant share one timeline, restarts included. A
 re-encoded stream rebuilt by an HLS restart starts its counter at the output
 position of the restart, in its own time base, shifted forward by its
 priming so that its DTS stays strictly increasing (D5).
-Drains follow [draining.md](draining.md#2-the-rule).
+Drains follow [draining.md](../../../source/spec/draining.md#2-the-rule).
 
 ## 3. Audio (internal and raw)
 
@@ -179,7 +179,7 @@ pts in `1/framerate`; then `write_frame`.
 A converter is built for the first frame and rebuilt when the frame format
 changes (the set of properties that count as a format change is defined once,
 by the content owner). Before a rebuild the old converter is drained
-([draining.md](draining.md#2-the-rule)): every frame it holds is written.
+([draining.md](../../../source/spec/draining.md#2-the-rule)): every frame it holds is written.
 The new converter continues the grid: no `setpts` re-anchoring is applied;
 the `fps` filter gets `start_time = T`, the time of the next grid slot (frame
 number `W`), so its first output frame is numbered `W` at earliest and a grid
@@ -192,7 +192,7 @@ At a gap in the raw video content's positions, the converter is drained and
 rebuilt at the next grid slot after the gap, with the same start rule. It
 never repeats a frame across the gap: the stream carries a timestamp gap
 where the content had no picture, and no frame is invented
-([faults.md §3](faults.md#3-source-faults-reach-the-script)).
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)).
 
 ### 4.4 Within one converter
 
@@ -336,14 +336,14 @@ Every copied output stream has strictly increasing stored DTS, where the
 stored value is the written DTS rescaled to the stream time base (§1.3). The
 cases that can break it each have their own rule:
 
-| Case                                                                                                                                | Class ([faults.md §2](faults.md#2-classes)) | Result                                                                                                  |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| within one tenure, after its first written packet, a packet whose `dts` is below the last written packet's `dts`, compared as times | item fault (invalid input)                  | dropped, logged at warning with the track, the source id and both values; counted; the output continues |
-| within one tenure, a packet whose `dts` equals the last written packet's `dts`, compared as times                                   | item fault                                  | dropped, logged as "equal DTS dropped"; counted; the output continues                                   |
-| a packet whose PTS is below its DTS                                                                                                 | item fault (invalid input)                  | the same                                                                                                |
-| a packet needing more than `max_rounding_shift`                                                                                     | item fault                                  | the same                                                                                                |
-| the first packets of a late member whose `dts'` falls below the track's end                                                         | none: join overlap                          | dropped, counted, logged at info                                                                        |
-| a stored DTS equal to the previous one although `dts` increased (rounding to a coarser stream time base)                            | none: container precision                   | stored as previous + 1 unit                                                                             |
+| Case                                                                                                                                | Class ([faults.md §2](../../../../spec/faults.md#2-classes)) | Result                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| within one tenure, after its first written packet, a packet whose `dts` is below the last written packet's `dts`, compared as times | item fault (invalid input)                                   | dropped, logged at warning with the track, the source id and both values; counted; the output continues |
+| within one tenure, a packet whose `dts` equals the last written packet's `dts`, compared as times                                   | item fault                                                   | dropped, logged as "equal DTS dropped"; counted; the output continues                                   |
+| a packet whose PTS is below its DTS                                                                                                 | item fault (invalid input)                                   | the same                                                                                                |
+| a packet needing more than `max_rounding_shift`                                                                                     | item fault                                                   | the same                                                                                                |
+| the first packets of a late member whose `dts'` falls below the track's end                                                         | none: join overlap                                           | dropped, counted, logged at info                                                                        |
+| a stored DTS equal to the previous one although `dts` increased (rounding to a coarser stream time base)                            | none: container precision                                    | stored as previous + 1 unit                                                                             |
 
 DTS values within a tenure are compared as times: each value times its run's
 time base, exactly (or, equivalently for this rule, in main ticks before the
@@ -375,7 +375,7 @@ guarantees the increase, so no switch event drops a packet here.
 A source whose timestamps restart lower under the same id, with no declared
 discontinuity, would lose every packet until its timestamps pass the old
 ones. After `max_consecutive_faults` consecutive item faults on one tenure
-([faults.md §4](faults.md#4-item-faults-escalate)), the
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)), the
 encoder treats the source as switched: the source's group restarts as a new
 group on the same id, every member's tenure reopens with the usual keyframe
 wait ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)),
@@ -386,7 +386,7 @@ protects the output from a long silence on a source that is still
 delivering data. The escalation stays inside the output, because the
 encoder cannot end its upstream source's track. Every further run past the
 bound restarts the group again; a data fault never stops the output
-([faults.md §4](faults.md#4-item-faults-escalate)).
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).
 
 This rule covers copied packets only. Frames out of an `ffmpeg.filter` graph
 are raw content: the filter stage repairs a decreasing video PTS of its own
@@ -491,7 +491,7 @@ whole-output switch (§6.2).
 Every stream's stored DTS is strictly increasing. For re-encoded audio and
 video it follows from the counters; a codec whose packets are closer than one
 unit of the stream time base cannot be stored by that container. That is a
-configuration error ([faults.md §2](faults.md#2-classes)): the format asks
+configuration error ([faults.md §2](../../../../spec/faults.md#2-classes)): the format asks
 for a rate the container cannot carry. It can be known only once the muxer
 has chosen the stream time base, at the header write of the first frame;
 the encoder reports it there, before any data of the stream is written
@@ -533,7 +533,7 @@ The same result holds with the fields declared in the other order.
 Every packet of A reaches the encoder, the final audio packet included: the
 decoder MUST deliver it at end of input
 ([decoder.md §13.1](decoder.md#131-end-of-input),
-[draining.md §6](draining.md#6-conformance)). A's audio end in §11.2 counts
+[draining.md §6](../../../source/spec/draining.md#6-conformance)). A's audio end in §11.2 counts
 it.
 
 ### 11.2 Switch to B, cut mid-GOP

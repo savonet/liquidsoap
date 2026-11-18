@@ -170,7 +170,7 @@ stay in place on a file whose start time is not zero.
 
 ## 6. Flush
 
-Every internal decoder drains on `Flush` ([draining.md](draining.md)).
+Every internal decoder drains on `Flush` ([draining.md](../../../source/spec/draining.md)).
 
 | Decoder          | `Flush`                                                                      |
 | ---------------- | ---------------------------------------------------------------------------- |
@@ -213,16 +213,16 @@ Not sparse.
 
 ## 8. Errors and logs
 
-Classes are those of [faults.md §2](faults.md#2-classes); escalation and
+Classes are those of [faults.md §2](../../../../spec/faults.md#2-classes); escalation and
 the bound are [decoder.md §8.2](decoder.md#82-one-decode-step)'s.
 
-| Decoder   | Event                                                            | Class        | Effect                                                                                                    |
-| --------- | ---------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------- |
-| audio     | unsupported PCM kind at creation                                 | source fault | the track does not start                                                                                  |
-| audio     | format change                                                    | —            | important log, resampler drained and rebuilt                                                              |
-| video     | format, time base or stream index change                         | —            | important log, stage drained and rebuilt                                                                  |
-| subtitles | unsupported rectangle type, the cue's other rectangles delivered | item fault   | warning; rectangle skipped; not counted: the cue still delivers media                                     |
-| subtitles | a cue none of whose rectangles is supported                      | item fault   | warning; cue dropped; counted                                                                             |
-| subtitles | item ended before the reached position                           | item fault   | warning; item dropped; counted, since it carries media ([faults.md §4](faults.md#4-item-faults-escalate)) |
-| all       | the resampler, scaler or a filter fails on an item               | item fault   | item dropped with a warning; counted                                                                      |
-| all       | a stage cannot be rebuilt after a format change                  | source fault | end of track ([decoder.md §13.2](decoder.md#132-errors))                                                  |
+| Decoder   | Event                                                            | Class        | Effect                                                                                                                     |
+| --------- | ---------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| audio     | unsupported PCM kind at creation                                 | source fault | the track does not start                                                                                                   |
+| audio     | format change                                                    | —            | important log, resampler drained and rebuilt                                                                               |
+| video     | format, time base or stream index change                         | —            | important log, stage drained and rebuilt                                                                                   |
+| subtitles | unsupported rectangle type, the cue's other rectangles delivered | item fault   | warning; rectangle skipped; not counted: the cue still delivers media                                                      |
+| subtitles | a cue none of whose rectangles is supported                      | item fault   | warning; cue dropped; counted                                                                                              |
+| subtitles | item ended before the reached position                           | item fault   | warning; item dropped; counted, since it carries media ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) |
+| all       | the resampler, scaler or a filter fails on an item               | item fault   | item dropped with a warning; counted                                                                                       |
+| all       | a stage cannot be rebuilt after a format change                  | source fault | end of track ([decoder.md §13.2](decoder.md#132-errors))                                                                   |

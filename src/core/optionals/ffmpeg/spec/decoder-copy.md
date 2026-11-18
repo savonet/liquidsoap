@@ -112,7 +112,7 @@ Conformance:
 
 ## 6. Flush
 
-Copy decoders drain on `Flush` ([draining.md](draining.md)):
+Copy decoders drain on `Flush` ([draining.md](../../../source/spec/draining.md)):
 
 | Decoder      | `Flush`                                                                                                                  |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------ |
@@ -136,13 +136,13 @@ not sparse.
 
 ## 8. Errors and logs
 
-Classes are those of [faults.md §2](faults.md#2-classes); escalation and
+Classes are those of [faults.md §2](../../../../spec/faults.md#2-classes); escalation and
 the bound are [decoder.md §8.2](decoder.md#82-one-decode-step)'s.
 
-| Event                                                    | Class        | Effect                                                                                               |
-| -------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------- |
-| unification failure at creation                          | source fault | the track does not start                                                                             |
-| corrupt packet                                           | item fault   | warning; audio/video packet dropped, subtitle packet replaced by an empty chunk; counted             |
-| decreasing DTS seen by the helper                        | item fault   | packet dropped with a warning; counted                                                               |
-| helper "discontinuity" (run past the bound, group bound) | source fault | helper flushed; end of track ([decoder.md §13.2](decoder.md#132-errors))                             |
-| subtitle that ended before the reached position          | item fault   | warning; dropped; counted, since it carries media ([faults.md §4](faults.md#4-item-faults-escalate)) |
+| Event                                                    | Class        | Effect                                                                                                                |
+| -------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| unification failure at creation                          | source fault | the track does not start                                                                                              |
+| corrupt packet                                           | item fault   | warning; audio/video packet dropped, subtitle packet replaced by an empty chunk; counted                              |
+| decreasing DTS seen by the helper                        | item fault   | packet dropped with a warning; counted                                                                                |
+| helper "discontinuity" (run past the bound, group bound) | source fault | helper flushed; end of track ([decoder.md §13.2](decoder.md#132-errors))                                              |
+| subtitle that ended before the reached position          | item fault   | warning; dropped; counted, since it carries media ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) |

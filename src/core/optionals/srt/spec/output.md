@@ -27,12 +27,15 @@ The value returned carries the methods and callbacks of
 
 1. Validate the common parameters ([common.md §1](common.md#1-parameters))
    and `max_clients`. `max_payload_delay` MUST be a non-negative number (NaN is
-   refused): invalid-value error
+   refused): invalid-value error, example wording
    `Maximum payload delay must be a non-negative number!`.
-2. Look up an encoder factory for the format. None found: invalid-value error
-   on the format, `Cannot get a stream encoder for that format`.
+2. Look up a stream encoder factory for the format
+   ([encoder.md §1](../../../encoder/spec/encoder.md#1-registry)). None found:
+   invalid-value error on the format, example wording
+   `Cannot get a stream encoder for that format`.
 3. Build the operator with the role `mode` names. The generic output checks
-   that a non-fallible output has an infallible source.
+   that a non-fallible output has an infallible source
+   ([output.md §1](../../../outputs/spec/output.md#1-common-parameters-methods-and-callbacks)).
 
 ## 3. Lifecycle
 
@@ -45,45 +48,49 @@ thread:
   ([connection.md §8](connection.md#8-disconnect)), ending every peer
   cleanly (§6).
 
-A **reset**, which the clock asks of its outputs after too much latency, is
-stop then start, and only while started. Afterwards the output is started and
-connecting, exactly as after a first start.
+A **reset** is the generic one
+([output.md §4](../../../outputs/spec/output.md#4-reset)): stop then start.
+Afterwards the output is connecting, exactly as after a first start.
 
-The generic output enters started when its source is ready and it is idle,
-and falls back to idle when the source ends a frame early. A fallible output
+The generic output's states
+([output.md §2](../../../outputs/spec/output.md#2-states)) make a fallible
+output fall back to idle when its source ends: it
 therefore ends its peers each time its source becomes unavailable, and
 connects again when it comes back: one peer connection carries one stream,
 from its start to its end.
 
 ## 4. Encoder
 
-The output holds at most one encoder, and runs it only while it has at least
+The output drives the stream face of the
+[encoder interface](../../../encoder/spec/encoder.md#3-the-stream-face). It
+holds at most one encoder instance, and runs it only while it has at least
 one peer to send to.
 
 - **Creating.** The first encode after a peer joins, with no encoder
   running, creates one from the factory with the operator's id and empty
   metadata. Every joining peer's stream starts at the encoder's first byte.
 - **Joining.** A peer joins at the next encode while an encoder runs. When
-  the bytes that encode returns contain a **restart point** (where the
-  encoder starts a new stream link carrying its own headers, as an Ogg
-  encoder does after a metadata change), the peer's stream starts there.
-  Otherwise it starts with the encoder's separately available header, read
+  the bytes that encode returns contain a **restart point** (the encoder's
+  `restart_offset`, where it starts a new stream link carrying its own
+  headers, as an Ogg encoder does after a metadata change), the peer's
+  stream starts there. Otherwise it starts with the encoder's `header`, read
   at that moment so that it belongs to the link in progress, followed by
   those bytes from their start. An encoder with no separate header
   (MPEG-TS) gives the joiner those bytes alone.
 - **Ending.** When the last peer ends by failure, the encoder is stopped and
   its final bytes discarded. When the output ends its peers itself, §6
-  applies. Every encoder created is stopped exactly once.
+  applies. Every instance is stopped exactly once
+  ([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 
 Encoding runs on the streaming thread, and only while an encoder runs or a
 peer waits to join. Otherwise a frame is not encoded and its bytes do not
 exist; metadata is dropped the same way. Encoder errors are the generic
-output's to handle.
+output's to handle ([output.md §6](../../../outputs/spec/output.md#6-failure)).
 
-Each frame is cut at its metadata positions. For each piece, in order: the
-metadata starting in it is encoded first (cover art not exported), then the
-piece's data, and the resulting bytes go to every peer's stream (§5). The
-generic output adds `on_air` and `on_air_timestamp` to each metadata.
+Each frame is handed to the encoder piece by piece, metadata first
+([output.md §3](../../../outputs/spec/output.md#3-a-streaming-cycle)), and
+the resulting bytes go to every peer's stream (§5). The generic output adds
+`on_air` and `on_air_timestamp` to each metadata.
 
 ## 5. Sending
 
@@ -115,7 +122,9 @@ stream's pace. A stream that steadily produces more than
 `payload_size / max_payload_delay` bytes per second of stream (about 105
 kbit/s with the defaults) fills each payload before the bound.
 
-**The streaming thread never waits for a peer.** It hands each peer's
+**The streaming thread never waits for a peer**
+([concurrency.md §2](../../../../spec/concurrency.md#2-the-streaming-thread)).
+It hands each peer's
 payloads to that peer's queue and goes on; payloads leave the queue as the
 library accepts them, in order. For a live peer, no payload is skipped,
 reordered or split across messages.
@@ -137,8 +146,9 @@ When the output ends its peers itself (stop, `disconnect()`, reset,
 shutdown):
 
 1. Stop the encoder, if one runs, and append its final bytes to every
-   peer's stream. An error is logged at level 2 with its backtrace as
-   `Error while stopping encoder: <exn>`; the peers are ended anyway.
+   peer's stream. An error is logged at `severe` with its backtrace (example
+   wording: `Error while stopping encoder: <exn>`); the peers are ended
+   anyway.
 2. Send each peer's remaining bytes, the last payload shorter than
    `payload_size` if need be.
 3. Close each peer once the library has sent everything queued for it and
@@ -167,12 +177,14 @@ The output's own reactions ([connection.md §5](connection.md#5-connected),
 
 ## 8. Pacing
 
-The output is not a sync source. It reports its source's self-sync as its
-own.
+As every output ([output.md §5](../../../outputs/spec/output.md#5-sync-and-pacing)),
+it is not a sync source and reports its source's self-sync as its own: its
+sends never block on a timer.
 
 ## 9. Methods and callbacks
 
-[common.md §3–§4](common.md#3-callbacks), plus the generic output's:
+[common.md §3–§4](common.md#3-callbacks), plus the generic output's
+([output.md §1](../../../outputs/spec/output.md#1-common-parameters-methods-and-callbacks)):
 `on_start`, `on_stop`, `on_output`, the start/stop methods, and, with
 `register_telnet`, the server commands `start`, `stop`, `status`, `skip`,
 `seek`, `metadata`, `remaining`.
