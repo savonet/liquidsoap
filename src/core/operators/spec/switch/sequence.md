@@ -2,7 +2,7 @@
 
 Plays its items in order: each one until it is finished, the last one for as
 long as it delivers. Segments, decisions, commits and joins are
-[frame-assembly.md](frame-assembly.md).
+[frame-assembly.md](../../../source/spec/frame-assembly.md).
 
 ## 1. Parameters
 
@@ -14,7 +14,7 @@ long as it delivers. Segments, decisions, commits and joins are
 | `single_track` | true    | An item is finished at its first track end. False: an item is finished when exhausted. |
 
 Each item has an **entry**, `track` or `continue`
-([frame-assembly.md §6](frame-assembly.md#6-joins)). Scripts set it through
+([frame-assembly.md §6](../../../source/spec/frame-assembly.md#6-joins)). Scripts set it through
 `merge` only. An operator that builds a sequence internally MAY give each
 item its own entry.
 
@@ -33,7 +33,7 @@ released. A sequence that is left and read again resumes where it was.
 
 - with `single_track`: when its track ends (`track end`);
 - without: when it declares itself exhausted
-  ([source-contract.md §7](source-contract.md#7-lifecycle)).
+  ([source-contract.md §7](../../../source/spec/source-contract.md#7-lifecycle)).
 
 The last item is never finished: it stays the current item.
 
@@ -104,7 +104,7 @@ track.
   is unknown; otherwise the current item's.
 - **Effective source**: the current item's, or the sequence itself with an
   empty queue.
-- **Sync source**: by [frame-assembly.md §9](frame-assembly.md#9-contract-clauses).
+- **Sync source**: by [frame-assembly.md §9](../../../source/spec/frame-assembly.md#9-contract-clauses).
 
 ## 7. Seam answers
 

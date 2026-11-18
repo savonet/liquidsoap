@@ -47,36 +47,30 @@ Where the code stops short of the specification:
 - **Probes answer readiness only.** No source tells `more` from
   `new track`. A source that starts a track without having declared the end
   of the previous one costs its reader one empty cycle
-  ([source-contract.md §2](source-contract.md#2-probes)). Outputs follow at
+  ([source-contract.md §2](../../../source/spec/source-contract.md#2-probes)). Outputs follow at
   most `max_empty_segments` empty cycles in a row.
-- **`cross` still commits when probed.** `switch`, `sequence`,
-  `source.dynamic` and the request sources separate the decision from what
-  it commits.
 - **An operator over several sources declares `pause`, never `track end`**,
   when one of them stopped: it cannot tell whose track is its own.
-- **`cross` builds its transition out of buffers that declare exhaustion**;
-  the rest of it is as before
-  ([../cross/README.md](../cross/README.md)).
 - **Only the entry points of an abort are deferred** (`request_abort`, used
   by the script `skip` and the output's). Operators forward and issue aborts
   at once.
 
 ## Where things were
 
-| Spec                                         | Code                                                                                   |
-| -------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [switch.md](switch.md)                       | `src/core/operators/switch.ml`, class `switch`                                         |
-| Proxy                                        | same file, class `insert_initial_track_mark`                                           |
-| [frame-assembly.md](frame-assembly.md)       | `src/core/source/source.ml`, class `generate_from_multiple_sources`                    |
-| [source-contract.md](source-contract.md)     | `src/core/source/source.ml`, `source.mli`                                              |
-| Tags, profiles, per-source methods           | `src/core/source/source.ml` (`resolved_composition`), `src/core/source/lang_source.ml` |
-| Default handoff, profile values              | `src/libs/composition.liq`                                                             |
-| Policies                                     | `src/libs/switches.liq`                                                                |
-| [sequence.md](sequence.md)                   | `src/core/operators/sequence.ml`                                                       |
-| [dynamic.md](dynamic.md)                     | `src/core/operators/dyn_op.ml`                                                         |
-| [cross-seam.md](cross-seam.md)               | `src/core/operators/cross.ml` (`get_source`, the compound)                             |
-| [rotate-merge.md](rotate-merge.md)           | `src/libs/extra/source.liq`                                                            |
-| `once`, `prepend`, `append`, delayed fade-in | `src/libs/source.liq`, `src/libs/fades.liq`                                            |
+| Spec                                                          | Code                                                                                   |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [switch.md](switch.md)                                        | `src/core/operators/switch.ml`, class `switch`                                         |
+| Proxy                                                         | same file, class `insert_initial_track_mark`                                           |
+| [frame-assembly.md](../../../source/spec/frame-assembly.md)   | `src/core/source/source.ml`, class `generate_from_multiple_sources`                    |
+| [source-contract.md](../../../source/spec/source-contract.md) | `src/core/source/source.ml`, `source.mli`                                              |
+| Tags, profiles, per-source methods                            | `src/core/source/source.ml` (`resolved_composition`), `src/core/source/lang_source.ml` |
+| Default handoff, profile values                               | `src/libs/composition.liq`                                                             |
+| Policies                                                      | `src/libs/switches.liq`                                                                |
+| [sequence.md](sequence.md)                                    | `src/core/operators/sequence.ml`                                                       |
+| [dynamic.md](dynamic.md)                                      | `src/core/operators/dyn_op.ml`                                                         |
+| `cross`                                                       | [../cross/ocaml-notes.md](../cross/ocaml-notes.md)                                     |
+| [rotate-merge.md](rotate-merge.md)                            | `src/libs/extra/source.liq`                                                            |
+| `once`, `prepend`, `append`, delayed fade-in                  | `src/libs/source.liq`, `src/libs/fades.liq`                                            |
 
 ## Mechanisms specific to this implementation
 

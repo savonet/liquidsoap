@@ -1,7 +1,7 @@
 # source.dynamic (Part A)
 
 Plays whatever source a script function designates. Segments, decisions,
-commits and joins are [frame-assembly.md](frame-assembly.md).
+commits and joins are [frame-assembly.md](../../../source/spec/frame-assembly.md).
 
 ## 1. Parameters
 
@@ -52,7 +52,7 @@ reported under the clock's source error rule.
 
 **The one probe with an effect.** A probe of the operator at a decision
 point runs the consult: script code runs and a source may be woken. This is
-the exception named in [source-contract.md §2](source-contract.md#2-probes).
+the exception named in [source-contract.md §2](../../../source/spec/source-contract.md#2-probes).
 It is bounded: one call per decision point. Therefore:
 
 - `next` MUST accept being called without its answer being played. A consult
@@ -77,7 +77,7 @@ released. A script that wants a source to survive between designations holds
 it with `prepare` and releases that activation itself when it will not
 return the source.
 
-**Bounds.** By [frame-assembly.md §7](frame-assembly.md#7-bounds): a
+**Bounds.** By [frame-assembly.md §7](../../../source/spec/frame-assembly.md#7-bounds): a
 function that returns the same source with nothing more to give, or that
 alternates between two sources on every call, ends the frame. It cannot
 reach an error.
@@ -96,7 +96,7 @@ reach an error.
   `pending` is kept.
 - **Effective source**: `current`'s, or the operator itself.
 - **Sync source**: fixed by the parameter, or by
-  [frame-assembly.md §9](frame-assembly.md#9-contract-clauses).
+  [frame-assembly.md §9](../../../source/spec/frame-assembly.md#9-contract-clauses).
 
 ## 6. Seam answers
 
@@ -113,5 +113,8 @@ reach an error.
   answers ready to every probe, whatever the function returned: when a
   request then finds nothing to deliver, the request fails with a script
   error saying the operator could not prepare a source in time. The failure
-  is at the read, where it stops the cycle, and never a quiet "not ready".
+  is at the read, where it stops the cycle, and never a quiet "not ready":
+  the broken promise of an infallible source
+  ([source-contract.md §1](../../../source/spec/source-contract.md#1-streaming-cycle),
+  [faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)).
   A probe never fails. Never exhausted.

@@ -189,8 +189,8 @@ before or after the transition.
 **How to tell.** Tracks of 0.5, 1 and 3 times the duration in every order.
 Binding: every sample of every track is heard exactly once outside the
 overlaps; both sources handed to the transition report their true length;
-each track begins once. A track exactly as long as the window behaves as one
-a frame longer.
+each track begins once. A track exactly as long as the window is crossed at
+its end like one a sample longer.
 
 **Count / traces.** 5. a5cd73bd0; #1074; e79028b37; #3688; "workaround for
 short tracks" with autocue (CHANGES, 2.3).
@@ -218,7 +218,8 @@ the middle of the computation that uses it.
 **How to tell.** A track's override governs the crossing at that track's
 end and no other, for tracks shorter than, equal to and longer than it, with
 persistence on and off. A duration function is read again for every track.
-Negative, zero and sub-frame values terminate and cross over one frame.
+Negative and zero values cross over nothing, and the transition is still
+called with empty sources; a duration of one sample crosses one sample.
 
 **Count / traces.** 9. a84a8e3b7, bd798309b; ac14c1c66; 27436404e; #2287;
 #2488/#2499; 31a2dba2d; ba356e83c; #5587 (shared with 2).
@@ -251,7 +252,7 @@ such operators while clocks start never fails.
 **Count / traces.** 7. d951bdc1f; f859083b0; 44d395b2c, 46b44b3ed; #3318
 (read only); #4851; #5548/#5554.
 
-**Rule.** [child-clock.md §1](child-clock.md#1-parts), [cross.md §13](cross.md#13-lifetime). Check: [conformance.md §10](conformance.md#10-clocks-and-lifetime).
+**Rule.** [child-clock.md §1](../../../source/spec/child-clock.md#1-parts), [cross.md §13](cross.md#13-lifetime). Check: [conformance.md §10](conformance.md#10-clocks-and-lifetime).
 
 ## 9. What the script leaves behind
 
@@ -301,7 +302,7 @@ positions.
 `cross-sequence-transition`; #4828; `cross-override` asking for an extra
 frame.
 
-**Rule.** [cross.md §2](cross.md#2-state): everything is counted in samples and no rule reads the size of a request. A track ends where the child stated it ([child-clock.md §2](child-clock.md#2-a-tick-of-the-child-clock), [cross.md §4](cross.md#4-reading-the-child)). Check: [conformance.md §1](conformance.md#1-frame-independence).
+**Rule.** [cross.md §2](cross.md#2-state): everything is counted in samples and no rule reads the size of a request. A track ends where the child stated it ([child-clock.md §2](../../../source/spec/child-clock.md#2-a-tick-of-the-child-clock), [cross.md §4](cross.md#4-reading-the-child)). Check: [conformance.md §1](conformance.md#1-frame-independence).
 
 ## 11. An abort from another thread
 
@@ -358,7 +359,7 @@ and a mix, is refused at creation.
 
 **Count / traces.** 3. #1705; fa52a0deb; 403061834.
 
-**Rule.** [child-clock.md §6](child-clock.md#6-creation-check); afterwards the child's sync source is the child clock's affair ([child-clock.md §7](child-clock.md#7-sync-source)). Check: [conformance.md §10](conformance.md#10-clocks-and-lifetime).
+**Rule.** [child-clock.md §6](../../../source/spec/child-clock.md#6-creation-check); afterwards the child's sync source is the child clock's affair ([child-clock.md §7](../../../source/spec/child-clock.md#7-sync-source)). Check: [conformance.md §10](conformance.md#10-clocks-and-lifetime).
 
 ## 14. Remaining time
 

@@ -233,7 +233,9 @@ on a stop, on a thread as on a task. A rest ending with the **ended** signal sto
 **Behind** (`now ≥ target`). Let `late = now − target`.
 
 - If `late ≥ M`: **reset**. Log it, set ticks to
-  `floor(now / frame duration)`, and reset every output and active source.
+  `floor(now / frame duration)`, and reset every output and active source,
+  except the output of a child clock
+  ([child-clock.md §5](../../source/spec/child-clock.md#5-lifetime)).
 - Else if `late ≥` the latency log threshold and at least the latency log
   period has passed since the last warning: log a latency warning
   ([observability.md §2](observability.md#2-log-events)).

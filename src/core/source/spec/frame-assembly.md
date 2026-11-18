@@ -1,8 +1,12 @@
 # Frame assembly (Part A)
 
-The seam shared by `switch`, `sequence`, `source.dynamic` and `cross`: deliver
-one stream out of successive sources, changing source inside a frame when one
-ends. Sources are as in [source-contract.md](source-contract.md).
+The seam of every operator that delivers one stream out of successive
+sources, changing source inside a frame when one ends: `switch`, `sequence`,
+`source.dynamic` and `cross`. Sources are as in
+[source-contract.md](source-contract.md). The seam is a contract on
+behaviour: `cross` answers its clauses with an assembly of its own, since it
+reads its child through a [child clock](child-clock.md) and never hands the
+child itself to the seam.
 
 ## 1. Roles
 
@@ -162,17 +166,17 @@ defect of the specification.
 | C6     | Remaining, abort track, effective source, sync source.                              |
 | C7     | Fallibility and exhaustion.                                                         |
 
-| User             | File                                                   |
-| ---------------- | ------------------------------------------------------ |
-| `switch`         | [switch.md](switch.md)                                 |
-| `sequence`       | [sequence.md](sequence.md)                             |
-| `source.dynamic` | [dynamic.md](dynamic.md)                               |
-| `cross`          | [../cross/cross.md](../cross/cross.md#14-seam-answers) |
+| User             | File                                                            |
+| ---------------- | --------------------------------------------------------------- |
+| `switch`         | [switch.md](../../operators/spec/switch/switch.md)              |
+| `sequence`       | [sequence.md](../../operators/spec/switch/sequence.md)          |
+| `source.dynamic` | [dynamic.md](../../operators/spec/switch/dynamic.md)            |
+| `cross`          | [cross.md](../../operators/spec/cross/cross.md#14-seam-answers) |
 
 **Sync source.** For every user: its sync source is that of what it reads
 after its last committed decision, transition sources included. A commit
 happens at a read, after the sync sources of the cycle were settled
-([pacing §3](../../../clock/spec/pacing.md#3-finding-the-sync-source)). So a
+([pacing §3](../../clock/spec/pacing.md#3-finding-the-sync-source)). So a
 user that reads another source than before MUST say so to its clock, and the
 answers settled in that cycle are computed again before the clock's next
 pacing point: the clock follows the change at its next tick, as it does for

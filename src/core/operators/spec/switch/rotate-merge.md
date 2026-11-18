@@ -27,14 +27,14 @@ A **round** is one pass over the children in list order.
   follows the last sample of the previous one.
 - The end of the last child's track of a round is a `track end` of the
   operator; every other join is a `pause`
-  ([frame-assembly.md §5](frame-assembly.md#5-segments)).
+  ([frame-assembly.md §5](../../../source/spec/frame-assembly.md#5-segments)).
 
 ## 4. Commitment
 
 The operator is a user of the seam through what it is built from: it
 advances to the next child, and to the next round, only when its reader
 requests data past the join
-([frame-assembly.md §3](frame-assembly.md#3-commit)). Left at the end of a
+([frame-assembly.md §3](../../../source/spec/frame-assembly.md#3-commit)). Left at the end of a
 round, it starts the next round when it is read again.
 
 ## 5. Abort

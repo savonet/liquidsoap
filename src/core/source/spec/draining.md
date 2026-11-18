@@ -32,7 +32,7 @@ A stage ends at any of these events:
 | Output stop or restart | an output is stopped, a container is closed or restarted                                                                          |
 
 Drained output is ordinary output. It obeys the timestamp rules
-([timestamps.md](timestamps.md)), carries its metadata and track marks at the
+([timestamps.md](../../optionals/ffmpeg/spec/timestamps.md)), carries its metadata and track marks at the
 positions of the data they belong to, and is counted in every length and
 position derived downstream.
 
@@ -59,7 +59,7 @@ These events discard held data instead of draining it:
 
 - **A seek.** A decoder's held data belongs to the position the caller left.
   The decoder discards it. Every stage downstream sees the seek as a source
-  switch ([content.md §5](content.md#5-stream_idx-and-time_base)). A
+  switch ([content.md §5](../../optionals/ffmpeg/spec/content.md#5-stream_idx-and-time_base)). A
   downstream stage that ends at that switch drains as usual: its held data
   was produced before the switch and already counted in positions.
 - **A producer put to sleep.** Its buffer has no reader left. The producer
@@ -78,7 +78,7 @@ Operators also discard data on purpose as part of their own rules: a copied
 stream waiting for a keyframe, packets trimmed at a group start, an overflow
 drop at a buffer bound, an `abort_track`. Each owner states those discards,
 their reason, and whether one also counts as an item fault
-([faults.md §4](faults.md#4-item-faults-escalate)). They are not drains.
+([faults.md §4](../../../spec/faults.md#4-item-faults-escalate)). They are not drains.
 
 ## 6. Conformance
 

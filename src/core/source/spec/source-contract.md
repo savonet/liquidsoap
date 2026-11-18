@@ -1,8 +1,9 @@
 # Source contract (Part A)
 
-What every source MUST provide for the frame-assembly seam and its users to
-hold their guarantees. It applies to all sources, not only to the seam's
-users: one operator that breaks it between two selectors breaks them both.
+What every source MUST provide its readers. It applies to all sources, not
+only to the users of the [frame-assembly seam](frame-assembly.md): one
+operator that breaks it between two selectors breaks them both. The
+principles it serves are [principles.md](../../../spec/principles.md).
 
 ## 1. Streaming cycle
 
@@ -37,6 +38,17 @@ a cycle MUST deliver when it is read in that cycle, at once:
 - producing is fast: the work of a cycle is bounded and does not depend on
   how long the source was left unread.
 
+Two cases are not exceptions but the rule applied:
+
+- **A blocking sync source** (a sound card, a network input that paces its
+  clock) waits inside its read for its data to arrive: that wait is its
+  pacing ([pacing.md §2](../../clock/spec/pacing.md#2-sync-source)), not a
+  delay of the stream. It is bounded by the source's own timeout, past which
+  it delivers what it has and states why its segment ended.
+- **An infallible source** answers ready on the strength of its promise. If
+  it then has nothing to deliver, the promise is broken: it raises
+  ([faults.md §3](../../../spec/faults.md#3-source-faults-reach-the-script)).
+
 So nothing in a cycle is waited for. "Kept", "passed over" and "not ready"
 in this specification always describe what a source answers at the start of
 a cycle, never a pause inside one.
@@ -48,6 +60,9 @@ cycle is held and delivered first in the next one
 
 A cycle that brings an output no sample is followed by another only when it
 stated a `track end` or a `pause`, and a bounded number of times in a row.
+
+Sources created during a cycle close it after their reader. Nothing may
+depend on a child closing its cycle before its parent.
 
 ## 1b. Delivery
 
@@ -107,7 +122,7 @@ one of:
 - A probe MUST have no effect that a reader, a script callback, a policy or
   the output can observe. Any number of probes in a cycle MUST leave the
   source as zero probes would. The one exception is stated in
-  [dynamic.md §3](dynamic.md#3-designation).
+  [dynamic.md §3](../../operators/spec/switch/dynamic.md#3-designation).
 - The answer MUST NOT change within a cycle
   ([§1](#1-streaming-cycle)).
 - A source that answered `more` or `new track` MUST deliver at least one
@@ -202,8 +217,15 @@ from the reason of the previous segment, or from the probe.
 
 - A consumer **wakes** a source and gets an activation; it **releases** the
   source with that activation, exactly once. A source is up while it has at
-  least one activation.
+  least one activation. An activation collected without being released puts
+  the source to sleep as a safety net, and is logged: it is a bug in the
+  consumer.
 - A source MUST be woken before it is first probed.
+- A source built at run time is in a clock of its own until it is unified
+  with its reader's. Whoever wakes it unifies it first.
+- An operator MUST NOT depend on being read to leave a state that holds back
+  another reader: a selector left unread while a child is still leaving
+  gives up the leaving child on its own next read, whoever reads it.
 - **Exhausted.** A source MAY declare that it will never deliver again: a
   finite source at its end, a source that never produces. Exhaustion is
   declared by the source, never deduced by a reader from `nothing` or `late`.
@@ -216,7 +238,7 @@ from the reason of the previous segment, or from the probe.
 - **Effective source**: the single source an operator currently reads, or
   itself.
 - **Sync source**: by the rule of the clock specification
-  ([pacing §3](../../../clock/spec/pacing.md#3-finding-the-sync-source)): that
+  ([pacing §3](../../clock/spec/pacing.md#3-finding-the-sync-source)): that
   of the data its reader is about to pull.
 
 ## 9. No inference
@@ -232,6 +254,24 @@ that source's selection, counters or track state.
 
 ## 10. Callbacks
 
+- **Registration.** Every callback is registered by a method of the source,
+  `s.on_<event>(synchronous=b, fn)`, which returns a value whose `release()`
+  unregisters `fn`; a second `release()` does nothing.
+  `synchronous=true` runs `fn` in the thread that fires the event, before
+  the source goes on with it: such a handler MUST be short, since the
+  streaming path waits for it. `synchronous=false` queues `fn` on the
+  scheduler's threaded queue.
+- **Order.** For each event the source's own reaction completes first, then
+  the callbacks run in registration order.
+- **A handler that raises** is logged at `severe` with its backtrace and the
+  callback's name, and the source goes on as if it had returned. It MUST NOT
+  prevent the other handlers, nor end anything the source would otherwise
+  keep ([faults.md §0](../../../spec/faults.md#0-the-rule)). An operator
+  that gives a raise a meaning (a refused handshake) states it in its
+  document.
+- Callbacks a script function registers while an operator runs it, on the
+  sources that function can reach, are collected and released with what the
+  operator built from that call.
 - Track and metadata callbacks of a source fire when the segment holding the
   mark or the metadata is produced, which only a request causes.
 - For one boundary, the end-of-track notifications of every level fire before
@@ -244,19 +284,15 @@ that source's selection, counters or track state.
 
 ## 11. Concurrency
 
-- Script code can group writes in an atomic section. A reader running inside
-  one never sees such a group part way through.
+Threads, atomic sections and shared state follow
+[concurrency.md](../../../spec/concurrency.md); faults follow
+[faults.md](../../../spec/faults.md). What is particular to sources:
+
 - A condition the seam cannot serve on a fallible stream ends the frame and
   is logged ([frame-assembly.md §7](frame-assembly.md#7-bounds)).
-- **Keep streaming, unless the error is major.** An error that leaves
-  enough context to go on with what the script most plausibly meant MUST NOT
-  stop the stream: it is logged and the operator carries on with that. A
-  script function that raises while an operator runs it is of this kind. An
-  error is major, and fails the cycle, when carrying on would break a
-  promise the rest of the system was built on: the broken infallibility
-  below is the reference case.
 - **An infallible source that fails its contract is a failure, not a
   glitch.** A source declared infallible that leaves an output's frame short
   MUST fail the cycle, loudly, through the clock's source error rule: an
-  assertion at the output. Carrying on would let everything downstream run
-  on a broken promise.
+  assertion at the output. It is the backstop for a broken promise no source
+  reported itself
+  ([faults.md §3](../../../spec/faults.md#3-source-faults-reach-the-script)).

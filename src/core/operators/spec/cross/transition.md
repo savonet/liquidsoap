@@ -66,7 +66,7 @@ of the next track to buffer: the fade-in window of
   plays its two sources in order. The stream does not stop for it: there
   is enough context to go on with what the script meant, so the error is
   not major
-  ([source-contract.md §11](../switch/source-contract.md#11-concurrency)).
+  ([faults.md §0](../../../../spec/faults.md#0-the-rule)).
 
 ## 4. End of the transition
 
@@ -74,7 +74,7 @@ of the next track to buffer: the fade-in window of
 when either holds:
 
 - the transition source **declares exhaustion**
-  ([source-contract.md §7](../switch/source-contract.md#7-lifecycle));
+  ([source-contract.md §7](../../../source/spec/source-contract.md#7-lifecycle));
 - at the start of a cycle it answers `nothing` while what follows it can
   deliver ([cross.md §11](cross.md#11-readiness)). It is then passed over
   for good, like an item of a

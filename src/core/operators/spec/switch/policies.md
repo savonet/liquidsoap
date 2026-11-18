@@ -9,7 +9,7 @@ Policy files use the section order of this one, up to §5.
 ## 1. Children
 
 All three take a list of sources, each optionally carrying the per-source
-methods of [composition.md §3](composition.md#3-per-source-methods) and
+methods of [composition.md §3](../../../source/spec/composition.md#3-per-source-methods) and
 `weight`, an integer getter. A missing `weight` is 1.
 
 ## 2. State
@@ -35,7 +35,7 @@ What a predicate MUST do:
 
 - Change nothing when it is read: no counter, no pick, no flag. Its result
   depends only on state that events change, on getters, and on probes
-  ([source-contract.md §2](source-contract.md#2-probes)).
+  ([source-contract.md §2](../../../source/spec/source-contract.md#2-probes)).
 - Hold for at most one child at a time when the policy means to designate
   one child.
 

@@ -1,7 +1,10 @@
 # The script layer (Part A)
 
 What the standard library puts around the operator. `fade.in` and
-`fade.out` are not specified here: only what they are given.
+`fade.out` are not specified here: only what they are given. Used on their
+own they follow their arguments; they read a track's `liq_fade_*` keys only
+with `allow_metadata_override=true`, and keep what a track changed for the
+tracks that follow only with `persist_overrides=true` as well.
 
 ## 1. The `cross` wrapper
 
@@ -33,7 +36,13 @@ changes nothing.
   starting = { start, fade_duration, type, curve } }
 ```
 
-It is the only reader of the fade keys in a crossing. With `x` and `s` the
+It is the only reader of the fade keys in a crossing.
+
+Rationale: where each fade sits in a crossing used to be computed in three
+places (the operator rewriting keys, `cross.simple`, and the fades reading
+the keys again), passing values as strings in metadata, five of them each
+relative to something else. One function that returns numbers lets a
+script change one thing by changing one number of the plan. With `x` and `s` the
 exact lengths of the ending and starting sources, as they report them, and a
 key counting as absent when it is missing or not a float (which SHOULD be
 logged):

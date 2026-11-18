@@ -6,7 +6,7 @@ tracks start; construction is free.
 
 **Default rule.** A track mark and the metadata that goes with it sit on the
 logical start of a unit of content, and nowhere else
-([source-contract.md §3](source-contract.md#3-tracks)). Over file-based
+([source-contract.md §3](../../../source/spec/source-contract.md#3-tracks)). Over file-based
 content a helper keeps the marks and metadata as the content gives them. A
 helper presents several units as one track only when the script asks for it
 with `merge`.

@@ -1,23 +1,46 @@
 # Conformance checks
 
-The checks an implementation of `cross` is run against, by principle. Each
+The checks an implementation of `cross` is run against, by principle, and
+those of the [child-clock seam](../../../source/spec/child-clock.md). Each
 names what is **binding**. Unless said otherwise, tone frequencies, track
 lengths, ids, log wording and wall-clock timing are incidental. Entries
 marked K are the situations of [known-complexity.md](known-complexity.md);
-entries marked S are the scenarios of
-[brief.md §4](brief.md#4-scenarios-to-turn-into-checks). The checks of the
+entries marked S are the [scenarios](#scenarios) below. The checks of the
 seam and of the source contract are
 [../switch/conformance.md](../switch/conformance.md) and apply to `cross`
-as to any user.
+as to any user. Every check follows
+[testing.md](../../../../spec/testing.md).
 
-Every check signals pass or fail explicitly; a timeout is a failure. A check
-that asserts an absence MUST also assert that the thing it watches happened
-at least once. A check counts once it was seen to fail against a build
-broken on purpose.
+## Scenarios
 
-**Audio is compared by sample, never by frame.** A check that records one
-item per request (a checksum, a level) moves with the frame size and proves
-nothing about what is heard.
+The scenarios the maintainer set as binding. Each is a check.
+
+- A crossing puts one mark, on the first sample of the transition, and none
+  where the transition ends.
+- The audio of a crossfaded sequence of files is the same, sample for
+  sample, wherever frames are cut.
+- A sequence under a crossfade ends: the output stops when its last track
+  did.
+- The transition function receives the two sources, their levels and their
+  metadata.
+- Each track is announced once, in order, whatever the transition keeps of
+  its two sources: both, the ending one only, neither.
+- A track's override governs that track's end and no other, including when
+  the track is shorter than the duration or exactly as long.
+- A skip is heard at once in either phase: nothing of the skipped track
+  plays after it.
+- The last track ends the same way whether or not its length is a whole
+  number of frames: no transition against nothing.
+- A starting track shorter than the window: where the mark falls and which
+  metadata it carries. A first track shorter than the duration still begins
+  a track.
+- A track exactly as long as the window is crossed at its end like one a
+  sample longer.
+- A transition that never ends, and one that ends early: what bounds it.
+- The same script gives the same audio with `persist_override` and a
+  `duration` function that changes.
+- `cross` put to sleep and woken resumes cleanly.
+- Callbacks a transition registers do not pile up over crossings.
 
 ## Doubles a harness needs
 

@@ -6,25 +6,25 @@ for the seam.
 
 ## Where things are
 
-| Spec                               | Code                                                                                         |
-| ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| [cross.md](cross.md)               | `src/core/operators/cross.ml`, class `cross`                                                 |
-| Ending and starting sources        | same file, class `consumer`, built by `finite_source`                                        |
-| Phase                              | `phase`: `` `Idle ``, `` `Track ``, `` `Transition `` with its source and activation         |
-| Buffer                             | `tracks`: one `track` per track of the child, with its data, duration, metadata, `recent`    |
-| Duration of a track                | `resolve_duration`, `cross_duration`, `persisted_duration`                                   |
-| Reading the child, top up          | `take_intake`, `buffer_track_data`, `wants_more`, `top_up`                                   |
-| Levels                             | `level`, `remember`, `ending_level`, `starting_level`                                        |
-| Crossing                           | `commit_crossing`                                                                            |
-| Delivery                           | `deliver`, `deliver_track`, `deliver_transition`, `enter`, `frame_end`                       |
-| Announcement by passage            | `announce`, the hidden key `passage_key`                                                     |
-| End of a transition                | `leave_transition`, `release_transition`                                                     |
-| Readiness                          | `can_generate_frame`, `track_can_deliver`                                                    |
-| Abort                              | `abort_track`, carried out by the base class after the cycle                                 |
-| [child-clock.md](child-clock.md)   | `src/core/operators/child_support.ml`: `base`, `child_output` (`set_on_track_end`)           |
-| Replacement of an empty transition | `src/core/operators/sequence.ml`                                                             |
-| Callback collection                | `Lang_source.collect_callback_releases`, an effect keyed on object ids                       |
-| [script-layer.md](script-layer.md) | `src/libs/fades.liq`; plots in `src/libs/extra/fades.liq`; autocue in `src/libs/autocue.liq` |
+| Spec                                                  | Code                                                                                         |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [cross.md](cross.md)                                  | `src/core/operators/cross.ml`, class `cross`                                                 |
+| Ending and starting sources                           | same file, class `consumer`, built by `finite_source`                                        |
+| Phase                                                 | `phase`: `` `Idle ``, `` `Track ``, `` `Transition `` with its source and activation         |
+| Buffer                                                | `tracks`: one `track` per track of the child, with its data, duration, metadata, `recent`    |
+| Duration of a track                                   | `resolve_duration`, `cross_duration`, `persisted_duration`                                   |
+| Reading the child, top up                             | `take_intake`, `buffer_track_data`, `wants_more`, `top_up`                                   |
+| Levels                                                | `level`, `remember`, `ending_level`, `starting_level`                                        |
+| Crossing                                              | `commit_crossing`                                                                            |
+| Delivery                                              | `deliver`, `deliver_track`, `deliver_transition`, `enter`, `frame_end`                       |
+| Announcement by passage                               | `announce`, the hidden key `passage_key`                                                     |
+| End of a transition                                   | `leave_transition`, `release_transition`                                                     |
+| Readiness                                             | `can_generate_frame`, `track_can_deliver`                                                    |
+| Abort                                                 | `abort_track`, carried out by the base class after the cycle                                 |
+| [child-clock.md](../../../source/spec/child-clock.md) | `src/core/operators/child_support.ml`: `base`, `child_output` (`set_on_track_end`)           |
+| Replacement of an empty transition                    | `src/core/operators/sequence.ml`                                                             |
+| Callback collection                                   | `Lang_source.collect_callback_releases`, an effect keyed on object ids                       |
+| [script-layer.md](script-layer.md)                    | `src/libs/fades.liq`; plots in `src/libs/extra/fades.liq`; autocue in `src/libs/autocue.liq` |
 
 ## Specific to this implementation
 

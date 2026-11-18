@@ -251,7 +251,11 @@ a time.
 
 1. Animate each output in list order, then each active source, each under the
    source error rule ([§11](#11-failure)). The active set is read as a
-   snapshot.
+   snapshot. This is one **streaming cycle**. While an output's frame
+   stopped short at a `track end` or a `pause`, the sources close the cycle
+   and the outputs gather again in another one, within the same tick, a
+   bounded number of times in a row
+   ([source-contract.md §1](../../source/spec/source-contract.md#1-streaming-cycle)).
 2. Run and drop the on-tick callbacks, with a stop check before each.
 3. Stop check. Add one to ticks. Stop check.
 
@@ -490,6 +494,7 @@ with their names; the others are recommendations.
 | time box              | `clock.time_box`            | 0.1 s   | Other clocks: the longest a clock keeps a worker while another clock waits for one, a tick's overrun aside.                                                                      |
 | shutdown wait         | `clock.shutdown_wait`       | 10 s    | Shutdown: the longest the application waits for clocks that do not stop.                                                                                                         |
 | thread lease          | `clock.thread_lease`        | 5 s     | Threads: a blocking source that returns within it is flapping, and its clock then keeps its thread this long after each drop ([pacing.md §8](pacing.md#8-animator)).             |
+| child buffer          | `clock.child.max_buffer`    | 10 s    | Memory: the most a child clock's intake holds before its operator fails ([child-clock.md §3](../../source/spec/child-clock.md#3-bound)).                                         |
 
 The first seven names and values are compatibility surface. The shutdown wait
 MUST NOT be derived from the maximum latency.
@@ -500,13 +505,17 @@ clock's next start.
 
 ## 14. Contracts the clock relies on
 
-**Source.** The clock uses, and requires, only:
+**Source.** The clock uses, and requires, only what follows; the rest of
+what a source owes is the
+[source contract](../../source/spec/source-contract.md):
 
 - an identity, an id and a stack;
 - a type: passive, active or output;
-- wake-up by a requester, yielding an activation, and sleep of an activation.
-  An activation dropped without being handed back puts the source to sleep on
-  its own: every holder but the clock may let go;
+- wake-up by a requester, yielding an activation, and sleep of an activation,
+  released exactly once
+  ([source-contract.md §7](../../source/spec/source-contract.md#7-lifecycle));
+  an activation collected without being released is a safety net, not a way
+  to let go;
 - for an active or output source: animate, and reset;
 - its current sync source, read at a constant cost between cycles
   ([pacing.md §3](pacing.md#3-finding-the-sync-source));
@@ -523,67 +532,12 @@ clock's next start.
 
 ## 15. Child clocks
 
-How operators use sub-clocks. This is the other half of the contract of
-[§10](#10-sub-clocks); it binds the operators, not the clock.
-
-An operator that reads from its child at a pace of its own (a crossfade, a
-time stretch, an inline encoder, a resampler) gives the child a clock of its
-own.
-
-Everything below SHOULD be held by one reader component that such operators
-use. An operator then declares only what is its own: whether it is the sole
-reader, and its buffer limit.
-
-**Set-up, when the operator is created:**
-
-- it creates a passive clock whose parent is the operator's own clock, with
-  no owner;
-- it wraps its child in an output created in that clock, which unifies the
-  child's clock with it.
-
-The output MUST NOT exist in a clock of its own first: that clock would be a
-top-level clock with a pending output, and a start pass on another thread
-could start it before the unification, which then fails.
-
-It MUST NOT register the sub-clock yet.
-
-**While running:**
-
-- on waking up it registers the child clock as a sub-clock, which starts it
-  when the parent runs, creates its buffer and wakes the wrapped child;
-- on going to sleep it deregisters it and flushes its buffer.
-
-An operator created and never woken therefore costs its parent nothing, and
-an operator created inside a running script produces data on its first cycle.
-
-**Reading.** The operator reads from its buffer. While the buffer holds less
-than a frame and the child is ready, it ticks the child clock, and the
-wrapped child appends its frame to the buffer. A cycle served from the buffer
-ticks nothing, so the child clock produces exactly the frames its readers
-asked for.
-
-**Shared child clocks.** Several operators may read from one child clock;
-each is a registrant. A tick by any of them fills the buffer of all. A buffer
-holding more than the child buffer limit is an error naming the operator that
-fell behind, raised at the limit and not before. A reader holding a remainder
-when its child ends still delivers it.
-
-**Exclusive child clocks.** An operator that must be the only reader of its
-child, such as a crossfade, makes itself the owner of its child clock, with
-its own clock as the parent. Two such child clocks never unify
-([unification.md §3](unification.md#3-plan)).
-
-**Pacing.** A sync source inside a child clock paces that child clock's
-ticks, not the operator's clock, which goes on pacing by its own means
-([pacing.md §3](pacing.md#3-finding-the-sync-source)). An operator that
-cannot work that way SHOULD refuse, at creation, a child that declares a
-sync source or whose sync source can change at run time: "This source may
-control its own latency and cannot be used with this operator" is the
-content of the error. For this a
-source declares whether its sync source is `static` or `dynamic`; an operator
-is `dynamic` if any of its children is. The clock does not read this
-declaration. Where it is computed once and remembered, two threads computing
-it at the same moment MUST both get the right value.
+How operators use sub-clocks: the other half of the contract of
+[§10](#10-sub-clocks). It binds the operators, not the clock, and is
+[child-clock.md](../../source/spec/child-clock.md): set-up order, shared and
+exclusive readers, reading, the buffer bound
+(`settings.clock.child.max_buffer`, [§13](#13-parameters)), lifetime and the
+creation check.
 
 ## 16. Concurrency
 

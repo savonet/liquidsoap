@@ -1,7 +1,7 @@
 # Composition (Part A)
 
 How a source says how it wants to be entered and left by a
-[switch](switch.md), and what happens by default.
+[switch](../../operators/spec/switch/switch.md), and what happens by default.
 
 ## 1. Tags
 
@@ -107,7 +107,7 @@ The ending source is cut at once.
    `0 < rem <= max_fade`, else `max_fade`, also when `rem` is unknown.
 2. The **tail** is `ending`, limited to `max_fade`, faded out over `fade`.
    `ending` already stops at the end of its track
-   ([switch.md §6](switch.md#6-presented-sources)).
+   ([switch.md §6](../../operators/spec/switch/switch.md#6-presented-sources)).
 3. The **mix** is `starting` with the tail's audio added, unnormalized.
    Track marks and metadata come from `starting` only. The mix lasts as long
    as the tail delivers.
@@ -120,7 +120,7 @@ The ending source is cut at once.
 Consequences:
 
 - The ending source's leave completes when the tail is over
-  ([switch.md §7](switch.md#7-leaving)).
+  ([switch.md §7](../../operators/spec/switch/switch.md#7-leaving)).
 - A file source cut by a live one fades under it for at most `max_fade`,
   then is aborted by its `on_leave`. If its track ran out under the fade,
   `preempted` is false and its next track is not skipped.

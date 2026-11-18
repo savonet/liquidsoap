@@ -1,14 +1,49 @@
 # Conformance checks
 
-The checks an implementation is run against, by principle. Each names what
-is **binding**. Unless said otherwise, ids, wording, durations and timing
-are incidental. Entries marked K are the situations of
+The checks an implementation is run against, by principle, for this tree and
+for the [source contract and the frame-assembly seam](../../../source/spec/README.md).
+Each names what is **binding**. Unless said otherwise, ids, wording,
+durations and timing are incidental. Entries marked K are the situations of
 [known-complexity.md](known-complexity.md); entries marked S are the
-scenarios of [brief.md §3](brief.md#3-scenarios-that-must-all-hold).
+[scenarios](#scenarios) below. Every check follows
+[testing.md](../../../../spec/testing.md).
 
-Every check signals pass or fail explicitly; a timeout is a failure. A check
-that asserts an absence MUST also assert that the thing it watches happened
-at least once.
+## Scenarios
+
+The scenarios the maintainer set as binding. Each is a check.
+
+**S1. Jingle due after an insert.** An outer switch plays a rotation of one
+jingle then three songs, all file sources. During the third song a condition
+makes a one-track insert due. The third song ends; the insert plays; the
+rotation returns. Binding: the track after the insert is a jingle and it plays
+for its full length; no song starts before it ends. Variant: the same under a
+crossfade over the outer switch, where the listener must not get a "crossfade
+longer than the track" situation from a jingle cut to one frame.
+
+**S2. Stale selection after idle.** A priority list holds a programme source
+above a nested priority list of [jingles, songs], all file sources. A song is
+playing; the programme becomes available and takes over when the song ends;
+while the programme plays, jingles become available; the programme ends.
+Binding: the first track after the programme is a jingle, within a fraction of
+a second; no song, and no fragment of one, is heard first.
+
+**S2b. The same with a preemption.** The programme source is live and cuts
+into the song. Binding: as S2, and the cut song does not resume.
+
+**S3. Child clock.** A rotation inside an operator that reads its child on
+some ticks only. Binding: weights are honoured and no track is cut short.
+
+**S4. Merged sequence.** A two-item sequence asked to merge: a short item
+titled "first", then a longer one titled "last". Binding: exactly one track is
+reported, at the start of the stream, with the first item's metadata; a join
+inside the very first frame is not merged into the stream start; skipping or
+aborting the merged sequence still produces a track boundary. Both a join
+that falls mid-frame and one that falls on a frame boundary behave the same.
+
+**S5. Merged rotation.** Three children with short titled tracks, rotated and
+merged. Binding: one track is reported per round, at the start of the round;
+within a round the three children are heard in order, each for one full
+track; this repeats for every round.
 
 ## Doubles a harness needs
 
@@ -163,7 +198,7 @@ at least once.
 ## Composition
 
 - K10: one check per row of the pair table of
-  [composition.md §2](composition.md#2-profiles). Binding: cut or wait,
+  [composition.md §2](../../../source/spec/composition.md#2-profiles). Binding: cut or wait,
   blend or not, the fate of the leaving track.
 - K10: an endless silence as last child is left in the cycle after a
   higher-priority child becomes available, with no tag set by the script.

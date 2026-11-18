@@ -5,9 +5,9 @@ plays, in place of the end of one and the start of the next, a source that a
 script function builds out of both.
 
 The seam and the source contract are
-[../switch/frame-assembly.md](../switch/frame-assembly.md) and
-[../switch/source-contract.md](../switch/source-contract.md). The way the
-child is read is [child-clock.md](child-clock.md). The transition function,
+[../switch/frame-assembly.md](../../../source/spec/frame-assembly.md) and
+[../switch/source-contract.md](../../../source/spec/source-contract.md). The way the
+child is read is [child-clock.md](../../../source/spec/child-clock.md). The transition function,
 its arguments and its result are [transition.md](transition.md).
 
 ## 1. Parameters
@@ -29,7 +29,7 @@ with the method `cross_duration()`.
 - A `width` that is not positive MUST be refused at creation, with an
   invalid-value error on that argument.
 - The child MUST pass the creation check of
-  [child-clock.md §6](child-clock.md#6-creation-check).
+  [child-clock.md §6](../../../source/spec/child-clock.md#6-creation-check).
 
 Scripts reach this operator through the standard library
 ([script-layer.md §1](script-layer.md#1-the-cross-wrapper)).
@@ -45,7 +45,7 @@ request asks for, and every rule gives the same stream for any sequence of
 - The **buffer**: what the child delivered and `cross` has neither delivered
   nor handed to a transition, in order, with marks and metadata at their
   positions and with the places where the child stated a track end
-  ([child-clock.md §2](child-clock.md#2-a-tick-of-the-child-clock)). It
+  ([child-clock.md §2](../../../source/spec/child-clock.md#2-a-tick-of-the-child-clock)). It
   holds at most two tracks:
   - the **current part**: the rest of the **current track**, of length `r`;
   - the **next part**: the start of the **next track**, of length `La`,
@@ -109,7 +109,7 @@ apart.
 ## 4. Reading the child
 
 `cross` reads its child only while serving a request
-([child-clock.md §4](child-clock.md#4-reading)). A probe never does. Before
+([child-clock.md §4](../../../source/spec/child-clock.md#4-reading)). A probe never does. Before
 it delivers anything for a request of room `n`, `cross` **tops up**:
 
 1. While the end of the current track is not found: read until the current
@@ -137,7 +137,7 @@ track was found, or when the child is exhausted.
 **How far ahead.** The child is never read further than `D + n` past the
 position `cross` delivered in the current track, or, once that track's end
 is found, than the starting window of the next. The child is the consumer's
-side of [source-contract.md §1b](../switch/source-contract.md#1b-delivery):
+side of [source-contract.md §1b](../../../source/spec/source-contract.md#1b-delivery):
 its track and metadata events, the selections, counts and script calls of
 any selector below it, and the resolution of its requests all happen when
 `cross` reads, that far before the listener hears the data. In particular
@@ -177,7 +177,7 @@ In both cases the segment that reaches the crossing point ends with
 
 A crossing is decided where the head is zero and the next track has begun.
 It is committed when the reader requests past that point
-([frame-assembly.md §3](../switch/frame-assembly.md#3-commit)), and only
+([frame-assembly.md §3](../../../source/spec/frame-assembly.md#3-commit)), and only
 then:
 
 1. `X` ← `min(E, r, La)`: the **overlap**. At this point `X = r`.
@@ -245,7 +245,7 @@ samples. Over an empty window it is minus infinity.
 ## 8. Delivery
 
 `cross` is a user of the seam. Segments, entries and end statements are
-those of [frame-assembly.md](../switch/frame-assembly.md).
+those of [frame-assembly.md](../../../source/spec/frame-assembly.md).
 
 **In `idle`.** A request tops up and begins the current track: the phase is
 `track`, the first sample is entered with `track`.
@@ -299,7 +299,7 @@ way.
 
 The track event of a crossing carries the metadata found on its first
 sample, or none
-([frame-assembly.md §6](../switch/frame-assembly.md#6-joins)).
+([frame-assembly.md §6](../../../source/spec/frame-assembly.md#6-joins)).
 
 ## 9. Metadata
 
@@ -325,7 +325,7 @@ transition is over:
 then `cross` MUST ask for that track's metadata, as accumulated over the
 starting source, to be inserted on the first sample it delivers after the
 transition
-([source-contract.md §4](../switch/source-contract.md#4-metadata)).
+([source-contract.md §4](../../../source/spec/source-contract.md#4-metadata)).
 Otherwise it inserts nothing.
 
 - Whether a metadata was delivered MUST be told from its passage through
@@ -341,7 +341,7 @@ transition keeps of its two sources.
 ## 10. Abort
 
 An abort is requested, then carried out when the running cycle is over
-([source-contract.md §6](../switch/source-contract.md#6-abort)). Nothing
+([source-contract.md §6](../../../source/spec/source-contract.md#6-abort)). Nothing
 changes before that, and nothing of it runs on the thread that asked. When
 it is carried out:
 
@@ -380,7 +380,7 @@ and without running script code:
 | `transition`, it answers `nothing`                            | As in `track`, for what follows the transition. |
 
 The child is **available** as in
-[child-clock.md §4](child-clock.md#4-reading).
+[child-clock.md §4](../../../source/spec/child-clock.md#4-reading).
 
 Each answer is backed by something `cross` holds or has probed in this
 cycle, so that ready means delivering now:
@@ -390,14 +390,14 @@ cycle, so that ready means delivering now:
   sources `cross` holds ([§6](#6-crossing), step 7), or from the track that
   follows when both are empty;
 - an available child delivers when read
-  ([source-contract.md §2](../switch/source-contract.md#2-probes));
+  ([source-contract.md §2](../../../source/spec/source-contract.md#2-probes));
 - a transition source that has nothing while the track cannot go on leaves
   `cross` not ready and the transition in place: nothing is committed by a
   probe.
 
 Where `cross` answered `more` and the top-up finds that the current track
 ends before any sample, it delivers an empty segment ending `track end`, as
-[source-contract.md §2](../switch/source-contract.md#2-probes) allows.
+[source-contract.md §2](../../../source/spec/source-contract.md#2-probes) allows.
 
 ## 12. Other properties
 
@@ -410,13 +410,13 @@ ends before any sample, it delivers an empty segment ending `track end`, as
     unknown when either is.
 - **Effective source.** `cross` itself, in every phase.
 - **Composition.** `inherit`. By the resolution rule of
-  [composition.md §1](../switch/composition.md#1-tags) it resolves to its
+  [composition.md §1](../../../source/spec/composition.md#1-tags) it resolves to its
   child's tag in every phase: the tracks of `cross` are those of its child.
 - **Sync source.** None in `idle` and `track`: the child's is the child
-  clock's affair ([child-clock.md §7](child-clock.md#7-sync-source)). In
+  clock's affair ([child-clock.md §7](../../../source/spec/child-clock.md#7-sync-source)). In
   `transition`, that of the transition source. `cross` tells its clock at
   the commit of a crossing and when a transition is over, by the rule of
-  [frame-assembly.md §9](../switch/frame-assembly.md#9-contract-clauses).
+  [frame-assembly.md §9](../../../source/spec/frame-assembly.md#9-contract-clauses).
 - **Exhaustion.** Declared when the child is exhausted, the buffer and the
   intake are empty and no transition is being played.
 
@@ -433,7 +433,7 @@ ends before any sample, it delivers an empty segment ending `track end`, as
   transition ([transition.md §5](transition.md#5-callbacks)).
 - **Wake.** The phase is `idle`, the buffer empty, no per-track state, no
   persisted override. The child is woken through the child clock
-  ([child-clock.md §5](child-clock.md#5-lifetime)).
+  ([child-clock.md §5](../../../source/spec/child-clock.md#5-lifetime)).
 - **Sleep.** A transition source being played is released with its
   callbacks; the buffer and the intake are discarded; the child is
   released. Nothing `cross` built stays awake.
@@ -441,7 +441,7 @@ ends before any sample, it delivers an empty segment ending `track end`, as
 ## 14. Seam answers
 
 In the order of
-[frame-assembly.md §9](../switch/frame-assembly.md#9-contract-clauses).
+[frame-assembly.md §9](../../../source/spec/frame-assembly.md#9-contract-clauses).
 
 - **C1.** In `idle`: the current track, when [§11](#11-readiness) answers
   ready; the commit tops up and enters `track`. At a crossing point: the
