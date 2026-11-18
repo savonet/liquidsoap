@@ -60,18 +60,18 @@ class virtual source ~name duration =
     method virtual private synthesize : int -> Frame.t
 
     method private generate_frame =
+      let starts_track = add_track_mark in
+      if starts_track then (
+        add_track_mark <- false;
+        remaining <- track_size);
       let len =
         match remaining with
-          | Some -1 | None -> Lazy.Mutexed.force Frame.size
+          | None -> Lazy.Mutexed.force Frame.size
           | Some r ->
               let len = min (Lazy.Mutexed.force Frame.size) r in
               remaining <- Some (r - len);
               len
       in
       let buf = self#synthesize len in
-      if add_track_mark then (
-        add_track_mark <- false;
-        remaining <- track_size;
-        Frame.add_track_mark buf 0)
-      else buf
+      if starts_track then Frame.add_track_mark buf 0 else buf
   end

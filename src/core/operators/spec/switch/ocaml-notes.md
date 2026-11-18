@@ -32,8 +32,6 @@ Where the code stops short of the specification:
   most `max_empty_segments` empty cycles in a row.
 - **`sequence`, `source.dynamic` and `cross` still commit when probed.** Only
   `switch` separates the decision from the handoff.
-- **A request source takes its next request when probed**, not when read.
-  It no longer does so while producing.
 - **An operator over several sources declares `pause`, never `track end`**,
   when one of them stopped: it cannot tell whose track is its own.
 - **`cross` builds its transition out of buffers that declare exhaustion**;

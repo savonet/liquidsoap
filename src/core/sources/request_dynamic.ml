@@ -72,6 +72,7 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
     method current = Atomic.get current
     method private self_sync = (`Static, None)
     val should_skip = Atomic.make false
+    val retrieved : queue_item Queue.t = Queue.create ()
 
     initializer
       self#on_before_streaming_cycle (fun () ->
@@ -173,14 +174,23 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
       else if Frame.is_partial frame then `Late
       else `Full
 
-    (* The frame stops where the request ends. The next request is fetched
-       when the reader goes on: fetching it here would start, and count as
-       played, a track nobody has heard yet. *)
+    (* The frame stops where the request ends, and a request is taken from
+       the queue only here, when the source is read: taking one earlier would
+       start, and count as played, a track nobody has heard yet. *)
     method private generate_frame =
-      let size = Lazy.Mutexed.force Frame.size in
-      let buf = self#generate_from_current_request size in
-      request_ended <- Frame.is_partial buf;
-      if request_ended then self#end_request;
+      if self#current = None then ignore self#fetch_request;
+      let buf =
+        match self#current with
+          | None ->
+              request_ended <- false;
+              self#empty_frame
+          | Some _ ->
+              let size = Lazy.Mutexed.force Frame.size in
+              let buf = self#generate_from_current_request size in
+              request_ended <- Frame.is_partial buf;
+              if request_ended then self#end_request;
+              buf
+      in
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)
@@ -198,8 +208,23 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
         | None -> ()
         | Some _ -> Atomic.set should_skip true
 
+    (* Whether a request can be played, without taking it. A queued request
+       that turns out not to be playable is dropped here, so that the ones
+       behind it are reached. *)
     method private is_request_ready =
-      self#current <> None || try self#fetch_request with _ -> false
+      self#current <> None
+      ||
+        match Queue.peek_opt retrieved with
+        | None -> false
+        | Some { request }
+          when Request.resolved request
+               && Request.has_decoder ~ctype:self#content_type request ->
+            true
+        | Some { request } ->
+            self#log#critical "Dropping a queued request that is not ready.";
+            ignore (Queue.pop_opt retrieved);
+            Request.destroy request;
+            self#is_request_ready
 
     method can_generate_frame =
       match self#is_request_ready with
@@ -209,7 +234,6 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
             (* Try one more time in case a new request was queued above. *)
             self#is_request_ready
 
-    val retrieved : queue_item Queue.t = Queue.create ()
     method private queue_size = Queue.length retrieved
     method queue = retrieved
 

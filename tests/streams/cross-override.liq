@@ -2,7 +2,8 @@
 
 success = ref(false)
 
-a = sine(duration=5., 440.)
+# Slightly longer than the crossfade.
+a = sine(duration=5.02, 440.)
 a =
   metadata.map(
     insert_missing=true,
@@ -12,7 +13,7 @@ a =
     a
   )
 
-b = sine(duration=5., 880.)
+b = sine(duration=5.02, 880.)
 b =
   metadata.map(
     insert_missing=true,
@@ -22,7 +23,7 @@ b =
     b
   )
 
-c = sine(duration=5., 440.)
+c = sine(duration=5.02, 440.)
 c =
   metadata.map(
     insert_missing=true,
