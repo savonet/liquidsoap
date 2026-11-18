@@ -170,30 +170,28 @@ end
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override. Defaults to `settings.fade.out.curve` if `null`.
 # @param ~delay Initial delay before starting fade. Defaults to `settings.fade.out.delay` if `null`.
 # @param ~curve Fade curve. Defaults to `settings.fade.out.curve` if `null`.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
-# @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
-#                        to set to default value.
-# @param ~override_delay Metadata field which, if presents and correct, overrides the initial fade delay.
-# @param ~persist_overrides Keep duration and type overrides on track change.
+# @param ~allow_metadata_override Let each track change the fade with its own metadata: `liq_fade_out` for the duration, `liq_fade_out_delay`, \
+#                                 `liq_fade_out_type` and `liq_fade_out_curve` (`"default"` for the default curve). When `false`, \
+#                                 only the arguments given here are used.
+# @param ~persist_overrides Keep what a track's metadata changed for the tracks that follow. Only with `allow_metadata_override`.
 # @param ~track_sensitive Be track sensitive (if `false` we only fade ou once at the beginning of the track).
-# @param ~initial_metadata Initial metadata.
 # @param ~type Fader shape. One of: "lin"", "sin", "log" or "exp". Defaults to `settings.fade.out.type` if `null`.
 def fade.out(
   ~id="fade.out",
   ~duration=null,
   ~delay=0.,
   ~curve=null,
-  ~override_duration="liq_fade_out",
-  ~override_type="liq_fade_out_type",
-  ~override_curve="liq_fade_out_curve",
-  ~override_delay="liq_fade_out_delay",
+  ~allow_metadata_override=false,
   ~persist_overrides=false,
   ~track_sensitive=false,
-  ~initial_metadata=[],
   ~type=null,
   s
 ) =
+  override_duration = "liq_fade_out"
+  override_type = "liq_fade_out_type"
+  override_curve = "liq_fade_out_curve"
+  override_delay = "liq_fade_out_delay"
+
   def log(~level=4, x) =
     log(label=source.id(s), level=level, x)
   end
@@ -209,7 +207,6 @@ def fade.out(
   delay = ref(original_delay)
   start_time = ref(-1.)
   started = ref(false)
-  last_metadata = ref(initial_metadata)
 
   def start_fade(d, _) =
     curve_log =
@@ -336,8 +333,6 @@ def fade.out(
     end
   end
 
-  update_fade(last_metadata())
-
   def reset_overrides(_) =
     if
       not persist_overrides
@@ -355,8 +350,13 @@ def fade.out(
   end
 
   s = source.methods(s)
-  s.on_track(synchronous=true, reset_overrides)
-  s.on_metadata(synchronous=true, update_fade)
+  if
+    allow_metadata_override
+  then
+    s.on_track(synchronous=true, reset_overrides)
+    s.on_metadata(synchronous=true, update_fade)
+  end
+
   if track_sensitive then s.on_track(synchronous=true, stop_fade) end
 
   d = source.dynamic(memoize({s}))
@@ -567,30 +567,28 @@ end
 # @param ~duration Duration of the fading. This value can be set on a per-file basis using the metadata field passed as override. Defaults to `settings.fade.in.duration` if `null`.
 # @param ~delay Initial delay before starting fade.
 # @param ~curve Fade curve. Defaults to `settings.fade.in.curve` if `null`.
-# @param ~override_duration Metadata field which, if present and containing a float, overrides the 'duration' parameter for the current track.
-# @param ~override_type Metadata field which, if present and correct, overrides the 'type' parameter for the current track.
-# @param ~override_curve Metadata field which, if presents and correct, overrides the `curve` parameter for the current track. Use `"default"` \
-#                        to set to default value.
-# @param ~override_delay Metadata field which, if presents and correct, overrides the initial fade delay.
-# @param ~persist_overrides Keep duration and type overrides on track change.
+# @param ~allow_metadata_override Let each track change the fade with its own metadata: `liq_fade_in` for the duration, `liq_fade_in_delay`, \
+#                                 `liq_fade_in_type` and `liq_fade_in_curve` (`"default"` for the default curve). When `false`, \
+#                                 only the arguments given here are used.
+# @param ~persist_overrides Keep what a track's metadata changed for the tracks that follow. Only with `allow_metadata_override`.
 # @param ~track_sensitive Be track sensitive (if `false` we only fade in once at the beginning of the track).
-# @param ~initial_metadata Initial metadata.
 # @param ~type Fader shape. One of: "lin"", "sin", "log" or "exp". Defaults to `settings.fade.in.type` if `null`.
 def fade.in(
   ~id="fade.in",
   ~duration=null,
   ~delay=0.,
   ~curve=null,
-  ~override_duration="liq_fade_in",
-  ~override_type="liq_fade_in_type",
-  ~override_curve="liq_fade_in_curve",
-  ~override_delay="liq_fade_in_delay",
+  ~allow_metadata_override=false,
   ~persist_overrides=false,
   ~track_sensitive=false,
-  ~initial_metadata=[],
   ~type=null,
   s
 ) =
+  override_duration = "liq_fade_in"
+  override_type = "liq_fade_in_type"
+  override_curve = "liq_fade_in_curve"
+  override_delay = "liq_fade_in_delay"
+
   def log(~level=4, x) =
     log(label=source.id(s), level=level, x)
   end
@@ -604,7 +602,6 @@ def fade.in(
   type = ref(original_type)
   original_curve = curve ?? settings.fade.in.curve()
   curve = ref(curve)
-  last_metadata = ref(initial_metadata)
 
   def apply() =
     fn = fn()
@@ -715,8 +712,6 @@ def fade.in(
     end
   end
 
-  update_fade(last_metadata())
-
   def reset_overrides(_) =
     if
       not persist_overrides
@@ -734,8 +729,12 @@ def fade.in(
   end
 
   s = source.methods(s)
-  s.on_track(synchronous=true, reset_overrides)
-  s.on_metadata(synchronous=true, update_fade)
+  if
+    allow_metadata_override
+  then
+    s.on_track(synchronous=true, reset_overrides)
+    s.on_metadata(synchronous=true, update_fade)
+  end
 
   # Register start_fade on the inner source so it fires before the amplify
   # operator processes the new track head.
@@ -786,13 +785,159 @@ def fade.in(
   s.{fade_duration = {duration()}, fade_delay = {delay()}, fade_type = {type()}}
 end
 
-# Simple transition for crossfade
+# Where the fades of a crossing sit, in seconds from the start of the
+# transition, computed from the metadata of both tracks and from the exact
+# lengths of the two sources. This is the one place where the `liq_fade_*`
+# keys are read for a crossing: to change one thing in a crossfade, change one
+# number of the plan and pass it to `cross.apply`.
+# @category Source / Fade
+# @param ~fade_in Duration of the fade-in when the starting track does not say (`liq_fade_in`).
+# @param ~fade_out Duration of the fade-out when the ending track does not say (`liq_fade_out`).
+# @param ending Ending track, as given to the transition function of `cross`.
+# @param starting Starting track, as given to the transition function of `cross`.
+def cross.plan(~fade_in=3., ~fade_out=3., ending, starting) =
+  def log(x) =
+    log(label="cross.plan", level=3, x)
+  end
+
+  # The float under a key, `null` when the key is missing or is not a float.
+  def float_key(metadata, key) =
+    if
+      list.assoc.mem(key, metadata)
+    then
+      try
+        (float_of_string(metadata[key]) : float?)
+      catch _ do
+        log(
+          "Ignoring `#{key}`: #{metadata[key]} is not a float."
+        )
+        null
+      end
+    else
+      null
+    end
+  end
+
+  def string_key(~default, metadata, key) =
+    list.assoc.mem(key, metadata) ? metadata[key] : default
+  end
+
+  ending_length = source.remaining(ending.source)
+  starting_length = source.remaining(starting.source)
+
+  asked_fade_out = float_key(ending.metadata, "liq_fade_out") ?? fade_out
+  fade_out_duration = min(asked_fade_out, ending_length)
+
+  # `liq_fade_out_start_next` is relative to the start of a window of
+  # `liq_fade_out_delay + liq_fade_out` that ends where the track ends: moved
+  # to the window we hold, it names the same place in the track.
+  start_next = float_key(ending.metadata, "liq_fade_out_start_next")
+  start_next =
+    if
+      null.defined(start_next)
+    then
+      fade_out_delay = float_key(ending.metadata, "liq_fade_out_delay") ?? 0.
+      (
+        max(
+          0.,
+          null.get(start_next) + ending_length - asked_fade_out - fade_out_delay
+        )
+      :
+        float?
+      )
+    else
+      null
+    end
+
+  start =
+    float_key(starting.metadata, "liq_fade_in_delay") ?? (start_next ?? 0.)
+
+  # A starting source shorter than the ending one starts later: both end
+  # together.
+  start =
+    if
+      starting_length < ending_length
+    then
+      start + ending_length - starting_length
+    else
+      start
+    end
+
+  asked_fade_in = float_key(starting.metadata, "liq_fade_in") ?? fade_in
+
+  {
+    duration = max(ending_length, start + starting_length),
+    ending =
+      {
+        fade_start = ending_length - fade_out_duration,
+        fade_duration = fade_out_duration,
+        type = string_key(default="sin", ending.metadata, "liq_fade_out_type"),
+        curve = float_key(ending.metadata, "liq_fade_out_curve")
+      },
+    starting =
+      {
+        start = start,
+        fade_duration = min(asked_fade_in, starting_length),
+        type = string_key(default="sin", starting.metadata, "liq_fade_in_type"),
+        curve = float_key(starting.metadata, "liq_fade_in_curve")
+      }
+  }
+end
+
+# The transition a plan describes: the ending source faded out and the
+# starting source faded in with `fade.out` and `fade.in`, each where the plan
+# puts it, added together. Neither fade reads metadata.
+# @category Source / Fade
+# @param ~ending_map Optional mapping for the faded ending track.
+# @param ~starting_map Optional mapping for the faded starting track.
+# @param plan Where the fades sit, as returned by `cross.plan`.
+# @param ending Ending track, as given to the transition function of `cross`.
+# @param starting Starting track, as given to the transition function of `cross`.
+def cross.apply(
+  ~ending_map=fun (s) -> s,
+  ~starting_map=fun (s) -> s,
+  plan,
+  ending,
+  starting
+) =
+  faded_out =
+    fade.out(
+      id="cross.fade_out",
+      type=plan.ending.type,
+      curve=plan.ending.curve,
+      delay=plan.ending.fade_start,
+      duration=plan.ending.fade_duration,
+      ending.source
+    )
+
+  faded_in =
+    fade.in(
+      id="cross.fade_in",
+      type=plan.starting.type,
+      curve=plan.starting.curve,
+      delay=plan.starting.start,
+      duration=plan.starting.fade_duration,
+      starting.source
+    )
+
+  # The maps take and return plain sources, whatever methods theirs carry.
+  add(
+    normalize=false,
+    [
+      (starting_map((faded_in : source)) : source),
+      (ending_map((faded_out : source)) : source)
+    ]
+  )
+end
+
+# Simple transition for crossfade: `cross.apply` of `cross.plan`, over two
+# sources and the metadata of their tracks.
 # @category Source / Fade
 # @param ~log Logging utility
 # @param ~fade_in  Fade-in duration, if any.
 # @param ~fade_out Fade-out duration, if any.
-# @param ~initial_fade_in_metadata Initial fade-in metadata
-# @param ~initial_fade_out_metadata Initial fade-out metadata
+# @param ~initial_fade_in_metadata Metadata of the starting track.
+# @param ~initial_fade_out_metadata Metadata of the ending track.
 # @param ~ending_map Optional mapping for the ending track
 # @param ~starting_map Optional mapping for the starting track
 # @param a Ending track
@@ -808,102 +953,38 @@ def cross.simple(
   a,
   b
 ) =
-  fade_out_start_next =
-    if
-      list.assoc.mem("liq_fade_out_start_next", initial_fade_out_metadata)
-    then
-      float_of_string(initial_fade_out_metadata["liq_fade_out_start_next"])
-    else
-      0.
-    end
-
-  fade_in_delay =
-    if
-      list.assoc.mem("liq_fade_in_delay", initial_fade_in_metadata)
-    then
-      float_of_string(initial_fade_in_metadata["liq_fade_in_delay"])
-    else
-      fade_out_start_next
-    end
-
-  fade_in_delay =
-    if
-      source.duration(b) < source.duration(a)
-    then
-      delay = source.duration(a) - source.duration(b)
-      log(
-        "Adding #{delay} of fade_in_delay to match ending source"
-      )
-      fade_in_delay + delay
-    else
-      fade_in_delay
-    end
-
-  def fade.out(s) =
-    fade.out(
-      type="sin",
-      persist_overrides=true,
-      duration=fade_out,
-      initial_metadata=initial_fade_out_metadata,
-      s
-    )
-  end
-
-  def fade.in(s) =
-    fade.in(
-      type="sin",
-      persist_overrides=true,
-      duration=fade_in,
-      initial_metadata=[
-        ...list.assoc.remove("liq_fade_in_delay", initial_fade_in_metadata),
-        ("liq_fade_in_delay", "#{fade_in_delay}")
-      ],
-      s
-    )
-  end
-
-  add = fun (a, b) -> add(normalize=false, [starting_map(b), ending_map(a)])
-  add(fade.out(a), fade.in(b))
+  ending = {source = a, metadata = initial_fade_out_metadata}
+  starting = {source = b, metadata = initial_fade_in_metadata}
+  plan = cross.plan(fade_in=fade_in, fade_out=fade_out, ending, starting)
+  log(
+    "Fading out #{plan.ending.fade_duration}s from #{plan.ending.fade_start}s,   \
+     fading in #{plan.starting.fade_duration}s from #{plan.starting.start}s."
+  )
+  cross.apply(
+    ending_map=ending_map,
+    starting_map=starting_map,
+    plan,
+    ending,
+    starting
+  )
 end
 
 # @docof cross
 # @param ~deduplicate  Crossfade transitions can generate duplicate metadata. When `true`, the operator \
 #                      removes duplicate metadata from the returned source.
 def replaces cross(%argsof(cross), ~deduplicate=true, transition, s) =
-  s = cross(%argsof(cross[!id]), transition, s)
-
-  # `cross` marks a metadata it announces as a fallback, for a track whose own
-  # announcement the transition did not carry through. Keep it only when
-  # nothing else announced that track: a crossing begins a track, so what
-  # matters is whether anything was announced since the track mark, not whether
-  # it repeats an earlier value. This is delivery, not deduplication, so it
-  # does not depend on `deduplicate`. The mark never leaves the operator.
-  announced = ref(false)
-  source.methods(s).on_track(synchronous=true, fun (_) -> announced := false)
-
-  def f(m) =
-    replayed = list.assoc.mem("liq_cross_replayed_metadata", m)
-    m = list.assoc.remove("liq_cross_replayed_metadata", m)
-    if
-      replayed and announced()
-    then
-      []
-    else
-      announced := true
-      m
-    end
+  s = cross(%argsof(cross), transition, s)
+  if
+    deduplicate
+  then
+    metadata.deduplicate(s).{
+      buffered = s.buffered,
+      duration = s.duration,
+      cross_duration = s.cross_duration
+    }
+  else
+    s
   end
-
-  delivered =
-    metadata.map(id=id, insert_missing=false, update=false, strip=true, f, s)
-
-  dedup = if deduplicate then metadata.deduplicate(delivered) else delivered end
-
-  dedup.{
-    buffered = s.buffered,
-    duration = s.duration,
-    cross_duration = s.cross_duration
-  }
 end
 
 # Crossfade between tracks, taking the respective volume levels into account in
@@ -926,14 +1007,14 @@ def crossfade(
     log(label=id, level=level, x)
   end
 
-  def transition(a, b) =
+  def transition(ending, starting) =
     list.iter(
       fun (x) ->
         log(
           level=4,
           "Before: #{x}"
         ),
-      a.metadata
+      ending.metadata
     )
 
     list.iter(
@@ -942,18 +1023,18 @@ def crossfade(
           level=4,
           "After : #{x}"
         ),
-      b.metadata
+      starting.metadata
     )
 
-    cross.simple(
-      log=log,
-      fade_in=fade_in,
-      fade_out=fade_out,
-      initial_fade_in_metadata=b.metadata,
-      initial_fade_out_metadata=a.metadata,
-      a.source,
-      b.source
+    plan = cross.plan(fade_in=fade_in, fade_out=fade_out, ending, starting)
+    log(
+      "Fading out #{plan.ending.fade_duration}s from #{
+        plan.ending.fade_start
+      }s, fading in #{plan.starting.fade_duration}s from #{
+        plan.starting.start
+      }s."
     )
+    cross.apply(plan, ending, starting)
   end
 
   cross(

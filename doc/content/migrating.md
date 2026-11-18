@@ -166,6 +166,47 @@ The `add` operator now relays metadata from all sources being summed (see above)
 
 Also, remember that the `add` operator removes all track marks.
 
+### Crossings are planned in one place
+
+`fade.in` and `fade.out` now do what their arguments say. By default they no longer read `liq_fade_*` metadata: pass `allow_metadata_override=true` to let each track change its fade through `liq_fade_in`, `liq_fade_in_delay`, `liq_fade_in_type`, `liq_fade_in_curve` and their `liq_fade_out` counterparts.
+
+```liquidsoap
+# Old: required the fade to be described by metadata
+s = fade.out(initial_metadata=[("liq_fade_out", "3.")], s)
+
+# New
+s = fade.out(duration=3., s)
+
+# New, with per-track overrides from metadata
+s = fade.out(allow_metadata_override=true, s)
+```
+
+| Old                                                                               | New                                               |
+| --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `override_duration`, `override_type`, `override_curve`, `override_delay` on fades | Removed, the keys are fixed                       |
+| `initial_metadata` on fades                                                       | Removed, use `duration`, `delay`, `type`, `curve` |
+| Fades read `liq_fade_*` metadata                                                  | Only with `allow_metadata_override=true`          |
+| `liq_cross_replayed_metadata` metadata                                            | Removed, `cross` announces the next track itself  |
+| Metadata handed to a transition carries adjusted `liq_fade_*` values              | Handed as the track carried it, see `cross.plan`  |
+| `db_level` of an empty side is not-a-number                                       | Minus infinity                                    |
+
+Where each fade sits in a crossing is computed once, by `cross.plan(ending, starting)`, from the `liq_fade_*` keys of the two tracks and the exact length of the two sources. `cross.apply(plan, ending, starting)` builds the transition from it. `cross.simple` and `crossfade` use both, so scripts relying on autocue or on `liq_fade_*` metadata keep working. A custom transition can do the same:
+
+```liquidsoap
+def transition(ending, starting) =
+  cross.apply(cross.plan(ending, starting), ending, starting)
+end
+```
+
+`cross` itself also changed:
+
+- A cross duration of zero is zero: the transition is called with empty sources at every boundary between two tracks.
+- A track shorter than the cross duration is crossed over its whole length.
+- A crossing puts one track mark, on the first sample of the transition.
+- A skip is heard at once: what was buffered of the skipped track is dropped and the next track starts without a transition.
+- The transition lasts for as long as the source it returned plays: one made of several items plays them all.
+- The output no longer depends on the frame size.
+
 ### Per-source methods on `switch`, `fallback`, `rotate`, `random`
 
 The `switch` operator and its wrappers `fallback`, `rotate` and `random` now take their per-branch settings as methods on each source. The old parallel list parameters are gone. See [source composition](./composition.md) for how these methods work together.

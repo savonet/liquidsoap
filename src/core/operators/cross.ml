@@ -23,14 +23,14 @@
 open Mm
 open Source
 
-(* [fed] is set for a buffer that is still being filled: an empty one is then
-   only late. *)
-class consumer ?(fed = false) ~name ~clock buffer =
+(* A finite store of stream data handed to script code: the end of a track,
+   or the start of the next one. *)
+class consumer ~name ~clock buffer =
   object (self)
     inherit Source.source ~clock ~name ()
     method fallible = true
     method private can_generate_frame = 0 < Generator.length buffer
-    method! exhausted = (not fed) && Generator.length buffer = 0
+    method! exhausted = Generator.length buffer = 0
 
     method private generate_frame =
       Generator.slice buffer (Lazy.Mutexed.force Frame.size)
@@ -41,520 +41,598 @@ class consumer ?(fed = false) ~name ~clock buffer =
     method remaining = Generator.length buffer
   end
 
-(** [rms_width] is in samples. [cross_length] is in ticks (like #remaining
-    estimations) and must be at least one frame. *)
+(* What was read of one track of the child and not delivered yet. *)
+type track = {
+  data : Generator.t;
+  (* The child stated the end of the track and we read up to it. *)
+  mutable ended : bool;
+  (* The cross duration of the track, in main ticks. It governs how far ahead
+     the track is read and the crossing at its end, and is left alone once
+     that end is found. *)
+  mutable duration : int;
+  (* Every metadata read of the track, key by key, the latest value winning. *)
+  mutable metadata : Frame.metadata;
+  (* The last [width] of what was read of the track and has left [data]: the
+     level of an ending track reaches back into what was delivered. *)
+  recent : Generator.t;
+}
+
+type transition = {
+  source : Source.source;
+  activation : Clock.activation;
+  release_callbacks : unit -> unit;
+  (* The metadata of the start of the next track, when the starting source
+     held some. *)
+  starting_metadata : Frame.metadata option;
+  (* Whether that metadata came out of the transition source. *)
+  mutable announced : bool;
+}
+
+(* Put on the metadata of the starting source and taken off whatever the
+   transition source delivers: seeing it come out is how we know the next
+   track was announced, whatever its values. *)
+let passage_key = "liq_cross_passage"
+
+let float_metadata key metadata =
+  Option.bind (Frame.Metadata.find_opt key metadata) float_of_string_opt
+
+(** [rms_width] is in main ticks. *)
 class cross val_source ~override_duration ~duration_getter ~persist_override
   ~rms_width transition =
   let s = Lang.to_source val_source in
-  let original_duration_getter = duration_getter in
-  let status :
-      [ `Idle
-      | `Before of Clock.activation * Source.source
-      | `After of Clock.activation * Source.source ]
-      ref =
-    ref `Idle
-  in
   object (self)
     inherit source ~name:"cross" ()
-
-    (* Switching to the transition is where the new track begins; switching back
-       to a buffering source at the end of it continues that same track. *)
-    inherit generate_from_multiple_sources ()
-
-    method private next_entry =
-      match !status with `After _ -> `Track | _ -> `As_is
-
     inherit Child_support.base ~check_self_sync:true val_source
     initializer Typing.(s#frame_type <: self#frame_type)
     method fallible = true
 
-    (* This is complicated. crossfade should never be used with [self_sync]
-     * sources but we do not have a static way of knowing it at the moment.
-     * Going with the same choice as above for now. *)
-    method private self_sync = s#cached_self_sync
-    val mutable duration_getter = duration_getter
-    val mutable main_duration = 0
-    method cross_duration = Frame.seconds_of_main main_duration
-
-    method set_main_duration =
-      let duration = duration_getter () in
-      let _main_duration = Frame.main_of_seconds duration in
-      let frame_size = Lazy.Mutexed.force Frame.size in
-
-      main_duration <-
-        (if _main_duration < 0 then (
-           self#log#important
-             "Cannot set crossfade duration to negative value %f!" duration;
-           frame_size
-           (* Accept zero as simplify disabled crossfade. Set to frame_size. *))
-         else if _main_duration = 0 then frame_size
-           (* For any non-zero too short value, warn the user. *)
-         else if _main_duration < frame_size then (
-           self#log#important
-             "Cannot set crossfade duration to less than the frame size!";
-           frame_size)
-         else _main_duration)
-
-    method reset_duration =
-      duration_getter <- original_duration_getter;
-      self#set_main_duration
-
-    initializer self#reset_duration
-
-    (* We need to store the end of a track, and compute the power of the signal
-     * before the end of track. For doing so we need to remember a sliding window
-     * of samples, maintain the sum of squares, and the number of samples in that
-     * sum. The sliding window is necessary because of possibly inaccurate
-     * remaining time estimaton. *)
-    val mutable gen_before = Generator.create Frame.Fields.empty
-    val mutable rms_before = 0.
-    val mutable rmsi_before = 0
-    val mutable mem_before = Array.make rms_width 0.
-    val mutable mem_i = 0
-    val mutable before_metadata = None
-
-    (* Same for the new track. No need for a sliding window here. *)
-    val mutable gen_after = Generator.create Frame.Fields.empty
-    val mutable rms_after = 0.
-    val mutable rmsi_after = 0
-    val mutable after_metadata = None
-
-    method private reset_analysis =
-      gen_before <- Generator.create self#content_type;
-      gen_after <- Generator.create self#content_type;
-      rms_before <- 0.;
-      rmsi_before <- 0;
-      mem_i <- 0;
-      Array.iteri (fun i _ -> mem_before.(i) <- 0.) mem_before;
-      rms_after <- 0.;
-      rmsi_after <- 0;
-      before_metadata <- after_metadata;
-      after_metadata <- None
-
-    (* The played source. We _need_ exclusive control on that source,
-     * since we are going to pull data from it at a higher rate around
-     * track limits. *)
-    val mutable source = (None, s)
-    method private source = snd source
-
-    (* A source built by the transition sits in a clock of its own until it
-       is made ours, and is never ready there. *)
-    method private prepare_source s =
-      Clock.unify ~pos:self#pos s#clock self#clock;
-      s#wake_up (self :> Clock.source)
-
-    initializer
-      self#on_wake_up (fun () ->
-          let a, s = source in
-          assert (a = None);
-          source <- (Some (s#wake_up (self :> Clock.source)), s);
-          self#reset_analysis);
-      self#on_sleep (fun () ->
-          let a, s = source in
-          s#sleep (Option.get a);
-          source <- (None, s))
-
-    (* Releases what the transition registered, if we are holding one. *)
-    val mutable release_transition = fun () -> ()
-
-    method set_status v =
-      (match !status with
-        | `Idle -> ()
-        | `Before (a, s) | `After (a, s) -> s#sleep a);
-      release_transition ();
-      release_transition <- (fun () -> ());
-      status := v
-
     method! child_clock_controller =
       Some (`Other ("source", (self :> < id : string >)))
 
-    method private child_get ~is_first () =
-      self#child_get_frame
-        ~get_partial_frame:(fun frame ->
-          match self#split_frame frame with
-            | buf, Some _ when Frame.position buf = 0 && is_first -> frame
-            | buf, _ -> buf)
-        ()
+    (* The tracks buffered, the current one first. *)
+    val mutable tracks : track list = []
+    val mutable phase : [ `Idle | `Track | `Transition of transition ] = `Idle
 
-    method private process_override_metadata m =
-      (match Frame.Metadata.find_opt override_duration m with
+    (* How the next sample delivered is entered. An entry that is owed stays
+       owed until a sample is delivered. *)
+    val mutable entry : [ `Track | `Continue | `As_is ] = `As_is
+
+    (* Metadata to put on the next sample of the current track: that of a
+       track the transition did not announce. *)
+    val mutable owed_metadata = None
+
+    (* The last override found, kept for the tracks that follow when
+       [persist_override] is set. *)
+    val mutable persisted_duration = None
+    val mutable child_stated_end = false
+    val mutable generated_end : segment_end = `Late
+
+    method private resolve_duration seconds =
+      let duration = Frame.main_of_seconds seconds in
+      if duration < 0 then (
+        self#log#important "Negative cross duration %f: using zero." seconds;
+        0)
+      else duration
+
+    method cross_duration =
+      Frame.seconds_of_main
+        (match List.rev tracks with
+          | track :: _ -> track.duration
+          | [] -> self#resolve_duration (duration_getter ()))
+
+    method private new_track =
+      let duration =
+        match persisted_duration with
+          | Some duration -> duration
+          | None -> self#resolve_duration (duration_getter ())
+      in
+      let track =
+        {
+          data = Generator.create self#content_type;
+          ended = false;
+          duration;
+          metadata = Frame.Metadata.empty;
+          recent = Generator.create self#content_type;
+        }
+      in
+      tracks <- tracks @ [track];
+      track
+
+    method private read_metadata track metadata =
+      track.metadata <- Frame.Metadata.append track.metadata metadata;
+      match float_metadata override_duration metadata with
         | None -> ()
-        | Some v -> (
-            try
-              self#log#info "Overriding crossfade duration from metadata %s"
-                override_duration;
-              let l = float_of_string v in
-              duration_getter <- (fun () -> l);
-              self#set_main_duration
-            with _ -> ()));
-      match Frame.Metadata.find_opt override_duration m with
-        | None -> ()
-        | Some v -> (
-            try
-              self#log#info "Overriding crossfade duration from metadata %s"
-                override_duration;
-              let l = float_of_string v in
-              duration_getter <- (fun () -> l);
-              self#set_main_duration
-            with _ -> ())
+        | Some seconds ->
+            let duration = self#resolve_duration seconds in
+            self#log#info "Cross duration from metadata %s: %.02fs."
+              override_duration seconds;
+            track.duration <- duration;
+            if persist_override then persisted_duration <- Some duration
 
-    initializer self#on_frame (`Metadata self#process_override_metadata)
-
-    method private append mode buf_frame =
-      let l = Frame.get_all_metadata buf_frame in
-      List.iter (fun (_, m) -> self#process_override_metadata m) l;
-      (match (List.rev l, mode) with
-        | (_, m) :: _, `Before -> before_metadata <- Some m
-        | (_, m) :: _, `After -> after_metadata <- Some m
-        | _ -> ());
-      match mode with
-        | `Before -> Generator.append gen_before buf_frame
-        | `After -> Generator.append gen_after buf_frame
-
-    method private prepare_before =
-      self#log#info "Buffering end of track...";
-      let before =
-        new consumer
-          ~fed:true
-          ~name:(Printf.sprintf "%s.pre_buffer" self#id)
-          ~clock:self#clock gen_before
-      in
-      Typing.(before#frame_type <: self#frame_type);
-      let a = self#prepare_source before in
-      self#set_status (`Before (a, (before :> Source.source)));
-      self#buffer_before ~is_first:true ();
-      match !status with
-        | `After (_, s) | `Before (_, s) -> if s#is_ready then Some s else None
-        | _ -> assert false
-
-    method private get_source ~boundary:_ () =
-      match !status with
-        | `Idle when self#child_is_ready -> self#prepare_before
-        | `Idle -> None
-        | `Before _ -> (
-            self#buffer_before ~is_first:false ();
-            match !status with
-              | `Idle -> assert false
-              | `Before (_, before_source) when before_source#is_ready ->
-                  Some before_source
-              | `Before _ -> None
-              | `After (_, after_source) -> Some after_source)
-        | `After (_, after_source) when after_source#is_ready ->
-            Some after_source
-        | `After _ -> self#prepare_before
-
-    method private buffer_before ~is_first () =
-      if Generator.length gen_before < main_duration && self#child_is_ready then (
-        let buf_frame = self#child_get ~is_first () in
-        self#append `Before buf_frame;
-        (* Analyze them *)
-        let pcm = AFrame.pcm buf_frame in
-        let len = Audio.length pcm in
-        let squares = Audio.squares pcm 0 len in
-        rms_before <- rms_before -. mem_before.(mem_i) +. squares;
-        mem_before.(mem_i) <- squares;
-        mem_i <- (mem_i + len) mod rms_width;
-        rmsi_before <- min rms_width (rmsi_before + len);
-
-        (* Should we buffer more or are we done ? *)
-        if Frame.is_partial buf_frame then (
-          let ending_duration = main_duration in
-          if not persist_override then self#reset_duration;
-          self#analyze_after ending_duration)
-        else self#buffer_before ~is_first:false ())
-
-    method private fade_in_main_duration =
-      let float_metadata lbl =
-        Option.value ~default:0.
-          (Option.bind
-             (Option.bind after_metadata (Frame.Metadata.find_opt lbl))
-             float_of_string_opt)
-      in
-      Frame.main_of_seconds
-        (float_metadata "liq_fade_in_delay" +. float_metadata "liq_fade_in")
-
-    (* Analyze the beginning of a new track over the ending track's duration and
-       its own fade-in: an override carried by the new track applies to its own
-       end. *)
-    method private analyze_after ending_duration =
-      let rec f ~is_first () =
-        if
-          Generator.length gen_after
-          < max ending_duration self#fade_in_main_duration
-          && self#child_is_ready
-        then (
-          let buf_frame = self#child_get ~is_first () in
-          self#append `After buf_frame;
-          if Generator.length gen_after <= rms_width then (
-            let pcm = AFrame.pcm buf_frame in
-            let len = Audio.length pcm in
-            let squares = Audio.squares pcm 0 len in
-            rms_after <- rms_after +. squares;
-            rmsi_after <- rmsi_after + len);
-          if Frame.is_partial buf_frame then (
-            if not persist_override then self#reset_duration;
-            self#log#critical
-              "End of track reached while buffering next track data, crossfade \
-               duration is longer than the track's duration. Make sure to \
-               adjust the crossfade duration to avoid issues.";
-            self#create_after)
-          else f ~is_first:false ())
-        else self#create_after
-      in
-      f ~is_first:true ()
-
-    method private append_before_metadata lbl value =
-      before_metadata <-
-        Some
-          (Frame.Metadata.add lbl value
-             (Option.value ~default:Frame.Metadata.empty before_metadata))
-
-    method private append_after_metadata lbl value =
-      after_metadata <-
-        Some
-          (Frame.Metadata.add lbl value
-             (Option.value ~default:Frame.Metadata.empty after_metadata))
-
-    method private fade_out_adjustements cross_duration =
-      let before_metadata =
-        Option.value ~default:Frame.Metadata.empty before_metadata
-      in
-      match
-        Option.map float_of_string_opt
-          (Frame.Metadata.find_opt "liq_fade_out" before_metadata)
-      with
-        | None -> ()
-        | Some None ->
-            self#log#important "Invalid non-float value for `liq_fade_out`: %s"
-              (Frame.Metadata.find "liq_fade_out" before_metadata)
-        | Some (Some fade_out) ->
-            let float_metadata lbl =
-              Option.bind
-                (Frame.Metadata.find_opt lbl before_metadata)
-                float_of_string_opt
-            in
-            let initial_fade_out_delay =
-              Option.value ~default:0. (float_metadata "liq_fade_out_delay")
-            in
-            if fade_out < cross_duration then (
-              let fade_out_delay = cross_duration -. fade_out in
-              self#log#info
-                "Setting `liq_fade_out_delay` to %.02f to make sure `fade.out` \
-                 ends at the end of the buffered data."
-                fade_out_delay;
-              self#append_before_metadata "liq_fade_out"
-                (string_of_float fade_out);
-              self#append_before_metadata "liq_fade_out_delay"
-                (string_of_float fade_out_delay))
-            else if cross_duration < fade_out then (
-              self#log#info
-                "Dropping %.02f from `liq_fade_out` to match the buffered data."
-                (fade_out -. cross_duration);
-              self#append_before_metadata "liq_fade_out"
-                (string_of_float cross_duration);
-              self#append_before_metadata "liq_fade_out_delay" "0.");
-            (* `liq_fade_out_start_next` is relative to the start of a window of
-               `liq_fade_out_delay + liq_fade_out` ending at the end of the
-               buffer. Move it to stay at the same position in the track. *)
-            Option.iter
-              (fun start_next ->
-                let window_shift =
-                  cross_duration -. fade_out -. initial_fade_out_delay
-                in
-                self#append_before_metadata "liq_fade_out_start_next"
-                  (string_of_float (max 0. (start_next +. window_shift))))
-              (float_metadata "liq_fade_out_start_next")
-
-    method private fade_in_adjustements cross_duration =
-      let after_metadata =
-        Option.value ~default:Frame.Metadata.empty after_metadata
-      in
-      match
-        Option.map float_of_string_opt
-          (Frame.Metadata.find_opt "liq_fade_in" after_metadata)
-      with
-        | None -> ()
-        | Some None ->
-            self#log#important "Invalid non-float value for `liq_fade_in`: %s"
-              (Frame.Metadata.find "liq_fade_in" after_metadata)
-        | Some (Some fade_in) when cross_duration < fade_in ->
-            self#log#info
-              "Dropping %.02f from `liq_fade_in` to match the buffered data."
-              (cross_duration -. fade_in);
-            self#append_after_metadata "liq_fade_in"
-              (string_of_float cross_duration)
+    method private close_last_track =
+      match List.rev tracks with
+        | track :: _ when not track.ended -> track.ended <- true
         | _ -> ()
 
-    (* Sum up analysis and build the transition *)
-    method private create_after =
-      let buffered_before = Generator.length gen_before in
-      let buffered_after = Generator.length gen_after in
-      let buffered = min buffered_before buffered_after in
-      let starting_length =
-        min buffered_after (max buffered self#fade_in_main_duration)
+    (* Appends the data of one track to the buffer. A mark on its first sample
+       closes a track left open: a child that starts a track without having
+       stated the end of the previous one. *)
+    method private buffer_track_data frame =
+      let starts_track = List.mem 0 (Frame.track_marks frame) in
+      let track =
+        match List.rev tracks with
+          | track :: _ when (not track.ended) && not starts_track -> track
+          | track :: _ when not track.ended ->
+              track.ended <- true;
+              self#new_track
+          | _ -> self#new_track
       in
-      let db_after =
-        Audio.dB_of_lin
-          (sqrt (rms_after /. float rmsi_after /. float self#audio_channels))
-      in
-      let db_before =
-        Audio.dB_of_lin
-          (sqrt (rms_before /. float rmsi_before /. float self#audio_channels))
-      in
-      let buffered_seconds = Frame.seconds_of_main buffered in
-      self#fade_out_adjustements buffered_seconds;
-      self#fade_in_adjustements (Frame.seconds_of_main starting_length);
-      let compound, release_callbacks =
-        let metadata = function None -> Frame.Metadata.empty | Some m -> m in
-        let before_metadata = metadata before_metadata in
-        let after_metadata = metadata after_metadata in
-        let before_head =
-          if buffered < buffered_before then (
-            let head =
-              Generator.slice gen_before (buffered_before - buffered)
-            in
-            let head_gen =
-              Generator.create ~content:head (Generator.content_type gen_before)
-            in
-            let s =
-              new consumer
-                ~name:(Printf.sprintf "%s.head_buffer" self#id)
-                ~clock:self#clock head_gen
-            in
-            Typing.(s#frame_type <: self#frame_type);
-            Some s)
-          else None
-        in
-        let before =
-          (new consumer
-             ~name:(Printf.sprintf "%s.before_buffer" self#id)
-             ~clock:self#clock gen_before
-            :> Source.source)
-        in
-        Typing.(before#frame_type <: self#frame_type);
-        let after_tail =
-          if starting_length < buffered_after then (
-            let head = Generator.slice gen_after starting_length in
-            let head_gen =
-              Generator.create ~content:head (Generator.content_type gen_after)
-            in
-            let tail_gen = gen_after in
-            gen_after <- head_gen;
-            let s =
-              new consumer
-                ~name:(Printf.sprintf "%s.tail_buffer" self#id)
-                ~clock:self#clock tail_gen
-            in
-            Typing.(s#frame_type <: self#frame_type);
-            Some s)
-          else None
-        in
-        let after =
-          (new consumer
-             ~name:(Printf.sprintf "%s.after_buffer" self#id)
-             ~clock:self#clock gen_after
-            :> Source.source)
-        in
-        Typing.(after#frame_type <: self#frame_type);
-        self#log#important "Analysis: %fdB / %fdB (%.2fs / %.2fs)" db_before
-          db_after
-          (Frame.seconds_of_main buffered_before)
-          (Frame.seconds_of_main buffered_after);
-        (* The transition runs on every crossing, so what it registers on the
-           sources it can reach — the two we hand it, and the source we cross,
-           which it may well have captured — is released with the crossing. *)
-        let { Lang_source.release = release_callbacks; result = compound } =
-          let params =
-            [
-              ( "",
-                Lang.meth Lang.unit
-                  [
-                    ("source", Lang.source before);
-                    ("db_level", Lang.float db_before);
-                    ("metadata", Lang.metadata before_metadata);
-                  ] );
-              ( "",
-                Lang.meth Lang.unit
-                  [
-                    ("source", Lang.source after);
-                    ("db_level", Lang.float db_after);
-                    ("metadata", Lang.metadata after_metadata);
-                  ] );
-            ]
-          in
-          Lang_source.collect_callback_releases
-            [(before :> Source.source); (after :> Source.source); s]
-            (fun () -> Lang.to_source (Lang.apply transition params))
-        in
-        Typing.(compound#frame_type <: self#frame_type);
-        let compound =
-          match (before_head, after_tail) with
-            | None, None -> (compound :> Source.source)
-            | Some s, None ->
-                (new Sequence.sequence
-                   ~name:(Printf.sprintf "%s.before_head" self#id)
-                   ~merge:true ~new_track_on_source_switch:false [s; compound]
-                  :> Source.source)
-            | None, Some s ->
-                (* The rest of the incoming track. Its metadata went into the
-                   buffered head, so a transition that drops the incoming
-                   source leaves it unannounced. Replay it here, marked, so it
-                   is dropped again when the transition did announce it. *)
-                let s =
-                  if after_metadata = Frame.Metadata.empty then
-                    (s :> Source.source)
-                  else (
-                    let s =
-                      new Replay_metadata.replay
-                        ~name:(Printf.sprintf "%s.after_tail_metadata" self#id)
-                        (Frame.Metadata.add "liq_cross_replayed_metadata" "true"
-                           after_metadata)
-                        (s :> Source.source)
-                    in
-                    Typing.(s#frame_type <: self#frame_type);
-                    (s :> Source.source))
-                in
-                (new Sequence.sequence
-                   ~name:(Printf.sprintf "%s.after_tail" self#id)
-                   ~new_track_on_source_switch:false ~single_track:false
-                   [compound; s]
-                  :> Source.source)
-            | Some _, Some _ -> assert false
-        in
-        Typing.(compound#frame_type <: self#frame_type);
-        (compound, release_callbacks)
-      in
-      let a = self#prepare_source compound in
-      self#reset_analysis;
-      self#set_status (`After (a, compound));
-      release_transition <- release_callbacks
+      List.iter
+        (fun (_, metadata) -> self#read_metadata track metadata)
+        (Frame.get_all_metadata frame);
+      Generator.append track.data frame
 
-    method remaining =
-      match !status with
-        | `Idle -> self#source#remaining
-        | `Before (_, s) -> (
-            match (s#remaining, self#source#remaining) with
-              | -1, _ | _, -1 -> -1
-              | r, r' -> r + r')
-        | `After (_, s) -> s#remaining
-
-    method effective_source =
-      match !status with
-        | `Idle -> self#source#effective_source
-        | `Before (_, s) | `After (_, s) -> s#effective_source
-
-    val pending_abort_track = Atomic.make false
+    (* Moves what the child output wrote into the buffer, cut where tracks
+       end. *)
+    method private take_intake =
+      let intake = self#child_buffer in
+      let rec buffer frame =
+        if 0 < Frame.position frame then (
+          match List.filter (fun p -> 0 < p) (Frame.track_marks frame) with
+            | [] -> self#buffer_track_data frame
+            | marks ->
+                let next_track = List.fold_left Int.min max_int marks in
+                self#buffer_track_data (Frame.sub frame 0 next_track);
+                buffer (Frame.after frame next_track))
+      in
+      buffer (Generator.slice intake (Generator.length intake));
+      if child_stated_end then (
+        child_stated_end <- false;
+        self#close_last_track)
 
     initializer
-      self#on_before_streaming_cycle (fun () ->
-          if Atomic.exchange pending_abort_track false then (
-            match !status with
-              | `Idle -> ()
-              | `Before _ | `After _ -> ignore self#prepare_before))
+      self#on_wake_up (fun () ->
+          self#child#set_on_track_end (fun () -> child_stated_end <- true))
 
+    (* What the next track asks to have buffered for its own fade-in. *)
+    method private fade_in_window track =
+      let seconds key =
+        Option.value ~default:0. (float_metadata key track.metadata)
+      in
+      Frame.main_of_seconds
+        (seconds "liq_fade_in_delay" +. seconds "liq_fade_in")
+
+    (* Whether more of the child should be read: [reserve] ahead of the current
+       track's cross duration while its end is not found, then the starting
+       window of the next track, and at least one sample of it. *)
+    method private wants_more ~reserve =
+      match tracks with
+        | [] -> true
+        | [current] when not current.ended ->
+            Generator.length current.data < current.duration + reserve
+        | [_] -> true
+        | current :: next :: _ when not next.ended ->
+            Generator.length next.data
+            < Int.max 1 (Int.max current.duration (self#fade_in_window next))
+        | _ -> false
+
+    method private buffered =
+      ( List.length tracks,
+        List.fold_left (fun n track -> n + Generator.length track.data) 0 tracks,
+        match List.rev tracks with track :: _ -> track.ended | [] -> false )
+
+    (* Reads the child while serving a request. Not being available ends the
+       reading, and says nothing about the track. *)
+    method private top_up ~reserve =
+      if self#wants_more ~reserve && self#child_is_ready then (
+        let before = self#buffered in
+        if Generator.length self#child_buffer = 0 then self#child_tick;
+        self#take_intake;
+        if self#buffered <> before then self#top_up ~reserve)
+
+    method private level frame =
+      let pcm = AFrame.pcm frame in
+      let count = Audio.length pcm in
+      if count = 0 then neg_infinity
+      else
+        Audio.dB_of_lin
+          (sqrt
+             (Audio.squares pcm 0 count /. float count
+            /. float self#audio_channels))
+
+    (* The level of an ending track is taken over the last [rms_width] read of
+       it, of which [recent] holds what has already left the buffer. *)
+    method private remember track frame =
+      Generator.append track.recent frame;
+      let excess = Generator.length track.recent - rms_width in
+      if 0 < excess then Generator.truncate track.recent excess
+
+    method private ending_level track frame =
+      let read =
+        Frame.append
+          (Generator.slice ~peek:true track.recent
+             (Generator.length track.recent))
+          frame
+      in
+      self#level
+        (Frame.after read (Int.max 0 (Frame.position read - rms_width)))
+
+    method private starting_level track frame =
+      let rest =
+        Generator.slice ~peek:true track.data (Generator.length track.data)
+      in
+      self#level (Frame.slice (Frame.append frame rest) rms_width)
+
+    method private finite_source ~name frame =
+      let source =
+        new consumer
+          ~name:(Printf.sprintf "%s.%s" self#id name)
+          ~clock:self#clock
+          (Generator.create ~content:frame self#content_type)
+      in
+      Typing.(source#frame_type <: self#frame_type);
+      (source :> Source.source)
+
+    (* A source built at run time sits in a clock of its own until it is made
+       ours, and is never ready there. *)
+    method private wake source =
+      Typing.(source#frame_type <: self#frame_type);
+      Clock.unify ~pos:self#pos source#clock self#clock;
+      source#wake_up (self :> Clock.source)
+
+    method private release_transition { source; activation; release_callbacks }
+        =
+      source#sleep activation;
+      release_callbacks ()
+
+    (* The crossing from [ending] to [next], at the point where nothing is left
+       to play of [ending] before it. *)
+    method private commit_crossing ~ending ~next ~rest =
+      let ending_frame =
+        Generator.slice ending.data (Generator.length ending.data)
+      in
+      let overlap = Frame.position ending_frame in
+      let starting_frame =
+        Generator.slice next.data (Int.max overlap (self#fade_in_window next))
+      in
+      let ending_level = self#ending_level ending ending_frame in
+      let starting_level = self#starting_level next starting_frame in
+      self#remember next starting_frame;
+      let starting_metadata =
+        match Frame.get_all_metadata starting_frame with
+          | [] -> None
+          | metadata ->
+              Some
+                (List.fold_left
+                   (fun union (_, metadata) ->
+                     Frame.Metadata.append union metadata)
+                   Frame.Metadata.empty metadata)
+      in
+      let starting_frame =
+        Frame.map_metadata starting_frame (fun (position, metadata) ->
+            Some (position, Frame.Metadata.add passage_key "true" metadata))
+      in
+      let ending_source = self#finite_source ~name:"ending" ending_frame in
+      let starting_source =
+        self#finite_source ~name:"starting" starting_frame
+      in
+      self#log#important "Crossing: %.2fs at %fdB into %.2fs at %fdB."
+        (Frame.seconds_of_main overlap)
+        ending_level
+        (Frame.seconds_of_main (Frame.position starting_frame))
+        starting_level;
+      tracks <- next :: rest;
+      let argument source level metadata =
+        ( "",
+          Lang.meth Lang.unit
+            [
+              ("source", Lang.source source);
+              ("db_level", Lang.float level);
+              ("metadata", Lang.metadata metadata);
+            ] )
+      in
+      (* The function runs at every crossing: what it registers on the sources
+         it can reach, the two it is handed and our child, is released with the
+         transition. *)
+      let { Lang_source.release = release_callbacks; result = source } =
+        Lang_source.collect_callback_releases
+          [ending_source; starting_source; s] (fun () ->
+            try
+              Some
+                (Lang.to_source
+                   (Lang.apply transition
+                      [
+                        argument ending_source ending_level ending.metadata;
+                        argument starting_source starting_level next.metadata;
+                      ]))
+            with Runtime_error.Runtime_error _ as error ->
+              self#log#severe "The transition function failed: %s"
+                (Printexc.to_string error);
+              None)
+      in
+      let transition =
+        match source with
+          | None -> None
+          | Some source ->
+              let activation = self#wake source in
+              if source#is_ready then Some (source, activation)
+              else (
+                self#log#important "The transition has nothing to deliver.";
+                source#sleep activation;
+                None)
+      in
+      let source, activation, release_callbacks =
+        match transition with
+          | Some (source, activation) -> (source, activation, release_callbacks)
+          | None ->
+              (* We stated a track end and answered ready before the function
+                 ran: whatever came of it, both tracks are heard. *)
+              self#log#important "Playing the two sources of the crossing.";
+              release_callbacks ();
+              let source =
+                (new Sequence.sequence
+                   ~name:(Printf.sprintf "%s.plain" self#id)
+                   [ending_source; starting_source]
+                  :> Source.source)
+              in
+              (source, self#wake source, fun () -> ())
+      in
+      phase <-
+        `Transition
+          {
+            source;
+            activation;
+            release_callbacks;
+            starting_metadata;
+            announced = false;
+          };
+      entry <- `Track;
+      Clock.signal_sync_change self#clock
+
+    (* The transition is left for the current track. *)
+    method private leave_transition transition =
+      self#release_transition transition;
+      phase <- `Track;
+      Clock.signal_sync_change self#clock;
+      let goes_on =
+        match tracks with
+          | current :: _ ->
+              0 < Generator.length current.data || not current.ended
+          | [] -> false
+      in
+      if goes_on then (
+        if not transition.announced then
+          owed_metadata <- transition.starting_metadata;
+        if entry <> `Track then entry <- `Continue)
+      else entry <- `Track;
+      goes_on
+
+    (* Applies the entry owed to the first sample of [frame]. Each frame goes
+       through this before anything is stated about what follows it. *)
+    method private enter frame =
+      if Frame.position frame = 0 then frame
+      else (
+        let frame =
+          match (entry, List.mem 0 (Frame.track_marks frame)) with
+            | `Track, false -> Frame.add_track_mark frame 0
+            | `Continue, true ->
+                Frame.add_track_marks
+                  (Frame.drop_track_marks frame)
+                  (List.filter (fun p -> 0 < p) (Frame.track_marks frame))
+            | _ -> frame
+        in
+        entry <- `As_is;
+        frame)
+
+    method private deliver_track =
+      match tracks with
+        | [] ->
+            phase <- `Idle;
+            generated_end <- `Late;
+            self#empty_frame
+        | current :: rest ->
+            let room = Lazy.Mutexed.force Frame.size in
+            let length = Generator.length current.data in
+            if not current.ended then (
+              let frame = Generator.slice current.data room in
+              self#remember current frame;
+              generated_end <-
+                (if Frame.position frame < room then `Late else `Full);
+              self#enter (self#announce frame))
+            else (
+              let next_length =
+                match rest with
+                  | next :: _ -> Generator.length next.data
+                  | [] -> 0
+              in
+              (* What is played of the track before the crossing point. *)
+              let head =
+                Int.max 0 (length - Int.min current.duration next_length)
+              in
+              match rest with
+                | next :: rest when head = 0 ->
+                    self#commit_crossing ~ending:current ~next ~rest;
+                    self#deliver
+                | _ ->
+                    let frame =
+                      Generator.slice current.data (Int.min room head)
+                    in
+                    self#remember current frame;
+                    if Frame.position frame = head then (
+                      generated_end <- `Track_end;
+                      if rest = [] then (
+                        (* Nothing follows: the track played to its last
+                           sample. *)
+                        tracks <- [];
+                        phase <- `Idle))
+                    else generated_end <- `Full;
+                    self#enter (self#announce frame))
+
+    (* Puts the metadata owed on the first sample of the current track
+       delivered after a transition. What the sample carries wins. *)
+    method private announce frame =
+      match owed_metadata with
+        | Some metadata when 0 < Frame.position frame ->
+            owed_metadata <- None;
+            let carried =
+              Option.value ~default:Frame.Metadata.empty
+                (Frame.get_metadata frame 0)
+            in
+            Frame.add_metadata frame 0 (Frame.Metadata.append metadata carried)
+        | _ -> frame
+
+    method private deliver_transition transition =
+      let source = transition.source in
+      if source#is_ready then (
+        let frame =
+          Frame.map_metadata source#get_frame (fun (position, metadata) ->
+              if Frame.Metadata.mem passage_key metadata then (
+                transition.announced <- true;
+                let metadata = Frame.Metadata.remove passage_key metadata in
+                if Frame.Metadata.is_empty metadata then None
+                else Some (position, metadata))
+              else Some (position, metadata))
+        in
+        (* What is owed applies to this frame; what is stated below applies to
+           what follows it. *)
+        let frame = self#enter frame in
+        let stated = source#segment_end in
+        if source#exhausted then
+          generated_end <-
+            (if self#leave_transition transition then `Pause else `Track_end)
+        else (
+          generated_end <- stated;
+          if stated = `Track_end then entry <- `Track);
+        frame)
+      else if source#exhausted || self#track_can_deliver then (
+        ignore (self#leave_transition transition);
+        self#deliver)
+      else (
+        generated_end <- `Late;
+        self#empty_frame)
+
+    method private deliver =
+      match phase with
+        | `Idle -> (
+            match tracks with
+              | [] ->
+                  generated_end <- `Late;
+                  self#empty_frame
+              | _ ->
+                  phase <- `Track;
+                  entry <- `Track;
+                  self#deliver_track)
+        | `Track -> self#deliver_track
+        | `Transition transition -> self#deliver_transition transition
+
+    method private generate_frame =
+      let reserve =
+        match phase with
+          | `Transition _ -> 0
+          | `Idle | `Track -> Lazy.Mutexed.force Frame.size
+      in
+      self#top_up ~reserve;
+      self#deliver
+
+    method private frame_end (_ : Frame.t) = generated_end
+
+    (* Whether the current track, or what follows it, has something to
+       deliver: data we hold, a crossing that is decided, or a child that
+       delivers when read. Reads nothing. *)
+    method private track_can_deliver =
+      match tracks with
+        | [] -> self#child_is_ready
+        | current :: rest ->
+            0 < Generator.length current.data
+            || rest <> [] || self#child_is_ready
+
+    method private can_generate_frame =
+      match phase with
+        | `Idle | `Track -> self#track_can_deliver
+        | `Transition { source } -> source#is_ready || self#track_can_deliver
+
+    (* The time to the next mark we will put. *)
+    method remaining =
+      let ( + ) a b = if a < 0 || b < 0 then -1 else a + b in
+      let track_remaining () =
+        match tracks with
+          | [] -> self#child#remaining
+          | current :: rest when current.ended ->
+              let next_length =
+                match rest with
+                  | next :: _ -> Generator.length next.data
+                  | [] -> 0
+              in
+              Int.max 0
+                (Generator.length current.data
+                - Int.min current.duration next_length)
+          | current :: _ -> (
+              match Generator.length current.data + self#child#remaining with
+                | -1 -> -1
+                | total -> Int.max 0 (total - current.duration))
+      in
+      match phase with
+        | `Idle | `Track -> track_remaining ()
+        | `Transition { source } -> source#remaining + track_remaining ()
+
+    method effective_source = (self :> Source.source)
+
+    (* Our tracks are those of our child. *)
+    method! resolved_composition =
+      match self#composition with
+        | (`File | `Live) as tag -> tag
+        | `Passthrough -> s#resolved_composition
+
+    (* The child's sync source paces the child clock, not ours. *)
+    method private self_sync =
+      ( `Dynamic,
+        match phase with
+          | `Transition { source } -> snd source#cached_self_sync
+          | `Idle | `Track -> None )
+
+    method! exhausted =
+      self#child#exhausted
+      && Generator.length self#child_buffer = 0
+      && List.for_all (fun track -> Generator.length track.data = 0) tracks
+      && match phase with `Transition _ -> false | `Idle | `Track -> true
+
+    method private reset =
+      (match phase with
+        | `Transition transition -> self#release_transition transition
+        | `Idle | `Track -> ());
+      phase <- `Idle;
+      tracks <- [];
+      owed_metadata <- None;
+      child_stated_end <- false
+
+    initializer
+      self#on_wake_up (fun () ->
+          self#reset;
+          entry <- `As_is;
+          persisted_duration <- None);
+      self#on_sleep (fun () -> self#reset)
+
+    (* Carried out on the streaming thread, between two cycles. Everything of
+       the track being heard goes. The child is aborted only while it is still
+       on that track: once its end was found the child is on the next one,
+       which is kept. *)
     method abort_track =
-      self#source#abort_track;
-      Atomic.set pending_abort_track true
+      match phase with
+        | `Idle -> ()
+        | `Track | `Transition _ -> (
+            let kept =
+              match tracks with
+                | current :: rest when current.ended -> Some rest
+                | _ -> None
+            in
+            self#reset;
+            self#discard_held;
+            entry <- `Track;
+            match kept with
+              | Some rest -> tracks <- rest
+              | None ->
+                  Generator.clear self#child_buffer;
+                  self#child#abort_track)
   end
 
 let _ =
@@ -626,8 +704,12 @@ let _ =
         Lang.to_string (List.assoc "override_duration" p)
       in
       let persist_override = Lang.to_bool (List.assoc "persist_override" p) in
-      let rms_width = Lang.to_float (List.assoc "width" p) in
-      let rms_width = Frame.audio_of_seconds rms_width in
+      let width = List.assoc "width" p in
+      if Lang.to_float width <= 0. then
+        raise
+          (Error.Invalid_value
+             (width, "The width of the level analysis must be positive.", []));
+      let rms_width = Frame.main_of_seconds (Lang.to_float width) in
       let transition = Lang.assoc "" 1 p in
       let source = Lang.assoc "" 2 p in
       new cross

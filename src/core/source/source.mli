@@ -374,6 +374,10 @@ object
   (** Manually mark amount of consumed data from the source. *)
   method consumed : int -> unit
 
+  (** Drops what was produced and not used by any reader. For a source whose
+      current track is aborted. *)
+  method private discard_held : unit
+
   (** Asks for the current track to be aborted. Safe from any thread and from a
       callback of the streaming cycle: [abort_track] is called by the streaming
       thread once the running cycle is over. *)

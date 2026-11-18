@@ -82,6 +82,13 @@ class child_output ~clock ~stack src =
 
     method set_process_frame fn = process_frame <- fn
 
+    (* Called when the segment just read ended where the child stated the end
+       of its track, also when it held no sample. A reader that must know
+       where tracks end is told, and never has to guess it from how much a
+       tick brought. *)
+    val mutable on_track_end : unit -> unit = fun () -> ()
+    method set_on_track_end fn = on_track_end <- fn
+
     method flush =
       match generator with
         | Some generator -> process_frame generator `Flush
@@ -107,7 +114,8 @@ class child_output ~clock ~stack src =
                         on a single child clock tick, raise \
                         `settings.clock.child.max_buffer`."
                        owner max_buffer src#id owner)
-                  "clock")
+                  "clock");
+            if self#segment_end = `Track_end then on_track_end ()
         | _ -> ()
 
     (* Latency catch-up, which is what resets active sources, never runs on a

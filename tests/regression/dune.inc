@@ -1875,6 +1875,166 @@
    clock_started_at_runtime.liq)))
 
 (rule
+ (alias test_cross_announcements)
+ (package liquidsoap)
+ (deps
+  cross_announcements.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} cross_announcements liquidsoap cross_announcements.liq)))
+
+(rule
+ (alias test_cross_duration_per_track)
+ (package liquidsoap)
+ (deps
+  cross_duration_per_track.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   cross_duration_per_track
+   liquidsoap
+   cross_duration_per_track.liq)))
+
+(rule
+ (alias test_cross_reads_when_read)
+ (package liquidsoap)
+ (deps
+  cross_reads_when_read.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   cross_reads_when_read
+   liquidsoap
+   cross_reads_when_read.liq)))
+
+(rule
+ (alias test_cross_samples)
+ (package liquidsoap)
+ (deps
+  cross_samples.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} cross_samples liquidsoap cross_samples.liq)))
+
+(rule
+ (alias test_cross_skip)
+ (package liquidsoap)
+ (deps
+  cross_skip.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} cross_skip liquidsoap cross_skip.liq)))
+
+(rule
+ (alias test_cross_sleep_remaining)
+ (package liquidsoap)
+ (deps
+  cross_sleep_remaining.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   cross_sleep_remaining
+   liquidsoap
+   cross_sleep_remaining.liq)))
+
+(rule
+ (alias test_cross_transition_end)
+ (package liquidsoap)
+ (deps
+  cross_transition_end.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} cross_transition_end liquidsoap cross_transition_end.liq)))
+
+(rule
+ (alias test_cross_transition_raises)
+ (package liquidsoap)
+ (deps
+  cross_transition_raises.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   cross_transition_raises
+   liquidsoap
+   cross_transition_raises.liq)))
+
+(rule
  (alias test_default_format)
  (package liquidsoap)
  (deps
@@ -3379,6 +3539,14 @@
   (alias test_callback_release_mixed_content)
   (alias test_cleanup)
   (alias test_clock_started_at_runtime)
+  (alias test_cross_announcements)
+  (alias test_cross_duration_per_track)
+  (alias test_cross_reads_when_read)
+  (alias test_cross_samples)
+  (alias test_cross_skip)
+  (alias test_cross_sleep_remaining)
+  (alias test_cross_transition_end)
+  (alias test_cross_transition_raises)
   (alias test_default_format)
   (alias test_delay_dry_between_tracks)
   (alias test_delay_gap)

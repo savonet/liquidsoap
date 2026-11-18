@@ -40,8 +40,9 @@ c =
 
 s = sequence([a, b, c])
 
-fade_in = fade.in(duration=5., type="sin", s)
-fade_out = fade.out(duration=5., type="sin", fade_in)
+fade_in = fade.in(allow_metadata_override=true, duration=5., type="sin", s)
+fade_out =
+  fade.out(allow_metadata_override=true, duration=5., type="sin", fade_in)
 track_count = ref(0)
 
 def on_track(m) =

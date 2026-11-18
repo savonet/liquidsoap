@@ -604,6 +604,10 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private cache =
       match _cache with None -> self#empty_frame | Some c -> c
 
+    (* What was produced and not used belongs to the current track: a source
+       drops it when that track is aborted. *)
+    method private discard_held = _cache <- None
+
     method private cache_pos =
       match _cache with None -> 0 | Some c -> Frame.position c
 
