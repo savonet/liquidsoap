@@ -166,22 +166,21 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
               buf)
             else buf
 
+    val mutable request_ended = false
+
+    method! private frame_end frame =
+      if request_ended then `Track_end
+      else if Frame.is_partial frame then `Late
+      else `Full
+
+    (* The frame stops where the request ends. The next request is fetched
+       when the reader goes on: fetching it here would start, and count as
+       played, a track nobody has heard yet. *)
     method private generate_frame =
       let size = Lazy.Mutexed.force Frame.size in
-      let rec fill buf =
-        let pos = Frame.position buf in
-        if pos < size then (
-          let buf =
-            Frame.append buf (self#generate_from_current_request (size - pos))
-          in
-          if Frame.is_partial buf then (
-            self#end_request;
-            let buf = Frame.add_track_mark buf (Frame.position buf) in
-            if self#fetch_request then fill buf else buf)
-          else buf)
-        else buf
-      in
-      let buf = fill self#empty_frame in
+      let buf = self#generate_from_current_request size in
+      request_ended <- Frame.is_partial buf;
+      if request_ended then self#end_request;
 
       (* At an end of track, we always have unqueued#remaining=0, so there's
          nothing special to do. *)
