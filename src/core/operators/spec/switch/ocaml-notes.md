@@ -23,6 +23,21 @@ the contract:
 | Switch decisions                      | `decide_mid_track`, `decide_at_boundary`, `handoff` in `src/core/operators/switch.ml`           |
 | Presented source                      | `insert_initial_track_mark`: `leave`, `track_ended`                                             |
 
+Choices the code makes that the specification leaves open:
+
+- **A request source opens the decoder of its next request when probed**
+  (`prepare_next` in `src/core/sources/request_dynamic.ml`), and takes the
+  request off its queue and puts it on air when read (`take_request`).
+  Opening the decoder is what detects video dimensions, which has to happen
+  before anything is produced. Until the first read, `current` is none and
+  `remaining` is 0.
+- **A switch with no selection resolves its composition from its first child
+  that can play** (`resolved_composition` in `switch.ml`).
+- **The `on_leave` that applies is read when the child is left**
+  (`push_leaving`), and called when the leave completes.
+- **`rotate` and `random` set `track_sensitive` on every child**
+  (`source.composition.children` in `src/libs/switches.liq`).
+
 Where the code stops short of the specification:
 
 - **Probes answer readiness only.** No source tells `more` from
