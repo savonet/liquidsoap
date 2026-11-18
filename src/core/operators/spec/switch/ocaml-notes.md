@@ -56,7 +56,7 @@ Where the code stops short of the specification:
   when one of them stopped: it cannot tell whose track is its own.
 - **`cross` builds its transition out of buffers that declare exhaustion**;
   the rest of it is as before
-  ([cross-seam.md §4](cross-seam.md#4-open)).
+  ([../cross/README.md](../cross/README.md)).
 - **Only the entry points of an abort are deferred** (`request_abort`, used
   by the script `skip` and the output's). Operators forward and issue aborts
   at once.

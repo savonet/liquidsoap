@@ -41,7 +41,7 @@ again here.
 
 ## 3. What the normative pass has to settle
 
-From [../switch/cross-seam.md §4](../switch/cross-seam.md#4-open):
+Left open by the switch specification when it placed `cross` on the seam:
 
 1. How the buffer stays one crossfade duration ahead when the child is read
    only while a request is served.
@@ -81,45 +81,37 @@ Added by the switch rebuild:
 
 ## 4. Scenarios to turn into checks
 
-From the tests ([tests.md](tests.md)) and the findings
-([findings.md](findings.md)). Known before the as-built pass:
+Each is a check of [conformance.md](conformance.md), marked S there.
 
 - A crossing puts one mark, on the first sample of the transition, and none
   where the transition ends.
 - The audio of a crossfaded sequence of files is the same, sample for
-  sample, wherever frames are cut (`tests/regression/GH4828.liq` checks a
-  checksum per frame, which is not that).
+  sample, wherever frames are cut.
 - A sequence under a crossfade ends: the output stops when its last track
-  did (`tests/regression/GH3239-2.liq`).
+  did.
 - The transition function receives the two sources, their levels and their
-  metadata (`tests/streams/cross-transition-arguments.liq`).
-
-Added by the as-built pass:
-
+  metadata.
 - Each track is announced once, in order, whatever the transition keeps of
-  its two sources: both, the ending one only, neither (tests.md §2).
+  its two sources: both, the ending one only, neither.
 - A track's override governs that track's end and no other, including when
-  the track is shorter than the duration (F4) or exactly as long (F17).
+  the track is shorter than the duration or exactly as long.
 - A skip is heard at once in either phase: nothing of the skipped track
-  plays after it (F1).
+  plays after it.
 - The last track ends the same way whether or not its length is a whole
-  number of frames: no transition against nothing (F2).
+  number of frames: no transition against nothing.
 - A starting track shorter than the window: where the mark falls and which
-  metadata it carries (F3). A first track shorter than the duration still
-  begins a track (F6).
+  metadata it carries. A first track shorter than the duration still begins
+  a track.
 - A track exactly as long as the window is crossed at its end like one a
-  frame longer (F17).
-- A transition that never ends, and one that ends early: what bounds it
-  (F13).
+  sample longer.
+- A transition that never ends, and one that ends early: what bounds it.
 - The same script gives the same audio with `persist_override` and a
-  `duration` function that changes (F10).
-- `cross` put to sleep and woken resumes cleanly (F11).
-- Callbacks a transition registers do not pile up over crossings
-  (tests.md §8).
+  `duration` function that changes.
+- `cross` put to sleep and woken resumes cleanly.
+- Callbacks a transition registers do not pile up over crossings.
 
 Every entry of [known-complexity.md](known-complexity.md) carries a check,
-under "How to tell". Pass 2 answers each with a rule; pass 3 turns each
-into a conformance check.
+under "How to tell", a rule, and a conformance check.
 
 ## 5. Constraints
 
@@ -128,3 +120,33 @@ into a conformance check.
   pass 1 only.
 - Pass 3 keeps the backbone of the existing code and cuts it down to the
   specification, as was done for `switch`.
+
+## 6. Rulings
+
+Given by the maintainer for the normative pass.
+
+- **Compatibility.** 2.5.0 opens a release cycle: parameters, methods and
+  callbacks may change, when the change is motivated, explained and
+  confirmed. The `liq_*` metadata keys are an interface with partners
+  through autocue: they change only for a major discrepancy or a design
+  gap.
+- **A zero overlap is a crossing.** A cross duration of zero is zero, not
+  one frame. The transition function is called at every boundary between
+  two tracks of the child, with empty sources when nothing overlaps.
+- **The mark of a crossing is on the transition**, never on the rest of the
+  ending track that plays before it.
+- **A skip gets no crossing.** What was buffered of the skipped track is
+  discarded and the next track starts plainly, in every phase.
+- **Reading.** `cross` stays one cross duration ahead and reads the
+  starting window when it finds the end of a track, in the request that
+  finds it. The work of a request is bounded by the windows, never by how
+  long `cross` was left unread.
+- **Everything below the child may run ahead** of the listener by that
+  much. A skip must hit the track being heard.
+- **Nothing bounds a transition.** One that never ends is a script error
+  `cross` does not police.
+- **A child that has nothing yet for the next track** does not end the
+  crossing: the ending track plays on and the crossing takes place over
+  what comes. With nothing by the end of the track, no transition.
+- **`fade.in` and `fade.out`** may be redesigned: easy for a plain overlap,
+  open to advanced use, as simple as possible. See [fades.md](fades.md).

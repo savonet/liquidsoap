@@ -109,3 +109,20 @@ The plot images are compared under a separate alias: `dune build @genplot`.
 - Never amend, never hard reset.
 - Infallibility: keep, and add where missing, hard failures on contract
   violations by sources that promised it.
+
+## From the normative pass
+
+- The specification is normative: [README.md](README.md) gives the order.
+  The maintainer's rulings are [brief.md §6](brief.md#6-rulings).
+- The table "The contract surface, in code" above describes the code before
+  the rebuild. What `cross` has to become is [cross.md](cross.md): the
+  probe reads nothing and runs nothing; there is no compound, no head or
+  tail source, no entry "as is".
+- **Compatibility.** Parameters, methods and callbacks may change when the
+  specification says so. The `liq_*` keys may not: a rebuild that needs one
+  changed stops and asks.
+- [fades.md](fades.md) is a proposal. Do not build it unless the maintainer
+  confirmed it.
+- Checks: [conformance.md](conformance.md) replaces the description of the
+  existing tests. Existing tests that compare per frame are rewritten to
+  compare samples.

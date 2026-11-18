@@ -1,32 +1,24 @@
-# The script layer, as built (Part A)
+# The script layer (Part A)
 
 What the standard library puts around the operator. `fade.in` and
-`fade.out` are not described: only what they are given.
+`fade.out` are not specified here: only what they are given.
 
 ## 1. The `cross` wrapper
 
-Scripts never reach the operator of [cross.md](cross.md) directly. The name
-`cross` is a wrapper with the same parameters plus `deduplicate` (default
-true). It returns the operator behind two filters, and re-exports
-`cross_duration`, `buffered` and `duration`.
-
-**Replayed metadata.** A metadata holding `liq_cross_replayed_metadata` is
-the fallback announcement of [cross.md §7](cross.md#7-building-the-compound),
-step 8. The wrapper keeps a flag, cleared at every track of the operator and
-set by every metadata it lets through:
-
-- the key is always removed;
-- a replayed metadata is dropped when the flag is set, delivered otherwise.
-
-So the fallback is heard only when nothing announced the starting track
-since the crossing began. This does not depend on `deduplicate`.
+Scripts reach the operator of [cross.md](cross.md) through a wrapper of the
+same name, with the same parameters plus `deduplicate` (default true). It
+re-exports the operator's methods.
 
 **Deduplication.** With `deduplicate`, the result goes through
 `metadata.deduplicate`, which drops a metadata equal to the previous one
-within a track.
+within a track. It MUST NOT compare across a track mark: a track repeating
+the previous one's metadata is announced.
 
-Callbacks registered on the wrapper's result therefore see the filtered
-stream; `cross_duration()` is the operator's.
+The wrapper does nothing else. Announcing the next track when a transition
+did not is the operator's rule ([cross.md §9](cross.md#9-metadata)), and
+holds with `deduplicate` on or off.
+
+Callbacks registered on the wrapper's result see the filtered stream.
 
 ## 2. `cross.simple`
 
@@ -45,7 +37,10 @@ returns `add(normalize=false, [starting_map(fade.in(b)), ending_map(fade.out(a))
      end together.
 
 A delayed fade-in plays silence for the delay, then the source, as one
-track.
+track ([helpers.md](../switch/helpers.md)).
+
+The result MUST declare exhaustion once both `a` and `b` have, so that the
+transition ends ([transition.md §4](transition.md#4-end-of-the-transition)).
 
 ## 3. `crossfade`
 
@@ -59,9 +54,12 @@ cross.simple(fade_in, fade_out,
              ending.source, starting.source)
 ```
 
-It logs every pair of both metadata at level 4. The levels are not used.
+It SHOULD log both metadata. The levels are not used.
 
 ## 4. Metadata keys
+
+These keys are an interface with the producers of cue data, autocue first.
+Their names and meanings are fixed.
 
 | Key                                                         | Written by                | Read by                                  |
 | ----------------------------------------------------------- | ------------------------- | ---------------------------------------- |
@@ -72,14 +70,17 @@ It logs every pair of both metadata at level 4. The levels are not used.
 | `liq_fade_in`                                               | autocue, scripts, `cross` | `cross`, `fade.in`                       |
 | `liq_fade_in_delay`                                         | scripts, `cross.simple`   | `cross`, `cross.simple`, `fade.in`       |
 | `liq_fade_in_type`, `_curve`, `liq_fade_out_type`, `_curve` | autocue, scripts          | `fade.in`, `fade.out`                    |
-| `liq_cross_replayed_metadata`                               | `cross` (operator)        | `cross` (wrapper), which removes it      |
 
-Autocue sets `liq_cross_duration` to `liq_fade_out + liq_fade_out_delay`.
-Reason, from the history: the ending track's fade sets the length of the
-crossing.
+`cross` writes only into the copies it hands the transition function
+([transition.md §2](transition.md#2-metadata-adjustments)): the stream it
+delivers carries the keys as the child gave them.
+
+Autocue sets `liq_cross_duration` to `liq_fade_out + liq_fade_out_delay`:
+the ending track's fade sets the length of the crossing.
 
 ## 5. Plots
 
 `cross.plot` and `autocue.plot` (extra library) record, for the first
-crossing, the level of each side over time into two text files and a PNG.
-They exist for the tests ([tests.md §9](tests.md#9-curves)).
+crossing, the level of each side over time into two text files and an
+image. A recording SHOULD be indexed by time, not by request, so that it
+does not move with the frame size.

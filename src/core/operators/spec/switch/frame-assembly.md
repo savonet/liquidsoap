@@ -162,12 +162,12 @@ defect of the specification.
 | C6     | Remaining, abort track, effective source, sync source.                              |
 | C7     | Fallibility and exhaustion.                                                         |
 
-| User             | File                           |
-| ---------------- | ------------------------------ |
-| `switch`         | [switch.md](switch.md)         |
-| `sequence`       | [sequence.md](sequence.md)     |
-| `source.dynamic` | [dynamic.md](dynamic.md)       |
-| `cross`          | [cross-seam.md](cross-seam.md) |
+| User             | File                                                   |
+| ---------------- | ------------------------------------------------------ |
+| `switch`         | [switch.md](switch.md)                                 |
+| `sequence`       | [sequence.md](sequence.md)                             |
+| `source.dynamic` | [dynamic.md](dynamic.md)                               |
+| `cross`          | [../cross/cross.md](../cross/cross.md#14-seam-answers) |
 
 **Sync source.** For every user: its sync source is that of what it reads
 after its last committed decision, transition sources included. A commit

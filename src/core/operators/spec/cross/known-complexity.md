@@ -3,9 +3,8 @@
 What the history of `cross` shows to be hard, stated as situations a new
 implementation will meet again. Entries say nothing about the old code. The
 **Count / traces** line of each entry is the only place where issue numbers,
-PR numbers and commit hashes appear. The **As built** line reconciles the
-entry with this snapshot: covered by a stated rule, not covered (a finding),
-or contradicted.
+PR numbers and commit hashes appear. The **Rule** line names what answers
+the entry in this specification, and its check.
 
 **How the history was measured.** `git log` on the operator and on the
 child-clock support gives 180 commits since 2008, the simple and the "smart"
@@ -13,8 +12,7 @@ variants included until they merged in 2019. About 45 read as fixes by their
 subject; 3 are reverts. I read every subject, the diffs of 20 fix commits,
 the descriptions of 13 pull requests (5194, 4851, 4591, 4605, 4892, 5338,
 5377, 5379, 5383, 5554, 5563, 5587, 5589), the 60 entries of CHANGES.md that
-name `cross` or `crossfade`, and the header comments of the 22 tests of
-[tests.md](tests.md).
+name `cross` or `crossfade`, and the header comments of the 22 tests that guarded `cross`.
 
 **Not read.** Issue discussions, except through the pull requests that close
 them; GitHub Discussions; anything about autocue's analysis; the history of
@@ -60,10 +58,7 @@ off.
 #2153; #4892; #5360, #5377, #5383; "before metadata lost when not
 conservative" (CHANGES, 1.4).
 
-**As built.** Covered for the shapes tested:
-[script-layer.md §1](script-layer.md#1-the-cross-wrapper),
-[cross.md §9](cross.md#9-metadata-kept). Not covered: F19, F23, and the
-head case of F3.
+**Rule.** [cross.md §9](cross.md#9-metadata): a track's metadata is accumulated key by key; the next track is announced after a transition that did not deliver its metadata, told by passage and never by value. Duplicates are not removed across a mark ([script-layer.md §1](script-layer.md#1-the-cross-wrapper)). Check: [conformance.md §7](conformance.md#7-metadata).
 
 ## 2. The window the fades are computed over
 
@@ -96,11 +91,7 @@ levels over time, not frames.
 **Count / traces.** 8. #1351; #3688, #3716; #3704; #4492 reverted by #4591
 (#4563); #4605; #5562/#5563; #5581/#5587; #5589.
 
-**As built.** Covered:
-[transition.md §2](transition.md#2-metadata-adjustments),
-[cross.md §5](cross.md#the-ending-track-is-over),
-[cross.md §7](cross.md#7-building-the-compound). No test asserts the
-adjusted values; the plots do, by frame ([tests.md §9](tests.md#9-curves)).
+**Rule.** [transition.md §2](transition.md#2-metadata-adjustments), over the overlap and the starting source of [cross.md §6](cross.md#6-crossing); the fade-in window is buffered in full ([cross.md §4](cross.md#4-reading-the-child)). Check: [conformance.md §5](conformance.md#5-the-transitions-arguments).
 
 ## 3. Being ready across the handovers
 
@@ -126,9 +117,7 @@ stops while the child has data; every track is heard.
 **Count / traces.** 6. "smart_cross would stop before the end of tracks"
 (CHANGES, 1.0); c72361267; 9aac6bed2; 688a811ff; #1170; #4177.
 
-**As built.** Covered: [cross.md §5](cross.md#5-probe) decides and commits
-in one act, which is what F12 holds against it. Pass 2 has to keep this
-entry true once the two are separated.
+**Rule.** [cross.md §11](cross.md#11-readiness): every ready answer is backed by data `cross` holds or by a source probed in the cycle; the probe decides and the request commits. A transition that delivers nothing is replaced by its two sources ([cross.md §6](cross.md#6-crossing), step 7). Check: [conformance.md §6](conformance.md#6-end-of-the-transition).
 
 ## 4. When the transition is over
 
@@ -150,14 +139,12 @@ transition, and a script-built source does not always say it.
 **How to tell.** A transition of four items, two of them shorter than a
 second, with a gap between items. Binding: every item is heard in full, in
 order; no mark where the transition gives way to the track. And a
-transition that never ends: see F13.
+transition that never ends plays on, with the child read no further.
 
 **Count / traces.** 5. #596; #652, #683; #2247 (AzuraCast 5109); #3729;
 e79028b37.
 
-**As built.** Covered for ending:
-[transition.md §4](transition.md#4-end-of-the-transition). Not covered: a
-transition with no end (F13).
+**Rule.** [transition.md §4](transition.md#4-end-of-the-transition): declared exhaustion, or nothing to deliver at the start of a cycle while the track can go on; a short segment and a track end do not end it. Nothing bounds a transition that never ends, and that is stated. The statement where it gives way is [cross.md §8](cross.md#8-delivery). Check: [conformance.md §6](conformance.md#6-end-of-the-transition).
 
 ## 5. The crossing begins one track, on the right sample
 
@@ -182,8 +169,7 @@ onto a frame edge and off it.
 
 **Count / traces.** 4. 9aac6bed2; #2247 (shared with 4); #5379; #5360.
 
-**As built.** Covered in steady state: [cross.md §8](cross.md#8-delivery).
-Not covered: F3, F6, F14.
+**Rule.** [cross.md §8](cross.md#8-delivery): `track end` at the crossing point, one mark on the first sample delivered after it, `pause` where the transition gives way. The join is made by the seam's statements, the same on a request edge and off it. Check: [conformance.md §2](conformance.md#2-tracks-and-marks).
 
 ## 6. Tracks shorter than the window
 
@@ -209,8 +195,7 @@ a frame longer.
 **Count / traces.** 5. a5cd73bd0; #1074; e79028b37; #3688; "workaround for
 short tracks" with autocue (CHANGES, 2.3).
 
-**As built.** Covered: [cross.md §7](cross.md#7-building-the-compound).
-Not covered: F3 (the mark with a head), F17 (the exact length), F6.
+**Rule.** [cross.md §5](cross.md#5-the-end-of-a-track) and [§6](cross.md#6-crossing): the head plays first, the overlap is what both sides hold, a zero overlap is still a crossing. Check: [conformance.md §3](conformance.md#3-short-tracks).
 
 ## 7. The duration: invalid, zero, changing
 
@@ -238,8 +223,7 @@ Negative, zero and sub-frame values terminate and cross over one frame.
 **Count / traces.** 9. a84a8e3b7, bd798309b; ac14c1c66; 27436404e; #2287;
 #2488/#2499; 31a2dba2d; ba356e83c; #5587 (shared with 2).
 
-**As built.** Covered: [cross.md §3](cross.md#3-cross-duration). Not
-covered: F4, F10, F17.
+**Rule.** [cross.md §3](cross.md#3-cross-duration): a duration per track, frozen when that track's end is found; overrides read once, from the buffered data; zero is zero. Check: [conformance.md §4](conformance.md#4-cross-duration).
 
 ## 8. Which clock the pieces live in
 
@@ -267,9 +251,7 @@ such operators while clocks start never fails.
 **Count / traces.** 7. d951bdc1f; f859083b0; 44d395b2c, 46b44b3ed; #3318
 (read only); #4851; #5548/#5554.
 
-**As built.** Covered: [child-clock.md §1](child-clock.md#1-parts),
-[cross.md §2](cross.md#2-state),
-[cross.md §7](cross.md#7-building-the-compound) step 9.
+**Rule.** [child-clock.md §1](child-clock.md#1-parts), [cross.md §13](cross.md#13-lifetime). Check: [conformance.md §10](conformance.md#10-clocks-and-lifetime).
 
 ## 9. What the script leaves behind
 
@@ -292,8 +274,7 @@ stays bounded, and is at least one. Live sources do not grow.
 **Count / traces.** 4. "resources accumulation leading to catchup"
 (CHANGES, 2.2, read only); d7ee9334b; #2247 (shared with 4); #5335/#5338.
 
-**As built.** Covered: [transition.md §5](transition.md#5-callbacks). Not
-covered: F11 (sleep).
+**Rule.** [transition.md §5](transition.md#5-callbacks), [cross.md §13](cross.md#13-lifetime): released when `cross` leaves the transition, sleep included. Check: [conformance.md §10](conformance.md#10-clocks-and-lifetime).
 
 ## 10. Results that depend on where frames are cut
 
@@ -320,8 +301,7 @@ positions.
 `cross-sequence-transition`; #4828; `cross-override` asking for an extra
 frame.
 
-**As built.** Not covered: F2, F17, F18, F21, F25. This entry has no stated
-rule today.
+**Rule.** [cross.md §2](cross.md#2-state): everything is counted in samples and no rule reads the size of a request. A track ends where the child stated it ([child-clock.md §2](child-clock.md#2-a-tick-of-the-child-clock), [cross.md §4](cross.md#4-reading-the-child)). Check: [conformance.md §1](conformance.md#1-frame-independence).
 
 ## 11. An abort from another thread
 
@@ -341,9 +321,7 @@ each skip nothing of the skipped track is heard.
 
 **Count / traces.** 2. #5148/#5149, #5194.
 
-**As built.** Covered for safety: [cross.md §10](cross.md#10-abort). Not
-covered for what plays: F1. The abort still reaches the child at once, from
-the caller's thread.
+**Rule.** [cross.md §10](cross.md#10-abort): carried out on the streaming thread when the cycle is over; everything of the aborted track is discarded; the child is aborted only while it is on that track. Check: [conformance.md §9](conformance.md#9-abort).
 
 ## 12. What the transition returns must fit
 
@@ -362,7 +340,7 @@ annotations runs through a crossing.
 
 **Count / traces.** 4. 22a66cbd1; #1603; 96c1f69f4; #3239.
 
-**As built.** Covered: [transition.md §3](transition.md#3-the-result).
+**Rule.** [transition.md §3](transition.md#3-the-result). Check: [conformance.md §5](conformance.md#5-the-transitions-arguments).
 
 ## 13. A child that paces itself
 
@@ -380,8 +358,7 @@ and a mix, is refused at creation.
 
 **Count / traces.** 3. #1705; fa52a0deb; 403061834.
 
-**As built.** Covered: [child-clock.md §6](child-clock.md#6-creation-check).
-Not covered: what is reported afterwards (F16).
+**Rule.** [child-clock.md §6](child-clock.md#6-creation-check); afterwards the child's sync source is the child clock's affair ([child-clock.md §7](child-clock.md#7-sync-source)). Check: [conformance.md §10](conformance.md#10-clocks-and-lifetime).
 
 ## 14. Remaining time
 
@@ -402,5 +379,4 @@ the next crossing fires.
 
 **Count / traces.** 3. a5cd73bd0 (shared with 6); c72361267; 688a811ff.
 
-**As built.** Covered in `before`:
-[cross.md §11](cross.md#11-other-properties). Not covered in `after`: F22.
+**Rule.** [cross.md §12](cross.md#12-other-properties): the time to the next mark, in every phase. Check: [conformance.md §11](conformance.md#11-other-properties).

@@ -128,7 +128,7 @@ Given by the maintainer before the normative pass.
 - **Silence.** A source that never ends a track resolves to the `live`
   profile.
 - **Cross.** The rest of `cross` gets its own extraction before the rebuild
-  changes it ([cross-seam.md §4](cross-seam.md#4-open)).
+  changes it ([../cross/README.md](../cross/README.md)).
 
 ## 5. Constraints on the rebuild
 

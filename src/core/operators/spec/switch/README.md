@@ -9,8 +9,8 @@ operator built on it, in its own file: `switch`, `sequence`,
 composition (tags, profiles, the default handoff). The policies built on
 `switch`: `fallback`, `rotate`, `random`, and the merged rotation. The
 script helpers built on `sequence` and `source.dynamic`, for where their
-tracks start. The rest of `cross` is not covered
-([cross-seam.md §4](cross-seam.md#4-open)). The clock is specified in
+tracks start. The rest of `cross` is specified in
+[../cross/](../cross/README.md). The clock is specified in
 [its own directory](../../../clock/spec/README.md).
 
 **Reading order**, which is also the order to build in:
