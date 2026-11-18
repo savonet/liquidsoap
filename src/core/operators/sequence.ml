@@ -33,13 +33,15 @@ class sequence ?(name = "sequence") ?(merge = false)
   let seq_sources = Atomic.make sources in
   object (self)
     inherit operator ~name sources
+    inherit generate_from_multiple_sources ()
 
-    inherit
-      generate_from_multiple_sources
-        ~new_track_on_source_switch:(fun () -> new_track_on_source_switch)
-        ~merge:(fun () -> merge && List.length (Atomic.get seq_sources) <> 1)
-        ~track_sensitive:(fun () -> true)
-        ()
+    (* Asked while the item that ends is still the head of the queue: a join
+       is merged by what is being left, the last item's own tracks are not
+       joins. *)
+    method private next_entry =
+      if merge && List.length (Atomic.get seq_sources) <> 1 then `Continue
+      else if new_track_on_source_switch then `Track
+      else `As_is
 
     method private self_sync =
       ( self_sync_type (),
@@ -61,42 +63,19 @@ class sequence ?(name = "sequence") ?(merge = false)
             has_started <- List.exists (fun s -> s#is_ready) self#queue;
             has_started
 
-    method private get_stateful_source ?(source_skipped = false) ~reselect () =
+    method private get_source ~boundary () =
       match (self#has_started, self#queue) with
         | _, [] -> None
-        | true, s :: [] ->
-            if
-              self#can_reselect
-                ~reselect:(match reselect with `Force -> `Ok | _ -> reselect)
-                s
-            then Some s
-            else None
+        | true, s :: [] -> if s#is_ready then Some s else None
         | true, s :: rest ->
-            if
-              self#can_reselect
-                ~reselect:
-                  (match reselect with
-                    | `After_position _
-                      when (not source_skipped) && single_track ->
-                        `Force
-                    | v -> v)
-                s
-            then Some s
+            if (not (boundary && single_track)) && s#is_ready then Some s
             else (
               self#log#info "Finished with %s" s#id;
               Atomic.set seq_sources rest;
               self#release_source s;
-              (* The source we just moved to has not been read yet during this
-                 streaming cycle, so a position constraint computed against the
-                 source we are done with does not apply to it. Carrying
-                 `After_position` over rejects a source that has no more samples
-                 available than the one it follows, silently dropping its first
-                 chunk along with the metadata it carries. *)
-              self#get_stateful_source ~source_skipped:true ~reselect:`Ok ())
+              self#leave_source;
+              self#get_source ~boundary:false ())
         | _ -> None
-
-    method private get_source ~reselect () =
-      self#get_stateful_source ~reselect ()
 
     method remaining =
       if merge then (
@@ -110,6 +89,7 @@ class sequence ?(name = "sequence") ?(merge = false)
         | _ -> (self :> Source.source)
 
     method abort_track =
+      self#end_track;
       if merge then (
         match List.rev self#queue with
           | [] -> assert false

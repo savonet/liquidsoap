@@ -162,6 +162,15 @@ val activate_pending : t -> unit
 val on_tick : t -> (unit -> unit) -> unit
 val after_tick : t -> (unit -> unit) -> unit
 
+(** A tick is produced in one or more segments: a frame that stops at a track
+    end is continued in the next segment of the same tick. [after_segment]
+    registers a one-shot callback for the end of the running segment. *)
+val after_segment : t -> (unit -> unit) -> unit
+
+(** Asks for another segment in the running tick. For an output whose frame
+    stopped short of full at a track end, after it made progress. *)
+val request_segment : t -> unit
+
 (** Counted. Raises [Not_a_sub_clock]. *)
 val register : parent:t -> t -> unit
 

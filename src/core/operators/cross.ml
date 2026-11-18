@@ -56,13 +56,10 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
 
     (* Switching to the transition is where the new track begins; switching back
        to a buffering source at the end of it continues that same track. *)
-    inherit
-      generate_from_multiple_sources
-        ~new_track_on_source_switch:(fun () ->
-          match !status with `After _ -> true | _ -> false)
-        ~merge:(fun () -> false)
-        ~track_sensitive:(fun () -> false)
-        ()
+    inherit generate_from_multiple_sources ()
+
+    method private next_entry =
+      match !status with `After _ -> `Track | _ -> `As_is
 
     inherit Child_support.base ~check_self_sync:true val_source
     initializer Typing.(s#frame_type <: self#frame_type)
@@ -221,8 +218,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         | `After (_, s) | `Before (_, s) -> if s#is_ready then Some s else None
         | _ -> assert false
 
-    method private get_source ~reselect () =
-      let reselect = match reselect with `Force -> `Ok | _ -> reselect in
+    method private get_source ~boundary:_ () =
       match !status with
         | `Idle when self#child_is_ready -> self#prepare_before
         | `Idle -> None
@@ -230,13 +226,11 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
             self#buffer_before ~is_first:false ();
             match !status with
               | `Idle -> assert false
-              | `Before (_, before_source)
-                when self#can_reselect ~reselect before_source ->
+              | `Before (_, before_source) when before_source#is_ready ->
                   Some before_source
               | `Before _ -> None
               | `After (_, after_source) -> Some after_source)
-        | `After (_, after_source) when self#can_reselect ~reselect after_source
-          ->
+        | `After (_, after_source) when after_source#is_ready ->
             Some after_source
         | `After _ -> self#prepare_before
 

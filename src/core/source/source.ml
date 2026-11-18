@@ -47,6 +47,14 @@ module Per_cycle = struct
 end
 
 type readiness = { cached : int; can_generate : bool }
+
+(* Why a source's data stops where it does in a cycle. [`Pause]: the track
+   goes on, and the source must be asked again before it produces more. *)
+type segment_end = [ `Full | `Track_end | `Pause | `Late ]
+
+(* How the first sample that follows a track end is delivered: beginning a
+   track, continuing the current one, or as the source gives it. *)
+type entry = [ `Track | `Continue | `As_is ]
 type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
 type self_sync = Source_sync.t
@@ -619,7 +627,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         consumed <- 0;
         ignore self#readiness;
         Atomic.set cycle_open true;
-        Clock.after_tick self#clock (fun () -> self#after_streaming_cycle);
+        Clock.after_segment self#clock (fun () -> self#after_streaming_cycle);
         settled_self_sync <- Some self#cached_self_sync)
 
     method private after_streaming_cycle =
@@ -655,6 +663,36 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       data
 
     method consumed n = consumed <- Int.max consumed n
+    val cycle_segment_end : segment_end Per_cycle.t = Per_cycle.make ()
+
+    (* Why the data produced in this cycle stops where it does. Only the
+       source knows: a short frame alone says nothing. *)
+    method segment_end : segment_end =
+      match Per_cycle.find cycle_frame with
+        | None -> `Late
+        | Some _ when _cache <> None -> `Full
+        | Some frame ->
+            self#per_cycle cycle_segment_end (fun () -> self#frame_end frame)
+
+    (* An operator's frame ends where that of what it relays does, for the
+       same reason. A source that ends a track on its own states it with a
+       mark at the end of its data. An operator over several sources cannot
+       tell whose track is its own: when one of them stopped, it only says
+       that it must be asked again. *)
+    method private frame_end frame : segment_end =
+      let stopped s =
+        match s#segment_end with
+          | `Track_end | `Pause -> true
+          | `Full | `Late -> false
+      in
+      if List.mem (Frame.position frame) (Frame.track_marks frame) then
+        `Track_end
+      else (
+        match sources with
+          | [(_, s)] when stopped s -> s#segment_end
+          | _ when List.exists (fun (_, s) -> stopped s) sources -> `Pause
+          | _ -> if Frame.is_partial frame then `Late else `Full)
+
     method get_frame = self#get_partial_frame (fun f -> f)
 
     method get_mutable_content field =
@@ -968,34 +1006,39 @@ class virtual active_source ?stack ?clock ~name () =
     inherit active_operator ?stack ?clock ~name []
   end
 
-(* Reselect type. This drives the choice of next source.
-   In cases where the underlying source returns the same
-   choice after calling [get_source], we need to refuse
-   that source unless if can continue filling up the frame
-   that is being worked on. This what [`After_position]
-   captures. *)
-type reselect = [ `Ok | `Force | `After_position of int ]
+(* Delivers one stream out of successive sources. A frame stops where the
+   track of the source it reads ends: what comes next is decided when the
+   reader goes on, in the next segment of the tick. [get_source] is told
+   whether the stream is at such a boundary.
 
-class virtual generate_from_multiple_sources
-  ?(new_track_on_source_switch = fun () -> true) ~merge ~track_sensitive () =
+   [next_entry] is asked when the track of the source being read ends, before
+   anything else is chosen, and says how the data that follows is entered.
+   [`Track] ends the operator's own track there. *)
+class virtual generate_from_multiple_sources () =
   object (self)
-    method virtual get_source : reselect:reselect -> unit -> source option
-    method virtual split_frame : Frame.t -> Frame.t * Frame.t option
+    method virtual get_source : boundary:bool -> unit -> source option
+    method virtual private next_entry : entry
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
-    method virtual private set_last_metadata : Frame.t -> unit
     method virtual reset_last_metadata_on_track : bool
     method virtual clear_last_metadata : unit
     method virtual log : Log.t
     method virtual id : string
     val mutable ready_source = None
 
-    method private can_generate_frame =
-      match
-        self#get_source
-          ~reselect:(if track_sensitive () then `Ok else `Force)
-          ()
-      with
+    (* The track of the last source read ended or was aborted. *)
+    val mutable at_boundary = false
+
+    (* Stated at the last track end, applied to the next sample. *)
+    val mutable entry : entry option = None
+
+    method private end_track =
+      at_boundary <- true;
+      entry <- Some `Track
+
+    (* Whether there is something to read from here. *)
+    method private choose_next_source ~boundary =
+      match self#get_source ~boundary () with
         | Some s when s#is_ready ->
             ready_source <- Some s;
             true
@@ -1003,96 +1046,108 @@ class virtual generate_from_multiple_sources
             ready_source <- None;
             false
 
+    method private can_generate_frame =
+      self#choose_next_source ~boundary:at_boundary
+
     val mutable current_source = None
 
+    (* The source to read, asked when the frame is produced. A user that only
+       decides when it is probed commits its decision here. *)
+    method private enter_chosen_source : source option = ready_source
+
+    (* Set when the user moved on from the source it was reading: what it
+       chooses next is another source even when it is the same object. *)
+    val mutable left_source = false
+
+    method private leave_source =
+      current_source <- None;
+      at_boundary <- false;
+      left_source <- true
+
+    (* The data of [frame] up to where its first track ends: a mark past its
+       first sample, the one stated at its end included. *)
+    method private first_track frame =
+      match List.filter (fun p -> 0 < p) (Frame.track_marks frame) with
+        | [] -> (frame, false)
+        | marks ->
+            (Frame.sub frame 0 (List.fold_left Int.min max_int marks), true)
+
     method private begin_track buf =
-      if merge () then Frame.drop_track_marks buf
-      else (
-        let buf =
-          if Frame.position buf > 0 then Frame.add_track_mark buf 0 else buf
-        in
-        self#execute_on_track buf;
-        buf)
+      if self#reset_last_metadata_on_track then self#clear_last_metadata;
+      self#execute_on_track buf;
+      buf
 
-    (* A source switch carries potentially different content, so it begins a
-       track unless the operator knows better. *)
-    method private on_source_switch buf =
-      if new_track_on_source_switch () then self#begin_track buf
-      else if merge () then Frame.drop_track_marks buf
-      else buf
+    method private enter entry buf =
+      match (entry, Frame.track_marks buf) with
+        | `Continue, _ -> Frame.drop_track_marks buf
+        | `Track, 0 :: _ | `As_is, 0 :: _ -> self#begin_track buf
+        | `Track, _ -> self#begin_track (Frame.add_track_mark buf 0)
+        | `As_is, _ -> buf
 
-    method private can_reselect ~(reselect : reselect) (s : source) =
-      s#is_ready
-      &&
-        match reselect with
-        | `Ok -> true
-        | `Force -> false
-        | `After_position p -> p < Frame.position s#get_frame
+    val mutable generated_end : segment_end = `Late
 
-    method private continue_frame s =
-      s#get_partial_frame (fun frame ->
-          match self#split_frame frame with
-            | buf, Some next_track when Frame.position buf = 0 -> (
-                if self#reset_last_metadata_on_track then
-                  self#clear_last_metadata;
-                match current_source with
-                  | Some s' when s == s' -> self#empty_frame
-                  | _ -> self#begin_track next_track)
-            | buf, _ -> (
-                match current_source with
-                  | Some s' when s != s' && Frame.position buf > 0 ->
-                      self#on_source_switch buf
-                  | _ -> buf))
+    (* A frame left short by the source being read is not the end of ours:
+       another source may be chosen when the reader goes on. *)
+    method private frame_end frame : segment_end =
+      match generated_end with
+        | (`Track_end | `Pause) as stated -> stated
+        | `Late | `Full -> if Frame.is_partial frame then `Pause else `Full
 
     method private generate_frame =
-      let s = Option.get ready_source in
-      assert s#is_ready;
-      let buf = self#continue_frame s in
-      let size = Lazy.Mutexed.force Frame.size in
-      let rec f ~last_source ~last_chunk buf =
-        let pos = Frame.position buf in
-        let last_chunk_pos = Frame.position last_chunk in
-        self#set_last_metadata last_chunk;
-        if pos < size then (
-          let rem = size - pos in
-          match
-            self#get_source ~reselect:(`After_position last_chunk_pos) ()
-          with
-            | Some s when last_source == s ->
-                let remainder =
-                  s#get_partial_frame (fun frame ->
-                      if Frame.position frame <= last_chunk_pos then (
-                        self#log#critical
-                          "Source %s was re-selected but did not produce \
-                           enough data: %d <! %d"
-                          s#id (Frame.position frame) last_chunk_pos;
-                        assert false);
-                      Frame.slice frame (last_chunk_pos + rem))
-                in
-                let new_track = Frame.after remainder last_chunk_pos in
-                let new_track =
-                  if merge () then Frame.drop_track_marks new_track
-                  else new_track
-                in
-                f ~last_source ~last_chunk:remainder
-                  (Frame.append buf new_track)
-            | Some s ->
-                if not s#is_ready then (
-                  self#log#critical "Underlying source %s is not ready!" s#id;
-                  assert false);
-                let new_track =
-                  s#get_partial_frame (fun frame ->
-                      match self#split_frame frame with
-                        | buf, _ when Frame.position buf = 0 ->
-                            Frame.slice frame rem
-                        | buf, _ -> Frame.slice buf rem)
-                in
-                f ~last_source:s ~last_chunk:new_track
-                  (Frame.append buf (self#on_source_switch new_track))
-            | _ -> (last_source, buf))
-        else (last_source, buf)
+      match self#enter_chosen_source with
+        | Some s when s#is_ready -> self#generate_from s
+        | _ ->
+            (* What was decided has nothing to deliver after all. *)
+            self#log#important "Nothing to deliver from the chosen source.";
+            generated_end <- `Late;
+            self#empty_frame
+
+    method private generate_from s =
+      let same_source =
+        match current_source with Some s' -> s == s' | None -> false
       in
-      let last_source, buf = f ~last_source:s ~last_chunk:buf buf in
-      current_source <- Some last_source;
+      let ended = ref false in
+      let buf =
+        s#get_partial_frame (fun frame ->
+            match Frame.track_marks frame with
+              | 0 :: _ when same_source && not at_boundary ->
+                  (* The source started a track without having stated the end
+                     of the previous one. Nothing of the new track is taken:
+                     the boundary is stated here and decided on next. *)
+                  ended := true;
+                  self#empty_frame
+              | _ ->
+                  let buf, cut = self#first_track frame in
+                  ended := cut;
+                  buf)
+      in
+      let relayed = s#segment_end in
+      let ended = !ended || relayed = `Track_end in
+      let buf =
+        if Frame.position buf = 0 then buf
+        else (
+          (* A source change nothing stated the end of: a cut into a track, or
+             a source that had nothing left. *)
+          let unstated =
+            (not same_source) && (current_source <> None || left_source)
+          in
+          left_source <- false;
+          let applied =
+            match entry with
+              | Some entry -> entry
+              | None when unstated -> self#next_entry
+              | None -> `As_is
+          in
+          entry <- None;
+          at_boundary <- false;
+          self#enter applied buf)
+      in
+      current_source <- Some s;
+      if ended then (
+        let next = self#next_entry in
+        at_boundary <- true;
+        entry <- Some next;
+        generated_end <- (if next = `Track then `Track_end else `Pause))
+      else generated_end <- (if relayed = `Pause then `Pause else `Late);
       buf
   end

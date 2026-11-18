@@ -36,6 +36,14 @@ exception Unavailable
 
 type self_sync = Source_sync.t
 
+(** Why a source's data stops where it does in a cycle. [`Pause]: the track goes
+    on, and the source must be asked again before it produces more. *)
+type segment_end = [ `Full | `Track_end | `Pause | `Late ]
+
+(** How the first sample that follows a track end is delivered: beginning a
+    track, continuing the current one, or as the source gives it. *)
+type entry = [ `Track | `Continue | `As_is ]
+
 (** A value settled once per streaming cycle. *)
 module Per_cycle : sig
   type 'a t
@@ -366,6 +374,12 @@ object
   (** Manually mark amount of consumed data from the source. *)
   method consumed : int -> unit
 
+  (** Why the data produced in this streaming cycle stops where it does.
+      Declared by the source: a short frame alone does not say it. *)
+  method segment_end : segment_end
+
+  method private frame_end : Frame.t -> segment_end
+
   (** This method requests a specific field of the frame that can be mutated. It
       is used by a consumer of the source that will modify the source's data
       (e.g. [amplify]). The source will do its best to minimize data copy
@@ -454,39 +468,38 @@ object
   inherit active_source
 end
 
-(** Type governing whether or not the same source should be re-selected.
-    - [`Force] means that the operator should at least try to see if a new
-      source should be selected.
-    - [`Ok] means that the operator should re-select the current source whenever
-      possible.
-    - [`After_position p] means that the operator should re-select the current
-      source only if it can produce data past the given position The
-      [generate_from_multiple_sources] implements a [can_reselect] that can be
-      called with the currently selected source to validate this logic. *)
-type reselect = [ `Ok | `Force | `After_position of int ]
-
-(* Helper to generate data from a sequence of source.
-   Data generation calls [get_source] on track marks.
-   When frame is partial, a track mark is added unless [merge] is
-   set to [true]. Switching to a different source begins a track unless
-   [new_track_on_source_switch] says otherwise, for operators such as [cross]
-   that know which of their switches is a real track boundary. *)
-class virtual generate_from_multiple_sources :
-  ?new_track_on_source_switch:(unit -> bool) ->
-  merge:(unit -> bool) ->
-  track_sensitive:(unit -> bool) ->
-  unit ->
-object
-  method virtual get_source : reselect:reselect -> unit -> source option
-  method virtual split_frame : Frame.t -> Frame.t * Frame.t option
+(** Delivers one stream out of successive sources. A frame stops where the track
+    of the source it reads ends; what comes next is decided when the reader goes
+    on. [get_source] is told whether the stream is at such a boundary: nothing
+    chosen yet, or the track of the last source read ended or was aborted.
+    [next_entry] is asked when the track of the source being read ends, before
+    anything else is chosen, and says how the data that follows is entered;
+    [`Track] ends the operator's own track there. *)
+class virtual generate_from_multiple_sources : unit -> object
+  method virtual get_source : boundary:bool -> unit -> source option
+  method virtual private next_entry : entry
   method virtual empty_frame : Frame.t
   method virtual private execute_on_track : Frame.t -> unit
-  method virtual private set_last_metadata : Frame.t -> unit
   method virtual log : Log.t
   method virtual id : string
-  method private on_source_switch : Frame.t -> Frame.t
-  method private can_reselect : reselect:reselect -> source -> bool
+  method private frame_end : Frame.t -> segment_end
+
+  (** States that the current track is over, on an abort. *)
+  method private end_track : unit
+
+  (** States that the user moved on from the source it was reading. What it
+      chooses next is another source, even when it is the same object. *)
+  method private leave_source : unit
+
   method private can_generate_frame : bool
+
+  (** Whether there is something to read from here. *)
+  method private choose_next_source : boundary:bool -> bool
+
+  (** The source to read, asked when the frame is produced. A user that only
+      decides when it is probed commits its decision here. *)
+  method private enter_chosen_source : source option
+
   method private generate_frame : Frame.t
   method virtual reset_last_metadata_on_track : bool
   method virtual clear_last_metadata : unit

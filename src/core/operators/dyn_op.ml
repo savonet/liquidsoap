@@ -23,7 +23,8 @@
 class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
   object (self)
     inherit Source.source ~name:"source.dynamic" ()
-    inherit Source.generate_from_multiple_sources ~merge ~track_sensitive ()
+    inherit Source.generate_from_multiple_sources ()
+    method private next_entry = if merge () then `Continue else `Track
     method fallible = not infallible
 
     method prepare s =
@@ -72,7 +73,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
             ret
         | None -> self#switch ~activation s
 
-    method private get_next reselect =
+    method private get_next () =
       self#mutable_lock
         (fun () ->
           let v = Lang.to_option (Lang.apply next_fn []) in
@@ -88,31 +89,20 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
               v
           in
           match (v, self#current_source) with
-            | None, Some s
-              when self#can_reselect
-                     ~reselect:(match reselect with `Force -> `Ok | v -> v)
-                     s ->
-                Some s
+            | None, Some s when s#is_ready -> Some s
             | Some (_, s), Some s' when s == s' ->
-                if
-                  self#can_reselect
-                    ~reselect:(match reselect with `Force -> `Ok | v -> v)
-                    s
-                then Some s
-                else self#no_source None
+                if s#is_ready then Some s else self#no_source None
             | Some (activation, s), _ -> self#exchange ~activation s
             | _ -> self#no_source None)
         ()
 
-    method private get_source ~reselect () =
-      match (self#current_source, reselect) with
-        | None, _ | _, `Force | Some _, `After_position _ ->
-            self#get_next reselect
-        | Some s, _ when self#can_reselect ~reselect s -> Some s
-        | _ -> self#get_next reselect
+    method private get_source ~boundary () =
+      match self#current_source with
+        | Some s when (not boundary) && track_sensitive () && s#is_ready ->
+            Some s
+        | _ -> self#get_next ()
 
     initializer
-      self#on_wake_up (fun () -> ignore (self#get_source ~reselect:`Force ()));
       self#on_sleep (fun () ->
           match Atomic.exchange current_source None with
             | Some (a, s) -> s#sleep a
@@ -122,6 +112,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
       match self#current_source with Some s -> s#remaining | None -> -1
 
     method abort_track =
+      self#end_track;
       match self#current_source with Some s -> s#abort_track | None -> ()
 
     method effective_source =

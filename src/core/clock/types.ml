@@ -255,6 +255,12 @@ module State = struct
     on_tick : (unit -> unit) list Atomic.t;
     (* One-shot callbacks run once the next tick is counted. *)
     after_tick : (unit -> unit) list Atomic.t;
+    (* One-shot callbacks run when the running segment of the tick is over:
+       before the next segment, and at the end of the tick. *)
+    after_segment : (unit -> unit) list Atomic.t;
+    (* Set by an output whose frame stopped short of full at a track end: the
+       tick produces another segment. *)
+    segment_requested : bool Atomic.t;
     (* What runs the clock's loop and why; [None] for a passive clock. *)
     animator : (animator * string) option Atomic.t;
     pace : pace Atomic.t;

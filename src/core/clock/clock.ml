@@ -92,6 +92,11 @@ let started t = state (get t) = `Started
 let pending t = Atomic.get (get t).pending
 let on_tick t fn = push (running_streaming (get t)).on_tick fn
 let after_tick t fn = push (running_streaming (get t)).after_tick fn
+let after_segment t fn = push (running_streaming (get t)).after_segment fn
+
+let request_segment t =
+  Atomic.set (running_streaming (get t)).segment_requested true
+
 let set_failure_policy = set_failure_policy
 let attach = Activation.attach
 let detach = Activation.detach

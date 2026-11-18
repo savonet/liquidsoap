@@ -225,15 +225,15 @@ The counterpart to `on_select` is `on_leave`, which belongs to the source being
 radio =
   fallback([
     live,
-    music.{on_leave = fun ({track_sensitive}) ->
-      log("music left, finished naturally: #{track_sensitive}")}
+    music.{on_leave = fun ({preempted}) ->
+      log("music left, cut mid-track: #{preempted}")}
   ])
 ```
 
-`on_leave` fires on **every** handoff, and `track_sensitive` tells you _how_ it
-ended: `true` if the source had nothing left for its current track — it reached a
-boundary, or simply became unavailable — and `false` if the switch cut into a
-track it was still playing. That is the switch's own account of the handoff, not
+`on_leave` fires on **every** handoff, and `preempted` tells you _how_ it
+ended: `true` if the switch cut into a track it was still playing, and `false`
+if the source had nothing left for its current track — it reached a boundary, or
+simply became unavailable. That is the switch's own account of the handoff, not
 something the source reports. This is what the default file behavior uses to
 decide to skip a half-played track so the source starts fresh next time.
 

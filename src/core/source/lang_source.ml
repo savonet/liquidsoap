@@ -787,18 +787,16 @@ let source_composition_methods : source_meth list =
       name = "on_leave";
       scheme =
         (fun source_t ->
-          let arg_t =
-            record_t [("source", source_t); ("track_sensitive", bool_t)]
-          in
+          let arg_t = record_t [("source", source_t); ("preempted", bool_t)] in
           ([], fun_t [(false, "", arg_t)] unit_t));
       descr =
         "Called after switching away from this source in a switch operator, \
          once the transition using the ending source has completed. Receives a \
-         record with `source` (the source being left) and `track_sensitive` \
-         (`true` if the ending source's last frame had a track mark, i.e. it \
-         finished naturally; `false` if it was preempted mid-track). This \
-         function must return quickly as it runs in the streaming thread. The \
-         default depends on the active composition profile: file sources \
+         record with `source` (the source being left) and `preempted` (`true` \
+         if the switch cut into a track the source was still playing, `false` \
+         if it had nothing left for its current track). This function must \
+         return quickly as it runs in the streaming thread. The default \
+         depends on the active composition profile: file sources \
          (`source.composition.file`) skip the source when preempted mid-track \
          so it starts fresh on its next selection, and do nothing when it \
          finished naturally; live sources (`source.composition.live`) do \
@@ -907,9 +905,7 @@ let register_composition_module ~base () =
   let on_leave_t =
     fun_t
       [
-        ( false,
-          "",
-          record_t [("source", source_frame_t); ("track_sensitive", bool_t)] );
+        (false, "", record_t [("source", source_frame_t); ("preempted", bool_t)]);
       ]
       unit_t
   in

@@ -11,7 +11,7 @@ def source.composition.children(sources) =
           on_select?: (
             {ending: source?, replay_metadata: bool, starting: source}
           )->source,
-          on_leave?: ({source: source, track_sensitive: bool})->unit,
+          on_leave?: ({source: source, preempted: bool})->unit,
           replay_metadata?: getter(bool),
           single?: bool,
           track_sensitive?: getter(bool),
