@@ -50,7 +50,7 @@ let parse_fields value =
              check_tags v (List.map Lang.to_string (Lang.to_list v))));
   }
 
-let build_variant ~pos (name, value) =
+let build_variant ~pos ~segment_duration (name, value) =
   let format_value = Lang.demeth value in
   let format = Lang.to_format format_value in
   let fields = parse_fields value in
@@ -79,7 +79,7 @@ let build_variant ~pos (name, value) =
                 defined (RFC 8216 §3.1)"
                name)
   in
-  let encoder = factory ~pos name in
+  let encoder = factory ~pos ~segment_duration name in
   let id3_mode =
     match encoder.init ?id3:fields.id3 ?id3_version:fields.id3_version () with
       | Ok mode -> mode
@@ -258,7 +258,7 @@ class output p =
             invalid variants_value "Variant names must not be empty";
           if List.length (List.sort_uniq compare names) <> List.length names
           then invalid variants_value "Variant names must be unique";
-          List.map (build_variant ~pos) l
+          List.map (build_variant ~pos ~segment_duration:(seconds duration)) l
   in
   let () =
     if
@@ -431,7 +431,69 @@ class output p =
           | Some tag -> Strings.of_string tag
           | None -> Strings.empty )
 
+    method private warn_overrun v r (closed : _ Segmenter.closed) =
+      let over = Segmenter.rounded_seconds config closed.length > target in
+      if over && not r.Variant.overrun_warned then
+        self#log#important
+          "Variant %s: segment of %.3fs exceeds the target duration of %ds: \
+           its content has no key frame close enough to segment_duration. Use \
+           a key-frame interval that divides segment_duration."
+          v.Variant.name (seconds closed.length) target;
+      r.overrun_warned <- over
+
+    method private warn_short v r (closed : _ Segmenter.closed) =
+      let short =
+        closed.cut = `Cadence
+        && Segmenter.rounded_seconds config closed.length < target
+      in
+      if short && not r.Variant.short_warned then
+        self#log#important
+          "Variant %s: segment of %.3fs, shorter than segment_duration \
+           (%.3fs): its key frames are not at segment_duration intervals."
+          v.Variant.name (seconds closed.length) (seconds config.duration);
+      if closed.cut = `Cadence then r.short_warned <- short
+
+    (* Each pair of key-frame variants is compared by whichever cuts later. *)
+    method private warn_divergence v r time =
+      let tolerance = Frame.main_of_seconds 0.1 in
+      List.iter
+        (fun (w : Variant.t) ->
+          match w.run with
+            | Some o
+              when w != v && o.properties <> None
+                   && Variant.cadence o = `Key_frames
+                   && List.exists (fun c -> c >= time - tolerance) o.cuts ->
+                let matched =
+                  List.exists (fun c -> abs (c - time) <= tolerance) o.cuts
+                in
+                let known = List.mem w.name r.Variant.diverged in
+                if (not matched) && not known then (
+                  self#log#important
+                    "Variants %s and %s cut at different times around %.3fs: \
+                     their key frames are not aligned."
+                    v.Variant.name w.name (seconds time);
+                  r.diverged <- w.name :: r.diverged;
+                  o.diverged <- v.name :: o.diverged)
+                else if matched && known then (
+                  r.diverged <- List.filter (( <> ) w.name) r.diverged;
+                  o.diverged <- List.filter (( <> ) v.name) o.diverged)
+            | _ -> ())
+        variants
+
+    (* spec/segmenting.md §9. *)
+    method private check_segment v (closed : Variant.segment Segmenter.closed) =
+      match v.Variant.run with
+        | Some r when r.properties <> None && Variant.cadence r = `Key_frames ->
+            self#warn_overrun v r closed;
+            self#warn_short v r closed;
+            if closed.cut <> `End then (
+              let time = closed.start + closed.length in
+              r.cuts <- List.filteri (fun i _ -> i < 16) (time :: r.cuts);
+              self#warn_divergence v r time)
+        | _ -> ()
+
     method private close_segment v (closed : Variant.segment Segmenter.closed) =
+      self#check_segment v closed;
       let segment = closed.payload in
       let discontinuous = segment.discontinuous || closed.discontinuous in
       if not closed.publishable then Variant.give_back v segment ~discontinuous
@@ -460,9 +522,8 @@ class output p =
       in
       let codecs = Variant.encoder_answer v (fun p -> p.codecs) in
       ignore
-        (Window.publish v.window ~discontinuous ~forced:closed.forced ~codecs
-           ~init:segment.init ~name ~tags:segment.tags
-           ~duration:(seconds closed.length)
+        (Window.publish v.window ~discontinuous ~codecs ~init:segment.init ~name
+           ~tags:segment.tags ~duration:(seconds closed.length)
            ~size:(Strings.length closed.bytes));
       let failure = ref None in
       let step f =
@@ -499,7 +560,6 @@ class output p =
       let independent =
         Option.value ~default:false
           (Variant.encoder_answer v (fun p -> Some p.independent))
-        && not (List.exists (fun (s : Window.segment) -> s.forced) listed)
       in
       let bytes =
         Playlist.media
@@ -724,7 +784,10 @@ class output p =
     method private begin_run =
       List.iter
         (fun v ->
-          let encoder = v.Variant.factory ~pos v.name in
+          let encoder =
+            v.Variant.factory ~pos ~segment_duration:(seconds config.duration)
+              v.name
+          in
           (match
              encoder.init ?id3:v.fields.id3 ?id3_version:v.fields.id3_version ()
            with
@@ -743,6 +806,10 @@ class output p =
                 encoder_stopped = false;
                 last_tag = None;
                 bandwidth_warned = false;
+                cuts = [];
+                overrun_warned = false;
+                short_warned = false;
+                diverged = [];
               };
           v.metadata <- `None;
           v.current_init <- None;
@@ -939,12 +1006,8 @@ class output p =
       List.iter
         (function
           | Encoder.Bytes b -> Segmenter.add_bytes r.segmenter b
-          | Encoder.Split { time; forced } ->
-              if forced then
-                self#log#important
-                  "Variant %s: forced split without a key packet at %.3fs"
-                  v.name (seconds time);
-              Segmenter.split r.segmenter ~time ~forced
+          | Encoder.Split { time } ->
+              Segmenter.split r.segmenter ~cadence:(Variant.cadence r) ~time
           | Encoder.Restart { time; init } ->
               self#set_init v init;
               Segmenter.restart r.segmenter ~time;
@@ -976,11 +1039,10 @@ class output p =
           List.map
             (fun v ->
               let r = Option.get v.Variant.run in
-              let split_due = r.properties <> None && r.encoder.split_due () in
-              let force = Segmenter.bound ~split_due ~length r.segmenter in
+              Segmenter.ensure_open r.segmenter;
               let boundary = Segmenter.request r.segmenter in
               if r.properties <> None then
-                r.encoder.split_encode ~boundary ~force chunk
+                r.encoder.split_encode ~boundary chunk
               else (
                 match r.encoder.init_encode ~boundary chunk with
                   | Encoder.Pending -> []

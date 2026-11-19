@@ -65,16 +65,21 @@ check here, cited by its number.
   except the first segment of a run; no long/short alternation; segment _n_
   starts in every variant within the source's key-frame offset from the
   grid, and at the same offset at every segment, so variants never drift
-  apart ([segmenting.md §4.2](segmenting.md#42-worked-example)); media
+  apart ([segmenting.md §4.4](segmenting.md#44-worked-examples)); media
   sequence and segment counts are equal across variants. Repeat with
   key frames a few frames before each boundary: same result.
 - Grid without drift (KC2): an AAC MPEG-TS variant with 2 s segments, ten
   segments sum to 20 s within one frame; HE-AAC and AAC-LC variants of one
   source, after fifty segments, start segment _n_ within one codec frame.
-- Bound (KC1): re-encoded video with key frames every 4 s and 1 s segments
-  starts every segment on a key frame; the same video copied keeps every
-  rounded `EXTINF` within `T`, logs each forced cut, and announces no
-  `EXT-X-INDEPENDENT-SEGMENTS`.
+- Sparse key frames (KC1): video with key frames every 4 s and 1 s
+  segments, re-encoded with that interval and copied: every segment starts
+  on a key frame and lasts 4 s, and the output warns. Re-encoded with no
+  key-frame interval in the format: every segment lasts 1 s and starts on a
+  key frame.
+- Late key packets (KC26): key frames every 2.002 s recorded 0, 0.9 and 5 s
+  after their time, 30 s segments: the same cuts in all three, every
+  segment after the first 30.03 s. Key frames every 29.996 s: every segment
+  29.996 s. Key frames every 2.5 s and 6 s segments: every segment 5 s.
 - A segment is never empty and never of length 0 (KC5); an inserted tag or
   discontinuity of a dropped or aborted segment appears on the next one.
 - An MPEG-TS segment starts with a PAT and a PMT.

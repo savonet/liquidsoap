@@ -12,7 +12,6 @@ type segment = {
   position : int;
   discontinuous : bool;
   discontinuity : int;
-  forced : bool;
   codecs : string option;
   init : string option;
   name : string;
@@ -59,7 +58,6 @@ val next_init_position : t -> int
 val publish :
   t ->
   discontinuous:bool ->
-  forced:bool ->
   codecs:string option ->
   init:string option ->
   name:string ->

@@ -40,6 +40,12 @@ type run = {
   mutable encoder_stopped : bool;
   mutable last_tag : int option;
   mutable bandwidth_warned : bool;
+  (* Latest cut times, newest first (spec/segmenting.md §9). *)
+  mutable cuts : int list;
+  mutable overrun_warned : bool;
+  mutable short_warned : bool;
+  (* Variants whose cuts this one's do not match. *)
+  mutable diverged : string list;
 }
 
 type t = {
@@ -92,6 +98,11 @@ let read_properties (e : Encoder.hls_encoder) =
     bitrate = e.hls_bitrate ();
     video_size = e.hls_video_size ();
   }
+
+let cadence r : Segmenter.cadence =
+  match r.properties with
+    | Some { free_split = true; _ } -> `Grid
+    | _ -> `Key_frames
 
 let initialized v =
   match v.run with Some { properties = Some _; _ } -> true | _ -> false

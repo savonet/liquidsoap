@@ -6,7 +6,6 @@ type segment = {
   position : int;
   discontinuous : bool;
   discontinuity : int;
-  forced : bool;
   codecs : string option;
   init : string option;
   name : string;

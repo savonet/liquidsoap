@@ -27,9 +27,8 @@ segment.
 
 ## 5. `split_encode`
 
-Returns `[Split {time = media time before this chunk; forced = force};
-Bytes (encode chunk)]`: every chunk start is a split point, so `force`
-never changes where it is. MPEG
+Returns `[Split {time = media time before this chunk}; Bytes (encode
+chunk)]`: every chunk start is a split point. MPEG
 audio and ADTS frames decode on their own, bit reservoir aside.
 
 ## 6. Properties
@@ -37,7 +36,7 @@ audio and ADTS frames decode on their own, bit reservoir aside.
 `codec_attrs` and `bitrate` come from the format
 ([variants.md §3.1](variants.md#31-format-tables)), except `%mp3` VBR (no
 bit rate); `video_size` is none; `independent_segments` and `free_split`
-are true; `split_due` is false.
+are true.
 
 ## 7. `insert_id3`
 

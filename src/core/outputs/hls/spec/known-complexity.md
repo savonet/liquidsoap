@@ -26,7 +26,7 @@ Vocabulary: output, variant, segment, init segment, media playlist, main
 playlist, split point, grid boundary, target duration, discontinuity, media
 sequence, discontinuity sequence, persisted state, temp file / atomic rename,
 file-change callback, timed ID3 / ID3 tag, inserted tag, container restart,
-forced split, reopen-on-error.
+target (of a key-frame variant's segment), reopen-on-error.
 
 ## Segmenting & grid
 
@@ -52,15 +52,21 @@ it has given the encoder. Several reasons to cut can come due in the same
 frame (grid, bound, metadata, tag), and which one is taken first decides
 whether the bound holds.
 
-**How to tell.** Binding: no `EXTINF`, rounded to the nearest integer,
-exceeds the target duration. Every cut made without a split point is logged
-as a warning. A variant that can be cut that way does not announce
-independent segments. Re-encoded video with keyframes every 4 s and 1 s
-segments: every segment starts on a keyframe. The same video copied: the
-bound holds, with warnings. Incidental: where inside the bound the cut lands.
+**How to tell.** Binding: no segment is cut anywhere but at a split point.
+No `EXTINF`, rounded to the nearest integer, exceeds the target duration
+when the content has a key frame within it; when it has none, the output
+warns, naming the variant. Video with keyframes every 4 s and 1 s segments,
+re-encoded with that interval or copied: every segment starts on a keyframe
+and the output warns. The same video re-encoded without an interval in the
+format: 1 s segments, each starting on a keyframe. Incidental: where inside
+the bound the cut lands.
 
 **Evidence.** ab05b120b, #3630 / 347d87449, 75e7a8ebd (hls_large_frame), #5266
-(declined: target duration is fixed), 4bf0f1d12. Recurred 5 times.
+(declined: target duration is fixed), 4bf0f1d12, #5654 (a bound acting on the
+media time cut copied video one GOP early, KC26). Recurred 6 times. Forced
+splits, which kept the bound by cutting without a keyframe, were removed with
+#5654: the key-frame interval is the script's to set, and encoders get one
+from the segment duration by default.
 
 ### KC2. Leftovers must not move the grid
 
@@ -125,6 +131,38 @@ holds.
 
 **Evidence.** Field report 2026-11-05 (copied H.264 with B-frames + AAC-LC/HE-AAC,
 2 s GOP, 6 s segments). Observed once, systematic on that content.
+
+### KC26. Key packets that arrive after the bound (source: issue #5654)
+
+**Situation.** A live MPEG-TS input over UDP, video and audio copied, key
+frames every 2.002 s (29.97 fps, 60 frames), 30 s segments. The source's
+muxer sends audio ahead of video, so each key packet reaches the output
+about 0.9 s of media time after its own time.
+
+**What went wrong.** Segments alternated 28.03 s and 2.00 s. The bound cut a
+segment as soon as its media time passed 30.5 s, at the latest split point
+it held (28.03 s): the key frame at 30.03 s had not arrived. The next
+segment faced the 30 s grid boundary and was cut at 30.03 s, a 2 s stub.
+The same content re-encoded gave 30.03 s segments, because the encoder
+promised its key frame and the bound waited for it.
+
+**Why it is hard.** Whatever acts at a media-time limit acts on what has
+arrived, and how late a key packet arrives is a property of the transport
+(interleaving, jitter) or of the encoder (lookahead), not of the content.
+Variants with the same key frames but different delays then cut
+differently. A grid adds its own failure on top: after the early cut it
+snaps back at the next boundary, and with NTSC key frames it drifts from
+the content until the nearest key frame flips, about every 34 segments of
+30 s.
+
+**How to tell.** Binding: key frames every 2.002 s recorded 0, 0.9 and 5 s
+late, 30 s segments: the same cuts, every segment after the first 30.03 s.
+Key frames at 29.996 s intervals and 30 s segments: every segment 29.996 s.
+Two thousand seconds of 2.002 s key frames: no segment other than 30.03 s.
+Incidental: how long after its target a segment is published.
+
+**Evidence.** #5654, #5655 (declined in favour of the cadence rule).
+Observed on a live UDP source; reproduced in the segmenter model.
 
 ### KC4. Variants of one output on different origins (source: field report)
 
@@ -692,9 +730,9 @@ Each entry's situation, and the rule that handles it.
 
 | Entry | Rule                                                                                                                                                                                                                                                                                                         |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| KC1   | [segmenting.md §5](segmenting.md#5-the-target-duration-bound); forced splits and independent segments: [encoder-contract.md §5–6](encoder-contract.md#5-split_encode)                                                                                                                                        |
+| KC1   | [segmenting.md §5](segmenting.md#5-the-target-duration) and warnings [§9](segmenting.md#9-warnings); key-frame defaults: [encoder-contract.md §5](encoder-contract.md#5-split_encode)                                                                                                                        |
 | KC2   | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration): absolute boundaries from one origin. Each run has its own grid, so the state carries none ([persistence.md §1](persistence.md#1-what-is-saved)).                                                                                  |
-| KC3   | [segmenting.md §4](segmenting.md#4-the-cut-rule): the split point nearest the boundary within the bound; [§4.2](segmenting.md#42-worked-example).                                                                                                                                                            |
+| KC3   | [segmenting.md §4.1](segmenting.md#41-key-frame-variants): the split point nearest the target within the target duration; [§4.4](segmenting.md#44-worked-examples).                                                                                                                                          |
 | KC4   | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration) (one origin per output) and [§7](segmenting.md#7-output-wide-cuts) (every non-grid cut is output-wide; what alignment is not promised).                                                                                            |
 | KC5   | [segmenting.md §6](segmenting.md#6-opening-a-segment): first segment at media time 0, empty segments never published; first tag: [metadata.md §1](metadata.md#1-track-metadata).                                                                                                                             |
 | KC6   | [metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags): cuts on metadata and on inserted tags are sync cuts, by default only where every variant is free-split or there is one variant, and for metadata only when some variant carries ID3; equal metadata ignored ([§1](metadata.md#1-track-metadata)). |
@@ -717,6 +755,7 @@ Each entry's situation, and the rule that handles it.
 | KC23  | [encoder-contract.md §6](encoder-contract.md#6-properties); options: the FFmpeg layer's spec.                                                                                                                                                                                                                |
 | KC24  | [operator.md §6](operator.md#6-errors-and-reopening): new encoders after an error, so the next segment starts at a key packet.                                                                                                                                                                               |
 | KC25  | [serving.md](serving.md): tracked files by lookup, other files after a lexical check, content types by kind, cache headers, configured headers on every response.                                                                                                                                            |
+| KC26  | [segmenting.md §4.1](segmenting.md#41-key-frame-variants): a choice on split-point times only, relative to the previous cut; the grid only for free-split variants ([§1](segmenting.md#1-time-the-grid-and-the-target-duration)).                                                                            |
 
 ## Code-only notes (not entries)
 

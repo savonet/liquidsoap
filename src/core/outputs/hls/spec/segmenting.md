@@ -1,15 +1,16 @@
 # Segmenting
 
 Part A. This file owns how each variant's byte stream is cut into
-segments: the grid and its origin, split points, the cut rule, the
-target-duration bound, output-wide cuts and container restarts. It relies on
+segments: the grid and its origin, split points, the cut rules, the target
+duration, output-wide cuts, container restarts and the warnings on content
+that cannot be cut regularly. It relies on
 the encoder pieces of [encoder-contract.md §5](encoder-contract.md#5-split_encode).
 What opening and closing a segment does on disk is [files.md](files.md);
 how segments are numbered is [playlists.md §2.1](playlists.md#21-media-sequence).
 
 These rules are the only statement of the grid. The `%ffmpeg` encoder spec
 states what an encoder provides to it
-([encoder.md §8.7](../../../optionals/ffmpeg/spec/encoder.md#87-segment-grid-hls-output-side)).
+([encoder.md §8.7](../../../optionals/ffmpeg/spec/encoder.md#87-segmenting-hls-output-side)).
 
 ## 1. Time, the grid and the target duration
 
@@ -33,13 +34,37 @@ configured frame size in ticks.
   advances by each chunk's length and is the same for every variant.
 - **Grid**: boundary _k_ is `k × D` of media time. Its **origin** is media
   time 0 of the run, shared by every variant. A boundary MUST NOT depend on
-  where any segment actually ended.
+  where any segment actually ended. Only free-split variants (§2) cut on the
+  grid (§4.2).
 
 Reason for one shared origin and a strict grid: a player switching variants
 mid-stream expects segment boundaries at the same media time in every
 variant (Apple §8.22). Reason for absolute boundaries: codec frames do not
 line up with internal frames, and a grid placed relative to the previous cut
-drifts by a codec-dependent amount, so variants drift apart without bound.
+drifts by a codec-dependent amount, so free-split variants of different
+codecs (AAC and MP3, AAC-LC and HE-AAC) drift apart without bound.
+
+Reason for no grid with key frames: the output cannot place key frames, so a
+grid only works with key frames whose interval divides `D` exactly. At 29.97
+fps, key frames every 2.002 s drift from a 30 s grid by 0.03 s per segment
+until the nearest key frame flips to the one before, about every 34
+segments. Cut relative to the previous cut (§4.1), the same key frames give
+the same length every time.
+
+A variant's segmenting depends only on its own split points; the variants of
+an output are aligned when their content is: variants whose split points
+have the same times have the same cuts. Content fed to every variant from
+one source carries the same discontinuities, sync points and restarts to
+each of them in the same tick, so their origins and resets agree. Key frames
+at the same times in every key-frame variant are the script's to provide:
+the encoders' key-frame settings, or the source's for copied streams.
+
+A free-split variant beside key-frame variants (an audio-only variant that
+drops the video track) cuts on the grid while they cut on their key frames.
+Its segment _n_ starts within the key frames' offset from the grid, which
+stays constant when the key-frame interval divides `D` exactly, and drifts
+otherwise (29.97 fps). Choosing such an interval is the script's: the
+output does not check it.
 
 ## 2. Segments in memory
 
@@ -47,71 +72,101 @@ An open segment has a start (media time of its first byte), its bytes so
 far, and its **split points**: pairs (media time, byte offset), each strictly
 after the start, in increasing time. Its **length** is the media time between
 its start and its cut, or the current media time while open. Its `EXTINF`
-duration is its length in seconds. It also records whether it starts at a
-forced split.
+duration is its length in seconds.
 
 A variant is **free-split** when it has a split point within one codec
 frame of any media time the output requests (audio-only and intra-only
 content, packed audio). The encoder says so
-([encoder-contract.md §6](encoder-contract.md#6-properties)).
+([encoder-contract.md §6](encoder-contract.md#6-properties)). Any other
+variant is a **key-frame variant**: its split points are where its content
+has key frames, and the output has no say in where they are.
 
 The **request** passed to the encoder with each chunk is the next media
 time at which the output wants a split point: the first grid boundary at or
 after the chunk's media time (and after 0), or a pending sync time (§7) when
-that comes first. Reason: the encoder must learn of each boundary before it
-encodes the image there; an encoder whose delay exceeds the segment duration
-would otherwise get the request only after the cut for the previous
-boundary, too late to make a key frame on time.
+that comes first. A free-split encoder makes a split point there; a
+key-frame variant's split points do not depend on it.
 
 ## 3. Applying pieces
 
 The pieces an encoder returns for a chunk are applied in order:
 
 - **Bytes**: appended to the open segment.
-- **Split** `{time, forced}`: recorded (§2) if after the segment's start,
-  then pending sync cuts (§7) and the cut rule (§4) run. A forced split is
-  logged as a warning naming the variant and the time.
+- **Split** `{time}`: recorded (§2) if after the segment's start, then
+  pending sync cuts (§7) and the variant's cut rule (§4) run.
 - **Restart** `{time, init}`: §8.
 
 ## 4. The cut rule
 
-Each variant tracks its **current boundary** _k_, the first boundary after
-its open segment's start. When a split point with time `t ≥ k` is recorded:
+A segment MUST NOT be cut anywhere but at a split point.
+
+A candidate split point is **eligible** when cutting there gives the
+segment a length that, in seconds rounded to the nearest integer, is at
+most `T`. Eligibility keeps the tolerance inside RFC 8216 §4.3.3.1 (a
+rounded `EXTINF` never exceeds the target duration) and Apple §7.7 (no
+segment exceeds it by more than 0.5 s). Because `T` is then a rounded bound,
+playlists announce version 6 ([playlists.md §1](playlists.md#1-common-form)).
+
+The rule a variant applies depends on its kind at the time a split point is
+recorded: §4.1 for a key-frame variant, §4.2 for a free-split one. A
+variant's kind can change at a restart.
+
+### 4.1 Key-frame variants
+
+The **target** of the open segment is its start plus `D`. When a split point
+`a` at or after the target is recorded, `a` being the first such point:
+
+1. **Candidates.** `b`, the latest split point before the target, if any;
+   and `a`.
+2. **Choice.** `b` when `a` is not eligible, or when `b` is at least as
+   near the target as `a`; `a` otherwise. `b` is always eligible: it is
+   less than `D` after the start.
+3. **Cut** there (§4.3). If a split point of the new segment is at or after
+   its own target, repeat from step 1.
+
+The choice depends on split-point times only, never on the media time at
+which a split point is recorded. Reason: a key packet reaches the output
+some time after its own time, by the source's interleaving for a copied
+stream (audio sent ahead of video by an MPEG-TS muxer) or by the encoder's
+delay (lookahead, B-frames). A rule that cuts once the media time passes a
+limit acts on whatever split points happen to have arrived: it cuts one
+key-frame interval early when the delay exceeds the margin between the key
+frame and the limit, and variants with the same key frames but different
+delays cut differently.
+
+Reason for "nearest": content often puts every key frame a few tens of
+milliseconds after or before its target (B-frame delay, encoder priming, a
+key-frame interval rounded to whole frames). A rule that only looks after
+the target lengthens a segment by one interval when the key frame comes
+just before it; one that only looks before shortens it when the key frame
+comes just after.
+
+A decision waits for `a`, so a segment is published up to one key-frame
+interval, plus the delay with which its key packet is recorded, after its
+target. A key-frame interval that divides `D` keeps the wait short.
+
+### 4.2 Free-split variants
+
+Each free-split variant tracks its **current boundary** _k_, the first
+grid boundary after its open segment's start. When a split point with time
+`t ≥ k` is recorded:
 
 1. **Candidates.** `b`, the latest split point at or before _k_, if any;
    `a`, the one just recorded.
-2. **Choice.** A candidate is **eligible** when cutting there gives the
-   segment a length that, in seconds rounded to the nearest integer, is at
-   most `T`. The cut point is the eligible candidate nearer to _k_, `b` on a
-   tie. If neither is eligible, `a`: the bound of §5 did not hold because
-   the encoder declined a forced split.
+2. **Choice.** The cut point is the eligible candidate nearer to _k_, `b`
+   on a tie. If neither is eligible, `a`.
 3. **Served.** When the choice is `a`, `a` is eligible, and the open
    segment's start is nearer to _k_ than `a`, no cut is made: the cut that
    opened the segment has served _k_.
-4. **Cut** there (§4.1), unless step 3 applies. The current boundary becomes
+4. **Cut** there (§4.3), unless step 3 applies. The current boundary becomes
    the first boundary after both _k_ and the cut point. If a split point of
    the open segment is at or after that boundary, repeat from step 1.
 
-Reason for step 3 and for "after _k_": with split points just before every
-boundary, a cut made at one of them — by this rule or by the bound of §5 —
-leaves the next split point past _k_, and cutting there would leave a stub
-of one key-frame interval.
+Reason for step 3 and for "after _k_": a sync cut (§7) just before a
+boundary leaves the next split point past _k_, and cutting there would
+leave a stub of a fraction of a second.
 
-A segment MUST NOT be cut anywhere but at a split point.
-
-Reason for "nearest": content often puts every key frame a few tens of
-milliseconds after its boundary (B-frame delay, encoder priming). A rule
-that only looks at or before _k_ then cuts one key-frame interval early and
-leaves a stub, on every segment. Eligibility keeps the tolerance inside RFC
-8216 §4.3.3.1 (a rounded `EXTINF` never exceeds the target duration) and
-Apple §7.7 (no segment exceeds it by more than 0.5 s). Because `T` is then
-a rounded bound, playlists announce version 6
-([playlists.md §1](playlists.md#1-common-form)).
-
-What is not promised: when key frames sit close to half a second after the
-grid, `a` is not eligible, and segments alternate long and short.
-
-### 4.1 Cutting
+### 4.3 Cutting
 
 Cutting the open segment at (`t`, `o`):
 
@@ -121,41 +176,43 @@ Cutting the open segment at (`t`, `o`):
 3. A new segment opens at `t` (§6).
 4. The taken bytes and split points are moved into it.
 
-### 4.2 Worked example
+### 4.4 Worked examples
 
-`D` = 6 s, `T` = 6. A copied video variant has key frames every 2 s, each
-0.1 s after a multiple of 2 s, so its split points arrive at 2.1, 4.1, 6.1, …
+`D` = 30 s, `T` = 30. A copied video variant has key frames every 2.002 s
+(29.97 fps, 60 frames), the first at 0.1 s; its key packets are recorded 0.9
+s after their time.
 
-| Split arrives | Boundary | Candidates     | Cut  | Segment   |
-| ------------- | -------- | -------------- | ---- | --------- |
-| 6.1           | 6        | b 4.1, a 6.1   | 6.1  | 0–6.1     |
-| 12.1          | 12       | b 10.1, a 12.1 | 12.1 | 6.1–12.1  |
-| 18.1          | 18       | b 16.1, a 18.1 | 18.1 | 12.1–18.1 |
+| Start | Target | Decided when recorded | b      | a     | Cut   | Length |
+| ----- | ------ | --------------------- | ------ | ----- | ----- | ------ |
+| 0     | 30     | 30.13 (at 31.03)      | 28.128 | 30.13 | 30.13 | 30.13  |
+| 30.13 | 60.13  | 60.16 (at 61.06)      | 58.158 | 60.16 | 60.16 | 30.03  |
+| 60.16 | 90.16  | 90.19 (at 91.09)      | 88.188 | 90.19 | 90.19 | 30.03  |
 
-The first segment is 6.1 s (rounded 6); every later one is 6 s. A
-free-split audio variant of the same output cuts at 6, 12, 18: segment _n_
-starts within 0.1 s in both.
+Every later segment is 30.03 s, 15 key-frame intervals, whatever the delay.
 
-## 5. The target-duration bound
+`D` = 6 s, `T` = 6, key frames every 2.5 s: `a` at 7.5 s is not eligible
+(it rounds to 8), so each segment ends at `b` and lasts 5 s, steadily.
 
-Before each chunk is given to `split_encode`, with `len` its length: if the
-open segment's length after the chunk, rounded to the nearest second, would
-exceed `T`, and the encoder has no split point due
-([encoder-contract.md §6](encoder-contract.md#6-properties)):
+A free-split audio variant with `D` = 6 s cuts within one codec frame of
+6, 12, 18 s.
 
-1. If the segment holds a split point, cut at the latest one (§4.1); the
-   current boundary becomes the first after it; check again.
-2. Otherwise `split_encode` is called with `force` true.
+## 5. The target duration
 
-With a split point due, nothing is done: the split point comes at the
-requested time, and the segment's length is measured on media the encoder
-still holds (lookahead, reordering), not on what it has written. Cutting at
-an earlier split point instead would halve segments behind an encoder
-whose delay exceeds half a target duration.
+No rule forces a split, and an encoder is never asked for one. Each
+segment's rounded length stays at or below `T` when its content has a split
+point within the eligible window: free-split content always has one, and
+key-frame content has one when its key-frame interval is at most `D`.
 
-`force` is false otherwise. The encoder decides whether to honour it
-([encoder-contract.md §5](encoder-contract.md#5-split_encode)). Each
-segment's rounded length stays at or below `T` when it does.
+Key frames sparser than that leave no eligible candidate: the segment is
+cut at the first split point after its target and its rounded length
+exceeds `T`, which RFC 8216 §4.3.3.1 forbids. The output warns (§9).
+Content whose key packets never come (a copied stream that stalls) leaves
+the segment open until one does or the run stops.
+
+What is not promised: segments of key-frame variants lasting `D` when the
+content's key frames are not at intervals that divide `D`; alignment of
+key-frame variants whose key frames are not at the same times. Both are
+warned about (§9).
 
 ## 6. Opening a segment
 
@@ -194,23 +251,23 @@ Rules:
 
 - In each variant, a sync cut is one cut. If its point is also the point
   the cut rule (§4) chooses, that one cut serves both.
-- A sync cut does not move the grid: the current boundary after it is the
-  first boundary after its cut point.
-- A sync cut MUST NOT be forced. It waits for a split point; the bound of
-  §5 applies meanwhile.
+- A sync cut does not move the grid: the current boundary of a free-split
+  variant after it is the first boundary after its cut point. A key-frame
+  variant's next target is its cut point plus `D` (§4.1).
+- A sync cut waits for a split point.
 - A discontinuous sync cut marks the segment it opens as discontinuous in
   every variant, so the discontinuity sequence numbers stay equal across
   variants (RFC 8216 §6.2.4, Apple §8.15).
 
-**Alignment.** When every variant is free-split or makes key frames, a sync
-cut lands within one codec frame of `t` in every variant, and the grid stays
-aligned: segment _n_ covers the same media time everywhere and counts are
-equal. What is not promised: in a copied variant that does not itself
-restart, the cut waits for the next key frame of the source, so content
-between `t` and that key frame carries different discontinuity sequence
-numbers in different variants; and a sync cut just before a boundary can be
-two cuts in one variant and one in another, so counts can differ by one
-after it.
+**Alignment.** When every variant is free-split, a sync cut lands within
+one codec frame of `t` in every variant, and the grid stays aligned:
+segment _n_ covers the same media time everywhere and counts are equal. In
+key-frame variants, the cut waits for the next key frame: variants whose
+key frames are at the same times cut at the same one. What is not promised:
+in a copied variant that does not itself restart, content between `t` and
+that key frame carries different discontinuity sequence numbers than in a
+variant that does; and a sync cut just before a boundary can be two cuts in
+one variant and one in another, so counts can differ by one after it.
 
 ## 8. Container restart
 
@@ -227,3 +284,29 @@ A restart is a split point, a discontinuity and possibly a new init
 segment at once; the three land on the same segment. A `Restart` may reach
 the output after other variants have passed `time`; they cut at their next
 split point, and the mismatch of §7 covers the content in between.
+
+## 9. Warnings
+
+The output checks every closed segment of a key-frame variant, and logs a
+warning naming the variant when the content cannot be cut as `D` asks.
+Each warning is logged when its condition starts in a variant, not again
+while it holds; it is logged again once the condition has cleared and comes
+back.
+
+| Condition                                                                               | Holds until                                                        |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| a segment's rounded length exceeds `T` (§5)                                             | a segment of the variant closes within `T`                         |
+| a segment cut by §4.1 has a rounded length below `T`                                    | a segment cut by §4.1 closes with a rounded length of at least `T` |
+| a cut has no cut within 0.1 s in another key-frame variant that has already cut past it | a cut of the variant matches one of the other's within 0.1 s       |
+
+The third condition is checked, for each pair of key-frame variants, by the
+one that cuts later, against the other's latest 16 cuts. A run's final
+segment, closed at its stop, is not checked for length below `T` nor
+against other variants.
+
+Reason for these conditions: segments of `D` and aligned variants follow
+from the content (§1), so these are what the script can fix: the encoder's
+key-frame interval, or the source's for copied streams. Reason for 0.1 s:
+the same key frame in variants of different frame rates or time bases sits
+within a few milliseconds; a key frame at a different time is at least one
+frame, tens of milliseconds, away, and usually a whole key-frame interval.

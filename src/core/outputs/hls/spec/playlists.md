@@ -60,8 +60,8 @@ then for each segment, i from 0:
 
 - `T`: [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration).
 - `EXT-X-INDEPENDENT-SEGMENTS`: when the encoder's
-  `independent_segments()` is true and no listed segment starts at a
-  forced split ([encoder-contract.md §6](encoder-contract.md#6-properties)).
+  `independent_segments()` is true
+  ([encoder-contract.md §6](encoder-contract.md#6-properties)).
   Reason: the tag applies to every listed segment (RFC 8216 §4.3.5.1).
 - An empty window writes media sequence 0 and discontinuity sequence 0.
 - The init segment changes only at a restart, which is discontinuous

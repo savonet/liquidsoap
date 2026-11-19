@@ -21,7 +21,6 @@ Every timestamp rule is in [timestamps.md §6–§7](timestamps.md#6-copy-stream
 | `mk_stream`             | creates the stream (§2)                                                   |
 | `encode`                | §3–§7 and §12                                                             |
 | `flush`                 | §8                                                                        |
-| `request_keyframe`      | ignored (§7)                                                              |
 | `codec_attr`, `bitrate` | from the stream, once §2 has run; none before                             |
 | `video_size`            | width and height of the video parameters, once §2 has run; none otherwise |
 
@@ -117,8 +116,7 @@ with its key flag; for an intra-only codec every packet counts as key. The
 hook runs at write time, so a key packet held during a switch (§12.2) reaches
 it when it is written, not when it arrives.
 
-`request_keyframe` is ignored: a copied stream has no encoder to ask, and
-its key packets are wherever the source put them.
+A copied stream's key packets are wherever the source put them.
 
 ## 8. Flush and end
 

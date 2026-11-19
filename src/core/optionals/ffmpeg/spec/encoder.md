@@ -94,11 +94,24 @@ In order:
      timestamps after its own positive delay.
    - Every encoded video track: `+cgop` (closed GOP) is added to `flags`,
      combined the way step 1 combines the global-header flag, unless the
-     written `flags` names `cgop` or is a number. Reason: the key frames
-     forced at segment boundaries (§8.4) must let a decoder start there. In an
-     open GOP, libx264 makes them recovery-point I-frames without parameter
-     sets and libx265 makes them CRA pictures, so a player joining at such a
-     segment cannot decode it, or drops its leading pictures.
+     written `flags` names `cgop` or is a number. Reason: every key frame is
+     a place where the HLS output may cut (§8.7), and must let a decoder
+     start there. In an open GOP, libx265 makes its key frames CRA pictures,
+     so a player joining at such a segment drops its leading pictures.
+   - Every encoded video track: codec options `g` and `keyint_min` default
+     to `round(D × r / n)` frames, `r` the track's frame rate, `D` the
+     segment duration in seconds and `n = max(1, ⌈D / 2⌉)`; with `libx264`
+     and `libx264rgb`, `sc_threshold` defaults to 0. Each is set only when
+     the format does not write it. Reason for naming the codecs:
+     `sc_threshold` is a private option of those encoders, and another
+     encoder rejects it as unused.
+     Reason: the HLS output cuts at key frames and places none
+     ([HLS segmenting §4.1](../../../outputs/hls/spec/segmenting.md#41-key-frame-variants)),
+     so key frames at a fixed interval dividing `D` give segments of `D`;
+     at most 2 s apart, a cut waits at most one interval; without scene
+     cuts, no key frame falls in between. An encoder that does not read
+     these options places its key frames itself, and the HLS output warns
+     when they do not fit `D`.
    - `interleaved=Default` becomes `False`; an explicit value is kept.
      Reason: an interleaving muxer holds packets until every stream has
      written, which empties the first segment when a stream is sparse (the
@@ -227,7 +240,6 @@ output faults.
 | the byte sink fails (I/O error, failed open of a `Url` target), the header write fails, a restart cannot build its container                                                                                    | output fault        | instance `Failed` (§1); the error propagates out of `encode`                                                                                                                                                                |
 | an incompatible copy source with no clean restart (§13.3)                                                                                                                                                       | output fault        | as above                                                                                                                                                                                                                    |
 | a drain or close fails in `stop` (§7)                                                                                                                                                                           | output fault        | logged at error level; teardown continues                                                                                                                                                                                   |
-| no split point by the HLS bound (§8.7)                                                                                                                                                                          | output-side wait    | the segment is cut without the condition, with a warning ([faults.md §5](../../../../spec/faults.md#5-waiting))                                                                                                             |
 
 Item faults are counted per field against `max_consecutive_faults`
 ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). A data fault never stops
@@ -384,9 +396,9 @@ for a format that has a header.
 ### 8.4 `split_encode frame`
 
 ```
-split_encode : boundary:time -> force:bool -> frame -> piece list
+split_encode : boundary:time -> frame -> piece list
 piece = Bytes of bytes
-      | Split of { time : time; forced : bool }
+      | Split of { time : time }
       | Restart of { time : time; init : bytes option }
 ```
 
@@ -402,23 +414,10 @@ order:
   formats without one). It is returned in the call in which the new init
   segment is known (§8.3); the bytes after it stay held until then.
 
-Each encoded video stream makes its first image at or after `boundary` a key
-frame (§12.7), so encoded variants have a split point at each boundary.
+Encoded video streams place their key frames by their own key-frame
+interval (§3 step 2); `boundary` does not make a key frame.
 
-With `force` true, the instance flushes the muxer before the frame is
-encoded and returns a `Split` with `forced` true at that position, without
-its condition: some stream of the next segment then starts with a packet
-that is not a key packet. An instance that has made an encoded stream's
-image at `boundary` a key frame and has not yet seen that key packet ignores
-`force`: the split point is coming, at the boundary, and the encoder's delay
-only holds it back. Reason: `force` is decided on the media time given to the
-encoder, which runs ahead of the packets by the codec's delay (lookahead,
-B-frames), and a split at the boundary keeps the segment within the target
-duration whatever that delay. An instance with a restart whose `Restart` piece
-is not yet returned ignores `force` as well: the restart is the split point,
-at the switch, and the segment before it ends there.
-
-Holding (§8.2 step 3) only delays bytes, and never beyond a forced split.
+Holding (§8.2 step 3) only delays bytes.
 
 ### 8.5 Timed ID3 in mpegts
 
@@ -455,10 +454,10 @@ the variant (RFC 8216 §4.3.4.2); a partial list is worse than none.
 Streams exist from the first frame (§5), so the properties are known once
 `init_encode` has returned `Init`. The HLS output reads them after that.
 
-### 8.7 Segment grid (HLS output side)
+### 8.7 Segmenting (HLS output side)
 
-The HLS output owns the segment grid, the cut rule, the target-duration
-bound and output-wide cuts
+The HLS output owns the segment grid, the cut rules, the target duration
+and output-wide cuts
 ([HLS segmenting](../../../outputs/hls/spec/segmenting.md)); the encoder
 seam is [HLS encoder-contract](../../../outputs/hls/spec/encoder-contract.md).
 What this encoder provides to them:
@@ -467,11 +466,10 @@ What this encoder provides to them:
    the next media time at which it wants a split point: the next grid
    boundary, or an earlier pending sync time. Media time is the output
    position minus `skipped` ([timestamps.md §1.4](timestamps.md#14-the-output-timeline)),
-   and MUST equal the HLS output's media time. Each encoded video stream
-   makes its first image at or after `boundary` a key frame (§8.4), and the
-   hook takes a candidate before the first packet at or after it (§8.2), so
-   every variant has a split point at each requested time, within one
-   packet when its streams are all-key. The candidate is taken at the first
+   and MUST equal the HLS output's media time. When every stream is
+   all-key, the hook takes a candidate before the first packet at or after
+   it (§8.2), so the variant has a split point at each requested time,
+   within one packet. The candidate is taken at the first
    packet at or after the request even when no stream is video and the
    request has not changed since the previous frame. A request stays
    pending until a candidate is taken at it, also after a later request
@@ -481,19 +479,19 @@ What this encoder provides to them:
    MPEG-TS, the instance makes the muxer write a PAT and a PMT at each
    candidate (the muxer's own header resend), so every segment starts with
    them (RFC 8216 §3.2).
-3. **Force** is honoured as §8.4 states.
-4. **Restarts** are `Restart` pieces (§13).
+3. **Restarts** are `Restart` pieces (§13).
 
 ### 8.8 Conformance
 
 - MPEG-TS, AAC and H.264 with keyframes every second and 2 s segments: the
   first packet of every stream in every segment is a key packet, and no
   segment ends with a video key packet.
-- A video with keyframes every 4 s and 1 s segments, re-encoded: every
-  segment starts with a key frame and no `EXTINF` exceeds the target duration.
-- The same video copied: no `EXTINF` exceeds the target duration, each
-  forced cut logs a warning, and the playlist does not announce
-  `EXT-X-INDEPENDENT-SEGMENTS`.
+- A video with keyframes every 4 s and 1 s segments, re-encoded with the
+  same key-frame interval, then copied: every segment starts with a video
+  key frame and lasts 4 s, and the output warns that segments exceed the
+  target duration.
+- The same video re-encoded without a key-frame interval in the format:
+  every segment lasts 1 s within one frame and starts with a key frame.
 - A muxer that rejects every packet of one encoded field: the output keeps
   streaming the other fields, and the drops are logged with their count at
   most once per `fault_log_interval`, until `max_consecutive_faults` drops in
@@ -556,7 +554,6 @@ Classes as in §5.2 and [faults.md §2](../../../../spec/faults.md#2-classes).
 | drain or close error in `stop`                   | output fault; logged at error; teardown continues                                                         |
 | metadata after the header, no restart (§6)       | not carried; logged at debug                                                                              |
 | copy source with other header properties (§13.3) | rejected at open; past the merge, accepted (in-band container), restart where defined, else unrecoverable |
-| no split point by the HLS bound (§8.7)           | forced cut with a warning (output-side wait)                                                              |
 
 What an output does with a raised error is the output's. `output.url`
 classifies a failed open or a failed stream creation as permanent
@@ -578,15 +575,14 @@ resampler and scaler.
 A stream encoder is built from
 `(field, track mode, options, hook, output container)` and provides:
 
-| Operation            | Meaning                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------- |
-| `mk_stream frame`    | called once per container, with its first frame (§5 step 1); creates the muxer stream             |
-| `encode frame`       | consume the field's content of the frame                                                          |
-| `flush ()`           | drain every stage the stream encoder holds into the muxer (§12.8)                                 |
-| `request_keyframe t` | make the first encoded image at or after media time `t` a key frame, where the stream can (§12.7) |
-| `codec_attr ()`      | RFC 6381 codec string, or none                                                                    |
-| `bitrate ()`         | bit rate, or none                                                                                 |
-| `video_size ()`      | (width, height), or none                                                                          |
+| Operation         | Meaning                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| `mk_stream frame` | called once per container, with its first frame (§5 step 1); creates the muxer stream |
+| `encode frame`    | consume the field's content of the frame                                              |
+| `flush ()`        | drain every stage the stream encoder holds into the muxer (§12.8)                     |
+| `codec_attr ()`   | RFC 6381 codec string, or none                                                        |
+| `bitrate ()`      | bit rate, or none                                                                     |
+| `video_size ()`   | (width, height), or none                                                              |
 
 ### 12.2 Stream creation
 
@@ -616,7 +612,7 @@ Which bindings write call, with which time base.
 ### 12.7 Keyframes
 
 Every packet goes through the instance's hook (§8.2) with its key flag before
-the muxer receives it. What `request_keyframe` does.
+the muxer receives it.
 
 ### 12.8 Flush and end
 

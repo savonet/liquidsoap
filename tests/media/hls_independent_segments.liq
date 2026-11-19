@@ -2,8 +2,8 @@
 %include "hls_lib.liq"
 
 # Every segment decodes on its own: each of its video packets gives a frame
-# when ffprobe starts at the segment. g=1000 leaves the forced key frames at
-# segment boundaries as the only ones after the first.
+# when ffprobe starts at the segment. The key-frame interval is the HLS
+# default, one key frame per 1 s segment, closed GOP.
 settings.frame.video.width := 320
 settings.frame.video.height := 240
 
@@ -62,7 +62,7 @@ def make(name, codec) =
       segments=100,
       segments_overhead=null,
       dir,
-      [(name, %ffmpeg(format = "mpegts", %video(codec = codec, g = 1000)))],
+      [(name, %ffmpeg(format = "mpegts", %video(codec = codec)))],
       s
     )
   o.on_file_change(

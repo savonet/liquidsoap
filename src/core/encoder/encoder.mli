@@ -102,7 +102,7 @@ type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
     Pieces of [split_encode], in byte order:
     - [Bytes]: output bytes;
     - [Split]: a position where a segment may start, [time] the media time of
-      what follows, [forced] when made without the encoder's condition;
+      what follows;
     - [Restart]: a split point that also starts a new container, with its init
       segment. *)
 
@@ -110,7 +110,7 @@ type hls_id3_mode = [ `None | `In_stream | `Prepended ]
 
 type hls_piece =
   | Bytes of Strings.t
-  | Split of { time : int; forced : bool }
+  | Split of { time : int }
   | Restart of { time : int; init : string option }
 
 type hls_ready = { init : string option; pieces : hls_piece list }
@@ -119,18 +119,18 @@ type hls_init = Pending | Init of hls_ready
 type hls_encoder = {
   init : ?id3:bool -> ?id3_version:int -> unit -> (hls_id3_mode, string) result;
   init_encode : boundary:int -> Frame.t -> hls_init;
-  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
+  split_encode : boundary:int -> Frame.t -> hls_piece list;
   insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
   hls_stop : unit -> hls_ready;
   codec_attrs : unit -> string option;
   independent_segments : unit -> bool;
   free_split : unit -> bool;
-  split_due : unit -> bool;
   hls_bitrate : unit -> int option;
   hls_video_size : unit -> (int * int) option;
 }
 
-type hls_factory = pos:Pos.t option -> string -> hls_encoder
+type hls_factory =
+  pos:Pos.t option -> segment_duration:float -> string -> hls_encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)

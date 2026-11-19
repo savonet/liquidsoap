@@ -173,7 +173,7 @@ type hls_id3_mode = [ `None | `In_stream | `Prepended ]
 
 type hls_piece =
   | Bytes of Strings.t
-  | Split of { time : int; forced : bool }
+  | Split of { time : int }
   | Restart of { time : int; init : string option }
 
 type hls_ready = { init : string option; pieces : hls_piece list }
@@ -182,18 +182,18 @@ type hls_init = Pending | Init of hls_ready
 type hls_encoder = {
   init : ?id3:bool -> ?id3_version:int -> unit -> (hls_id3_mode, string) result;
   init_encode : boundary:int -> Frame.t -> hls_init;
-  split_encode : boundary:int -> force:bool -> Frame.t -> hls_piece list;
+  split_encode : boundary:int -> Frame.t -> hls_piece list;
   insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
   hls_stop : unit -> hls_ready;
   codec_attrs : unit -> string option;
   independent_segments : unit -> bool;
   free_split : unit -> bool;
-  split_due : unit -> bool;
   hls_bitrate : unit -> int option;
   hls_video_size : unit -> (int * int) option;
 }
 
-type hls_factory = pos:Pos.t option -> string -> hls_encoder
+type hls_factory =
+  pos:Pos.t option -> segment_duration:float -> string -> hls_encoder
 
 (** A plugin might or might not accept a given format. If it accepts it, it
     gives a function creating suitable encoders. *)
@@ -259,15 +259,12 @@ let protect_hls e =
     init =
       (fun ?id3 ?id3_version () -> p (fun () -> e.init ?id3 ?id3_version ()));
     init_encode = (fun ~boundary f -> p (fun () -> e.init_encode ~boundary f));
-    split_encode =
-      (fun ~boundary ~force f ->
-        p (fun () -> e.split_encode ~boundary ~force f));
+    split_encode = (fun ~boundary f -> p (fun () -> e.split_encode ~boundary f));
     insert_id3 = (fun ~time m -> p (fun () -> e.insert_id3 ~time m));
     hls_stop = (fun () -> p e.hls_stop);
     codec_attrs = (fun () -> p e.codec_attrs);
     independent_segments = (fun () -> p e.independent_segments);
     free_split = (fun () -> p e.free_split);
-    split_due = (fun () -> p e.split_due);
     hls_bitrate = (fun () -> p e.hls_bitrate);
     hls_video_size = (fun () -> p e.hls_video_size);
   }
@@ -279,4 +276,6 @@ let get_hls_factory fmt =
           | Some factory -> raise (Found_hls factory)
           | None -> ());
     raise Not_found
-  with Found_hls factory -> fun ~pos name -> protect_hls (factory ~pos name)
+  with Found_hls factory ->
+    fun ~pos ~segment_duration name ->
+      protect_hls (factory ~pos ~segment_duration name)

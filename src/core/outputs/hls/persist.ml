@@ -2,7 +2,6 @@ type segment = {
   position : int;
   discontinuous : bool;
   discontinuity : int;
-  forced : bool;
   codecs : string option;
   init : string option;
   name : string;
@@ -29,7 +28,6 @@ let json_of_segment s =
        ("position", `Int s.position);
        ("discontinuous", `Bool s.discontinuous);
        ("discontinuity", `Int s.discontinuity);
-       ("forced", `Bool s.forced);
      ]
     @ optional "codecs" s.codecs @ optional "init" s.init
     @ [
@@ -100,7 +98,6 @@ let segment_of_json j =
     position = int "position" j;
     discontinuous = bool "discontinuous" j;
     discontinuity = int "discontinuity" j;
-    forced = bool "forced" j;
     codecs = str_opt "codecs" j;
     init = str_opt "init" j;
     name = str "name" j;

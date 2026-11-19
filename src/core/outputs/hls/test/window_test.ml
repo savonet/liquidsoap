@@ -9,8 +9,8 @@ let check name cond =
   if not cond then failwith ("check failed: " ^ name)
 
 let publish ?(discontinuous = false) w duration =
-  Window.publish w ~discontinuous ~forced:false ~codecs:None ~init:None
-    ~name:"s" ~tags:[] ~duration ~size:100
+  Window.publish w ~discontinuous ~codecs:None ~init:None ~name:"s" ~tags:[]
+    ~duration ~size:100
 
 (* Runs the caller's order: publish, slide, list, expire. Returns what was
    deleted at each step. *)
@@ -105,7 +105,6 @@ let () =
             Persist.position;
             discontinuous = false;
             discontinuity = 0;
-            forced = false;
             codecs = None;
             init = None;
             name = "s";

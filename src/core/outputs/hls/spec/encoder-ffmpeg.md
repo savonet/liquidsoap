@@ -9,8 +9,9 @@ contract's numbering.
 ## 1. Role
 
 Split points are positions where every participating stream's next packet
-is a key packet; encoded video makes a key frame at each boundary it is
-given. [encoder.md §8.2](../../../optionals/ffmpeg/spec/encoder.md#82-keyframe-hooks).
+is a key packet; encoded video places its key frames by its key-frame
+interval, defaulted from `D` ([encoder.md §3](../../../optionals/ffmpeg/spec/encoder.md#3-building-an-instance)).
+[encoder.md §8.2](../../../optionals/ffmpeg/spec/encoder.md#82-keyframe-hooks).
 
 ## 2. Calls and order
 
@@ -33,18 +34,20 @@ segment (fMP4: `ftyp` + `moov`; none for MPEG-TS and packed audio).
 
 ## 5. `split_encode`
 
-Split points at key packets and at each request; MPEG-TS split points
-start with a PAT and a PMT
-([encoder.md §8.7](../../../optionals/ffmpeg/spec/encoder.md#87-segment-grid-hls-output-side)); `force` honoured except
-when a key frame at the boundary is already on its way; restarts at
-incompatible copy switches.
+Split points at key packets of streams that are not all-key, and at each
+request when every stream is all-key; MPEG-TS split points start with a PAT
+and a PMT
+([encoder.md §8.7](../../../optionals/ffmpeg/spec/encoder.md#87-segmenting-hls-output-side));
+restarts at incompatible copy switches.
 [encoder.md §8.4](../../../optionals/ffmpeg/spec/encoder.md#84-split_encode-frame),
 [§13](../../../optionals/ffmpeg/spec/encoder.md#13-container-restart).
 
 Split times come from packet times. A copied stream's first key packet can
 sit after the run's start by the source's codec delay, so its split points
-can all fall just after the boundaries; the cut rule absorbs that
-([segmenting.md §4](segmenting.md#4-the-cut-rule)).
+can all fall just after their targets; the cut rule absorbs that
+([segmenting.md §4.1](segmenting.md#41-key-frame-variants)). Key packets of
+a copied stream reach the output after their time by the source's
+interleaving; the cut rule does not depend on when they arrive.
 
 ## 6. Properties
 
@@ -53,10 +56,7 @@ can all fall just after the boundaries; the cut rule absorbs that
 subtitles, intra-only codecs): the hook then takes a split point before the
 first packet at or after each request
 ([encoder.md §8.2](../../../optionals/ffmpeg/spec/encoder.md#82-keyframe-hooks)).
-False otherwise. `split_due` is true while a key frame made for a request has
-not yet reached the muxer, or a restart is not yet returned: the cases in
-which the instance declines `force`
-([encoder.md §8.4](../../../optionals/ffmpeg/spec/encoder.md#84-split_encode-frame)).
+False otherwise.
 
 ## 7. `insert_id3`
 
