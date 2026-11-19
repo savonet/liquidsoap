@@ -265,24 +265,14 @@ A source that never ends a track, such as `blank()` or `sine()` without a `durat
 
 `rotate.merge` no longer takes `transitions` or `weights`, and does not read `weight`: each round plays one track of every available source. It no longer inserts a frame of silence between rounds.
 
-#### Predicates ask, they do not count
+#### Switch predicates
 
-A predicate is read whenever a switch looks for what to play: at each track boundary, on every streaming cycle while one of its sources may cut into a track (a live input, `track_sensitive = false`), and whenever a selector above it asks whether it could play, even if that selector then plays something else. A predicate that changes state when it is read (a counter it increments, a flag that is true once) therefore counts these looks, not the tracks that play.
+A switch evaluates its predicates when it decides what to play. How often it decides is not specified. Two things change:
 
-For instance, a jingle every fourth track written as
+- A frame can take several streaming cycles. A switch that decides in each cycle evaluates its predicates once per cycle, so possibly several times in one frame.
+- Deciding no longer commits. A switch inside another selector evaluates its predicates when that selector asks whether it can play. The selector may then play another source. A predicate that returned `true` does not guarantee that its source plays.
 
-```liquidsoap
-count = ref(0)
-def every_fourth() =
-  ref.incr(count)
-  count() mod 4 == 0
-end
-radio = switch([(every_fourth, jingles.{track_sensitive = false}), ({true}, music)])
-```
-
-advances `count` more than once per track: in a test run, 33 reads for 24 tracks, and a jingle after the first song and then every two songs instead of every four. With every source waiting for track boundaries it may happen to work, and break as soon as one of them can cut in.
-
-Change the state where the thing actually happens, and only read it in the predicate:
+A predicate must not change state. A counter incremented in a predicate counts evaluations, not tracks. Change the state in `on_track` or `on_select`, and only read it in the predicate:
 
 ```liquidsoap
 jingles = metadata.map(fun (_) -> [("jingle", "true")], jingles)
@@ -294,9 +284,7 @@ radio.on_track(
 )
 ```
 
-Or keep the state on the source itself, from its `on_select` (run when it is selected) or `on_track` (run when one of its tracks starts).
-
-The `predicate.once`, `predicate.signal`, `predicate.first`, `predicate.activates` and `predicate.changes` helpers change their state when read, so they have the same limits inside a switch: one of them can be used up by a look that does not lead to playing. A time predicate such as `{0m-5m}` changes nothing when read and is unaffected.
+`predicate.once`, `predicate.signal`, `predicate.first`, `predicate.activates` and `predicate.changes` change state when evaluated. Do not use them as switch predicates. Time predicates such as `{0m-5m}` change nothing and are safe.
 
 #### Stdlib operators that used to pin `track_sensitive`
 

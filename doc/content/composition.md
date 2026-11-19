@@ -72,14 +72,12 @@ next one. To let a source cut into a rotation, put it above the rotation, as in
 
 ## Counting songs
 
-A predicate answers a question: may this source play now? The switch asks it
-whenever it looks for what to play: at each track boundary, on every streaming
-cycle while a source may cut into a track, and when a selector above it asks
-whether it could play, even if that selector then plays something else. So a
-predicate must not change anything when it is asked.
+A predicate says whether a source may play now. The switch evaluates it when it
+decides what to play, which can happen several times per frame, and for a source
+it then does not play. A predicate must not change state.
 
-To play a jingle after every three songs, count the songs where they start, and
-only read the count in the predicate:
+To play a jingle after every three songs, count the songs in `on_track` and only
+read the count in the predicate:
 
 ```liquidsoap
 jingles = metadata.map(fun (_) -> [("jingle", "true")], jingles)
@@ -91,12 +89,8 @@ radio.on_track(
 )
 ```
 
-Incrementing `songs` inside the predicate instead would count the times the
-switch looked, not the songs that played. With every source waiting for track
-boundaries it may happen to look once per track, but as soon as a source can
-cut in, the switch looks on every cycle and the jingles come early and
-irregularly. For a fixed rotation, `rotate([music.{weight = 3}, jingles])`
-does this counting for you.
+A counter incremented in the predicate counts evaluations, not songs. For a
+fixed ratio, `rotate([music.{weight = 3}, jingles])` does the counting.
 
 ## A show on a schedule
 
