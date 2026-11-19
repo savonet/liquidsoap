@@ -36,11 +36,18 @@ let option_table p =
       (fun pair ->
         let name, value = Lang.to_product pair in
         let name = Lang.to_string name in
-        if not (List.mem name (Lazy.Mutexed.force input_option_names)) then
-          Lang.raise_error
-            ~pos:(Option.to_list (Value.pos v))
-            ~message:(Printf.sprintf "Unknown FFmpeg input option: %s" name)
-            "ffmpeg";
+        let raise_error message =
+          Lang.raise_error ~pos:(Option.to_list (Value.pos v)) ~message "ffmpeg"
+        in
+        if Input_options.is_decoder_option name then (
+          (* decoder.md §4.4: a decoder option no decoder accepts is a
+             configuration error, raised before anything streams. *)
+          let single = Hashtbl.create 1 in
+          Hashtbl.replace single name (convert value);
+          try ignore (Input_options.split_decoder_options single)
+          with Runtime_error.Runtime_error { msg } -> raise_error msg)
+        else if not (List.mem name (Lazy.Mutexed.force input_option_names)) then
+          raise_error (Printf.sprintf "Unknown FFmpeg input option: %s" name);
         Hashtbl.replace table name (convert value))
       (Lang.to_list v)
   in

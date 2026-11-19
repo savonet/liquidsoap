@@ -1194,6 +1194,81 @@
    --
    alarm-clock-alpha.webm)))
 
+(rule
+ (alias test_ffmpeg_decoder_options)
+ (target h264-with-cover.mp4)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=2:size=320x240:rate=25"
+   -f
+   lavfi
+   -i
+   "color=red:size=64x64:duration=1"
+   -map
+   0:v
+   -map
+   1:v
+   -c:v:0
+   libx264
+   -c:v:1
+   png
+   -frames:v:1
+   1
+   -disposition:v:1
+   attached_pic
+   %{target})))
+
+(rule
+ (alias test_ffmpeg_decoder_options)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  test-audio.wav
+  h264-with-cover.mp4
+  test_ffmpeg_decoder_options.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg decoder options"
+   liquidsoap
+   test_ffmpeg_decoder_options.liq
+   --
+   hls-gop4.ts
+   test-audio.wav
+   h264-with-cover.mp4)))
+
+(rule
+ (alias test_ffmpeg_decoder_options_applied)
+ (package liquidsoap)
+ (deps
+  hls-gop4.ts
+  test_ffmpeg_decoder_options_applied.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg decoder options reach the decoder"
+   liquidsoap
+   test_ffmpeg_decoder_options_applied.liq
+   --
+   hls-gop4.ts)))
+
 (alias
  (name mediatest)
  (deps
@@ -1217,6 +1292,8 @@
   (alias test_subtitle_text_to_ass)
   (alias test_ffmpeg_vp9_alpha)
   (alias test_ffmpeg_stream_preferred_decoder)
+  (alias test_ffmpeg_decoder_options)
+  (alias test_ffmpeg_decoder_options_applied)
   (alias test_hls_field_scenario)
   (alias test_hls_grid_drift)
   (alias test_hls_bound)

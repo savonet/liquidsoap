@@ -21,10 +21,91 @@
  *****************************************************************************)
 
 type input_format = (Avutil.input, Avutil.audio) Avutil.format
-type t = { format : input_format option; opts : Avutil.opts }
+
+type decoder_options = {
+  audio : Avutil.opts;
+  video : Avutil.opts;
+  subtitle : Avutil.opts;
+}
+
+type t = {
+  format : input_format option;
+  opts : Avutil.opts;
+  decoder : decoder_options;
+}
 
 let error message = Runtime_error.raise ~pos:[] ~message "ffmpeg_decoder"
-let none () = { format = None; opts = Hashtbl.create 0 }
+
+let no_decoder_options () =
+  {
+    audio = Hashtbl.create 0;
+    video = Hashtbl.create 0;
+    subtitle = Hashtbl.create 0;
+  }
+
+let none () =
+  { format = None; opts = Hashtbl.create 0; decoder = no_decoder_options () }
+
+type media_options = {
+  prefix : string;
+  select : decoder_options -> Avutil.opts;
+  accepted_by_some_decoder : string -> Avutil.value -> bool;
+}
+
+let accepted_by_some_decoder decoders name value =
+  let option = Hashtbl.create 1 in
+  Hashtbl.replace option name value;
+  List.exists
+    (fun decoder -> Avcodec.decoder_option_errors decoder option = [])
+    decoders
+
+let media_options =
+  [
+    {
+      prefix = "audio.";
+      select = (fun decoder -> decoder.audio);
+      accepted_by_some_decoder = accepted_by_some_decoder Avcodec.Audio.decoders;
+    };
+    {
+      prefix = "video.";
+      select = (fun decoder -> decoder.video);
+      accepted_by_some_decoder = accepted_by_some_decoder Avcodec.Video.decoders;
+    };
+    {
+      prefix = "subtitle.";
+      select = (fun decoder -> decoder.subtitle);
+      accepted_by_some_decoder =
+        accepted_by_some_decoder Avcodec.Subtitle.decoders;
+    };
+  ]
+
+let media_of_key key =
+  List.find_opt
+    (fun media -> String.starts_with ~prefix:media.prefix key)
+    media_options
+
+let is_decoder_option key = media_of_key key <> None
+
+let split_decoder_options opts =
+  let decoder = no_decoder_options () in
+  Hashtbl.filter_map_inplace
+    (fun key value ->
+      match media_of_key key with
+        | None -> Some value
+        | Some media ->
+            let length = String.length media.prefix in
+            let name = String.sub key length (String.length key - length) in
+            if name = "" then
+              error (Printf.sprintf "Decoder option without a name: %s" key);
+            if not (media.accepted_by_some_decoder name value) then
+              error
+                (Printf.sprintf
+                   "Decoder option %s=%s: no FFmpeg decoder accepts it" key
+                   (Opts.string_of_value value));
+            Hashtbl.replace (media.select decoder) name value;
+            None)
+    opts;
+  decoder
 
 let find_format name =
   match Av.Format.find_input_format name with
@@ -71,7 +152,8 @@ let parse ~what s =
           | _ -> invalid ())
       None params
   in
-  { format; opts }
+  let decoder = split_decoder_options opts in
+  { format; opts; decoder }
 
 let of_metadata metadata =
   match Frame.Metadata.find_opt "ffmpeg_options" metadata with

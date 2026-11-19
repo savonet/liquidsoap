@@ -227,6 +227,49 @@ CAMLprim value ocaml_avcodec_codec_name(value _codec) {
   CAMLreturn(caml_copy_string(name ? name : ""));
 }
 
+/* The context is never opened: allocating it gives the codec's private
+   options, so av_opt_set checks names and values exactly as an open would. */
+CAMLprim value ocaml_avcodec_decoder_option_errors(value _codec,
+                                                   value _bindings) {
+  CAMLparam2(_codec, _bindings);
+  CAMLlocal3(errors, rejected, cell);
+  const AVCodec *codec = Codec_val(_codec);
+  AVDictionary *options = ocaml_avutil_dictionary_of_options(_bindings);
+  AVCodecContext *context = avcodec_alloc_context3(codec);
+  const AVDictionaryEntry *option = NULL;
+
+  if (!context) {
+    av_dict_free(&options);
+    ocaml_avutil_raise_error(AVERROR(ENOMEM));
+  }
+
+  errors = Val_emptylist;
+  while ((option = av_dict_iterate(options, option))) {
+    const char *reason = NULL;
+
+    if (!av_opt_find(context, option->key, NULL, AV_OPT_FLAG_DECODING_PARAM,
+                     AV_OPT_SEARCH_CHILDREN))
+      reason = "unknown option";
+    else if (av_opt_set(context, option->key, option->value,
+                        AV_OPT_SEARCH_CHILDREN) < 0)
+      reason = "invalid value";
+
+    if (reason) {
+      rejected = caml_alloc_tuple(2);
+      Store_field(rejected, 0, caml_copy_string(option->key));
+      Store_field(rejected, 1, caml_copy_string(reason));
+      cell = caml_alloc_small(2, 0);
+      Field(cell, 0) = rejected;
+      Field(cell, 1) = errors;
+      errors = cell;
+    }
+  }
+
+  avcodec_free_context(&context);
+  av_dict_free(&options);
+  CAMLreturn(errors);
+}
+
 CAMLprim value ocaml_avcodec_codec_description(value _codec) {
   CAMLparam1(_codec);
   const char *long_name = Codec_val(_codec)->long_name;

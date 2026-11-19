@@ -68,6 +68,13 @@ let bindings = function
 
 let report_unused opts unused = Option.iter (filter_opts unused) opts
 
+external decoder_option_errors :
+  (_, decode) codec -> (string * Avutil.value) array -> (string * string) list
+  = "ocaml_avcodec_decoder_option_errors"
+
+let decoder_option_errors codec opts =
+  decoder_option_errors codec (bindings (Some opts))
+
 module Packet_side_data = struct
   type kind = Packet_side_data_type.t
 

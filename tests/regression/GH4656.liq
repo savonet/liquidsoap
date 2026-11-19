@@ -9,8 +9,12 @@ def bad() =
   ignore(filter.rc(mode="foo", frequency=100., sine()))
 end
 
+# Monitors run on whichever thread raised, several at once: the list is only
+# touched inside atomic sections, so no report is lost.
 monitored = ref([])
-error.on_error(fun (e) -> monitored := [...monitored(), e.kind])
+error.on_error(
+  fun (e) -> atomic(fun () -> monitored := [...monitored(), e.kind])
+)
 
 def caught_kind() =
   try
@@ -42,9 +46,22 @@ thread.run(
   bad
 )
 
-thread.run(
-  delay=1.,
-  fun () ->
+def invalid_reports() =
+  list.length(list.filter(fun (k) -> k == "invalid", atomic(monitored)))
+end
+
+# The threads run when the scheduler gets to them: wait for every result, up to
+# a deadline, rather than checking at a fixed time.
+deadline = time() + 10.
+checked = ref(false)
+
+def check() =
+  settled = in_thread() != "" and handled() != "" and invalid_reports() >= 3
+
+  if
+    not checked() and (settled or time() > deadline)
+  then
+    checked := true
     if
       top_level != "invalid"
     then
@@ -64,12 +81,15 @@ thread.run(
         "thread.run's on_error got \"#{handled()}\""
       )
     elsif
-      list.length(list.filter(fun (k) -> k == "invalid", monitored())) != 3
+      invalid_reports() != 3
     then
       test.fail(
-        "error monitors saw: #{monitored()}"
+        "error monitors saw: #{atomic(monitored)}"
       )
     else
       test.pass()
     end
-)
+  end
+end
+
+thread.run(delay=0.3, every=0.1, check)

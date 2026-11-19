@@ -214,6 +214,22 @@ val flag_global_header : int
 §3.2.
 
 ```ocaml
+val decoder_option_errors :
+  (_, decode) codec -> Avutil.opts -> (string * string) list
+```
+
+Tries every entry of the table on a decoder context of the codec that is
+allocated but never opened, so the codec's private options are present, and
+returns each rejected entry with its reason:
+
+- `"unknown option"`: no option of that name marked as a decoding parameter,
+  among the codec's private options and the generic codec context options;
+- `"invalid value"`: the option exists and its value does not parse.
+
+The empty list means an open with these options would apply every entry. The
+table is not modified (§9).
+
+```ocaml
 val params : 'media encoder -> 'media params
 ```
 
@@ -913,7 +929,7 @@ No bigarray, stride or plane handling happens in this library.
 | `Video.create_encoder` | the same                                                                            |
 | `BitstreamFilter.init` | the filter context and its private options                                          |
 
-All three follow [avutil.md](avutil.md) §9.1. Decoders take no option. No
+All three follow [avutil.md](avutil.md) §9.1. Decoders take no option here; `decoder_option_errors` (§4.1) checks a table against a codec without consuming it, for the decoder options `Av` passes ([avformat.md](avformat.md), stream configuration). No
 option getter or setter is offered on a decoder, encoder or filter instance.
 
 ## 10. Version-dependent behaviour

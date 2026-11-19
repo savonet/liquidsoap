@@ -407,12 +407,16 @@ A failure in steps 2–8 is handled in this order:
   options, so no change on the remote side can fix it. Transition
   `Polling a` → `Failed (u, e)`. An option name that no FFmpeg input
   component (generic container options, any demuxer, any protocol) defines
-  is a configuration error, reported at evaluation before anything streams.
+  is a configuration error, reported at evaluation before anything streams,
+  and so is a decoder option no FFmpeg decoder of its media type accepts.
   A leftover option is a source fault rather than a hard error because the
   URL is a getter: a later URL can use the option.
 - **Transient**: every other failure. This includes leftover options when
   `format` is not set (the remote's format decides which demuxer consumes
-  options, and it can change), the content-type mismatch of step 5, HTTP
+  options, and it can change), decoder options every decoder of the
+  remote's streams rejected ([decoder.md §4.4](decoder.md#44-decoder-options):
+  the remote's codecs decide, and they can change), the content-type
+  mismatch of step 5, HTTP
   client errors (4xx: a mount not up yet, an expired token), the open's
   network errors (unreachable, refused, a 5xx status) and an error raised by
   an `on_connect` callback. Transition `Polling a` → `Starting b`, `b`

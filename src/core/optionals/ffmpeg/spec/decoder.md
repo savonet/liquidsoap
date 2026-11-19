@@ -255,6 +255,60 @@ Conformance:
 - `f=nosuchformat` is an error naming `nosuchformat`, at the probe and in
   both resolvers.
 
+### 4.4 Decoder options
+
+An option whose key starts with `audio.`, `video.` or `subtitle.` is a
+**decoder option**: the rest of the key names an option of the decoder of
+every stream of that media type. Every other option is a demuxer option, as
+in §4.1 to §4.3. A key that holds a dot is written quoted:
+
+```liquidsoap
+input.srt(content_type="application/ffmpeg;\"video.flags\"=\"low_delay\"")
+```
+
+The same split applies to the options of `input.ffmpeg` (`int_args`,
+`float_args`, `string_args`) and to `ffmpeg_options` metadata.
+
+- Decoder options reach a stream through the stream configuration of §5.1,
+  together with the preferred decoder, so they apply to the decoder FFmpeg
+  probes with and to the decoder that decodes. A copied stream (§6) has no
+  decoder and takes none.
+- When the options are parsed, a key with a prefix and nothing after it, and
+  an option that no FFmpeg decoder of its media type accepts, by name or by
+  value, are errors of kind `ffmpeg_decoder` naming the key. For
+  `input.ffmpeg` this happens when the script is evaluated, so a typo fails
+  before anything streams.
+- Once the streams are configured, an option that the decoder of every
+  stream of its media type rejects is an error of kind `ffmpeg_decoder`
+  naming the prefixed key and the reason (unknown option, invalid value),
+  closing the container. One stream accepting it is enough: a cover picture's
+  PNG decoder does not make an H.264 option an error. A stream whose codec has
+  no decoder in the build is left out of the check. Options for a media type
+  the input has no stream of are logged at debug level.
+- For `input.ffmpeg`, that error fails the connection attempt as a transient
+  failure ([io.md §2.3](io.md#23-failure-of-an-attempt)): another codec on
+  the remote can take the option, as another demuxer can take leftover
+  options when no format is forced.
+- No decoder option is set by default.
+
+The motivating option is `"video.flags"="low_delay"`. FFmpeg's default
+frame-threaded H.264 decoder holds about one frame per thread before
+returning the first picture, close to half a second on a ten-core machine at
+25 fps. A live input that must reach its viewers quickly trades that
+decoding throughput for latency; every other input keeps the default.
+
+Conformance:
+
+- `"video.nosuchoption"=1`, `"video.flags"="bogus"` and `"video."` are
+  errors naming the key, for a request's `ffmpeg_options` when it is
+  resolved, and for `input.ffmpeg`'s arguments when the script is evaluated.
+- `"video.skip_frame"="nokey"` on an H.264 file freezes the decoded picture
+  between key frames, and the same file decoded without it does not freeze:
+  the option reaches the decoder that decodes.
+- `"video.enable_er"=1`, an option only the H.264 decoder has, is accepted on
+  a file with an H.264 stream and a PNG cover picture.
+- `"video.flags"="low_delay"` on an audio-only file is accepted and logged.
+
 ## 5. Opening and probing
 
 ### 5.1 Opening

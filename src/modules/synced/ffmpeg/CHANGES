@@ -54,6 +54,8 @@
   takes (`?configure_audio_stream`, `?configure_video_stream`,
   `?configure_subtitle_stream`). Both also configure the streams that probing
   adds, as MPEG-TS does.
+* Add `Avcodec.decoder_option_errors`, which checks decoder options against a
+  codec, names and values, without opening a decoder.
 * Add a conformance test suite, run with `dune build @ffmpeg_citest`.
 * Remove the examples.
 

@@ -31,54 +31,119 @@ let mime_base mime = List.hd (String.split_on_char ';' mime)
 let is_image_mime mime =
   List.mem (mime_base mime) Decoder_settings.image_mime_types#get
 
-let configure_stream (type media) ~find ~string_of_id ~get_params_id :
-    media Avcodec.params -> media Av.stream_config =
+(* The rejections of each configured stream's decoder, [None] for a stream
+   with no decoder in this build. *)
+type media_streams = {
+  media : string;
+  options : Avutil.opts;
+  mutable rejections : (string * string) list option list;
+}
+
+let configure_stream (type media) ~find ~find_default ~string_of_id
+    ~get_params_id ~streams : media Avcodec.params -> media Av.stream_config =
  fun params ->
-  let name = string_of_id (get_params_id params) in
-  match Decoder_settings.preferred_decoder name with
-    | None -> { Av.codec = None; opts = None }
-    | Some decoder ->
-        log#info "Trying preferred decoder %s for codec %s" decoder name;
-        { Av.codec = Some (find decoder); opts = None }
+  let id = get_params_id params in
+  let name = string_of_id id in
+  let codec =
+    match Decoder_settings.preferred_decoder name with
+      | None -> None
+      | Some decoder ->
+          log#info "Trying preferred decoder %s for codec %s" decoder name;
+          Some (find decoder)
+  in
+  let rejections =
+    match codec with
+      | Some decoder ->
+          Some (Avcodec.decoder_option_errors decoder streams.options)
+      | None -> (
+          match find_default id with
+            | decoder ->
+                Some (Avcodec.decoder_option_errors decoder streams.options)
+            | exception Avutil.Error `Decoder_not_found -> None)
+  in
+  streams.rejections <- rejections :: streams.rejections;
+  let opts =
+    if Hashtbl.length streams.options = 0 then None
+    else Some (Hashtbl.copy streams.options)
+  in
+  { Av.codec; opts }
+
+(* decoder.md §4.4: an option is in error when every decoder of its media type
+   rejects it; a stream with no decoder cannot tell and is left out. *)
+let check_media_options { media; options; rejections } =
+  if Hashtbl.length options > 0 then (
+    match List.filter_map Fun.id rejections with
+      | [] when rejections = [] ->
+          log#debug "No %s stream: %s decoder options not applied" media media
+      | [] -> ()
+      | first :: others ->
+          let rejected_everywhere =
+            List.filter
+              (fun (key, _) ->
+                List.for_all (fun stream -> List.mem_assoc key stream) others)
+              first
+          in
+          if rejected_everywhere <> [] then
+            Input_options.error
+              (Printf.sprintf "Rejected decoder options: %s"
+                 (String.concat ", "
+                    (List.map
+                       (fun (key, reason) ->
+                         Printf.sprintf "%s.%s (%s)" media key reason)
+                       (List.sort compare rejected_everywhere)))))
 
 type stream_configuration = {
   audio : Avutil.audio Avcodec.params -> Avutil.audio Av.stream_config;
   video : Avutil.video Avcodec.params -> Avutil.video Av.stream_config;
   subtitle : Avutil.subtitle Avcodec.params -> Avutil.subtitle Av.stream_config;
+  check_decoder_options : unit -> unit;
 }
 
-let stream_configuration () =
+let stream_configuration ?(decoder = Input_options.no_decoder_options ()) () =
+  let streams media options = { media; options; rejections = [] } in
+  let audio = streams "audio" decoder.audio in
+  let video = streams "video" decoder.video in
+  let subtitle = streams "subtitle" decoder.subtitle in
   {
     audio =
       configure_stream ~find:Avcodec.Audio.find_decoder_by_name
+        ~find_default:Avcodec.Audio.find_decoder
         ~string_of_id:Avcodec.Audio.string_of_id
-        ~get_params_id:Avcodec.Audio.get_params_id;
+        ~get_params_id:Avcodec.Audio.get_params_id ~streams:audio;
     video =
       configure_stream ~find:Avcodec.Video.find_decoder_by_name
+        ~find_default:Avcodec.Video.find_decoder
         ~string_of_id:Avcodec.Video.string_of_id
-        ~get_params_id:Avcodec.Video.get_params_id;
+        ~get_params_id:Avcodec.Video.get_params_id ~streams:video;
     subtitle =
       configure_stream ~find:Avcodec.Subtitle.find_decoder_by_name
+        ~find_default:Avcodec.Subtitle.find_decoder
         ~string_of_id:Avcodec.Subtitle.string_of_id
-        ~get_params_id:Avcodec.Subtitle.get_params_id;
+        ~get_params_id:Avcodec.Subtitle.get_params_id ~streams:subtitle;
+    check_decoder_options =
+      (fun () -> List.iter check_media_options [audio; video; subtitle]);
   }
 
-let open_file ?(configure = true) ~options filename =
-  let { Input_options.format; opts } = options in
-  let container =
-    if configure then (
-      let c = stream_configuration () in
-      Av.open_input ?format ~opts ~configure_audio_stream:c.audio
-        ~configure_video_stream:c.video ~configure_subtitle_stream:c.subtitle
-        filename)
-    else Av.open_input ?format ~opts filename
-  in
-  (match Input_options.check_unused options with
-    | () -> ()
+(* Checks an opened container, closing it when a check fails. *)
+let checked container checks =
+  match List.iter (fun check -> check ()) checks with
+    | () -> container
     | exception exn ->
         Av.close container;
-        raise exn);
-  container
+        raise exn
+
+let open_file ?(configure = true) ~options filename =
+  let { Input_options.format; opts; decoder } = options in
+  let check_unused () = Input_options.check_unused options in
+  if configure then (
+    let configuration = stream_configuration ~decoder () in
+    let container =
+      Av.open_input ?format ~opts ~configure_audio_stream:configuration.audio
+        ~configure_video_stream:configuration.video
+        ~configure_subtitle_stream:configuration.subtitle filename
+    in
+    checked container [configuration.check_decoder_options; check_unused])
+  else checked (Av.open_input ?format ~opts filename) [check_unused]
 
 let file_options ~metadata filename =
   let options = Input_options.of_metadata metadata in
@@ -172,19 +237,19 @@ let stream_io (input : Decoder.input) =
   (read, seek)
 
 let open_stream ~options ?seek read =
-  let { Input_options.format; opts } = options in
-  let configuration = stream_configuration () in
+  let { Input_options.format; opts; decoder } = options in
+  let configuration = stream_configuration ~decoder () in
   let container =
     Av.open_input_stream ?format ~opts ?seek
       ~configure_audio_stream:configuration.audio
       ~configure_video_stream:configuration.video
       ~configure_subtitle_stream:configuration.subtitle read
   in
-  match Input_options.check_unused options with
-    | () -> container
-    | exception exn ->
-        Av.close container;
-        raise exn
+  checked container
+    [
+      configuration.check_decoder_options;
+      (fun () -> Input_options.check_unused options);
+    ]
 
 let create_stream_decoder ~ctype mime input =
   let options = Input_options.of_mime mime in
