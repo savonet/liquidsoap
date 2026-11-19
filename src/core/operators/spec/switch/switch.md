@@ -45,7 +45,12 @@ List order is priority: where several children qualify, the first wins.
 
 ## 3. Predicates
 
-- A predicate MUST NOT change anything when it is read
+- A predicate MAY change state when it is read. The switch reads it only to
+  make a decision, once per cycle where it decides, so possibly several times
+  per track and for a child it then does not play. A predicate that changes
+  state on each read sees every read: a counter counts reads, and a one-shot's
+  `true` is spent by the read that returns it, whatever the decision. The
+  policies' own predicates are pure
   ([policies.md §6](policies.md#6-predicate-contract)).
 - Predicates are evaluated only to make a decision ([§4](#4-decisions)), and
   only those the decision can depend on.
