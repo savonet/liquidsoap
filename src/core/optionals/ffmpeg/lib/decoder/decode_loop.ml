@@ -206,12 +206,17 @@ let kind_of_choice : choice -> kind = function
   | `Text_subtitles | `Bitmap_subtitles _ ->
       `Decoded
 
-let report_video_size params =
-  let width, height = Display.expected_size params in
-  ignore
-    (Frame.video_dimensions
-       ~ideal_size:{ Frame.width; height; source = "ffmpeg decoder" }
-       ())
+(* A size declared by the content type wins over the stream's: frames are
+   fitted to it. Streams probed without a size report none. *)
+let report_video_size ?width ?height params =
+  let stream_width, stream_height = Display.expected_size params in
+  let width = Option.value ~default:stream_width width in
+  let height = Option.value ~default:stream_height height in
+  if width > 0 && height > 0 then
+    ignore
+      (Frame.video_dimensions
+         ~ideal_size:{ Frame.width; height; source = "ffmpeg decoder" }
+         ())
 
 let create_decoder ~output ~faults ~source_id
     (stream : Stream_description.stream) : choice -> Per_stream.t = function
@@ -248,7 +253,9 @@ let create_decoder ~output ~faults ~source_id
   | `Raw_video format -> (
       match stream.media with
         | `Video (params, _) ->
-            report_video_size params;
+            let declared = Ffmpeg_content.Video.get_params format in
+            report_video_size ?width:declared.Raw_params.Video.width
+              ?height:declared.height params;
             Raw_decoder.video ~output ~faults ~log ~source_id ~format stream
               params
         | _ -> unsupported stream)

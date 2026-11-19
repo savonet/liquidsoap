@@ -542,7 +542,8 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
   let frame_rate = Time_base.frame_rate (Lazy.Mutexed.force v.framerate) in
-  (* Forced at the first frame, once a decoder could report its size. *)
+  (* Forcing fixes the global dimensions, which then ignore decoder reports:
+     wait for the first frame. *)
   let size =
     Lazy.Mutexed.from_fun (fun () ->
         (Lazy.Mutexed.force v.width, Lazy.Mutexed.force v.height))
