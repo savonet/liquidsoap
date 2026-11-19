@@ -10,7 +10,7 @@ end)
 
 let count () = Pool.fold (fun _ _ n -> n + 1) 0
 
-let fill () =
+let[@inline never] fill () =
   let l =
     List.init 100 (fun _ -> Pool.add (fun id -> { id; destroyed = false }))
   in
