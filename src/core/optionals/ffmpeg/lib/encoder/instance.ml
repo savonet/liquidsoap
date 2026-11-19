@@ -520,8 +520,8 @@ let segment_muxer = function
       || List.mem m F.iso_family
   | None -> false
 
-(* encoder.md §3 step 2: a key frame at most every 2 s, a whole number of them
-   per segment. *)
+(* encoder.md §3 step 2: a key frame at most every 2 s, as close as whole
+   frames allow to an even split of the segment. *)
 let key_frame_interval ~segment_duration (video : F.video) =
   let num, den = Lazy.Mutexed.force video.framerate in
   let per_segment =
@@ -541,9 +541,8 @@ let key_frame_defaults ~segment_duration (encoded : F.encoded) video =
   let opts =
     encoded.opts |> default "g" interval |> default "keyint_min" interval
   in
-  (* ponytail: [sc_threshold] is a private option of libx264 only; an encoder
-     without it rejects it as unused. Probe the codec's options if more
-     encoders need it. *)
+  (* [sc_threshold] is a private option of libx264: another encoder rejects it
+     as unused. *)
     match encoded.codec with
     | Some ("libx264" | "libx264rgb") -> default "sc_threshold" 0 opts
     | _ -> opts

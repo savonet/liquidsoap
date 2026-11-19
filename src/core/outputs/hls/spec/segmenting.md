@@ -293,18 +293,20 @@ Each warning is logged when its condition starts in a variant, not again
 while it holds; it is logged again once the condition has cleared and comes
 back.
 
-| Condition                                                                               | Holds until                                                        |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| a segment's rounded length exceeds `T` (§5)                                             | a segment of the variant closes within `T`                         |
-| a segment cut by §4.1 has a rounded length below `T`                                    | a segment cut by §4.1 closes with a rounded length of at least `T` |
-| a cut has no cut within 0.1 s in another key-frame variant that has already cut past it | a cut of the variant matches one of the other's within 0.1 s       |
+| Condition                                                                               | Holds until                                                  |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| a segment's rounded length exceeds `T` (§5)                                             | a segment of the variant closes within `T`                   |
+| a segment cut by §4.1 lasts more than 0.5 s less than `D`                               | a segment cut by §4.1 closes within 0.5 s of `D`, or longer  |
+| a cut has no cut within 0.1 s in another key-frame variant that has already cut past it | a cut of the variant matches one of the other's within 0.1 s |
 
 The third condition is checked, for each pair of key-frame variants, by the
 one that cuts later, against the other's latest 16 cuts. A run's final
 segment, closed at its stop, is not checked for length below `T` nor
 against other variants.
 
-Reason for these conditions: segments of `D` and aligned variants follow
+Reason for comparing with `D` rather than `T`: with a fractional `D` the
+rounding goes the other way (2.5 s rounds to 3), and a steady 2.48 s would
+count as short. Reason for these conditions: segments of `D` and aligned variants follow
 from the content (§1), so these are what the script can fix: the encoder's
 key-frame interval, or the source's for copied streams. Reason for 0.1 s:
 the same key frame in variants of different frame rates or time bases sits

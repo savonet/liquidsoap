@@ -442,9 +442,10 @@ class output p =
       r.overrun_warned <- over
 
     method private warn_short v r (closed : _ Segmenter.closed) =
+      (* Unrounded: a 2.5 s target rounds up, so a steady 2.48 s would warn. *)
       let short =
         closed.cut = `Cadence
-        && Segmenter.rounded_seconds config closed.length < target
+        && config.duration - closed.length > config.ticks_per_second / 2
       in
       if short && not r.Variant.short_warned then
         self#log#important
