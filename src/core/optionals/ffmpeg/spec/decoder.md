@@ -273,13 +273,22 @@ The same split applies to the options of `input.ffmpeg` (`int_args`,
   together with the preferred decoder, so they apply to the decoder FFmpeg
   probes with and to the decoder that decodes. A copied stream (§6) has no
   decoder and takes none.
-- A key with a prefix and nothing after it is an error of kind
-  `ffmpeg_decoder` naming the key.
-- Remaining decoder options are checked as remaining demuxer options are
-  (§4.3), once the decoders of the streams they apply to have been opened:
-  an option that no such decoder recognised is an error of kind
-  `ffmpeg_decoder` that lists it. Options for a media type the input has no
-  decoded stream of are not checked; they are logged at debug level.
+- When the options are parsed, a key with a prefix and nothing after it, and
+  an option that no FFmpeg decoder of its media type accepts, by name or by
+  value, are errors of kind `ffmpeg_decoder` naming the key. For
+  `input.ffmpeg` this happens when the script is evaluated, so a typo fails
+  before anything streams.
+- Once the streams are configured, an option that the decoder of every
+  stream of its media type rejects is an error of kind `ffmpeg_decoder`
+  naming the prefixed key and the reason (unknown option, invalid value),
+  closing the container. One stream accepting it is enough: a cover picture's
+  PNG decoder does not make an H.264 option an error. A stream whose codec has
+  no decoder in the build is left out of the check. Options for a media type
+  the input has no stream of are logged at debug level.
+- For `input.ffmpeg`, that error fails the connection attempt as a transient
+  failure ([io.md §2.3](io.md#23-failure-of-an-attempt)): another codec on
+  the remote can take the option, as another demuxer can take leftover
+  options when no format is forced.
 - No decoder option is set by default.
 
 The motivating option is `"video.flags"="low_delay"`. FFmpeg's default
@@ -290,13 +299,15 @@ decoding throughput for latency; every other input keeps the default.
 
 Conformance:
 
-- `"video.nosuchoption"=1` on a stream with a video stream is an error
-  naming `video.nosuchoption`, raised when the stream is opened.
-- `"video.flags"="low_delay"` on a stream with an H.264 video stream is
-  accepted: neither the demuxer nor the decoder reports it as unused, which,
-  with the previous item, shows the decoder received it.
-- `"video.flags"="low_delay"` on an audio-only stream is accepted and logged.
-- `"video."` is an error naming the key.
+- `"video.nosuchoption"=1`, `"video.flags"="bogus"` and `"video."` are
+  errors naming the key, for a request's `ffmpeg_options` when it is
+  resolved, and for `input.ffmpeg`'s arguments when the script is evaluated.
+- `"video.skip_frame"="nokey"` on an H.264 file freezes the decoded picture
+  between key frames, and the same file decoded without it does not freeze:
+  the option reaches the decoder that decodes.
+- `"video.enable_er"=1`, an option only the H.264 decoder has, is accepted on
+  a file with an H.264 stream and a PNG cover picture.
+- `"video.flags"="low_delay"` on an audio-only file is accepted and logged.
 
 ## 5. Opening and probing
 

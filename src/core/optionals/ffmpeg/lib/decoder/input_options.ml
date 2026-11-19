@@ -46,30 +46,63 @@ let no_decoder_options () =
 let none () =
   { format = None; opts = Hashtbl.create 0; decoder = no_decoder_options () }
 
-let decoder_prefixes = ["audio."; "video."; "subtitle."]
+type media_options = {
+  prefix : string;
+  select : decoder_options -> Avutil.opts;
+  accepted_by_some_decoder : string -> Avutil.value -> bool;
+}
+
+let accepted_by_some_decoder decoders name value =
+  let option = Hashtbl.create 1 in
+  Hashtbl.replace option name value;
+  List.exists
+    (fun decoder -> Avcodec.decoder_option_errors decoder option = [])
+    decoders
+
+let media_options =
+  [
+    {
+      prefix = "audio.";
+      select = (fun decoder -> decoder.audio);
+      accepted_by_some_decoder = accepted_by_some_decoder Avcodec.Audio.decoders;
+    };
+    {
+      prefix = "video.";
+      select = (fun decoder -> decoder.video);
+      accepted_by_some_decoder = accepted_by_some_decoder Avcodec.Video.decoders;
+    };
+    {
+      prefix = "subtitle.";
+      select = (fun decoder -> decoder.subtitle);
+      accepted_by_some_decoder =
+        accepted_by_some_decoder Avcodec.Subtitle.decoders;
+    };
+  ]
+
+let media_of_key key =
+  List.find_opt
+    (fun media -> String.starts_with ~prefix:media.prefix key)
+    media_options
+
+let is_decoder_option key = media_of_key key <> None
 
 let split_decoder_options opts =
   let decoder = no_decoder_options () in
-  let table_of_prefix = function
-    | "audio." -> decoder.audio
-    | "video." -> decoder.video
-    | _ -> decoder.subtitle
-  in
   Hashtbl.filter_map_inplace
     (fun key value ->
-      match
-        List.find_opt
-          (fun prefix -> String.starts_with ~prefix key)
-          decoder_prefixes
-      with
+      match media_of_key key with
         | None -> Some value
-        | Some prefix ->
-            let length = String.length prefix in
-            if String.length key = length then
+        | Some media ->
+            let length = String.length media.prefix in
+            let name = String.sub key length (String.length key - length) in
+            if name = "" then
               error (Printf.sprintf "Decoder option without a name: %s" key);
-            Hashtbl.replace (table_of_prefix prefix)
-              (String.sub key length (String.length key - length))
-              value;
+            if not (media.accepted_by_some_decoder name value) then
+              error
+                (Printf.sprintf
+                   "Decoder option %s=%s: no FFmpeg decoder accepts it" key
+                   (Opts.string_of_value value));
+            Hashtbl.replace (media.select decoder) name value;
             None)
     opts;
   decoder

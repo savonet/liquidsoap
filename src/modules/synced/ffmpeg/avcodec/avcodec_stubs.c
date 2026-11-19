@@ -227,21 +227,47 @@ CAMLprim value ocaml_avcodec_codec_name(value _codec) {
   CAMLreturn(caml_copy_string(name ? name : ""));
 }
 
-/* Searches the classes without an instance: AV_OPT_SEARCH_FAKE_OBJ takes a
-   pointer to a class pointer. */
-CAMLprim value ocaml_avcodec_decoder_has_option(value _codec, value _name) {
-  CAMLparam2(_codec, _name);
+/* The context is never opened: allocating it gives the codec's private
+   options, so av_opt_set checks names and values exactly as an open would. */
+CAMLprim value ocaml_avcodec_decoder_option_errors(value _codec,
+                                                   value _bindings) {
+  CAMLparam2(_codec, _bindings);
+  CAMLlocal3(errors, rejected, cell);
   const AVCodec *codec = Codec_val(_codec);
-  const AVClass *generic_class = avcodec_get_class();
-  const char *name = String_val(_name);
-  int found =
-      av_opt_find(&generic_class, name, NULL, AV_OPT_FLAG_DECODING_PARAM,
-                  AV_OPT_SEARCH_FAKE_OBJ) != NULL ||
-      (codec->priv_class &&
-       av_opt_find((void *)&codec->priv_class, name, NULL,
-                   AV_OPT_FLAG_DECODING_PARAM, AV_OPT_SEARCH_FAKE_OBJ) != NULL);
+  AVDictionary *options = ocaml_avutil_dictionary_of_options(_bindings);
+  AVCodecContext *context = avcodec_alloc_context3(codec);
+  const AVDictionaryEntry *option = NULL;
 
-  CAMLreturn(Val_bool(found));
+  if (!context) {
+    av_dict_free(&options);
+    ocaml_avutil_raise_error(AVERROR(ENOMEM));
+  }
+
+  errors = Val_emptylist;
+  while ((option = av_dict_iterate(options, option))) {
+    const char *reason = NULL;
+
+    if (!av_opt_find(context, option->key, NULL, AV_OPT_FLAG_DECODING_PARAM,
+                     AV_OPT_SEARCH_CHILDREN))
+      reason = "unknown option";
+    else if (av_opt_set(context, option->key, option->value,
+                        AV_OPT_SEARCH_CHILDREN) < 0)
+      reason = "invalid value";
+
+    if (reason) {
+      rejected = caml_alloc_tuple(2);
+      Store_field(rejected, 0, caml_copy_string(option->key));
+      Store_field(rejected, 1, caml_copy_string(reason));
+      cell = caml_alloc_small(2, 0);
+      Field(cell, 0) = rejected;
+      Field(cell, 1) = errors;
+      errors = cell;
+    }
+  }
+
+  avcodec_free_context(&context);
+  av_dict_free(&options);
+  CAMLreturn(errors);
 }
 
 CAMLprim value ocaml_avcodec_codec_description(value _codec) {

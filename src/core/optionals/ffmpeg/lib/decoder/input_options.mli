@@ -44,13 +44,17 @@ type t = {
 val none : unit -> t
 val no_decoder_options : unit -> decoder_options
 
-(** The key prefixes of decoder options: [audio.], [video.], [subtitle.]. *)
-val decoder_prefixes : string list
+(** Whether a key is a decoder option: it starts with [audio.], [video.] or
+    [subtitle.]. *)
+val is_decoder_option : string -> bool
 
 (** Moves the prefixed keys of [opts] into the decoder options it returns,
     leaving the demuxer options in [opts].
 
-    @raise the [ffmpeg_decoder] error for a prefix with no option name. *)
+    @raise the
+      [ffmpeg_decoder] error for a prefix with no option name, and for an option
+      no FFmpeg decoder of its media type accepts, by name or by value
+      (decoder.md §4.4). *)
 val split_decoder_options : Avutil.opts -> decoder_options
 
 (** Parses [%ffmpeg]-style arguments: [f=]/[format=] forces the demuxer, a key

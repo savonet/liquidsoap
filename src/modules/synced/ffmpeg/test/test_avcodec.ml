@@ -654,6 +654,35 @@ let error_paths () =
   done;
   check true "the failure paths ran"
 
+(* spec/avcodec.md §4.1: decoder_option_errors checks names and values against
+   one codec, generic decoding options included, without consuming the
+   table. *)
+let decoder_option_errors () =
+  let h264 = Video.find_decoder `H264 in
+  let png = Video.find_decoder `Png in
+  let table bindings = opts bindings in
+  check
+    (decoder_option_errors h264 (table [("flags", `String "low_delay")]) = [])
+    "a generic decoding option is accepted";
+  check
+    (decoder_option_errors h264 (table [("enable_er", `Int 1)]) = [])
+    "a private option of the codec is accepted";
+  check
+    (decoder_option_errors png (table [("enable_er", `Int 1)])
+    = [("enable_er", "unknown option")])
+    "another codec's private option is unknown";
+  check
+    (decoder_option_errors h264 (table [("nosuchoption", `Int 1)])
+    = [("nosuchoption", "unknown option")])
+    "an unknown name is reported";
+  check
+    (decoder_option_errors h264 (table [("flags", `String "bogus")])
+    = [("flags", "invalid value")])
+    "an invalid value is reported";
+  let options = table [("nosuchoption", `Int 1)] in
+  ignore (decoder_option_errors h264 options);
+  check (keys options = ["nosuchoption"]) "the table is not modified"
+
 let requirements =
   [
     ("2.1", requirement_2_1);
@@ -669,6 +698,7 @@ let requirements =
     ("2.11", requirement_2_11);
     ("2.12", requirement_2_12);
     ("2.13", requirement_2_13);
+    ("4.1.decoder_option_errors", decoder_option_errors);
     ("avcodec.audio", audio_round_trip);
     ("kc.avcodec-concurrent-use", concurrent_use);
     ("kc.avcodec-native-memory", native_memory);

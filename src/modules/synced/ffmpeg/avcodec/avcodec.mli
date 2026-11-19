@@ -77,11 +77,14 @@ type encode = [ `Encoder ]
 (** The ['mode] parameter of a {!codec} that decodes. *)
 type decode = [ `Decoder ]
 
-(** [decoder_has_option codec name] is [true] when [name] is an option a decoder
-    built from [codec] accepts: one of the codec's private options, or a generic
-    codec context option marked as a decoding parameter. It checks the name
-    only, not a value. *)
-val decoder_has_option : (_, decode) codec -> string -> bool
+(** [decoder_option_errors codec opts] tries every option of [opts] on a decoder
+    context of [codec] that is never opened, and returns each one it rejects
+    with the reason: ["unknown option"] when neither the codec's private options
+    nor the generic codec context options marked as decoding parameters have the
+    name, ["invalid value"] when its value does not parse. An empty list means
+    every option would be applied. [opts] is not modified. *)
+val decoder_option_errors :
+  (_, decode) codec -> Avutil.opts -> (string * string) list
 
 (** A profile of a codec, as FFmpeg lists it in the codec's descriptor. [id] is
     FFmpeg's number for the profile (an [AV_PROFILE_*] constant) and

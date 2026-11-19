@@ -12,10 +12,6 @@ type 'media decoder
 type 'media encoder
 type encode = [ `Encoder ]
 type decode = [ `Decoder ]
-
-external decoder_has_option : (_, decode) codec -> string -> bool
-  = "ocaml_avcodec_decoder_has_option"
-
 type profile = { id : int; profile_name : string }
 
 type descriptor = {
@@ -71,6 +67,13 @@ let bindings = function
       Array.of_list (Hashtbl.fold (fun key v l -> (key, v) :: l) opts [])
 
 let report_unused opts unused = Option.iter (filter_opts unused) opts
+
+external decoder_option_errors :
+  (_, decode) codec -> (string * Avutil.value) array -> (string * string) list
+  = "ocaml_avcodec_decoder_option_errors"
+
+let decoder_option_errors codec opts =
+  decoder_option_errors codec (bindings (Some opts))
 
 module Packet_side_data = struct
   type kind = Packet_side_data_type.t

@@ -30,17 +30,17 @@
     given to the bindings' open, and [describe], the container's description
     logged as FFmpeg recognizes it. *)
 
-(** [log_unapplied] logs the decoder options of a media type no stream had; call
-    it once the open configured the streams. *)
+(** [check_decoder_options], called once the open configured the streams, raises
+    the [ffmpeg_decoder] error for a decoder option every decoder of its media
+    type rejected, and logs the options of a media type no stream had
+    (decoder.md §4.4). *)
 type stream_configuration = {
   audio : Avutil.audio Avcodec.params -> Avutil.audio Av.stream_config;
   video : Avutil.video Avcodec.params -> Avutil.video Av.stream_config;
   subtitle : Avutil.subtitle Avcodec.params -> Avutil.subtitle Av.stream_config;
-  log_unapplied : unit -> unit;
+  check_decoder_options : unit -> unit;
 }
 
-(** Its configure functions raise the [ffmpeg_decoder] error for a decoder
-    option the stream's decoder does not have (decoder.md §4.4). *)
 val stream_configuration :
   ?decoder:Input_options.decoder_options -> unit -> stream_configuration
 

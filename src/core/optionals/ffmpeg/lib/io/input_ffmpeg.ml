@@ -185,7 +185,13 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
           ~configure_video_stream:configure.video
           ~configure_subtitle_stream:configure.subtitle url
       in
-      configure.log_unapplied ();
+      (* A decoder option this stream's decoders reject is a transient failure,
+         as leftover options without a forced format are: another codec on the
+         remote can take it (io.md §2.3). *)
+      (try configure.check_decoder_options ()
+       with exn ->
+         Av.close container;
+         raise exn);
       if Hashtbl.length opts > 0 then (
         Av.close container;
         raise
