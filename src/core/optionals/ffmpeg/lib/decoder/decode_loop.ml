@@ -206,6 +206,13 @@ let kind_of_choice : choice -> kind = function
   | `Text_subtitles | `Bitmap_subtitles _ ->
       `Decoded
 
+let report_video_size params =
+  let width, height = Display.expected_size params in
+  ignore
+    (Frame.video_dimensions
+       ~ideal_size:{ Frame.width; height; source = "ffmpeg decoder" }
+       ())
+
 let create_decoder ~output ~faults ~source_id
     (stream : Stream_description.stream) : choice -> Per_stream.t = function
   | `Copy params -> Copy_decoder.create ~output ~faults ~source_id stream params
@@ -219,11 +226,7 @@ let create_decoder ~output ~faults ~source_id
   | `Internal_video format -> (
       match stream.media with
         | `Video (params, _) ->
-            let width, height = Display.expected_size params in
-            ignore
-              (Frame.video_dimensions
-                 ~ideal_size:{ Frame.width; height; source = "ffmpeg decoder" }
-                 ());
+            report_video_size params;
             let width, height = Content.Video.dimensions_of_format format in
             Internal_video_decoder.create ~output ~faults ~log ~source_id ~width
               ~height
@@ -245,6 +248,7 @@ let create_decoder ~output ~faults ~source_id
   | `Raw_video format -> (
       match stream.media with
         | `Video (params, _) ->
+            report_video_size params;
             Raw_decoder.video ~output ~faults ~log ~source_id ~format stream
               params
         | _ -> unsupported stream)
