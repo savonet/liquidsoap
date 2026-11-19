@@ -889,41 +889,47 @@ let thread_count () =
 (* One worker alone accepts the tasks, so it holds the whole budget at once;
    it keeps only [kept] of the threads that took, [budget] being 16. *)
 let burst_leaves_parked ?idle_thread_timeout ~kept describe =
-  match thread_count () with
-    | None -> print_endline "skipped: threads cannot be counted here"
-    | Some _ ->
-        let s = Duppy.create ~classify () in
-        let budget = 16 in
-        Duppy.start
-          ~pool:(`Selective_domains [(fun _ -> false); (fun _ -> true)])
-          ~max_blocking:budget ?idle_thread_timeout s;
-        (* The first task brings up one auxiliary thread and whatever the
-           runtime starts along with a domain's first thread. *)
-        let warm = latch () in
-        Duppy.Task.add s
-          (task Blocking (fun _ ->
-               bump warm;
-               []));
-        await warm 1;
-        Thread.delay 0.05;
-        let baseline = Option.get (thread_count ()) - 1 in
-        let started = latch () and finished = latch () in
-        let release = latch () in
-        for _ = 1 to budget do
-          Duppy.Task.add s
-            (task Blocking (fun _ ->
-                 bump started;
-                 await release 1;
-                 bump finished;
-                 []))
-        done;
-        await started budget;
-        let peak = Option.get (thread_count ()) in
-        bump release;
-        await finished budget;
-        if peak < baseline + budget then
-          fail "%d tasks in flight on %d threads" budget (peak - baseline);
-        let kept = kept budget in
+  let s = Duppy.create ~classify () in
+  let budget = 16 in
+  Duppy.start
+    ~pool:(`Selective_domains [(fun _ -> false); (fun _ -> true)])
+    ~max_blocking:budget ?idle_thread_timeout s;
+  (* The first task brings up one auxiliary thread and whatever the runtime
+     starts along with a domain's first thread. *)
+  let warm = latch () in
+  Duppy.Task.add s
+    (task Blocking (fun _ ->
+         bump warm;
+         []));
+  await warm 1;
+  Thread.delay 0.05;
+  let baseline = Option.map (fun n -> n - 1) (thread_count ()) in
+  (* Each task records the thread it runs on: the process's thread count also
+     moves with threads the runtime starts or ends, which a count taken around
+     the burst would include. *)
+  let threads = Hashtbl.create budget and threads_m = Mutex.create () in
+  let started = latch () and finished = latch () in
+  let release = latch () in
+  for _ = 1 to budget do
+    Duppy.Task.add s
+      (task Blocking (fun _ ->
+           Mutex.protect threads_m (fun () ->
+               Hashtbl.replace threads (Thread.id (Thread.self ())) ());
+           bump started;
+           await release 1;
+           bump finished;
+           []))
+  done;
+  await started budget;
+  let in_flight = Mutex.protect threads_m (fun () -> Hashtbl.length threads) in
+  bump release;
+  await finished budget;
+  if in_flight < budget then
+    fail "%d tasks in flight on %d threads" budget in_flight;
+  let kept = kept budget in
+  (match baseline with
+    | None -> print_endline "skipped: parked threads cannot be counted here"
+    | Some baseline ->
         let deadline = Unix.gettimeofday () +. 2. in
         while
           Option.get (thread_count ()) > baseline + kept
@@ -933,10 +939,10 @@ let burst_leaves_parked ?idle_thread_timeout ~kept describe =
         done;
         let parked = Option.get (thread_count ()) - baseline in
         if parked > kept then
-          fail "%d threads stayed parked, %d expected" parked kept;
-        Duppy.stop s;
-        ok "a burst of %d blocking tasks left %d threads parked%s" budget parked
-          describe
+          fail "%d threads stayed parked, %d expected" parked kept);
+  Duppy.stop s;
+  ok "a burst of %d blocking tasks ran on %d threads%s" budget in_flight
+    describe
 
 let test_burst_threads_retire () =
   burst_leaves_parked ~kept:(fun budget -> budget / 2) ""
