@@ -2952,6 +2952,28 @@
    source_dynamic_lifetimes.liq)))
 
 (rule
+ (alias test_switch_activates_window)
+ (package liquidsoap)
+ (deps
+  switch_activates_window.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_activates_window
+   liquidsoap
+   switch_activates_window.liq)))
+
+(rule
  (alias test_switch_autodj_jingle_metadata)
  (package liquidsoap)
  (deps
@@ -3692,6 +3714,7 @@
   (alias test_source_drop_tracks)
   (alias test_source_dynamic)
   (alias test_source_dynamic_lifetimes)
+  (alias test_switch_activates_window)
   (alias test_switch_autodj_jingle_metadata)
   (alias test_switch_composition_pairs)
   (alias test_switch_copy_default_on_select)
