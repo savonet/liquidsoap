@@ -70,6 +70,34 @@ would be used up the moment it began and it would be cut at once, as would the
 next one. To let a source cut into a rotation, put it above the rotation, as in
 `fallback([live, rotate([music, jingles])])`.
 
+## Counting songs
+
+A predicate answers a question: may this source play now? The switch asks it
+whenever it looks for what to play: at each track boundary, on every streaming
+cycle while a source may cut into a track, and when a selector above it asks
+whether it could play, even if that selector then plays something else. So a
+predicate must not change anything when it is asked.
+
+To play a jingle after every three songs, count the songs where they start, and
+only read the count in the predicate:
+
+```liquidsoap
+jingles = metadata.map(fun (_) -> [("jingle", "true")], jingles)
+songs = ref(0)
+radio = switch([({songs() >= 3}, jingles), ({true}, music)])
+radio.on_track(
+  synchronous=true,
+  fun (m) -> if m["jingle"] == "true" then songs := 0 else ref.incr(songs) end
+)
+```
+
+Incrementing `songs` inside the predicate instead would count the times the
+switch looked, not the songs that played. With every source waiting for track
+boundaries it may happen to look once per track, but as soon as a source can
+cut in, the switch looks on every cycle and the jingles come early and
+irregularly. For a fixed rotation, `rotate([music.{weight = 3}, jingles])`
+does this counting for you.
+
 ## A show on a schedule
 
 ```liquidsoap
