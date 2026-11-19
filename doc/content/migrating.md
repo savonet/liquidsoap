@@ -265,40 +265,7 @@ A source that never ends a track, such as `blank()` or `sine()` without a `durat
 
 `rotate.merge` no longer takes `transitions` or `weights`, and does not read `weight`: each round plays one track of every available source. It no longer inserts a frame of silence between rounds.
 
-#### Switch predicates
-
-A switch evaluates its predicates when it decides what to play. How often it decides is not specified. Two things change:
-
-- A frame can take several streaming cycles. A switch that decides in each cycle evaluates its predicates once per cycle, so possibly several times in one frame.
-- Deciding no longer commits. A switch inside another selector evaluates its predicates when that selector asks whether it can play. The selector may then play another source. A predicate that returned `true` does not guarantee that its source plays.
-
-A predicate must not change state. A counter incremented in a predicate counts evaluations, not tracks. Change the state in `on_track` or `on_select`, and only read it in the predicate:
-
-```liquidsoap
-jingles = metadata.map(fun (_) -> [("jingle", "true")], jingles)
-songs = ref(0)
-radio = switch([({songs() >= 3}, jingles), ({true}, music)])
-radio.on_track(
-  synchronous=true,
-  fun (m) -> if m["jingle"] == "true" then songs := 0 else ref.incr(songs) end
-)
-```
-
-`predicate.once`, `predicate.signal`, `predicate.first`, `predicate.activates` and `predicate.changes` change state when evaluated. Do not use them as switch predicates. Time predicates such as `{0m-5m}` change nothing and are safe.
-
-To play a source once each time a condition becomes true, use `switch.when`. It is true from the moment the condition becomes true until the source starts a track, and evaluating it changes nothing. The condition is checked on its own schedule, so it may itself change state when checked, as `predicate.signal()` does:
-
-```liquidsoap
-# Before
-radio = switch([(predicate.activates({0m-5m}), jingles), ({true}, music)])
-
-# After
-radio = switch([(switch.when({0m-5m}, jingles), jingles), ({true}, music)])
-
-# A jingle on demand, e.g. from a server command
-jingle_now = predicate.signal()
-radio = switch([(switch.when(jingle_now, jingles), jingles), ({true}, music)])
-```
+Predicates are read to decide what to play, possibly several times for one track and without the source being played afterwards. A predicate that changes state each time it is read, such as a counter it increments, counts these reads, not the tracks played: advance the state from `on_track` on the switch, or from the source's `on_select`, and only read it in the predicate.
 
 #### Stdlib operators that used to pin `track_sensitive`
 

@@ -3438,24 +3438,6 @@
    switch_unread_while_leaving.liq)))
 
 (rule
- (alias test_switch_when)
- (package liquidsoap)
- (deps
-  switch_when.liq
-  (glob_files ../media/**)
-  ../liquidsoap-test-assets
-  ../../src/bin/liquidsoap.exe
-  ../streams/file1.png
-  ../streams/file1.mp3
-  ./theora-test.mp4
-  (package liquidsoap)
-  (source_tree ../../src/libs)
-  ../test.liq
-  (:run_test ../run_test.exe))
- (action
-  (run %{run_test} switch_when liquidsoap switch_when.liq)))
-
-(rule
  (alias test_track_callbacks_inner_first)
  (package liquidsoap)
  (deps
@@ -3736,7 +3718,6 @@
   (alias test_switch_skipped_track_metadata)
   (alias test_switch_sync_source_follows_handoff)
   (alias test_switch_unread_while_leaving)
-  (alias test_switch_when)
   (alias test_track_callbacks_inner_first)
   (alias test_track_sensitive)
   (alias test_type_printing_from_task)

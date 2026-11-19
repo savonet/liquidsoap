@@ -70,37 +70,6 @@ would be used up the moment it began and it would be cut at once, as would the
 next one. To let a source cut into a rotation, put it above the rotation, as in
 `fallback([live, rotate([music, jingles])])`.
 
-## Counting songs
-
-A predicate says whether a source may play now. The switch evaluates it when it
-decides what to play, which can happen several times per frame, and for a source
-it then does not play. A predicate must not change state.
-
-To play a jingle after every three songs, count the songs in `on_track` and only
-read the count in the predicate:
-
-```liquidsoap
-jingles = metadata.map(fun (_) -> [("jingle", "true")], jingles)
-songs = ref(0)
-radio = switch([({songs() >= 3}, jingles), ({true}, music)])
-radio.on_track(
-  synchronous=true,
-  fun (m) -> if m["jingle"] == "true" then songs := 0 else ref.incr(songs) end
-)
-```
-
-A counter incremented in the predicate counts evaluations, not songs. For a
-fixed ratio, `rotate([music.{weight = 3}, jingles])` does the counting.
-
-To play a jingle once each time a condition becomes true, such as the start of
-a time window, use `switch.when`. It becomes true when the window opens and
-stays true until the jingle starts, so a song playing at that moment finishes
-first. One jingle plays per window, however long it lasts:
-
-```liquidsoap
-radio = switch([(switch.when({0m-5m}, jingles), jingles), ({true}, music)])
-```
-
 ## A show on a schedule
 
 ```liquidsoap
