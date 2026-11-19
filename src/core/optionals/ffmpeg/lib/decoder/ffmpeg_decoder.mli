@@ -38,6 +38,16 @@ type stream_configuration = {
 
 val stream_configuration : unit -> stream_configuration
 
+(** Opens a byte stream as decoder.md §5.1 says: with the stream configuration,
+    then the check of unconsumed options, closing the container when that check
+    fails. Every byte-stream input opens through this, so none can skip the
+    configuration. *)
+val open_stream :
+  options:Input_options.t ->
+  ?seek:Av.seek ->
+  Av.read ->
+  Avutil.input Avutil.container
+
 val describe :
   options:Input_options.t ->
   url:string ->

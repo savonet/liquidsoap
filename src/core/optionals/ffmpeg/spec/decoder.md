@@ -261,14 +261,24 @@ Conformance:
 
 The probe and the decoders open the container with the bindings'
 `open_input` (files) or `open_input_stream` (streams), with the forced format
-and the options of §4. The probe, the decoders and `input.ffmpeg` pass a
-stream configuration per media type (audio, video, subtitle) that picks the
-preferred decoder:
+and the options of §4. The probe, the decoders, `input.ffmpeg` and the harbor
+relay pass a stream configuration per media type (audio, video, subtitle)
+that picks the preferred decoder:
 
 1. Take the codec identifier name of the stream's parameters.
 2. When `settings.decoder.ffmpeg.codecs.<name>` is set, log at info level that
    the preferred decoder is tried, and look the decoder up by name.
 3. An unset key gives the default decoder.
+
+Every byte-stream input opens through one function that passes the stream
+configuration and checks the unconsumed options (§4.3), closing the container
+when that check fails, so no stream input can open without the
+configuration.
+
+A stream that the demuxer adds while probing, as MPEG-TS does, is configured
+once probing ends. Probing has decoded it with the default decoder, but its
+decoder for decoding opens later and takes the configuration. A stream added
+after the open is not configured.
 
 A key set to a name FFmpeg has no decoder for is a configuration error
 ([faults.md §2](faults.md#2-classes)), raised when the setting is set, so a
@@ -291,6 +301,13 @@ honours FFmpeg's `whence`:
 The decoder keeps the current byte position itself: the result of the last
 successful seek (0 at open) plus every byte read since. The function returns
 the new byte position, or a negative result on failure.
+
+Conformance:
+
+- With `settings.decoder.ffmpeg.codecs.vp9` set to `libvpx-vp9`, a VP9
+  stream with an alpha plane in WebM keeps its alpha when received by a
+  stream input (`input.harbor`): the stream decoder applies the stream
+  configuration as the file decoder does.
 
 ### 5.2 Container description and content type
 
@@ -1107,7 +1124,7 @@ Example: `annotate:liq_cue_in=1.2,liq_cue_out=2.5:a.mp3` plays 1.3 s.
 | ------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | content type from an open container (§5.2), logging the recognition | `input.ffmpeg` ([io.md](io.md))                                                | takes an optional forced format, the requested content type, the URL for logs, and the container                                                                                                  |
 | decoder record from an open container                               | `input.ffmpeg`, harbor input ([io.md](io.md))                                  | takes the requested content type, `decode_first_metadata`, and the container; offers `decode`, `eof`, `seek`, `close` (§8, §13, §12; `close` closes the container) and the remaining time (§11.2) |
-| stream configuration (§5.1)                                         | `input.ffmpeg`                                                                 | passed to `open_input`                                                                                                                                                                            |
+| stream configuration (§5.1)                                         | `input.ffmpeg`, the stream decoder, the harbor relay                           | passed to `open_input` or `open_input_stream`; byte streams open through the one stream-opening function of §5.1                                                                                  |
 | internal video converter (§16.1)                                    | internal video decoder, inline decoders ([inline-codecs.md](inline-codecs.md)) | §16.1                                                                                                                                                                                             |
 | subtitle timeline (§16.2)                                           | text and copy subtitle decoders                                                | §16.2                                                                                                                                                                                             |
 

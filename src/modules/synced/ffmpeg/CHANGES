@@ -50,6 +50,10 @@
   `Subtitle.get_width` and `get_height`.
 * Add `Avcodec.flag_global_header`, `Av.get_input_start_time`,
   `Av.Format.input_ts_discont` and `Avutil.Log.set_callback_with_level`.
+* `Av.open_input_stream` takes the per-stream configuration `Av.open_input`
+  takes (`?configure_audio_stream`, `?configure_video_stream`,
+  `?configure_subtitle_stream`). Both also configure the streams that probing
+  adds, as MPEG-TS does.
 * Add a conformance test suite, run with `dune build @ffmpeg_citest`.
 * Remove the examples.
 

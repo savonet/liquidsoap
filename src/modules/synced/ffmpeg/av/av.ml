@@ -116,9 +116,12 @@ let open_source ?format ?opts source =
   report_unused opts (open_input_source container source format (bindings opts));
   container
 
-let open_input ?interrupt ?format ?opts ?configure_audio_stream
-    ?configure_video_stream ?configure_subtitle_stream url =
-  let container = open_source ?format ?opts (Url { url; interrupt }) in
+(* Configuring before probing matters: FFmpeg reads the preferred decoders and
+   decoder options while probing. A demuxer without a header, such as MPEG-TS,
+   adds streams while probing; those are configured after it, which still
+   reaches their frame-mode decoders since these open on first read. *)
+let configure_and_probe ?configure_audio_stream ?configure_video_stream
+    ?configure_subtitle_stream container =
   let configure index configure =
     Option.iter
       (fun configure ->
@@ -126,26 +129,38 @@ let open_input ?interrupt ?format ?opts ?configure_audio_stream
         configure_stream container index codec (bindings opts))
       configure
   in
-  (try
-     Array.iteri
-       (fun index -> function
-         | Audio -> configure index configure_audio_stream
-         | Video -> configure index configure_video_stream
-         | Subtitle -> configure index configure_subtitle_stream
-         | Data | Other -> ())
-       (stream_kinds container);
-     find_stream_info container
-   with exn ->
-     release container;
-     raise exn);
+  let configure_from first =
+    Array.iteri
+      (fun index kind ->
+        if index >= first then (
+          match kind with
+            | Audio -> configure index configure_audio_stream
+            | Video -> configure index configure_video_stream
+            | Subtitle -> configure index configure_subtitle_stream
+            | Data | Other -> ()))
+      (stream_kinds container)
+  in
+  try
+    let known = Array.length (stream_kinds container) in
+    configure_from 0;
+    find_stream_info container;
+    configure_from known
+  with exn ->
+    release container;
+    raise exn
+
+let open_input ?interrupt ?format ?opts ?configure_audio_stream
+    ?configure_video_stream ?configure_subtitle_stream url =
+  let container = open_source ?format ?opts (Url { url; interrupt }) in
+  configure_and_probe ?configure_audio_stream ?configure_video_stream
+    ?configure_subtitle_stream container;
   container
 
-let open_input_stream ?format ?opts ?seek read =
+let open_input_stream ?format ?opts ?seek ?configure_audio_stream
+    ?configure_video_stream ?configure_subtitle_stream read =
   let container = open_source ?format ?opts (Custom { read; seek }) in
-  (try find_stream_info container
-   with exn ->
-     release container;
-     raise exn);
+  configure_and_probe ?configure_audio_stream ?configure_video_stream
+    ?configure_subtitle_stream container;
   container
 
 external input_duration : input container -> Time_format.t -> Int64.t option

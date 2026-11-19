@@ -211,11 +211,17 @@ type seek = int -> Unix.seek_command -> int
     @param opts
       options of the demuxer open. On success the consumed entries are removed
       from the table.
-    @param seek the function FFmpeg calls to reposition the input. *)
+    @param seek the function FFmpeg calls to reposition the input.
+    @param configure_audio_stream
+      as for {!open_input}. Same for [configure_video_stream] and
+      [configure_subtitle_stream]. *)
 val open_input_stream :
   ?format:(input, _) format ->
   ?opts:opts ->
   ?seek:seek ->
+  ?configure_audio_stream:(audio Avcodec.params -> audio stream_config) ->
+  ?configure_video_stream:(video Avcodec.params -> video stream_config) ->
+  ?configure_subtitle_stream:(subtitle Avcodec.params -> subtitle stream_config) ->
   read ->
   input container
 
