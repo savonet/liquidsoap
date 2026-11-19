@@ -167,25 +167,24 @@ type ideal_size = { width : int; height : int; source : string }
 let video_dimensions =
   (* We don't want to use delayed config here because those are evaluated too early. *)
   let cached = Atomic.make None in
-  (* The clock and decoder threads read the dimensions concurrently; the value
-     is deterministic, so a racing computation is harmless. *)
+  (* Decoder threads report sizes while the clock reads them: the first value
+     stored in [cached] wins, and every reader returns that one. *)
   let dimensions () =
     match Atomic.get cached with
       | Some dimensions -> dimensions
       | None ->
           assert !lazy_config_eval;
-          let w = conf_video_width#get in
-          let h = conf_video_height#get in
-          Atomic.set cached (Some (w, h));
-          (w, h)
+          let defaults = (conf_video_width#get, conf_video_height#get) in
+          ignore (Atomic.compare_and_set cached None (Some defaults));
+          Option.get (Atomic.get cached)
   in
   fun ?ideal_size () ->
     (match ideal_size with
       | Some { width; height; source }
         when conf_video_detect_dimensions#get
-             && Atomic.get cached = None
              && (not conf_video_width#is_set)
-             && not conf_video_height#is_set ->
+             && (not conf_video_height#is_set)
+             && Atomic.compare_and_set cached None (Some (width, height)) ->
           log#important "Auto-detected video dimensions: %dx%d (source: %s)."
             width height source;
           conf_video_width#set width;
