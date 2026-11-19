@@ -1,5 +1,12 @@
 # Icecast server: specification
 
+`icecast.server` is a script-level library. Its specification sits under the
+[project specifications](../../../../spec/README.md), whose
+[conventions](../../../../spec/conventions.md),
+[principles](../../../../spec/principles.md) and
+[fault rules](../../../../spec/faults.md) it follows, and it is built on the
+[harbor output](../../../../core/outputs/spec/harbor/README.md).
+
 **Scope.** A streaming server that speaks Icecast's protocols: source clients
 connect to it and send encoded streams to mounts, listeners connect to it and
 receive those streams. It replaces an Icecast, RSAS or Icecast-KH server for
@@ -152,8 +159,9 @@ chosen listener, sending bytes before closing at a time limit, answering
 | 6   | [observability.md](observability.md)   | Events, the listener record, statistics, status and admin endpoints, metrics, log files                        |
 | 7   | [parameters.md](parameters.md)         | The parameter record and its types, defaults and read points; server methods; reload; errors                   |
 | 8   | [icecast-config.md](icecast-config.md) | Translation of Icecast, RSAS and Icecast-KH configuration files into parameters                                |
-| 9   | [future-work.md](future-work.md)       | Features considered and not specified yet, with what they would need                                           |
+| 9   | [future-work.md](future-work.md)       | Not normative: features considered and not specified yet, with what they would need                            |
 
 Each document from 1 to 8 ends with its conformance checks: what a test suite
 MUST establish, stated by principle, with what is binding and what is
-incidental.
+incidental, under the rules every suite follows
+([testing.md](../../../../spec/testing.md)).

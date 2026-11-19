@@ -184,18 +184,6 @@ let create_socket ~payload_size ~messageapi () =
     close_quietly socket;
     Printexc.raise_with_backtrace exn bt
 
-let sync_sources = Hashtbl.create 4
-let sync_sources_m = Mutex.create ()
-
-let sync_source name =
-  Mutex.protect sync_sources_m (fun () ->
-      match Hashtbl.find_opt sync_sources name with
-        | Some sync_source -> sync_source
-        | None ->
-            let sync_source = Clock.Sync_source.make ~name `Self_paced in
-            Hashtbl.replace sync_sources name sync_source;
-            sync_source)
-
 (* Counted from the call, as the scheduler may start the thread later. *)
 let spawn fn =
   Atomic.incr in_flight;

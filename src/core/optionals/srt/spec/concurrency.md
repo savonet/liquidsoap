@@ -1,5 +1,10 @@
 # Concurrency
 
+The project's rules for work, the streaming thread, shared state and
+resources are [concurrency.md](../../../../spec/concurrency.md)'s. This file
+maps them onto SRT: which work exists, where it runs, and what each callback
+holds back.
+
 ## 1. Threads
 
 | Thread                         | Runs                                                                                                                                                                                                                                                   |
@@ -18,16 +23,20 @@
 How the rows map to threads is the implementation's choice, under these
 rules:
 
-- **The streaming thread never blocks on a peer.** It never connects,
-  accepts, sends or receives. Its waits are the input's wait for data while
-  it paces, bounded by `read_timeout` and cut short when the peer ends, and
-  the listener's first setup during start (resolving and binding its own
-  address), so that a permanent failure fails the start
-  ([listener.md §4](listener.md#4-connect)).
+- **The streaming thread never blocks on a peer**
+  ([concurrency.md §2](../../../../spec/concurrency.md#2-the-streaming-thread)):
+  it never connects, accepts, sends or receives. Its waits are the input's
+  wait for data while it paces, which is a blocking sync source's pacing,
+  bounded by `read_timeout` and cut short when the peer ends
+  ([input.md §5](input.md#5-producing-frames)), and the listener's first
+  setup during start (resolving and binding its own address), so that a
+  permanent failure fails the start ([listener.md §4](listener.md#4-connect)).
 - **No blocking call holds a shared bounded worker.** An attempt blocked up
-  to its connect timeout, a receive, a send drain or the readiness wait MUST
-  NOT occupy a worker of a pool other work depends on: enough failing
-  callers would otherwise starve unrelated work.
+  to its connect timeout, a receive, a send drain or the readiness wait is
+  work allowed to block
+  ([concurrency.md §1](../../../../spec/concurrency.md#1-work)) and MUST NOT
+  occupy a worker of a pool other work depends on: enough failing callers
+  would otherwise starve unrelated work.
 - **One operator never delays another.** User code (callbacks, socket
   methods called from them) delays only the events of its own operator; one
   peer's slowness delays only that peer's data. The exception is
@@ -35,9 +44,10 @@ rules:
 
 ## 2. Callbacks and locks
 
-- **No user code runs under an operator lock.** Every callback fires after
-  the transition that caused it is complete and every lock it took is
-  released.
+- **No user code runs under an operator lock**
+  ([concurrency.md §2](../../../../spec/concurrency.md#2-the-streaming-thread)):
+  every callback fires after the transition that caused it is complete and
+  every lock it took is released.
 - **Methods work from callbacks.** A synchronous callback MAY call any
   method of any operator, its own included, and the call returns
   ([common.md §4](common.md#4-methods)).
@@ -48,12 +58,15 @@ rules:
 - **What "synchronous" holds back.** A synchronous `on_connect` completes
   before its peer is live; a synchronous `on_socket` creation event completes
   before the socket connects, binds or carries data. Nothing else waits for a
-  synchronous callback, the streaming thread least of all.
+  synchronous callback, the streaming thread least of all. The rest of what
+  `synchronous` means is
+  [source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks).
 
 ## 3. Shared state
 
-Every piece of state written from more than one thread has one owner and
-atomic transitions:
+State written from more than one thread has one owner
+([concurrency.md §3](../../../../spec/concurrency.md#3-shared-state)). SRT's
+owners:
 
 | State                               | Owner                                                                                                               |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |

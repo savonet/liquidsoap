@@ -81,6 +81,10 @@ let new_streaming ~force c =
     dirty = Atomic.make false;
     on_tick = Atomic.make [];
     after_tick = Atomic.make [];
+    after_segment = Atomic.make [];
+    segment_requested = Atomic.make false;
+    sync_changed = Atomic.make false;
+    reading_position = Atomic.make 0;
     animator = Atomic.make None;
     pace =
       Atomic.make
@@ -209,6 +213,9 @@ let rec wind_down c =
               held;
             Atomic.set st.on_tick [];
             Atomic.set st.after_tick [];
+            Atomic.set st.after_segment [];
+            Atomic.set st.segment_requested false;
+            Atomic.set st.sync_changed false;
             List.iter
               (fun { sub } ->
                 quietly c "stopping a sub-clock" (fun () ->
@@ -289,15 +296,36 @@ let rec prepare c st =
   pacing_point c st;
   each_sub c ~what:"prepare" prepare
 
+(* Ends the running segment: the sources close it, then the flag they read
+   while doing so is lowered. *)
+let end_segment st =
+  take_callbacks st.after_segment;
+  Atomic.set st.sync_changed false
+
 let rec cleanup c st =
+  end_segment st;
   take_callbacks st.after_tick;
   apply_removals c st;
   each_sub c ~what:"cleanup" cleanup
+
+(* A source stops its frame where its track ends and decides what comes next
+   only once its reader goes on. An output left short there asks for another
+   segment: the sources close the one they produced and the outputs are
+   animated again, until no output asks. An output does not ask
+   after two segments in a row that brought it nothing, which bounds the
+   loop. *)
+let rec continue_segments ~animate st =
+  if Atomic.exchange st.segment_requested false then begin
+    end_segment st;
+    List.iter (fun o -> animate o.source o.member) (Atomic.get st.outputs);
+    continue_segments ~animate st
+  end
 
 let produce c st ~tick_slowest =
   let animate = animate c st ~tick_slowest in
   List.iter (fun o -> animate o.source o.member) (Atomic.get st.outputs);
   List.iter (fun (source, member) -> animate source member) (active_members st);
+  continue_segments ~animate st;
   take_callbacks st.on_tick;
   stop_check ();
   Atomic.incr st.ticks;

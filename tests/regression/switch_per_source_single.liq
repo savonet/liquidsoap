@@ -44,6 +44,9 @@ s.on_metadata(
       elsif
         state() == 1
       then
+        # Only the track that follows the skip is judged: `s_single` may well
+        # come back after it.
+        state := 2
         if title == "a" then test.fail() end
         if title == "b" then test.pass() end
       end

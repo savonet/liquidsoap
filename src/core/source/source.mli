@@ -36,6 +36,14 @@ exception Unavailable
 
 type self_sync = Source_sync.t
 
+(** Why a source's data stops where it does in a cycle. [`Pause]: the track goes
+    on, and the source must be asked again before it produces more. *)
+type segment_end = [ `Full | `Track_end | `Pause | `Late ]
+
+(** How the first sample that follows a track end is delivered: beginning a
+    track, continuing the current one, or as the source gives it. *)
+type entry = [ `Track | `Continue | `As_is ]
+
 (** A value settled once per streaming cycle. *)
 module Per_cycle : sig
   type 'a t
@@ -363,8 +371,47 @@ object
   (** Check a frame without consuming any of its data. *)
   method peek_frame : Frame.t
 
-  (** Manually mark amount of consumed data from the source. *)
+  (** Marks how much of the data last served a reader used. *)
   method consumed : int -> unit
+
+  (** Marks the position in the frame up to which a reader used this source's
+      data, for a relay passing on its readers' use. *)
+  method consumed_up_to : int -> unit
+
+  (** Where, in the frame, the data last served starts. *)
+  method private served_from : int
+
+  (** Whether the source keeps what no reader used at the end of a tick. A relay
+      that only passes on what the source it wraps delivers answers [false]:
+      that source keeps it. *)
+  method private holds_unused : bool
+
+  (** Drops what was produced and not used by any reader. For a source whose
+      current track is aborted. *)
+  method private discard_held : unit
+
+  (** Asks for the current track to be aborted. Safe from any thread and from a
+      callback of the streaming cycle: [abort_track] is called by the streaming
+      thread once the running cycle is over. *)
+  method request_abort : unit
+
+  (** Whether the source never ends a track on its own: an endless tone or
+      silence. Such a source composes as a live one. *)
+  method endless : bool
+
+  (** Whether the source will never deliver again. Declared by the source, never
+      deduced from its having nothing to deliver now. *)
+  method exhausted : bool
+
+  (** What the source produced and no reader used yet. A source holding data is
+      not exhausted. *)
+  method private held : int
+
+  (** Why the data produced in this streaming cycle stops where it does.
+      Declared by the source: a short frame alone does not say it. *)
+  method segment_end : segment_end
+
+  method private frame_end : Frame.t -> segment_end
 
   (** This method requests a specific field of the frame that can be mutated. It
       is used by a consumer of the source that will modify the source's data
@@ -454,39 +501,40 @@ object
   inherit active_source
 end
 
-(** Type governing whether or not the same source should be re-selected.
-    - [`Force] means that the operator should at least try to see if a new
-      source should be selected.
-    - [`Ok] means that the operator should re-select the current source whenever
-      possible.
-    - [`After_position p] means that the operator should re-select the current
-      source only if it can produce data past the given position The
-      [generate_from_multiple_sources] implements a [can_reselect] that can be
-      called with the currently selected source to validate this logic. *)
-type reselect = [ `Ok | `Force | `After_position of int ]
-
-(* Helper to generate data from a sequence of source.
-   Data generation calls [get_source] on track marks.
-   When frame is partial, a track mark is added unless [merge] is
-   set to [true]. Switching to a different source begins a track unless
-   [new_track_on_source_switch] says otherwise, for operators such as [cross]
-   that know which of their switches is a real track boundary. *)
-class virtual generate_from_multiple_sources :
-  ?new_track_on_source_switch:(unit -> bool) ->
-  merge:(unit -> bool) ->
-  track_sensitive:(unit -> bool) ->
-  unit ->
-object
-  method virtual get_source : reselect:reselect -> unit -> source option
-  method virtual split_frame : Frame.t -> Frame.t * Frame.t option
+(** Delivers one stream out of successive sources. A frame stops where the track
+    of the source it reads ends; what comes next is decided when the reader goes
+    on. [choose_next_source] is told whether the stream is at such a boundary:
+    nothing chosen yet, or the track of the last source read ended or was
+    aborted. [next_entry] is asked when the track of the source being read ends,
+    before anything else is chosen, and says how the data that follows is
+    entered; [`Track] ends the operator's own track there. *)
+class virtual generate_from_multiple_sources : unit -> object
+  method virtual private next_entry : entry
   method virtual empty_frame : Frame.t
   method virtual private execute_on_track : Frame.t -> unit
-  method virtual private set_last_metadata : Frame.t -> unit
   method virtual log : Log.t
   method virtual id : string
-  method private on_source_switch : Frame.t -> Frame.t
-  method private can_reselect : reselect:reselect -> source -> bool
+  method virtual clock : Clock.t
+  method private frame_end : Frame.t -> segment_end
+
+  (** States that the current track is over, on an abort. *)
+  method private end_track : unit
+
+  (** States that the user moves on from the source it was reading. What it
+      chooses next is another source, even when it is the same object. To be
+      called before the user forgets the source it leaves. *)
+  method private leave_source : unit
+
   method private can_generate_frame : bool
+
+  (** Whether there is something to read from here. A probe: it decides and
+      commits nothing. *)
+  method virtual private choose_next_source : boundary:bool -> bool
+
+  (** The source to read, asked when the frame is produced: the user commits the
+      decision of its last probe here. *)
+  method virtual private enter_chosen_source : source option
+
   method private generate_frame : Frame.t
   method virtual reset_last_metadata_on_track : bool
   method virtual clear_last_metadata : unit

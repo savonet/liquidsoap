@@ -7,10 +7,10 @@ mode supplies the clauses below. [shared-encoder.md](shared-encoder.md) and
 the same number; a clause a mode does not need is answered "nothing", never
 left out.
 
-The generic output base drives the streaming side: for each frame, it cuts
-the frame at its metadata positions and, for each piece, calls _metadata_
-([§6](#6-metadata)) when a metadata falls inside the piece, then _encode_,
-then _send_ ([§5](#5-encode-and-send))
+The output base drives the streaming side
+([output.md §3](../output.md#3-a-streaming-cycle)): for each piece it calls
+_metadata_ ([§6](#6-metadata)) with the piece's first metadata, then
+_encode_, then _send_ ([§5](#5-encode-and-send))
 ([contracts.md §3](contracts.md#3-output-base)).
 
 Both modes offer the same features, as far as their structure allows: ICY

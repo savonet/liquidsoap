@@ -65,7 +65,7 @@ the count of cycles.
 
 **Rule.** The clock subscribes to nothing: it reads the sources it animates,
 and holds nothing of a source that left it, whatever the way ([clock.md §7](clock.md#7-sources-on-a-clock),
-[§10](clock.md#9-winding-down)).
+[§9](clock.md#9-winding-down)).
 
 Trace: #5153, #5163 and one direct commit. Three fixes.
 
@@ -100,7 +100,7 @@ notion: unification makes two entries one after they were added.
 
 **Rule.** Registration is counted, made when an operator wakes and undone when it
 sleeps, so the list holds only what is in use
-([clock.md §10](clock.md#10-sub-clocks), [§16](clock.md#15-child-clocks)).
+([clock.md §10](clock.md#10-sub-clocks), [§15](clock.md#15-child-clocks)).
 Winding down stops the sub-clocks it saw before putting outputs to sleep
 ([clock.md §9](clock.md#9-winding-down)). A merge leaves one entry
 ([unification.md §4](unification.md#4-commit)). Nesting is carried
@@ -503,7 +503,7 @@ as the clock runs. A source whose reader is discarded without putting it to
 sleep ends up asleep. Binding: the awake state of each.
 
 **Rule.** [clock.md §7](clock.md#7-sources-on-a-clock) and
-[§10](clock.md#9-winding-down).
+[§9](clock.md#9-winding-down).
 
 Trace: #4804, #4808 and one direct commit.
 

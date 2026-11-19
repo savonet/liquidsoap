@@ -71,17 +71,16 @@ Shared with `output.icecast`. From the encoding format argument:
 
 ## 3. Output base
 
+The output base of [output.md](../output.md): its parameters, methods and
+callbacks (§1), its states and serialised transitions (§2), the per-frame
+loop that hands the operator's _metadata_, _encode_ and _send_ each piece,
+metadata first (§3), resets (§4) and pacing (§5). What harbor needs in
+addition:
+
 - The output's clock and its synchronization mode, read at start
-  ([operator.md §7](operator.md#7-lifecycle)); the output's self-sync
-  delegated to its source.
-- Parameters `start`, `fallible`, `register_telnet`, `id`; methods and
-  callbacks of every output; the infallibility check; telnet commands.
-- The start/stop state machine: start when the source becomes ready (if
-  `start` is true), stop when the source ends or fails (fallible outputs,
-  unless `keep_listeners` holds the output, [operator.md §7](operator.md#7-lifecycle)),
-  `start` and `stop` methods, and `shutdown()`, which stops the output for
-  good. The operator's start and stop are called on transitions and
-  serialised ([operator.md §7](operator.md#7-lifecycle)).
+  ([operator.md §7](operator.md#7-lifecycle)).
+- A fallible output stops when its source ends or fails, unless
+  `keep_listeners` holds it ([operator.md §7](operator.md#7-lifecycle)).
 - While the source is unavailable and the output is kept started
   (`keep_listeners`), the base's unavailable-source hook skips encode and send
   for the cycle and does not call _metadata_. When the source is available
@@ -91,42 +90,26 @@ Shared with `output.icecast`. From the encoding format argument:
   A source that ends for good is treated the same way: the output is held
   until `stop`, `shutdown()` or process shutdown, since the caller owns the
   end in this mode.
-- Per frame: the frame is cut at the positions of its metadata. For each
-  non-empty piece: if a metadata lies in it, the first one is passed to
-  _metadata_; then _encode_ the piece, then _send_ the result. Metadata comes
-  first, so that the bytes of the piece are in the scope of its metadata.
 
 ## 4. Encoder
 
-An encoder instance is created by `factory(name, initial metadata)` and
-offers:
-
-- `encode(frame piece) → bytes`;
-- optionally `encode_into(frame piece, consumer)`: encodes as `encode` does and
-  hands the bytes to `consumer`, which copies them out during the call, so
-  that the caller keeps them without an allocation;
-- `encode_metadata(metadata)`: in-stream metadata, effective in later output;
-- `header() → bytes`: what a client joining now, at the start of the next
-  output, needs first to decode; after a new logical stream began (an Ogg link
-  after a metadata change), the new stream's header. It MUST be complete for
-  every format the encoder produces, the container's identification headers
-  included;
-- `restart_offset() → offset?`: in the bytes the latest `encode` or `stop`
-  returned, where a logical stream with its own header pages starts. It MAY
-  be reported for the first output of an instance;
-- `stop() → bytes`: final bytes.
-
-Every instance serialises its own calls. The FFmpeg encoder's side of this
-contract is in [FFmpeg encoder.md](../../../optionals/ffmpeg/spec/encoder.md).
+The stream face of [encoder.md §3](../../../encoder/spec/encoder.md#3-the-stream-face),
+created by its factory with the output's name and the initial metadata, with
+an instance per run that serialises its own calls
+([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)). Harbor
+uses `encode_into` when offered, so that it keeps the bytes without an
+allocation, and relies on `header()` and `restart_offset()` for joiners. The
+FFmpeg encoder's side of this contract is in
+[FFmpeg encoder.md](../../../optionals/ffmpeg/spec/encoder.md).
 
 ## 5. Scheduler
 
-- Work in classes: **fast I/O** (non-blocking, short, never parks a domain)
-  and work **allowed to block** (user code, encoder teardown). The operator
-  states which class each piece of work is ([concurrency.md §1](concurrency.md#1-work));
-  the scheduler decides domains, thread counts and placement.
-- A task waits on readable descriptors, a delay, or an explicit wake-up; a
-  wake-up of a task already due is coalesced and never blocks the waker.
+The project's work classes, wake-ups and placement are
+[concurrency.md §1](../../../../spec/concurrency.md#1-work); the operator
+states which class each piece of its work is
+([concurrency.md §1](concurrency.md#1-work)). What harbor needs in addition:
+
+- A task waits on readable descriptors, a delay, or an explicit wake-up.
 - Moving the current computation to the class allowed to block.
 - The scheduler's parallelism, from which an implementation MAY derive the
   number of delivery groups ([operator.md §6](operator.md#6-settings)).
@@ -136,4 +119,5 @@ contract is in [FFmpeg encoder.md](../../../optionals/ffmpeg/spec/encoder.md).
 - A process-wide "before core shutdown" hook, run before the core stops,
   from which the operator marks listeners closed.
 - The server-start hook through which route registration is deferred.
-- Callback registration with `synchronous` flags, as for every operator.
+- Callback registration with `synchronous` flags, as for every source
+  ([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)).

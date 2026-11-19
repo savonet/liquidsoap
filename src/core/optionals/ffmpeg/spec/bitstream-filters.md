@@ -8,7 +8,7 @@ copy content and its parameters ([content.md §3.1](content.md#31-ffmpegcopy),
 [§4.2](content.md#42-run-layer), [§5](content.md#5-stream_idx-and-time_base)),
 the argument mapping of [filters.md §5](filters.md#5-arguments-from-avoptions),
 the duration helper ([common.md §6](common.md#6-duration-helper)), draining
-([draining.md](draining.md)) and the inline producer
+([draining.md](../../../source/spec/draining.md)) and the inline producer
 ([inline-codecs.md §3](inline-codecs.md#3-the-inline-producer)).
 
 ## 1. Which operators
@@ -78,7 +78,7 @@ array value is rendered as one string, its elements' texts joined with the
 option's array separator, `,` when the option declares none.
 
 Option names and values are validated at script evaluation (configuration
-errors, [faults.md §2](faults.md#2-classes)). An option the filter leaves
+errors, [faults.md §2](../../../../spec/faults.md#2-classes)). An option the filter leaves
 unused after its first initialisation
 ([avutil.md §9.1](../../../../modules/synced/ffmpeg/spec/avutil.md#91-the-option-table-protocol))
 is a configuration error too: the operator raises a hard error naming the
@@ -167,7 +167,7 @@ reading waits for the shortest field
 
 ## 6. Drain
 
-Draining a handler (a stage in the sense of [draining.md](draining.md)):
+Draining a handler (a stage in the sense of [draining.md](../../../source/spec/draining.md)):
 
 1. Send end of stream to the filter.
 2. Receive and put packets as §5, step 5, until "end of stream".
@@ -190,7 +190,7 @@ Conformance:
 
 ## 7. Failure
 
-Faults follow [faults.md](faults.md). Nothing raises out of the operator
+Faults follow [faults.md](../../../../spec/faults.md). Nothing raises out of the operator
 while it streams, except the hard errors below.
 
 **Fallibility.** The operator is fallible exactly when its input is
@@ -198,22 +198,23 @@ while it streams, except the hard errors below.
 invents content: no empty runs stand in for packets it drops.
 
 **Source fault** of the operator
-([faults.md §3](faults.md#3-source-faults-reach-the-script)), for one source
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)), for one source
 id:
 
 1. the operator ends its track at the fault, after what it already
    buffered; the handler is drained when it can be, and discarded when the
-   filter itself failed ([draining.md §5](draining.md#5-discarded-on-purpose));
+   filter itself failed ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose));
 2. a fallible operator is not ready until `fault_retry_delay`
-   ([faults.md §3](faults.md#3-source-faults-reach-the-script)) has passed;
+   ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)) has passed;
    it is then read again, and the next packet rebuilds the handler, for the
    same source id or another;
-3. an infallible operator cannot be not ready and must not invent content:
-   a fault that persists (the rebuilt handler faults again before emitting
-   a packet) raises a hard error naming the operator and the cause, and the
-   script fails.
+3. an infallible operator follows
+   [faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)
+   item 3: a fault that persists (the rebuilt handler faults again before
+   emitting a packet) raises a hard error naming the operator and the cause,
+   and the script fails.
 
-`max_consecutive_faults` ([faults.md §4](faults.md#4-item-faults-escalate))
+`max_consecutive_faults` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate))
 bounds the item faults of one source id: that many consecutive dropped
 packets escalate to a source fault.
 
@@ -222,16 +223,16 @@ fallible when its input is, and that with an infallible input a persistent
 data fault is a hard error; a script that must keep streaming wraps the
 operator in `mksafe` or a `fallback`.
 
-| Situation                                                | Class                                                         | Result                                                                                                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| option value invalid                                     | configuration error                                           | error 7 at script evaluation ([filters.md §5.4](filters.md#54-validation-and-rendering))                                                  |
-| option unused by the filter                              | configuration error                                           | hard error at the first initialisation (§3)                                                                                               |
-| filter initialisation fails for a source                 | source fault                                                  | error logged with FFmpeg's message; the steps above                                                                                       |
-| output parameters fail to merge                          | source fault                                                  | error naming both parameter sets; the steps above (§5)                                                                                    |
-| send or receive fails other than "again"/"end of stream" | item fault ([faults.md §4](faults.md#4-item-faults-escalate)) | warning with FFmpeg's message; handler discarded, packet dropped; the next packet builds a handler                                        |
-| run with packets and unknown parameters                  | item fault                                                    | the run's packets are dropped with a warning ([content.md §4.3](content.md#43-invalid-content)); counted against `max_consecutive_faults` |
-| time-base change within one source id                    | item fault, repaired                                          | warning; handler drained and rebuilt (§5); nothing is lost                                                                                |
-| decreasing DTS within one source id                      | item fault                                                    | packet dropped with a warning (§5); counted against `max_consecutive_faults`                                                              |
+| Situation                                                | Class                                                                          | Result                                                                                                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| option value invalid                                     | configuration error                                                            | error 7 at script evaluation ([filters.md §5.4](filters.md#54-validation-and-rendering))                                                  |
+| option unused by the filter                              | configuration error                                                            | hard error at the first initialisation (§3)                                                                                               |
+| filter initialisation fails for a source                 | source fault                                                                   | error logged with FFmpeg's message; the steps above                                                                                       |
+| output parameters fail to merge                          | source fault                                                                   | error naming both parameter sets; the steps above (§5)                                                                                    |
+| send or receive fails other than "again"/"end of stream" | item fault ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) | warning with FFmpeg's message; handler discarded, packet dropped; the next packet builds a handler                                        |
+| run with packets and unknown parameters                  | item fault                                                                     | the run's packets are dropped with a warning ([content.md §4.3](content.md#43-invalid-content)); counted against `max_consecutive_faults` |
+| time-base change within one source id                    | item fault, repaired                                                           | warning; handler drained and rebuilt (§5); nothing is lost                                                                                |
+| decreasing DTS within one source id                      | item fault                                                                     | packet dropped with a warning (§5); counted against `max_consecutive_faults`                                                              |
 
 Repeated warnings of one kind are counted and logged with their count once
-per `fault_log_interval` ([faults.md §4](faults.md#4-item-faults-escalate)).
+per `fault_log_interval` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).

@@ -17,14 +17,13 @@ identity and parameter compatibility ([content.md](content.md) §3, §5); the
 contexts, pixel format choice and time-base conversion
 ([common.md](common.md)); the duration helper
 ([common.md §6](common.md#6-duration-helper)); draining
-([draining.md](draining.md)); the encoder-side timestamp rules
+([draining.md](../../../source/spec/draining.md)); the encoder-side timestamp rules
 ([timestamps.md](timestamps.md)); the internal video converter and display
 stage used by decoders
 ([decoder.md §16.1](decoder.md#161-internal-video-converter),
 [side-data.md §3](side-data.md#3-autorotate-on-decoding)); child clocks
 ([clock spec §15](../../../clock/spec/clock.md#15-child-clocks)); and the
 FFmpeg bindings ([bindings spec](../../../../modules/synced/ffmpeg/spec/README.md)).
-Part B is in [language-notes/inline-codecs.md](language-notes/inline-codecs.md).
 
 ## 1. Operators
 
@@ -194,9 +193,9 @@ media. Metadata and track marks stay with their data (§3.3).
 | end of input: the producer is read while its input is not ready (§3.4)      | drained into the buffer (§13)                                                                                                                         |
 | a decoder meets a new source id, time base or decoder parameters (§10, §11) | the affected stage is drained, then replaced (§13)                                                                                                    |
 | the source-id record it uses is closed (encoders, §5)                       | as the event that closed the record                                                                                                                   |
-| the producer seeks its input (§3.4)                                         | discarded ([draining.md §5](draining.md#5-discarded-on-purpose))                                                                                      |
+| the producer seeks its input (§3.4)                                         | discarded ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose))                                                                 |
 | the producer goes to sleep                                                  | discarded: the producer has no reader any more, and the clock spec clears its buffer ([clock spec §15](../../../clock/spec/clock.md#15-child-clocks)) |
-| a source fault of the producer (§15)                                        | drained when its stages can still drain, else discarded ([draining.md §5](draining.md#5-discarded-on-purpose))                                        |
+| a source fault of the producer (§15)                                        | drained when its stages can still drain, else discarded ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose))                   |
 
 The next input frame after an end builds a new transform. For an encoder,
 the new transform belongs to a new source-id record unless a sibling
@@ -275,7 +274,7 @@ To produce a frame:
    minimum length over the buffer's media fields), tick the child clock.
 2. When the input is not ready, drain the transform into the buffer if one
    exists (§13), then tick the child clock once. The drain is the end of
-   input of [draining.md](draining.md#2-the-rule). The tick is the one on
+   input of [draining.md](../../../source/spec/draining.md#2-the-rule). The tick is the one on
    which the other readers of the child clock (§3.1) observe the end of the
    input, as they would on a clock of their own: an output reading the same
    input ends its track and, when fallible, stops.
@@ -292,7 +291,7 @@ When the buffer then holds more than `settings.clock.child.max_buffer`
 The limit protects memory against a consumer that stops reading one of
 several producers sharing a child clock; it applies to a lone producer too.
 Reaching it is a source fault of that producer
-([faults.md §3](faults.md#3-source-faults-reach-the-script)): the producer
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): the producer
 logs an error naming itself and its input, clears its buffer, ends its track
 at that point, and goes on with the input's next frames. Nothing is raised:
 the other readers of the child clock keep streaming. Example of the message
@@ -307,7 +306,7 @@ level, and keeps its track.
 
 **Readiness during a source fault.** While a source fault persists (§15), a
 fallible producer is not ready. It recovers as
-[faults.md §3](faults.md#3-source-faults-reach-the-script) requires of a
+[faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script) requires of a
 producer whose input sits in a child clock: after `fault_retry_delay` it
 reads its input again, discarding what the faulty source delivers, and
 becomes ready on the first content it can convert (a new source id, new
@@ -334,7 +333,7 @@ cleared. The next wake-up creates a new buffer.
 ## 4. Format validation (encoders)
 
 The format argument is a `%ffmpeg` value. Every check below is a
-configuration error ([faults.md §2](faults.md#2-classes)): it fails the
+configuration error ([faults.md §2](../../../../spec/faults.md#2-classes)): it fails the
 script before it streams, with the operator's script position.
 
 | When       | Condition                                                                           | Error                                                                            |
@@ -359,7 +358,7 @@ and closes it. A failure fails the script before it streams. For an operator
 created while the script already streams, the same check runs before its
 first frame; a failure there follows from the configuration and the host,
 so it is a hard error whenever it shows
-([faults.md §2](faults.md#2-classes)), naming the operator's position.
+([faults.md §2](../../../../spec/faults.md#2-classes)), naming the operator's position.
 
 An implementation MAY run part of the check at evaluation, when the codec's
 option table can be queried without opening the encoder.
@@ -406,7 +405,7 @@ are judged by the output's container, and descriptive properties only warn.
   encoder.
 - A later build whose parameters fail the merge is a source fault of the
   producer ([content.md §3.1.1](content.md#311-where-copy-parameters-are-merged),
-  [faults.md §3](faults.md#3-source-faults-reach-the-script)): it emits
+  [faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): it emits
   nothing for that source, logs both parameter sets at error level and ends
   its track; while the fault persists it is not ready (fallible input) or
   raises a hard error (infallible input) (§15). No packet of the rejected
@@ -848,23 +847,23 @@ the display stage into the converter.
 
 ## 13. Flush and end
 
-Each transform drains as [draining.md](draining.md) requires. Draining a
+Each transform drains as [draining.md](../../../source/spec/draining.md) requires. Draining a
 transform drains its stages upstream first, each stage's output entering the
 next before the next is drained, and ends with the chunker (encoders) or the
 output (decoders). Drained output is ordinary output: it lands in the buffer
 the producer's consumer reads, before the metadata and track marks still
 pending (§3.3), and it obeys §8 and §9.
 
-| Transform        | Drain order                                                                                                                |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| encode audio     | resampler → frame writer (final partial frame per [draining.md §4](draining.md#4-partial-final-units)) → encoder → chunker |
-| encode video     | frame-rate converter → encoder → chunker                                                                                   |
-| raw encode audio | resampler → frame writer → chunker                                                                                         |
-| raw encode video | frame-rate converter → chunker                                                                                             |
-| decode audio     | decoder → resampler → output                                                                                               |
-| raw decode audio | resampler → output                                                                                                         |
-| decode video     | decoder → display stage → converter → output                                                                               |
-| raw decode video | display stage → converter → output                                                                                         |
+| Transform        | Drain order                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| encode audio     | resampler → frame writer (final partial frame per [draining.md §4](../../../source/spec/draining.md#4-partial-final-units)) → encoder → chunker |
+| encode video     | frame-rate converter → encoder → chunker                                                                                                        |
+| raw encode audio | resampler → frame writer → chunker                                                                                                              |
+| raw encode video | frame-rate converter → chunker                                                                                                                  |
+| decode audio     | decoder → resampler → output                                                                                                                    |
+| raw decode audio | resampler → output                                                                                                                              |
+| decode video     | decoder → display stage → converter → output                                                                                                    |
+| raw decode video | display stage → converter → output                                                                                                              |
 
 A transform is drained (§3.2):
 
@@ -910,7 +909,7 @@ Conformance:
 
 ## 15. Failure behaviour
 
-Every fault is placed in a class of [faults.md §2](faults.md#2-classes).
+Every fault is placed in a class of [faults.md §2](../../../../spec/faults.md#2-classes).
 Nothing is raised out of the producer while it streams, except the hard error
 of an infallible producer below.
 
@@ -931,12 +930,12 @@ of an infallible producer below.
 | rebuild    | a rebuild fails for a reason that depends on the input's data                                          | source fault        | below                                                                                                         |
 | any frame  | buffer above `settings.clock.child.max_buffer` (§3.4)                                                  | source fault        | read producer: buffer cleared, track ended, error log; unread producer: oldest data trimmed, debug log (§3.4) |
 
-**Item faults** ([faults.md §4](faults.md#4-item-faults-escalate)) are
+**Item faults** ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) are
 counted per producer against the one bound `max_consecutive_faults` of
 faults.md §4. The count is reset by an item converted successfully. Logging
 follows faults.md §4 (`fault_log_interval`).
 
-**Source faults** ([faults.md §3](faults.md#3-source-faults-reach-the-script)):
+**Source faults** ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)):
 
 1. The producer ends its track at the fault. Data already converted is
    delivered, and the transform is drained when its stages can still drain,
@@ -949,13 +948,12 @@ follows faults.md §4 (`fault_log_interval`).
 3. A producer whose input is infallible is infallible and cannot become not
    ready: a source fault that persists past the end of track is a hard error.
    The producer raises, and the script fails with an error naming the
-   producer and the cause
-   ([clock spec §11](../../../clock/spec/clock.md#11-failure)). The producer
-   never stands silence, black or a repeated frame in for media it cannot
-   convert; a script that wants filler puts `mksafe`, `fallback` or `blank`
-   around a fallible input.
+   producer and the cause, as
+   [faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)
+   item 3 requires of every infallible source with nothing to deliver. No
+   filler stands in for media it cannot convert (same section).
 4. A not-ready producer retries after `fault_retry_delay`
-   ([faults.md §3](faults.md#3-source-faults-reach-the-script)): it reads its
+   ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): it reads its
    input again (encoders rebuild their transform) and becomes ready, with a
    new track, on the first content it can convert.
 

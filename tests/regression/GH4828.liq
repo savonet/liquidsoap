@@ -2,13 +2,14 @@
 
 log.level := 4
 
-expected_checksum = "6ccbccf00fb31c68bfe457b5eab01a6b"
+# The audio of a crossed sequence of files, compared sample for sample: it is
+# written to a file whose digest is checked. The same digest is obtained with
+# any frame size (`settings.frame.duration`): nothing in a crossing depends on
+# where frames are cut.
+expected_digest = "2b43f0eeb418eb76265d61208248e7bc"
 
-settings.frame.checksum.metadata := true
-settings.frame.checksum.track_marks := true
-
-sha_file = file.temp(cleanup=true, "cross-crack-sha", ".txt")
 audio_file = "#{test.assets_dir()}/GH4828.flac"
+out = file.temp(cleanup=true, "GH4828", ".wav")
 
 s = single("annotate:liq_cue_in=0.0,liq_cue_out=16.7:#{audio_file}")
 
@@ -20,27 +21,11 @@ end
 
 s = cross(deduplicate=false, duration=1.1, transition, s)
 
-variable_meta = ["filename", "initial_uri"]
-s =
-  metadata.map(
-    update=false,
-    fun (m) ->
-      list.filter(fun ((lbl, _)) -> not list.mem(lbl, variable_meta), m),
-    s
-  )
-
-s.on_frame_checksum(
-  synchronous=true,
-  fun (~cache:_, checksum) ->
-    file.write(append=true, data="#{checksum}\n", sha_file)
-)
-
 clock.assign_new(sync='none', [s])
-o = output.dummy(fallible=true, s)
+o = output.file(fallible=true, %wav, out, s)
 
 def on_stop() =
-  d = file.digest(sha_file)
-  test.equal(d, expected_checksum)
+  test.equal(file.digest(out), expected_digest)
   test.pass()
 end
 

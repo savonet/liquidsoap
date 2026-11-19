@@ -48,8 +48,8 @@ jingles = playlist("~/jingles")
 radio = rotate([music.{weight = 3}, jingles.{weight = 1}])
 ```
 
-Both are file sources, so neither is willing to interrupt the other: when the
-jingle's turn comes up, the switch **waits for the current song to finish**.
+A rotation never interrupts a track: when the jingle's turn comes up, it
+**waits for the current song to finish**.
 The jingle then starts cleanly at the boundary, with no fade — nothing was
 interrupted, so there is nothing to fade.
 
@@ -61,6 +61,14 @@ change while the stream runs:
 ```liquidsoap
 radio = rotate([music.{weight = {if night() then 6 else 3 end}}, jingles])
 ```
+
+`rotate` and `random` always wait for the end of the current track before
+moving on, whatever the sources are: setting `track_sensitive = false` on one of
+their sources has no effect. Their turns are counted in tracks, and a source
+starts a track by being selected. If it could also be interrupted, its turn
+would be used up the moment it began and it would be cut at once, as would the
+next one. To let a source cut into a rotation, put it above the rotation, as in
+`fallback([live, rotate([music, jingles])])`.
 
 ## A show on a schedule
 
@@ -225,15 +233,15 @@ The counterpart to `on_select` is `on_leave`, which belongs to the source being
 radio =
   fallback([
     live,
-    music.{on_leave = fun ({track_sensitive}) ->
-      log("music left, finished naturally: #{track_sensitive}")}
+    music.{on_leave = fun ({preempted}) ->
+      log("music left, cut mid-track: #{preempted}")}
   ])
 ```
 
-`on_leave` fires on **every** handoff, and `track_sensitive` tells you _how_ it
-ended: `true` if the source had nothing left for its current track — it reached a
-boundary, or simply became unavailable — and `false` if the switch cut into a
-track it was still playing. That is the switch's own account of the handoff, not
+`on_leave` fires on **every** handoff, and `preempted` tells you _how_ it
+ended: `true` if the switch cut into a track it was still playing, and `false`
+if the source had nothing left for its current track — it reached a boundary, or
+simply became unavailable. That is the switch's own account of the handoff, not
 something the source reports. This is what the default file behavior uses to
 decide to skip a half-played track so the source starts fresh next time.
 

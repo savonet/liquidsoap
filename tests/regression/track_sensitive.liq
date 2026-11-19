@@ -1,6 +1,7 @@
 %include "../test.liq"
 
-s = sine()
+# An endless tone is live by default and would be left with its predicate.
+s = sine().{track_sensitive = true}
 
 is_ready = ref(true)
 is_done = ref(false)

@@ -1,9 +1,10 @@
 # Conformance
 
 The checks an implementation of this spec is run against, by principle,
-grouped by the document each protects. Each names what is **binding**;
-file names, log wording, timing and the harness are incidental unless said
-otherwise. Every entry of [known-complexity.md](known-complexity.md) is a
+grouped by the document each protects, under the rules every suite follows
+([testing.md](../../../../spec/testing.md)). Each names what is
+**binding**; file names, the harness and what testing.md makes incidental
+are incidental unless said otherwise. Every entry of [known-complexity.md](known-complexity.md) is a
 check here, cited by its number.
 
 ## Doubles a harness needs
@@ -51,8 +52,10 @@ check here, cited by its number.
 - A stop where one variant's flush fails still flushes and closes the
   others.
 - A `segment_name` returning `../x` makes the output fail without retry.
-- A synchronous callback that raises on a segment's `created` event: the
-  segment is listed, numbering has no gap.
+- A synchronous callback that raises on a segment's `created` event: a
+  `severe` log with its backtrace, the other handlers still run, the
+  segment is listed, the run goes on (the next segment is not
+  discontinuous) and numbering has no gap.
 
 ## 2. Segmenting
 

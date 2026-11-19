@@ -2,20 +2,22 @@
 
 What a test suite for these operators MUST check, by principle. Every
 [known-complexity](known-complexity.md) entry's "How to tell" is a check
-too; the table names the entry where one applies.
+too; the table names the entry where one applies. The rules every suite
+follows (a skip is never a pass, a suite asserts it ran, a check counts once
+seen to fail, negative twins, binding against incidental) are
+[testing.md](../../../../spec/testing.md)'s; this file adds SRT's.
 
 ## 1. Principles
 
 - **Assert on data that crossed the connection**: byte counts, payload
   sizes, decoded content, the input's dump. A callback firing is never the
   pass signal alone, since it fires before data flows.
-- **Every positive check has a negative twin** that must fail: mismatched
-  passphrase, rejected stream id, client past the limit.
+- **Negative twins** ([testing.md §1](../../../../spec/testing.md#1-a-pass-must-be-able-to-say-no)):
+  mismatched passphrase, rejected stream id, client past the limit.
 - **Interoperability**: each role and kind runs once against a third-party
   SRT peer, not only against the other operator.
 - **No family pinning**: the default-parameter checks run without setting
   `settings.srt.prefer_address`.
-- **A skipped check is reported as missing coverage**, never as a pass.
 - **Run under load**, since most of these paths are races.
 
 ## 2. Checks
@@ -44,7 +46,7 @@ too; the table names the entry where one applies.
 | Validation names the parameter and its valid values.                                                                       | Passphrase of 9 and 80 bytes, port 0, `payload_size` too large, a bad `pbkeylen` fail at evaluation.                                                                                                                                                                              | Message wording.           | KC19       |
 | Options set in `on_socket` take effect.                                                                                    | Latency set in `on_socket "listen"` is read back on both ends.                                                                                                                                                                                                                    |                            | KC15       |
 | Dual stack works with defaults.                                                                                            | Default caller reaches default listener under each preference.                                                                                                                                                                                                                    |                            | KC16       |
-| Pacing follows the stream.                                                                                                 | One time-controlled input paces; two different streams in one clock report a conflict; two inputs of the same stream do not.                                                                                                                                                      |                            | KC13       |
+| Pacing follows the stream.                                                                                                 | One time-controlled input paces; two paced inputs in one clock report a conflict, whether they receive different streams or the same one.                                                                                                                                         |                            | KC13       |
 | Reconnecting keeps the operator's state.                                                                                   | An audio-video input disconnected mid-frame several times inside a fallback resumes each time.                                                                                                                                                                                    |                            | KC5        |
 | Nothing leaks.                                                                                                             | After injected failures at every setup step, a thousand times, open sockets and descriptors return to baseline; dropped operators are collected.                                                                                                                                  |                            | KC11, KC18 |
 | Process lifecycle is clean.                                                                                                | `--version`, `--check`, daemonised run, interrupt and clean stop exit 0.                                                                                                                                                                                                          |                            | KC4        |
@@ -54,8 +56,8 @@ too; the table names the entry where one applies.
 ## 3. Harness
 
 Doubles a harness needs: an SRT peer that can be told to stop reading, to
-vanish without closing, to send a stream id, to use a wrong passphrase, to
-a raw receiver that records each
+vanish without closing, to send a stream id, to use a wrong passphrase; a
+raw receiver that records each
 payload's bytes and size; a third-party SRT tool for interoperability.
 
 Ports are unique across the suite, and each test releases what it opens on

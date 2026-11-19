@@ -115,14 +115,29 @@ def source.composition.default_on_select(
         # Once the tail is over, hand over to the starting source itself at a
         # frame boundary, which releases the leaving source. That boundary is
         # not a new track: merge it, and only it.
+        # `next` is consulted at every boundary, so the handover is flagged
+        # once, when the mix is first found over.
+        handed_over = ref(false)
         handing_over = ref(false)
+
+        # A handover that falls where the starting source begins a track of
+        # its own is that track's start: nothing is left to merge, and a flag
+        # left up would merge its next real track end.
+        let {on_track} = source.methods(starting)
+        ignore(on_track(synchronous=true, fun (_) -> handing_over := false))
         def next() =
           if
             source.is_ready(mix)
           then
             mix
           else
-            handing_over := true
+            if
+              not handed_over()
+            then
+              handed_over := true
+              handing_over := true
+            end
+
             starting
           end
         end
@@ -147,14 +162,13 @@ end
 source.composition.file(
   {
     on_leave =
-      # skip the source when it is preempted mid-track (track_sensitive=false),
-      # so it starts fresh on next selection. When switching at a track
-      # boundary (track_sensitive=true), the source has finished naturally and
-      # no skip is needed.
+      # skip the source when it is preempted mid-track, so it starts fresh on
+      # next selection. Left at a track boundary, it has finished naturally
+      # and no skip is needed.
 
-      fun ({source = s, track_sensitive}) ->
+      fun ({source = s, preempted}) ->
         if
-          not track_sensitive
+          preempted
         then
           log.important(
             label=source.id(s),

@@ -166,6 +166,47 @@ The `add` operator now relays metadata from all sources being summed (see above)
 
 Also, remember that the `add` operator removes all track marks.
 
+### Crossings are planned in one place
+
+`fade.in` and `fade.out` now do what their arguments say. By default they no longer read `liq_fade_*` metadata: pass `allow_metadata_override=true` to let each track change its fade through `liq_fade_in`, `liq_fade_in_delay`, `liq_fade_in_type`, `liq_fade_in_curve` and their `liq_fade_out` counterparts.
+
+```liquidsoap
+# Old: required the fade to be described by metadata
+s = fade.out(initial_metadata=[("liq_fade_out", "3.")], s)
+
+# New
+s = fade.out(duration=3., s)
+
+# New, with per-track overrides from metadata
+s = fade.out(allow_metadata_override=true, s)
+```
+
+| Old                                                                               | New                                               |
+| --------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `override_duration`, `override_type`, `override_curve`, `override_delay` on fades | Removed, the keys are fixed                       |
+| `initial_metadata` on fades                                                       | Removed, use `duration`, `delay`, `type`, `curve` |
+| Fades read `liq_fade_*` metadata                                                  | Only with `allow_metadata_override=true`          |
+| `liq_cross_replayed_metadata` metadata                                            | Removed, `cross` announces the next track itself  |
+| Metadata handed to a transition carries adjusted `liq_fade_*` values              | Handed as the track carried it, see `cross.plan`  |
+| `db_level` of an empty side is not-a-number                                       | Minus infinity                                    |
+
+Where each fade sits in a crossing is computed once, by `cross.plan(ending, starting)`, from the `liq_fade_*` keys of the two tracks and the exact length of the two sources. `cross.apply(plan, ending, starting)` builds the transition from it. `cross.simple` and `crossfade` use both, so scripts relying on autocue or on `liq_fade_*` metadata keep working. A custom transition can do the same:
+
+```liquidsoap
+def transition(ending, starting) =
+  cross.apply(cross.plan(ending, starting), ending, starting)
+end
+```
+
+`cross` itself also changed:
+
+- A cross duration of zero is zero: the transition is called with empty sources at every boundary between two tracks.
+- A track shorter than the cross duration is crossed over its whole length.
+- A crossing puts one track mark, on the first sample of the transition.
+- A skip is heard at once: what was buffered of the skipped track is dropped and the next track starts without a transition.
+- The transition lasts for as long as the source it returned plays: one made of several items plays them all.
+- The output no longer depends on the frame size.
+
 ### Per-source methods on `switch`, `fallback`, `rotate`, `random`
 
 The `switch` operator and its wrappers `fallback`, `rotate` and `random` now take their per-branch settings as methods on each source. The old parallel list parameters are gone. See [source composition](./composition.md) for how these methods work together.
@@ -180,9 +221,12 @@ Start with `track_sensitive`: each source now picks the right value on its own. 
 | `random(weights=[2, 1], [music, jingles])`     | `random([music.{weight = 2}, jingles])`                |
 | `transitions`, `transition_length`             | `on_select` on the source being entered                |
 | `override`                                     | Removed                                                |
+| `switch(all_predicates=true, [...])`           | Removed: predicates must not have side effects         |
 | `track_sensitive` on the switch                | Usually removed, else `track_sensitive` on each source |
 | `fallback.skip(main, fallback=backup)`         | `fallback([main, backup.{track_sensitive = false}])`   |
 | Switching mid-track with no fade (old default) | `s1.{on_select = source.composition.legacy_on_select}` |
+
+`rotate` and `random` hold each source until the end of its track: `track_sensitive = false` on one of their sources is ignored, since their turns are counted in tracks. A source that must cut in goes in a `fallback` or `switch` above the rotation.
 
 Each source now carries its own `weight`, defaulting to `1`. The old `weights` list was positional and was padded with `1` when shorter than the source list.
 
@@ -215,9 +259,13 @@ Bound `ending` with `max_duration` as above. The source being left is cleaned up
 
 Switching now fades out the ending source by default. When the ending source carries only PCM audio, the default `on_select` starts the new source right away and mixes the ending one underneath it: if it has between `0.` and `settings.source.composition.max_fade` seconds left it finishes naturally, otherwise it is faded out over `max_fade` seconds (default `1.`). Otherwise switching is immediate.
 
+A source that never ends a track, such as `blank()` or `sine()` without a `duration`, is live too: listed last in a `fallback` or `switch`, it is left as soon as another source can play, and takes over as soon as none can. Set `track_sensitive = true` on it to make it wait for track boundaries.
+
 `input.http` is a live source, so it now cuts in immediately. For a relay that carries a playlist, set `s.composition_type := "file"` on it. See [a relay that carries a playlist](./composition.md#a-relay-that-carries-a-playlist).
 
-`rotate.merge` no longer takes `transitions` or `weights`. Set `weight` on the sources, as with `rotate`. `rotate.merge` installs its own `on_select` on the first source, so an `on_select` you set on that source is ignored.
+`rotate.merge` no longer takes `transitions` or `weights`, and does not read `weight`: each round plays one track of every available source. It no longer inserts a frame of silence between rounds.
+
+Predicates are read to decide what to play, possibly several times for one track and without the source being played afterwards. A predicate that changes state each time it is read, such as a counter it increments, counts these reads, not the tracks played: advance the state from `on_track` on the switch, or from the source's `on_select`, and only read it in the predicate.
 
 #### Stdlib operators that used to pin `track_sensitive`
 

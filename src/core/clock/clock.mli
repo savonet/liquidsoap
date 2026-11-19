@@ -162,6 +162,32 @@ val activate_pending : t -> unit
 val on_tick : t -> (unit -> unit) -> unit
 val after_tick : t -> (unit -> unit) -> unit
 
+(** A tick is produced in one or more segments: a frame that stops at a track
+    end is continued in the next segment of the same tick. [after_segment]
+    registers a one-shot callback for the end of the running segment. *)
+val after_segment : t -> (unit -> unit) -> unit
+
+(** For a source that changed what it reads while the running segment was being
+    produced: the sync sources settled when the segment was prepared are out of
+    date. Raises a flag that the clock lowers when the segment ends. *)
+val signal_sync_change : t -> unit
+
+(** Whether [signal_sync_change] was called for the running segment. Read by
+    sources when they close the segment, to refresh their sync source. *)
+val sync_changed : t -> bool
+
+(** Where, in the frame it is gathering, the output being animated is. An output
+    sets it before it reads its source, and back to [0] after: every source read
+    on its behalf is read at that position, and places its data for the tick in
+    the frame from there. *)
+val set_reading_position : t -> int -> unit
+
+val reading_position : t -> int
+
+(** Asks for another segment in the running tick. For an output whose frame
+    stopped short of full at a track end, after it made progress. *)
+val request_segment : t -> unit
+
 (** Counted. Raises [Not_a_sub_clock]. *)
 val register : parent:t -> t -> unit
 

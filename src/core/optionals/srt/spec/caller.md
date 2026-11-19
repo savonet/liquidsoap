@@ -45,17 +45,17 @@ When the connection becomes wanted, an attempt starts at once.
 **Attempt:**
 
 1. Resolve `host`:`port` ([library.md §5](library.md#5-address-resolution)).
-   Log at level 4 `Connecting to srt://<host>:<port>`.
+   Log at `info` `Connecting to srt://<host>:<port>`.
 2. For each resolved address in the resolver's order, until one connects:
    create and set up a socket (§3) and connect it, waiting up to the connect
    timeout. A socket that fails to connect is closed (with its `"close"`
    event).
-3. On success, if the attempt is still current: log at level 3
+3. On success, if the attempt is still current: log at `important`
    `Connected to srt://<ip>:<port>`, and the socket becomes the peer
    ([connection.md §5](connection.md#5-connected)).
 
 A failure is classified by
-[connection.md §4](connection.md#4-connect): a transient one logs at level 3
+[connection.md §4](connection.md#4-connect): a transient one logs at `important`
 `Connection to srt://<host>:<port> failed: <cause>`, with the library's
 rejection reason when the peer refused the handshake, and moves to waiting
 for `polling_delay` seconds.

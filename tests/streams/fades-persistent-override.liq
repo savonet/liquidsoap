@@ -40,8 +40,23 @@ c =
 
 s = sequence([a, b, c])
 
-fade_in = fade.in(persist_overrides=true, duration=5., type="sin", s)
-fade_out = fade.out(persist_overrides=true, duration=5., type="sin", fade_in)
+fade_in =
+  fade.in(
+    allow_metadata_override=true,
+    persist_overrides=true,
+    duration=5.,
+    type="sin",
+    s
+  )
+
+fade_out =
+  fade.out(
+    allow_metadata_override=true,
+    persist_overrides=true,
+    duration=5.,
+    type="sin",
+    fade_in
+  )
 
 track_count = ref(0)
 

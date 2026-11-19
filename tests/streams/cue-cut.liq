@@ -2,15 +2,17 @@
 
 s = playlist(prefix="annotate:liq_cue_in=1.,liq_cue_out=3.:", "playlist")
 
-is_first = ref(true)
+# The request is taken when the source is first read: its duration is known
+# from the second frame on.
+frames = ref(0)
 
 def on_frame() =
+  ref.incr(frames)
   if
-    is_first()
+    frames() == 2
   then
     if source.duration(s) == 2. then test.pass() else test.fail() end
   end
-  is_first := false
 end
 
 s.on_frame(synchronous=true, on_frame)

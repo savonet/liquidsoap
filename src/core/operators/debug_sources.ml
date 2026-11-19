@@ -26,6 +26,7 @@ class fail name =
     method effective_source = (self :> Source.source)
     method fallible = true
     method private can_generate_frame = false
+    method! exhausted = true
     method private self_sync = (`Static, None)
     method remaining = 0
     method abort_track = ()

@@ -45,7 +45,7 @@ steps 1–5:
 6. Install the admission predicate (below).
 7. Listen. The backlog SHOULD be at least the client limit when there is
    one.
-8. Log at level 4 `Listening on srt://<ip>:<port>`.
+8. Log at `info` `Listening on srt://<ip>:<port>`.
 
 **Admission predicate**, consulted by the library during each handshake:
 
@@ -56,7 +56,7 @@ steps 1–5:
 3. Otherwise admit.
 
 An exception from `listen_callback` rejects the handshake and is logged at
-level 2. The predicate runs on the library's handshake thread and holds no
+`severe`. The predicate runs on the library's handshake thread and holds no
 operator lock; a slow `listen_callback` delays every handshake of the
 process, which its documentation states.
 
@@ -80,7 +80,7 @@ register it with the readiness loop for incoming connections
 ([poll.md §2](poll.md#2-registering-and-removing)). The first setup runs in
 the call that made the connection wanted, so a permanent failure is raised
 from it ([connection.md §4](connection.md#4-connect)); a transient one logs at
-level 3 `Listening on srt://<ip>:<port> failed: <cause>` and moves to
+`important` `Listening on srt://<ip>:<port> failed: <cause>` and moves to
 waiting for `polling_delay` seconds.
 
 The listening socket is registered after it listens. A handshake that
@@ -92,14 +92,14 @@ once, as if the socket had reported a connection.
 no connection is pending:
 
 1. Accept: (socket, origin).
-2. Log at level 4 `New connection from <ip>:<port>`.
+2. Log at `info` `New connection from <ip>:<port>`.
 3. In one atomic step: if the connection is no longer wanted, or `n` peers
    are already admitted, discard the socket (closed, no event); otherwise
    admit it.
 4. Set it up as an accepted socket (§3).
 5. Connected ([connection.md §5](connection.md#5-connected)).
 
-An accept that fails is logged at level 3 and the listening socket stays
+An accept that fails is logged at `important` and the listening socket stays
 registered: a failure on one connection never stops the listener from
 accepting the next. Any failure in steps 4–5 ends that peer alone.
 

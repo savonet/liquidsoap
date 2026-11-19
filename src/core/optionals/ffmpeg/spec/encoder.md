@@ -7,17 +7,19 @@ instance cuts HLS segments and what the HLS output does with them, and the
 contract every stream encoder meets (§12). It relies on the format record of
 [encoder-format.md](encoder-format.md), on the output container operations of
 the bindings ([avformat.md §4.4](../../../../modules/synced/ffmpeg/spec/avformat.md#44-output)),
-on the draining rule of [draining.md](draining.md), and on the generic encoder
-interface of Liquidsoap (stated in §2 as far as this encoder relies on it).
+on the draining rule of [draining.md](../../../source/spec/draining.md), and on the generic
+[encoder interface](../../../encoder/spec/encoder.md) of Liquidsoap (its
+registry, instances and stream face; §2 states what this encoder relies on
+beyond it).
 Stream implementations are in [encoder-internal.md](encoder-internal.md) and
 [encoder-copy.md](encoder-copy.md); every timestamp rule is in
 [timestamps.md](timestamps.md).
 
 ## 1. Entry points and call order
 
-The generic encoder layer asks every registered encoder plug-in whether it
-accepts a format; the `ffmpeg` plug-in accepts exactly the `%ffmpeg` formats.
-Accepting returns a factory:
+Under the generic registry
+([encoder.md §1](../../../encoder/spec/encoder.md#1-registry)), the `ffmpeg`
+plug-in accepts exactly the `%ffmpeg` formats. Accepting returns a factory:
 
 ```
 factory : ?hls:bool -> ?interrupt:(unit -> bool) -> pos:position option ->
@@ -41,8 +43,8 @@ The returned `encoder` has:
 | `stop ()`           | outputs, when they stop or reopen          |
 | `hls.*`             | the HLS output only (§8)                   |
 
-The generic layer serialises the operations of one instance: two operations
-of the same instance never run at the same time.
+An instance serialises its own operations, and is stopped exactly once
+([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 
 An instance is in one of four states:
 
@@ -55,7 +57,7 @@ An instance is in one of four states:
 
 In `Failed`, every operation except `stop` raises the recorded error again;
 `stop` releases the container without draining
-([draining.md §5](draining.md#5-discarded-on-purpose)). In `Stopped`, `stop`
+([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)). In `Stopped`, `stop`
 does nothing and every other operation is an error.
 
 ## 2. What the encoder relies on from callers
@@ -133,7 +135,7 @@ In order:
 
 Every failure raises out of the factory and releases what was built. A failed
 open of a `Url` target is an output fault; every other failure here is a
-configuration error ([faults.md §2](faults.md#2-classes), §5.2).
+configuration error ([faults.md §2](../../../../spec/faults.md#2-classes), §5.2).
 
 ### 3.1 Conformance
 
@@ -188,7 +190,7 @@ open or at stream creation with FFmpeg's error.
    discarded. The wait is bounded by `max_keyframe_wait`
    ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)):
    past it, the output fails with an output fault naming the copy fields
-   without parameters ([faults.md §2](faults.md#2-classes)), and its restart
+   without parameters ([faults.md §2](../../../../spec/faults.md#2-classes)), and its restart
    policy applies. Copy outputs are an expert feature: the script author
    who feeds one is expected to supply its streams, and a container missing
    a declared track is not produced. Reason: stream parameters of video
@@ -210,14 +212,14 @@ written to any stream.
 ### 5.2 Data faults and output faults
 
 Every fault the encoder detects belongs to one class of
-[faults.md §2](faults.md#2-classes). The encoder is part of an output, so it
+[faults.md §2](../../../../spec/faults.md#2-classes). The encoder is part of an output, so it
 has no source to end: its faults are configuration errors, item faults or
 output faults.
 
 | Fault                                                                                                                                                                                                           | Class               | Outcome                                                                                                                                                                                                                     |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | bad option, unknown codec or muxer, missing codec, invalid argument (§3, §4, [encoder-format.md §13](encoder-format.md#13-errors-summary))                                                                      | configuration error | raised at build: the output fails to start and the script fails before streaming                                                                                                                                            |
-| a stream that cannot be created, deterministically from the configuration (codec or muxer lookup, a parameter rejected for the configured format), or at the output's first start-up (hardware device included) | configuration error | hard error ([faults.md §2](faults.md#2-classes)): the script fails                                                                                                                                                          |
+| a stream that cannot be created, deterministically from the configuration (codec or muxer lookup, a parameter rejected for the configured format), or at the output's first start-up (hardware device included) | configuration error | hard error ([faults.md §2](../../../../spec/faults.md#2-classes)): the script fails                                                                                                                                         |
 | a stream that cannot be created at a later rebuild (restart, reopen, HLS restart): hardware session caps, device resets                                                                                         | output fault        | as below: the output restarts under its policy                                                                                                                                                                              |
 | a stream that cannot be created because of the source's data (copy parameters the muxer rejects)                                                                                                                | output fault        | as below                                                                                                                                                                                                                    |
 | the codec refuses a frame, the muxer or its bitstream filter refuses a packet, a subtitle is too large, a timed-ID3 tag fails                                                                                   | item fault          | the item is dropped with a warning; the stream, the container and the other tracks go on                                                                                                                                    |
@@ -225,10 +227,10 @@ output faults.
 | the byte sink fails (I/O error, failed open of a `Url` target), the header write fails, a restart cannot build its container                                                                                    | output fault        | instance `Failed` (§1); the error propagates out of `encode`                                                                                                                                                                |
 | an incompatible copy source with no clean restart (§13.3)                                                                                                                                                       | output fault        | as above                                                                                                                                                                                                                    |
 | a drain or close fails in `stop` (§7)                                                                                                                                                                           | output fault        | logged at error level; teardown continues                                                                                                                                                                                   |
-| no split point by the HLS bound (§8.7)                                                                                                                                                                          | output-side wait    | the segment is cut without the condition, with a warning ([faults.md §5](faults.md#5-waiting))                                                                                                                              |
+| no split point by the HLS bound (§8.7)                                                                                                                                                                          | output-side wait    | the segment is cut without the condition, with a warning ([faults.md §5](../../../../spec/faults.md#5-waiting))                                                                                                             |
 
 Item faults are counted per field against `max_consecutive_faults`
-([faults.md §4](faults.md#4-item-faults-escalate)). A data fault never stops
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). A data fault never stops
 the output. A run past the bound on a copy field restarts that source's
 group (per tenure, [encoder-copy.md §10](encoder-copy.md#10-options-and-errors));
 later runs restart it again. On an encoded field the run is an output fault:
@@ -236,10 +238,10 @@ the output restarts under its policy, which builds new codecs. Reason: a
 codec that keeps refusing frames is in an error state, which no further data
 repairs. The first drop of each kind is logged as a warning; repeats are
 logged with their count at most once per `fault_log_interval`
-([faults.md §4](faults.md#4-item-faults-escalate)).
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).
 
 An output fault reaches the script through the output's restart policy and
-callbacks ([faults.md §2](faults.md#2-classes),
+callbacks ([faults.md §2](../../../../spec/faults.md#2-classes),
 [io.md §11.3](io.md#113-errors)). The clock and the other outputs go on.
 
 ### 5.1 Conformance
@@ -279,13 +281,13 @@ next `encode` or `stop`.
 
 1. Every stream encoder drains (§12.8), in track order; a copy stream writes
    the packets it holds ([encoder-copy.md §8](encoder-copy.md#8-flush-and-end)).
-   Each stage's drained output reaches the muxer ([draining.md §3](draining.md#3-order)).
+   Each stage's drained output reaches the muxer ([draining.md §3](../../../source/spec/draining.md#3-order)).
 2. The container is closed. Closing drains every codec and writes the
    trailer ([avformat.md §2.1 Release](../../../../modules/synced/ffmpeg/spec/avformat.md#21-container--input-container-output-container)).
 3. The buffer is returned.
 
 A drain or close that fails is logged at severe level with the error and
-teardown continues ([draining.md §5](draining.md#5-discarded-on-purpose)); the
+teardown continues ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)); the
 bytes produced so far are returned. A container that never received a packet
 is closed without header or trailer. From `Failed`, `stop` releases the
 container without draining and returns nothing.
@@ -544,7 +546,7 @@ are in [io.md §1.4](io.md#14-outputurl) and [io.md §11](io.md#11-outputurl).
 
 ## 11. Failure behaviour summary
 
-Classes as in §5.2 and [faults.md §2](faults.md#2-classes).
+Classes as in §5.2 and [faults.md §2](../../../../spec/faults.md#2-classes).
 
 | Situation                                        | Behaviour                                                                                                 |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
@@ -619,7 +621,7 @@ the muxer receives it. What `request_keyframe` does.
 ### 12.8 Flush and end
 
 Every stage the stream encoder holds, and how `flush` drains it
-([draining.md](draining.md)): upstream first, into the muxer, before the
+([draining.md](../../../source/spec/draining.md)): upstream first, into the muxer, before the
 container closes. What the container close drains (the codec). What a
 restart (§13) does.
 

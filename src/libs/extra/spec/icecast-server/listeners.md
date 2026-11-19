@@ -158,6 +158,8 @@ filter, `compute`, de-duplication) and the order are the server's and are
 
 - The headers apply to every reply the server's mount output sends to a
   listener: the stream reply, a refusal, a redirect and a decision failure.
+  They also apply to the `404`, `503` and `307` answers to a listener request
+  on a path that has no mount output ([mounts.md §1](mounts.md#1-lifecycle)).
   The order and the precedence between the decision's headers, the server's
   and the mount's are [parameters.md §4.2](parameters.md#42-headers)'s.
 - The `icy-*` stream identity headers of a stream reply come from the mount's

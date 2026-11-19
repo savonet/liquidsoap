@@ -33,13 +33,15 @@ class sequence ?(name = "sequence") ?(merge = false)
   let seq_sources = Atomic.make sources in
   object (self)
     inherit operator ~name sources
+    inherit generate_from_multiple_sources ()
 
-    inherit
-      generate_from_multiple_sources
-        ~new_track_on_source_switch:(fun () -> new_track_on_source_switch)
-        ~merge:(fun () -> merge && List.length (Atomic.get seq_sources) <> 1)
-        ~track_sensitive:(fun () -> true)
-        ()
+    (* Asked while the item that ends is still the head of the queue: a join
+       is merged by what is being left, the last item's own tracks are not
+       joins. *)
+    method private next_entry =
+      if merge && List.length (Atomic.get seq_sources) <> 1 then `Continue
+      else if new_track_on_source_switch then `Track
+      else `As_is
 
     method private self_sync =
       ( self_sync_type (),
@@ -47,56 +49,52 @@ class sequence ?(name = "sequence") ?(merge = false)
           | hd :: _ -> snd hd#cached_self_sync
           | [] -> None )
 
+    (* The last item plays whenever an earlier one has nothing to deliver. *)
     method fallible =
-      match List.rev sources with hd :: _ -> hd#fallible | [] -> true
+      match List.rev sources with last :: _ -> last#fallible | [] -> true
 
-    (* We have to wait until at least one source is ready. *)
-    val mutable has_started = false
     method queue = Atomic.get seq_sources
 
-    method private has_started =
-      match has_started with
-        | true -> true
-        | false ->
-            has_started <- List.exists (fun s -> s#is_ready) self#queue;
-            has_started
+    (* The item says that it is finished: its track ended, or it will never
+       deliver again. An item that only has nothing to deliver now is waited
+       for, unless the last item can play: the sequence then moves on rather
+       than deliver nothing. *)
+    method private finished ~boundary ~last s =
+      (boundary && single_track) || s#exhausted
+      || ((not s#is_ready) && last#is_ready)
 
-    method private get_stateful_source ?(source_skipped = false) ~reselect () =
-      match (self#has_started, self#queue) with
-        | _, [] -> None
-        | true, s :: [] ->
-            if
-              self#can_reselect
-                ~reselect:(match reselect with `Force -> `Ok | _ -> reselect)
-                s
-            then Some s
-            else None
-        | true, s :: rest ->
-            if
-              self#can_reselect
-                ~reselect:
-                  (match reselect with
-                    | `After_position _
-                      when (not source_skipped) && single_track ->
-                        `Force
-                    | v -> v)
-                s
-            then Some s
-            else (
-              self#log#info "Finished with %s" s#id;
-              Atomic.set seq_sources rest;
-              self#release_source s;
-              (* The source we just moved to has not been read yet during this
-                 streaming cycle, so a position constraint computed against the
-                 source we are done with does not apply to it. Carrying
-                 `After_position` over rejects a source that has no more samples
-                 available than the one it follows, silently dropping its first
-                 chunk along with the metadata it carries. *)
-              self#get_stateful_source ~source_skipped:true ~reselect:`Ok ())
-        | _ -> None
+    (* The items that are finished, and what is left of the queue with the
+       item to play at its head. [boundary] is about the head only. Changes
+       nothing. *)
+    method private next_item ~boundary =
+      let rec skip ~boundary finished = function
+        | s :: rest
+          when rest <> []
+               && self#finished ~boundary ~last:(List.hd (List.rev rest)) s ->
+            skip ~boundary:false (s :: finished) rest
+        | queue -> (List.rev finished, queue)
+      in
+      skip ~boundary [] self#queue
 
-    method private get_source ~reselect () =
-      self#get_stateful_source ~reselect ()
+    (* What a probe decided: acted on when the frame is read. *)
+    val mutable decided = ([], [])
+
+    method private choose_next_source ~boundary =
+      decided <- self#next_item ~boundary;
+      match snd decided with s :: _ -> s#is_ready | [] -> false
+
+    method private enter_chosen_source =
+      let finished, queue = decided in
+      if finished <> [] then (
+        self#leave_source;
+        Atomic.set seq_sources queue;
+        List.iter
+          (fun s ->
+            self#log#info "Finished with %s" s#id;
+            self#release_source s)
+          finished);
+      decided <- ([], queue);
+      match queue with s :: _ -> Some s | [] -> None
 
     method remaining =
       if merge then (
@@ -109,12 +107,23 @@ class sequence ?(name = "sequence") ?(merge = false)
         | s :: _ -> s#effective_source
         | _ -> (self :> Source.source)
 
+    (* The track of the item being read is over. A merged sequence is one
+       track: aborting it also drops every item up to the last one, which is
+       then entered at its start. *)
     method abort_track =
-      if merge then (
-        match List.rev self#queue with
-          | [] -> assert false
-          | hd :: _ -> Atomic.set seq_sources [hd]);
-      match self#queue with hd :: _ -> hd#abort_track | _ -> ()
+      self#end_track;
+      (match self#queue with
+        | [] -> ()
+        | current :: rest ->
+            current#abort_track;
+            if merge && rest <> [] then (
+              let last = List.hd (List.rev rest) in
+              let dropped = List.filter (fun s -> s != last) self#queue in
+              self#leave_source;
+              Atomic.set seq_sources [last];
+              List.iter self#release_source dropped));
+      (* What a probe decided before the abort no longer applies. *)
+      decided <- ([], self#queue)
   end
 
 class merge_tracks source =

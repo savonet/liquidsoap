@@ -1,12 +1,17 @@
 # Clock specification
 
 What a clock MUST, SHOULD and MAY do. It is written to be implemented from,
-without the code in view.
+without the code in view, under the [conventions](../../../spec/conventions.md)
+and [principles](../../../spec/principles.md) of the project.
 
-**Scope.** Clocks, their registry, unification, the tick, pacing, the
-animator, failure, and what a clock reports about itself. Sources, outputs,
-the scheduler and the time sources appear only as the contracts the clock
-relies on, each stated where it is used.
+**Scope.** Clocks, their registry, unification, the tick and its streaming
+cycles, pacing, the animator, failure, and what a clock reports about
+itself. Sources are the [streaming model](../../source/spec/README.md)'s and
+outputs the [output base](../../outputs/spec/output.md)'s; the operator's
+side of a child clock is
+[child-clock.md](../../source/spec/child-clock.md). The scheduler and the
+time sources appear only as the contracts the clock relies on, each stated
+where it is used.
 
 **Reading order**, which is also the order to build in:
 

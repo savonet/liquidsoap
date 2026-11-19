@@ -166,7 +166,18 @@ let callback { name; params; descr; arg_t; register } : _ Lang.meth =
           (fun p ->
             let synchronous = Lang.to_bool (List.assoc "synchronous" p) in
             let fn = assoc "" 1 p in
-            let fn args = ignore (apply fn args) in
+            (* A handler that raises is logged and the source goes on
+               (src/spec/faults.md §0). Some fire every frame: the log is
+               bounded. *)
+            let faults = Faults.create s#log in
+            let fn args =
+              try ignore (apply fn args)
+              with Runtime_error.Runtime_error _ as error ->
+                let backtrace = Printexc.get_raw_backtrace () in
+                Faults.script_error faults
+                  ~kind:(Printf.sprintf "%s callback of %s" name s#id)
+                  error backtrace
+            in
             let fn =
               if synchronous then fn
               else fun args ->
@@ -654,7 +665,7 @@ let source_methods : source_meth list =
       value =
         (fun s ->
           val_fun [] (fun _ ->
-              s#abort_track;
+              s#request_abort;
               unit));
     };
     {
@@ -787,18 +798,16 @@ let source_composition_methods : source_meth list =
       name = "on_leave";
       scheme =
         (fun source_t ->
-          let arg_t =
-            record_t [("source", source_t); ("track_sensitive", bool_t)]
-          in
+          let arg_t = record_t [("source", source_t); ("preempted", bool_t)] in
           ([], fun_t [(false, "", arg_t)] unit_t));
       descr =
         "Called after switching away from this source in a switch operator, \
          once the transition using the ending source has completed. Receives a \
-         record with `source` (the source being left) and `track_sensitive` \
-         (`true` if the ending source's last frame had a track mark, i.e. it \
-         finished naturally; `false` if it was preempted mid-track). This \
-         function must return quickly as it runs in the streaming thread. The \
-         default depends on the active composition profile: file sources \
+         record with `source` (the source being left) and `preempted` (`true` \
+         if the switch cut into a track the source was still playing, `false` \
+         if it had nothing left for its current track). This function must \
+         return quickly as it runs in the streaming thread. The default \
+         depends on the active composition profile: file sources \
          (`source.composition.file`) skip the source when preempted mid-track \
          so it starts fresh on its next selection, and do nothing when it \
          finished naturally; live sources (`source.composition.live`) do \
@@ -873,6 +882,13 @@ let composition_setup_of_category = function
 *)
 let setup_composition ~category src =
   let tag_opt, descr_opt = composition_setup_of_category category in
+  let tag_opt =
+    (* A source that never ends a track is left like a live one: waiting for
+       its track boundary would hold on to it for ever. *)
+      match tag_opt with
+      | Some `File when src#endless -> Some `Live
+      | tag -> tag
+  in
   Option.iter src#set_composition tag_opt;
   match descr_opt with
     | None -> []
@@ -907,9 +923,7 @@ let register_composition_module ~base () =
   let on_leave_t =
     fun_t
       [
-        ( false,
-          "",
-          record_t [("source", source_frame_t); ("track_sensitive", bool_t)] );
+        (false, "", record_t [("source", source_frame_t); ("preempted", bool_t)]);
       ]
       unit_t
   in

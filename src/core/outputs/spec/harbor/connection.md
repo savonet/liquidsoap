@@ -72,7 +72,9 @@ charset. The function is called with one record:
 
 `true` passes. `false` refuses as _wrong credentials_. A function that raises
 the error kind `error.icecast.server.mount_taken` gets the 403 reply below;
-any other exception is logged and the connection is closed with no reply.
+any other exception is logged and the connection is closed with no reply:
+a raise here is a refused handshake
+([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)).
 Either refusal is logged as `Listener <peer:port> failed to authenticate`.
 
 Replies; the status line is `HTTP/1.0` whatever the request version, and the
@@ -130,7 +132,9 @@ optional and nullable: `refuse`, `time_limit`, `preroll`, `headers`,
     count, a slot). Every admission ends in exactly one of `on_connect` (then,
     later, `on_disconnect`) or `on_dropped`. The output validates every
     decision and decides no policy: it only reports that the admission did not
-    complete. A handler that raises is logged and has no other effect.
+    complete. A handler that raises is logged at `severe` with its backtrace
+    and has no other effect
+    ([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)).
 - `refuse = {status, reason, headers?}` refuses it with
   `HTTP/<protocol> <status> <reason>\r\n`, each header as `<name>: <value>\r\n`
   in order, a `Content-Length: 0` header and an empty body, then closes the

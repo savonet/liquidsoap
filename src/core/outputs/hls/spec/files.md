@@ -85,9 +85,9 @@ the output directory sees a final name only with its complete content.
 
 An exception in step 1 drops the segment
 ([segmenting.md §6](segmenting.md#6-opening-a-segment)) and ends the run.
-An exception after step 1 (a synchronous callback, a playlist write) ends
-the run once the remaining steps have run: a renamed segment is always
-listed. Reason: a published playlist never names a file that is gone, a
+An exception after step 1 (a playlist write) ends the run once the
+remaining steps have run: a renamed segment is always listed. A raising
+callback in step 4 ends nothing (§8). Reason: a published playlist never names a file that is gone, a
 file is deleted only after the playlist that drops it is published, and
 numbering never skips a published segment.
 
@@ -176,5 +176,8 @@ playlist; never for temporary files or the persisted state. While the
 output tracks a file: one `created` or `updated` first (`updated` when it
 replaced a file left by an earlier process), then any `updated`, then at
 most one `deleted`. The file is complete when `created` or `updated` fires.
-Callbacks registered with `synchronous=true` run in the streaming cycle, in
-registration order; an exception they raise ends the run as §4 says.
+Callbacks are registered, ordered and run as every source callback
+([source-contract.md §10](../../../source/spec/source-contract.md#10-callbacks)):
+with `synchronous=true` they run in the streaming cycle. One that raises is
+logged at `severe` with its backtrace; the output goes on, and the segment,
+its numbering and the playlists are as if it had returned.

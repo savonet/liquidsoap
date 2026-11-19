@@ -45,14 +45,14 @@ sets the blocking mode it uses afterwards.
    and the events that are ready; without one, take the socket out of the
    set.
 
-| Wait result     | Next                                                                       |
-| --------------- | -------------------------------------------------------------------------- |
-| sockets ready   | step 2, then the next iteration                                            |
-| timeout         | the next iteration                                                         |
-| empty set       | sleep until a registration wakes the thread                                |
-| any other error | log at level 2 `Error while processing SRT sockets: <exn>`, next iteration |
+| Wait result     | Next                                                                        |
+| --------------- | --------------------------------------------------------------------------- |
+| sockets ready   | step 2, then the next iteration                                             |
+| timeout         | the next iteration                                                          |
+| empty set       | sleep until a registration wakes the thread                                 |
+| any other error | log at `severe` `Error while processing SRT sockets: <exn>`, next iteration |
 
-An exception from a handler is logged at level 2 with its backtrace and the
+An exception from a handler is logged at `severe` with its backtrace and the
 iteration goes on with the next socket. The loop MUST keep serving while its
 set holds a socket: no error stops it or puts it to sleep.
 

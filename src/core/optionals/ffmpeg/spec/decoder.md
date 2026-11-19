@@ -20,8 +20,8 @@ The decoder relies on the FFmpeg bindings
 the display stage of [side-data.md §3](side-data.md#3-autorotate-on-decoding),
 on the helper graphs of [filters.md §16](filters.md#16-helper-graphs), on the
 units, conversion and duration helper of [common.md](common.md), on the
-draining rule of [draining.md](draining.md), and on the fault model of
-[faults.md](faults.md), which classifies every fault this file detects
+draining rule of [draining.md](../../../source/spec/draining.md), and on the fault model of
+[faults.md](../../../../spec/faults.md), which classifies every fault this file detects
 (§13.2). Generic decoder and request
 machinery is stated only where this decoder relies on it.
 
@@ -335,7 +335,7 @@ decoder for decoding opens later and takes the configuration. A stream added
 after the open is not configured.
 
 A key set to a name FFmpeg has no decoder for is a configuration error
-([faults.md §2](faults.md#2-classes)), raised when the setting is set, so a
+([faults.md §2](../../../../spec/faults.md#2-classes)), raised when the setting is set, so a
 script that names an unavailable decoder fails before it streams. A decoder
 that exists but cannot open a given stream is a source fault of that input
 (§13.2).
@@ -485,7 +485,7 @@ Decreasing timestamps never reach a decoder (§9.2).
 
 ### 7.6 Flush
 
-`Flush` drains the decoder ([draining.md](draining.md)): every stage it holds
+`Flush` drains the decoder ([draining.md](../../../source/spec/draining.md)): every stage it holds
 is told that no more input follows, and everything they then produce is put
 on the field, in order, as ordinary output. After `Flush` the decoder holds
 nothing. `switch` drains in the same way the data that belongs to the
@@ -500,7 +500,7 @@ by every non-sparse stream. It lets them fill their field up to `p` when no item
 ### 7.8 Errors and logs
 
 What the decoder drops and why, and what it logs, each fault with its class
-([faults.md §2](faults.md#2-classes)). A dropped item is either specified
+([faults.md §2](../../../../spec/faults.md#2-classes)). A dropped item is either specified
 with its reason or an item fault logged as a warning and counted toward the
 loop's bound (§8.2). A per-stream decoder never raises out of an item call:
 it reports an item fault (the item is dropped) or a source fault (the loop
@@ -555,9 +555,9 @@ The caller (the generic file decoder, `input.ffmpeg`, the harbor) calls
 
 `decode` never raises while the input streams: every outcome above is a
 result the caller reads (data, end of input, abort, or a source fault with
-its error). The caller applies [faults.md §3](faults.md#3-source-faults-reach-the-script).
+its error). The caller applies [faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script).
 
-`max_consecutive_faults` ([faults.md §4](faults.md#4-item-faults-escalate))
+`max_consecutive_faults` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate))
 counts every item the decoder rejects (an `Invalid_data` read, a decreasing
 timestamp of §9.2, an item a per-stream stage fails on, §13.2) and is reset
 by every item released successfully. It bounds the time a decode step can
@@ -566,7 +566,7 @@ the caller forever, and it is what tells a glitch (dropped, decoding goes on)
 from media that cannot be decoded any further (the input ends). Past it, the item faults become a source fault. The first drop of each kind
 is logged as a warning; repeats are counted and logged with their count at
 most once per `fault_log_interval`
-([faults.md §4](faults.md#4-item-faults-escalate)). Faults whose item carries
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). Faults whose item carries
 no media (a metadata entry, a seek) are logged the same way and not counted.
 
 ### 8.3 Positions and sparse advance
@@ -591,7 +591,7 @@ plus its duration (the PTS alone when it has no duration).
   - copy streams and sparse streams: `o_s = B`;
   - decoded streams (internal and raw): `o_s = B` as well. A decoded field
     cannot start with a gap without inventing content
-    ([faults.md §3](faults.md#3-source-faults-reach-the-script)), so §8.5
+    ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)), so §8.5
     starts every stream of a mapping that holds a decoded stream at one start
     point: each decoded stream's first item contains it, and its position 0
     is that item, to within one item of `B`.
@@ -662,7 +662,7 @@ input whose video comes after its audio), so the decoder keeps waiting with a
 `max_interleave_duration`, it drops the oldest queued items. This is an
 intended discard, not an item fault: it is logged once as a warning naming the
 streams not seen, and the dropped items are counted in that log at the
-interval of [faults.md §4](faults.md#4-item-faults-escalate). Meanwhile
+interval of [faults.md §4](../../../../spec/faults.md#4-item-faults-escalate). Meanwhile
 `decode` returns no data, so a live source is not ready until the stream
 appears; the mapping then starts as case 1. End of input (case 3) releases
 what the window holds: a file whose stream never appears plays the other
@@ -1052,7 +1052,7 @@ number of ticks it moved.
    keeps its mapping, position and target unchanged, and returns 0. FFmpeg
    leaves the input where it was on failure.
 6. On success the decoder discards what the current mapping holds, without
-   draining it ([draining.md §5](draining.md#5-discarded-on-purpose)): the
+   draining it ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)): the
    per-stream decoders and the pending queue. It builds a new mapping (§6)
    with the same `decode_first_metadata`, a new stream index and fresh
    positions, and sets the target `T`. Downstream sees a source switch.
@@ -1086,7 +1086,7 @@ already drained FFmpeg's frame decoders: every frame they held has been
 returned. The decoder signals end of input to its caller as end of input,
 distinct from an error; a normal end of file logs at info level at most.
 
-`eof` drains the decoder ([draining.md](draining.md)), upstream first:
+`eof` drains the decoder ([draining.md](../../../source/spec/draining.md)), upstream first:
 
 1. When the mapping has not started, it starts (§8.4, case 3) and the pending
    queue is released.
@@ -1101,13 +1101,13 @@ delivered. When fields have different lengths at that point (a copied audio
 stream that ends 60 ms after its video, for instance), the track ends at
 the end of the longest field and the longest is never cut to the shortest.
 The tail of a shorter field carries no data: a gap, never invented content
-([faults.md §3](faults.md#3-source-faults-reach-the-script)). Example:
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)). Example:
 in [timestamps.md §11.1](timestamps.md#111-container-start),
 the final audio packet ends after the video and MUST reach the output.
 
 Conformance:
 
-- [draining.md §6](draining.md#6-conformance), for each per-stream decoder
+- [draining.md §6](../../../source/spec/draining.md#6-conformance), for each per-stream decoder
   family: copy, raw and internal paths of one file give the same number of
   packets, frames or samples as the file holds, the last copied packet
   included, with and without a video field. For an all-copy mapping the
@@ -1116,7 +1116,7 @@ Conformance:
 
 ### 13.2 Errors
 
-Every fault is placed in a class of [faults.md §2](faults.md#2-classes).
+Every fault is placed in a class of [faults.md §2](../../../../spec/faults.md#2-classes).
 
 | Where                   | Fault                                                                                       | Class                | Effect                                                                                 |
 | ----------------------- | ------------------------------------------------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------- |
@@ -1139,16 +1139,17 @@ Every fault is placed in a class of [faults.md §2](faults.md#2-classes).
 | metadata (§10.3, §10.4) | unparsable timed ID3 payload or `duration` tag                                              | item fault           | entry dropped with a warning; not counted                                              |
 | `seek` (§12)            | container seek failure; seek after a discontinuity                                          | item fault           | warning, returns 0; not counted                                                        |
 
-Faults in the data are contained to the smallest unit that holds them: an
+Faults in the data are contained to the smallest unit that holds them
+([faults.md §0](../../../../spec/faults.md#0-the-rule)): an
 item is dropped with a warning when decoding can continue without it; the
 input ends only when it cannot. Nothing raises out of `decode`, `seek` or
 `eof` while the input streams: a source fault is a result of `decode`, read
 by the caller.
 
-A source fault reaches the script as [faults.md §3](faults.md#3-source-faults-reach-the-script)
+A source fault reaches the script as [faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)
 states: the decoder ends the track at the fault, logs the error at error
 level, and drains every stage except the one that failed
-([draining.md §5](draining.md#5-discarded-on-purpose)), so content decoded
+([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)), so content decoded
 before the fault reaches the output. The decoder never invents content. The
 decoder is not a source: what follows the end of track (not ready for a
 fallible source, a hard error for an infallible one) is its caller's, from
@@ -1262,7 +1263,7 @@ On an item, with `(q, d, data) = process item`:
    filled past its position (an `advance` from other streams went further).
    When `q + d ≤ p` the item has already ended: an item fault, dropped with
    a warning and counted toward `max_consecutive_faults`, since it carries
-   media ([faults.md §4](faults.md#4-item-faults-escalate)).
+   media ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).
    Otherwise it is delayed by `p − q` (its end kept) and joins `pending` as in
    step 3.
 

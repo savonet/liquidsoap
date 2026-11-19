@@ -1,12 +1,12 @@
 # Concurrency and ownership
 
 What work exists, its scheduler class, what it waits on, who may touch which
-part of a listener, and the guarantees that follow. The rules are owned by the
-documents linked; this file states how they fit together.
-
-Every decision about domains, thread counts and where work runs belongs to
-the scheduler ([contracts.md §5](contracts.md#5-scheduler)). The operator
-states only the classes below and creates no thread of its own.
+part of a listener, and the guarantees that follow, under the project's
+concurrency rules ([concurrency.md](../../../../spec/concurrency.md)): work
+classes and placement (§1), the streaming thread (§2), resources closed
+exactly once (§4). The rules are owned by the documents linked; this file
+states how they fit together. The operator creates no thread of its own
+([contracts.md §5](contracts.md#5-scheduler)).
 
 ## 1. Work
 
@@ -55,7 +55,8 @@ and teardown, never in a delivery pass.
    closed and its socket closed, including one published concurrently with
    the stop ([delivery.md §7](delivery.md#7-stopping)).
 5. **A socket is closed once, by its owner, when no other work uses it**
-   ([delivery.md §8](delivery.md#8-removal-and-socket-close)).
+   ([concurrency.md §4](../../../../spec/concurrency.md#4-resources);
+   who owns it: [delivery.md §8](delivery.md#8-removal-and-socket-close)).
 6. **The streaming clock never waits on a listener.** It appends, wakes and
    returns; wake-ups do not block. In dedicated mode it also encodes per
    listener ([dedicated-encoder.md](dedicated-encoder.md)), which is CPU work,

@@ -51,8 +51,9 @@ test.check(
       o = output.dummy(fallible=true, r)
       thread.run.recurrent(
         fun () ->
+          # A request becomes current when the source is first read.
           if
-            not r.is_ready()
+            not null.defined(r.current())
           then
             0.1
           else

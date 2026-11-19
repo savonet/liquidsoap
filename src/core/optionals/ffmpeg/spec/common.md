@@ -10,11 +10,11 @@ contexts for encoders, and what exists when Liquidsoap is built without
 FFmpeg. It owns one principle for the whole layer: every length or position
 derived from timestamps is computed against an absolute origin
 ([§6.0](#60-absolute-origin)). Every fault this file detects is placed in a
-class of [faults.md](faults.md) (§13 lists them), and every helper states
+class of [faults.md](../../../../spec/faults.md) (§13 lists them), and every helper states
 what its caller does with it. The helpers own no source: they report item
 and source faults to their caller, which contains them as
-[faults.md §3](faults.md#3-source-faults-reach-the-script) and
-[§4](faults.md#4-item-faults-escalate) require. Nothing here raises out of a
+[faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script) and
+[§4](../../../../spec/faults.md#4-item-faults-escalate) require. Nothing here raises out of a
 source while it streams. It relies on the bindings' specs
 ([avutil.md](../../../../modules/synced/ffmpeg/spec/avutil.md) §4.7, §4.11,
 §4.13, §4.18, §7.1 and
@@ -76,7 +76,7 @@ Liquidsoap log like any other. The bridge is therefore set up in two steps:
 **Verbosity values.** `"quiet"`, `"panic"`, `"fatal"`, `"error"`,
 `"warning"`, `"info"`, `"verbose"`, `"debug"` and `"trace"` map to FFmpeg's
 levels of the same names. Any other value is a configuration error
-([faults.md §2](faults.md#2-classes)) at start-up, naming the value and the accepted ones.
+([faults.md §2](../../../../spec/faults.md#2-classes)) at start-up, naming the value and the accepted ones.
 
 **Each captured message.** The bridge strips a captured message of leading
 and trailing whitespace and logs it under the label `ffmpeg`. Its Liquidsoap
@@ -85,13 +85,15 @@ FFmpeg severity maps to:
 
 | FFmpeg severity                     | Mapped Liquidsoap level |
 | ----------------------------------- | ----------------------- |
-| `panic`, `fatal`                    | 1                       |
-| `error`                             | 2                       |
-| `warning`                           | 3                       |
-| `info`, `verbose`, `debug`, `trace` | 4                       |
+| `panic`, `fatal`                    | `critical` (1)          |
+| `error`                             | `severe` (2)            |
+| `warning`                           | `important` (3)         |
+| `info`, `verbose`, `debug`, `trace` | `info` (4)              |
 
-With the default `level` of 3, an FFmpeg error appears at level 2 and every
-other message at level 3. Reason: an FFmpeg error is often the only account
+The setting `level` is numeric, the levels counted 1 to 5 as in
+[conventions.md §4](../../../../spec/conventions.md#4-logs-and-errors).
+With the default `level` of 3 (`important`), an FFmpeg error appears at `severe` and every
+other message at `important`. Reason: an FFmpeg error is often the only account
 of why a stream failed, and it must stand out from FFmpeg's routine output.
 The bindings deliver each message's severity with its text.
 
@@ -109,8 +111,8 @@ as `[ffmpeg:3] [mp3 @ 0x…] Estimating duration from bitrate, this may be inacc
 Conformance:
 
 - A message FFmpeg emits during script evaluation reaches the Liquidsoap log.
-- With the defaults, an FFmpeg error is logged at level 2 and an FFmpeg
-  warning at level 3.
+- With the defaults, an FFmpeg error is logged at `severe` and an FFmpeg
+  warning at `important`.
 - With `capture` false, no FFmpeg message emitted after the start phase
   reaches the Liquidsoap log.
 
@@ -118,11 +120,11 @@ Conformance:
 
 - When the FFmpeg layer is loaded, it registers FFmpeg's input and output
   devices ([avdevice.md](../../../../modules/synced/ffmpeg/spec/avdevice.md)).
-- At Liquidsoap's init phase, the layer SHOULD log at level 3 under `ffmpeg`
+- At Liquidsoap's init phase, the layer SHOULD log at `important` under `ffmpeg`
   the versions of libavutil, libavformat, libavcodec, libswresample and
   libswscale, each as `major.minor.micro`. Example:
   `libavutil 61.7.100, libavformat 63.7.100, libavcodec 63.14.100, libswresample 7.3.100, libswscale 10.2.100`.
-- An encoder that is not found is a configuration error ([faults.md §2](faults.md#2-classes)),
+- An encoder that is not found is a configuration error ([faults.md §2](../../../../spec/faults.md#2-classes)),
   raised when the format is evaluated. The error names the requested codec
   and says that the FFmpeg in use was built without it.
 
@@ -160,7 +162,7 @@ so every timestamp the layer computes agrees with FFmpeg's own.
 1. A time base is a rational `num/den` with `num > 0` and `den > 0`. A time
    base read from media with a zero or negative component is invalid media:
    the reader that obtains it (stream opening, chunk reception) treats it as
-   a source fault ([faults.md §3](faults.md#3-source-faults-reach-the-script)):
+   a source fault ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)):
    it ends that track, and the output keeps streaming.
    Readers never pass such a time base to `rescale`; `rescale` given one is
    a programming error and raises.
@@ -173,8 +175,8 @@ so every timestamp the layer computes agrees with FFmpeg's own.
 4. A result outside the signed 64-bit range is not an integer: `rescale`
    returns "out of range" as a distinct result, never a wrapped value. The
    caller drops the item that carries the timestamp: an item fault
-   ([faults.md §4](faults.md#4-item-faults-escalate)), logged with the value
-   and the time bases and counted against `max_consecutive_faults` ([faults.md §4](faults.md#4-item-faults-escalate)).
+   ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)), logged with the value
+   and the time bases and counted against `max_consecutive_faults` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).
 
 Reason for rounding to nearest: truncation biases every converted value in
 one direction, so two conversions of one timestamp along different paths
@@ -279,9 +281,9 @@ The lengths of the chunks emitted by `push` add up to
 take the item: the result is "discontinuity". Recommended value: 1024. The
 bound protects memory against a stream whose timestamps never advance.
 Holding a group is a wait on data
-([faults.md §5](faults.md#5-waiting)), and `max_group_items` is its bound.
+([faults.md §5](../../../../spec/faults.md#5-waiting)), and `max_group_items` is its bound.
 
-`max_consecutive_faults` ([faults.md §4](faults.md#4-item-faults-escalate))
+`max_consecutive_faults` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate))
 bounds consecutive item faults of one source. The helper counts its
 own drops against it. A user that drops items for other reasons (an
 out-of-range timestamp, §5; an image that fails to unpack, §8; a converter
@@ -289,20 +291,21 @@ failure, [converters.md](converters.md)) counts them against the same bound
 and resets the count on the next item it delivers. Past the bound, the run is
 a source fault. The first drop of a run is logged as a warning; repeats are
 counted and logged with their count every `fault_log_interval`
-([faults.md §4](faults.md#4-item-faults-escalate)), which owns both
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)), which owns both
 parameters and their values.
 
 **What the caller does.** "Dropped" is an item fault: the caller delivers
 nothing for it and streaming goes on. "Discontinuity" is a source fault
-([faults.md §3](faults.md#3-source-faults-reach-the-script)): the input's
+([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)): the input's
 timestamps no longer describe a timeline. The caller flushes the helper
 (§6.3), passes the chunk on, and ends its track at that point, logged at
-error level. Its source then follows faults.md §3: a fallible source is not
-ready until it can produce data again, an infallible source that cannot produce content is a hard error and the script fails. No source produces filler.
+error level. Its source then follows
+[faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)
+(not ready while fallible, a hard error while infallible, no filler).
 
 ### 6.3 `flush t`
 
-`flush` drains the helper ([draining.md](draining.md)) and ends it.
+`flush` drains the helper ([draining.md](../../../source/spec/draining.md)) and ends it.
 
 1. When the group is empty, `flush` returns nothing.
 2. Otherwise `flush` empties the group and returns the chunk
@@ -331,12 +334,12 @@ duration, the previous step is the best estimate of how long they play.
 
 ### 6.5 Draining and discarding
 
-The helper is a stage in the sense of [draining.md](draining.md). At every
+The helper is a stage in the sense of [draining.md](../../../source/spec/draining.md). At every
 event that ends the helper (end of input, replacement, end of its stream,
 output stop or restart), its user first drains the stage that feeds it and
 pushes what that stage releases, then calls `flush` and passes the returned
 chunk downstream as ordinary output. At a seek, or after an error of the
-stage that feeds it ([draining.md §5](draining.md#5-discarded-on-purpose)), the user drops the
+stage that feeds it ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)), the user drops the
 helper without flushing it.
 
 ### 6.6 Conformance
@@ -407,8 +410,8 @@ convert into each other:
     Y stride: the image has alpha;
   - any other plane count or stride layout raises an error that names the
     plane count and the strides. The caller catches it, drops that image as
-    an item fault ([faults.md §4](faults.md#4-item-faults-escalate)) counted
-    against `max_consecutive_faults` ([faults.md §4](faults.md#4-item-faults-escalate)), and goes on with the next one.
+    an item fault ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) counted
+    against `max_consecutive_faults` ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)), and goes on with the next one.
 
 ## 9. Video format comparison
 
@@ -464,7 +467,7 @@ video converter
 ([converters.md §4](converters.md#4-the-ffmpeg-video-converter)).
 
 - **Algorithm**: the swscale flag of the same name. An unknown value is a
-  configuration error ([faults.md §2](faults.md#2-classes)), raised at start-up, before any scaler
+  configuration error ([faults.md §2](../../../../spec/faults.md#2-classes)), raised at start-up, before any scaler
   exists. A value set while streaming is checked when it is set; an unknown
   one is rejected and the previous value stays. Frame fitting passes the
   value as the `flags` option of a `scale` filter
@@ -511,20 +514,20 @@ encoder parameters themselves are
    - `frame`: create a device context of type `d`, then a frame context of
      the target size from `tpf` to `hw`; return (frame context, `hw`).
 
-   When creating a context fails, the failure is logged at level 3 naming
+   When creating a context fails, the failure is logged at `important` naming
    the codec and the method, and the next candidate is tried.
 
 5. **None returned.** When `hwaccel` is not `auto`, the requested method
    cannot be met. This follows from the configuration and the host, so it is
-   a configuration error ([faults.md §2](faults.md#2-classes)) whenever it
+   a configuration error ([faults.md §2](../../../../spec/faults.md#2-classes)) whenever it
    shows, at the first build or at a later rebuild: the script fails with an
    `encoder` error naming `hwaccel`, the codec and, when a context creation failed, the last
    failure. With `auto`, return (no context, `tpf`); when the codec lists at
-   least one configuration, log at level 3 that the codec encodes in
+   least one configuration, log at `important` that the codec encodes in
    software.
 
 A candidate that does not fit, and a configuration whose only method is
-`ad_hoc`, SHOULD be logged at level 4, naming the codec and the reason. An
+`ad_hoc`, SHOULD be logged at `info`, naming the codec and the reason. An
 unnamed pixel format is logged as `none`.
 
 Conformance:
@@ -564,7 +567,7 @@ Conformance:
 | encoder not found                                | configuration error               | §3      | error at evaluation of the format                              |
 | unknown configured pixel format                  | configuration error               | §7      | `encoder` error at the format's script position                |
 | explicit `hwaccel` that cannot be met            | configuration error               | §11     | the script fails, whenever it shows                            |
-| a hardware context creation fails                | none: the next candidate is tried | §11     | logged at level 3                                              |
+| a hardware context creation fails                | none: the next candidate is tried | §11     | logged at `important`                                          |
 | time base with a component ≤ 0 in media          | source fault                      | §5      | the reader ends its track                                      |
 | timestamp whose conversion is out of range       | item fault                        | §5      | the item is dropped, counted against `max_consecutive_faults`  |
 | decreasing timestamp                             | item fault                        | §6.2    | the item is dropped, counted against `max_consecutive_faults`  |
@@ -572,7 +575,7 @@ Conformance:
 | group past `max_group_items`                     | source fault (bounded wait)       | §6.2    | the caller ends its track                                      |
 | image that fails to unpack                       | item fault                        | §8      | the image is dropped, counted against `max_consecutive_faults` |
 
-Classes are those of [faults.md §2](faults.md#2-classes). A push to an ended
+Classes are those of [faults.md §2](../../../../spec/faults.md#2-classes). A push to an ended
 helper, a time base with a component ≤ 0 given to `rescale`, and stand-ins
 registered beside the real kinds are programming errors of the layer, not
 faults of the data or the configuration: they raise and are fixed in the

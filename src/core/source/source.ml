@@ -47,6 +47,14 @@ module Per_cycle = struct
 end
 
 type readiness = { cached : int; can_generate : bool }
+
+(* Why a source's data stops where it does in a cycle. [`Pause]: the track
+   goes on, and the source must be asked again before it produces more. *)
+type segment_end = [ `Full | `Track_end | `Pause | `Late ]
+
+(* How the first sample that follows a track end is delivered: beginning a
+   track, continuing the current one, or as the source gives it. *)
+type entry = [ `Track | `Continue | `As_is ]
 type active = < id : string ; reset : unit ; output : unit >
 type source_type = [ `Passive | `Active of active | `Output of active ]
 type self_sync = Source_sync.t
@@ -256,7 +264,21 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       if self_sync then Some self#self_sync_source else None
 
     val mutable settled_self_sync : self_sync option = None
-    method source_state = Option.bind settled_self_sync snd
+
+    (* Set when a source changed what it reads after the answers of a cycle
+       were settled. The answer is then computed again the next time it is
+       asked for, from the answers below it, which are refreshed the same way:
+       a source created during the cycle closes it after its reader, so
+       refreshing in closing order would read it too early. *)
+    val mutable settled_stale = false
+
+    method private current_settled =
+      if settled_stale && self#is_up then (
+        settled_stale <- false;
+        settled_self_sync <- Some self#self_sync);
+      settled_self_sync
+
+    method source_state = Option.bind self#current_settled snd
     val mutable own_sync_source : Clock.Sync_source.t option = None
 
     method private set_sync_source sync_source =
@@ -266,7 +288,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
     val cycle_open = Atomic.make false
     val cycle_readiness : readiness Per_cycle.t = Per_cycle.make ()
-    val cycle_frame : Frame.t Per_cycle.t = Per_cycle.make ()
+    val cycle_produced : unit Per_cycle.t = Per_cycle.make ()
     val cycle_self_sync : self_sync Per_cycle.t = Per_cycle.make ()
 
     (* Outside a cycle this is the last answer settled: computing one would
@@ -275,7 +297,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       if Atomic.get cycle_open then
         self#per_cycle cycle_self_sync (fun () -> self#self_sync)
       else (
-        match settled_self_sync with
+        match self#current_settled with
           | Some settled -> settled
           | None -> self#self_sync)
 
@@ -457,7 +479,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           "source");
       WeakQueue.filter_out activations (fun a -> a == src);
       let frame_pending =
-        Atomic.get cycle_open && Per_cycle.find cycle_frame = None
+        Atomic.get cycle_open && Per_cycle.find cycle_produced = None
       in
       match (WeakQueue.length activations, Clock.started self#clock) with
         | 0, true when frame_pending ->
@@ -553,7 +575,22 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       else false
 
     val mutable _cache = None
-    val mutable consumed = 0
+
+    (* What the source produced in the running tick, placed in the frame from
+       [tick_start]. It is served to every reader of the tick at its own
+       position, and what no reader used is held when the tick is over. *)
+    val mutable tick_data : Frame.t option = None
+    val mutable tick_start = 0
+
+    (* The furthest position any reader used in the tick. *)
+    val mutable tick_used = 0
+
+    (* Why the data of the tick stops where it does. *)
+    val mutable tick_end : segment_end = `Late
+
+    (* Where the last request was served from: what its reader reports using
+       counts from there. *)
+    val mutable served_from = 0
 
     method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a =
       fun settled compute ->
@@ -582,54 +619,143 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private cache =
       match _cache with None -> self#empty_frame | Some c -> c
 
+    (* What was produced and not used belongs to the current track: a source
+       drops it when that track is aborted. *)
+    method private discard_held =
+      _cache <- None;
+      match tick_data with
+        | Some data ->
+            tick_data <-
+              Some (Frame.slice data (Int.max 0 (tick_used - tick_start)))
+        | None -> ()
+
     method private cache_pos =
       match _cache with None -> 0 | Some c -> Frame.position c
 
     method private readiness =
       self#per_cycle cycle_readiness (fun () ->
-          let cached = self#cache_pos in
-          { cached; can_generate = self#can_generate_frame })
+          (* What of the tick's data no reader used yet. *)
+          let in_tick =
+            match tick_data with
+              | Some data ->
+                  Int.max 0 (tick_start + Frame.position data - tick_used)
+              | None -> 0
+          in
+          {
+            cached = self#cache_pos + in_tick;
+            can_generate = self#can_generate_frame;
+          })
 
     method private ready =
       let { cached; can_generate } = self#readiness in
       cached > 0 || can_generate
 
-    method private generated_frame =
-      self#per_cycle cycle_frame (fun () ->
-          let { cached; can_generate } = self#readiness in
-          let size = Lazy.Mutexed.force Frame.size in
-          let buf =
-            if can_generate && cached < size then
-              Frame.append self#cache self#instrumented_generate_frame
-            else self#cache
-          in
-          if size < Frame.position buf then (
-            _cache <- Some (Frame.after buf size);
-            Frame.slice buf size)
-          else (
-            _cache <- None;
-            buf))
+    (* Produces, once per cycle, what follows the data of the tick: the most
+       the source can, up to the end of the frame. Nothing once that data
+       reaches the end of the frame. *)
+    method private produce ~position =
+      let size = Lazy.Mutexed.force Frame.size in
+      let start =
+        match tick_data with
+          | None -> position
+          | Some data -> tick_start + Frame.position data
+      in
+      if start < size && Per_cycle.find cycle_produced = None then
+        self#per_cycle cycle_produced (fun () ->
+            let room = size - start in
+            let can_generate = self#readiness.can_generate in
+            let buf =
+              if can_generate && self#cache_pos < room then
+                Frame.append self#cache self#instrumented_generate_frame
+              else self#cache
+            in
+            let buf =
+              if room < Frame.position buf then (
+                _cache <- Some (Frame.after buf room);
+                Frame.slice buf room)
+              else (
+                _cache <- None;
+                buf)
+            in
+            tick_end <- (if _cache <> None then `Full else self#frame_end buf);
+            match tick_data with
+              | Some data -> tick_data <- Some (Frame.append data buf)
+              | None ->
+                  tick_start <- start;
+                  tick_used <- start;
+                  tick_data <- Some buf;
+                  Clock.after_tick self#clock (fun () -> self#close_tick))
+
+    (* The data of the tick from [position], or from its start for a reader
+       before it. *)
+    method private serve ~position =
+      match tick_data with
+        | None ->
+            served_from <- position;
+            self#empty_frame
+        | Some data ->
+            let offset =
+              Int.min (Frame.position data) (Int.max 0 (position - tick_start))
+            in
+            served_from <- tick_start + offset;
+            Frame.after data offset
+
+    (* What no reader used is held, ahead of what was produced past the end of
+       the frame. *)
+    (* A relay that only passes on what the source it wraps delivers holds
+       nothing of its own: that source holds what no reader used. *)
+    method private holds_unused = true
+
+    method private close_tick =
+      (match tick_data with
+        | Some data
+          when self#holds_unused && tick_used - tick_start < Frame.position data
+          ->
+            _cache <-
+              Some
+                (Frame.append
+                   (Frame.after data (Int.max 0 (tick_used - tick_start)))
+                   self#cache)
+        | _ -> ());
+      tick_data <- None
+
+    (* Set from any thread, and from the callbacks of a cycle that is running.
+       The abort is carried out by the streaming thread once the running cycle
+       is over, or when the source's next cycle opens if that comes first: so
+       nothing changes under a cycle in progress, and any number of requests
+       amount to one. *)
+    val abort_requested = Atomic.make false
+
+    method private carry_out_abort =
+      if Atomic.exchange abort_requested false then self#abort_track
+
+    (* The source itself may be asleep: what it forwards the abort to is
+       not. With no clock running there is no cycle to wait for. *)
+    method request_abort =
+      Atomic.set abort_requested true;
+      match Clock.after_segment self#clock (fun () -> self#carry_out_abort) with
+        | () -> ()
+        | exception _ -> self#carry_out_abort
 
     (* The cycle counts as open only once its readiness is settled: a hook that
        closes the cycle and opens another one finds it not open yet. *)
     method private before_streaming_cycle =
       if not (Atomic.get cycle_open) then (
+        self#carry_out_abort;
         self#release_cycle_values;
         List.iter (fun fn -> fn ()) on_before_streaming_cycle;
-        consumed <- 0;
         ignore self#readiness;
         Atomic.set cycle_open true;
-        Clock.after_tick self#clock (fun () -> self#after_streaming_cycle);
+        Clock.after_segment self#clock (fun () -> self#after_streaming_cycle);
+        settled_stale <- false;
         settled_self_sync <- Some self#cached_self_sync)
 
     method private after_streaming_cycle =
-      (match Per_cycle.find cycle_frame with
-        | Some buf when consumed < Frame.position buf ->
-            _cache <- Some (Frame.append (Frame.after buf consumed) self#cache)
-        | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
       self#release_cycle_values;
-      Atomic.set cycle_open false
+      Atomic.set cycle_open false;
+
+      if Clock.sync_changed self#clock then settled_stale <- true
 
     (* Frame generation executes script callbacks which may read the source's
        frame again. Such a re-entrant call must not restart the generation, so
@@ -637,24 +763,84 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable generating = false
 
     method peek_frame =
-      match Per_cycle.find cycle_frame with
-        | Some data -> data
-        | None when not (Atomic.get cycle_open && self#ready) ->
-            log#critical "source called while not ready!";
-            raise Unavailable
-        | None when generating -> self#cache
-        | None ->
-            generating <- true;
-            Fun.protect
-              ~finally:(fun () -> generating <- false)
-              (fun () -> self#generated_frame)
+      let position = Clock.reading_position self#clock in
+      let covered =
+        match tick_data with
+          | Some data -> position < tick_start + Frame.position data
+          | None -> false
+      in
+      if covered then self#serve ~position
+      else if not (Atomic.get cycle_open && self#ready) then (
+        log#critical "source called while not ready!";
+        raise Unavailable)
+      else if generating then self#cache
+      else (
+        generating <- true;
+        Fun.protect
+          ~finally:(fun () -> generating <- false)
+          (fun () -> self#produce ~position);
+        self#serve ~position)
 
     method get_partial_frame cb =
       let data = cb self#peek_frame in
       self#consumed (Frame.position data);
       data
 
-    method consumed n = consumed <- Int.max consumed n
+    method consumed n = self#consumed_up_to (served_from + n)
+
+    (* Where, in the frame, the data last served starts. *)
+    method private served_from = served_from
+
+    (* Where, in the frame, a reader stopped using this source's data. *)
+    method consumed_up_to position = tick_used <- Int.max tick_used position
+
+    (* Whether the source never ends a track on its own. A rule that waits for
+       a track boundary would never let go of it. *)
+    method endless = false
+
+    (* Whether the source will never deliver again. Declared by the source,
+       never deduced from its having nothing to deliver now. An operator is
+       exhausted once everything it reads is. *)
+    method exhausted =
+      self#held = 0 && sources <> []
+      && List.for_all (fun (_, s) -> s#exhausted) sources
+
+    (* What the source produced and no reader used yet, in this tick and from
+       before it. A source holding data is not exhausted. *)
+    method private held =
+      let in_tick =
+        match tick_data with
+          | Some data ->
+              Int.max 0
+                (tick_start + Frame.position data - Int.max tick_start tick_used)
+          | None -> 0
+      in
+      self#cache_pos + in_tick
+
+    (* Why the data produced in this cycle stops where it does. Only the
+       source knows: a short frame alone says nothing. *)
+    method segment_end : segment_end =
+      match tick_data with None -> `Late | Some _ -> tick_end
+
+    (* An operator's frame ends where that of what it relays does, for the
+       same reason. A source that ends a track on its own states it with a
+       mark at the end of its data. An operator over several sources cannot
+       tell whose track is its own: when one of them stopped, it only says
+       that it must be asked again. *)
+    method private frame_end frame : segment_end =
+      let stopped s =
+        match s#segment_end with
+          | `Track_end | `Pause -> true
+          | `Full | `Late -> false
+      in
+      if List.mem (Frame.position frame) (Frame.track_marks frame) then
+        `Track_end
+      else (
+        match sources with
+          | [(_, s)] when stopped s -> s#segment_end
+          | _ when List.exists (fun (_, s) -> stopped s) sources -> `Pause
+          | _ -> if Frame.is_partial frame then `Late else `Full)
+
     method get_frame = self#get_partial_frame (fun f -> f)
 
     method get_mutable_content field =
@@ -968,131 +1154,142 @@ class virtual active_source ?stack ?clock ~name () =
     inherit active_operator ?stack ?clock ~name []
   end
 
-(* Reselect type. This drives the choice of next source.
-   In cases where the underlying source returns the same
-   choice after calling [get_source], we need to refuse
-   that source unless if can continue filling up the frame
-   that is being worked on. This what [`After_position]
-   captures. *)
-type reselect = [ `Ok | `Force | `After_position of int ]
+(* Delivers one stream out of successive sources. A frame stops where the
+   track of the source it reads ends: what comes next is decided when the
+   reader goes on, in the next segment of the tick. [choose_next_source] is
+   told whether the stream is at such a boundary.
 
-class virtual generate_from_multiple_sources
-  ?(new_track_on_source_switch = fun () -> true) ~merge ~track_sensitive () =
+   [next_entry] is asked when the track of the source being read ends, before
+   anything else is chosen, and says how the data that follows is entered.
+   [`Track] ends the operator's own track there. *)
+class virtual generate_from_multiple_sources () =
   object (self)
-    method virtual get_source : reselect:reselect -> unit -> source option
-    method virtual split_frame : Frame.t -> Frame.t * Frame.t option
+    method virtual private next_entry : entry
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
-    method virtual private set_last_metadata : Frame.t -> unit
     method virtual reset_last_metadata_on_track : bool
     method virtual clear_last_metadata : unit
     method virtual log : Log.t
     method virtual id : string
-    val mutable ready_source = None
+    method virtual clock : Clock.t
+
+    (* The track of the last source read ended or was aborted. *)
+    val mutable at_boundary = false
+
+    (* Stated at the last track end, applied to the next sample. *)
+    val mutable entry : entry option = None
+
+    method private end_track =
+      at_boundary <- true;
+      entry <- Some `Track
+
+    method virtual private choose_next_source : boundary:bool -> bool
 
     method private can_generate_frame =
-      match
-        self#get_source
-          ~reselect:(if track_sensitive () then `Ok else `Force)
-          ()
-      with
-        | Some s when s#is_ready ->
-            ready_source <- Some s;
-            true
-        | _ ->
-            ready_source <- None;
-            false
+      self#choose_next_source ~boundary:at_boundary
 
     val mutable current_source = None
+    method virtual private enter_chosen_source : source option
+
+    (* Set when the user moved on from the source it was reading: what it
+       chooses next is another source even when it is the same object. *)
+    val mutable left_source = false
+
+    (* Called while the source left is still the one the user reads: how what
+       follows is entered is settled before the user moves. *)
+    method private leave_source =
+      if current_source <> None && entry = None then
+        entry <- Some self#next_entry;
+      current_source <- None;
+      at_boundary <- false;
+      left_source <- true
+
+    (* The data of [frame] up to where its first track ends: a mark past its
+       first sample, the one stated at its end included. *)
+    method private first_track frame =
+      match List.filter (fun p -> 0 < p) (Frame.track_marks frame) with
+        | [] -> (frame, false)
+        | marks ->
+            (Frame.sub frame 0 (List.fold_left Int.min max_int marks), true)
 
     method private begin_track buf =
-      if merge () then Frame.drop_track_marks buf
-      else (
-        let buf =
-          if Frame.position buf > 0 then Frame.add_track_mark buf 0 else buf
-        in
-        self#execute_on_track buf;
-        buf)
+      if self#reset_last_metadata_on_track then self#clear_last_metadata;
+      self#execute_on_track buf;
+      buf
 
-    (* A source switch carries potentially different content, so it begins a
-       track unless the operator knows better. *)
-    method private on_source_switch buf =
-      if new_track_on_source_switch () then self#begin_track buf
-      else if merge () then Frame.drop_track_marks buf
-      else buf
+    method private enter entry buf =
+      match (entry, Frame.track_marks buf) with
+        | `Continue, _ -> Frame.drop_track_marks buf
+        | `Track, 0 :: _ | `As_is, 0 :: _ -> self#begin_track buf
+        | `Track, _ -> self#begin_track (Frame.add_track_mark buf 0)
+        | `As_is, _ -> buf
 
-    method private can_reselect ~(reselect : reselect) (s : source) =
-      s#is_ready
-      &&
-        match reselect with
-        | `Ok -> true
-        | `Force -> false
-        | `After_position p -> p < Frame.position s#get_frame
+    val mutable generated_end : segment_end = `Late
 
-    method private continue_frame s =
-      s#get_partial_frame (fun frame ->
-          match self#split_frame frame with
-            | buf, Some next_track when Frame.position buf = 0 -> (
-                if self#reset_last_metadata_on_track then
-                  self#clear_last_metadata;
-                match current_source with
-                  | Some s' when s == s' -> self#empty_frame
-                  | _ -> self#begin_track next_track)
-            | buf, _ -> (
-                match current_source with
-                  | Some s' when s != s' && Frame.position buf > 0 ->
-                      self#on_source_switch buf
-                  | _ -> buf))
+    (* A frame left short by the source being read is not the end of ours:
+       another source may be chosen when the reader goes on. *)
+    method private frame_end frame : segment_end =
+      match generated_end with
+        | (`Track_end | `Pause) as stated -> stated
+        | `Late | `Full -> if Frame.is_partial frame then `Pause else `Full
 
     method private generate_frame =
-      let s = Option.get ready_source in
-      assert s#is_ready;
-      let buf = self#continue_frame s in
-      let size = Lazy.Mutexed.force Frame.size in
-      let rec f ~last_source ~last_chunk buf =
-        let pos = Frame.position buf in
-        let last_chunk_pos = Frame.position last_chunk in
-        self#set_last_metadata last_chunk;
-        if pos < size then (
-          let rem = size - pos in
-          match
-            self#get_source ~reselect:(`After_position last_chunk_pos) ()
-          with
-            | Some s when last_source == s ->
-                let remainder =
-                  s#get_partial_frame (fun frame ->
-                      if Frame.position frame <= last_chunk_pos then (
-                        self#log#critical
-                          "Source %s was re-selected but did not produce \
-                           enough data: %d <! %d"
-                          s#id (Frame.position frame) last_chunk_pos;
-                        assert false);
-                      Frame.slice frame (last_chunk_pos + rem))
-                in
-                let new_track = Frame.after remainder last_chunk_pos in
-                let new_track =
-                  if merge () then Frame.drop_track_marks new_track
-                  else new_track
-                in
-                f ~last_source ~last_chunk:remainder
-                  (Frame.append buf new_track)
-            | Some s ->
-                if not s#is_ready then (
-                  self#log#critical "Underlying source %s is not ready!" s#id;
-                  assert false);
-                let new_track =
-                  s#get_partial_frame (fun frame ->
-                      match self#split_frame frame with
-                        | buf, _ when Frame.position buf = 0 ->
-                            Frame.slice frame rem
-                        | buf, _ -> Frame.slice buf rem)
-                in
-                f ~last_source:s ~last_chunk:new_track
-                  (Frame.append buf (self#on_source_switch new_track))
-            | _ -> (last_source, buf))
-        else (last_source, buf)
+      match self#enter_chosen_source with
+        | Some s when s#is_ready -> self#generate_from s
+        | _ ->
+            (* What was decided has nothing to deliver after all. *)
+            self#log#important "Nothing to deliver from the chosen source.";
+            generated_end <- `Late;
+            self#empty_frame
+
+    method private generate_from s =
+      let same_source =
+        match current_source with Some s' -> s == s' | None -> false
       in
-      let last_source, buf = f ~last_source:s ~last_chunk:buf buf in
-      current_source <- Some last_source;
+      let ended = ref false in
+      let buf =
+        s#get_partial_frame (fun frame ->
+            match Frame.track_marks frame with
+              | 0 :: _ when same_source && not at_boundary ->
+                  (* The source started a track without having stated the end
+                     of the previous one. Nothing of the new track is taken:
+                     the boundary is stated here and decided on next. *)
+                  ended := true;
+                  self#empty_frame
+              | _ ->
+                  let buf, cut = self#first_track frame in
+                  ended := cut;
+                  buf)
+      in
+      let relayed = s#segment_end in
+      let ended = !ended || relayed = `Track_end in
+      let buf =
+        if Frame.position buf = 0 then buf
+        else (
+          (* A source change nothing stated the end of: a cut into a track, or
+             a source that had nothing left. *)
+          let unstated =
+            (not same_source) && (current_source <> None || left_source)
+          in
+          left_source <- false;
+          let applied =
+            match entry with
+              | Some entry -> entry
+              | None when unstated -> self#next_entry
+              | None -> `As_is
+          in
+          entry <- None;
+          at_boundary <- false;
+          self#enter applied buf)
+      in
+      (* The sync source we report was settled before we moved. *)
+      if not same_source then Clock.signal_sync_change self#clock;
+      current_source <- Some s;
+      if ended then (
+        let next = self#next_entry in
+        at_boundary <- true;
+        entry <- Some next;
+        generated_end <- (if next = `Track then `Track_end else `Pause))
+      else generated_end <- (if relayed = `Pause then `Pause else `Late);
       buf
   end

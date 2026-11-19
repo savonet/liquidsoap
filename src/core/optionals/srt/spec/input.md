@@ -37,7 +37,7 @@ then on the role connects whenever the connection is wanted.
 
 When it wakes up, the buffer's maximum length is set to `max` seconds: the
 limit needs the content type, which is known by then. The buffer drops its
-excess when it grows past it, logged at level 2.
+excess when it grows past it, logged at `severe`.
 
 State lifetimes:
 
@@ -54,7 +54,11 @@ The input is ready while the connection is wanted
 ([common.md §5](common.md#5-connection-wanted)) and its buffer holds at
 least one frame of decoded data. While it paces (§7), it also stays ready
 between frames, from its first full frame until a wait for data times out
-(§5): the frame in progress is waited for, and the clock keeps its pacer. A
+(§5): the frame in progress is waited for, and the clock keeps its pacer.
+That wait is the carve-out of
+[source-contract.md §1](../../../source/spec/source-contract.md#1-streaming-cycle)
+for a blocking sync source: its wait is its pacing, bounded by
+`read_timeout`, not a delay inside the cycle. A
 connection with no data yet, or a peer that stays connected but silent,
 leaves the input not ready; the connection is kept. Readiness never depends on a socket the streaming thread would
 have to look up: a peer ending between the readiness check and the frame
@@ -65,7 +69,7 @@ only shortens the frame (§5).
 For each peer, a **reader** receives and decodes off the streaming thread:
 
 1. Find the stream decoder for `content_type` and the input's content type.
-   None: the peer is ended with a level 3 log naming the MIME type, and the
+   None: the peer is ended with an `important` log naming the MIME type, and the
    role goes on as after a peer failure. Parameters in the MIME type, as in
    `application/ffmpeg;format=s16le,ch_layout=mono,sample_rate=48000`, are the
    decoder's business ([FFmpeg layer spec](../../ffmpeg/spec/README.md)).
@@ -100,7 +104,9 @@ The streaming thread takes one frame from the buffer. When the buffer holds
 less than one frame:
 
 - while the input paces its clock, wait for the reader up to
-  `read_timeout` (§7);
+  `read_timeout` (§7): the pacing wait of a blocking sync source
+  ([source-contract.md §1](../../../source/spec/source-contract.md#1-streaming-cycle)),
+  cut short when the peer ends (§4);
 - otherwise, or when the wait times out, return what the buffer holds
   followed by an end of track. The input is then not ready until a frame is
   buffered again.
@@ -135,18 +141,20 @@ receiver kept them on
 receives such a stream turns delivery off in `on_socket` or sets
 `self_sync = false`.
 
-While it paces, the input declares a sync source whose identity is the
+While it paces, the input declares a blocking, self-paced sync source
+([pacing.md §2](../../../clock/spec/pacing.md#2-sync-source)) named after the
 stream, followed by `?streamid=<id>` when the connection carries a stream
 id: for a caller, `srt://<listener ip>:<listener port>`; for a listener,
 `srt://<bind address>:<port>`, its own end, since each connection comes from
-a new ephemeral port. A stream keeps one identity for the life of the
-process, across reconnections: a source whose identity changed between two
-ticks is reported by the operators downstream one tick late, and the clock
-would see two sync sources. Two inputs receiving the same stream share one
-sync source; two inputs receiving different streams in one clock are two
-sync sources, and the clock reports the conflict
-([clock spec, pacing §2](../../../clock/spec/pacing.md#2-sync-source)). The
-declaration is withdrawn when the peer ends.
+a new ephemeral port. The pacing entity is the input: each input hands out
+one identity of its own, kept for the life of the operator across
+reconnections, since a source whose identity changed between two ticks is
+reported by the operators downstream one tick late, and the clock would see
+two sync sources. Two inputs that pace in one clock are two pacers, each
+blocking on its own socket, and the clock reports the conflict
+([pacing.md §3](../../../clock/spec/pacing.md#3-finding-the-sync-source)),
+whether they receive different streams or the same one. The declaration is
+withdrawn when the peer ends.
 
 Without `self_sync`, the input's self-sync is static and it declares none.
 

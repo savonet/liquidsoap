@@ -1,14 +1,15 @@
 # Conformance
 
-The checks a rebuild is accepted against, by principle. Each runs a real
-output on a loopback port of its own, connects real clients, and ends by
-declaring pass or fail; a check that declares nothing fails by timeout. A
-check MUST assert that it observed something (a count of listeners,
-callbacks or bytes) before reporting a pass. Names in parentheses trace to
-existing tests and carry no content.
+The checks a rebuild is accepted against, by principle, under the rules
+every suite follows ([testing.md](../../../../spec/testing.md)): a check
+asserts it ran, counts once seen to fail, and a skip or a timeout is not a
+pass. Each runs a real output on a loopback port of its own, connects real
+clients, and ends by declaring pass or fail; what it observed is a count of
+listeners, callbacks or bytes. Names in parentheses trace to existing tests
+and carry no content.
 
-Incidental in every check: log text, exact timings and delays, port numbers,
-the order in which asynchronous callbacks run.
+Incidental in every check, beyond what testing.md makes incidental: port
+numbers.
 
 ## Harness and doubles
 
@@ -23,8 +24,8 @@ the order in which asynchronous callbacks run.
 - **Fault injection** for the races of
   [known-complexity.md K6](known-complexity.md#k6-stopping-while-listeners-connect-stream-and-leave):
   a stop forced between any two admission steps, and between a pass's flush
-  and its removal. Each such check MUST be seen to fail against a build with
-  the guard removed.
+  and its removal, each seen to fail with the guard removed
+  ([testing.md §1](../../../../spec/testing.md#1-a-pass-must-be-able-to-say-no)).
 
 ## Admission and callbacks
 

@@ -16,33 +16,35 @@ end
 # @param ~id Force the value of the source ID.
 # @param sources Sequence of sources to be merged.
 def rotate.merge(~id=null("rotate.merge"), sources) =
-  sources = source.composition.children(sources)
-  ready = ref(true)
-  duration = frame.duration()
+  sources = list.map(fun (s) -> (s : source), sources)
 
-  def to_first({starting, ..._}) =
-    ready := (not ready())
-    (sequence(merge=true, [blank(duration=duration), (starting : source)]) :
-      source
-    )
+  # The round that was built and has not started yet. It is handed out again
+  # for as long as it can play, so that being asked without being played
+  # builds nothing.
+  pending = ref(null)
+
+  # A round is one merged sequence over the children that can play: one track
+  # of each, presented as a single track.
+  def round() =
+    if
+      null.defined(pending()) and source.is_ready(null.get(pending()))
+    then
+      pending()
+    else
+      available = list.filter(source.is_ready, sources)
+      pending :=
+        if available == [] then null else sequence(merge=true, available) end
+
+      pending()
+    end
   end
 
-  # `to_first` replaces the first source's own `on_select`: it is what flips
-  # `ready` and pads the round with a blank frame so merged tracks stay
-  # separable. The two branches only unify as bare sources, which drops the
-  # composition methods from the *type*; `rotate` re-derives them from the
-  # values, which still carry them.
-  sources =
-    list.mapi(
-      fun (i, (s:source)) ->
-        if i == 0 then s.{on_select = to_first} else (s : source) end,
-      sources
-    )
+  rounds = source.dynamic(track_sensitive=true, round)
+  rounds.on_track(synchronous=true, fun (_) -> pending := null)
 
-  s = rotate(sources)
-  let {track_marks = _, ...tracks} = source.tracks(s)
-  s = source(tracks).{replay_metadata = false}
-  switch(id=id, [(ready, s), ({not ready()}, s)])
+  # The children are listed after the rounds so that they stay awake between
+  # two of their turns, and so that the result is infallible when one is.
+  fallback(id=id, [rounds, ...sources])
 end
 
 # Rotate between overlapping sources. Next track starts according
@@ -200,7 +202,10 @@ def chop(~every=getter(3.), ~metadata=getter([]), s) =
   end
 
   s.on_frame(synchronous=true, f)
-  s
+
+  # Chopped, even an endless tone ends tracks: it is left at track
+  # boundaries.
+  s.{track_sensitive = true}
 end
 
 # Regularly skip tracks from a source (useful for testing skipping).

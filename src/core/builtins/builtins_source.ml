@@ -63,7 +63,7 @@ let _ =
     [("", Lang.source_t (Lang.univ_t ()), None, None)]
     Lang.unit_t
     (fun p ->
-      (Lang.to_source (List.assoc "" p))#abort_track;
+      (Lang.to_source (List.assoc "" p))#request_abort;
       Lang.unit)
 
 let _ =

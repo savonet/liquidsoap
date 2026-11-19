@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 (** The fault model's parameters and the counter of consecutive item faults
-    (faults.md §3, §4).
+    (src/spec/faults.md §3, §4).
 
     A source, or an output field, owns one counter. Every stage that drops an
     item reports it with {!item}; every item delivered calls {!delivered}. The
@@ -44,6 +44,11 @@ val item : t -> kind:string -> string -> [ `Item_fault | `Source_fault ]
 (** A fault whose item carries no media: logged like an item fault, not counted.
 *)
 val uncounted : t -> kind:string -> string -> unit
+
+(** [script_error t ~kind error backtrace]: script code that raised under
+    [kind], logged at [severe] with its backtrace, at the same bounded rate. Not
+    counted: the media keeps flowing (src/spec/faults.md §0). *)
+val script_error : t -> kind:string -> exn -> Printexc.raw_backtrace -> unit
 
 val delivered : t -> unit
 

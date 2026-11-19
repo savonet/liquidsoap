@@ -20,6 +20,9 @@
 
  *****************************************************************************)
 
+(** Faults that keep the stream going (src/spec/faults.md): bounded runs of item
+    faults, and logs that are neither flooded nor silent. *)
+
 let max_consecutive_faults = 100
 let fault_log_interval = 10.
 let fault_retry_delay = 5.
@@ -34,23 +37,30 @@ type t = {
 
 let create log = { log; count = 0; kinds = Hashtbl.create 4 }
 
-let report t ~kind message =
+let report ?(level = 3) t ~kind message =
   let now = Unix.gettimeofday () in
   match Hashtbl.find_opt t.kinds kind with
     | None ->
         Hashtbl.replace t.kinds kind { last_log = now; suppressed = 0 };
-        t.log#important "%s" message
+        t.log#f level "%s" (message ())
     | Some k when now -. k.last_log >= fault_log_interval ->
-        t.log#important "%s (%d similar since the last report)" message
+        t.log#f level "%s (%d similar since the last report)" (message ())
           k.suppressed;
         k.last_log <- now;
         k.suppressed <- 0
     | Some k -> k.suppressed <- k.suppressed + 1
 
-let uncounted t ~kind message = report t ~kind message
+(** Script code that raised: logged at [severe] with its backtrace, at the same
+    bounded rate. It counts toward no bound: the media keeps flowing. *)
+let script_error t ~kind error backtrace =
+  report ~level:2 t ~kind (fun () ->
+      Printf.sprintf "%s failed: %s\n%s" kind (Printexc.to_string error)
+        (Printexc.raw_backtrace_to_string backtrace))
+
+let uncounted t ~kind message = report t ~kind (fun () -> message)
 
 let item t ~kind message =
-  report t ~kind message;
+  report t ~kind (fun () -> message);
   t.count <- t.count + 1;
   if t.count >= max_consecutive_faults then (
     t.count <- 0;

@@ -65,7 +65,9 @@ returned also for empty metadata: it carries the segment's timestamp.
 
 `insert_tag(tag)` (on the output: every variant; on a `streams()` entry:
 that variant) trims `tag` and adds it to the variant's pending tags. It may
-be called from any thread; concurrent calls MUST NOT be lost.
+be called from any thread
+([concurrency.md §2](../../../../spec/concurrency.md#2-the-streaming-thread));
+concurrent calls MUST NOT be lost.
 
 A **playlist tag** is one line starting with `#`. `insert_tag` rejects
 anything else with an `error.invalid` runtime error, which the script can

@@ -43,10 +43,17 @@ let proto =
 
 module Queue = Queues.Queue
 
+(* ponytail: a constant bound on segments in a row that bring no data. It only
+   has to exceed the depth of nested operators; count them if it ever does
+   not. *)
+
+let max_empty_segments = 16
+
 (** Given abstract start stop and send methods, creates an output. Takes care of
     pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including start/stop.
 *)
+
 class virtual output ~output_kind ?clock ?(name = "") ~infallible
   ~register_telnet val_source autostart =
   let source = Lang.to_source val_source in
@@ -141,6 +148,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     (* Operator startup *)
     initializer
       self#on_wake_up (fun () ->
+          self#clear_tick;
           (* We prefer [name] as an ID over the default, but do not overwrite
              user-defined ID. Our ID will be used for the server interface. *)
           if name <> "" then self#set_id ~force:false name;
@@ -155,7 +163,9 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
                  self#id);
 
           if not autostart then start_stop#execute_transition `Stopped);
-      self#on_sleep (fun () -> start_stop#execute_transition `Idle)
+      self#on_sleep (fun () ->
+          start_stop#execute_transition `Idle;
+          self#clear_tick)
 
     (* The output process *)
     val mutable skip = false
@@ -174,11 +184,42 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     method private fire_on_output ~before () =
       List.iter (fun fn -> fn ~before ()) (Callbacks.elements on_output)
 
+    (* Data gathered over the segments of the running tick. *)
+    val mutable gathered = None
+
+    (* A segment may be empty when it only states a track end, and nested
+       operators may each state theirs in turn. *)
+    val mutable empty_segments = 0
+
+    (* Set once the tick's frame is sent: later segments of the tick, asked by
+       another output, do not concern us. *)
+    val mutable tick_done = false
+
     method output =
-      self#fire_on_output ~before:true ();
-      Fun.protect
-        ~finally:(fun () -> self#fire_on_output ~before:false ())
-        (fun () -> self#do_output)
+      if not tick_done then (
+        self#fire_on_output ~before:true ();
+        Fun.protect
+          ~finally:(fun () -> self#fire_on_output ~before:false ())
+          (fun () -> self#do_output))
+
+    (* The next segment of the tick's frame, cut to the room left. *)
+    method private next_segment ~room =
+      if self#is_ready then
+        self#get_partial_frame (fun frame -> Frame.slice frame room)
+      else self#empty_frame
+
+    (* A tick cut short (a stop, a sleep) may never run its after-tick
+       callbacks: nothing of it is kept for the next one. *)
+    method private clear_tick =
+      tick_done <- false;
+      gathered <- None;
+      empty_segments <- 0
+
+    method private finish_tick =
+      tick_done <- true;
+      gathered <- None;
+      empty_segments <- 0;
+      Clock.after_tick self#clock (fun () -> tick_done <- false)
 
     (* Called on every cycle where the source is unavailable or has ended.
        [`Hold] keeps the output started and skips the cycle; it also starts an
@@ -189,25 +230,49 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
       let held = (not self#is_ready) && self#on_unavailable_source = `Hold in
       if (self#is_ready || held) && state = `Idle then
         start_stop#execute_transition `Started;
+      (* What was gathered before a stop belongs to no frame we will send. *)
+      if start_stop#state <> `Started then gathered <- None;
       if start_stop#state = `Started && not held then (
-        let data =
-          if self#is_ready then self#get_frame else self#end_of_track
+        let data = Option.value ~default:self#empty_frame gathered in
+        (* The sources read on our behalf place their data at our position in
+           the frame we gather. *)
+        Clock.set_reading_position self#clock (Frame.position data);
+        let segment =
+          Fun.protect
+            ~finally:(fun () -> Clock.set_reading_position self#clock 0)
+            (fun () -> self#next_segment ~room:(Frame.remaining data))
         in
+        let data = Frame.append data segment in
+        empty_segments <-
+          (if Frame.position segment = 0 then empty_segments + 1 else 0);
+        if
+          Frame.is_partial data
+          && (match self#segment_end with
+            | `Track_end | `Pause -> true
+            | `Full | `Late -> false)
+          && empty_segments <= max_empty_segments
+        then (
+          (* The source stopped where it has something to decide: what follows
+             comes when we go on, in the next segment of this tick. *)
+          gathered <- Some data;
+          Clock.request_segment self#clock)
+        else (
+          self#finish_tick;
 
-        (* Output that frame if it has some data *)
-        if Frame.position data > 0 then self#send_frame data;
-        if Frame.is_partial data then (
-          if self#is_ready && not self#fallible then (
-            self#log#critical "Infallible source produced a partial frame!";
-            assert false);
-          if self#on_unavailable_source = `Stop then (
-            self#log#info "Source ended (no more tracks) stopping output...";
-            self#execute_transition `Idle));
+          (* Output that frame if it has some data *)
+          if Frame.position data > 0 then self#send_frame data;
+          if Frame.is_partial data then (
+            if self#is_ready && not self#fallible then (
+              self#log#critical "Infallible source produced a partial frame!";
+              assert false);
+            if self#on_unavailable_source = `Stop then (
+              self#log#info "Source ended (no more tracks) stopping output...";
+              self#execute_transition `Idle));
 
-        if skip then (
-          self#log#important "Performing user-requested skip";
-          skip <- false;
-          self#abort_track))
+          if skip then (
+            self#log#important "Performing user-requested skip";
+            skip <- false;
+            self#request_abort)))
   end
 
 class dummy ?clock ~infallible ~autostart ~register_telnet source =

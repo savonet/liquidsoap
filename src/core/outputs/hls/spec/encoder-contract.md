@@ -1,8 +1,11 @@
 # The encoder seam
 
-Part A. The HLS output drives any registered encoder through one interface.
+Part A. The HLS output drives any registered encoder through one interface,
+the segmenting face of the encoder spec
+([encoder.md §4](../../../encoder/spec/encoder.md#4-the-segmenting-face)).
 This file owns that interface: the calls, their order, and what each answer
-must satisfy. Each implementation has its own file, with the same section
+must satisfy. The registry and the rules every instance follows are
+[encoder.md §1–§2](../../../encoder/spec/encoder.md#2-instances). Each implementation has its own file, with the same section
 numbers:
 
 | File                                               | Encoders                    |
@@ -26,8 +29,8 @@ output's.
 ## 2. Calls and order
 
 1. A new encoder is created for each variant at the start of every run,
-   with the HLS flag and the variant name. An encoder is never reused
-   across runs.
+   with the HLS flag and the variant name
+   ([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 2. `init` once, before the first chunk.
 3. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
 4. At every segment open: `insert_id3` when the variant's ID3 mode is
@@ -37,7 +40,8 @@ output's.
 5. `stop()` once, at the end of a run that ends on a `stop`.
 6. Properties (§6) after `init_encode` has returned `Init`.
 
-Calls to one encoder are serialised. The output never uses the encoder's
+Every instance serialises its own calls
+([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)). The output never uses the encoder's
 in-stream metadata entry or the plain `encode` other outputs use.
 
 ## 3. `init`

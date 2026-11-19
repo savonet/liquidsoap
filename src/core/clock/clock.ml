@@ -92,6 +92,27 @@ let started t = state (get t) = `Started
 let pending t = Atomic.get (get t).pending
 let on_tick t fn = push (running_streaming (get t)).on_tick fn
 let after_tick t fn = push (running_streaming (get t)).after_tick fn
+let after_segment t fn = push (running_streaming (get t)).after_segment fn
+
+let signal_sync_change t =
+  match streaming t with
+    | Some st -> Atomic.set st.sync_changed true
+    | None -> ()
+
+let sync_changed t =
+  match streaming t with Some st -> Atomic.get st.sync_changed | None -> false
+
+let set_reading_position t position =
+  match streaming t with
+    | Some st -> Atomic.set st.reading_position position
+    | None -> ()
+
+let reading_position t =
+  match streaming t with Some st -> Atomic.get st.reading_position | None -> 0
+
+let request_segment t =
+  Atomic.set (running_streaming (get t)).segment_requested true
+
 let set_failure_policy = set_failure_policy
 let attach = Activation.attach
 let detach = Activation.detach

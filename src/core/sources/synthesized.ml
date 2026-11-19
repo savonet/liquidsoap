@@ -27,6 +27,13 @@ class virtual source ~name duration =
     method fallible = track_size <> None
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0
+    method! exhausted = remaining = Some 0 && self#held = 0
+    method! endless = track_size = None
+
+    method! private frame_end frame =
+      if remaining = Some 0 then `Track_end
+      else if Frame.is_partial frame then `Late
+      else `Full
 
     method! seek x =
       match remaining with
@@ -53,18 +60,18 @@ class virtual source ~name duration =
     method virtual private synthesize : int -> Frame.t
 
     method private generate_frame =
+      let starts_track = add_track_mark in
+      if starts_track then (
+        add_track_mark <- false;
+        remaining <- track_size);
       let len =
         match remaining with
-          | Some -1 | None -> Lazy.Mutexed.force Frame.size
+          | None -> Lazy.Mutexed.force Frame.size
           | Some r ->
               let len = min (Lazy.Mutexed.force Frame.size) r in
               remaining <- Some (r - len);
               len
       in
       let buf = self#synthesize len in
-      if add_track_mark then (
-        add_track_mark <- false;
-        remaining <- track_size;
-        Frame.add_track_mark buf 0)
-      else buf
+      if starts_track then Frame.add_track_mark buf 0 else buf
   end

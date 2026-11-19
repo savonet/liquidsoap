@@ -2,7 +2,9 @@
 
 success = ref(false)
 
-a = sine(duration=5., 440.)
+# Longer than the cross duration: a first track no longer than it is crossed
+# from its first sample, and announced together with the next one.
+a = sine(duration=6., 440.)
 a =
   metadata.map(
     insert_missing=true,
@@ -12,7 +14,7 @@ a =
     a
   )
 
-b = sine(duration=5., 880.)
+b = sine(duration=6., 880.)
 b =
   metadata.map(
     insert_missing=true,
@@ -22,7 +24,7 @@ b =
     b
   )
 
-c = sine(duration=5., 440.)
+c = sine(duration=6., 440.)
 c =
   metadata.map(
     insert_missing=true,

@@ -33,10 +33,10 @@ settings of [common.md, Scaling](common.md#10-scaling).
      the data: the user built the converter for its own channel count;
   2. calls the converter, for every ratio, `1.` included. A converter MAY
      copy the range through at ratio `1.` when it holds no samples.
-- A seam user drains its converter ([draining.md](draining.md)) at every
+- A seam user drains its converter ([draining.md](../../../source/spec/draining.md)) at every
   event that ends it: it calls `flush` and passes the samples on, after the
   last converted range, as ordinary output.
-- At start-up the seam logs the selected converter at level 3 under
+- At start-up the seam logs the selected converter at `important` under
   `audio.converter` (example: `Using samplerate converter: libsamplerate.`).
 - Users of this seam are generic: decoders that are not FFmpeg's, the WAV,
   AVI and external encoders, `time_warp` operators, ALSA and JACK I/O. The
@@ -89,14 +89,14 @@ samples ([swresample.md](../../../../modules/synced/ffmpeg/spec/swresample.md),
   call (`time_warp`) costs a small transient at each change and loses no
   samples. The ratio is honoured to within one part in `in`.
 - A failure of the binding during `convert` or `flush` is an item fault
-  ([faults.md §4](faults.md#4-item-faults-escalate)): the samples of that
+  ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)): the samples of that
   call and the resampler are dropped, with a warning, and the next call
   builds a fresh resampler. The converter returns the samples it has
   (possibly none), does not raise, and reports the drop to its caller. The
   caller counts it against `max_consecutive_faults`
-  ([faults.md §4](faults.md#4-item-faults-escalate)); past the bound, the caller's
+  ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)); past the bound, the caller's
   source has a source fault
-  ([faults.md §3](faults.md#3-source-faults-reach-the-script)).
+  ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)).
 - A NaN in the input becomes 0
   ([swresample.md](../../../../modules/synced/ffmpeg/spec/swresample.md)).
 
@@ -123,7 +123,7 @@ Conformance:
 - `find_converter src dst`:
   1. When the preferred plug is registered and lists `src` as an input and
      `dst` as an output, return its `create ()`. When it is registered but
-     does not list them, log at level 3 that the preferred converter cannot
+     does not list them, log at `important` that the preferred converter cannot
      convert `src` to `dst`.
   2. Try every registered plug in the registry's order and return the first
      that lists both.
@@ -134,14 +134,14 @@ Conformance:
   a function `src dst` on YUV420 images: when `src` has an alpha plane it
   uses Liquidsoap's native YUV420 scaling; otherwise it calls the converter
   on the generic views of both images.
-- At start-up the seam logs at level 3 under `video.converter` whether the
+- At start-up the seam logs at `important` under `video.converter` whether the
   preferred converter is registered.
 - `ffmpeg` is the only video converter registered in the tree. Users of
   `scaler ()`: `track.video.tile`, the generic image decoder, the AVI
   encoder, generic decoders, the external video input. An operator that needs
   a converter and gets the error of step 3 fails at creation with that
   error, at its script position: a missing converter is a configuration
-  error ([faults.md §2](faults.md#2-classes)), known before streaming
+  error ([faults.md §2](../../../../spec/faults.md#2-classes)), known before streaming
   starts.
 
 ## 4. The `ffmpeg` video converter
@@ -192,15 +192,15 @@ none. A call `convert src dst`:
   MUST NOT be shared between converters.
 - The converter produces each image before it accepts the next and holds no
   image between calls: it has nothing to drain
-  ([draining.md §1](draining.md#1-stages)). Replacing its context on a key
+  ([draining.md §1](../../../source/spec/draining.md#1-stages)). Replacing its context on a key
   change loses nothing.
 - A failure of context creation or scaling raises a conversion error to the
   caller, which catches it: the image is an item fault
-  ([faults.md §4](faults.md#4-item-faults-escalate)), dropped with a warning
+  ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)), dropped with a warning
   and counted against `max_consecutive_faults`
-  ([faults.md §4](faults.md#4-item-faults-escalate)). Past the bound, the caller's
+  ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). Past the bound, the caller's
   source has a source fault
-  ([faults.md §3](faults.md#3-source-faults-reach-the-script)). The error
+  ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)). The error
   never leaves the caller's source.
 
 Conformance:
@@ -226,7 +226,7 @@ the rest.
 ## 6. Faults
 
 The two converters own no source; a seam user's source contains their
-faults as [faults.md](faults.md) requires.
+faults as [faults.md](../../../../spec/faults.md) requires.
 
 | Fault                                            | Class               | Outcome                                                                       |
 | ------------------------------------------------ | ------------------- | ----------------------------------------------------------------------------- |

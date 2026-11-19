@@ -417,7 +417,7 @@ raw video track; none with zero or several.
 
 All errors are of kind `encoder`, positioned at the offending argument when it
 has a position. Message texts are examples, not requirements. Every error of
-this file is a configuration error ([faults.md §2](faults.md#2-classes)):
+this file is a configuration error ([faults.md §2](../../../../spec/faults.md#2-classes)):
 raised at script evaluation (type check) or when the output that holds the
 format starts, before any frame is encoded, and the script fails.
 

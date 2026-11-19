@@ -5,22 +5,22 @@ def f() =
   on_cleanup({file.remove(tmp)})
   s = sine()
   insert_metadata = s.insert_metadata
-  err = ref(null)
 
-  def on_frame() =
-    null.case(
-      err(),
-      {()},
-      fun (e) ->
-        begin
-          err := null
-          error.raise(e)
-        end
-    )
-  end
-
-  s.on_frame(synchronous=true, on_frame)
+  # An output fault: a file the output cannot create, under a path whose
+  # parent is a regular file. Script code that raises is no fault of the
+  # output's: it is logged and the stream goes on.
+  unwritable = "#{tmp}/out.wav"
+  broken = ref(false)
+  filename = {broken() ? unwritable : tmp}
   callstack = ref([])
+
+  reopen_when_ref = ref(false)
+
+  def reopen_when() =
+    r = reopen_when_ref()
+    reopen_when_ref := false
+    r
+  end
 
   def reopen_on_metadata(_) =
     print(
@@ -53,13 +53,24 @@ def f() =
   output.file(
     reopen_on_metadata=reopen_on_metadata,
     reopen_on_error=reopen_on_error,
+    reopen_when=reopen_when,
+    reopen_delay=0.,
     %wav,
-    tmp,
+    filename,
     s
   )
 
   thread.run(delay=1., {insert_metadata([("foo", "bla")])})
-  thread.run(delay=5., {err := error.failure})
+
+  # At 5 s the output is asked to reopen onto a file it cannot create, and
+  # `reopen_on_error` says not to retry: the error reaches the clock.
+  thread.run(
+    delay=5.,
+    {
+      broken := true
+      reopen_when_ref := true
+    }
+  )
   thread.run(
     delay=6.,
     {
