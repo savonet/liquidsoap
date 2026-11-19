@@ -1,6 +1,6 @@
 %include "../test.liq"
 
-# `predicate.due` makes a source due each time a predicate becomes true, until
+# `switch.when` makes a source due each time a predicate becomes true, until
 # that source starts a track. Here the predicate is true for short windows in
 # the middle of songs, between two track boundaries: each window gives exactly
 # one jingle, at the next boundary, and no song is cut.
@@ -19,7 +19,7 @@ jingles = sequence(list.init(30, fun (_) -> tagged("jingle", 0.5)))
 active = ref(false)
 radio =
   switch(
-    [(predicate.due(every=0.05, {active()}, jingles), jingles), ({true}, music)]
+    [(switch.when(every=0.05, {active()}, jingles), jingles), ({true}, music)]
   )
 
 played = ref([])

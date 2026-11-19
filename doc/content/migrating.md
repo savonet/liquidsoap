@@ -286,14 +286,18 @@ radio.on_track(
 
 `predicate.once`, `predicate.signal`, `predicate.first`, `predicate.activates` and `predicate.changes` change state when evaluated. Do not use them as switch predicates. Time predicates such as `{0m-5m}` change nothing and are safe.
 
-To play a source once each time a condition becomes true, use `predicate.due`. It is true from the moment the condition becomes true until the source starts a track, and evaluating it changes nothing:
+To play a source once each time a condition becomes true, use `switch.when`. It is true from the moment the condition becomes true until the source starts a track, and evaluating it changes nothing. The condition is checked on its own schedule, so it may itself change state when checked, as `predicate.signal()` does:
 
 ```liquidsoap
 # Before
 radio = switch([(predicate.activates({0m-5m}), jingles), ({true}, music)])
 
 # After
-radio = switch([(predicate.due({0m-5m}, jingles), jingles), ({true}, music)])
+radio = switch([(switch.when({0m-5m}, jingles), jingles), ({true}, music)])
+
+# A jingle on demand, e.g. from a server command
+jingle_now = predicate.signal()
+radio = switch([(switch.when(jingle_now, jingles), jingles), ({true}, music)])
 ```
 
 #### Stdlib operators that used to pin `track_sensitive`

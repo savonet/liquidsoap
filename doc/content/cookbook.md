@@ -203,7 +203,7 @@ song. We can think of doing something like
 ```
 
 but the problem is that it is likely to play many jingles. To play exactly one
-jingle each hour, use `predicate.due`. It becomes true when a predicate (here
+jingle each hour, use `switch.when`. It becomes true when a predicate (here
 `{ 0m-5m }`) becomes true, and stays true until the jingle starts. If a song
 is playing at that moment, the jingle plays when the song ends:
 

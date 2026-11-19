@@ -15,7 +15,7 @@
 - Added Fedora packages (`x86_64`, `aarch64`) and a dnf repository, configured by `curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh` ([#5473](https://github.com/savonet/liquidsoap/pull/5473)).
 - `http.transport.tls` and `http.transport.ssl` reload their certificate and key daily (`reload_on`, `reload()`), accept getters for them, and no longer require `key` when the certificate file contains it ([#5450](https://github.com/savonet/liquidsoap/pull/5450)).
 - Added `on_signal` to run a function when the process receives a signal ([#5456](https://github.com/savonet/liquidsoap/pull/5456)).
-- Added `predicate.due(p, s)`: a switch predicate that is true from each time `p` becomes true until `s` starts a track, and changes nothing when evaluated. It replaces `predicate.activates` and its siblings, which must not be used as switch predicates.
+- Added `switch.when(p, s)`: a switch predicate that is true from each time the condition `p` becomes true until `s` starts a track. Evaluating it changes nothing, and `p` may itself be stateful (`predicate.signal()`, `predicate.once`): use it instead of those directly in a switch.
 - Added the `source(_)` type: a source of unknown content, so sources of different content can be held together, e.g. in a list ([#5337](https://github.com/savonet/liquidsoap/pull/5337)).
 - Added `settings.clock.child.max_buffer`, bounding what operators such as `crossfade` or `stretch` buffer from their child source ([#5267](https://github.com/savonet/liquidsoap/pull/5267)).
 - Added XML `.nfo` sidecar files as a metadata source (`enable_nfo_metadata`, `file.nfo.metadata`) ([#4910](https://github.com/savonet/liquidsoap/pull/4910)).
