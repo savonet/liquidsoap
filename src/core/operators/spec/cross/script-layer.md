@@ -42,10 +42,13 @@ Rationale: where each fade sits in a crossing used to be computed in three
 places (the operator rewriting keys, `cross.simple`, and the fades reading
 the keys again), passing values as strings in metadata, five of them each
 relative to something else. One function that returns numbers lets a
-script change one thing by changing one number of the plan. With `x` and `s` the
-exact lengths of the ending and starting sources, as they report them, and a
-key counting as absent when it is missing or not a float (which SHOULD be
-logged):
+script change one thing by changing one number of the plan.
+
+With `x` and `s` the exact lengths of the ending and starting sources, as
+they report them, and a key counting as absent when it is missing or not a
+float (which SHOULD be logged). Under `cross` both lengths are known; a
+source of unknown length, handed to the plan outside of it, counts as long as
+its fade (`out` or `in` below).
 
 **Ending side.** `out` ← `liq_fade_out`, or `fade_out`.
 

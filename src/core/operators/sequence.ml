@@ -79,11 +79,11 @@ class sequence ?(name = "sequence") ?(merge = false)
     (* What a probe decided: acted on when the frame is read. *)
     val mutable decided = ([], [])
 
-    method! private choose_next_source ~boundary =
+    method private choose_next_source ~boundary =
       decided <- self#next_item ~boundary;
       match snd decided with s :: _ -> s#is_ready | [] -> false
 
-    method! private enter_chosen_source =
+    method private enter_chosen_source =
       let finished, queue = decided in
       if finished <> [] then (
         self#leave_source;
@@ -95,8 +95,6 @@ class sequence ?(name = "sequence") ?(merge = false)
           finished);
       decided <- ([], queue);
       match queue with s :: _ -> Some s | [] -> None
-
-    method private get_source ~boundary:_ () = self#enter_chosen_source
 
     method remaining =
       if merge then (
@@ -114,7 +112,7 @@ class sequence ?(name = "sequence") ?(merge = false)
        then entered at its start. *)
     method abort_track =
       self#end_track;
-      match self#queue with
+      (match self#queue with
         | [] -> ()
         | current :: rest ->
             current#abort_track;
@@ -123,7 +121,9 @@ class sequence ?(name = "sequence") ?(merge = false)
               let dropped = List.filter (fun s -> s != last) self#queue in
               self#leave_source;
               Atomic.set seq_sources [last];
-              List.iter self#release_source dropped)
+              List.iter self#release_source dropped));
+      (* What a probe decided before the abort no longer applies. *)
+      decided <- ([], self#queue)
   end
 
 class merge_tracks source =

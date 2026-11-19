@@ -46,8 +46,13 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
        woken again: an activation that came with it is one too many. *)
     method private designate ~activation s =
       let holds = function Some (_, held) -> held == s | None -> false in
-      if holds (Atomic.get current) || holds pending then
-        Option.iter s#sleep activation
+      if holds (Atomic.get current) then (
+        (* The function went back to what plays: whatever it designated
+           since is dropped. *)
+        Option.iter s#sleep activation;
+        self#release pending;
+        pending <- None)
+      else if holds pending then Option.iter s#sleep activation
       else (
         self#log#info "Preparing source %s" s#id;
         let activation =
@@ -91,7 +96,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
     (* What a probe decided: acted on when the frame is read. *)
     val mutable decided = `Nothing
 
-    method! private choose_next_source ~boundary =
+    method private choose_next_source ~boundary =
       decided <-
         (match self#current_source with
           | Some s when (not boundary) && track_sensitive () && s#is_ready ->
@@ -102,7 +107,7 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
          with nothing to deliver is the failure, and it is raised there. *)
       infallible || decided <> `Nothing
 
-    method! private enter_chosen_source =
+    method private enter_chosen_source =
       match decided with
         | `Current -> self#current_source
         | `Pending ->
@@ -126,8 +131,6 @@ class dyn ~init ~track_sensitive ~infallible ~self_sync ~merge next_fn =
                      self#id)
                 "failure";
             None
-
-    method private get_source ~boundary:_ () = self#enter_chosen_source
 
     method remaining =
       match self#current_source with Some s -> s#remaining | None -> -1

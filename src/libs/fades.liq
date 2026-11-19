@@ -822,10 +822,17 @@ def cross.plan(~fade_in=3., ~fade_out=3., ending, starting) =
     list.assoc.mem(key, metadata) ? metadata[key] : default
   end
 
-  ending_length = source.remaining(ending.source)
-  starting_length = source.remaining(starting.source)
-
   asked_fade_out = float_key(ending.metadata, "liq_fade_out") ?? fade_out
+  asked_fade_in = float_key(starting.metadata, "liq_fade_in") ?? fade_in
+
+  # Under `cross` both lengths are exact. A source of unknown length, given
+  # to the plan outside of it, is taken to be as long as its fade.
+  def known(length, fade) =
+    length == infinity or length < 0. ? fade : length
+  end
+
+  ending_length = known(source.remaining(ending.source), asked_fade_out)
+  starting_length = known(source.remaining(starting.source), asked_fade_in)
   fade_out_duration = min(asked_fade_out, ending_length)
 
   # `liq_fade_out_start_next` is relative to the start of a window of
@@ -862,8 +869,6 @@ def cross.plan(~fade_in=3., ~fade_out=3., ending, starting) =
     else
       start
     end
-
-  asked_fade_in = float_key(starting.metadata, "liq_fade_in") ?? fade_in
 
   {
     duration = max(ending_length, start + starting_length),
