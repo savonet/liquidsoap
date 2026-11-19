@@ -286,6 +286,16 @@ radio.on_track(
 
 `predicate.once`, `predicate.signal`, `predicate.first`, `predicate.activates` and `predicate.changes` change state when evaluated. Do not use them as switch predicates. Time predicates such as `{0m-5m}` change nothing and are safe.
 
+To play a source once each time a condition becomes true, use `predicate.due`. It is true from the moment the condition becomes true until the source starts a track, and evaluating it changes nothing:
+
+```liquidsoap
+# Before
+radio = switch([(predicate.activates({0m}), jingles), ({true}, music)])
+
+# After
+radio = switch([(predicate.due({0m}, jingles), jingles), ({true}, music)])
+```
+
 #### Stdlib operators that used to pin `track_sensitive`
 
 Several operators are built on top of `fallback` and used to pass a fixed `track_sensitive`. They now inherit it from the source they wrap, so their behavior follows that source's composition type: `append`, `prepend`, `map_first_track`, `overlap_sources` and the deprecated `fade.final`. If you relied on one of them switching (or not switching) mid-track regardless of its input, set `track_sensitive` on the source you pass in.

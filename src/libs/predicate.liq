@@ -1,6 +1,8 @@
 predicate = ()
 
 # Detect when a predicate becomes true.
+# Changes its state when evaluated: do not use it as a switch predicate, which \
+# may be evaluated any number of times. See `predicate.due`.
 # @category Programming
 # @param ~init Detect at beginning.
 # @param p Predicate.
@@ -16,6 +18,8 @@ def predicate.activates(~init=false, p) =
 end
 
 # Become true once every time a predicate is true.
+# Changes its state when evaluated: do not use it as a switch predicate, which \
+# may be evaluated any number of times. See `predicate.due`.
 # @category Programming
 # @param p Predicate.
 def predicate.once(p) =
@@ -43,6 +47,8 @@ def predicate.at_most(n, p) =
 end
 
 # Detect when a predicate changes.
+# Changes its state when evaluated: do not use it as a switch predicate, which \
+# may be evaluated any number of times. See `predicate.due`.
 # @category Programming
 # @param p Predicate.
 def predicate.changes(p) =
@@ -57,6 +63,8 @@ def predicate.changes(p) =
 end
 
 # First occurrence of a predicate.
+# Changes its state when evaluated: do not use it as a switch predicate, which \
+# may be evaluated any number of times. See `predicate.due`.
 # @category Programming
 # @param p Predicate.
 def predicate.first(p) =
@@ -82,6 +90,8 @@ end
 
 # Predicate which is true when a signal is sent. The returned predicate has a
 # method `signal` to send the signal.
+# Changes its state when evaluated: do not use it as a switch predicate, which \
+# may be evaluated any number of times. See `predicate.due`.
 # @category Programming
 # @method signal Send a signal.
 def predicate.signal() =

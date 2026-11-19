@@ -92,6 +92,14 @@ radio.on_track(
 A counter incremented in the predicate counts evaluations, not songs. For a
 fixed ratio, `rotate([music.{weight = 3}, jingles])` does the counting.
 
+To play a jingle once each time a condition becomes true, such as the top of
+the hour, use `predicate.due`. It stays true until the jingle starts, so a song
+playing at that moment finishes first:
+
+```liquidsoap
+radio = switch([(predicate.due({0m}, jingles), jingles), ({true}, music)])
+```
+
 ## A show on a schedule
 
 ```liquidsoap

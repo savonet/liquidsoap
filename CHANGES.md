@@ -2,6 +2,7 @@
 
 ## New:
 
+- Added `predicate.due(p, s)`: a switch predicate that is true from each time `p` becomes true until `s` starts a track, and changes nothing when evaluated. It replaces `predicate.activates` and its siblings, which must not be used as switch predicates.
 - Added `cross.plan` and `cross.apply`: where the fades of a crossing sit is computed in one place, from the `liq_fade_*` metadata and the length of the two sources, and can be reused by custom transitions.
 - Added `icecast.server`, an Icecast-compatible streaming server with source authentication, mount points, relay, per-listener encoding, icecast-style logs and limits, and configuration reload on `SIGHUP` or `reload()` ([#4915](https://github.com/savonet/liquidsoap/pull/4915), [#5414](https://github.com/savonet/liquidsoap/pull/5414), [#5451](https://github.com/savonet/liquidsoap/pull/5451), [#5580](https://github.com/savonet/liquidsoap/pull/5580)).
 - Added subtitles as a dedicated content type: native SRT decoding, FFmpeg encoding/decoding (`%subtitle`, `%subtitle.copy`), `on_subtitle`, `subtitles.map` and `subtitles.insert` ([#4860](https://github.com/savonet/liquidsoap/pull/4860), [#4861](https://github.com/savonet/liquidsoap/pull/4861), [#4862](https://github.com/savonet/liquidsoap/pull/4862)).

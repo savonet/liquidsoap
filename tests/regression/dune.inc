@@ -2516,6 +2516,24 @@
   (run %{run_test} playlist-id liquidsoap playlist-id.liq)))
 
 (rule
+ (alias test_predicate_due)
+ (package liquidsoap)
+ (deps
+  predicate_due.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} predicate_due liquidsoap predicate_due.liq)))
+
+(rule
  (alias test_probes_change_nothing)
  (package liquidsoap)
  (deps
@@ -3652,6 +3670,7 @@
   (alias test_output_on_track)
   (alias test_output_reopen_on_error_delay)
   (alias test_playlist-id)
+  (alias test_predicate_due)
   (alias test_probes_change_nothing)
   (alias test_replaygain)
   (alias test_request_pool_concurrent)

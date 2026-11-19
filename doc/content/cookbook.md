@@ -202,9 +202,10 @@ song. We can think of doing something like
 
 ```
 
-but the problem is that it is likely to play many jingles. In order to play
-exactly one jingle, we can use the function `predicate.activates` which detects
-when a predicate (here `{ 0m-5m }`) becomes true:
+but the problem is that it is likely to play many jingles. To play exactly one
+jingle each hour, use `predicate.due`. It becomes true when a predicate (here
+`{ 0m }`) becomes true, and stays true until the jingle starts. If a song is
+playing at that moment, the jingle plays when the song ends:
 
 ```{.liquidsoap include="fixed-time2.liq" from="BEGIN" to="END"}
 

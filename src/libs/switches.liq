@@ -179,3 +179,21 @@ def replaces random(~id=null, sources) =
 
   s
 end
+
+# A predicate for `s` in a switch: true from each time `p` becomes true until
+# `s` starts a track. Evaluating it changes nothing, so a switch may evaluate it
+# any number of times. `p` is checked on its own schedule. If another source is
+# in the middle of a track when `p` becomes true, `s` plays at the next track
+# boundary.
+# @category Programming
+# @param ~init Whether `p` being true at startup counts as becoming true.
+# @param ~every How often, in seconds, `p` is checked.
+# @param p Predicate whose becoming true makes `s` due.
+# @param s Source to play once each time `p` becomes true.
+def predicate.due(~init=false, ~every=0.5, p, (s:source)) =
+  due = ref(false)
+  thread.when(init=init, every=every, p, fun () -> due := true)
+  let {on_track} = source.methods(s)
+  ignore(on_track(synchronous=true, fun (_) -> due := false))
+  {due()}
+end
