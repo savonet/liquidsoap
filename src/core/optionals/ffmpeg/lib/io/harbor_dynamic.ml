@@ -434,7 +434,9 @@ let open_client ~args ~handler ~connection ~(relay : Harbor.relay_info) client =
                    ~finally:(fun () -> Connection.release connection)
                    (fun () ->
                      client#open_files;
-                     Av.open_input_stream ?format client#read)
+                     Ffmpeg_decoder.open_stream
+                       ~options:{ (Input_options.none ()) with format }
+                       client#read)
                in
                let options =
                  { Input_options.format = None; opts = Hashtbl.create 0 }

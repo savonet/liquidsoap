@@ -116,8 +116,10 @@ let open_source ?format ?opts source =
   report_unused opts (open_input_source container source format (bindings opts));
   container
 
-(* Applies the per-stream configuration, then probes: FFmpeg reads the
-   preferred decoders and decoder options while probing. *)
+(* Configuring before probing matters: FFmpeg reads the preferred decoders and
+   decoder options while probing. A demuxer without a header, such as MPEG-TS,
+   adds streams while probing; those are configured after it, which still
+   reaches their frame-mode decoders since these open on first read. *)
 let configure_and_probe ?configure_audio_stream ?configure_video_stream
     ?configure_subtitle_stream container =
   let configure index configure =
@@ -127,15 +129,22 @@ let configure_and_probe ?configure_audio_stream ?configure_video_stream
         configure_stream container index codec (bindings opts))
       configure
   in
-  try
+  let configure_from first =
     Array.iteri
-      (fun index -> function
-        | Audio -> configure index configure_audio_stream
-        | Video -> configure index configure_video_stream
-        | Subtitle -> configure index configure_subtitle_stream
-        | Data | Other -> ())
-      (stream_kinds container);
-    find_stream_info container
+      (fun index kind ->
+        if index >= first then (
+          match kind with
+            | Audio -> configure index configure_audio_stream
+            | Video -> configure index configure_video_stream
+            | Subtitle -> configure index configure_subtitle_stream
+            | Data | Other -> ()))
+      (stream_kinds container)
+  in
+  try
+    let known = Array.length (stream_kinds container) in
+    configure_from 0;
+    find_stream_info container;
+    configure_from known
   with exn ->
     release container;
     raise exn

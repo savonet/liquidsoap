@@ -9,20 +9,35 @@ settings.decoder.ffmpeg.codecs.vp9.set("libvpx-vp9")
 
 fname = argv(default="", 1)
 output_path = file.temp(cleanup=true, "vp9-alpha-stream", ".webm")
-port = 8964
+port = 18764
 
-s = max_duration(1., input.harbor(port=port, buffer=0., "vp9-alpha"))
+harbor = input.harbor(port=port, buffer=0., "vp9-alpha")
+connected = ref(false)
+ignore(harbor.on_connect(synchronous=true, fun (_) -> connected := true))
+s = max_duration(1., harbor)
 
-thread.run(
-  delay=1.,
-  fun () ->
-    ignore(
-      process.run(
-        "curl -s -T #{process.quote(fname)} -H 'Expect:' -H 'Content-Type: \
-         video/webm' -u source:hackme http://localhost:#{port}/vp9-alpha"
-      )
+# Harbor closes the upload once it has the second it needs, so curl's exit
+# code does not tell a good upload from a rejected one. Whether harbor took the
+# source does.
+def upload() =
+  upload =
+    process.run(
+      "curl -sS -T #{process.quote(fname)} -H 'Expect:' -H 'Content-Type: \
+       video/webm' -u source:hackme http://localhost:#{port}/vp9-alpha"
     )
-)
+  if
+    not connected()
+  then
+    print(
+      "Upload rejected or failed: #{upload.status} #{upload.status.code} #{
+        upload.stderr
+      }"
+    )
+    test.fail()
+  end
+end
+
+thread.run(delay=1., upload)
 
 thread.run(delay=60., fun () -> test.fail())
 

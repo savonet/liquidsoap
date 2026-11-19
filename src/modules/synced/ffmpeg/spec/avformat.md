@@ -296,7 +296,12 @@ Opens the URL for reading and probes its streams.
    prefers another decoder, a warning is written to FFmpeg's log and the
    first one is used for probing.
 
-A stream that appears after step 4 has no configuration.
+6. Streams that probing added, as a demuxer without a header (MPEG-TS) does,
+   are configured as in step 4 once probing ends. Probing used FFmpeg's
+   default decoder for them; their frame-mode decoder opens later and takes
+   the configuration.
+
+A stream that appears after the open has no configuration.
 
 Any failure, including an exception raised by a configure function, releases
 everything and removes the interrupt closure before it reaches the caller
@@ -312,12 +317,18 @@ The custom I/O closures (§7.1).
 
 ```ocaml
 val open_input_stream :
-  ?format:(input, _) format -> ?opts:opts -> ?seek:seek -> read ->
+  ?format:(input, _) format ->
+  ?opts:opts ->
+  ?seek:seek ->
+  ?configure_audio_stream:(audio Avcodec.params -> audio stream_config) ->
+  ?configure_video_stream:(video Avcodec.params -> video stream_config) ->
+  ?configure_subtitle_stream:(subtitle Avcodec.params -> subtitle stream_config) ->
+  read ->
   input container
 ```
 
-As `open_input`, reading through the closures instead of a URL. It takes no
-interrupt function and no stream configuration.
+As `open_input`, reading through the closures instead of a URL, with the
+same stream configuration (steps 4 to 6). It takes no interrupt function.
 
 ```ocaml
 val get_input_duration :
