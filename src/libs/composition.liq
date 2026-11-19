@@ -119,6 +119,12 @@ def source.composition.default_on_select(
         # once, when the mix is first found over.
         handed_over = ref(false)
         handing_over = ref(false)
+
+        # A handover that falls where the starting source begins a track of
+        # its own is that track's start: nothing is left to merge, and a flag
+        # left up would merge its next real track end.
+        let {on_track} = source.methods(starting)
+        ignore(on_track(synchronous=true, fun (_) -> handing_over := false))
         def next() =
           if
             source.is_ready(mix)
