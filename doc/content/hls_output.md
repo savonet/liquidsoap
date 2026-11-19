@@ -125,48 +125,74 @@ sooner; longer segments mean fewer requests and better compression. Values
 between 2 and 6 seconds are common for live streams.
 
 The playlists announce a _target duration_: `segment_duration` rounded to the
-nearest second, and at least 1. No segment, once rounded to the nearest
-second, is longer than it.
-
-### One grid for every variant
-
-A player switching variants expects segment _n_ of one variant to cover the
-same time as segment _n_ of another. The output places segment boundaries on a
-shared grid: multiples of `segment_duration` since the output started. Each
-variant cuts as close to the grid as its content allows, so variants stay
-aligned and never drift apart.
+nearest second, and at least 1. As long as the video has a key frame close
+enough, no segment, once rounded to the nearest second, is longer than it.
 
 ### Key frames
 
-A video segment can only start on a key frame, so where cuts land depends on
-the video:
+A video segment must start on a key frame, otherwise a player joining there
+cannot decode it. The output never invents key frames: it cuts each segment
+at the key frame nearest to `segment_duration` after the previous cut. How
+regular your segments are therefore depends on where the key frames are:
 
-- **Re-encoded video** (`%video(codec="libx264", ...)` and the like): the
-  output asks the encoder for a key frame at every grid boundary. Segments are
-  `segment_duration` long, to the frame.
-- **Copied video** (`%video.copy`): the output cannot add key frames, so it
-  cuts at the source's own key frame nearest to each boundary. Choose a source
-  key-frame interval (GOP) that divides the segment duration: a 2 s GOP with
-  6 s segments gives regular 6 s segments.
+- **Re-encoded video** (`%video(codec="libx264", ...)` and the like): when
+  the format sets no key-frame interval, the output picks one for you, so
+  that key frames fall at most every 2 seconds and divide
+  `segment_duration`, and with libx264 turns off scene-cut key frames.
+  Segments are then `segment_duration` long, to the frame.
+- **Copied video** (`%video.copy`): the key frames are wherever the source
+  put them. Choose a source key-frame interval (GOP) that divides the segment
+  duration: a 2 s GOP with 6 s segments gives regular 6 s segments, and
+  29.97 fps video with a 60-frame GOP gives steady 30.03 s segments for
+  `segment_duration=30.`.
 
 ```{.liquidsoap include="hls-copy.liq" from="BEGIN" to="END"}
 
 ```
 
-Audio-only variants can be cut anywhere, within one audio frame.
+If you set the encoder's key-frame options yourself, keep the same rule:
+`g` (and `keyint_min`) in frames, a whole number of key-frame intervals per
+segment, and `sc_threshold=0` so that scene changes add no key frame in
+between:
 
-### Forced cuts
+```{.liquidsoap include="hls-gop.liq" from="BEGIN" to="END"}
 
-When no key frame comes in time and a segment would grow past the target
-duration, the output asks the encoder to cut anyway and logs a warning naming
-the variant and the time. A segment that starts this way may need earlier data
-to decode, so its playlist stops announcing `#EXT-X-INDEPENDENT-SEGMENTS`
-until the segment leaves it. If you see these warnings with copied video,
-shorten the source's GOP or lengthen `segment_duration`.
+```
 
-`#EXT-X-INDEPENDENT-SEGMENTS` is announced only when every listed segment
-starts with a key frame: it is also missing when the encoder cannot promise
-it.
+Audio-only variants can be cut anywhere, within one audio frame. They are
+cut on a grid of multiples of `segment_duration` since the output started,
+so that variants of different audio codecs never drift apart.
+
+### Variants that stay aligned
+
+A player switching variants expects segment _n_ of one variant to cover the
+same time as segment _n_ of another. Each variant is cut from its own key
+frames, so variants are aligned when their key frames are: give every video
+encoder the same key-frame interval, or copy variants from sources whose key
+frames match. When an audio-only variant sits beside video variants, it
+stays aligned with them when the key-frame interval divides
+`segment_duration` exactly.
+
+### When the content does not fit
+
+The output logs a warning naming the variant when the video's key frames
+keep segments from following `segment_duration`:
+
+- a segment is longer than the target duration: no key frame came close
+  enough to `segment_duration`. Players may stall on such segments. Shorten
+  the key-frame interval;
+- a segment is shorter than `segment_duration`: the key frames are not at
+  intervals that divide it, for instance a 2.5 s GOP with 6 s segments,
+  which gives 5 s segments;
+- two video variants cut at different times: their key frames are not
+  aligned.
+
+Each warning is logged once when the problem starts, and again only if it
+comes back after clearing.
+
+`#EXT-X-INDEPENDENT-SEGMENTS` is announced when every segment starts with a
+key frame a player can start decoding from: re-encoded video always does
+(closed GOPs), copied video cannot promise it.
 
 ## Playlists
 
@@ -293,8 +319,9 @@ metadata arrives puts the title on time, at the cost of a shorter segment.
   output has one variant or every variant can be cut anywhere (audio-only
   variants). Metadata causes a cut only if some variant carries ID3; an
   inserted tag always does.
-- `true`: always cut. With video variants, segment boundaries can then differ
-  between variants.
+- `true`: always cut. With video variants, the cut waits for each variant's
+  next key frame, so variants cut together only when their key frames are
+  aligned.
 - `false`: never cut. Metadata and tags wait for the next segment.
 
 Metadata equal to what was last sent causes no cut.

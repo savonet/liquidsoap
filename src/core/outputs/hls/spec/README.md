@@ -57,21 +57,21 @@ The contracts between them:
 Build in this order, each layer with its checks of
 [conformance.md](conformance.md) before the next.
 
-| File                                               | Content                                                              |
-| -------------------------------------------------- | -------------------------------------------------------------------- |
-| [encoder-contract.md](encoder-contract.md)         | The encoder seam.                                                    |
-| [encoder-packed-audio.md](encoder-packed-audio.md) | `%mp3`, `%shine`, `%fdkaac`, with the ID3 timestamp bytes.           |
-| [encoder-ffmpeg.md](encoder-ffmpeg.md)             | `%ffmpeg`, mapped to the FFmpeg layer's spec.                        |
-| [variants.md](variants.md)                         | Variant fields and derived properties: bandwidth, codecs, extension. |
-| [segmenting.md](segmenting.md)                     | Grid, cut rule, target-duration bound, output-wide cuts, restarts.   |
-| [metadata.md](metadata.md)                         | ID3, inserted tags, cuts on metadata.                                |
-| [files.md](files.md)                               | Names, atomic writes, retention, cleanup, file-change events.        |
-| [playlists.md](playlists.md)                       | Media and main playlist bytes, numbering, with examples.             |
-| [persistence.md](persistence.md)                   | The state file, saving, restoring.                                   |
-| [operator.md](operator.md)                         | Parameters, construction, lifecycle, the per-frame loop, errors.     |
-| [serving.md](serving.md)                           | `output.harbor.hls`: what is served, content types, caching.         |
-| [conformance.md](conformance.md)                   | The checks, by principle.                                            |
-| [known-complexity.md](known-complexity.md)         | What the history shows to be hard, each entry answered by a rule.    |
+| File                                               | Content                                                                 |
+| -------------------------------------------------- | ----------------------------------------------------------------------- |
+| [encoder-contract.md](encoder-contract.md)         | The encoder seam.                                                       |
+| [encoder-packed-audio.md](encoder-packed-audio.md) | `%mp3`, `%shine`, `%fdkaac`, with the ID3 timestamp bytes.              |
+| [encoder-ffmpeg.md](encoder-ffmpeg.md)             | `%ffmpeg`, mapped to the FFmpeg layer's spec.                           |
+| [variants.md](variants.md)                         | Variant fields and derived properties: bandwidth, codecs, extension.    |
+| [segmenting.md](segmenting.md)                     | Grid, cut rules, target duration, output-wide cuts, restarts, warnings. |
+| [metadata.md](metadata.md)                         | ID3, inserted tags, cuts on metadata.                                   |
+| [files.md](files.md)                               | Names, atomic writes, retention, cleanup, file-change events.           |
+| [playlists.md](playlists.md)                       | Media and main playlist bytes, numbering, with examples.                |
+| [persistence.md](persistence.md)                   | The state file, saving, restoring.                                      |
+| [operator.md](operator.md)                         | Parameters, construction, lifecycle, the per-frame loop, errors.        |
+| [serving.md](serving.md)                           | `output.harbor.hls`: what is served, content types, caching.            |
+| [conformance.md](conformance.md)                   | The checks, by principle.                                               |
+| [known-complexity.md](known-complexity.md)         | What the history shows to be hard, each entry answered by a rule.       |
 
 Encoder implementation files use the contract's section numbers: "§7" is
 `insert_id3` in all of them.

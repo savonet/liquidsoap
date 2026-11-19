@@ -2,7 +2,6 @@ type segment = {
   position : int;
   discontinuous : bool;
   discontinuity : int;
-  forced : bool;
   codecs : string option;
   init : string option;
   name : string;
@@ -44,7 +43,7 @@ let next_init_position t =
   t.next_init_position <- n + 1;
   n
 
-let publish t ~discontinuous ~forced ~codecs ~init ~name ~tags ~duration ~size =
+let publish t ~discontinuous ~codecs ~init ~name ~tags ~duration ~size =
   let position = t.next_position in
   t.next_position <- position + 1;
   if discontinuous then t.discontinuity_count <- t.discontinuity_count + 1;
@@ -53,7 +52,6 @@ let publish t ~discontinuous ~forced ~codecs ~init ~name ~tags ~duration ~size =
       position;
       discontinuous;
       discontinuity = t.discontinuity_count;
-      forced;
       codecs;
       init;
       name;
@@ -134,7 +132,6 @@ let restore ~next_position ~next_init_position ~discontinuity_count
           position = s.position;
           discontinuous = s.discontinuous;
           discontinuity = s.discontinuity;
-          forced = s.forced;
           codecs = s.codecs;
           init = s.init;
           name = s.name;
@@ -156,7 +153,6 @@ let to_persisted t =
         Persist.position = s.position;
         discontinuous = s.discontinuous;
         discontinuity = s.discontinuity;
-        forced = s.forced;
         codecs = s.codecs;
         init = s.init;
         name = s.name;

@@ -1322,6 +1322,16 @@
    content/liq/hls-files.liq)))
 
 (rule
+ (alias test-doc-hls-gop)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/hls-gop.liq))
+ (action
+  (run %{bin:liquidsoap} --check --no-fallible-check content/liq/hls-gop.liq)))
+
+(rule
  (alias test-doc-hls-harbor-https)
  (package liquidsoap)
  (deps
@@ -2901,6 +2911,7 @@
   (alias test-doc-hls-basic)
   (alias test-doc-hls-copy)
   (alias test-doc-hls-files)
+  (alias test-doc-hls-gop)
   (alias test-doc-hls-harbor)
   (alias test-doc-hls-harbor-https)
   (alias test-doc-hls-main-playlist)

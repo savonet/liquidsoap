@@ -15,11 +15,11 @@ draining rule of [draining.md](../../../source/spec/draining.md). Timestamps are
 
 ## 1. Interface
 
-| Media    | `mk_stream`               | `flush`                                       | `request_keyframe`       | `video_size`                  |
-| -------- | ------------------------- | --------------------------------------------- | ------------------------ | ----------------------------- |
-| audio    | creates the stream (§2.1) | drains the resampler, then the re-framer (§8) | nothing                  | none                          |
-| video    | creates the stream (§2.2) | drains the frame-rate converter (§8)          | key frame at a time (§7) | the stream's width and height |
-| subtitle | creates the stream (§2.3) | nothing                                       | nothing                  | none                          |
+| Media    | `mk_stream`               | `flush`                                       | `video_size`                  |
+| -------- | ------------------------- | --------------------------------------------- | ----------------------------- |
+| audio    | creates the stream (§2.1) | drains the resampler, then the re-framer (§8) | none                          |
+| video    | creates the stream (§2.2) | drains the frame-rate converter (§8)          | the stream's width and height |
+| subtitle | creates the stream (§2.3) | nothing                                       | none                          |
 
 `codec_attr` and `bitrate` come from the stream (§9).
 
@@ -250,11 +250,9 @@ Every packet goes through the instance's hook with its key flag before it
 reaches the muxer ([encoder.md §8.2](encoder.md#82-keyframe-hooks)). Subtitle
 packets count as key packets.
 
-`request_keyframe t` on a video stream marks the first image given to the
-codec at or after media time `t` as a key frame request; the codec makes that
-image a key frame. Under HLS the instance requests one at each grid boundary
-([encoder.md §8.4](encoder.md#84-split_encode-frame)). Audio and subtitle
-streams ignore it.
+A video stream's key frames are the codec's, by its options: under HLS the
+key-frame interval defaults from the segment duration
+([encoder.md §3](encoder.md#3-building-an-instance)).
 
 ## 8. Flush and end
 

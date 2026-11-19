@@ -10,7 +10,7 @@ protocols.
 Per variant: its name, its counters (next position number, next init
 position, discontinuity count, pending inserted tags) and its retained
 segments, oldest first. Per segment: position number, discontinuity flag,
-discontinuity value, forced flag, codec string, init segment name, file
+discontinuity value, codec string, init segment name, file
 name, inserted tags, length. Also the position number of the first segment
 of each variant's window.
 
@@ -31,7 +31,7 @@ UTF-8 JSON:
               "window_start": int, "pending_tags": [string, ...],
               "segments": [ <segment>, ... ] }
 <segment> = { "position": int, "discontinuous": bool,
-              "discontinuity": int, "forced": bool,
+              "discontinuity": int,
               "codecs": string,         optional
               "init": string,           optional
               "name": string, "tags": [string, ...], "duration": float }

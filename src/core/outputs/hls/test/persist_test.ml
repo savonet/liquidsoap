@@ -13,7 +13,6 @@ let segment position =
     Persist.position;
     discontinuous = position = 3;
     discontinuity = (if position >= 3 then 1 else 0);
-    forced = false;
     codecs = (if position = 2 then None else Some "mp4a.40.2");
     init = (if position = 2 then Some "a_0.mp4" else None);
     name = Printf.sprintf "a_%d.ts" position;

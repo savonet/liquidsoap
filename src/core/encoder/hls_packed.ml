@@ -24,15 +24,14 @@ let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
       (fun ~boundary:_ frame ->
         Init { init = None; pieces = [Bytes (encode frame)] });
     split_encode =
-      (fun ~boundary:_ ~force frame ->
-        let split = Encoder.Split { time = !time; forced = force } in
+      (fun ~boundary:_ frame ->
+        let split = Encoder.Split { time = !time } in
         [split; Bytes (encode frame)]);
     insert_id3 = (fun ~time m -> Some (Hls_id3.make ~version:!version ~time m));
     hls_stop = (fun () -> { init = None; pieces = [Bytes (encoder.stop ())] });
     codec_attrs = (fun () -> codecs format);
     independent_segments = (fun () -> true);
     free_split = (fun () -> true);
-    split_due = (fun () -> false);
     hls_bitrate = (fun () -> bitrate format);
     hls_video_size = (fun () -> None);
   }
@@ -44,7 +43,7 @@ let () =
         | Encoder.MP3 _ | Encoder.Shine _
         | Encoder.FdkAacEnc { Fdkaac_format.transmux = `Adts; _ } ->
             Some
-              (fun ~pos name ->
+              (fun ~pos ~segment_duration:_ name ->
                 make ~format
                   ((Encoder.get_factory format)
                      ~pos name Frame.Metadata.Export.empty))

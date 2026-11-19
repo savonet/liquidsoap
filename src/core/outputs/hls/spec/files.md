@@ -61,7 +61,7 @@ Every segment, init segment and playlist is written the same way:
    when `temp_dir` is `null`, with mode `perm` as the operating system
    applies it under the process umask.
 2. The bytes are written. A media segment's file MAY be read back and
-   truncated during a cut ([segmenting.md §4.1](segmenting.md#41-cutting)).
+   truncated during a cut ([segmenting.md §4.3](segmenting.md#43-cutting)).
 3. **Publish**: the parent of the final path is created (§1); the temporary
    file is renamed onto the final path. When the two are on different file
    systems, the file is first copied into a new temporary file in the final

@@ -42,11 +42,12 @@ video =
 
 checked = ref(0)
 
-def check(dir, name) =
+# The copied fixture has a key frame every 4 s: one per segment.
+def check(dir, name, min) =
   p = hls_test.playlist("#{dir}/#{name}.m3u8")
   n = list.length(p.segments)
   hls_test.check(
-    n >= 10,
+    n >= min,
     "#{name}: only #{n} segments"
   )
   list.iter(
@@ -58,7 +59,7 @@ def check(dir, name) =
     p.segments
   )
   ref.incr(checked)
-  if checked() == 2 then hls_test.done(22) end
+  if checked() == 2 then hls_test.done(16) end
 end
 
 audio.on_file_change(
@@ -71,5 +72,5 @@ audio.on_file_change(
     end
 )
 
-hls_test.at_first_stop(audio, {check(audio_dir, "aac")})
-hls_test.at_first_stop(video, {check(video_dir, "av")})
+hls_test.at_first_stop(audio, {check(audio_dir, "aac", 10)})
+hls_test.at_first_stop(video, {check(video_dir, "av", 4)})

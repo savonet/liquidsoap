@@ -39,9 +39,7 @@ type container = {
 
 type state = [ `Built | `Started | `Failed of exn | `Stopped ]
 
-(* HLS mode (encoder.md §8). [key_due] are requested times whose image an
-   encoded video stream has made a key frame and whose key packet is not yet
-   seen: [force] is ignored meanwhile. *)
+(* HLS mode (encoder.md §8). *)
 type hls = {
   split : Hls_split.t;
   mutable id3 : Encoder.hls_id3_mode;
@@ -49,8 +47,6 @@ type hls = {
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
   mutable id3_queue : (unit -> unit) list;
   mutable media_written : bool;
-  mutable key_requests : int list;
-  mutable key_due : int list;
 }
 
 (* [header] is the current container's header (encoder.md §10): [`Pending
@@ -285,9 +281,6 @@ let on_packet t field ~key ~time =
   match (t.hls, time) with
     | Some h, Some time ->
         h.media_written <- true;
-        if key && List.mem field (encoded_video t) then (
-          h.key_due <- List.filter (fun b -> b > time) h.key_due;
-          h.key_requests <- List.filter (fun b -> b > time) h.key_requests);
         Hls_split.packet h.split ~flush:(hls_flush t) ~field ~key ~time
     | Some h, None -> h.media_written <- true
     | None, _ -> ()
@@ -527,8 +520,35 @@ let segment_muxer = function
       || List.mem m F.iso_family
   | None -> false
 
+(* encoder.md §3 step 2: a key frame at most every 2 s, as close as whole
+   frames allow to an even split of the segment. *)
+let key_frame_interval ~segment_duration (video : F.video) =
+  let num, den = Lazy.Mutexed.force video.framerate in
+  let per_segment =
+    max 1 (int_of_float (Float.ceil (segment_duration /. 2.)))
+  in
+  max 1
+    (Float.to_int
+       (Float.round
+          (segment_duration *. float_of_int num /. float_of_int den
+         /. float_of_int per_segment)))
+
+let key_frame_defaults ~segment_duration (encoded : F.encoded) video =
+  let default key value opts =
+    if List.mem_assoc key opts then opts else F.set opts key (`Int value)
+  in
+  let interval = key_frame_interval ~segment_duration video in
+  let opts =
+    encoded.opts |> default "g" interval |> default "keyint_min" interval
+  in
+  (* [sc_threshold] is a private option of libx264: another encoder rejects it
+     as unused. *)
+    match encoded.codec with
+    | Some ("libx264" | "libx264rgb") -> default "sc_threshold" 0 opts
+    | _ -> opts
+
 (* encoder.md §3 step 2. *)
-let hls_defaults (format : F.t) =
+let hls_defaults ~segment_duration (format : F.t) =
   let default key value opts =
     if List.mem_assoc key opts then opts else F.set opts key (`String value)
   in
@@ -539,16 +559,15 @@ let hls_defaults (format : F.t) =
       | Some "mpegts" -> default "avoid_negative_ts" "disabled" format.opts
       | _ -> format.opts
   in
-  (* A forced key frame of an open GOP is not a decoder entry point: libx264
-     emits a recovery-point I-frame without parameter sets, libx265 a CRA. *)
+  (* Every key frame is a cut candidate: in an open GOP it is not a decoder
+     entry point (libx265 makes CRA pictures). *)
   let streams =
     List.map
       (function
-        | name, `Encode ({ F.options = `Video _; _ } as encoded) ->
+        | name, `Encode ({ F.options = `Video video; _ } as encoded) ->
+            let opts = key_frame_defaults ~segment_duration encoded video in
             ( name,
-              `Encode
-                { encoded with opts = Opts.add_named_flag encoded.opts "cgop" }
-            )
+              `Encode { encoded with opts = Opts.add_named_flag opts "cgop" } )
         | stream -> stream)
       format.streams
   in
@@ -596,24 +615,12 @@ let run_id3_queue h =
     h.id3_queue <- [];
     List.iter (fun f -> f ()) queue)
 
-let hls_encode t h ~boundary ~force frame =
+let hls_encode t h ~boundary frame =
   Hls_split.request h.split boundary;
-  if encoded_video t <> [] && not (List.mem boundary h.key_requests) then
-    h.key_requests <- h.key_requests @ [boundary];
-  (* A stream ignores requests until it exists, and repeats of one. *)
-  List.iter
-    (fun track -> track.Encoded_stream.request_keyframe boundary)
-    (encoded_tracks t.current);
-  if
-    force && h.key_due = []
-    && (not (Hls_split.restart_pending h.split))
-    && Av.output_started t.current.output
-  then Hls_split.force h.split ~flush:(hls_flush t) ~time:t.position;
   (match t.state with
     | `Failed exn -> raise exn
     | `Stopped -> failwith "Encoder used after stop"
     | `Built | `Started -> encode_frames t frame);
-  h.key_due <- List.filter (fun b -> b < t.position) h.key_requests;
   run_id3_queue h;
   Hls_split.take h.split
 
@@ -715,8 +722,8 @@ let hls_stop t h =
       @ if held = "" then [] else [Encoder.Bytes (Strings.of_string held)]);
   }
 
-let create_hls ~pos ~name format : Encoder.hls_encoder =
-  let format = hls_defaults format in
+let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
+  let format = hls_defaults ~segment_duration format in
   let fields = List.map fst (non_drop format) in
   let muxer = ref "" in
   let init_length buffer offset =
@@ -731,8 +738,6 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
       id3_stream = None;
       id3_queue = [];
       media_written = false;
-      key_requests = [];
-      key_due = [];
     }
   in
   let t = make ~hls:h ~pos ~name Frame.Metadata.Export.empty format in
@@ -747,18 +752,16 @@ let create_hls ~pos ~name format : Encoder.hls_encoder =
         mode);
     init_encode =
       (fun ~boundary frame ->
-        match hls_encode t h ~boundary ~force:false frame with
+        match hls_encode t h ~boundary frame with
           | { init = Some init; pieces } -> Init { init; pieces }
           | { init = None; _ } -> Pending);
     split_encode =
-      (fun ~boundary ~force frame ->
-        (hls_encode t h ~boundary ~force frame).pieces);
+      (fun ~boundary frame -> (hls_encode t h ~boundary frame).pieces);
     insert_id3 = (fun ~time m -> insert_id3 t h ~time m);
     hls_stop = (fun () -> hls_stop t h);
     codec_attrs = (fun () -> codec_attrs t);
     independent_segments = (fun () -> independent_segments t);
     free_split = (fun () -> Hls_split.all_key h.split);
-    split_due = (fun () -> h.key_due <> [] || Hls_split.restart_pending h.split);
     hls_bitrate = (fun () -> bitrate t);
     hls_video_size = (fun () -> video_size t);
   }
@@ -784,5 +787,7 @@ let () =
     | _ -> None);
   Plug.register Encoder.hls_plug "ffmpeg" ~doc:"FFmpeg HLS segments." (function
     | Encoder.Ffmpeg format when segment_muxer format.F.format ->
-        Some (fun ~pos name -> create_hls ~pos ~name format)
+        Some
+          (fun ~pos ~segment_duration name ->
+            create_hls ~pos ~segment_duration ~name format)
     | _ -> None)

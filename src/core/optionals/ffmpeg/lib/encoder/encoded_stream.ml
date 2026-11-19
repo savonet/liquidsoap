@@ -35,7 +35,6 @@ type t = {
   mk_stream : Frame.t -> unit;
   encode : position:int -> Frame.t -> unit;
   flush : unit -> unit;
-  request_keyframe : int -> unit;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;
@@ -415,7 +414,6 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     mk_stream;
     encode;
     flush;
-    request_keyframe = (fun _ -> ());
     codec_attr = (fun () -> Option.bind (stream ()) audio_codec_attr);
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
     video_size = (fun () -> None);
@@ -431,21 +429,10 @@ module Video_writer = struct
     mutable next_slot : int;
     mutable stage : stage option;
     on_packet : on_packet;
-    mutable keyframe_slots : int list;
-    mutable requested : int option;
   }
 
   let create ~log ~frame_rate ~on_packet stream =
-    {
-      log;
-      stream;
-      frame_rate;
-      next_slot = 0;
-      stage = None;
-      on_packet;
-      keyframe_slots = [];
-      requested = None;
-    }
+    { log; stream; frame_rate; next_slot = 0; stage = None; on_packet }
 
   let slot_time_base t = Time_base.per_frame t.frame_rate
 
@@ -454,13 +441,6 @@ module Video_writer = struct
     Option.value ~default:t.next_slot
       (Time_base.rescale ~rounding:`Up ~src:(Time_base.main ())
          ~dst:(slot_time_base t) time)
-
-  (* ffmpeg spec encoder.md §8.4: the first image at or after [time] is a key
-     frame. *)
-  let request_keyframe t time =
-    if t.requested <> Some time then (
-      t.requested <- Some time;
-      t.keyframe_slots <- t.keyframe_slots @ [first_slot t time])
 
   let write t fps frame =
     let slot =
@@ -478,15 +458,6 @@ module Video_writer = struct
     if slot >= t.next_slot then (
       Avutil.Frame.set_pts frame (Some (Int64.of_int slot));
       t.next_slot <- slot + 1;
-      let due, later = List.partition (fun s -> s <= slot) t.keyframe_slots in
-      t.keyframe_slots <- later;
-      let frame =
-        if due = [] then frame
-        else (
-          let frame = Avutil.Frame.dup frame in
-          Avutil.Video.frame_force_keyframe frame;
-          frame)
-      in
       Av.write_frame ~on_packet:(report t.on_packet) t.stream frame)
 
   let drain t =
@@ -723,9 +694,6 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     mk_stream;
     encode;
     flush;
-    request_keyframe =
-      (fun time ->
-        Option.iter (fun (w, _) -> Video_writer.request_keyframe w time) !state);
     codec_attr = (fun () -> Option.bind (stream ()) Av.codec_attr);
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
     video_size = (fun () -> Option.map (fun _ -> (width, height)) (stream ()));
@@ -814,7 +782,6 @@ let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts
     mk_stream;
     encode;
     flush = (fun () -> ());
-    request_keyframe = (fun _ -> ());
     codec_attr = (fun () -> Option.bind !stream Av.codec_attr);
     bitrate = (fun () -> Option.bind !stream Av.bitrate);
     video_size = (fun () -> None);

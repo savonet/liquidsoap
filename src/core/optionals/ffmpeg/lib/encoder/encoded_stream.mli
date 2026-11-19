@@ -34,13 +34,10 @@
 
 type on_packet = key:bool -> time:int option -> unit
 
-(** [request_keyframe time] makes the first image at or after media time [time]
-    a key frame; a no-op on audio and subtitle streams (encoder.md §8.4). *)
 type t = {
   mk_stream : Frame.t -> unit;
   encode : position:int -> Frame.t -> unit;
   flush : unit -> unit;
-  request_keyframe : int -> unit;
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;

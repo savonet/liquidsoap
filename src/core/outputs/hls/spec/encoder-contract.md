@@ -29,8 +29,9 @@ output's.
 ## 2. Calls and order
 
 1. A new encoder is created for each variant at the start of every run,
-   with the HLS flag and the variant name
-   ([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
+   with the HLS flag, the variant name and the segment duration `D` in
+   seconds ([segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration),
+   [encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 2. `init` once, before the first chunk.
 3. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
 4. At every segment open: `insert_id3` when the variant's ID3 mode is
@@ -71,25 +72,26 @@ whose format has a header MUST NOT return empty init bytes.
 
 ## 5. `split_encode`
 
-`split_encode ~boundary ~force chunk → piece list`, in byte order:
+`split_encode ~boundary chunk → piece list`, in byte order:
 
 - `Bytes b`: output bytes.
-- `Split {time, forced}`: a position where a segment may start; `time` is
-  the media time of what follows. Every stream's first packet after it is a
-  key packet, unless `forced`.
+- `Split {time}`: a position where a segment may start; `time` is the media
+  time of what follows. Every stream's first packet after it is a key
+  packet.
 - `Restart {time, init}`: a split point that also starts a new container;
   `init` its init segment or none.
 
 `boundary` is the request ([segmenting.md §2](segmenting.md#2-segments-in-memory)).
-An encoder that makes key frames makes one at or just after each request,
-and an encoder whose streams are all-key has a split point within one codec
-frame after it.
+An encoder whose streams are all-key has a split point within one codec
+frame after it. An encoder with key frames has a split point at each of
+them and does not place them by the request.
 
-`force` true asks for a split at the start of this chunk without the
-encoder's condition ([segmenting.md §5](segmenting.md#5-the-target-duration-bound)).
-An encoder MAY decline it only while a split point it has committed to is
-on its way: a key frame it made for a request, or a restart not yet
-returned.
+An encoder that encodes video SHOULD default its key-frame interval from
+`D` (§2) when the script sets none, so that key frames divide `D` and
+fall at most every 2 s. Reason: the output cuts key-frame variants only at
+key frames ([segmenting.md §4.1](segmenting.md#41-key-frame-variants)), and
+an encoder's own default (libx264: 250 frames, plus scene cuts) gives
+segments of irregular length.
 
 The output relies on:
 
@@ -102,24 +104,20 @@ The output relies on:
 
 ## 6. Properties
 
-| Query                     | Meaning for the output                                                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `codec_attrs ()`          | RFC 6381 codec string listing every format in the variant, or none; never a partial list                |
-| `independent_segments ()` | true when the encoder's split points, not counting forced ones, start with key packets                  |
-| `free_split ()`           | true when a split point is within one codec frame of every request                                      |
-| `split_due ()`            | true while a split point the encoder has committed to is on its way (§5): it declines `force` meanwhile |
-| `bitrate ()`              | nominal bits per second, or none                                                                        |
-| `video_size ()`           | `(width, height)`, or none                                                                              |
+| Query                     | Meaning for the output                                                                   |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| `codec_attrs ()`          | RFC 6381 codec string listing every format in the variant, or none; never a partial list |
+| `independent_segments ()` | true when the encoder's split points start with key packets                              |
+| `free_split ()`           | true when a split point is within one codec frame of every request                       |
+| `bitrate ()`              | nominal bits per second, or none                                                         |
+| `video_size ()`           | `(width, height)`, or none                                                               |
 
 Answers are valid from the `Init` of §4 and may change later, at a
 `Restart` or once a stream's parameters are known (a copied stream that
 waits for its source); the output reads them again at every segment
 close. None
 defers to the format and the variant fields
-([variants.md §3](variants.md#3-derived-properties)). Whether a listed
-segment started at a forced split is recorded by the output
-([segmenting.md §2](segmenting.md#2-segments-in-memory)), not answered by
-the encoder.
+([variants.md §3](variants.md#3-derived-properties)).
 
 ## 7. `insert_id3`
 

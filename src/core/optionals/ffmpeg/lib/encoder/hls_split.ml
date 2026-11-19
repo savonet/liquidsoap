@@ -1,7 +1,4 @@
-type mark =
-  | Split of { time : int; forced : bool }
-  | Start of { time : int; first : bool }
-
+type mark = Split of { time : int } | Start of { time : int; first : bool }
 type candidate = { offset : int; time : int; mutable waiting : string list }
 
 type t = {
@@ -42,7 +39,7 @@ let accept t c =
   t.marks <-
     List.stable_sort
       (fun (a, _) (b, _) -> compare a b)
-      (t.marks @ [(c.offset, Split { time = c.time; forced = false })])
+      (t.marks @ [(c.offset, Split { time = c.time })])
 
 let decide t ~field ~key ~superseded =
   t.candidates <-
@@ -79,17 +76,9 @@ let packet t ~flush ~field ~key ~time =
           else t.candidates <- t.candidates @ [c]);
         if not key then all_key := false
 
-let force t ~flush ~time =
-  flush ();
-  t.candidates <- [];
-  t.marks <- t.marks @ [(Buffer.length t.buffer, Split { time; forced = true })]
-
 let container_start t ~first ~time =
   t.candidates <- [];
   t.marks <- t.marks @ [(Buffer.length t.buffer, Start { time; first })]
-
-let restart_pending t =
-  List.exists (function _, Start _ -> true | _ -> false) t.marks
 
 type taken = { init : string option option; pieces : Encoder.hls_piece list }
 
@@ -104,10 +93,8 @@ let take t =
     else acc
   in
   let rec go ~init pos acc = function
-    | (offset, Split { time; forced }) :: rest when offset <= limit ->
-        go ~init offset
-          (Encoder.Split { time; forced } :: bytes pos offset acc)
-          rest
+    | (offset, Split { time }) :: rest when offset <= limit ->
+        go ~init offset (Encoder.Split { time } :: bytes pos offset acc) rest
     | (offset, Start { time; first }) :: rest as marks when offset <= limit -> (
         match t.init_length t.buffer offset with
           | None -> (init, offset, bytes pos offset acc, marks)

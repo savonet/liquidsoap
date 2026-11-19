@@ -14,17 +14,15 @@ let chunk = 40
 let config ~duration = { Segmenter.duration; ticks_per_second = tps }
 
 type encoder =
+  (* A split point at every chunk start (packed audio). *)
   | Free_split
-  (* Key packets at these media times; [honour_force] says whether a forced
-     split is made. *)
-  | Keyframes of { times : int list; honour_force : bool }
+  (* Free-split, with split points at these codec frame times. *)
+  | Codec_frames of int list
+  (* Key packets at these media times, each recorded [delay] ticks after its
+     time (interleaving, encoder delay). *)
+  | Keyframes of { times : int list; delay : int }
 
-type segment = {
-  start : int;
-  length : int;
-  discontinuous : bool;
-  forced : bool;
-}
+type segment = { start : int; length : int; discontinuous : bool }
 
 let run ?(syncs = []) ?(restarts = []) ~duration ~until encoder =
   let closed = ref [] in
@@ -38,13 +36,21 @@ let run ?(syncs = []) ?(restarts = []) ~duration ~until encoder =
               start = c.start;
               length = c.length;
               discontinuous = c.discontinuous;
-              forced = c.forced;
             }
             :: !closed)
       (config ~duration)
   in
-  let pending_keys =
-    ref (match encoder with Keyframes k -> k.times | _ -> [])
+  let pending =
+    ref
+      (match encoder with
+        | Keyframes k -> k.times
+        | Codec_frames times -> times
+        | Free_split -> [])
+  in
+  let cadence, delay =
+    match encoder with
+      | Keyframes k -> (`Key_frames, k.delay)
+      | Free_split | Codec_frames _ -> (`Grid, 0)
   in
   while Segmenter.media_time seg < until do
     let before = Segmenter.media_time seg in
@@ -53,7 +59,7 @@ let run ?(syncs = []) ?(restarts = []) ~duration ~until encoder =
       (fun (time, discontinuous) ->
         if time = before then Segmenter.sync seg ~time ~discontinuous)
       syncs;
-    let force = Segmenter.bound ~length:chunk seg in
+    Segmenter.ensure_open seg;
     Segmenter.advance seg chunk;
     if List.mem before restarts then (
       Segmenter.restart seg ~time:before;
@@ -61,17 +67,15 @@ let run ?(syncs = []) ?(restarts = []) ~duration ~until encoder =
     else (
       match encoder with
         | Free_split ->
-            Segmenter.split seg ~time:before ~forced:force;
+            Segmenter.split seg ~cadence ~time:before;
             Segmenter.add_bytes seg (Strings.of_string "x")
-        | Keyframes { honour_force; _ } ->
-            if force && honour_force then
-              Segmenter.split seg ~time:before ~forced:true;
+        | Codec_frames _ | Keyframes _ ->
             let rec emit () =
-              match !pending_keys with
-                | k :: rest when k < after ->
-                    pending_keys := rest;
+              match !pending with
+                | k :: rest when k + delay < after ->
+                    pending := rest;
                     Segmenter.add_bytes seg (Strings.of_string "x");
-                    Segmenter.split seg ~time:k ~forced:false;
+                    Segmenter.split seg ~cadence ~time:k;
                     emit ()
                 | _ -> ()
             in
@@ -90,8 +94,7 @@ let () =
   let until = 60_000 in
   let segs =
     run ~duration:6000 ~until
-      (Keyframes
-         { times = every ~offset:2100 ~step:2000 ~until; honour_force = true })
+      (Keyframes { times = every ~offset:2100 ~step:2000 ~until; delay = 0 })
   in
   let starts = List.map (fun s -> s.start) segs in
   check "worked example starts"
@@ -106,8 +109,7 @@ let () =
   let until = 60_000 in
   let segs =
     run ~duration:6000 ~until
-      (Keyframes
-         { times = every ~offset:1880 ~step:2000 ~until; honour_force = true })
+      (Keyframes { times = every ~offset:1880 ~step:2000 ~until; delay = 0 })
   in
   List.iteri
     (fun i s ->
@@ -121,8 +123,7 @@ let () =
   let until = 60_000 in
   let video =
     run ~duration:6000 ~until
-      (Keyframes
-         { times = every ~offset:2100 ~step:2000 ~until; honour_force = true })
+      (Keyframes { times = every ~offset:2100 ~step:2000 ~until; delay = 0 })
   in
   let audio = run ~duration:6000 ~until Free_split in
   check "KC4 free-split cuts on the grid"
@@ -139,10 +140,7 @@ let () =
 let () =
   let until = 120_000 in
   let codec_frames = List.init (until * 100 / 4644) (fun i -> i * 4644 / 100) in
-  let segs =
-    run ~duration:2000 ~until
-      (Keyframes { times = List.tl codec_frames; honour_force = true })
-  in
+  let segs = run ~duration:2000 ~until (Codec_frames (List.tl codec_frames)) in
   let sum = ref 0 in
   List.iteri
     (fun n s ->
@@ -152,29 +150,69 @@ let () =
     segs;
   check "KC2 fifty segments" (List.length segs >= 50)
 
-(* KC1: key frames every 4 s, 1 s segments. *)
-let () =
-  let until = 40_000 in
-  let segs =
-    run ~duration:1000 ~until
-      (Keyframes
-         { times = every ~offset:4000 ~step:4000 ~until; honour_force = true })
-  in
-  check "KC1 bound holds" (List.for_all (fun s -> rounded s.length <= 1) segs);
-  check "KC1 forced segments exist" (List.exists (fun s -> s.forced) segs);
-  check "KC1 key frame segments are not forced"
-    (List.for_all (fun s -> s.forced = (s.start mod 4000 <> 0)) segs)
+(* §4.2, #5654: key frames every 2.002 s whose packets are recorded 0.9 s
+   late, 30 s segments. Every segment is 15 key-frame intervals, whatever the
+   delay. *)
+let issue_cuts delay =
+  let until = 400_000 in
+  List.map
+    (fun s -> (s.start, s.length))
+    (run ~duration:30_000 ~until
+       (Keyframes { times = every ~offset:100 ~step:2002 ~until; delay }))
 
-(* KC1: an encoder that declines force: cut at the next split point. *)
+let () =
+  let cuts = issue_cuts 900 in
+  List.iteri
+    (fun i (_, length) ->
+      if i > 0 then check "late key packets: 30.03 s segments" (length = 30_030))
+    cuts;
+  check "late key packets: count" (List.length cuts >= 12);
+  check "cuts do not depend on the delay"
+    (cuts = issue_cuts 0 && cuts = issue_cuts 5000)
+
+(* §4.2: NTSC key frames never drift away from the cadence. *)
+let () =
+  let until = 2_000_000 in
+  let segs =
+    run ~duration:30_000 ~until
+      (Keyframes { times = every ~offset:2002 ~step:2002 ~until; delay = 0 })
+  in
+  check "NTSC: every segment 30.03 s"
+    (List.for_all (fun s -> s.length = 30_030) segs);
+  check "NTSC: count" (List.length segs >= 60)
+
+(* §4.2: key frames just before the target. *)
+let () =
+  let until = 400_000 in
+  let segs =
+    run ~duration:30_000 ~until
+      (Keyframes { times = every ~offset:29_996 ~step:29_996 ~until; delay = 0 })
+  in
+  check "key frames before the target: 29.996 s"
+    (List.for_all (fun s -> s.length = 29_996) segs);
+  check "key frames before the target: count" (List.length segs >= 10)
+
+(* §4.2: a key-frame interval that does not divide D gives the nearest
+   eligible length, steadily. *)
+let () =
+  let until = 60_000 in
+  let segs =
+    run ~duration:6000 ~until
+      (Keyframes { times = every ~offset:2500 ~step:2500 ~until; delay = 0 })
+  in
+  check "2.5 s key frames, 6 s segments: 5 s"
+    (List.for_all (fun s -> s.length = 5000) segs)
+
+(* §4.2: key frames sparser than T: cuts only at key frames, each segment
+   one interval. *)
 let () =
   let until = 40_000 in
   let segs =
     run ~duration:1000 ~until
-      (Keyframes
-         { times = every ~offset:4000 ~step:4000 ~until; honour_force = false })
+      (Keyframes { times = every ~offset:4000 ~step:4000 ~until; delay = 0 })
   in
-  check "KC1 declined force: cut only at split points"
-    (List.for_all (fun s -> s.start mod 4000 = 0) segs)
+  check "sparse key frames: cut only at key frames"
+    (List.for_all (fun s -> s.start mod 4000 = 0 && s.length = 4000) segs)
 
 (* KC5: a segment is never of length 0 nor empty; the first starts at 0. *)
 let () =
@@ -199,8 +237,7 @@ let () =
     run
       ~syncs:[(7000, true)]
       ~duration:6000 ~until
-      (Keyframes
-         { times = every ~offset:2100 ~step:2000 ~until; honour_force = true })
+      (Keyframes { times = every ~offset:2100 ~step:2000 ~until; delay = 0 })
   in
   match List.find_opt (fun s -> s.discontinuous) segs with
     | Some s -> check "sync waits for the split point" (s.start = 8100)
@@ -232,29 +269,6 @@ let () =
   in
   check "same-time sync and restart: one cut"
     (List.length (List.filter (fun s -> s.discontinuous) segs) = 1)
-
-(* §5: with a split point due, the bound neither cuts nor forces. *)
-let () =
-  let closed = ref 0 in
-  let seg =
-    Segmenter.create
-      ~on_open:(fun ~start:_ -> ((), Strings.empty))
-      ~on_close:(fun _ -> incr closed)
-      (config ~duration:1000)
-  in
-  ignore (Segmenter.bound seg ~length:chunk);
-  Segmenter.advance seg chunk;
-  Segmenter.add_bytes seg (Strings.of_string "x");
-  Segmenter.split seg ~time:200 ~forced:false;
-  for _ = 1 to 40 do
-    check "split due: no force"
-      (not (Segmenter.bound ~split_due:true seg ~length:chunk));
-    Segmenter.advance seg chunk;
-    Segmenter.add_bytes seg (Strings.of_string "x")
-  done;
-  check "split due: no cut at an earlier split point" (!closed = 0);
-  check "without it the bound cuts"
-    ((not (Segmenter.bound seg ~length:chunk)) && !closed = 1)
 
 let () =
   check "T rounds 6.006 s to 6"

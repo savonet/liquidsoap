@@ -11,17 +11,19 @@ type 'a closed = {
   length : int;
   bytes : Strings.t;
   discontinuous : bool;
-  forced : bool;
+  cut : cut;
   publishable : bool;
 }
 
-type split_point = { time : int; offset : int; forced : bool }
+and cut = [ `Cadence | `Grid | `Sync | `Restart | `End ]
+
+type cadence = [ `Grid | `Key_frames ]
+type split_point = { time : int; offset : int }
 
 type 'a segment = {
   payload : 'a;
   start : int;
   prefix_length : int;
-  forced : bool;
   mutable discontinuous : bool;
   mutable bytes : Strings.t;
   (* Newest first. *)
@@ -63,7 +65,7 @@ let request t =
 let first_boundary_after t time =
   ((time / t.config.duration) + 1) * t.config.duration
 
-let open_segment t ~start ~discontinuous ~forced ~bytes ~splits =
+let open_segment t ~start ~discontinuous ~bytes ~splits =
   let payload, prefix = t.on_open ~start in
   let prefix_length = Strings.length prefix in
   let splits =
@@ -77,14 +79,13 @@ let open_segment t ~start ~discontinuous ~forced ~bytes ~splits =
         payload;
         start;
         prefix_length;
-        forced;
         discontinuous;
         bytes = Strings.append prefix bytes;
         splits;
       };
   t.boundary <- first_boundary_after t start
 
-let close t (s : _ segment) ~length ~bytes =
+let close t (s : _ segment) ~cut ~length ~bytes =
   t.segment <- None;
   t.on_close
     {
@@ -93,11 +94,11 @@ let close t (s : _ segment) ~length ~bytes =
       length;
       bytes;
       discontinuous = s.discontinuous;
-      forced = s.forced;
+      cut;
       publishable = length > 0 && Strings.length bytes > s.prefix_length;
     }
 
-let cut t (s : _ segment) ~discontinuous { time; offset; forced } =
+let cut t (s : _ segment) ~cause ~discontinuous { time; offset } =
   let kept = Strings.sub s.bytes 0 offset in
   let moved = Strings.drop s.bytes offset in
   let splits =
@@ -107,15 +108,15 @@ let cut t (s : _ segment) ~discontinuous { time; offset; forced } =
         else None)
       s.splits
   in
-  close t s ~length:(time - s.start) ~bytes:kept;
-  open_segment t ~start:time ~discontinuous ~forced ~bytes:moved ~splits
+  close t s ~cut:cause ~length:(time - s.start) ~bytes:kept;
+  open_segment t ~start:time ~discontinuous ~bytes:moved ~splits
 
 let segment t = match t.segment with Some s -> s | None -> assert false
 
 let eligible t (s : _ segment) time =
   rounded_seconds t.config (time - s.start) <= t.target
 
-let rec cut_rule t =
+let rec grid_rule t =
   let s = segment t in
   let k = t.boundary in
   match s.splits with
@@ -137,10 +138,38 @@ let rec cut_rule t =
         match served with
           | true -> t.boundary <- next
           | false ->
-              cut t s ~discontinuous:false point;
+              cut t s ~cause:`Grid ~discontinuous:false point;
               t.boundary <- next;
-              cut_rule t)
+              grid_rule t)
     | _ -> ()
+
+(* [a] is the first split point at or after the target, [b] the latest before
+   it. Both are known once [a] is recorded: the choice depends on split times
+   only. *)
+let rec cadence_rule t =
+  let s = segment t in
+  let target = s.start + t.config.duration in
+  let a =
+    List.fold_left
+      (fun a (p : split_point) -> if p.time >= target then Some p else a)
+      None s.splits
+  in
+  match a with
+    | None -> ()
+    | Some a ->
+        let b =
+          List.find_opt (fun (p : split_point) -> p.time < target) s.splits
+        in
+        let point =
+          match b with
+            | Some b
+              when (not (eligible t s a.time))
+                   || target - b.time <= a.time - target ->
+                b
+            | _ -> a
+        in
+        cut t s ~cause:`Cadence ~discontinuous:false point;
+        cadence_rule t
 
 let sync_cut t =
   let s = segment t in
@@ -150,24 +179,13 @@ let sync_cut t =
           List.partition (fun (sync, _) -> sync <= latest.time) t.syncs
         in
         t.syncs <- pending;
-        cut t s ~discontinuous:(List.exists snd due) latest
+        cut t s ~cause:`Sync ~discontinuous:(List.exists snd due) latest
     | _ -> ()
 
-let rec bound ?(split_due = false) ~length t =
-  match t.segment with
-    | None ->
-        open_segment t ~start:t.media ~discontinuous:false ~forced:false
-          ~bytes:Strings.empty ~splits:[];
-        bound ~split_due ~length t
-    | Some _ when split_due -> false
-    | Some s
-      when rounded_seconds t.config (t.media + length - s.start) > t.target -> (
-        match s.splits with
-          | latest :: _ ->
-              cut t s ~discontinuous:false latest;
-              bound ~split_due ~length t
-          | [] -> true)
-    | Some _ -> false
+let ensure_open t =
+  if t.segment = None then
+    open_segment t ~start:t.media ~discontinuous:false ~bytes:Strings.empty
+      ~splits:[]
 
 let advance t length = t.media <- t.media + length
 
@@ -175,18 +193,18 @@ let add_bytes t bytes =
   let s = segment t in
   s.bytes <- Strings.append s.bytes bytes
 
-let split t ~time ~forced =
+let split t ~cadence ~time =
   let s = segment t in
   if time > s.start then (
-    s.splits <- { time; offset = Strings.length s.bytes; forced } :: s.splits;
+    s.splits <- { time; offset = Strings.length s.bytes } :: s.splits;
     sync_cut t;
-    cut_rule t)
+    match cadence with `Grid -> grid_rule t | `Key_frames -> cadence_rule t)
 
 let restart t ~time =
   let s = segment t in
   t.syncs <- List.filter (fun (sync, _) -> sync > time) t.syncs;
-  cut t s ~discontinuous:true
-    { time; offset = Strings.length s.bytes; forced = false }
+  cut t s ~cause:`Restart ~discontinuous:true
+    { time; offset = Strings.length s.bytes }
 
 let sync t ~time ~discontinuous =
   match t.segment with
@@ -195,14 +213,14 @@ let sync t ~time ~discontinuous =
         s.discontinuous <- s.discontinuous || discontinuous
     | Some s -> (
         match List.rev (List.filter (fun p -> p.time >= time) s.splits) with
-          | first :: _ -> cut t s ~discontinuous first
+          | first :: _ -> cut t s ~cause:`Sync ~discontinuous first
           | [] -> t.syncs <- List.sort compare ((time, discontinuous) :: t.syncs)
         )
 
 let finish t =
   match t.segment with
     | None -> ()
-    | Some s -> close t s ~length:(t.media - s.start) ~bytes:s.bytes
+    | Some s -> close t s ~cut:`End ~length:(t.media - s.start) ~bytes:s.bytes
 
 let abort t =
   let payload = current t in

@@ -1,10 +1,10 @@
 %include "../test.liq"
 %include "hls_lib.liq"
 
-# KC1: libx264 with its default lookahead and B-frames, keyint 12 on 2 s
-# segments and keyint 25 on 1 s segments: each segment but the last lasts the
-# segment duration within one frame, without alternating and without a
-# forced split.
+# KC26: libx264 with its default lookahead and B-frames, keyint 25 on 2 s
+# segments and the default key-frame interval on 1 s segments: each segment
+# but the last lasts the segment duration within one frame, without
+# alternating and without a warning.
 settings.frame.video.width := 320
 settings.frame.video.height := 240
 log_path = file.temp("hls-x264", ".log")
@@ -76,19 +76,19 @@ def check(name, dir, duration) =
 end
 
 def finish() =
-  forced =
+  warnings =
     hls_test.log_lines(
       log_path,
-      "forced split"
+      ": segment of"
     )
   hls_test.check(
-    forced == [],
-    "forced splits logged: #{forced}"
+    warnings == [],
+    "segment warnings logged: #{warnings}"
   )
   hls_test.done(40)
 end
 
-def make(name, duration, keyint) =
+def make(name, duration, video_format) =
   dir = "#{root}/#{name}"
   o =
     output.file.hls(
@@ -97,16 +97,7 @@ def make(name, duration, keyint) =
       segments=100,
       segments_overhead=null,
       dir,
-      [
-        (
-          name,
-          %ffmpeg(
-            format = "mpegts",
-            %audio(codec = "aac", samplerate = 44100, channels = 2),
-            %video(codec = "libx264", g = keyint)
-          )
-        )
-      ],
+      [(name, video_format)],
       s
     )
   o.on_file_change(
@@ -129,5 +120,21 @@ def make(name, duration, keyint) =
   )
 end
 
-make("g12", 2., 12)
-make("g25", 1., 25)
+make(
+  "g25",
+  2.,
+  %ffmpeg(
+    format = "mpegts",
+    %audio(codec = "aac", samplerate = 44100, channels = 2),
+    %video(codec = "libx264", g = 25)
+  )
+)
+make(
+  "default",
+  1.,
+  %ffmpeg(
+    format = "mpegts",
+    %audio(codec = "aac", samplerate = 44100, channels = 2),
+    %video(codec = "libx264")
+  )
+)
