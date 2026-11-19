@@ -47,11 +47,12 @@ module Queue = Queues.Queue
    has to exceed the depth of nested operators; count them if it ever does
    not. *)
 
+let max_empty_segments = 16
+
 (** Given abstract start stop and send methods, creates an output. Takes care of
     pulling the data out of the source, type checkings, maintains a queue of
     last ten metadata and setups standard Server commands, including start/stop.
 *)
-let max_empty_segments = 16
 
 class virtual output ~output_kind ?clock ?(name = "") ~infallible
   ~register_telnet val_source autostart =
@@ -147,6 +148,7 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
     (* Operator startup *)
     initializer
       self#on_wake_up (fun () ->
+          self#clear_tick;
           (* We prefer [name] as an ID over the default, but do not overwrite
              user-defined ID. Our ID will be used for the server interface. *)
           if name <> "" then self#set_id ~force:false name;
@@ -161,7 +163,9 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
                  self#id);
 
           if not autostart then start_stop#execute_transition `Stopped);
-      self#on_sleep (fun () -> start_stop#execute_transition `Idle)
+      self#on_sleep (fun () ->
+          start_stop#execute_transition `Idle;
+          self#clear_tick)
 
     (* The output process *)
     val mutable skip = false
@@ -204,6 +208,13 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
         self#get_partial_frame (fun frame -> Frame.slice frame room)
       else self#empty_frame
 
+    (* A tick cut short (a stop, a sleep) may never run its after-tick
+       callbacks: nothing of it is kept for the next one. *)
+    method private clear_tick =
+      tick_done <- false;
+      gathered <- None;
+      empty_segments <- 0
+
     method private finish_tick =
       tick_done <- true;
       gathered <- None;
@@ -219,9 +230,18 @@ class virtual output ~output_kind ?clock ?(name = "") ~infallible
       let held = (not self#is_ready) && self#on_unavailable_source = `Hold in
       if (self#is_ready || held) && state = `Idle then
         start_stop#execute_transition `Started;
+      (* What was gathered before a stop belongs to no frame we will send. *)
+      if start_stop#state <> `Started then gathered <- None;
       if start_stop#state = `Started && not held then (
         let data = Option.value ~default:self#empty_frame gathered in
-        let segment = self#next_segment ~room:(Frame.remaining data) in
+        (* The sources read on our behalf place their data at our position in
+           the frame we gather. *)
+        Clock.set_reading_position self#clock (Frame.position data);
+        let segment =
+          Fun.protect
+            ~finally:(fun () -> Clock.set_reading_position self#clock 0)
+            (fun () -> self#next_segment ~room:(Frame.remaining data))
+        in
         let data = Frame.append data segment in
         empty_segments <-
           (if Frame.position segment = 0 then empty_segments + 1 else 0);

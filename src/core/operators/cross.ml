@@ -30,7 +30,7 @@ class consumer ~name ~clock buffer =
     inherit Source.source ~clock ~name ()
     method fallible = true
     method private can_generate_frame = 0 < Generator.length buffer
-    method! exhausted = Generator.length buffer = 0
+    method! exhausted = Generator.length buffer = 0 && self#held = 0
 
     method private generate_frame =
       Generator.slice buffer (Lazy.Mutexed.force Frame.size)
@@ -38,7 +38,7 @@ class consumer ~name ~clock buffer =
     method abort_track = Generator.clear buffer
     method private self_sync = (`Static, None)
     method effective_source = (self :> Source.source)
-    method remaining = Generator.length buffer
+    method remaining = Generator.length buffer + self#held
   end
 
 (* What was read of one track of the child and not delivered yet. *)
@@ -72,6 +72,14 @@ type transition = {
    transition source delivers: seeing it come out is how we know the next
    track was announced, whatever its values. *)
 let passage_key = "liq_cross_passage"
+
+(* What was buffered, compared before and after a read to tell whether it
+   brought anything. *)
+type buffered = { track_count : int; length : int; last_ended : bool }
+
+(* A transition function that raises is logged at a bounded rate and the
+   crossing plays its two sources in order. *)
+let script_faults = Faults.create (Log.make ["cross"])
 
 let float_metadata key metadata =
   Option.bind (Frame.Metadata.find_opt key metadata) float_of_string_opt
@@ -217,9 +225,15 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         | _ -> false
 
     method private buffered =
-      ( List.length tracks,
-        List.fold_left (fun n track -> n + Generator.length track.data) 0 tracks,
-        match List.rev tracks with track :: _ -> track.ended | [] -> false )
+      {
+        track_count = List.length tracks;
+        length =
+          List.fold_left
+            (fun n track -> n + Generator.length track.data)
+            0 tracks;
+        last_ended =
+          (match List.rev tracks with track :: _ -> track.ended | [] -> false);
+      }
 
     (* Reads the child while serving a request. Not being available ends the
        reading, and says nothing about the track. *)
@@ -338,16 +352,25 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
         Lang_source.collect_callback_releases
           [ending_source; starting_source; s] (fun () ->
             try
-              Some
-                (Lang.to_source
-                   (Lang.apply transition
-                      [
-                        argument ending_source ending_level ending.metadata;
-                        argument starting_source starting_level next.metadata;
-                      ]))
-            with Runtime_error.Runtime_error _ as error ->
-              self#log#severe "The transition function failed: %s"
-                (Printexc.to_string error);
+              let source =
+                Lang.to_source
+                  (Lang.apply transition
+                     [
+                       argument ending_source ending_level ending.metadata;
+                       argument starting_source starting_level next.metadata;
+                     ])
+              in
+              Typing.(source#frame_type <: self#frame_type);
+              Clock.unify ~pos:self#pos source#clock self#clock;
+              Some source
+            with
+            | ( Runtime_error.Runtime_error _ | Repr.Type_error _
+              | Repr.Track_error _ | Clock.Conflict _ | Clock.Loop _ ) as error
+            ->
+              let backtrace = Printexc.get_raw_backtrace () in
+              Faults.script_error script_faults
+                ~kind:(Printf.sprintf "The transition function of %s" self#id)
+                error backtrace;
               None)
       in
       let transition =
@@ -591,7 +614,7 @@ class cross val_source ~override_duration ~duration_getter ~persist_override
           | `Idle | `Track -> None )
 
     method! exhausted =
-      self#child#exhausted
+      self#held = 0 && self#child#exhausted
       && Generator.length self#child_buffer = 0
       && List.for_all (fun track -> Generator.length track.data = 0) tracks
       && match phase with `Transition _ -> false | `Idle | `Track -> true

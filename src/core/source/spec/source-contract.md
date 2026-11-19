@@ -54,9 +54,16 @@ in this specification always describe what a source answers at the start of
 a cycle, never a pause inside one.
 
 **Between two cycles of a tick** a source MAY answer differently: this is
-where what follows a track end is decided. Data produced and not used in a
-cycle is held and delivered first in the next one
-([§5](#5-consumption)).
+where what follows a track end is decided.
+
+**A source's data belongs to the tick, not to the cycle.** What a source
+produces in a tick fills at most one frame and stays available until the tick
+is over ([§1b](#1b-delivery)). A source whose data for the tick reaches the
+end of the frame produces nothing more in that tick: a later cycle reads from
+what it already has. Only a source whose data for the tick stopped short, at
+a `track end` or a `pause`, produces more in a later cycle, up to the end of
+the frame. So a source produces less than two frames of data per tick: one
+frame of new data at most, after what it held from the previous tick.
 
 A cycle that brings an output no sample is followed by another only when it
 stated a `track end` or a `pause`, and a bounded number of times in a row.
@@ -66,10 +73,27 @@ depend on a child closing its cycle before its parent.
 
 ## 1b. Delivery
 
-A source delivers at most one **segment** per streaming cycle, of at most
-the room left in the frame being gathered. A segment is produced when a
-reader **requests** it, which is reading the source in that cycle. What an
-output gathers over the cycles of a tick is its **frame**.
+A source delivers at most one **segment** per streaming cycle. A segment is
+produced when a reader **requests** it, which is reading the source in that
+cycle, and holds the most the source can produce, up to the end of the
+frame. What an output gathers over the cycles of a tick is its **frame**: at
+most one frame size per output and per tick.
+
+**Positions.** Every request is made at a **position**: where, in the frame
+it is gathering, the output the request comes from is. Before reading its
+source, an output tells its clock its position; every source read on its
+behalf in that cycle is read at that position. A source places its data for
+the tick in the frame: its first segment of the tick starts at the position
+of the request that produced it, and each later one where the previous one
+stopped. A request at a position the source's data for the tick already
+covers is served from that data, from that position; nothing is produced
+again. So readers of one source, in one cycle or in several, get the same
+data at the same positions, and none takes data another one will not see. A
+request before the start of the source's data for the tick gets that data
+from its start.
+
+Each reader takes what fits in the frame it is gathering and reports how
+much it used ([§5](#5-consumption)).
 
 Each segment ends for one stated reason:
 
@@ -170,12 +194,12 @@ from the reason of the previous segment, or from the probe.
 
 ## 5. Consumption
 
-- A reader reports how much of each segment it used. The largest amount
-  reported for a source in a cycle wins.
-- What was produced and not used stays with the source that produced it,
-  belongs to its current track, and is delivered first at the next request. A
-  source holding such data is ready.
-- For every source and every cycle: samples produced equal samples used plus
+- A reader reports how much of each segment it used. For a source, the
+  furthest position used by any reader in the tick wins.
+- When the tick is over, what was produced and not used stays with the
+  source that produced it, belongs to its current track, and is delivered
+  first at the next request. A source holding such data is ready.
+- For every source and every tick: samples produced equal samples used plus
   samples held. Nothing is dropped at a segment end and nothing is delivered
   twice. A reader that uses the shortest of several sources loses nothing of
   the others.

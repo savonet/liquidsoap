@@ -84,6 +84,7 @@ let new_streaming ~force c =
     after_segment = Atomic.make [];
     segment_requested = Atomic.make false;
     sync_changed = Atomic.make false;
+    reading_position = Atomic.make 0;
     animator = Atomic.make None;
     pace =
       Atomic.make

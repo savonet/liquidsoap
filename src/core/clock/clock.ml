@@ -102,6 +102,14 @@ let signal_sync_change t =
 let sync_changed t =
   match streaming t with Some st -> Atomic.get st.sync_changed | None -> false
 
+let set_reading_position t position =
+  match streaming t with
+    | Some st -> Atomic.set st.reading_position position
+    | None -> ()
+
+let reading_position t =
+  match streaming t with Some st -> Atomic.get st.reading_position | None -> 0
+
 let request_segment t =
   Atomic.set (running_streaming (get t)).segment_requested true
 

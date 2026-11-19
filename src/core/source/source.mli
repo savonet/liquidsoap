@@ -371,8 +371,20 @@ object
   (** Check a frame without consuming any of its data. *)
   method peek_frame : Frame.t
 
-  (** Manually mark amount of consumed data from the source. *)
+  (** Marks how much of the data last served a reader used. *)
   method consumed : int -> unit
+
+  (** Marks the position in the frame up to which a reader used this source's
+      data, for a relay passing on its readers' use. *)
+  method consumed_up_to : int -> unit
+
+  (** Where, in the frame, the data last served starts. *)
+  method private served_from : int
+
+  (** Whether the source keeps what no reader used at the end of a tick. A relay
+      that only passes on what the source it wraps delivers answers [false]:
+      that source keeps it. *)
+  method private holds_unused : bool
 
   (** Drops what was produced and not used by any reader. For a source whose
       current track is aborted. *)
@@ -390,6 +402,10 @@ object
   (** Whether the source will never deliver again. Declared by the source, never
       deduced from its having nothing to deliver now. *)
   method exhausted : bool
+
+  (** What the source produced and no reader used yet. A source holding data is
+      not exhausted. *)
+  method private held : int
 
   (** Why the data produced in this streaming cycle stops where it does.
       Declared by the source: a short frame alone does not say it. *)
@@ -487,13 +503,12 @@ end
 
 (** Delivers one stream out of successive sources. A frame stops where the track
     of the source it reads ends; what comes next is decided when the reader goes
-    on. [get_source] is told whether the stream is at such a boundary: nothing
-    chosen yet, or the track of the last source read ended or was aborted.
-    [next_entry] is asked when the track of the source being read ends, before
-    anything else is chosen, and says how the data that follows is entered;
-    [`Track] ends the operator's own track there. *)
+    on. [choose_next_source] is told whether the stream is at such a boundary:
+    nothing chosen yet, or the track of the last source read ended or was
+    aborted. [next_entry] is asked when the track of the source being read ends,
+    before anything else is chosen, and says how the data that follows is
+    entered; [`Track] ends the operator's own track there. *)
 class virtual generate_from_multiple_sources : unit -> object
-  method virtual get_source : boundary:bool -> unit -> source option
   method virtual private next_entry : entry
   method virtual empty_frame : Frame.t
   method virtual private execute_on_track : Frame.t -> unit
@@ -512,12 +527,13 @@ class virtual generate_from_multiple_sources : unit -> object
 
   method private can_generate_frame : bool
 
-  (** Whether there is something to read from here. *)
-  method private choose_next_source : boundary:bool -> bool
+  (** Whether there is something to read from here. A probe: it decides and
+      commits nothing. *)
+  method virtual private choose_next_source : boundary:bool -> bool
 
-  (** The source to read, asked when the frame is produced. A user that only
-      decides when it is probed commits its decision here. *)
-  method private enter_chosen_source : source option
+  (** The source to read, asked when the frame is produced: the user commits the
+      decision of its last probe here. *)
+  method virtual private enter_chosen_source : source option
 
   method private generate_frame : Frame.t
   method virtual reset_last_metadata_on_track : bool

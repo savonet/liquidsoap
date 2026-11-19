@@ -265,6 +265,9 @@ module State = struct
        was being produced: the answers settled when the segment was prepared
        are out of date, and the sources refresh theirs when it ends. *)
     sync_changed : bool Atomic.t;
+    (* Where, in the frame it is gathering, the output being animated is:
+       the position the sources read on its behalf are read at. *)
+    reading_position : int Atomic.t;
     (* What runs the clock's loop and why; [None] for a passive clock. *)
     animator : (animator * string) option Atomic.t;
     pace : pace Atomic.t;

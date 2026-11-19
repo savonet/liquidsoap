@@ -176,6 +176,14 @@ val signal_sync_change : t -> unit
     sources when they close the segment, to refresh their sync source. *)
 val sync_changed : t -> bool
 
+(** Where, in the frame it is gathering, the output being animated is. An output
+    sets it before it reads its source, and back to [0] after: every source read
+    on its behalf is read at that position, and places its data for the tick in
+    the frame from there. *)
+val set_reading_position : t -> int -> unit
+
+val reading_position : t -> int
+
 (** Asks for another segment in the running tick. For an output whose frame
     stopped short of full at a track end, after it made progress. *)
 val request_segment : t -> unit

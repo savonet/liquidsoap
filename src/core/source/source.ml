@@ -288,7 +288,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     method private dynamic_self_sync : self_sync = (`Dynamic, own_sync_source)
     val cycle_open = Atomic.make false
     val cycle_readiness : readiness Per_cycle.t = Per_cycle.make ()
-    val cycle_frame : Frame.t Per_cycle.t = Per_cycle.make ()
+    val cycle_produced : unit Per_cycle.t = Per_cycle.make ()
     val cycle_self_sync : self_sync Per_cycle.t = Per_cycle.make ()
 
     (* Outside a cycle this is the last answer settled: computing one would
@@ -479,7 +479,7 @@ class virtual operator ?(stack = []) ?clock ~name sources =
           "source");
       WeakQueue.filter_out activations (fun a -> a == src);
       let frame_pending =
-        Atomic.get cycle_open && Per_cycle.find cycle_frame = None
+        Atomic.get cycle_open && Per_cycle.find cycle_produced = None
       in
       match (WeakQueue.length activations, Clock.started self#clock) with
         | 0, true when frame_pending ->
@@ -575,7 +575,22 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       else false
 
     val mutable _cache = None
-    val mutable consumed = 0
+
+    (* What the source produced in the running tick, placed in the frame from
+       [tick_start]. It is served to every reader of the tick at its own
+       position, and what no reader used is held when the tick is over. *)
+    val mutable tick_data : Frame.t option = None
+    val mutable tick_start = 0
+
+    (* The furthest position any reader used in the tick. *)
+    val mutable tick_used = 0
+
+    (* Why the data of the tick stops where it does. *)
+    val mutable tick_end : segment_end = `Late
+
+    (* Where the last request was served from: what its reader reports using
+       counts from there. *)
+    val mutable served_from = 0
 
     method private per_cycle : 'a. 'a Per_cycle.t -> (unit -> 'a) -> 'a =
       fun settled compute ->
@@ -606,35 +621,103 @@ class virtual operator ?(stack = []) ?clock ~name sources =
 
     (* What was produced and not used belongs to the current track: a source
        drops it when that track is aborted. *)
-    method private discard_held = _cache <- None
+    method private discard_held =
+      _cache <- None;
+      match tick_data with
+        | Some data ->
+            tick_data <-
+              Some (Frame.slice data (Int.max 0 (tick_used - tick_start)))
+        | None -> ()
 
     method private cache_pos =
       match _cache with None -> 0 | Some c -> Frame.position c
 
     method private readiness =
       self#per_cycle cycle_readiness (fun () ->
-          let cached = self#cache_pos in
-          { cached; can_generate = self#can_generate_frame })
+          (* What of the tick's data no reader used yet. *)
+          let in_tick =
+            match tick_data with
+              | Some data ->
+                  Int.max 0 (tick_start + Frame.position data - tick_used)
+              | None -> 0
+          in
+          {
+            cached = self#cache_pos + in_tick;
+            can_generate = self#can_generate_frame;
+          })
 
     method private ready =
       let { cached; can_generate } = self#readiness in
       cached > 0 || can_generate
 
-    method private generated_frame =
-      self#per_cycle cycle_frame (fun () ->
-          let { cached; can_generate } = self#readiness in
-          let size = Lazy.Mutexed.force Frame.size in
-          let buf =
-            if can_generate && cached < size then
-              Frame.append self#cache self#instrumented_generate_frame
-            else self#cache
-          in
-          if size < Frame.position buf then (
-            _cache <- Some (Frame.after buf size);
-            Frame.slice buf size)
-          else (
-            _cache <- None;
-            buf))
+    (* Produces, once per cycle, what follows the data of the tick: the most
+       the source can, up to the end of the frame. Nothing once that data
+       reaches the end of the frame. *)
+    method private produce ~position =
+      let size = Lazy.Mutexed.force Frame.size in
+      let start =
+        match tick_data with
+          | None -> position
+          | Some data -> tick_start + Frame.position data
+      in
+      if start < size && Per_cycle.find cycle_produced = None then
+        self#per_cycle cycle_produced (fun () ->
+            let room = size - start in
+            let can_generate = self#readiness.can_generate in
+            let buf =
+              if can_generate && self#cache_pos < room then
+                Frame.append self#cache self#instrumented_generate_frame
+              else self#cache
+            in
+            let buf =
+              if room < Frame.position buf then (
+                _cache <- Some (Frame.after buf room);
+                Frame.slice buf room)
+              else (
+                _cache <- None;
+                buf)
+            in
+            tick_end <- (if _cache <> None then `Full else self#frame_end buf);
+            match tick_data with
+              | Some data -> tick_data <- Some (Frame.append data buf)
+              | None ->
+                  tick_start <- start;
+                  tick_used <- start;
+                  tick_data <- Some buf;
+                  Clock.after_tick self#clock (fun () -> self#close_tick))
+
+    (* The data of the tick from [position], or from its start for a reader
+       before it. *)
+    method private serve ~position =
+      match tick_data with
+        | None ->
+            served_from <- position;
+            self#empty_frame
+        | Some data ->
+            let offset =
+              Int.min (Frame.position data) (Int.max 0 (position - tick_start))
+            in
+            served_from <- tick_start + offset;
+            Frame.after data offset
+
+    (* What no reader used is held, ahead of what was produced past the end of
+       the frame. *)
+    (* A relay that only passes on what the source it wraps delivers holds
+       nothing of its own: that source holds what no reader used. *)
+    method private holds_unused = true
+
+    method private close_tick =
+      (match tick_data with
+        | Some data
+          when self#holds_unused && tick_used - tick_start < Frame.position data
+          ->
+            _cache <-
+              Some
+                (Frame.append
+                   (Frame.after data (Int.max 0 (tick_used - tick_start)))
+                   self#cache)
+        | _ -> ());
+      tick_data <- None
 
     (* Set from any thread, and from the callbacks of a cycle that is running.
        The abort is carried out by the streaming thread once the running cycle
@@ -661,7 +744,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         self#carry_out_abort;
         self#release_cycle_values;
         List.iter (fun fn -> fn ()) on_before_streaming_cycle;
-        consumed <- 0;
         ignore self#readiness;
         Atomic.set cycle_open true;
         Clock.after_segment self#clock (fun () -> self#after_streaming_cycle);
@@ -669,10 +751,6 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         settled_self_sync <- Some self#cached_self_sync)
 
     method private after_streaming_cycle =
-      (match Per_cycle.find cycle_frame with
-        | Some buf when consumed < Frame.position buf ->
-            _cache <- Some (Frame.append (Frame.after buf consumed) self#cache)
-        | _ -> ());
       List.iter (fun fn -> fn ()) on_after_streaming_cycle;
       self#release_cycle_values;
       Atomic.set cycle_open false;
@@ -685,24 +763,36 @@ class virtual operator ?(stack = []) ?clock ~name sources =
     val mutable generating = false
 
     method peek_frame =
-      match Per_cycle.find cycle_frame with
-        | Some data -> data
-        | None when not (Atomic.get cycle_open && self#ready) ->
-            log#critical "source called while not ready!";
-            raise Unavailable
-        | None when generating -> self#cache
-        | None ->
-            generating <- true;
-            Fun.protect
-              ~finally:(fun () -> generating <- false)
-              (fun () -> self#generated_frame)
+      let position = Clock.reading_position self#clock in
+      let covered =
+        match tick_data with
+          | Some data -> position < tick_start + Frame.position data
+          | None -> false
+      in
+      if covered then self#serve ~position
+      else if not (Atomic.get cycle_open && self#ready) then (
+        log#critical "source called while not ready!";
+        raise Unavailable)
+      else if generating then self#cache
+      else (
+        generating <- true;
+        Fun.protect
+          ~finally:(fun () -> generating <- false)
+          (fun () -> self#produce ~position);
+        self#serve ~position)
 
     method get_partial_frame cb =
       let data = cb self#peek_frame in
       self#consumed (Frame.position data);
       data
 
-    method consumed n = consumed <- Int.max consumed n
+    method consumed n = self#consumed_up_to (served_from + n)
+
+    (* Where, in the frame, the data last served starts. *)
+    method private served_from = served_from
+
+    (* Where, in the frame, a reader stopped using this source's data. *)
+    method consumed_up_to position = tick_used <- Int.max tick_used position
 
     (* Whether the source never ends a track on its own. A rule that waits for
        a track boundary would never let go of it. *)
@@ -712,18 +802,25 @@ class virtual operator ?(stack = []) ?clock ~name sources =
        never deduced from its having nothing to deliver now. An operator is
        exhausted once everything it reads is. *)
     method exhausted =
-      sources <> [] && List.for_all (fun (_, s) -> s#exhausted) sources
+      self#held = 0 && sources <> []
+      && List.for_all (fun (_, s) -> s#exhausted) sources
 
-    val cycle_segment_end : segment_end Per_cycle.t = Per_cycle.make ()
+    (* What the source produced and no reader used yet, in this tick and from
+       before it. A source holding data is not exhausted. *)
+    method private held =
+      let in_tick =
+        match tick_data with
+          | Some data ->
+              Int.max 0
+                (tick_start + Frame.position data - Int.max tick_start tick_used)
+          | None -> 0
+      in
+      self#cache_pos + in_tick
 
     (* Why the data produced in this cycle stops where it does. Only the
        source knows: a short frame alone says nothing. *)
     method segment_end : segment_end =
-      match Per_cycle.find cycle_frame with
-        | None -> `Late
-        | Some _ when _cache <> None -> `Full
-        | Some frame ->
-            self#per_cycle cycle_segment_end (fun () -> self#frame_end frame)
+      match tick_data with None -> `Late | Some _ -> tick_end
 
     (* An operator's frame ends where that of what it relays does, for the
        same reason. A source that ends a track on its own states it with a
@@ -1059,15 +1156,14 @@ class virtual active_source ?stack ?clock ~name () =
 
 (* Delivers one stream out of successive sources. A frame stops where the
    track of the source it reads ends: what comes next is decided when the
-   reader goes on, in the next segment of the tick. [get_source] is told
-   whether the stream is at such a boundary.
+   reader goes on, in the next segment of the tick. [choose_next_source] is
+   told whether the stream is at such a boundary.
 
    [next_entry] is asked when the track of the source being read ends, before
    anything else is chosen, and says how the data that follows is entered.
    [`Track] ends the operator's own track there. *)
 class virtual generate_from_multiple_sources () =
   object (self)
-    method virtual get_source : boundary:bool -> unit -> source option
     method virtual private next_entry : entry
     method virtual empty_frame : Frame.t
     method virtual private execute_on_track : Frame.t -> unit
@@ -1076,7 +1172,6 @@ class virtual generate_from_multiple_sources () =
     method virtual log : Log.t
     method virtual id : string
     method virtual clock : Clock.t
-    val mutable ready_source = None
 
     (* The track of the last source read ended or was aborted. *)
     val mutable at_boundary = false
@@ -1088,24 +1183,13 @@ class virtual generate_from_multiple_sources () =
       at_boundary <- true;
       entry <- Some `Track
 
-    (* Whether there is something to read from here. *)
-    method private choose_next_source ~boundary =
-      match self#get_source ~boundary () with
-        | Some s when s#is_ready ->
-            ready_source <- Some s;
-            true
-        | _ ->
-            ready_source <- None;
-            false
+    method virtual private choose_next_source : boundary:bool -> bool
 
     method private can_generate_frame =
       self#choose_next_source ~boundary:at_boundary
 
     val mutable current_source = None
-
-    (* The source to read, asked when the frame is produced. A user that only
-       decides when it is probed commits its decision here. *)
-    method private enter_chosen_source : source option = ready_source
+    method virtual private enter_chosen_source : source option
 
     (* Set when the user moved on from the source it was reading: what it
        chooses next is another source even when it is the same object. *)

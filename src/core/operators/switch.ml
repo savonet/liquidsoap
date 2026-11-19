@@ -65,22 +65,29 @@ class insert_initial_track_mark ~name src =
     method! last_metadata = src#last_metadata
     method! clear_last_metadata = src#clear_last_metadata
 
-    (* Our own caching is disabled in favor of [src]'s: we are thrown away on
-       every selection change, so anything cached here would be dropped along
-       with us. *)
-    method! consumed n = src#consumed n
+    (* What our readers do not use is kept by [src], not by us: we are thrown
+       away on every selection change, and anything kept here would be dropped
+       along with us. *)
+    method! private holds_unused = false
+
+    method! consumed n =
+      super#consumed n;
+      src#consumed_up_to (self#served_from + n)
 
     method private generate_frame =
       let buf = src#peek_frame in
-      let starts_track = Frame.track_marks buf = [0] in
+      let starts_track =
+        match Frame.track_marks buf with 0 :: _ -> true | _ -> false
+      in
       if left && starts_track && not first then (
         (* The child moved on to its next track without stating the end of
            the one we were left on. *)
         track_ended <- true;
-        super#consumed 0;
         self#empty_frame)
       else (
-        super#consumed (Frame.position buf);
+        (* A kept selection plays the child's tracks one after the other:
+           only the end of the track playing when we are left counts. *)
+        if (not left) && starts_track then track_ended <- false;
         if src#segment_end = `Track_end then track_ended <- true;
         if first then (
           first <- false;
@@ -296,7 +303,7 @@ class switch children =
 
     val mutable decision : decision = `Nothing
 
-    method! private choose_next_source ~boundary =
+    method private choose_next_source ~boundary =
       decision <-
         (match self#selected with
           | Some s when (not boundary) && s.effective_source#is_ready ->
@@ -344,10 +351,13 @@ class switch children =
                 child.on_select ending (starting :> source)
               in
               Typing.(effective_source#frame_type <: self#frame_type);
+              (* A source built by [on_select] sits in a clock of its own
+                 until it is made ours, and is never ready there. *)
+              Clock.unify ~pos:self#pos effective_source#clock self#clock;
               Some effective_source
             with
             | ( Runtime_error.Runtime_error _ | Repr.Type_error _
-              | Repr.Track_error _ ) as error
+              | Repr.Track_error _ | Clock.Conflict _ | Clock.Loop _ ) as error
             ->
               let backtrace = Printexc.get_raw_backtrace () in
               script_failed
@@ -368,10 +378,6 @@ class switch children =
               release_callbacks ();
               play_child_itself ()
           | Some effective_source ->
-              (* A source built by [on_select] sits in a clock of its own until
-                 it is made ours, and is never ready there. *)
-              Clock.unify ~pos:self#pos effective_source#clock self#clock;
-
               (* Wake the new graph before putting the previous selection to
                  sleep: when it holds [previous.proxy] this keeps that source
                  continuously up. *)
@@ -394,7 +400,7 @@ class switch children =
       self#exchange_selected
         (Some { child; effective_source; proxy = starting; sleep })
 
-    method! private enter_chosen_source =
+    method private enter_chosen_source =
       (match decision with
         | `Nothing | `Keep -> ()
         | `Handoff c -> self#handoff ~preempted:false c
@@ -404,8 +410,6 @@ class switch children =
             self#handoff ~preempted:false c);
       decision <- `Keep;
       Option.map (fun s -> s.effective_source) self#selected
-
-    method get_source ~boundary:_ () = self#enter_chosen_source
 
     method private self_sync =
       ( self_sync_type (),

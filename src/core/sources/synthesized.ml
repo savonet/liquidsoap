@@ -27,7 +27,7 @@ class virtual source ~name duration =
     method fallible = track_size <> None
     val mutable remaining = track_size
     method private can_generate_frame = remaining <> Some 0
-    method! exhausted = remaining = Some 0
+    method! exhausted = remaining = Some 0 && self#held = 0
     method! endless = track_size = None
 
     method! private frame_end frame =

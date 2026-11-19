@@ -77,14 +77,9 @@ class dynamic ?(name = "request.dynamic") ~retry_delay ~available ~prefetch
     initializer
       self#on_before_streaming_cycle (fun () ->
           if Atomic.exchange should_skip false then (
-            self#after_streaming_cycle;
+            (* What is held belongs to the request being skipped. *)
             self#end_request;
-            if self#is_ready then (
-              let f = self#peek_frame in
-              (match Frame.track_marks f with
-                | p :: _ -> self#consumed p
-                | _ -> self#consumed (Frame.position f));
-              self#after_streaming_cycle)))
+            self#discard_held))
 
     method is_synchronous = synchronous
     method prefetch = prefetch
