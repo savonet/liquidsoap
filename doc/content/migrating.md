@@ -290,10 +290,10 @@ To play a source once each time a condition becomes true, use `predicate.due`. I
 
 ```liquidsoap
 # Before
-radio = switch([(predicate.activates({0m}), jingles), ({true}, music)])
+radio = switch([(predicate.activates({0m-5m}), jingles), ({true}, music)])
 
 # After
-radio = switch([(predicate.due({0m}, jingles), jingles), ({true}, music)])
+radio = switch([(predicate.due({0m-5m}, jingles), jingles), ({true}, music)])
 ```
 
 #### Stdlib operators that used to pin `track_sensitive`
