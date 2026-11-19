@@ -10,7 +10,7 @@ end)
 
 let count () = Pool.fold (fun _ _ n -> n + 1) 0
 
-let[@inline never] fill () =
+let fill () =
   let l =
     List.init 100 (fun _ -> Pool.add (fun id -> { id; destroyed = false }))
   in
@@ -22,8 +22,11 @@ let[@inline never] fill () =
   assert (count () = 100);
   ignore (Sys.opaque_identity (l, destroyed))
 
+(* In flambda release builds, filling the pool from the main thread keeps its
+   entries alive across major collections. A joined thread leaves nothing
+   behind. *)
 let () =
-  fill ();
+  Thread.join (Thread.create fill ());
   Gc.full_major ();
   assert (count () = 0);
   assert (Pool.find 15 = None)
