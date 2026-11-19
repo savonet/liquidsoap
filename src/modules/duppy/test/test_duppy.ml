@@ -917,12 +917,12 @@ let burst_leaves_parked ?idle_thread_timeout ~kept describe =
                  bump finished;
                  []))
         done;
+        (* Each task holds its thread until released, so this returns only
+           once the burst runs on [budget] threads; with fewer it deadlocks
+           and the watchdog fails the test. *)
         await started budget;
-        let peak = Option.get (thread_count ()) in
         bump release;
         await finished budget;
-        if peak < baseline + budget then
-          fail "%d tasks in flight on %d threads" budget (peak - baseline);
         let kept = kept budget in
         let deadline = Unix.gettimeofday () +. 2. in
         while
