@@ -39,9 +39,6 @@ module type S = sig
   val find : int -> t option
   val fold : (int -> t -> 'a -> 'a) -> 'a -> 'a
   val iter : (int -> t -> unit) -> unit
-  val remove : int -> unit
-  val size : unit -> int
-  val clear : unit -> unit
 end
 
 module Make (P : T) : S with type t = P.t = struct
@@ -88,7 +85,6 @@ module Make (P : T) : S with type t = P.t = struct
     List.fold_left (fun cur v -> f (P.id v) v cur) init (live ())
 
   let iter f = List.iter (fun v -> f (P.id v) v) (live ())
-  let remove id = locked (fun () -> WeakHash.remove h (P.destroyed id))
   let current_id = Atomic.make 0
 
   let add fn =
@@ -100,7 +96,4 @@ module Make (P : T) : S with type t = P.t = struct
         | _ -> f ()
     in
     f ()
-
-  let size () = locked (fun () -> WeakHash.count h)
-  let clear () = locked (fun () -> WeakHash.clear h)
 end
