@@ -5,16 +5,16 @@
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
+# @param ~x x position. Defaults to the request's `x` metadata, or `0`.
+# @param ~y y position. Defaults to the request's `y` metadata, or `0`.
 # @param ~default Default cover file when no cover is available
 # @param ~mime_types Recognized mime types and their corresponding file extensions.
 def video.add_cover(
   ~fallible=false,
   ~width=null,
   ~height=null,
-  ~x=getter(0),
-  ~y=getter(0),
+  ~x=null,
+  ~y=null,
   ~mime_types=[
     ("image/gif", ".gif"),
     ("image/jpg", ".jpeg"),

@@ -92,6 +92,7 @@
 - `video.fade.in` and `video.fade.out` apply their transition: the transformed image was discarded, so no fade was visible. The `fade` and `disc` transitions go to and from black instead of acting on transparency (use `video.opacity` to fade an overlay), and `grow` shows the scaled image instead of an empty frame ([#3180](https://github.com/savonet/liquidsoap/issues/3180)).
 - `video.fade.in` and `video.fade.out` apply their transition: the transformed image was discarded, so no fade was visible. The `grow` transition also showed an empty frame instead of the scaled image ([#3180](https://github.com/savonet/liquidsoap/issues/3180)).
 - `video.add_text.ffmpeg` scrolls a text wider than the frame in full before wrapping around, instead of skipping part of it.
+- Image requests are placed at their `x`/`y` metadata, e.g. `annotate:x=50,y=50:logo.png`, instead of the top-left corner. An explicit `x`/`y` argument still takes precedence ([#3197](https://github.com/savonet/liquidsoap/issues/3197)).
 
 ## Optimized:
 
