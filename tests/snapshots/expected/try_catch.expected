@@ -99,19 +99,19 @@ Error 5: this value has no method `not_found`
                         }) -> 'a)?,
               finally : (() -> unit)) -> 'a,
   methods : (error) -> error
-            .{
-              kind : string,
-              message : string,
-              origin : string?,
-              trace : [
-                       {
-                         cstart : int,
-                         cstop : int,
-                         filename : string,
-                         lstart : int,
-                         lstop : int,
-                         to_string : (?prefix : string) -> string
-                       }]},
+             .{
+               kind : string,
+               message : string,
+               origin : string?,
+               trace : [
+                        {
+                          cstart : int,
+                          cstop : int,
+                          filename : string,
+                          lstart : int,
+                          lstop : int,
+                          to_string : (?prefix : string) -> string
+                        }]},
   on_error : (((error
                 .{
                   kind : string,
@@ -129,17 +129,17 @@ Error 5: this value has no method `not_found`
                 }) -> unit)) -> unit,
   raise : 'a.(error, ?string) -> 'a,
   register : (string) -> error
-             .{
-               kind : string,
-               message : string,
-               origin : string?,
-               trace : [
-                        {
-                          cstart : int,
-                          cstop : int,
-                          filename : string,
-                          lstart : int,
-                          lstop : int,
-                          to_string : (?prefix : string) -> string
-                        }]}
+              .{
+                kind : string,
+                message : string,
+                origin : string?,
+                trace : [
+                         {
+                           cstart : int,
+                           cstop : int,
+                           filename : string,
+                           lstart : int,
+                           lstop : int,
+                           to_string : (?prefix : string) -> string
+                         }]}
 }.
