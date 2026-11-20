@@ -542,8 +542,12 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
   let frame_rate = Time_base.frame_rate (Lazy.Mutexed.force v.framerate) in
-  let width = Lazy.Mutexed.force v.width in
-  let height = Lazy.Mutexed.force v.height in
+  (* Forcing fixes the global dimensions, which then ignore decoder reports:
+     wait for the first frame. *)
+  let size =
+    Lazy.Mutexed.from_fun (fun () ->
+        (Lazy.Mutexed.force v.width, Lazy.Mutexed.force v.height))
+  in
   let state = ref None in
   let scaler = ref None in
   let fit = ref None in
@@ -551,6 +555,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
   let writer () = fst (Option.get !state) in
   let frame_pixel_format () = snd (Option.get !state) in
   let mk_stream frame =
+    let width, height = Lazy.Mutexed.force size in
     let alpha = v.alpha || content_alpha ~mode frame field in
     let target =
       try Pixel_formats.for_encoder ?configured:v.pixel_format ~alpha codec
@@ -602,6 +607,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
           frame_pixel_format )
   in
   let encode_image ~abs image =
+    let width, height = Lazy.Mutexed.force size in
     let gw, gh = Frame.video_dimensions () in
     let gw = Lazy.Mutexed.force gw and gh = Lazy.Mutexed.force gh in
     let alpha = Pixel_formats.has_alpha (frame_pixel_format ()) in
@@ -629,6 +635,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
       (Scaler.convert s (Image_pack.pack image))
   in
   let fit_frame frame =
+    let width, height = Lazy.Mutexed.force size in
     let pixel_format = frame_pixel_format () in
     if
       Avutil.Video.frame_get_width frame = width
@@ -696,7 +703,8 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     flush;
     codec_attr = (fun () -> Option.bind (stream ()) Av.codec_attr);
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
-    video_size = (fun () -> Option.map (fun _ -> (width, height)) (stream ()));
+    video_size =
+      (fun () -> Option.map (fun _ -> Lazy.Mutexed.force size) (stream ()));
   }
 
 let text_to_ass (s : F.subtitle) =
