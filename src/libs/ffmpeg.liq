@@ -297,10 +297,11 @@ end
 let video.add_text.ffmpeg = ()
 let video.add_text.ffmpeg.raw = ()
 
-# Escape a text for a drawtext command.
+# Escape a text for a drawtext command. Text expansion is disabled, so `%` is
+# not special.
 # @flag hidden
 def ffmpeg.filter.drawtext.escape(text) =
-  string.replace(pattern="(['%\\\\:{}])", fun (c) -> "\\#{c}", text)
+  string.replace(pattern="(['\\\\:{}])", fun (c) -> "\\#{c}", text)
 end
 
 # Draw a text on a video pad of a filter graph with `drawtext`, updated by
@@ -376,6 +377,7 @@ def video.add_text.ffmpeg.raw.filter(
       x=x_expr("#{getter.get(x)}"),
       y="#{getter.get(y)}",
       fontcolor=color,
+      expansion=0,
       text=escape(getter.get(d)),
       graph
     )

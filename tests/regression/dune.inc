@@ -2150,6 +2150,24 @@
   (run %{run_test} double-nullable liquidsoap double-nullable.liq)))
 
 (rule
+ (alias test_drawtext_percent)
+ (package liquidsoap)
+ (deps
+  drawtext_percent.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} drawtext_percent liquidsoap drawtext_percent.liq)))
+
+(rule
  (alias test_eval-check-demeth)
  (package liquidsoap)
  (deps
@@ -3655,6 +3673,7 @@
   (alias test_delay_gap)
   (alias test_delay_track_advance)
   (alias test_double-nullable)
+  (alias test_drawtext_percent)
   (alias test_eval-check-demeth)
   (alias test_external-encoder)
   (alias test_fade-zero-duration-delay)
