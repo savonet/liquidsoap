@@ -515,6 +515,9 @@ end
 
 # Display a text over the video of a source, with FFmpeg's `drawtext` filter.
 # The source is converted to raw FFmpeg content for the filter graph and back.
+# Right-to-left scripts such as Hebrew or Arabic are laid out correctly only
+# when FFmpeg is built with libfribidi: without it, their characters are drawn
+# in reverse order.
 # @category Source / Video processing
 # @param ~id Force the value of the source ID.
 # @param ~color Text color (in 0xRRGGBB format).
