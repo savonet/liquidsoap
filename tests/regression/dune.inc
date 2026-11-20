@@ -2320,6 +2320,28 @@
   (run %{run_test} harbor_source_relay liquidsoap harbor_source_relay.liq)))
 
 (rule
+ (alias test_image_annotate_position)
+ (package liquidsoap)
+ (deps
+  image_annotate_position.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   image_annotate_position
+   liquidsoap
+   image_annotate_position.liq)))
+
+(rule
  (alias test_infallible-shutdown)
  (package liquidsoap)
  (deps
@@ -3700,6 +3722,7 @@
   (alias test_ffmpeg-naming-convention)
   (alias test_ffmpeg_seek_preroll)
   (alias test_harbor_source_relay)
+  (alias test_image_annotate_position)
   (alias test_infallible-shutdown)
   (alias test_infallible_stays_full)
   (alias test_init-error)
