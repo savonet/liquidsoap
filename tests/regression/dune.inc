@@ -2916,6 +2916,24 @@
   (run %{run_test} smooth_add liquidsoap smooth_add.liq)))
 
 (rule
+ (alias test_smooth_add_fade_out)
+ (package liquidsoap)
+ (deps
+  smooth_add_fade_out.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} smooth_add_fade_out liquidsoap smooth_add_fade_out.liq)))
+
+(rule
  (alias test_source_cleanup)
  (package liquidsoap)
  (deps
@@ -3752,6 +3770,7 @@
   (alias test_skip_from_another_thread)
   (alias test_skip_from_track_callback)
   (alias test_smooth_add)
+  (alias test_smooth_add_fade_out)
   (alias test_source_cleanup)
   (alias test_source_drop_tracks)
   (alias test_source_dynamic)
