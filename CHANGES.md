@@ -25,6 +25,7 @@
 - Added an `override` parameter to `insert_metadata` ([#5077](https://github.com/savonet/liquidsoap/pull/5077)).
 - Added `codec_tag` to FFmpeg copied and encoded tracks, e.g. `%video.copy(codec_tag="hvc1")` for HEVC HLS on Apple players. Copied tracks keep their source's codec tag when the output format accepts it ([#5643](https://github.com/savonet/liquidsoap/issues/5643)).
 - `liquidsoap -h` and the online reference show a usage template for each function: a call with every argument at its default value or a placeholder. The reference lists the methods common to all sources apart from an operator's own ([#5694](https://github.com/savonet/liquidsoap/pull/5694)).
+- Added `runtime.file_descriptors()`: the number of file descriptors open by the process (`count`) and its limit (`max`) ([#3953](https://github.com/savonet/liquidsoap/issues/3953)).
 
 ## Changed:
 
