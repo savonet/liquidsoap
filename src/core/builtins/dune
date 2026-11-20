@@ -8,6 +8,9 @@
 
 (library
  (name liquidsoap_builtins)
+ (foreign_stubs
+  (language c)
+  (names file_descriptors_stubs))
  (libraries
   cron
   cry
