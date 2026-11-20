@@ -617,8 +617,8 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
        fills them. *)
     let keep_timing = mode = `Raw && v.framerate = None in
     let frame_rate =
-      match first_raw_frame_rate frame field with
-        | Some rate when keep_timing && Time_base.is_valid rate -> rate
+      match if keep_timing then first_raw_frame_rate frame field else None with
+        | Some rate when Time_base.is_valid rate -> rate
         | _ -> Time_base.frame_rate v.framerate
     in
     let alpha = v.alpha || content_alpha ~mode frame field in
