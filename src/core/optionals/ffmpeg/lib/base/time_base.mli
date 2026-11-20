@@ -56,6 +56,10 @@ val frame_rate : (int * int) option -> Avutil.rational
 *)
 val per_frame : Avutil.rational -> t
 
+(** [frames ~seconds rate] is the whole number of frames, at least one, nearest
+    to [seconds] at [rate]. *)
+val frames : seconds:float -> Avutil.rational -> int
+
 (** [to_main ~src t] is {!rescale} into {!main}. *)
 val to_main : src:t -> int -> int option
 

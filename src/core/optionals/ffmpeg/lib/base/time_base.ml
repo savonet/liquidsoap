@@ -96,4 +96,10 @@ let frame_rate = function
   | None -> { Avutil.num = Lazy.Mutexed.force Frame.video_rate; den = 1 }
 
 let per_frame { Avutil.num; den } = { Avutil.num = den; den = num }
+
+let frames ~seconds { Avutil.num; den } =
+  max 1
+    (Float.to_int
+       (Float.round (seconds *. float_of_int num /. float_of_int den)))
+
 let to_main ~src t = rescale ~src ~dst:(main ()) t

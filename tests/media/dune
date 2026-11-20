@@ -1386,6 +1386,7 @@
   (alias test_hls_main_playlist_codecs)
   (alias test_hls_write_error)
   (alias test_hls_large_frames)
+  (alias test_hls_raw_key_frames)
   (alias test_hls_dropped_tracks)
   (alias test_hls_copy_resume)
   (alias test_hls_raw_encode)
@@ -1981,6 +1982,27 @@
    "HLS dropped tracks per variant"
    liquidsoap
    hls_dropped_tracks.liq)))
+
+(rule
+ (alias test_hls_raw_key_frames)
+ (package liquidsoap)
+ (deps
+  video-ntsc.mp4
+  hls_lib.liq
+  hls_raw_key_frames.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS raw key frames at the source rate"
+   liquidsoap
+   hls_raw_key_frames.liq
+   --
+   video-ntsc.mp4)))
 
 (rule
  (alias test_hls_large_frames)

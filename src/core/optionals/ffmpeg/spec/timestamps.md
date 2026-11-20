@@ -154,8 +154,9 @@ Conformance:
 
 A raw track with no explicit `framerate` has no converter
 ([encoder-internal.md §4.6](encoder-internal.md#46-frame-timing-both-video-modes)):
-each frame's pts is its output position rescaled to the stream encoder's
-time base, and a frame whose pts is not above the previous one's is dropped.
+each frame's pts is its output position and its duration its extent (§4.1
+below), both rescaled to the stream encoder's time base. A frame whose pts
+is not above the previous one's is dropped, with a log at level 5.
 §4.2 to §4.4 apply to every other video track.
 
 Every frame enters the frame-rate converter with its **output position** as

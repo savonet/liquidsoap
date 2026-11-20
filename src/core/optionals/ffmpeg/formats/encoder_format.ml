@@ -40,6 +40,7 @@ type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
 
 type video = {
   framerate : (int * int) option;
+  raw_key_frame_interval : float option;
   width : int Lazy.Mutexed.t;
   height : int Lazy.Mutexed.t;
   pixel_format : string option;

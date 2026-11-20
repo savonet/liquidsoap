@@ -210,6 +210,7 @@ let default_options : F.media -> F.options = function
       `Video
         {
           F.framerate = None;
+          raw_key_frame_interval = None;
           width;
           height;
           pixel_format = None;

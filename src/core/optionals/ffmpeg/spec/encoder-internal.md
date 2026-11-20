@@ -186,7 +186,11 @@ Its stream has time base main ticks and, as frame rate, the source's average
 rate carried by the first frame's run when valid, else `video_rate`. Reason:
 raw frames come at the source's rate, which a fixed default rate would drop
 or repeat frames against. The stream frame rate is a hint to the codec (rate
-control, headers); timestamps carry the timing.
+control, headers); timestamps carry the timing. A codec that rejects the main
+tick time base (mpeg4 caps its denominator at 65535) gets the track converted
+to that frame rate instead, with a log at level 3; the stream is created
+again, which a rejected open allows
+([avformat.md §2.1](../../../../modules/synced/ffmpeg/spec/avformat.md#21-container--input-container-output-container)).
 
 Every other video track has time base `1/framerate` and frame rate
 `framerate`, `video_rate` when not set, and every frame goes through a
