@@ -239,26 +239,40 @@ let _ =
            let v, l = find argv [] in
            opts := l;
            Lang.string v)));
-  Lang.add_builtin "argv" ~category:`System
-    ~descr:
-      "Get command-line parameters. The parameters are numbered starting from \
-       1, the zeroth parameter being the script name."
-    [
-      ("default", Lang.string_t, Some (Lang.string ""), None);
-      ("", Lang.int_t, None, None);
-    ]
-    Lang.string_t
-    (fun p ->
-      let default = Lang.to_string (List.assoc "default" p) in
-      let i = Lang.to_int (List.assoc "" p) in
-      let opts = !opts in
-      if i = 0 then (
-        (* Special case so that argv(0) returns the script name *)
-        let i = offset - 1 in
-        if 0 <= i && i < Array.length argv then Lang.string argv.(i)
+  let script_name () =
+    let i = offset - 1 in
+    if 0 <= i && i < Array.length argv then Some argv.(i) else None
+  in
+  let argv_value =
+    Lang.add_builtin "argv" ~category:`System
+      ~descr:
+        "Get command-line parameters. The parameters are numbered starting \
+         from 1, the zeroth parameter being the script name."
+      [
+        ("default", Lang.string_t, Some (Lang.string ""), None);
+        ("", Lang.int_t, None, None);
+      ]
+      Lang.string_t
+      (fun p ->
+        let default = Lang.to_string (List.assoc "default" p) in
+        let i = Lang.to_int (List.assoc "" p) in
+        let opts = !opts in
+        if i = 0 then
+          (* Special case so that argv(0) returns the script name *)
+          Lang.string (Option.value ~default (script_name ()))
+        else if i < List.length opts then Lang.string (List.nth opts i)
         else Lang.string default)
-      else if i < List.length opts then Lang.string (List.nth opts i)
-      else Lang.string default)
+  in
+  ignore
+    (Lang.add_builtin ~base:argv_value "list" ~category:`System
+       ~descr:
+         "All command-line parameters, starting with the script name, so that \
+          the `i`-th element is `argv(i)`. Parameters consumed by `getopt` are \
+          not included." [] (Lang.list_t Lang.string_t) (fun _ ->
+         (* The first element of the parameters is the `--` separator. *)
+         let params = match !opts with [] -> [] | _ :: l -> l in
+         let script = Option.value ~default:"" (script_name ()) in
+         Lang.list (List.map Lang.string (script :: params))))
 
 let playlist_parse =
   Lang.add_builtin ~base:Modules.playlist "parse" ~category:`Liquidsoap
