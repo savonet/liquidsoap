@@ -280,6 +280,8 @@ type plugin = {
   plugin_controls : port list;  (** control ports *)
   plugin_maker : string;
   plugin_class_label : string;
+  plugin_required_features : string list;
+      (** URIs of the host features the plugin requires. *)
 }
 
 let load_plugin plugin =
@@ -301,6 +303,10 @@ let load_plugin plugin =
     plugin_controls;
     plugin_maker;
     plugin_class_label;
+    plugin_required_features =
+      List.map
+        (fun node -> if Node.is_uri node then Node.to_uri node else "(unknown)")
+        (Plugin.required_features plugin);
   }
 
 (* Make a parameter for each control port. Returns the liquidsoap parameters
@@ -403,10 +409,21 @@ let register_plugin cache plugin =
   (* Only the uri computation is fast. Try to retrieve other parameters from the cache. *)
   let uri = Plugin.uri plugin in
   let p = Cache.Table.get cache uri (fun () -> load_plugin plugin) in
-  try register_plugin plugin p
-  with Audio_converter.Channel_layout.Unsupported ->
-    log#info "Could not register Lilv plugin %s: unhandled number of channels."
-      p.plugin_name
+  (* Plugins are instantiated without any host feature, so a plugin that
+     requires one is not registered. *)
+    match p.plugin_required_features with
+    | _ :: _ as features ->
+        log#info
+          "Not registering Lilv plugin %s: it requires host features that are \
+           not supported: %s."
+          p.plugin_name
+          (String.concat ", " features)
+    | [] -> (
+        try register_plugin plugin p
+        with Audio_converter.Channel_layout.Unsupported ->
+          log#info
+            "Could not register Lilv plugin %s: unhandled number of channels."
+            p.plugin_name)
 
 let register_plugins () =
   let cache =
