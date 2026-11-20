@@ -22,7 +22,7 @@ describe the timestamps they produce and link here.
 | main ticks       | `1/main_rate` ([common.md §4](common.md#4-liquidsoap-time-bases))  | content positions and lengths; the output timeline; offsets |
 | audio sample     | `1/audio_rate` ([common.md §4](common.md#4-liquidsoap-time-bases)) | timed-ID3 data stream                                       |
 | target audio     | `1/samplerate` of the track                                        | audio encoder input                                         |
-| target video     | `1/framerate` of the track                                         | video encoder input                                         |
+| target video     | `1/framerate` of the track, when set                               | video encoder input                                         |
 | subtitle         | `1/1000000`                                                        | subtitle input                                              |
 | run time base    | carried by each raw or copy run                                    | source packet and frame timestamps                          |
 | stream time base | the muxer's choice, final once the header is written               | what is stored in the file                                  |
@@ -152,6 +152,13 @@ Conformance:
 
 ### 4.1 Frame timestamps entering the converter
 
+A raw track with no explicit `framerate` has no converter
+([encoder-internal.md §4.6](encoder-internal.md#46-frame-timing-both-video-modes)):
+each frame's pts is its output position and its duration its extent (§4.1
+below), both rescaled to the stream encoder's time base. A frame whose pts
+is not above the previous one's is dropped, with a log at level 5.
+§4.2 to §4.4 apply to every other video track.
+
 Every frame enters the frame-rate converter with its **output position** as
 its timestamp, in main ticks, internal and raw alike. Its duration is its
 extent in main ticks: one video frame for an internal image; for a raw
@@ -185,7 +192,7 @@ the `fps` filter gets `start_time = T`, the time of the next grid slot (frame
 number `W`), so its first output frame is numbered `W` at earliest and a grid
 slot already written is not written twice
 ([filters.md §16.2](filters.md#162-fps),
-[encoder-internal.md §4.6](encoder-internal.md#46-frame-rate-conversion-both-video-modes)).
+[encoder-internal.md §4.6](encoder-internal.md#46-frame-timing-both-video-modes)).
 A source switch does not rebuild the converter.
 
 At a gap in the raw video content's positions, the converter is drained and

@@ -54,7 +54,13 @@ type audio = {
 type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
 
 type video = {
-  framerate : (int * int) Lazy.Mutexed.t;  (** numerator, denominator *)
+  framerate : (int * int) option;
+      (** Numerator, denominator. When set, frames are converted to this
+          constant rate. Otherwise internal video runs at the global video rate
+          and raw video keeps its frames' timing. *)
+  raw_key_frame_interval : float option;
+      (** Seconds between key frames of a raw track with no [framerate], set by
+          the HLS output: sized in frames once the source's rate is known. *)
   width : int Lazy.Mutexed.t;
   height : int Lazy.Mutexed.t;
   pixel_format : string option;

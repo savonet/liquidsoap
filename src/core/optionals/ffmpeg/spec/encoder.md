@@ -100,7 +100,11 @@ In order:
      so a player joining at such a segment drops its leading pictures.
    - Every encoded video track: codec options `g` and `keyint_min` default
      to `round(D × r / n)` frames, `r` the track's frame rate, `D` the
-     segment duration in seconds and `n = max(1, ⌈D / 2⌉)`; with `libx264`
+     segment duration in seconds and `n = max(1, ⌈D / 2⌉)`. A raw track with
+     no `framerate` gets its rate from its first frame
+     ([encoder-internal.md §4.6](encoder-internal.md#46-frame-timing-both-video-modes)),
+     so its `g` and `keyint_min` are sized when its stream is created; a
+     later change of the source's rate keeps them. With `libx264`
      and `libx264rgb`, `sc_threshold` defaults to 0. Each is set only when
      the format does not write it. Reason for naming the codecs:
      `sc_threshold` is a private option of those encoders, and another

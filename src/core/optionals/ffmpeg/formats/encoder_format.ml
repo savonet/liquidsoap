@@ -39,7 +39,8 @@ type audio = {
 type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
 
 type video = {
-  framerate : (int * int) Lazy.Mutexed.t;
+  framerate : (int * int) option;
+  raw_key_frame_interval : float option;
   width : int Lazy.Mutexed.t;
   height : int Lazy.Mutexed.t;
   pixel_format : string option;
@@ -295,10 +296,12 @@ let string_of_track (field, track) =
                 @ [
                     Printf.sprintf "width=%d" (force v.width);
                     Printf.sprintf "height=%d" (force v.height);
-                    (match force v.framerate with
-                      | rate, 1 -> Printf.sprintf "framerate=%d" rate
-                      | num, den -> Printf.sprintf "framerate=\"%d/%d\"" num den);
                   ]
+                @ (match v.framerate with
+                  | None -> []
+                  | Some (rate, 1) -> [Printf.sprintf "framerate=%d" rate]
+                  | Some (num, den) ->
+                      [Printf.sprintf "framerate=\"%d/%d\"" num den])
                 @ opt "pixel_format" v.pixel_format
                 @ opt "hwaccel" (Some (string_of_hwaccel v.hwaccel))
                 @ opt "hwaccel_device"

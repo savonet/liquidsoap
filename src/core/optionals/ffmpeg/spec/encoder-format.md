@@ -194,7 +194,10 @@ error of kind `encoder` at the value's position.
 
 ## 6. Video tracks
 
-Defaults: `framerate` = global video rate, `width`/`height` = global video
+Defaults: `framerate` = none (the global video rate, except that raw frames
+keep their timing,
+[encoder-internal.md §4.6](encoder-internal.md#46-frame-timing-both-video-modes)),
+`width`/`height` = global video
 dimensions (each read when first needed and kept for this format value),
 `pixel_format` = none, `alpha` = none, `hwaccel` = `auto`, `hwaccel_device` =
 none, `hwaccel_pixel_format` = none.
@@ -353,14 +356,14 @@ and `mime_type` are not syntax and are not printed. Items, in order:
 
 Tracks:
 
-| Track    | Rendering                                                                                                                                                                       |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| drop     | `%f.drop`                                                                                                                                                                       |
-| copy     | `%f.copy(wait_for_keyframe)` or `%f.copy(ignore_keyframe)`, then `codec_tag` when set                                                                                           |
-| raw      | `%f.raw(…)`, contents as for internal                                                                                                                                           |
-| audio    | `%f(…)`: content marker, PCM marker, `codec`, `channel_layout` when named else `channels`, `samplerate`, `sample_format` when set, then the codec options                       |
-| video    | `%f(…)`: content marker, `codec`, `width`, `height`, `framerate`, `pixel_format` when set, `hwaccel`, `hwaccel_device`, `hwaccel_pixel_format` when set, then the codec options |
-| subtitle | `%f(…)`: content marker, `codec`, then the codec options                                                                                                                        |
+| Track    | Rendering                                                                                                                                                                                |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| drop     | `%f.drop`                                                                                                                                                                                |
+| copy     | `%f.copy(wait_for_keyframe)` or `%f.copy(ignore_keyframe)`, then `codec_tag` when set                                                                                                    |
+| raw      | `%f.raw(…)`, contents as for internal                                                                                                                                                    |
+| audio    | `%f(…)`: content marker, PCM marker, `codec`, `channel_layout` when named else `channels`, `samplerate`, `sample_format` when set, then the codec options                                |
+| video    | `%f(…)`: content marker, `codec`, `width`, `height`, `framerate` when set, `pixel_format` when set, `hwaccel`, `hwaccel_device`, `hwaccel_pixel_format` when set, then the codec options |
+| subtitle | `%f(…)`: content marker, `codec`, then the codec options                                                                                                                                 |
 
 The content marker (`audio_content`, `video_content`, `subtitle_content`) is
 printed when the field name does not give the media type (§2.1 rule 2). The
@@ -373,7 +376,7 @@ Example:
 
 ```
 %ffmpeg(format="mp4", %audio(pcm_s16, codec="aac", b="128k"), %video(codec="libx264", preset="fast"), metadata=[("title","x")])
-→ %ffmpeg(format="mp4",metadata=[("title","x")],interleaved="default",%audio(pcm_s16,codec="aac",channels=2,samplerate=44100,b="128k"),%video(codec="libx264",width=1280,height=720,framerate=25,hwaccel="auto",hwaccel_device="none",preset="fast"))
+→ %ffmpeg(format="mp4",metadata=[("title","x")],interleaved="default",%audio(pcm_s16,codec="aac",channels=2,samplerate=44100,b="128k"),%video(codec="libx264",width=1280,height=720,hwaccel="auto",hwaccel_device="none",preset="fast"))
 ```
 
 ### 11.1 Conformance

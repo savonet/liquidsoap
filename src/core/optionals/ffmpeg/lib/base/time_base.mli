@@ -48,12 +48,17 @@ val rescale :
 (** [rescale_int64] reads a timestamp the bindings give. *)
 val rescale_int64 : src:t -> dst:t -> Int64.t -> int option
 
-(** The [(numerator, denominator)] frame rate of an encoder format. *)
-val frame_rate : int * int -> Avutil.rational
+(** The [(numerator, denominator)] frame rate of an encoder format, the video
+    rate when it sets none. *)
+val frame_rate : (int * int) option -> Avutil.rational
 
 (** [per_frame rate] is the time base of one frame at [rate] frames per second.
 *)
 val per_frame : Avutil.rational -> t
+
+(** [frames ~seconds rate] is the whole number of frames, at least one, nearest
+    to [seconds] at [rate]. *)
+val frames : seconds:float -> Avutil.rational -> int
 
 (** [to_main ~src t] is {!rescale} into {!main}. *)
 val to_main : src:t -> int -> int option

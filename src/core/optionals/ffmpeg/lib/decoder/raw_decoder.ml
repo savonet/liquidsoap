@@ -151,11 +151,13 @@ let video ~output ~faults ~log ~source_id ~format
     (stream : Stream_description.stream) params =
   let display = Display.create ~params ~time_base:stream.time_base () in
   let conformer = Conformer.Video.create ~log format in
+  let source_params = Stream_description.copy_params stream in
   let make_chunk ~source_id ~time_base ~length frames =
     Ffmpeg_content.Video.lift_data
       (Ffmpeg_content.Video.Data.of_run
          (Ffmpeg_content.Video.get_params format)
-         (Ffmpeg_content.Video.Data.run ~source_id ~time_base ~length
+         (Ffmpeg_content.Video.Data.run ?source_params ~source_id ~time_base
+            ~length
             (List.map (fun f -> (0, f)) frames)))
   in
   let c = chunker ~faults ~put:output.Per_stream.put ~make_chunk () in

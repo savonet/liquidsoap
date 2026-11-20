@@ -164,7 +164,7 @@ let hwaccel v =
 
 let video_option (vf : F.video) = function
   | `Labelled (("framerate" | "r"), v) ->
-      Some { vf with framerate = Lazy.Mutexed.from_val (frame_rate v) }
+      Some { vf with framerate = Some (frame_rate v) }
   | `Labelled ("width", v) ->
       Some { vf with width = Lazy.Mutexed.from_val (positive v) }
   | `Labelled ("height", v) ->
@@ -209,9 +209,8 @@ let default_options : F.media -> F.options = function
       let width, height = Frame.video_dimensions () in
       `Video
         {
-          F.framerate =
-            Lazy.Mutexed.from_fun (fun () ->
-                (Lazy.Mutexed.force Frame.video_rate, 1));
+          F.framerate = None;
+          raw_key_frame_interval = None;
           width;
           height;
           pixel_format = None;

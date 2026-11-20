@@ -522,30 +522,37 @@ let segment_muxer = function
 
 (* encoder.md §3 step 2: a key frame at most every 2 s, as close as whole
    frames allow to an even split of the segment. *)
-let key_frame_interval ~segment_duration (video : F.video) =
-  let num, den = Lazy.Mutexed.force video.framerate in
-  let per_segment =
-    max 1 (int_of_float (Float.ceil (segment_duration /. 2.)))
-  in
-  max 1
-    (Float.to_int
-       (Float.round
-          (segment_duration *. float_of_int num /. float_of_int den
-         /. float_of_int per_segment)))
+let key_frame_seconds ~segment_duration =
+  segment_duration /. Float.max 1. (Float.ceil (segment_duration /. 2.))
 
-let key_frame_defaults ~segment_duration (encoded : F.encoded) video =
+(* A raw track with no framerate learns its rate from its first frame: the
+   stream encoder sizes its key frame interval then. *)
+let key_frame_defaults ~segment_duration (encoded : F.encoded) (video : F.video)
+    =
   let default key value opts =
     if List.mem_assoc key opts then opts else F.set opts key (`Int value)
   in
-  let interval = key_frame_interval ~segment_duration video in
-  let opts =
-    encoded.opts |> default "g" interval |> default "keyint_min" interval
+  let seconds = key_frame_seconds ~segment_duration in
+  let video, opts =
+    match (encoded.mode, video.framerate) with
+      | `Raw, None ->
+          ({ video with raw_key_frame_interval = Some seconds }, encoded.opts)
+      | _ ->
+          let interval =
+            Time_base.frames ~seconds (Time_base.frame_rate video.framerate)
+          in
+          ( video,
+            encoded.opts |> default "g" interval
+            |> default "keyint_min" interval )
   in
   (* [sc_threshold] is a private option of libx264: another encoder rejects it
      as unused. *)
+  let opts =
     match encoded.codec with
-    | Some ("libx264" | "libx264rgb") -> default "sc_threshold" 0 opts
-    | _ -> opts
+      | Some ("libx264" | "libx264rgb") -> default "sc_threshold" 0 opts
+      | _ -> opts
+  in
+  { encoded with options = `Video video; opts }
 
 (* encoder.md §3 step 2. *)
 let hls_defaults ~segment_duration (format : F.t) =
@@ -565,9 +572,11 @@ let hls_defaults ~segment_duration (format : F.t) =
     List.map
       (function
         | name, `Encode ({ F.options = `Video video; _ } as encoded) ->
-            let opts = key_frame_defaults ~segment_duration encoded video in
+            let encoded = key_frame_defaults ~segment_duration encoded video in
             ( name,
-              `Encode { encoded with opts = Opts.add_named_flag opts "cgop" } )
+              `Encode
+                { encoded with opts = Opts.add_named_flag encoded.opts "cgop" }
+            )
         | stream -> stream)
       format.streams
   in
