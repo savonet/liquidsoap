@@ -77,8 +77,8 @@ At `mk_stream frame`:
    pixel format when it is a software format (no `Hwaccel` flag), else the
    target pixel format (a frame context uploads from it).
 4. Side data: [side-data.md §7](side-data.md#7-side-data-given-to-encoders).
-5. The stream is added: time base `1/framerate`, frame rate `framerate/1`,
-   the chosen pixel format and hardware context, width and height, a copy of
+5. The stream is added with the time base and frame rate of §4.6, the
+   chosen pixel format and hardware context, width and height, a copy of
    the options.
 
 ### 2.3 Subtitle
@@ -177,9 +177,23 @@ another one would be rejected or misread. Frames of different sizes,
 pixel formats or colour properties mid-stream are each fitted; none ends the
 track.
 
-### 4.6 Frame-rate conversion (both video modes)
+### 4.6 Frame timing (both video modes)
 
-Every video frame then goes through a frame-rate converter, the Fps helper
+A raw track without an explicit `framerate` keeps its frames' timing and
+runs no converter
+([timestamps.md §4.1](timestamps.md#41-frame-timestamps-entering-the-converter)).
+Its stream has time base main ticks and, as frame rate, the source's average
+rate carried by the first frame's run when valid, else `video_rate`. Reason:
+raw frames come at the source's rate, which a fixed default rate would drop
+or repeat frames against. The stream frame rate is a hint to the codec (rate
+control, headers); timestamps carry the timing.
+
+Every other video track has time base `1/framerate` and frame rate
+`framerate`, `video_rate` when not set, and every frame goes through a
+frame-rate converter. Reason: internal content may miss images on the
+`video_rate` grid (`settings.frame.duration` not a multiple of the video
+period); the converter repeats the last image there. The converter is the
+Fps helper
 graph of [filters.md §16.2](filters.md#162-fps), with input time base main
 ticks. Frames enter at their output position
 ([timestamps.md §4.1](timestamps.md#41-frame-timestamps-entering-the-converter));
@@ -215,8 +229,11 @@ Each subtitle becomes one FFmpeg subtitle with one ASS rectangle:
 - Three raw-audio files (48 kHz stereo, 44.1 kHz mono, 44.1 kHz stereo) in
   sequence into one AAC stream at 44100 Hz: the output's duration equals the
   inputs' total within one codec frame, and each part plays at its pitch.
-- A raw video stream whose source changes every second for ten seconds: the
-  output has `10 × framerate` frames, within one frame.
+- A raw video stream whose source changes every second for ten seconds,
+  with an explicit `framerate`: the output has `10 × framerate` frames, within
+  one frame.
+- A raw 30000/1001 video encoded without `framerate`: the output keeps
+  30000/1001 and every source frame.
 
 ## 5. Timestamps
 

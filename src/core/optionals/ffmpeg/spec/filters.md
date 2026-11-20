@@ -1034,11 +1034,11 @@ Retimes video to a constant frame rate.
 Inputs: the frame format, the input time base, an optional source frame
 rate, the target frame rate, and one start rule:
 
-| Start rule     | User                                                                                                    | Filters                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| none           | decoders ([decoder.md §16.1](decoder.md#161-internal-video-converter))                                  | `setpts` with `expr = "PTS-max(STARTPTS, 0)"`; `fps` with `start_time = 0` |
-| start PTS `S`  | inline encoders ([inline-codecs.md §7](inline-codecs.md#7-video-encoding))                              | `setpts` with `expr = "S+PTS-STARTPTS"`; `fps`                             |
-| start time `T` | the encoder ([encoder-internal.md §4.6](encoder-internal.md#46-frame-rate-conversion-both-video-modes)) | no `setpts`; `fps` with `start_time = T` (seconds)                         |
+| Start rule     | User                                                                                           | Filters                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| none           | decoders ([decoder.md §16.1](decoder.md#161-internal-video-converter))                         | `setpts` with `expr = "PTS-max(STARTPTS, 0)"`; `fps` with `start_time = 0` |
+| start PTS `S`  | inline encoders ([inline-codecs.md §7](inline-codecs.md#7-video-encoding))                     | `setpts` with `expr = "S+PTS-STARTPTS"`; `fps`                             |
+| start time `T` | the encoder ([encoder-internal.md §4.6](encoder-internal.md#46-frame-timing-both-video-modes)) | no `setpts`; `fps` with `start_time = T` (seconds)                         |
 
 `fps` always gets `fps = <target>/1`.
 

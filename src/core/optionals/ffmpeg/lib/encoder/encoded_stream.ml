@@ -429,10 +429,34 @@ module Video_writer = struct
     mutable next_slot : int;
     mutable stage : stage option;
     on_packet : on_packet;
+    positions : Avutil.rational option;
+        (** Without a frame-rate converter, the time base frames are written in,
+            at their output position. *)
+    mutable last_pts : int option;
   }
 
-  let create ~log ~frame_rate ~on_packet stream =
-    { log; stream; frame_rate; next_slot = 0; stage = None; on_packet }
+  let create ~log ?positions ~frame_rate ~on_packet stream =
+    {
+      log;
+      stream;
+      frame_rate;
+      next_slot = 0;
+      stage = None;
+      on_packet;
+      positions;
+      last_pts = None;
+    }
+
+  (* timestamps.md §4.1: a frame not after the previous one is dropped. *)
+  let write_at_position t ~time_base ~abs frame =
+    match Time_base.rescale ~src:(Time_base.main ()) ~dst:time_base abs with
+      | Some pts
+        when Option.fold ~none:true ~some:(fun last -> pts > last) t.last_pts ->
+          let frame = Avutil.Frame.dup frame in
+          Avutil.Frame.set_pts frame (Some (Int64.of_int pts));
+          t.last_pts <- Some pts;
+          Av.write_frame ~on_packet:(report t.on_packet) t.stream frame
+      | _ -> ()
 
   let slot_time_base t = Time_base.per_frame t.frame_rate
 
@@ -472,7 +496,7 @@ module Video_writer = struct
     drain t;
     t.next_slot <- max t.next_slot (first_slot t abs)
 
-  let push t ~abs ~duration frame =
+  let convert t ~abs ~duration frame =
     let frame = Avutil.Frame.dup frame in
     Avutil.Frame.set_pts frame (Some (Int64.of_int abs));
     Avutil.Frame.set_duration frame (Some (Int64.of_int duration));
@@ -501,6 +525,11 @@ module Video_writer = struct
     with exn ->
       t.stage <- None;
       raise exn
+
+  let push t ~abs ~duration frame =
+    match t.positions with
+      | Some time_base -> write_at_position t ~time_base ~abs frame
+      | None -> convert t ~abs ~duration frame
 end
 
 module Scaler = Swscale.Make (Swscale.BigArray) (Swscale.Frame)
@@ -523,6 +552,17 @@ let first_raw_side_data frame field =
         items)
     (video_runs frame field)
 
+(* The source's average rate, which raw runs carry from the decoder. *)
+let first_raw_frame_rate frame field =
+  match Frame.get frame field with
+    | exception Not_found -> None
+    | data ->
+        List.find_map
+          (fun (_, (run : Ffmpeg_content.Video.Data.run)) ->
+            Option.bind run.source_params (fun (p : Copy_params.t) ->
+                p.frame_rate))
+          (Ffmpeg_content.Video.get_data data).runs
+
 let content_alpha ~mode frame field =
   match Frame.get frame field with
     | exception Not_found -> false
@@ -541,7 +581,6 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     ~on_packet output =
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field field in
-  let frame_rate = Time_base.frame_rate (Lazy.Mutexed.force v.framerate) in
   (* Forcing fixes the global dimensions, which then ignore decoder reports:
      wait for the first frame. *)
   let size =
@@ -556,6 +595,23 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
   let frame_pixel_format () = snd (Option.get !state) in
   let mk_stream frame =
     let width, height = Lazy.Mutexed.force size in
+    (* encoder-internal.md §4.6: raw frames without an explicit rate keep
+       their timing, in main ticks, and the codec is told the source's rate.
+       Internal content may miss images on the video grid: the converter
+       fills them. *)
+    let frame_rate, time_base, positions =
+      match (v.framerate, mode) with
+        | Some _, _ | None, `Internal ->
+            let frame_rate = Time_base.frame_rate v.framerate in
+            (frame_rate, Time_base.per_frame frame_rate, None)
+        | None, `Raw ->
+            let frame_rate =
+              match first_raw_frame_rate frame field with
+                | Some rate when Time_base.is_valid rate -> rate
+                | _ -> Time_base.frame_rate None
+            in
+            (frame_rate, Time_base.main (), Some (Time_base.main ()))
+    in
     let alpha = v.alpha || content_alpha ~mode frame field in
     let target =
       try Pixel_formats.for_encoder ?configured:v.pixel_format ~alpha codec
@@ -584,9 +640,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     let stream =
       try
         Av.new_video_stream ~opts ?side_data ~frame_rate ?hardware_context
-          ~pixel_format ~width ~height
-          ~time_base:(Time_base.per_frame frame_rate)
-          ~codec output
+          ~pixel_format ~width ~height ~time_base ~codec output
       with Avutil.Error e ->
         let message =
           Printf.sprintf "Cannot create %s stream (%dx%d, %s fps): %s" kind
@@ -603,7 +657,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     in
     state :=
       Some
-        ( Video_writer.create ~log ~frame_rate ~on_packet stream,
+        ( Video_writer.create ~log ?positions ~frame_rate ~on_packet stream,
           frame_pixel_format )
   in
   let encode_image ~abs image =

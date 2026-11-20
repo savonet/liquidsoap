@@ -32,6 +32,7 @@
   - Copied streams start each source on a keyframe of every track, waiting at most `settings.ffmpeg.content.copy.max_keyframe_wait` (20 s), and stay in sync across switches and long relays ([#2333](https://github.com/savonet/liquidsoap/issues/2333), [#4502](https://github.com/savonet/liquidsoap/issues/4502), [#3329](https://github.com/savonet/liquidsoap/issues/3329)).
   - Copied files with incompatible stream parameters are skipped when opened.
   - `%audio.raw` and `%video.raw` take unset parameters from the first frame.
+  - `%video.raw` without `framerate` keeps the timing of the decoded frames, e.g. a 29.97 fps input stays at 29.97 fps. Setting `framerate` converts to that constant rate ([#5665](https://github.com/savonet/liquidsoap/issues/5665)).
   - Script and configuration errors fail at evaluation or first start instead of retrying forever.
   - `input.ffmpeg` takes a `timeout` (10 s) ([#2358](https://github.com/savonet/liquidsoap/issues/2358)).
   - Filter graphs share one buffer and track marks across outputs, drop excess beyond `settings.ffmpeg.filter_max_buffer`, and are rebuilt when their input comes back ([#5302](https://github.com/savonet/liquidsoap/pull/5302), [#5332](https://github.com/savonet/liquidsoap/pull/5332)).

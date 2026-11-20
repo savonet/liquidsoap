@@ -91,6 +91,9 @@ let rescale_int64 ~src ~dst t =
   then None
   else rescale ~src ~dst (Int64.to_int t)
 
-let frame_rate (num, den) = { Avutil.num; den }
+let frame_rate = function
+  | Some (num, den) -> { Avutil.num; den }
+  | None -> { Avutil.num = Lazy.Mutexed.force Frame.video_rate; den = 1 }
+
 let per_frame { Avutil.num; den } = { Avutil.num = den; den = num }
 let to_main ~src t = rescale ~src ~dst:(main ()) t

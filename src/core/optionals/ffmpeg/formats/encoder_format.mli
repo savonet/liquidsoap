@@ -54,7 +54,9 @@ type audio = {
 type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
 
 type video = {
-  framerate : (int * int) Lazy.Mutexed.t;  (** numerator, denominator *)
+  framerate : (int * int) option;
+      (** Numerator, denominator. When set, frames are converted to this
+          constant rate; otherwise they keep their own timing. *)
   width : int Lazy.Mutexed.t;
   height : int Lazy.Mutexed.t;
   pixel_format : string option;

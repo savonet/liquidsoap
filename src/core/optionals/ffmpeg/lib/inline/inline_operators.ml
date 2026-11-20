@@ -112,9 +112,7 @@ let startup_check value (encoded : F.encoded) () =
                       codec)
              | `Video (v : F.video) ->
                  let codec = Avcodec.Video.find_encoder_by_name name in
-                 let rate =
-                   Time_base.frame_rate (Lazy.Mutexed.force v.framerate)
-                 in
+                 let rate = Time_base.frame_rate v.framerate in
                  ignore
                    (Avcodec.Video.create_encoder ~opts ~frame_rate:rate
                       ~pixel_format:

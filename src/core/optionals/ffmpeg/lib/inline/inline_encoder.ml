@@ -220,7 +220,7 @@ let video ~(log : Log.t) ~(encoded : F.encoded) ~(v : F.video) :
   in
   let width = Lazy.Mutexed.force v.width in
   let height = Lazy.Mutexed.force v.height in
-  let frame_rate = Time_base.frame_rate (Lazy.Mutexed.force v.framerate) in
+  let frame_rate = Time_base.frame_rate v.framerate in
   let codec =
     match encoded.mode with
       | `Internal ->

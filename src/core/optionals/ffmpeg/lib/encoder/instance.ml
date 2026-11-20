@@ -523,7 +523,7 @@ let segment_muxer = function
 (* encoder.md §3 step 2: a key frame at most every 2 s, as close as whole
    frames allow to an even split of the segment. *)
 let key_frame_interval ~segment_duration (video : F.video) =
-  let num, den = Lazy.Mutexed.force video.framerate in
+  let { Avutil.num; den } = Time_base.frame_rate video.framerate in
   let per_segment =
     max 1 (int_of_float (Float.ceil (segment_duration /. 2.)))
   in
