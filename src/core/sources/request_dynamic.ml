@@ -408,7 +408,11 @@ let _ =
       ( "prefetch",
         Lang.nullable_t Lang.int_t,
         Some Lang.null,
-        Some "How many requests should be queued in advance." );
+        Some
+          "How many requests should be queued in advance, in addition to the \
+           one being played. With `synchronous=false`, `0` disables automatic \
+           fetching: requests are only fetched when the `fetch` method is \
+           called." );
       ( "timeout",
         Lang.nullable_t Lang.float_t,
         Some Lang.null,
