@@ -86,6 +86,7 @@ Error 5: this value has no method `not_found`
                         .{
                           kind : string,
                           message : string,
+                          origin : string?,
                           trace : [
                                    {
                                      cstart : int,
@@ -101,6 +102,7 @@ Error 5: this value has no method `not_found`
             .{
               kind : string,
               message : string,
+              origin : string?,
               trace : [
                        {
                          cstart : int,
@@ -114,6 +116,7 @@ Error 5: this value has no method `not_found`
                 .{
                   kind : string,
                   message : string,
+                  origin : string?,
                   trace : [
                            {
                              cstart : int,
@@ -129,6 +132,7 @@ Error 5: this value has no method `not_found`
              .{
                kind : string,
                message : string,
+               origin : string?,
                trace : [
                         {
                           cstart : int,
