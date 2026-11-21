@@ -26,7 +26,10 @@
 module File : sig
   val readdir : string -> string array
   val digest : string -> Digest.t
-  val temp_file : ?temp_dir:string -> string -> string -> string
+
+  (** Creates the file exclusively, with [perms] ([0o600] by default). *)
+  val temp_file : ?temp_dir:string -> ?perms:int -> string -> string -> string
+
   val temp_dir : string -> string -> string
 
   val openfile :

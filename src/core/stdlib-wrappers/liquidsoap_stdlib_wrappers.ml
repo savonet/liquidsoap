@@ -25,8 +25,13 @@ module File = struct
   let readdir dir = protect (fun () -> Sys.readdir dir)
   let digest file = protect (fun () -> Digest.file file)
 
-  let temp_file ?temp_dir prefix suffix =
-    protect (fun () -> Filename.temp_file ?temp_dir prefix suffix)
+  let temp_file ?temp_dir ?perms prefix suffix =
+    protect (fun () ->
+        let name, channel =
+          Filename.open_temp_file ?perms ?temp_dir prefix suffix
+        in
+        close_out channel;
+        name)
 
   let temp_dir prefix suffix =
     protect (fun () -> Filename.temp_dir prefix suffix)

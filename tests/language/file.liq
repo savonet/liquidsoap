@@ -35,6 +35,18 @@ def f() =
   file.move(src_file, dst_file3)
   test.equal(file.exists(dst_file3), true)
 
+  temp = file.temp(directory=tmpdir, perms=0o640, ".hidden.", ".tmp")
+  test.equal(path.dirname(temp), tmpdir)
+  mode =
+    string.sub(
+      process.read(
+        "ls -l #{process.quote(temp)}"
+      ),
+      start=0,
+      length=10
+    )
+  test.equal(mode, "-rw-r-----")
+
   file.touch("test-dst-file4")
   test.equal(file.exists("test-dst-file4"), true)
 
