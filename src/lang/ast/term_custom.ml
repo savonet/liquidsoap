@@ -29,7 +29,7 @@ let to_string { value; handler } = handler.to_string value
 let to_json ~pos { value; handler } = handler.to_json ~pos value
 
 let compare { value = v; handler = h } { value = v'; handler = h' } =
-  if h.name <> h.name then Stdlib.compare h.name h'.name else h.compare v v'
+  if h.name <> h'.name then Stdlib.compare h.name h'.name else h.compare v v'
 
 let custom_terms = ref []
 
