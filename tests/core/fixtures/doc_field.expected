@@ -1,7 +1,7 @@
 Connects to a server.
 
 Type: (retry : 'a.{count? : int}, 'b.{host? : string, name : string, port : int}) ->
-unit
+ unit
 
 Category: Uncategorized
 

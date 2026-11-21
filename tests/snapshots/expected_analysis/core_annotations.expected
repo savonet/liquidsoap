@@ -24,7 +24,7 @@ source('A)
   generate_frame : () -> unit,
   id : () -> string,
   insert_metadata : (?override : bool, ?new_track : bool, [string * string]) ->
-                    unit,
+                     unit,
   is_active : () -> bool,
   is_ready : () -> bool,
   is_up : () -> bool,
@@ -34,17 +34,17 @@ source('A)
   },
   on_collect : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
   on_frame : (?before : bool, synchronous : bool, (() -> unit)) ->
-             {release : () -> unit},
+              {release : () -> unit},
   on_frame_checksum : (?before : ((string?) -> unit)?, synchronous : bool,
                        ((cache : string?, string) -> unit)) ->
-                      {release : () -> unit},
+                       {release : () -> unit},
   on_leave : ({preempted : bool, source : source('A)}) -> unit,
   on_metadata : (synchronous : bool, (([string * string]) -> unit)) ->
-                {release : () -> unit},
+                 {release : () -> unit},
   on_position : (position : {float}, ?remaining : bool,
                  ?allow_partial : bool, synchronous : bool,
                  ((float, [string * string]) -> unit)) ->
-                {release : () -> unit},
+                 {release : () -> unit},
   on_select : (
                {
                  ending : source('A)?,
@@ -53,7 +53,7 @@ source('A)
                }) -> source('A),
   on_shutdown : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
   on_track : (synchronous : bool, (([string * string]) -> unit)) ->
-             {release : () -> unit},
+              {release : () -> unit},
   on_wake_up : (synchronous : bool, (() -> unit)) -> {release : () -> unit},
   register_command : (?usage : string?, description : string, string,
                       ((string) -> string)) -> unit,
