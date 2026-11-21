@@ -26,31 +26,40 @@ def icecast.server.mounts.follow(~on_select=fun (_) -> (), id, get) =
   }
 end
 
-# Puts the clock `c` of a new output on the server's clock and starts it, so
-# that an output created by a running handler or thread serves at once. That
-# clock stops with its last output; one that is stopping merges with nothing,
-# and the server then takes a new clock.
+# The output `make_output(s)`, built on the server's clock and started, so
+# that an output created by a running handler or thread serves at once. `s`
+# joins that clock before the output exists: a new output's own clock starts
+# by itself and, once started, merges with nothing. The clock `s` joined is
+# the one started: another mount may set a new server clock meanwhile. A clock
+# stopping with its last output keeps the new one and restarts on the next
+# start pass.
 # @flag hidden
-def icecast.server.mounts.unify_clock(state, c) =
+def icecast.server.mounts.on_server_clock(state, s, make_output) =
+  start_server_clock =
+    try
+      c = state.clock.get()
+      c.unify(s.clock)
+      {c.start(force=false)}
+    catch err do
+      icecast.server.log.info(
+        state,
+        "Taking a new clock: #{err.message}"
+      )
+      fresh = clock.create(id=state.name)
+      state.clock.set(fresh)
+      fresh.unify(s.clock)
+      {fresh.start(force=false)}
+    end
+  o = make_output(s)
   try
-    state.clock.get().unify(c)
-  catch err do
-    icecast.server.log.info(
-      state,
-      "Taking a new clock: #{err.message}"
-    )
-    fresh = clock.create(id=state.name)
-    state.clock.set(fresh)
-    fresh.unify(c)
-  end
-  try
-    state.clock.get().start(force=false)
+    start_server_clock()
   catch err do
     icecast.server.log.debug(
       state,
       "Clock not started: #{err.message}"
     )
   end
+  o
 end
 
 # Muxer options of the container `format` under the parameters `p`.
@@ -201,7 +210,7 @@ def icecast.server.mounts.create(state, p, path, template) =
     )
   entry_ref = ref(null)
   burst = p.burst_on_connect and mount.burst_size > 0 ? mount.burst_size : 0
-  o =
+  def make_output(selector) =
     output.harbor(
       id="#{id}.output",
       fallible=true,
@@ -222,7 +231,9 @@ def icecast.server.mounts.create(state, p, path, template) =
       ),
       selector
     )
-  icecast.server.mounts.unify_clock(state, o.clock)
+  end
+
+  o = icecast.server.mounts.on_server_clock(state, selector, make_output)
   entry =
     {
       path = path,

@@ -51,7 +51,7 @@ def icecast.server.mounts.dump(state, mount, feeder) =
       1000000.
     end
 
-    o =
+    def make_output(recorded) =
       output.file(
         id="#{source.id(feeder.source)}.dump",
         fallible=true,
@@ -59,13 +59,17 @@ def icecast.server.mounts.dump(state, mount, feeder) =
         reopen_on_error=on_error,
         feeder.encoder([("flush_packets", "1")]),
         path,
-        icecast.server.mounts.follow(
-          "#{source.id(feeder.source)}.recorded",
-          fun () -> recording() ? feeder.source : (source.fail())
-        )
+        recorded
       )
+    end
+
+    recorded =
+      icecast.server.mounts.follow(
+        "#{source.id(feeder.source)}.recorded",
+        fun () -> recording() ? feeder.source : (source.fail())
+      )
+    o = icecast.server.mounts.on_server_clock(state, recorded, make_output)
     output_ref := o
-    icecast.server.mounts.unify_clock(state, o.clock)
     stop
   end
 end
