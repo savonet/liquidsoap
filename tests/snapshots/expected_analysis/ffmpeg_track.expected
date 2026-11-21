@@ -35,8 +35,8 @@ source(audio=ffmpeg.copy('A))
   on_frame_checksum : (?before : ((string?) -> unit)?, synchronous : bool,
                        ((cache : string?, string) -> unit)) ->
                       {release : () -> unit},
-  on_leave : ({source : source(audio=ffmpeg.copy('A)), track_sensitive : bool
-              }) -> unit,
+  on_leave : ({preempted : bool, source : source(audio=ffmpeg.copy('A))}) ->
+             unit,
   on_metadata : (synchronous : bool, (([string * string]) -> unit)) ->
                 {release : () -> unit},
   on_position : (position : {float}, ?remaining : bool,
