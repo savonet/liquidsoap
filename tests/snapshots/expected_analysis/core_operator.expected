@@ -36,7 +36,7 @@ output.dummy(s)
    on_frame_checksum : (?before : ((string?) -> unit)?, synchronous : bool,
                         ((cache : string?, string) -> unit)) ->
                        {release : () -> unit},
-   on_leave : ({source : source(audio=pcm*), track_sensitive : bool}) -> unit,
+   on_leave : ({preempted : bool, source : source(audio=pcm*)}) -> unit,
    on_metadata : (synchronous : bool, (([string * string]) -> unit)) ->
                  {release : () -> unit},
    on_position : (position : {float}, ?remaining : bool,
@@ -107,8 +107,8 @@ output.dummy(s)
                                        {release : () -> unit},
                    on_leave : (
                                {
-                                 source : source(audio=pcm('a), 'b),
-                                 track_sensitive : bool
+                                 preempted : bool,
+                                 source : source(audio=pcm('a), 'b)
                                }) -> unit,
                    on_metadata : (synchronous : bool,
                                   (([string * string]) -> unit)) ->
