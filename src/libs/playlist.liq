@@ -722,7 +722,7 @@ end
 #   corresponding to local files. This is typically used to avoid repetitions, \
 #   but be careful: if the function rejects all attempts, the playlist will \
 #   enter into a consuming loop and stop playing anything.
-# @param ~prefetch How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance, in addition to the one being played.
 # @param ~loop Loop on the playlist.
 # @param ~mode Play the files in the playlist either in the order ("normal" mode), \
 #  or shuffle the playlist each time it is loaded, and play it in this order for a \
@@ -1015,7 +1015,7 @@ end
 #   corresponding to local files. This is typically used to avoid repetitions, \
 #   but be careful: if the function rejects all attempts, the playlist will \
 #   enter into a consuming loop and stop playing anything.
-# @param ~prefetch How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance, in addition to the one being played.
 # @param ~loop Loop on the playlist.
 # @param ~mime_type Default MIME type for the playlist. `null` means automatic \
 #  detection.
