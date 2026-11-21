@@ -189,10 +189,14 @@ def input.hls.native(~id=null, ~reload=10., uri) =
 
   find_stream()
   s = request.dynamic(id=id, prefetch=10, next)
+  stopped = ref(false)
+  s.on_shutdown(synchronous=true, {stopped := true})
+  thread.run(
+    every={stopped() ? (-1.) : reload},
+    {if not stopped() then load_playlist() end}
+  )
   let {track_marks = _, ...tracks} = source.tracks(s)
-  s = source(tracks)
-  thread.run(every=reload, load_playlist)
-  s
+  source(tracks)
 end
 
 let replaces input.hls = input.hls.native

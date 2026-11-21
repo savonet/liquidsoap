@@ -175,7 +175,11 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     if list.length(queue()) < prefetch then ignore(fetch()) end
   end
 
-  thread.run(every=retry_delay, fill)
+  stopped = ref(false)
+  thread.run(
+    every=fun () -> if stopped() then -1. else getter.get(retry_delay) end,
+    {if not stopped() then fill() end}
+  )
 
   # Source
   def s() =
@@ -191,7 +195,9 @@ def native.request.dynamic(%argsof(request.dynamic), f) =
     end
   end
 
-  source.dynamic(id=id, track_sensitive=true, s).{
+  s = source.dynamic(id=id, track_sensitive=true, s)
+  s.on_shutdown(synchronous=true, {stopped := true})
+  s.{
     fetch = fetch,
     queue = get_queue,
     add = add,
