@@ -89,6 +89,7 @@
 - Metadata inserted with `insert_metadata` while a source produces an empty frame, e.g. a buffered input that just ran dry, is kept for the next frame instead of being lost.
 - `icecast.server`: a mount keeps its current metadata (in its statistics and status pages) when its source client lags and its input runs dry, instead of losing it until the next update.
 - `video.add_text.ffmpeg` no longer fails on a text containing `%`: drawtext text expansion is disabled.
+- `video.fade.in` and `video.fade.out` apply their transition: the transformed image was discarded, so no fade was visible. The `fade` and `disc` transitions go to and from black instead of acting on transparency (use `video.opacity` to fade an overlay), and `grow` shows the scaled image instead of an empty frame ([#3180](https://github.com/savonet/liquidsoap/issues/3180)).
 
 ## Optimized:
 
