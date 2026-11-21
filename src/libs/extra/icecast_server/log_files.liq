@@ -17,7 +17,7 @@ end
 # @flag hidden
 def icecast.server.log_files.file(~label) =
   opened = icecast.server.cell(null)
-  lock = ref(false)
+  lock = atomic.lock()
 
   def close() =
     current = opened.get()
@@ -83,8 +83,8 @@ def icecast.server.log_files.file(~label) =
   end
 
   def locked(fn) =
-    icecast.server.with_lock(
-      lock,
+    atomic(
+      lock=lock,
       fun () ->
         try
           fn()
