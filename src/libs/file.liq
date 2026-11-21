@@ -314,8 +314,14 @@ def file.getter(fname) =
   end
 
   update()
-  ignore(file.watch(fname, update))
-  ref.getter(contents)
+  watcher = file.watch(fname, update)
+
+  def getter() =
+    contents()
+  end
+
+  runtime.gc.finalise.last({watcher.unwatch()}, getter)
+  getter
 end
 
 # Float getter from a file.
