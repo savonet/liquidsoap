@@ -87,6 +87,7 @@ def icecast.server.feeders.attach(state, ~strict=false, path, feeder) =
       entry = null.get(icecast.server.mounts.find(state, path))
       dump = icecast.server.mounts.dump(state, mount, feeder)
       entry.feeder.set(feeder)
+      entry.metadata.set([])
       entry.lingering.set(null)
       entry.started.set(time())
       entry.disconnect.set({on_disconnect = mount?.on_disconnect, dump = dump})

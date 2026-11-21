@@ -13,7 +13,7 @@ def f() =
       feeder = {get = fun () -> null},
       identity = fun () -> [],
       audio = fun () -> {channels = null, samplerate = null},
-      output = {last_metadata = fun () -> null},
+      metadata = {get = fun () -> []},
       format = {container = null, mime = "audio/mpeg"},
       started = {get = fun () -> 0.}
     }
