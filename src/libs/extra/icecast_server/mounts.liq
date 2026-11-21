@@ -45,7 +45,7 @@ def icecast.server.mounts.table() =
     )
   end
 
-  {all = fun () -> atomic(entries), add = add, remove = remove}
+  {all = fun () -> entries(), add = add, remove = remove}
 end
 
 # A feeder: a source client (`is_client`) or an attached Liquidsoap source.
