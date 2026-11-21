@@ -31,6 +31,10 @@ native_output = output.dummy(fallible=true, native_source)
 
 def check() =
   stopped_at = ref(null)
+  sources_down = ref(0)
+  p.on_shutdown(synchronous=true, {ref.incr(sources_down)})
+  native_source.on_shutdown(synchronous=true, {ref.incr(sources_down)})
+  shutdown_requested = ref(false)
 
   def poll() =
     if
@@ -48,11 +52,17 @@ def check() =
         (-1.)
       end
     elsif
-      reloads() >= 2 and fetches() >= 2
+      sources_down() == 2
+    then
+      # Counted once the sources are down: shutdown() takes them down later.
+      stopped_at := (time(), reloads(), fetches())
+      0.2
+    elsif
+      not shutdown_requested() and reloads() >= 2 and fetches() >= 2
     then
       playlist_output.shutdown()
       native_output.shutdown()
-      stopped_at := (time(), reloads(), fetches())
+      shutdown_requested := true
       0.2
     else
       0.2
