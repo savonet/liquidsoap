@@ -279,3 +279,118 @@ let _ =
       in
       Lang.record
         [("count", int_opt (open_file_descriptors ())); ("max", int_opt max)])
+
+(* GC finalisers can fire at any allocation, in any thread, including one that
+   holds a lock script code may take. They only queue the callback, without
+   locking; a scheduler task drains the queue. *)
+module Finaliser = struct
+  let log = Log.make ["runtime"; "gc"]
+  let pending : (unit -> unit) list Atomic.t = Atomic.make []
+  let drain_interval = 1.
+
+  let rec push fn =
+    let current = Atomic.get pending in
+    if not (Atomic.compare_and_set pending current (fn :: current)) then push fn
+
+  let run callback =
+    try callback ()
+    with exn ->
+      log#severe "Finaliser callback failed: %s" (Printexc.to_string exn)
+
+  let drain () = List.iter run (List.rev (Atomic.exchange pending []))
+
+  let rec task () =
+    {
+      Scheduler.Task.priority = `Threaded;
+      events = [`Delay drain_interval];
+      handler =
+        (fun _ ->
+          drain ();
+          if Atomic.get Builtins_thread.should_stop then [] else [task ()]);
+    }
+
+  let started = Atomic.make false
+
+  let ensure_started () =
+    if not (Atomic.exchange started true) then
+      Lifecycle.after_start ~name:"gc finalisers" (fun () ->
+          Scheduler.Task.add (task ()))
+
+  let collect_and_drain () =
+    if Atomic.get started then (
+      Gc.full_major ();
+      drain ())
+
+  (* Once the sources are shut down, the values they held are unreachable: one
+     last collection runs what they left. The scheduler may also never start,
+     e.g. without outputs, or stop before the last finalisers fire: exiting
+     drains what is left, outside of the collector. *)
+  let () =
+    Lifecycle.after_core_shutdown ~name:"gc finalisers" collect_and_drain;
+    at_exit collect_and_drain
+
+  (* Values that hold no data of their own cannot be watched. *)
+  let watch ~pos register v =
+    try
+      register ();
+      ensure_started ()
+    with Invalid_argument _ ->
+      log#important
+        "Value %s at %s cannot be watched, its finaliser is ignored."
+        (Value.to_string v)
+        (Pos.List.to_string ~prefix:"" pos)
+end
+
+let finalise_descr ~receives =
+  Printf.sprintf
+    "Call the given function some time after the garbage collector finds the \
+     value unreachable, %s, to release what a dropped value held. Every copy \
+     of the value, e.g. with methods added, keeps it reachable. Numbers, \
+     booleans, null and empty lists cannot be watched: the call is then \
+     ignored with a warning. The function runs later on a scheduler thread, \
+     may never run, and must not reach the value. See the memory usage \
+     documentation for details."
+    receives
+
+let runtime_gc_finalise =
+  let a = Lang.univ_t () in
+  Lang.add_builtin ~base:runtime_gc "finalise" ~category:`Liquidsoap
+    ~descr:(finalise_descr ~receives:"passing it the value")
+    [
+      ( "",
+        Lang.fun_t [(false, "", a)] Lang.unit_t,
+        None,
+        Some "Function to call with the value. It must not reach the value." );
+      ("", a, None, Some "Value to watch.");
+    ]
+    Lang.unit_t
+    (fun p ->
+      let fn = Lang.assoc "" 1 p in
+      let v = Lang.assoc "" 2 p in
+      Finaliser.watch ~pos:(Lang.pos p)
+        (fun () ->
+          Value.finalise v (fun v ->
+              Finaliser.push (fun () -> ignore (Lang.apply fn [("", v)]))))
+        v;
+      Lang.unit)
+
+let _ =
+  Lang.add_builtin ~base:runtime_gc_finalise "last" ~category:`Liquidsoap
+    ~descr:(finalise_descr ~receives:"once it is collected")
+    [
+      ( "",
+        Lang.fun_t [] Lang.unit_t,
+        None,
+        Some "Function to call. It must not reach the value." );
+      ("", Lang.univ_t (), None, Some "Value to watch.");
+    ]
+    Lang.unit_t
+    (fun p ->
+      let fn = Lang.assoc "" 1 p in
+      let v = Lang.assoc "" 2 p in
+      Finaliser.watch ~pos:(Lang.pos p)
+        (fun () ->
+          Value.finalise_last v (fun () ->
+              Finaliser.push (fun () -> ignore (Lang.apply fn []))))
+        v;
+      Lang.unit)

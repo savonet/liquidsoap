@@ -154,6 +154,32 @@ there might be an increase in CPU usage if your script needs to process audio (f
 Finally, if you need to store a large amount of audio data, for instance to create a one hour delay, you should consider using the `defer` operator which was designed for
 this purpose. `defer` stores its buffer as `pcm_s16`. If your source already uses `pcm_s16`, `defer.pcm_s16` skips the conversion.
 
+## Releasing resources when a value is dropped
+
+Some values hold something outside the OCaml heap that the garbage collector does not know how to release: a temporary file, a lock taken on a remote service, a registration somewhere. The usual way to release it is an explicit call, such as closing a writer. When a script can drop the value without that call, for instance after an error, the resource stays behind.
+
+`runtime.gc.finalise.last(fn, v)` watches the value `v`. Some time after the garbage collector finds `v` unreachable, `fn` is called, and can release the resource:
+
+```{.liquidsoap include="gc-finaliser.liq"}
+
+```
+
+`runtime.gc.finalise(fn, v)` does the same, but passes `v` to `fn`: the value as it was when it was registered, with its methods. They mirror OCaml's `Gc.finalise_last` and `Gc.finalise`, and give the same guarantee.
+
+### What keeps the value alive
+
+The value stays alive for as long as the script can still use it, in any form: returned from a function, stored in a list or a reference, given new methods with `let v.foo = ...`, or held by an operator it was passed to. What is watched is the data the value holds, which all these copies share: the string, the list, the function, the source.
+
+Functions, strings, non-empty lists and tuples, and values such as sources, requests or clocks can be watched. For a source, what is watched is the source itself, however many times a script refers to it. Numbers, booleans, `null` and empty lists hold no data of their own: a finaliser on them is ignored, with a warning in the log. The same data can be shared by values that look distinct, e.g. a string literal evaluated twice: such values are watched together. A list passed to an operator may be rebuilt by it: watch the elements rather than the list.
+
+The reverse also holds. If `fn` can reach `v`, through a variable or through a value holding it, `v` never becomes unreachable and `fn` never runs. In the example, `fn` only uses `scratch`, the file name, and not `write_line`.
+
+### When the function runs
+
+- **Later, not during the collection.** The garbage collector can run at any point of any thread, including one that holds a lock the function would need. It only queues the function, and a scheduler task runs the queue about once a second.
+- **Maybe never.** When a value is collected depends on memory usage, not on when the script stopped using it. A script that allocates little may run for a long time before the value is collected. When liquidsoap shuts down, once its sources are stopped, and again when the process exits, even if it never started streaming, a last collection runs the functions of the values that are unreachable by then; a value still reachable at that point, such as a top-level definition, never runs its function. Do not rely on a finaliser for anything that must happen: it is a safety net for values dropped by mistake, not a replacement for releasing them explicitly.
+- **Errors are logged.** An error raised by the function is logged and dropped: no script code is there to catch it.
+
 ## Further reading
 
 These blog posts cover memory usage in more detail:
