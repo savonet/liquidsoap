@@ -62,6 +62,9 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
     method register_on_error fn = Callbacks.register on_error fn
     method private self_sync = (`Static, self#source_sync self_sync)
 
+    (* A write waits on the peer, up to [timeout]. *)
+    method! blocking_io = true
+
     (* io.md §3: a write in progress is bounded by [timeout]; the open is not. *)
     (* The trailer written at a stop survives a shutdown: only [timeout] bounds
        it. *)

@@ -110,8 +110,10 @@ let detect_flap c st ~now =
 (* The first animated source whose I/O may block. *)
 let blocking_io st =
   List.find_map
-    (fun ((source : source), _) ->
-      if source#blocking_io then Some source#id else None)
+    (fun ((source : source), member) ->
+      if member.blocking_io && not (Atomic.get member.removed) then
+        Some source#id
+      else None)
     (members st)
 
 (* Recomputes whether the clock blocks; a change updates the lease and tells the

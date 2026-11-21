@@ -186,7 +186,8 @@ most checks free of animators and of real time.
 - A source that declares blocking I/O and joins a running task clock: the
   clock moves to a thread before that source is animated, and the reason
   names the source. When it leaves, the clock moves back to a task. Ticks
-  are continuous.
+  are continuous. The same when the source joins a sub-clock: its parent is
+  on a thread before the source is animated.
 - A blocking sync source that joins a running task clock: the clock moves to
   a thread between two ticks, with ticks continuous and no error. The same
   when the sync source is in a sub-clock.

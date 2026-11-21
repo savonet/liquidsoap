@@ -206,6 +206,8 @@ module State = struct
     (* The source's answer at the last pacing point, when it reported a sync
        source. *)
     mutable sync : answer option;
+    (* Whether animating the source does blocking I/O, read when it joined. *)
+    blocking_io : bool;
   }
 
   type output = { sleep : unit -> unit; source : source; member : member }

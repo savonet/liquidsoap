@@ -239,25 +239,54 @@ let sub_clock_blocks () =
 let animator_reason clock =
   match animator_and_reason clock with Some (_, why) -> why | None -> ""
 
+(* The animator of [clock] when [source] is first animated. *)
+let animator_at_first_animation clock source =
+  let seen = Atomic.make None in
+  source#set_on_animate (fun () ->
+      ignore (Atomic.compare_and_set seen None (Some (animator clock))));
+  fun () -> Option.join (Atomic.get seen)
+
 let blocking_io () =
   real_time ();
   let clock = started ~id:"blocking.io" [source `Output] in
   check "a clock whose sources do no blocking I/O stays a task"
     (wait_until (fun () -> ticks clock > 2) && animator clock = Some `Task);
   let peer = source ~blocking_io:true ~id:"peer" `Output in
+  let first = animator_at_first_animation clock peer in
   let before = ticks clock in
   attach clock peer;
   check "a source whose I/O may block moves its clock to a thread, by name"
     (wait_until (fun () -> animator clock = Some `Thread)
     && animator_reason clock = "blocks: peer");
-  check "it is animated, after a single change of animator"
-    (wait_until (fun () -> peer#animated > 0) && count clock is_change = 1);
+  check "it is first animated on the thread"
+    (wait_until (fun () -> peer#animated > 0) && first () = Some `Thread);
   detach clock peer;
   check "when it leaves, the clock moves back to a task"
     (wait_until (fun () -> animator clock = Some `Task));
-  check "ticks are continuous across the changes, with no error"
-    (wait_until (fun () -> ticks clock > before + 2) && Clock.started clock);
-  stop clock
+  check "ticks are continuous across the two changes, with no error or reset"
+    (wait_until (fun () -> ticks clock > before + 2)
+    && Clock.started clock
+    && count clock is_change = 2
+    && count clock is_reset = 0);
+  stop clock;
+  let ticker = source `Output in
+  let parent = started ~id:"blocking.io.in.child" [ticker] in
+  let child = sub_clock parent in
+  attach child (source `Active);
+  Clock.register ~parent child;
+  let peer = source ~blocking_io:true ~id:"child.peer" `Active in
+  let first = animator_at_first_animation parent peer in
+  (* The peer joins after the child's tick, so that the next tick of the parent
+     prepares it. *)
+  let joined = Atomic.make false in
+  ticker#set_on_animate (fun () ->
+      Clock.tick child;
+      if not (Atomic.exchange joined true) then attach child peer);
+  check "in a sub-clock, it is first animated with its parent on a thread"
+    (wait_until (fun () -> peer#animated > 0)
+    && first () = Some `Thread
+    && Clock.started parent);
+  stop parent
 
 let lease_starts clock =
   count clock (function Clock.Event.Thread_lease _ -> true | _ -> false)
