@@ -17,9 +17,9 @@ general level where it holds, and every level below links to it.
 
 ## Language
 
-| Tree                                              | Content                                                         |
-| ------------------------------------------------- | --------------------------------------------------------------- |
-| [lang/values/spec](../lang/values/spec/README.md) | Runtime values: base and view, identity, finalisation. Partial. |
+| Tree                                              | Content                                                   |
+| ------------------------------------------------- | --------------------------------------------------------- |
+| [lang/values/spec](../lang/values/spec/README.md) | Runtime values: copies, positions, finalisation. Partial. |
 
 ## Streaming model and clocks
 
