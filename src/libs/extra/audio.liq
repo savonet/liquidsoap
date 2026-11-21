@@ -586,25 +586,66 @@ def smooth_add(~duration=1., ~p=getter(0.2), ~normal, ~special) =
   normal_volume = ref(fun () -> 1.)
   normal = c(normal_volume, normal)
 
-  def to_special({starting}) =
+  # Whether the special source is fading out before the end of its track.
+  fading_out = ref(false)
+
+  def fade_in(s) =
+    fading_out := false
     last_p := p()
     q = 1. - last_p()
     normal_volume := mkfade(start=1., stop=last_p(), duration=duration, normal)
-    special_volume := mkfade(stop=q, duration=duration, starting)
+    special_volume := mkfade(stop=q, duration=duration, s)
+  end
+
+  def to_special({starting}) =
+    fade_in(starting)
     starting
   end
 
+  # A special track that ends by itself is faded out before its end, from
+  # wherever the fade in reached if the track is short.
+  def fade_out(_, _) =
+    fading_out := true
+    normal_level = normal_volume()
+    normal_level = normal_level()
+    special_level = special_volume()
+    special_level = special_level()
+    normal_volume := mkfade(start=normal_level, duration=duration, normal)
+    special_volume :=
+      mkfade(start=special_level, stop=0., duration=duration, special)
+  end
+
+  special.on_position(
+    synchronous=true,
+    position=duration,
+    remaining=true,
+    fade_out
+  )
+
+  # The next special track, if any, starts after the previous one faded out.
+  special.on_track(
+    synchronous=true,
+    fun (_) -> if fading_out() then fade_in(special) end
+  )
+
   def to_blank(x) =
     b = x.starting
-    normal_volume := mkfade(start=last_p(), duration=duration, normal)
     if
-      null.defined(x?.ending)
+      fading_out()
     then
-      special_volume :=
-        mkfade(start=1. - last_p(), duration=duration, null.get(x?.ending))
-      sequence([null.get(x?.ending), b])
-    else
+      fading_out := false
       b
+    else
+      normal_volume := mkfade(start=last_p(), duration=duration, normal)
+      if
+        null.defined(x?.ending)
+      then
+        special_volume :=
+          mkfade(start=1. - last_p(), duration=duration, null.get(x?.ending))
+        sequence([null.get(x?.ending), b])
+      else
+        b
+      end
     end
   end
 
