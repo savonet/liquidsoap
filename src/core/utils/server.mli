@@ -77,6 +77,22 @@ val add :
 (** Remove a command from the server. *)
 val remove : ns:namespace -> string -> unit
 
+type command = {
+  name : string;  (** Full name, including the namespace. *)
+  usage : string;
+  descr : string;
+  handler : string -> string;
+}
+
+(** Commands registered with [add]. *)
+val registered_commands : unit -> command list
+
+(** [add_dynamic f] adds commands computed by [f] each time a command is
+    executed, described or listed, so that they follow changes in the registered
+    commands. A registered command takes precedence over a dynamic one of the
+    same name. [f] may call [registered_commands]. *)
+val add_dynamic : (unit -> command list) -> unit
+
 (** [exec command] executes the [command], returns its result.
     @raise Not_found if the command does not exist. *)
 val exec : string -> string

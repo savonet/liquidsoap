@@ -2836,6 +2836,24 @@
    server.insert_metadata.liq)))
 
 (rule
+ (alias test_server_alias)
+ (package liquidsoap)
+ (deps
+  server_alias.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} server_alias liquidsoap server_alias.liq)))
+
+(rule
  (alias test_shared_source_one_frame_per_tick)
  (package liquidsoap)
  (deps
@@ -3788,6 +3806,7 @@
   (alias test_sequence_join_offsets)
   (alias test_sequence_merge_single_track)
   (alias test_server.insert_metadata)
+  (alias test_server_alias)
   (alias test_shared_source_one_frame_per_tick)
   (alias test_shoutcast-args)
   (alias test_skip_from_another_thread)
