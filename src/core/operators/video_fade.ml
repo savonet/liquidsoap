@@ -67,8 +67,7 @@ class fade_in ?(meta = "liq_video_fade_in") duration fader fadefun source =
           List.mapi
             (fun i (pos, img) ->
               let m = fade (Frame.video_of_main position + i) in
-              ignore (fadefun img m);
-              (pos, img))
+              (pos, fadefun img m))
             buf.Content.Video.data
         in
         state <- `Play (fade, fadefun, duration, position + Frame.position frame);
@@ -123,7 +122,8 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
               (f, g, l)
       in
 
-      if remaining < length then (
+      (* A negative remaining time is unknown: there is no end to fade to. *)
+      if 0 <= remaining && remaining < length then (
         let content = Content.copy (Frame.get frame Frame.Fields.video) in
         let buf = Content.Video.get_data content in
 
@@ -131,9 +131,7 @@ class fade_out ?(meta = "liq_video_fade_out") duration fader fadefun source =
           List.mapi
             (fun i (pos, img) ->
               let m = fade (Frame.video_of_main remaining - i) in
-              (* TODO @smimram *)
-              ignore (fadefun img m);
-              (pos, img))
+              (pos, fadefun img m))
             buf.Content.Video.data
         in
 
@@ -180,12 +178,25 @@ let proto frame_t =
 let rec transition_of_string p transition =
   let translate img dx dy = Video.Canvas.Image.translate dx dy img in
   let ifm n a = int_of_float (float_of_int n *. a) in
+  (* Lay an image made transparent by a transition over black, so that it
+     fades to black rather than to whatever is underneath. *)
+  let on_black img =
+    let black =
+      Video.Image.create
+        (Video.Canvas.Image.width img)
+        (Video.Canvas.Image.height img)
+    in
+    Image.YUV420.fill black (0, 128, 128);
+    Video.Canvas.Image.add img (Video.Canvas.Image.make black)
+    |> Video.Canvas.Image.rendered ~transparent:false
+  in
   match transition with
     | "fade" ->
         fun () img t ->
           Video.Canvas.Image.iter
-            (fun img -> Image.YUV420.fill_alpha img (ifm 256 t))
+            (fun img -> Image.YUV420.fill_alpha img (min 255 (ifm 256 t)))
             img
+          |> on_black
     | "slide_left" ->
         fun () buf t ->
           translate buf (ifm (Video.Canvas.Image.width buf) (t -. 1.)) 0
@@ -209,7 +220,7 @@ let rec transition_of_string p transition =
           Image.YUV420.scale img out;
           let x = (w - w') / 2 in
           let y = (h - h') / 2 in
-          Video.Canvas.Image.create w h |> Video.Canvas.Image.translate x y
+          Video.Canvas.Image.make ~width:w ~height:h ~x ~y out
     | "disc" ->
         fun () buf t ->
           let w = Video.Canvas.Image.width buf in
@@ -221,6 +232,7 @@ let rec transition_of_string p transition =
             (fun buf ->
               Image.YUV420.disk_alpha buf (w / 2) (h / 2) (ifm r_max t))
             buf
+          |> on_black
     | "random" ->
         let trans =
           [|
@@ -296,8 +308,10 @@ let _ =
     :: proto frame_t)
     ~return_t:frame_t ~category:`Video
     ~descr:
-      "Fade the beginning of tracks. Metadata 'liq_video_fade_in' can be used \
-       to set the duration for a specific track (float in seconds)."
+      "Fade the beginning of tracks in from black. Metadata \
+       'liq_video_fade_in' can be used to set the duration for a specific \
+       track (float in seconds). To fade a source in over another one, e.g. a \
+       logo, use `video.opacity` instead."
     (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
@@ -316,8 +330,10 @@ let _ =
     :: proto frame_t)
     ~return_t:frame_t ~category:`Video
     ~descr:
-      "Fade the end of tracks. Metadata 'liq_video_fade_out' can be used to \
-       set the duration for a specific track (float in seconds)."
+      "Fade the end of tracks out to black. Metadata 'liq_video_fade_out' can \
+       be used to set the duration for a specific track (float in seconds). To \
+       fade a source out over another one, e.g. a logo, use `video.opacity` \
+       instead."
     (fun p ->
       let d, f, t, s = extract p in
       let meta = Lang.to_string (List.assoc "override" p) in
