@@ -18,7 +18,14 @@ def enable_external_ffmpeg_decoder(~binary="ffmpeg", ~mimes, ~file_extensions) =
             process.run(
               "#{binary} -i #{process.quote(fname)} #{process.quote(outfile)}"
             )
-          code == 0 ? outfile : null
+          if
+            code == 0
+          then
+            outfile
+          else
+            file.remove(outfile)
+            null
+          end
         catch err do
           file.remove(outfile)
           rlog(
@@ -115,7 +122,14 @@ def enable_external_openmpt123_decoder(
                 process.quote(outfile)
               } #{process.quote(infile)}"
             )
-          code == 0 ? "#{prefix}#{outfile}" : null
+          if
+            code == 0
+          then
+            "#{prefix}#{outfile}"
+          else
+            file.remove(outfile)
+            null
+          end
         catch err do
           file.remove(outfile)
           rlog(
