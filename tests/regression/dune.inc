@@ -2578,6 +2578,28 @@
    probes_change_nothing.liq)))
 
 (rule
+ (alias test_process_run_timeout_while_starting)
+ (package liquidsoap)
+ (deps
+  process_run_timeout_while_starting.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   process_run_timeout_while_starting
+   liquidsoap
+   process_run_timeout_while_starting.liq)))
+
+(rule
  (alias test_replaygain)
  (package liquidsoap)
  (deps
@@ -3775,6 +3797,7 @@
   (alias test_output_reopen_on_error_delay)
   (alias test_playlist-id)
   (alias test_probes_change_nothing)
+  (alias test_process_run_timeout_while_starting)
   (alias test_replaygain)
   (alias test_request_pool_concurrent)
   (alias test_rotate_merge_rounds)

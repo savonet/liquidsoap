@@ -37,7 +37,10 @@ val main : unit -> unit
 (** Mark the application as starting. [true] the first time. *)
 val start : unit -> bool
 
-val running : unit -> bool
+(** Whether the scheduler runs tasks: from [start], which precedes the start
+    hooks and the main loop, until the shutdown. *)
+val started : unit -> bool
+
 val finished : unit -> bool
 val shutdown : int -> unit
 val cleanup : unit -> unit
