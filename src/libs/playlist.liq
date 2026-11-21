@@ -817,6 +817,9 @@ def playlist.list(
   is_reloading = ref(false)
   pending_next = ref(false)
 
+  # Reloading and picking only exclude each other within one playlist.
+  playlist_lock = atomic.lock()
+
   # The reload function
   def reload(~empty_queue=true, p) =
     # Claiming the reload and filling the playlist is one section: a `next()`
@@ -847,7 +850,7 @@ def playlist.list(
       end
       has_stopped := false
     end
-    atomic(load)
+    atomic(lock=playlist_lock, load)
 
     log.debug(
       label=id,
@@ -877,7 +880,9 @@ def playlist.list(
 
   # Picking the next file runs as one section against `reload`, which fills the
   # playlist in several steps. Request resolution stays outside it: it blocks,
-  # and a section that waits on a file holds up every other one.
+  # and a section that waits on a file holds up the playlist's reload.
+  done_pending = ref(false)
+
   def pick_file() =
     if
       is_reloading()
@@ -915,11 +920,7 @@ def playlist.list(
         not has_stopped()
       then
         has_stopped := true
-        log.info(
-          label=id,
-          "Playlist stopped."
-        )
-        on_done()
+        done_pending := true
       end
 
       ""
@@ -928,7 +929,18 @@ def playlist.list(
 
   # The (real) next function
   def rec next() =
-    file = atomic(pick_file)
+    file = atomic(lock=playlist_lock, pick_file)
+
+    # Outside the section: the callback is the script's own code.
+    if
+      done_pending.exchange(false)
+    then
+      log.info(
+        label=id,
+        "Playlist stopped."
+      )
+      on_done()
+    end
 
     if
       file == "" or (failed_count() >= max_fail and time() < failed_time() + 1.)
