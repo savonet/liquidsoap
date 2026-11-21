@@ -1246,7 +1246,13 @@ def replaces playlist(
     reload_mode == "seconds" and reload > 0
   then
     n = float_of_int(reload)
-    thread.run(delay=n, every=n, s.reload)
+    stopped = ref(false)
+    s.on_shutdown(synchronous=true, {stopped := true})
+    thread.run(
+      delay=n,
+      every={stopped() ? (-1.) : n},
+      {if not stopped() then s.reload() end}
+    )
   elsif
     reload_mode == "watch"
   then

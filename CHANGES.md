@@ -80,6 +80,7 @@
 - `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
 - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
 - Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- `playlist(reload_mode="seconds")`, `input.hls` and `native.request.dynamic` stop polling once shut down ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `file.write(atomic=true)` no longer publishes a partial file when its `data` raises, and write errors keep their message ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `file.getter` stops watching its file once dropped ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `output.file.hls` handles transient filesystem errors with `reopen_on_error` ([#5263](https://github.com/savonet/liquidsoap/pull/5263)), rejects unwritable directories at startup ([#5264](https://github.com/savonet/liquidsoap/pull/5264)), and puts ID3 metadata in the first mpegts segment ([#5117](https://github.com/savonet/liquidsoap/pull/5117)).
