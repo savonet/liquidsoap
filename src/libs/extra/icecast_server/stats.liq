@@ -69,8 +69,8 @@ def icecast.server.stats.mount() =
     connect = connect,
     disconnect = disconnect,
     add_title = add_title,
-    get = fun () -> atomic(fast=true, state),
-    current = fun () -> atomic(fast=true, state).current
+    get = fun () -> state(),
+    current = fun () -> state().current
   }
 end
 
@@ -160,7 +160,7 @@ def icecast.server.counters() =
   end
 
   {
-    get = fun () -> atomic(fast=true, state).{server_start = started},
+    get = fun () -> state().{server_start = started},
     reloaded = fun () -> update(fun (s) -> s.{last_reload = time()}),
     listener_connected =
       fun () ->

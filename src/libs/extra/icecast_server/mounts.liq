@@ -16,37 +16,13 @@ def icecast.server.cell(value) =
   {get = fun () -> r(), set = fun (x) -> r := x}
 end
 
-# Runs `fn()` holding the flag `lock`, spinning while another holder has it,
-# and returns its result; an error is raised again once the flag is released.
-# @flag hidden
-def icecast.server.with_lock(lock, fn) =
-  def rec acquire() =
-    if
-      atomic(fun () -> lock.exchange(true))
-    then
-      thread.pause(0.001)
-      acquire()
-    end
-  end
-
-  acquire()
-  try
-    result = fn()
-    lock := false
-    result
-  catch err do
-    lock := false
-    error.raise(err, err.message)
-  end
-end
-
 # Runs `fn()` under the server's lock. The table's changes and a reload take
-# it, and they never take it twice.
+# it.
 # @flag hidden
 def icecast.server.locked(state, fn) =
   # ponytail: one global lock for every mount, per-mount locks if contention
   # shows.
-  icecast.server.with_lock(state.lock, fn)
+  atomic(lock=state.lock, fn)
 end
 
 # The live mounts: `all()` lists them, `add(entry)` adds one, `remove(f)`
@@ -69,7 +45,7 @@ def icecast.server.mounts.table() =
     )
   end
 
-  {all = fun () -> atomic(entries), add = add, remove = remove}
+  {all = fun () -> entries(), add = add, remove = remove}
 end
 
 # A feeder: a source client (`is_client`) or an attached Liquidsoap source.

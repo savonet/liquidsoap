@@ -49,74 +49,142 @@ end
 let file.write = ()
 
 # Stream data to a file. Returns a callback to write to the file. Execute
-# with `null` or `""` to signify the end of the writing operation.
+# with `null` or `""` to signify the end of the writing operation. The callback
+# can be called from several threads: each call is written as a whole, in the
+# order the calls get to run, and the file is closed once.
 # @category File
+# @method abort Stop without publishing: an atomic write leaves its target alone.
 # @param ~append Append data if file exists.
 # @param ~perms Default file rights if created. Default: `0o644`.
-# @param ~atomic Make the write atomic by writing to a temporary file and moving \
-#                the file to destination once writing has succeeded.
-# @param ~temp_dir Temporary directory for atomic write.
-# @param path Path to write to
+# @param ~atomic Make the write atomic by writing to a hidden temporary file in \
+#                the destination's directory and renaming it over the \
+#                destination once writing has succeeded. The destination's \
+#                directory must be writable.
+# @param p Path to write to.
 def file.write.stream(
   ~perms=0o644,
   ~append=false,
-  ~atomic=false,
-  ~temp_dir=null,
+  ~atomic:atomic_write=false,
   p
 ) =
-  let (fd, exec) =
-    if
-      atomic
-    then
-      let (temp_dir, ensure) =
-        if
-          null.defined(temp_dir)
-        then
-          (null.get(temp_dir), {()})
-        else
-          temp_dir = file.temp_dir("temp", "dir")
-          (temp_dir, {file.rmdir(temp_dir)})
-        end
-      tmp = path.concat(temp_dir, "atomic.write")
-      if append and file.exists(p) then file.copy(p, tmp) end
-      def exec() =
-        try
-          file.move(atomic=true, tmp, p)
-        catch _ : [error.file.cross_device] do
-          log(
-            label="file.write",
-            "Atomic rename failed! Directory for temporary files appears to be \
-             on a different file system. Please set it to the same one using \
-             `temp_dir` argument to guarantee atomic file operations!"
-          )
-          file.copy(force=true, tmp, p)
-        finally
-          ensure()
-        end
-      end
-      fd = file.open(write=true, append=append, perms=perms, tmp)
-      (fd, exec)
-    else
-      (file.open(write=true, append=append, perms=perms, p), {()})
+  # Next to the destination, the final rename never crosses file systems.
+  temp =
+    atomic_write
+      ? file.temp(
+        directory=path.dirname(p),
+        perms=perms,
+        ".#{path.basename(p)}.",
+        ".tmp"
+      )
+      : null
+
+  def remove_temp() =
+    if null.defined(temp) then file.remove(null.get(temp)) end
+  end
+
+  fd =
+    try
+      file.open(
+        write=true,
+        append=append and temp == null,
+        perms=perms,
+        temp ?? p
+      )
+    catch err do
+      remove_temp()
+      error.raise(err, err.message)
     end
 
-  def write(s) =
-    s = s ?? ""
+  finished = ref(false)
+
+  def release() =
     if
-      s == ""
+      not finished()
     then
-      if
-        not fd.closed()
-      then
-        fd.close()
-        exec()
-      end
-    else
-      fd.write(s)
+      finished := true
+      if not fd.closed() then fd.close() end
+      remove_temp()
     end
   end
 
-  write
+  def fail(err) =
+    release()
+    error.raise(err, err.message)
+  end
+
+  if
+    append and null.defined(temp) and file.exists(p)
+  then
+    try
+      read = file.read(p)
+      s = ref(read())
+      while s() != "" do
+        fd.write(s())
+        s := read()
+
+      end
+    catch err do
+      fail(err)
+    end
+  end
+
+  def finish() =
+    finished := true
+    try
+      fd.close()
+      if null.defined(temp) then file.move(atomic=true, null.get(temp), p) end
+    catch err do
+      finished := false
+      fail(err)
+    end
+  end
+
+  def discard() =
+    if
+      not finished()
+    then
+      log(
+        label="file.write",
+        level=2,
+        "Writer for #{p} was dropped before being closed, discarding it."
+      )
+      release()
+    end
+  end
+
+  lock = atomic.lock()
+
+  def write(s) =
+    s = s ?? ""
+    def section() =
+      if
+        s == ""
+      then
+        if not finished() then finish() end
+      elsif
+        finished()
+      then
+        error.raise(
+          error.file,
+          "File writer is already closed!"
+        )
+      else
+        try
+          fd.write(s)
+        catch err do
+          fail(err)
+        end
+      end
+    end
+    atomic(lock=lock, section)
+  end
+
+  def abort() =
+    atomic(lock=lock, release)
+  end
+
+  runtime.gc.finalise.last(discard, write)
+  write.{abort = abort}
 end
 
 # Write data to a file.
@@ -125,26 +193,20 @@ end
 #              must return `null` or `""` when it has finished sending all its data.
 # @param ~append Append data if file exists.
 # @param ~perms Default file rights if created. Default: `0o644`.
-# @param ~atomic Make the write atomic by writing to a temporary file and moving \
-#                the file to destination once writing has succeeded.
-# @param ~temp_dir Temporary directory for atomic write.
+# @param ~atomic Make the write atomic by writing to a hidden temporary file in \
+#                the destination's directory and renaming it over the \
+#                destination once writing has succeeded. The destination's \
+#                directory must be writable. If `data` raises, the \
+#                destination is left untouched.
 # @param path Path to write to.
 def replaces file.write(
   ~data,
   ~perms=0o644,
   ~append=false,
   ~atomic=false,
-  ~temp_dir=null,
   path
 ) =
-  cb =
-    file.write.stream(
-      append=append,
-      perms=perms,
-      atomic=atomic,
-      temp_dir=temp_dir,
-      path
-    )
+  cb = file.write.stream(append=append, perms=perms, atomic=atomic, path)
 
   try
     s = ref(getter.get(data) ?? "")
@@ -161,8 +223,8 @@ def replaces file.write(
       end
     end
   catch err do
-    cb("")
-    error.raise(err)
+    cb.abort()
+    error.raise(err, err.message)
   end
 end
 
@@ -252,8 +314,14 @@ def file.getter(fname) =
   end
 
   update()
-  ignore(file.watch(fname, update))
-  ref.getter(contents)
+  watcher = file.watch(fname, update)
+
+  def getter() =
+    contents()
+  end
+
+  runtime.gc.finalise.last({watcher.unwatch()}, getter)
+  getter
 end
 
 # Float getter from a file.

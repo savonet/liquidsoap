@@ -31,7 +31,7 @@ def icecast.server.listeners.sessions() =
   end
 
   def find(id) =
-    list.assoc.nullable(id, atomic(fast=true, sessions))
+    list.assoc.nullable(id, sessions())
   end
 
   def remove(id) =
@@ -72,14 +72,14 @@ def icecast.server.listeners.sessions() =
   end
 
   def served() =
-    list.filter_map(fun (s) -> snd(s).served, atomic(fast=true, sessions))
+    list.filter_map(fun (s) -> snd(s).served, sessions())
   end
 
   def of_user(user) =
     list.length(
       list.filter(
         fun (s) -> null.defined(snd(s).served) and snd(s).user == user,
-        atomic(fast=true, sessions)
+        sessions()
       )
     )
   end

@@ -32,18 +32,36 @@ let _ =
       Lang.protect ~kind:"eval" (fun () ->
           Lang.eval ~toplevel:false ~stdlib:`Disabled ~ty s))
 
-let _ =
+type lock = { id : int; lock : Atomic_section.lock }
+
+module Lock = Value.MkCustom (struct
+  type content = lock
+
+  let name = "atomic_lock"
+  let to_string { id } = Printf.sprintf "<atomic_lock %d>" id
+
+  let to_json ~pos _ =
+    Runtime_error.raise ~pos ~message:"Lock cannot be represented as json"
+      "json"
+
+  let compare { id } { id = id' } = Int.compare id id'
+end)
+
+let global_lock = Lock.to_value { id = 0; lock = Atomic_section.global }
+
+let atomic =
   let a = Lang.univ_t () in
   Lang.add_builtin "atomic" ~category:`Programming
     ~descr:
-      "Run a function without letting any other atomic section run at the same \
-       time, and return its value. Use it to group changes that must not be \
-       observed half-done, such as writing several references together. Only \
-       other atomic sections are held back: code that does not call `atomic` \
-       is free to run alongside. Sections are indivisible, not transactional: \
-       if the function raises, the changes it already made stand. Never wait \
-       on another thread inside a section, and do not call source methods \
-       there."
+      "Run a function without letting any other atomic section on the same \
+       lock run at the same time, and return its value. Use it to group \
+       changes that must not be observed half-done, such as writing several \
+       references together. Without `lock`, sections use one lock for the \
+       whole process. Only other atomic sections on that lock are held back: \
+       code that does not take it is free to run alongside. Sections are \
+       indivisible, not transactional: if the function raises, the changes it \
+       already made stand. Never wait on another thread inside a section, and \
+       do not call source methods there."
     [
       ( "fast",
         Lang.bool_t,
@@ -53,10 +71,27 @@ let _ =
            `true`, threads waiting for the section spin instead of going to \
            sleep, which is cheaper for a short section and wasteful for a long \
            one." );
+      ( "lock",
+        Lock.t,
+        Some global_lock,
+        Some
+          "Lock to take, from `atomic.lock()`. Defaults to the process-wide \
+           lock." );
       ("", Lang.fun_t [] a, None, Some "Function to run.");
     ]
     a
     (fun p ->
       let fast = Lang.to_bool (List.assoc "fast" p) in
+      let lock = (Lock.of_value (List.assoc "lock" p)).lock in
       let f = List.assoc "" p in
-      Atomic_section.run ~fast (fun () -> Lang.apply ~pos:(Lang.pos p) f []))
+      Atomic_section.run ~fast ~lock (fun () ->
+          Lang.apply ~pos:(Lang.pos p) f []))
+
+let _ =
+  let next_id = Atomic.make 1 in
+  Lang.add_builtin ~base:atomic "lock" ~category:`Programming
+    ~descr:
+      "A new lock for `atomic`. Sections on different locks run alongside each \
+       other." [] Lock.t (fun _ ->
+      Lock.to_value
+        { id = Atomic.fetch_and_add next_id 1; lock = Atomic_section.create () })

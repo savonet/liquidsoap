@@ -20,5 +20,10 @@
 
  *****************************************************************************)
 
-let state = Mutex_utils.mk_reentrant ()
-let run ?(fast = false) fn = Mutex_utils.reentrant_lock ~fast ~state fn ()
+type lock = Mutex_utils.reentrant
+
+let create = Mutex_utils.mk_reentrant
+let global = create ()
+
+let run ?(fast = false) ?(lock = global) fn =
+  Mutex_utils.reentrant_lock ~fast ~state:lock fn ()

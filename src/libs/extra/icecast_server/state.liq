@@ -2,7 +2,7 @@
 # `state` to every part: `params` is the record in force, `server(hostname)`
 # the `server` field of requests for that hostname, with an `instance` fixed
 # for the server's life, `overlay` the run-time fallbacks, `logs` the log
-# files (logs.liq) and `lock` the flag of `icecast.server.locked`.
+# files (logs.liq) and `lock` the lock of `icecast.server.locked`.
 # @flag hidden
 def icecast.server.state(p) =
   def hex(n) =
@@ -37,7 +37,7 @@ def icecast.server.state(p) =
       fun (hostname) -> {hostname = hostname, port = port, instance = instance},
     mounts = icecast.server.mounts.table(),
     overlay = icecast.server.cell(([] : [(string * string)])),
-    lock = ref(false),
+    lock = atomic.lock(),
     events =
       icecast.server.events.create(log=severe, compatibility=p.compatibility),
     counters = icecast.server.counters(),

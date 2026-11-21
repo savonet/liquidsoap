@@ -2204,6 +2204,28 @@
   (run %{run_test} external-encoder liquidsoap external-encoder.liq)))
 
 (rule
+ (alias test_external_decoder_failure)
+ (package liquidsoap)
+ (deps
+  external_decoder_failure.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   external_decoder_failure
+   liquidsoap
+   external_decoder_failure.liq)))
+
+(rule
  (alias test_fade-zero-duration-delay)
  (package liquidsoap)
  (deps
@@ -2576,6 +2598,28 @@
    probes_change_nothing
    liquidsoap
    probes_change_nothing.liq)))
+
+(rule
+ (alias test_protocol_http_failed_download)
+ (package liquidsoap)
+ (deps
+  protocol_http_failed_download.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   protocol_http_failed_download
+   liquidsoap
+   protocol_http_failed_download.liq)))
 
 (rule
  (alias test_replaygain)
@@ -3774,6 +3818,7 @@
   (alias test_drawtext_percent)
   (alias test_eval-check-demeth)
   (alias test_external-encoder)
+  (alias test_external_decoder_failure)
   (alias test_fade-zero-duration-delay)
   (alias test_fallible_ogg)
   (alias test_ffmpeg-copy-encode)
@@ -3793,6 +3838,7 @@
   (alias test_output_reopen_on_error_delay)
   (alias test_playlist-id)
   (alias test_probes_change_nothing)
+  (alias test_protocol_http_failed_download)
   (alias test_replaygain)
   (alias test_request_pool_concurrent)
   (alias test_rotate_merge_rounds)
