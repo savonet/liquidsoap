@@ -29,25 +29,30 @@ end
 # The output `make_output(s)`, built on the server's clock and started, so
 # that an output created by a running handler or thread serves at once. `s`
 # joins that clock before the output exists: a new output's own clock starts
-# by itself and, once started, merges with nothing. The server's clock stops
-# with its last output; one that is stopping merges with nothing either, and
-# the server then takes a new clock.
+# by itself and, once started, merges with nothing. The clock `s` joined is
+# the one started: another mount may set a new server clock meanwhile. A clock
+# stopping with its last output keeps the new one and restarts on the next
+# start pass.
 # @flag hidden
 def icecast.server.mounts.on_server_clock(state, s, make_output) =
-  try
-    state.clock.get().unify(s.clock)
-  catch err do
-    icecast.server.log.info(
-      state,
-      "Taking a new clock: #{err.message}"
-    )
-    fresh = clock.create(id=state.name)
-    state.clock.set(fresh)
-    fresh.unify(s.clock)
-  end
+  start_server_clock =
+    try
+      c = state.clock.get()
+      c.unify(s.clock)
+      {c.start(force=false)}
+    catch err do
+      icecast.server.log.info(
+        state,
+        "Taking a new clock: #{err.message}"
+      )
+      fresh = clock.create(id=state.name)
+      state.clock.set(fresh)
+      fresh.unify(s.clock)
+      {fresh.start(force=false)}
+    end
   o = make_output(s)
   try
-    state.clock.get().start(force=false)
+    start_server_clock()
   catch err do
     icecast.server.log.debug(
       state,
