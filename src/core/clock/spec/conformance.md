@@ -180,9 +180,13 @@ most checks free of animators and of real time.
   is picked again first at every release. Binding: the order of picks.
 - K12: as many unsynced clocks as workers: a task due at a known time runs on
   time, because those clocks hold no worker. Binding: its delay.
-- A clock that blocks, by its own sync source or a sub-clock's, an unsynced
-  clock, and any clock
+- A clock that blocks, by its own sync source, a source's blocking I/O or a
+  sub-clock, an unsynced clock, and any clock
   with clocks as tasks off, are animated by a thread; every other by a task.
+- A source that declares blocking I/O and joins a running task clock: the
+  clock moves to a thread before that source is animated, and the reason
+  names the source. When it leaves, the clock moves back to a task. Ticks
+  are continuous.
 - A blocking sync source that joins a running task clock: the clock moves to
   a thread between two ticks, with ticks continuous and no error. The same
   when the sync source is in a sub-clock.

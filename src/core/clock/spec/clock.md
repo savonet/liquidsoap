@@ -519,6 +519,10 @@ what a source owes is the
 - for an active or output source: animate, and reset;
 - its current sync source, read at a constant cost between cycles
   ([pacing.md §3](pacing.md#3-finding-the-sync-source));
+- for an active or output source: whether animating it does blocking I/O,
+  that is, may wait on a peer. The answer is fixed for the life of the
+  source and read when it joins a run
+  ([pacing.md §8](pacing.md#8-animator));
 - the ids of its current activations, for the reports
   ([observability.md §1](observability.md#1-status-record)).
 

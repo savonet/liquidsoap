@@ -289,7 +289,9 @@ The animator is what runs a started, non-passive clock. There is exactly one
 at any time.
 
 **Choice.** A clock **blocks** if its tracked sync source blocks
-([§2](#2-sync-source)), or if a started sub-clock blocks. Each clock holds
+([§2](#2-sync-source)), if one of the sources it animates declares blocking
+I/O ([clock.md §14](clock.md#14-contracts-the-clock-relies-on)), or if a
+started sub-clock blocks. Each clock holds
 that one answer and tells its parent when it changes; a parent MUST NOT walk
 its sub-clocks to find out, so the cost per tick is a constant when nothing
 changes. The animator is:
@@ -300,7 +302,11 @@ changes. The animator is:
 
 Rationale: a task is right for a clock that rests most of the time. A call
 that blocks in a device or in a library holds whatever runs it, and the
-scheduler cannot take a worker back from it. An unsynced clock never rests,
+scheduler cannot take a worker back from it. The same holds for a source
+that waits on a peer inside a tick, as an output that connects to a server
+and writes to it does: with as many such clocks as workers, each waiting on
+a slow server, no worker is left for anything else until they time out. An
+unsynced clock never rests,
 and since a release yields to clocks only ([§7](#7-time-box-and-release)),
 as a task it would keep all other work off its worker for as long as it
 runs.

@@ -13,6 +13,7 @@ type source =
   ; wake_up : source -> activation
   ; sleep : activation -> unit
   ; sync_source : Sync_source.t option
+  ; blocking_io : bool
   ; activations : activation list >
 
 module Settings = Settings

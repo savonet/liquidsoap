@@ -115,6 +115,7 @@ let track st (source : source) role =
       Queues.WeakQueue.push st.animated_sources source;
       if List.memq source (Atomic.get st.removals) then
         Atomic.set member.removed true);
+  if source#blocking_io then Atomic.set st.dirty true;
   member
 
 (* Brings a pending source into the run: an output is woken up, an active source

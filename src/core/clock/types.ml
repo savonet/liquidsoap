@@ -150,6 +150,7 @@ module State = struct
     ; wake_up : source -> activation
     ; sleep : activation -> unit
     ; sync_source : Sync_source.t option
+    ; blocking_io : bool
     ; activations : activation list >
 
   (* Tables keyed on sources by physical identity, which let a source be
@@ -274,8 +275,8 @@ module State = struct
     (* The single sync source of the clock's sources, whether or not the sync mode
        follows it. *)
     tracked : Sync_source.t option Atomic.t;
-    (* Whether the tracked sync source or a sub-clock blocks, which calls for a
-       thread. *)
+    (* Whether the tracked sync source, an animated source's I/O or a sub-clock
+       blocks, which calls for a thread. *)
     blocking : bool Atomic.t;
     sub_blocking : int Atomic.t;
     (* Where the loop rests and where a stop wakes it. *)
