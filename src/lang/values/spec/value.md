@@ -1,93 +1,69 @@
 # Values (Part A)
 
-Owns the split between base and view, value identity and finalisation.
-Relies on nothing above the project principles. Partial.
+Owns what a finaliser on a value watches and when it runs. Relies on nothing
+above the project principles. Partial.
 
-## 1. Base and view
+## 1. Copies
 
-A value is a view on a base. A view MUST carry the value's position and
-its methods. A non-custom base MUST NOT carry either.
+The runtime copies a value without the script asking: setting a position
+(the result of a builtin call, a default argument, a cast), adding, hiding
+or removing methods, and preparing the arguments of an operator, which
+rebuilds functions with the operator's types. A copy MUST keep pointing at
+the data the value holds: the same string, list, content or function
+identity.
 
-A custom base MAY carry dynamic methods (the method lookup and hidden
-methods of `source.tracks` values), and hiding or stripping them MAY
-rebuild it: a custom value's identity is its content's (§2.5).
+The **position** of a value is where it was produced: the expression it
+was evaluated from, the call site for the result of a builtin and for a
+default argument it used, the cast for a cast value. Error messages about
+the value point there. Adding methods does not produce a new value: after
+`x = 1223` and `let x.foo = "aabbc"`, `x`'s position is still that of
+`1223`.
 
-Rationale: everything a script can change about a value without making it
-a different value is a property of the view. Keeping it out of the base is
-what lets every view of one value share that base (§2). Dynamic methods
-stay out of the view so that every other value does not pay a field for
-them.
+## 2. Finalisation
 
-## 2. Identity
+`runtime.gc.finalise.last(fn, v)` registers `fn` to run once `v` is
+unreachable. `runtime.gc.finalise(fn, v)` does the same and passes `v` to
+`fn`. They mirror OCaml's `Gc.finalise_last` and `Gc.finalise`.
 
-1. The operations that only change a position or methods MUST produce a
-   derived view that shares the base of the view they start from. They
-   include:
-   - setting a position, including on the arguments and result of a builtin
-     call and on a cast;
-   - adding, replacing, hiding or removing methods: `x.{foo = …}`,
-     `let x.foo = …`, method hiding, spreading;
-   - stripping methods.
-2. Passing a value to a function, a builtin or an operator, storing it (in a
-   reference, a list, a closure environment) and returning it MUST keep its
-   base, with one exception: preparing an operator's arguments MAY rebuild
-   the base of a function, which gets a body typed for that operator, and of
-   a list or tuple holding one. A rebuilt base MUST keep the base it was
-   rebuilt from reachable for as long as it is itself reachable.
+1. **What is watched.** The OCaml block every copy of `v` shares (§1),
+   with the guarantee `Gc` gives it:
+   - a string: the string;
+   - a non-empty list or tuple: the list;
+   - a function: an identity block created with it, which every copy,
+     operators' included, shares;
+   - a custom value: its content, e.g. the source itself, however many
+     times it is wrapped.
 
-   Rationale: the types of a function body are read at runtime, to give the
-   sources it creates the content the operator expects, so each operator
-   needs its own copy. Keeping the original reachable is what makes the copy
-   count as a view of the same value for §4.
+   `fn` MUST NOT run while any copy of `v` is reachable.
 
-3. A new base is created only by evaluating an expression that builds a new
-   value: a literal, a function, a list or tuple constructor, a builtin
-   returning a value it built.
-4. The base of a non-custom value MUST have a physical identity the runtime
-   can rely on: distinct bases are distinct blocks, and a base is never
-   duplicated or shared with an unrelated value by the implementation.
-5. A custom value's identity is its content's, not its base's. Several bases
-   MAY wrap the same content: a builtin that returns a source wraps it anew.
-
-Rationale: §4 attaches behaviour to a base. It is sound only if every view
-the script holds of a value reaches the same base, and nothing the runtime
-keeps for that value reaches another one.
-
-## 3. Comparison
-
-Not yet decided. Recorded so far:
-
-- Values of custom types that are objects or resources compare by the
-  identity of their content.
-- Comparing a custom value MUST NOT run a structural comparison over values
-  it contains (their positions differ).
-
-## 4. Finalisation
-
-`runtime.gc.finaliser(v, fn)` registers `fn` to run once `v` is unreachable.
-
-1. **What `v` designates.** For a non-custom value, its base (§2): `fn`
-   MUST NOT run while any view of the value is reachable, including derived
-   views such as the result of `let x.foo = …` and values the runtime holds
-   for an operator that received `v`. For a custom value, its content: `fn`
-   runs once the wrapped object is unreachable, however many bases wrap it.
-   This is only meaningful when the content is the object itself: a track
-   wraps a pair built anew on each access, so finalising a track watches
-   that pair. Not yet decided: refusing such values.
-2. **Refused values.** A value whose base has no identity of its own (ints,
-   floats, strings, booleans, `null`) or a custom value whose content is not
-   heap-allocated MUST be refused with an error at the call.
-3. **Running `fn`.** `fn` has type `() -> unit` and MUST NOT receive `v`.
-   It MUST NOT run inside the garbage collector: collection only schedules
-   it, and it runs later as an ordinary task, under the same error handling
-   as any script callback.
-4. **Reachability is not scope.** `fn` runs when no live value refers to
+2. **Values without data of their own.** Numbers, booleans, `null`, empty
+   lists and tuples, and statically allocated data hold no block a
+   finaliser can watch: a finaliser on them MUST be ignored, with a
+   warning in the log.
+3. **Shared data.** Values that share their data are watched together: a
+   string literal evaluated twice is one string. A list passed to an
+   operator MAY be rebuilt by it, and the rebuilt list is not a copy.
+4. **Running `fn`.** With `finalise`, `fn` receives `v` as it was
+   registered, with its position and methods, even when those methods refer
+   to the data being watched: holding `v` for `fn` MUST NOT keep that data
+   alive. With `finalise.last`, `fn` receives nothing. `fn` MUST NOT run
+   inside the garbage collector: collection only queues
+   it, and it runs later as an ordinary scheduler task, under the same
+   error handling as any script callback.
+5. **Shutdown.** After the sources are shut down, and again when the
+   process exits, a last collection MUST run the queued functions,
+   including when the scheduler never started.
+6. **Reachability is not scope.** `fn` runs when no live value refers to
    `v`, not when its variable goes out of scope. Top-level bindings stay
-   reachable for the life of the script. A closure that refers to `v` keeps
-   it alive, including `fn` itself: a `fn` that mentions `v` never runs. The
-   documentation of `runtime.gc.finaliser` MUST say both.
-5. `fn` runs at most once.
+   reachable for the life of the script. A closure that refers to `v`
+   keeps it alive, including `fn` itself: a `fn` that mentions `v` never
+   runs. The documentation of `runtime.gc.finalise` MUST say both.
+7. `fn` runs at most once.
 
-Rationale for 3: the collector runs at any allocation, in any thread,
-possibly with locks held. A script callback run there can deadlock or
-re-enter the runtime.
+Rationale for 4: the collector runs at any allocation, in any thread,
+possibly with locks held or in the middle of a streaming cycle. A script
+callback run there can deadlock, re-enter the runtime or stall the stream.
+
+Rationale for 1: a finaliser attached to one copy would fire while another
+copy is still in use. Watching the data the copies share makes every copy
+keep it alive, at no cost for values nobody watches.
