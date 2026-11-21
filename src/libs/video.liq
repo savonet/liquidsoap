@@ -269,7 +269,7 @@ def video.cover(s) =
           "Found cover for #{filename}."
         )
         file.write(data=cover, f)
-        request.once(request.create(temporary=false, f))
+        request.once(request.create(temporary=true, f))
       else
         log.debug(
           "No cover for #{filename}."
