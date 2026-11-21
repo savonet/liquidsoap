@@ -15,6 +15,12 @@ general level where it holds, and every level below links to it.
 | [concurrency.md](concurrency.md) | Work classes, the streaming thread, shared state, resources.          |
 | [testing.md](testing.md)         | What every conformance suite does.                                    |
 
+## Language
+
+| Tree                                              | Content                                                         |
+| ------------------------------------------------- | --------------------------------------------------------------- |
+| [lang/values/spec](../lang/values/spec/README.md) | Runtime values: base and view, identity, finalisation. Partial. |
+
 ## Streaming model and clocks
 
 | Tree                                              | Content                                                                                                 |
