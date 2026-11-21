@@ -116,6 +116,20 @@
    content/liq/archive-cleaner.liq)))
 
 (rule
+ (alias test-doc-atomic-lock)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/atomic-lock.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/atomic-lock.liq)))
+
+(rule
  (alias test-doc-atomic-now-playing)
  (package liquidsoap)
  (deps
@@ -2838,6 +2852,7 @@
  (deps
   (alias test-doc-append-silence)
   (alias test-doc-archive-cleaner)
+  (alias test-doc-atomic-lock)
   (alias test-doc-atomic-now-playing)
   (alias test-doc-atomic-once)
   (alias test-doc-atomic-record)

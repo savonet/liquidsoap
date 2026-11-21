@@ -20,7 +20,16 @@
 
  *****************************************************************************)
 
-(** The process-wide lock behind the [atomic] builtin. Sections exclude each
-    other and nothing else, so both sides of a race have to take it. *)
+(** The locks behind the [atomic] builtin. Sections on one lock exclude each
+    other and nothing else, so both sides of a race have to take it. A section
+    can be re-entered by the thread running it. *)
 
-val run : ?fast:bool -> (unit -> 'a) -> 'a
+type lock
+
+(** A lock of its own, independent of {!global}. *)
+val create : unit -> lock
+
+(** The process-wide lock, used when no lock is given. *)
+val global : lock
+
+val run : ?fast:bool -> ?lock:lock -> (unit -> 'a) -> 'a
