@@ -24,7 +24,7 @@ end
 # @category Source / Track processing
 # @param ~id Force the value of the source ID.
 # @param ~interactive Should the queue be controllable via telnet?
-# @param ~prefetch How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance, in addition to the one being played.
 # @param ~native Use native implementation, when available.
 # @param ~queue Initial queue of requests.
 # @param ~timeout Timeout (in sec.) to resolve the request.
@@ -285,7 +285,7 @@ end
 # that it can be fetched once. Typically, http, ftp, say requests are
 # static, and time is not.
 # @category Source / Input / Passive
-# @param ~prefetch How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance, in addition to the one being played.
 # @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
 # @param r Request
@@ -404,7 +404,7 @@ end
 # that it can be fetched once. Typically, http, ftp, say requests are
 # static, and time is not.
 # @category Source / Input / Passive
-# @param ~prefetch How many requests should be queued in advance.
+# @param ~prefetch How many requests should be queued in advance, in addition to the one being played.
 # @param ~timeout Timeout (in sec.) to resolve the request.
 # @param ~fallible Enforce fallibility of the request.
 # @param ~cue_in_metadata Metadata for cue in points. Disabled if `null`.

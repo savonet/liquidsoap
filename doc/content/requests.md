@@ -331,11 +331,16 @@ Queued request sources prepare requests in advance: they resolve requests in
 the background and keep them in a queue, so that a new track is ready when the
 current one ends.
 
-The `prefetch` parameter sets how many requests are queued in advance. It
-defaults to `settings.request.prefetch`, which is `1`. Increasing it prepares
-things more in advance, which is good when resolution is long (_e.g._, heavily
-loaded server, remote files), and helps to ensure that a song will be ready in
-case of skip.
+The `prefetch` parameter sets how many requests are queued in advance, in
+addition to the one being played. It defaults to `settings.request.prefetch`,
+which is `1`: at startup, a source therefore asks for two requests, the one it
+plays and the next one. Increasing it prepares things more in advance, which is
+good when resolution is long (_e.g._, heavily loaded server, remote files), and
+helps to ensure that a song will be ready in case of skip.
+
+With `request.dynamic` in its default, asynchronous mode, `prefetch=0` turns
+automatic fetching off: the source only asks for a request when its `fetch`
+method is called.
 
 The `timeout` parameter sets the maximum time allowed to resolve a request. It
 defaults to `settings.request.timeout`.
