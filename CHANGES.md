@@ -88,6 +88,7 @@
 - `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
 - Metadata inserted with `insert_metadata` while a source produces an empty frame, e.g. a buffered input that just ran dry, is kept for the next frame instead of being lost.
 - `icecast.server`: a mount keeps its current metadata (in its statistics and status pages) when its source client lags and its input runs dry, instead of losing it until the next update.
+- `video.add_text.ffmpeg` no longer fails on a text containing `%`: drawtext text expansion is disabled.
 
 ## Optimized:
 
