@@ -400,7 +400,7 @@ let print f t =
         if not (Constraints.is_empty c) then DS.add (name, c) vars else vars
     | `Arrow (p, t) ->
         if par then Format.fprintf f "@[<hov 1>("
-        else Format.fprintf f "@[<hov 0>";
+        else Format.fprintf f "@[<hov 1>";
         Format.fprintf f "@[<1>(";
         let _, vars =
           List.fold_left
