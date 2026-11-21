@@ -133,10 +133,18 @@ The other common case is something that must happen once, say connecting to a se
 
 ```
 
+By default, every atomic section in the process shares one lock. That is the safe choice: two sections can never interleave, whatever they touch. The cost is that unrelated sections wait for each other, so a slow section somewhere holds back every other one. When some state is only ever touched by its own few sections, give it a lock of its own with `atomic.lock()` and pass it to every section that guards it. Sections on different locks run alongside each other.
+
+```{.liquidsoap include="atomic-lock.liq"}
+
+```
+
+Every section guarding a piece of state must use the same lock: a section on another lock, or on the default one, is not held back.
+
 A few rules keep sections cheap and safe:
 
 - A section is indivisible, not transactional. If the function raises, the changes it already made stand.
-- Keep sections short and never wait on another task inside one: the task you wait for may be waiting to enter a section.
+- Keep sections short and never wait on another task inside one: the task you wait for may be waiting to enter a section. A section on a lock of its own only holds back the sections on that lock.
 - Do not call source methods inside a section.
 - `atomic(fast=true, f)` makes waiting tasks spin instead of sleeping. Use it for a section that only touches a few references. It is wasteful for anything longer.
 
