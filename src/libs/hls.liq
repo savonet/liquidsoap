@@ -244,7 +244,7 @@ def output.harbor.hls(
     )
   end
 
-  dir = null.defined(tmpdir) ? null.get(tmpdir) : file.temp_dir("hls")
+  dir = null.defined(tmpdir) ? null.get(tmpdir) : (file.temp_dir("hls"))
   o = output.file.hls(%argsof(output.file.hls), dir, formats, s)
   if
     not null.defined(tmpdir)
