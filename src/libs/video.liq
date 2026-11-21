@@ -22,16 +22,16 @@ end
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
+# @param ~x x position. Defaults to the request's `x` metadata, or `0`.
+# @param ~y y position. Defaults to the request's `y` metadata, or `0`.
 # @param req Image request
 def request.image(
   ~id=null,
   ~fallible=false,
   ~width=null,
   ~height=null,
-  ~x=getter(0),
-  ~y=getter(0),
+  ~x=null,
+  ~y=null,
   req
 ) =
   last_req = ref(null)
@@ -44,6 +44,30 @@ def request.image(
     then
       last_req := req
       image = request.single(id=id, fallible=fallible, req)
+
+      # The decoder places the image at its `x`/`y` metadata, but cropping
+      # drops that offset, so it is applied again when resizing. Like in the
+      # decoder, `50%` is a percentage of the frame size.
+      def position(p, key, size) =
+        def from_metadata() =
+          v = list.assoc(default="", key, image.last_metadata() ?? [])
+          n = string.length(v)
+          if
+            n > 0 and string.sub(v, start=n - 1, length=1) == "%"
+          then
+            percent =
+              float_of_string(default=0., string.sub(v, start=0, length=n - 1))
+            int_of_float(float(size()) * percent / 100. + 0.5)
+          else
+            int_of_string(default=0, v)
+          end
+        end
+
+        fun () -> null.case(p, from_metadata, getter.get)
+      end
+
+      x = position(x, "x", video.frame.width)
+      y = position(y, "y", video.frame.height)
       image = video.crop(image)
       video.resize(id=id, x=x, y=y, width=width, height=height, image)
     else
@@ -60,8 +84,8 @@ end
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
+# @param ~x x position. Defaults to the request's `x` metadata, or `0`.
+# @param ~y y position. Defaults to the request's `y` metadata, or `0`.
 # @param file Path to the image.
 # @method set Change the request.
 def image(%argsof(request.image), file) =
@@ -79,16 +103,16 @@ let orig_request = request
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
+# @param ~x x position. Defaults to the request's `x` metadata, or `0`.
+# @param ~y y position. Defaults to the request's `y` metadata, or `0`.
 # @param ~request Request to add to the video track
 def track.video.add_request(
   ~id=null("track.video.add_request"),
   ~fallible=false,
   ~width=null,
   ~height=null,
-  ~x=getter(0),
-  ~y=getter(0),
+  ~x=null,
+  ~y=null,
   ~request,
   v
 ) =
@@ -113,16 +137,16 @@ end
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
+# @param ~x x position. Defaults to the request's `x` metadata, or `0`.
+# @param ~y y position. Defaults to the request's `y` metadata, or `0`.
 # @param ~file Path to the image file.
 def track.video.add_image(
   ~id=null("track.video.add_image"),
   ~fallible=false,
   ~width=null,
   ~height=null,
-  ~x=getter(0),
-  ~y=getter(0),
+  ~x=null,
+  ~y=null,
   ~file,
   v
 ) =
@@ -139,16 +163,16 @@ end
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
+# @param ~x x position. Defaults to the request's `x` metadata, or `0`.
+# @param ~y y position. Defaults to the request's `y` metadata, or `0`.
 # @param ~request Request to add to the video channel
 def video.add_request(
   ~id=null("video.add_request"),
   ~fallible=false,
   ~width=null,
   ~height=null,
-  ~x=getter(0),
-  ~y=getter(0),
+  ~x=null,
+  ~y=null,
   ~request,
   (s:source)
 ) =
@@ -173,16 +197,16 @@ end
 # @param ~fallible Whether we are allowed to fail (in case the file is non-existent or invalid).
 # @param ~width Scale to width
 # @param ~height Scale to height
-# @param ~x x position.
-# @param ~y y position.
+# @param ~x x position. Defaults to the request's `x` metadata, or `0`.
+# @param ~y y position. Defaults to the request's `y` metadata, or `0`.
 # @param ~file Path to the image file.
 def video.add_image(
   ~id=null("video.add_image"),
   ~fallible=false,
   ~width=null,
   ~height=null,
-  ~x=getter(0),
-  ~y=getter(0),
+  ~x=null,
+  ~y=null,
   ~file,
   (s:source)
 ) =
