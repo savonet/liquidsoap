@@ -8,13 +8,20 @@
 let icecast.server.mounts.buffer_size = 5 * 65535
 
 # A source playing `get()`, switching at once and replaying the metadata of
-# the source it switches to.
+# the source it switches to. `on_select` is called with the source when the
+# mount switches to it.
 # @flag hidden
-def icecast.server.mounts.follow(id, get) =
-  source.dynamic(id=id, track_sensitive=false, get).{
+def icecast.server.mounts.follow(~on_select=fun (_) -> (), id, get) =
+  s = source.dynamic(id=id, track_sensitive=false, get)
+  s.{
     track_sensitive = {false},
     replay_metadata = {true},
-    on_select = fun (switch) -> switch.starting,
+    on_select =
+      fun (switch) ->
+        begin
+          on_select(s)
+          switch.starting
+        end,
     on_leave = fun (_) -> ()
   }
 end
@@ -70,10 +77,11 @@ def icecast.server.mounts.muxer_options(p, format) =
   end
 end
 
-# The mount's metadata update: its history and playlist log line, then the
-# metadata event.
+# The mount's metadata update: its current metadata, history and playlist log
+# line, then the metadata event.
 # @flag hidden
 def icecast.server.mounts.on_metadata(state, entry, metadata) =
+  entry.metadata.set(metadata)
   p = state.params.get()
   max_history =
     try
@@ -137,18 +145,55 @@ def icecast.server.mounts.create(state, p, path, template) =
   mount = icecast.server.parameters.mount(p, path)
   id = string.residual(prefix="/", path) ?? path
   feeder_ref = icecast.server.cell(null)
-  fallback_ref = icecast.server.cell(null)
   lingering = icecast.server.cell(null)
+
+  # The mount's current metadata (mounts.md §8). It is kept apart from the
+  # output's last metadata, which a new track clears: a feeder that runs dry
+  # and resumes starts a new track, but the mount's metadata stays until the
+  # feeder sends new metadata or the mount moves to another source, which
+  # empties it until that source's metadata comes.
+  metadata = icecast.server.cell([])
+
+  # A feeder that resumes is selected again, which is not a move.
+  selected = icecast.server.cell("")
+
+  def on_select(s) =
+    if
+      s.id() != selected.get()
+    then
+      selected.set(s.id())
+      metadata.set([])
+    end
+  end
+
+  # Retargeting the fallback the mount follows is a move too, without a switch
+  # of the selector.
+  fallback_cell = icecast.server.cell(null)
+
+  def set_fallback(fallback) =
+    def source_id(f) =
+      null.map(fun (f) -> source.id(f.source), f)
+    end
+
+    moved = source_id(fallback) != source_id(fallback_cell.get())
+    fallback_cell.set(fallback)
+    if moved and selected.get() == "#{id}.fallback" then metadata.set([]) end
+  end
+
+  fallback_ref = fallback_cell.{set = set_fallback}
+
   nothing = source.fail()
   selector =
     fallback(
       id="#{id}.selector",
       [
         icecast.server.mounts.follow(
+          on_select=on_select,
           "#{id}.feeder",
           fun () -> null.map(fun (f) -> f.source, feeder_ref.get()) ?? nothing
         ),
         icecast.server.mounts.follow(
+          on_select=on_select,
           "#{id}.fallback",
           fun () -> null.map(fun (f) -> f.source, fallback_ref.get()) ?? nothing
         )
@@ -183,6 +228,7 @@ def icecast.server.mounts.create(state, p, path, template) =
       path = path,
       output = o,
       insert_metadata = fun (metadata) -> selector.insert_metadata(metadata),
+      metadata = metadata,
       format = template.format,
       headers =
         [

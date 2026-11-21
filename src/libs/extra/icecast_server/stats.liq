@@ -129,7 +129,7 @@ def icecast.server.stats.of_mount(
     listening_time = counters.listening_time,
     bytes_sent = counters.bytes_sent,
     bytes_read = null.defined(feeder) ? null.get(feeder).bytes_read() : 0,
-    metadata = entry.output.last_metadata() ?? [],
+    metadata = entry.metadata.get(),
     history = counters.history,
     name = field("icy-name"),
     description = field("icy-description"),
