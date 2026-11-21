@@ -1056,8 +1056,15 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         on_frame;
       let end_time = Unix.gettimeofday () in
       let length = Frame.position buf in
+      (* An empty frame without track mark, e.g. from a buffered input that
+         just ran dry, would carry inserted metadata nowhere: it waits for the
+         next frame. *)
+      let pending_metadata =
+        if length = 0 && Frame.track_marks buf = [] then None
+        else Atomic.exchange insert_metadata None
+      in
       let buf =
-        match (Atomic.exchange insert_metadata None, Frame.track_marks buf) with
+        match (pending_metadata, Frame.track_marks buf) with
           | Some (override, new_track, m), _ ->
               let existing =
                 Option.value ~default:Frame.Metadata.empty

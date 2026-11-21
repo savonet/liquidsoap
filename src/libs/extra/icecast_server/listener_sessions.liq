@@ -109,7 +109,7 @@ end
 # The mount's current metadata.
 # @flag hidden
 def icecast.server.listeners.metadata(entry) =
-  entry.output.last_metadata() ?? []
+  entry.metadata.get()
 end
 
 # Listeners connected to every mount, as `max_clients` counts them.
