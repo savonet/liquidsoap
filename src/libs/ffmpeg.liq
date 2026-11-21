@@ -358,12 +358,6 @@ def video.add_text.ffmpeg.raw.filter(
         now = time()
         current := current() - int_of_float(float(speed) * (now - last_time()))
         last_time := now
-        if
-          current() < 0
-        then
-          current := settings.frame.video.width() - start
-        end
-
         current()
       end
 
@@ -383,12 +377,18 @@ def video.add_text.ffmpeg.raw.filter(
     )
   end
 
+  # Scrolling wraps around inside the drawtext expression, where the text width
+  # is known: a text leaves on the left and comes back from the right. With
+  # `cycle`, a second copy follows the first one at a distance of
+  # `max(w,text_w)`, so that the text scrolls continuously.
+  period = cycle ? "max(w,text_w)" : "w+text_w"
+
   def first_x(x) =
-    x
+    if speed == 0 then x else "w-mod(w-(#{x}),#{period})" end
   end
 
   def second_x(x) =
-    "min(#{x}-w,#{x}-text_w)"
+    "#{first_x(x)}-#{period}"
   end
 
   first = make(first_x)
