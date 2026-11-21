@@ -364,7 +364,6 @@ def output.youtube.live.hls(
   end
 
   tmpdir = file.temp_dir("hls", "")
-  on_shutdown({file.rmdir(tmpdir)})
   o =
     output.file.hls(
       id=id,
@@ -379,6 +378,7 @@ def output.youtube.live.hls(
       s
     )
   o.on_file_change(synchronous=false, on_file_change)
+  o.on_shutdown(synchronous=true, {file.rmdir(tmpdir)})
   o
 end
 %endif

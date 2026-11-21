@@ -1462,6 +1462,41 @@
   (run %{run_test} hls_harbor_serving.liq liquidsoap hls_harbor_serving.liq)))
 
 (rule
+ (alias test_hls_harbor_temp_dir_removed)
+ (package liquidsoap)
+ (deps
+  hls_harbor_temp_dir_removed.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_harbor_temp_dir_removed.liq
+   liquidsoap
+   hls_harbor_temp_dir_removed.liq)))
+
+(rule
  (alias test_hls_id3_bytes)
  (package liquidsoap)
  (deps
@@ -3581,6 +3616,7 @@
   (alias test_hls_harbor_id)
   (alias test_hls_harbor_paths)
   (alias test_hls_harbor_serving)
+  (alias test_hls_harbor_temp_dir_removed)
   (alias test_hls_id3_bytes)
   (alias test_hls_id3_timestamp)
   (alias test_hls_insert_tag_catchable)
