@@ -71,7 +71,7 @@ and t =
       mutable flags : Flags.flags;
     }
   | Fun of {
-      id : int;
+      id : function_id;
       pos : Pos.Option.t;
       fun_args : (string * string * t option) list;
       fun_env : env;
@@ -80,13 +80,16 @@ and t =
       mutable flags : Flags.flags;
     }  (** A function defined in a script. *)
   | FFI of {
-      id : int;
+      id : function_id;
       pos : Pos.Option.t;
       ffi_args : (string * string * t option) list;
       mutable ffi_fn : env -> t;
       methods : t Methods.t;
       mutable flags : Flags.flags;
     }  (** A builtin, i.e. a function implemented in OCaml. *)
+
+(** A block shared by every copy of a function. *)
+and function_id = { id : int }
 
 val hash_fold_t : Term_hash.state -> t -> Term_hash.state
 
@@ -121,6 +124,19 @@ val set_pos : t -> Pos.Option.t -> t
 val has_flag : t -> Flags.flag -> bool
 val add_flag : t -> Flags.flag -> unit
 val remove_flag : t -> Flags.flag -> unit
+
+(** [finalise v fn] calls [fn v] once the OCaml block every copy of [v] shares
+    is unreachable, as [Gc.finalise] does: the string, the list, the content of
+    a custom value, or a function's [id]. [fn] runs inside the garbage
+    collector. Raises [Invalid_argument] for values that are not blocks (ints,
+    floats, booleans, [null], empty lists and tuples) and for statically
+    allocated ones. *)
+val finalise : t -> (t -> unit) -> unit
+
+(** Same as {!finalise}, as [Gc.finalise_last] does: [fn] runs once the block is
+    collected and receives nothing. *)
+val finalise_last : t -> (unit -> unit) -> unit
+
 val unit : [> `Tuple of 'a list ]
 val is_unit : t -> bool
 
