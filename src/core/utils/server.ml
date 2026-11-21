@@ -152,6 +152,67 @@ let add ~ns ?usage ~descr cmd handler =
 let remove ~ns cmd =
   Mutex.protect lock (fun () -> Hashtbl.remove commands (prefix_ns cmd ns))
 
+type command = {
+  name : string;
+  usage : string;
+  descr : string;
+  handler : string -> string;
+}
+
+let registered_commands () =
+  Mutex.protect lock (fun () ->
+      Hashtbl.fold
+        (fun name (handler, usage, descr) l ->
+          { name; usage; descr; handler } :: l)
+        commands [])
+
+(* Providers of commands computed each time commands are looked up or listed.
+   They are called without holding [lock], so that they can list the
+   registered commands. *)
+let dynamic : (unit -> command list) list Atomic.t = Atomic.make []
+
+let add_dynamic f =
+  let rec add () =
+    let l = Atomic.get dynamic in
+    if not (Atomic.compare_and_set dynamic l (l @ [f])) then add ()
+  in
+  add ()
+
+(* Threads currently running providers. A provider that runs a command, e.g.
+   through [exec], would otherwise look up dynamic commands again and recurse
+   forever: nested lookups get no dynamic commands. *)
+let providing = Hashtbl.create 10
+let providing_lock = Mutex.create ()
+
+let call_providers () =
+  let id = Thread.id (Thread.self ()) in
+  if Mutex.protect providing_lock (fun () -> Hashtbl.mem providing id) then []
+  else (
+    Mutex.protect providing_lock (fun () -> Hashtbl.replace providing id ());
+    Fun.protect
+      ~finally:(fun () ->
+        Mutex.protect providing_lock (fun () -> Hashtbl.remove providing id))
+      (fun () ->
+        List.concat_map
+          (fun f ->
+            try f ()
+            with exn ->
+              log#important "Dynamic server commands failed: %s"
+                (Printexc.to_string exn);
+              [])
+          (Atomic.get dynamic)))
+
+(* Registered commands take precedence over dynamic ones. *)
+let dynamic_commands () =
+  call_providers ()
+  |> List.filter (fun { name; _ } ->
+      not (Mutex.protect lock (fun () -> Hashtbl.mem commands name)))
+
+let find name =
+  match Mutex.protect lock (fun () -> Hashtbl.find_opt commands name) with
+    | Some (handler, usage, descr) -> { name; usage; descr; handler }
+    | None -> List.find (fun c -> c.name = name) (dynamic_commands ())
+
 type ('a, 'b) interruption = { payload : 'a; after : 'b -> string }
 type write = (string, unit) interruption
 
@@ -167,14 +228,21 @@ let read ~after payload = raise (Read { payload; after })
 
 (* The usage string sums up all the commands... *)
 let usage () =
+  (* Keep the command that [find] would pick for each name. *)
+  let seen = Hashtbl.create 50 in
   let l =
-    Mutex.protect lock (fun () ->
-        Hashtbl.fold (fun k v l -> (k, v) :: l) commands [])
+    List.filter_map
+      (fun { name; usage; _ } ->
+        if Hashtbl.mem seen name then None
+        else (
+          Hashtbl.add seen name ();
+          Some (name, usage)))
+      (registered_commands () @ dynamic_commands ())
   in
   let compare (x, _) (y, _) = -compare x y in
   let l = List.sort compare l in
   List.fold_left
-    (fun s (_, (_, u, _)) ->
+    (fun s (_, u) ->
       let sep = if s = "" then "└─" else "├─" in
       Printf.sprintf "\r\n%s %s" sep u ^ s)
     "" l
@@ -190,9 +258,8 @@ let () =
     ~descr:"Get information on available commands." (fun args ->
       try
         let args = String.trim args in
-        let _, us, d =
-          Mutex.protect lock (fun () -> Hashtbl.find commands args)
-        in
+        if args = "" then raise Not_found;
+        let { usage = us; descr = d; _ } = find args in
         Printf.printf "Done\n%!";
         Printf.sprintf "Usage: %s\r\n  %s" us d
       with Not_found ->
@@ -208,12 +275,7 @@ let exec s =
       (String.sub s 0 c, String.sub s (c + 1) (String.length s - c - 1))
     with Not_found -> (s, "")
   in
-  try
-    let command, _, _ =
-      Mutex.protect lock (fun () -> Hashtbl.find commands s)
-    in
-    command args
-  with
+  try (find s).handler args with
     | Write opts -> raise (Write opts)
     | Read opts -> raise (Read opts)
     | Exit -> raise Exit
