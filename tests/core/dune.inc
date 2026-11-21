@@ -251,6 +251,34 @@
   (run %{frame_test})))
 
 (executable
+ (name frame_video_dimensions_race_test)
+ (modules frame_video_dimensions_race_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias frame_video_dimensions_race_test)
+ (package liquidsoap)
+ (deps
+  (:frame_video_dimensions_race_test frame_video_dimensions_race_test.exe))
+ (action
+  (run %{frame_video_dimensions_race_test})))
+
+(executable
  (name frame_video_dimensions_test)
  (modules frame_video_dimensions_test)
  (libraries
@@ -1222,6 +1250,7 @@
   (alias flush_test)
   (alias frame_checksum_test)
   (alias frame_test)
+  (alias frame_video_dimensions_race_test)
   (alias frame_video_dimensions_test)
   (alias generator_test)
   (alias harbor_dedicated_test)
