@@ -166,6 +166,8 @@ Some values hold something outside the OCaml heap that the garbage collector doe
 
 `runtime.gc.finalise(fn, v)` does the same, but passes `v` to `fn`: the value as it was when it was registered, with its methods. They mirror OCaml's `Gc.finalise_last` and `Gc.finalise`, and give the same guarantee.
 
+`file.write.stream` uses this to remove its hidden temporary file when a writer is dropped before being closed.
+
 ### What keeps the value alive
 
 The value stays alive for as long as the script can still use it, in any form: returned from a function, stored in a list or a reference, given new methods with `let v.foo = ...`, or held by an operator it was passed to. What is watched is the data the value holds, which all these copies share: the string, the list, the function, the source.

@@ -265,6 +265,38 @@
   (run %{run_test} file_read_length.liq liquidsoap file_read_length.liq)))
 
 (rule
+ (alias test_file_write_stream)
+ (package liquidsoap)
+ (deps
+  file_write_stream.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} file_write_stream.liq liquidsoap file_write_stream.liq)))
+
+(rule
+ (alias test_file_write_stream_dropped)
+ (package liquidsoap)
+ (deps
+  file_write_stream_dropped.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   file_write_stream_dropped.liq
+   liquidsoap
+   file_write_stream_dropped.liq)))
+
+(rule
  (alias test_functions)
  (package liquidsoap)
  (deps
@@ -1040,6 +1072,8 @@
   (alias test_file.watch3)
   (alias test_file_protocol)
   (alias test_file_read_length)
+  (alias test_file_write_stream)
+  (alias test_file_write_stream_dropped)
   (alias test_functions)
   (alias test_gc_finaliser)
   (alias test_getter)
