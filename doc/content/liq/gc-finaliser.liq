@@ -9,7 +9,13 @@ def scratch_file() =
   write_line
 end
 
-notes = scratch_file()
-notes(
-  "first line\n"
-)
+# The writer is dropped when the function returns: the scratch file is
+# removed some time after.
+def take_notes() =
+  notes = scratch_file()
+  notes(
+    "first line\n"
+  )
+end
+
+take_notes()

@@ -37,12 +37,13 @@ unreachable. `runtime.gc.finalise(fn, v)` does the same and passes `v` to
    `fn` MUST NOT run while any copy of `v` is reachable.
 
 2. **Values without data of their own.** Numbers, booleans, `null`, empty
-   lists and tuples, and statically allocated data hold no block a
-   finaliser can watch: a finaliser on them MUST be ignored, with a
-   warning in the log.
-3. **Shared data.** Values that share their data are watched together: a
-   string literal evaluated twice is one string. A list passed to an
-   operator MAY be rebuilt by it, and the rebuilt list is not a copy.
+   lists and tuples hold no block a finaliser can watch: a finaliser on
+   them MUST be ignored, with a warning in the log.
+3. **Constants and shared data.** As in OCaml, a constant is never
+   collected: a string literal is held by the script for its whole life,
+   so a finaliser on it never runs. Values built at runtime, e.g. by
+   `file.temp` or `^`, are collected. A list passed to an operator MAY be
+   rebuilt by it, and the rebuilt list is not a copy.
 4. **Running `fn`.** With `finalise`, `fn` receives `v` as it was
    registered, with its position and methods, even when those methods refer
    to the data being watched: holding `v` for `fn` MUST NOT keep that data
@@ -50,9 +51,11 @@ unreachable. `runtime.gc.finalise(fn, v)` does the same and passes `v` to
    inside the garbage collector: collection only queues
    it, and it runs later as an ordinary scheduler task, under the same
    error handling as any script callback.
-5. **Shutdown.** After the sources are shut down, and again when the
-   process exits, a last collection MUST run the queued functions,
-   including when the scheduler never started.
+5. **Shutdown.** After the sources are shut down, a last collection MUST
+   run the queued functions, again until none is queued. A script that
+   exits before starting, e.g. without outputs, MUST get the same last
+   collection when it exits. After a shutdown, exiting MUST NOT run
+   script code: no thread state can be assumed by then.
 6. **Reachability is not scope.** `fn` runs when no live value refers to
    `v`, not when its variable goes out of scope. Top-level bindings stay
    reachable for the life of the script. A closure that refers to `v`
