@@ -292,10 +292,25 @@ module Finaliser = struct
     let current = Atomic.get pending in
     if not (Atomic.compare_and_set pending current (fn :: current)) then push fn
 
+  let log_error ~bt message =
+    Utils.log_exception ~log ~bt:(Printexc.raw_backtrace_to_string bt) message
+
+  (* Exiting without starting happens after the log is closed. *)
+  let report_error = ref log_error
+
   let run callback =
     try callback ()
     with exn ->
-      log#severe "Finaliser callback failed: %s" (Printexc.to_string exn)
+      let bt = Printexc.get_raw_backtrace () in
+      let { Runtime_error.kind; msg; pos } =
+        Lang.runtime_error_of_exception ~bt ~kind:"finaliser" exn
+      in
+      !report_error ~bt
+        (Printf.sprintf "Finaliser callback failed%s: %s (%s)"
+           (match pos with
+             | pos :: _ -> " at " ^ Pos.to_string ~prefix:"" pos
+             | [] -> "")
+           msg kind)
 
   let drain () = List.iter run (List.rev (Atomic.exchange pending []))
 
@@ -316,29 +331,42 @@ module Finaliser = struct
       Lifecycle.after_start ~name:"gc finalisers" (fun () ->
           Scheduler.Task.add (task ()))
 
+  (* A callback can drop other watched values: collect again until nothing is
+     queued. *)
   let collect_and_drain () =
-    if Atomic.get started then (
+    let rec loop rounds =
       Gc.full_major ();
-      drain ())
+      if Atomic.get pending <> [] then (
+        drain ();
+        if rounds > 1 then loop (rounds - 1))
+    in
+    if Atomic.get started then loop 8
+
+  let drained_at_shutdown = Atomic.make false
 
   (* Once the sources are shut down, the values they held are unreachable: one
-     last collection runs what they left. The scheduler may also never start,
-     e.g. without outputs, or stop before the last finalisers fire: exiting
-     drains what is left, outside of the collector. *)
+     last collection runs what they left. A script that never starts, e.g.
+     without outputs, exits from the main thread before streaming: exiting then
+     drains what is left. After a shutdown, exiting runs nothing, since no
+     thread state can be assumed by then. *)
   let () =
-    Lifecycle.after_core_shutdown ~name:"gc finalisers" collect_and_drain;
-    at_exit collect_and_drain
+    Lifecycle.after_core_shutdown ~name:"gc finalisers" (fun () ->
+        Atomic.set drained_at_shutdown true;
+        collect_and_drain ());
+    at_exit (fun () ->
+        if not (Atomic.get drained_at_shutdown) then (
+          (report_error := fun ~bt:_ message -> prerr_endline message);
+          collect_and_drain ()))
 
   (* Values that hold no data of their own cannot be watched. *)
   let watch ~pos register v =
-    try
-      register ();
-      ensure_started ()
-    with Invalid_argument _ ->
-      log#important
-        "Value %s at %s cannot be watched, its finaliser is ignored."
-        (Value.to_string v)
-        (Pos.List.to_string ~prefix:"" pos)
+    match register () with
+      | () -> ensure_started ()
+      | exception Invalid_argument _ ->
+          log#important
+            "Value %s at %s cannot be watched, its finaliser is ignored."
+            (Value.to_string v)
+            (Pos.List.to_string ~prefix:"" pos)
 end
 
 let finalise_descr ~receives =
@@ -348,8 +376,9 @@ let finalise_descr ~receives =
      of the value, e.g. with methods added, keeps it reachable. Numbers, \
      booleans, null and empty lists cannot be watched: the call is then \
      ignored with a warning. The function runs later on a scheduler thread, \
-     may never run, and must not reach the value. See the memory usage \
-     documentation for details."
+     may never run, and must not reach the value. A value that stays \
+     reachable, such as a top-level definition or a string literal, never runs \
+     its function. See the memory usage documentation for details."
     receives
 
 let runtime_gc_finalise =

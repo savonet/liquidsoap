@@ -129,8 +129,8 @@ val remove_flag : t -> Flags.flag -> unit
     is unreachable, as [Gc.finalise] does: the string, the list, the content of
     a custom value, or a function's [id]. [fn] runs inside the garbage
     collector. Raises [Invalid_argument] for values that are not blocks (ints,
-    floats, booleans, [null], empty lists and tuples) and for statically
-    allocated ones. *)
+    floats, booleans, [null], empty lists and tuples). As in OCaml, a finaliser
+    on a constant, e.g. a string literal, never runs. *)
 val finalise : t -> (t -> unit) -> unit
 
 (** Same as {!finalise}, as [Gc.finalise_last] does: [fn] runs once the block is
