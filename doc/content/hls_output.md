@@ -90,6 +90,12 @@ Fragmented MP4 is the format Apple requires for HEVC video. Packed audio
 With fragmented MP4, media segments use the `.m4s` extension and the init
 segment keeps `.mp4`.
 
+The output also sets the muxer's `movflags` to `+frag_custom+dash+delay_moov`
+unless the format sets it. A `movflags` given in the format replaces that value
+and must keep `frag_custom`, so that the output can cut fragments, and
+`delay_moov`, without which video with B-frames can make FFmpeg abort. Leave
+`frag_duration` unset: the output places fragments itself.
+
 ### What is announced by default
 
 When a field is not given, the output works out the value itself, in this
