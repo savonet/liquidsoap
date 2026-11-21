@@ -658,12 +658,12 @@ end
 
 def run() =
   try
+    # One at a time: a connecting client holds a scheduler domain until the
+    # server, which needs one to answer, replies.
     p = client("p.mp3")
+    wait_for("/p.mp3", {list.mem("/p.mp3", mounts())})
     h = client("h.mp3")
-    wait_for(
-      "mounts",
-      {list.mem("/p.mp3", mounts()) and list.mem("/h.mp3", mounts())}
-    )
+    wait_for("/h.mp3", {list.mem("/h.mp3", mounts())})
     listener = listen("/p.mp3")
     wait_for(
       "listener",

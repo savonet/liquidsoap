@@ -26,11 +26,15 @@ def check(label, cond) =
   if not cond then fail(label) end
 end
 
+# The lines of the log `name`, none while a rotation is renaming it.
 def lines(name) =
-  list.filter(
-    fun (l) -> l != "",
-    string.split(separator="\n", file.contents(in_dir(name)))
-  )
+  contents =
+    try
+      file.contents(in_dir(name))
+    catch _ do
+      ""
+    end
+  list.filter(fun (l) -> l != "", string.split(separator="\n", contents))
 end
 
 def wait_for(label, cond) =
@@ -474,17 +478,14 @@ end
 
 def run() =
   try
+    # One at a time: a connecting client holds a scheduler domain until the
+    # server, which needs one to answer, replies.
     a = client("a.mp3")
+    wait_for("/a.mp3", {list.mem("/a.mp3", mounts(server))})
     refusing = client("r.mp3")
+    wait_for("/r.mp3", {list.mem("/r.mp3", mounts(server))})
     k = client(port=kh_port, "k.mp3")
-    wait_for(
-      "mounts",
-      {
-        list.mem("/a.mp3", mounts(server))
-        and list.mem("/r.mp3", mounts(server))
-        and list.mem("/k.mp3", mounts(kh))
-      }
-    )
+    wait_for("/k.mp3", {list.mem("/k.mp3", mounts(kh))})
     check_access()
     check_kh_access()
     check_playlist()

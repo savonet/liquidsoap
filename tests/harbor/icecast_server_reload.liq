@@ -404,6 +404,13 @@ def check_after_swap(feeder, listener) =
     "a handler registered before the reload still fires",
     handler_calls() >= 3
   )
+
+  # Bindings are asynchronous: one listener connected under the first record,
+  # two under the second.
+  wait_for(
+    "the bindings of every listener",
+    {list.length(binding_calls()) == 3}
+  )
   check(
     "only the new record's bindings fire: #{binding_calls()}",
     list.mem(2, binding_calls())
@@ -441,12 +448,12 @@ end
 
 def run() =
   try
+    # One at a time: a connecting client holds a scheduler domain until the
+    # server, which needs one to answer, replies.
     feeder = client("pw1", "m.mp3")
+    wait_for("/m.mp3", {list.mem("/m.mp3", mounts())})
     fallback = client("pw1", "f.mp3")
-    wait_for(
-      "mounts",
-      {list.mem("/m.mp3", mounts()) and list.mem("/f.mp3", mounts())}
-    )
+    wait_for("/f.mp3", {list.mem("/f.mp3", mounts())})
     listener = listen("/m.mp3")
     check(
       "first listener",

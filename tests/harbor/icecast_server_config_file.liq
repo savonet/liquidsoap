@@ -62,21 +62,31 @@ def put(password, path) =
 end
 
 # A listener on `path`: its socket, and whether it still receives the stream.
-def listen(path) =
+# A request that came while the mount output was starting is redirected to
+# itself and sent again.
+def rec listen(path) =
   sock = connect()
   sock.write(
     "GET #{path} HTTP/1.0\r\n\r\n"
   )
-  ignore(sock.read(timeout=5.))
-  sock.{
-    streaming =
-      fun () ->
-        try
-          sock.read(timeout=3.) != ""
-        catch _ do
-          false
-        end
-  }
+  head = sock.read(timeout=5.)
+  if
+    string.sub(encoding="ascii", head, start=8, length=5) ==
+      " 307 "
+  then
+    sock.close()
+    listen(path)
+  else
+    sock.{
+      streaming =
+        fun () ->
+          try
+            sock.read(timeout=3.) != ""
+          catch _ do
+            false
+          end
+    }
+  end
 end
 
 def wait_for(label, cond) =

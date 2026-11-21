@@ -164,7 +164,7 @@ def mount(path) =
   elsif
     path == "/linger.mp3"
   then
-    {linger = 4.}
+    {linger = 8.}
   elsif
     path == "/deadfb.mp3"
   then
@@ -477,7 +477,7 @@ def check_relinger() =
   wait_for("/relinger.mp3", {list.mem("/relinger.mp3", mounts())})
   server.detach_source("/relinger.mp3")
   first = time()
-  thread.pause(2.)
+  thread.pause(3.)
   server.attach_source(format=mp3_copy, "/relinger.mp3", relive)
   server.detach_source("/relinger.mp3")
   second = time()
