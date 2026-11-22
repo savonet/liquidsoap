@@ -23,7 +23,7 @@ def f() =
     ),
     "\"\\uFFFDt\\uFFFD ok\""
   )
-  test.equal(json.stringify("calf\xc3\xa9"), "\"café\"")
+  test.equal(json.stringify("\xc3\xa9t\xc3\xa9"), "\"été\"")
 
   # string.escape falls back to ascii on invalid UTF-8: the bytes are kept.
   test.equal(
