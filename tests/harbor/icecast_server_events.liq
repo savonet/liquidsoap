@@ -562,12 +562,12 @@ end
 
 def run() =
   try
+    # One at a time: a connecting client holds a scheduler domain until the
+    # server, which needs one to answer, replies.
     source = client("e.mp3")
+    wait_for("/e.mp3", {list.mem("/e.mp3", mounts())})
     hidden = client("h.mp3")
-    wait_for(
-      "mounts",
-      {list.mem("/e.mp3", mounts()) and list.mem("/h.mp3", mounts())}
-    )
+    wait_for("/h.mp3", {list.mem("/h.mp3", mounts())})
     second = check_listeners()
     check_metadata()
     source = check_reconnect(source)

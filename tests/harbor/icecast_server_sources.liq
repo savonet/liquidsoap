@@ -67,6 +67,17 @@ def exchange(port, text) =
   reply
 end
 
+# The reply head of a listener request on `path`. One that came while the
+# mount output was starting is redirected to itself and sent again.
+def rec listen_head(path) =
+  reply =
+    exchange(
+      port,
+      "GET #{path} HTTP/1.0\r\n\r\n"
+    )
+  reply.status == 307 ? listen_head(path) : reply
+end
+
 def wait_for(label, cond) =
   deadline = time() + 15.
   def rec wait() =
@@ -401,11 +412,7 @@ def check_feeding() =
   )
   kh_client.shutdown()
 
-  listener =
-    exchange(
-      port,
-      "GET /per.mp3 HTTP/1.0\r\n\r\n"
-    )
+  listener = listen_head("/per.mp3")
   check(
     "listener gets the identity: #{listener.head}",
     string.contains(
@@ -499,11 +506,7 @@ def check_feeding() =
     "/per.mp3 back",
     {list.mem("/per.mp3", mounts())}
   )
-  rejoin =
-    exchange(
-      port,
-      "GET /per.mp3 HTTP/1.0\r\n\r\n"
-    )
+  rejoin = listen_head("/per.mp3")
   check(
     "joiner after a reconnect gets the new identity: #{rejoin.head}",
     string.contains(
@@ -766,6 +769,12 @@ def check_source_timeout() =
 end
 
 def check_race_max_sources() =
+  # `max_sources` counts every mount still fed: the earlier source clients,
+  # whose sockets are closed, leave first.
+  wait_for(
+    "earlier source clients gone",
+    {mounts() == []}
+  )
   max_sources := 1
   source_timeout := 60.
   try

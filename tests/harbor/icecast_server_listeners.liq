@@ -295,22 +295,6 @@ server.on_listener_connect(
   fun (l) -> atomic(fun () -> connects := [...connects(), l.mount])
 )
 
-def client(~port=port, ~name="", path) =
-  output.icecast(
-    %mp3,
-    port=port,
-    password="hackme",
-    mount=path,
-    name=name,
-    sine()
-  )
-end
-
-a = client("a.mp3")
-b = client(name="Bee", "b.mp3")
-u = client("u.mp3")
-k = client(port=kh_port, "k.mp3")
-
 def listener_count(path) =
   list.fold(
     fun (n, m) -> m.mount == path ? n + list.length(m.listeners) : n,
@@ -321,6 +305,30 @@ end
 
 def mounts(s) =
   list.map(fun (m) -> m.mount, s.stats().mounts)
+end
+
+# A source client of `path`, returned once it feeds its mount. Clients connect
+# one at a time: a connecting client holds a scheduler domain until the server,
+# which needs one to answer, replies.
+def client(~server=server, ~port=port, ~name="", path) =
+  o =
+    output.icecast(
+      %mp3,
+      port=port,
+      password="hackme",
+      mount=path,
+      name=name,
+      sine()
+    )
+
+  # An output created by the test thread starts when it returns: start it now.
+  try
+    clock(o.clock).start(force=false)
+  catch _ do
+    ()
+  end
+  wait_for("/#{path}", {list.mem("/#{path}", mounts(server))})
+  o
 end
 
 def releases_of(query) =
@@ -538,6 +546,12 @@ def check_time_limits() =
     "decision limit beats the mount's: #{time() - started}",
     closed and time() - started < 5.
   )
+
+  # The socket closes before the listener leaves the mount's count.
+  wait_for(
+    "time limit 1 released",
+    {releases_of("limit1") != []}
+  )
   preroll = listen("/a.mp3?preroll")
   check(
     "preroll sent before the stream",
@@ -633,10 +647,10 @@ end
 
 def run() =
   try
-    wait_for(
-      "mounts",
-      {list.length(mounts(server)) == 3 and list.mem("/k.mp3", mounts(kh))}
-    )
+    ignore(client("a.mp3"))
+    ignore(client(name="Bee", "b.mp3"))
+    ignore(client("u.mp3"))
+    ignore(client(server=kh, port=kh_port, "k.mp3"))
     check_replies()
     check_limits()
     check_time_limits()
