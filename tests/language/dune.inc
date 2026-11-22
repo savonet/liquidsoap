@@ -27,6 +27,20 @@
   (run %{run_test} argsof.liq liquidsoap argsof.liq)))
 
 (rule
+ (alias test_argv_list)
+ (package liquidsoap)
+ (deps
+  argv_list.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} argv_list.liq liquidsoap argv_list.liq)))
+
+(rule
  (alias test_atomic)
  (package liquidsoap)
  (deps
@@ -995,6 +1009,7 @@
  (deps
   (alias test_abstract_source)
   (alias test_argsof)
+  (alias test_argv_list)
   (alias test_atomic)
   (alias test_bool)
   (alias test_comments)
