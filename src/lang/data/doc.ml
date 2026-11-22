@@ -176,6 +176,8 @@ module Value = struct
 
   (** Documentation of an argument:
       - [arg_default]: default value
+      - [arg_placeholder]: what the usage template shows for an argument without
+        a default
       - [arg_fields]: the fields of a record argument, listed when at least one
         is documented with [@field]. *)
   type argument = {
@@ -183,6 +185,7 @@ module Value = struct
     arg_default : string option;
     arg_description : string option;
     arg_fields : (string * meth) list;
+    arg_placeholder : string;
   }
 
   (** Documentation for a function. *)
@@ -213,6 +216,46 @@ module Value = struct
 
   let get name = Lazy.Mutexed.force (Map.find name !db)
   let count () = Map.cardinal !db
+  let standard_source_methods = ref []
+
+  let usage name f =
+    let argument (label, a) =
+      let value = Option.value ~default:a.arg_placeholder a.arg_default in
+      match label with Some label -> label ^ "=" ^ value | None -> value
+    in
+    (* Labeled arguments can go anywhere: the ones a call must pass come
+       first. Unlabeled ones are positional and keep their order. *)
+    let labeled, unlabeled =
+      List.partition (fun (label, _) -> label <> None) f.arguments
+    in
+    let required, optional =
+      List.partition (fun (_, a) -> a.arg_default = None) labeled
+    in
+    let is_identifier =
+      match name.[0] with 'a' .. 'z' | 'A' .. 'Z' | '_' -> true | _ -> false
+    in
+    match List.map argument (required @ optional @ unlabeled) with
+      | _ when not is_identifier -> None
+      | [] -> None
+      | arguments ->
+          let one_line = name ^ "(" ^ String.concat ", " arguments ^ ")" in
+          if String.length one_line <= 72 && not (String.contains one_line '\n')
+          then Some one_line
+          else (
+            let indent s =
+              "  " ^ String.concat "\n  " (String.split_on_char '\n' s)
+            in
+            Some
+              (name ^ "(\n"
+              ^ String.concat ",\n" (List.map indent arguments)
+              ^ "\n)"))
+
+  (* An operator can override a standard method's description, as inputs do
+     for [self_sync_description]: that one is its own. *)
+  let is_standard_source_method (name, m) =
+    List.mem
+      (name, Option.value ~default:"" m.meth_description)
+      !standard_source_methods
 
   (** Only print function names. *)
   let print_functions print =
@@ -284,6 +327,12 @@ module Value = struct
     in
     print (title_color f.description);
     print "\n\n";
+    Option.iter
+      (fun usage ->
+        print (title_color "Usage:\n\n");
+        print ("  " ^ String.concat "\n  " (String.split_on_char '\n' usage));
+        print "\n\n")
+      (usage name f);
     print (title_color "Type: ");
     print f.typ;
     print "\n\n";
@@ -474,6 +523,9 @@ module Value = struct
               print ("### `" ^ f ^ "`\n\n");
               print d.description;
               print "\n\n";
+              Option.iter
+                (Printf.ksprintf print "Usage:\n\n```liquidsoap\n%s\n```\n\n")
+                (usage f d);
               print "Type:\n\n```\n";
               print d.typ;
               print "\n```\n\n";
@@ -503,9 +555,20 @@ module Value = struct
                       (List.sort compare a.arg_fields))
                   d.arguments;
                 print "\n");
-              print_section "Methods" d.methods;
-              print_section "Callbacks" d.callbacks;
-              print_section "Composition methods" d.composition;
+              let standard, methods =
+                List.partition is_standard_source_method d.methods
+              in
+              let standard_callbacks, callbacks =
+                List.partition is_standard_source_method d.callbacks
+              in
+              let standard_composition, composition =
+                List.partition is_standard_source_method d.composition
+              in
+              print_section "Methods" methods;
+              print_section "Callbacks" callbacks;
+              print_section "Composition methods" composition;
+              print_section "Standard source methods"
+                (standard @ standard_callbacks @ standard_composition);
               if List.mem `Experimental d.flags then
                 print "This function is experimental.\n\n"))
           !db)
@@ -715,6 +778,7 @@ let parse_doc ~pos doc =
                 arg_default = None;
                 arg_description = d;
                 arg_fields;
+                arg_placeholder = "value";
               } ))
         params
     in

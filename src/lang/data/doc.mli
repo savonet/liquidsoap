@@ -71,6 +71,8 @@ module Value : sig
 
   (** Documentation of an argument:
       - [arg_default]: default value
+      - [arg_placeholder]: what the usage template shows for an argument without
+        a default
       - [arg_fields]: the fields of a record argument, listed when at least one
         is documented with [@field]. *)
   type argument = {
@@ -78,6 +80,7 @@ module Value : sig
     arg_default : string option;
     arg_description : string option;
     arg_fields : (string * meth) list;
+    arg_placeholder : string;
   }
 
   type t = {
@@ -100,6 +103,14 @@ module Value : sig
   val add : string -> t Lazy.Mutexed.t -> unit
 
   val count : unit -> int
+
+  (** Methods every source has, as name and description. The reference lists
+      them apart from an operator's own methods. *)
+  val standard_source_methods : (string * string) list ref
+
+  (** A call to [name] with each argument at its default value or placeholder.
+      [None] when [name] takes no argument or is an operator such as [+]. *)
+  val usage : string -> t -> string option
 
   (** Print the documentation of one item, as [liquidsoap -h] does. *)
   val print : string -> (string -> unit) -> unit

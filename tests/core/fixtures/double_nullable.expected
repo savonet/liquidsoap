@@ -1,5 +1,9 @@
 Picks `x`, else `default`.
 
+Usage:
+
+  pick(string, default)
+
 Type: (string?, string?) -> string?
 
 Category: Uncategorized

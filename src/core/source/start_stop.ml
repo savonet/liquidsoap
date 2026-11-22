@@ -219,3 +219,19 @@ let meth :
                 unit));
       };
     ]
+
+let () =
+  let callback_entries callbacks =
+    List.map
+      (fun c ->
+        let { Lang.name; descr } = Lang_source.callback c in
+        (name, descr))
+      callbacks
+  in
+  Doc.Value.standard_source_methods :=
+    !Doc.Value.standard_source_methods
+    @ List.map (fun { Lang.name; descr } -> (name, descr)) (meth ())
+    @ List.concat_map
+        (fun label -> callback_entries (callbacks ~label))
+        ["source"; "input"]
+    @ callback_entries (output_callbacks ())

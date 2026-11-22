@@ -864,6 +864,11 @@ let source_methods =
   non_composition_source_methods
   @ List.map (fun m -> (m, `Composition)) source_composition_methods
 
+let () =
+  Doc.Value.standard_source_methods :=
+    !Doc.Value.standard_source_methods
+    @ List.map (fun ((m : source_meth), _) -> (m.name, m.descr)) source_methods
+
 (** Returns the composition tag to set and an optional description for the
     composition_type method. Outputs get neither; live inputs get `Live; passive
     inputs get `File; all other operators are passthrough and inherit from their
