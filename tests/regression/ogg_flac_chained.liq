@@ -28,7 +28,9 @@ clock.assign_new(sync="none", [encoded])
 
 def decode(_) =
   titles = ref([])
+  duration = ref(0.)
   s = once(single(file))
+  s.on_frame(synchronous=true, fun () -> duration := s.time())
   s.on_metadata(
     synchronous=true,
     fun (m) -> if m["title"] != "" then titles := [...titles(), m["title"]] end
@@ -36,7 +38,7 @@ def decode(_) =
 
   def check() =
     print(
-      "titles: #{titles()}"
+      "titles: #{titles()}, duration: #{duration()}"
     )
     if
       titles() ==
@@ -45,6 +47,7 @@ def decode(_) =
           "Track 2",
           "Track 3"
         ]
+      and duration() > 2.9
     then
       test.pass()
     else
