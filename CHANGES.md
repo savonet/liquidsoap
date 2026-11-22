@@ -67,7 +67,7 @@
 - Deprecated `fallback.skip`: use `track_sensitive = getter(false)` on the fallback source.
 - `output.file` fails on `on_close` errors unless `reopen_on_error` handles them ([#4879](https://github.com/savonet/liquidsoap/pull/4879)).
 - `add` keeps the metadata of all its sources ([#4892](https://github.com/savonet/liquidsoap/pull/4892)).
-- `video.tile` only tiles video and returns a video-only source: it no longer mixes the sources' audio, and it takes video-only sources. Mix the audio with `track.audio.add` to keep it (see the migration notes).
+- `video.tile` only tiles video and returns a video-only source: it no longer mixes the sources' audio, and it takes video-only sources. Mix the audio with `track.audio.add` to keep it (see the migration notes, [#5704](https://github.com/savonet/liquidsoap/pull/5704)).
 - `prometheus.latency` metrics end in `_ratio` instead of `_seconds` ([#5470](https://github.com/savonet/liquidsoap/pull/5470)).
 - `file.write` and `file.write.stream` with `atomic=true` write to a hidden temporary file next to the destination, so the final rename is always atomic and the destination's directory must be writable. The `temp_dir` argument is removed, from `source.cue` too. The `file.write.stream` callback can be called from several threads, and `file.temp` takes `perms` (reported by @gilou, [#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - Record fields are evaluated when the record is built, even if they are never used ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
@@ -80,7 +80,7 @@
 - `%mp3` no longer segfaults on musl systems such as Alpine ([#5322](https://github.com/savonet/liquidsoap/pull/5322)).
 - The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
 - Seeking with the `mad` decoder goes to the requested position instead of the end of the file ([#3584](https://github.com/savonet/liquidsoap/issues/3584)).
-- Native `%opus` files declare the encoder's lookahead as pre-skip (about 6.5 ms) instead of a fixed 80 ms, so decoders no longer drop the first ~73 ms of audio.
+- Native `%opus` files declare the encoder's lookahead as pre-skip (about 6.5 ms) instead of a fixed 80 ms, so decoders no longer drop the first ~73 ms of audio ([#5701](https://github.com/savonet/liquidsoap/pull/5701)).
 - `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
 - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
 - Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
@@ -101,7 +101,7 @@
 - `blank.strip` resumes after a blank with a new track carrying the source's latest metadata ([#5642](https://github.com/savonet/liquidsoap/pull/5642)).
 - Scripts can catch errors raised by Liquidsoap's internals, such as invalid parameter values (`error.invalid`) or clock conflicts (`error.clock`), in `try`, `thread.run` error handlers and error monitors. Uncaught errors are logged with their script name, message and positions, and with the internal exception and its backtrace at log level 4 ([#5641](https://github.com/savonet/liquidsoap/pull/5641)).
 - Fixed a race on the request pool that could make `request.create` fail with `index out of bounds` when requests are created from several clocks ([#5639](https://github.com/savonet/liquidsoap/pull/5639)).
-- Reading a source's `time()` from another thread, e.g. in `thread.run`, no longer makes the source produce data outside its clock, which could crash an output with "Infallible source produced a partial frame!".
+- Reading a source's `time()` from another thread, e.g. in `thread.run`, no longer makes the source produce data outside its clock, which could crash an output with "Infallible source produced a partial frame!" ([#5698](https://github.com/savonet/liquidsoap/pull/5698)).
 - `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
 - `video.testsrc`, `video.board`, `video.text` and frei0r source plugins have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
 - `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
