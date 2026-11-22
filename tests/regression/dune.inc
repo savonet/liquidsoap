@@ -3735,6 +3735,24 @@
  (action
   (run %{run_test} video_fade liquidsoap video_fade.liq)))
 
+(rule
+ (alias test_video_tile)
+ (package liquidsoap)
+ (deps
+  video_tile.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} video_tile liquidsoap video_tile.liq)))
+
 (alias
  (name citest)
  (deps
@@ -3932,4 +3950,5 @@
   (alias test_type_printing_from_task)
   (alias test_unified-pcm-types)
   (alias test_video-only)
-  (alias test_video_fade)))
+  (alias test_video_fade)
+  (alias test_video_tile)))
