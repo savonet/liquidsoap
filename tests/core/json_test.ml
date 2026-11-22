@@ -1,7 +1,8 @@
 let () =
   let s = "AverageLevel\000\196\016\000\000" in
   assert (
-    Json.to_string (`String s) = "\"AverageLevel\\u0000\\uFFFD\\u0000\\u0000\"")
+    Json.to_string (`String s)
+    = "\"AverageLevel\\u0000\\uFFFD\\u0010\\u0000\\u0000\"")
 
 let json =
   [|
