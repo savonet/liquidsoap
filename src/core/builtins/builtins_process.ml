@@ -275,7 +275,7 @@ let _ =
             in
             (timed_out, !status))
       in
-      let sync_run = not (Tutils.running ()) in
+      let sync_run = not (Tutils.started ()) in
       if sync_run && 0. < timeout then
         log#important
           "Command %s cannot be executed with timeout %.02f because the \

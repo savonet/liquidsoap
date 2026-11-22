@@ -27,7 +27,10 @@ type state = [ `Idle | `Starting | `Running | `Done of exit_status ]
 
 let internal_error_code = 128
 let state : state Atomic.t = Atomic.make `Idle
-let running () = match Atomic.get state with `Running -> true | _ -> false
+
+let started () =
+  match Atomic.get state with `Starting | `Running -> true | _ -> false
+
 let finished () = match Atomic.get state with `Done _ -> true | _ -> false
 
 let exit_code () =
