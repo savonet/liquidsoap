@@ -294,7 +294,10 @@ let rec prepare c st =
   apply_removals c st;
   activate c st;
   pacing_point c st;
-  each_sub c ~what:"prepare" prepare
+  each_sub c ~what:"prepare" prepare;
+  (* A sub-clock that found, while preparing, that it blocks or no longer
+     does: settled before any source of this tick is animated. *)
+  if Atomic.get st.dirty then pacing_point c st
 
 (* Ends the running segment: the sources close it, then the flag they read
    while doing so is lowered. *)

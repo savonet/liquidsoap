@@ -305,6 +305,8 @@ class virtual operator ?(stack = []) ?clock ~name sources =
       if Atomic.get cycle_open then snd self#cached_self_sync
       else self#source_state
 
+    method blocking_io = false
+
     (* Type describing the contents of the frame: this should be a record
        whose fields (audio, video, etc.) indicate the kind of contents we
        have (e.g. {audio : pcm}). *)

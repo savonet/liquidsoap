@@ -201,6 +201,11 @@ object
   (** What the clock requires of a source: spec/clock.md §14. *)
   method sync_source : Clock.Sync_source.t option
 
+  (** Whether animating the source may block on a peer: a connection, a write to
+      a remote server. Its clock is then animated by a thread: spec/pacing.md
+      §8. *)
+  method blocking_io : bool
+
   (** Register a callback when wake_up is called. *)
   method on_wake_up : (unit -> unit) -> unit
 

@@ -24,15 +24,15 @@ a pure function of records: it never reads a clock.
 The **run** is part of the `started` and `stopping` states. A stopped clock has
 no run, so it has none of these values:
 
-| Field       | Value                                                                                                                    |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------ |
-| animator    | Non-passive clocks: `task` or `thread`, and why (`blocks: <sync source>`, `unsynced`, `tasks off`, `lease: <time left>`) |
-| sync source | The tracked one, its pacing, and whether the clock follows it                                                            |
-| ticks       | Ticks of the run                                                                                                         |
-| stream time | Stream time of the run                                                                                                   |
-| lateness    | Seconds behind its time source; negative when ahead. No value when the clock does not measure it                         |
-| sources     | Outputs, active, passive: each a list of source entries                                                                  |
-| statistics  | Below                                                                                                                    |
+| Field       | Value                                                                                                                                                                              |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| animator    | Non-passive clocks: `task` or `thread`, and why (`blocks: <sync source>`, `blocks: <source>` for blocking I/O, `blocks: sub-clock`, `unsynced`, `tasks off`, `lease: <time left>`) |
+| sync source | The tracked one, its pacing, and whether the clock follows it                                                                                                                      |
+| ticks       | Ticks of the run                                                                                                                                                                   |
+| stream time | Stream time of the run                                                                                                                                                             |
+| lateness    | Seconds behind its time source; negative when ahead. No value when the clock does not measure it                                                                                   |
+| sources     | Outputs, active, passive: each a list of source entries                                                                                                                            |
+| statistics  | Below                                                                                                                                                                              |
 
 A **source entry** is an id, a type and the ids of the source's activations.
 

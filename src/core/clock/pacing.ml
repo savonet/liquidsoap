@@ -107,6 +107,15 @@ let detect_flap c st ~now =
         emit c (Flap { gap = now -. left; lease = conf_thread_lease#get })
     | _ -> ()
 
+(* The first animated source whose I/O may block. *)
+let blocking_io st =
+  List.find_map
+    (fun ((source : source), member) ->
+      if member.blocking_io && not (Atomic.get member.removed) then
+        Some source#id
+      else None)
+    (members st)
+
 (* Recomputes whether the clock blocks; a change updates the lease and tells the
    parent. *)
 let update_blocking c st =
@@ -114,6 +123,7 @@ let update_blocking c st =
     (match Atomic.get st.tracked with
       | Some sync -> Sync_source.blocks sync
       | None -> false)
+    || blocking_io st <> None
     || Atomic.get st.sub_blocking > 0
   in
   if Atomic.exchange st.blocking blocking <> blocking then begin
@@ -136,7 +146,10 @@ let wanted_animator c st =
     ( `Thread,
       match Atomic.get st.tracked with
         | Some sync when Sync_source.blocks sync -> "blocks: " ^ sync.name
-        | _ -> "blocks: sub-clock" )
+        | _ -> (
+            match blocking_io st with
+              | Some id -> "blocks: " ^ id
+              | None -> "blocks: sub-clock") )
   else if c.sync_mode = `Unsynced then (`Thread, "unsynced")
   else if not conf_task#get then (`Thread, "tasks off")
   else if lease_left st > 0. then (`Thread, "lease")

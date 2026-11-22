@@ -46,7 +46,8 @@ let events_of clock =
 
 let live_sources = Atomic.make 0
 
-class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
+class source ?sync ?(blocking_io = false) ~id
+  (source_type : [ `Passive | `Active | `Output ]) =
   object (self)
     val mutable sync : Clock.Sync_source.t option = sync
     val awake = Atomic.make 0
@@ -92,6 +93,8 @@ class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
       Atomic.incr queries;
       sync
 
+    method blocking_io : bool = blocking_io
+
     method activations : Clock.activation list =
       if Atomic.get awake > 0 then
         [
@@ -114,7 +117,9 @@ class source ?sync ~id (source_type : [ `Passive | `Active | `Output ]) =
       Gc.finalise (fun _ -> Atomic.decr live_sources) self
   end
 
-let source ?sync ?(id = "source") source_type = new source ?sync ~id source_type
+let source ?sync ?blocking_io ?(id = "source") source_type =
+  new source ?sync ?blocking_io ~id source_type
+
 let as_source source = (source :> Clock.source)
 let attach clock source = Clock.attach clock (as_source source)
 let detach clock source = Clock.detach clock (as_source source)

@@ -109,12 +109,20 @@ let source_error c st (source : source) fn =
         List.iter (fun handler -> handler error backtrace) handlers
 
 let track st (source : source) role =
-  let member = { role; removed = Atomic.make false; sync = None } in
+  let member =
+    {
+      role;
+      removed = Atomic.make false;
+      sync = None;
+      blocking_io = source#blocking_io;
+    }
+  in
   Mutex.protect st.m (fun () ->
       Sources.replace st.animated source member;
       Queues.WeakQueue.push st.animated_sources source;
       if List.memq source (Atomic.get st.removals) then
         Atomic.set member.removed true);
+  if member.blocking_io then Atomic.set st.dirty true;
   member
 
 (* Brings a pending source into the run: an output is woken up, an active source

@@ -496,6 +496,9 @@ class output p =
 
     val mutable encoder = None
     method private self_sync = source#cached_self_sync
+
+    (* Connecting and sending wait on the server, up to the timeout. *)
+    method! blocking_io = true
     val on_connect = Callbacks.create ()
     method register_on_connect fn = Callbacks.register on_connect fn
     method on_connect fn = Callbacks.add on_connect fn
