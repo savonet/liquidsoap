@@ -221,6 +221,7 @@ let add_builtin ~category ~descr ?(flags = []) ?(meth = []) ?(examples = [])
                 arg_default = Option.map Value.to_string d;
                 arg_description = doc;
                 arg_fields = Toplevel_doc.fields ~generalized [] t;
+                arg_placeholder = Toplevel_doc.placeholder t;
               } ))
         proto
     in

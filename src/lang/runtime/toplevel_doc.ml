@@ -22,6 +22,27 @@ let fields ~generalized documented t =
             } ))
       fields
 
+(* Reads as code: a function shows its arity, so a callback's shape is
+   visible without decoding its type. *)
+let rec placeholder t =
+  match (Type.deref t).Type.descr with
+    | Type.String -> "string"
+    | Type.Int -> "int"
+    | Type.Float -> "float"
+    | Type.Bool -> "bool"
+    | Type.Getter t | Type.Nullable t | Type.Meth (_, t) -> placeholder t
+    | Type.List { t } -> "[" ^ placeholder t ^ "]"
+    | Type.Tuple l -> "(" ^ String.concat ", " (List.map placeholder l) ^ ")"
+    | Type.Constr { constructor } -> constructor
+    | Type.Custom { custom_name } -> custom_name
+    | Type.Arrow (params, _) ->
+        let param i (_, label, _) =
+          if label = "" then String.make 1 (Char.chr (Char.code 'a' + i))
+          else "~" ^ label
+        in
+        "fun (" ^ String.concat ", " (List.mapi param params) ^ ") -> ..."
+    | _ -> "value"
+
 let rec parameter_types t =
   match (Type.deref t).Type.descr with
     | Type.Arrow (p, _) -> p
@@ -29,7 +50,8 @@ let rec parameter_types t =
     | _ -> []
 
 let default_values = function
-  | Value.Fun { fun_args } -> List.map (fun (l, _, o) -> (l, o)) fun_args
+  | Value.Fun { fun_args } ->
+      List.map (fun (l, name, o) -> (l, (name, o))) fun_args
   | _ -> []
 
 (* Unlabeled arguments share a label: each one takes the first documentation
@@ -41,8 +63,16 @@ let arguments ~generalized (doc : Doc.Value.t) t v =
       (fun (documented, defaults) (_, label, t) ->
         let label = if label = "" then None else Some label in
         let argument, documented = take label documented in
-        let default, defaults =
+        let variable, defaults =
           take (Option.value ~default:"" label) defaults
+        in
+        let default = Option.map snd variable in
+        let arg_placeholder =
+          match (label, variable) with
+            | None, Some (name, _)
+              when String.length name > 1 && name.[0] <> '_' ->
+                name
+            | _ -> placeholder t
         in
         let description, documented_fields =
           match argument with
@@ -57,6 +87,7 @@ let arguments ~generalized (doc : Doc.Value.t) t v =
                 arg_default = Option.map Value.to_string (Option.join default);
                 arg_description = description;
                 arg_fields = fields ~generalized documented_fields t;
+                arg_placeholder;
               } ) ))
       (doc.arguments, default_values v)
       (parameter_types t)

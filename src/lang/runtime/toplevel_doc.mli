@@ -11,5 +11,8 @@ val fields :
   Type.t ->
   (string * Doc.Value.meth) list
 
+(** What a usage template shows for an argument of type [t] with no default. *)
+val placeholder : Type.t -> string
+
 val fill :
   generalized:Type.var list -> Type.t -> Value.t -> Doc.Value.t -> Doc.Value.t

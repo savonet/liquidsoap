@@ -1,0 +1,29 @@
+Sends a message.
+
+Usage:
+
+  send(
+    host=string,
+    on_reply=fun (a, b) -> ...,
+    retries=3,
+    message,
+    fun (a) -> ...
+  )
+
+Type: (?retries : int, host : string, on_reply : ((string, float) -> 'a), string,
+ ((int) -> 'b)) -> unit
+
+Category: Uncategorized
+
+Arguments:
+
+ * host : string
+
+ * on_reply : (string, float) -> 'a
+
+ * retries : int (default: 3)
+
+ * (unlabeled) : string
+
+ * (unlabeled) : (int) -> 'b
+
