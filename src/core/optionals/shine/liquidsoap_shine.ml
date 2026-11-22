@@ -27,6 +27,9 @@ open Shine_format
 let create_encoder ~samplerate ~bitrate ~channels =
   Shine.create { Shine.channels; samplerate; bitrate }
 
+(* Samples of delay shine adds before the input, as measured. *)
+let shine_delay = 528
+
 let encoder ~pos shine =
   let channels = shine.channels in
   let samplerate = Lazy.Mutexed.force shine.samplerate in
@@ -41,6 +44,9 @@ let encoder ~pos shine =
       (Frame.Fields.make ~audio:(Content.Audio.format_of_channels channels) ())
   in
   let encoded = Strings.Mutable.empty () in
+  Strings.Mutable.add encoded
+    (Mp3_info_frame.frame ~vbr:false ~bitrate:shine.bitrate ~samplerate
+       ~channels ~delay:shine_delay ());
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -61,7 +67,35 @@ let encoder ~pos shine =
     done;
     Strings.Mutable.flush encoded
   in
-  let stop () = Strings.of_string (Shine.flush enc) in
+  (* Shine only encodes whole passes: the last one is padded with silence. *)
+  let stop () =
+    let remaining = Generator.length buf in
+    if remaining > 0 then begin
+      let pcm =
+        Content.Audio.get_data
+          (Frame.Fields.find Frame.Fields.audio (Generator.slice buf remaining))
+      in
+      let pass = Shine.samples_per_pass enc in
+      let padded =
+        Array.map
+          (fun channel ->
+            let a = Array.make pass 0. in
+            Array.blit channel 0 a 0 (min pass (Array.length channel));
+            a)
+          pcm
+      in
+      Strings.Mutable.add encoded (Shine.encode_buffer enc padded)
+    end;
+    (* Workaround: shine's flush leaves its last [shine_delay] samples in
+       the encoder, so a silent pass pushes them out, adding up to a frame of
+       silence. To drop once shine's flush returns them. *)
+    Strings.Mutable.add encoded
+      (Shine.encode_buffer enc
+         (Array.init channels (fun _ ->
+              Array.make (Shine.samples_per_pass enc) 0.)));
+    Strings.Mutable.add encoded (Shine.flush enc);
+    Strings.Mutable.flush encoded
+  in
   {
     Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);

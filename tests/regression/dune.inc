@@ -2520,6 +2520,24 @@
   (run %{run_test} metadata_cache liquidsoap metadata_cache.liq)))
 
 (rule
+ (alias test_mp3_gapless)
+ (package liquidsoap)
+ (deps
+  mp3_gapless.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} mp3_gapless liquidsoap mp3_gapless.liq)))
+
+(rule
  (alias test_ogg_flac_chained)
  (package liquidsoap)
  (deps
@@ -3968,6 +3986,7 @@
   (alias test_mad_seek)
   (alias test_metadata-resolvers-metadata)
   (alias test_metadata_cache)
+  (alias test_mp3_gapless)
   (alias test_ogg_flac_chained)
   (alias test_opus_pre_skip)
   (alias test_output_on_metadata)

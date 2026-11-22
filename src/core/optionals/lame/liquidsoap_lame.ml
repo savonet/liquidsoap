@@ -95,26 +95,48 @@ let () =
                 (Frame.Metadata.to_list
                    (Frame.Metadata.Export.to_metadata metadata))))
          mp3.id3v2);
+    Strings.Mutable.add encoded
+      (Mp3_info_frame.frame
+         ~vbr:
+           (match mp3.Mp3_format.bitrate_control with
+             | Mp3_format.CBR _ -> false
+             | _ -> true)
+         ~bitrate:
+           (match mp3.Mp3_format.bitrate_control with
+             | Mp3_format.CBR br -> br
+             | _ -> 0)
+         ~samplerate:(Lazy.Mutexed.force mp3.Mp3_format.samplerate)
+         ~channels
+         ~delay:(Lame.get_encoder_delay enc)
+         ());
+    let encode_pending len =
+      let pcm =
+        Content.Audio.get_data
+          (Frame.Fields.find Frame.Fields.audio
+             (Generator.slice pending_data len))
+      in
+      Strings.Mutable.add encoded
+        (if channels = 1 then
+           Lame.encode_buffer_float_part enc pcm.(0) pcm.(0) 0
+             (Array.length pcm.(0))
+         else
+           Lame.encode_buffer_float_part enc pcm.(0) pcm.(1) 0
+             (Array.length pcm.(0)))
+    in
     let encode frame =
       Generator.put pending_data Frame.Fields.audio
         (Frame.get frame Frame.Fields.audio);
       while Generator.length pending_data > frame_size do
-        let pcm =
-          Content.Audio.get_data
-            (Frame.Fields.find Frame.Fields.audio
-               (Generator.slice pending_data frame_size))
-        in
-        Strings.Mutable.add encoded
-          (if channels = 1 then
-             Lame.encode_buffer_float_part enc pcm.(0) pcm.(0) 0
-               (Array.length pcm.(0))
-           else
-             Lame.encode_buffer_float_part enc pcm.(0) pcm.(1) 0
-               (Array.length pcm.(0)))
+        encode_pending frame_size
       done;
       Strings.Mutable.flush encoded
     in
-    let stop () = Strings.of_string (Lame.encode_flush enc) in
+    let stop () =
+      let remaining = Generator.length pending_data in
+      if remaining > 0 then encode_pending remaining;
+      Strings.Mutable.add encoded (Lame.encode_flush enc);
+      Strings.Mutable.flush encoded
+    in
     {
       encode_metadata = (fun _ -> ());
       encode;
