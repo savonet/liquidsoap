@@ -222,7 +222,9 @@
  (action
   (with-stdout-to
    doc_usage.actual
-   (run %{bin:liquidsoap} --no-cache doc_usage.liq -h send))))
+   (progn
+    (run %{bin:liquidsoap} --no-cache doc_usage.liq -h send)
+    (run %{bin:liquidsoap} --no-cache doc_usage.liq -h connect)))))
 
 (rule
  (alias doc_usage_test)

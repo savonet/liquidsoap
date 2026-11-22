@@ -30,17 +30,31 @@ let rec placeholder t =
     | Type.Int -> "int"
     | Type.Float -> "float"
     | Type.Bool -> "bool"
-    | Type.Getter t | Type.Nullable t | Type.Meth (_, t) -> placeholder t
+    | Type.Getter t | Type.Nullable t -> placeholder t
+    | Type.Meth _ -> (
+        let fields, base = Type.split_meths t in
+        match (Type.deref base).Type.descr with
+          | Type.Var _ | Type.Tuple [] ->
+              let field (m : Type.meth) =
+                m.meth ^ "=" ^ placeholder (snd m.scheme)
+              in
+              "{" ^ String.concat ", " (List.map field fields) ^ "}"
+          | _ -> placeholder base)
     | Type.List { t } -> "[" ^ placeholder t ^ "]"
     | Type.Tuple l -> "(" ^ String.concat ", " (List.map placeholder l) ^ ")"
     | Type.Constr { constructor } -> constructor
     | Type.Custom { custom_name } -> custom_name
     | Type.Arrow (params, _) ->
-        let param i (_, label, _) =
-          if label = "" then String.make 1 (Char.chr (Char.code 'a' + i))
-          else "~" ^ label
+        let _, params =
+          List.fold_left_map
+            (fun unlabeled (_, label, _) ->
+              if label = "" then
+                ( unlabeled + 1,
+                  String.make 1 (Char.chr (Char.code 'a' + unlabeled)) )
+              else (unlabeled, "~" ^ label))
+            0 params
         in
-        "fun (" ^ String.concat ", " (List.mapi param params) ^ ") -> ..."
+        "fun (" ^ String.concat ", " params ^ ") -> ..."
     | _ -> "value"
 
 let rec parameter_types t =

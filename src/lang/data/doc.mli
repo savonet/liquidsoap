@@ -109,7 +109,7 @@ module Value : sig
   val standard_source_methods : (string * string) list ref
 
   (** A call to [name] with each argument at its default value or placeholder.
-      [None] when [name] takes no argument. *)
+      [None] when [name] takes no argument or is an operator such as [+]. *)
   val usage : string -> t -> string option
 
   (** Print the documentation of one item, as [liquidsoap -h] does. *)

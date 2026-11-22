@@ -2,7 +2,7 @@ Connects to a server.
 
 Usage:
 
-  connect(retry=value, config)
+  connect(retry={count=int}, config)
 
 Type: (retry : 'a.{count? : int}, 'b.{host? : string, name : string, port : int}) ->
  unit

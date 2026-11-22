@@ -231,7 +231,11 @@ module Value = struct
     let required, optional =
       List.partition (fun (_, a) -> a.arg_default = None) labeled
     in
+    let is_identifier =
+      match name.[0] with 'a' .. 'z' | 'A' .. 'Z' | '_' -> true | _ -> false
+    in
     match List.map argument (required @ optional @ unlabeled) with
+      | _ when not is_identifier -> None
       | [] -> None
       | arguments ->
           let one_line = name ^ "(" ^ String.concat ", " arguments ^ ")" in
@@ -774,7 +778,7 @@ let parse_doc ~pos doc =
                 arg_default = None;
                 arg_description = d;
                 arg_fields;
-                arg_placeholder = "";
+                arg_placeholder = "value";
               } ))
         params
     in

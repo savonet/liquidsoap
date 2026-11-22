@@ -10,3 +10,9 @@ def send(~retries=3, ~host, ~on_reply, message, f) =
   ignore(message ^ "")
   ignore(f(1))
 end
+
+# Connects to a host.
+def connect(~options, ~on_error) =
+  ignore(options.port + 1)
+  on_error(reason="", 1.)
+end

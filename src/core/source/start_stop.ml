@@ -231,5 +231,7 @@ let () =
   Doc.Value.standard_source_methods :=
     !Doc.Value.standard_source_methods
     @ List.map (fun { Lang.name; descr } -> (name, descr)) (meth ())
-    @ callback_entries (callbacks ~label:"source")
+    @ List.concat_map
+        (fun label -> callback_entries (callbacks ~label))
+        ["source"; "input"]
     @ callback_entries (output_callbacks ())

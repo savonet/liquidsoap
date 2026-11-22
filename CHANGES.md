@@ -24,7 +24,7 @@
 - Added `domain` to `thread.run` to pin a function to one scheduler domain ([#5397](https://github.com/savonet/liquidsoap/pull/5397)).
 - Added an `override` parameter to `insert_metadata` ([#5077](https://github.com/savonet/liquidsoap/pull/5077)).
 - Added `codec_tag` to FFmpeg copied and encoded tracks, e.g. `%video.copy(codec_tag="hvc1")` for HEVC HLS on Apple players. Copied tracks keep their source's codec tag when the output format accepts it ([#5643](https://github.com/savonet/liquidsoap/issues/5643)).
-- `liquidsoap -h` and the online reference show a usage template for each function: a call with every argument at its default value or a placeholder. The reference lists the methods common to all sources apart from an operator's own.
+- `liquidsoap -h` and the online reference show a usage template for each function: a call with every argument at its default value or a placeholder. The reference lists the methods common to all sources apart from an operator's own ([#5694](https://github.com/savonet/liquidsoap/pull/5694)).
 
 ## Changed:
 
