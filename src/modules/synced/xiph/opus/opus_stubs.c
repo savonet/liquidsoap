@@ -594,7 +594,12 @@ CAMLprim value ocaml_opus_encoder_create(value _skip, value _comments,
   int pre_skip = Int_val(_skip);
   if (pre_skip < 0) {
     opus_int32 lookahead = 0;
-    check(opus_encoder_ctl(enc->encoder, OPUS_GET_LOOKAHEAD(&lookahead)));
+    ret = opus_encoder_ctl(enc->encoder, OPUS_GET_LOOKAHEAD(&lookahead));
+    if (ret != OPUS_OK) {
+      opus_encoder_destroy(enc->encoder);
+      free(enc);
+      check(ret);
+    }
     pre_skip = lookahead * enc->samplerate_ratio;
   }
 
