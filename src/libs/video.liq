@@ -795,46 +795,21 @@ def video.color(color) =
   video.fill(color=color, blank())
 end
 
-# Tile sources
+# Tile the video of sources: each one is scaled into its own tile. The result
+# only has a video track: to keep the sound, mix the sources' audio tracks
+# separately, e.g. with `track.audio.add`, and combine both with `source`.
 # @category Source / Video processing
 # @argsof track.video.tile
-# @argsof track.audio.add[!id]
 def video.tile(
   ~id=null("video.tile"),
-  %argsof(track.audio.add[!id]),
   %argsof(track.video.tile[!id]),
-  ~weights=[],
   sources
 ) =
-  tracks = list.map(fun (s) -> source.tracks(s), sources)
-  video_tracks = list.map(fun (t) -> t.video, tracks)
-  new_tracks =
-    {video = track.video.tile(%argsof(track.video.tile[!id]), video_tracks)}
-
-  new_tracks =
-    if
-      list.length(tracks) != 0 and null.defined(list.hd(tracks)?.audio)
-    then
-      def mk_audio_track(pos, track) =
-        weight =
-          try
-            list.nth(weights, pos)
-          catch _ do
-            getter(1.)
-          end
-
-        null.get(track?.audio).{weight = weight}
-      end
-
-      audio_tracks = list.mapi(mk_audio_track, tracks)
-      new_tracks.{
-        audio = track.audio.add(%argsof(track.audio.add[!id]), audio_tracks)
-      }
-    else
-      new_tracks
-    end
-
-  source(id=id, new_tracks)
+  tracks = list.map(fun (s) -> source.tracks(s).video, sources)
+  source(
+    id=id,
+    {video = track.video.tile(%argsof(track.video.tile[!id]), tracks)}
+  )
 end
 
 # Plot a floating point value.

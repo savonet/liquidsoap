@@ -67,6 +67,7 @@
 - Deprecated `fallback.skip`: use `track_sensitive = getter(false)` on the fallback source.
 - `output.file` fails on `on_close` errors unless `reopen_on_error` handles them ([#4879](https://github.com/savonet/liquidsoap/pull/4879)).
 - `add` keeps the metadata of all its sources ([#4892](https://github.com/savonet/liquidsoap/pull/4892)).
+- `video.tile` only tiles video and returns a video-only source: it no longer mixes the sources' audio, and it takes video-only sources. Mix the audio with `track.audio.add` to keep it (see the migration notes).
 - `prometheus.latency` metrics end in `_ratio` instead of `_seconds` ([#5470](https://github.com/savonet/liquidsoap/pull/5470)).
 - `file.write` and `file.write.stream` with `atomic=true` write to a hidden temporary file next to the destination, so the final rename is always atomic and the destination's directory must be writable. The `temp_dir` argument is removed, from `source.cue` too. The `file.write.stream` callback can be called from several threads, and `file.temp` takes `perms` (reported by @gilou, [#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - Record fields are evaluated when the record is built, even if they are never used ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).

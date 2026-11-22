@@ -2,7 +2,8 @@
 
 # video.tile used the first track's image, unscaled, as the canvas the other
 # tiles were added to, so the top-left tile showed the top-left part of the full
-# frame instead of the whole first image scaled down (#3606).
+# frame instead of the whole first image scaled down (#3606). It also failed on
+# video-only sources, which it now takes: it only tiles video.
 
 log.level := 4
 settings.frame.video.width := 160
@@ -24,7 +25,7 @@ ignore(
 )
 
 def tile(img) =
-  source.mux.audio(audio=sine(), max_duration(1., img))
+  max_duration(1., img)
 end
 
 s =
@@ -37,7 +38,6 @@ s =
     ]
   )
 
-# The tile's audio track is optional: replace it to have a definite one.
 s = source.mux.audio(audio=sine(), s)
 clock.assign_new(sync="none", [s])
 
