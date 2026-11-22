@@ -103,6 +103,10 @@ audio = track.audio.add(list.map(fun (s) -> source.tracks(s).audio, sources))
 s = source({audio=audio, video=source.tracks(tiled).video})
 ```
 
+Its former `weights` go on each audio track, e.g.
+`list.mapi(fun (i, s) -> source.tracks(s).audio.{weight=list.nth(weights, i)}, sources)`,
+and `normalize` and `power` go to `track.audio.add`.
+
 ### `output.harbor` authentication
 
 The `user` and `password` parameters have been removed from `output.harbor`.
