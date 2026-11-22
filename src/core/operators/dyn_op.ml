@@ -208,9 +208,9 @@ let _ =
     ]
     ~return_t:frame_t
     ~descr:
-      "Dynamically change the underlying source: it can either be changed by \
-       the function given as argument, which returns the source to be played, \
-       or by calling the `set` method."
+      "Dynamically change the underlying source: the function given as \
+       argument is called to get the source to play, and returns `null` to \
+       keep the current one."
     ~category:`Track
     ~meth:
       [
