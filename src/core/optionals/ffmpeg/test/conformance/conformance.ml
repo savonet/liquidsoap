@@ -193,6 +193,23 @@ let wait name pid =
     | Unix.WSIGNALED n | Unix.WSTOPPED n ->
         fail "%s: killed by signal %d" name n
 
+(* The script run last and its log: what a failed check was most likely
+   looking at. *)
+let last_run = ref None
+
+(* Printed with a failure: CI keeps nothing else of a run. *)
+let report_last_run () =
+  let limit = 200_000 in
+  Option.iter
+    (fun (name, log) ->
+      let length = String.length log in
+      let kept = min limit length in
+      Printf.eprintf
+        "--- log of %s, the last script run%s ---\n%s\n--- end ---\n" name
+        (if kept < length then Printf.sprintf " (last %d bytes)" kept else "")
+        (String.sub log (length - kept) kept))
+    !last_run
+
 let run_script name script =
   let path = name ^ ".liq" and log = name ^ ".log" in
   Out_channel.with_open_bin path (fun oc -> output_string oc script);
@@ -203,16 +220,21 @@ let run_script name script =
     Unix.create_process "liquidsoap" [| "liquidsoap"; path |] Unix.stdin fd fd
   in
   Unix.close fd;
-  let status = wait name pid in
-  (status, In_channel.with_open_bin log In_channel.input_all)
+  let read () = In_channel.with_open_bin log In_channel.input_all in
+  let status =
+    try wait name pid
+    with killed ->
+      last_run := Some (name, read ());
+      raise killed
+  in
+  let log = read () in
+  last_run := Some (name, log);
+  (status, log)
 
 let run_ok name script =
   match run_script name script with
     | `Ok, log -> log
-    | `Exited n, log ->
-        let length = min 2000 (String.length log) in
-        fail "%s: liquidsoap exited with %d: %s" name n
-          (String.sub log (String.length log - length) length)
+    | `Exited n, _ -> fail "%s: liquidsoap exited with %d" name n
 
 (* The [<prefix...>] marks a script printed, in order. A mark is found
    wherever it lands: the log shares the script's output and can cut a line. *)
@@ -1597,6 +1619,7 @@ let () =
           | () -> Printf.printf "pass %s (%d assertions)\n" name !assertions
           | exception Check_failed e ->
               Printf.eprintf "FAIL %s: %s\n" name e;
+              report_last_run ();
               exit 1)
     | _ ->
         prerr_endline "Usage: conformance.exe <copy_producer.exe> <check>";
