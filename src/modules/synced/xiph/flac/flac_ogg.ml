@@ -52,6 +52,9 @@ module Decoder = struct
         Bytes.blit_string c 0 bytes ofs len;
         len
       with
+        (* Once its last page is in, the stream has no more data: reading
+           further pages would read those of the next chained stream. *)
+        | Ogg.Not_enough_data when Ogg.Stream.eos os -> 0
         | Ogg.Not_enough_data ->
             fill ();
             read bytes ofs len
