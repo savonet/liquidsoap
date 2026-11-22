@@ -98,7 +98,9 @@ def f() =
     end
   end
 
-  thread.run.recurrent(delay=0., check)
+  # A finaliser runs on the domain that registered it, once that domain
+  # processes its pending actions: an idle one may never do so.
+  thread.run.recurrent(domain=runtime.domain(), delay=0., check)
 end
 
 test.check(f)
