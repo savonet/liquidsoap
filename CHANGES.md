@@ -28,6 +28,7 @@
 - Added `runtime.file_descriptors()`: the number of file descriptors open by the process (`count`) and its limit (`max`) ([#3953](https://github.com/savonet/liquidsoap/issues/3953)).
 - Added `runtime.file_descriptors()`: the number of file descriptors open by the process and its limit ([#3953](https://github.com/savonet/liquidsoap/issues/3953)).
 - Added `argv.list()`: the script name followed by the script parameters (after `--`, minus those consumed by `getopt`), so that its `i`-th element is `argv(i)` ([#3409](https://github.com/savonet/liquidsoap/issues/3409)).
+- Added `server.register.alias` to call a server command, or a namespace of commands, under another name, e.g. to keep the command names a control system expects when source ids change, and `server.register.alias.regexp` to alias the namespaces a regular expression matches, e.g. ids with a numbered suffix. It is written in the standard library on top of two new builtins: `server.commands()`, the registered commands, and `server.register.dynamic`, for commands computed each time they are called or listed ([#3941](https://github.com/savonet/liquidsoap/issues/3941)).
 
 ## Changed:
 
