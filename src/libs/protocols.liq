@@ -266,10 +266,15 @@ def protocol.http(proto, ~rlog, ~maxtime, arg) =
         }"
       )
 
+      # A timeout or a connection failure is a status too, with no final null
+      # passed to `on_body_data`.
+      file_writer(null)
+      file.remove(output)
       null
     end
   catch err do
     file_writer(null)
+    file.remove(output)
     log(
       level=3,
       "Error while fetching http data: #{err}"

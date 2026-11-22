@@ -14,6 +14,9 @@
 - Source callbacks (`on_track`, `on_metadata`, ...) return a `release` method. `source.collect_callback_releases` gathers the callbacks a function registers. See the [source callbacks](doc/content/callbacks.md) page ([#5338](https://github.com/savonet/liquidsoap/pull/5338)).
 - Added `atomic(f)` and `r.exchange(v)` for script code that must not be observed half-done, now that it runs on several cores at once ([#5364](https://github.com/savonet/liquidsoap/pull/5364)).
 - Added `runtime.gc.finalise(fn, v)` and `runtime.gc.finalise.last(fn, v)`, to release what a value holds when a script drops it, e.g. a temporary file ([#5683](https://github.com/savonet/liquidsoap/pull/5683)).
+- Added `atomic(f)` and `r.exchange(v)` for script code that must not be observed half-done, now that it runs on several cores at once ([#5364](https://github.com/savonet/liquidsoap/pull/5364)). `atomic(lock=atomic.lock(), f)` takes a lock of its own instead of the process-wide one ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- Added `atomic(f)` and `r.exchange(v)` for script code that must not be observed half-done, now that it runs on several cores at once ([#5364](https://github.com/savonet/liquidsoap/pull/5364)). `atomic(lock=atomic.lock(), f)` takes a lock of its own instead of the process-wide one ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- Added `runtime.gc.finaliser(v, fn)`, to release what a value holds when a script drops it, e.g. a temporary file ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - Added Fedora packages (`x86_64`, `aarch64`) and a dnf repository, configured by `curl -fsSL https://repo.liquidsoap.info/setup.sh | sudo sh` ([#5473](https://github.com/savonet/liquidsoap/pull/5473)).
 - `http.transport.tls` and `http.transport.ssl` reload their certificate and key daily (`reload_on`, `reload()`), accept getters for them, and no longer require `key` when the certificate file contains it ([#5450](https://github.com/savonet/liquidsoap/pull/5450)).
 - Added `on_signal` to run a function when the process receives a signal ([#5456](https://github.com/savonet/liquidsoap/pull/5456)).
@@ -65,6 +68,7 @@
 - `output.file` fails on `on_close` errors unless `reopen_on_error` handles them ([#4879](https://github.com/savonet/liquidsoap/pull/4879)).
 - `add` keeps the metadata of all its sources ([#4892](https://github.com/savonet/liquidsoap/pull/4892)).
 - `prometheus.latency` metrics end in `_ratio` instead of `_seconds` ([#5470](https://github.com/savonet/liquidsoap/pull/5470)).
+- `file.write` and `file.write.stream` with `atomic=true` write to a hidden temporary file next to the destination, so the final rename is always atomic and the destination's directory must be writable. The `temp_dir` argument is removed, from `source.cue` too. The `file.write.stream` callback can be called from several threads, and `file.temp` takes `perms` (reported by @gilou, [#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - Record fields are evaluated when the record is built, even if they are never used ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
 - Bindings without `let` accept destructuring, field paths and type annotations, e.g. `(x, y) = (1, 2)` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
 - String interpolation accepts any expression, e.g. `"#{m["key"]}"` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
@@ -76,6 +80,11 @@
 - The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
 - `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
 - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
+- Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- `playlist(reload_mode="seconds")`, `input.hls` and `native.request.dynamic` stop polling once shut down ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- `output.harbor.hls` and `output.youtube.live.hls` remove their temporary directory when they shut down rather than at exit ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- `file.write(atomic=true)` no longer publishes a partial file when its `data` raises, and write errors keep their message ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- `file.getter` stops watching its file once dropped ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `output.file.hls` handles transient filesystem errors with `reopen_on_error` ([#5263](https://github.com/savonet/liquidsoap/pull/5263)), rejects unwritable directories at startup ([#5264](https://github.com/savonet/liquidsoap/pull/5264)), and puts ID3 metadata in the first mpegts segment ([#5117](https://github.com/savonet/liquidsoap/pull/5117)).
 - Fixed typechecking running out of memory on some scripts mixing doubly nullable values ([#5601](https://github.com/savonet/liquidsoap/pull/5601)).
 - `time.predicate` parses predicates combined with `and`, `or`, `not` and parentheses ([#5534](https://github.com/savonet/liquidsoap/pull/5534)).
@@ -106,6 +115,8 @@
 ## Optimized:
 
 - Scripts typecheck about four times faster with less memory ([#5600](https://github.com/savonet/liquidsoap/pull/5600)).
+- Playlists take a lock of their own instead of the process-wide `atomic` lock, so they no longer hold up each other or unrelated sections ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- `icecast.server` takes a lock of its own instead of the process-wide `atomic` lock, and waits on it without polling ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 
 ---
 

@@ -119,13 +119,19 @@ let _ =
 let _ =
   Lang.add_builtin ~base:file "temp" ~category:`File
     ~descr:
-      "Return a fresh temporary filename. The temporary file is created empty, \
-       with permissions 0o600 (readable and writable only by the file owner)."
+      "Return a fresh temporary filename. The temporary file is created empty \
+       and exclusively, with permissions `perms`."
     [
       ( "directory",
         Lang.nullable_t Lang.string_t,
         Some Lang.null,
         Some "Directory where to create the file." );
+      ( "perms",
+        Lang.int_t,
+        Some (Lang.octal_int 0o600),
+        Some
+          "File rights, subject to the umask. The default is readable and \
+           writable only by the file owner." );
       ("", Lang.string_t, None, Some "File prefix");
       ("", Lang.string_t, None, Some "File suffix");
     ]
@@ -134,8 +140,9 @@ let _ =
       let temp_dir =
         Lang.to_valued_option Lang.to_string (List.assoc "directory" p)
       in
+      let perms = Lang.to_int (List.assoc "perms" p) in
       Lang.string
-        (File.temp_file ?temp_dir
+        (File.temp_file ?temp_dir ~perms
            (Lang.to_string (Lang.assoc "" 1 p))
            (Lang.to_string (Lang.assoc "" 2 p))))
 

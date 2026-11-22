@@ -1462,6 +1462,41 @@
   (run %{run_test} hls_harbor_serving.liq liquidsoap hls_harbor_serving.liq)))
 
 (rule
+ (alias test_hls_harbor_temp_dir_removed)
+ (package liquidsoap)
+ (deps
+  hls_harbor_temp_dir_removed.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   hls_harbor_temp_dir_removed.liq
+   liquidsoap
+   hls_harbor_temp_dir_removed.liq)))
+
+(rule
  (alias test_hls_id3_bytes)
  (package liquidsoap)
  (deps
@@ -2851,6 +2886,72 @@
   (run %{run_test} playlist-watch.liq liquidsoap playlist-watch.liq)))
 
 (rule
+ (alias test_playlist_on_done)
+ (package liquidsoap)
+ (deps
+  playlist_on_done.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} playlist_on_done.liq liquidsoap playlist_on_done.liq)))
+
+(rule
+ (alias test_playlist_reload_stops)
+ (package liquidsoap)
+ (deps
+  playlist_reload_stops.liq
+  ./file1.mp3
+  ./file2.mp3
+  ./file3.mp3
+  ./jingle1.mp3
+  ./jingle2.mp3
+  ./jingle3.mp3
+  ./file1.png
+  ./file2.png
+  ./jingles
+  ./playlist
+  ./huge_playlist
+  ./replaygain_track_gain.mp3
+  ./r128_track_gain.mp3
+  ./replaygain_r128_track_gain.mp3
+  ./replaygain_track_gain.opus
+  ./r128_track_gain.opus
+  ./replaygain_r128_track_gain.opus
+  ./without_replaygain_track_gain.mp3
+  ../media/test-subtitle.srt
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   playlist_reload_stops.liq
+   liquidsoap
+   playlist_reload_stops.liq)))
+
+(rule
  (alias test_radio)
  (package liquidsoap)
  (deps
@@ -3546,6 +3647,7 @@
   (alias test_hls_harbor_id)
   (alias test_hls_harbor_paths)
   (alias test_hls_harbor_serving)
+  (alias test_hls_harbor_temp_dir_removed)
   (alias test_hls_id3_bytes)
   (alias test_hls_id3_timestamp)
   (alias test_hls_insert_tag_catchable)
@@ -3589,6 +3691,8 @@
   (alias test_on_offset_partial)
   (alias test_on_track)
   (alias test_playlist-watch)
+  (alias test_playlist_on_done)
+  (alias test_playlist_reload_stops)
   (alias test_radio)
   (alias test_radio2)
   (alias test_random)

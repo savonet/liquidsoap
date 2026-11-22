@@ -17,7 +17,7 @@ def icecast.server.mounts.dump(state, mount, feeder) =
     output_ref = ref(null)
     def stop() =
       if
-        not atomic(fun () -> stopped.exchange(true))
+        not stopped.exchange(true)
       then
         thread.run(
           fun () ->
