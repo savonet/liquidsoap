@@ -882,6 +882,14 @@ class virtual operator ?(stack = []) ?clock ~name sources =
         | _ -> None
 
     method frame_metadata = Frame.get_all_metadata self#get_frame
+
+    (* Where, in the current tick, the data produced so far ends, read without
+       producing or consuming any: 0 outside a streaming cycle. *)
+    method produced_position =
+      match tick_data with
+        | Some data -> tick_start + Frame.position data
+        | None -> 0
+
     method frame_position = Frame.position self#get_frame
     method frame_audio_position = Frame.audio_of_main self#frame_position
 

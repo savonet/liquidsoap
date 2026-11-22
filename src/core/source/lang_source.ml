@@ -691,10 +691,10 @@ let source_methods : source_meth list =
               let frame_position =
                 Lazy.Mutexed.force Frame.duration *. float_of_int ticks
               in
+              (* Read from any thread: the source must not be made to produce or
+                 consume data outside its clock's cycle. *)
               let in_frame_position =
-                if s#is_ready then
-                  Frame.(seconds_of_main (position s#get_frame))
-                else 0.
+                Frame.seconds_of_main s#produced_position
               in
               float (frame_position +. in_frame_position)));
     };
