@@ -279,6 +279,20 @@
   (run %{run_test} functions.liq liquidsoap functions.liq)))
 
 (rule
+ (alias test_gc_finaliser)
+ (package liquidsoap)
+ (deps
+  gc_finaliser.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} gc_finaliser.liq liquidsoap gc_finaliser.liq)))
+
+(rule
  (alias test_getter)
  (package liquidsoap)
  (deps
@@ -1027,6 +1041,7 @@
   (alias test_file_protocol)
   (alias test_file_read_length)
   (alias test_functions)
+  (alias test_gc_finaliser)
   (alias test_getter)
   (alias test_icecast_server_addresses)
   (alias test_icecast_server_config)

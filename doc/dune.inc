@@ -1070,6 +1070,20 @@
    content/liq/frame-size.liq)))
 
 (rule
+ (alias test-doc-gc-finaliser)
+ (package liquidsoap)
+ (deps
+  (alias_rec ../install)
+  (source_tree ../src/libs)
+  (:test_liq content/liq/gc-finaliser.liq))
+ (action
+  (run
+   %{bin:liquidsoap}
+   --check
+   --no-fallible-check
+   content/liq/gc-finaliser.liq)))
+
+(rule
  (alias test-doc-harbor-auth)
  (package liquidsoap)
  (deps
@@ -2893,6 +2907,7 @@
   (alias test-doc-fixed-time1)
   (alias test-doc-fixed-time2)
   (alias test-doc-frame-size)
+  (alias test-doc-gc-finaliser)
   (alias test-doc-harbor-auth)
   (alias test-doc-harbor-dynamic)
   (alias test-doc-harbor-dynamic-basic)

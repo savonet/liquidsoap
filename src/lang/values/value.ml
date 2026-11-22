@@ -80,7 +80,7 @@ and t =
   | (* Function with given list of argument name, argument variable and default
        value, the (relevant part of the) closure, and the body. *)
     Fun of {
-      id : int;
+      id : function_id;
       pos : Pos.Option.t; [@hash.ignore]
       fun_args : (string * string * t option) list;
       fun_env : env; [@hash.ignore]
@@ -91,14 +91,17 @@ and t =
   | (* For a foreign function only the arguments are visible, the closure
        doesn't capture anything in the environment. *)
     FFI of {
-      id : int;
+      id : function_id;
       pos : Pos.Option.t; [@hash.ignore]
       ffi_args : (string * string * t option) list;
       mutable ffi_fn : env -> t; [@hash.ignore]
       methods : t Methods.t;
       mutable flags : Flags.flags; [@hash.ignore]
     }
-[@@deriving hash]
+
+(* A block shared by every copy of a function, operators' included: what a
+   finaliser on the function watches. *)
+and function_id = { id : int } [@@deriving hash]
 
 type fun_v = {
   fun_args : (string * string * t option) list;
@@ -211,6 +214,29 @@ let remove_flag v flag =
     | FFI p -> p.flags <- Flags.remove p.flags flag
 [@@inline always]
 
+(* The OCaml block every copy of [v] shares: what a finaliser watches, with the
+   guarantee [Gc] gives it. See spec/value.md. *)
+let watched_block v =
+  match v with
+    | String { value } -> Obj.repr value
+    | List { value = _ :: _ as l } | Tuple { value = _ :: _ as l } -> Obj.repr l
+    | Custom { value = { value = content } } -> Obj.repr content
+    | Fun { id } | FFI { id } -> Obj.repr id
+    | Int _ | Float _ | Bool _ | Null _ | List _ | Tuple _ ->
+        invalid_arg "Value.finalise"
+
+let finalise_last v fn = Gc.finalise_last fn (watched_block v)
+
+(* The ephemeron keeps [v] for as long as its block lives, without [v] keeping
+   the block alive: a value whose methods refer to its data, such as a source,
+   is still collected. *)
+let finalise v fn =
+  let block = watched_block v in
+  let saved = Ephemeron.K1.make block v in
+  Gc.finalise
+    (fun block -> Option.iter fn (Ephemeron.K1.query saved block))
+    block
+
 let unit = `Tuple []
 let is_unit = function Tuple { value = [] } -> true | _ -> false
 let fun_id = Atomic.make 0
@@ -229,7 +255,7 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
   | `Fun { fun_args; fun_env; fun_body } ->
       Fun
         {
-          id = Atomic.fetch_and_add fun_id 1;
+          id = { id = Atomic.fetch_and_add fun_id 1 };
           pos;
           methods;
           flags;
@@ -240,7 +266,7 @@ let make ?pos ?(methods = Methods.empty) ?(flags = Flags.empty) : in_value -> t
   | `FFI { ffi_args; ffi_fn } ->
       FFI
         {
-          id = Atomic.fetch_and_add fun_id 1;
+          id = { id = Atomic.fetch_and_add fun_id 1 };
           pos;
           methods;
           flags;
@@ -364,10 +390,10 @@ let compare a b =
               if c = 0 then cmp (l1, l2) else c
         in
         cmp (l1, l2)
-    | Fun { id = i }, Fun { id = i' }
-    | FFI { id = i }, FFI { id = i' }
-    | Fun { id = i }, FFI { id = i' }
-    | FFI { id = i }, Fun { id = i' } ->
+    | Fun { id = { id = i } }, Fun { id = { id = i' } }
+    | FFI { id = { id = i } }, FFI { id = { id = i' } }
+    | Fun { id = { id = i } }, FFI { id = { id = i' } }
+    | FFI { id = { id = i } }, Fun { id = { id = i' } } ->
         Stdlib.compare i i'
     | Null _, Null _ -> 0
     | Null _, _ -> -1
