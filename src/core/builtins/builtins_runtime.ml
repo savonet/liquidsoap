@@ -249,3 +249,33 @@ let _ =
       "Size of one word on the machine currently executing the program, in \
        bits. Either `32` or `64`."
     ~base:runtime_sys "word_size" (`Int Sys.word_size) Lang.int_t
+
+external file_descriptors_limit : unit -> int
+  = "liquidsoap_file_descriptors_limit"
+[@@noalloc]
+
+(* /dev/fd lists the calling process' descriptors on Linux and macOS. Reading
+   it opens one more descriptor, which is not counted. *)
+let open_file_descriptors () =
+  try Some (Array.length (Sys.readdir "/dev/fd") - 1) with Sys_error _ -> None
+
+let _ =
+  let int_opt = function None -> Lang.null | Some n -> Lang.int n in
+  Lang.add_builtin ~base:runtime "file_descriptors" ~category:`System
+    ~descr:
+      "File descriptors of the process: `count`, the number currently open, \
+       and `max`, the maximum number it may open (its soft `RLIMIT_NOFILE` \
+       limit). Each is `null` when it cannot be determined on this platform, \
+       and `max` is also `null` when there is no limit."
+    []
+    (Lang.record_t
+       [
+         ("count", Lang.nullable_t Lang.int_t);
+         ("max", Lang.nullable_t Lang.int_t);
+       ])
+    (fun _ ->
+      let max =
+        match file_descriptors_limit () with -1 -> None | n -> Some n
+      in
+      Lang.record
+        [("count", int_opt (open_file_descriptors ())); ("max", int_opt max)])
