@@ -101,15 +101,13 @@
 - `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
 - `video.testsrc`, `video.board`, `video.text` and frei0r source plugins have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
 - `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
-- Metadata inserted with `insert_metadata` while a source produces an empty frame, e.g. a buffered input that just ran dry, is kept for the next frame instead of being lost.
-- `icecast.server`: a mount keeps its current metadata (in its statistics and status pages) when its source client lags and its input runs dry, instead of losing it until the next update.
-- `video.add_text.ffmpeg` no longer fails on a text containing `%`: drawtext text expansion is disabled.
+- Metadata inserted with `insert_metadata` while a source produces an empty frame, e.g. a buffered input that just ran dry, is kept for the next frame instead of being lost ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
+- `icecast.server`: a mount keeps its current metadata (in its statistics and status pages) when its source client lags and its input runs dry, instead of losing it until the next update ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
+- `video.add_text.ffmpeg` no longer fails on a text containing `%`: drawtext text expansion is disabled ([#5671](https://github.com/savonet/liquidsoap/pull/5671)).
 - `video.fade.in` and `video.fade.out` apply their transition: the transformed image was discarded, so no fade was visible. The `fade` and `disc` transitions go to and from black instead of acting on transparency (use `video.opacity` to fade an overlay), and `grow` shows the scaled image instead of an empty frame ([#3180](https://github.com/savonet/liquidsoap/issues/3180)).
-- `video.fade.in` and `video.fade.out` apply their transition: the transformed image was discarded, so no fade was visible. The `grow` transition also showed an empty frame instead of the scaled image ([#3180](https://github.com/savonet/liquidsoap/issues/3180)).
-- `video.add_text.ffmpeg` scrolls a text wider than the frame in full before wrapping around, instead of skipping part of it.
+- `video.add_text.ffmpeg` scrolls a text wider than the frame in full before wrapping around, instead of skipping part of it ([#5674](https://github.com/savonet/liquidsoap/pull/5674)).
 - Image requests are placed at their `x`/`y` metadata, e.g. `annotate:x=50,y=50:logo.png`, instead of the top-left corner. An explicit `x`/`y` argument still takes precedence ([#3197](https://github.com/savonet/liquidsoap/issues/3197)).
 - LV2 plugins that require host features, such as `options`, are no longer registered: they are instantiated without any host feature, so they could not work. The reason is logged at level 4 ([#2013](https://github.com/savonet/liquidsoap/issues/2013)).
-- LV2 plugins that require host features, such as `options`, are no longer registered, since they fail at instantiation. The reason is logged at level 4 ([#2013](https://github.com/savonet/liquidsoap/issues/2013)).
 - `smooth_add` fades the special source out before the end of its track, instead of cutting it at full volume ([#3714](https://github.com/savonet/liquidsoap/issues/3714)).
 
 ## Optimized:
