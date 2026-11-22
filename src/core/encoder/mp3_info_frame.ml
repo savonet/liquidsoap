@@ -88,6 +88,7 @@ let frame ~vbr ~bitrate ~samplerate ~channels ~delay () =
   Bytes.blit_string (if vbr then "Xing" else "Info") 0 b tag 4;
   (* Flags: 0, no optional field. *)
   let lame = tag + 8 in
+  (* FFmpeg reads the delay only after a LAME, Lavf or Lavc version string. *)
   Bytes.blit_string "LAME3.100" 0 b lame 9;
   (* Encoder delay and padding, 12 bits each. *)
   let delays = lame + 21 in

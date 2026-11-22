@@ -6,7 +6,7 @@
 # onset within a few ms: the delay is 23ms.
 
 settings.frame.audio.samplerate := 48000
-pending = ref(2)
+pending = ref(3)
 
 def ffmpeg_value(cmd, pattern) =
   out =
@@ -69,3 +69,7 @@ end
 
 check("mp3", %mp3(samplerate = 48000, bitrate = 320))
 check("shine", %shine(samplerate = 48000, bitrate = 320))
+
+# At 24kHz and below, a pass is shorter than what is left in the encoder and
+# decoder at the end.
+check("shine_22050", %shine(samplerate = 22050, bitrate = 64))

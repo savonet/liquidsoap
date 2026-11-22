@@ -30,6 +30,9 @@ let create_encoder ~samplerate ~bitrate ~channels =
 (* Samples of delay shine adds before the input, as measured. *)
 let shine_delay = 528
 
+(* Samples of delay of an mp3 decoder's synthesis filter. *)
+let mp3_decoder_delay = 529
+
 let encoder ~pos shine =
   let channels = shine.channels in
   let samplerate = Lazy.Mutexed.force shine.samplerate in
@@ -87,12 +90,15 @@ let encoder ~pos shine =
       Strings.Mutable.add encoded (Shine.encode_buffer enc padded)
     end;
     (* Workaround: shine's flush leaves its last [shine_delay] samples in
-       the encoder, so a silent pass pushes them out, adding up to a frame of
-       silence. To drop once shine's flush returns them. *)
-    Strings.Mutable.add encoded
-      (Shine.encode_buffer enc
-         (Array.init channels (fun _ ->
-              Array.make (Shine.samples_per_pass enc) 0.)));
+       the encoder, and decoders output [mp3_decoder_delay] samples late:
+       silent passes push both out, adding up to a frame of silence. To drop
+       once shine's flush returns its samples. *)
+    let pass = Shine.samples_per_pass enc in
+    for _ = 1 to (shine_delay + mp3_decoder_delay + pass - 1) / pass do
+      Strings.Mutable.add encoded
+        (Shine.encode_buffer enc
+           (Array.init channels (fun _ -> Array.make pass 0.)))
+    done;
     Strings.Mutable.add encoded (Shine.flush enc);
     Strings.Mutable.flush encoded
   in
