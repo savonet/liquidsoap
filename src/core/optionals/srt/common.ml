@@ -291,7 +291,6 @@ let callbacks () =
         name = "on_connect";
         params = [];
         descr = "when a peer connects, before any data is exchanged with it";
-        register_deprecated_argument = true;
         arg_t = [];
         register =
           (fun ~params:_ s f ->
@@ -301,7 +300,6 @@ let callbacks () =
         name = "on_disconnect";
         params = [];
         descr = "when a peer that connected is disconnected";
-        register_deprecated_argument = true;
         arg_t = [];
         register =
           (fun ~params:_ s f ->
@@ -314,7 +312,6 @@ let callbacks () =
           "when a socket is created (mode `\"connect\"` or `\"listen\"`), \
            accepted (mode `\"incoming\"`), or about to be closed (mode \
            `\"close\"`)";
-        register_deprecated_argument = true;
         arg_t = [(false, "mode", Lang.string_t); (false, "", Socket_value.t)];
         register =
           (fun ~params:_ s f ->

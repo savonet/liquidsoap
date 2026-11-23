@@ -132,7 +132,6 @@ let callbacks ~label =
         name = "on_start";
         params = [];
         descr = "when " ^ label ^ " starts";
-        register_deprecated_argument = true;
         arg_t = [];
         register = (fun ~params:_ s f -> s#register_on_start (fun () -> f []));
       };
@@ -140,7 +139,6 @@ let callbacks ~label =
         name = "on_stop";
         params = [];
         descr = "when " ^ label ^ " stops";
-        register_deprecated_argument = true;
         arg_t = [];
         register = (fun ~params:_ s f -> s#register_on_stop (fun () -> f []));
       };
@@ -163,7 +161,6 @@ let output_callbacks () =
           descr =
             "on output. Unlike `on_frame`, this brackets the whole output \
              cycle, encoding and sending included.";
-          register_deprecated_argument = false;
           arg_t = [];
           register =
             (fun ~params:p s f ->

@@ -107,6 +107,19 @@ Its former `weights` go on each audio track, e.g.
 `list.mapi(fun (i, s) -> source.tracks(s).audio.{weight=list.nth(weights, i)}, sources)`,
 and `normalize` and `power` go to `track.audio.add`.
 
+### Callback arguments removed
+
+The `on_start`, `on_stop`, `on_connect`, `on_disconnect`, `on_error` and `on_reopen` arguments of operators, deprecated since 2.4.0, are removed. Register the callback with the source method of the same name. `synchronous=true` keeps the behavior of the removed argument:
+
+```liquidsoap
+# Old
+output.icecast(%mp3, mount="radio", on_stop=on_stop, s)
+
+# New
+o = output.icecast(%mp3, mount="radio", s)
+o.on_stop(synchronous=true, on_stop)
+```
+
 ### `output.harbor` authentication
 
 The `user` and `password` parameters have been removed from `output.harbor`.

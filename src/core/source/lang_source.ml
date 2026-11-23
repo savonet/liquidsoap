@@ -122,7 +122,6 @@ type 'a callback = {
   name : string;
   params : callback_param list;
   descr : string;
-  register_deprecated_argument : bool;
   arg_t : (bool * string * t) list;
   register : params:(string * value) list -> 'a -> (env -> unit) -> unit -> unit;
 }
@@ -215,7 +214,6 @@ let source_callbacks =
       name = "on_metadata";
       params = [];
       descr = "to execute on each metadata";
-      register_deprecated_argument = false;
       arg_t = [(false, "", metadata_t)];
       register =
         (fun ~params:_ s f ->
@@ -226,7 +224,6 @@ let source_callbacks =
       name = "on_wake_up";
       descr = "to be called after the source is asked to get ready";
       params = [];
-      register_deprecated_argument = false;
       arg_t = [];
       register = (fun ~params:_ s f -> s#register_on_wake_up (fun () -> f []));
     };
@@ -234,7 +231,6 @@ let source_callbacks =
       name = "on_shutdown";
       params = [];
       descr = "to be called when source shuts down";
-      register_deprecated_argument = false;
       arg_t = [];
       register = (fun ~params:_ s f -> s#register_on_sleep (fun () -> f []));
     };
@@ -242,7 +238,6 @@ let source_callbacks =
       name = "on_collect";
       params = [];
       descr = "to be called when source is collected";
-      register_deprecated_argument = false;
       arg_t = [];
       register = (fun ~params:_ s f -> s#register_on_collect (fun () -> f []));
     };
@@ -250,7 +245,6 @@ let source_callbacks =
       name = "on_track";
       params = [];
       descr = "on track marks";
-      register_deprecated_argument = false;
       arg_t = [(false, "", metadata_t)];
       register =
         (fun ~params:_ s f ->
@@ -266,7 +260,6 @@ let source_callbacks =
       descr =
         "on frame. When `before` is `true`, callback is executed before \
          computing the frame and after otherwise";
-      register_deprecated_argument = false;
       arg_t = [];
       register =
         (fun ~params:p s on_frame ->
@@ -294,7 +287,6 @@ let source_callbacks =
          with the checksum of the cached frame (if any, `null` otherwise). The \
          main callback is called after computing the frame with the checksum \
          of the generated frame and the remaining cache (if any).";
-      register_deprecated_argument = false;
       arg_t = [(false, "cache", nullable_t string_t); (false, "", string_t)];
       register =
         (fun ~params:p s after_cb ->
@@ -354,7 +346,6 @@ let source_callbacks =
          usually more accurate for file-based sources. When `allow_partial` is \
          `true`, if the current track ends before the `offset` position is \
          reached, callback is still executed";
-      register_deprecated_argument = false;
       arg_t = [(false, "", float_t); (false, "", metadata_t)];
       register =
         (fun ~params:p s on_position ->
@@ -1240,43 +1231,6 @@ let check_arguments ~env ~return_t arguments =
   in
   (return_t, env)
 
-let deprecated_callback_registration_arguments callbacks =
-  match !Liquidsoap_lang.Runtime.deprecated with
-    | false -> ([], [])
-    | true ->
-        List.fold_left
-          (fun (arguments, register_deprecated_callbacks) -> function
-            | { name; register_deprecated_argument = true; arg_t } as cb ->
-                let arg =
-                  ( name,
-                    nullable_t (fun_t arg_t unit_t),
-                    Some Lang.null,
-                    Some
-                      (Printf.sprintf
-                         "This argument is deprecated! Please use the `%s` \
-                          source method."
-                         name) )
-                in
-                let { Lang.value = register_callback } = callback cb in
-                let register_deprecated_callback s p =
-                  match Lang.to_option (List.assoc name p) with
-                    | None -> ()
-                    | Some fn ->
-                        (s#log : Log.t)#severe
-                          "The `%s` argument is deprecated! Please use the \
-                           source's `%s` method."
-                          name name;
-                        let register = register_callback s in
-                        ignore
-                          (Lang.apply register
-                             [("synchronous", Lang.bool true); ("", fn)])
-                in
-                ( arg :: arguments,
-                  register_deprecated_callback :: register_deprecated_callbacks
-                )
-            | _ -> (arguments, register_deprecated_callbacks))
-          ([], []) callbacks
-
 let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
     ?(meth = ([] : ((< Source.source ; .. > as 'a) -> value) meth list))
     ?(callbacks = ([] : 'a callback list)) ?self_sync_description ?base name
@@ -1288,15 +1242,12 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
       | "", _ -> 1
       | x, y -> Stdlib.compare x y
   in
-  let callback_arguments, register_deprecated_callbacks =
-    deprecated_callback_registration_arguments callbacks
-  in
   let arguments =
     ( "id",
       nullable_t string_t,
       Some null,
       Some "Force the value of the source ID." )
-    :: List.stable_sort compare (arguments @ callback_arguments)
+    :: List.stable_sort compare arguments
   in
   let meth =
     if category = `Output then
@@ -1350,7 +1301,6 @@ let add_operator ~(category : Doc.Value.source) ~descr ?(flags = [])
   let f env =
     let return_t, env = check_arguments ~return_t ~env arguments in
     let src : < Source.source ; .. > = f env in
-    List.iter (fun register -> register src env) register_deprecated_callbacks;
     src#set_stack (Liquidsoap_lang.Lang_core.pos env);
     let composition_meths = setup_composition ~category src in
     Typing.(src#frame_type <: return_t);

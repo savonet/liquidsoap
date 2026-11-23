@@ -1325,7 +1325,6 @@ let output_hls =
             Lang.name = "on_file_change";
             params = [];
             descr = "when a file is created, updated or deleted";
-            register_deprecated_argument = false;
             arg_t = [(false, "", file_change_t)];
             register =
               (fun ~params:_ s fn ->

@@ -184,7 +184,6 @@ let pipe_callbacks =
         name = "on_reopen";
         params = [];
         descr = "when the output is reopened.";
-        register_deprecated_argument = true;
         arg_t = [];
         register = (fun ~params:_ s f -> s#register_on_reopen (fun () -> f []));
       };
