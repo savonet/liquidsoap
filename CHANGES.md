@@ -114,11 +114,13 @@
 - Image requests are placed at their `x`/`y` metadata, e.g. `annotate:x=50,y=50:logo.png`, instead of the top-left corner. An explicit `x`/`y` argument still takes precedence ([#3197](https://github.com/savonet/liquidsoap/issues/3197)).
 - LV2 plugins that require host features, such as `options`, are no longer registered: they are instantiated without any host feature, so they could not work. The reason is logged at level 4 ([#2013](https://github.com/savonet/liquidsoap/issues/2013)).
 - `smooth_add` fades the special source out before the end of its track, instead of cutting it at full volume ([#3714](https://github.com/savonet/liquidsoap/issues/3714)).
+- Fixed `let replaces x = ...` inside a function failing with `variable x not in environment` when `x` is defined outside of it.
 
 ## Optimized:
 
 - Scripts typecheck about four times faster with less memory ([#5600](https://github.com/savonet/liquidsoap/pull/5600)).
 - Running scripts use about 5.6 MiB less memory: builtins' documentation is dropped once the script is loaded ([#5710](https://github.com/savonet/liquidsoap/pull/5710)).
+- Running scripts use less memory: functions keep only the methods they use of the records they capture, e.g. `list.map` instead of the whole `list` module.
 - Playlists take a lock of their own instead of the process-wide `atomic` lock, so they no longer hold up each other or unrelated sections ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `icecast.server` takes a lock of its own instead of the process-wide `atomic` lock, and waits on it without polling ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 

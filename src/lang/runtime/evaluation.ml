@@ -68,16 +68,34 @@ module Env = struct
            (Printf.sprintf "Internal error: variable %s not in environment." var))
         bt
 
-  (** Restrict an environment to a given set of variables. *)
-  let restrict (env : t) vars =
-    let vars = ref vars in
-    let mem x =
-      if Vars.mem x !vars then (
-        vars := Vars.remove x !vars;
-        true)
-      else false
-    in
-    List.filter (fun (x, _) -> mem x) env
+  (** Keep only the methods a closure reaches. Values used whole are kept as
+      they are: a pruned value is only ever reached through its methods, so it
+      is never compared, printed or passed on. *)
+  let rec prune v = function
+    | Term.Whole -> v
+    | Term.Methods uses ->
+        let methods = Value.methods v in
+        if Methods.is_empty methods then v
+        else
+          Value.map_methods v (fun _ ->
+              Methods.fold
+                (fun name meth pruned ->
+                  match Term.Uses.find_opt name uses with
+                    | None -> pruned
+                    | Some usage -> Methods.add name (prune meth usage) pruned)
+                methods Methods.empty)
+
+  (** Restrict an environment to the variables a closure uses. *)
+  let restrict (env : t) uses =
+    let uses = ref uses in
+    List.filter_map
+      (fun (x, v) ->
+        match Term.Uses.find_opt x !uses with
+          | None -> None
+          | Some usage ->
+              uses := Term.Uses.remove x !uses;
+              Some (x, prune v usage))
+      env
 
   (** Bind a variable to a lazy value in an environment. *)
   let add (env : t) x v : t = (x, v) :: env

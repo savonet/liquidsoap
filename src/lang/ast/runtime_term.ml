@@ -3,6 +3,13 @@ open Term_hash
 (** Sets of variables. *)
 module Vars = Set.Make (String)
 
+(** Variables, by name. *)
+module Uses = Map.Make (String)
+
+(** How a term uses a variable: as a whole value, or only through some of its
+    methods. *)
+type usage = Whole | Methods of usage Uses.t
+
 module Methods = struct
   include Methods
 
@@ -43,7 +50,7 @@ type ('a, 'b) func_argument = {
 [@@deriving hash]
 
 type ('a, 'b) func = {
-  mutable free_vars : Vars.t option;
+  mutable free_vars : usage Uses.t option;
   name : string option;
   arguments : ('a, 'b) func_argument list;
   body : 'a;
