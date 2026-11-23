@@ -16,13 +16,11 @@ s =
 
 #clock.assign_new(id='test_clock', sync='none', [s])
 def on_close(filename) =
-  output_format =
-    json.parse(
-      default=[("streams", [[("samplerate", "0")]])],
-      test.ffprobe(filename)
-    )
+  let json.parse (output_format :
+    {streams: [[(string*string?)] as json.object]}
+  ) = test.ffprobe(filename)
 
-  output_streams = list.assoc(default=[], "streams", output_format)
+  output_streams = output_format.streams
   params =
     ["channel_layout", "sample_rate", "sample_fmt", "codec_name", "pix_fmt"]
 
@@ -32,7 +30,7 @@ def on_close(filename) =
       list.mem(p, params)
     end
 
-    list.filter(f, s)
+    list.map(fun (e) -> (fst(e), snd(e) ?? ""), list.filter(f, s))
   end
 
   output_streams = list.map(m, output_streams)
