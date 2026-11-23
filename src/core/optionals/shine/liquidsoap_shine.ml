@@ -27,6 +27,12 @@ open Shine_format
 let create_encoder ~samplerate ~bitrate ~channels =
   Shine.create { Shine.channels; samplerate; bitrate }
 
+(* Samples of delay shine adds before its input. *)
+let shine_delay = 528
+
+(* Samples of delay of an mp3 decoder's synthesis filter. *)
+let mp3_decoder_delay = 529
+
 let encoder ~pos shine =
   let channels = shine.channels in
   let samplerate = Lazy.Mutexed.force shine.samplerate in
@@ -61,7 +67,36 @@ let encoder ~pos shine =
     done;
     Strings.Mutable.flush encoded
   in
-  let stop () = Strings.of_string (Shine.flush enc) in
+  let stop () =
+    let pass = Shine.samples_per_pass enc in
+    let remaining = Generator.length buf in
+    if remaining > 0 then begin
+      let pcm =
+        Content.Audio.get_data
+          (Frame.Fields.find Frame.Fields.audio (Generator.slice buf remaining))
+      in
+      let padded =
+        Array.map
+          (fun channel ->
+            let padded = Array.make pass 0. in
+            Array.blit channel 0 padded 0 (min pass (Array.length channel));
+            padded)
+          pcm
+      in
+      Strings.Mutable.add encoded (Shine.encode_buffer enc padded)
+    end;
+    (* Workaround: shine's flush leaves its last [shine_delay] samples in the
+       encoder, and decoders output [mp3_decoder_delay] samples late: silent
+       passes push both out, adding up to a frame of silence. To drop once
+       shine's flush returns its samples. *)
+    for _ = 1 to (shine_delay + mp3_decoder_delay + pass - 1) / pass do
+      Strings.Mutable.add encoded
+        (Shine.encode_buffer enc
+           (Array.init channels (fun _ -> Array.make pass 0.)))
+    done;
+    Strings.Mutable.add encoded (Shine.flush enc);
+    Strings.Mutable.flush encoded
+  in
   {
     Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);

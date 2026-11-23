@@ -131,6 +131,7 @@
 - `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
 - The native ogg decoder plays chained ogg/flac streams past their first track, e.g. a `%ogg(%flac)` source client on `input.harbor`, instead of stopping with `Invalid_stream` ([#3010](https://github.com/savonet/liquidsoap/issues/3010)).
 - `output.harbor`: listeners connecting to a shared mount of a `%ffmpeg` container whose codec has a delay (AAC or LAME mp3 in Matroska, for instance) receive the container header.
+- `%mp3`, `%shine` and `%fdkaac` encode the end of their input: `%mp3` dropped its last buffer, `%shine` its last partial pass and the samples in its delay, and `%fdkaac` its whole delay (about 130 ms with HE-AAC v2), its flush returning nothing.
 - `%ffmpeg`: a container header the muxer refuses (plain MP4 to a pipe, for instance) fails the output with FFmpeg's reason, instead of streaming nothing forever.
 - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
 - Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
