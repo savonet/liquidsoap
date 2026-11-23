@@ -121,7 +121,7 @@
 - Scripts typecheck about four times faster with less memory ([#5600](https://github.com/savonet/liquidsoap/pull/5600)).
 - Running scripts use about 5.6 MiB less memory: builtins' documentation is dropped once the script is loaded ([#5710](https://github.com/savonet/liquidsoap/pull/5710)).
 - Running scripts use less memory: functions keep only the methods they use of the records they capture, e.g. `list.map` instead of the whole `list` module ([#5711](https://github.com/savonet/liquidsoap/pull/5711)).
-- Running scripts use about 3.8 MiB less memory: builtins the script does not use are dropped once it is loaded.
+- Running scripts use about 3.8 MiB less memory: builtins the script does not use are dropped once it is loaded ([#5712](https://github.com/savonet/liquidsoap/pull/5712)).
 - Playlists take a lock of their own instead of the process-wide `atomic` lock, so they no longer hold up each other or unrelated sections ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `icecast.server` takes a lock of its own instead of the process-wide `atomic` lock, and waits on it without polling ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 
