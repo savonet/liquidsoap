@@ -65,12 +65,16 @@ CAMLprim value ocaml_flac_encoder_ogg_init(value _enc, value _serialno) {
 
   ocaml_flac_encoder *enc = Encoder_val(_enc);
 
+  FLAC__StreamEncoderInitStatus status;
   caml_release_runtime_system();
   FLAC__stream_encoder_set_ogg_serial_number(enc->encoder, serialno);
-  FLAC__stream_encoder_init_ogg_stream(enc->encoder, NULL, enc_write_callback,
-                                       NULL, NULL, NULL,
-                                       (void *)&enc->callbacks);
+  status = FLAC__stream_encoder_init_ogg_stream(enc->encoder, NULL,
+                                                enc_write_callback, NULL, NULL,
+                                                NULL, (void *)&enc->callbacks);
   caml_acquire_runtime_system();
+
+  if (status != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
+    caml_failwith(FLAC__StreamEncoderInitStatusString[status]);
 
   CAMLreturn(Val_unit);
 }

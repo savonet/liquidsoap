@@ -786,16 +786,36 @@ CAMLprim value ocaml_flac_encoder_alloc(value comments, value seek, value tell,
   CAMLreturn(ret);
 }
 
+/* libFLAC reports a refused configuration or a failed write only through
+   these statuses: without raising, the stream silently stays empty. */
+static void check_encoder_init(FLAC__StreamEncoderInitStatus status) {
+  if (status == FLAC__STREAM_ENCODER_INIT_STATUS_ENCODER_ERROR)
+    return;
+  if (status != FLAC__STREAM_ENCODER_INIT_STATUS_OK)
+    caml_failwith(FLAC__StreamEncoderInitStatusString[status]);
+}
+
+static void check_encoder_state(FLAC__StreamEncoder *encoder, FLAC__bool ok) {
+  if (!ok)
+    caml_failwith(FLAC__StreamEncoderStateString[FLAC__stream_encoder_get_state(
+        encoder)]);
+}
+
 CAMLprim value ocaml_flac_encoder_init(value _enc) {
   CAMLparam1(_enc);
 
   ocaml_flac_encoder *enc = Encoder_val(_enc);
+  FLAC__StreamEncoderInitStatus status;
 
   caml_release_runtime_system();
-  FLAC__stream_encoder_init_stream(enc->encoder, enc_write_callback,
-                                   enc_seek_callback, enc_tell_callback, NULL,
-                                   (void *)&enc->callbacks);
+  status = FLAC__stream_encoder_init_stream(
+      enc->encoder, enc_write_callback, enc_seek_callback, enc_tell_callback,
+      NULL, (void *)&enc->callbacks);
   caml_acquire_runtime_system();
+
+  if (status == FLAC__STREAM_ENCODER_INIT_STATUS_ENCODER_ERROR)
+    check_encoder_state(enc->encoder, false);
+  check_encoder_init(status);
 
   CAMLreturn(Val_unit);
 }
@@ -849,10 +869,13 @@ CAMLprim value ocaml_flac_encoder_process(value _enc, value data, value bps) {
           sample_from_double(Double_field(Field(data, c), i), Int_val(bps));
   }
 
+  FLAC__bool ok;
   caml_release_runtime_system();
-  FLAC__stream_encoder_process(enc->encoder,
-                               (const FLAC__int32 *const *)enc->buf, samples);
+  ok = FLAC__stream_encoder_process(
+      enc->encoder, (const FLAC__int32 *const *)enc->buf, samples);
   caml_acquire_runtime_system();
+
+  check_encoder_state(enc->encoder, ok);
 
   CAMLreturn(Val_unit);
 }
@@ -862,9 +885,12 @@ CAMLprim value ocaml_flac_encoder_finish(value _enc) {
 
   ocaml_flac_encoder *enc = Encoder_val(_enc);
 
+  FLAC__bool ok;
   caml_release_runtime_system();
-  FLAC__stream_encoder_finish(enc->encoder);
+  ok = FLAC__stream_encoder_finish(enc->encoder);
   caml_acquire_runtime_system();
+
+  check_encoder_state(enc->encoder, ok);
 
   CAMLreturn(Val_unit);
 }
