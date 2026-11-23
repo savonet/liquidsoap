@@ -529,6 +529,20 @@
    icecast_server_stats.liq)))
 
 (rule
+ (alias test_id3v2_render)
+ (package liquidsoap)
+ (deps
+  id3v2_render.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} id3v2_render.liq liquidsoap id3v2_render.liq)))
+
+(rule
  (alias test_implicit_float_casting)
  (package liquidsoap)
  (deps
@@ -1134,6 +1148,7 @@
   (alias test_icecast_server_prerolls)
   (alias test_icecast_server_replies)
   (alias test_icecast_server_stats)
+  (alias test_id3v2_render)
   (alias test_implicit_float_casting)
   (alias test_interactive)
   (alias test_json)

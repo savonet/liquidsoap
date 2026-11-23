@@ -475,24 +475,25 @@ let concat_with_last ~last sep l =
     | x :: l ->
         Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x
 
-let frame_id_of_string = function
+(* [version] decides the date frame: TYER in v2.3, TDRC in v2.4 (TDAT holds
+   a day and month, not a date). *)
+let frame_id_of_string ~version = function
   | "comment" -> Some `COMM
   | "album" -> Some `TALB
   | "bpm" -> Some `TBPM
   | "composer" -> Some `TCOM
-  | "content" -> Some `TCON
+  | "content" | "genre" -> Some `TCON
   | "copyright" -> Some `TCOP
-  | "date" -> Some `TDAT
+  | "date" | "year" -> Some (if version < 4 then `TYER else `TDRC)
   | "encoder" -> Some `TENC
   | "title" -> Some `TIT2
   | "language" -> Some `TLAN
   | "length" -> Some `TLEN
   | "performer" -> Some `TOPE
   | "artist" -> Some `TPE1
-  | "band" -> Some `TPE2
+  | "band" | "albumartist" -> Some `TPE2
   | "publisher" -> Some `TPUB
   | "tracknumber" -> Some `TRCK
-  | "year" -> Some `TYER
   | "url" -> Some `WXXX
   | v -> Metadata.ID3v2.frame_id_of_string v
 
@@ -502,7 +503,7 @@ let id3v2_of_metadata ?(extra_frames = []) ~version m =
   let frames =
     List.fold_left
       (fun frames (k, v) ->
-        match frame_id_of_string k with
+        match frame_id_of_string ~version k with
           | Some id ->
               {
                 Metadata.ID3v2.id;
@@ -518,6 +519,16 @@ let id3v2_of_metadata ?(extra_frames = []) ~version m =
               :: frames
           | None -> frames)
       [] m
+  in
+  (* When several entries give one frame, the last one wins: [frames] is in
+     reverse order. *)
+  let frames =
+    List.fold_left
+      (fun kept (frame : Metadata.ID3v2.frame) ->
+        if List.exists (fun (f : Metadata.ID3v2.frame) -> f.id = frame.id) kept
+        then kept
+        else frame :: kept)
+      [] frames
   in
   Metadata.ID3v2.make ~version (frames @ extra_frames)
 

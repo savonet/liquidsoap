@@ -90,10 +90,13 @@ let () =
     ignore
       (Option.map
          (fun version ->
-           Strings.Mutable.add encoded
-             (Utils.id3v2_of_metadata ~version
-                (Frame.Metadata.to_list
-                   (Frame.Metadata.Export.to_metadata metadata))))
+           let tag =
+             Utils.id3v2_of_metadata ~version
+               (Frame.Metadata.to_list
+                  (Frame.Metadata.Export.to_metadata metadata))
+           in
+           (* A tag with no frame is only its 10-byte header. *)
+           if String.length tag > 10 then Strings.Mutable.add encoded tag)
          mp3.id3v2);
     let encode_pending len =
       let pcm =
