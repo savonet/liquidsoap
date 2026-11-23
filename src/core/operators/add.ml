@@ -148,7 +148,10 @@ class audio_add ~renorm ~power ~field tracks =
       self#set_metadata buf
   end
 
-class video_add ~field ~add tracks =
+(* With [first_is_background], the first track's image is the canvas the
+   others are added to. Otherwise every track goes through [add] onto an empty
+   canvas, e.g. to be scaled into its own tile. *)
+class video_add ?(first_is_background = true) ~field ~add tracks =
   object (self)
     inherit base ~name:"video.add" tracks
 
@@ -175,6 +178,10 @@ class video_add ~field ~add tracks =
       in
       let create, frames =
         match frames with
+          | _ when not first_is_background ->
+              ( (fun ~pos:_ ~width ~height () ->
+                  Video.Canvas.Image.create width height),
+                frames )
           | [] ->
               ( (fun ~pos:_ ~width ~height () ->
                   Video.Canvas.Image.create width height),
@@ -330,7 +337,7 @@ let _ =
         Video.Canvas.Image.add tmp' buf
       in
       let field = Frame.Fields.video in
-      (field, new video_add ~field ~add tracks))
+      (field, new video_add ~first_is_background:false ~field ~add tracks))
 
 let _ =
   let frame_t = Lang.internal_tracks_t () in
