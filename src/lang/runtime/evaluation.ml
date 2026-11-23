@@ -70,7 +70,8 @@ module Env = struct
 
   (** Keep only the methods a closure reaches. Values used whole are kept as
       they are: a pruned value is only ever reached through its methods, so it
-      is never compared, printed or passed on. *)
+      is never compared, printed or passed on. [eval_check] does see it, with
+      fewer methods than its type lists. *)
   let rec prune v = function
     | Term.Whole -> v
     | Term.Methods uses ->
