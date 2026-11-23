@@ -136,8 +136,9 @@ let rec to_ast ~throw ~env ~pos ~comments ast =
         to_ast ~env ~pos ~comments (`App (op, [`Term ("", mk (`List l))]))
     | `Coalesce (t, default) -> mk_coalesce ~pos ~env ~to_term ~default t
     | `At (t, t') -> `App (to_term ~env t', [("", to_term ~env t)])
-    | `Time t -> mk_time_pred ~pos (during ~pos t)
-    | `Time_interval (t, t') -> mk_time_pred ~pos (between ~pos t t')
+    | `Time t -> Term_reducer_time.(mk_time_pred ~pos (during ~pos t))
+    | `Time_interval (t, t') ->
+        Term_reducer_time.(mk_time_pred ~pos (between ~pos t t'))
     | `Custom _ as ast -> ast
     | `Encoder e -> `Encoder (to_encoder ~to_term ~env e)
     | `List l -> list_reducer ~pos ~env ~to_term (List.rev l)
@@ -282,4 +283,9 @@ let to_term ~throw tm = to_term ~throw ~env:[] tm
 (* `let eval` desugars to a call to `_0_eval`, which parses a string at run time
    and so needs the standard library to still be around. Asking the term rather
    than remembering that we reduced one keeps this a property of the script. *)
+module Time_predicate = struct
+  let builtins = Term_reducer_time.builtins
+  let to_term = Term_reducer_time.to_term
+end
+
 let needs_toplevel term = Vars.mem Reserved.eval (Term.free_vars term)

@@ -38,6 +38,14 @@ val to_encoder_params :
   Parsed_term.encoder_params ->
   Term.encoder_params
 
+(** Time predicates given to [time.predicate] as strings. *)
+module Time_predicate : sig
+  (** The builtins a reduced predicate calls. *)
+  val builtins : string list
+
+  val to_term : Parsed_term.time_predicate -> Term.t
+end
+
 (** Whether the term uses `let eval`, and so must keep the standard library
     available at run time. *)
 val needs_toplevel : Term.t -> bool

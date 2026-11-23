@@ -256,6 +256,17 @@ and t = {
 }
 [@@deriving hash]
 
+(** What the grammar of [time.predicate] strings produces. *)
+and time_predicate = {
+  time_pos : pos; [@hash.ignore]
+  time_descr :
+    [ `Time of time_el
+    | `Time_interval of time_el * time_el
+    | `Not of time_predicate
+    | `And of time_predicate * time_predicate
+    | `Or of time_predicate * time_predicate ];
+}
+
 and methods = [ `Ellipsis of t | `Method of string * t ]
 and string_interpolation = [ `String of string | `Term of t ]
 

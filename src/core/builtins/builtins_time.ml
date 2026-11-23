@@ -151,13 +151,10 @@ let _ =
   let parse predicate =
     let lexbuf = Sedlexing.Utf8.from_string predicate in
     let tokenizer = Preprocessor.mk_tokenizer lexbuf in
-    Term_reducer.to_term
-      ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
-      (processor tokenizer)
+    Term_reducer.Time_predicate.to_term (processor tokenizer)
   in
   (* Predicates are evaluated against the builtins, whenever they are run. *)
-  Environment.keep_at_runtime
-    (Term.Vars.elements (Term.free_vars (parse "not (1h-2h and 3h) or 4h")));
+  Environment.keep_at_runtime Term_reducer.Time_predicate.builtins;
   Lang.add_builtin ~category:`Time ~base:time "predicate"
     ~descr:"Parse a string as a time predicate"
     [("", Lang.string_t, None, None)]
