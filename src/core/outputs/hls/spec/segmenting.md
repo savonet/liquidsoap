@@ -4,7 +4,7 @@ Part A. This file owns how each variant's byte stream is cut into
 segments: the grid and its origin, split points, the cut rules, the target
 duration, output-wide cuts, container restarts and the warnings on content
 that cannot be cut regularly. It relies on
-the encoder pieces of [encoder-contract.md §5](encoder-contract.md#5-split_encode).
+the encoder pieces of [encoder-contract.md §5](encoder-contract.md#5-access-points-and-restarts).
 What opening and closing a segment does on disk is [files.md](files.md);
 how segments are numbered is [playlists.md §2.1](playlists.md#21-media-sequence).
 
@@ -81,7 +81,8 @@ content, packed audio). The encoder says so
 variant is a **key-frame variant**: its split points are where its content
 has key frames, and the output has no say in where they are.
 
-The **request** passed to the encoder with each chunk is the next media
+The **request** held in the writer's sink for each chunk
+([encoder-contract.md §2](encoder-contract.md#2-calls-and-order)) is the next media
 time at which the output wants a split point: the first grid boundary at or
 after the chunk's media time (and after 0), or a pending sync time (§7) when
 that comes first. A free-split encoder makes a split point there; a
@@ -89,7 +90,8 @@ key-frame variant's split points do not depend on it.
 
 ## 3. Applying pieces
 
-The pieces an encoder returns for a chunk are applied in order:
+The pieces a writer writes for a chunk
+([encoder-contract.md §1](encoder-contract.md#1-role)) are applied in order:
 
 - **Bytes**: appended to the open segment.
 - **Split** `{time}`: recorded (§2) if after the segment's start, then

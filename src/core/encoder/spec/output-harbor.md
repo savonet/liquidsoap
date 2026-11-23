@@ -1,124 +1,152 @@
-# `output.harbor` at the encoder seam (as built)
+# `output.harbor` at the encoder seam
 
-Seam view only. The normative tree is
-[outputs/spec/harbor/](../../outputs/spec/harbor/README.md): admission,
-delivery, ICY, the ring, both encoder modes. This file records how the two
-modes drive the [stream face](encoder.md) and where each byte goes, for the
-redesign; contradictions with that tree are in
-[findings/net-callers.md](findings/net-callers.md). OCaml traces:
-[language-notes/net-callers.md](language-notes/net-callers.md).
+Part A. Seam view: how `output.harbor` answers the caller numbering of
+[encoder.md §11](encoder.md#11-caller-files). The operator's rules are its
+tree's ([outputs/spec/harbor/](../../outputs/spec/harbor/README.md)); the
+shared mode's sink is the shared stream
+([shared-stream.md](../../outputs/spec/shared-stream.md)). This file states
+only what binds the seam, and links the rest.
 
-## 1. Formats accepted and how the factory is obtained
+## 1. Formats and declarations
 
-The same step as `output.icecast`
-([output-icecast.md §1.1–1.2](output-icecast.md#1-formats-accepted-and-how-the-factory-is-obtained)):
-streaming-format rewrite (no ID3v2/Xing for `%ffmpeg` mp3), registry
-lookup, content type from `format=` or guessed. The content type is used as
-a plain string in the response. There is no `send_icy_metadata` guess:
-ICY is negotiated per listener
-([harbor icy.md](../../outputs/spec/harbor/icy.md)).
+- The factory is looked up at construction; none is an invalid-value error
+  on the format argument
+  ([harbor operator.md §2](../../outputs/spec/harbor/operator.md#2-validation-at-construction)).
+- The content type is the `format` parameter when non-empty, else the
+  format's `mime` helper ([formats.md §9](formats.md#9-helpers)); with
+  neither, an invalid-value error on `format`, as for the source client
+  ([output-icecast.md §1](output-icecast.md#1-formats-and-declarations),
+  item 4).
+- **Declarations** ([encoder.md §5.1](encoder.md#51-what-an-output-declares)):
 
-Script-level caller: `icecast.server` (`src/libs/extra/icecast_server/`)
-creates one `output.harbor` per mount, re-encoding (or copying) what a
-feeder sends with the feeder's format
-([harbor icecast-server.md](../../outputs/spec/harbor/icecast-server.md)).
+  | Mode                                 | Capabilities       | Readers mid-stream |
+  | ------------------------------------ | ------------------ | ------------------ |
+  | shared (default)                     | `fresh`, `live(L)` | yes                |
+  | dedicated (`dedicated_encoder=true`) | `fresh`, `live(L)` | no                 |
 
-## 2. Instance lifecycle
+  `L` is the output's `live_latency_bound`
+  ([sink.md §1](sink.md#1-capabilities)).
 
-| Mode                                 | Instances          | Created                                        | Stopped                                                       |
-| ------------------------------------ | ------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
-| Shared (default)                     | One per output run | Output start, initial metadata = last metadata | Output stop                                                   |
-| Dedicated (`dedicated_encoder=true`) | One per listener   | Admission, initial metadata = last metadata    | Output stop (bytes kept), listener teardown (bytes discarded) |
+- **Checks** ([encoder.md §5.3](encoder.md#53-the-check)): in shared mode a
+  configuration that is not streamable is refused, and the message names
+  `dedicated_encoder=true` and, for `%ffmpeg` with a muxer the writer does
+  not know and for `%external`, an explicit `streamable=true` as the
+  alternatives. In both modes a
+  configuration that needs a seekable destination or no byte sink is
+  refused, and an explicit preamble is refused. The output never rewrites
+  the format.
 
-The name is the output's id. In shared mode the instance encodes whether or
-not anyone listens (the store keeps the bytes for bursts). In dedicated mode
-no listener means no instance and no encoding.
+## 2. The sink
 
-## 3. Call sequence
+- **Shared**: the shared stream, one per output, from construction to end
+  ([shared-stream.md §1](../../outputs/spec/shared-stream.md#1-model)).
+  Harbor keeps its store, its window (`[N − buffer, T)`), its listeners and
+  their backlog bound `buffer`
+  ([harbor shared-encoder.md](../../outputs/spec/harbor/shared-encoder.md)).
+- **Dedicated**: one sink per listener, serving it from byte 0: the
+  listener's queue, bounded by `buffer`
+  ([harbor dedicated-encoder.md](../../outputs/spec/harbor/dedicated-encoder.md)).
+- A listener past its bound is that listener's fault; it never reaches the
+  writer ([sink.md §7](sink.md#7-faults)). Delivery never runs on the
+  streaming thread ([harbor delivery.md](../../outputs/spec/harbor/delivery.md)).
 
-The encoded-output base cuts frames into pieces, metadata first
-([output-encoded.md §3](output-encoded.md#3-call-sequence)).
+## 3. Writer lifetime
 
-**Shared.** Streaming thread: per piece, `encode`, then `restart_offset()`
-read at once under the same lock; the send step appends the bytes. Metadata:
-`encode_metadata`. Stop: `stop()`, then `restart_offset()`. Admission
-(server thread): `header()` under the same lock, once per listener.
-`encode_into` is never used in this mode.
+- **Shared**: one writer per run, built at the output's start, ended at its
+  stop ([harbor modes.md §7–§8](../../outputs/spec/harbor/modes.md#7-start)).
+  It writes whether or not anyone listens.
+- **Dedicated**: one writer per listener, built at its admission and ended
+  at the output's stop or the listener's teardown. No listener, no writer.
+- **Initial metadata**: [output-encoded.md §3.2](output-encoded.md#32-initial-metadata).
+  The sink is live: it becomes tags only in Ogg comment headers, when
+  `in_band_metadata` is true
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 7).
 
-**Dedicated.** Admission (server thread): factory, then `header()` on the
-fresh instance before it has encoded anything. Streaming thread (or one
-scheduler task per batch of 32 listeners, the clock waiting for all):
-per listener and piece, `encode_into` when the encoder offers it, else
-`encode`; listeners still owed a preroll are skipped. Metadata:
-`encode_metadata` on every live listener's instance. `restart_offset` is
-never read.
+## 4. Pieces and metadata
 
-## 4. The bytes
+- Pieces are handed metadata first
+  ([output.md §3](../../outputs/spec/output.md#3-a-streaming-cycle)).
+- **Out of band**: ICY blocks, negotiated and stamped per listener
+  ([harbor icy.md](../../outputs/spec/harbor/icy.md)). The writer is never
+  told about them.
+- **In band**: each metadata is offered to every running writer that offers
+  in-band metadata ([encoder.md §9](encoder.md#9-in-band-metadata)), unless
+  `in_band_metadata` (bool, default `true`) is false. Reason: listeners of
+  a native Ogg stream get titles in band, which players that cannot follow
+  a chained stream handle badly; `false` gives them one logical stream and
+  leaves titles to ICY.
+- The values offered are the converted ones, cover art removed
+  ([harbor modes.md §6](../../outputs/spec/harbor/modes.md#6-metadata)).
 
-**Shared.** Each output is appended to one byte store (a ring of `buffer`
-bytes). Each non-empty output's start offset is recorded as a candidate join
-point; a reported `restart_offset` `r` records a **stream start** at
-`tail + r`. A listener joins at a candidate offset (burst) or at the tail; it
-gets `header()` first unless it joins exactly at the stream start, whose
-bytes begin with their own header pages
-([harbor shared-encoder.md §3–§5](../../outputs/spec/harbor/shared-encoder.md)).
-The bytes at an output start other than a stream start are not a decodable
-start by themselves for Ogg (they are mid-link); for a constant-frame codec
-they are frame-aligned because each encoder output is. The final bytes of
-`stop()` are appended as an ordinary output, so every listener receives
-them (Ogg EOS).
+## 5. Markers and readers
 
-Checked: a listener joining an `%vorbis` shared output mid-link receives the
-current link's BOS identification page and comment/setup page (from
-`header()`), then the link's audio pages, then the next link's BOS at the
-next metadata change, all in one body.
+- **Shared**: the shared stream records the writer's stream starts, access
+  points and end; a listener starts at a candidate and is sent the
+  recorded entry header
+  ([shared-stream.md §3](../../outputs/spec/shared-stream.md#3-starting-a-reader)).
+  Harbor never asks a writer for a header or a restart position.
+- **Dedicated**: the sink ignores every marker but `end`; a listener's
+  stream starts at its writer's first byte, which begins with the header.
 
-**Dedicated.** Each listener's queue receives: the response head, the
-preroll (if any), `header()` of its instance, then each encoder output copied
-into reusable chunks (`encode_into`) or queued as one string. A listener
-admitted between two cycles misses no byte of its own stream, since its
-instance starts with it. The final bytes of `stop()` are queued at output
-stop and discarded at listener teardown.
+## 6. End
 
-Checked: a dedicated listener receives its instance's BOS page first; its
-first link is short (from join to the next metadata change).
+A clean end appends the writer's final bytes behind what every listener
+already owes, and the last delivery pass sends them within its bound, this
+output's `final_delivery_bound` ([sink.md §4](sink.md#4-markers-and-the-end))
+([harbor modes.md §11](../../outputs/spec/harbor/modes.md#11-final-bytes),
+[delivery.md §7](../../outputs/spec/harbor/delivery.md#7-stopping)). A
+dedicated listener's teardown ends its writer `abandoned`.
 
-Both modes assume `header()` and the instance's first output do not
-duplicate each other: dedicated mode sends `header()` of an instance that
-has not yet encoded, then that instance's first output.
+## 7. Reopen, reconnect, append
 
-## 5. Reopen, reconnect
+No reconnection: listeners come and go. A new run gets a new writer;
+listeners kept across runs (`keep_listeners`) continue with the new
+writer's stream start and header
+([shared-stream.md §4](../../outputs/spec/shared-stream.md#4-writer-changes)).
+Append: nothing.
 
-No reconnection: listeners come and go. An output stop and start creates a
-new shared instance; listeners kept across it (`keep_listeners`) are
-[harbor modes.md](../../outputs/spec/harbor/modes.md)'s. A shared listener
-whose preroll straddles an encoder restart is disconnected (`encoder
-restarted during its preroll`).
+## 8. Faults and restart policy
 
-## 6. Failures
+- Item faults are the writer's ([encoder.md §8](encoder.md#8-faults)).
+- An output fault of the shared writer ends it `abandoned`, logged at
+  `severe`; the output keeps its listeners and builds a new writer from the
+  first piece received `fault_retry_delay` after the fault
+  ([faults.md §3](../../../spec/faults.md#3-source-faults-reach-the-script)
+  names the parameter); the pieces in between are dropped. Listeners
+  continue with the new writer's stream start.
+- An output fault of a dedicated listener's writer is that listener's
+  fault: the listener is closed, the others go on.
+- Listener and request faults are the tree's
+  ([harbor delivery.md §6](../../outputs/spec/harbor/delivery.md#6-disconnection),
+  [connection.md §7](../../outputs/spec/harbor/connection.md#7-failure-paths)).
 
-Encoder exceptions on the streaming thread are not caught by the modes:
-they are the generic output's
-([outputs/spec/output.md §6](../../outputs/spec/output.md#6-failure)); in
-dedicated mode the first failure of any batch task is re-raised on the
-clock after all batches finish. A listener's instance stop at teardown
-that fails is logged at info (`Listener <id> encoder stop failed: <exn>`).
+## 9. Concurrency
 
-## 7. Threads and locks
+Only the output's streaming work calls a writer, in both modes
+([encoder.md §7](encoder.md#7-concurrency)). An admission never calls a
+writer: in shared mode it reads the shared stream's records; in dedicated
+mode it posts the new listener, and the streaming work builds its writer
+before the listener's first piece. The per-listener encoding of dedicated
+mode MAY be spread over parallel work, each writer still called by one task
+at a time and in piece order
+([harbor concurrency.md](../../outputs/spec/harbor/concurrency.md)).
 
-Shared: one lock serialises the instance's use, its stop, and the store's
-writes; admissions call `header()` under it from the server thread.
-Dedicated: one lock per listener serialises its instance's encode, metadata
-and stop; encoding of different listeners runs in parallel on scheduler
-tasks. See [harbor concurrency.md](../../outputs/spec/harbor/concurrency.md).
+## 10. Tests
 
-## 8. Tests
+[harbor tests.md](../../outputs/spec/harbor/tests.md) and
+[shared-stream.md §7](../../outputs/spec/shared-stream.md#7-conformance).
+Seam-binding:
 
-[harbor tests.md](../../outputs/spec/harbor/tests.md). Those binding the
-seam: join points and headers (`tests/harbor/harbor_output_join_points.liq`:
-a late joiner starts where a decoder can, Ogg joiners get the identification
-header, mp3 joiners get no ID3v2 or Xing), final bytes
-(`harbor_output_final_bytes.liq`), dedicated encoder
-(`harbor_output_dedicated_encoder.liq`, `harbor_output_dedicated_chunks.liq`),
-and the FFmpeg conformance check of a late Opus joiner
-(`src/core/optionals/ffmpeg/test/conformance/conformance.ml`).
+- a shared mount of a non-streamable configuration (plain MP4) is refused
+  at evaluation, naming `dedicated_encoder=true`; `%external` with
+  `streamable=true` emitting ADTS is accepted, and a late listener
+  decodes;
+- a late listener of `%ffmpeg` Matroska with AAC, no metadata change,
+  decodes from its first byte;
+- an Ogg listener with `in_band_metadata=false` receives one logical
+  stream across three metadata changes, and ICY titles when it asked for
+  them;
+- an `%mp3` listener receives no ID3v2 tag and no encoder-information frame;
+- a clean stop delivers the end-of-stream pages to every listener;
+- a dedicated listener's writer receives its first piece from the
+  streaming work, never from the admission.

@@ -14,10 +14,16 @@ _encode_, then _send_ ([§5](#5-encode-and-send))
 ([contracts.md §3](contracts.md#3-output-base)).
 
 Both modes offer the same features, as far as their structure allows: ICY
-stamped at encode time, in-stream metadata in the encoded stream, the
+stamped at encode time, in-band metadata in the encoded stream, the
 overflow rule of [§4](#4-flush), the final bytes of [§11](#11-final-bytes).
-Only the burst is specific to the shared mode, because a dedicated encoder
-has no history to send.
+Only the burst is specific to the shared mode, because a dedicated writer
+has no history to send. The shared mode accepts only a streamable
+configuration; the refusal at evaluation is
+[operator.md §2](operator.md#2-validation-at-construction).
+
+A mode's writers are container writers
+([contracts.md §4](contracts.md#4-encoder)), built and called only by the
+output's streaming work.
 
 ## 1. Listener state
 
@@ -25,7 +31,7 @@ What the mode keeps per listener besides the common fields (record, socket,
 closed flag, ICY position and last generation sent, last progress). Created
 during admission with the initial bytes
 ([connection.md §6](connection.md#6-admission), step 7), after `on_connect`.
-When the mode's encoder state has stopped by then, creation fails and the
+When the mode's writer state has stopped by then, creation fails and the
 listener ends closed, with both callbacks, as for an output stopped after
 step 6 ([connection.md §7](connection.md#7-failure-paths)).
 
@@ -44,7 +50,7 @@ are stream data for ICY ([icy.md §4](icy.md#4-cadence-and-change-detection)).
 A preroll MUST NOT be copied per listener: the same ad commonly goes to every
 listener.
 
-A listener that joins while the output is kept started with its source
+A listener that connects while the output is kept started with its source
 unavailable ([operator.md §7](operator.md#7-lifecycle)) is owed the response
 head and the initial bytes the mode defines, with no history of the stream
 before the gap.
@@ -62,38 +68,42 @@ the socket accepted. Mark the listener closed on a write error or on
 overflow. Runs only in a delivery pass of the listener's group.
 
 **Overflow.** A listener is in overflow when the encoded stream bytes it is
-owed that precede the newest encoder output exceed `buffer`. Only stream
-bytes count: the response head, the codec header and ICY blocks do not. The
-newest encoder output does not count, so a single output larger than
-`buffer` (a video keyframe) does not disconnect a listener that was caught up
-before it. The rule is the same in both modes; it bounds how far behind live
+owed that precede the bytes of the writer's newest call exceed `buffer`.
+Only stream bytes count: the response head, the entry header and ICY blocks
+do not. The bytes of the newest call do not count, so a single call's bytes
+larger than `buffer` (a video keyframe) do not disconnect a listener that
+was caught up before it. The rule is the same in both modes; it bounds how far behind live
 a listener can be, and with it the memory and retention that listener costs.
 
 ## 5. Encode and send
 
-_Encode_ receives a piece of frame; _send_ receives what encode returned. Both
-run on the streaming clock. Send ends by waking every group that has members
+_Encode_ receives a piece; the bytes the mode's writers write for it go to
+the mode's sinks. _Send_ follows. Both run on the output's streaming work. Send ends by waking every group that has members
 ([delivery.md §2](delivery.md#2-wake-ups)). The ICY stamping of the bytes
 produced is fixed here: each byte is in the scope of the last metadata at
 the time it was encoded ([icy.md §4](icy.md#4-cadence-and-change-detection)).
 
 ## 6. Metadata
 
-Called on the streaming clock with each metadata of the source. Every mode
+Called on the streaming work with each metadata of the source. Every mode
 converts it ([icy.md §5](icy.md#5-charset)), records it as a new event and the
-output's last metadata, and passes the converted values, with cover art
-removed, to every running encoder as in-stream metadata.
+output's last metadata, and offers the converted values, with cover art
+removed, in band to every running writer that offers in-band metadata
+([encoder.md §9](../../../encoder/spec/encoder.md#9-in-band-metadata)),
+unless `in_band_metadata` is false
+([output-harbor.md §4](../../../encoder/spec/output-harbor.md#4-pieces-and-metadata)).
 
 ## 7. Start
 
-Create the mode's encoder state. Runs under the output's start/stop
-serialisation, before the delivery groups and the registration exist
-([operator.md §7](operator.md#7-lifecycle)). Encoders are created with the
-last metadata as initial metadata, empty when there is none.
+Create the mode's writer state. Runs on the output's streaming work, under
+its start/stop serialisation, before the delivery groups and the
+registration exist ([operator.md §7](operator.md#7-lifecycle)). Writers are
+built with the initial metadata of
+[output-encoded.md §3.2](../../../encoder/spec/output-encoded.md#32-initial-metadata).
 
 ## 8. Stop
 
-Stop the mode's encoder state. Runs under the same serialisation, after the
+End the mode's writers clean. Runs under the same serialisation, after the
 registration is removed and before the last delivery pass. From then on
 admissions are refused with 503 and encode produces nothing.
 
@@ -110,8 +120,8 @@ implementation's choice.
 
 ## 11. Final bytes
 
-Where the bytes an encoder returns when it is stopped go. They MUST be queued
-for the listeners that encoder served, behind everything already owed, so
+Where a writer's final bytes, written at its clean end, go. They MUST be queued
+for the listeners that writer served, behind everything already owed, so
 that the last delivery pass of [delivery.md §7](delivery.md#7-stopping) can
 send them (for Ogg, the end-of-stream pages). A listener whose socket has no
 room for them is closed without them.

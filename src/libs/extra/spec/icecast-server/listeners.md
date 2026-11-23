@@ -165,7 +165,7 @@ filter, `compute`, de-duplication) and the order are the server's and are
 - The `icy-*` stream identity headers of a stream reply come from the mount's
   current feeder ([sources.md](sources.md), [mounts.md](mounts.md)). The
   server builds them for each reply and hands them in as admit headers, so a
-  listener joining after a feeder reconnect gets the new identity.
+  listener connecting after a feeder reconnect gets the new identity.
 - The server builds each refusal, redirect and decision-failure reply with its
   final list. For a stream reply it hands the harbor output the list as admit
   headers, which the output appends to the `200` reply
@@ -489,7 +489,7 @@ can carry the address (`X-Forwarded-For`).
   listener included for a served one) and `metadata`.
 - Header precedence is [parameters.md §4.2](parameters.md#42-headers)'s: no
   restatement here.
-- The `icy-*` identity of a reply is the current feeder's: a listener joining
+- The `icy-*` identity of a reply is the current feeder's: a listener connecting
   after a feeder reconnect gets the new `icy-name`.
 - Requests carry `server`, `compatibility` and `user_listeners`: a per-user
   limit keeps counting across a reload.

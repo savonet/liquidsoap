@@ -229,7 +229,7 @@ refused for formats that need it; which one is a spec decision.
 Sources: 977e17429, 77cf76e88, 8ece3ef9e, cd78f705b, 682c85838, 801f29d54,
 #4395, #4399.
 
-**Spec:** Every peer's stream starts at the encoder's start or with its header ([output.md §4](output.md#4-encoder)); one peer's failure leaves the others' streams intact ([output.md §5](output.md#5-sending)); a clean end delivers the trailer ([output.md §6](output.md#6-stopping)). The late-joiner decision: header, then live.
+**Spec:** Every peer's stream starts at the encoder's start or with its header ([output.md §4](output.md#4-encoder)); one peer's failure leaves the others' streams intact ([output.md §5](output.md#5-sending)); a clean end delivers the trailer ([output.md §6](output.md#6-stopping)). The late-mid-stream reader decision: header, then live.
 
 ---
 

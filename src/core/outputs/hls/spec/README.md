@@ -100,8 +100,8 @@ with one owner.
 - **Main ticks**: the internal time unit. **Frame**: the configured frame
   size in ticks. **Chunk**: the output base's **piece**, the part of a frame
   between metadata positions ([output.md §3](../../spec/output.md#3-a-streaming-cycle)).
-  In this tree, **pieces** are what an encoder returns for a chunk
-  ([encoder-contract.md](encoder-contract.md)).
+  In this tree, **pieces** are the bytes and markers a writer writes for a
+  chunk ([encoder-contract.md §1](encoder-contract.md#1-role)).
 - **Media time**: ticks given to the encoders since the run started, the
   same for every variant.
 - **Grid**: the boundaries `k × D` of media time, `D` the segment duration.

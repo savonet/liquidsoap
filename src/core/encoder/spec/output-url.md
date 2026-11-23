@@ -1,86 +1,106 @@
-# `output.url` at the encoder seam (as built)
+# `output.url` at the encoder seam
 
-Seam view only. The normative text is
-[ffmpeg io.md §1.4 and §11](../../optionals/ffmpeg/spec/io.md#11-outputurl).
-This file records the one thing that sets `output.url` apart for the
-redesign: **the encoder does the I/O itself**; the bytes never cross the
-seam.
+Part A. Seam view: how `output.url` answers the caller numbering of
+[encoder.md §11](encoder.md#11-caller-files). Its destination is delegated:
+the writer opens the URL and writes to it itself, and no byte crosses the
+seam ([encoder.md §6](encoder.md#6-the-delegated-destination),
+[sink.md §8](sink.md#8-delegated-destination)). Its states, errors and
+parameters are the FFmpeg tree's
+([io.md §1.4, §11](../../optionals/ffmpeg/spec/io.md#11-outputurl)). This
+file states only what binds the seam, and links the rest.
 
-## 1. Formats accepted and how the factory is obtained
+## 1. Formats and declarations
 
-`%ffmpeg` only; any other format: invalid-value error `Encoding format does
-not support output url!`. The registry is **not** used: the output builds
-the FFmpeg encoder instance directly, from the format with its output set to
-the URL, wraps it in the generic serialisation, and hands it an interrupt
-callback (abort flag, process shutdown unless the instance is being closed,
-or a write in progress past `timeout`). No streaming-format step.
+- **Declarations**: one capability, `delegated(url)`; no reader starts
+  mid-stream ([encoder.md §5.1](encoder.md#51-what-an-output-declares)).
+- **Check** ([encoder.md §5.3](encoder.md#53-the-check)): a configuration
+  that does not accept a delegated destination is refused at evaluation,
+  with an invalid-value error on the format argument. `%ffmpeg` is the one
+  that accepts it. The output never rewrites the format.
+- **Local files are `output.file`'s.** A URL with the `file:` scheme, and a
+  string that is not a URL (a plain local path), are refused with an
+  invalid-value error on the URL that names `output.file`. A URL whose
+  value is computed is checked when it is first read, as a configuration
+  error. Reason: `output.file` owns naming, permissions, append and
+  finalisation of local files; through a protocol URL each of them is
+  silently lost or done twice.
+- Standard-library wrappers (`output.youtube.live.rtmp` and others) are
+  `output.url` with a computed URL.
 
-`output.youtube.live.rtmp` and the other standard-library wrappers are
-`output.url` with a computed URL.
+## 2. The sink
 
-## 2. Instance lifecycle
+None: the writer opens, writes and closes the URL under the output's
+lifecycle and interrupt. The output keeps the URL's naming, its restart
+policy and its callbacks.
 
-One instance per connection attempt; built on a scheduler task (the open of
-the URL happens inside the build), never on the streaming thread. Initial
-metadata: the output's current metadata at build time. Stopped (draining,
-trailer written to the URL) at the output's stop; stopped without draining
-after a failure; stopped unused when a stop won the race against the build.
+## 3. Writer lifetime
 
-## 3. Call sequence
+One writer per connection attempt, built on the output's own task, never on
+the streaming thread; building it opens the URL. Its initial metadata is
+[output-encoded.md §3.2](output-encoded.md#32-initial-metadata)'s. A stop that wins over a build
+in progress ends the new writer `abandoned` before its first piece.
 
-Encoded-output base, metadata first
-([output-encoded.md §3](output-encoded.md#3-call-sequence)).
+## 4. Pieces and metadata
 
-- Encode step, connected: if the current metadata differs (physically) from
-  what the instance was built with or last given, `encode_metadata` first;
-  then the frames held while connecting, in order, then the piece, each
-  `encode(piece)` under the write-timeout guard. Returned bytes are
-  **ignored** (they are empty: the muxer writes to the URL).
-- Encode step, connecting: the piece is held (up to `timeout` seconds of
-  stream; older held pieces are dropped and counted). Waiting: dropped and
-  counted, or a new attempt is scheduled and the piece held.
-- Metadata step: recorded as current metadata; connected: `encode_metadata`.
-- Stop: `stop()` under the write-timeout guard; returned bytes ignored.
+- The streaming work hands each piece to the writer's task through a
+  bounded queue, metadata first, and never waits for it
+  ([encoder.md §6](encoder.md#6-the-delegated-destination), item 3;
+  `delegated_queue_bound` is the output's `timeout`). While the URL is being
+  opened, past the bound the oldest pieces are dropped with a warning that
+  states the stream time dropped; once open, past the bound is an output
+  fault.
+- A delegated destination offers no in-band metadata
+  ([encoder.md §6](encoder.md#6-the-delegated-destination), item 5), and
+  the output has no out-of-band channel: a metadata change is recorded as
+  the current metadata and reaches the destination as the initial metadata
+  of the next writer.
 
-`header()`, `restart_offset()`, `encode_into` and `bitrate()` are never
-called.
+## 5. Markers and readers
 
-## 4. The bytes
+Nothing: a delegated writer writes no marker.
 
-Written by FFmpeg's I/O to the URL, from inside `encode`, `encode_metadata`
-and `stop` on the streaming thread. The output neither sees, buffers, frames
-nor seeks them; whether the destination is seekable is FFmpeg's protocol's
-business. A `%ffmpeg` Ogg format to a non-`file:` URL does not chain: a
-metadata change does not start a new link ([ffmpeg encoder.md](../../optionals/ffmpeg/spec/encoder.md)).
+## 6. End
 
-Each connection is a new instance, so each connection's stream starts with
-its container header and fresh timestamps; the stream between a failure
-and the next connection is dropped, except up to `timeout` seconds held
-during the connect itself.
+At the output's stop the writer is ended `clean` on its task: it drains and
+writes the container's trailer to the URL, bounded by `timeout` through the
+interrupt. After a fault it is ended `abandoned`. `on_stop` follows the
+output's stop, not the writer's end.
 
-## 5. Reopen, reconnect
+## 7. Reopen, reconnect, append
 
-[io.md §11.1–§11.3](../../optionals/ffmpeg/spec/io.md#111-states):
-`restart_delay` (default 2 s) after an output fault; `null` stops the
-output; a configuration error before the first successful connection is
-fatal.
+Each attempt is a new writer: a new connection, its container and
+timestamps starting fresh. The wait between attempts is `restart_delay`
+([io.md §11.3](../../optionals/ffmpeg/spec/io.md#113-errors)). Append:
+nothing.
 
-## 6. Failures
+## 8. Faults and restart policy
 
-An exception from `encode` or `encode_metadata` stops the instance (errors
-ignored) and goes to the fault classification of io.md §11.3; a fault at
-stop is logged at `severe`, `Error while stopping: <exn>`.
+The writer reports typed faults ([encoder.md §8](encoder.md#8-faults)); the
+classification and the one policy (`restart_delay`, `null` to stop) are
+[io.md §11.3](../../optionals/ffmpeg/spec/io.md#113-errors). Every output
+fault reaches that policy exactly once, whichever call raised it.
 
-## 7. Threads and locks
+## 9. Concurrency
 
-Build on a `Threaded` scheduler task; encode, metadata and stop on the
-streaming thread (stop may also come from the thread that stops the
-output). The state is one atomic cell changed by compare-and-set; the
-instance serialises its calls.
+The writer runs on the output's own task, as work allowed to block
+([encoder.md §6](encoder.md#6-the-delegated-destination), item 3): every
+call on it, its creation and its end included, runs there, in the order
+handed. The streaming work only queues pieces and metadata, and posts
+starts and stops. The output's interrupt aborts any blocking open or write
+at a stop, at shutdown, or past `timeout`.
 
-## 8. Tests
+## 10. Tests
 
-`src/core/optionals/ffmpeg/test/conformance/conformance.ml` (io §11
-checks: a stopped output leaves a complete file, a failing output with
-`restart_delay=null` stops once, a stalled write is given up after
-`timeout`), and `tests/regression/GH2850.liq`.
+[io.md §11.3 conformance](../../optionals/ffmpeg/spec/io.md#113-errors).
+Seam-binding:
+
+- a format that does not accept a delegated destination is refused at
+  evaluation;
+- `output.url` given `"file:/tmp/x.ogg"` or `"/tmp/x.ogg"` is refused at
+  evaluation, naming `output.file`;
+- a URL that accepts slowly: the streaming thread's latency stays bounded,
+  another output on the clock keeps its rate, and the destination receives
+  the stream from its first piece within `delegated_queue_bound`;
+- a destination that stops reading: the output reports a fault within
+  `timeout` and restarts after `restart_delay`;
+- a clean stop of a connected output writes the container's trailer.

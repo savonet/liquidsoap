@@ -1,245 +1,252 @@
-# `%wav` encoder (as built)
+# `%wav`
 
-What the native WAV encoder does today: a 44-byte RIFF/WAVE header followed
-by interleaved little-endian PCM. It owns its options, its bytes and its
-assumptions about where they go. The shared seam (registry, factories,
-the per-instance lock, the call contract) is [encoder.md](encoder.md).
-Draining is [draining.md](../../source/spec/draining.md).
+Part A. The WAV writer: a RIFF/WAVE stream of interleaved little-endian
+integer PCM, with one stream and one header. This file owns `%wav`'s
+parameter specification, the WAV byte layout (header, file form, streaming
+form) and what the writer does with each capability. It answers every
+section of [encoder.md §10](encoder.md#10-implementation-files) under the
+same number.
 
-The same header writer is used by two other parts of the code, which this
-file is the owner of as far as the bytes go:
-[`%external`](external.md) (the header it writes to its process's stdin) and
-the `pipe` operator (the header it writes to its child's stdin).
+It relies on: the seam ([encoder.md](encoder.md)); format values and their
+phases ([formats.md](formats.md)); sinks ([sink.md](sink.md)); draining
+([draining.md](../../source/spec/draining.md)); the fault classes
+([faults.md](../../../spec/faults.md)).
+
+The WAV streaming form of §6 is also what [`%external`](external.md) sends to
+its process. Any other component that sends WAV to a process uses that form
+and links here.
 
 ## 1. Format and options
 
-Syntax: `%wav(...)`. Parameters, in any order, last one wins:
+`%wav(...)`. Parameters, folded in order, last one wins
+([formats.md §3](formats.md#3-the-parameter-specification)):
 
-| Parameter            | Value                      | Default                                                      | Effect                                     |
-| -------------------- | -------------------------- | ------------------------------------------------------------ | ------------------------------------------ |
-| `stereo` (anonymous) | —                          |                                                              | channels = 2                               |
-| `mono` (anonymous)   | —                          |                                                              | channels = 1                               |
-| `stereo=b`           | static bool                |                                                              | channels = 2 if b, else 1                  |
-| `mono=b`             | static bool                |                                                              | channels = 1 if b, else 2                  |
-| `channels=n`         | static int                 | 2                                                            | channels = n (no range check)              |
-| `samplerate=n`       | int                        | `frame.audio.samplerate` (read lazily, at instance creation) | output sample rate                         |
-| `samplesize=n`       | int, one of 8, 16, 24, 32  | 16                                                           | bits per sample                            |
-| `header=b`           | bool                       | true                                                         | emit the 44-byte header                    |
-| `duration=d`         | float (an int is rejected) | none                                                         | only changes the header's size fields (§6) |
+| Parameter                                            | Value                     | Default                            | Effect                                                              |
+| ---------------------------------------------------- | ------------------------- | ---------------------------------- | ------------------------------------------------------------------- |
+| `mono`, `stereo`, `mono=b`, `stereo=b`, `channels=n` | literal                   | 2 channels                         | channel count, type-deciding ([formats.md §4](formats.md#4-typing)) |
+| `samplerate=n`                                       | int, 1 to 2³²−1           | `frame.audio.samplerate`, deferred | sample rate of the stream                                           |
+| `samplesize=n`                                       | int, one of 8, 16, 24, 32 | 16                                 | bits per sample                                                     |
+| `header=b`                                           | bool                      | `true`                             | `false`: raw PCM, no RIFF header (§5)                               |
+| `duration=d`                                         | number                    | —                                  | deprecated: none ([formats.md §2](formats.md#2-names-and-kinds))    |
 
-Errors (all raised while the script is evaluated, kind `encoder`):
+- The type is `format(audio=pcm(<layout>))`: one audio track, no other.
+- The byte rate `channels × samplerate × samplesize / 8` MUST fit in 32 bits.
+  With literal values, a byte rate that does not fit is an error at type
+  checking; with a computed or deferred rate, at the phase that resolves it
+  ([formats.md §7](formats.md#7-when-a-format-is-validated)). The error names
+  `samplerate` and states the largest rate accepted for the channel count and
+  sample size.
+- A `samplesize` outside the set is an error naming the value and the four
+  accepted ones. Any other parameter is rejected
+  ([formats.md §11](formats.md#11-errors)).
+- **No adaptable parameter.** Nothing in `%wav` depends on the destination
+  other than the header form and the tags, neither of which is a parameter
+  (§6, §7).
+- Helpers ([formats.md §9](formats.md#9-helpers)): extension `wav`, MIME
+  `audio/wav`; `codecs` `1` (the WAVE format tag of integer PCM, RFC 2361);
+  `bitrate` is `channels × samplerate × samplesize` when `samplerate` is
+  explicit, none while it is deferred.
 
-- `samplesize` not in {8,16,24,32}: "invalid sample size", at the value's position.
-- any other labelled parameter or a wrong value type (e.g. `duration=2`):
-  "unknown parameter name (duration) or invalid parameter value (2)".
-- any other anonymous parameter: "Unknown encoder parameter: foo".
-- `stereo=`/`mono=`/`channels=` given a non-literal: "Invalid value … Only
-  static `true` or `false` are allowed." / "… Only static numbers are allowed."
-  (raised by the script-level type computation, before the value exists).
-- `pcm_s16`/`pcm_f32` anonymous: "pcm_s16 audio is only supported by the
-  %ffmpeg encoder."
+`duration` is deprecated: accepted with a warning, it changes no byte.
+Migration: remove it. A file written by `output.file` gets exact sizes at
+its clean end (§6); a stream declares an unknown length. Reason: a declared
+length that nothing enforces makes readers stop early or report
+corruption.
 
-Type: a source with exactly one `audio` track of PCM with _channels_
-channels, no other track. The channel count is the literal from the script
-(default 2, not `frame.audio.channels`: the default is hard-coded so that
-typing does not force the frame channel setting, issue #933). Giving `%wav`
-a source with video is a type error.
+## 2. Declarations
 
-Printed as `%wav(samplerate=44100,channels=2,samplesize=16,header=true)`,
-with `,duration=%f` appended when set.
+| Declaration        | Value                                                    |
+| ------------------ | -------------------------------------------------------- |
+| streamable         | yes; every sample block boundary is an access point (§5) |
+| needs seekable     | no                                                       |
+| can continue       | yes: samples only (§6)                                   |
+| in-band metadata   | no                                                       |
+| segmentable        | no                                                       |
+| needs no byte sink | no                                                       |
+| accepts delegated  | no                                                       |
 
-Extension `wav`; MIME `audio/wav` (Icecast/Harbor content-type
-`audio/wav` via the same mapping); no format-level bitrate estimate (the
-format-level query raises "not found"); Icecast info reports samplerate and
-channels, no bitrate, no quality.
+No parameter is adapted and no explicit parameter is refused against a
+capability: `%wav` has no preamble and no destination-dependent option. The
+header form (§6) and the `LIST`/`INFO` tags (§7) follow the capabilities.
 
-## 2. Factory and instance creation
+## 3. Creation
 
-The factory ignores the output name and the initial metadata. Creating an
-instance:
+- Inputs used: the configuration, the capabilities, the sink, the output's
+  name (logs), the initial metadata (§7).
+- The header form is chosen from the capabilities (§6). Nothing is started.
+  Creation does not fail: a deferred value found invalid is reported before
+  creation ([formats.md §6](formats.md#6-deferred-values)).
+- When the configuration's rate differs from the frame's audio rate, a
+  sample-rate converter is created for the channel count.
 
-- forces the sample rate (the format's, or the frame audio rate);
-- creates a sample-rate converter for _channels_ channels (stateful, one per
-  instance), used with ratio `samplerate / frame.audio.samplerate`;
-- computes the header once (§6), from the format only;
-- sets a "header pending" flag to the value of `header`.
+## 4. Input
 
-Nothing fails here.
+- The writer reads the piece's audio track only.
+- Samples are converted to the configured rate by the converter, a stage of
+  [draining.md §1](../../source/spec/draining.md#1-stages).
+- Each sample is converted to an integer of the sample size as
+  [encoder.md §3.3](encoder.md#33-frames-in) states: 8 bits unsigned with
+  silence at 128, 16, 24 (3 bytes) and 32 bits signed two's complement,
+  little endian.
+- Channels are interleaved in the order of the channel layout, one sample
+  block (`channels × samplesize / 8` bytes) per sample period.
+- No result depends on piece boundaries
+  ([encoder.md §3.3](encoder.md#33-frames-in)): without rate conversion,
+  each piece's samples are written whole; with it, the converter's output
+  does not depend on how its input was cut.
 
-## 3. `encode`
+## 5. Bytes and markers
 
-Input: one frame. Only its audio track is read, from offset 0 for the
-frame's audio length; other tracks, metadata and track marks are ignored.
+The stream is the header (§6), then the `data` chunk's payload: the sample
+blocks of every piece, in order.
 
-1. The audio is passed through the converter (identity when the rates are
-   equal; otherwise it may return fewer or more samples than given and keeps
-   state across calls).
-2. Each sample is converted and interleaved channel by channel, little
-   endian: 8 bits unsigned (`U8`, silence 0x80), 16/24/32 bits signed
-   (`S16LE`, `S24LE` packed in 3 bytes, `S32LE`). Float samples are
-   clipped to [-1, 1] by the conversion (see [findings](findings/simple-encoders.md#to-verify)).
-3. If "header pending", the result is the header followed by the samples,
-   and the flag is cleared; otherwise the samples alone.
+- `stream_start(header_length, 0)` precedes the header. `header_length` is
+  the header's length (§6), 0 when `header=false`.
+- An `access_point(t)` precedes the samples of each piece, at a sample block
+  boundary. The entry header is the stream's header in its streaming form.
+  Reason: PCM has no framing beyond the block, so a reader starting at any
+  block decodes from there given the header.
+- With `header=false`, the stream is raw PCM: no byte other than sample
+  blocks. A reader must be told the layout out of band.
 
-A zero-length frame yields zero sample bytes, but still carries the header
-if it was pending (and clears the flag). Bytes out per call:
-`samples_out × channels × samplesize/8`, plus 44 once.
+## 6. Header forms and preambles
 
-An unsupported sample size raises at this point ("Unsupported sample size",
-kind `encoder`); validation at §1 makes it unreachable.
+**Header.** The canonical header is 44 bytes, little endian:
 
-## 4. `encode_into`
+| Offset | Size | Value                                             |
+| ------ | ---- | ------------------------------------------------- |
+| 0      | 4    | `RIFF`                                            |
+| 4      | 4    | RIFF size: total length − 8                       |
+| 8      | 4    | `WAVE`                                            |
+| 12     | 8    | `fmt `, then its length 16                        |
+| 20     | 2    | 1 (integer PCM)                                   |
+| 22     | 2    | channels                                          |
+| 24     | 4    | samplerate                                        |
+| 28     | 4    | byte rate: channels × samplerate × samplesize / 8 |
+| 32     | 2    | block align: channels × samplesize / 8            |
+| 34     | 2    | samplesize                                        |
+| 36     | 4    | `data`                                            |
+| 40     | 4    | data size: the payload's length in bytes          |
+
+- With more than 2 channels or more than 16 bits per sample, the `fmt `
+  chunk MUST be `WAVE_FORMAT_EXTENSIBLE` (format tag 0xFFFE, 40 bytes: valid
+  bits equal to `samplesize`, the channel mask of the layout, the PCM
+  sub-format GUID), and the header grows accordingly. Reason: readers derive
+  the speaker positions of more than two channels from the mask, and the
+  plain tag is defined for at most two channels of at most 16 bits.
+- On a file sink, the header carries the initial metadata (§7) in a
+  `LIST`/`INFO` chunk between `fmt ` and `data`.
+- Sizes are unsigned 32-bit values, never reduced modulo 2³¹ or 2³².
+
+**Streaming form** (a fresh sink that is not seekable, and the first write
+on a seekable one): the RIFF size and data size hold the values readers take
+as "to the end of the stream": RIFF size 0xFFFFFFFF, data size
+0xFFFFFFFF − (header length − 8), so that the two stay consistent.
+
+**File form** (fresh seekable sink): the writer writes the streaming form,
+then at a clean end seeks back and writes the RIFF and data sizes of what it
+wrote. A data payload of odd length is followed by one pad byte, counted in
+the RIFF size and not in the data size. When the payload exceeds what the
+data size field holds, the header keeps the streaming form's values. A writer
+MAY instead reserve a 28-byte `JUNK` chunk after `WAVE` on a seekable sink,
+and turn the stream into RF64 (EBU Tech 3306) at a clean end when the
+payload exceeds 32 bits.
+
+**Continuing sink.** The writer writes sample blocks only, no header. At a
+clean end on a seekable sink it reads the existing header: if it is a WAV
+header of the same channels, rate and sample size, it rewrites the RIFF and
+data sizes to cover the whole file; otherwise it leaves it unchanged, logged
+at `severe` with the file's name
+([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)). With
+`header=false`, nothing is read or rewritten.
+
+**Preambles.** None.
+
+## 7. Metadata
+
+- Initial metadata: written as tags under
+  [encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 7: in
+  the `LIST`/`INFO` chunk on a file sink, with the exported keys mapped to
+  `INAM` (title), `IART` (artist), `IPRD` (album), `ICMT` (comment), `ICRD`
+  (date), `IGNR` (genre); `ISFT` names the software and its version
+  (item 8). Values in UTF-8, each null-terminated and padded to an even
+  length. Other sinks get no `LIST` chunk, and `%wav` has no parameter that
+  asks for one. Reason: a reader of a stream (a process, a player) commonly
+  expects `data` to follow `fmt `.
+- In-band offer: nothing.
+
+## 8. Delay and padding
+
+Delay and padding are 0: PCM has neither. The rate converter's latency is
+compensated by draining it (§9), so the stream holds the input's duration at
+the configured rate, to the nearest sample.
+
+## 9. End
+
+`end(clean)`:
+
+1. drains the rate converter, if any, and writes the samples it produces;
+2. on a seekable sink, writes the final sizes (§6), or on a continuing sink
+   updates the existing header;
+3. writes `end`.
+
+`end(abandoned)` releases the converter and writes nothing. A file abandoned
+part way keeps its streaming-form header, which stays valid.
+
+## 10. Properties
+
+- `bitrate`: `channels × samplerate × samplesize`, from creation.
+- `delay`, `padding`: 0, from creation.
+
+## 11. Live latency
+
+The writer holds only what the rate converter holds; every call writes the
+samples it produced. The bound is met by construction.
+
+## 12. Segmenting face
+
+Nothing. `%wav` is not segmentable (§2).
+
+## 13. Delegated destination
 
 Nothing.
 
-## 5. `encode_metadata`
+## 14. Concurrency
 
-Nothing: metadata is accepted and dropped. WAV output never carries
-metadata (no `LIST/INFO`, no ID3).
+No work of its own and no state shared with other writers.
 
-## 6. `header`
+## 15. Faults
 
-The header is computed once per instance:
+| Fault                                                         | Class                                                                     |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| a parameter rejected (§1)                                     | configuration error                                                       |
+| a deferred rate out of range, or whose byte rate does not fit | configuration error, at start-up                                          |
+| a continuing sink's header not of this configuration          | not escalated: logged at `severe` (§6)                                    |
+| a seek or a read back failing at a clean end                  | not escalated ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes)) |
 
-```
-offset size  value
-0      4     "RIFF"
-4      4     RIFF size, LE  (see below)
-8      4     "WAVE"
-12     4     "fmt "
-16     4     16                      (fmt chunk length, LE)
-20     2     1                       (PCM)
-22     2     channels
-24     4     samplerate
-28     4     channels*samplerate*samplesize/8   (bytes per second)
-32     2     channels*samplesize/8               (block align)
-34     2     samplesize
-36     4     "data"
-40     4     data size, LE  (see below)
-```
+The writer reports no item fault: every sample has an encoding (§4).
 
-Size fields:
+## 16. Tests
 
-- Without `duration`: RIFF size bytes `FF FF FF EF` (0xEFFFFFFF) and data
-  size bytes `DB FF FF EF` (0xEFFFFFDB = 0xEFFFFFFF − 36). These are literal
-  constants, "the maximum possible values" per the code comment; neither the
-  code nor the history gives why 0xEF rather than 0xFF in the top byte.
-- With `duration=d`: data size `v = floor(d × channels × samplerate ×
-samplesize / 8)` and RIFF size `v + 36`. Each is written with its bit 31
-  cleared (values ≥ 2³¹ are silently reduced modulo 2³¹). `v` is not rounded
-  to the block alignment.
-
-`header()` returns:
-
-- the empty string when `header=false`;
-- the empty string before the first `encode` of the instance (that `encode`
-  carries the header itself);
-- the 44-byte header, unchanged, after it (same sizes: a joiner never gets a
-  header describing the remaining length).
-
-## 7. `restart_offset`
-
-Always "none". The encoder never starts a new logical stream.
-
-## 8. `bitrate`
-
-Always "none" (even though the rate is constant and known).
-
-## 9. `stop`
-
-Returns no bytes. Nothing is drained: samples the rate converter holds
-(non-zero only when `samplerate` differs from the frame rate) are dropped.
-The header's sizes are never corrected; the encoder has no way to rewrite
-bytes it already returned.
-
-## 10. Bytes produced
-
-The whole output of an instance is: `header (44 bytes, if header=true)` then
-the concatenated sample bytes of every `encode`, in order, nothing at the
-end. The header is in the first `encode`'s bytes, whatever that frame's length.
-
-Worked examples (real binary at 02fa52985, `sine(440.)`, 44.1 kHz frames of
-0.02 s, run ~0.56 s, `output.file`):
-
-`%wav` (stereo, 16 bits, no duration), 98 828 bytes:
-
-```
-00000000: 5249 4646 ffff ffef 5741 5645 666d 7420  RIFF....WAVEfmt
-00000010: 1000 0000 0100 0200 44ac 0000 10b1 0200  ........D.......
-00000020: 0400 1000 6461 7461 dbff ffef 0000 0000  ....data........
-```
-
-`%wav(duration=1.)`, same audio, same length: the size fields become
-`34 b1 02 00` (176 436) and `10 b1 02 00` (176 400) although only 98 784
-data bytes follow. `ffmpeg` reports "Packet corrupt" and decodes the 0.56 s
-that exist.
-
-`%wav(samplesize=24, duration=0.5)`, 148 220 bytes: `fmt` gives
-`98 09 04 00` (264 600 B/s), block 6, 24 bits; data size `cc 04 02 00`
-(132 300). The file holds 0.56 s; `ffmpeg` decodes exactly 0.5 s and
-ignores the rest: data past the declared length is silently lost to
-readers.
-
-`%wav(mono, samplesize=8, samplerate=8000)`: `01 00` channels, `40 1f 00 00`
-rate and byte rate, block 1, 8 bits; samples start `84 a8 d0 eb`.
-
-`%wav(header=false)`: raw `s16le` interleaved from byte 0:
-`0000 0000 0408 0408 0110 0110 …` (L, R, L, R…).
-
-## 11. Concurrency and failures
-
-No thread of its own, no lock of its own beyond the seam's per-instance lock
-([encoder.md](encoder.md)). Every call is pure computation on the caller's
-thread. No call fails at run time in practice.
-
-## 12. Segmenting (HLS) face
-
-Nothing. No HLS factory is registered for `%wav`; the HLS output rejects
-it at evaluation ("transport of other media file formats is not defined",
-[HLS tree](../../outputs/hls/spec/encoder-contract.md)). The same holds for
-`%avi`, `%ndi` and `%external`.
-
-## 13. Where the bytes go
-
-- **The encoder assumes it cannot seek back.** It never rewrites its header;
-  lengths are either placeholders (0xEFFFFFFF/0xEFFFFFDB) or a promise taken
-  from `duration`, which nothing enforces: the encoder does not stop, pad or
-  cut at that duration. A file shorter than `duration` has a header that
-  overstates it; a file longer has a tail that readers drop (§10). The only
-  encoder in the tree that can finalise a header is `%ffmpeg`, because
-  `output.file` hands it the file name and lets it write the file itself.
-- **One stream, starting at the first encode.** The header is emitted once
-  per instance, in the first `encode`'s bytes. Whether each file of
-  `output.file` gets its own header therefore depends on whether the caller
-  creates a new instance per file (the caller's documents). An instance's
-  bytes appended to an existing file (`append=true`) put a second header
-  mid-file.
-- **Late joiners** (harbor) get `header()`, i.e. the same 44 bytes with the
-  same placeholder/duration sizes, then PCM from wherever the stream is: the
-  header is valid for them because PCM has no framing beyond block alignment
-  and every `encode` returns whole sample blocks.
-- The encoder never does I/O; it only returns bytes.
-
-## 14. Tests
-
-- **Bad options are rejected at evaluation with kind `encoder`.**
-  (`tests/language/encoders.liq`, invalid `samplesize`.) Binding: the
-  error kind and that it is raised before any output runs. Incidental: the
-  message wording (it is asserted literally there).
-- **The channel count is part of the type.** Two `%wav` with different
-  channels cannot be in one list; `%wav` fed a video-only source is a type
-  error (`tests/language/encoders.liq`, `tests/language/type_errors.liq`).
-  Binding: rejection at type checking. Incidental: which formats are mixed.
-- **Output decodes with the requested channels and rate.**
-  (`tests/media/mono.liq`, `stereo.liq`, the `%wav(...)` fixtures of
-  `tests/media/test_media_formats.ml`.) Binding: an external decoder reads
-  the file with the declared channels and sample rate. Incidental: ffprobe,
-  48 kHz, the source file.
-- `%wav` is the default cheap encoder of many output tests (harbor,
-  icecast, `output.file` reopen); those assert the caller's behaviour, not
-  the bytes. A harness for those needs only "some encoder whose first
-  output carries a header and whose header() is stable".
-- **Untested:** the header bytes; the size fields with and without
-  `duration`; `header()` before vs after the first encode; `header=false`;
-  8/24/32-bit layouts; resampled output length. A new harness needs a
-  byte-level check of §6 and §10 and a frame double with a known PCM ramp.
+- Header bytes for 1 and 2 channels × each sample size, on a FIFO and on a
+  regular file: the streaming form's values on the FIFO; on the file after a
+  clean stop, RIFF and data sizes equal to the payload, and a decoder reads
+  exactly the samples written.
+- 6 channels, and 2 channels at 24 bits: the `fmt ` chunk is extensible with
+  the layout's mask; a decoder reports the layout.
+- A ramp cut into pieces of random lengths decodes bit-exact against the
+  same ramp in one piece; with a converter, sample-count exact.
+- A clean stop with `samplerate` different from the frame rate: the decoded
+  length equals the input's duration to within one sample.
+- An abandoned file: its header holds the streaming form, and it decodes.
+- Append one minute to a one-minute file of the same configuration: one
+  header, sizes covering two minutes. Append to a file of another rate: the
+  header is unchanged and a `severe` line names the file.
+- A shared mount: a reader starting mid-stream is sent the header and then
+  whole sample blocks, and decodes.
+- `output.file` with metadata: the `INFO` chunk holds the title; a FIFO gets
+  none.
+- `%wav(duration=1.)` is accepted, logs one deprecation warning, and gives
+  the same bytes as `%wav`; `%wav(samplesize=12)` fails `--check` with a
+  position; a computed rate whose byte rate overflows fails at evaluation.
+- A payload past 4 GiB (with a sink double): no size is ever wrapped.

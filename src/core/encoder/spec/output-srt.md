@@ -1,98 +1,136 @@
-# `output.srt` at the encoder seam (as built)
+# `output.srt` at the encoder seam
 
-Seam view only. The normative tree is
-[optionals/srt/spec/](../../optionals/srt/spec/README.md), in particular
-[output.md §4–§6, §10](../../optionals/srt/spec/output.md#4-encoder); this
-file records how it drives the [stream face](encoder.md) and what it does
-with the bytes. The code matches that tree on every point checked here;
-asymmetries with the other network outputs are in
-[findings/net-callers.md](findings/net-callers.md).
+Part A. Seam view: how `output.srt` answers the caller numbering of
+[encoder.md §11](encoder.md#11-caller-files). The operator's rules are its
+tree's ([optionals/srt/spec/](../../optionals/srt/spec/README.md), in
+particular [output.md](../../optionals/srt/spec/output.md)); the listener
+role's sink is the shared stream
+([shared-stream.md](../../outputs/spec/shared-stream.md)). This file states
+only what binds the seam, and links the rest.
 
-## 1. Formats accepted and how the factory is obtained
+## 1. Formats and declarations
 
-The format value goes straight to the registry; none: invalid-value error
-`Cannot get a stream encoder for that format`. **No streaming-format step**
-(unlike `output.icecast` and `output.harbor`): a `%ffmpeg` mp3 stream keeps
-its ID3v2 tag at the start.
+- The factory is looked up at construction; none is an invalid-value error
+  on the format argument
+  ([srt output.md §2](../../optionals/srt/spec/output.md#2-construction)).
+- **Declarations** ([encoder.md §5.1](encoder.md#51-what-an-output-declares)):
 
-## 2. Instance lifecycle
+  | Role     | Capabilities       | Readers mid-stream |
+  | -------- | ------------------ | ------------------ |
+  | listener | `fresh`, `live(L)` | yes                |
+  | caller   | `fresh`, `live(L)` | no                 |
 
-One shared instance for all peers, at most one at a time.
+  `L` is the output's `live_latency_bound`, 1 s as recommended
+  ([sink.md §1](sink.md#1-capabilities)). SRT's own latency and
+  `max_payload_delay` bound what the transport and the sink hold after the
+  writer has written it; neither is `L`.
 
-- **Created** lazily, on the first encode or metadata call that finds at
-  least one peer and no instance; name = the output's id, empty initial
-  metadata. Every peer present then is marked joined: its stream starts at
-  the instance's first byte.
-- **Stopped** when the last peer ends by failure (final bytes discarded), or
-  when the output ends its peers itself (stop, `disconnect()`, reset,
-  shutdown): final bytes delivered to every joined peer.
-- No peer: no instance, frames and metadata are not encoded and are lost.
-- A peer ending by failure while others remain does not touch the instance.
+- **Checks** ([encoder.md §5.3](encoder.md#53-the-check)): in the listener
+  role a configuration that is not streamable is refused, the message
+  naming an explicit `streamable=true` where the configuration takes it
+  (`%ffmpeg` with a muxer the writer does not know, `%external`); in both roles a
+  configuration that needs a seekable destination or no byte sink is
+  refused, and an explicit preamble is refused. Left at its default, the
+  writer drops its preambles by itself, so no peer receives an ID3v2 tag
+  or an encoder-information frame
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)).
 
-## 3. Call sequence
+## 2. The sink
 
-Encoded-output base, metadata first
-([output-encoded.md §3](output-encoded.md#3-call-sequence)).
-All under one output lock:
+- **Listener**: the shared stream, with no history (`B = 0`): a peer starts
+  at the first candidate written after it joined
+  ([shared-stream.md §3](../../outputs/spec/shared-stream.md#3-starting-a-reader)).
+  SRT keeps its peers, payload cutting, delay bound and per-peer queues,
+  each bounded by `peer_backlog_limit`
+  ([srt output.md §5](../../optionals/srt/spec/output.md#5-sending)).
+- **Caller**: one sink per peer connection, serving it from byte 0, with
+  the same payload cutting and bounds.
+- A peer past its bound, or whose send fails, is that peer's fault; it never
+  reaches the writer ([sink.md §7](sink.md#7-faults)).
 
-- Encode step: add the piece's duration to the output's stream time; if an
-  instance runs (or is created now), `encode(piece)`, then
-  `restart_offset()`, then distribute (§4). The send step does nothing.
-- Metadata step: `encode_metadata(m)` on the running (or newly created)
-  instance.
-- Joining peer, at the next output: `restart_offset()` and, when it is
-  none, `header()`.
-- End: `stop()`.
+## 3. Writer lifetime
 
-`encode_into` and `bitrate()` are never called.
+- **Listener**: a writer runs while the output has at least one peer. The
+  first piece that finds a peer and no writer builds one; when the last
+  peer ends by failure, the writer is ended `abandoned`; when the output
+  ends its peers itself, it is ended `clean` (§6). Peers that join a
+  running writer start in its stream (§5).
+- **Caller**: one writer per peer connection
+  ([encoder.md §2.1](encoder.md#21-one-writer-per-destination-stream)).
+- With no writer, pieces are not encoded and metadata becomes the current
+  metadata ([output-encoded.md §3.1](output-encoded.md#31-current-metadata)).
+- **Initial metadata**: [output-encoded.md §3.2](output-encoded.md#32-initial-metadata).
+  The sink is live: it becomes tags only in Ogg comment headers, the
+  in-band channel ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles),
+  item 7).
 
-## 4. The bytes
+## 4. Pieces and metadata
 
-Each peer has its own stream of bytes owed:
+Pieces are handed metadata first
+([output.md §3](../../outputs/spec/output.md#3-a-streaming-cycle)). SRT has
+no out-of-band channel: each metadata is offered in band to a writer that
+offers it ([encoder.md §9](encoder.md#9-in-band-metadata)); there is no
+choice to give the script.
 
-- A joined peer: every output in full.
-- A peer joining now: if the output reports a restart at `r`, the output
-  from `r` on (the bytes before `r`, end of the previous Ogg link, are not
-  sent to it); otherwise `header()` followed by the whole output.
-- The final bytes on a clean end: appended to every joined peer.
+## 5. Markers and readers
 
-Each stream is cut into payloads of exactly `payload_size` bytes counted from
-the peer's first byte, with a shorter payload when bytes have waited
-`max_payload_delay` seconds of stream time, and sent one message per payload
-by a sender thread per peer ([srt output.md §5, §10](../../optionals/srt/spec/output.md#5-sending)).
-A peer whose backlog exceeds 8 MiB is failed.
+- **Listener**: the shared stream records stream starts, access points and
+  `end`; a joining peer is sent the recorded entry header, then the stream
+  from its start. The output never asks a writer for a header or a restart
+  position ([shared-stream.md](../../outputs/spec/shared-stream.md)).
+- **Caller**: the sink ignores every marker but `end`.
+- Payloads are counted from each peer's first byte, the entry header
+  included ([srt output.md §10](../../optionals/srt/spec/output.md#10-wire-bytes)).
 
-Checked (`%ffmpeg(format="mp3")`, listener mode, two `ffmpeg` callers):
-the first peer's bytes start with a 44-byte ID3v2.4 tag (`49 44 33 04 …`,
-`TSSE Lavf…`) and then MPEG frames; a peer joining 2 s later receives an
-MPEG frame first (`ff fb …`), no ID3v2 tag.
+## 6. End
 
-## 5. Reopen, reconnect
+When the output ends its peers itself, the writer is ended `clean` by the
+output's streaming work, as part of the output's stop
+([output.md §2](../../outputs/spec/output.md#2-states)); its final bytes
+are appended to every peer's stream and delivered within `write_timeout`,
+or `shutdown_drain` when that is null
+([srt output.md §6](../../optionals/srt/spec/output.md#6-stopping)): that
+is this output's `final_delivery_bound`
+([sink.md §4](sink.md#4-markers-and-the-end)). The
+drain runs on the peers' work and never holds the streaming thread.
 
-Every connection of a caller, and every client of a listener, is a peer.
-A reconnecting caller after a failure, when it was the only peer, finds no
-instance and gets a new one: a fresh stream from its first byte. A client
-joining a running instance gets a mid-stream join (§4).
+## 7. Reopen, reconnect, append
 
-## 6. Failures
+A caller that reconnects gets a new writer: a fresh stream from its first
+byte. A listener peer that joins a running writer starts mid-stream (§5).
+Append: nothing.
 
-Encoder errors in encode or metadata: not caught, generic output failure.
-Stop error: logged at `severe`, `Error while stopping encoder: <exn>`, with
-the backtrace; the final bytes are then empty and the peers are ended anyway.
+## 8. Faults and restart policy
 
-## 7. Threads and locks
+- Item faults are the writer's ([encoder.md §8](encoder.md#8-faults)).
+- An output fault of the writer ends it `abandoned` and ends every peer it
+  serves as a peer failure; the role then behaves as after peer failures
+  ([srt connection.md §7](../../optionals/srt/spec/connection.md#7-peer-failure)):
+  the caller makes a new attempt, the listener keeps accepting. A writer is
+  built again no sooner than `fault_retry_delay` after the fault
+  ([faults.md §3](../../../spec/faults.md#3-source-faults-reach-the-script)).
+- Configuration errors the writer reports at creation are hard errors
+  ([encoder.md §8](encoder.md#8-faults)).
 
-Encode, metadata and distribution on the streaming thread under the output
-lock; the clean-end stop on the thread that ends the peers, under the same
-lock; sends on one thread per peer, each stream under its own lock
+## 9. Concurrency
+
+Only the output's streaming work calls a writer
+([encoder.md §7](encoder.md#7-concurrency)), its clean end included. A
+joining peer is posted to the streaming work; what it is sent first comes
+from the shared stream's records. Sends run on the peers' work
 ([srt concurrency.md](../../optionals/srt/spec/concurrency.md)).
 
-## 8. Tests
+## 10. Tests
 
-[srt conformance.md](../../optionals/srt/spec/conformance.md). Seam-binding:
-`tests/srt/srt-late-joiner.liq` (Ogg and WAV late clients decode, an Ogg
-client joining right after a metadata change decodes the new link),
-`srt-client-failure.liq` (one client failing leaves the other's stream
-continuous, with one header), `srt-shutdown-drain.liq` (the last bytes are
-the encoder's final bytes), `srt-output-payloads.liq` (payload sizes),
-`srt-caller-reconnect.liq` (reconnections decode).
+[srt conformance.md](../../optionals/srt/spec/conformance.md) and
+[shared-stream.md §7](../../outputs/spec/shared-stream.md#7-conformance).
+Seam-binding:
+
+- a listener of a non-streamable configuration is refused at evaluation;
+- a `%ffmpeg` mp3 stream: neither the first peer nor a late one receives an
+  ID3v2 tag;
+- a late peer of `%ffmpeg` Matroska with AAC, no metadata change, decodes
+  from its first byte;
+- a clean stop: each peer's last bytes are the writer's final bytes, and
+  the stop returns while a peer that stopped reading drains;
+- the writer's `end` is called from the streaming work.

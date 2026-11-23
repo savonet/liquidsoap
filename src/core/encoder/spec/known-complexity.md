@@ -2,9 +2,9 @@
 
 What the history of the encoders and their I/O shows to be hard, written
 without the implementation: each entry gives the Situation, What went wrong,
-Why it is hard, How to tell, the count and traces, and its reconciliation
-with the as-built text of this tree. The normative pass answers every entry
-with a rule; the reimplementation turns every entry into a conformance check.
+Why it is hard, How to tell, the Rule that answers it, and the count and
+traces. Each entry's "How to tell" is a check of
+[conformance.md](conformance.md), marked K there.
 
 Neighbouring trees keep their own lists, linked where an entry relates:
 [FFmpeg](../../optionals/ffmpeg/spec/known-complexity.md),
@@ -12,9 +12,7 @@ Neighbouring trees keep their own lists, linked where an entry relates:
 [HLS](../../outputs/hls/spec/known-complexity.md),
 [SRT](../../optionals/srt/spec/known-complexity.md).
 
-Entries whose reconciliation is "Not covered" or "Contradicts" are gathered
-in [findings/known-complexity.md](findings/known-complexity.md). Language
-notes from the history are in
+Language notes from the history are in
 [language-notes/known-complexity.md](language-notes/known-complexity.md).
 
 ## Themes
@@ -93,18 +91,22 @@ SRT known-complexity files.
   raises; the bytes parse as whole pages; no packet is empty; every logical
   stream that has a beginning-of-stream page has an end-of-stream page; no
   link has zero tracks; a reference demuxer reads the whole file.
+- **Rule** — Every new stream ends validly whatever it received, nothing
+  included ([encoder.md §9](encoder.md#9-in-band-metadata), item 2), and a
+  writer given no piece writes nothing
+  ([encoder.md §2.3](encoder.md#23-states)). A link holds exactly one
+  logical stream per stream of the format and no skeleton
+  ([ogg.md §5.1](ogg.md#51-link-layout)); every logical stream ends with at
+  least one data packet, never an empty packet nor a page without a segment
+  ([ogg.md §9](ogg.md#9-end)); a video stream that received no image encodes
+  one ([ogg-theora.md §9](ogg-theora.md#9-end)), and an audio stream always
+  receives at least one sample, at its codec's channel count
+  ([ogg.md §4](ogg.md#4-input)).
 - **Count and traces** — 6 recurrences, 2008–2026: fc38d93f8 (2008, "avoid
   empty ogg streams as much as possible… think of a better API"), 3fd8a5e7b
   (2008, invalid skeleton when ended before any track), 1ac518346 /
   6c266d2be (2018, #180, empty Opus link), 02da14b41 (2023, #3062, empty EOS
   packets illegal), and still open as findings D2, D3, D4, D9.
-- **Reconciliation** — Not covered / Contradicts. The behaviour is described
-  ([ogg.md §5](ogg.md#5-encode_metadata), [§9](ogg.md#9-stop),
-  [Ending a link](ogg.md#ending-a-link), each codec's §10), and it is the
-  defect: the leading skeleton-only link (§5) and the raising Theora
-  stand-in (§9) are what history shows to be bugs. Missing: a rule that an
-  instance never emits a link with no track and that the empty-track case
-  produces a valid end with the codec's own channel count.
 
 ### KC-2. Draining at `stop`: the encoder's queue, the codec's look-ahead, the resampler
 
@@ -133,6 +135,15 @@ SRT known-complexity files.
   equals the input length to within one sample at the output rate; the bytes
   `stop` returns are non-empty for every codec that holds data, and reach the
   destination.
+- **Rule** — `end(clean)` drains every stage the writer holds, upstream
+  first, and delivers a final partial unit short or padded with the padding
+  signalled ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes),
+  under [draining.md §2](../../source/spec/draining.md#2-the-rule)); the
+  sink delivers the final bytes before it closes
+  ([sink.md §4](sink.md#4-markers-and-the-end)). Each implementation file's
+  §9 lists its stages and their order ([mp3.md §9](mp3.md#9-end),
+  [shine.md §9](shine.md#9-end), [fdkaac.md §9](fdkaac.md#9-end),
+  [flac.md §9](flac.md#9-end), [ogg-streams.md §9](ogg-streams.md#9-end)).
 - **Count and traces** — 8: 923597b1d (2012, shine flush added), a0d098f51
   (2013, "Correctly flush lame encoder", CHANGES 1.1.1), a69e60c52 /
   286e41a07 (2020, LAME flush call changed), 96cf5526a (2023, #3064, the
@@ -140,10 +151,6 @@ SRT known-complexity files.
   #3316: caller dropped `stop` bytes → empty FLAC files), #2841 (2023,
   open), findings native-codecs 1–4, ogg D2 and the resampler gap. Related:
   [FFmpeg known complexity §10](../../optionals/ffmpeg/spec/known-complexity.md).
-- **Reconciliation** — Contradicts [draining.md §2, §4](../../source/spec/draining.md#2-the-rule):
-  [mp3.md §9](mp3.md#9-stop), [shine.md §9](shine.md#9-stop),
-  [fdkaac.md §9](fdkaac.md#9-stop), [ogg.md §9](ogg.md#9-stop) describe the
-  losses as the behaviour; history and the draining rule make them defects.
 
 ### KC-3. Encoder delay and padding are not signalled
 
@@ -168,14 +175,20 @@ SRT known-complexity files.
   signalling. Binding: the click is at its input index to within one sample;
   decoded length equals input length; for chained Ogg, the same holds for
   every link, and the concatenated decode has no gap at link boundaries.
+- **Rule** — Every writer signals each stream's delay and padding in every
+  container that can carry them, with the values its codec reports, at every
+  stream start; a configured constant only where the library offers no
+  query, stated and checked against the decoded output
+  ([encoder.md §3.7](encoder.md#37-delay-and-padding)). Each implementation
+  file's §8 gives its values: Opus pre-skip from the codec's look-ahead
+  ([ogg-opus.md §8](ogg-opus.md#8-delay-and-padding)), the MP3
+  encoder-information frame on a file
+  ([mp3.md §6.2](mp3.md#62-the-encoder-information-frame),
+  [mp3.md §8](mp3.md#8-delay-and-padding)).
 - **Count and traces** — 5: 1eeb06b16 (2012, Opus encoder with the fixed
   pre-skip default), 96cf5526a (2023, encoder-info frame disabled), #2841
   (2023, open), #1317 (2020), #5476 (2026); findings native-codecs gap 1,
   ogg D1, D2.
-- **Reconciliation** — Not covered. [ogg-opus.md §3, §10](ogg-opus.md#10-end-of-stream)
-  and [mp3.md §9](mp3.md#9-stop) state the values; the as-built has no
-  requirement that delay and padding be signalled, nor a section for it in
-  the encoder numbering ([encoder.md §8](encoder.md#8-section-numbering-of-implementation-files)).
 
 ### KC-4. A new link at every metadata change, and the consumers that cannot follow
 
@@ -200,15 +213,21 @@ SRT known-complexity files.
   link is reported as a new stream with its metadata; the total decoded
   duration equals the input duration (minus signalled trimming); no
   validator warning; the same with identical and with empty metadata.
+- **Rule** — A link is started only by an offer whose exported values are
+  neither empty nor equal to the current link's, and each new stream decodes
+  alone and carries every track
+  ([encoder.md §9](encoder.md#9-in-band-metadata), items 2–3). Each output
+  decides whether it offers metadata in band and MAY let the script choose
+  ([encoder.md §9](encoder.md#9-in-band-metadata), item 6):
+  `in_band_metadata` on harbor
+  ([output-harbor.md §4](output-harbor.md#4-pieces-and-metadata)), the
+  metadata mode of Icecast
+  ([output-icecast.md §4.1](output-icecast.md#41-mode)). Delay and padding
+  hold per link ([encoder.md §3.7](encoder.md#37-delay-and-padding)).
 - **Count and traces** — 8: #180 (2014–2018), #588 (2018), #2917 and #3010
   (2023, metadata of later links unreadable), 02da14b41 (2023, #3062), #5198
   (2026), #5476 (2026), #4785 (2025, FFmpeg's Ogg). Related:
   [harbor K1](../../outputs/spec/harbor/known-complexity.md).
-- **Reconciliation** — Covered for the behaviour
-  ([ogg.md §5](ogg.md#5-encode_metadata), [§13 item 7](ogg.md#13-where-the-bytes-go)):
-  every metadata change, even empty or identical, makes a link. Not covered:
-  no option to carry metadata out of band only (asked in #5306), and no
-  statement of what a consumer is promised across a link boundary.
 
 ### KC-5. `header` and `restart_offset` must be right at every moment, for every encoder
 
@@ -229,7 +248,7 @@ SRT known-complexity files.
 - **Why it is hard** — Only the encoder knows where its decodable starts
   are; for the formats whose header is "just the first bytes" (FLAC,
   processes, WAV) the encoder was designed as if nobody joined late. The
-  window where `header` is incomplete is short and only a joiner arriving in
+  window where `header` is incomplete is short and only a reader starting in
   it notices.
 - **How to tell** — For every encoder, after each of: creation, first
   `encode`, `encode_metadata`, the following `encode`, a process restart:
@@ -238,6 +257,20 @@ SRT known-complexity files.
   parameters for every encoder whose stream needs a header; `restart_offset`
   points at the start of each new stream inside the bytes, including a
   process restart.
+- **Rule** — The live query is gone. A writer marks where each stream
+  starts, with its header's length, and its access points, and writes a
+  stream start with the header's bytes, never before them
+  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), items 1–4). The
+  shared stream records a copy of each header once its bytes are appended
+  and serves every reader the entry header of the start it chose, never
+  asking the writer
+  ([shared-stream.md §1](../../outputs/spec/shared-stream.md#1-model),
+  [§3](../../outputs/spec/shared-stream.md#3-starting-a-reader)). Native
+  FLAC delimits `fLaC` and its metadata blocks
+  ([flac.md §5](flac.md#5-bytes-and-markers)); each process of `%external`
+  is a stream start ([external.md §5](external.md#5-bytes-and-markers)); a
+  new Ogg link's header pages are all written at its first piece
+  ([ogg.md §5.6](ogg.md#56-markers)).
 - **Count and traces** — 7: 354656e7b (2010, stored header introduced),
   318cba9f7 (2023, #3265 / #3276, `GH3276`), f25b5b045 (2026, #5546 /
   #5547, `GH5546`), #5555 (2026), #5542 / #5567 (2026, FFmpeg's captured
@@ -245,13 +278,6 @@ SRT known-complexity files.
   simple-encoders 14, 15. Related, not restated:
   [harbor K1](../../outputs/spec/harbor/known-complexity.md),
   [SRT KC6](../../optionals/srt/spec/known-complexity.md).
-- **Reconciliation** — Covered as built
-  ([encoder.md §3.4, §3.5](encoder.md#34-header),
-  [ogg.md §6, §7, §13 items 2–3](ogg.md#6-header)). Not covered: `header`
-  for native FLAC and `%external`, `restart_offset` for a process restart,
-  and `header` between `encode_metadata` and the next `encode`; the old
-  normative "complete at every moment" is contradicted by the code
-  ([encoder.md §10](encoder.md#10-the-previous-normative-text-against-the-code)).
 
 ### KC-6. Interleaving and page completion hold bytes for an unbounded time
 
@@ -276,6 +302,15 @@ SRT known-complexity files.
   interval between two returned non-empty byte runs exceeds a stated bound
   (a page duration bound in seconds), and pages remain in non-decreasing end
   time across streams.
+- **Rule** — On a sink declared `live(L)` the writer holds encoded data for
+  at most `L` of stream time, a sparse stream included
+  ([encoder.md §3.9](encoder.md#39-live-latency-bound));
+  `live_latency_bound`, recommended 1 s, is declared by the sink
+  ([sink.md §1](sink.md#1-capabilities)). The Ogg muxer meets it by forcing
+  pages out ([ogg.md §11](ogg.md#11-live-latency)); off a live sink, every
+  logical stream closes a page at least every `max_page_duration`, which
+  bounds the interleaving wait ([ogg.md §5.3](ogg.md#53-page-sizing),
+  [§5.4](ogg.md#54-interleaving)).
 - **Count and traces** — 8: ce22d71b4, 1a2135f5e, 61c4f67a2, 3d9e50e6f,
   1338471df (2009-03, "fixed ogg muxing once and for all"; CHANGES 0.9.2
   "muxes pages according to their ending time"), c523cb413 (2019, CPU),
@@ -283,10 +318,6 @@ SRT known-complexity files.
   "interleaving stalls", DTX gap. Related:
   [SRT KC21](../../optionals/srt/spec/known-complexity.md),
   [FFmpeg §8](../../optionals/ffmpeg/spec/known-complexity.md).
-- **Reconciliation** — Covered as built ([ogg.md Interleaving](ogg.md#interleaving),
-  [Page sizing](ogg.md#page-sizing), [§13 item 5](ogg.md#13-where-the-bytes-go)).
-  Not covered: no latency bound exists, and the page-fill parameter meant to
-  bound it has no effect (KC-18).
 
 ### KC-7. A library's output callback is not a framing unit
 
@@ -307,18 +338,20 @@ SRT known-complexity files.
   link change every second on varied content; parse every page. Binding:
   every page has a valid checksum and the length its segment table states;
   every link ends with an end-of-stream page; no instance call raises.
+- **Rule** — Stream encoders produce packets and the Ogg muxer forms every
+  page, Ogg FLAC included: a library's callback is never a framing unit
+  ([ogg.md §5.2](ogg.md#52-pages),
+  [ogg-streams.md §7](ogg-streams.md#7-packets),
+  [ogg-flac.md §7](ogg-flac.md#7-packets)).
 - **Count and traces** — 2 in this form plus one earlier binding header
   check: 02da14b41 (2023, FLAC moved to the library's own Ogg framing),
   #5011 (2026), #5518 / f85faa9a5 (#5522, 2026); #1370 (2020, Speex header
   size check spamming logs).
-- **Reconciliation** — Not covered. [ogg-flac.md §2, §8](ogg-flac.md#8-packets-granule-positions-and-pages)
-  speak of "pages" handed over; the invariant that the host must frame by
-  content, not by callback count, is only in the language notes.
 
 ### KC-8. Concurrent calls on one instance, and state shared between instances
 
 - **Situation** — An instance is called from the clock thread (`encode`),
-  from a server thread (`header` for a joiner), from a stop path (`stop` on
+  from a server thread (`header` for a mid-stream reader), from a stop path (`stop` on
   a command or error), and since 2026 instances run in parallel on several
   domains. Some codec bindings keep process-wide state (a static header
   buffer, a shared random serial generator).
@@ -336,15 +369,21 @@ SRT known-complexity files.
   Binding: no crash, no exception other than documented ones; byte streams
   of parallel instances are identical to a sequential run's; serials are
   distinct within a link.
+- **Rule** — Only the output's streaming work calls a writer, so calls never
+  overlap; other threads post requests carried out between pieces, and a
+  reader starting mid-stream reads what the shared stream recorded, never
+  the writer ([encoder.md §7](encoder.md#7-concurrency), items 1–2). State a
+  library shares between writers is safe from several domains, and Ogg
+  serials are distinct across every link
+  ([encoder.md §7](encoder.md#7-concurrency), item 5;
+  [ogg.md §5.5](ogg.md#55-serial-numbers),
+  [ogg.md §14](ogg.md#14-concurrency),
+  [ogg-streams.md §12](ogg-streams.md#12-concurrency)).
 - **Count and traces** — 5: 354656e7b (2010, "not protected because
   encoding is done in main thread for now"), #3038 / 96cf5526a (2023,
   #3064), 318cba9f7 (2023), 1d0e4b88c (2023, #3029), b82c1e6c8 (2026,
   parallel dedicated encoders); findings ogg gaps "serial uniqueness",
   "Opus header buffer shared".
-- **Reconciliation** — Covered for one instance
-  ([encoder.md §4](encoder.md#4-serialisation-protect)); not covered for
-  process-wide state ([ogg.md §11](ogg.md#11-concurrency-and-failures)
-  describes it without a rule).
 
 ### KC-9. The external process: start, end of output, restart, stop
 
@@ -370,14 +409,19 @@ SRT known-complexity files.
   every byte the process wrote reaches the caller; `stop` returns within a
   bound or reports an error; no input sample is dropped across a restart, or
   the drop is signalled; a restart is reported as a stream start.
+- **Rule** — `%external`: each process is a stream, a restart is a stream
+  start, and the input a restart loses is stated and logged with its stream
+  time ([external.md §3](external.md#3-creation),
+  [external.md §5](external.md#5-bytes-and-markers)); every byte the process
+  writes reaches the sink, and the end is bounded by `process_exit_bound`
+  whatever the process does ([external.md §9](external.md#9-end)); an early
+  exit, EPIPE and repeated failed starts have their classes
+  ([external.md §15](external.md#15-faults)); `restart_after_delay` is
+  refused ([external.md §1](external.md#1-format-and-options)).
 - **Count and traces** — 7: db90c4e13 (2009, added), ee2e412b0 (2016,
   rewrite drops periodic restart), 0f4eec6cc (2019, #789, restart on every
   metadata; CHANGES 1.4.0), 04ca200a2 (2023, #3020), 1d0e4b88c (2023,
   #3029), findings simple-encoders 1, 2, 3, 4, 21, 22.
-- **Reconciliation** — Covered as built ([external.md §9, §10, §11](external.md#9-stop)).
-  Contradicts the old normative "`stop` drains and returns final bytes"
-  ([encoder.md §10](encoder.md#10-the-previous-normative-text-against-the-code)).
-  Not covered: restarts as stream starts (KC-5), signalling of dropped input.
 
 ### KC-10. When a configuration error surfaces, and what it says
 
@@ -402,14 +446,21 @@ SRT known-complexity files.
   byte is produced, with a message naming the parameter and the format's
   position; `--check` rejects every one whose values are literal; no
   rejection is silent.
+- **Rule** — Every check runs at the earliest phase at which its inputs
+  exist, `--check` reports every check on literals, a library's acceptance
+  is asked at evaluation where it can be, and no check is silent
+  ([formats.md §7](formats.md#7-when-a-format-is-validated)). Every
+  rejection names the parameter and carries a position
+  ([formats.md §11](formats.md#11-errors)); a missing component is named
+  ([formats.md §8](formats.md#8-availability-and-ifencoder)); a library that
+  refuses a configuration at creation is a hard configuration error, never
+  an empty destination ([encoder.md §8](encoder.md#8-faults)), and creation
+  checks everything before starting anything
+  ([encoder.md §2.2](encoder.md#22-creation)).
 - **Count and traces** — 9: b25675d46 (2019, #857), f16149d50 (2019),
   f73c08d2b (2021, #1858), e4d6693a7 (2021, #1942), 841e9ddcd (2023, #3155),
   #1073 (2020, CHANGES 1.4.2), #3934 (2024), #4053 and #4114 (2024); findings
   native-codecs 7, 11, asymmetry 1, 4; ogg D6, D12; simple-encoders 11, 18.
-- **Reconciliation** — Covered as built ([formats.md §4, §5](formats.md#4-evaluation-building-the-format-value),
-  [encoder.md §2.3](encoder.md#23-instance-creation)). Not covered: no
-  single point where a format is known valid, and no rule against silent
-  library rejection.
 
 ### KC-11. The format's static type against what the value builds
 
@@ -432,12 +483,16 @@ SRT known-complexity files.
   and check: binding, the type `--check` reports equals the content the
   built value encodes; every rejected value is rejected with a position; no
   input crashes type checking.
+- **Rule** — Type and value come from one parameter specification per name
+  and accept exactly the same parameters, the last one winning in both
+  ([formats.md §3](formats.md#3-the-parameter-specification)). Channel
+  counts and tracks are decided by literal type-deciding parameters only,
+  and a count with no layout is a type error with a position
+  ([formats.md §4](formats.md#4-typing)). Checked over a generated corpus
+  ([formats.md §12](formats.md#12-conformance)).
 - **Count and traces** — 7: e36d88245, b1989cab0 (2021), #2867 (2023),
   78ae7d596 (2023, #2868), #3217 / c0f95a132 (2023), #3239 (2023,
   `GH3239`); findings ogg D7, simple-encoders 10, 13, native-codecs gap 7.
-- **Reconciliation** — Covered as built ([formats.md §6](formats.md#6-typing));
-  the mismatches above are the defects; no rule says the two
-  interpretations come from one source.
 
 ### KC-12. Defaults that depend on settings the script sets later
 
@@ -456,12 +511,16 @@ SRT known-complexity files.
   after writing the format, then start. Binding: the bytes declare the
   settings' values; a setting that cannot be honoured is an error at
   startup, not a silent default.
+- **Rule** — Defaults read from frame settings are deferred and resolved
+  when the clocks start, before any writer is built; a resolved value a
+  codec cannot take is a configuration error at start-up naming the setting
+  ([formats.md §6](formats.md#6-deferred-values)). Channel counts are not
+  deferred: the type needs them first, so the default is 2 unless an
+  implementation file states another with its reason
+  ([formats.md §4](formats.md#4-typing)).
 - **Count and traces** — 6: 8be2fe991 (2009), #870 / 87aee0975 (2019),
   #933, #935 reverted by #938 (bdb6f1525, 2019), 767026060 and 14557ac08
   (2019); finding simple-encoders 17.
-- **Reconciliation** — Covered ([formats.md §5](formats.md#5-deferred-values)).
-  Not covered: channels are not deferred and fall back to a fixed 2, which
-  is the asymmetry history keeps reopening.
 
 ### KC-13. Piece bounds and units
 
@@ -484,12 +543,16 @@ SRT known-complexity files.
   frame rates and two encoder rates. Binding: the decoded signal equals the
   one from a single whole-piece run (bit-exact for PCM, sample count exact
   otherwise); video chunk count equals image count.
+- **Rule** — No result depends on the piece boundaries: a piece holds at
+  least one sample or image period, and positions and lengths are counted in
+  samples and images ([encoder.md §3.3](encoder.md#33-frames-in)); no piece
+  is empty
+  ([output-encoded.md §4.1](output-encoded.md#41-cutting-a-frame-into-pieces)).
+  AVI writes one chunk per image, and none for a piece without one
+  ([avi.md §5](avi.md#5-bytes-and-markers)).
 - **Count and traces** — 6: dd7e124bd (2012), f2179463f (2019), a3249cf86 /
   ff8a55ae1 (2022), 8af9836af (2024, #4078); findings simple-encoders 5, 20;
   ogg gap "zero-length audio block".
-- **Reconciliation** — Covered as built (each file's §3); not covered: the
-  zero-length and sub-frame cases are described per encoder with no common
-  rule ([encoder.md §3.1](encoder.md#31-encode)).
 
 ### KC-14. Rate conversion inside the encoder
 
@@ -508,10 +571,15 @@ SRT known-complexity files.
   from the frame's: a sine at a known frequency. Binding: decoded frequency
   and duration match; no aliasing above the stated bandwidth; the converter
   drains at `stop` (KC-2).
+- **Rule** — A rate converter between the piece and the codec is a stage of
+  [draining.md §1](../../source/spec/draining.md#1-stages), drained at `end`
+  and whenever it is rebuilt ([encoder.md §3.3](encoder.md#33-frames-in),
+  [encoder.md §3.6](encoder.md#36-draining-and-final-bytes)). What
+  `samplerate` means is each implementation file's §1
+  ([formats.md §3](formats.md#3-the-parameter-specification)), and its
+  conversion its §4 (for Opus, [ogg-opus.md §6](ogg-opus.md#6-input)).
 - **Count and traces** — 3: fda9c677d (2012), #759 (2019), ff8a55ae1
   (2022); findings native-codecs 4, ogg resampler gap.
-- **Reconciliation** — Not covered: the as-built mentions the converter per
-  encoder; no common description of it as a stage with a tail.
 
 ### KC-15. Metadata in the bytes: which values, when, and in what form
 
@@ -534,14 +602,21 @@ SRT known-complexity files.
   metadata, where the format has any, carries the source's title; later
   metadata appears where the format allows it and nowhere else; no empty
   tag is written.
+- **Rule** — The output supplies the initial metadata: the exported form of
+  its current metadata at the writer's first piece
+  ([output-encoded.md §3.2](output-encoded.md#32-initial-metadata),
+  [encoder.md §2.2](encoder.md#22-creation)). One tag rule decides, per
+  sink, whether tags are written
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 7); a
+  tag with no entry is not written, and out-of-band metadata is never the
+  writer's ([encoder.md §9](encoder.md#9-in-band-metadata), items 4–5). HLS
+  timed ID3 is the HLS contract's
+  ([encoder.md §4](encoder.md#4-the-segmenting-face)).
 - **Count and traces** — 9: a112095d3 (2010, LS-441), d6eaee270 (2011),
   ee0b1fd15 (2012), #418 / 0c8b7a078 (2017), de2b2c75c (2019), 96cf5526a
   (2023), 2ba7ba739 (#2924), #3154 / #3604 (2023), #5084 (2026), #5542
   (2026); findings native-codecs 9, 10, asymmetry 7. Related:
   [HLS KC18](../../outputs/hls/spec/known-complexity.md).
-- **Reconciliation** — Covered as built ([encoder.md §2.3](encoder.md#23-instance-creation),
-  [mp3.md §10.2](mp3.md#102-id3v2-tag)). Not covered: who supplies initial
-  metadata; the caller-side empty metadata is the defect.
 
 ### KC-16. Headers that describe the whole stream, on a destination that cannot seek back
 
@@ -561,13 +636,20 @@ SRT known-complexity files.
   sizes, counts and checksum match the content; on the pipe, the header
   declares "unknown" rather than a wrong value; every reopened file starts
   with a complete header.
+- **Rule** — The writer is built with its sink's capabilities
+  ([encoder.md §3.1](encoder.md#31-capabilities-in)): on a seekable fresh
+  sink it writes the file form, starting with the streaming form and
+  rewriting the final values at a clean end; elsewhere the streaming form,
+  whose values mean "unknown"; on a continuing sink it extends the stream
+  and updates the existing header's counts
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), items 1–3).
+  Sizes never wrap ([wav.md §6](wav.md#6-header-forms-and-preambles));
+  `%wav(duration)` is a deprecated no-op
+  ([formats.md §2](formats.md#2-names-and-kinds)); every reopened file gets
+  a new writer with its own header
+  ([encoder.md §2.1](encoder.md#21-one-writer-per-destination-stream)).
 - **Count and traces** — 4: 70216bd07 (2011), #3675 / #3676 (2023,
   `GH3675`), findings simple-encoders 8, 16, 25, native-codecs 6, gap 3.
-- **Reconciliation** — Covered as built ([wav.md §13](wav.md#13-where-the-bytes-go),
-  [flac.md §13](flac.md#13-where-the-bytes-go),
-  [encoder.md §7](encoder.md#7-where-the-bytes-go-what-the-seam-assumes)).
-  Not covered: this is the main case for giving the encoder its
-  destination's capabilities.
 
 ### KC-17. Images whose geometry is not the one configured
 
@@ -586,12 +668,15 @@ SRT known-complexity files.
   and a size different from the format's. Binding: the decoded image equals
   the input (or the scaled input), header sizes equal the payload, or the
   instance rejects the mismatch at creation with a message.
+- **Rule** — The writer adapts images of another size, stride or plane
+  layout to the configured size, and its header always describes the
+  payload; a size the configuration cannot encode at all is a configuration
+  error at evaluation ([encoder.md §3.3](encoder.md#33-frames-in)). Per
+  writer: [avi.md §4](avi.md#4-input),
+  [ogg-theora.md §6](ogg-theora.md#6-input).
 - **Count and traces** — 7: 2c3801924 (2012), #549 (2018), #799 (2019),
   1830e7e5f (2022), #3311 (2023), #4116 (2024, `GH4116` skipped); findings
   simple-encoders 5, 6, 7, ogg D3 and the Theora size gap.
-- **Reconciliation** — Covered as built ([avi.md §3](avi.md#3-encode),
-  [ogg-theora.md §7](ogg-theora.md#7-data-input-and-conversion)); not
-  covered: no rule about who adapts geometry.
 
 ### KC-18. Options and printed forms that silently stop meaning what they say
 
@@ -607,11 +692,18 @@ SRT known-complexity files.
 - **How to tell** — For every option, two runs differing only in that
   option. Binding: the bytes differ in the way the option documents; for
   every format value, printing then parsing gives an equal value.
+- **Rule** — Every accepted parameter has its documented effect on the bytes
+  or the declarations; one with neither is not accepted, except a deprecated
+  one whose warning says so
+  ([formats.md §3](formats.md#3-the-parameter-specification),
+  [formats.md §2](formats.md#2-names-and-kinds)). Printing then evaluating
+  gives a value that builds the same configuration
+  ([formats.md §10](formats.md#10-equality-printing-serialisation)). Cases:
+  `restart_after_delay` refused
+  ([external.md §1](external.md#1-format-and-options)); `bytes_per_page`
+  with its effect ([ogg.md §5.3](ogg.md#53-page-sizing)).
 - **Count and traces** — 4: ee2e412b0 (2016), 083632852 (2013) with
   d772ceee5, #5067 (2026); findings simple-encoders 3, ogg D5, D8.
-- **Reconciliation** — Covered as built ([ogg.md Page sizing](ogg.md#page-sizing),
-  [formats.md §7](formats.md#7-printing)); the inert options contradict
-  their documentation.
 
 ## Area F: The seam, file and process outputs
 
@@ -639,7 +731,7 @@ format", "encoder parameter"; read: #116 #386 #405 #484 #553 #607 #614 #789
 GH2756-2, GH2842, GH2850, GH3316, GH3675, GH4819, GH4819-bis,
 output_reopen_on_error_delay. Neighbouring lists: the HLS one (KC5, KC14,
 KC22, KC23, KC24 relate); the FFmpeg, harbor and SRT lists are empty at this
-snapshot, so seam entries that touch late joiners (KF-14) are kept here.
+snapshot, so seam entries that touch readers starting mid-stream (KF-14) are kept here.
 
 ---
 
@@ -663,12 +755,15 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   MP3 with ID3v2) and each reopen trigger (metadata, timed, explicit, error
   retry): every closed file starts with that format's header and decodes on
   its own; the sum of samples over all files equals the samples pulled.
+- **Rule** — One writer per destination stream, never reused
+  ([encoder.md §2.1](encoder.md#21-one-writer-per-destination-stream));
+  creation writes nothing and the first bytes come with the first piece
+  ([encoder.md §2.2](encoder.md#22-creation)); bytes of one writer never
+  reach another writer's destination, and a destination's first bytes are
+  its writer's first ([sink.md §6](sink.md#6-what-a-sink-owns)). For
+  `output.file`: [output-file.md §3](output-file.md#3-writer-lifetime).
 - **Count and traces** — 2: #3675 (980e26714, test GH3675), #2841 comment
   linking its missing data to #3675.
-- **Reconciliation** — Covered: [output-file.md §2](output-file.md#2-instance-lifecycle)
-  (one instance per opened file, created at the first non-empty piece after
-  open) and [§3](output-file.md#3-call-sequence) (reopen checks run before
-  `encode`).
 
 ### KF-2. The final bytes at close are part of the file
 
@@ -688,12 +783,16 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   exactly the concatenation of every `encode` result then the `stop` result
   (a recording double for the instance makes this byte-exact). A failure
   injected in the final write is reported somewhere observable.
+- **Rule** — The final bytes are ordinary bytes the sink delivers before it
+  closes ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes),
+  [sink.md §4](sink.md#4-markers-and-the-end),
+  [output-file.md §6.2](output-file.md#62-final-bytes)). A failure to
+  deliver them is logged at `severe` and reported through the output's
+  callbacks ([sink.md §7](sink.md#7-faults)), and `on_close` says whether
+  the end was clean ([output-file.md §6.3](output-file.md#63-on_close)).
 - **Count and traces** — 2: #3316 (d324eb145 / backport a08e83d48, #3328,
   test GH3316), ff43b5550 (stop-bytes write made silent). Findings
   file-callers 18.
-- **Reconciliation** — Covered: [output-file.md §2](output-file.md#2-instance-lifecycle)
-  close steps 1–3 and [§4.4](output-file.md#44-close-and-on_close); the
-  swallowing is described there as-built (finding 18 is the agenda).
 
 ### KF-3. A file that received nothing
 
@@ -712,11 +811,12 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   whose first metadata triggers a reopen: no file without at least one
   encoded sample is left, or the spec states which empty files are expected
   and whether `on_close` fires for them.
+- **Rule** — A file is opened only for a piece: an output that never
+  receives one leaves no file and calls no `on_close`
+  ([output-file.md §3](output-file.md#3-writer-lifetime)); a writer ended
+  without a piece writes nothing ([encoder.md §2.3](encoder.md#23-states)).
 - **Count and traces** — 3: #876 (6b9ed7e0a), #4899 (e87290d32), findings
   file-callers 16.
-- **Reconciliation** — Covered: [output-file.md §2](output-file.md#2-instance-lifecycle)
-  (lazy creation, "a file that never received a non-empty piece ... is left
-  empty").
 
 ### KF-4. Ask for the file name exactly once per file, and only then
 
@@ -736,12 +836,13 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
 - **How to tell** — Count getter calls: exactly one per successful open, and
   one per retry after a failed open; no call at construction. A getter that
   changes its answer between retries is followed.
+- **Rule** — The path getter is called exactly once per open attempt, on the
+  opening work, and a failed open calls it again
+  ([output-file.md §2.2](output-file.md#22-naming)); naming is the sink's,
+  asked once per destination ([sink.md §6](sink.md#6-what-a-sink-owns)).
 - **Count and traces** — 4: #2842 (caef89dd8, backport 5c4daae3d, test
   GH2842), re-reported as #4830 (not a bug); #3639, #3723, #2593 (6df0185bb,
   strftime removed from names); findings file-callers 2.
-- **Reconciliation** — Covered: [output-file.md §5.1](output-file.md#51-file-naming)
-  states the call-once rule and the pinned name after a failed open (finding
-  2 is the defect).
 
 ### KF-5. Metadata in file names and in the initial header silently dead
 
@@ -762,12 +863,15 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   using `$(title)`: two files named after A and B; with `%mp3(id3v2=true)`
   each carries its title. Also after a timed reopen: the new file carries the
   metadata current at its open.
+- **Rule** — The output holds its current metadata in full, through stops,
+  reopens and retries
+  ([output-encoded.md §3.1](output-encoded.md#31-current-metadata)); file
+  names read it ([output-file.md §2.2](output-file.md#22-naming)) and every
+  new writer starts with it as initial metadata
+  ([output-encoded.md §3.2](output-encoded.md#32-initial-metadata)).
 - **Count and traces** — 2 (removal and a reverted attempt): 2ba7ba739
   (#2924), 889d123fc / e3761ef26; intent stated in #484. Findings
   file-callers 1, 11.
-- **Reconciliation** — Contradicts: [output-file.md §2](output-file.md#2-instance-lifecycle)
-  ("empty initial metadata, always") and [§5.1](output-file.md#51-file-naming)
-  step 3 describe a regression, not a design.
 
 ### KF-6. A retry delay that is honoured on every failure path
 
@@ -791,11 +895,13 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   after a previous error): with a policy returning `d`, attempts are spaced
   by at least `d`, the policy sees kind `system` for system errors, and a
   `null` policy escalates to the clock's error handler.
+- **Rule** — Every failure point reaches one restart policy exactly once,
+  with the error's kind, and its delay is honoured on every path
+  ([output-file.md §8](output-file.md#8-faults-and-restart-policy),
+  [encoder.md §8](encoder.md#8-faults)).
 - **Count and traces** — 3: 7260c7f43 (retry added, #1506), #2756 / #2850
   (0d11087af, tests GH2756, GH2756-2, GH2850), #2437 (2731e5a0d, test
   output_reopen_on_error_delay).
-- **Reconciliation** — Covered: [output-file.md §6](output-file.md#6-failures)
-  (error-retry path; cycle skipped while the date is in the future).
 
 ### KF-7. Reopen triggers of different nature behind one surface
 
@@ -816,10 +922,13 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   per condition, what delay applies, whether `on_reopen` runs, what metadata
   the new file starts with. `reopen_when={0m}` gives one file per hour with
   defaults.
+- **Rule** — Each trigger's table row says when it is asked, when it takes
+  effect and whether `on_reopen` runs
+  ([output-file.md §7.1](output-file.md#71-reopen-triggers)); every new file
+  starts with the current metadata whatever the trigger
+  ([output-encoded.md §3.2](output-encoded.md#32-initial-metadata)).
 - **Count and traces** — 5: #2924 (2ba7ba739), #3206, #3229 / #3236
   (26a7d05e6, 6e3047f5d), #3251, #2837. Findings file-callers 10, 11.
-- **Reconciliation** — Covered: [output-file.md §5.2](output-file.md#52-reopen-triggers)
-  and [§5.3](output-file.md#53-what-a-reopen-does-to-the-bytes).
 
 ### KF-8. Where a split lands, and what it costs at the seam
 
@@ -841,12 +950,15 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   encoder: decoding and concatenating the files (with their declared
   delay/padding honoured) reproduces the input sample count. A split asked
   at stream time T starts the new file within one frame of T.
+- **Rule** — Each file of a split gets a new writer and signals its own
+  delay and padding; gapless splits are a writer's option
+  ([encoder.md §2.1](encoder.md#21-one-writer-per-destination-stream),
+  [encoder.md §3.7](encoder.md#37-delay-and-padding)). A split lands at its
+  stream position, and the files decoded with their signalled values
+  reproduce the input sample count
+  ([output-file.md §7.2](output-file.md#72-where-a-split-lands)).
 - **Count and traces** — 5: #2841 (open), #2726, #2837 (comments on
   concatenation), #1470, #2070.
-- **Reconciliation** — Not covered: the spec states where a reopen is
-  evaluated (per piece, wall clock) but says nothing on continuity across
-  files: samples added or lost per split, and whether files carry gapless
-  delay/padding information.
 
 ### KF-9. What `on_close` sees and what its failure means
 
@@ -865,10 +977,12 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   renamed or deleted without affecting the output, and a raised error goes to
   the same retry policy as other output errors and does not affect the next
   file's name.
+- **Rule** — `on_close` runs once the file is complete and no longer used by
+  the output, and a raising callback reaches the restart policy once without
+  affecting the next name
+  ([output-file.md §6.3](output-file.md#63-on_close)).
 - **Count and traces** — 4: f619ee56e (added), #3038 comments (moving the
   file), d324eb145 (errors swallowed), #4879 (c620ddafe, errors raised).
-- **Reconciliation** — Covered: [output-file.md §4.4](output-file.md#44-close-and-on_close)
-  and §5.1 (exception leaves the name set).
 
 ### KF-10. Stop, start and reopen from another thread while the clock encodes
 
@@ -887,12 +1001,15 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
 - **How to tell** — Toggle start/stop (and `reopen()`) from a script thread
   every few milliseconds for thousands of cycles with each encoder: no crash,
   no write to a closed destination, every closed file complete.
+- **Rule** — Only the output's streaming work calls a writer; a stop, start
+  or reopen from another thread is a request carried out between pieces,
+  never inside one ([encoder.md §7](encoder.md#7-concurrency), items 1–2;
+  [output-file.md §9](output-file.md#9-concurrency)). The start/stop states
+  are the generic output's
+  ([output.md §2](../../outputs/spec/output.md#2-states)).
 - **Count and traces** — 5: 86329b9dd (telnet reopen serialised, 2019),
   #3038 (163b83bf9; #3064 / 96cf5526a, per-instance lock), caef89dd8 (atomic
   state), #4819 (3475eb852, #4821, tests GH4819, GH4819-bis).
-- **Reconciliation** — Covered: [encoder.md §4](encoder.md#4-serialisation-protect)
-  and [output-file.md §7](output-file.md#7-threads-and-locks); the
-  start/stop race itself is the generic output's.
 
 ### KF-11. Every operation in every lifecycle state
 
@@ -909,11 +1026,14 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   instance-level "stop exactly once" is also not enforced.
 - **How to tell** — A state × operation table with the defined outcome of
   each cell, and a test that drives every cell with a recording instance.
+- **Rule** — A writer's state table defines every call in every state, and a
+  call outside it is an internal error
+  ([encoder.md §2.3](encoder.md#23-states)); the output's states are
+  [output.md §2](../../outputs/spec/output.md#2-states), and `output.file`'s
+  stop, start and reset
+  [output-file.md §7.3](output-file.md#73-stop-start-and-reset).
 - **Count and traces** — 6: 6b9ed7e0a (#876), #993, 59d173086 (#3047),
   163b83bf9, 0dfb50633, e442c1aa4. Findings seam C3.
-- **Reconciliation** — Covered: [output-file.md §2](output-file.md#2-instance-lifecycle)
-  (slot `none`/`pending`/`created`, close only when open) and
-  [encoder.md §3.7](encoder.md#37-stop) (second `stop` implementation-defined).
 
 ### KF-12. An encoder that owns its destination bypasses the output
 
@@ -934,12 +1054,18 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   perm, dir_perm, append, flush, reopen) for both a bytes-returning format
   and a self-writing format: same observable outcome, or a documented
   difference; the script's format value prints the same before and after.
+- **Rule** — The format value is never rewritten to steer a writer
+  ([formats.md §5](formats.md#5-building)). `%ffmpeg` muxers that write
+  bytes do so into the output's sink, whose naming, directories, permissions
+  and append the output owns
+  ([ffmpeg.md §3.2](ffmpeg.md#32-the-io-over-a-sink),
+  [sink.md §6](sink.md#6-what-a-sink-owns)); a muxer that needs no byte sink
+  takes a delegated destination, and the output keeps what it owns of it
+  ([encoder.md §6](encoder.md#6-the-delegated-destination), item 4). Options
+  the output cannot apply there are refused
+  ([output-file.md §1.4](output-file.md#14-checks-at-evaluation)).
 - **Count and traces** — 5: #2069 (8519aaf71), #2072 (a71822bf0), 1c17b384a,
   #2070, findings file-callers 8, 9, 22.
-- **Reconciliation** — Covered: [output-file.md §1](output-file.md#1-formats-accepted-and-how-the-factory-is-obtained)
-  and [§4.3](output-file.md#43-ffmpeg-file-variant),
-  [encoder.md §7](encoder.md#7-where-the-bytes-go-what-the-seam-assumes);
-  seam gap G6 is the agenda.
 
 ### KF-13. Append is the concatenation of complete streams
 
@@ -956,12 +1082,17 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
 - **How to tell** — Append two runs per format and decode the result with a
   standard tool: total duration equals both runs, or the format is refused
   or warned about at configuration.
+- **Rule** — A writer for a continuing sink extends the existing stream
+  where its format allows, and updates the existing header's counts at a
+  clean end ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles),
+  item 3); a configuration that cannot continue is refused at evaluation
+  ([encoder.md §5.3](encoder.md#53-the-check)). For `output.file`:
+  [output-file.md §7.4](output-file.md#74-append).
 - **Count and traces** — 3: #2072 (append broken for the self-writing
   family), #4819 (tests GH4819, GH4819-bis), #2837 comments. Findings
   file-callers 14.
-- **Reconciliation** — Covered: [output-file.md §5.4](output-file.md#54-append).
 
-### KF-14. A joiner's header is a live query, and must match where it joins
+### KF-14. A mid-stream reader's header is a live query, and must match where it starts
 
 - **Situation** — Outputs whose consumers join late (network listeners,
   peers) ask the instance for the header to send before the current bytes,
@@ -979,11 +1110,16 @@ snapshot, so seam entries that touch late joiners (KF-14) are kept here.
   output, mid-link, just after a metadata change) and decode `header() ++
 bytes from the restart offset`; it decodes for every encoder whose stream
   has a header.
+- **Rule** — The live query is gone: see KC-5. The writer delimits each
+  stream's header with a `stream_start` marker and marks its access points
+  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out)); the shared
+  stream serves each reader the recorded entry header of its start
+  ([shared-stream.md §3](../../outputs/spec/shared-stream.md#3-starting-a-reader),
+  [§4](../../outputs/spec/shared-stream.md#4-writer-changes)). For
+  `%ffmpeg`, the header write delimits the header
+  ([ffmpeg.md §5](ffmpeg.md#5-bytes-and-markers)).
 - **Count and traces** — 3: #3265 (318cba9f7, #3276, test GH3276), #5546
   (f25b5b045), verification-callers V1. Findings seam C1, A1.
-- **Reconciliation** — Covered: [encoder.md §3.4](encoder.md#34-header) and
-  [§3.5](encoder.md#35-restart_offset) describe the as-built answers; C1 and
-  V1 are the defects.
 
 ### KF-15. Metadata order relative to the bytes of a piece
 
@@ -1003,10 +1139,15 @@ bytes from the restart offset`; it decodes for every encoder whose stream
   0, mid-frame and at the end, the call log shows one metadata per piece in
   the declared order, and the end-of-frame metadata is delivered with the
   next frame (or the spec says it is dropped).
+- **Rule** — One order serves both channels: per piece, the metadata is made
+  current, offered in band and handed out of band, then the piece is written
+  ([output-encoded.md §4.3](output-encoded.md#43-order),
+  [sink.md §5](sink.md#5-out-of-band-metadata)). A metadata at the frame's
+  end is handed with the next frame's first piece
+  ([output-encoded.md §4.1](output-encoded.md#41-cutting-a-frame-into-pieces),
+  item 3).
 - **Count and traces** — 3: 681a5a092 / 335bb7841 (#386, 2009), #2506
   (33f8c962f, core test output_encoded_test). Findings file-callers 13, 19.
-- **Reconciliation** — Covered: [output-encoded.md §3.1–§3.3](output-encoded.md#3-call-sequence);
-  the end-of-frame metadata being "never handed on" is stated as-built.
 
 ### KF-16. Metadata through a process of unknown latency
 
@@ -1029,10 +1170,13 @@ bytes from the restart offset`; it decodes for every encoder whose stream
   metadata come back within one frame of their input position without a
   restart (or with a restart, the spec says so); a resampling process keeps
   the header sent to it at our rate across restarts.
+- **Rule** — `pipe`: with `replay_delay` null each boundary restarts the
+  process, with it set no restart and the boundary is placed by delay
+  ([output-pipe.md Part 2 §4](output-pipe.md#4-pieces-and-metadata-1)); the
+  header it sends always declares the rate of the samples it sends
+  ([output-pipe.md Part 2 §2](output-pipe.md#2-the-sink-1)).
 - **Count and traces** — 4: #607 / #614 (f9970afe6), #885 (943a76168, #899),
   #1786 (5557ba3e3), findings file-callers 4, 5, 20.
-- **Reconciliation** — Covered: [output-pipe.md Part 2 §3–§5](output-pipe.md#part-2-the-pipe-operator);
-  the rate and unit errors are findings 4 and 5.
 
 ### KF-17. Two parsers of one format: static type and built value
 
@@ -1055,11 +1199,13 @@ bytes from the restart offset`; it decodes for every encoder whose stream
   a generated corpus: the statically computed type equals the type of the
   built value, and any parameter rejected by one is rejected by the other at
   the same phase.
+- **Rule** — One parameter specification per name gives both type and value
+  ([formats.md §3](formats.md#3-the-parameter-specification)); formats with
+  different contents have no common type
+  ([formats.md §4](formats.md#4-typing)).
 - **Count and traces** — 6: #1331, #2867 (78ae7d596), #3217 (c0f95a132,
   e442c1aa4), #3472 (25d5a3f1f), 9f45cf6db, cb5959873 (typers split from
   builders). Findings seam D1, D2, D3, G2.
-- **Reconciliation** — Covered: [formats.md §6, §6.2](formats.md#6-typing);
-  D1–D3 are the defects.
 
 ### KF-18. When a format is validated
 
@@ -1082,11 +1228,12 @@ bytes from the restart offset`; it decodes for every encoder whose stream
   phase and error kind at which each is reported; the catalogue matches a
   stated rule (e.g. everything not depending on runtime settings fails at
   `--check` or evaluation, with a position).
+- **Rule** — The phase table of
+  [formats.md §7](formats.md#7-when-a-format-is-validated): each check at
+  the earliest phase at which its inputs exist, with its error kind and
+  position ([formats.md §11](formats.md#11-errors)).
 - **Count and traces** — 5: #1569 / #1858 (f73c08d2b), #933, #1942
   (e4d6693a7), #4053, seam D10. Findings seam G1, G3.
-- **Reconciliation** — Covered: [formats.md §4–§5](formats.md#4-evaluation-building-the-format-value)
-  and [encoder.md §2.3](encoder.md#23-instance-creation) as-built; the rule
-  itself is for the normative pass.
 
 ### KF-19. "Is this encoder available" answered by kind, not by codec
 
@@ -1103,11 +1250,13 @@ bytes from the restart offset`; it decodes for every encoder whose stream
 - **How to tell** — With a registry double that withholds each codec in
   turn: the conditional takes the else branch, and the evaluation error names
   the missing component.
+- **Rule** — Availability is a property of every component a format needs,
+  `%ifencoder` decides from availability alone and reads no other failure as
+  "not available", and a missing component is an error naming it
+  ([formats.md §8](formats.md#8-availability-and-ifencoder),
+  [encoder.md §1](encoder.md#1-registry), item 3).
 - **Count and traces** — 3: #116 (577299a19, 5f8ff8f73), #3934, seam D6/D10,
   G4.
-- **Reconciliation** — Covered: [formats.md §1](formats.md#1-syntax) and
-  [output-pipe.md Part 3](output-pipe.md#part-3-language-hooks); D6, D10 are
-  the defects, [tests.md §7](tests.md#7-ifencoder) the gap.
 
 ### KF-20. Process and blocking destinations run on the streaming thread
 
@@ -1130,11 +1279,16 @@ bytes from the restart offset`; it decodes for every encoder whose stream
   early, one never reading) and a FIFO without reader: the error names the
   command, is reported within a bounded time, follows the retry policy, and
   the clock's latency stays bounded (or the spec states the block).
+- **Rule** — No sink operation waits on the streaming thread, opening
+  included, and every queue is bounded
+  ([sink.md §3](sink.md#3-never-blocking-the-streaming-thread)); the process
+  sink and its faults, named after the command and the output
+  ([output-pipe.md The process sink](output-pipe.md#the-process-sink),
+  [output-pipe.md Part 1 §8](output-pipe.md#8-faults-and-restart-policy)); a
+  FIFO is opened on the opening work and confirmed not seekable
+  ([output-file.md §2.3](output-file.md#23-confirmation-and-opening)).
 - **Count and traces** — 5: #2600, #2756, 98ec71f70, #4422, findings
   file-callers 3, 17.
-- **Reconciliation** — Covered: [output-pipe.md Part 1 §4, §6](output-pipe.md#part-1-outputexternal)
-  and [output-file.md §4.5](output-file.md#45-non-regular-files); the
-  naming is finding 3.
 
 ### KF-21. Binary metadata on the encoder path
 
@@ -1150,10 +1304,12 @@ bytes from the restart offset`; it decodes for every encoder whose stream
 - **How to tell** — For each output and both settings of the cover option,
   the keys reaching the encoder are exactly the declared set; no cover key
   outside the cover list is exported.
+- **Rule** — Every exported key that carries a binary payload is in the
+  cover list, removed unless the output's `export_cover_metadata` is true,
+  with one default per output
+  ([output-encoded.md §4.2](output-encoded.md#42-the-exported-form)).
 - **Count and traces** — 2: de2b2c75c (#1058), #3504 / #3591 (a86be5bcd).
   Findings file-callers 6.
-- **Reconciliation** — Covered: [output-encoded.md §3.2](output-encoded.md#32-which-metadata-is-handed-on-and-in-what-form)
-  (both lists and the per-output defaults); finding 6 is the defect.
 
 ---
 
@@ -1184,8 +1340,8 @@ ffmpeg ogg metadata chain), read in full: #180, #305, #320, #377, #490,
 Tests: `tests/streams/icecast_*.liq`, `test_icecast_*.liq`,
 `tests/regression/{LS503,GH4629,GH2850,fallible_ogg,shoutcast-args}.liq`.
 
-Already covered elsewhere, not repeated here: late joiners on a shared
-encoder ([harbor K1](../../outputs/spec/harbor/known-complexity.md#k1-a-late-listener-must-join-at-a-point-a-decoder-can-start-from)),
+Already covered elsewhere, not repeated here: readers starting mid-stream on a shared
+encoder ([harbor K1](../../outputs/spec/harbor/known-complexity.md#k1-a-late-listener-must-start-where-a-decoder-can-start)),
 per-listener ICY state ([harbor K8](../../outputs/spec/harbor/known-complexity.md#k8-icy-negotiation-and-per-listener-metadata-state)),
 SRT peers and the shared encoder ([SRT KC6](../../optionals/srt/spec/known-complexity.md#kc6-every-connection-is-a-new-stream-and-a-shared-encoder-is-not)),
 HLS init segments and container restarts
@@ -1219,13 +1375,17 @@ and FFmpeg timestamps
   decode alone. Inject metadata, stop and restart while disconnected and
   waiting to retry; none may raise. Connect/disconnect notifications must
   pair one to one with connections.
+- **Rule** — One writer per connection, ended when the connection ends; no
+  writer exists during a retry wait, and metadata received then becomes the
+  current metadata the next writer starts with
+  ([encoder.md §2.1](encoder.md#21-one-writer-per-destination-stream),
+  [output-icecast.md §3](output-icecast.md#3-writer-lifetime)). `on_connect`
+  and `on_disconnect` pair one to one with connections
+  ([output-icecast.md §6](output-icecast.md#6-end)).
 - **Count and traces** — 8: a0bfb0120, 813b41c62, 2bee80b3f, 7327a5914,
   09dda268d, 681a5a092, db37af639; CHANGES 1.0.0 LS-559 ("permanent stop
   after disconnection on Ogg streams"). Same difficulty on SRT:
   [SRT KC6](../../optionals/srt/spec/known-complexity.md#kc6-every-connection-is-a-new-stream-and-a-shared-encoder-is-not).
-- **Reconciliation** — Covered:
-  [output-icecast.md §2](output-icecast.md#2-instance-lifecycle) (one fresh
-  instance per connection) and §3.3 (metadata dropped without an instance).
 
 ### KN-2. Teardown must finish even when closing fails
 
@@ -1251,13 +1411,13 @@ and FFmpeg timestamps
   within the retry delay. Fail the connection 10 000 times against a closed
   port: open descriptors and resident memory stay flat. Assert the output's
   observable state (connected or not) matches the socket's.
+- **Rule** — Teardown completes whatever step fails, releases every resource
+  of an attempt exactly once, and nothing grows with failed attempts; the
+  state reported is the sink's actual state ([sink.md §7](sink.md#7-faults),
+  [output-icecast.md §6](output-icecast.md#6-end)).
 - **Count and traces** — 7: 29bd3a662 (#3363), 5a1139b9b (#3427),
   a7a6a1a42, b5fe63022 (#5519), #548 (CHANGES 1.3.4), e4c6ffc2f (#490),
   #541.
-- **Reconciliation** — Covered:
-  [output-icecast.md §5](output-icecast.md#5-reopen-reconnect) (teardown
-  ignores errors at each step). Not covered: no bound is stated on
-  resources held across failed attempts.
 
 ### KN-3. Connecting lazily couples metadata order to the first bytes
 
@@ -1282,13 +1442,16 @@ and FFmpeg timestamps
   metadata, the first bytes after the headers belong to the labelled track.
   Count encoded samples per connection against samples produced: equal from
   the first frame after the connection decision.
+- **Rule** — The first piece of a connection starts the attempt and is
+  written into the sink, which holds it until the connection opens: none is
+  dropped ([output-icecast.md §3](output-icecast.md#3-writer-lifetime),
+  [sink.md §3](sink.md#3-never-blocking-the-streaming-thread), item 2). One
+  order serves both metadata channels
+  ([output-encoded.md §4.3](output-encoded.md#43-order)); metadata owed when
+  a destination opens is sent once it is open
+  ([sink.md §5](sink.md#5-out-of-band-metadata), item 3).
 - **Count and traces** — 4: d6ab2226f (#2506), edeba8e1c (#5117), CHANGES
   2.0.4 ("connect when data is available"), finding net-callers D3.
-- **Reconciliation** — Covered:
-  [output-icecast.md §3.2](output-icecast.md#32-per-piece) and
-  [output-encoded.md §3.3](output-encoded.md#33-order-within-a-piece). The
-  lost first piece (D3) is described, not ruled: the normative pass must
-  decide it.
 
 ### KN-4. The server's current metadata after a (re)connection
 
@@ -1310,13 +1473,14 @@ and FFmpeg timestamps
   reconnection: the server shows the title before the next change. Send a
   metadata whose keys are all filtered out: the server's title is
   unchanged.
+- **Rule** — The metadata in effect when a destination opens is sent once it
+  is open, before the next change, and a failed update is reported through
+  the output's callbacks ([sink.md §5](sink.md#5-out-of-band-metadata),
+  items 2–3). Icecast: the current metadata is each connection's first
+  update, and an update whose keys are all filtered out sends nothing
+  ([output-icecast.md §4.2](output-icecast.md#42-out-of-band-updates)).
 - **Count and traces** — 5: #2506 (second half), #3906, #2109, 5cb4ad6e0
   (#4270), a36cd9ffe (#4408).
-- **Reconciliation** — Covered:
-  [output-icecast.md §3.3](output-icecast.md#33-metadata-step)
-  (`send_last_metadata_on_connect`). Not covered: whether an update left
-  with no key after filtering is sent at all; and the replay's errors are
-  swallowed silently (finding G4).
 
 ### KN-5. In-band metadata restarts a chained stream; clients cope badly
 
@@ -1340,14 +1504,18 @@ and FFmpeg timestamps
   over three metadata changes: with out-of-band metadata there is exactly
   one logical stream; with in-band, one link per change, each decodable
   alone and in order. Count both for every muxer alias of a container.
+- **Rule** — Only the native Ogg writer (and `%external` with
+  `restart_on_metadata`) offers in-band metadata; the FFmpeg writer offers
+  none, every Ogg muxer alias alike
+  ([encoder.md §9](encoder.md#9-in-band-metadata), item 1;
+  [ffmpeg.md §7](ffmpeg.md#7-metadata)). Each output decides the channel and
+  MAY let the script choose ([encoder.md §9](encoder.md#9-in-band-metadata),
+  item 6): [output-icecast.md §4.1](output-icecast.md#41-mode), harbor's
+  `in_band_metadata`
+  ([output-harbor.md §4](output-harbor.md#4-pieces-and-metadata)).
 - **Count and traces** — 8: 90327a8a1, 1357a0abb, CHANGES 1.0.0 beta2 ("ICY
   metadata updates when streaming AAC"), cd541d499 (#2997), f8a9536b1
   (#1100), f4dee266a (#1729), #180, #5306 (open); finding ffmpeg F5.
-- **Reconciliation** — Covered:
-  [output-icecast.md §1.3, §3.3](output-icecast.md#13-icy-metadata-mode),
-  [ffmpeg.md §13.5](ffmpeg.md#135-chaining-ogg-restarts-and-the-destination).
-  Not covered: the listener-serving output has no out-of-band-only mode
-  (#5306), and the muxer-alias asymmetry (F5) is unruled.
 
 ### KN-6. The out-of-band update is a separate, synchronous request to an unreliable endpoint
 
@@ -1371,12 +1539,13 @@ and FFmpeg timestamps
   never answers: the stream's bytes keep flowing at real-time rate. An
   endpoint that fails leaves the source connection up. With a stream id of
   2, the update names id 2.
+- **Rule** — Sending out-of-band metadata is the sink's work, never on the
+  streaming thread, bounded by the output's timeout, and its failure leaves
+  the connection up ([sink.md §5](sink.md#5-out-of-band-metadata), item 2).
+  Icecast's updates, their stream id and at most one in flight:
+  [output-icecast.md §4.2](output-icecast.md#42-out-of-band-updates).
 - **Count and traces** — 7: 25930b1a7 reverted by db29cc846, 5ca59a740,
   9197f6f7e (#320), #377, #5484 (a7754004a), #3427.
-- **Reconciliation** — Covered as built:
-  [output-icecast.md §4.3, §6](output-icecast.md#43-out-of-band-metadata)
-  (synchronous; failure keeps the connection). Not covered: no bound on how
-  long an update may hold the stream, and no statement that it must not.
 
 ### KN-7. Character encoding of what is sent to the server
 
@@ -1395,13 +1564,14 @@ and FFmpeg timestamps
   multi-byte and non-Latin-1 characters through each dialect and each
   charset setting: the recorded request bytes match the declared charset
   exactly, and an unrepresentable character has a stated fate.
+- **Rule** — Metadata values and the identity texts (name, description,
+  genre, URL) are converted to the output's charset, and a character it
+  cannot represent becomes `?`, logged
+  ([output-icecast.md §4.3](output-icecast.md#43-charset),
+  [§2.1](output-icecast.md#21-what-the-sink-owns)).
 - **Count and traces** — 7: 777060c7b, 1c32d35a3, fd2047fb2, f97d6aafc
   (#1092), fa61f7cea (#2704), #5284 (open), CHANGES 1.0.0 beta2 ("encoding"
   parameter).
-- **Reconciliation** — Covered for metadata values:
-  [output-icecast.md §3.3](output-icecast.md#33-metadata-step). Not
-  covered: re-encoding of name, genre and description, and characters the
-  target charset cannot represent.
 
 ### KN-8. Stream properties announced before the encoder knows them
 
@@ -1420,12 +1590,13 @@ and FFmpeg timestamps
 - **How to tell** — For every format with an explicit bitrate, the first
   request head carries that bitrate. A check that only looks for the field
   in some format passes while the FFmpeg one is absent.
+- **Rule** — A writer whose configuration fixes its bit rate answers
+  `bitrate` from creation, equal to the format helper's
+  ([encoder.md §3.8](encoder.md#38-bitrate)); the head announces the
+  writer's `bitrate` whatever its kind
+  ([output-icecast.md §2.5](output-icecast.md#25-stream-properties)).
 - **Count and traces** — 4: CHANGES 0.9.0 (#226), 070eadce5 (#3185),
   8aad12080 (#3295); finding net-callers D2.
-- **Reconciliation** — Contradicts:
-  [output-icecast.md §1.4](output-icecast.md#14-stream-info-announced)
-  describes the field as never sent for `%ffmpeg`, which is the bug #3185
-  was meant to fix.
 
 ### KN-9. Blocking network I/O inside the streaming cycle holds every output of the clock
 
@@ -1447,15 +1618,16 @@ and FFmpeg timestamps
   rate, or the specification says they need not and states the isolation
   mechanism. With N blocking outputs on N workers, an unrelated task still
   runs within its deadline.
+- **Rule** — No sink operation waits for a peer on the streaming thread
+  ([sink.md §3](sink.md#3-never-blocking-the-streaming-thread),
+  [encoder.md §7](encoder.md#7-concurrency), item 3); a stalled server costs
+  its own output only, and the scheduler's other work runs within its
+  deadlines ([output-icecast.md §9](output-icecast.md#9-concurrency)).
 - **Count and traces** — 7: #305, #2965, #4442, #3427 (16 s catch-up),
   e983941e5 (#5691), 3db6b5cc7, #377. Same principle on SRT:
   [SRT KC2](../../optionals/srt/spec/known-complexity.md#kc2-blocking-connection-work-on-the-thread-or-lock-the-stream-needs),
   [KC13](../../optionals/srt/spec/known-complexity.md#kc13-who-paces-the-clock-and-when);
   harbor: [K4](../../outputs/spec/harbor/known-complexity.md#k4-how-a-writer-learns-it-can-write).
-- **Reconciliation** — Covered:
-  [output-icecast.md §7](output-icecast.md#7-threads-and-locks) (its clock
-  is animated by a thread). Not covered: what one stalled output may do to
-  others on the same clock.
 
 ### KN-10. Bounding connects and writes, portably
 
@@ -1477,13 +1649,14 @@ and FFmpeg timestamps
   port (returns at once), to a dual-stack name whose first address refuses
   (falls back at once), and write to a peer that never reads (returns
   within the write timeout).
+- **Rule** — Every connect, handshake, read and write is bounded, on every
+  supported platform and transport: a black-holed address within the
+  connection timeout, a refusing port at once, a TLS handshake with a
+  non-TLS server within the connection timeout
+  ([output-icecast.md §2.1](output-icecast.md#21-what-the-sink-owns)).
 - **Count and traces** — 8: 8e93bff3c (LS-555), 7c70129c4, 7692153b5
   (LS-508), 2f7eaf3b1, a56806ff3, c17e9c8cf, a7754004a (#5484), CHANGES
   2.2.4 (#3681).
-- **Reconciliation** — Covered:
-  [output-icecast.md §4.2, §4.3](output-icecast.md#42-body) (`timeout` per
-  write, connection timeout). Not covered: transport (TLS) and per-platform
-  behaviour.
 
 ### KN-11. Address resolution and family preference
 
@@ -1498,11 +1671,13 @@ and FFmpeg timestamps
 - **How to tell** — With a name resolving to a refusing address first and
   a listening one second, the output connects, under each preference
   setting, to the expected family.
+- **Rule** — Every resolved address is tried in turn, in the order of the
+  output's address-family preference (its parameter, else the global
+  setting); a refusing address falls through to the next at once
+  ([output-icecast.md §2.1](output-icecast.md#21-what-the-sink-owns)).
 - **Count and traces** — 5: #496, #2632, 290b88215, 460122172 reverted by
   dfb50dbb7 (#3626), 3472313eb (#4317). Same for SRT:
   [SRT KC16](../../optionals/srt/spec/known-complexity.md#kc16-address-resolution-and-dual-stack).
-- **Reconciliation** — Not covered: the as-built Icecast file says nothing
-  about resolution or preference.
 
 ### KN-12. Which failures reconnect, which stop the output, which stop the script
 
@@ -1526,15 +1701,17 @@ and FFmpeg timestamps
   at reconnection: each reaches the policy exactly once, and the result
   (retry after d, give up, fail) is the one the policy returned, with d
   measured to 100 ms.
+- **Rule** — Every output fault of a writer or of its sink reaches the
+  output's one restart policy exactly once, whatever layer raised it
+  ([encoder.md §8](encoder.md#8-faults), [sink.md §7](sink.md#7-faults)).
+  Icecast's fault table and policy, giving up included, observable at every
+  moment, and the retry delay on a monotonic clock to within one cycle
+  ([output-icecast.md §8](output-icecast.md#8-faults-and-restart-policy),
+  [§7](output-icecast.md#7-reopen-reconnect-append)); `output.url`'s
+  ([output-url.md §8](output-url.md#8-faults-and-restart-policy)).
 - **Count and traces** — 11: 02e22da11, 08ea33fe5, 63878e1e0 (LS-535),
   284b75815 (#3635), #1486, 45882c24c, 19d9004e2, da214513e (#2731),
   96e990fee (#2874), #4669, #4672; findings net-callers D4.
-- **Reconciliation** — Covered:
-  [output-icecast.md §5, §6](output-icecast.md#5-reopen-reconnect),
-  [output-url.md §5, §6](output-url.md#5-reopen-reconnect). Not covered:
-  encoder errors on the source client are not routed to the policy (they
-  fail the output), an asymmetry with the URL output, and "give up" is not
-  observable.
 
 ### KN-13. Silence on the wire: the server judges liveness by bytes
 
@@ -1555,9 +1732,13 @@ and FFmpeg timestamps
   timeout through each encoder to a server with a short source timeout: the
   source stays connected. State whether a source gap closes the connection,
   and check it.
+- **Rule** — A writer on a live sink writes at least once per `L`, whatever
+  it encodes ([encoder.md §3.9](encoder.md#39-live-latency-bound));
+  `live_latency_bound` stays well below servers' source timeouts, and a
+  source gap stops a fallible output, which closes its connection cleanly
+  ([output-icecast.md §8](output-icecast.md#8-faults-and-restart-policy),
+  Liveness).
 - **Count and traces** — 3: #2965, #3770, #2937.
-- **Reconciliation** — Not covered: no maximum interval between bytes
-  sent, and no statement of what a source gap does to the connection.
 
 ### KN-14. Protocol dialects
 
@@ -1577,11 +1758,15 @@ and FFmpeg timestamps
   head byte for byte, the authentication, the stream id in both the
   connection and the update, and the chunked framing including its
   terminator.
+- **Rule** — Each dialect's head, authentication, stream id and framing,
+  terminator included
+  ([output-icecast.md §2.3](output-icecast.md#23-http-dialect),
+  [§2.4](output-icecast.md#24-icy-dialect)), checked byte for byte against a
+  recording fake server
+  ([output-icecast.md §10](output-icecast.md#10-tests)).
 - **Count and traces** — 10: 76357b981, 96bfb33fb, 197a8b2c3, c573c0ed3,
   9197f6f7e (#320), cdb3c1369, ad3a0d2c9 (#2819), CHANGES 1.3.7 (#727),
   #3021, b5fe63022 (#5519).
-- **Reconciliation** — Covered:
-  [output-icecast.md §4.1, §4.3](output-icecast.md#41-request-head).
 
 ### KN-15. The content type a server and players accept is not the format's MIME
 
@@ -1599,10 +1784,13 @@ and FFmpeg timestamps
 - **How to tell** — For every format, the announced type is one a reference
   server parses into its burst logic (a late listener of the server decodes)
   and the override is passed verbatim.
+- **Rule** — The content type is the `format` parameter verbatim when set,
+  else the format's `mime` helper
+  ([output-icecast.md §1](output-icecast.md#1-formats-and-declarations),
+  item 4); `application/ogg` is kept for every Ogg format and FLAC is
+  `audio/flac` ([formats.md §9](formats.md#9-helpers)).
 - **Count and traces** — 7: e95887ee3, 66d507fa9, ac1c987c3, 79f22d1a8,
   f356c8499, 8d3f51e4d, #5198; finding seam D8.
-- **Reconciliation** — Covered:
-  [output-icecast.md §1.2](output-icecast.md#12-content-type).
 
 ### KN-16. The same format gives different bytes, or none, by destination
 
@@ -1624,12 +1812,18 @@ and FFmpeg timestamps
   naming the container's need, at start, not a silent output. For each
   network output, the MP3 body of a late consumer carries no ID3v2 and no
   Info frame.
+- **Rule** — The writer chooses its header form and preambles from the
+  declared capabilities: file form and preambles only on a file sink, the
+  streaming form elsewhere
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), items 1–2,
+  5). A configuration that needs a seekable destination is refused at
+  evaluation on any output without one, and at open when the path turns out
+  not to be seekable ([encoder.md §5.3](encoder.md#53-the-check),
+  [§5.4](encoder.md#54-at-open)). `%ffmpeg`'s declarations per muxer:
+  [ffmpeg.md §2](ffmpeg.md#2-declarations),
+  [§6](ffmpeg.md#6-header-forms-and-preambles).
 - **Count and traces** — 4 in history: 39a3914a7, #1394, harbor K1 (ID3
   mid-stream), #4785; findings ffmpeg F1, A1, A2, net-callers A1.
-- **Reconciliation** — Covered:
-  [ffmpeg.md §13.1, §13.6](ffmpeg.md#131-the-three-ways-a-container-reaches-its-destination).
-  Not covered: a format needing a seekable destination is not rejected
-  (F1, G1); the mp3 preamble rule is applied by two outputs only (A1).
 
 ### KN-17. Who owns the I/O: the output or the encoder
 
@@ -1652,12 +1846,19 @@ and FFmpeg timestamps
   append to an existing longer file, reopen, Ogg metadata change) once
   with bytes returned and once with encoder-owned I/O: the resulting files
   and modes are identical, and the same for `file:` and plain paths.
+- **Rule** — A muxer that writes bytes writes them into the output's sink,
+  so the output's file semantics hold for every format
+  ([ffmpeg.md §3.2](ffmpeg.md#32-the-io-over-a-sink),
+  [sink.md §6](sink.md#6-what-a-sink-owns)); a delegated destination leaves
+  the output what it owns
+  ([encoder.md §6](encoder.md#6-the-delegated-destination), item 4;
+  [sink.md §8](sink.md#8-delegated-destination)). `output.url` refuses
+  `file:` URLs and plain paths, naming `output.file`
+  ([output-url.md §1](output-url.md#1-formats-and-declarations)), and
+  `output.file` refuses protocol options
+  ([output-file.md §1.4](output-file.md#14-checks-at-evaluation)).
 - **Count and traces** — 2 in history: a71822bf0 (#2069, #2072), #4672;
   findings ffmpeg F2, F4.
-- **Reconciliation** — Covered:
-  [ffmpeg.md §13.2, §13.3](ffmpeg.md#132-what-each-caller-does-with-the-target).
-  Not covered: no rule that the caller's file semantics hold whichever side
-  opens the destination.
 
 ### KN-18. A header captured from a muxer is only what the muxer wrote in time
 
@@ -1677,12 +1878,17 @@ and FFmpeg timestamps
 - **How to tell** — For each container × codec (including delayed codecs),
   a consumer that joins after 1 s with no metadata change decodes from its
   first byte.
+- **Rule** — A stream start is written with its header's bytes, never before
+  them, so a header learned from a delayed codec's first packet delimits its
+  stream like any other
+  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), items 2–3). For
+  `%ffmpeg`, the bytes of the header write are the entry header
+  ([ffmpeg.md §5](ffmpeg.md#5-bytes-and-markers)); the shared stream copies
+  it once appended
+  ([shared-stream.md §1](../../outputs/spec/shared-stream.md#1-model)).
 - **Count and traces** — 3: c6f8c699a (#3265, #3276), 33643ff90 (#5542);
   finding ffmpeg V1. Joining logic itself:
-  [harbor K1](../../outputs/spec/harbor/known-complexity.md#k1-a-late-listener-must-join-at-a-point-a-decoder-can-start-from).
-- **Reconciliation** — Not covered:
-  [ffmpeg.md §6](ffmpeg.md#6-header) states the requirement on the muxer
-  as unchecked; V1 shows it fails for delayed codecs.
+  [harbor K1](../../outputs/spec/harbor/known-complexity.md#k1-a-late-listener-must-start-where-a-decoder-can-start).
 
 ### KN-19. The final bytes at a disconnection
 
@@ -1699,11 +1905,13 @@ and FFmpeg timestamps
 - **How to tell** — Stop the output cleanly while connected: the server's
   last bytes are the encoder's final bytes (an end-of-stream page for Ogg),
   and the audio received equals the audio produced.
+- **Rule** — A clean end delivers the writer's final bytes to every
+  destination still connected, network destinations included, within
+  `final_delivery_bound`
+  ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes),
+  [sink.md §4](sink.md#4-markers-and-the-end),
+  [output-icecast.md §6](output-icecast.md#6-end)).
 - **Count and traces** — 2: finding net-callers D5; SRT #4395 (SRT KC6).
-- **Reconciliation** — Contradicts:
-  [output-icecast.md §4.4, §5](output-icecast.md#44-what-a-server-and-its-listeners-receive)
-  describe discarding on every disconnection; the draining rule, harbor and
-  SRT deliver final bytes on a clean end.
 
 ### KN-20. Checks that pass without checking the source side
 
@@ -1721,13 +1929,17 @@ and FFmpeg timestamps
   test asserts the count of connections, the head bytes and the body bytes
   it recorded, and fails if it recorded none. Writer tests feed buffers
   with non-zero offsets.
+- **Rule** — A suite asserts that it ran, and a check counts once seen to
+  fail
+  ([testing.md §1](../../../spec/testing.md#1-a-pass-must-be-able-to-say-no));
+  source-side checks run against a recording fake server and assert the
+  connections and requests it recorded
+  ([output-icecast.md §10](output-icecast.md#10-tests),
+  [conformance.md](conformance.md#doubles)).
 - **Count and traces** — 3: `tests/streams/icecast_no_restart.liq`
   (`test.skip ()`), 6f76b71d7 (#5486); findings net-callers D1, G2. Same
   shape on SRT:
   [SRT KC20](../../optionals/srt/spec/known-complexity.md#kc20-tests-that-pass-without-proving-the-behaviour).
-- **Reconciliation** — Covered:
-  [output-icecast.md §8](output-icecast.md#8-tests) lists the gaps. Not
-  covered: `icecast_no_restart.liq` and the TLS tests are not in that list.
 
 ---
 

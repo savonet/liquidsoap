@@ -90,9 +90,9 @@ stream byte is preceded by a block and the position restarts at 0. A block
 is sent together with, or before, the stream byte it precedes, never on its
 own at the end of the available data; the byte stream is the same either
 way once more data arrives. The response head is not counted; a preroll and
-the mode's initial bytes (codec header, burst) are counted like any stream
+the mode's initial bytes (entry header, burst) are counted like any stream
 data. Blocks inside a preroll are empty, so the first block after it carries
-the metadata in effect where the listener joins.
+the metadata in effect where the listener's stream starts.
 
 **Metadata events.** Every metadata the source produces is one event, with a
 generation number, increasing per output, and its converted values
@@ -118,16 +118,15 @@ mode knows the metadata in effect for a byte is its own
 **Framing is never broken.** The ICY framing counts bytes from the start of
 the body: a stream byte dropped or a block misplaced corrupts every later
 boundary for the rest of the connection. A listener MUST receive every
-stream byte from its join point on, in order, with a block exactly where the
+stream byte from its start on, in order, with a block exactly where the
 position says, or be disconnected ([delivery.md §6](delivery.md#6-disconnection)).
 
 ## 5. Charset
 
-Every metadata event is converted, value by value, from an auto-detected
-charset to the charset named by `encoding` (UTF-8 when empty). Values
-detected as binary are left unchanged; a value whose conversion fails is kept
-as it was, with a log line. Keys are not converted.
+Every metadata event is converted to the charset named by `encoding`, under
+the charset rule shared with the source client
+([output-icecast.md §4.3](../../../encoder/spec/output-icecast.md#43-charset)).
 
-ICY blocks are built from the converted values, and the encoder's in-stream
-metadata is the same converted values with cover art removed
+ICY blocks are built from the converted values, and the in-band metadata
+offered to a writer is the same converted values with cover art removed
 ([modes.md §6](modes.md#6-metadata)).

@@ -1,16 +1,19 @@
 # The `%ffmpeg` encoder: container and stream-encoder contract
 
-This file owns the lifecycle of one `%ffmpeg` encoder instance: how the
+This file owns the building of one `%ffmpeg` container writer: how the
 container is opened, how its streams are created and fed, how options are
-checked, how metadata, draining, stopping and container restarts work, how an
-instance cuts HLS segments and what the HLS output does with them, and the
-contract every stream encoder meets (§12). It relies on the format record of
+checked, how its container metadata is set, how it drains and ends, how it
+restarts its container at a copy source switch, how it cuts HLS segments on a
+segmented sink, and the contract every stream encoder meets (§12). The
+writer's place at the seam (its declarations, the defaults it adapts, its
+markers, header forms, I/O over a sink, delegated destination and faults) is
+owned by [the `%ffmpeg` writer at the seam](../../../encoder/spec/ffmpeg.md),
+under the [encoder contract](../../../encoder/spec/encoder.md) and the
+[sink contract](../../../encoder/spec/sink.md); this file links them and does
+not restate them. It relies on the format record of
 [encoder-format.md](encoder-format.md), on the output container operations of
 the bindings ([avformat.md §4.4](../../../../modules/synced/ffmpeg/spec/avformat.md#44-output)),
-on the draining rule of [draining.md](../../../source/spec/draining.md), and on the generic
-[encoder interface](../../../encoder/spec/encoder.md) of Liquidsoap (its
-registry, instances and stream face; §2 states what this encoder relies on
-beyond it).
+and on the draining rule of [draining.md](../../../source/spec/draining.md).
 Stream implementations are in [encoder-internal.md](encoder-internal.md) and
 [encoder-copy.md](encoder-copy.md); every timestamp rule is in
 [timestamps.md](timestamps.md).
@@ -19,54 +22,59 @@ Stream implementations are in [encoder-internal.md](encoder-internal.md) and
 
 Under the generic registry
 ([encoder.md §1](../../../encoder/spec/encoder.md#1-registry)), the `ffmpeg`
-plug-in accepts exactly the `%ffmpeg` formats. Accepting returns a factory:
+plug-in answers exactly the `%ffmpeg` formats. Its factory answers the
+declarations of
+[ffmpeg.md §2](../../../encoder/spec/ffmpeg.md#2-declarations) and the format
+helpers without building anything, and builds a writer from:
 
-```
-factory : ?hls:bool -> ?interrupt:(unit -> bool) -> pos:position option ->
-  name:string -> metadata -> encoder
-```
+| Input            | Meaning                                                                                                                                 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| configuration    | the format value, every deferred value resolved                                                                                         |
+| capabilities     | those the sink confirmed ([sink.md §1](../../../encoder/spec/sink.md#1-capabilities))                                                   |
+| destination      | the sink, or `delegated(u)` with the output's interrupt ([encoder.md §6](../../../encoder/spec/encoder.md#6-the-delegated-destination)) |
+| name             | names the writer in logs                                                                                                                |
+| initial metadata | [encoder.md §2.2](../../../encoder/spec/encoder.md#22-creation) (§6)                                                                    |
+| position         | the format's script position, for errors                                                                                                |
 
-`hls` defaults to `false`; `name` names the instance in logs. `interrupt`
-is passed to the bindings' open of a `Url` target and covers every blocking
-I/O of that container, so an output can abort a blocking open or write at
-shutdown ([io.md §3](io.md#3-interrupting-blocking-libav-calls)). Calling the
-factory builds the instance (§3), then calls `encode_metadata` with the given
-metadata (§6).
+The interrupt covers every blocking I/O of a delegated destination
+([io.md §3](io.md#3-interrupting-blocking-libav-calls)). Building runs §3 and
+answers the writer or a fault (§5.2).
 
-The returned `encoder` has:
+The writer offers the stream face of
+[encoder.md §3](../../../encoder/spec/encoder.md#3-the-stream-face):
 
-| Operation           | Called by                                  |
-| ------------------- | ------------------------------------------ |
-| `encode frame`      | every output, once per (sub-)frame of data |
-| `encode_metadata m` | outputs, when a frame carries metadata     |
-| `header ()`         | Harbor, at listener connect (§10)          |
-| `stop ()`           | outputs, when they stop or reopen          |
-| `hls.*`             | the HLS output only (§8)                   |
+| Operation                     | Effect                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| `write piece`                 | encodes the piece (§5)                                                                           |
+| `end clean`, `end abandoned`  | ends the writer (§7)                                                                             |
+| `bitrate`, `delay`, `padding` | property reads ([ffmpeg.md §10](../../../encoder/spec/ffmpeg.md#10-properties), §12.9)           |
+| `insert_id3`                  | on a `segmented(D)` sink with the `in_stream` ID3 mode only: the HLS contract's timed ID3 (§8.5) |
 
-An instance serialises its own operations, and is stopped exactly once
-([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
+It offers no metadata call (§6). Every call comes from one caller
+([encoder.md §7](../../../encoder/spec/encoder.md#7-concurrency)).
 
-An instance is in one of four states:
+A writer is in one of three states, those of
+[encoder.md §2.3](../../../encoder/spec/encoder.md#23-states):
 
-| State     | Entered by                                      | Left by                                                                                                                                                                                         |
-| --------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Built`   | §3                                              | the first `encode` (§5) → `Started`                                                                                                                                                             |
-| `Started` | §5 step 1; a restart at a source switch (§13.2) | `stop` → `Stopped`; an output fault → `Failed`; a metadata restart (§13) → `Built` on a new container; a restart at a source switch → `Started` on a new container, its streams created at once |
-| `Failed`  | an output fault (§5.2)                          | `stop` → `Stopped`                                                                                                                                                                              |
-| `Stopped` | §7                                              | none                                                                                                                                                                                            |
+| State     | Entered by             | Left by                                                                                                                      |
+| --------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `writing` | §3                     | `end` → `ended`; an output fault → `failed`; a container restart at a source switch (§13) stays `writing` on a new container |
+| `failed`  | an output fault (§5.2) | `end` → `ended`                                                                                                              |
+| `ended`   | §7                     | none                                                                                                                         |
 
-In `Failed`, every operation except `stop` raises the recorded error again;
-`stop` releases the container without draining
-([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)). In `Stopped`, `stop`
-does nothing and every other operation is an error.
+Within `writing`, the muxer streams exist from the first piece of §5 step 1;
+before it, nothing has been written. In `failed`, `end` releases the
+container without draining
+([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)).
+A call outside the table of encoder.md §2.3 is an internal error.
 
-## 2. What the encoder relies on from callers
+## 2. What the writer relies on from callers
 
-- Frames passed to `encode` are the output's frames or sub-frames. A frame of
-  length 0 carries no data; it can still trigger stream creation (§5).
-- Metadata is passed before the data of the same sub-frame (the outputs'
-  default "metadata first" order).
-- The content of every field the format names is present in each frame with
+- Every piece holds at least one sample or one image period
+  ([encoder.md §3.3](../../../encoder/spec/encoder.md#33-frames-in)).
+- Metadata reaches the writer only as its initial metadata, at creation. No
+  call hands it metadata afterwards (§6).
+- The content of every field the format names is present in each piece with
   the content type of [encoder-format.md §10](encoder-format.md#10-content-type-implied-by-a-format).
 
 ## 3. Building an instance
@@ -81,7 +89,13 @@ In order:
    `-global_header`). Reason: global headers put the codec's configuration in
    the stream's codec parameters, where the muxer and the codec string of
    §8.6 read it, whatever the container.
-2. **HLS defaults**, only when `hls` is true:
+2. **Segmenting defaults**, only on a `segmented(D)` sink, `D` its target
+   duration
+   ([sink.md §1](../../../encoder/spec/sink.md#1-capabilities)). Like
+   every default this writer adapts to its capabilities
+   ([ffmpeg.md §2](../../../encoder/spec/ffmpeg.md#2-declarations)), each is
+   applied by the writer, never added to the format value nor printed, and
+   an option the format writes is kept:
    - `format` of the ISO base media family (`mp4`, `mov`, `ipod`,
      `ismv`): container option `movflags` defaults to
      `"+frag_custom+dash+delay_moov"` (fragments are cut only when the
@@ -97,10 +111,10 @@ In order:
      written `flags` names `cgop` or is a number. Reason: every key frame is
      a place where the HLS output may cut (§8.7), and must let a decoder
      start there. In an open GOP, libx265 makes its key frames CRA pictures,
-     so a player joining at such a segment drops its leading pictures.
+     so a player starting at such a segment drops its leading pictures.
    - Every encoded video track: codec options `g` and `keyint_min` default
-     to `round(D × r / n)` frames, `r` the track's frame rate, `D` the
-     segment duration in seconds and `n = max(1, ⌈D / 2⌉)`. A raw track with
+     to `round(D × r / n)` frames, `r` the track's frame rate, `D` in
+     seconds and `n = max(1, ⌈D / 2⌉)`. A raw track with
      no `framerate` gets its rate from its first frame
      ([encoder-internal.md §4.6](encoder-internal.md#46-frame-timing-both-video-modes)),
      so its `g` and `keyint_min` are sized when its stream is created; a
@@ -125,34 +139,47 @@ In order:
       names are converted: `sample_fmt` to FFmpeg's sample-format id and
       `channel_layout` to FFmpeg's canonical description. An unknown name or a
       non-string value is an error of kind `encoder`.
-   2. The muxer is guessed from `format` (short name), the `Url` target as
-      file name, and `mime_type`. None found is allowed for `Url` (FFmpeg
-      guesses from the URL).
+   2. The muxer is the one
+      [ffmpeg.md §1](../../../encoder/spec/ffmpeg.md#1-format-and-options)
+      item 5 fixes when the output is constructed: the muxer `format`
+      names, a name no muxer of the build has being a configuration error on
+      every destination; without `format`, the muxer FFmpeg guesses from the
+      extension of a constant `output.file` path, or from the URL of a
+      delegated destination; with neither, a configuration error. No other
+      muxer is ever substituted.
    3. `interleaved`: `Default` → true when the format has more than one
       non-drop track; `True`/`False` as written. Reason: a single-stream
       output has nothing to interleave. With interleaving on, a sparse
       stream (subtitles) delays the other streams by at most the muxer's
-      `max_interleave_delta`, a container option the user may set.
-   4. Open:
-      - `Stream` output: no muxer found is an error of kind `encoder` at the
-        format's position (example messages: `Format is required!` when
-        `format` is none, else
-        `No ffmpeg format could be found for format="<f>"`). The container writes into an in-memory buffer through a
-        write callback. A seek callback over that buffer is given only for
-        HLS with `format="mp4"`.
-      - `Url u` output: the bindings open `u` themselves, with the guessed
-        muxer if any and the factory's `interrupt`. Nothing is written to
-        the buffer.
+      `max_interleave_delta`, a container option the user may set, bounded
+      on a live sink
+      ([ffmpeg.md §11](../../../encoder/spec/ffmpeg.md#11-live-latency)).
+   4. Open, with the container options of step 3.1 plus the defaults
+      [ffmpeg.md §2](../../../encoder/spec/ffmpeg.md#2-declarations) adapts
+      to the confirmed capabilities
+      ([ffmpeg.md §3.1](../../../encoder/spec/ffmpeg.md#31-inputs-and-order)):
+      - on a sink: the muxer is opened over the I/O the writer builds on the
+        sink ([ffmpeg.md §3.2](../../../encoder/spec/ffmpeg.md#32-the-io-over-a-sink)):
+        write always; seek and size only on a sink confirmed `seekable` and
+        `fresh`; read only on such a sink, while the writer ends. Opening
+        writes nothing into the sink.
+      - on `delegated(u)`: the bindings open `u` themselves, with the muxer
+        of step 3.2 and the output's interrupt
+        ([ffmpeg.md §13](../../../encoder/spec/ffmpeg.md#13-delegated-destination)).
+        Nothing is written into any sink.
    5. Stream encoders: every non-drop track builds its stream encoder, in
       track order (§12). No muxer stream is added yet (§5). An encoded track
       with no `codec` is an error of kind `encoder` naming the field.
    6. Options are checked (§4).
-4. **Initial metadata**: `encode_metadata` with the metadata given to the
-   factory (§6).
+4. **Container metadata**: set from the initial metadata (§6).
 
-Every failure raises out of the factory and releases what was built. A failed
-open of a `Url` target is an output fault; every other failure here is a
-configuration error ([faults.md §2](../../../../spec/faults.md#2-classes), §5.2).
+Every failure answers a fault and releases what was built
+([encoder.md §2.2](../../../encoder/spec/encoder.md#22-creation)). Its class
+is that of [ffmpeg.md §15](../../../encoder/spec/ffmpeg.md#15-faults): a
+refusal that follows from the configuration and the confirmed capabilities
+is a configuration error on the output's first writer and an output fault on
+a later one; a delegated open that fails for any other cause is an output
+fault (§5.2).
 
 ### 3.1 Conformance
 
@@ -165,9 +192,16 @@ configuration error ([faults.md §2](../../../../spec/faults.md#2-classes), §5.
 
 There are two option sets:
 
-- **Container options** (format `opts`, plus the HLS and output defaults of
-  §3 and §9): consumed by the bindings' open (generic container options, muxer
-  private options, then the I/O protocol).
+- **Container options** (format `opts`, plus the adapted defaults of §3
+  step 2 and of
+  [ffmpeg.md §2](../../../encoder/spec/ffmpeg.md#2-declarations)): consumed
+  by the bindings' open, by FFmpeg's generic container options, then the
+  muxer's private options, then, on a delegated destination only, the I/O
+  protocol. On a sink no protocol consumes options: a protocol option there
+  is a leftover, which the error names as an option of a destination the
+  output owns
+  ([ffmpeg.md §1](../../../encoder/spec/ffmpeg.md#1-format-and-options)
+  item 3).
 - **Stream options** (track `opts`, plus `flags`): consumed by the stream
   encoder's creation (codec, device context, generic codec options).
 
@@ -176,88 +210,115 @@ reported in **one** error of kind `encoder` at the format's position, that
 names each leftover key with its scope (the container, or the field). Example
 message: `Unrecognized options: container: foo=3; audio: bar="x"`.
 
-The check runs at build (§3 step 3.6), before the first byte of media is
-written. Stream encoders whose muxer stream is created at the first frame
-(§5) check their option **names** at build against the options the codec,
-its device context and FFmpeg's generic codec options list
-([avutil.md §9.3](../../../../modules/synced/ffmpeg/spec/avutil.md#93-listing-options)),
-and check again at stream creation, where a leftover raises the same error.
-Reason: a bad option is a configuration error and is reported when the output
-starts, not when the first frame arrives.
+The check runs at evaluation, when the output is constructed, without
+opening anything
+([formats.md §7](../../../encoder/spec/formats.md#7-when-a-format-is-validated)).
+A literal `format` naming no muxer of the build is refused at type checking;
+every option name is checked at evaluation, since what the build's libraries
+accept is known only there. Container option names are checked against the
+options the muxer, FFmpeg's generic container options and, on a delegated
+destination whose URL is known at evaluation, its protocol list; a computed
+URL's protocol options are checked when it is first read, as a
+configuration error. Stream option names are checked against the options
+the codec, its device context and FFmpeg's generic codec options list
+([avutil.md §9.3](../../../../modules/synced/ffmpeg/spec/avutil.md#93-listing-options)).
+Stream encoders whose muxer stream is created at the first piece (§5) check
+again at stream creation, where a leftover raises the same error. Reason: a
+bad option is a configuration error and is reported before the output
+starts, not when the first piece arrives.
 
 A format whose options are all valid but unusable together fails at FFmpeg's
-open or at stream creation with FFmpeg's error.
+open or at stream creation with FFmpeg's error, classed by §5.2.
 
 ### 4.1 Conformance
 
 - `%ffmpeg(format="adts", foo=3, %audio(codec="aac", bar="x"))` fails at
-  output start with one error naming both `foo` and `bar`.
-- `%ffmpeg(%video(codec="libx264", nosuchopt=1))` fails at output start,
-  before any frame is encoded.
+  evaluation with one error naming both `foo` and `bar`.
+- `%ffmpeg(%video(codec="libx264", nosuchopt=1))` fails at evaluation,
+  before any writer is built.
+- `%ffmpeg(format="ogg", truncate=0, %audio(codec="libvorbis"))` given to
+  `output.file` fails at evaluation, naming `truncate` as a protocol option.
 
 ## 5. Encoding a frame
 
-`encode frame`:
+`write piece`:
 
-1. At the container's first frame in which every copy field has a run with
+1. At the container's first piece in which every copy field has a run with
    known parameters ([content.md §4.2](content.md#42-run-layer)), every
    stream encoder creates its muxer stream (§12.2), **in track order**.
-   Without copy fields, that is the container's first frame, even of length 0. Frames before it write nothing for any stream, so encoded streams do
-   not start ahead of the copied ones; their content is held, not
-   discarded. The wait is bounded by `max_keyframe_wait`
+   Without copy fields, that is the container's first piece. Pieces before
+   it write nothing for any stream, so encoded streams do not start ahead of
+   the copied ones; their content is held, not discarded. The wait is
+   bounded by `max_keyframe_wait`
    ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)):
-   past it, the output fails with an output fault naming the copy fields
-   without parameters ([faults.md §2](../../../../spec/faults.md#2-classes)), and its restart
-   policy applies. Copy outputs are an expert feature: the script author
-   who feeds one is expected to supply its streams, and a container missing
-   a declared track is not produced. Reason: stream parameters of video
-   and copy tracks come from the first frame, and creating every stream at
-   the same moment makes the container's stream order the written track
-   order.
-2. Every stream encoder's `encode frame` runs, in track order.
-   After the field loop, the copy tracks' end-of-frame step runs: source
-   groups are evaluated and every group whose members are all ready starts
+   past it, the writer fails with an output fault naming the copy fields
+   without parameters ([faults.md §2](../../../../spec/faults.md#2-classes)), and the
+   output's restart policy applies. Copy outputs are an expert feature: the
+   script author who feeds one is expected to supply its streams, and a
+   container missing a declared track is not produced. Reason: stream
+   parameters of video and copy tracks come from the first piece, and
+   creating every stream at the same moment makes the container's stream
+   order the written track order.
+2. Right after the streams are created, before any frame or packet reaches
+   the muxer, the writer writes the header explicitly with the bindings'
+   header write, and flushes the I/O, with the `stream_start` marker before
+   those bytes
+   ([ffmpeg.md §5](../../../encoder/spec/ffmpeg.md#5-bytes-and-markers)
+   item 1).
+3. Every stream encoder's `encode` runs on the piece, in track order. After
+   the field loop, the copy tracks' end-of-piece step runs: source groups
+   are evaluated and every group whose members are all ready starts
    ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)).
-3. When the container header has been written and writes are queued (§8.5),
-   they run in queue order.
-4. The bytes the buffer holds are taken and returned (empty for a `Url`
-   output).
-
-The container header is written by the bindings on the first packet or frame
-written to any stream.
+4. Writes queued until the first media packet (§8.5) run in queue order.
+5. On a sink, the I/O buffer is written into the sink before the call
+   returns
+   ([ffmpeg.md §3.2](../../../encoder/spec/ffmpeg.md#32-the-io-over-a-sink));
+   on a delegated destination the muxer writes it itself.
 
 ### 5.2 Data faults and output faults
 
-Every fault the encoder detects belongs to one class of
-[faults.md §2](../../../../spec/faults.md#2-classes). The encoder is part of an output, so it
-has no source to end: its faults are configuration errors, item faults or
-output faults.
+Every fault the writer detects belongs to one class of
+[faults.md §2](../../../../spec/faults.md#2-classes) and is reported as a value
+([encoder.md §8](../../../encoder/spec/encoder.md#8-faults)); the classes at
+the seam are [ffmpeg.md §15](../../../encoder/spec/ffmpeg.md#15-faults). The
+writer is part of an output, so it has no source to end: its faults are
+configuration errors, item faults or output faults.
 
-| Fault                                                                                                                                                                                                           | Class               | Outcome                                                                                                                                                                                                                     |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| bad option, unknown codec or muxer, missing codec, invalid argument (§3, §4, [encoder-format.md §13](encoder-format.md#13-errors-summary))                                                                      | configuration error | raised at build: the output fails to start and the script fails before streaming                                                                                                                                            |
-| a stream that cannot be created, deterministically from the configuration (codec or muxer lookup, a parameter rejected for the configured format), or at the output's first start-up (hardware device included) | configuration error | hard error ([faults.md §2](../../../../spec/faults.md#2-classes)): the script fails                                                                                                                                         |
-| a stream that cannot be created at a later rebuild (restart, reopen, HLS restart): hardware session caps, device resets                                                                                         | output fault        | as below: the output restarts under its policy                                                                                                                                                                              |
-| a stream that cannot be created because of the source's data (copy parameters the muxer rejects)                                                                                                                | output fault        | as below                                                                                                                                                                                                                    |
-| the codec refuses a frame, the muxer or its bitstream filter refuses a packet, a subtitle is too large, a timed-ID3 tag fails                                                                                   | item fault          | the item is dropped with a warning; the stream, the container and the other tracks go on                                                                                                                                    |
-| `max_consecutive_faults` item faults in a row on one field                                                                                                                                                      | item fault          | copy field: the copied source's group restarts on its next keyframe ([encoder-copy.md §10](encoder-copy.md#10-options-and-errors)); encoded field: an output fault, so the output restarts under its policy with new codecs |
-| the byte sink fails (I/O error, failed open of a `Url` target), the header write fails, a restart cannot build its container                                                                                    | output fault        | instance `Failed` (§1); the error propagates out of `encode`                                                                                                                                                                |
-| an incompatible copy source with no clean restart (§13.3)                                                                                                                                                       | output fault        | as above                                                                                                                                                                                                                    |
-| a drain or close fails in `stop` (§7)                                                                                                                                                                           | output fault        | logged at error level; teardown continues                                                                                                                                                                                   |
+| Fault                                                                                                                                                                                                                                                                                                                   | Class               | Outcome                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| bad option, unknown codec or muxer, missing codec, invalid argument (§3, §4, [encoder-format.md §13](encoder-format.md#13-errors-summary))                                                                                                                                                                              | configuration error | refused at type checking or evaluation: the script fails before streaming                                                                                                                                                     |
+| the muxer's open or header write, or a stream's creation, refused deterministically from the configuration and the confirmed capabilities (codec or muxer lookup, a parameter rejected for the configured format, a muxer that needs seeking it was not given), on the output's first writer (hardware device included) | configuration error | hard error ([faults.md §2](../../../../spec/faults.md#2-classes)), naming the output, the muxer or the field, and FFmpeg's reason: the script fails; no output runs writing nothing                                           |
+| the same on a later writer (reopen, reconnect, restart): hardware session caps, device resets                                                                                                                                                                                                                           | output fault        | as below: the output restarts under its policy                                                                                                                                                                                |
+| a stream that cannot be created because of the source's data (copy parameters the muxer rejects)                                                                                                                                                                                                                        | output fault        | as below                                                                                                                                                                                                                      |
+| the codec refuses a frame, the muxer or its bitstream filter refuses a packet, a subtitle is too large, a timed-ID3 tag fails                                                                                                                                                                                           | item fault          | the item is dropped with a warning; the stream, the container and the other tracks go on                                                                                                                                      |
+| `max_consecutive_faults` item faults in a row on one field                                                                                                                                                                                                                                                              | item fault          | copy field: the copied source's group restarts on its next keyframe ([encoder-copy.md §10](encoder-copy.md#10-options-and-errors)); encoded field: an output fault, so the output restarts under its policy with a new writer |
+| the sink fails, a delegated destination fails (its open, a write, a write past the output's timeout), the header write fails for any other cause, a restart cannot build its container                                                                                                                                  | output fault        | writer `failed` (§1)                                                                                                                                                                                                          |
+| an incompatible copy source with no clean restart (§13.3)                                                                                                                                                                                                                                                               | as §13.3            | unrecoverable on a sink; an output fault on a delegated destination                                                                                                                                                           |
+| any other failure during a call, of whatever kind                                                                                                                                                                                                                                                                       | output fault        | writer `failed`                                                                                                                                                                                                               |
+| a drain, trailer or flush step fails at `end clean` (§7)                                                                                                                                                                                                                                                                | not escalated       | logged at `severe`; the end goes on                                                                                                                                                                                           |
+
+- **A header write is never an item fault**, whatever packet or frame
+  triggered it: its failure fails the writer, or is the configuration error
+  above.
+- Every output fault leaves the writer `failed`, whatever its kind; a later
+  call acts on nothing the failure left behind.
 
 Item faults are counted per field against `max_consecutive_faults`
-([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). A data fault never stops
-the output. A run past the bound on a copy field restarts that source's
-group (per tenure, [encoder-copy.md §10](encoder-copy.md#10-options-and-errors));
-later runs restart it again. On an encoded field the run is an output fault:
-the output restarts under its policy, which builds new codecs. Reason: a
-codec that keeps refusing frames is in an error state, which no further data
-repairs. The first drop of each kind is logged as a warning; repeats are
-logged with their count at most once per `fault_log_interval`
+([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)). **A run
+ends only with an item the codec or the muxer accepted**: a call that hands
+the muxer nothing (a codec still filling its first frame) neither counts in
+a run nor ends it. A data fault never stops the output. A run past the bound
+on a copy field restarts that source's group (per tenure,
+[encoder-copy.md §10](encoder-copy.md#10-options-and-errors)); later runs
+restart it again. On an encoded field the run is an output fault: the output
+restarts under its policy, which builds a new writer with new codecs.
+Reason: a codec that keeps refusing frames is in an error state, which no
+further data repairs. The first drop of each kind is logged as a warning;
+repeats are logged with their count at most once per `fault_log_interval`
 ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)).
 
-An output fault reaches the script through the output's restart policy and
-callbacks ([faults.md §2](../../../../spec/faults.md#2-classes),
+An output fault reaches the output's one restart policy exactly once
+([encoder.md §8](../../../encoder/spec/encoder.md#8-faults); for `output.url`,
 [io.md §11.3](io.md#113-errors)). The clock and the other outputs go on.
 
 ### 5.1 Conformance
@@ -267,46 +328,52 @@ callbacks ([faults.md §2](../../../../spec/faults.md#2-classes),
 
 ## 6. Metadata
 
-`encode_metadata m`:
+The container's metadata is set once, at creation, before the header is
+written:
 
-1. The entries of `m` are added onto the format's own `metadata`: on a
-   shared key the value from `m` wins, and the format's other entries are
-   kept.
-2. If the container header is not written yet: the list replaces the
-   container's metadata.
-3. Else, when the container defines a metadata restart (Ogg, §13.1): the
-   container is restarted (§13) and the list is set on the new container.
-   Reason: Ogg carries a metadata update by chaining a new logical bitstream,
-   which a reader decodes as a new track.
-4. Else the update is not carried in the container. This is intended: the
-   container has no in-stream update, and an output carries metadata by its
-   own means where it has one (Icecast metadata updates, HLS timed ID3,
-   §8.5). The encoder logs the dropped update at debug level.
+1. The entries of the initial metadata are added onto the format's own
+   `metadata`: on a shared key the initial metadata's value wins, and the
+   format's other entries are kept. On a sink where the tag rule writes no
+   tags from the initial metadata, only the format's own entries are set
+   ([ffmpeg.md §7](../../../encoder/spec/ffmpeg.md#7-metadata)).
+2. The list replaces the container's metadata.
 
-The bytes produced by a restart stay in the buffer and are returned by the
-next `encode` or `stop`.
+A metadata change after creation never reaches the writer (§2). No
+container carries it in band, and no new Ogg link is started for it, the
+Ogg muxers included
+([encoder.md §9](../../../encoder/spec/encoder.md#9-in-band-metadata)). An
+output carries it out of band where it has a channel (Icecast metadata
+updates, HLS timed ID3, §8.5), or leaves it.
 
 ### 6.1 Conformance
 
-- An Ogg Vorbis `output.file` with a metadata change mid-stream gives a
-  chained Ogg file whose second link carries the new title.
+- An Ogg Vorbis `%ffmpeg` `output.file` with a metadata change mid-stream
+  gives one logical stream that carries the initial title, and no second
+  link.
 
-## 7. Stop
+## 7. End
 
-`stop ()`, from `Started` or `Built`:
+`end clean`, from `writing`, as
+[ffmpeg.md §9](../../../encoder/spec/ffmpeg.md#9-end) orders it:
 
-1. Every stream encoder drains (§12.8), in track order; a copy stream writes
+1. When no muxer stream was ever created, nothing is written, `end`
+   included.
+2. Every stream encoder drains (§12.8), in track order; a copy stream writes
    the packets it holds ([encoder-copy.md §8](encoder-copy.md#8-flush-and-end)).
    Each stage's drained output reaches the muxer ([draining.md §3](../../../source/spec/draining.md#3-order)).
-2. The container is closed. Closing drains every codec and writes the
+3. The container is closed. Closing drains every codec and writes the
    trailer ([avformat.md §2.1 Release](../../../../modules/synced/ffmpeg/spec/avformat.md#21-container--input-container-output-container)).
-3. The buffer is returned.
+4. On a sink, the I/O is flushed into the sink, then `end` is written.
 
-A drain or close that fails is logged at severe level with the error and
-teardown continues ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)); the
-bytes produced so far are returned. A container that never received a packet
-is closed without header or trailer. From `Failed`, `stop` releases the
-container without draining and returns nothing.
+A drain, trailer or flush step that fails is logged at `severe` with the
+writer's name and the cause, and the end goes on with the next step; it is
+not escalated ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)).
+
+`end abandoned`, and `end` from `failed`, release the codecs and the
+container with the bindings' abandon
+([avformat.md §2.1 Release](../../../../modules/synced/ffmpeg/spec/avformat.md#21-container--input-container-output-container)):
+no drain, no trailer, nothing more written, `end` included. The bytes
+written before are already in the sink.
 
 ### 7.1 Conformance
 
@@ -318,32 +385,37 @@ container without draining and returns nothing.
 
 ## 8. HLS
 
-Only with `hls=true`. The HLS output calls `init`, then `init_encode` until it
-returns an init segment, then `split_encode` for every later frame, and
-`stop` at the end. §8.7 states what the HLS output does with the results.
+Only on a `segmented(D)` sink. The segmenting face is the stream face on that
+sink ([encoder.md §4](../../../encoder/spec/encoder.md#4-the-segmenting-face)):
+the writer's first `stream_start` delimits the init segment (§8.3), every
+accepted split point is an `access_point` (§8.2, §8.4), a container restart
+is a `stream_start` with the new container's header (§8.4), and `end clean`
+writes the final bytes. §8.7 states what the HLS output does with them.
 
-### 8.1 `init ?id3_enabled ?id3_version ()`
+### 8.1 ID3 mode
 
-The result is the HLS ID3 mode of the HLS encoder contract
-([HLS encoder-contract §3](../../../outputs/hls/spec/encoder-contract.md#3-init)).
-By the muxer's name:
+The HLS ID3 mode
+([HLS encoder-contract §3](../../../outputs/hls/spec/encoder-contract.md#3-id3-mode))
+is a declaration of the configuration: a function of the muxer and of the
+HLS output's ID3 setting, answered without building a writer. No writer is
+built at evaluation. By the muxer's name:
 
-| Muxer                        | `id3_enabled` | Result                                                                                                                             |
-| ---------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `mpegts`                     | not `false`   | a timed-ID3 data stream is added (§8.5); returns `in_stream`                                                                       |
-| `mpegts`                     | `false`       | returns `none`                                                                                                                     |
-| `adts`, `mp3`, `ac3`, `eac3` | `false`       | error: packed audio requires ID3                                                                                                   |
-| `adts`, `mp3`, `ac3`, `eac3` | otherwise     | `insert_id3` returns a raw ID3 tag to prepend to the segment (the generic HLS ID3 builder, version default 3); returns `prepended` |
-| other                        | `true`        | error: the format carries no HLS ID3 metadata                                                                                      |
-| other                        | not `true`    | returns `none`                                                                                                                     |
-| none (no muxer)              | any           | error: a format is required                                                                                                        |
+| Muxer                        | ID3 setting | Declaration                                                                                                                |
+| ---------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `mpegts`                     | not `false` | `in_stream`: the writer adds a timed-ID3 data stream (§8.5)                                                                |
+| `mpegts`                     | `false`     | `none`                                                                                                                     |
+| `adts`, `mp3`, `ac3`, `eac3` | `false`     | refused at evaluation: packed audio requires ID3                                                                           |
+| `adts`, `mp3`, `ac3`, `eac3` | otherwise   | `prepended`: `insert_id3` returns a raw ID3 tag to prepend to the segment (the generic HLS ID3 builder, version default 3) |
+| other                        | `true`      | refused at evaluation: the format carries no HLS ID3 metadata                                                              |
+| other                        | not `true`  | `none`                                                                                                                     |
+| none (no muxer)              | any         | refused at evaluation: a format is required                                                                                |
 
 Reason for the packed-audio row: an HLS packed-audio segment carries its
 timestamp in an ID3 tag (RFC 8216 §3.4).
 
 ### 8.2 Keyframe hooks
 
-A **split point** is a position in the instance's output bytes such that, for
+A **split point** is a position in the writer's output bytes such that, for
 every participating stream, the first packet of that stream written after the
 position is a key packet. Participating streams are the muxer streams of
 non-drop tracks; the timed-ID3 data stream does not participate. A subtitle
@@ -376,8 +448,8 @@ A stream is **all-key** while every packet it has written is flagged key
 can be useful:
 
 1. Before a key packet of a participating stream that is not all-key, and
-   before the first packet at or after each `boundary` given by the HLS
-   output (§8.4), the hook flushes the muxer, so that the buffer holds
+   before the first packet at or after each split request of the sink
+   (§8.4), the hook flushes the muxer, so that the buffer holds
    exactly what precedes the packet, and records that position as a
    candidate, with the packet's media time as the split point's time.
 2. A candidate is accepted when every other participating stream's first
@@ -391,59 +463,53 @@ can be useful:
    A candidate decided by a key packet that takes a candidate of its own is
    dropped in favour of that one: the two are one split point, and keeping
    both would leave a segment of a few packets between them.
-3. Bytes written after an undecided candidate are held by the instance and
-   returned in order once it is decided; no byte is dropped.
+3. Bytes written after an undecided candidate are held by the writer and
+   written into the sink in order once it is decided, the candidate's
+   `access_point` before them when it is accepted; no byte is dropped.
 
-The muxer is flushed at each candidate and the instance asks for no other
-flush. With fragmented MP4 (`frag_custom`) a flush ends a fragment, so a
+The muxer is flushed at each candidate and the writer asks for no other
+muxer flush; moving the I/O buffer into the sink at the end of a call
+(§5 step 5) is an I/O flush only, which leaves the muxer's queues as they
+are. With fragmented MP4 (`frag_custom`) a flush ends a fragment, so a
 segment holds one fragment per candidate it contains.
 
-### 8.3 `init_encode frame`
+### 8.3 Init segment
 
-The init segment is the container's header: the bytes the muxer writes before
-its first media data (fragmented MP4: `ftyp` and `moov`). For a format
-without one (MPEG-TS, ADTS, MP3) it is none. The HLS output accepts only the
-segment formats of RFC 8216
+The init segment is the header the writer's first `stream_start` delimits:
+the bytes of the explicit header write (§5 step 2), which the muxer writes
+before its first media data (fragmented MP4: `ftyp` and `moov`). For a
+format without one (MPEG-TS, ADTS, MP3) it is empty. The HLS output accepts
+only the segment formats of RFC 8216
 ([HLS variants §2](../../../outputs/hls/spec/variants.md#2-building-a-variant)).
 
-`init_encode ~boundary frame` encodes the frame (§5). It returns
-`Init (init, pieces)` once the header is known, where `pieces` (§8.4) hold
-every byte after the header. For MP4 the header is the `ftyp` and `moov`
-boxes, and a media segment starts with its first fragment's boxes (`sidx`
-when the muxer writes one, `moof`). Until the header is known it returns
-`Pending`, and the bytes stay in the buffer for the next call: no frame's
-data is lost while the HLS output retries. An init segment MUST NOT be empty
-for a format that has a header.
+Since the header is written at stream creation, the init segment is known at
+the piece at which the streams are created; no piece's data is lost before
+it. For MP4 a media segment starts with its first fragment's boxes (`sidx`
+when the muxer writes one, `moof`). An init segment MUST NOT be empty for a
+format that has a header.
 
-### 8.4 `split_encode frame`
+### 8.4 Split points and restarts
 
-```
-split_encode : boundary:time -> frame -> piece list
-piece = Bytes of bytes
-      | Split of { time : time }
-      | Restart of { time : time; init : bytes option }
-```
+The sink asks for split points at media times (the HLS contract's
+`boundary`): the next media time at which the HLS output wants one (§8.7).
+The writer writes, in byte order:
 
-`boundary` is the next media time at which the HLS output wants a split point (§8.7).
-The frame is encoded (§5) and its output is returned as pieces, in byte
-order:
-
-- `Bytes`: output bytes no longer held (§8.2).
-- `Split`: an accepted split point between the bytes before and after it,
-  with its media time. For MP4, the bytes after it start a fragment.
-- `Restart`: a container restart (§13) during the call. It is a split point
-  that also starts a new container, with `init` its init segment (none for
-  formats without one). It is returned in the call in which the new init
-  segment is known (§8.3); the bytes after it stay held until then.
+- bytes no longer held (§8.2);
+- `access_point(time)` at each accepted split point, with its media time.
+  For MP4, the bytes after it start a fragment;
+- at a container restart (§13) during a call, `stream_start(header_length,
+time)` followed by the new container's header, its init segment (empty for
+  a format without one). It is also a split point. The bytes after it stay
+  held until the new header is written.
 
 Encoded video streams place their key frames by their own key-frame
-interval (§3 step 2); `boundary` does not make a key frame.
+interval (§3 step 2); a split request does not make a key frame.
 
 Holding (§8.2 step 3) only delays bytes.
 
 ### 8.5 Timed ID3 in mpegts
 
-`init` adds a data stream of codec `timed_id3`, time base `1/audio_rate`.
+With the `in_stream` ID3 mode (§8.1), stream creation adds a data stream of codec `timed_id3`, time base `1/audio_rate`.
 `insert_id3 ~time m` builds an ID3v2 tag (version
 default 3), makes a packet with pts = dts at `time` on the media timeline (output
 position minus `skipped`) as given by
@@ -451,10 +517,11 @@ position minus `skipped`) as given by
 stream. The timed-ID3 stream is generated by the encoder: it is not a member
 of any copy group and does not count in the whole-output switch test
 ([timestamps.md §6.2](timestamps.md#62-beginning-a-source-rebase)). Until the first media packet has reached the muxer, the write is queued;
-the queue runs after the frame that wrote that packet, in order. Reason: a muxer fixes its shift of
+the queue runs after the piece that wrote that packet, in order. Reason: a muxer fixes its shift of
 negative timestamps (codec priming) from the first packet it receives, so
 the media streams must reach it first. It returns none (the tag is in the stream, not
-prepended).
+prepended). `insert_id3` is an operation of the HLS contract, not in-band
+metadata ([encoder.md §4](../../../encoder/spec/encoder.md#4-the-segmenting-face)).
 
 ### 8.6 Properties
 
@@ -473,8 +540,8 @@ string, `codec_attrs` is none and the encoder logs a warning naming the
 stream; the HLS output then omits `CODECS` ([HLS variants §3](../../../outputs/hls/spec/variants.md#3-derived-properties)). Reason: the HLS `CODECS` attribute MUST list every format present in
 the variant (RFC 8216 §4.3.4.2); a partial list is worse than none.
 
-Streams exist from the first frame (§5), so the properties are known once
-`init_encode` has returned `Init`. The HLS output reads them after that.
+Streams exist from the first piece (§5), so the properties are known once
+the first `stream_start` is written. The HLS output reads them after that.
 
 ### 8.7 Segmenting (HLS output side)
 
@@ -482,10 +549,10 @@ The HLS output owns the segment grid, the cut rules, the target duration
 and output-wide cuts
 ([HLS segmenting](../../../outputs/hls/spec/segmenting.md)); the encoder
 seam is [HLS encoder-contract](../../../outputs/hls/spec/encoder-contract.md).
-What this encoder provides to them:
+What this writer provides to them:
 
-1. **Requested times.** With every frame the HLS output passes `boundary`,
-   the next media time at which it wants a split point: the next grid
+1. **Requested times.** With every piece the segmented sink requests the
+   next media time at which it wants a split point: the next grid
    boundary, or an earlier pending sync time. Media time is the output
    position minus `skipped` ([timestamps.md §1.4](timestamps.md#14-the-output-timeline)),
    and MUST equal the HLS output's media time. When every stream is
@@ -493,15 +560,15 @@ What this encoder provides to them:
    it (§8.2), so the variant has a split point at each requested time,
    within one packet. The candidate is taken at the first
    packet at or after the request even when no stream is video and the
-   request has not changed since the previous frame. A request stays
+   request has not changed since the previous piece. A request stays
    pending until a candidate is taken at it, also after a later request
    arrives: packets trail the media time by the codec delay, and every
    requested time gets its candidate, in order.
 2. **Split points** are the only places a segment may be cut (§8.2). With
-   MPEG-TS, the instance makes the muxer write a PAT and a PMT at each
+   MPEG-TS, the writer makes the muxer write a PAT and a PMT at each
    candidate (the muxer's own header resend), so every segment starts with
    them (RFC 8216 §3.2).
-3. **Restarts** are `Restart` pieces (§13).
+3. **Restarts** are stream starts (§8.4, §13).
 
 ### 8.8 Conformance
 
@@ -526,58 +593,62 @@ What this encoder provides to them:
 - An MP4 variant: the init segment is non-empty and the first media
   segment holds the first frame.
 
-## 9. Outputs with a URL or file target
+## 9. Delegated destination
 
-| Output        | Effect on the format                                                                                                                                                                                                                                                                                                         |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `output.file` | `output = Url "file:<path>"`, container option `truncate` = 0 when `append=true`, else 1. The output itself creates the file with its permissions and closes it; the encoder writes it, appending when `truncate` = 0 (FFmpeg's `file` protocol has no append mode: `truncate` = 0 alone writes from the start of the file). |
+The writer accepts a delegated destination
+([ffmpeg.md §13](../../../encoder/spec/ffmpeg.md#13-delegated-destination)):
+the bindings open it with the muxer of §3 step 3.2 and the output's
+interrupt, and nothing is written into any sink. `output.url` is the one
+output that delegates a protocol URL; its format check, states, errors and
+restarts are [io.md §1.4](io.md#14-outputurl) and
+[io.md §11](io.md#11-outputurl). `output.file` delegates only the path a
+muxer that needs no file takes as its argument
+([encoder.md §5.1](../../../encoder/spec/encoder.md#51-what-an-output-declares)).
+No output names a destination in the format value
+([encoder-format.md §1](encoder-format.md#1-shape-of-a-format-value)).
 
-With a `Url` target the encoder returns empty bytes; the output writes nothing
-itself. `output.file` with `reopen_*` builds a new instance per file.
-`output.url` also sets a `Url` target; its format check, errors and restarts
-are in [io.md §1.4](io.md#14-outputurl) and [io.md §11](io.md#11-outputurl).
+## 10. Readers starting mid-stream
 
-## 10. Icecast and Harbor
-
-- MIME type, the mp3 container options and the Icecast stream info of a
-  `%ffmpeg` format are in [io.md §12](io.md#12-other-outputs-special-casing-ffmpeg).
-- `header ()` returns the init segment of the current container (§8.3):
-  empty for a format without a header, the header bytes otherwise, and after
-  an Ogg restart the new link's header. Harbor sends it to each new listener.
-  A listener of a shared encoder then joins at the next `encode` boundary,
-  which is decodable for Ogg (whole pages) and for formats without a header.
-  For Matroska, WebM and MP4 a reader needs to start at a cluster or fragment
-  boundary, which the encoder does not mark;
-  `dedicated_encoder=true` gives each listener its own container.
-- `restart_offset ()` is the offset, in the bytes the latest `encode` or
-  `stop` returned, at which the last restart's new container begins (§13.2);
-  none when those bytes hold no restart. Harbor starts a late listener's burst
-  there when the burst would otherwise begin in the previous container: an Ogg
-  link carries its own header pages, and the previous link's pages cannot
-  follow the new link's header.
+- A reader of a shared `output.harbor` mount or a peer of an `output.srt`
+  listener starts at the writer's stream starts and access points, which the
+  shared stream records
+  ([shared-stream.md](../../../outputs/spec/shared-stream.md)); its entry
+  header is the one the shared stream recorded from the `stream_start`
+  marker of §5 step 2, never asked of the writer.
+- Whether a configuration is streamable is a declaration
+  ([ffmpeg.md §2](../../../encoder/spec/ffmpeg.md#2-declarations)), with the
+  access points of
+  [ffmpeg.md §5](../../../encoder/spec/ffmpeg.md#5-bytes-and-markers). A
+  muxer this writer cannot vouch for is streamable only with an explicit
+  `streamable=true`
+  ([encoder-format.md §3](encoder-format.md#3-top-level-arguments)).
+- The MIME type and the Icecast stream info of a `%ffmpeg` format are
+  [io.md §12](io.md#12-other-outputs-special-casing-ffmpeg).
 
 **Conformance.**
 
-- An Ogg/Opus `output.harbor` listener connecting after the burst no longer
-  holds the stream's start receives `OpusHead` first, and its stream decodes.
-- An Ogg/Opus `output.harbor` stream whose metadata changes every second,
-  with a burst shorter than the stream so far: a late listener's first pages
-  are a link's header pages, and no page of an earlier link follows them.
+- An Ogg/Opus `%ffmpeg` reader of a shared `output.harbor` mount, starting
+  after the burst no longer holds the stream's start, receives `OpusHead`
+  first, and its stream decodes.
+- After a restart at a copy source switch in an Ogg `%ffmpeg` stream on a
+  shared mount, a reader that starts with a burst shorter than the stream
+  so far receives a link's header pages first, and no page of an earlier
+  link after them.
 
 ## 11. Failure behaviour summary
 
 Classes as in §5.2 and [faults.md §2](../../../../spec/faults.md#2-classes).
 
-| Situation                                        | Behaviour                                                                                                 |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| factory failure (§3, §4)                         | raises; configuration error, or output fault for a failed `Url` open                                      |
-| data fault in `encode` (§5.2)                    | item dropped with a warning; streaming goes on                                                            |
-| output fault in `encode` (§5.2)                  | raises; instance `Failed` (§1)                                                                            |
-| drain or close error in `stop`                   | output fault; logged at error; teardown continues                                                         |
-| metadata after the header, no restart (§6)       | not carried; logged at debug                                                                              |
-| copy source with other header properties (§13.3) | rejected at open; past the merge, accepted (in-band container), restart where defined, else unrecoverable |
+| Situation                                        | Behaviour                                                                                                            |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| failed creation (§3, §4)                         | a fault: configuration error; output fault on a later writer, or for a delegated open that fails for any other cause |
+| item fault in `write` (§5.2)                     | item dropped with a warning; streaming goes on                                                                       |
+| output fault in `write` (§5.2)                   | writer `failed` (§1)                                                                                                 |
+| drain, trailer or flush error at `end clean`     | not escalated; logged at `severe`; the end goes on                                                                   |
+| copy source with other header properties (§13.3) | rejected at open; past the merge, accepted (in-band container), restart where defined, else §13.3                    |
 
-What an output does with a raised error is the output's. `output.url`
+What an output does with a fault is its restart policy's
+([encoder.md §8](../../../encoder/spec/encoder.md#8-faults)). `output.url`
 classifies a failed open or a failed stream creation as permanent
 (configuration) or transient and acts on it in
 [io.md §11.3](io.md#113-errors).
@@ -599,25 +670,27 @@ A stream encoder is built from
 
 | Operation         | Meaning                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------- |
-| `mk_stream frame` | called once per container, with its first frame (§5 step 1); creates the muxer stream |
-| `encode frame`    | consume the field's content of the frame                                              |
+| `mk_stream piece` | called once per container, with its first piece (§5 step 1); creates the muxer stream |
+| `encode piece`    | consume the field's content of the piece                                              |
 | `flush ()`        | drain every stage the stream encoder holds into the muxer (§12.8)                     |
 | `codec_attr ()`   | RFC 6381 codec string, or none                                                        |
 | `bitrate ()`      | bit rate, or none                                                                     |
 | `video_size ()`   | (width, height), or none                                                              |
+| `delay ()`        | the stream's signalled delay, in samples at the codec's rate, or none                 |
+| `padding ()`      | the stream's signalled padding, known at its end, or none                             |
 
 ### 12.2 Stream creation
 
 At `mk_stream`, from what parameters; which checks run at build (§4). Every
 stream is created at the container's first frame, in track order. When the
 stream's parameters can differ between sources, how a difference is detected
-and reported: an incompatible source is reported to the instance, which
+and reported: an incompatible source is reported to the writer, which
 restarts or fails (§13).
 
 ### 12.3 Input
 
-What the stream reads from the frame field. A frame of length 0 carries no
-data.
+What the stream reads from the piece's field. Every piece holds at least one
+sample or one image period (§2).
 
 ### 12.4 Conversion
 
@@ -633,7 +706,7 @@ Which bindings write call, with which time base.
 
 ### 12.7 Keyframes
 
-Every packet goes through the instance's hook (§8.2) with its key flag before
+Every packet goes through the writer's hook (§8.2) with its key flag before
 the muxer receives it.
 
 ### 12.8 Flush and end
@@ -645,7 +718,9 @@ restart (§13) does.
 
 ### 12.9 Properties
 
-What `codec_attr`, `bitrate`, `video_size` report and from when.
+What `codec_attr`, `bitrate`, `video_size`, `delay` and `padding` report and
+from when; the writer's own properties are
+[ffmpeg.md §8, §10](../../../encoder/spec/ffmpeg.md#10-properties).
 
 ### 12.10 Options and errors
 
@@ -658,21 +733,23 @@ Every message, by level.
 ## 13. Container restart
 
 A **container restart** ends the current container and continues the
-instance in a new one, in the same byte output. It is triggered by an
-in-stream metadata update in Ogg (§6) or by an incompatible copy source
-([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources), §13.3).
+writer in a new one, in the same sink, as a new stream with its own
+`stream_start` and header
+([ffmpeg.md §5](../../../encoder/spec/ffmpeg.md#5-bytes-and-markers)
+item 5). It is triggered only by an incompatible copy source
+([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources),
+§13.3); a metadata change never restarts a container (§6).
 
 ### 13.1 Containers with a clean restart
 
-| Container and target                                     | Restart                                                                                                                                                |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Ogg, `Stream` output                                     | chaining: the new container's logical bitstreams follow in the same buffer                                                                             |
-| Ogg, `Url` output with a `file:` URL (`output.file`)     | chaining: the file is reopened for appending and the new container appends to it                                                                       |
-| any muxer under HLS (`hls=true`)                         | a new segment that starts a new container, after a discontinuity, with its own init segment when the format has one (§8.4, §8.7)                       |
-| any muxer of `output.url`                                | a reconnect: the instance fails with an output fault and `output.url` builds a new instance under its restart policy ([io.md §11.3](io.md#113-errors)) |
-| anything else (MP4, Matroska, MPEG-TS, FLV to a file, …) | none                                                                                                                                                   |
+| Container and target                                     | Restart                                                                                                                                            |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ogg, on a sink                                           | chaining: a new stream whose logical bitstreams follow in the same sink                                                                            |
+| any muxer on a `segmented(D)` sink                       | a new segment that starts a new container, after a discontinuity, with its own init segment when the format has one (§8.4, §8.7)                   |
+| any muxer on a delegated destination                     | none in place: the writer fails with an output fault and the output builds a new writer under its restart policy ([io.md §11.3](io.md#113-errors)) |
+| anything else (MP4, Matroska, MPEG-TS, FLV to a file, …) | none                                                                                                                                               |
 
-Reason for Ogg files: a chained Ogg file is valid Ogg (RFC 3533), so the
+Reason for Ogg: a chained Ogg stream is valid Ogg (RFC 3533), so the
 output stays conformant, and players are expected to support it.
 
 ### 13.2 What a restart does
@@ -680,29 +757,30 @@ output stays conformant, and players are expected to support it.
 1. Every stream encoder drains (§12.8), in track order.
 2. The container is closed (codecs drained, trailer written).
 3. A new container is built by §3 step 3, with new stream encoders, and the
-   current metadata is set on it. After an HLS restart in the ISO base media
+   container metadata of §6 is set on it. After a restart on a segmented
+   sink in the ISO base media
    family, its `movflags` also carry `+frag_discont`. Reason: the muxer
    otherwise starts the new container's fragment times at 0, whatever the
    packet timestamps.
 4. The new container's streams are created (§5 step 1) from the current
    content of each field (a copy stream: the parameters of its current run,
-   [content.md §4.2](content.md#42-run-layer)): at the next frame for a
-   metadata restart, at once for a restart at a source switch (§13.3).
+   [content.md §4.2](content.md#42-run-layer)), at once (§13.3), and its
+   header is written with its `stream_start` (§5 step 2).
 5. In the new container, each copy stream writes nothing before a key packet
    unless its codec is intra-only; packets dropped this way are counted and
    logged at info level. Each encoded stream starts from a new codec, so with
    a key frame.
 
-A restart at a source switch cuts the frame at the switch position: the
+A restart at a source switch cuts the piece at the switch position: the
 first run whose parameters the container cannot follow, over every copy
-track, found before the frame is encoded. Every track writes the part before
+track, found before the piece is encoded. Every track writes the part before
 it into the old container and the part after it into the new one, so no
 packet of the new source goes into the old container, every stream of the
-new container starts at the switch, and no packet of the switching frame is
+new container starts at the switch, and no packet of the switching piece is
 lost.
 
 **Timelines.** An Ogg link starts its own timeline: the new stream encoders
-count from 0. An HLS restart keeps the variant's timeline
+count from 0. A restart on a segmented sink keeps the variant's timeline
 ([timestamps.md §2](timestamps.md#2-lifetimes-what-resets-what)): each new
 stream encoder takes over the output counters of the one it replaces (the
 sample count of an audio stream, the output frame number of a video stream,
@@ -746,7 +824,7 @@ defines a restart (§13.1); otherwise, under the relaxed setting, the packets
 go to the muxer, which judges them; otherwise the output stops.
 
 - A restart logs both parameter sets at warning level.
-- A stop fails the instance with an unrecoverable error
+- A stop fails the writer with an unrecoverable error
   ([clock.md §11](../../../clock/spec/clock.md#11-failure)) whose message
   names the field, the property that differs and both parameter sets, and
   says to encode the sources with identical settings. The clock logs it
@@ -766,11 +844,13 @@ with the relaxed setting.
 
 ### 13.4 Conformance
 
-- An Ogg Vorbis output written to a file and to a `Stream` output, with a
-  metadata change: both give a valid chained Ogg stream whose links decode in
-  order.
-- A restart at a source switch in an Ogg `Stream` output: every packet of
-  the new source in the switching frame is in the new link.
+- A restart at a source switch in an Ogg output written to `output.file` and
+  to `output.harbor`: both give a valid chained Ogg stream whose links decode
+  in order, each link after a `stream_start` of its own.
+- A restart at a source switch in an Ogg output on a sink: every packet of
+  the new source in the switching piece is in the new link.
+- The same switch on `output.url`: an output fault, and a new writer under
+  the output's policy.
 - An HLS variant with re-encoded AAC and copied video, restarted at a copy
   switch: the audio pts of the new segment continue the previous segment's
   timeline.

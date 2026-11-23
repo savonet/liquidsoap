@@ -545,7 +545,7 @@ and emptied the first segment. Some players showed only the title.
 **Why it is hard.** There are two mechanisms (a stream inside the container,
 and a tag prepended to the segment), chosen by container. The prepended tag
 has a byte-exact format that players parse strictly. The latest metadata has
-to be repeated at the start of each segment for late joiners, but only where
+to be repeated at the start of each segment for readers starting mid-stream, but only where
 asked.
 
 **How to tell.** Binding: in a packed-audio variant, every segment starts
@@ -566,7 +566,7 @@ cover image. The output keeps the latest metadata per variant to replay it.
 **What went wrong.** Covers kept in recent metadata grew memory until
 out-of-memory. Equal metadata was treated as new (KC6).
 
-**Why it is hard.** Keeping metadata for replay is what makes late joiners
+**Why it is hard.** Keeping metadata for replay is what makes readers starting mid-stream
 work, and it keeps large values alive. Equality has to compare what is
 exported, not the raw list.
 
@@ -730,7 +730,7 @@ Each entry's situation, and the rule that handles it.
 
 | Entry | Rule                                                                                                                                                                                                                                                                                                         |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| KC1   | [segmenting.md §5](segmenting.md#5-the-target-duration) and warnings [§9](segmenting.md#9-warnings); key-frame defaults: [encoder-contract.md §5](encoder-contract.md#5-split_encode)                                                                                                                        |
+| KC1   | [segmenting.md §5](segmenting.md#5-the-target-duration) and warnings [§9](segmenting.md#9-warnings); key-frame defaults: [encoder-contract.md §5](encoder-contract.md#5-access-points-and-restarts)                                                                                                          |
 | KC2   | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration): absolute boundaries from one origin. Each run has its own grid, so the state carries none ([persistence.md §1](persistence.md#1-what-is-saved)).                                                                                  |
 | KC3   | [segmenting.md §4.1](segmenting.md#41-key-frame-variants): the split point nearest the target within the target duration; [§4.4](segmenting.md#44-worked-examples).                                                                                                                                          |
 | KC4   | [segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration) (one origin per output) and [§7](segmenting.md#7-output-wide-cuts) (every non-grid cut is output-wide; what alignment is not promised).                                                                                            |

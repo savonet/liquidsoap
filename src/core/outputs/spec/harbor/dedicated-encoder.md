@@ -1,49 +1,50 @@
 # Dedicated encoder mode
 
-`dedicated_encoder=true`. Each listener gets its own encoder, created when it
-connects, so every listener receives a stream that starts from an encoder's
-first byte. It serves formats a listener cannot join mid-stream. There is no
-shared store and no burst.
+`dedicated_encoder=true`. Each listener gets its own writer and its own
+sink, so every listener receives a stream that starts from a writer's first
+byte, which begins with the header. It serves configurations a listener
+cannot start mid-stream. There is no shared stream and no burst.
 
 Numbered as [modes.md](modes.md).
 
-**Output-wide state**: the encoder factory, set while started.
+**Output-wide state**: the writer factory, set while started.
 
-**Cost.** Every frame piece is encoded once per listener, on the streaming
-clock, so the cycle's cost grows with the audience. This mode suits a small
-number of listeners. An implementation MAY spread the per-listener encoding
-of one piece over parallel work, provided each listener's encoder receives
-its pieces in order and the cycle's send completes only when every listener
-has its piece.
+**Cost.** Every piece is encoded once per listener, by the output's
+streaming work, so the cycle's cost grows with the audience. This mode suits
+a small number of listeners. An implementation MAY spread the per-listener
+encoding of one piece over parallel work, provided each listener's writer
+receives its pieces in order, from one task at a time, and the cycle's send
+completes only when every listener has its piece.
 
 ## 1. Listener state
 
-- its own encoder, created from the factory during admission, named with the
-  output's id, with the last metadata as initial metadata;
-- a queue of bytes owed;
-- the length of the stream bytes owed that precede the newest encoder output,
-  for the overflow rule;
+- its own writer, built by the streaming work before the listener's first
+  piece ([§5](#5-encode-and-send)), named with the output's id, with its
+  initial metadata
+  ([output-encoded.md §3.2](../../../encoder/spec/output-encoded.md#32-initial-metadata));
+  an admission only posts the listener, and never builds or calls a writer;
+- its sink: a queue of bytes owed, which ignores every marker but `end`;
+- the length of the stream bytes owed that precede the newest writer call's
+  bytes, for the overflow rule;
 - the length of the preroll still owed.
 
-Queued bytes are slices of what they come from. The head, the preroll, the
-header and ICY blocks are strings, so a preroll shared by many listeners is not
-copied per listener. Stream bytes are copied into the listener's chunks: fixed
-buffers it reuses, each returned to its pool once no queued slice refers to
-it, so a listener caught up with the stream keeps reusing one. The pool keeps
-a few chunks; the others are released. An encoder with
-`encode_into` ([contracts.md §4](contracts.md#4-encoder)) hands its bytes
-straight to the chunks; the bytes another encoder returns are queued as a
-string.
+Queued bytes are slices of what they come from. The head, the preroll and
+ICY blocks are strings, so a preroll shared by many listeners is not copied
+per listener. The bytes a writer lends its sink
+([sink.md §2](../../../encoder/spec/sink.md#2-operations)) are copied into
+the listener's chunks: fixed buffers it reuses, each returned to its pool
+once no queued slice refers to it, so a listener caught up with the stream
+keeps reusing one. The pool keeps a few chunks; the others are released.
 
-Every use of a listener's encoder is serialised: encoding, in-stream
-metadata, and its stop never overlap.
+Only the output's streaming work calls a listener's writer
+([encoder.md §7](../../../encoder/spec/encoder.md#7-concurrency)).
 
 ## 2. Initial bytes
 
-The preroll, if any, with empty ICY blocks inserted, then the encoder's
-header, with ICY blocks inserted
-([icy.md §4](icy.md#4-cadence-and-change-detection)) stamped with the last
-metadata, queued after the response head.
+The preroll, if any, with empty ICY blocks inserted, queued after the
+response head. The listener's stream follows: its writer's first stream
+start, header first, with ICY blocks inserted as into any stream data
+([icy.md §4](icy.md#4-cadence-and-change-detection)).
 
 ## 3. Pending test
 
@@ -60,44 +61,48 @@ or reorder bytes when they run at the same time.
 
 ## 5. Encode and send
 
-_Encode_ keeps the frame piece and returns nothing.
+_Encode_ keeps the piece.
 
 _Send_, when a piece is kept, with `M` the last metadata:
 
 1. For each listener published, not marked closed, and not owing any of its
-   preroll: encode the piece with
-   its encoder, insert ICY blocks into the result stamped with `M`, append
-   the result to its queue, then check overflow
+   preroll: build its writer if it has none, hand it the piece (`write`),
+   insert ICY blocks stamped with `M` into the bytes its sink received,
+   append them to its queue, then check overflow
    ([modes.md §4](modes.md#4-flush)) and disconnect it if it is over.
-2. Wake the groups.
-
-Encoding MUST NOT use an encoder that is being stopped: the closed flag is set
-before teardown can run, and the check of the flag and the use of the
-encoder are serialised with the stop.
+2. End `abandoned` the writer of every listener marked closed since the
+   last send.
+3. Wake the groups.
 
 Only published listeners get pieces, so every queue starts with its response
-head and header. A listener published after send has listed the listeners
-does not get this piece; its stream starts with its header and continues with the next piece.
+head. A listener published after send has listed the listeners does not get
+this piece; its stream starts with its writer's header at the next piece.
+
+An output fault of a listener's writer is that listener's fault: the
+listener is closed, the others go on
+([output-harbor.md §8](../../../encoder/spec/output-harbor.md#8-faults-and-restart-policy)).
 
 ## 6. Metadata
 
-Record the event, then pass the converted values, with cover art removed, to
-every listener's encoder as in-stream metadata, serialised with its encoding.
-The in-stream metadata a listener receives is the same as in shared mode.
+Record the event, then offer the converted values, with cover art removed,
+to every listener's writer under the gate of
+[modes.md §6](modes.md#6-metadata). The in-band metadata a listener receives
+is the same as in shared mode.
 
 ## 7. Start
 
-Store the encoder factory.
+Store the writer factory.
 
 ## 8. Stop
 
-Clear the factory. Stop every listener's encoder and queue the bytes it
-returns ([§11](#11-final-bytes)).
+Clear the factory. End every listener's writer clean and queue its final
+bytes ([§11](#11-final-bytes)).
 
 ## 9. Listener teardown
 
-Stop the listener's encoder unless the output's stop already did, and
-discard what it returns: the socket is closed by then.
+Release the queue. The teardown never calls the writer: a writer still
+running is ended `abandoned` by the streaming work
+([§5](#5-encode-and-send), step 2), and what it wrote is discarded.
 
 ## 10. Staging
 
@@ -108,5 +113,5 @@ would multiply the writes.
 
 ## 11. Final bytes
 
-Each listener's encoder's final bytes are appended to that listener's queue
+Each listener's writer's final bytes are appended to that listener's queue
 on stop.

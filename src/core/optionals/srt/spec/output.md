@@ -29,11 +29,21 @@ The value returned carries the methods and callbacks of
    and `max_clients`. `max_payload_delay` MUST be a non-negative number (NaN is
    refused): invalid-value error, example wording
    `Maximum payload delay must be a non-negative number!`.
-2. Look up a stream encoder factory for the format
+2. Look up a writer factory for the format
    ([encoder.md §1](../../../encoder/spec/encoder.md#1-registry)). None found:
    invalid-value error on the format, example wording
    `Cannot get a stream encoder for that format`.
-3. Build the operator with the role `mode` names. The generic output checks
+3. Declare the role's sink capabilities and whether readers start
+   mid-stream, and check the format against the configuration's
+   declarations, without building a writer
+   ([encoder.md §5](../../../encoder/spec/encoder.md#5-capabilities-and-the-checks-at-evaluation)).
+   The declarations and the checks are
+   [output-srt.md §1](../../../encoder/spec/output-srt.md#1-formats-and-declarations).
+   In the listener role, a configuration that is not streamable is refused:
+   an invalid-value error on the format whose message names an explicit
+   `streamable=true` where the configuration takes it. Reason: a listener's
+   peers start mid-stream, at an access point.
+4. Build the operator with the role `mode` names. The generic output checks
    that a non-fallible output has an infallible source
    ([output.md §1](../../../outputs/spec/output.md#1-common-parameters-methods-and-callbacks)).
 
@@ -61,41 +71,47 @@ from its start to its end.
 
 ## 4. Encoder
 
-The output drives the stream face of the
-[encoder interface](../../../encoder/spec/encoder.md#3-the-stream-face). It
-holds at most one encoder instance, and runs it only while it has at least
-one peer to send to.
+The output drives a
+[container writer](../../../encoder/spec/encoder.md#3-the-stream-face). Its
+lifetime per role, its initial metadata and its markers are
+[output-srt.md §3–§5](../../../encoder/spec/output-srt.md#3-writer-lifetime);
+this section states what SRT adds.
 
-- **Creating.** The first encode after a peer joins, with no encoder
-  running, creates one from the factory with the operator's id and empty
-  metadata. Every joining peer's stream starts at the encoder's first byte.
-- **Joining.** A peer joins at the next encode while an encoder runs. When
-  the bytes that encode returns contain a **restart point** (the encoder's
-  `restart_offset`, where it starts a new stream link carrying its own
-  headers, as an Ogg encoder does after a metadata change), the peer's
-  stream starts there. Otherwise it starts with the encoder's `header`, read
-  at that moment so that it belongs to the link in progress, followed by
-  those bytes from their start. An encoder with no separate header
-  (MPEG-TS) gives the joiner those bytes alone.
-- **Ending.** When the last peer ends by failure, the encoder is stopped and
-  its final bytes discarded. When the output ends its peers itself, §6
-  applies. Every instance is stopped exactly once
-  ([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
+- **Listener.** The sink is the
+  [shared stream](../../../outputs/spec/shared-stream.md). A new peer
+  starts with no history (`B = 0`,
+  [shared-stream.md §3](../../../outputs/spec/shared-stream.md#3-starting-a-reader)):
+  its stream begins at the first stream start or access point the writer
+  marks after the peer was admitted, preceded by the entry header the shared
+  stream recorded for it, none at a stream start. The output never asks the
+  writer for a header or a position. A peer admitted with no writer running
+  starts at the next writer's first stream start.
+- **Caller.** One writer per peer connection, its sink serving the peer
+  from byte 0.
+- **Ending.** When the last peer ends by failure, the writer is ended
+  `abandoned`. When the output ends its peers itself, §6 applies. Every
+  writer is ended exactly once
+  ([encoder.md §2.3](../../../encoder/spec/encoder.md#23-states)).
 
-Encoding runs on the streaming thread, and only while an encoder runs or a
-peer waits to join. Otherwise a frame is not encoded and its bytes do not
-exist; metadata is dropped the same way. Encoder errors are the generic
-output's to handle ([output.md §6](../../../outputs/spec/output.md#6-failure)).
-
-Each frame is handed to the encoder piece by piece, metadata first
+Writing runs on the output's streaming work, and only while a writer runs
+or a peer waits for its stream to start. Otherwise a frame is not encoded
+and its bytes do not exist; metadata becomes the current metadata
+([output-encoded.md §3.1](../../../encoder/spec/output-encoded.md#31-current-metadata)).
+Initial metadata is
+[encoder.md §2.2](../../../encoder/spec/encoder.md#22-creation)'s. Each
+frame is handed to the writer piece by piece, metadata first
 ([output.md §3](../../../outputs/spec/output.md#3-a-streaming-cycle)), and
-the resulting bytes go to every peer's stream (§5). The generic output adds
-`on_air` and `on_air_timestamp` to each metadata.
+the resulting bytes go to every peer's stream (§5).
+
+The writer reports typed faults
+([encoder.md §8](../../../encoder/spec/encoder.md#8-faults)). An output
+fault of the writer ends it `abandoned` and ends every peer it serves as a
+peer failure ([output-srt.md §8](../../../encoder/spec/output-srt.md#8-faults-and-restart-policy)).
 
 ## 5. Sending
 
 Each peer has its own **stream**: the bytes it is owed, from its first byte
-(§4). The stream is cut into **payloads** of exactly `payload_size` bytes,
+(§4), the entry header included. The stream is cut into **payloads** of exactly `payload_size` bytes,
 counted from the peer's first byte, and again from the byte after each
 shorter payload. Each payload is sent as one message;
 the library refuses a message larger than `payload_size`. Fewer than `payload_size`
@@ -107,10 +123,10 @@ bytes wait for more, until one of:
   payload shorter than `payload_size`, and counting starts again from the
   next byte.
 
-Stream time is the duration the encoder has been given since it started,
+Stream time is the duration the writer has been given since it was built,
 measured at the end of each piece of a frame it encodes. The bound is
 checked for every peer each time a piece is encoded, whether or not the
-encoder produced bytes for it, so a stretch where the encoder produces
+writer produced bytes for it, so a stretch where the writer produces
 little or nothing still releases what it produced. Recommended value: 0.1
 second.
 
@@ -145,10 +161,16 @@ other peer: their streams continue unchanged.
 When the output ends its peers itself (stop, `disconnect()`, reset,
 shutdown):
 
-1. Stop the encoder, if one runs, and append its final bytes to every
-   peer's stream. An error is logged at `severe` with its backtrace (example
-   wording: `Error while stopping encoder: <exn>`); the peers are ended
-   anyway.
+1. The output's streaming work ends the writer, if one runs, `clean`
+   ([encoder.md §3.6](../../../encoder/spec/encoder.md#36-draining-and-final-bytes)),
+   and appends its final bytes to every peer's stream. `disconnect()`, a
+   server command or shutdown posts a request that the streaming work
+   carries out between pieces
+   ([encoder.md §7](../../../encoder/spec/encoder.md#7-concurrency)); no
+   other thread calls the writer. A failure of the clean end is logged at
+   `severe` and the end goes on
+   ([encoder.md §3.6](../../../encoder/spec/encoder.md#36-draining-and-final-bytes));
+   the peers are ended anyway.
 2. Send each peer's remaining bytes, the last payload shorter than
    `payload_size` if need be.
 3. Close each peer once the library has sent everything queued for it and
@@ -159,21 +181,21 @@ shutdown):
    with `write_timeout` null, the wait is bounded by `shutdown_drain`, so
    that a peer that stops reading cannot hold the process
    ([connection.md §9](connection.md#9-stopping)). Recommended value: 2
-   seconds.
+   seconds. This bound is the output's `final_delivery_bound`
+   ([sink.md §4](../../../encoder/spec/sink.md#4-markers-and-the-end)).
 
-Step 1 runs on the thread that ends the peers, under the encoder's lock,
-so the trailer is delivered when the streaming thread no longer runs. The
-rest does not hold the streaming thread: a start that follows at once (a
-reset) proceeds while the old peers drain.
+Steps 2 and 3 run on the peers' work and do not hold the streaming thread:
+a start that follows at once (a reset) proceeds while the old peers drain.
 
 ## 7. Reactions to peers
 
 The output's own reactions ([connection.md §5](connection.md#5-connected),
 [§8](connection.md#8-disconnect)):
 
-- on a new peer: it waits to join the stream at the next encode (§4);
+- on a new peer: it waits for its stream to start at the next candidate
+  (§4);
 - on a peer ending: its stream and queue are dropped; if it was the last
-  peer and §6 has not already stopped the encoder, the encoder ends (§4).
+  peer and §6 has not already ended the writer, the writer is ended (§4).
 
 ## 8. Pacing
 
@@ -191,42 +213,43 @@ sends never block on a timer.
 
 ## 10. Wire bytes
 
-A peer receives the encoder's byte output, from its join point (§4),
-concatenated and cut into SRT payloads of exactly `payload_size` bytes. A
-cut falls where the count says, whatever the encoder's own packet
+A peer receives the writer's bytes, from its start (§4), preceded by its
+entry header, concatenated and cut into SRT payloads of exactly `payload_size` bytes. A
+cut falls where the count says, whatever the writer's own packet
 boundaries. A payload is shorter only when the delay bound releases it (§5)
 or at a clean end. Receivers
 SHOULD accept payloads of any size up to the library's largest live payload.
 
-Example, `payload_size = 1316`, one peer from the encoder's start:
+Example, `payload_size = 1316`, one peer from the writer's first byte:
 
-| Encoder output             | Pending after | Sent                                     |
+| Writer output              | Pending after | Sent                                     |
 | -------------------------- | ------------- | ---------------------------------------- |
 | 500 bytes                  | 500           | nothing                                  |
 | 1000 bytes                 | 184           | one payload: stream bytes 0–1315         |
 | 2448 bytes                 | 0             | two payloads: bytes 1316–2631, 2632–3947 |
 | clean end, 40-byte trailer | 0             | one payload of 40 bytes                  |
 
-A second peer joining after the third row, with a 58-byte header, receives
-the header followed by the next block: its payloads are counted from the
+A second peer whose start is an access point written after the third row,
+with a 58-byte entry header, receives the entry header followed by the
+bytes from that access point: its payloads are counted from the entry
 header's first byte, independently of the first peer's.
 
-With an MPEG-TS encoder every payload is seven whole TS packets, since each
-peer's stream starts on a block, the TS encoder's blocks start on a packet
-boundary, and 1316 is a multiple of 188. A payload the delay bound releases is a whole
+With an MPEG-TS writer every payload is seven whole TS packets, since each
+peer's stream starts at an access point, MPEG-TS has an empty entry header,
+access points lie on a packet boundary, and 1316 is a multiple of 188. A payload the delay bound releases is a whole
 number of TS packets too: the bytes waiting are what follows the last full
-payload of whole blocks, and blocks end on a packet boundary.
+payload, and the writer writes whole TS packets.
 
-Example, `max_payload_delay = 0.1`, pieces of 0.04 seconds, an encoder that
+Example, `max_payload_delay = 0.1`, pieces of 0.04 seconds, a writer that
 outputs 25 bytes in the pieces ending at 0.08, 0.16 and 0.24 seconds and
 nothing in the others:
 
-| Piece ends at | Encoder output | Oldest waiting byte | Sent                |
-| ------------- | -------------- | ------------------- | ------------------- |
-| 0.08          | 25 bytes       | 0.08                | nothing             |
-| 0.12          | none           | 0.08 (0.04 old)     | nothing             |
-| 0.16          | 25 bytes       | 0.08 (0.08 old)     | nothing             |
-| 0.20          | none           | 0.08 (0.12 old)     | one 50-byte payload |
-| 0.24          | 25 bytes       | 0.24                | nothing             |
+| Piece ends at | Writer output | Oldest waiting byte | Sent                |
+| ------------- | ------------- | ------------------- | ------------------- |
+| 0.08          | 25 bytes      | 0.08                | nothing             |
+| 0.12          | none          | 0.08 (0.04 old)     | nothing             |
+| 0.16          | 25 bytes      | 0.08 (0.08 old)     | nothing             |
+| 0.20          | none          | 0.08 (0.12 old)     | one 50-byte payload |
+| 0.24          | 25 bytes      | 0.24                | nothing             |
 
 A byte waits at most the bound plus one piece.

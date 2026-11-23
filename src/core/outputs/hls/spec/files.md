@@ -136,7 +136,8 @@ A variant's **init position** is a counter, starting at 0, that increases
 by one with every init segment written. It continues across runs and is
 persisted.
 
-When the encoder hands over an init segment (`Init` or `Restart`):
+When the writer hands over an init segment (a stream start's header,
+[encoder-contract.md §1](encoder-contract.md#1-role)):
 
 - none: the following segments have no init segment;
 - empty bytes: a warning naming the variant, and treated as none;

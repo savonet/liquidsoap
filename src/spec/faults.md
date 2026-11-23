@@ -31,7 +31,11 @@ at `severe` with its backtrace, and the operator goes on with the most
 plausible meaning of the script: a predicate counts as false, a hook as
 doing nothing, a transition as playing its two sources in order. Other
 handlers registered on the same event still run. Each operator's document
-states what it goes on with.
+states what it goes on with. One exception: an output's `on_close` that raises is an output fault of
+that output, which reaches its restart policy
+([output-file.md §6.3](../core/encoder/spec/output-file.md#63-on_close)).
+Reason: `on_close` is where the script takes a finished file over, and a
+file the script did not handle is for the script's policy to decide about.
 
 ## 1. Why
 

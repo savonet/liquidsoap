@@ -1,468 +1,547 @@
-# The `%ffmpeg` encoder at the seam (as-built)
+# The `%ffmpeg` writer at the seam
 
-How the `%ffmpeg` encoder answers the generic seam ([encoder.md](encoder.md)),
-and where its bytes go. It owns: the two ways a `%ffmpeg` instance reaches its
-destination (bytes returned, or a URL it writes itself), the rules that pick
-one, the special cases every output applies to a `%ffmpeg` format, and the
-consequences of each destination on the bytes (§13).
+Part A. How the `%ffmpeg` encoder is a container writer
+([encoder.md](encoder.md)): how its muxer's header, packets and trailer map
+onto the stream face, the I/O it gives the muxer over a sink or a delegated
+destination, its declarations per configuration, the defaults it adapts to
+its destination and the explicit options refused against it, its markers
+and entry header, and its faults at the seam. Its sections answer
+[encoder.md §10](encoder.md#10-implementation-files) under the same numbers.
 
-It relies on, and does not re-describe:
+It relies on the FFmpeg tree, which owns, and this file does not restate:
 
-- the `%ffmpeg(...)` syntax, typing, extension and MIME:
+- the `%ffmpeg(...)` language, typing, rendering, extension and MIME:
   [encoder-format.md](../../optionals/ffmpeg/spec/encoder-format.md);
-- the instance lifecycle, option checking, stream creation, draining, metadata
-  and container restarts: [ffmpeg encoder.md](../../optionals/ffmpeg/spec/encoder.md)
-  (cited below as **FE §n**);
-- stream encoders: [encoder-internal.md](../../optionals/ffmpeg/spec/encoder-internal.md),
-  [encoder-copy.md](../../optionals/ffmpeg/spec/encoder-copy.md); timestamps:
-  [timestamps.md](../../optionals/ffmpeg/spec/timestamps.md);
-- `output.url`, interrupts and the other outputs' `%ffmpeg` special cases:
-  [io.md](../../optionals/ffmpeg/spec/io.md) §3, §11, §12;
+- the building of the container and its streams, option consumption, frame
+  encoding, the stream-encoder contract, draining, copy streams and
+  container restarts at a copy source switch:
+  [FFmpeg encoder.md](../../optionals/ffmpeg/spec/encoder.md) (**FE** below),
+  [encoder-internal.md](../../optionals/ffmpeg/spec/encoder-internal.md),
+  [encoder-copy.md](../../optionals/ffmpeg/spec/encoder-copy.md);
+- every timestamp: [timestamps.md](../../optionals/ffmpeg/spec/timestamps.md);
+- `output.url`'s states, interrupt and error classification:
+  [io.md](../../optionals/ffmpeg/spec/io.md); the MIME table, used by the
+  Icecast and harbor outputs too, is
+  [encoder-format.md §12](../../optionals/ffmpeg/spec/encoder-format.md);
 - the container operations of the bindings:
   [avformat.md](../../../modules/synced/ffmpeg/spec/avformat.md);
-- the HLS face: [encoder-ffmpeg.md](../../outputs/hls/spec/encoder-ffmpeg.md).
+- the segmenting face: [HLS encoder-ffmpeg.md](../../outputs/hls/spec/encoder-ffmpeg.md).
 
-Where the code departs from those documents, the departure is listed in
-[findings/ffmpeg.md](findings/ffmpeg.md), not here. Part B (OCaml, bindings,
-file:line traces): [language-notes/ffmpeg.md](language-notes/ffmpeg.md).
+It also relies on [sink.md](sink.md), [formats.md](formats.md),
+[shared-stream.md](../../outputs/spec/shared-stream.md),
+[draining.md](../../source/spec/draining.md) and
+[faults.md](../../../spec/faults.md).
 
-## Vocabulary
-
-- **Target**: the field `output` of a `%ffmpeg` format value: `Stream` or
-  `Url u`. The script never writes it: parsing `%ffmpeg(...)` always yields
-  `Stream`. Only outputs rewrite it (§13.2).
-- **Byte buffer**: the instance's own growable byte buffer. In `Stream`
-  target, the container writes into it; `encode`, `encode_into` and `stop`
-  hand its content over and empty it.
-- **Container**: one open FFmpeg muxer context with its I/O. An instance has
-  one current container; a restart (FE §13) closes it and opens another.
-- **Appending container**: a container whose I/O is a file descriptor the
-  encoder opened itself with `O_WRONLY|O_APPEND|O_CREAT` (§13.3).
+**Muxer** below is the FFmpeg output format a configuration names with
+`format=`, by its FFmpeg short name. The **ISO family** is `mp4`, `mov`,
+`ipod` and `ismv`. A muxer **needs no file** when FFmpeg flags it as opening
+no I/O of its own: devices, and muxers that write their own files, such as
+`hls`, `dash`, `segment`, `tee` and `image2`.
 
 ## 1. Format and options
 
-- Syntax, every parameter, validation and typing: encoder-format.md §1–§10,
-  §13. Two top-level names are interpreted by Liquidsoap: `format` (`"none"`
-  means none) and `interleaved` (`true`, `false`, `"default"`); `metadata` is a
-  list of string pairs. Every other labelled scalar becomes a **container
-  option**, consumed by FFmpeg at open (§2).
-- `output` is not a parameter. The format value starts with target `Stream`.
-- Extension and MIME: encoder-format.md §12. The seam's `extension(format)`
-  raises "not found" when the format has none; `mime(format)` always answers.
-- Format-level bitrate estimate (`bitrate(format)` of the seam): not answered
-  (raises "not found"). The instance's `bitrate()` (§8) is the only rate.
-- `iso_base_file_media_file_format`: not answered (raises "not found").
+1. The parameter specification is
+   [encoder-format.md](../../optionals/ffmpeg/spec/encoder-format.md). A
+   format value holds no destination: the destination is the sink the output
+   provides, or the delegated destination it names
+   ([encoder.md §6](encoder.md#6-the-delegated-destination)).
+2. A container option is **explicit** exactly when the script wrote it. An
+   option the script did not write is a default, whatever value the muxer
+   gives it ([formats.md §3](formats.md#3-the-parameter-specification)). The
+   defaults this writer adapts, and the explicit options it refuses, are
+   listed in §2.
+3. The container options are consumed, in order, by FFmpeg's generic
+   container options and the muxer's private options; on a delegated
+   destination only, then by the protocol that opens it. `streamable` is
+   not a container option: it is the writer's (§2), and no FFmpeg layer
+   sees it
+   ([avformat.md §9](../../../modules/synced/ffmpeg/spec/avformat.md#9-options)).
+   On a sink, a protocol option (`truncate`, `blocksize`, `seekable`,
+   `follow`, `pkt_size`, and every other option of FFmpeg's protocols) has
+   no consumer: it is refused, and the error names it as an option of a
+   destination the output owns. Reason: on a sink the output opens, names,
+   truncates and appends; an option that claims to do so in the format would
+   be silently ignored.
+4. Every leftover, container and stream alike, is reported in one error
+   ([FE §4](../../optionals/ffmpeg/spec/encoder.md#4-option-handling)).
+5. A `format` that names no muxer of the build is refused, on every
+   destination: no other muxer is ever substituted for it. Without
+   `format`, the muxer is the one FFmpeg guesses from the destination's
+   name, when the output is constructed:
+   - `output.file` with a constant path: guessed from its extension; an
+     extension no muxer claims is refused, naming it. With a path that is
+     not constant (a getter, an interpolated name), the name is known only
+     at open, and the format is refused, asking for `format=`
+     ([output-file.md §1.4](output-file.md#14-checks-at-evaluation));
+   - a delegated destination: guessed from the URL; none guessed is
+     refused;
+   - every other sink: refused, there is no name to guess from.
 
-## 2. Factory and instance creation
+   The guessed muxer is fixed at construction, and every check of §2 runs
+   with it.
 
-Two plug-ins are registered under the name `ffmpeg`:
+6. Phases ([formats.md §7](formats.md#7-when-a-format-is-validated)): the
+   muxer lookup and the option names are checked at evaluation at the latest,
+   without opening anything (FE §4 states which run at type checking); the
+   checks against the destination (items 3 and 5, §2) run when the output is
+   constructed. None waits for the first piece.
 
-| Registry | Accepts                                                                                                              | Factory arguments               |
-| -------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| stream   | every `%ffmpeg` format                                                                                               | `(pos, name, initial metadata)` |
-| HLS      | `%ffmpeg` formats whose `format` is `mpegts`, `webvtt`, `adts`, `mp3`, `ac3`, `eac3`, `mp4`, `mov`, `ipod` or `ismv` | `(pos, segment_duration, name)` |
+## 2. Declarations
 
-A third entry point exists outside the registries: `output.url` builds the
-instance directly from the format (target rewritten to `Url url`) with an
-**interrupt** function, and wraps it with the seam's `protect` itself
-([io.md §11.2](../../optionals/ffmpeg/spec/io.md#112-start-encode-stop)).
-The registered stream factory never receives an interrupt: every other caller
-gets an instance without one.
+Per configuration, as functions of the format value and of the declared
+capabilities ([encoder.md §5.2](encoder.md#52-what-a-configuration-declares)):
 
-Creating a stream instance, in order:
+| Muxer                                                                                                        | Streamable                                             | Needs seekable | Can continue                        | Segmentable |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ | -------------- | ----------------------------------- | ----------- |
+| `mp3`                                                                                                        | yes                                                    | no             | yes: MPEG audio frames, no preamble | yes         |
+| `adts`, `ac3`, `eac3`                                                                                        | yes                                                    | no             | yes: frames only                    | yes         |
+| `mpegts`                                                                                                     | yes                                                    | no             | yes: packets only                   | yes         |
+| `ogg`, `oga`, `ogv`, `opus`, `spx`                                                                           | yes                                                    | no             | yes: a new chained stream           | no          |
+| `matroska`, `webm`                                                                                           | yes: clusters cut at key frames, header replayed (§5)  | no             | no                                  | no          |
+| ISO family, `movflags` not explicit                                                                          | yes: fragmented on every sink but a seekable fresh one | no             | no                                  | yes         |
+| ISO family, explicit `movflags` with `empty_moov` and `frag_keyframe` or `frag_custom`, without `delay_moov` | yes                                                    | no             | no                                  | yes         |
+| ISO family, any other explicit `movflags` that fragments                                                     | no                                                     | no             | no                                  | yes         |
+| ISO family, explicit `movflags` that does not fragment                                                       | no                                                     | yes            | no                                  | no          |
+| `wav`, `flac`                                                                                                | yes                                                    | no             | no: use `%wav` or `%flac`           | no          |
+| `webvtt`                                                                                                     | no                                                     | no             | no                                  | yes         |
+| any other muxer                                                                                              | no; yes with an explicit `streamable=true`             | no             | no                                  | no          |
 
-1. Log name `ffmpeg.encoder.<name>`. A byte buffer of initial capacity 4096.
-2. **Open the first container** (FE §3 step 3), for the target as the caller
-   left it in the format (§13.2):
-   1. Container options: the format's options, with `sample_fmt` and
-      `channel_layout` names converted (FE §3 step 3.1). When the container is
-      appending (§13.3), the key `truncate` is removed first.
-   2. Interleaving: as written, else on when the format has more than one
-      non-drop track.
-   3. Muxer guess: from `format` (short name), the URL as file name (`Url`
-      only) and `mime_type`.
-   4. Open, by target (§13.1 has the table):
-      - appending: open the descriptor first; no muxer guessed is
-        `No ffmpeg format could be found for this file`;
-      - `Stream`: no `format` is `Format is required!`; a `format` that names
-        no muxer is `No ffmpeg format could be found for format="<f>"`;
-      - `Url u`, not appending: FFmpeg opens `u`, with the guessed muxer if
-        any (else FFmpeg guesses from `u` alone) and the interrupt if any.
-        Each of the three messages is an `encoder`-kind error at the format's
-        position. A failure of FFmpeg's open raises FFmpeg's error.
-   5. Leftover container options (none consumed by the muxer, its private
-      options or, for a `Url` opened by FFmpeg, the I/O protocol): the
-      container is closed, the descriptor closed, and
-      `Unrecognized options: container: k=v; …` is raised (kind `encoder`).
-      Stream options are checked separately, later (encoder-internal.md).
-   6. One stream encoder per non-drop track, in track order; no muxer stream
-      yet (FE §5). Any failure closes the container and the descriptor and
-      re-raises.
-3. State `Built`, media position 0, header `Pending at 0`, no link start.
-4. `encode_metadata(initial metadata)` (§5): before any packet, it sets the
-   container metadata.
+- **In-band metadata**: none, for every configuration
+  ([encoder.md §9](encoder.md#9-in-band-metadata)). The Ogg muxers carry
+  their initial metadata only (§7).
+- **Needs no byte sink**: exactly the muxers that need no file.
+- **Accepts delegated**: every configuration. On a delegated destination no
+  configuration declares needs seekable: the protocol decides, once open
+  (§13).
+- A muxer not in the table has no declaration this writer can vouch for: it
+  is not streamable, cannot continue and is not segmentable. A muxer that
+  turns out to need a seekable destination it was not given fails at its
+  header write (§15).
+- **`streamable=true`** (bool, default unset) declares any configuration
+  streamable on the script's word
+  ([encoder.md §5.3](encoder.md#53-the-check)); it is refused on a
+  configuration that needs seekable. On a muxer of the table it changes
+  nothing that row does not already do. On another muxer the writer marks
+  the access points of §5 item 4's last row. `streamable=false` declares
+  the configuration not streamable.
+- **Cannot continue** for `wav`, `flac`, Matroska and the ISO family: the
+  muxer writes a whole header at its start and cannot write media alone
+  after an existing stream. Migration for an appended file: `%wav` or
+  `%flac`, which continue a stream
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)).
+- Streamable is the writer's promise to delimit an entry header and mark
+  access points (§5). It is declared only for muxers whose header is
+  complete once their header write returns, and whose units the writer can
+  locate.
 
-Every failure raises out of the factory; nothing is logged by the factory
-itself. The caller decides when the factory runs (§13.2): this is when a
-`Url` destination is opened, truncated or created.
+**Defaults adapted to the capabilities.** The writer applies them itself; they
+are never added to the format value and never printed.
 
-The HLS factory (§12) builds the same instance with target forced to
-`Stream` and the HLS defaults of FE §3 step 2.
+| Muxer      | Option                        | Adapted value                                                                                                                                                    |
+| ---------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mp3`      | `id3v2_version`, `write_xing` | `id3v2_version`: the muxer's default on a file sink, 0 on every other sink; `write_xing`: the muxer's default on a file sink, 0 elsewhere (the frame needs seek) |
+| ISO family | `movflags`                    | on every sink but a seekable fresh one: `+frag_custom+empty_moov+default_base_moof`, a fragmented stream whose fragments the writer cuts (§5)                    |
+| Ogg muxers | `page_duration`               | at most the live bound `L` on a `live(L)` sink                                                                                                                   |
+| every one  | `max_interleave_delta`        | at most `L` on a `live(L)` sink, when interleaving is on                                                                                                         |
+| every one  | segmenting defaults           | on a `segmented(D)` sink, those of [FE §3](../../optionals/ffmpeg/spec/encoder.md#3-building-an-instance) step 2, with that `D`                                  |
 
-## 3. `encode`
+**Explicit options refused against the declared capabilities**, when the
+output is constructed ([encoder.md §5.3](encoder.md#53-the-check)):
 
-- Input, stream creation, per-track encoding, copy groups and restarts: FE §5,
-  §13. A piece of length 0 can create the muxer streams; it writes nothing
-  and does not advance the media position.
-- Every caller of the stream face skips pieces of length 0 before calling the
-  instance (pipe outputs, `output.url`); the instance does not rely on it.
-- State checks: `Failed e` re-raises `e`; `Stopped` raises
-  `Failure "Encoder used after stop"`.
-- Output: the byte buffer's whole content, then the buffer is emptied.
-  - `Stream` target: every byte the muxer wrote during the call, including
-    bytes of earlier calls that were still in FFmpeg's I/O buffer and were
-    flushed now (§13.4), and bytes produced by an `encode_metadata` restart
-    since the last call.
-  - `Url` target and appending containers: always empty. The muxer wrote to
-    the destination during the call.
-- Container header: written by the encoder itself just before the first
-  packet reaches the muxer (FE §5), followed by a flush of FFmpeg's I/O, so
-  that the header bytes are in the byte buffer before any packet byte (§6).
+| Explicit option                                                                                                                                                                                                   | Refused on                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `mp3`: `id3v2_version` above 0, `write_xing` set to 1                                                                                                                                                             | a `live` or `continuing` sink |
+| `mp3`: `write_id3v1` set to 1                                                                                                                                                                                     | a `continuing` sink           |
+| ISO family: `movflags` with `faststart`                                                                                                                                                                           | every sink without `seekable` |
+| an option that holds media longer than `L`: Ogg `page_duration`, `max_interleave_delta` (or 0, no bound, with interleaving on), the ISO family's `frag_duration`, Matroska's `cluster_time_limit`, each above `L` | a `live(L)` sink              |
+| `streamable=true` on a configuration that needs seekable                                                                                                                                                          | every destination             |
+| a protocol option (§1 item 3)                                                                                                                                                                                     | every sink                    |
 
-## 4. `encode_into`
+The other rows of [encoder.md §5.3](encoder.md#53-the-check) apply to the
+declarations above: a configuration that is not streamable on an output
+serving readers mid-stream, that needs seekable on a sink without
+`seekable`, that cannot continue on a `continuing` sink, that needs no byte
+sink on a sink, or that is not segmentable on a segmented sink, is refused.
 
-Always present. Runs `encode`'s work, then calls the consumer once with a view
-on the byte buffer (length and a copy function); the buffer is emptied after
-the consumer returns or raises. No copy is made by the encoder. Same content
-as `encode` would have returned.
+## 3. Creation
 
-## 5. `encode_metadata`
+### 3.1 Inputs and order
 
-FE §6. As it touches the seam:
+A writer is built from the configuration, the confirmed capabilities, the
+sink or the delegated destination with the output's interrupt, the output's
+name, the initial metadata and the format's position
+([encoder.md §2.2](encoder.md#22-creation)). In order:
 
-- The metadata list is replaced by the new entries plus the format's own
-  `metadata` entries whose keys the new ones do not set.
-- In `Failed` or `Stopped`: nothing else.
-- Before the current container's header is written: set on the container.
-- After: when the instance **chains** (§13.5), the container is restarted at
-  once (Ogg link); its bytes stay in the byte buffer, or go to the
-  destination, and come out of the next `encode` or `stop`. Otherwise:
-  logged at debug level (`Metadata update not carried by this container`).
-- Failures of the restart propagate (the state is not changed).
+1. The container options are the format's options, plus the defaults of §2
+   adapted to the **confirmed** capabilities, plus the stream defaults of
+   [FE §3](../../optionals/ffmpeg/spec/encoder.md#3-building-an-instance)
+   step 1. A capability lost at confirmation adapts the defaults like any
+   other: an MP4 whose `movflags` are not explicit, written to a path that
+   turns out to be a FIFO, is fragmented
+   ([encoder.md §5.4](encoder.md#54-at-open)).
+2. The muxer is opened over the I/O of §3.2, or on the delegated destination
+   (§13).
+3. The stream encoders are built and their options checked
+   ([FE §3](../../optionals/ffmpeg/spec/encoder.md#3-building-an-instance)
+   steps 3.5–3.6, [FE §4](../../optionals/ffmpeg/spec/encoder.md#4-option-handling)).
+4. The container metadata is set from the initial metadata (§7).
 
-## 6. `header`
+Creation writes nothing into the sink: no muxer stream exists yet, and the
+header is written with the first piece (§5). A creation that fails part way
+releases what it built.
 
-- `Pending`: empty bytes. `Captured h`: `h`.
-- Captured once per container, at its first packet: the bytes the byte buffer
-  received from the container's start offset up to the moment the header was
-  written and flushed. For the first container that offset is 0 (or 0 again
-  after each hand-over that happened before the first packet); for a restart
-  it is the buffer length when the new container was opened.
-- A restart sets `Pending` again, so `header()` returns the previous
-  container's header until the new one's first packet, then the new link's.
-- `Url` target, appending containers, HLS: the captured value is empty bytes
-  (nothing reaches the byte buffer; HLS records an empty capture).
-- Requirement on the muxer (not checked): every header byte is written by
-  FFmpeg's header write. Bytes a muxer writes later (at its first packet)
-  are not in `header()`.
+### 3.2 The I/O over a sink
 
-## 7. `restart_offset`
+The muxer writes through I/O the writer builds on the sink
+([sink.md §2](sink.md#2-operations)):
 
-- The offset, in the bytes the latest `encode`, `encode_into` or `stop`
-  returned, where the latest restart's container begins; none when no
-  restart happened since the previous hand-over.
-- Two restarts between two hand-overs report the later one only.
-- Only chaining restarts (§13.5) and restarts at a copy source switch on a
-  chaining target set it. HLS restarts do not (that face has its own pieces).
-- `Url` targets: a restart may happen (Ogg on `file:`), but the returned bytes
-  are empty, so the offset is 0 in an empty output.
+| Muxer I/O        | Sink                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| write            | `write`                                                                                                                   |
+| seek, size query | `seek`, `size`; offered only on a sink confirmed `seekable` and `fresh`                                                   |
+| read             | `read`; offered only on a sink confirmed `seekable` and `fresh`, and only while the writer ends, as work allowed to block |
 
-## 8. `bitrate`
+- A muxer given no seek sees a destination that cannot seek, and writes its
+  streaming form by itself (§6). On a `continuing` sink no seek is offered:
+  the muxer never reaches back into the existing stream.
+- A read the muxer asks for outside the end is refused to the muxer as an
+  I/O error.
+- The I/O layer's buffer is written into the sink at the end of every call
+  of the stream face, so that every byte a call produced is in the sink when
+  it returns ([encoder.md §3.2](encoder.md#32-order-of-a-calls-output)). The
+  muxer's own queues (interleaving, a fragment or cluster being filled) are
+  not flushed by this; §11 bounds them.
+- A muxer that needs no file is never opened over a sink (§2).
 
-Per non-drop stream: a copy stream's bitrate from its parameters, an encoded
-stream's from its codec once its muxer stream exists. The sum when every
-stream answers; otherwise none (always none before the streams are created).
-Read under the instance lock; never fails.
+## 4. Input
 
-## 9. `stop`
+[FE §5](../../optionals/ffmpeg/spec/encoder.md#5-encoding-a-frame) and its
+stream encoders own what each field reads, frame sizes, rate conversion,
+image scaling and pixel conversion
+([encoder-internal.md](../../optionals/ffmpeg/spec/encoder-internal.md)), and
+the readiness of copy streams. At the seam:
 
-- Clears the reported restart offset first.
-- `Stopped`: returns empty bytes.
-- `Failed`: skips the stream encoders' drain and calls the container close
-  directly (errors ignored; per the bindings, that close still flushes the
-  codecs and writes the trailer unless FFmpeg's container is itself in error);
-  state `Stopped`; returns empty bytes. Bytes still in the byte buffer are
-  dropped (no one reads that buffer again).
-- `Built` or `Started`: drains every stream encoder and the copy tracks (only
-  if streams exist), then closes the container: FFmpeg flushes the codecs,
-  writes the header if no packet did, writes the trailer, flushes its I/O and
-  releases it; the appending descriptor, if any, is then closed. A drain error
-  and a close error are each logged at severe level (`Draining failed: …`,
-  `Closing failed: …`) and do not raise. State `Stopped`; returns the byte
-  buffer's content (empty for `Url` and appending containers).
-- A container that never received a packet and has only copy streams, or
-  none, is closed with no header and no trailer (avformat.md).
+- Every piece has at least one sample or one image period
+  ([encoder.md §3.3](encoder.md#33-frames-in)). The muxer streams are created
+  at the first piece at which every copy field has known parameters (FE §5
+  step 1); the pieces before it are held, not dropped.
+- No byte, marker or timestamp depends on the piece boundaries.
 
-## 10. Bytes produced
+## 5. Bytes and markers
 
-The encoder adds no byte of its own to the container: every byte is the
-muxer's. What the encoder decides is **when** bytes move (§3), **what is
-sliced out** of them (`header`, `restart_offset`, HLS init segments) and
-**which destination properties the muxer sees** (§13.6), which changes the
-container layout. Worked examples, from the binary at `02fa52985`
-(`sine()`, 44100 Hz stereo, FFmpeg libavformat 63.1.102):
+Every byte is the muxer's. The writer decides when the header is written,
+where units are cut, and which markers it places.
 
-**MP3** `%ffmpeg(format="mp3", %audio(codec="libmp3lame"))`, empty metadata:
+1. **Header.** Right after the muxer streams are created, before any frame
+   or packet reaches the muxer, the writer writes the header and flushes the
+   I/O. The `stream_start(header_length, t)` marker precedes those bytes,
+   and `header_length` is exactly the number of bytes that header write
+   produced. Reason: a codec with a delay returns no packet for its first
+   frames, so a header taken at the first packet, or at whichever call
+   happened to flush it, is empty or misplaced. The header write is the one
+   moment at which the muxer's header is complete and nothing else has been
+   written.
+2. **Entry header.** For the streamable configurations of §2, the bytes of
+   the header write are the whole entry header: the EBML header, segment
+   information and tracks of Matroska; the file type and empty movie box of
+   a fragmented ISO stream; the header pages of Ogg; the RIFF header of WAV;
+   `fLaC` and its metadata blocks; nothing for `mp3` without preamble,
+   `adts`, `ac3`, `eac3` and `mpegts`. A preamble (§6) follows the stream
+   start and is not part of the header.
+3. **Cutting units.** The writer makes the muxer end its current unit where
+   an access point must begin:
+   - Matroska and the fragmented ISO family: before every key packet of a
+     video stream, and before the next packet once the unit holds
+     `fragment_duration` of media (§11);
+   - `mpegts`: the muxer writes its tables (PAT and PMT) again before the
+     next key packet of every video stream, and, for audio only, before the
+     next packet once `ts_table_interval` has elapsed since the last tables.
 
-```
-output.file (Url file:, seekable)
-00000000: 4944 3304 0000 0000 0022 5453 5345 0000  ID3......"TSSE..
-00000010: 000e 0000 034c 6176 6636 332e 312e 3130  .....Lavf63.1.10
-00000020: 3200 0000 0000 0000 0000 0000 fffb 5000  2.............P.
-          ^ ID3v2.4, 10 + 0x22 = 44 bytes      ^ offset 44: LAME/Info frame (CBR "Xing")
-output.external (Stream, not seekable)
-00000020: 3200 0000 0000 0000 0000 0000 fffb 9064  ... first audio frame at 44, no Info frame
-output.harbor (Stream, format rewritten with id3v2_version=0, write_xing=0)
-00000000: fffb 9264 3889 f27b 0ac7 4f7d 2000 0000  first audio frame at 0
-```
+   | Parameter           | Recommended | Protects                                                        |
+   | ------------------- | ----------- | --------------------------------------------------------------- |
+   | `ts_table_interval` | 0.1 s       | The time a reader starting mid-stream waits for its first table |
 
-The file's first 252 bytes (ID3 + Info frame) are on disk after the header
-write; nothing more reaches the file until FFmpeg's 32 KiB I/O buffer fills
-(§13.4); the Info frame is rewritten at `stop` by seeking back.
+4. **Access points.** The writer marks `access_point(t)` at:
 
-**MP4** `%ffmpeg(format="mp4", %audio(codec="aac"))`, top-level boxes:
+   | Muxer                                 | Access point                                                                                                                                                                                                        |
+   | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `mp3`, `adts`, `ac3`, `eac3`          | each frame                                                                                                                                                                                                          |
+   | `mpegts`                              | the tables written by item 3, when every stream's next packet is a key packet                                                                                                                                       |
+   | Ogg muxers                            | each page that begins a packet                                                                                                                                                                                      |
+   | Matroska                              | each cluster whose first block in every video stream is a key frame                                                                                                                                                 |
+   | fragmented ISO family                 | each fragment that begins with a key frame in every video stream                                                                                                                                                    |
+   | `wav`, `flac`                         | each packet's first byte                                                                                                                                                                                            |
+   | another muxer, with `streamable=true` | the first byte the muxer writes for each key packet of every video stream, or, audio only, for each packet, where the writer can locate it from the I/O calls; the claim that a reader starts there is the script's |
 
-| Destination                                                           | Boxes                                                                          |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `output.file`, `output.url "<path>.mp4"`                              | `ftyp`(28) `free`(8) `mdat` `moov` (at the end)                                |
-| `output.file`, `movflags="+faststart"`                                | `ftyp` `moov` `free` `mdat`                                                    |
-| `output.file`, `movflags="+frag_keyframe+empty_moov"`                 | `ftyp` `moov` `moof` `mdat` `mfra`                                             |
-| `Stream` (harbor, external, icecast, srt), `output.file(append=true)` | nothing: the header write fails (§11)                                          |
-| `Stream` with `+frag_keyframe+empty_moov`, audio only                 | `ftyp`(32) `moov`(700) at once; the single `moof`/`mdat`/`mfra` only at `stop` |
+   The writer finds these positions from what it asked the muxer to do (a
+   cut, a table rewrite), or by reading the framing of the bytes it writes
+   (frame sync words, Ogg capture patterns, box and element identifiers);
+   it MAY do either. `t` is the media time of the first media after the
+   position, from the packets' timestamps
+   ([timestamps.md](../../optionals/ffmpeg/spec/timestamps.md)).
 
-**Matroska** `%ffmpeg(format="matroska", %audio(codec="aac"))`: to a file,
-the Segment size is patched (`…18 53 80 67 01 00 00 00 …`), `Cues` are
-written and the duration is known (2.043 s for 2 s of input); to a `Stream`,
-the Segment size stays unknown (`18 53 80 67 01 ff ff ff ff ff ff ff`), no
-`Cues`, duration unknown.
+5. **Further streams.** A container restart at a copy source switch
+   ([FE §13](../../optionals/ffmpeg/spec/encoder.md#13-container-restart))
+   ends the current stream and starts another in the same sink only where
+   streams of that muxer may follow one another in one byte stream: the Ogg
+   muxers, as a chained stream (RFC 3533). The new stream has its own
+   `stream_start` and header, written as in item 1. No other event starts a
+   stream inside a writer; where no restart is in place, §15 applies.
+6. **End.** `end` follows the trailer and the last flush (§9).
 
-**Ogg chain** `%ffmpeg(format="ogg", %audio(codec="libvorbis"))` with a
-metadata change every second for 3 s: three links (three `\x01vorbis`
-identification headers, titles `t1`, `t2`, `t3`) in one file through
-`output.file` and through `output.url(url="file:…")`; one link and only `t1`
-through `output.url(url="/abs/path.ogg")` (§13.5).
+## 6. Header forms and preambles
 
-## 11. Concurrency and failures
+1. **File form.** On a sink confirmed `seekable` and `fresh`, the muxer is
+   given seek (§3.2) and writes its file form: the ISO family's movie box at
+   the end, or at the front with `faststart` by reading back at the end;
+   Matroska sizes, cues and duration; the `mp3` encoder-information frame
+   with its counts, delay and padding; WAV sizes; FLAC total samples and MD5
+   signature. Where the muxer writes a streaming form first and rewrites it
+   with its trailer (Matroska, WAV, FLAC, `mp3`), a file whose writer was
+   abandoned keeps a valid header with placeholders. A non-fragmented ISO
+   file whose writer was abandoned has no movie box: that is the nature of
+   that form, and an explicit fragmenting `movflags` is the script's way to
+   avoid it.
+2. **Streaming form.** On every other sink, the muxer has no seek and writes
+   its streaming form: Matroska unknown sizes and no cues, WAV sizes meaning
+   "to the end", a FLAC total of 0 and an MD5 of zeroes, no `mp3`
+   encoder-information frame, a fragmented ISO stream (§2). The streaming
+   form is the stream's header, hence the entry header of its access points
+   (§5).
+3. **Continuing.** On a `continuing` sink, the configurations that can
+   continue (§2) write:
 
-- Every caller holds the seam's per-instance lock (`protect`) around every
-  operation; `output.url` wraps its directly built instance the same way.
-  FFmpeg containers reject concurrent use of one container with an
-  "Object in use!" error at once rather than waiting; the lock is what keeps
-  that from happening.
-- Threads per caller: `output.file`/`output.external`/`output.harbor`/
-  `output.icecast`/`output.srt`: the instance is built and driven from the
-  streaming thread (pipe outputs build it at the first non-empty piece);
-  `output.url`: built on a scheduler task (the open of the URL), driven from
-  the streaming thread, stopped from whichever thread stops the output.
-  FFmpeg calls release the OCaml runtime lock while they block.
-- Classes of failure: FE §5.2 and §11. What reaches the caller at the seam:
-  - from the factory: every build failure, raised;
-  - from `encode`/`encode_into`: an FFmpeg error from the muxer or a
-    container restart, an incompatible copy source (an unrecoverable error)
-    and the copy keyframe wait expiring all set state `Failed` and raise; any
-    other exception (an item-fault run past `max_consecutive_faults`, a
-    timestamp out of range) raises **without** changing the state;
-  - from `encode_metadata`: a failed restart, raised, state unchanged;
-  - from `stop`: nothing (logged).
-- A header write that fails (a muxer refusing a non-seekable destination) is
-  an item fault of the stream whose packet triggered it, not an output
-  fault: the packet is dropped, the next packet retries the header write, the
-  failure is logged by the stream (`Invalid argument`, important level, then
-  rate-limited to one report per 10 s) and FFmpeg logs its own reason at
-  severe level for every attempt (`muxer does not support non seekable
-output`). The run counter is reset by any piece of that stream whose
-  encoding did not fail, which includes pieces that produce no packet, so
-  for an audio codec with frames larger than one internal frame the run never
-  reaches the bound: the output keeps running and writes nothing (checked:
-  6 s of AAC to `output.external`, 264 refused header writes, empty output,
-  no error raised).
+   | Muxer                           | The continuing writer writes              | Existing header updated at a clean end    |
+   | ------------------------------- | ----------------------------------------- | ----------------------------------------- |
+   | `mp3`                           | MPEG audio frames only, no preamble       | nothing                                   |
+   | `adts`, `ac3`, `eac3`, `mpegts` | media only                                | nothing                                   |
+   | Ogg muxers                      | a new chained stream, with its own header | nothing: each link is complete on its own |
 
-## 12. Segmenting (HLS) face
+   This writer declines the SHOULD of
+   [encoder.md §3.5](encoder.md#35-header-forms-and-preambles) item 3,
+   which asks a writer to update the existing header's counts, for the
+   reason that table states: the muxer writes the header of the stream it
+   starts and no other, so an existing encoder-information frame is not one
+   this writer can rewrite. An appended `mp3` file keeps the counts of its
+   first stream.
 
-Owned by [encoder-ffmpeg.md](../../outputs/hls/spec/encoder-ffmpeg.md) and
-FE §8. At the seam:
+4. **Preambles.** The `mp3` muxer's ID3v2 tag and encoder-information frame
+   are preambles, under
+   [encoder.md §3.5](encoder.md#35-header-forms-and-preambles) item 5: on
+   by default on a file sink only, as the muxer's defaults have them; off
+   by default elsewhere (§2), written on another fresh sink (a FIFO, a
+   process) when explicit, refused on a `live`, `continuing` or segmented
+   sink when explicit. The encoder-information frame needs seek, and is
+   written in the file form only.
 
-- Same instance machinery, target forced to `Stream`, its byte buffer shared
-  with the split bookkeeping; every byte goes there.
-- Before each candidate cut, the muxer is flushed (and an MPEG-TS muxer told
-  to resend its tables), so a cut is a byte offset in that buffer.
-- The init segment of an ISO-family container is carved out of the buffer
-  by walking top-level boxes until `styp`, `sidx` or `moof`; other muxers
-  have an empty init segment.
-- A restart opens the next container on the same buffer, with
-  `+frag_discont` added to a written `movflags` for the ISO family.
-- The HLS output builds one instance per variant while building the variant,
-  calls `init` then `hls_stop` on it (a probe that opens and closes a
-  container), and builds the instances it streams with separately (HLS tree).
+## 7. Metadata
 
-## 13. Where the bytes go
+- **Initial metadata.** On a file sink, the format's own `metadata`
+  entries, overridden key by key by the initial metadata
+  ([FE §6](../../optionals/ffmpeg/spec/encoder.md#6-metadata) step 1), are
+  set as the container's metadata before the header is written; on every
+  other sink, the format's own entries only, the initial metadata being
+  tags the tag rule leaves out
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 7).
+  The muxer writes them where its header carries metadata: Vorbis comments
+  and OpusTags in Ogg, Matroska tags, ISO metadata boxes, the ID3v2 tag
+  when that preamble is on. The format's own entries are written on every
+  sink: they are explicit, and only a preamble carrying them is refused
+  where a preamble is (§2).
+- **Encoder identification.** The muxer's own `encoder` tag (FFmpeg's
+  library and version) stands for `ENCODER=` (encoder.md §3.5 item 8).
+- **In-band offer.** Nothing. The writer offers no `metadata` call, whatever
+  its muxer, the Ogg muxers included
+  ([encoder.md §9](encoder.md#9-in-band-metadata)). A metadata change after
+  the stream started is the output's to carry out of band, or to leave.
 
-### 13.1 The three ways a container reaches its destination
+## 8. Delay and padding
 
-| Kind          | Chosen when                                                                                               | Who opens the destination                                                                                                       | I/O object                                                    | Seekable                                      | Interrupt                                     | Bytes returned by the instance |
-| ------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------- | ------------------------------ |
-| **Stream**    | target `Stream`                                                                                           | nobody: the encoder writes into its byte buffer                                                                                 | custom write function into the byte buffer, 32 KiB I/O buffer | no (no seek function is ever given)           | none                                          | all                            |
-| **URL**       | target `Url u`, not appending                                                                             | FFmpeg's protocol for `u` (`file:` or a plain path → its file protocol; `rtmp:`, `srt:`, `icecast:`, `tcp:`, … → that protocol) | FFmpeg-owned I/O                                              | as the protocol says (the file protocol: yes) | the factory's, when given (`output.url` only) | none                           |
-| **Appending** | target `Url u` with `u` starting with `file:` **and** (a restart, or container option `truncate` = int 0) | the encoder: `open(<u without "file:">, O_WRONLY\|O_APPEND\|O_CREAT, 0644)`                                                     | custom write function `write(fd, …)`, 32 KiB I/O buffer       | no                                            | none                                          | none                           |
+- The delay of an encoded stream is its codec's initial padding, read when
+  the codec opens. Its padding is known at the stream's end: the samples its
+  last frame holds beyond the input. Both reach the muxer in the stream's
+  parameters, and the stream's timestamps carry the delay as
+  [timestamps.md](../../optionals/ffmpeg/spec/timestamps.md) states. The muxer
+  writes them where its container has a field
+  ([encoder.md §3.7](encoder.md#37-delay-and-padding)): Ogg Opus pre-skip and
+  the last granule position, the ISO family's edit list, Matroska's codec
+  delay and discard padding, the `mp3` encoder-information frame (file form
+  only).
+- A copy stream carries the values its source signals, in its parameters.
+- Every stream start (a new writer, a restart of §5 item 5) starts new
+  codecs, and its values are those of the new stream.
 
-Consequences shared by every row:
+## 9. End
 
-- Only FFmpeg ever seeks, and only on a URL container whose protocol is
-  seekable. The encoder never seeks, never reads back, never tells the muxer
-  anything about the destination beyond the I/O object.
-- The muxer adapts to seekability by itself: MP4/MOV refuse a non-seekable
-  destination unless fragmented; MP3 writes its Info frame only when
-  seekable; Matroska leaves sizes unknown and writes no Cues; WAV leaves its
-  sizes at `0xFFFFFFFF` ([output-file.md §4.3](output-file.md#43-ffmpeg-file-variant)).
-  The same format value therefore gives different bytes, or no bytes, by
-  destination (§10).
-- The trailer is always written by the encoder's `stop` (container close),
-  never by the output. A destination that was opened by FFmpeg is also closed
-  by FFmpeg at that moment; an appending descriptor is closed by the encoder
-  right after.
-- Muxers that write files of their own (FFmpeg's `dash`, `hls`, `segment`,
-  `tee`, `image2`) open them through FFmpeg next to the URL; the encoder and
-  the output know only the URL.
-- A muxer that needs no file (FFmpeg's `AVFMT_NOFILE` muxers, devices) in a
-  `Stream` target fails at open ("the format needs no file"); in a `Url`
-  target FFmpeg opens no I/O and the URL is only the muxer's argument.
-- The open of a URL destination happens inside the factory: when the caller
-  calls the factory is when the destination is created, truncated or
-  connected (§13.2).
+`end(clean)`:
 
-### 13.2 What each caller does with the target
+1. If no muxer stream was ever created (no piece, or copy fields that never
+   got known parameters), nothing is written, `end` included
+   ([encoder.md §2.3](encoder.md#23-states)).
+2. Every stream encoder drains, upstream first and in track order: the
+   queue short of a codec frame, the rate converter and the scaler, the
+   codec, then the packets the copy streams hold
+   ([FE §7](../../optionals/ffmpeg/spec/encoder.md#7-end),
+   [FE §12.8](../../optionals/ffmpeg/spec/encoder.md#128-flush-and-end)).
+3. The trailer is written: on a seekable sink the muxer seeks back to write
+   its file form, and may read back (§6 item 1); on every sink it writes its
+   final unit (the last fragment or cluster, the end-of-stream pages).
+4. The I/O is flushed into the sink, then `end` is written.
 
-| Caller                                | Target it gives                                                                 | Container options it adds                                                                           | Opens/creates                                                                                                                              | When the factory runs                                                      | What it does with returned bytes                       |
-| ------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `output.file`                         | `Url "file:" ^ <current filename>` (the interpolated name, unchanged otherwise) | `truncate` = int 0 if `append`, else 1, replacing any script value                                  | creates the file (`O_WRONLY\|O_CREAT`, mode `perm`, no truncation; directories with `dir_perm`) and closes it at once, at each open/reopen | at the first non-empty piece after each open/reopen; one instance per file | ignores them (its write and flush are no-ops)          |
-| `output.url`                          | `Url url`, the script's string verbatim                                         | none                                                                                                | nothing: FFmpeg opens `url`                                                                                                                | on a scheduler task per connection attempt; one instance per connection    | ignores them                                           |
-| `output.external`                     | `Stream` (format unchanged)                                                     | none                                                                                                | the process                                                                                                                                | first non-empty piece after each (re)open                                  | writes them to the process's stdin                     |
-| `output.harbor`                       | `Stream`                                                                        | for `format="mp3"`: `id3v2_version` = int 0 and `write_xing` = int 0, each unless the script set it | —                                                                                                                                          | caller's ([output-harbor.md](output-harbor.md))                            | stores and sends, slicing at `header`/`restart_offset` |
-| `output.icecast`                      | `Stream`                                                                        | same mp3 rewrite as harbor                                                                          | —                                                                                                                                          | per connection                                                             | sends                                                  |
-| `output.srt`                          | `Stream`                                                                        | none (no mp3 rewrite)                                                                               | —                                                                                                                                          | caller's ([output-srt.md](output-srt.md))                                  | sends; a joining peer gets `header()` first            |
-| HLS                                   | `Stream`, forced                                                                | FE §3 step 2                                                                                        | —                                                                                                                                          | per variant                                                                | split pieces                                           |
-| `input.harbor.dynamic` `copy_encoder` | builds a `%ffmpeg` value with target `Stream` for the script                    | the script's `options`                                                                              | —                                                                                                                                          | not a caller: it only makes a format value                                 | —                                                      |
+On a seekable sink, `end(clean)` runs as work allowed to block
+([encoder.md §3.6](encoder.md#36-draining-and-final-bytes)). A drain, trailer
+or flush step that fails is logged at `severe` with the writer's name and the
+cause, and the end goes on with the next step.
 
-The mp3 rewrite and the MIME rules: [io.md §12](../../optionals/ffmpeg/spec/io.md#12-other-outputs-special-casing-ffmpeg).
-Rewritten values are copies: the script's format value is never mutated.
+`end(abandoned)` releases the codecs and the muxer without draining, without
+a trailer, and writes nothing more, `end` included. The bytes the muxer
+produced before the fault that led to it are already in the sink (§3.2).
 
-### 13.3 Append and truncate, exactly
+## 10. Properties
 
-The decision is the encoder's, from the target string and one option:
+- `bitrate`: the sum, over the non-drop streams, of each stream's bit rate
+  fixed by the configuration, that is an encoded stream's explicit `b` codec
+  option, read as FFmpeg reads an integer option (`"128k"` is 128000). It is
+  answered from creation when every stream has one, and equals the format
+  helper's answer ([formats.md §9](formats.md#9-helpers)). Otherwise it is
+  none until every stream reports a rate once its muxer stream exists (a
+  copy stream from its parameters, an encoded stream from its codec), then
+  that sum.
+- `delay`: per §8, known once the stream's codec is open; none before the
+  first piece.
+- `padding`: per §8, known at the stream's end.
 
-```
-appending(container) =
-  target is Url u
-  and u starts with the 5 characters "file:"
-  and (this container is a restart  or  option "truncate" = int 0)
-```
+## 11. Live latency
 
-- `output.file(append=true)`: `truncate` = 0 → the first container already
-  appends. The descriptor is opened by the encoder (mode `0644`, unused: the
-  output created the file). The container is non-seekable (§13.1), so the
-  file gets the format's stream form (MP4 fails, MP3 has no Info frame,
-  WAV sizes `0xFFFFFFFF`). Checked: an 11-byte file `PREEXISTING` followed by
-  an Ogg stream of 20632 bytes gives 20643 bytes starting with `PREEXISTING`.
-- `output.file(append=false)`: `truncate` = 1 → FFmpeg's file protocol
-  opens with truncation. Checked: a longer existing file is replaced.
-- Any container option other than `truncate` that only the file protocol
-  consumes (`blocksize`, `pkt_size`, `seekable`, `follow`) is consumed by a
-  URL container and left over by an appending one: an appending container
-  with such an option fails to open with `Unrecognized options` (§13.5).
-- `output.url(url="file:<p>")` with `truncate=0` in the format: appends, as
-  above.
-- `output.url(url="<p>")` (no `file:` prefix) with `truncate=0`: FFmpeg's
-  file protocol opens `<p>` without truncation and writes from offset 0, so
-  a longer existing file keeps its tail. Checked: a 100000-byte file of `Z`
-  stays 100000 bytes, MP3 at its start, `ZZZZZZZZ` at its end.
-- In a `Stream` target, `truncate` (and every protocol option) is left over:
-  `Unrecognized options: container: truncate=1` at instance creation.
+What holds encoded data, besides the codecs' own look-ahead:
 
-### 13.4 When bytes reach the destination
+| Stage                              | Bound                                                               |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| the I/O buffer                     | nothing held: written into the sink at the end of every call (§3.2) |
+| the interleaving queue             | `max_interleave_delta`, at most `L` on a `live(L)` sink (§2)        |
+| an Ogg page being filled           | `page_duration`, at most `L` on a `live(L)` sink (§2)               |
+| a fragment or cluster being filled | cut by the writer at most every `fragment_duration` (§5)            |
 
-- `Stream` and appending containers: FFmpeg flushes its I/O after every
-  packet when the I/O is not seekable, so each `encode` returns (or writes)
-  everything muxed during the call. Checked: `output.external(flush=true)`
-  with 128 kb/s MP3 grows 7149, 15090, 22613, 32226 bytes at 0.5 s steps.
-  Muxers that hold packets (interleaving, fragmenting MP4) delay their bytes
-  regardless.
-- URL containers on a seekable file: FFmpeg writes in blocks of its I/O
-  buffer (32 KiB). Checked: the same MP3 through `output.file` stays at
-  252 bytes (header and Info frame, flushed by the header write) for the
-  first 2 s. A crash loses up to that much; `on_close` sees the complete file
-  because the trailer and the final flush happen in `stop`, before the
-  output's close ([output-file.md §4.4](output-file.md#44-close-and-on_close)).
-- Network URLs: the protocol's own buffering; `output.url` bounds a blocking
-  write with its interrupt (io.md §3).
+| Parameter           | Recommended                              | Protects                                                                                      |
+| ------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `fragment_duration` | 1 s, and at most `L` on a `live(L)` sink | Memory the muxer holds for one unit, and the delay before a reader receives that unit's bytes |
 
-### 13.5 Chaining (Ogg restarts) and the destination
+A unit cut because it reached `fragment_duration` without a key frame is not
+an access point. On a sink that is not live, the bound still applies, for
+memory.
 
-The instance **chains** when both hold:
+## 12. Segmenting face
 
-- the current muxer's name is exactly `ogg` (FFmpeg's other Ogg muxers,
-  `oga`, `ogv`, `opus` and `spx`, never chain: a metadata change after the
-  header is dropped; checked with `format="opus"`: one `OpusHead`, the new
-  title absent);
-- the target is `Stream`, or `Url u` with `u` longer than 5 characters and
-  starting with `file:`.
+The segmenting face is
+[HLS encoder-ffmpeg.md](../../outputs/hls/spec/encoder-ffmpeg.md), over
+[FE §8](../../optionals/ffmpeg/spec/encoder.md#8-hls). A writer built with a
+`segmented(D)` sink applies the segmenting defaults of
+[FE §3](../../optionals/ffmpeg/spec/encoder.md#3-building-an-instance) step 2
+with that `D`, and offers the face for the segmentable configurations of §2.
 
-A chaining restart (FE §13.2) closes the current container (trailer written,
-FFmpeg's I/O closed) and opens the next one **appending** (§13.3), whatever
-`append` said, so the next link follows the previous one in the same file.
-From the second link on, the container is non-seekable, has no interrupt and
-does not consume protocol options; a protocol option in the format makes the
-restart fail (checked: `blocksize=4096` with a metadata change after 1 s:
-`Unrecognized options: container: blocksize=4096` raised from
-`encode_metadata`, the output fails and, with the default `reopen_on_error`,
-the script stops; the file holds one link).
+## 13. Delegated destination
 
-A restart at a copy source switch (FE §13.3) uses the same rule; elsewhere
-(`Url` not `file:`, any muxer other than `ogg`) an incompatible switch fails
-the instance, and `output.url` turns that into a reconnect (io.md §11.3).
+The FFmpeg writer is the one writer that accepts a delegated destination
+([encoder.md §6](encoder.md#6-the-delegated-destination)).
 
-### 13.6 What the encoder assumes about its destination
+1. Built with `delegated(u)` and the output's interrupt, on the output's
+   task, it opens `u` with the muxer of §1 item 5, the protocol consuming its
+   options (§1 item 3). A muxer that needs no file opens no I/O: `u` is only
+   its argument. Files and connections a muxer opens itself, next to `u`,
+   are opened through FFmpeg under the same interrupt.
+2. The interrupt covers every blocking call of the destination for the
+   writer's whole life: the open, every write, the trailer, and the I/O the
+   muxer opens itself. It also returns true once a write in progress has
+   lasted the output's write timeout
+   ([io.md §3](../../optionals/ffmpeg/spec/io.md#3-interrupting-blocking-libav-calls)).
+3. The writer gives no meaning of its own to the form of `u`. `output.url`
+   never hands it a `file:` URL or a local path: it refuses them at
+   evaluation ([output-url.md §1](output-url.md#1-formats-and-declarations)).
+   A local path reaches the writer only as the argument of a muxer that
+   needs no file, from `output.file`. It never appends, never reopens `u`,
+   and never restarts its container in place: where FE §13 would restart,
+   the writer fails with an output fault and the output builds a new writer
+   under its policy.
+4. Header forms follow the protocol: a seekable protocol gets the file form,
+   another the streaming form. The writer MAY adapt the defaults of §2 to the
+   protocol's seekability once `u` is open, before the header write; a muxer
+   that needs seeking the protocol does not offer fails at its header write
+   (§15).
+5. No sink, no markers, no in-band metadata.
 
-- One destination per instance, fixed at creation; a restart goes to the same
-  one. It never writes two destinations, except through a muxer that opens
-  files itself (§13.1).
-- A `Stream` destination is a pure byte sink: whatever the caller does with
-  the returned bytes (store, send to several peers, drop) is invisible to it.
-  It never learns whether a consumer joins late; `header` and
-  `restart_offset` are offered to every caller.
-- A `Url` destination is written, flushed, closed and (for seekable
-  protocols) seeked by FFmpeg inside the instance's calls, on the caller's
-  thread: a blocking protocol blocks that thread (io.md §3).
-- The prefix `file:` is the only signal that a URL is a local file. It
-  decides append and chaining; a plain path reaches the same file protocol
-  without either.
-- Nothing in the format or the seam says whether a destination is seekable;
-  a format that needs seeking is not rejected before its first packet.
+## 14. Concurrency
 
-## 14. Tests
+- Every call comes from one caller: the output's streaming work, or the
+  output's task for a delegated writer
+  ([encoder.md §7](encoder.md#7-concurrency)). The writer needs no lock of
+  its own. FFmpeg refuses concurrent use of one container; the one-caller
+  rule is what keeps that from happening.
+- The writer runs no work of its own besides its calls.
+- A clean end on a seekable sink, and every call of a delegated writer, run
+  as work allowed to block.
+- Writers of different outputs share no muxer, codec or I/O state, and MAY
+  run on several domains at once. Hardware device contexts shared between
+  codecs are the FFmpeg tree's
+  ([encoder-internal.md](../../optionals/ffmpeg/spec/encoder-internal.md)).
 
-| Invariant                                                                                                               | Binding                                                                                | Incidental                                          | Failure modes simulated             | Doubles a new harness needs                   | Trace                                             |
-| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------- | --------------------------------------------- | ------------------------------------------------- |
-| A stopped `output.url` leaves a complete container at a file URL                                                        | the file parses and holds audio packets                                                | MPEG-TS/AAC, timings                                | none                                | a file URL                                    | ffmpeg conformance `io` (`url_lifecycle`)         |
-| A failing URL with no restart stops that output once; others go on                                                      | `on_error` then `on_stop` once; another output keeps ≥ 3 s                             | `tcp://127.0.0.1:1`                                 | connection refused                  | an unreachable URL                            | `io` (`url_no_restart`)                           |
-| A write stalled past `timeout` is an output fault; a shutdown during it is not                                          | `on_error` runs / does not run                                                         | WAV over TCP                                        | a peer that accepts and never reads | a stalled TCP peer                            | `io` (`output_stall*`)                            |
-| An Ogg container chains links at a metadata change and at a copy source switch, both into a `Stream` and into a `file:` | link count 2; every packet of each source in its link; links decode alone and in order | Vorbis files, link splitter                         | none                                | a source with two tracks or a metadata change | conformance `ogg_stream`, `kc4`, `kc11`           |
-| A late harbor listener of an mp3 `%ffmpeg` mount gets no ID3, Xing or Info                                              | absence of the three tags in the body                                                  | sine, 2 s                                           | late join                           | an HTTP client                                | `tests/harbor/harbor_output_join_points.liq`      |
-| A Matroska stream reaches an Icecast listener with its EBML header first                                                | body starts with `1A 45 DF A3`                                                         | AAC + MPEG-4 video, liquidsoap's own Icecast server | none                                | an Icecast server                             | `tests/harbor/icecast_server_matroska_video.liq`  |
-| A dedicated-encoder Matroska stream spanning many chunks decodes, plain and ICY                                         | FFmpeg decodes with `-xerror`                                                          | PCM in Matroska, metaint 1000                       | none                                | HTTP client                                   | `tests/harbor/harbor_output_dedicated_chunks.liq` |
-| `output.file` `on_close` sees the finished file                                                                         | media tests read the file in `on_close`                                                | everything else                                     | none                                | —                                             | `tests/media/*`                                   |
+## 15. Faults
 
-Not covered by any test: appending (`output.file(append=true)`) with a
-`%ffmpeg` format; truncation; a format that needs a seekable destination given
-a non-seekable one; protocol options with a chaining restart; the plain-path
-versus `file:` difference; a shared (non-dedicated) harbor mount with a
-`%ffmpeg` container that has a header (see the findings).
+Classes of [faults.md §2](../../../spec/faults.md#2-classes). The seam's table
+is [encoder.md §8](encoder.md#8-faults); the FFmpeg tree's is
+[FE §5.2](../../optionals/ffmpeg/spec/encoder.md#52-data-faults-and-output-faults).
+
+| Fault                                                                                                                                                 | Class                                                                              | Outcome                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| unknown muxer, `format` missing where no muxer can be guessed, leftover options, a protocol option on a sink (§1)                                     | configuration error                                                                | refused at evaluation; one error names every leftover                     |
+| a declaration or an explicit option that the output's capabilities refuse (§2)                                                                        | configuration error                                                                | refused when the output is constructed                                    |
+| the muxer's open or header write refused for a cause that follows from the configuration and the confirmed capabilities, on the output's first writer | configuration error                                                                | hard error, naming the output, the muxer and FFmpeg's reason              |
+| the same on a later writer (a reopen, a reconnect); a delegated open that fails for any other cause                                                   | output fault                                                                       | creation fails, or the writer is `failed`; the output's restart policy    |
+| a frame or packet the codec or the muxer refuses                                                                                                      | item fault                                                                         | dropped with a warning and counted (FE §5.2)                              |
+| `max_consecutive_faults` item faults in a row on one field                                                                                            | as FE §5.2                                                                         | on an encoded field, an output fault                                      |
+| any other failure during a call, of whatever kind                                                                                                     | output fault                                                                       | the writer is `failed`                                                    |
+| an incompatible copy source with no restart in place (§5 item 5)                                                                                      | as [FE §13.3](../../optionals/ffmpeg/spec/encoder.md#133-incompatible-copy-source) | unrecoverable on a sink; an output fault on a delegated destination (§13) |
+| the sink fails                                                                                                                                        | output fault                                                                       | the writer is ended abandoned                                             |
+| a drain, trailer or flush step fails at a clean end                                                                                                   | not escalated                                                                      | logged at `severe`; the end goes on (§9)                                  |
+
+- **A header write is never an item fault.** Its failure fails the writer,
+  whatever packet or frame triggered it. Reason: every later packet needs
+  the same header, so a header that cannot be written is a stream that
+  writes nothing, and a retry per packet hides that behind one log line, for
+  ever.
+- **A run of item faults ends only with an item the muxer accepted.** A call
+  that hands the muxer nothing (a codec still filling its first frame)
+  neither counts in a run nor ends it.
+- A call that reports an output fault leaves nothing a later call could act
+  on: the writer is `failed`, and a restart that could not build its new
+  container leaves no closed container current.
+
+## 16. Tests
+
+| Check                                                                                                                                                                                           | Binding                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| A reader of a shared `output.harbor` mount and a peer of an `output.srt` listener, starting after 1 s, for Matroska with AAC, with MP3, with Opus and with PCM, and for fragmented MP4 with AAC | the bytes start with the entry header, then an access point; FFmpeg decodes them with `-xerror`                                   |
+| `%ffmpeg(format="mp4", %audio(codec="aac"))` to `output.external`, and to `output.file` on a FIFO path                                                                                          | a fragmented ISO stream that decodes; bytes reach the process within `fragment_duration`                                          |
+| The same with `movflags="+faststart"` to `output.external`, `output.icecast` and `output.file(append=true)`                                                                                     | refused at evaluation, naming the need for a seekable destination                                                                 |
+| The same with `movflags="+faststart"` to `output.file`                                                                                                                                          | the movie box precedes the media box                                                                                              |
+| A muxer whose header write always fails, on the output's first writer                                                                                                                           | the script fails with a hard error naming the output; no output runs writing nothing                                              |
+| `blocksize=4096` or `truncate=0` in an Ogg `%ffmpeg` format given to `output.file`                                                                                                              | refused at evaluation, naming the option as a protocol option                                                                     |
+| An Ogg `%ffmpeg` format, with each of `ogg`, `oga` and `opus`, and three metadata changes, to `output.file` and to `output.harbor`                                                              | one logical stream; on the file it carries the initial title, on the mount no title; no failure                                   |
+| `output.url` with a `file:` URL, and with a plain path                                                                                                                                          | refused at evaluation, naming `output.file`                                                                                       |
+| `format="nosuchmuxer"` with `output.file` on `x.mp3`, and with `output.external`                                                                                                                | refused at evaluation in both                                                                                                     |
+| No `format=`, `output.file` on `"x.mka"`; on `"x.nosuch"`; on a path getter                                                                                                                     | Matroska written; refused naming the extension; refused asking for `format=`                                                      |
+| An unknown muxer to a shared `output.harbor` mount, without and with `streamable=true`                                                                                                          | refused, naming `streamable=true`; accepted                                                                                       |
+| `frag_duration` or `cluster_time_limit` above `L`, explicit, to `output.icecast`                                                                                                                | refused at evaluation                                                                                                             |
+| `foo=3` and a stream option `bar="x"` in one format                                                                                                                                             | one error naming both, at evaluation                                                                                              |
+| `%ffmpeg(format="mp3", …)` to `output.srt`, `output.harbor` and `output.icecast`                                                                                                                | no ID3v2 tag and no encoder-information frame anywhere in the bytes sent                                                          |
+| The same to `output.file`                                                                                                                                                                       | the bytes start with an ID3v2 tag; the file holds an encoder-information frame with counts, delay and padding                     |
+| The same to `output.external`, without and with `id3v2_version=3`                                                                                                                               | no ID3v2 tag; an ID3v2 tag                                                                                                        |
+| The same with `id3v2_version=3` to `output.harbor`                                                                                                                                              | refused at evaluation                                                                                                             |
+| 2 s of 128 kb/s MP3 to `output.file`, its size sampled every 0.5 s                                                                                                                              | the file grows at every sample                                                                                                    |
+| One minute of `mp3`, `adts`, `mpegts` and Ogg appended to a file holding one minute of the same configuration                                                                                   | decodes as two minutes; the Ogg file as two links                                                                                 |
+| `wav`, `flac`, `matroska` and MP4 to `output.file(append=true)`                                                                                                                                 | refused at evaluation                                                                                                             |
+| `output.url` to a peer that accepts and never reads; a stop during that write; a muxer writing its own files next to the URL on a stalled mount                                                 | each write ends within the write timeout; the stop returns at once and runs no `on_error`                                         |
+| `output.icecast` with `%ffmpeg(format="mp3", %audio(codec="libmp3lame", b="128k"))`                                                                                                             | the first request head announces 128 kb/s                                                                                         |
+| Audio-only Matroska and fragmented MP4 on a `live(1 s)` sink                                                                                                                                    | no second passes without bytes reaching the sink                                                                                  |
+| A click at a known sample, encoded with AAC and with Opus into MP4, Matroska and Ogg files                                                                                                      | a decoder honouring the signalled delay and padding places the click within one sample, and the decoded length equals the input's |
+| A copy source switch to other extradata in an Ogg `%ffmpeg` stream on a sink, and on `output.url`                                                                                               | on the sink, a new chained stream with its own `stream_start`; on `output.url`, an output fault and a new writer                  |
+| An AAC stream whose every packet the muxer refuses                                                                                                                                              | the output fault is reached after `max_consecutive_faults` packets                                                                |

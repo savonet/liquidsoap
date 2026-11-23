@@ -1,5 +1,7 @@
 # Native codecs: OCaml and binding notes (Part B)
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Maps [mp3.md](../mp3.md), [shine.md](../shine.md), [fdkaac.md](../fdkaac.md)
 and [flac.md](../flac.md) onto the code. Paths are relative to the
 repository root; line numbers are at 02fa52985.

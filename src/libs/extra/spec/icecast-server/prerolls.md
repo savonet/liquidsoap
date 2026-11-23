@@ -1,6 +1,6 @@
 # Prerolls
 
-A preroll is a short audio clip a listener hears before joining the live
+A preroll is a short audio clip a listener hears before the live
 stream: a jingle, a sponsor message, an ad chosen for each listener. This
 document owns what a preroll is to the server (bytes in the decision), the
 cache that loads and keeps prerolls, and the precedence of the places they

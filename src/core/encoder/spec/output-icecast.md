@@ -1,328 +1,449 @@
-# `output.icecast` and `output.shoutcast` at the encoder seam (as built)
-
-Pass-1 description of how the Icecast/Shoutcast source client drives the
-[stream face](encoder.md) of an encoder and what it does with the bytes. It
-owns: the format → content-type step shared with `output.harbor` (§1.2), the
-encoded-output base's call sequence as the network outputs see it (§3.1),
-and everything Icecast-specific. The source-client protocol bytes are those
-of the vendored `cry` library, described here only where they frame encoder
-bytes. OCaml traces: [language-notes/net-callers.md](language-notes/net-callers.md).
-Findings: [findings/net-callers.md](findings/net-callers.md).
-
-`output.shoutcast` is a standard-library wrapper
-(`src/libs/icecast.liq`): `output.icecast` with `protocol="icy"` and the
-`icy_id` it is given. Everything below holds for both.
-
-## 1. Formats accepted and how the factory is obtained
-
-### 1.1 Factory
-
-At evaluation, from the unlabelled format argument:
-
-1. The format is rewritten by the **streaming-format step**: a `%ffmpeg`
-   format whose container `format` is `"mp3"` gets the container options
-   `id3v2_version = 0` and `write_xing = 0`, each only when the script did not
-   set it. Every other format is unchanged. The script's format value is not
-   modified (the copy is local). Reason, in the code: a listener joining
-   mid-stream must not receive an ID3v2 header or a Xing frame. This step is
-   also stated, normatively, in
-   [ffmpeg io.md §12](../../optionals/ffmpeg/spec/io.md#12-other-outputs-special-casing-ffmpeg).
-2. The registry is asked for a factory for the rewritten format. None:
-   invalid-value error on the format argument, `No encoder found for that
-format`.
-3. The factory is bound to the format value's position; the instance
-   factory kept by the output takes `(name, initial metadata)`.
-
-Every format the registry answers is accepted, provided §1.2 finds a content
-type: `%mp3`, `%shine`, `%fdkaac`, `%flac`, `%wav`, `%avi`, `%ogg(...)`,
-`%ffmpeg`, `%external`, and `%ndi` only with an explicit `format=` (it has no
-MIME of its own).
-
-### 1.2 Content type
-
-The `format` argument (string, default `""`). Non-empty: it is the content
-type, verbatim. Empty: guessed from the format:
-
-| Format                                   | Content type                                                   |
-| ---------------------------------------- | -------------------------------------------------------------- |
-| `%mp3`, `%shine`                         | `audio/mpeg`                                                   |
-| `%fdkaac`                                | `audio/aac`                                                    |
-| `%flac`                                  | `audio/flac`                                                   |
-| `%wav`                                   | `audio/wav`                                                    |
-| `%avi`                                   | `video/avi`                                                    |
-| `%ogg(...)`                              | `application/ogg`                                              |
-| `%ffmpeg` with `mime_type` set           | that MIME                                                      |
-| `%ffmpeg` with a container `format` name | the MIME of Liquidsoap's container table for that name, if any |
-| `%ffmpeg` otherwise, `%external`, `%ndi` | none                                                           |
-
-None: invalid-value error on the format argument, `No format (mime) found,
-please specify one.`
-
-`%ogg` streams are always announced `application/ogg`, never `audio/ogg`,
-whatever they carry. This table is shared with `output.harbor`, which uses the
-content type as a plain string; Icecast maps the four Ogg/MPEG strings to
-`cry`'s constants and passes others through unchanged.
-
-### 1.3 ICY metadata mode
-
-`send_icy_metadata` (nullable bool). When null it is guessed from the content
-type: `true` for `audio/mpeg`, `audio/wav`, `audio/aac`, `audio/flac`;
-`false` for `application/ogg`, `audio/ogg`, `video/ogg`; any other content
-type (for example an explicit `format="audio/opus"`, or `%ffmpeg` to
-`video/mp2t`) is an invalid-value error on `send_icy_metadata`: `Could not
-guess send_icy_metadata for this format, please specify either true or
-false.`
-
-This flag decides where metadata goes (§3.3): out of band to the server, or
-into the encoder.
-
-### 1.4 Stream info announced
-
-At each connection, after the instance is created and before any encode, the
-`ice-audio-info` header is built from the format, plus the instance for
-`%ffmpeg`:
-
-| Format                      | `bitrate`                   | `quality`           | `samplerate`, `channels`  |
-| --------------------------- | --------------------------- | ------------------- | ------------------------- |
-| `%mp3` CBR / ABR / VBR      | CBR rate / ABR mean / —     | — / — / VBR quality | format                    |
-| `%shine`, `%fdkaac`         | format bitrate              | —                   | format                    |
-| `%flac`                     | —                           | compression level   | format                    |
-| `%ogg(%vorbis)`             | CBR or ABR nominal rate     | VBR quality (float) | format                    |
-| other `%ogg`                | —                           | —                   | —                         |
-| `%wav`, `%avi`, `%external` | —                           | —                   | format                    |
-| `%ffmpeg`                   | instance `bitrate() / 1000` | —                   | `audio` stream if encoded |
-| `%ndi`                      | —                           | —                   | —                         |
-
-For `%ffmpeg` the instance has encoded nothing when it is asked, and its
-`bitrate()` is then unknown: the header never carries a bitrate for
-`%ffmpeg`, even with an explicit `b=` (checked, see findings).
-
-## 2. Instance lifecycle
-
-**One instance per connection.** The output holds at most one instance, and
-holds one exactly while it holds a connection (or is establishing one).
-
-- **Created** at the start of each connection attempt, before the socket is
-  opened, with the output's id as name and **empty** initial metadata. The
-  last metadata, if any, is handed afterwards through `encode_metadata`
-  (§3.3), not as initial metadata.
-- **Stopped** whenever the connection ends: a send error, a failed connect,
-  the output's stop. Its final bytes are discarded (§4.4).
-- The output's own start does nothing: the first connection is attempted
-  lazily, by the first send (§3.2). The output's stop stops the instance and
-  closes the connection; the next start reconnects lazily with a new
-  instance.
-
-So every connection to the server carries a stream from a fresh instance,
-from its first byte.
-
-## 3. Call sequence
-
-### 3.1 The encoded-output base
-
-`output.icecast`, `output.harbor`, `output.srt` and `output.url` inherit the
-[encoded-output base](output-encoded.md#3-call-sequence): a frame is cut at
-its metadata positions into non-empty pieces (no zero-length piece ever
-reaches these outputs' encode step), and per piece the base calls the
-output's metadata step, encode step and send step, in metadata-first order
-by default or data-first when the output asks.
-
-### 3.2 Per piece
-
-`output.icecast` uses data-first order when `send_icy_metadata` is true
-(reason, in the code: an ICY update needs an established connection, which
-the send establishes), metadata-first otherwise.
-
-- **Encode step.** Connected and holding an instance: `encode(piece)`.
-  Otherwise: no call; the piece produces nothing and is lost.
-- **Send step.** Disconnected and the retry time has passed (initially 0):
-  connect (§5), then write the bytes. Connected: write the bytes.
-  Disconnected before the retry time: nothing.
-
-Because encode runs before send, the piece during which a connection is
-established is never encoded: **the first piece of every connection is
-lost**, including the very first one after start-up.
-
-`header()`, `restart_offset()` and `encode_into` are never called.
-`bitrate()` is called once per connection for `%ffmpeg` only (§1.4).
-
-### 3.3 Metadata step
-
-- `send_icy_metadata = true`: the metadata is filtered to the keys of
-  `icy_metadata` (default `song title artist genre date album tracknum
-comment dj next`), each value converted to the output charset (`encoding`,
-  default UTF-8). If no `song` key results, `icy_song(metadata)` adds one
-  (default: `artist - title`, or whichever is set, or none). If connected,
-  an out-of-band update is sent (§4.3). Disconnected: dropped. **The
-  encoder is never told.**
-- `send_icy_metadata = false`: with an instance, `encode_metadata(m)`
-  (in-band; an Ogg encoder starts a new link); without one, dropped.
-
-On connect, when `send_last_metadata_on_connect` (default true) and the
-source has a last metadata, that metadata goes through the metadata step
-above, right after the handshake and before any piece is encoded. Errors
-there are ignored silently.
-
-## 4. The bytes
-
-### 4.1 Request head
-
-Built by `cry`. HTTP protocol (`protocol="http"`, the default; `method`
-`source` | `put` | `post`): request line `<VERB> <mount> HTTP/1.0`, or
-`HTTP/1.1` when `chunked=true`; then `Host`, `Authorization: Basic`
-(user defaults to `source`), the `ice-*` headers, `User-Agent`, the extra
-`headers`, `Content-Type`, `Transfer-Encoding: chunked` when chunked, and
-`Expect: 100-continue` for PUT. Accepted answers: 2xx (100 for PUT).
-
-ICY protocol (`protocol="icy"`): connects to `port + 1`, writes
-`[user:]password[:#sid]\r\n` (`:#sid` only when `icy_id ≠ 1`), expects a
-line starting `OK`, reads an optional `icy-caps:1` line, then writes the
-`icy-*` headers and `content-type` with no space after the colon, ended by
-an empty line.
-
-Worked example (checked, against a local fake server):
-`output.icecast(%vorbis, port=18000, mount="m", s)` sends
-
-```
-SOURCE /m HTTP/1.0
-Host: localhost:18000
-ice-name: m
-Authorization: Basic c291cmNlOmhhY2ttZQ==
-ice-public: 1
-User-Agent: Liquidsoap/2.5.0+git@02fa52985 (Unix; OCaml 5.5.2)
-ice-audio-info: channels=2;quality=0.3;samplerate=44100
-Content-Type: application/ogg
-```
-
-followed by an empty line, then the encoder bytes.
-
-### 4.2 Body
-
-The encoder's bytes are written as they come, on the streaming thread, one
-write per fragment of the returned byte sequence; nothing is buffered by the
-output. Each write waits for the socket to become writable, up to `timeout`
-(default 30 s), and loops until the fragment is written.
-
-- Not chunked: raw bytes.
-- Chunked: each non-empty fragment is one chunk, `<HEX length>\r\n<bytes>\r\n`;
-  closing the connection writes `0\r\n\r\n` first.
-- `dumpfile`, when set: the same bytes, after a successful write, are also
-  appended to a local file opened (truncating) at each connection and closed
-  at each disconnection. A reconnection therefore overwrites the dump.
-
-There is no ICY interleaving on the source side: ICY metadata blocks are the
-server's business towards its listeners.
-
-### 4.3 Out-of-band metadata
-
-Each update opens a new TCP connection (connection timeout as configured,
-`timeout` for the exchange) to the same host and port and sends:
-
-- HTTP: `GET /admin/metadata?mode=updinfo&mount=<mount>&charset=<cs><&k=v...> HTTP/1.0`
-  with **all the source connection's headers** (`ice-*`, `Authorization`,
-  `User-Agent`, extra headers) plus `Host`;
-- ICY: `GET /admin.cgi?mode=updinfo&pass=<password><&k=v...>[&sid=n] HTTP/1.0`
-  with only `User-Agent: <ua> (Mozilla compatible)`; allowed only when the
-  server announced `icy-caps:1`, else it fails.
-
-Keys and values are URL-encoded, empty values skipped. A non-200 answer is an
-error. Example (checked), `%ffmpeg` mp3 with title `T1`, artist `A`:
-
-```
-GET /admin/metadata?mode=updinfo&mount=/m&charset=UTF-8&title=T1&artist=A&song=A%20%2D%20T1 HTTP/1.0
-```
-
-The update is synchronous: the streaming thread waits for its answer.
-
-### 4.4 What a server, and its listeners, receive
-
-Per connection the server receives one stream from a fresh instance, from
-the instance's first output: for Ogg, the BOS identification and comment
-pages first; for MPEG audio, an MPEG frame first (with the streaming-format
-step, no ID3v2 tag and no Xing frame for `%ffmpeg` mp3; checked: first bytes
-`ff fb`).
-
-Mid-connection restarts happen only inside the encoder: with
-`send_icy_metadata = false`, every metadata change makes an Ogg encoder end
-its link (EOS page) and start a new one (BOS + headers) in the same body.
-Checked with `%vorbis` and metadata every 2 s: the body is a chain of links,
-each `BOS id-header, comment/setup, audio..., EOS`.
-
-At every **disconnection** the instance's final bytes are discarded: the last
-link of the body has no EOS page and the encoder's buffered audio (about one
-Ogg page, here up to ~1 s) is lost. Checked: both the server-cut connection
-and the shutdown-closed connection of the experiment end on a non-EOS page.
-
-At a **reconnection** the server sees a new source connection whose body
-starts again with full headers; what the server's listeners then receive is
-the server's decision (Icecast moves them to the new stream; Liquidsoap's own
-`icecast.server` is [harbor icecast-server.md](../../outputs/spec/harbor/icecast-server.md)).
-The stream between the failure and the reconnection is not encoded and is
-lost, as is the first piece of the new connection.
-
-## 5. Reopen, reconnect
-
-- A connection is attempted by the send step when disconnected and the
-  current whole-second time is past the retry time. The retry time is set
-  from the sub-second clock, compared against whole seconds, so the
-  effective wait is the delay plus up to one second (checked: delay 3 s,
-  reconnection about 3.4 s after the failure was logged).
-- Connect: create the instance, open the dump, connect and hand-shake (§4.1),
-  log `Connection setup was successful.` (important), replay the last
-  metadata (§3.3), run `on_connect`.
-- Any failure there: logged at `severe` (`Connection failed: <exn>`, the
-  backtrace at info), then the connection is torn down (§2) and the error
-  policy applies.
-- **Error policy** (`call_on_error`): the delay defaults to 3 s; the single
-  `on_error` handler (a new registration replaces the previous one) may
-  call `restart_in(d)`: `d ≥ 0` retries after `d` seconds, `null` never
-  retries (retry time infinite; the output stays started and silently drops
-  every frame), `d < 0` re-raises the error on the streaming thread, which
-  is then the generic output's failure
-  ([outputs/spec/output.md §6](../../outputs/spec/output.md#6-failure)).
-  With a retry, `Will try to reconnect in <d> seconds.` (important).
-- Teardown (send error, failed connect, stop): stop the instance and discard
-  its bytes (any error ignored), forget it; if connected, log `Closing
-connection...` (important), write the chunked terminator if chunked, close
-  the socket (errors logged at severe), run `on_disconnect`; close the dump.
-
-## 6. Failures
-
-| Where                        | What happens                                                                               |
-| ---------------------------- | ------------------------------------------------------------------------------------------ |
-| Factory lookup, content type | Invalid-value error at evaluation (§1).                                                    |
-| Instance creation            | Inside connect: logged `Connection failed`, error policy.                                  |
-| `encode`, `encode_metadata`  | Not caught: raised on the streaming thread, generic output failure.                        |
-| Socket write                 | Logged severe `Error while sending data: <exn>!`, teardown, error policy.                  |
-| Out-of-band metadata update  | Logged severe `Metadata update may have failed with error: <exn>`; the connection is kept. |
-| `stop` of the instance       | Ignored.                                                                                   |
-| Close                        | Logged severe, `on_disconnect` still runs.                                                 |
-
-## 7. Threads and locks
-
-Everything runs on the streaming thread: encoding, the connect and handshake,
-the writes, the out-of-band metadata request. The output declares blocking
-I/O, so its clock is animated by a thread of its own rather than a shared
-task. No lock of the output's own; the instance serialises its calls
-([encoder.md](encoder.md)).
-
-## 8. Tests
-
-- **Error policy** (`tests/regression/LS503.liq`): an unresolvable host runs
-  `on_error`. Binding: the handler runs; incidental: the host name.
-- **Connection and shutdown** (`GH4629.liq`): an Icecast source connecting
-  to a harbor input; shutting the output down disconnects it. Binding: the
-  input sees the disconnect.
-- **Ogg/FLAC into a harbor input** (`fallible_ogg.liq`): the harbor input
-  decodes what the output sends; binding: the input starts.
-- **Late Ogg/Opus listener through `icecast.server`**
-  (`tests/harbor/icecast_server_ogg_late_listener.liq`), and source
-  reconnection to the same mount (`icecast_server_source_reconnect.liq`):
-  these bind the server side; the source side is only the stimulus.
-- **Argument handling** (`shoutcast-args.liq`): the wrapper evaluates.
-
-Not covered by any test: the loss of the first piece of a connection, the
-discarded final bytes, that a reconnection starts with full headers, the
-out-of-band request bytes, the `ice-audio-info` contents. A harness needs a
-fake server that records each connection (head and body) and can cut one
-(the experiment of this file used one, in a scratch directory).
+# `output.icecast` and `output.shoutcast`
+
+Part A. The source client: an output that pushes one writer's stream to an
+Icecast or Shoutcast server, one connection at a time, and keeps the
+server's view of the stream (its metadata, its stream properties) up to
+date. This file answers the caller numbering of
+[encoder.md §11](encoder.md#11-caller-files). It owns: the source client's
+declarations and content type, its sink (the connection, its dialects and
+their wire bytes), the out-of-band metadata update, the writer's lifetime
+across connections, the final bytes at a disconnection, and the source
+client's restart policy.
+
+It relies on: the encoder contract ([encoder.md](encoder.md)); sinks
+([sink.md](sink.md)); format helpers and validation
+([formats.md](formats.md)); the output base
+([output.md](../../outputs/spec/output.md)); faults
+([faults.md](../../../spec/faults.md)); concurrency
+([concurrency.md](../../../spec/concurrency.md)); the metadata charset
+conversion of harbor's ICY metadata ([§4.3](#43-charset)).
+
+`output.shoutcast` is a standard-library wrapper: `output.icecast` with the
+ICY dialect and the stream id it is given. Everything below holds for both.
+
+**Compatibility.** What the source client sends a server (the request head,
+the authentication, the chunked framing, the update requests) is an
+external commitment and is kept byte for byte, except where a change
+improves compatibility with servers; each such change is stated where it is
+made. The body is the writer's stream: only its validity is binding.
+
+## 1. Formats and declarations
+
+1. At construction, the output asks the registry for a factory for its
+   format argument ([encoder.md §1](encoder.md#1-registry)). None: an
+   invalid-value error on the format argument.
+2. **Declarations** ([encoder.md §5.1](encoder.md#51-what-an-output-declares)):
+   its sinks are `fresh` and `live(L)`, with `L` the output's
+   `live_latency_bound` ([sink.md §1](sink.md#1-capabilities)); it serves no
+   reader that starts mid-stream. The server's listeners do start
+   mid-stream, but the server serves them with its own parser, chosen from
+   the content type (item 4).
+3. **Checks** ([encoder.md §5.3](encoder.md#53-the-check)), each an
+   invalid-value error on the format argument at evaluation:
+   - a configuration that needs a seekable destination is refused;
+   - a configuration that needs no byte sink is refused;
+   - a preamble the script set explicitly is refused, since the sink is
+     live (`%mp3(id3v2=…)`, an `%ffmpeg` mp3 container with `id3v2_version`
+     above 0 or `write_xing=1`). Left at its default, the writer drops it by
+     itself ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles),
+     item 5).
+
+   The output never rewrites the format to steer the writer.
+
+4. **Content type.** The `format` parameter (string, default `""`), when
+   non-empty, is the content type, sent verbatim. Empty: the format's `mime`
+   helper ([formats.md §9](formats.md#9-helpers)). When neither gives one,
+   the output fails at evaluation with an invalid-value error on `format`
+   that asks for one. Reason: the server chooses its parser, and players
+   their decoder, from the content type.
+5. **Metadata mode** (§4.1) is fixed at construction from
+   `send_icy_metadata`, the content type and the writer's declarations. It
+   never fails: a content type the output cannot classify defers to the
+   writer's declaration.
+
+## 2. The sink
+
+The sink is one connection to the server. A new sink, with a new
+connection, serves each writer (§3).
+
+### 2.1 What the sink owns
+
+- **Address.** The host name is resolved on work allowed to block. Every
+  address it resolves to is tried in turn, in the order of the output's
+  address-family preference (its parameter, else the global setting), each
+  bounded by the connection timeout; an address that refuses falls through
+  to the next at once. A malformed address (a port out of range, an empty
+  host) is a configuration error, reported at evaluation when the value is
+  known then, else as a hard error at the first attempt.
+- **Transport.** Plain TCP or TLS, as the transport parameter says. Every
+  connect, handshake, read and write is bounded: the connection timeout
+  for everything up to the end of the handshake, the write timeout
+  (`timeout`, default 30 s) for each write and for each answer awaited.
+  The bound holds on every supported platform and transport: a black-holed
+  address returns within the connection timeout, a refusing port at once,
+  a TLS handshake with a server that does not speak TLS within the
+  connection timeout.
+- **Dialect** (§2.3, §2.4): the request head, the authentication, the
+  framing of the body.
+- **Identity**: the stream's name, description, genre, URL and public flag,
+  sent in the head. Each text is converted to the output's charset (§4.3)
+  before it is sent; a value containing a line break is not sent, and the
+  output logs it once at `severe`.
+- **Dump.** When `dumpfile` is set, the bytes the connection delivers to the
+  server are also written to that file, opened with truncation when the
+  connection opens and closed when it closes. A failure of the dump is
+  logged at `severe` once per connection, the dump is closed, and the
+  stream goes on.
+
+### 2.2 Bounds
+
+The connection holds what the writer gives it while it opens, and what the
+server has not yet taken ([sink.md §3](sink.md#3-never-blocking-the-streaming-thread)):
+
+| Parameter      | Value for this output                  | Protects                                                |
+| -------------- | -------------------------------------- | ------------------------------------------------------- |
+| `open_hold`    | the connection timeout, in stream time | Memory, while the connection and its handshake are made |
+| `sink_backlog` | `timeout`, in stream time              | Memory, and the age of what a slow server receives      |
+
+Past either, the connection has failed (§8). The sink confirms `fresh` and
+`live(L)` when it opens; nothing in a connection changes them.
+
+### 2.3 HTTP dialect
+
+`protocol="http"` (the default); `method` is `source`, `put` or `post`.
+
+- Request line `<VERB> <mount> HTTP/1.0`, or `HTTP/1.1` when `chunked` is
+  true.
+- Then `Host`, `Authorization: Basic` (user `source` unless given), the
+  `ice-*` identity and stream-property headers (§2.5), `User-Agent`, the
+  script's extra `headers`, `Content-Type` (§1 item 4),
+  `Transfer-Encoding: chunked` when chunked, and `Expect: 100-continue` for
+  `put`; then an empty line.
+- An answer `2xx` (or `100` for `put`) opens the connection; any other
+  answer is a refusal (§8).
+- **Body.** Not chunked: the writer's bytes, as they are. Chunked: each
+  range of bytes handed to the socket is one chunk,
+  `<hex length>\r\n<bytes>\r\n`, and a clean close (§6) writes `0\r\n\r\n`
+  after the final bytes.
+
+### 2.4 ICY dialect
+
+`protocol="icy"`, used by `output.shoutcast`.
+
+- The connection is made to `port + 1`. The client writes
+  `[user:]password[:#sid]\r\n` (`:#sid` only when the stream id `icy_id` is
+  not 1), expects a line starting `OK`, reads an optional `icy-caps:1`
+  line, then writes the `icy-*` identity and stream-property headers and
+  `content-type`, each as `name:value` with no space after the colon, and
+  an empty line.
+- **Body**: the writer's bytes, as they are.
+
+### 2.5 Stream properties
+
+The head carries the stream's properties (`ice-audio-info` over HTTP, the
+matching `icy-*` headers over ICY): `bitrate`, `quality`, `samplerate`,
+`channels`. The head is sent once per connection and cannot be amended, so
+the writer is built before the head is sent (§3), and each property is read
+then:
+
+- `bitrate` is the writer's `bitrate` property, in kbit/s. When the
+  configuration fixes the bit rate, the writer knows it from its creation
+  ([encoder.md §3.8](encoder.md#38-bitrate)), whatever its kind: a `%ffmpeg`
+  format with an explicit `b` announces it as `%mp3(bitrate=…)` does.
+- `samplerate` and `channels` are those of the configuration's encoded
+  audio; `quality` is the configuration's variable-bit-rate quality or
+  compression level where it has one.
+- A property unknown at that moment is left out of the head, never sent as
+  a placeholder.
+
+### 2.6 Bytes delivered
+
+The connection delivers exactly the bytes the writer wrote, in order: for
+every range handed to it, whatever its position in the writer's buffer, the
+same bytes reach the socket, the chunk framing and the dump, and a chunk's
+length is the length of the range it frames. Nothing is added to the body
+but the chunk framing; no ICY block is interleaved (ICY blocks are the
+server's, towards its listeners).
+
+## 3. Writer lifetime
+
+**One writer per connection** ([encoder.md §2.1](encoder.md#21-one-writer-per-destination-stream)).
+A connection carries one stream, from its writer's first byte; a new
+connection gets a new writer and starts with its full header, so that every
+connection's body decodes alone.
+
+- **When.** The output connects lazily: the first piece the output receives
+  while started, holding no connection and not waiting to retry (§7),
+  starts an attempt. At that piece the output builds the writer, starts
+  opening the sink on work allowed to block, and writes the piece into the
+  sink, which holds it until the connection opens. No piece is lost to the
+  connection being made. Reason: a source that fails at once opens no
+  connection, and the first bytes of a stream are its header.
+- **Initial metadata**: [output-encoded.md §3.2](output-encoded.md#32-initial-metadata).
+  The sink is live, so the writer writes it as tags only where it is the
+  in-band channel (Ogg comment headers in the in-band mode, §4.1); cover
+  art never reaches the writer
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 7).
+- **Ended** when the connection ends: cleanly at the output's stop (§6),
+  abandoned when the connection or the writer fails (§8).
+- A writer ended before its first piece writes nothing, and its sink opens
+  no connection.
+- Between a failure and the end of the retry wait there is no writer: the
+  pieces received are dropped and counted in stream time, and the next
+  connection logs the stream time dropped at `important`. Metadata received
+  then becomes the current metadata
+  ([output-encoded.md §3.1](output-encoded.md#31-current-metadata)).
+
+## 4. Pieces and metadata
+
+The output hands its writer each piece with its metadata first
+([output.md §3](../../outputs/spec/output.md#3-a-streaming-cycle)), in
+every metadata mode: an out-of-band update does not need the connection to
+be open when it is handed over (§4.2).
+
+### 4.1 Mode
+
+| `send_icy_metadata` | Mode                                                                                                                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `true`              | out of band: each metadata is sent to the server (§4.2); the writer is never offered it                                                                                                                         |
+| `false`             | in band where the writer offers it ([encoder.md §9](encoder.md#9-in-band-metadata)); no update is ever sent to the server                                                                                       |
+| null (default)      | `true` for `audio/mpeg`, `audio/aac`, `audio/flac` and `audio/wav`; `false` for `application/ogg`, `audio/ogg` and `video/ogg`; for any other content type, in band when the writer offers it, else out of band |
+
+With `false` and a writer that offers no in-band metadata, a metadata change
+reaches the server only as the initial metadata of the next connection's
+writer; the output logs that once, at `info`, when it starts.
+
+### 4.2 Out-of-band updates
+
+- **What.** The metadata is filtered to the keys of `icy_metadata`, each
+  value converted to the output's charset (§4.3). When no `song` key
+  results, `icy_song` adds one from the result (by default
+  `artist - title`, or whichever of the two is set). Empty values are left
+  out. An update with no key left is not sent.
+- **When.** An update belongs to the connection whose stream carries the
+  piece it labels. It is sent once every byte written before it has been
+  handed to the socket, and before any later update; bytes written after it
+  keep flowing meanwhile ([sink.md §5](sink.md#5-out-of-band-metadata)). An
+  update handed over while the connection opens is sent once it is open,
+  after the bytes before it.
+- **On a new connection.** When `send_last_metadata_on_connect` (default
+  true) holds and the output has a current metadata from before the
+  connection's first piece, that metadata is the connection's first update.
+  Metadata handed with or after the first piece is always sent.
+- **Bounded.** An update never runs on the streaming thread. At most one
+  update per output is in flight; it is bounded by the connection timeout
+  for its connection and by `timeout` for its answer. A newer update that
+  arrives while another waits to be sent replaces it. Reason: an update to
+  a slow or unreachable endpoint must not delay the stream, and the server
+  needs the current value, not the history.
+- **HTTP.** A new connection to the same host and port, sending
+  `GET /admin/metadata?mode=updinfo&mount=<mount>&charset=<charset>&<k>=<v>… HTTP/1.0`
+  with `Host` and the source connection's headers (identity,
+  `Authorization`, `User-Agent`, extra headers). Keys and values are
+  URL-encoded. A `200` answer is success.
+- **ICY.** `GET /admin.cgi?mode=updinfo&pass=<password>&<k>=<v>…[&sid=<n>] HTTP/1.0`
+  with `User-Agent: <agent> (Mozilla compatible)`; `sid` when the stream id
+  is not 1. Sent only when the server announced `icy-caps:1` at the
+  handshake; otherwise no update is attempted on that connection, which is
+  logged once at `info` when the first update is due.
+- **Failure.** An update that fails, or whose answer is not a success, is
+  logged at `severe` as possibly not applied (some servers apply an update
+  and answer nothing), at most once per `fault_log_interval` with a count
+  ([faults.md §4](../../../spec/faults.md#4-item-faults-escalate)), and is
+  not escalated: the source connection stays up
+  ([sink.md §7](sink.md#7-faults)). The first update of a connection fails
+  the same way.
+
+### 4.3 Charset
+
+This section owns the charset rule of the source client and of harbor's
+ICY metadata. Metadata values and identity texts are converted, value by
+value, to the charset named by `encoding` (UTF-8 when empty). A value's own
+charset is auto-detected; a value detected as binary is left unchanged; keys
+are not converted. A character the target charset cannot represent is
+replaced by `?`, logged once per value at `info`. The HTTP update names the
+target charset in its `charset` argument.
+
+### 4.4 In band
+
+In the in-band mode the output calls the writer's `metadata` before the
+piece the metadata labels; for native `%ogg` this starts a new link in the
+same body ([encoder.md §9](encoder.md#9-in-band-metadata)). A metadata
+received while there is no writer becomes the current metadata, carried by
+the next writer's initial metadata.
+
+## 5. Markers and readers
+
+The sink serves one reader, the server, from byte 0. It ignores stream
+starts and access points, and uses `end` to close (§6). It does not use the
+shared stream.
+
+## 6. End
+
+- **Clean end.** At the output's stop, a reset, or the final stop
+  ([output.md §2](../../outputs/spec/output.md#2-states)), the writer is
+  ended `clean` and its final bytes go to the server: the end-of-stream
+  pages of an Ogg body, a container's trailer, the codec's held audio. The
+  connection delivers them ([sink.md §4](sink.md#4-markers-and-the-end)),
+  then the chunk terminator when chunked, then closes. Delivery after `end`
+  is bounded by `final_delivery_bound`, 2 s for this sink
+  ([sink.md §4](sink.md#4-markers-and-the-end)); past it, the connection
+  closes without the rest, logged at `severe`.
+- **Abandoned end.** When the connection has failed, the writer is ended
+  `abandoned` and the connection closes without waiting for a byte. When
+  the writer has failed and the connection is up, the bytes the writer
+  wrote before the fault are delivered within `final_delivery_bound`, with
+  no chunk terminator, then the connection closes.
+- **Teardown** completes whatever step fails
+  ([sink.md §7](sink.md#7-faults)). Its order: the output's state becomes
+  disconnected; the writer is ended; the final bytes and the terminator are
+  delivered (clean end only); the socket and the dump are closed; the
+  `on_disconnect` callbacks run. A step that fails is logged at `severe`
+  and the next step runs. Every descriptor, buffer and pending update of
+  the connection is released exactly once; nothing the output holds grows
+  with the number of connections or failed attempts.
+- **Callbacks.** `on_connect` runs once per connection, after its handshake
+  succeeded; `on_disconnect` runs exactly once for each connection that ran
+  `on_connect`, after it is closed. A failed attempt runs neither.
+
+## 7. Reopen, reconnect, append
+
+- Every connection is a new destination stream with a new writer (§3).
+  The stream between a failure and the next connection does not exist; it
+  is counted and logged (§3).
+- **Retry wait.** After a failure, the restart policy (§8) gives a delay
+  `d`. The retry time is `d` after the failure, on a monotonic clock; the
+  first piece received at or after it starts the next attempt (§3). The
+  wait observed is `d` to within one streaming cycle.
+- **Reset, or stop then start.** A new connection is not opened before the
+  previous one has closed (§6), so that the server has released the mount:
+  the next attempt's open waits for that close, and the new writer's pieces
+  are held meanwhile under `open_hold`.
+- **Append.** Nothing.
+
+## 8. Faults and restart policy
+
+| Fault                                                                                                                       | Class               | Outcome                                                                  |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------ |
+| no factory; no content type; a refused declaration or explicit setting (§1)                                                 | configuration error | the script fails at evaluation                                           |
+| a malformed address                                                                                                         | configuration error | at evaluation when known then, else a hard error at the first attempt    |
+| the writer's creation refuses the configuration ([encoder.md §8](encoder.md#8-faults))                                      | configuration error | hard error, naming the output, the parameter and the format's position   |
+| the writer's creation fails for a cause that can clear                                                                      | output fault        | the policy                                                               |
+| the name does not resolve; every address refuses or times out; the TLS handshake fails                                      | output fault        | the policy                                                               |
+| the server refuses the source (an HTTP answer other than §2.3's: `401`, `403`, a mount in use; an ICY line other than `OK`) | output fault        | the policy                                                               |
+| `open_hold` or `sink_backlog` exceeded; a write fails                                                                       | output fault        | the writer is ended abandoned; the policy                                |
+| an item fault of the writer                                                                                                 | item fault          | dropped and counted by the writer ([encoder.md §8](encoder.md#8-faults)) |
+| an output fault of the writer (its own failure, a run of item faults past the bound)                                        | output fault        | the writer is ended abandoned, the connection closes; the policy         |
+| an out-of-band update fails                                                                                                 | not escalated       | §4.2                                                                     |
+| delivering the final bytes or the terminator, closing, the dump                                                             | not escalated       | logged at `severe`; teardown completes (§6)                              |
+
+**The policy.** Every output fault, whatever layer raised it, reaches the
+policy exactly once per attempt, logged at `severe` with the cause. The
+policy is the script's `on_error` handler, given the error; it may call
+`restart_in(d)`:
+
+| Call                     | Outcome                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| none                     | retry after `retry_delay`                                                                                     |
+| `restart_in(d)`, `d ≥ 0` | retry after `d` seconds, logged at `important`                                                                |
+| `restart_in(null)`       | the output gives up: it stops itself (its `on_stop` callbacks run) and stays stopped until `start()`          |
+| `restart_in(d)`, `d < 0` | the output fails under the clock's source error rule ([output.md §6](../../outputs/spec/output.md#6-failure)) |
+
+| Parameter     | Recommended | Protects                                            |
+| ------------- | ----------- | --------------------------------------------------- |
+| `retry_delay` | 3 s         | The server and the log, against a reconnection loop |
+
+A raising `on_error` handler is logged at `severe` with its backtrace and
+counts as no call ([faults.md §0](../../../spec/faults.md#0-the-rule)).
+Whether the output is connected, waiting to retry or has given up is
+visible to the script at every moment, and is the sink's actual state.
+
+**Liveness.** A server drops a source that sends nothing for its source
+timeout. The writer writes at least once per `L`
+([encoder.md §3.9](encoder.md#39-live-latency-bound)) and the sink delivers
+what it holds without waiting for more, so digital silence keeps the source
+connected whatever the codec. `live_latency_bound` MUST stay well below the
+servers' source timeouts (Icecast's default is 10 s). A source that becomes
+unavailable stops a fallible output
+([output.md §2](../../outputs/spec/output.md#2-states)), which closes its
+connection cleanly; a script that wants the connection kept through a gap
+keeps its source available (`mksafe`, `fallback`).
+
+## 9. Concurrency
+
+- **Streaming work** ([encoder.md §7](encoder.md#7-concurrency)): every call
+  on the writer (creation, `write`, `metadata`, `end`), handing bytes and
+  out-of-band updates to the sink, and the decisions of §3 and §7. None of
+  it waits for the network, a name server, a disk or a callback.
+- **Sink work**, allowed to block: resolution, connect, TLS, handshake,
+  writes (or fast I/O on a non-blocking socket), the dump, the out-of-band
+  updates, the delivery of the final bytes and the close.
+- **User code** (`on_connect`, `on_disconnect`, `on_error`, `icy_song`) runs
+  as work allowed to block, never under a lock the streaming work takes
+  ([concurrency.md §1](../../../spec/concurrency.md#1-work)). The policy's
+  answer reaches the streaming work as a request.
+- **Requests** from other threads (`start`, `stop`, `shutdown`) are carried
+  out by the streaming work between pieces
+  ([encoder.md §7](encoder.md#7-concurrency), item 2).
+- **Isolation.** A server that stalls, refuses or answers slowly costs its
+  own output only: another output on the same clock keeps its real-time
+  rate, and the scheduler's other work runs within its deadlines, whatever
+  the number of stalled source clients.
+
+## 10. Tests
+
+A harness needs a recording fake server for each dialect (HTTP plain,
+HTTP chunked, ICY, each over TLS too) that records every connection's head
+and body and every update request, and can refuse, stall, cut a connection,
+and answer an update late or never. Every check asserts the number of
+connections and requests it recorded, and fails when it recorded none.
+
+- **Fresh stream per connection.** `%vorbis`; the server cuts the connection
+  three times: each body starts with the identification header and decodes
+  alone; `on_connect` and `on_disconnect` pair one to one with connections.
+- **No lost first piece.** A source of known content: the samples decoded
+  from each connection's body equal those produced from that connection's
+  first piece on, with a server that accepts after 1 s included.
+- **Final bytes.** A clean stop while connected: the body ends with the
+  writer's final bytes (for Ogg, an end-of-stream page; when chunked,
+  followed by `0\r\n\r\n`), and the audio decoded equals the audio
+  produced. A server that stops reading at the stop: the output closes
+  within `final_delivery_bound`.
+- **Gap.** Metadata, `stop`, `start` and `restart_in` during a retry wait:
+  none raises; the next connection's first update (or first link) carries
+  the current metadata.
+- **Teardown.** For every dialect and transport, kill the server mid-write
+  and bring it back: the output reconnects after the delay, to within one
+  cycle. 10 000 attempts against a refusing port: descriptors and memory
+  stay flat, and the policy is reached once per attempt.
+- **Policy.** Refused, timeout, `401`, a write error, a writer output fault,
+  at the first connection and at a reconnection: each reaches `on_error`
+  once; `restart_in(0.5)` reconnects after 0.5 s, to within one cycle;
+  `restart_in(null)` stops the output, whose state then says so.
+- **Metadata placement.** Metadata at position 0 against a server that
+  accepts after 1 s: the first update follows the head and carries it. An
+  update endpoint that accepts and never answers: the body keeps its
+  real-time rate, and a burst of changes leaves at most one update in
+  flight. A metadata whose keys are all filtered out sends nothing. A
+  stream id of 2 is named in the connection and in the update.
+- **Charset.** Titles, names, genres and descriptions with multi-byte and
+  non-Latin-1 characters, under UTF-8 and ISO-8859-1: the recorded bytes are
+  in the declared charset; an unrepresentable character becomes `?`.
+- **Head.** For each dialect, the head byte for byte (with a fixed
+  `User-Agent`): a space after the colon over HTTP, none over ICY.
+  `%ffmpeg(format="mp3", %audio(codec="libmp3lame", b="128k"))` and
+  `%mp3(bitrate=128)` both announce a bitrate of 128.
+- **Byte ranges.** A writer double that hands the sink ranges at non-zero
+  offsets in its buffers: the body, the chunks and the dump hold exactly
+  the bytes written, chunked or not.
+- **Preambles.** `%mp3` and `%ffmpeg` mp3: the body starts with an MPEG
+  frame, no ID3v2 tag and no encoder-information frame;
+  `%mp3(id3v2=true)` and an explicit `write_xing=1` are refused at
+  evaluation.
+- **Silence.** Digital silence through every writer, against a server with
+  a 2 s source timeout, for 10 s: the source stays connected.
+- **Isolation.** Two source clients on one clock, one server stalled: the
+  other's body keeps its real-time rate.
+- **Content type.** For every format, the announced type is the `mime`
+  helper's or the override, and a late listener of a reference server
+  decodes.

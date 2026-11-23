@@ -1,5 +1,7 @@
 # Part B: the encoder seam in OCaml
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Maps [encoder.md](../encoder.md) and [formats.md](../formats.md) onto the
 code. Paths are relative to the repository root.
 
@@ -35,7 +37,7 @@ Frame.Metadata.Export.t -> encoder`. Partial application is used:
   `src/core/utils/lifecycle.ml:39`) raises `Plug.Incomplete`.
 - Registration order is the dune link order of the modules; it does not
   matter today because each plug-in matches one constructor (see the table in
-  [encoder.md §2.1](../encoder.md#21-registration)). Registration sites:
+  encoder.md §2.1 of the snapshot). Registration sites:
   `wav_encoder.ml:87`, `avi_encoder.ml:124`, `ndi_encoder.ml:43`,
   `external_encoder.ml:173`, `optionals/lame/liquidsoap_lame.ml:128`,
   `optionals/shine/liquidsoap_shine.ml:76`,

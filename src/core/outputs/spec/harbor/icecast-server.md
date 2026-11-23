@@ -69,7 +69,7 @@ What it relies on in the output, each stated by the harbor spec:
   appends to the `200` reply, and a refusal carries the headers it is to send
   ([connection.md §4](connection.md#4-admission-predicate)). The stream
   identity headers (`icy-*`) are among them: the server builds them per reply
-  from the mount's current feeder, so a listener joining after a feeder
+  from the mount's current feeder, so a listener connecting after a feeder
   reconnect gets the new identity. The output writes
   them as given. The server builds the final list (status filter, computed
   values, de-duplication), because it alone knows the request and the policy
@@ -96,17 +96,22 @@ second ([delivery.md §2](delivery.md#2-wake-ups)).
 
 ## 3. Content
 
-The encoder copies the source's encoded stream without re-encoding: mp3, AAC,
+The writer copies the source's encoded stream without re-encoding: mp3, AAC,
 Ogg (Opus, Vorbis, FLAC), or whatever container the source sent. A mount's
-source can change (a reconnect, a switch to the fallback), so the copy encoder
+source can change (a reconnect, a switch to the fallback), so the copy writer
 sees a new source mid-stream; how it switches is owned by the FFmpeg spec
 ([encoder-copy.md §12](../../../optionals/ffmpeg/spec/encoder-copy.md#12-source-switching-and-per-source-state)).
 
-A late listener on a shared-encoder mount receives a decodable stream with the
-container's header first ([shared-encoder.md §2](shared-encoder.md#2-initial-bytes)).
-For Ogg the header comes from the copy encoder's container header, or from the
-current link's own header pages; the encoder contract requires the header to
-be complete ([contracts.md §4](contracts.md#4-encoder)).
+A late listener on a shared-encoder mount starts at a candidate and receives
+a decodable stream with its entry header first
+([shared-encoder.md §2](shared-encoder.md#2-initial-bytes)). The entry header
+is the header of the stream start the candidate belongs to, recorded from
+the writer's markers ([shared-stream.md §3](../shared-stream.md#3-starting-a-reader)).
+For Ogg each stream start is a new link, with its own header pages; every
+stream a writer writes starts with its complete header
+([contracts.md §4](contracts.md#4-encoder)). A feeder format that is not
+streamable is refused on a shared-encoder mount
+([mounts.md §3](../../../../libs/extra/spec/icecast-server/mounts.md#3-the-format-match-rule)).
 
 ICY metadata is not offered on Ogg mounts ([icy.md §1](icy.md#1-negotiation)),
 as on Icecast.

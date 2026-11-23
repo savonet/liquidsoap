@@ -1,231 +1,346 @@
-# `%external` encoder (as built)
+# `%external`
 
-What the external-process encoder does today: it spawns a shell command,
-writes raw PCM (with a WAV header) or raw AVI to its stdin, collects
-whatever the process writes to stdout on a scheduler thread, and hands
-those bytes back on the next `encode`. The shared seam is
-[encoder.md](encoder.md). The WAV and AVI bytes it writes to the process
-are owned by [wav.md](wav.md) and [avi.md](avi.md). The process runner it
-uses (spawn, pipes, control channel, restarts) is described here only as far
-as this encoder depends on it.
+Part A. The external writer: it runs a command as a child process, sends it
+the stream as WAV (audio only) or AVI (with video) on its standard input, and
+writes what the process prints on its standard output into the sink. This
+file owns `%external`'s parameter specification and the child process's
+lifecycle: start, input, output, restarts, end of output, stop and failure.
+It answers every section of
+[encoder.md §10](encoder.md#10-implementation-files) under the same number.
+
+It relies on: the seam ([encoder.md](encoder.md)); format values and their
+phases ([formats.md](formats.md)); sinks ([sink.md](sink.md)); the WAV and
+AVI streaming forms the process receives ([wav.md §6](wav.md#6-header-forms-and-preambles),
+[avi.md §6](avi.md#6-header-forms-and-preambles)); the fault classes
+([faults.md](../../../spec/faults.md)); concurrency
+([concurrency.md](../../../spec/concurrency.md)).
+
+**The process is a black box.** The writer does not know the format, the
+framing, the header or the latency of what the process prints. Every rule
+below follows from that.
 
 ## 1. Format and options
 
-Syntax: `%external(...)`. Parameters, last one wins:
+`%external(...)`. Parameters, folded in order, last one wins
+([formats.md §3](formats.md#3-the-parameter-specification)):
 
-| Parameter                                            | Value          | Default                               | Effect                                 |
-| ---------------------------------------------------- | -------------- | ------------------------------------- | -------------------------------------- |
-| `process="cmd"` or anonymous string                  | string         | — (required)                          | shell command line                     |
-| `channels=n`, `mono`, `stereo`, `mono=b`, `stereo=b` | static         | 2 (hard-coded, issue #933)            | channels sent                          |
-| `samplerate=n`                                       | int            | `frame.audio.samplerate`, read lazily | rate sent                              |
-| `video=true`                                         | literal `true` | off                                   | send AVI with video                    |
-| `width=n`, `height=n`                                | int            | `frame.video.width/height`            | video size; **also turns video on**    |
-| `header=b`                                           | bool           | true                                  | WAV header to the process (audio only) |
-| `restart_on_crash=b`                                 | bool           | false                                 | respawn when the process ends          |
-| `restart_on_metadata` (anonymous)                    | —              |                                       | respawn on each `encode_metadata`      |
-| `restart_after_delay=n`                              | int            |                                       | parsed and printed, **no effect**      |
+| Parameter                                            | Value            | Default                                             | Effect                                                              |
+| ---------------------------------------------------- | ---------------- | --------------------------------------------------- | ------------------------------------------------------------------- |
+| `process="cmd"`, or an anonymous string              | non-empty string | required                                            | the command line, run by the system shell                           |
+| `mono`, `stereo`, `mono=b`, `stereo=b`, `channels=n` | literal          | 2 channels                                          | channel count, type-deciding ([formats.md §4](formats.md#4-typing)) |
+| `samplerate=n`                                       | int, 1 to 2³²−1  | `frame.audio.samplerate`, deferred                  | the rate sent to the process                                        |
+| `video=b`                                            | literal bool     | `false`                                             | with `true`, a video track and AVI input; type-deciding             |
+| `width=n`, `height=n`                                | int ≥ 1          | `frame.video.width`, `frame.video.height`, deferred | the picture size sent; only with `video=true`                       |
+| `header=b`                                           | bool             | `true`                                              | `false`: raw PCM input, no WAV header; only without video           |
+| `restart_on_crash=b`                                 | bool             | `false`                                             | a new process when the process ends unasked (§3)                    |
+| `restart_on_metadata` (anonymous)                    | —                | off                                                 | a new process at each metadata offer (§7)                           |
+| `streamable=b`                                       | bool             | `false`                                             | `true` declares the process's output streamable (§2, §5)            |
 
-`restart_on_metadata` and `restart_after_delay` share one slot: the last
-given wins.
+- `restart_after_delay` is not a parameter: it is refused, naming it.
+  Migration: restart on a schedule from the output, with its
+  `reopen_when` predicate (a new writer, hence a new process, per reopen),
+  or use `restart_on_metadata`.
+- The type is `format(audio=pcm(<layout>))`, with `video=<default>` added
+  when `video=true`.
+- Errors, each at the phase of
+  [formats.md §7](formats.md#7-when-a-format-is-validated), with a position
+  ([formats.md §11](formats.md#11-errors)):
+  - no `process`, or an empty one: "`%external` needs a `process`";
+  - `width` or `height` without `video=true`, `header` with `video=true`:
+    the parameter has no effect in this configuration, and is refused
+    ([formats.md §3](formats.md#3-the-parameter-specification));
+  - a value out of range or of the wrong type, naming the parameter.
+- **No adaptable property.**
+- Helpers ([formats.md §9](formats.md#9-helpers)): extension, MIME, `codecs`
+  and `bitrate` are none. An output that needs a content type takes it from
+  its own parameter.
+- Printed with every option set, `restart_on_metadata` and `streamable`
+  only when set.
 
-Errors:
+Migration: `%external(video=false, …)` is accepted.
+`%external(width=…, …)` without `video=true`, which failed at start-up,
+fails `--check`. `%external(video=true, header=false, …)` is refused: remove
+`header`. `%external(restart_after_delay=…, …)` is refused (above).
 
-- no process: the exception `No_process` escapes as "Error -1: Exception
-  raised: External_encoder_format.No_process" (no position, no kind);
-- `video=false` (or any non-`true` value): "Invalid value false for value
-  mode. Only `true` or `false is allowed." at type computation, kind
-`encoder`; `video=false` is therefore unusable;
-- unknown parameters: "unknown parameter name … / Unknown encoder
-  parameter: …", kind `encoder`.
+## 2. Declarations
 
-Type: computed from the script's literal parameters: audio PCM with
-_channels_ channels, plus a default `video` track iff `video=true` is
-literally present. `width=`/`height=` without `video=true` give a
-script-level audio-only type but a value with video: the script passes
-`--check` and fails at start-up with a type error at an unknown position
-("a source without a `video` track is used where a source with one is
-expected").
+| Declaration        | Value                                           |
+| ------------------ | ----------------------------------------------- |
+| streamable         | no; yes with an explicit `streamable=true`      |
+| needs seekable     | no                                              |
+| can continue       | yes: the process's output is appended unchanged |
+| in-band metadata   | yes with `restart_on_metadata`, else no (§7)    |
+| segmentable        | no                                              |
+| needs no byte sink | no                                              |
+| accepts delegated  | no                                              |
 
-Printed as `%external(channels=2,samplerate=44100,video=false,header=true,restart_on_crash=false,,process=cat)`
-(the restart slot prints empty when unset, leaving `,,`).
-Extension: none (raises "not found"); MIME `application/octet-stream`; no
-bitrate; Icecast: no content type (the output must be given `format=`),
-info reports samplerate and channels.
+- Not streamable by default: the writer cannot name a position where a
+  reader starts, nor the header such a reader needs. A shared mount or an
+  SRT listener refuses `%external` at evaluation
+  ([encoder.md §5.3](encoder.md#53-the-check)); the message names the
+  dedicated mode and `streamable=true`. Migration: use a dedicated
+  encoder, a native or `%ffmpeg` format, or declare `streamable=true`.
+- `streamable=true` is the script's claim that a reader can start at any
+  byte boundary of the process's output with no entry header: true of a
+  self-synchronising format (MPEG audio, ADTS, MPEG-TS), whose decoders
+  find the next frame by its sync word. The writer then marks the access
+  points of §5, and the claim is never checked.
+- On a continuing sink the writer appends what the process prints; whether
+  the concatenation is valid depends on the process's format, which the
+  script chose. The output logs at `info` that it appends a process's
+  output.
+- No capability changes what the writer sends the process: its input is
+  always the streaming form of §4, whatever the sink.
 
-## 2. Factory and instance creation
+## 3. Creation
 
-The factory takes the output's name (used as the logger name, e.g.
-`output.file`) and ignores the initial metadata. Creating an instance:
+The process lifecycle, from the writer's creation to its end.
 
-1. computes the **input header** sent to each process: an AVI header
-   ([avi.md §6](avi.md#6-header)) with the format's size, channels and rate
-   if video is on (regardless of `header`); else a WAV header
-   ([wav.md §6](wav.md#6-header), 16 bits, placeholder sizes) if
-   `header=true`; else nothing;
-2. **spawns the process** at once (`/bin/sh -c cmd` with the current
-   environment; stdin, stdout and stderr are pipes), logs "Starting
-   process" at `important`, writes the input header to its stdin on the
-   caller's thread (blocking until fully written), then registers the
-   process task with the scheduler. On a respawn the header is written by
-   the scheduler thread that respawns;
-3. creates a rate converter (audio-only path) and an empty output buffer.
+`process_exit_bound` is the process sink's
+([output-pipe.md](output-pipe.md#the-process-sink), rule 5): it bounds the
+wait for each process this writer starts as it bounds that sink's.
 
-A spawn failure raises out of the factory.
+**Start.** Creation, after every check of the configuration:
 
-## 3. `encode`
+1. starts the command with the system shell (`/bin/sh -c` on POSIX), the
+   output's environment and working directory, with its standard input,
+   output and error connected to the writer;
+2. queues the process's input header (§4) as its first input;
+3. starts the writer's own work (§14).
 
-1. Converts the frame: with video, exactly as `%avi` encodes a frame
-   ([avi.md §3](avi.md#3-encode): `00db` chunk then `01wb` chunk; the AVI
-   header is not repeated here); otherwise resampled, interleaved
-   S16LE PCM of the frame's audio.
-2. Under the encoder's internal lock, writes all those bytes to the current
-   process's stdin, blocking until written.
-   - No process (it ended and was not restarted, or it ended and its
-     respawn has not run yet), or its stdin already closed for a restart:
-     the runner raises "finished". If `restart_on_crash` is set or a
-     metadata restart is still flagged, the frame's bytes are **dropped
-     silently**; otherwise "finished" escapes `encode`. The metadata flag
-     is cleared when the old process's end is handled, before the respawn
-     runs, so a frame that falls in that window escapes with "finished"
-     even under `restart_on_metadata`.
-   - A write error (e.g. EPIPE because the process exited and has not yet
-     been reaped) escapes `encode`, restart options or not.
-3. Returns **everything collected from stdout since the previous return**,
-   and empties the buffer. These bytes are not the encoding of this frame:
-   they are whatever the process has emitted so far, possibly nothing.
+Creation does not wait for the process. A process that cannot be started for
+lack of a resource (no process slot, no descriptor) is an output fault
+([encoder.md §8](encoder.md#8-faults)). A process that ends with the shell's
+"not found" or "not executable" status (127, 126) before it has printed
+anything is a configuration error, a hard error naming the command
+([faults.md §2](../../../spec/faults.md#2-classes)).
 
-On an escape from `encode`, the collected stdout bytes stay in the buffer:
-they are returned by a later `encode`/`stop` if any, else lost.
+**Process stream.** Each process the writer starts is one stream of the
+writer (§5). A **restart** ends the current process as a stop does (below),
+without ending the writer, and starts a new one as above, with its own input
+header. Restarts happen:
 
-## 4. `encode_into`
+| Cause                                         | When                                    | Input lost                                                                                     |
+| --------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| planned: a metadata offer (§7)                | at the next piece, before it is encoded | none                                                                                           |
+| `restart_on_crash`: the process ended unasked | as soon as the writer sees the end      | what the ended process received and did not answer; logged at `important` with the stream time |
+
+- On a planned restart, the new process is started at once and receives
+  every piece from the restart on; the old one gets its input closed and
+  ends as at a stop. Both MAY run at once.
+- Output order: the new process's output is written into the sink only after
+  the old one's output has ended (EOF, or the bound below). It is held
+  meanwhile.
+- After an unasked end, the new process is started no sooner than
+  `process_restart_delay` after the previous start. Pieces handed meanwhile
+  are queued for it, within `process_input_backlog`.
+- A process that ends unasked without having printed anything
+  `process_failed_starts` times in a row is an output fault, whatever
+  `restart_on_crash` says.
+
+**End of a process.** A process has ended when it has exited and been
+reaped. Its output has ended at end of file on its standard output, or
+`process_exit_bound` after it exited, whichever comes first. Reason: a child
+the process started can keep the output pipe open after the process exits.
+End of output, exit and "asked to stop" are three distinct events; the
+writer never takes one for another.
+
+**Stop of a process.** The writer closes the process's input, after every
+byte queued for it. Closing the input is the end-of-stream signal: the
+process is expected to print its tail and exit. If it has not exited
+`process_exit_bound` later, it is sent a termination request; if it still has
+not exited `process_exit_bound` after that, it is killed. Every byte it
+printed before its output ended is kept.
+
+**Unasked end.** A process that exits, or closes its standard input, while
+the writer did not ask it to stop:
+
+- every byte it printed is written into the sink, in order, before anything
+  else happens;
+- with `restart_on_crash`, it is a restart (above);
+- otherwise it is an output fault: the call that sees it writes the
+  process's remaining output, then reports the fault
+  ([encoder.md §8](encoder.md#8-faults)).
+
+A write to a process that closed its input (EPIPE) is how the writer may
+first see an unasked end: it never fails the program and never escapes as
+its own error.
+
+| Parameter               | Recommended                                                        | Protects                                                                  |
+| ----------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `process_input_backlog` | the output's write timeout, in stream time; 10 s where it has none | Memory, against a process that does not read its input                    |
+| `process_restart_delay` | 1 s                                                                | The CPU and the log, against a process that ends at once in a loop        |
+| `process_failed_starts` | 3                                                                  | The output's restart policy, against restarting a process that cannot run |
+
+## 4. Input
+
+- Without video: the piece's audio, converted to `samplerate` and to signed
+  16-bit PCM, in the WAV streaming form
+  ([wav.md §6](wav.md#6-header-forms-and-preambles)) with
+  `samplesize=16`: the WAV header first unless `header=false`, then sample
+  blocks.
+- With video: the AVI streaming form
+  ([avi.md §6](avi.md#6-header-forms-and-preambles)) at `width × height`,
+  `channels` and `samplerate`, chunks as [avi.md §4–§5](avi.md#4-input).
+- Each process receives its own complete input: its header, then the pieces
+  from its start. The input never depends on piece boundaries.
+- Input is written by the writer's own work (§14), behind a queue bounded by
+  `process_input_backlog`. A process that does not read its input past the
+  bound is an output fault. No call of the writer waits for the process.
+
+## 5. Bytes and markers
+
+- The bytes are those the process prints on its standard output, unchanged,
+  process after process, in order. The writer adds no byte.
+- `stream_start(unknown, t)` precedes the first byte of each process's
+  output, `t` being the media time of the first piece that process
+  received: the writer does not know the header's length
+  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 8).
+- Without `streamable=true`, no access point is marked. With it, an
+  `access_point(t)` precedes the bytes each call writes, `t` being the
+  media time of the first piece the process had received when it printed
+  them; the entry header is empty.
+- The bytes a call writes are those the process printed since the previous
+  call. They are not the encoding of the piece the call was given, and the
+  writer makes no claim about which piece they encode.
+- Bytes the process prints on its standard error are not part of the
+  stream: each line is logged at `debug` under the output's name.
+
+## 6. Header forms and preambles
+
+Nothing: the writer writes no header and no preamble of its own, on any
+sink, and rewrites nothing at its end. The process's input always has the
+streaming form (§4), since a process's input cannot seek.
+
+## 7. Metadata
+
+- Initial metadata: not used.
+- **Metadata never reaches the process.** No value of a metadata is sent to
+  it, in its input or otherwise.
+- In-band offer: with `restart_on_metadata`, the writer offers `metadata`
+  in the sense of [encoder.md §9](encoder.md#9-in-band-metadata), item 1:
+  `metadata(m)` records the offer, and the next piece goes to a new
+  process, whose output starts a new stream; `m`'s values never reach the
+  process. An offer that starts no new stream under encoder.md §9, item 3,
+  starts no process. Without `restart_on_metadata`, the writer does not
+  offer `metadata`.
+
+## 8. Delay and padding
+
+Nothing: unknown. `delay` and `padding` are none.
+
+## 9. End
+
+`end(clean)` runs as work allowed to block
+([encoder.md §3.6](encoder.md#36-draining-and-final-bytes)):
+
+1. drains the rate converter, and queues its samples for the process;
+2. stops the current process (§3), and any process still ending from a
+   planned restart;
+3. writes into the sink every byte each process printed until its output
+   ended, in stream order;
+4. writes `end`.
+
+It returns within `2 × process_exit_bound` plus the time to write the bytes,
+whatever the process does. A process that had already ended contributes the
+bytes it printed, and the end goes on.
+
+`end(abandoned)` closes the input, asks every process to terminate, kills
+it `process_exit_bound` later if it has not exited, discards its output and
+writes nothing.
+
+A writer ended without having been given a piece writes nothing, even if a
+process printed something.
+
+## 10. Properties
+
+`bitrate`, `delay` and `padding` are none.
+
+## 11. Live latency
+
+The process's own latency is not counted, as a codec's look-ahead is not
+([encoder.md §3.9](encoder.md#39-live-latency-bound)). What the process has
+printed is written by the writer's next call. Output of a new process held
+during a planned restart is held at most until the old process's output
+ends (§3).
+
+## 12. Segmenting face
+
+Nothing. `%external` is not segmentable (§2).
+
+## 13. Delegated destination
 
 Nothing.
 
-## 5. `encode_metadata`
+## 14. Concurrency
 
-The metadata content is ignored; it never reaches the process. With
-`restart_on_metadata`, the call marks "metadata restart" and asks the
-runner to stop the process (§9 describes the stop sequence); the respawn is
-§11. Without it, nothing.
+The writer's own work, all of it work allowed to block or fast I/O on
+non-blocking descriptors ([concurrency.md §1](../../../spec/concurrency.md#1-work)):
 
-## 6. `header`
+- writing each process's input queue;
+- reading each process's standard output into the writer's collected
+  output, and its standard error into the log;
+- watching each process's exit, and reaping it.
 
-Always empty. The encoder does not know the process's output format, so a
-late joiner gets no header.
+- Writing input and reading output are independent: neither waits for the
+  other, and the output is read whatever the state of the input. Reason: a
+  process that stops reading its input until its output is read would
+  otherwise stop both.
+- The collected output, the process states and the restart in progress are
+  shared between this work and the writer's calls, under
+  [concurrency.md §3](../../../spec/concurrency.md#3-shared-state). The work
+  never writes into the sink ([encoder.md §7](encoder.md#7-concurrency),
+  item 4).
+- Every pipe and every process is released exactly once, a process ending
+  during a restart included; no process is left unreaped.
+- Nothing is shared with other writers.
 
-## 7. `restart_offset`
+## 15. Faults
 
-Always "none", including after a process restart, although the bytes of a
-new process start a new stream with its own header.
+| Fault                                                                  | Class                                                                         |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| a parameter rejected (§1)                                              | configuration error                                                           |
+| the command not found or not executable (status 127 or 126, no output) | configuration error, a hard error (§3)                                        |
+| a process cannot be started for lack of a resource                     | output fault                                                                  |
+| an unasked end without `restart_on_crash`                              | output fault, after its output is written                                     |
+| `process_failed_starts` unasked ends without output in a row           | output fault                                                                  |
+| the input backlog past `process_input_backlog`                         | output fault                                                                  |
+| an unasked end with `restart_on_crash`                                 | none: a restart, logged at `important`                                        |
+| a process exiting non-zero or on a signal                              | logged at `severe` with the command and the status; classed by the rows above |
+| a process that does not exit at a stop within its bounds               | not escalated: terminated, then killed, logged at `severe`                    |
 
-## 8. `bitrate`
+## 16. Tests
 
-"none".
+With process doubles:
 
-## 9. `stop`
-
-Under the internal lock: mark "stopping", ask the runner to stop the
-process, then wait on a condition (single wait, no predicate loop) until
-either the stdout reader reads end-of-file while stopping, or the process
-end is reported. Then return and empty the output buffer.
-
-The runner's stop sequence: a "stop" byte on its control pipe; the
-scheduler task reading it closes the process's stdin ("Closing process's
-stdin", `important`); the process is expected to flush and exit; a waiter
-thread reaps it and signals "done"; the scheduler drains stdout and stderr
-to end-of-file through the normal callbacks, closes the pipes, logs "Process
-exited with code N" (`important`) and calls the restart decision, which
-answers "no restart" because "stopping" is set ("Cleaning up process").
-
-If the process ignores the closed stdin and never exits or closes stdout,
-`stop` never returns. If there is no process any more (ended without
-restart), the runner raises "finished" out of `stop`. A second `stop` does
-the same.
-
-## 10. Bytes produced
-
-The concatenation of the stdout bytes of every process spawned by the
-instance, in order, as collected. Nothing is added by the encoder.
-
-Observed (real binary):
-
-- `process="cat"`: the output is the input: a 44-byte WAV header with
-  placeholder sizes, then PCM. 2.02 s of stereo 44.1 kHz gave 356 372 bytes
-  = 44 + 101 frames × 3528: no byte lost at stop.
-- `restart_on_metadata`, metadata every 0.5 s, `sh -c 'printf START; exec
-cat'`: four `START` + WAV header + PCM segments in one file (one per
-  process). Each restart loses about 80 ms of audio (frames encoded while
-  the old stdin is closed and before the new process exists are dropped):
-  1.8 s of PCM for 2.06 s of input.
-- `restart_on_crash=true`, `head -c 50000`: one 50 005-byte segment per
-  process, frames in between dropped; after a few restarts a write hit
-  EPIPE before the exit was seen, the error escaped `encode`, the clock
-  failed and the script exited with status 1.
-- `head -c 10000`, no restart: the process exits; the next `encode` raises
-  "finished", the clock fails (script exit 1), and only 2048 of the 10 000
-  bytes reach the file: the rest stayed in the buffer.
-
-## 11. Concurrency and failures
-
-Threads:
-
-- **Caller's thread** (the clock): `encode`, `encode_metadata`, `stop`;
-  `encode` blocks on stdin writes; `stop` blocks until the process ends.
-- **Scheduler threads**: the process task: writes the input header on
-  (re)start, reads stdout (up to 1024 bytes per wake-up, `LIQ_BUFLEN`),
-  reads stderr (each read of up to 1024 bytes logged as is at `debug`,
-  "stderr: …"), handles control
-  bytes, drains pipes at exit, decides restarts.
-- **One waiter thread per process**, reaping it.
-
-Locks: the seam's per-instance lock around every call; the encoder's
-internal lock around the stdin write in `encode`, around each stdout read
-and buffer append, around `encode_metadata`, and around `stop` (released
-while waiting). The stdin write and the stdout reader therefore exclude each
-other: while `encode` is blocked writing, no stdout is collected. A process
-that stops reading stdin until its stdout is drained would deadlock both;
-not observed with `cat` or a 20× expanding process at real-time rate.
-
-Restart decision when a process ends (exit, signal, or an exception in the
-runner): stopping → none; metadata restart pending → respawn after 0 s and
-clear the flag; else `restart_on_crash` → respawn after 0 s; else none.
-Exit status ≠ 0 and signals are logged at `important` (twice: once by the
-encoder, once by the runner). A respawn writes the input header again, so
-each process gets a full header.
-
-An exception raised by one of the encoder's callbacks inside the runner is
-logged ("Error while running process") and kills the process without
-restart.
-
-## 12. Segmenting (HLS) face
-
-Nothing (see [wav.md §12](wav.md#12-segmenting-hls-face)).
-
-## 13. Where the bytes go
-
-- **Two destinations.** The encoder writes I/O itself: to the process's
-  stdin, blocking the caller's thread. Its output bytes come from another
-  thread and are returned with a lag of one call: the bytes a caller gets
-  from `encode` are not the encoding of the frame it gave.
-- **The process input is unseekable**: placeholder sizes in the WAV/AVI
-  header it sends ([wav.md §13](wav.md#13-where-the-bytes-go)).
-- **One output stream per process**, concatenated. Restarts produce
-  chained streams (each with its own header) inside one byte stream, with
-  no `restart_offset` to tell the caller where; the caller cannot start a
-  new file there, and a late joiner gets no header.
-- **The tail exists only at `stop`.** Whatever the process flushes after
-  its stdin is closed comes back from `stop`, which blocks for it.
-- The encoder knows nothing about the output format, so MIME and
-  extension are unknown and the caller must be told.
-
-## 14. Tests
-
-- **An external encoder can be created and its output starts.**
-  (`tests/regression/external-encoder.liq`, `process="cat"`.) Binding: the
-  output reaches "started" with an external process. Incidental: `cat`,
-  the file name. It does not look at bytes, stop, or restarts.
-- **Untested:** bytes round-trip through the process; the tail returned by
-  `stop`; restart on metadata (and the frames it drops); restart on crash;
-  process exiting early; `video=true`; stderr logging. A harness needs a
-  scriptable process double (echo, expand, exit after N bytes, ignore EOF,
-  exit non-zero) and a way to observe blocking of `encode`/`stop`.
+- `cat`: the bytes written equal the WAV header and every sample, the tail
+  included after a clean stop.
+- A process that prints N bytes and exits, no restart: all N bytes reach the
+  sink, then the output's restart policy runs once; the clock goes on.
+- The same with `restart_on_crash`, repeated at a high rate: no fault
+  escapes, EPIPE included; each process's output is a stream start; the
+  stream time lost is logged.
+- A process that exits at once without output: after
+  `process_failed_starts` attempts, one output fault. A missing command: a
+  hard error naming it.
+- `restart_on_metadata` with a metadata every 0.5 s, through `cat`: every
+  input sample appears in exactly one process's output, and the output holds
+  one stream start per process, in order. Equal metadata twice: no restart.
+- `%external(restart_after_delay=1., process="cat")` fails `--check`,
+  naming the parameter.
+- `streamable=true` with a process printing ADTS, on a shared harbor mount:
+  accepted; a listener starting after 3 s decodes from its first byte.
+- A process that ignores its closed input: the stop returns within its
+  bound, and the process is gone. A process whose child keeps its output
+  open: the stop returns within `process_exit_bound`.
+- A process that stops reading its input until its output is read: no
+  stall, and the streaming thread's latency stays bounded.
+- A process that never reads: one output fault within
+  `process_input_backlog`.
+- `video=true`: the process receives a valid AVI stream; `%external(width=
+320, process="cat")` fails `--check`; `%external` without `process` fails
+  `--check` with a position.
+- A shared harbor mount given `%external` is refused at evaluation, naming
+  `streamable=true` and the dedicated mode.
+- `output.file(append=true)` given `%external`: accepted; the process's
+  output is appended unchanged.

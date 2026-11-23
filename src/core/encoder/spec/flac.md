@@ -1,177 +1,267 @@
-# `%flac` native FLAC encoder (as built)
+# `%flac`: native FLAC
 
-What the native FLAC encoder does today: a FLAC stream (`fLaC`, STREAMINFO,
-VORBIS_COMMENT, frames) written by libFLAC's stream encoder with no seek
-callback, so STREAMINFO is never completed. This file owns `%flac` (native
-container), the libFLAC calls, the bytes and the encoder's assumptions about
-their destination. `%ogg(%flac)` shares the option parser (§1) but is
-[ogg.md](ogg.md)'s. The shared seam is [encoder.md](encoder.md); the
-`%name(...)` language and typing are [formats.md](formats.md); draining is
-[draining.md](../../source/spec/draining.md). Measured with libFLAC 1.5.0.
+Part A. The writer of `%flac` alone: a native FLAC stream (`fLaC`, metadata
+blocks, frames) encoded by libFLAC. `%flac` inside `%ogg(...)` is an Ogg
+FLAC stream, owned by [ogg-flac.md](ogg-flac.md); the two share the options
+of §1. It answers [encoder.md §10](encoder.md#10-implementation-files)
+under the same numbers.
+
+Native FLAC is a file format with a valid streaming form: it is accepted on
+every output, shared mounts included. `%ogg(%flac)` is the usual form for
+streaming FLAC to players and servers, which know Ogg pages better than
+native FLAC frames.
+
+It relies on: the contract ([encoder.md](encoder.md)); format values
+([formats.md](formats.md)); sinks ([sink.md](sink.md)); draining
+([draining.md](../../source/spec/draining.md)); the fault classes
+([faults.md](../../../spec/faults.md)).
 
 ## 1. Format and options
 
-Syntax `%flac(...)`. Parameters in order, last wins (the same parser builds
-the Ogg/FLAC stream format):
+| Parameter                                                     | Value                                                                                                  | Default                          | Effect                                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------- |
+| `mono`, `stereo` (anonymous); `mono=`, `stereo=`, `channels=` | a channel count with a layout, 1 to 8, literal                                                         | 2                                | the stream's channels                                                           |
+| `samplerate`                                                  | int, 1 to 655 350 Hz                                                                                   | the frame's audio rate, deferred | the stream's rate                                                               |
+| `compression`                                                 | int 0..8                                                                                               | 5                                | the library's compression level                                                 |
+| `bits_per_sample`                                             | 8, 16, 24, 32                                                                                          | 16                               | the stream's sample size                                                        |
+| `bytes_per_page`                                              | refused on native `%flac`; accepted inside `%ogg` ([ogg-flac.md §1](ogg-flac.md#1-format-and-options)) | —                                | native FLAC has no pages: the error says to use `%ogg(%flac(bytes_per_page=…))` |
 
-| Parameter                                                       | Value         | Default                            | Validation at evaluation                              |
-| --------------------------------------------------------------- | ------------- | ---------------------------------- | ----------------------------------------------------- |
-| `stereo`/`mono` (anonymous), `stereo=b`, `mono=b`, `channels=n` | channel count | 2 (fixed, #933)                    | none (type level: 1, 2, 6 have a layout)              |
-| `samplerate=n`                                                  | int           | `frame.audio.samplerate`, deferred | none                                                  |
-| `compression=n`                                                 | 0..8          | 5                                  | "invalid compression value"                           |
-| `bits_per_sample=n`                                             | 8, 16, 24, 32 | 16                                 | "invalid bits_per_sample value"                       |
-| `bytes_per_page=n`                                              | int           | unset                              | none; stored, unused by the native encoder (Ogg only) |
+Checks, per [formats.md §7](formats.md#7-when-a-format-is-validated):
 
-Format helpers: extension `flac`; MIME `audio/flex` (sic); no codec string;
-no bit rate estimate (`Not_found`); printed
-`%flac(channels=N,bits_per_sample=N,samplerate=N,compression=N)`.
+| Check                                                                                                                     | Phase                                     |
+| ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| channel count                                                                                                             | type checking                             |
+| literal rate, compression, sample size; `bytes_per_page` on native FLAC                                                   | type checking                             |
+| the same, computed                                                                                                        | evaluation                                |
+| `bits_per_sample=32` against the library's version (32-bit encoding needs libFLAC 1.4 or later), read without side effect | evaluation                                |
+| a deferred rate                                                                                                           | start-up                                  |
+| the configuration against the library's own initialisation                                                                | creation; a refusal is a hard error (§15) |
 
-## 2. Factory and instance creation
+A 32-bit stream lies outside FLAC's streamable subset; the writer encodes
+it with the subset off and logs that once at `info`. Every other
+configuration stays within the subset.
 
-Ignores the name and `pos`; uses the initial metadata as Vorbis comments.
+Helpers: `extension` `flac`; `mime` `audio/flac`; `bitrate` none (lossless);
+`codecs` none (RFC 6381 names FLAC only inside an ISO base media file).
 
-1. Comments = the initial metadata (export form, see
-   [encoder.md](encoder.md)) as a list of (key, value).
-2. A sample-rate converter, frame rate → format rate (forced now).
-3. libFLAC stream encoder: channels, bits per sample, sample rate,
-   compression level; no total-samples estimate. A channel count ≤ 0 raises
-   `Flac.Encoder.Invalid_data`.
-4. One VORBIS_COMMENT metadata block with every comment appended in order.
-   A key or value libFLAC rejects raises `Flac.Encoder.Invalid_metadata`.
-   The vendor string is libFLAC's own.
-5. Initialise the stream with a write callback, a seek callback and a tell
-   callback. Seek and tell answer "unsupported" (none were given). The write
-   callback appends a copy of each libFLAC write to a byte buffer. The
-   status of initialisation is **not checked**.
-6. libFLAC writes `fLaC`, STREAMINFO and VORBIS_COMMENT during
-   initialisation: they sit in the buffer until the first `encode`.
+## 2. Declarations
 
-Invalid parameters libFLAC refuses (e.g. `samplerate=1000000`) make
-initialisation fail silently: every later call writes nothing, no error, no
-log; the output file is 0 bytes (checked).
+| Declaration        | Value                                                                    |
+| ------------------ | ------------------------------------------------------------------------ |
+| streamable         | yes: every frame is an access point, the header is the entry header (§5) |
+| needs seekable     | no                                                                       |
+| can continue       | yes: frames only (§6.3)                                                  |
+| in-band metadata   | no                                                                       |
+| segmentable        | no                                                                       |
+| needs no byte sink | no                                                                       |
+| accepts delegated  | no                                                                       |
 
-## 3. `encode`
+Adapted defaults: the header's form (§6) and the tags (§7). Native FLAC has
+no preamble, and no explicit parameter is refused against capabilities.
 
-- The piece's audio (0 to its position) is resampled and given to libFLAC
-  in one call, as integers: clip to [−1, 1], then `x × M` truncated, with
-  `M` = 127, 32 767, 8 388 607 or 2 147 483 647 for 8, 16, 24, 32 bits (NaN
-  not handled).
-- libFLAC buffers samples up to its block size (4096 at the default
-  compression level) and writes each completed frame through the callback.
-- The call returns and empties the byte buffer: the first call returns the
-  stream header plus any completed frames.
-- Return codes of libFLAC's process call are ignored.
+## 3. Creation
 
-## 4. `encode_into`
+- Inputs: the configuration, the confirmed capabilities, the initial
+  metadata (the comments, §7), the output's name and the format's position.
+- The library is configured with the channel count, sample size, rate and
+  compression level, and initialised before the writer is returned. Its
+  initialisation status is checked: a refusal is a hard configuration error
+  naming the output, the library's status and the format's position. No
+  configuration the library refuses yields an empty destination.
+- The form is chosen once, from the capabilities (§6).
+- The stream's header, produced by the library at initialisation, is held
+  and written with the first piece's bytes. Creation writes nothing into the
+  sink.
 
-Nothing.
+## 4. Input
 
-## 5. `encode_metadata`
+- The piece's audio is converted from the frame's rate to the stream's by
+  the writer's rate converter, a stage of
+  [draining.md §1](../../source/spec/draining.md#1-stages).
+- **Integer conversion**: samples become integers of `bits_per_sample` as
+  [encoder.md §3.3](encoder.md#33-frames-in) states; Ogg FLAC does the
+  same.
+- The library is handed every sample at once; it holds less than one block
+  between calls. No result depends on the piece boundaries
+  ([encoder.md §3.3](encoder.md#33-frames-in)): the decoded result is
+  bit-exact whatever the cut.
 
-Nothing: ignored. Comments are only the initial metadata.
-
-## 6. `header`
-
-Always empty (code comment: "Flac encoder do not support header for now. It
-will probably never do.."). The stream header is in the first `encode`
-bytes instead.
-
-## 7. `restart_offset`
-
-Always none.
-
-## 8. `bitrate`
-
-Always none.
-
-## 9. `stop`
-
-- Calls libFLAC's finish: it encodes the remaining partial block as a
-  shorter last frame and writes it, then returns the buffer.
-- libFLAC would then seek back to rewrite STREAMINFO (total samples, MD5,
-  min/max frame size); the seek callback answers "unsupported", so it does
-  not. Nothing else is written.
-- No input sample is lost at the frame rate: 66 150 samples in, 66 150
-  decoded (checked). When resampling, the converter's held samples are not
-  drained: 72 000 expected at 48 kHz, 71 979 decoded (21 lost, checked).
-
-## 10. Bytes produced
+## 5. Bytes and markers
 
 ```
 "fLaC"
-STREAMINFO block      (header 0x00, length 34)
-VORBIS_COMMENT block  (header 0x84: last block, type 4)
-FLAC frame × n        fixed block size, last one shorter
+STREAMINFO           block size, frame sizes, rate, channels, sample size, total samples, MD5
+VORBIS_COMMENT       ENCODER=, and the initial metadata as tags (§7)
+[PICTURE]            the cover, on a file sink only (§7)
+[SEEKTABLE]          optional, file form only (§6.1)
+FLAC frame × n       fixed block size, the last one shorter
 ```
 
-STREAMINFO as written: min and max block size = the encoder's block size;
-min and max frame size 0 (unknown); sample rate, channels, bits per
-sample; **total samples 0 (unknown)**; **MD5 all zero**. No PADDING,
-SEEKTABLE or other block.
+- The header is `fLaC` and every metadata block, the last one flagged
+  last. `stream_start(header_length, t₀)` is written with it, before its
+  first byte.
+- `access_point(t)` before every frame, at its frame start code; `t` is the media
+  time of the frame's first sample. Frames are found from their own start
+  code and header, never from the way the library hands its output over.
+- A reader starting at an access point is sent the header first (the entry
+  header): with it, every frame decodes alone.
+- Frame numbers count from the start of the stream the frames belong to
+  (§6.3 for an appended stream).
 
-Worked example (`%flac`, stereo, 44.1 kHz, 16-bit, no metadata):
+## 6. Header forms and preambles
 
-```
-00000000: 664c 6143 0000 0022 1000 1000 0000 0000  fLaC..."........
-00000010: 0000 0ac4 42f0 0000 0000 0000 0000 0000  ....B...........
-00000020: 0000 0000 0000 0000 0000 8400 0028 2000  .............( .
-00000030: 0000 7265 6665 7265 6e63 6520 6c69 6246  ..reference libF
-00000040: 4c41 4320 312e 352e 3020 3230 3235 3032  LAC 1.5.0 202502
-00000050: 3131 0000 0000 fff8 c918 00c2 0000 0000  11..............
-```
+### 6.1 File form
 
-- `00 00 00 22`: STREAMINFO, not last, 34 bytes. `10 00 10 00`: block size
-  4096/4096. `00 00 00 00 00 00`: frame sizes unknown. `0a c4 42 f0 00 00 00
-00`: 44 100 Hz, 2 channels, 16 bits, 0 total samples. 16 zero bytes: MD5.
-- `84 00 00 28`: VORBIS_COMMENT, last block, 40 bytes; vendor length 32
-  (little-endian), vendor string, comment count 0.
-- `ff f8 c9 18`: first frame, fixed block size, block size code 4096, rate
-  code 44.1 kHz, left/side, 16-bit.
+On a `seekable`, `fresh` sink:
 
-`metaflac --list` reports `total samples: 0`, `MD5 signature: 000…0`,
-`minimum framesize: 0 bytes`; ffprobe reports no duration (checked).
+1. the header is written in the streaming form (§6.2);
+2. a SEEKTABLE block MAY be reserved, with placeholder points;
+3. at a clean end, the writer seeks back and rewrites STREAMINFO with the
+   total sample count, the minimum and maximum frame sizes and the MD5
+   signature of the unencoded samples, and fills a reserved SEEKTABLE.
 
-With initial metadata (harbor dedicated encoder, title "Hé", artist "A"),
-the block holds `artist=A` and `title=Hé` (checked).
+A file whose writer was abandoned, or whose process died, keeps a valid
+streaming-form header.
 
-## 11. Concurrency and failures
+### 6.2 Streaming form
 
-- Serialised by the seam's lock; called from the output's streaming thread.
-  libFLAC runs with the OCaml runtime lock released; its write callback
-  re-acquires it, on the same thread, to append to the buffer.
-- Failures: `Invalid_data`, `Invalid_metadata`, `Out_of_memory` at creation
-  or in `encode`; every libFLAC status (init, process, finish) is ignored, so
-  an encoder libFLAC put in an error state produces no bytes, silently.
-- The libFLAC encoder is released by a garbage-collector finaliser.
+On every other fresh sink: STREAMINFO with a total sample count of 0, frame
+sizes of 0 and an MD5 of zeroes, the values FLAC defines as unknown. It is
+the stream's header and the entry header of its access points.
 
-## 12. Segmenting (HLS) face
+### 6.3 Continuing
 
-Nothing. No HLS plug-in accepts `%flac`.
+On a `continuing` sink, the writer writes frames only. It takes the
+existing stream to be of its own rate, channel count and sample size.
 
-## 13. Where the bytes go
+- Its frames carry frame numbers that continue the existing stream's, so
+  that the file is one stream whose numbering a reader can seek by. The
+  writer learns the existing stream's sample count from the existing
+  STREAMINFO, or, where that count is 0, from the last frame's header.
+  It reads them at creation from the existing stream's first and last bytes,
+  which the sink hands over when it opens
+  ([sink.md §2](sink.md#2-operations)); where the last frame lies beyond
+  them, the numbering starts from the STREAMINFO count, and where that is
+  0 too, the writer writes the stream's frames numbered from 0, logged at
+  `info` with the file's name.
+- At a clean end, the sink being seekable, the writer SHOULD rewrite the
+  existing STREAMINFO: the total sample count becomes the sum where the
+  existing count was known, and stays 0 otherwise; the frame and block size
+  bounds cover both streams where they were known; the MD5 signature becomes
+  zeroes (unknown), since the writer did not see the existing samples.
+- A STREAMINFO of another rate, channel count or sample size is left
+  unchanged, logged at `severe` with the file's name.
 
-- No I/O by the encoder; bytes are returned. The library could seek and
-  rewrite through callbacks, and the binding supports them (its own file
-  API passes seek and tell), but this encoder passes none: it assumes an
-  unseekable stream even when the destination is a regular file.
-- The stream needs its first bytes (`fLaC` + STREAMINFO) to be decoded as
-  FLAC, and they are only in the first `encode` result, not in `header`. A
-  late joiner of a shared harbor stream starts at a frame (`ff f8 …`)
-  without them (checked: a listener joining after 3 s). Its frames still
-  carry rate and bit depth in their headers.
-- Files written by `output.file` keep the incomplete STREAMINFO: no
-  duration, no MD5 check, no seeking help.
-- One stream per instance; the callers re-create the instance per file and
-  per connection, which re-emits the header.
+## 7. Metadata
 
-## 14. Tests
+- The VORBIS_COMMENT block, with the library's vendor string, carries the
+  `ENCODER=` entry on every sink
+  ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 8),
+  then, as tags under item 7, the initial metadata
+  ([encoder.md §2.2](encoder.md#22-creation)): on a file sink, one
+  `key=value` entry per exported entry, in order, and a cover as a
+  PICTURE block (type 3, front cover); on any other sink, nothing more,
+  `%flac` having no parameter that asks for tags. A key the comment syntax
+  cannot hold (an `=` or a byte outside 0x20–0x7D) is dropped with a
+  warning; the writer does not fail for it.
+- The writer offers no in-band metadata: native FLAC cannot start a new
+  stream inside a stream.
 
-| Test                                                                 | Invariant                                                                       | Binding                                                                                    | Incidental       |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------- |
-| `tests/media` generated encoder tests `%flac(stereo)`, `%flac(mono)` | 10 s of sine yields an audio file ffprobe reads with duration ≥ 10 s or packets | an audio stream exists, non-empty (duration is absent, so the packet count is what passes) | sine, 10 s       |
-| `tests/media` decoding test `%flac(mono)`                            | a file this encoder wrote decodes back                                          | decodable                                                                                  | content          |
-| `tests/regression/GH3316.liq`                                        | each file of a reopening `output.file(%flac)` is FLAC                           | ffprobe codec name `flac` for 3 files                                                      | timing of reopen |
+## 8. Delay and padding
 
-Nothing tests STREAMINFO, the comments, the header-in-first-`encode`
-placement, or silent initialisation failure. A harness needs a STREAMINFO
-parser and a finite source.
+- Delay 0 and padding 0: FLAC is lossless and its last frame is short.
+- The file form signals the exact total sample count (§6.1).
+- Each file of a split has its own writer and header; the concatenated
+  decode of the files equals the input sample for sample.
+
+## 9. End
+
+`end(clean)`, upstream first:
+
+1. the rate converter is told the input ended, and what it returns is
+   encoded;
+2. the library is finished: it encodes the last partial block as a shorter
+   frame, and its bytes are written;
+3. on a `seekable` sink, STREAMINFO (and a reserved SEEKTABLE) is rewritten
+   (§6.1), or the existing STREAMINFO updated on a continuing sink (§6.3);
+4. `end` is written.
+
+No input sample is lost, at the frame's rate or at another.
+
+A writer ended before any piece writes nothing, header included.
+`end(abandoned)` releases the library and the converter and writes nothing
+more. The library's encoder is released exactly once, at `end`.
+
+## 10. Properties
+
+| Property  | Value | Known         |
+| --------- | ----- | ------------- |
+| `bitrate` | none  | —             |
+| `delay`   | 0     | from creation |
+| `padding` | 0     | from creation |
+
+## 11. Live latency
+
+The library holds one block (4 096 samples at the default level, about
+93 ms at 44 100 Hz): a FLAC frame is its codec unit, not counted against
+`L` ([encoder.md §3.9](encoder.md#39-live-latency-bound)). Every frame is
+written when it completes, digital silence included.
+
+## 12. Segmenting face
+
+Nothing.
+
+## 13. Delegated destination
+
+Nothing.
+
+## 14. Concurrency
+
+No work of its own. The library hands its output to the writer during the
+writer's own call, on the same thread; that output is written into the sink
+before the call returns
+([encoder.md §3.2](encoder.md#32-order-of-a-calls-output)). One library
+encoder per writer; writers of several outputs run on several domains
+without coordination.
+
+## 15. Faults
+
+| Fault                                                           | Class               | When                                |
+| --------------------------------------------------------------- | ------------------- | ----------------------------------- |
+| a value out of range; `bytes_per_page` on native FLAC           | configuration error | type checking or evaluation         |
+| 32 bits with a library that cannot encode them                  | configuration error | evaluation                          |
+| a deferred rate out of range                                    | configuration error | start-up                            |
+| the library refuses its initialisation                          | configuration error | creation; hard error                |
+| the library reports an error while encoding, or memory runs out | output fault        | the writer becomes `failed`         |
+| finishing, or rewriting STREAMINFO, fails at a clean end        | not escalated       | logged at `severe`; the end goes on |
+
+Every library status is checked; none is ignored.
+
+## 16. Tests
+
+Harness: a STREAMINFO parser, a reference decoder with MD5 verification, a
+frame walker, a finite source of a known sample count.
+
+1. A file written to a seekable fresh sink: STREAMINFO's total equals the
+   input count, the MD5 verifies, the frame sizes bound the walker's; the
+   decode is bit-exact against 16-bit input, at 44 100 Hz and at 48 000 Hz
+   from a 44 100 Hz frame (the converter drained: 72 000 samples for 1.5 s).
+2. The same through a FIFO and a live output: total 0, MD5 zeroes; the
+   stream decodes.
+3. A writer abandoned after 1 s: the file decodes with its streaming-form
+   header.
+4. A shared harbor reader starting after 3 s receives the header, then
+   frames from a frame boundary, and decodes.
+5. Initial metadata `title="Hé", artist="A"` and a cover, to `output.file`:
+   the VORBIS_COMMENT block holds `ENCODER=` and both entries, and a
+   PICTURE block the cover; with none, the block holds `ENCODER=` alone.
+   The same to a shared harbor mount: `ENCODER=` alone, no PICTURE.
+6. One minute appended to a one-minute file: one header, frame numbers
+   continuous, total covering both minutes, MD5 zeroes; the decode is two
+   minutes.
+7. `%flac(samplerate=1000000)` and `%flac(bytes_per_page=500)` fail
+   `--check`; a configuration the library refuses fails at creation with
+   the library's status, never as an empty file.
+8. `encoder.content_type(%flac)` is `audio/flac`.
+9. Pieces of random lengths and offsets give a decode bit-exact with one
+   piece's.

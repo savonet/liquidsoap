@@ -1,171 +1,130 @@
 # Ogg Opus stream encoder
 
-Answers [ogg-streams.md](ogg-streams.md) for Opus (libopus through the
-vendored binding, which also builds the Ogg Opus headers, RFC 7845).
-Container behaviour is [ogg.md](ogg.md).
+Part A. Answers [ogg-streams.md](ogg-streams.md) for Opus, under the same
+numbers. Container rules are [ogg.md](ogg.md). The writer builds the Ogg
+Opus header packets itself, per RFC 7845; claims about it marked
+"(from memory)" are stated from memory.
 
 ## 1. Format and options
 
 `%opus(...)`, also `%ogg(%opus(...))`.
 
-| parameter         | values                                                                              | default                 | error                                                                 |
-| ----------------- | ----------------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------- |
-| `application`     | `"voip"`, `"audio"`, `"restricted_lowdelay"`                                        | unset (`audio` is used) | other strings: generic parameter error                                |
-| `complexity`      | int 0..10                                                                           | unset                   | `Opus complexity should be in 0..10`                                  |
-| `max_bandwidth`   | `"narrow_band"`, `"medium_band"`, `"wide_band"`, `"super_wide_band"`, `"full_band"` | unset                   |                                                                       |
-| `frame_size`      | float, one of 2.5, 5., 10., 20., 40., 60. (ms)                                      | 20.                     | `Opus frame size should be one of 2.5, 5., 10., 20., 40. or 60.`      |
-| `samplerate`      | 8000, 12000, 16000, 24000, 48000                                                    | 48000                   | `Opus samplerate should be one of 8000, 12000, 16000, 24000 or 48000` |
-| `bitrate`         | int kbps (×1000 must be in 500..512000), `"auto"`, `"max"`                          | `"auto"`                | `Opus bitrate should be in 5..512`                                    |
-| `channels`        | 1 or 2; also `stereo`, `mono`                                                       | 2                       | `only mono and stereo streams are supported for now`                  |
-| `vbr`             | `"none"` (CBR), `"constrained"`, `"unconstrained"`                                  | `"constrained"`         |                                                                       |
-| `signal`          | `"voice"`, `"music"`                                                                | unset                   | `"auto"` is not accepted                                              |
-| `dtx`             | bool                                                                                | false                   |                                                                       |
-| `phase_inversion` | bool                                                                                | true                    |                                                                       |
-| `bytes_per_page`  | int                                                                                 | none                    | no effect                                                             |
+| Parameter         | Values                                                                              | Default         |
+| ----------------- | ----------------------------------------------------------------------------------- | --------------- |
+| `application`     | `"voip"`, `"audio"`, `"restricted_lowdelay"`                                        | `"audio"`       |
+| `complexity`      | int 0..10                                                                           | the library's   |
+| `max_bandwidth`   | `"narrow_band"`, `"medium_band"`, `"wide_band"`, `"super_wide_band"`, `"full_band"` | the library's   |
+| `frame_size`      | ms, one of 2.5, 5, 10, 20, 40, 60                                                   | 20              |
+| `samplerate`      | 8000, 12000, 16000, 24000, 48000                                                    | 48000           |
+| `bitrate`         | int kbps in 1..512, `"auto"`, `"max"`                                               | `"auto"`        |
+| channels          | 1 or 2                                                                              | 2               |
+| `vbr`             | `"none"`, `"constrained"`, `"unconstrained"`                                        | `"constrained"` |
+| `signal`          | `"voice"`, `"music"`                                                                | the library's   |
+| `dtx`             | bool                                                                                | false           |
+| `phase_inversion` | bool                                                                                | true            |
+| `bytes_per_page`  | [ogg-streams.md §1](ogg-streams.md#1-format-and-options)                            | 4096            |
 
-Note: `bitrate=5` gives 5000 b/s, so the accepted integer range is 1..512
-(`bitrate=1` is 1000 ≥ 500), not 5..512 as the message says.
+- Each refusal names the parameter and the accepted values; the `bitrate`
+  message states 1..512.
+- Channels beyond 2 are a type error: the writer uses channel mapping family
+  0 only (RFC 7845, from memory).
+- Printed form: every set option, numbers unquoted, e.g.
+  `%opus(application="audio",vbr="constrained",bitrate="auto",channels=2,complexity=3,samplerate=48000,frame_size=20.,dtx=false,phase_inversion=true)`;
+  options at the library's default are omitted.
 
-Printed form (checked):
-`%opus(vbr="constrained",bitrate="auto",channels=2,complexity="3",signal="voice",samplerate=48000,frame_size=20.00,dtx=false,phase_inversion=true)`;
-`complexity` prints as a quoted string, which does not parse back.
+## 2. Configuration and library checks
 
-## 2. Instance creation
+- Codec rate: `samplerate`. Codec frame: `frame_size × samplerate / 1000`
+  samples. Every value is checked statically; libopus accepts every
+  combination of §1.
 
-Per instance: channel count, codec rate, resampler (frame rate → codec rate;
-with the default 48000 and a 44.1 kHz frame, every block is resampled).
+## 3. Creation
 
-Per link: a sample FIFO for the link, and, on the first callback, a libopus
-encoder `opus_encoder_create(rate, channels, application)` followed by these
-controls in order: bitrate (`auto`, `max` or the value), VBR off for
-`vbr="none"` else VBR on and VBR constraint on/off, complexity (if set), max
-bandwidth (if set), signal (if set), DTX, phase inversion disabled =
-not `phase_inversion`. The two header packets are built at the same time.
+Per link: a libopus encoder for the rate, channels and application, then
+the controls bitrate, VBR and its constraint, complexity, maximum bandwidth,
+signal, DTX and phase inversion, as set. The encoder's look-ahead is then
+queried from the library (§8).
 
-Codec frame size in samples: ⌊frame_size × rate / 1000⌋ (960 for 20 ms at
-48 kHz).
+## 4. Header packets
 
-## 3. Identification header (BOS page)
+1. `OpusHead` (RFC 7845 §5.1, from memory), 19 bytes, all fields
+   little-endian: magic `OpusHead`, version 1, channel count, pre-skip
+   (16 bits, 48 kHz samples, §8), input sample rate (32 bits: the frame's
+   audio rate, the rate of the samples the writer received), output gain 0,
+   channel mapping family 0.
+2. `OpusTags` (RFC 7845 §5.2, from memory): magic `OpusTags`, vendor string
+   (libopus's version string), comment count and comments
+   ([ogg-streams.md §5](ogg-streams.md#5-comments)), lengths and count 32-bit
+   little-endian.
 
-The `OpusHead` packet, 19 bytes, alone on a flushed page (47 bytes):
+## 5. Comments
 
-| offset | size | value                                           |
-| ------ | ---- | ----------------------------------------------- |
-| 0      | 8    | `OpusHead`                                      |
-| 8      | 1    | version 1                                       |
-| 9      | 1    | channel count                                   |
-| 10     | 2    | pre-skip, LE: **3840**, always                  |
-| 12     | 4    | input sample rate, LE: the codec rate parameter |
-| 16     | 2    | output gain, LE: 0                              |
-| 18     | 1    | channel mapping family 0                        |
+As [ogg-streams.md §5](ogg-streams.md#5-comments), in `OpusTags`.
 
-The pre-skip is the binding's default (3840 samples at 48 kHz, 80 ms), not
-the encoder's look-ahead, which libopus reports (312 samples at 48 kHz in the
-`audio` application) and which is never queried.
+## 6. Input
 
-Example (2 channels, 48 kHz):
-`4f707573 48656164 01 02 000f 80bb0000 0000 00`.
+Floats at the codec rate, stereo in L R order, clipped to [-1, 1]. Whole
+codec frames are encoded; the remainder waits for the next share.
 
-## 4. Skeleton fisbone
+## 7. Packets
 
-None: Opus answers no fisbone. With `%ogg(%opus,%theora)` the skeleton
-describes the Theora stream only.
+- One packet per codec frame, every packet libopus produces, those of one or
+  two bytes that DTX produces included (valid Opus packets, RFC 6716, from
+  memory).
+- Granule position (RFC 7845 §4, from memory): the count of 48 kHz samples
+  of every packet so far, this one included, pre-skip counted; at a codec
+  rate below 48 kHz, codec samples × 48000 / rate.
+- Times: end time = (granule position − pre-skip) / 48000.
 
-## 5. Secondary headers
+## 8. Delay and padding
 
-The `OpusTags` packet, flushed (one page unless the comments exceed a page):
+- Delay: pre-skip = the encoder's look-ahead as libopus reports it,
+  converted to 48 kHz samples. Never a constant. Reason: RFC 7845 has the
+  decoder discard exactly pre-skip samples (from memory); any larger value
+  discards real audio at the start of every link. Pre-skip is not the
+  decoder's seek pre-roll.
+- Padding: the final granule position is pre-skip plus the link's codec
+  sample count in 48 kHz samples; the decoder trims the rest of the last
+  packets (RFC 7845 end trimming, from memory).
+- `delay`: the look-ahead at the codec rate. `padding`: coded samples minus
+  look-ahead minus input samples, at the codec rate, known at the end.
 
-| field         | encoding                                                        |
-| ------------- | --------------------------------------------------------------- |
-| magic         | `OpusTags`                                                      |
-| vendor length | 32-bit LE                                                       |
-| vendor        | `ocaml-opus by the Savonet Team.` (31 bytes)                    |
-| comment count | 32-bit, host byte order (little-endian on every supported host) |
-| each comment  | 32-bit LE length, then `key=value`                              |
+## 9. End
 
-75-byte page with no comment. In the run of
-[ogg.md §10](ogg.md#worked-examples) made with `%ogg(%opus)`, the second
-link's packet carries `artist=x` then `title=second`.
+The remainder and the look-ahead are drained: silence is appended until the
+encoded frames cover the link's samples plus the look-ahead, and those frames
+are encoded. The last packet carries the final granule position of §8, which
+never exceeds the samples the packets decode to. The final page therefore
+holds at least one packet, and its granule position is above the previous
+page's.
 
-## 6. Comments
+## 10. Properties
 
-Every metadata pair as `key=value`, in the metadata's list order. No
-`ENCODER` tag, no vendor other than the binding's.
+`bitrate`: an integer `bitrate` × 1000 from creation; `"auto"` and `"max"`:
+none.
 
-## 7. Data input and conversion
+## 11. Page constraints
 
-Each block (at the codec rate) is appended to the link's FIFO. While the FIFO
-holds at least one codec frame, one frame is taken and encoded into one Opus
-packet (libopus float API, samples clipped to [-1, 1], at most 4000 bytes per
-packet). A packet of 1 byte or less (what DTX produces for silence) is not
-put in the stream and does not advance the granulepos. Samples short of a
-frame stay in the FIFO until the next block.
+Nothing beyond [ogg-streams.md §11](ogg-streams.md#11-page-constraints).
 
-## 8. Packets, granule positions and pages
+## 12. Concurrency
 
-Packet numbers start at 2. The granulepos of a packet is the total 48 kHz
-sample count of the packets put so far, including it:
-`n × frame_size × (48000 / rate)`, so the first audio packet has granulepos
-960 (20 ms) and no pre-skip is added. With DTX, dropped packets make the
-granulepos fall behind real time. Pages: libogg's default threshold (about
-4 KB; 16–17 packets at the default bitrate on a sine, e.g. pages ending at
-15360, 31680, 48000).
+The header packets are built in per-encoder memory; no buffer or table is
+shared between encoders.
 
-## 9. Page end time
+## 13. Faults
 
-granulepos / 48000, whatever the codec rate.
-
-## 10. End of stream
-
-1. If no block was given in the link, one silent sample, with the **frame's**
-   channel count, is appended to the FIFO; being shorter than a frame it
-   encodes nothing.
-2. Then the stream is terminated by the Ogg binding's generic terminator, not
-   by the Opus binding's own end-of-stream call: every pending page is
-   flushed, then an empty packet with the EOS flag and granulepos = last
-   packet's granulepos **+ 1** is put and paged out, and that page is rewritten
-   to have **no segment at all** (27 bytes: header only, segment count 0,
-   checksum recomputed). Its granulepos header field keeps last + 1.
-3. The samples left in the FIFO (less than one frame) are dropped, as are
-   the resampler's held samples.
-
-End and start trimming as built:
-
-- the decoder skips 3840 samples at the start of each link, of which only
-  the encoder's look-ahead is delay: 3528 samples (73.5 ms) of real audio
-  per link are lost at playback (checked: two links of 1.08 s and 1.5 s
-  encoded, 2.42 s decoded by FFmpeg);
-- the final granulepos is one sample beyond the last packet's end and the
-  encoder's look-ahead is not flushed, so the last ≤ 1 frame + 312 samples of
-  input are never heard.
-
-Example (the same `%ogg(%opus)` run, link 1):
-`#6 off=13953 len=27 gp=51841 flags=E nseg=0`.
-
-## 11. Page sizing
-
-libogg default threshold; `bytes_per_page` ignored (checked: 500 gives the
-same 4269-byte pages).
-
-## 12. Failures
-
-- libopus errors at creation or on a control: binding exception (`check`),
-  from the first callback of a link, i.e. registration (from `encode` or
-  `encode_metadata`);
-- libopus encode error: binding exception, from `encode`;
-- the empty-stream fallback with a frame channel count different from the
-  codec's: a content error from the FIFO, from `encode_metadata` or `stop`
-  (read only).
-
-## 13. Concurrency
-
-`opus_encode_float` runs with the OCaml runtime lock released. The
-`OpusHead` packet is written into one static 19-byte buffer shared by every
-encoder of the process, then copied; creating two Opus encoders at the same
-time in two domains races on it ([findings](findings/ogg.md)).
+- libopus refusing creation or a control for a configuration of §1: a
+  configuration error (none is expected).
+- An encode error on one frame: item fault.
 
 ## 14. Tests
 
-`tests/media` (mono, stereo: decodable), `tests/harbor/harbor_output_join_points.liq`
-(`opus.ogg`: links), `tests/harbor/icecast_server_ogg_late_listener.liq`.
-Pre-skip, trimming and DTX are untested.
+- A click at input sample `n`, after silence: decoded at sample `n` to within
+  one sample, for every `application` and every `samplerate`, in the first
+  link and after ten metadata changes.
+- Decoded length equals input length to within one sample per link.
+- Pre-skip equals the library's look-ahead at 48 kHz.
+- `dtx=true` on 10 s of silence then a click: granule positions advance with
+  media time and the click is at its input position.
+- Two encoders created at once on two domains produce correct headers.

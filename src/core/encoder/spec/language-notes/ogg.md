@@ -1,5 +1,7 @@
 # Ogg encoder: OCaml notes (Part B)
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Maps [ogg.md](../ogg.md), [ogg-streams.md](../ogg-streams.md) and the codec
 files onto the code. Not normative; the Part A files govern.
 

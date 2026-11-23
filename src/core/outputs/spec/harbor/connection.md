@@ -229,7 +229,7 @@ stop's last pass sees the listener, or the publication sees the stop
 
 Time to first byte is bounded by the admission steps and one delivery pass:
 the initial bytes are queued before publication and the publication wakes
-the group, so a joiner never waits for the next streaming cycle.
+the group, so a new listener never waits for the next streaming cycle.
 
 ## 7. Failure paths
 

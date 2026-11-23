@@ -1,130 +1,113 @@
 # Ogg FLAC stream encoder
 
-Answers [ogg-streams.md](ogg-streams.md) for FLAC in Ogg (libFLAC's own Ogg
-encoder through the vendored binding). Container behaviour is
-[ogg.md](ogg.md). The native `%flac` encoder is another tree's.
+Part A. Answers [ogg-streams.md](ogg-streams.md) for FLAC in Ogg, under the
+same numbers. Container rules are [ogg.md](ogg.md); the native FLAC writer is
+[flac.md](flac.md). Claims about the FLAC Ogg mapping marked "(from memory)"
+are stated from memory.
 
-Unlike the other codecs, libFLAC forms the Ogg pages of this logical stream
-itself, with its own libogg stream state and the serial the muxer chose. The
-muxer's libogg stream for that serial never receives a packet; it is only
-used for its serial and, at the end, marked ended so the muxer considers the
-track finished.
+The codec library encodes FLAC frames; the stream encoder takes them as
+packets and the muxer forms every page. The library's own Ogg layer is not
+used.
 
 ## 1. Format and options
 
-Only as `%ogg(%flac(...))` (`%flac` alone is native FLAC).
+`%ogg(%flac(...))`. The parameters and their checks are those of `%flac`
+([flac.md §1](flac.md#1-format-and-options)), plus `bytes_per_page`
+([ogg-streams.md §1](ogg-streams.md#1-format-and-options)), accepted only
+inside `%ogg`. The printed form is `%flac(...)`'s, with `bytes_per_page`
+when set.
 
-| parameter         | values            | default          | error                              |
-| ----------------- | ----------------- | ---------------- | ---------------------------------- |
-| `channels`        | int               | 2                | none here (layout check at typing) |
-| `stereo`, `mono`  | anonymous or bool |                  |                                    |
-| `samplerate`      | int               | frame audio rate | none                               |
-| `compression`     | 0..8              | 5                | `invalid compression value`        |
-| `bits_per_sample` | 8, 16, 24, 32     | 16               | `invalid bits_per_sample value`    |
-| `bytes_per_page`  | int               | none             | no effect                          |
+## 2. Configuration and library checks
 
-Printed form: `%flac(channels=2,bits_per_sample=16,samplerate=44100,compression=5)`.
+Those of [flac.md §2](flac.md#2-declarations) for the codec: codec rate
+`samplerate`, channels, bits per sample, compression level, checked at the
+same phases.
 
-## 2. Instance creation
+## 3. Creation
 
-Per instance: channels, rate (forced), resampler.
+Per link: a FLAC encoder with the channels, bits per sample, rate,
+compression level and the link's comments, total sample count unknown,
+writing to the stream encoder with no seek. Its initialisation status is
+checked: a refusal is a configuration error (§13), never an empty stream.
 
-Per link, on the first callback: a libFLAC stream encoder with channels, bits
-per sample, rate, compression level, total samples unknown, the link's
-comments, the Ogg serial set to the logical stream's, initialised for Ogg
-output with a write callback only (no seek, no tell). Every page libFLAC
-writes during initialisation is kept as the link's **first pages**. The
-result of the initialisation is not checked.
+## 4. Header packets
 
-## 3. Identification header (BOS page)
+The FLAC Ogg mapping (from memory):
 
-The first of the first pages: the Ogg FLAC mapping packet (51 bytes) alone,
-79-byte page:
+1. the mapping packet: `0x7F`, `FLAC`, mapping version 1.0, the number of
+   header packets that follow (16-bit big-endian, here 1), `fLaC`, then the
+   STREAMINFO metadata block;
+2. the VORBIS_COMMENT metadata block, flagged as the last metadata block
+   ([ogg-streams.md §5](ogg-streams.md#5-comments)), vendor string the
+   library's.
 
-| offset | size | value                           |
-| ------ | ---- | ------------------------------- |
-| 0      | 1    | 0x7F                            |
-| 1      | 4    | `FLAC`                          |
-| 5      | 2    | mapping version 1.0             |
-| 7      | 2    | number of header packets, BE: 1 |
-| 9      | 4    | `fLaC`                          |
-| 13     | 4+34 | STREAMINFO metadata block       |
+STREAMINFO is written with the values FLAC defines as unknown for what is
+known only at the end: total samples 0, MD5 signature all zero, frame sizes 0. On a file sink the muxer SHOULD rewrite them at the link's end
+([ogg.md §6](ogg.md#6-header-forms-and-preambles)); `finish` answers the
+link's total sample count, frame size bounds and MD5 signature for it. On
+every other sink they stay unknown: a link's length is carried by its
+granule positions.
 
-STREAMINFO as written (example, 44.1 kHz stereo 16 bits): block size
-4096/4096, frame sizes 0/0 (unknown), rate 44100, 2 channels, 16 bits, total
-samples **0**, MD5 all zero. It is never rewritten (§10).
+## 5. Comments
 
-## 4. Skeleton fisbone
+As [ogg-streams.md §5](ogg-streams.md#5-comments), in the VORBIS_COMMENT
+block.
 
-2 header packets (code comment "2 for now"), granule rate = rate / 1,
-preroll 2 (code comment "for flac its 2 ???"), granule shift 0,
-`Content-type: audio/x-flac\r\n`.
+## 6. Input
 
-## 5. Secondary headers
+Samples are converted to integers of the configured width
+([encoder.md §3.3](encoder.md#33-frames-in)), in the FLAC channel order
+for the count ([flac.md §4](flac.md#4-input)).
 
-The remaining first pages, as libFLAC wrote them: the VORBIS_COMMENT
-metadata block (with the last-block flag, header byte 0x84), vendor
-`reference libFLAC 1.5.0 20250211` with the installed library, then the
-comments. 72-byte page with no comment.
+The library hands its output through a write callback. The stream encoder
+forms packets from the content: each metadata block by its header and length,
+each frame from its start to the next frame's start or the stream's end. It
+never takes a callback call, or the size of a binding's buffer, as a packet
+or page boundary. Reason: a library's write call is not a unit of the format;
+a binding may split one write into several or merge several into one.
 
-## 6. Comments
+## 7. Packets
 
-Every metadata pair as `key=value`, in list order. No `ENCODER` tag.
+One packet per FLAC frame. Granule position: the number of samples through
+the end of the frame, at the codec rate (from memory). End time: granule
+position / rate.
 
-## 7. Data input and conversion
+## 8. Delay and padding
 
-Each block is copied and handed to libFLAC, which converts samples to
-integers of the configured width (clipping to [-1, 1] in the binding),
-encodes blocks of 4096 samples and writes pages as they fill. The pages
-written during the call are collected and handed to the muxer's queue for
-this stream, in order. libFLAC holds less than one block between calls.
+None: FLAC is lossless with no delay; the last frame is short.
 
-## 8. Packets, granule positions and pages
+## 9. End
 
-libFLAC's: one packet per FLAC frame, page granulepos = samples at the end
-of the page at the codec rate. Page boundaries are libFLAC's (4 frames per
-page, about 7.5 KB, for 16-bit stereo at compression 5 in the example).
+The library is finished: the remaining samples are encoded as a short last
+frame, which carries the final granule position, equal to the link's codec
+sample count. The stream always received at least one sample
+([ogg-streams.md §6](ogg-streams.md#6-input)).
 
-## 9. Page end time
+## 10. Properties
 
-granulepos / rate.
+`bitrate`: none. `delay`, `padding`: 0.
 
-## 10. End of stream
+## 11. Page constraints
 
-1. If no block was given in the link, one silent sample per channel, with the
-   **frame's** channel count, is processed first.
-2. libFLAC is finished: the partial block is encoded as a short last frame,
-   and libFLAC writes its last page with the EOS flag. With no seek callback,
-   STREAMINFO keeps 0 total samples and a zero MD5.
-3. The muxer's (unused) libogg stream for this serial is marked ended
-   directly (a C stub in the Liquidsoap tree sets its EOS field), so that the
-   muxer's "stream has seen EOS" test passes.
-4. The pages collected are returned.
+Nothing.
 
-Nothing is lost: the final granulepos equals the samples given (48 510 and
-66 150 in the two links of the example, 2.6 s in all).
+## 12. Concurrency
 
-## 11. Page sizing
+The library keeps no state shared between encoders.
 
-Not applicable: libogg's threshold in libFLAC applies, the muxer's never
-does. `bytes_per_page` is ignored as for every codec.
+## 13. Faults
 
-## 12. Failures
-
-- channel count ≤ 0: binding exception at link start (not reachable: typing);
-- libFLAC initialisation failure: unchecked; with no first page the
-  registration raises the muxer's invalid-data error;
-- the empty-link fallback with a channel count different from the codec's:
-  a libFLAC error, from `encode_metadata` or `stop` (read only).
-
-## 13. Concurrency
-
-libFLAC init, process and finish run with the OCaml runtime lock released;
-the write callback reacquires it to hand each page to OCaml. The list of
-pages written is protected by a mutex of its own, although every write
-happens on the calling thread.
+- Initialisation refused for the configuration: configuration error,
+  reported before any byte.
+- A frame the library fails to encode: output fault.
 
 ## 14. Tests
 
-`tests/media` (mono, stereo: decodable), `tests/harbor/harbor_output_join_points.liq`
-(`flac.ogg`: links), `tests/regression/fallible_ogg.liq` (to a harbor input).
+- At the highest compression with a metadata change every second on varied
+  content: every page has a valid CRC and the length its segment table
+  states, every link ends with an EOS page, no call raises.
+- The decoded result equals the input bit for bit.
+- On a live sink, STREAMINFO of every link: total samples 0, MD5 zero. On a
+  file sink: each link's total and MD5 verify (or, where the writer skipped
+  the SHOULD, stay 0 and zero).
+- `%flac(bytes_per_page=1000)` outside `%ogg` fails `--check`.

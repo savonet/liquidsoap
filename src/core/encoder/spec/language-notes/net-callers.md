@@ -1,5 +1,7 @@
 # Network callers: OCaml notes (Part B)
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Traces for [output-icecast.md](../output-icecast.md),
 [output-harbor.md](../output-harbor.md), [output-srt.md](../output-srt.md),
 [output-url.md](../output-url.md), [output-hls.md](../output-hls.md). Lines

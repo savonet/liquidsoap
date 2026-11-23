@@ -15,15 +15,28 @@ encoders that reuse this record are in [inline-codecs.md](inline-codecs.md).
 
 `%ffmpeg(...)` evaluates to an encoder format holding one record:
 
-| Field         | Type                                            | Default   | Set by                                                                         |
-| ------------- | ----------------------------------------------- | --------- | ------------------------------------------------------------------------------ |
-| `format`      | short muxer name or none                        | none      | `format=` (§3)                                                                 |
-| `mime_type`   | string or none                                  | none      | never set by the syntax                                                        |
-| `output`      | `Stream` or `Url of string`                     | `Stream`  | outputs only ([encoder.md §9](encoder.md#9-outputs-with-a-url-or-file-target)) |
-| `streams`     | ordered list of (field, track mode)             | empty     | nested `%name(...)` arguments (§4)                                             |
-| `interleaved` | `Default`, `True` or `False`                    | `Default` | `interleaved=` (§3)                                                            |
-| `metadata`    | metadata list, in written order                 | empty     | `metadata=` (§3)                                                               |
-| `opts`        | container options, key → string/int/int64/float | empty     | every other top-level labelled argument (§3)                                   |
+| Field         | Type                                            | Default   | Set by                                       |
+| ------------- | ----------------------------------------------- | --------- | -------------------------------------------- |
+| `format`      | short muxer name or none                        | none      | `format=` (§3)                               |
+| `streams`     | ordered list of (field, track mode)             | empty     | nested `%name(...)` arguments (§4)           |
+| `interleaved` | `Default`, `True` or `False`                    | `Default` | `interleaved=` (§3)                          |
+| `metadata`    | metadata list, in written order                 | empty     | `metadata=` (§3)                             |
+| `opts`        | container options, key → string/int/int64/float | empty     | every other top-level labelled argument (§3) |
+| `streamable`  | `true`, `false` or unset                        | unset     | `streamable=` (§3)                           |
+
+A format value holds no destination: the destination is the sink the output
+provides, or the delegated destination it names
+([ffmpeg.md §1](../../../encoder/spec/ffmpeg.md#1-format-and-options)). An
+output never adds to a format value or rewrites it.
+
+**Explicit and default.** A container or codec option is explicit exactly
+when the script wrote it; every option the script did not write is a
+default, whatever value the muxer or the codec gives it
+([formats.md §3](../../../encoder/spec/formats.md#3-the-parameter-specification)).
+The defaults a writer adapts to its destination
+([ffmpeg.md §2](../../../encoder/spec/ffmpeg.md#2-declarations),
+[encoder.md §3](encoder.md#3-building-an-instance)) are applied by the
+writer: they are never stored in the format value and never printed (§11).
 
 `streams` keeps the order of the nested arguments in the script. That order is
 the order of the streams in the container
@@ -112,6 +125,8 @@ A copy or drop track has no media type.
 | `interleaved=true` / `false` | bool                          | `True` / `False`                                  |
 | `interleaved="default"`      | string                        | `Default`                                         |
 | `interleaved=<other>`        | any other value               | error                                             |
+| `streamable=true` / `false`  | bool                          | `streamable` = `true` / `false`                   |
+| `streamable=<other>`         | any other value               | error                                             |
 | `k=s` (any other key)        | string                        | `opts[k] = String s`                              |
 | `k=i`                        | int                           | `opts[k] = Int i`                                 |
 | `k=f`                        | float                         | `opts[k] = Float f`                               |
@@ -122,6 +137,25 @@ list whose elements are not string pairs is an error. A later occurrence of a
 container option key replaces an earlier one. Within `metadata`, a key written
 twice keeps its last value, as the container's metadata does
 ([avformat.md §4.4](../../../../modules/synced/ffmpeg/spec/avformat.md#44-output)).
+
+**`streamable`** is a declaration only: `true` declares the configuration
+streamable on the script's word, `false` declares it not streamable
+([encoder.md §5.3](../../../encoder/spec/encoder.md#53-the-check), with the
+access points the writer then marks in
+[ffmpeg.md §2 and §5](../../../encoder/spec/ffmpeg.md#2-declarations)). It is
+not a container option: it is never passed to FFmpeg, and no FFmpeg layer
+consumes it or reports it as a leftover. `streamable=true` on a
+configuration that needs a seekable destination is refused when the output
+is constructed.
+
+**The muxer.** `format` names a muxer by its FFmpeg short name. A name no
+muxer of the build has is an error on every destination, at type checking
+when it is a literal; no other muxer is ever substituted. Without `format`,
+the muxer is the one FFmpeg guesses, when the output is constructed, from
+the extension of a constant `output.file` path or from the URL of a
+delegated destination; with no name to guess from, or none guessed, it is an
+error asking for `format=`. The rule and its errors are owned by
+[ffmpeg.md §1](../../../encoder/spec/ffmpeg.md#1-format-and-options) item 5.
 
 ## 4. Track arguments: common rules
 
@@ -345,14 +379,16 @@ Examples (`liquidsoap --check -i`):
 
 A format prints as `%ffmpeg(<items>)`, items joined by `,`. The printed form
 MUST parse back to an equal format, with one exception: a non-default
-`text_to_ass` function has no printed form and is omitted. The fields `output`
-and `mime_type` are not syntax and are not printed. Items, in order:
+`text_to_ass` function has no printed form and is omitted. Only what the
+script wrote, and the defaults of this file, are printed: a default a writer
+adapts to its destination never is. Items, in order:
 
 1. `format="<f>"` when set.
 2. `metadata=[("<k>","<v>"),…]` when non-empty, in stored order.
 3. `interleaved="default"`, `interleaved=true` or `interleaved=false`.
-4. The tracks, in written order.
-5. The container options as `k=v`, in a stable order.
+4. `streamable=true` or `streamable=false` when set.
+5. The tracks, in written order.
+6. The container options as `k=v`, in a stable order.
 
 Tracks:
 
@@ -387,8 +423,13 @@ Example:
 
 ## 12. File extension and MIME type
 
-Outputs ask the format for an extension and a MIME type. Only `format` (and,
-for `adts`, the single track's codec) decides:
+This is the one table of a `%ffmpeg` format's extension and MIME type: the
+format helpers answer from it
+([formats.md §9](../../../encoder/spec/formats.md#9-helpers)), and every
+output that announces a content type (`output.icecast`, `output.harbor`)
+reads that helper. Only `format` (and, for `adts`, the single track's
+codec) decides, as a function of the format value alone; a format without
+`format` is the last row:
 
 | `format`                                              | Extension | MIME                       |
 | ----------------------------------------------------- | --------- | -------------------------- |
@@ -405,9 +446,6 @@ for `adts`, the single track's codec) decides:
 | `webm`                                                | `webm`    | `video/webm`               |
 | `wav`                                                 | `wav`     | `audio/wav`                |
 | other                                                 | none      | `application/octet-stream` |
-
-Icecast and Harbor use their own table instead
-([io.md §12](io.md#12-other-outputs-special-casing-ffmpeg)).
 
 The format gives no RFC 6381 codec string: codec strings come from the
 streams, with a per-stream fallback

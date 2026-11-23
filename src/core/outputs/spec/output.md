@@ -46,10 +46,21 @@ read their one source under the
 
 On each streaming cycle where it is started and its source is ready, the
 output gathers its frame and hands it on: the frame is cut at the positions
-of its metadata, and for each non-empty piece the first metadata in it, if
-any, is handed on first, then the piece. Metadata comes first, so that the
-bytes of a piece are in the scope of its metadata. Cover art and other
-binary metadata entries are not handed to encoders.
+of its metadata, and for each non-empty piece the merged metadata at the
+piece's start, if any, is handed on first, then the piece. Metadata comes
+first, so that the bytes of a piece are in the scope of its metadata. A
+metadata at the frame's end labels the first sample of the next frame: it is
+carried to the next frame's first piece.
+
+- Cover art and other binary metadata entries are handed on only by an
+  output that opts in through `export_cover_metadata`, whose default is per
+  output: `true` on `output.file`, `false` elsewhere.
+- An output that carries metadata out of band places it relative to the
+  bytes as [sink.md §5](../../encoder/spec/sink.md#5-out-of-band-metadata)
+  states.
+- An output that drives a container writer cuts, exports and orders its
+  pieces and metadata as
+  [output-encoded.md](../../encoder/spec/output-encoded.md) states.
 
 ## 4. Reset
 
@@ -57,7 +68,10 @@ A **reset** is what the clock asks of its outputs after too much latency
 ([pacing.md §6](../../clock/spec/pacing.md#6-rest-and-lateness)): stop then
 start, and only while started. Afterwards the output is started exactly as
 after a first start. A reset is not a final stop. An output for which a
-reset is a discontinuity of its stream says so in its own document.
+reset is a discontinuity of its stream says so in its own document. An
+output's document MAY state that a reset does nothing for it: its stream
+goes on as it was (`output.file`, `output.external`, whose destinations have
+no real-time reader).
 
 ## 5. Sync and pacing
 

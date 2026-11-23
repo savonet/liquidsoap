@@ -25,7 +25,7 @@ filters are in [bitstream-filters.md](bitstream-filters.md).
 | probe config   | an avfilter graph into which the description is replayed while the script states it, to learn pad counts and report errors; never launched |
 | generation     | one avfilter graph built from the description, launched, run, drained, then released                                                       |
 | graph input    | the operator made by `ffmpeg.filter.audio.input`/`video.input`: an output, in the liquidsoap sense, feeding one buffer source              |
-| sink           | the liquidsoap end of one buffer sink, made by `ffmpeg.filter.audio.output`/`video.output`                                                 |
+| graph output   | the liquidsoap end of one buffer sink, made by `ffmpeg.filter.audio.output`/`video.output`                                                 |
 | graph source   | the single liquidsoap source that carries every output of one graph, one field per output                                                  |
 | main time base | `1/main_rate` ([common.md §4](common.md#4-liquidsoap-time-bases))                                                                          |
 | timeline       | the positions, in main ticks, of what a graph input has pushed or a graph output has emitted since the graph source last woke up           |
@@ -39,7 +39,7 @@ filters are in [bitstream-filters.md](bitstream-filters.md).
 `filter_max_buffer` protects memory and the duration of one clock tick. It
 bounds, in seconds of media: what one output of the graph source buffers,
 what a graph input holds before the first build, what one fill pushes into a
-generation, and what one drain reads from a sink (§12.3).
+generation, and what one drain reads from a graph output (§12.3).
 
 Also read here, owned by [common.md §1](common.md#1-settings):
 `settings.ffmpeg.format_change.*` (§11.4, §16) and
@@ -476,7 +476,7 @@ metadata out of the graph (§14). Both are in category
    source and never runs.
 2. A field of the graph source: the `n`-th audio output of the graph (from 0) gets field `audio` for `n = 0` and `audio_<n+1>` otherwise (`audio`,
    `audio_2`, `audio_3`, …), likewise `video`, `video_2`, … for video.
-3. A sink for that field (§13.2).
+3. A graph output for that field (§13.2).
 4. A buffer sink in the description, linked from the given pad value.
 5. Returns the field of the graph source.
 
@@ -559,7 +559,7 @@ graph input, that condition holds.
 2. Launch the config. Log at info `Initializing graph (generation <g>)`
    (example wording), `g` counting generations of the graph from 1.
 3. Hand each buffer source to its graph input and each buffer sink to its
-   sink. The generation takes a new source id, shared by every output of
+   graph output. The generation takes a new source id, shared by every output of
    the generation
    ([content.md §5](content.md#5-stream_idx-and-time_base)).
 4. Each graph input pushes, in order, the frames it held for this
@@ -569,13 +569,13 @@ When any step raises, the build has failed (§11.6).
 
 ### 11.4 What ends a generation
 
-| Event               | Detected                                                                       | Then                                                                                                         |
-| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| input runs dry      | a fill needs data and some graph input's source is not ready (§12.2)           | drain (§11.7); next build when data comes back                                                               |
-| format change       | a frame about to be pushed into a graph input differs from that input's format | drain; next build at once with the new format                                                                |
-| every sink at end   | every sink has answered end of stream (`atrim`, a generator with a duration)   | drain; see below                                                                                             |
-| graph source sleeps | the graph source goes to sleep                                                 | released without draining: nothing reads its output any more, and its buffer is dropped                      |
-| error               | a push, pull or build raised                                                   | released without draining ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)); §11.6 |
+| Event                     | Detected                                                                             | Then                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| input runs dry            | a fill needs data and some graph input's source is not ready (§12.2)                 | drain (§11.7); next build when data comes back                                                               |
+| format change             | a frame about to be pushed into a graph input differs from that input's format       | drain; next build at once with the new format                                                                |
+| every graph output at end | every graph output has answered end of stream (`atrim`, a generator with a duration) | drain; see below                                                                                             |
+| graph source sleeps       | the graph source goes to sleep                                                       | released without draining: nothing reads its output any more, and its buffer is dropped                      |
+| error                     | a push, pull or build raised                                                         | released without draining ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)); §11.6 |
 
 **Format change.** A video frame differs from the input's format when the
 comparison of [common.md §9](common.md#9-video-format-comparison) says so; an
@@ -589,7 +589,7 @@ drained, the input takes the frame's format, the next generation is built in
 the same fill (the other inputs keep their formats), and the frame is pushed
 into it. No track mark is added: a format change is a mid-stream change.
 
-**Every sink at end.** The graph source ends its track and is
+**Every graph output at end.** The graph source ends its track and is
 **exhausted**: it is not ready and builds nothing. With at least one graph
 input, the exhausted state clears when a readiness test (§12.1) finds some
 graph input's source not ready, that is when the inputs run dry; the next
@@ -605,13 +605,13 @@ graph as data (§14).
 ### 11.5 Reset
 
 After a generation ends, its config is released: graph inputs forget their
-buffer source and their end-of-stream flag, sinks forget their buffer sink.
-Each graph input and each sink keeps its timeline. What happens to the
+buffer source and their end-of-stream flag, graph outputs forget their buffer sink.
+Each graph input and each graph output keeps its timeline. What happens to the
 inputs' formats depends on why the generation ended:
 
 - **format change**: every other input keeps its format (the format of its
   last pushed frame), so the next generation is built at once (§11.4);
-- **input runs dry, every sink at end, sleep**: every input forgets its
+- **input runs dry, every graph output at end, sleep**: every input forgets its
   format. The next generation is built when every input has delivered a
   frame again, so each buffer source is configured from the data that
   follows, not from the data before the pause.
@@ -644,16 +644,16 @@ fault of the graph source
 
 Faults of the graph, by class:
 
-| Fault                                                              | Class                                                                          | Outcome                                                                                                                                                               |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FFmpeg error pushing into or reading from a running generation     | item fault ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) | the frame is dropped with a warning; the generation is released without draining; the next fill rebuilds                                                              |
-| a build or launch fails (a format the filters refuse)              | source fault                                                                   | the steps above                                                                                                                                                       |
-| a rebuilt generation fails again before any sink produced a frame  | source fault                                                                   | the steps above. Reason: a fault that returns at every rebuild would otherwise rebuild the graph on every frame, so the item fault escalates after one failed rebuild |
-| a raw frame at a graph input that breaks the content rules (§13.1) | item fault                                                                     | dropped with a warning; `max_consecutive_faults` consecutive drops at one input escalate to a source fault                                                            |
-| a limit of §12.3                                                   | per §12.3                                                                      | per §12.3                                                                                                                                                             |
-| a decreasing video PTS out of a filter (§13.3)                     | item fault, repaired                                                           | the frame is kept and the timeline repaired, with a warning; nothing is lost, so it never escalates                                                                   |
-| a format change at an input (§11.4)                                | not a fault                                                                    | the generation is rebuilt, with a warning                                                                                                                             |
-| `process_command` refused by FFmpeg (§6.3)                         | item fault of the command                                                      | the answer carries FFmpeg's message, with a warning; nothing raises                                                                                                   |
+| Fault                                                                     | Class                                                                          | Outcome                                                                                                                                                               |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FFmpeg error pushing into or reading from a running generation            | item fault ([faults.md §4](../../../../spec/faults.md#4-item-faults-escalate)) | the frame is dropped with a warning; the generation is released without draining; the next fill rebuilds                                                              |
+| a build or launch fails (a format the filters refuse)                     | source fault                                                                   | the steps above                                                                                                                                                       |
+| a rebuilt generation fails again before any graph output produced a frame | source fault                                                                   | the steps above. Reason: a fault that returns at every rebuild would otherwise rebuild the graph on every frame, so the item fault escalates after one failed rebuild |
+| a raw frame at a graph input that breaks the content rules (§13.1)        | item fault                                                                     | dropped with a warning; `max_consecutive_faults` consecutive drops at one input escalate to a source fault                                                            |
+| a limit of §12.3                                                          | per §12.3                                                                      | per §12.3                                                                                                                                                             |
+| a decreasing video PTS out of a filter (§13.3)                            | item fault, repaired                                                           | the frame is kept and the timeline repaired, with a warning; nothing is lost, so it never escalates                                                                   |
+| a format change at an input (§11.4)                                       | not a fault                                                                    | the generation is rebuilt, with a warning                                                                                                                             |
+| `process_command` refused by FFmpeg (§6.3)                                | item fault of the command                                                      | the answer carries FFmpeg's message, with a warning; nothing raises                                                                                                   |
 
 `max_consecutive_faults` and `fault_log_interval` are defined in
 [faults.md §4](../../../../spec/faults.md#4-item-faults-escalate): repeated warnings of one
@@ -669,9 +669,9 @@ A generation is a stage in the sense of [draining.md](../../../source/spec/drain
 it:
 
 1. Each graph input sends end of stream to its buffer source, once.
-2. Each sink reads its buffer sink until FFmpeg answers "drained", emitting
+2. Each graph output reads its buffer sink until FFmpeg answers "drained", emitting
    every frame (§13.2), within the drain limit of §12.3.
-3. Each sink drains what it holds itself: the audio resampler, the video
+3. Each graph output drains what it holds itself: the audio resampler, the video
    duration helper (§13.2).
 4. The config is reset (§11.5).
 
@@ -705,10 +705,10 @@ Run when the graph source must produce a frame and some field of its buffer
 holds less than one frame (`Frame.size`). A fill runs inside a tick of the
 output clock.
 
-1. **Read to need.** When a generation runs, read each sink while its field
+1. **Read to need.** When a generation runs, read each graph output while its field
    holds less than one frame and FFmpeg answers with frames (§13.2).
 2. When every field holds at least one frame, stop.
-3. When a generation runs and every sink is at end: end the generation and
+3. When a generation runs and every graph output is at end: end the generation and
    become exhausted (§11.4). Stop.
 4. When there is no generation and no graph input: build (§11.3) and go to 1.
 5. When some graph input's source is not ready: when a generation runs, end
@@ -716,26 +716,26 @@ output clock.
 6. Tick the input clock once. Each graph input that is ready takes a frame
    of its source and pushes or holds it (§13.1); a build may happen there
    (§11.3), or a format change (§11.4).
-7. **Read out.** When a generation runs, read every sink reached by a graph
+7. **Read out.** When a generation runs, read every graph output reached by a graph
    input until FFmpeg answers "none ready" or end of stream, within the
-   limits of §12.3. Other sinks are read to need. Go to 2.
+   limits of §12.3. Other graph outputs are read to need. Go to 2.
 
 Then the graph source takes up to one frame's worth from its buffer. A
 shorter result is a partial frame, as for any source.
 
-Reason for the two reading modes: reading only to need keeps a sink fed by a
+Reason for the two reading modes: reading only to need keeps a graph output fed by a
 generator with no end (`sine` with no duration) from being read forever.
-Reading out after a tick moves what the tick released from FFmpeg's sink
+Reading out after a tick moves what the tick released from FFmpeg's buffer-sink
 queues into the graph source's buffer, where its length is measured, so
 outputs consumed at diverging rates are detected (§12.3) instead of growing
 inside FFmpeg.
 
-A sink is **reached by a graph input** when the description has a path of
+A graph output is **reached by a graph input** when the description has a path of
 links from some graph input to it. A parsed description (§15) counts as
 linking each of its given inputs to each of its returned outputs, since its
 inner wiring is not known. The set is computed once, from the description,
-when `ffmpeg.filter.create` returns. A sink fed only by generators is read
-to need: what a tick released is finite only for sinks reached by an
+when `ffmpeg.filter.create` returns. A graph output fed only by generators is read
+to need: what a tick released is finite only for graph outputs reached by an
 input.
 
 ### 12.3 Resource limits
@@ -753,12 +753,12 @@ others are item faults that never escalate: what they drop is the excess of
 one consumer's pace over another's, not invalid data, and a graph that keeps
 producing keeps streaming.
 
-| Limit         | Measured                                                         | Protects                                    | Typical cause                                                               | When reached                                                                  |
-| ------------- | ---------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| output buffer | the longest field of the graph source's buffer, after a read out | memory                                      | outputs consumed at diverging rates; a generator feeding one output only    | item fault: the oldest data of that field beyond the limit is dropped         |
-| held input    | frames one graph input holds for a generation not yet built      | memory                                      | one input never delivers its first frame while the others do                | source fault (§11.6); the generation is drained, the held frames dropped      |
-| fill input    | media one graph input pushes within one fill                     | memory inside FFmpeg, and the tick duration | a filter that needs more lookahead than the limit before producing anything | source fault (§11.6), after the generation is drained (§11.7)                 |
-| drain read    | media read from one sink during a drain (§11.7)                  | the tick duration                           | a sink fed by a generator with no end                                       | item fault: reading that sink stops; the rest is released with the generation |
+| Limit         | Measured                                                         | Protects                                    | Typical cause                                                               | When reached                                                                          |
+| ------------- | ---------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| output buffer | the longest field of the graph source's buffer, after a read out | memory                                      | outputs consumed at diverging rates; a generator feeding one output only    | item fault: the oldest data of that field beyond the limit is dropped                 |
+| held input    | frames one graph input holds for a generation not yet built      | memory                                      | one input never delivers its first frame while the others do                | source fault (§11.6); the generation is drained, the held frames dropped              |
+| fill input    | media one graph input pushes within one fill                     | memory inside FFmpeg, and the tick duration | a filter that needs more lookahead than the limit before producing anything | source fault (§11.6), after the generation is drained (§11.7)                         |
+| drain read    | media read from one graph output during a drain (§11.7)          | the tick duration                           | a graph output fed by a generator with no end                               | item fault: reading that graph output stops; the rest is released with the generation |
 
 Example message (wording not binding):
 `Filter graph <id> has buffered more than <max>s of data for one of its outputs and dropped <n>s. This happens when the graph's outputs are consumed at diverging rates. Raise settings.ffmpeg.filter_max_buffer if the graph legitimately produces that much on a single pass.`
@@ -813,17 +813,17 @@ back. The incoming PTS is not read.
 
 ### 13.2 Output side
 
-Each sink has a timeline that continues across generations and starts at 0
-when the graph source wakes up. Every chunk a sink emits carries the
+Each graph output has a timeline that continues across generations and starts at 0
+when the graph source wakes up. Every chunk a graph output emits carries the
 generation's source id (§11.3) and the main time base, and each of its
-frames carries as PTS its position on the sink's timeline. Graph outputs
+frames carries as PTS its position on the graph output's timeline. Graph outputs
 therefore start one new source, shared by all of them, at every generation
 ([content.md §5](content.md#5-stream_idx-and-time_base)) while their
 timestamps stay strictly increasing.
 
-Reading a sink, each frame:
+Reading a graph output, each frame:
 
-1. passes through the sink's conformer:
+1. passes through the graph output's conformer:
    - audio: the raw audio conformer of
      [content.md §14](content.md#14-raw-audio-conformance): the first
      frame sets the field's format, and a later frame in another format is
@@ -833,15 +833,15 @@ Reading a sink, each frame:
 2. is placed:
    - **audio**: lengths come from sample counts at the field's rate. Within
      a generation, a frame starts at `s₀ + rescale(n, 1/rate, main)`, where
-     `s₀` is the sink's timeline position when the generation started and
+     `s₀` is the graph output's timeline position when the generation started and
      `n` the samples emitted before it in this generation; its length is
      the next start minus its own. Each frame is emitted at once, as one
      chunk;
    - **video**: lengths come from the frame's PTS through the duration
      helper of [common.md §6](common.md#6-duration-helper), in PTS mode,
-     `src` the buffer sink's time base, `convert_ts` off, `start` the sink's
+     `src` the buffer sink's time base, `convert_ts` off, `start` the graph output's
      timeline position when the helper is created. A decreasing PTS is
-     handled by §13.3 before the helper sees it. A change of the sink's time
+     handled by §13.3 before the helper sees it. A change of the graph output's time
      base flushes the helper and creates a new one with `start` set to the
      old one's `end_position`
      ([common.md §6.4](common.md#64-last_ts-t));
@@ -849,8 +849,8 @@ Reading a sink, each frame:
    filter's own PTS, duration and best-effort timestamp were read for §14.2;
 4. has its track mark and metadata placed at its position (§14.2).
 
-At the end of a generation, an audio sink drains its conformer's resampler,
-when it has one, and a video sink flushes its helper
+At the end of a generation, an audio graph output drains its conformer's resampler,
+when it has one, and a video graph output flushes its helper
 ([common.md §6.3](common.md#63-flush-t)), which returns nothing when it holds
 nothing; each emits what it gets as ordinary output.
 
@@ -861,7 +861,7 @@ Audio PTS from a filter are read only for §14.2.
 
 ### 13.3 Decreasing video timestamps from a filter
 
-A filter's output is FFmpeg's to produce. A video sink that reads a frame
+A filter's output is FFmpeg's to produce. A video graph output that reads a frame
 whose PTS is below the previous frame's:
 
 1. logs a warning naming the graph output, the previous and the new PTS
@@ -872,7 +872,7 @@ whose PTS is below the previous frame's:
 3. creates a new helper with `start` the old one's `end_position`, and
    pushes the frame into it.
 
-The frame and those after it continue the sink's timeline. Equal PTS are not
+The frame and those after it continue the graph output's timeline. Equal PTS are not
 an anomaly: the helper groups them at one position.
 
 Reason: a frame is never dropped and the output never stops for a filter's
@@ -912,9 +912,9 @@ metadata, the entries winning.
 
 ### 14.2 Out of the graph
 
-For each frame read from a sink, at its position (§13.2):
+For each frame read from a graph output, at its position (§13.2):
 
-- when its metadata holds `liquidsoap_track_mark` with a number the sink
+- when its metadata holds `liquidsoap_track_mark` with a number the graph output
   has not seen in this generation, a track mark is added. A filter that
   copies frame properties onto several output frames repeats the key; the
   number makes the mark count once;
@@ -1015,7 +1015,7 @@ Filters created by a description have no script handle and no
 Private, launched graphs other parts of the layer build for one stream. None
 is visible to scripts. Each is a buffer source (§8.3), zero or more filters
 and a buffer sink. `convert` pushes a frame and calls back with every frame
-the sink then has ready; `eof` pushes end of stream and calls back with the
+the buffer sink then has ready; `eof` pushes end of stream and calls back with the
 rest. Both stop on FFmpeg's "none ready" and "drained" answers alike;
 neither raises for them. A helper is single-use after `eof`.
 
@@ -1054,7 +1054,7 @@ rate, the target frame rate, and one start rule:
 
 - Source frame rate equal to the target: pass-through, time base unchanged.
 - Otherwise a graph: buffer source (§8.3), the filters of the rule, a buffer
-  sink. The output time base is the sink's.
+  sink. The output time base is the buffer sink's.
 
 Reason for the rules:
 
@@ -1091,7 +1091,7 @@ destination sample format, layout and rate, each defaulting to the source's.
 When all three are equal (layouts compared by the bindings), pass-through
 with the source time base. Otherwise buffer source (§8.3), `aformat` with
 the destination `sample_fmts`, `channel_layouts` and `sample_rates`, buffer
-sink. The output time base is the sink's. A missing `aformat` filter is a
+sink. The output time base is the buffer sink's. A missing `aformat` filter is a
 configuration error (§16 intro).
 
 Users: the raw decoder and raw audio content conversion
@@ -1138,7 +1138,7 @@ output frame. A consumer built for the fitted format then sees no second
 format change.
 
 Users: the raw video conformer
-([content.md §9](content.md#9-raw-video-conformance)), which sinks use
+([content.md §9](content.md#9-raw-video-conformance)), which graph outputs use
 (§13.2); the raw video encoder
 ([encoder-internal.md §4.5](encoder-internal.md#45-video-raw)); `fitted_size`
 in the decoders' common path.

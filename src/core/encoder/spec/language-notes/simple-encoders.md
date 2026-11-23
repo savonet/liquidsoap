@@ -1,5 +1,7 @@
 # Part B: `%wav`, `%avi`, `%ndi`, `%external` in OCaml
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Maps [wav.md](../wav.md), [avi.md](../avi.md), [ndi.md](../ndi.md) and
 [external.md](../external.md) onto the code at 02fa52985. Not normative.
 

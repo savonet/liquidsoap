@@ -16,6 +16,7 @@ connection failure is retried.
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | invalid parameter ([common.md §1](common.md#1-parameters)) | Script error at evaluation; nothing starts.                                                                             |
 | no encoder for the output's format                         | Script error at evaluation ([encoder.md §1](../../../encoder/spec/encoder.md#1-registry)).                              |
+| listener role, configuration not streamable                | Script error at evaluation ([output.md §2](output.md#2-construction)).                                                  |
 | non-fallible output on a fallible source                   | Script error at evaluation ([output.md §1](../../../outputs/spec/output.md#1-common-parameters-methods-and-callbacks)). |
 
 ## 2. Connecting
@@ -38,14 +39,15 @@ connection failure is retried.
 
 ## 4. Streaming
 
-| Failure                                                                                           | Effect                                                                                                                                                                             |
-| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| output: a send fails, a peer stalls for `write_timeout`, or its queue passes `peer_backlog_limit` | That peer fails ([output.md §5](output.md#5-sending)); other peers are untouched. Caller: a new attempt ([caller.md §7](caller.md#7-peer-failure)).                                |
-| output: stopping the encoder fails                                                                | Logged at `severe`; the peers are ended anyway ([output.md §6](output.md#6-stopping)).                                                                                             |
-| output: the encoder fails while encoding                                                          | The generic output's handling of an encoder error ([output.md §6](../../../outputs/spec/output.md#6-failure)).                                                                     |
-| input: end of stream, receive error, decoder missing or failing                                   | That peer fails; its decoded data is produced, then the track ends ([input.md §5](input.md#5-producing-frames)). Caller: a new attempt ([caller.md §7](caller.md#7-peer-failure)). |
-| input: connected peer silent                                                                      | The input becomes not ready; the connection is kept. While pacing, the streaming thread waits up to `read_timeout`, then ends the track.                                           |
-| input: buffer exceeds `max`                                                                       | Excess dropped, logged at `severe`.                                                                                                                                                |
+| Failure                                                                                           | Effect                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| output: a send fails, a peer stalls for `write_timeout`, or its queue passes `peer_backlog_limit` | That peer fails ([output.md §5](output.md#5-sending)); other peers are untouched. Caller: a new attempt ([caller.md §7](caller.md#7-peer-failure)).                                                                  |
+| output: the writer's clean end fails                                                              | Logged at `severe`; the peers are ended anyway ([output.md §6](output.md#6-stopping)).                                                                                                                               |
+| output: the writer reports an output fault                                                        | The writer is ended `abandoned`; every peer it serves ends as a peer failure; a new writer no sooner than `fault_retry_delay` ([output-srt.md §8](../../../encoder/spec/output-srt.md#8-faults-and-restart-policy)). |
+| output: the writer reports an item fault                                                          | The item is dropped with a warning and counted ([encoder.md §8](../../../encoder/spec/encoder.md#8-faults)); the peers are untouched.                                                                                |
+| input: end of stream, receive error, decoder missing or failing                                   | That peer fails; its decoded data is produced, then the track ends ([input.md §5](input.md#5-producing-frames)). Caller: a new attempt ([caller.md §7](caller.md#7-peer-failure)).                                   |
+| input: connected peer silent                                                                      | The input becomes not ready; the connection is kept. While pacing, the streaming thread waits up to `read_timeout`, then ends the track.                                                                             |
+| input: buffer exceeds `max`                                                                       | Excess dropped, logged at `severe`.                                                                                                                                                                                  |
 
 A peer that vanishes without closing is detected by the library's own peer
 idle timeout, and reported as broken.

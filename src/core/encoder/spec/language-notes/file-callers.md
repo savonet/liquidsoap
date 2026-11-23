@@ -1,5 +1,7 @@
 # Part B: the file and pipe callers in OCaml
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Maps [output-encoded.md](../output-encoded.md),
 [output-file.md](../output-file.md) and [output-pipe.md](../output-pipe.md)
 onto the code. Not normative; Part A governs. Paths are under `src/core/`.

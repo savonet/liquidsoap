@@ -11,6 +11,14 @@ and carry no content.
 Incidental in every check, beyond what testing.md makes incidental: port
 numbers.
 
+The seam-binding checks of
+[output-harbor.md §10](../../../encoder/spec/output-harbor.md#10-tests) (the
+refusal of a non-streamable configuration in shared mode, `in_band_metadata`,
+no preamble, final bytes, a dedicated writer built by the streaming work)
+and of the shared stream
+([shared-stream.md §7](../shared-stream.md#7-conformance)) are part of this
+suite.
+
 ## Harness and doubles
 
 - **Real server, real sockets**, a port per check, a way to know the output
@@ -65,7 +73,8 @@ numbers.
 - **Raising handlers.** A raising `on_connect` or `on_disconnect` handler does
   not stop the others or the teardown.
 - **Concurrent admission in dedicated mode** (`harbor_output_dedicated_encoder`).
-  Both connect callbacks fire.
+  Both connect callbacks fire, and each listener's stream starts with its
+  writer's header.
 - **Clock pacing.** An output on a clock with sync `none` fails to start with
   an error naming the clock; with `allow_unsynced_clock=true` it starts.
 - **Construction errors.** Empty mount, `burst > buffer` in shared mode,
@@ -87,19 +96,25 @@ numbers.
 
 ## Delivery
 
-- **Burst on join** (`harbor_output_burst`). A raw client joining a running
+- **Burst on connect** (`harbor_output_burst`). A raw client connecting to a running
   128 kbps mp3 output receives at least 30000 bytes within one second.
   _Binding_: more than one second of live stream gives.
-- **No burst still streams** (`harbor_output_burst_null`).
-- **Join points** (`harbor_output_burst_ogg_pages`, regression `GH5546`):
-  [known-complexity.md K1](known-complexity.md#k1-a-late-listener-must-join-at-a-point-a-decoder-can-start-from),
-  including after a restart.
+- **No burst still streams** (`harbor_output_burst_null`). With no burst, the
+  first stream byte a listener receives is a candidate of the shared stream.
+- **Start points** (`harbor_output_burst_ogg_pages`, regression `GH5546`):
+  [known-complexity.md K1](known-complexity.md#k1-a-late-listener-must-start-where-a-decoder-can-start),
+  including after a restart, and for a listener whose preroll ends after a
+  writer change.
 - **Overflow and timeout.** A throttled ICY client slower than the stream is
   disconnected once it is more than `buffer` behind, and its bytes up to then
   are a contiguous stream with a block exactly every `metaint` bytes. A
   non-reading client is closed within `timeout` plus the retry interval.
-- **Large output.** An encoder output larger than `buffer` does not
+- **Large output.** The bytes of one writer call larger than `buffer` do not
   disconnect a caught-up listener.
+- **Writer fault.** An injected output fault of the shared writer keeps every
+  listener connected; after `fault_retry_delay` the listeners receive the new
+  writer's stream start and header. In dedicated mode the same fault closes
+  only that listener.
 - **Final bytes.** Stopping an Ogg output delivers its end-of-stream pages to
   a reading listener.
 - **Stop with a listener** (regression `GH4840`). The stop callback fires; the
@@ -136,7 +151,7 @@ numbers.
   `fallible` and `keep_listeners` on a source that becomes unavailable: the
   listener stays connected, `on_stop` does not fire and no byte arrives, for
   longer than `timeout`; when the source is available again the listener's
-  bytes resume, and a listener that joined during the gap is served. Without
+  bytes resume, and a listener that connected during the gap is served. Without
   `keep_listeners` the same sequence disconnects the listener. _Binding_:
   connected through a gap longer than `timeout`, bytes resume, `stop` still
   ends the output. The check asserts the listener count and the bytes it saw.
@@ -154,8 +169,9 @@ numbers.
   `on_disconnect` exactly once and `listeners()` no longer listing it. The
   check asserts the disconnect count.
 - **No stale burst after a gap.** In shared mode with a burst, a listener
-  joining during a gap receives the head and header and no bytes of the
-  stream from before the gap.
+  connecting during a gap receives the head and then nothing until the
+  first candidate written after the source returns: no byte of the stream
+  from before the gap.
 - **Load** ([known-complexity.md K2](known-complexity.md#k2-per-listener-work-must-not-scale-the-streaming-cycle),
   [K5](known-complexity.md#k5-idle-cost-must-not-grow-with-the-machine),
   [K10](known-complexity.md#k10-memory-over-long-runs-with-listeners)).
@@ -167,7 +183,7 @@ End-to-end through [icecast-server.md](icecast-server.md): a real
 checks; a rebuild passes them.
 
 - **Ogg late listener** (`icecast_server_ogg_late_listener`). Ogg/Opus,
-  `<burst-size>4096</burst-size>`, a raw client joins after 4 s asking ICY.
+  `<burst-size>4096</burst-size>`, a raw client connects after 4 s asking ICY.
   _Binding_: no `icy-metaint`; the body starts with `OggS` and its first 64
   bytes contain `OpusHead`.
 - **Fallback keeps listeners** (`icecast_server_fallback`). The listener is
@@ -189,7 +205,8 @@ checks; a rebuild passes them.
 
 ## Stream store
 
-Unit checks of the store alone ([ring.md](ring.md)):
+Unit checks of the store alone ([ring.md](ring.md),
+[shared-stream.md §5](../shared-stream.md#5-store-and-concurrency)):
 
 - round trip and wrap: exact bytes across the wrap point;
 - ranges outside the retained window read as invalid;

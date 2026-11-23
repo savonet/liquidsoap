@@ -15,27 +15,28 @@ states how they fit together. The operator creates no thread of its own
 | **Streaming**     | the output's clock                                                     | the clock                                                                                                       | metadata, encode, send ([modes.md §5–§6](modes.md#5-encode-and-send))                                                                  |
 | **Request**       | the harbor server's request task; may block during `auth` and `accept` | the request socket, user code                                                                                   | authentication, predicate, listener creation, `on_connect`, initial bytes, publication ([connection.md §6](connection.md#6-admission)) |
 | **Delivery pass** | fast I/O (non-blocking class), one at a time per group                 | the group's wake-up, the retry delay, hang-ups of its listeners ([delivery.md §6](delivery.md#6-disconnection)) | flush, timeout, removal, socket close ([delivery.md §3](delivery.md#3-the-delivery-pass))                                              |
-| **Teardown**      | work allowed to block, one per listener                                | nothing                                                                                                         | per-listener encoder stop, `on_disconnect` ([delivery.md §6](delivery.md#6-disconnection))                                             |
+| **Teardown**      | work allowed to block, one per listener                                | nothing                                                                                                         | per-listener release, `on_disconnect` ([delivery.md §6](delivery.md#6-disconnection))                                                  |
 | **Start/stop**    | whatever calls `start` / `stop` (script, clock, server)                | the output's start/stop serialisation                                                                           | [operator.md §7](operator.md#7-lifecycle)                                                                                              |
 | **Shutdown hook** | the core's shutdown                                                    | nothing                                                                                                         | marks every listener closed ([operator.md §7](operator.md#7-lifecycle))                                                                |
 
 User code (`auth`, `accept`, synchronous callbacks) runs only on request,
-teardown and start/stop work, never in a delivery pass. Encoder code runs on
-the streaming clock, the request (dedicated creation and header), start/stop
-and teardown, never in a delivery pass.
+teardown and start/stop work, never in a delivery pass. Writers are built
+and called only by the output's streaming work, its start and stop included
+([encoder.md §7](../../../encoder/spec/encoder.md#7-concurrency)): never by
+a request, a delivery pass or a teardown.
 
 ## 2. Ownership of a listener
 
-| Part                               | Written by                                                                                                  |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| record, socket, ICY negotiation    | the request, at creation; immutable afterwards                                                              |
-| ICY position, last generation sent | the request before publication; then the delivery pass (shared) or the streaming clock (dedicated)          |
-| last progress, `bytes_sent`        | the delivery pass; `bytes_sent` readable by anyone                                                          |
-| shared `offset`, carried bytes     | the request before publication; the delivery pass after                                                     |
-| dedicated queue                    | the request (initial bytes), the streaming clock and stop (appends), the delivery pass (drops)              |
-| dedicated encoder                  | the request (creation, header), the streaming clock (encode, metadata), stop or teardown (stop); serialised |
-| closed flag                        | anyone, race-free; exactly one marking wins                                                                 |
-| socket close                       | admission before publication; after it the last of the group and the hang-up watch; exactly once            |
+| Part                               | Written by                                                                                         |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| record, socket, ICY negotiation    | the request, at creation; immutable afterwards                                                     |
+| ICY position, last generation sent | the request before publication; then the delivery pass (shared) or the streaming clock (dedicated) |
+| last progress, `bytes_sent`        | the delivery pass; `bytes_sent` readable by anyone                                                 |
+| shared `offset`, carried bytes     | the request before publication; the delivery pass after                                            |
+| dedicated queue                    | the request (initial bytes), the streaming clock and stop (appends), the delivery pass (drops)     |
+| dedicated writer                   | the streaming work only (creation, write, metadata, end); one caller                               |
+| closed flag                        | anyone, race-free; exactly one marking wins                                                        |
+| socket close                       | admission before publication; after it the last of the group and the hang-up watch; exactly once   |
 
 ## 3. Guarantees
 
@@ -69,11 +70,12 @@ and teardown, never in a delivery pass.
 
 ## 4. What is not synchronised
 
-- An admission reads the shared mode's markers, output starts and tail while
-  send may be updating them. Since markers are published before the bytes
-  they point to, the join point is a valid candidate or the tail
-  ([shared-encoder.md §5](shared-encoder.md#5-encode-and-send)).
-- An admission may find the encoder state stopped between its checks; it then
+- A start chosen in a delivery pass reads the shared stream's records and
+  tail while the streaming work may be updating them. Since records are
+  published before the bytes they point to, the start is a candidate backed
+  by bytes or the tail
+  ([shared-stream.md §5](../shared-stream.md#5-store-and-concurrency)).
+- An admission may find the writer state stopped between its checks; it then
   replies 503 before `on_connect`, or ends closed after it
   ([connection.md §6](connection.md#6-admission)).
 - `listeners()` is a snapshot that may be stale on return.

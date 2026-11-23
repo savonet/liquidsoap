@@ -102,7 +102,7 @@ places it is [concurrency.md §1](concurrency.md#1-threads).
 When a socket becomes a peer:
 
 1. The kind's own reaction to the new peer runs (input: open the dump,
-   start the reader; output: mark the peer as joining the stream).
+   start the reader; output: the peer waits for its stream to start).
 2. `on_connect` fires.
 3. The peer becomes live.
 

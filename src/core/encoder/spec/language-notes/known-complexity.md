@@ -1,5 +1,7 @@
 # Known complexity: language notes
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Part B. Difficulties from the history that only make sense with the OCaml
 code or its bindings in view.
 

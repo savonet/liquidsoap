@@ -116,7 +116,8 @@ reaches the next run.
 Every step runs for every variant whatever happened in an earlier one; a
 failure is logged with the variant and the step, and the stop completes.
 
-1. When a run is active, each variant's encoder is stopped and its pieces
+1. When a run is active, each variant's writer is ended `clean`
+   ([encoder-contract.md §8](encoder-contract.md#8-stop)) and its pieces
    are applied ([segmenting.md §3](segmenting.md#3-applying-pieces)). Skipped during the reopen delay of §6,
    when no run is active.
 2. Each open segment is closed ([files.md §4](files.md#4-closing-a-segment)),
@@ -149,8 +150,9 @@ non-empty chunk, in order:
    ([metadata.md §1](metadata.md#1-track-metadata)); a cut on metadata is
    requested if due ([metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags)).
 2. For each variant: open a segment if none is open
-   ([segmenting.md §6](segmenting.md#6-opening-a-segment)); encode
-   (`init_encode` until the init segment is known, then `split_encode`).
+   ([segmenting.md §6](segmenting.md#6-opening-a-segment)); hand the chunk to
+   the writer, with the split request in its sink
+   ([encoder-contract.md §2](encoder-contract.md#2-calls-and-order)).
 3. For each variant: the media time advances by the chunk's length, then
    the pieces are applied
    ([segmenting.md §3](segmenting.md#3-applying-pieces)).
@@ -177,8 +179,9 @@ a file or playlist — ends the run:
    ([segmenting.md §6](segmenting.md#6-opening-a-segment)): its temporary
    file is removed, no event fires, its discontinuity flag and tags go back
    to pending.
-2. Every encoder is dropped without `stop`. Its held bytes are lost with
-   the aborted segment.
+2. Every writer is ended `abandoned`
+   ([encoder-contract.md §8](encoder-contract.md#8-stop)). Its held bytes are
+   lost with the aborted segment.
 3. `reopen_on_error` is called with the error (kind `output`). `null` or a
    negative number: the exception is raised again and the output fails like
    any output. Otherwise a warning reads `Error while streaming: <error>,

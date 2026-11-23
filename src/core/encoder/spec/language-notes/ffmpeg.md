@@ -1,5 +1,7 @@
 # `%ffmpeg` at the seam: OCaml and binding notes (Part B)
 
+_Part B of the as-built snapshot: maps the implementation the specification was extracted from. Not normative, and not a design to follow; the normative files govern._
+
 Maps [ffmpeg.md](../ffmpeg.md) onto the code at `02fa52985`. Paths are from
 the repository root. Not normative.
 
@@ -57,7 +59,7 @@ offset length -> Unix.write fd bytes offset length) muxer`. No `?seek`.
 - `guess ()` = `Av.Format.guess_output_format ?short_name ?filename ?mime`.
   With a `Url`, FFmpeg's `av_guess_format` scores the name, the file
   extension and the MIME, so an unknown `format` still yields the extension's
-  muxer (observed, [findings](../findings/ffmpeg.md)); the `muxer` field is
+  muxer (observed, findings of the snapshot); the `muxer` field is
   re-guessed at `:175-177` for the log and chaining tests.
 - Release on failure: `close_appended` (`:137`) on an open failure;
   `release_and_raise` (`:178-182`) after; both close the descriptor.
