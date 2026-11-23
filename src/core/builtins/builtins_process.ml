@@ -44,7 +44,9 @@ let () =
       ignore
         (Lang.add_builtin_value ~base:process name ~category:`System
            ~descr:("The process' " ^ name)
-           (Builtins_socket.Socket_value.to_value (Http.unix_socket ~pos:[] fd))
+           (Builtins_socket.Socket_value.to_value
+              (* The process' standard descriptors outlive any value. *)
+              (Http.unix_socket ~close_on_collect:false ~pos:[] fd))
            Builtins_socket.Socket_value.t))
     [("stdin", Unix.stdin); ("stdout", Unix.stdout); ("stderr", Unix.stderr)]
 
