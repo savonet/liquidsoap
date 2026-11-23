@@ -78,12 +78,12 @@ module Env = struct
         if Methods.is_empty methods then v
         else
           Value.map_methods v (fun _ ->
-              Methods.fold
-                (fun name meth pruned ->
-                  match Term.Uses.find_opt name uses with
+              Term.Uses.fold
+                (fun name usage pruned ->
+                  match Methods.find_opt name methods with
                     | None -> pruned
-                    | Some usage -> Methods.add name (prune meth usage) pruned)
-                methods Methods.empty)
+                    | Some meth -> Methods.add name (prune meth usage) pruned)
+                uses Methods.empty)
 
   (** Restrict an environment to the variables a closure uses. *)
   let restrict (env : t) uses =
