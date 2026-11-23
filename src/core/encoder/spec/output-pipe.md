@@ -63,8 +63,11 @@ process they start. Its rules, which Parts 1 and 2 use:
    same operator still runs: the new run starts once the previous one has
    exited or was forced to. Reason: two runs of one command commonly write
    to one resource (a server mount, a file).
-7. The process's standard output and standard error are Liquidsoap's own
-   for `output.external`; Part 2 states its own.
+7. For `output.external`, the process's standard output is read and logged
+   at `info`, and its standard error at `debug`, line by line; Part 2 states
+   its own. Reason: reading both is how the process sink learns that the
+   process has exited, and a process inheriting them would need a second
+   way of detecting its exit.
 
 ## Part 1. `output.external`
 
@@ -173,6 +176,8 @@ one that never reads, one that ignores the end of its input.
 - A process that ignores the end of its input is forced to end after
   `2 × process_exit_bound`, logged; the next run starts only then.
 - Logs, the clock's name and the server commands say `output.external`.
+- A process writing lines to its standard output and its standard error:
+  each line is logged once, the first at `info`, the second at `debug`.
 - `%mp3` through `output.external`: the process receives no ID3v2 tag;
   `%mp3(id3v2=true)` gives one.
 - With `self_sync` true and a process reading at half the real-time rate,
@@ -198,8 +203,13 @@ back on it.
 | `restart_on_error` | bool   | `true`  | start a new run when a run fails                                          |
 | (unlabelled)       | source |         | audio only                                                                |
 
-No format: the operator writes through the WAV writer ([wav.md](wav.md)),
+No format and no writer instance: the operator writes the WAV streaming
+form ([wav.md](wav.md)) through the header rendering the WAV writer uses,
 16-bit integer samples, its input's channel count, the internal audio rate.
+Its bytes equal those of the WAV writer's streaming form for that
+configuration; "the writer" below names this rendering. Reason: there is no
+resampling, no sample-size choice and no metadata to handle, so a writer
+instance would add nothing.
 A non-null `data_length` is an explicit header length: the header declares
 it, and the operator does not enforce it. The operator is fallible.
 

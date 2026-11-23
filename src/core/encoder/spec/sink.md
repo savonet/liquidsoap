@@ -16,14 +16,14 @@ concurrency ([concurrency.md](../../../spec/concurrency.md)); faults
 
 ## 1. Capabilities
 
-| Capability     | Meaning                                                                                                                                                                                                                                                                                                                   |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `seekable`     | Bytes already written can be overwritten, and read back while the writer ends ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes)). A regular file opened for writing.                                                                                                                                             |
-| `fresh`        | The writer's stream starts at the destination's first byte.                                                                                                                                                                                                                                                               |
-| `continuing`   | The writer extends an existing stream (a file opened for appending) ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)). `seekable` on a regular file, where the existing header can be read back and rewritten at the writer's end.                                                                            |
-| `live(L)`      | Readers consume the stream as it is produced and may read it from the middle; the writer holds encoded data for at most `L` of stream time ([encoder.md §3.9](encoder.md#39-live-latency-bound)). Never `seekable`.                                                                                                       |
-| `segmented(D)` | The sink cuts the stream into segments of target duration `D` at the writer's access points ([encoder.md §4](encoder.md#4-the-segmenting-face)); it holds each chunk's split request, which the writer reads ([HLS encoder contract §2](../../outputs/hls/spec/encoder-contract.md#2-calls-and-order)). Never `seekable`. |
-| `delegated(u)` | The sink takes no bytes: the writer opens `u` itself ([encoder.md §6](encoder.md#6-the-delegated-destination)). Excludes every other capability.                                                                                                                                                                          |
+| Capability     | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `seekable`     | Bytes already written can be overwritten, and read back while the writer ends ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes)). A regular file opened for writing.                                                                                                                                                                                                                                                                                      |
+| `fresh`        | The writer's stream starts at the destination's first byte.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `continuing`   | The writer extends an existing stream (a file opened for appending) ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)). `seekable` on a regular file, where the existing header can be read back and rewritten at the writer's end.                                                                                                                                                                                                                     |
+| `live(L)`      | Readers consume the stream as it is produced and may read it from the middle; the writer holds encoded data for at most `L` of stream time ([encoder.md §3.9](encoder.md#39-live-latency-bound)). Never `seekable`.                                                                                                                                                                                                                                                |
+| `segmented(D)` | The sink cuts the stream into segments of target duration `D` at the writer's access points ([encoder.md §4](encoder.md#4-the-segmenting-face)); it holds each chunk's split request, which the writer reads ([HLS encoder contract §2](../../outputs/hls/spec/encoder-contract.md#2-calls-and-order)). Never `seekable`. It is a declared capability for the check at evaluation and the input of the segmenting factory, not a capability the stream face reads. |
+| `delegated(u)` | The sink takes no bytes: the writer opens `u` itself ([encoder.md §6](encoder.md#6-the-delegated-destination)). Excludes every other capability.                                                                                                                                                                                                                                                                                                                   |
 
 - Exactly one of `fresh` and `continuing` holds, except for a delegated sink,
   which has neither.
@@ -42,9 +42,9 @@ concurrency ([concurrency.md](../../../spec/concurrency.md)); faults
 | -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------ |
 | `live_latency_bound` | 1 s         | A reader's or a server's view of a live stream: a server that judges a source alive by its bytes, a reader's delay |
 
-`L` is the output's `live_latency_bound`. An output whose protocol has a
-bound of its own of the same nature declares it as `L` and says so in its
-caller file.
+`L` is the output's `live_latency_bound`: a fixed 1 s, not a script
+parameter. An output whose protocol has a bound of its own of the same
+nature declares it as `L` and says so in its caller file.
 
 ## 2. Operations
 
@@ -60,17 +60,10 @@ What a writer calls on its sink.
 
 A continuing writer writes only at the end of the existing stream while it streams; it seeks into bytes it did not write only at its end, to update the existing header ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)).
 
-**The existing stream at open.** A sink confirmed `continuing` reads, on
-its opening work, the existing stream's first and last `continuation_probe`
-bytes (all of it when shorter), and hands them to the writer with its
-capabilities, before the writer is built. A writer that must continue the
-existing stream's numbering (native FLAC frame numbers,
-[flac.md §6.3](flac.md#63-continuing)) reads it there; `read` is only for
-the end. A probe that cannot be read is an open failure (§7).
-
-| Parameter            | Recommended | Protects                                                          |
-| -------------------- | ----------- | ----------------------------------------------------------------- |
-| `continuation_probe` | 64 KiB      | Memory and the open's time, against reading a whole existing file |
+A continuing writer reads nothing of the existing stream at creation:
+`read` is only for the end. A format whose frames continue a numbering
+from the stream's start cannot continue
+([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)).
 
 - The sink applies writes, seeks and marks in the order they are called.
   What a reader of the destination finds is the result of that sequence.
@@ -81,6 +74,8 @@ the end. A probe that cannot be read is an open failure (§7).
   call returned.
 - A sink that serves one reader from byte 0 MAY ignore every marker but
   `end`.
+- A sink MAY collect a call's bytes and markers and hand them on when the
+  call returns. The order of §2 and the no-waiting rule of §3 still hold.
 
 ## 3. Never blocking the streaming thread
 
@@ -187,7 +182,7 @@ A writer does none of these.
 
 A sink reports its faults to the output as values carrying their class
 ([faults.md §2](../../../spec/faults.md#2-classes)) and the cause, naming the
-destination.
+destination. Such a value MAY be raised as an exception carrying it.
 
 | Fault                                                                                                                                       | Class               | Outcome                                                                                                                          |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -234,7 +229,9 @@ writer meets there is an output fault the writer reports.
   stay flat, and each failure reaches the restart policy once.
 - A path declared seekable that is a FIFO: the output starts, logs once
   that it writes the streaming form, and the reader decodes the stream.
-- An append of one minute of `%wav`, `%mp3` and `%flac` to a file holding
-  one minute of the same format: the result decodes as two minutes, holds
-  one header, and its header's counts cover both minutes. The same append
-  to an absent file writes a complete stream with its header.
+- An append of one minute of `%wav` and `%mp3` to a file holding one
+  minute of the same format: the result decodes as two minutes and holds
+  one header; for `%wav` the header's counts cover both minutes, for
+  `%mp3` the encoder-information frame is left as it was. The same append
+  to an absent file writes a complete stream with its header. An append of
+  native `%flac` is refused at evaluation, naming `%ogg(%flac)`.

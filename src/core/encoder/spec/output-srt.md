@@ -20,8 +20,8 @@ only what binds the seam, and links the rest.
   | listener | `fresh`, `live(L)` | yes                |
   | caller   | `fresh`, `live(L)` | no                 |
 
-  `L` is the output's `live_latency_bound`, 1 s as recommended
-  ([sink.md §1](sink.md#1-capabilities)). SRT's own latency and
+  `L` is the output's `live_latency_bound`, fixed at 1 s and not a script
+  parameter ([sink.md §1](sink.md#1-capabilities)). SRT's own latency and
   `max_payload_delay` bound what the transport and the sink hold after the
   writer has written it; neither is `L`.
 
@@ -37,11 +37,15 @@ only what binds the seam, and links the rest.
 
 ## 2. The sink
 
-- **Listener**: the shared stream, with no history (`B = 0`): a peer starts
-  at the first candidate written after it joined
-  ([shared-stream.md §3](../../outputs/spec/shared-stream.md#3-starting-a-reader)).
+- **Listener**: the shared stream's records alone, with no history
+  (`B = 0`) ([shared-stream.md §1](../../outputs/spec/shared-stream.md#1-model)):
+  a peer starts at the first candidate written after it joined
+  ([shared-stream.md §3](../../outputs/spec/shared-stream.md#3-starting-a-reader));
+  per write, the records report the call's first candidate and its entry
+  header, and the output copies from there into each waiting peer's queue.
   SRT keeps its peers, payload cutting, delay bound and per-peer queues,
-  each bounded by `peer_backlog_limit`
+  each bounded by `peer_backlog_limit`, which is the bound the shared
+  stream's history and store rules apply to
   ([srt output.md §5](../../optionals/srt/spec/output.md#5-sending)).
 - **Caller**: one sink per peer connection, serving it from byte 0, with
   the same payload cutting and bounds.

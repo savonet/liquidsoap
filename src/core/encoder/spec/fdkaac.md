@@ -68,21 +68,21 @@ Per [formats.md §7](formats.md#7-when-a-format-is-validated):
 
 ## 2. Declarations
 
-| Declaration        | ADTS                                            | LOAS             | ADIF                                                                      |
-| ------------------ | ----------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
-| streamable         | yes                                             | yes              | no: frames have no start code, and the configuration is only at the start |
-| needs seekable     | no                                              | no               | no                                                                        |
-| can continue       | yes: frames only                                | yes: frames only | yes: raw data blocks only                                                 |
-| in-band metadata   | no                                              | no               | no                                                                        |
-| segmentable        | yes, through the HLS packed-audio encoder (§12) | no               | no                                                                        |
-| needs no byte sink | no                                              | no               | no                                                                        |
-| accepts delegated  | no                                              | no               | no                                                                        |
+| Declaration        | ADTS                                            | LOAS             | ADIF                                                                                      |
+| ------------------ | ----------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------- |
+| streamable         | yes                                             | yes              | no: frames have no start code, and the configuration is only at the start                 |
+| needs seekable     | no                                              | no               | no                                                                                        |
+| can continue       | yes: frames only                                | yes: frames only | no: the ADIF header, whose length depends on its configuration, would have to be stripped |
+| in-band metadata   | no                                              | no               | no                                                                                        |
+| segmentable        | yes, through the HLS packed-audio encoder (§12) | no               | no                                                                                        |
+| needs no byte sink | no                                              | no               | no                                                                                        |
+| accepts delegated  | no                                              | no               | no                                                                                        |
 
 Explicit parameters refused against the declared capabilities, at the
 output's construction: `transmux="adif"` for an output whose sinks are
 `live` (a server relays a live stream to readers who start in its middle,
-and ADIF cannot be read from there). The default transport is never ADIF,
-so nothing is adapted.
+and ADIF cannot be read from there) or `continuing` (ADIF cannot continue).
+The default transport is never ADIF, so nothing is adapted.
 
 ## 3. Creation
 
@@ -116,14 +116,17 @@ so nothing is adapted.
 
 ## 5. Bytes and markers
 
-| Transport | Bytes                                                                  | Header          | Access points           |
-| --------- | ---------------------------------------------------------------------- | --------------- | ----------------------- |
-| ADTS      | (7-byte ADTS header, one raw data block) × n                           | empty           | before every ADTS frame |
-| LOAS      | (start code `0x2B7`, length, AudioMuxElement with StreamMuxConfig) × n | empty           | before every LOAS frame |
-| ADIF      | ADIF header, then raw data blocks                                      | the ADIF header | the stream start only   |
+| Transport | Bytes                                                                  | Header | Access points           |
+| --------- | ---------------------------------------------------------------------- | ------ | ----------------------- |
+| ADTS      | (7-byte ADTS header, one raw data block) × n                           | empty  | before every ADTS frame |
+| LOAS      | (start code `0x2B7`, length, AudioMuxElement with StreamMuxConfig) × n | empty  | before every LOAS frame |
+| ADIF      | ADIF header, then raw data blocks                                      | empty  | the stream start only   |
 
-- `stream_start(header_length, t₀)` before the first byte, with the ADIF
-  header's length for ADIF and 0 otherwise.
+- `stream_start(0, t₀)` before the first byte, for every transport. For
+  ADIF the ADIF header is inside the stream's first bytes and is not
+  delimited as an entry header. Reason: ADIF is never streamable and cannot
+  continue, so no sink reads its entry header, and delimiting it needs a
+  parser of its program configuration element.
 - `t` of an access point is the media time of the first input sample the
   frame decodes to: `t₀ + (k × frame length − delay) / rate`, never below
   `t₀`.
@@ -137,10 +140,11 @@ so nothing is adapted.
 - ADTS and LOAS: the header is empty, and the file form, the streaming form
   and the continuing form are all the frames alone. No field records the
   stream's length.
-- ADIF: the header is the same on every fresh sink; it records no length.
-- On a `continuing` sink, the writer writes frames only (ADTS, LOAS) or raw
-  data blocks only (ADIF, its own ADIF header omitted), taking the existing
-  stream to be of its configuration. Nothing is updated at the end.
+- ADIF: the ADIF header opens the stream on every fresh sink; it records
+  no length.
+- On a `continuing` sink, the writer writes frames only (ADTS, LOAS),
+  taking the existing stream to be of its configuration. Nothing is updated
+  at the end. ADIF is refused on a continuing sink (§2).
 - No preamble.
 
 ## 7. Metadata
@@ -151,8 +155,9 @@ in-band metadata.
 ## 8. Delay and padding
 
 - **Delay**: the delay the library reports for its configuration (2 048
-  samples for LC, about 7 100 for HE-AAC v2 at 44 100 Hz), plus the rate
-  converter's, in samples at the stream's rate.
+  samples for LC, about 7 100 for HE-AAC v2 at 44 100 Hz), in samples at
+  the stream's rate. The rate converter adds none
+  ([encoder.md §3.3](encoder.md#33-frames-in)).
 - **Padding**: `n × frame length − delay − input` at the stream's end.
 - None of the transports can signal them
   ([encoder.md §3.7](encoder.md#37-delay-and-padding)); the properties
@@ -216,7 +221,7 @@ outputs run on several domains without coordination.
 | a value out of its set; HE-AAC v2 without 2 channels; `sbr_mode` without ELD; an object type the transport cannot carry; a removed transport; `bitrate` and `vbr` both given | configuration error | type checking or evaluation         |
 | an object type the library build does not encode                                                                                                                             | configuration error | evaluation                          |
 | a deferred rate out of the set                                                                                                                                               | configuration error | start-up                            |
-| `transmux="adif"` for a live output; a non-streamable transport for an output serving readers mid-stream                                                                     | configuration error | construction of the output          |
+| `transmux="adif"` for a live or continuing output; a non-streamable transport for an output serving readers mid-stream                                                       | configuration error | construction of the output          |
 | the library refuses its configuration or its initialisation                                                                                                                  | configuration error | creation; hard error                |
 | the library fails to encode while streaming, or memory runs out                                                                                                              | output fault        | the writer becomes `failed`         |
 | the flush fails at a clean end                                                                                                                                               | not escalated       | logged at `severe`; the end goes on |
@@ -255,4 +260,5 @@ transmux="adts")` and `%fdkaac(aot="mpeg2_aac_lc", transmux="loas")`
 8. Pieces of random lengths and offsets give the same decoded sample count
    as one piece.
 9. One minute of ADTS appended to a one-minute ADTS file decodes as two
-   minutes.
+   minutes. `%fdkaac(transmux="adif")` to `output.file(append=true)` is
+   refused at evaluation.

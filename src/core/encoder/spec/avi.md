@@ -130,18 +130,20 @@ payload, and one zero byte when the length is odd.
    metadata (§7);
 4. `LIST`, its size, `movi`.
 
-**Streaming form** (a fresh sink that is not seekable, and the first write
-on a seekable one): the RIFF and `movi` sizes are 0xFFFFFFFF; total frames
-and stream lengths are 0. No index.
+**Streaming form** (every fresh sink, and the first write on a seekable
+one): the RIFF and `movi` sizes are 0xFFFFFFFF; total frames and stream
+lengths are 0.
 
-**File form** (fresh seekable sink): at a clean end, the writer appends an
-`idx1` index of every chunk of `movi` (each a key frame), then seeks back and
-writes the RIFF and `movi` sizes, the total frames and the stream lengths.
-It builds the index by reading back the chunk headers of `movi` from the
-sink, so nothing the writer holds grows with the stream's length. When a
-size exceeds 32 bits, the header keeps the streaming form's values and no
-index is written; a writer MAY instead extend the file as OpenDML (AVI 2.0)
-to describe it. Sizes are never reduced modulo 2³¹ or 2³².
+**No index.** The writer writes no `idx1` index and no OpenDML extension,
+on any sink. Reason: an index means reading back or holding every chunk's
+position; AVI readers read an unindexed stream sequentially.
+
+**File form** (fresh seekable sink): at a clean end, the writer MAY seek
+back and write the RIFF and `movi` sizes, the total frames and the stream
+lengths, from counts it keeps while streaming (nothing it holds grows with
+the stream's length). Where it does not, or where a size exceeds 32 bits,
+the header keeps the streaming form's values. Sizes are never reduced
+modulo 2³¹ or 2³².
 
 **Continuing sink.** Refused (§2).
 
@@ -162,7 +164,8 @@ to describe it. Sizes are never reduced modulo 2³¹ or 2³².
 ## 9. End
 
 `end(clean)` drains the rate converter and writes its samples as a last
-`01wb` chunk, writes the file form on a seekable sink (§6), then `end`.
+`01wb` chunk, writes the final sizes on a seekable sink where it does (§6),
+then `end`.
 `end(abandoned)` writes nothing; an abandoned file keeps its streaming-form
 header and is read sequentially.
 
@@ -196,7 +199,7 @@ No work of its own. An image scaler, when needed, belongs to one writer.
 | a parameter rejected (§1)                        | configuration error                                                       |
 | a deferred size, rate or frame rate out of range | configuration error, at start-up                                          |
 | a continuing sink                                | configuration error, at evaluation (§2)                                   |
-| a seek or read back failing at a clean end       | not escalated ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes)) |
+| a seek failing at a clean end                    | not escalated ([encoder.md §3.6](encoder.md#36-draining-and-final-bytes)) |
 
 No image size and no piece is refused while streaming (§4).
 
@@ -209,10 +212,11 @@ No image size and no piece is refused while streaming (§4).
   size equal 33·17 + 2·17·9; a decoder reads the pictures.
 - Images larger, smaller and with padded strides: the decoded picture equals
   the scaled input.
-- On a regular file after a clean stop: RIFF and `movi` sizes, total frames
-  and stream lengths match the content, and `idx1` lists every chunk; a
-  reader reports the real duration. On a FIFO: the streaming form, and a
-  reader decodes every chunk.
+- On a regular file after a clean stop: no `idx1` chunk; the RIFF and
+  `movi` sizes, total frames and stream lengths either match the content or
+  hold the streaming form's values, never anything else; a reader decodes
+  every chunk. On a FIFO: the streaming form, and a reader decodes every
+  chunk.
 - The file is read back by Liquidsoap's own AVI input and by an independent
   decoder.
 - `%avi(mono)` types and builds mono.

@@ -269,8 +269,8 @@ At evaluation, with an invalid-value error
   refused on the format argument; `%ffmpeg` is the one that does;
 - a URL with the `file:` scheme, and a string that is not a URL (a plain
   local path), are refused on the URL, with a message that names
-  `output.file`. A computed URL is checked when it is first read, as a
-  configuration error.
+  `output.file`. `url` is a constant string, so this check always runs at
+  evaluation.
   Callback `on_error : (error) -> unit`, error kind `"output"`, plus the generic
   output callbacks (`on_start`, `on_stop`, `on_output`).
 
@@ -983,6 +983,13 @@ the client.
 | `Connecting a`       | attempt `a`, its abort flag, queued pieces | queued                      |
 | `Connected (a, enc)` | the writer `enc`, writing to `url`         | queued, written by the task |
 | `Waiting t`          | the retry time `t`                         | dropped                     |
+| `Fatal e`            | the configuration error `e` (§11.3)        | dropped                     |
+
+`Fatal e` is entered from the task when a configuration error shows only
+at the first open or the first piece. The task cannot fail the script
+itself: the streaming work finds the state at its next cycle and raises
+`e` under the clock's source error rule (§11.3 item 2). No transition
+leaves `Fatal`.
 
 The output also keeps its **current metadata**: the last metadata it
 received, whatever the state.
@@ -1059,9 +1066,14 @@ queue past its bound in `Connected` (§11.1):
      codec or the muxer rejects for the configured format at the output's
      first start. Wherever the encoder can know it before streaming, it is
      raised at evaluation
-     ([encoder.md §4](encoder.md#4-option-handling)). When it shows only at
-     the first open or the first piece, it is a hard error then: it is raised
-     under the clock's source error rule
+     ([encoder.md §4](encoder.md#4-option-handling)). The writer reports a
+     failure of this kind as refused by the configuration, without knowing
+     whether it is the output's first writer; the output classes it: a
+     configuration error when no writer of this output ever connected, an
+     output fault otherwise. When it shows only at the first open or the
+     first piece, it is a hard error then: the task moves the state to
+     `Fatal e` (§11.1), and the streaming work raises it under the clock's
+     source error rule
      ([clock.md §11](../../../clock/spec/clock.md#11-failure)) and the script
      fails, naming the output and the cause.
    - **Output fault**: every other failure. This includes a stream parameter

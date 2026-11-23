@@ -1,7 +1,8 @@
 # The shared stream store
 
-The store behind the shared stream of the shared mode
-([shared-encoder.md](shared-encoder.md)). The output's streaming work is its
+The store of the shared stream ([shared-stream.md §5](../shared-stream.md#5-store-and-concurrency)),
+used by the shared mode ([shared-encoder.md](shared-encoder.md)) and by any
+other user of the store. The output's streaming work is its
 only writer; delivery passes of every group read it concurrently.
 
 ## 1. Model

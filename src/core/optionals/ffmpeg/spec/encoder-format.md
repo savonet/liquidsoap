@@ -431,21 +431,29 @@ reads that helper. Only `format` (and, for `adts`, the single track's
 codec) decides, as a function of the format value alone; a format without
 `format` is the last row:
 
-| `format`                                              | Extension | MIME                       |
-| ----------------------------------------------------- | --------- | -------------------------- |
-| `ogg`                                                 | `ogg`     | `application/ogg`          |
-| `opus`                                                | `opus`    | `application/ogg`          |
-| `mp3`                                                 | `mp3`     | `audio/mpeg`               |
-| `matroska`                                            | `mkv`     | `video/x-matroska`         |
-| `mpegts`                                              | `ts`      | `application/octet-stream` |
-| `ac3`                                                 | `ac3`     | `audio/ac3`                |
-| `eac3`                                                | `eac3`    | `audio/eac3`               |
-| `adts`, exactly one track, encoded with `codec="aac"` | `aac`     | `audio/aac`                |
-| `adts`, otherwise                                     | `adts`    | `application/octet-stream` |
-| `mp4`                                                 | `mp4`     | `video/mp4`                |
-| `webm`                                                | `webm`    | `video/webm`               |
-| `wav`                                                 | `wav`     | `audio/wav`                |
-| other                                                 | none      | `application/octet-stream` |
+| `format`                                              | Extension | MIME                                                           |
+| ----------------------------------------------------- | --------- | -------------------------------------------------------------- |
+| `ogg`                                                 | `ogg`     | `application/ogg`                                              |
+| `opus`                                                | `opus`    | `application/ogg`                                              |
+| `mp3`                                                 | `mp3`     | `audio/mpeg`                                                   |
+| `matroska`                                            | `mkv`     | `video/x-matroska`                                             |
+| `mpegts`                                              | `ts`      | `application/octet-stream`                                     |
+| `ac3`                                                 | `ac3`     | `audio/ac3`                                                    |
+| `eac3`                                                | `eac3`    | `audio/eac3`                                                   |
+| `adts`, exactly one track, encoded with `codec="aac"` | `aac`     | `audio/aac`                                                    |
+| `adts`, otherwise                                     | `adts`    | `application/octet-stream`                                     |
+| `mp4`                                                 | `mp4`     | `video/mp4`                                                    |
+| `webm`                                                | `webm`    | `video/webm`                                                   |
+| `wav`                                                 | `wav`     | `audio/wav`                                                    |
+| other                                                 | none      | the muxer's MIME type (below), else `application/octet-stream` |
+
+For the "other" row, the table is completed by a per-muxer MIME list keyed
+by FFmpeg short name (for example `flac` → `audio/x-flac`, `avi` →
+`video/x-msvideo`, `flv` → `video/x-flv`), merged into this one table; the
+rows above win where both name a muxer. The list holds the MIME types the
+outputs announced before this table existed. Reason: without it, every
+muxer outside the rows above would change its announced content type to
+`application/octet-stream` on Icecast and harbor.
 
 The format gives no RFC 6381 codec string: codec strings come from the
 streams, with a per-stream fallback

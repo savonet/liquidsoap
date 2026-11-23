@@ -43,6 +43,12 @@ parameters of `%audio` ([formats.md §2](formats.md#2-names-and-kinds)):
   not 2.
 - Every output other than `output.ndi` refuses `%ndi` at construction, with
   an invalid-value error on its format argument that names `output.ndi`.
+- **Availability.** `%ndi` is available (it types, and `%ifencoder(%ndi)`
+  takes its first branch) exactly when `output.ndi` is in the build, although
+  no writer answers it. Reason: availability is otherwise defined by a
+  writer answering ([encoder.md §1](encoder.md#1-registry)); without this
+  rule `%ndi` would be an unavailable format and every script using it
+  would fail type checking.
 
 The audio channel count is 2 by default, the shared default. Migration: a
 script that set `settings.frame.audio.channels` to another count and fed

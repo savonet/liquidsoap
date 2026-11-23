@@ -55,7 +55,11 @@ Nothing at this level.
 A writer's initial metadata ([encoder.md §2.2](encoder.md#22-creation)) is
 the exported form of the current metadata at the position of the writer's
 first piece, the metadata at that position, if any, applied first. That
-metadata is not also offered in band (§4.3).
+metadata is not also offered in band (§4.3). Since it is then the current
+metadata, an offer of it is an unchanged offer under
+[encoder.md §9](encoder.md#9-in-band-metadata) item 3: an implementation
+MAY get this rule from that item alone, without tracking whether a writer
+has had a piece.
 
 ## 4. Pieces and metadata
 
@@ -137,7 +141,10 @@ For each piece, in frame order, the output's streaming work:
    - offers the exported form to the writer in band, when the writer offers
      in-band metadata, the output chose in band
      ([encoder.md §9](encoder.md#9-in-band-metadata)), the exported form is
-     not empty, and the piece is not the writer's first (§3.2);
+     not empty, and the piece is not the writer's first (§3.2; an offer of
+     the first piece's metadata is unchanged under
+     [encoder.md §9](encoder.md#9-in-band-metadata) item 3, so that rule
+     alone MAY meet this condition);
    - hands the metadata to the sink out of band, when the output carries
      metadata out of band ([sink.md §5](sink.md#5-out-of-band-metadata));
 2. calls `write(piece)`.

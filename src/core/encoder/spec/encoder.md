@@ -56,7 +56,9 @@ HLS output ([encoder-contract.md](../../outputs/hls/spec/encoder-contract.md)).
 3. A plug-in answers a format only when every component that format needs is
    in the build: the library of its codec, each stream codec of an Ogg
    format, the muxer it names. Availability is a property of the
-   configuration's components, not of the plug-in's kind. A format that no
+   configuration's components, not of the plug-in's kind. `%ndi` is the
+   one exception: it is available when the NDI sender is in the build,
+   although no plug-in answers it (item 7). A format that no
    plug-in answers for lack of a component is a configuration error naming
    that component; when and how it is reported is
    [formats.md §8](formats.md#8-availability-and-ifencoder).
@@ -69,15 +71,18 @@ HLS output ([encoder-contract.md](../../outputs/hls/spec/encoder-contract.md)).
 5. A factory builds a writer from: the configuration, the capabilities its
    sink confirmed ([sink.md §1](sink.md#1-capabilities)), the sink, the
    output's name (for logs), the initial metadata (§2.2), whether the
-   output will offer it metadata in band (§9), for a continuing sink the
-   existing stream's first and last bytes
-   ([sink.md §2](sink.md#2-operations)), and the format's script position
-   (for errors). It returns the writer or a fault (§8).
-6. Every registered writer offers the stream face (§3). A writer whose
-   declarations say it is segmentable also offers the segmenting face (§4).
+   output will offer it metadata in band (§9), and the format's script
+   position (for errors). It returns the writer or a fault (§8).
+6. Every registered writer offers the stream face (§3). The segmenting
+   face (§4) MAY be registered apart, in a registry of its own whose
+   factories are built with the segment duration; a configuration is
+   segmentable when that registry answers it.
 7. `%ndi` is not a writer. No plug-in answers it: its frames go to a sender
    that takes media frames, not bytes, and only `output.ndi` accepts the
-   format ([formats.md §2](formats.md#2-names-and-kinds)).
+   format ([formats.md §2](formats.md#2-names-and-kinds)). It is available
+   (it types, and `%ifencoder(%ndi)` takes its first branch) whenever the
+   NDI sender is in the build
+   ([formats.md §8](formats.md#8-availability-and-ifencoder)).
 
 ## 2. Instances
 
@@ -188,16 +193,23 @@ exactly the bytes written so far
   re-framer, an image scaler) is a stage of
   [draining.md §1](../../source/spec/draining.md#1-stages): it is drained at
   `end` and whenever it is rebuilt.
+- A sample-rate conversion stage is aligned: its first output sample has
+  the media time of its first input sample, and its drain releases its
+  tail. It adds no delay, and no writer counts one for it (§3.7).
 - Images whose size, stride or plane layout differ from the configuration's
   are encoded at the configured size: the writer adapts them (copies by
   rows, scales), and the header always describes the payload. An image size
   the configuration cannot encode at all is a configuration error at
-  evaluation ([formats.md §7](formats.md#7-when-a-format-is-validated)).
+  evaluation ([formats.md §7](formats.md#7-when-a-format-is-validated)). A
+  deprecated writer MAY adapt less, refusing every size it cannot encode
+  instead of adapting it; its implementation file states what it accepts
+  (`%theora`).
 - **Integer conversion.** A writer that hands its codec or its bytes
-  integer samples converts each floating-point sample `x`, for a sample
-  size of `b` bits, to `round(x × 2^(b−1))`, clamped to
-  [−2^(b−1), 2^(b−1) − 1]; NaN is taken as 0. Unsigned 8-bit PCM adds 128. Reason: decoders read an integer `s` as `s / 2^(b−1)`, so samples
-  that are already integers of `b` bits survive the round trip unchanged.
+  integer samples uses the media library's existing float-to-integer
+  conversion for that sample size, as it is; this contract adds no rounding
+  rule of its own. Every writer converting to one sample size uses the same
+  conversion. Reason: one conversion for every writer, so that two writers
+  of the same PCM configuration write the same samples.
 - Media time: the writer counts the run's media time from the pieces it
   receives, in main ticks; it equals the output's at every piece boundary.
 
@@ -226,7 +238,10 @@ marker sits between two bytes: it refers to the byte that follows it.
    frame, an ADTS or LOAS frame, a WAV sample block, an MPEG-TS table
    repetition before key access units, a Matroska cluster that starts at a
    key frame, a movie fragment that starts at a key frame. No access point
-   lies inside a header or inside a unit.
+   lies inside a header or inside a unit. A writer whose codec library
+   hands it whole frames on each call (the MPEG audio writers) marks one
+   access point at the start of each call's output that holds bytes, and
+   does not parse frames to find more.
 5. A streamable configuration marks access points in every stream it
    writes, at least one per unit that can begin one, within a bounded
    interval of media time: one per key-frame interval of its video, and for
@@ -271,15 +286,15 @@ segmented sink cuts at them (§4).
 3. On a **continuing** sink, the writer extends the stream already there
    instead of starting a second one, wherever its format allows:
 
-   | Format                                             | What the continuing writer writes       | Existing header updated at a clean end, where the sink is seekable                                                                           |
-   | -------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-   | WAV (PCM)                                          | samples only, no header                 | RIFF and data sizes                                                                                                                          |
-   | MP3 (LAME, Shine)                                  | MPEG frames only, no preamble           | the encoder-information frame's frame and byte counts                                                                                        |
-   | native FLAC                                        | frames only                             | STREAMINFO total samples, with the MD5 signature set to unknown                                                                              |
-   | Ogg                                                | a new chained link, with its own header | nothing: each link is complete on its own                                                                                                    |
-   | formats with an empty header (ADTS, LOAS, MPEG-TS) | media only                              | nothing                                                                                                                                      |
-   | the FFmpeg writer (its muxers that can continue)   | media only, or a new chained Ogg stream | nothing, declined: the muxer writes the header of the stream it starts and no other ([ffmpeg.md §6](ffmpeg.md#6-header-forms-and-preambles)) |
-   | `%external`                                        | the process's output, unchanged         | nothing: the writer does not know the format                                                                                                 |
+   | Format                                             | What the continuing writer writes       | Existing header updated at a clean end, where the sink is seekable                                                                                                 |
+   | -------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | WAV (PCM)                                          | samples only, no header                 | RIFF and data sizes                                                                                                                                                |
+   | MP3 (LAME, Shine)                                  | MPEG frames only, no preamble           | nothing, declined: the existing encoder-information frame is left as it is, and describes the first stream only ([mp3.md §6](mp3.md#6-header-forms-and-preambles)) |
+   | native FLAC                                        | cannot continue: refused (§5.3)         | —                                                                                                                                                                  |
+   | Ogg                                                | a new chained link, with its own header | nothing: each link is complete on its own                                                                                                                          |
+   | formats with an empty header (ADTS, LOAS, MPEG-TS) | media only                              | nothing                                                                                                                                                            |
+   | the FFmpeg writer (its muxers that can continue)   | media only, or a new chained Ogg stream | nothing, declined: the muxer writes the header of the stream it starts and no other ([ffmpeg.md §6](ffmpeg.md#6-header-forms-and-preambles))                       |
+   | `%external`                                        | the process's output, unchanged         | nothing: the writer does not know the format                                                                                                                       |
 
    The writer takes the existing stream to be of its own configuration.
    Where the sink is seekable, the writer SHOULD, at its clean end, read the
@@ -287,13 +302,13 @@ segmented sink cuts at them (§4).
    MAY decline this SHOULD only with a reason its implementation file
    states, and then leaves the existing header as it was. It leaves a
    header that is not of its configuration unchanged, logged at `severe`
-   with the file's name. What a continuing writer needs of the existing
-   stream at creation (native FLAC's frame numbering) the sink hands it at
-   open ([sink.md §2](sink.md#2-operations)). Where the sink cannot be read back, the existing
+   with the file's name. Where the sink cannot be read back, the existing
    header keeps what it had: placeholders stay valid, and final values
    describe the first stream only. A configuration that cannot extend an
    existing stream validly (a non-fragmented MP4, a container that does not
-   chain) cannot continue, and is refused (§5.3). Each implementation
+   chain, native FLAC, whose frames are numbered from the stream's start)
+   cannot continue, and is refused (§5.3); native FLAC's refusal names
+   `%ogg(%flac)`, which can. Each implementation
    file's §6 states its row.
 
 4. A FIFO, a device or a pipe is a stream: its sink is not seekable, and an
@@ -430,8 +445,13 @@ per `L`. On a sink that is not live, no bound applies.
 
 ## 4. The segmenting face
 
-The segmenting face is the stream face of a writer built with a
-`segmented(D)` sink. The HLS output owns its rules: the calls, their order,
+The segmenting face is offered by a factory of its own, registered apart
+from the stream face's (§1 item 6) and built with the segment duration: a
+segmented output looks the format up there, and "segmentable" means that
+lookup answers. A `segmented(D)` destination is the input of that factory,
+and a declared capability for the check of §5.3. How the writer carries
+ID3 (its mode) is a declaration of the format, read at evaluation, never a
+call on a writer. The HLS output owns its rules: the calls, their order,
 split requests, split times, init segments, ID3 and the per-variant
 properties ([encoder-contract.md](../../outputs/hls/spec/encoder-contract.md)).
 Its pieces map onto this file's markers (the HLS contract's own names in
@@ -498,7 +518,7 @@ capabilities:
 | needs seekable     | needs a seekable destination                                                                                            |
 | can continue       | as defined above                                                                                                        |
 | in-band metadata   | offers `metadata` (§9); native `%ogg`, and `%external` with `restart_on_metadata`                                       |
-| segmentable        | offers the segmenting face (§4)                                                                                         |
+| segmentable        | the segmenting registry answers the format (§4)                                                                         |
 | needs no byte sink | produces no bytes for a sink (a muxer that writes its own files or devices): only a delegated destination takes it (§6) |
 | accepts delegated  | can open a delegated destination itself (§6)                                                                            |
 
@@ -511,14 +531,14 @@ format against its declarations. Each refusal is an invalid-value error on
 the format argument that names what the configuration needs and what the
 output offers:
 
-| Output declares                     | Configuration             | Result                                                                                     |
-| ----------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------ |
-| readers mid-stream                  | not streamable            | refused; the message names the output's alternative where it has one (a dedicated encoder) |
-| any capabilities without `seekable` | needs seekable            | refused                                                                                    |
-| continuing                          | cannot continue           | refused; the message names the format and says it cannot be appended to                    |
-| no delegated destination            | needs no byte sink        | refused                                                                                    |
-| delegated                           | does not accept delegated | refused                                                                                    |
-| segmented                           | not segmentable           | refused, as the HLS tree states                                                            |
+| Output declares                     | Configuration             | Result                                                                                                                                                 |
+| ----------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| readers mid-stream                  | not streamable            | refused; the message names the output's alternative where it has one (a dedicated encoder)                                                             |
+| any capabilities without `seekable` | needs seekable            | refused                                                                                                                                                |
+| continuing                          | cannot continue           | refused; the message names the format, says it cannot be appended to, and names the format that can where there is one (`%ogg(%flac)` for native FLAC) |
+| no delegated destination            | needs no byte sink        | refused                                                                                                                                                |
+| delegated                           | does not accept delegated | refused                                                                                                                                                |
+| segmented                           | not segmentable           | refused, as the HLS tree states                                                                                                                        |
 
 **Streamable on the script's word.** A configuration whose writer cannot
 vouch for its streamability (an FFmpeg muxer it does not know, `%external`)
@@ -642,7 +662,9 @@ A writer reports every fault as a value that carries its class
 ([faults.md §2](../../../spec/faults.md#2-classes)), the cause, the writer's
 name, and for a configuration error the parameter and the format's
 position. No untyped failure leaves a writer; a failure the writer cannot
-classify is an output fault.
+classify is an output fault. The value MAY be raised as an exception that
+carries it: every writer's calls then go through one enforcement point,
+which classes any other failure as an output fault.
 
 | Fault                                                                                                                               | Class               | Outcome                                                                                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

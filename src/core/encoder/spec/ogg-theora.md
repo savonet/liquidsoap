@@ -13,35 +13,41 @@ it is accepted, encodes as below, and logs one warning naming `%ffmpeg`
 with a current video codec as its replacement. Reason: libtheora is no
 longer developed, and players decode current codecs better.
 
-| Parameter                                | Values                                                   | Default                                                                                     |
-| ---------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `quality`                                | int 0..63                                                | 40                                                                                          |
-| `bitrate`                                | int, bits per second, positive                           | unset; when set, rate control targets it and `quality` is unused                            |
-| `width`, `height`                        | multiple of 16, below 1048576                            | the frame's video size rounded up to a multiple of 16 (deferred)                            |
-| `picture_width`, `picture_height`        | at most `width`, `height`                                | the frame's video size (deferred) when `width`/`height` are defaults, else `width`/`height` |
-| `picture_x`, `picture_y`                 | as the Theora header allows (below)                      | 0                                                                                           |
-| `aspect_numerator`, `aspect_denominator` | positive ints                                            | 1, 1                                                                                        |
-| `keyframe_frequency`                     | int, positive                                            | 64                                                                                          |
-| `vp3_compatible`, `soft_target`          | bool                                                     | the library's                                                                               |
-| `buffer_delay`, `speed`                  | int                                                      | the library's                                                                               |
-| `bytes_per_page`                         | [ogg-streams.md §1](ogg-streams.md#1-format-and-options) | 4096                                                                                        |
+Being deprecated, it gets minimal image handling: a size it cannot encode
+is refused, never adapted (no rounding of the coded size, no scaling, no
+placement of a smaller image in a larger coded frame).
+
+| Parameter                                | Values                                                         | Default                                                          |
+| ---------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `quality`                                | int 0..63                                                      | 40                                                               |
+| `bitrate`                                | int, bits per second, positive                                 | unset; when set, rate control targets it and `quality` is unused |
+| `width`, `height`                        | multiple of 16, below 1048576, equal to the frame's video size | the frame's video size (deferred)                                |
+| `picture_width`, `picture_height`        | at most `width`, `height`                                      | `width`, `height`                                                |
+| `picture_x`, `picture_y`                 | as the Theora header allows (below)                            | 0                                                                |
+| `aspect_numerator`, `aspect_denominator` | positive ints                                                  | 1, 1                                                             |
+| `keyframe_frequency`                     | int, positive                                                  | 64                                                               |
+| `vp3_compatible`, `soft_target`          | bool                                                           | the library's                                                    |
+| `buffer_delay`, `speed`                  | int                                                            | the library's                                                    |
+| `bytes_per_page`                         | [ogg-streams.md §1](ogg-streams.md#1-format-and-options)       | 4096                                                             |
 
 - `picture_x` ≤ min(`width` − `picture_width`, 255); `picture_y` ≤
   `height` − `picture_height` and `picture_height` − `picture_y` ≤ 255
   (Theora header limits, from memory).
 - All checks run on the final values, whatever the order of the parameters,
   at the phase of their values; deferred defaults are checked at start-up.
-- The default sizes adapt to the frame's video size: the coded frame is the
-  next multiple of 16 and the picture is the frame's size. An explicit
-  `width` or `height` that is not a multiple of 16 is refused.
+- The coded size is the frame's video size. A `width` or `height`, explicit
+  or default, that is not a multiple of 16 or differs from the frame's video
+  size is refused, at the phase of its value (start-up for the deferred
+  default), naming the parameter, the frame's video size and the format's
+  position.
 - The frame rate is the frame's video rate (deferred).
 - Printed form: every set option, unset ones omitted; printed inside
   `%ogg(...)` it keeps the video stream
   ([ogg.md §1](ogg.md#1-format-and-options)).
 
 Migration: a frame size that is not a multiple of 16 (1920×1080), which
-failed at the output's start, is encoded in a coded frame of 1920×1088 with
-a 1920×1080 picture.
+failed at the output's start, is refused at start-up with a positioned
+error; set a frame size that is a multiple of 16, or use `%ffmpeg`.
 
 ## 2. Configuration and library checks
 
@@ -67,10 +73,11 @@ libtheora's.
 
 ## 6. Input
 
-- Images are adapted to the picture size: scaled when their size differs,
-  copied by rows whatever their stride, converted to Y'CbCr 4:2:0, and placed
-  at the picture offset in the coded frame. The planes handed to libtheora
-  always have the coded frame's size.
+- Images have the frame's video size, which is the coded size (§1). They are
+  copied by rows whatever their stride and converted to Y'CbCr 4:2:0; they
+  are never scaled or placed. The planes handed to libtheora always have the
+  coded frame's size. An image of another size is a defect of the caller
+  (internal error), never adapted.
 - One image per image period. A share with no image is not handed to the
   codec.
 
@@ -95,7 +102,7 @@ None.
   final granule position.
 - A link in which the stream received no image encodes one image first: the
   latest image the writer received before the link, or a black image of the
-  picture size when there is none. Reason: a logical stream ends on the page
+  coded size when there is none. Reason: a logical stream ends on the page
   of its last packet, and a link can be shorter than one image period; the
   repeated image is what a viewer already sees.
 
@@ -121,10 +128,12 @@ libtheora keeps no state shared between encoders.
 
 ## 14. Tests
 
-- Images with padded strides, odd sizes and a size different from the
-  picture: the decoded image equals the scaled input; header sizes equal the
-  payload.
-- A frame size of 1920×1080 with defaults: decodable, picture 1920×1080.
+- Images with padded strides: the decoded image equals the input; header
+  sizes equal the payload.
+- A frame size of 1920×1080 with defaults, and an explicit `width=1280`
+  under a 1920×1088 frame: refused at start-up, naming the parameter and
+  the frame's video size; no output starts.
+- A frame size of 1920×1088 with defaults: decodable, picture 1920×1088.
 - `%theora` logs its deprecation warning once per format evaluated.
 - A link with no image (two metadata changes less than one image period
   apart, then a stop): every link ends validly, no call raises.

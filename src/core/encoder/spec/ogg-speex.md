@@ -58,7 +58,8 @@ No title is derived from the output's name or address.
 
 ## 6. Input
 
-Samples are converted to 16-bit integers by rounding to nearest, clipped.
+Samples are converted to 16-bit integers by the media library's existing
+conversion ([ogg-streams.md §6](ogg-streams.md#6-input)).
 Stereo is encoded with the library's stereo coding. Whole frames are encoded;
 the remainder waits.
 

@@ -8,7 +8,7 @@ numbers.
 
 This file also owns the rules every MPEG Layer III writer shares: the MPEG
 rate and bit rate tables (§1.3), the access points of an MPEG audio stream
-(§5), the header forms and the encoder-information frame (§6.1–§6.3), and
+and how a writer places them without parsing frames (§5), the header forms and the encoder-information frame (§6.1–§6.3), and
 the ID3v2 tag rendered from metadata (§7.2). [shine.md](shine.md) and the
 HLS packed-audio encoders
 ([encoder-packed-audio.md](../../outputs/hls/spec/encoder-packed-audio.md))
@@ -97,15 +97,15 @@ at creation is a hard configuration error (§15).
 
 ## 2. Declarations
 
-| Declaration        | Value                                           |
-| ------------------ | ----------------------------------------------- |
-| streamable         | yes: every frame is an access point (§5)        |
-| needs seekable     | no                                              |
-| can continue       | yes: MPEG frames only (§6.3)                    |
-| in-band metadata   | no                                              |
-| segmentable        | yes, through the HLS packed-audio encoder (§12) |
-| needs no byte sink | no                                              |
-| accepts delegated  | no                                              |
+| Declaration        | Value                                                             |
+| ------------------ | ----------------------------------------------------------------- |
+| streamable         | yes: every call's output starts at an access point (§5)           |
+| needs seekable     | no                                                                |
+| can continue       | yes: MPEG frames only, existing preambles left as they are (§6.3) |
+| in-band metadata   | no                                                                |
+| segmentable        | yes, through the HLS packed-audio encoder (§12)                   |
+| needs no byte sink | no                                                                |
+| accepts delegated  | no                                                                |
 
 Adapted defaults ([encoder.md §5.3](encoder.md#53-the-check)): the
 encoder-information frame is written in the file form only (§6.1); the
@@ -143,8 +143,9 @@ the ID3 tag the HLS contract owns.
 - When the stream's rate differs from the frame's, a rate conversion runs
   before the codec, as a stage of
   [draining.md §1](../../source/spec/draining.md#1-stages): the writer's own
-  converter or the codec's, drained at `end` either way (§9) and counted in
-  the signalled delay (§8).
+  converter or the codec's, drained at `end` either way (§9). The converter
+  is aligned and adds no delay
+  ([encoder.md §3.3](encoder.md#33-frames-in)).
 - The writer hands the codec any number of samples per call. What it holds
   between calls, outside the codec, is less than one frame of `F` samples.
   No result depends on the piece boundaries
@@ -163,11 +164,19 @@ MPEG audio frame × n          Layer III, the configured version, rate and mode
 Markers, for every MPEG Layer III writer:
 
 - `stream_start(0, t₀)` before the first byte: the header is empty.
-- `access_point(t)` before every audio frame, at its header's start code. None is
-  placed before or inside a preamble.
-- `t` is the media time of the first input sample the frame decodes to:
-  `t₀ + (k × F − delay) / rate` for the `k`-th audio frame (from 0), delay
-  as in §8, never below `t₀`.
+- `access_point(t)` before the first byte of every call's non-empty audio
+  output. The codec returns whole frames, so that byte is a frame header's
+  start code; the writer MUST NOT parse the bytes to find frames, and
+  places no access point inside a call's output. None is placed before or
+  inside a preamble.
+- `t` is the media time of the first audio frame of that output:
+  `t₀ + (k × F − delay) / rate`, where `k` is the number of audio frames the
+  codec returned before it, counted from the input samples it consumed
+  (`F` each), delay as in §8, never below `t₀`. Where the count is not
+  exact, `t` MAY be early by at most the codec's look-ahead.
+- A call that returns several frames gives one access point: a reader
+  joins at the start of a call's output, never between two of its
+  frames.
 - A reader starting at an access point decodes from that frame. A frame
   whose main data begins in earlier frames (the bit reservoir) decodes as
   silence for a reader that lacks them: at most the first `F` samples a
@@ -218,9 +227,12 @@ The frame follows the Xing and LAME tag layout:
 6. At a clean end, the writer seeks to the frame and rewrites it with the
    final counts, table of contents, padding and CRCs. The frame keeps its
    size.
-7. The table of contents is computed from frame positions the writer
-   records while it streams, in memory bounded independently of the
-   stream's length.
+7. The frame count is the number of audio frames the codec encoded,
+   counted from the input samples it consumed and its flush (`F` each). The
+   table of contents is computed from the byte positions of the access
+   points (§5) the writer records while it streams, in memory bounded
+   independently of the stream's length; a position between two of them is
+   interpolated.
 
 ### 6.3 Continuing
 
@@ -229,22 +241,17 @@ no encoder-information frame
 ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles)). It takes the
 existing stream to be of its own version, rate and channel mode.
 
-At a clean end, the sink being seekable, the writer SHOULD read the start of
-the existing stream (skipping an ID3v2 tag by its declared size), and when
-it finds an encoder-information frame of its version, rate and channel mode:
-
-- add its own frames and bytes to the frame count, the byte count and the
-  music length;
-- recompute the table of contents over the whole stream, or, where it
-  cannot, clear the table's presence flag in place, so that no reader
-  follows a stale table;
-- set the padding to its own stream's: the junction keeps the first
-  stream's padding and the appended stream's delay as decoded samples;
-- recompute the audio CRC from the frames read back, and the tag's CRC.
-
-An existing stream with no encoder-information frame is left as it is. A
-frame of another version, rate or channel mode is left unchanged, logged at
-`severe` with the file's name.
+The writer declines the SHOULD of
+[encoder.md §3.5](encoder.md#35-header-forms-and-preambles) to update the
+existing stream's header: an existing ID3v2 tag and encoder-information
+frame are left as they are, and the writer reads nothing back. Reason:
+updating the frame correctly means re-reading the whole existing stream
+(its audio CRC, its table of contents, the padding of its tail). The
+appended file is a valid MPEG stream that decodes in full; its
+encoder-information frame describes the first stream only, so a decoder
+that honours it MAY stop at the first stream's end or misreport the
+duration. The junction keeps the first stream's padding and the appended
+stream's delay as decoded samples.
 
 ### 6.4 ID3v2 as a preamble
 
@@ -316,14 +323,15 @@ Other writers of ID3v2 tags from exported metadata link this section.
 ## 8. Delay and padding
 
 - **Delay**: the codec's encoder delay, read from the library once it is
-  configured (576 samples for LAME at its usual settings), plus the delay of
-  a rate conversion before the codec, in samples at the stream's rate.
+  configured (576 samples for LAME at its usual settings), in samples at the
+  stream's rate. A rate conversion before the codec adds none
+  ([encoder.md §3.3](encoder.md#33-frames-in)).
 - **Padding**: at the stream's end, `n × F − delay − input`, where `n` is
   the number of audio frames and `input` the number of input samples at the
   stream's rate.
 - Both are signalled in the encoder-information frame of the file form
-  (§6.2), and updated for an appended stream (§6.3). The streaming form has
-  no field for them.
+  (§6.2), never for an appended stream (§6.3). The streaming form has no
+  field for them.
 - **Short identifier.** Every MPEG Layer III writer's encoder-information
   frame carries a LAME-compatible short identifier: 9 bytes beginning with
   `LAME`, then a version string. Reason: decoders read the delay and
@@ -346,8 +354,8 @@ Other writers of ID3v2 tags from exported metadata link this section.
    included;
 3. the codec is flushed: it encodes its look-ahead and its last frame,
    padded with silence, and every byte it returns is written;
-4. on a `seekable` sink, the encoder-information frame is rewritten (§6.2),
-   or the existing one updated on a continuing sink (§6.3);
+4. on a `seekable` fresh sink, the encoder-information frame is rewritten
+   (§6.2); on a continuing sink nothing is rewritten (§6.3);
 5. `end` is written.
 
 No input sample is lost: decoding the stream and trimming the signalled
@@ -380,7 +388,7 @@ written as the codec returns it; nothing else holds bytes.
 
 [encoder-packed-audio.md](../../outputs/hls/spec/encoder-packed-audio.md).
 On a segmented sink the writer writes no preamble (§2), and its access
-points are the frame boundaries of §5.
+points are those of §5: the start of each call's output.
 
 ## 13. Delegated destination
 
@@ -404,7 +412,7 @@ Nothing.
 | `id3v2` set for a live, continuing or segmented output                                                                      | configuration error | construction of the output          |
 | the library refuses the configuration                                                                                       | configuration error | creation; hard error                |
 | the library fails to encode or to flush while streaming, or memory runs out                                                 | output fault        | the writer becomes `failed`         |
-| reading back or rewriting the encoder-information frame fails at a clean end                                                | not escalated       | logged at `severe`; the end goes on |
+| rewriting the encoder-information frame fails at a clean end                                                                | not escalated       | logged at `severe`; the end goes on |
 
 Every error names the parameter or the library's reason, the output and the
 format's position; none is only printed on a console.
@@ -431,9 +439,9 @@ frame walker; an ID3v2 parser.
 4. Pieces of random lengths (from 1 sample) and offsets give the same
    decoded sample count as one piece.
 5. One minute appended to a one-minute file of the same configuration: one
-   encoder-information frame, counts covering both minutes, a decode of two
-   minutes plus the junction's padding and delay; no ID3v2 tag in the
-   middle.
+   encoder-information frame, left as the first run wrote it; no ID3v2 tag
+   in the middle; a raw decode (frame header ignored) gives two minutes plus
+   the junction's padding and delay, and every frame header is valid.
 6. `%mp3(samplerate=22050, bitrate=320)`, `%mp3.vbr(min_bitrate=320,
 max_bitrate=8)`, `%mp3(id3v2=2)`, `%mp3(mono, stereo_mode="stereo")` and
    `%mp3.vbr(bitrate=128)` fail `--check` with a position;
@@ -448,7 +456,9 @@ max_bitrate=8)`, `%mp3(id3v2=2)`, `%mp3(mono, stereo_mode="stereo")` and
    `id3v2`; `%mp3` given to the same outputs is accepted and writes no
    preamble.
 9. A shared harbor reader starting after 3 s receives bytes that begin at a
-   frame header and decode, losing at most `F` samples.
+   frame header and decode, losing at most `F` samples. Every access point
+   the writer marked falls on a frame header the walker finds, and no two
+   calls' outputs share an access point.
 10. Two runs differing only in one of `stereo_mode`, `internal_quality`,
     `quality`, `min_bitrate`, `max_bitrate`, `hard_min` give bytes that
     differ as the option documents.

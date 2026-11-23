@@ -24,8 +24,8 @@ only what binds the seam, and links the rest.
   | shared (default)                     | `fresh`, `live(L)` | yes                |
   | dedicated (`dedicated_encoder=true`) | `fresh`, `live(L)` | no                 |
 
-  `L` is the output's `live_latency_bound`
-  ([sink.md §1](sink.md#1-capabilities)).
+  `L` is the output's `live_latency_bound`, fixed at 1 s and not a script
+  parameter ([sink.md §1](sink.md#1-capabilities)).
 
 - **Checks** ([encoder.md §5.3](encoder.md#53-the-check)): in shared mode a
   configuration that is not streamable is refused, and the message names
@@ -58,7 +58,9 @@ only what binds the seam, and links the rest.
 - **Dedicated**: one writer per listener, built at its admission and ended
   at the output's stop or the listener's teardown. No listener, no writer.
 - **Initial metadata**: [output-encoded.md §3.2](output-encoded.md#32-initial-metadata).
-  The sink is live: it becomes tags only in Ogg comment headers, when
+  In shared mode it is the last metadata at the output's start: the writer
+  is built at the start, before any piece, where that rule gives the same
+  metadata. The sink is live: it becomes tags only in Ogg comment headers, when
   `in_band_metadata` is true
   ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 7).
 

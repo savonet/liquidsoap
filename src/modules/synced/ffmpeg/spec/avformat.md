@@ -262,6 +262,30 @@ FFmpeg's guess from any of a short name, a file name and a MIME type
 when FFmpeg guesses nothing.
 
 ```ocaml
+val find_output_format : string -> (output, 'a) format option
+```
+
+The output format whose short name, or one of whose comma-separated
+aliases, is exactly the argument; `None` when there is none. Unlike
+`guess_output_format`, it never answers a format of another name. Reason: a
+caller that refuses an unknown muxer must not have another one substituted
+for it.
+
+```ocaml
+val output_needs_file : (output, _) format -> bool
+```
+
+Whether the output format opens I/O at all: `false` exactly when its flags
+hold `AVFMT_NOFILE` (devices, and muxers that write their own files).
+
+```ocaml
+val output_options : (output, _) format -> Avutil.Options.t option
+```
+
+The muxer's private option class (`priv_class`), for checking option names
+and values without opening anything; `None` when the muxer has none.
+
+```ocaml
 val get_audio_codec_id : (output, audio) format -> Avcodec.Audio.id
 val get_video_codec_id : (output, video) format -> Avcodec.Video.id
 val get_subtitle_codec_id : (output, subtitle) format -> Avcodec.Subtitle.id
@@ -325,11 +349,14 @@ everything and removes the interrupt closure before it reaches the caller
 
 ```ocaml
 type read = bytes -> int -> int -> int
+type read_at = int -> bytes -> int -> int -> int
 type write = bytes -> int -> int -> int
 type seek = int -> Unix.seek_command -> int
 ```
 
-The custom I/O closures (§7.1).
+The custom I/O closures (§7.1). `read` is an input's sequential read;
+`read_at` is an output's positional read back, whose first argument is the
+position in the destination (§7.1.1).
 
 ```ocaml
 val open_input_stream :
@@ -622,7 +649,7 @@ that needs a file raises a failure.
 ```ocaml
 val open_output_stream :
   ?opts:opts -> ?interleaved:bool -> ?seek:seek -> ?size:(unit -> int) ->
-  ?read:read -> write -> (output, _) format -> output container
+  ?read:read_at -> write -> (output, _) format -> output container
 ```
 
 Opens an output of the given format that writes through the closures. A
@@ -634,7 +661,9 @@ format that needs no file raises a failure.
 - `size`, when given, answers FFmpeg's size query (§7.1.3); without it the
   query is answered "not supported".
 - `read`, when given, reads back bytes already written (§7.1.1), from the
-  position `seek` set. A muxer that reads back what it wrote (to move its
+  position it is given: the binding tracks each I/O context's position and
+  passes it, so `read` never depends on where `seek` last moved the
+  output. A muxer that reads back what it wrote (to move its
   index to the front at its trailer) needs `seek` and `read`; without
   `read`, a read it asks for fails with an I/O error.
 - **Reopening the destination.** Some muxers open their own destination a
@@ -644,7 +673,11 @@ format that needs no file raises a failure.
   function, the binding installs that callback: a request to open the
   output's own destination is answered with an I/O context over the same
   closures (`read`, `seek`, `size`, and `write` for a write request), and
-  closing that context leaves the output's own I/O open. A request to open
+  closing that context leaves the output's own I/O open. A reopened context
+  keeps a position of its own, which its reads advance and its seeks move;
+  the output's own position is unaffected. Reason: the muxer interleaves
+  reads on the reopened context with writes on its own at other offsets;
+  with one shared position the reads land where the writes moved it. A request to open
   any other name is refused with an I/O error: an output with custom I/O
   has no file system of its own. Reason: without the callback, FFmpeg opens
   the destination's name as a file, which on custom I/O does not exist, and
@@ -994,6 +1027,10 @@ content is meaningful only during the call, and the closure MUST NOT keep it.
 
 - The closure fills at most `length` bytes of `buffer` from `offset` and
   returns the number of bytes it stored. `length` is at least 1.
+- On an output, the closure is `read_at position buffer offset length`: it
+  reads from `position` in the destination, the position of the I/O
+  context FFmpeg reads on (§4.4, "Reopening the destination"), and keeps no
+  position of its own.
 - 0 means end of input.
 - A negative result is given to FFmpeg as the error code of the read.
 - A result greater than `length`, and an exception, are failures of the

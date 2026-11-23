@@ -5,16 +5,19 @@ same numbers. Container rules are [ogg.md](ogg.md); the native FLAC writer is
 [flac.md](flac.md). Claims about the FLAC Ogg mapping marked "(from memory)"
 are stated from memory.
 
-The codec library encodes FLAC frames; the stream encoder takes them as
-packets and the muxer forms every page. The library's own Ogg layer is not
-used.
+The codec library encodes FLAC frames and, through its own Ogg layer, forms
+the stream's packets and pages at the page sizes it chooses. The muxer
+takes those pages whole and interleaves them; it does not form Ogg FLAC
+pages. This is the stated exception to pass-2 decision D14
+([ogg.md §5.2](ogg.md#52-pages)).
 
 ## 1. Format and options
 
 `%ogg(%flac(...))`. The parameters and their checks are those of `%flac`
 ([flac.md §1](flac.md#1-format-and-options)), plus `bytes_per_page`
 ([ogg-streams.md §1](ogg-streams.md#1-format-and-options)), accepted only
-inside `%ogg`. The printed form is `%flac(...)`'s, with `bytes_per_page`
+inside `%ogg`; it has no effect on this stream, whose page sizes are the
+library's (§11). The printed form is `%flac(...)`'s, with `bytes_per_page`
 when set.
 
 ## 2. Configuration and library checks
@@ -25,14 +28,15 @@ same phases.
 
 ## 3. Creation
 
-Per link: a FLAC encoder with the channels, bits per sample, rate,
-compression level and the link's comments, total sample count unknown,
-writing to the stream encoder with no seek. Its initialisation status is
+Per link: a FLAC encoder in its Ogg form with the channels, bits per
+sample, rate, compression level, the link's comments and the serial number
+the muxer drew for the stream ([ogg.md §5.5](ogg.md#55-serial-numbers)),
+total sample count unknown, writing to the stream encoder with no seek. Its initialisation status is
 checked: a refusal is a configuration error (§13), never an empty stream.
 
 ## 4. Header packets
 
-The FLAC Ogg mapping (from memory):
+The FLAC Ogg mapping, as the library's Ogg layer writes it (from memory):
 
 1. the mapping packet: `0x7F`, `FLAC`, mapping version 1.0, the number of
    header packets that follow (16-bit big-endian, here 1), `fLaC`, then the
@@ -59,17 +63,21 @@ Samples are converted to integers of the configured width
 ([encoder.md §3.3](encoder.md#33-frames-in)), in the FLAC channel order
 for the count ([flac.md §4](flac.md#4-input)).
 
-The library hands its output through a write callback. The stream encoder
-forms packets from the content: each metadata block by its header and length,
-each frame from its start to the next frame's start or the stream's end. It
-never takes a callback call, or the size of a binding's buffer, as a packet
-or page boundary. Reason: a library's write call is not a unit of the format;
-a binding may split one write into several or merge several into one.
+The library hands its output through a write callback that states, per
+call, how many samples the output carries: none for the header pages, a
+non-zero count for output that carries a frame (one call per frame, from
+memory; to verify against the library). The stream encoder takes its
+boundaries from those calls, which the binding passes through unsplit and
+unmerged with their sample counts: the calls with no sample are the link's
+header pages, the others its data pages. It never parses frame or page
+boundaries from the bytes. Reason: the library writes one unit per call by
+construction, and parsing would need sync-code and CRC scanning.
 
 ## 7. Packets
 
-One packet per FLAC frame. Granule position: the number of samples through
-the end of the frame, at the codec rate (from memory). End time: granule
+One packet per FLAC frame, formed by the library. Granule position: the
+number of samples through the end of the frame, at the codec rate (from
+memory), as the library's pages carry it. End time of a page: its granule
 position / rate.
 
 ## 8. Delay and padding
@@ -80,7 +88,9 @@ None: FLAC is lossless with no delay; the last frame is short.
 
 The library is finished: the remaining samples are encoded as a short last
 frame, which carries the final granule position, equal to the link's codec
-sample count. The stream always received at least one sample
+sample count. The stream's last page MUST carry the EOS flag; where the
+library's last page does not, the stream encoder sets it and recomputes
+that page's CRC. The stream always received at least one sample
 ([ogg-streams.md §6](ogg-streams.md#6-input)).
 
 ## 10. Properties
@@ -89,7 +99,11 @@ sample count. The stream always received at least one sample
 
 ## 11. Page constraints
 
-Nothing.
+The library's Ogg layer forms the pages and chooses their sizes; the
+muxer's page sizing and live-latency closing
+([ogg.md §5.3](ogg.md#53-page-sizing), [§11](ogg.md#11-live-latency)) do
+not apply to this stream. Each page is written whole, its bytes unchanged
+but for the EOS flag of §9 and the file-sink STREAMINFO rewrite of §4.
 
 ## 12. Concurrency
 
@@ -111,3 +125,5 @@ The library keeps no state shared between encoders.
   file sink: each link's total and MD5 verify (or, where the writer skipped
   the SHOULD, stay 0 and zero).
 - `%flac(bytes_per_page=1000)` outside `%ogg` fails `--check`.
+- Every page of the stream carries the serial the muxer drew; its last page
+  carries EOS; the header pages are exactly the outputs with no sample.

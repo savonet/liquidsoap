@@ -73,7 +73,10 @@ set to a version refused for a live, continuing or segmented output.
   signed 16-bit integers as [encoder.md §3.3](encoder.md#33-frames-in)
   states.
 - The library encodes passes of exactly `F` samples (1152 for MPEG-1, 576
-  otherwise). The writer holds fewer than `F` samples between calls. No
+  otherwise), each returning one frame: the start of each pass's output is
+  an access point ([mp3.md §5](mp3.md#5-bytes-and-markers)), and `k` there
+  is the number of passes before it. The writer holds fewer than `F`
+  samples between calls. No
   result depends on the piece boundaries
   ([encoder.md §3.3](encoder.md#33-frames-in)).
 
@@ -92,7 +95,8 @@ MPEG audio frame × n          Layer III, CBR, mono or joint stereo
 [mp3.md §6.1–§6.4](mp3.md#6-header-forms-and-preambles): the
 encoder-information frame in the file form, written as a placeholder then
 rewritten at a clean end; none in the streaming form; on a continuing sink,
-frames only, and the existing frame's counts updated at a clean end. The
+frames only, the existing tag and encoder-information frame left as they
+are ([mp3.md §6.3](mp3.md#63-continuing)). The
 ID3v2 tag as [mp3.md §6.4](mp3.md#64-id3v2-as-a-preamble).
 
 ## 7. Metadata
@@ -103,8 +107,9 @@ ID3v2 tag as [mp3.md §6.4](mp3.md#64-id3v2-as-a-preamble).
 
 ## 8. Delay and padding
 
-- **Delay**: libshine's analysis delay, 528 samples, plus the delay of the
-  rate converter, in samples at the stream's rate. The library offers no
+- **Delay**: libshine's analysis delay, 528 samples, in samples at the
+  stream's rate. The rate converter adds none
+  ([encoder.md §3.3](encoder.md#33-frames-in)). The library offers no
   query for it: 528 is the declared constant
   [encoder.md §3.7](encoder.md#37-delay-and-padding) allows, a fact of its
   filter bank, and a library whose delay differs fails §16 test 1.
@@ -113,8 +118,9 @@ ID3v2 tag as [mp3.md §6.4](mp3.md#64-id3v2-as-a-preamble).
 - Both are signalled in the encoder-information frame of the file form,
   under the LAME-compatible short identifier of
   [mp3.md §8](mp3.md#8-delay-and-padding), so that decoders read them;
-  the encoder's name, libshine and its version, is in the ID3v2 tag's
-  `TENC` frame when a tag is written.
+  the encoder's name is in the ID3v2 tag's `TENC` frame when a tag is
+  written: `libshine` followed by the version of the writer's binding to
+  it, or `libshine` alone. Reason: libshine has no version query.
 - Each file of a split has its own writer. Gapless splits are not offered.
 
 ## 9. End
@@ -128,8 +134,8 @@ ID3v2 tag as [mp3.md §6.4](mp3.md#64-id3v2-as-a-preamble).
    library's delay line: the frames written then number at least
    `⌈(input + delay) / F⌉`;
 4. the library's remaining bits are flushed and written;
-5. on a `seekable` sink, the encoder-information frame is rewritten, or the
-   existing one updated on a continuing sink;
+5. on a `seekable` fresh sink, the encoder-information frame is rewritten;
+   on a continuing sink nothing is rewritten;
 6. `end` is written.
 
 The library's flush emits only buffered bits, never audio: the silent passes
@@ -169,13 +175,13 @@ outputs run on several domains without coordination.
 
 ## 15. Faults
 
-| Fault                                                                        | Class               | When                                |
-| ---------------------------------------------------------------------------- | ------------------- | ----------------------------------- |
-| channel count, a rate or bit rate outside the MPEG tables                    | configuration error | type checking or evaluation         |
-| a (rate, bit rate) pair the library does not encode                          | configuration error | evaluation, or start-up if deferred |
-| the library refuses its initialisation                                       | configuration error | creation; hard error                |
-| the library fails while streaming, or memory runs out                        | output fault        | the writer becomes `failed`         |
-| reading back or rewriting the encoder-information frame fails at a clean end | not escalated       | logged at `severe`                  |
+| Fault                                                        | Class               | When                                |
+| ------------------------------------------------------------ | ------------------- | ----------------------------------- |
+| channel count, a rate or bit rate outside the MPEG tables    | configuration error | type checking or evaluation         |
+| a (rate, bit rate) pair the library does not encode          | configuration error | evaluation, or start-up if deferred |
+| the library refuses its initialisation                       | configuration error | creation; hard error                |
+| the library fails while streaming, or memory runs out        | output fault        | the writer becomes `failed`         |
+| rewriting the encoder-information frame fails at a clean end | not escalated       | logged at `severe`                  |
 
 ## 16. Tests
 
@@ -195,5 +201,7 @@ Harness as [mp3.md §16](mp3.md#16-tests).
 4. `%shine(samplerate=12345)`, `%shine(bitrate=7)` and `%shine(channels=6)`
    fail `--check` with a position; `%mp3.fxp` prints as `%shine(...)`.
 5. One minute appended to a one-minute file: one encoder-information frame,
-   counts covering both minutes.
-6. A shared harbor reader starting after 3 s decodes from its first byte.
+   left as the first run wrote it; no ID3v2 tag in the middle; a raw decode
+   gives two minutes plus the junction's padding and delay.
+6. A shared harbor reader starting after 3 s decodes from its first byte;
+   every access point falls on a frame header.

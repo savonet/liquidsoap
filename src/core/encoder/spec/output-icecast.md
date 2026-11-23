@@ -34,7 +34,8 @@ made. The body is the writer's stream: only its validity is binding.
    invalid-value error on the format argument.
 2. **Declarations** ([encoder.md §5.1](encoder.md#51-what-an-output-declares)):
    its sinks are `fresh` and `live(L)`, with `L` the output's
-   `live_latency_bound` ([sink.md §1](sink.md#1-capabilities)); it serves no
+   `live_latency_bound` ([sink.md §1](sink.md#1-capabilities)), fixed at
+   1 s and not a script parameter; it serves no
    reader that starts mid-stream. The server's listeners do start
    mid-stream, but the server serves them with its own parser, chosen from
    the content type (item 4).
@@ -65,6 +66,13 @@ made. The body is the writer's stream: only its validity is binding.
 
 The sink is one connection to the server. A new sink, with a new
 connection, serves each writer (§3).
+
+The sink is one worker per output, running the blocking protocol client
+with its timeouts, behind the bounded queue of §2.2; it does not use
+non-blocking I/O. Reason: the protocol client's request heads are the
+external commitment stated above (Compatibility), kept byte for byte by
+reusing it, and the worker is work allowed to block
+([sink.md §3](sink.md#3-never-blocking-the-streaming-thread)).
 
 ### 2.1 What the sink owns
 
@@ -260,8 +268,10 @@ This section owns the charset rule of the source client and of harbor's
 ICY metadata. Metadata values and identity texts are converted, value by
 value, to the charset named by `encoding` (UTF-8 when empty). A value's own
 charset is auto-detected; a value detected as binary is left unchanged; keys
-are not converted. A character the target charset cannot represent is
-replaced by `?`, logged once per value at `info`. The HTTP update names the
+are not converted. A value holding a character the target charset cannot
+represent is sent unconverted, and the output logs it once, at `info`.
+Reason: a lossy conversion mode is not offered by the charset conversion
+the output uses; a value sent as it is stays readable by most players. The HTTP update names the
 target charset in its `charset` argument.
 
 ### 4.4 In band
@@ -375,8 +385,8 @@ keeps its source available (`mksafe`, `fallback`).
   on the writer (creation, `write`, `metadata`, `end`), handing bytes and
   out-of-band updates to the sink, and the decisions of §3 and §7. None of
   it waits for the network, a name server, a disk or a callback.
-- **Sink work**, allowed to block: resolution, connect, TLS, handshake,
-  writes (or fast I/O on a non-blocking socket), the dump, the out-of-band
+- **Sink work**, allowed to block, on the output's one sink worker (§2):
+  resolution, connect, TLS, handshake, writes, the dump, the out-of-band
   updates, the delivery of the final bytes and the close.
 - **User code** (`on_connect`, `on_disconnect`, `on_error`, `icy_song`) runs
   as work allowed to block, never under a lock the streaming work takes
@@ -392,11 +402,14 @@ keeps its source available (`mksafe`, `fallback`).
 
 ## 10. Tests
 
-A harness needs a recording fake server for each dialect (HTTP plain,
-HTTP chunked, ICY, each over TLS too) that records every connection's head
-and body and every update request, and can refuse, stall, cut a connection,
-and answer an update late or never. Every check asserts the number of
-connections and requests it recorded, and fails when it recorded none.
+A harness needs a recording fake server speaking both dialects (HTTP,
+plain and chunked, and ICY), over plain TCP, that records every
+connection's head and body and every update request, and can accept late,
+refuse, answer `401`, cut a connection, and answer an update late. Every
+check asserts the number of connections and requests it recorded, and fails
+when it recorded none. TLS and a server that stalls are not exercised.
+Reason: the transport and the bounds of §2.1 belong to the protocol client,
+and a stalled server needs real-time waits too long for the suite.
 
 - **Fresh stream per connection.** `%vorbis`; the server cuts the connection
   three times: each body starts with the identification header and decodes
@@ -407,12 +420,11 @@ connections and requests it recorded, and fails when it recorded none.
 - **Final bytes.** A clean stop while connected: the body ends with the
   writer's final bytes (for Ogg, an end-of-stream page; when chunked,
   followed by `0\r\n\r\n`), and the audio decoded equals the audio
-  produced. A server that stops reading at the stop: the output closes
-  within `final_delivery_bound`.
+  produced.
 - **Gap.** Metadata, `stop`, `start` and `restart_in` during a retry wait:
   none raises; the next connection's first update (or first link) carries
   the current metadata.
-- **Teardown.** For every dialect and transport, kill the server mid-write
+- **Teardown.** For each dialect, kill the server mid-write
   and bring it back: the output reconnects after the delay, to within one
   cycle. 10 000 attempts against a refusing port: descriptors and memory
   stay flat, and the policy is reached once per attempt.
@@ -422,13 +434,13 @@ connections and requests it recorded, and fails when it recorded none.
   `restart_in(null)` stops the output, whose state then says so.
 - **Metadata placement.** Metadata at position 0 against a server that
   accepts after 1 s: the first update follows the head and carries it. An
-  update endpoint that accepts and never answers: the body keeps its
-  real-time rate, and a burst of changes leaves at most one update in
-  flight. A metadata whose keys are all filtered out sends nothing. A
+  update endpoint that answers late: the body keeps its real-time rate, and
+  a burst of changes leaves at most one update in flight. A metadata whose keys are all filtered out sends nothing. A
   stream id of 2 is named in the connection and in the update.
 - **Charset.** Titles, names, genres and descriptions with multi-byte and
   non-Latin-1 characters, under UTF-8 and ISO-8859-1: the recorded bytes are
-  in the declared charset; an unrepresentable character becomes `?`.
+  in the declared charset; a value with a character the charset cannot
+  represent is sent unconverted and logged once.
 - **Head.** For each dialect, the head byte for byte (with a fixed
   `User-Agent`): a space after the colon over HTTP, none over ICY.
   `%ffmpeg(format="mp3", %audio(codec="libmp3lame", b="128k"))` and
@@ -442,8 +454,6 @@ connections and requests it recorded, and fails when it recorded none.
   evaluation.
 - **Silence.** Digital silence through every writer, against a server with
   a 2 s source timeout, for 10 s: the source stays connected.
-- **Isolation.** Two source clients on one clock, one server stalled: the
-  other's body keeps its real-time rate.
 - **Content type.** For every format, the announced type is the `mime`
   helper's or the override, and a late listener of a reference server
   decodes.

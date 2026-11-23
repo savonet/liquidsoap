@@ -114,9 +114,13 @@ inferred, and never set by an output.
   `format(audio=pcm(stereo), video=yuv420p)`; `%theora` :
   `format(video=yuv420p)`.
 - `T` is computed from the parameter specification before evaluation,
-  without building anything. Every value the expression builds has that
-  type; no second computation of a value's type exists to disagree with
-  it.
+  without building a writer: the type checker folds the literal parameters
+  over the name's defaults as building does (§5), and reads the type and
+  the checks of §7 from that fold. Every value the expression builds has
+  that type; no second description of the parameters, and no second
+  computation of a value's type, exists to disagree with it. The range and
+  compatibility checks of literal values stay type checking's, reported by
+  `--check` (§7).
 - **Channel count.** The specification of each audio format names the
   parameters that decide its channel count among: anonymous `mono` (1),
   anonymous `stereo` (2), `mono=true|false` (1|2), `stereo=true|false`
@@ -201,6 +205,8 @@ evaluation otherwise.
   library), FFmpeg for `%ffmpeg`. Components a format names in its
   parameters (an FFmpeg codec or muxer) are available when the build has
   them; the FFmpeg tree states when that is checked.
+- `%ndi` is available when the NDI sender is in the build, although no
+  writer answers it ([encoder.md §1](encoder.md#1-registry), item 7).
 - A format that uses a component the build lacks is a configuration error
   that names the missing component and the format's position: at type
   checking for a component its name implies, at the phase of the parameter

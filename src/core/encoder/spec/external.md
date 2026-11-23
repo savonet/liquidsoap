@@ -127,7 +127,10 @@ header. Restarts happen:
 
 - On a planned restart, the new process is started at once and receives
   every piece from the restart on; the old one gets its input closed and
-  ends as at a stop. Both MAY run at once.
+  ends as at a stop. Both MAY run at once. The expected minimal
+  implementation runs them one after the other in effect: the new process
+  is started at once and its input queued, and its output is held until the
+  old one's has ended, as the next item requires.
 - Output order: the new process's output is written into the sink only after
   the old one's output has ended (EOF, or the bound below). It is held
   meanwhile.

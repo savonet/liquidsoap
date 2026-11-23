@@ -16,13 +16,23 @@ contract, which it meets ([sink.md](../../encoder/spec/sink.md)); concurrency
 
 What stays with each user, and is not stated here:
 
-| User                         | Keeps                                                                                                                                                                                   |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `output.harbor`, shared mode | listeners, admission and refusals, the preroll, ICY blocks and their stamping, delivery groups, the overflow rule, `buffer` and `burst`, the store's design ([ring.md](harbor/ring.md)) |
-| `output.srt`, listener role  | peers and their admission, payload cutting and the delay bound, per-peer queues, peer failure, whether peers outlive a writer                                                           |
+| User                         | Keeps                                                                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `output.harbor`, shared mode | listeners, admission and refusals, the preroll, ICY blocks and their stamping, delivery groups, the overflow rule, `buffer` and `burst`       |
+| `output.srt`, listener role  | peers and their admission, payload cutting and the delay bound, per-peer queues and their bound, peer failure, whether peers outlive a writer |
 
 ## 1. Model
 
+- The component has two parts: the **records** and the start choice (§1,
+  §3, §4), and the **store** of the bytes (§2, §5). A user whose readers
+  never take history (`B = 0`) and that keeps a queue per reader MAY use
+  the records alone: per append, the component reports the first candidate
+  of that append, if any, and its entry header, and the user copies the
+  bytes from there into its readers' queues. §2 and §5 then apply to those
+  queues, under the user's own bound. Reason: such a user already owns
+  per-reader queues and their delivery; reading a shared store would layer
+  a second delivery under its own for no observable gain. The SRT listener
+  role is such a user.
 - The component is the sink of one output, from the output's construction
   to its end. Its capabilities are `fresh` and `live(L)`
   ([sink.md §1](../../encoder/spec/sink.md#1-capabilities)). It outlives
@@ -113,6 +123,10 @@ starts at 0 and 8000; access points at 2000, 5000, 6500, 9000.
   refuses it).
 
 ## 5. Store and concurrency
+
+The store's design is the one harbor's shared mode specifies
+([ring.md §3](harbor/ring.md#3-a-design-that-meets-them)); every user of
+the store uses that design.
 
 The output's streaming work is the only writer of the component
 ([encoder.md §7](../../encoder/spec/encoder.md#7-concurrency)); readers read

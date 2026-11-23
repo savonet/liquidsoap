@@ -7,7 +7,8 @@ faults. It answers [encoder.md §10](encoder.md#10-implementation-files)
 under the same numbers.
 
 The codecs that fill its logical streams are stream encoders, private to
-this writer: they hand packets to the muxer, which forms every page
+this writer: they submit packets into logical streams the muxer owns and
+pages, Ogg FLAC excepted (§5.2)
 ([ogg-streams.md](ogg-streams.md); one file per codec:
 [Vorbis](ogg-vorbis.md), [Opus](ogg-opus.md), [Speex](ogg-speex.md),
 [FLAC](ogg-flac.md), [Theora](ogg-theora.md)).
@@ -150,7 +151,21 @@ identify it reject the file.
 
 ### 5.2 Pages
 
-The muxer forms every page of every logical stream, Ogg FLAC included.
+The muxer owns each logical stream's packet state and forms its pages:
+stream encoders submit packets into it, and a stream encoder asks for a page
+start by flushing the stream through the muxer
+([ogg-streams.md](ogg-streams.md#interface)).
+
+**Ogg FLAC exception.** The FLAC stream's pages are formed by the FLAC
+library's own Ogg layer, at the page sizes it chooses; the muxer takes them
+whole, gives the library the stream's serial number (§5.5), and interleaves
+them with the other streams' pages (§5.4)
+([ogg-flac.md §11](ogg-flac.md#11-page-constraints)). This is a stated
+exception to pass-2 decision D14 ("stream encoders produce packets; the
+muxer forms every page, Ogg FLAC included"). Reason: the library's Ogg layer
+already writes the FLAC Ogg mapping; replacing it gains no observable
+property. §5.3 and §11's page closing do not apply to that stream; every
+other rule of §5 does.
 
 - Page format per RFC 3533 (from memory): capture pattern `OggS`, version 0,
   header type flags (continued 0x01, BOS 0x02, EOS 0x04), granule position
@@ -175,8 +190,11 @@ The muxer forms every page of every logical stream, Ogg FLAC included.
 
 - The BOS page carries the identification packet alone. Other header packets
   are packed into as few pages as the page format allows.
-- A data page is closed: at the end of the packet that brings its body to
-  `page_target_size` or more; once its packets span `max_page_duration` of
+- `page_target_size` is met as the Ogg reference library's fill-target page
+  output meets it (from memory): a data page closes once its body holds at
+  least `page_target_size` bytes and, unless the page is full, at least four
+  packets, or once it holds 255 lacing values. Nothing tighter is required.
+- A data page is also closed: once its packets span `max_page_duration` of
   media time; before a packet that would take it past 255 lacing values;
   before a packet its codec marks as a page start (a Theora key frame,
   [ogg-theora.md §11](ogg-theora.md#11-page-constraints)); and at the end of
@@ -184,6 +202,8 @@ The muxer forms every page of every logical stream, Ogg FLAC included.
   on the next page.
 - Every data page therefore begins a packet, except after a packet longer
   than a page.
+- On a `live(L)` sink, each logical stream's `max_page_duration` is
+  `min(1 s, L)` (§11).
 
 ### 5.4 Interleaving
 
@@ -193,14 +213,17 @@ order:
 1. A closed page is written when it has the least end time among the closed
    pages held, and every logical stream of the link that has not ended holds
    at least one closed page. Ties go to the stream whose BOS page came
-   first.
+   first. The muxer MAY meet this rule in the held-page form: at most one
+   closed page held per logical stream; a page whose end time is not after
+   that of the last page written is written at once; when every logical
+   stream that has not ended holds a page, the one with the least end time
+   is written. Both forms write the same order.
 2. In a link with one logical stream, each page is written as soon as it is
    closed.
 3. Pages of one logical stream are written in their order.
 4. Across logical streams, pages are written in non-decreasing end time,
-   except where the latency bound forces pages out (§11): a later page of
-   another stream may then end earlier than one already written, by at most
-   that stream's codec delay plus one packet.
+   except for a page written at once under the held-page form of rule 1: it
+   ends no later than the last page written.
 
 Reason: a reader decodes the streams of a link together, and pages ordered
 by end time keep what it must buffer to a minimum. Each logical stream
@@ -338,9 +361,11 @@ A link ends at an accepted offer (§7) and at `end(clean)`:
 3. every page still held is written in the order of §5.4;
 4. at `end(clean)`, the writer then writes `end`.
 
-- The muxer keeps the latest packet of each logical stream unpaged until the
-  next packet of that stream arrives or the stream ends, so that the EOS
-  flag goes on the page that carries the last packet.
+- Every stream encoder's finish submits at least one packet after the muxer
+  last took a page from that stream; the muxer then flags the stream's end
+  and flushes it, so that the EOS flag goes on the page that carries the
+  last packet. The Ogg FLAC stream's last page is the library's, and MUST
+  carry the EOS flag ([ogg-flac.md §9](ogg-flac.md#9-end)).
 - A writer ended before its first piece writes nothing
   ([encoder.md §2.3](encoder.md#23-states)).
 - `end(abandoned)` releases every stream encoder and every held page and
@@ -368,17 +393,20 @@ A link ends at an accepted offer (§7) and at `end(clean)`:
 ## 11. Live latency
 
 What holds encoded data inside the writer: the page each logical stream is
-filling, the closed pages waiting for interleaving (§5.4), and the one
-packet per stream kept for the EOS flag (§9). The codec's look-ahead and the
-kept packet, one codec unit, are not counted
+filling and the closed pages waiting for interleaving (§5.4). The codec's
+look-ahead, one codec unit, is not counted
 ([encoder.md §3.9](encoder.md#39-live-latency-bound)).
 
-On a sink declared `live(L)`, whenever the oldest content held in pages
-(filling or closed) is `L` of media time behind the newest piece, the muxer
-closes every page that holds content that old and writes it, with every
-closed page that ends no later, in the order of §5.4. A stream that
-produces little (FLAC on digital silence, a still image) therefore still has
-its bytes written at least once per `L`.
+On a sink declared `live(L)`, each logical stream's `max_page_duration` is
+`min(1 s, L)` (§5.3); there is no separate rule forcing pages out. Every
+stream then closes a page at least once per `L` of media time, so the wait
+of §5.4 rule 1 is bounded by `L` plus one page, and a stream that produces
+little (a still image, silence) still has its bytes written at least once
+per `L` plus one page.
+
+The Ogg FLAC stream is the exception (§5.2): its pages close when the FLAC
+library's Ogg layer closes them, so what it holds is bounded by the
+library's page size, not by `L`.
 
 On a sink that is not live, §5.3 and §5.4 alone bound what is held.
 
@@ -442,16 +470,21 @@ positions, and parses pages (header fields, lacing, CRC, packets). Binding:
   no image in a link: every link ends validly.
 - Serials are distinct over every logical stream of a writer across 10 000
   links; writers created at once on several domains draw independently.
-- `live(L)` with `L` = 1 s, 30 s of digital silence through `%ogg(%flac)`
+- `live(L)` with `L` = 1 s, 30 s of digital silence through `%ogg(%vorbis)`
   and of a still image with audio through `%ogg(%vorbis, %theora)`: no
-  interval of media time between two written pages exceeds `L` plus one
-  codec unit and the look-ahead, and the order holds within the tolerance
-  of §5.4. Not live: every interval is at most `max_page_duration` plus one
-  packet, and the order is strict.
+  interval of media time between two written pages of a stream exceeds `L`
+  plus one page and the look-ahead, and pages are in non-decreasing end
+  time except as §5.4 rule 4 allows. Not live: every interval is at most
+  `max_page_duration` plus one packet.
+- `%ogg(%flac)`: every FLAC page the library formed is written whole and
+  unchanged (CRC included, the file-sink STREAMINFO rewrite of §6 aside),
+  carries the writer's serial for that stream, and the stream's last page
+  carries EOS.
 - A reader that starts at any marked access point, given the entry header,
   decodes; with `%theora`, the first video packet it decodes is a key frame.
 - `bytes_per_page` set to two values gives data pages whose body sizes follow
-  §5.3.
+  §5.3's fill-target rule (at least the target, or fewer than four packets
+  only on a full page or a page closed by `max_page_duration` or the end).
 - An append of one minute of `%ogg(%opus)` to a file holding one minute of
   `%ogg(%vorbis)`: two links, both decoded, two minutes in all.
 - `%ogg(%flac)` to `output.file` with three metadata changes: each link's

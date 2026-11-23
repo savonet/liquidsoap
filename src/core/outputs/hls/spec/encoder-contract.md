@@ -48,6 +48,9 @@ In this tree's terms, the writer's items are:
    At construction it reads the configuration's declarations (segmentable,
    the ID3 mode of §3) without building a writer
    ([encoder.md §1](../../../encoder/spec/encoder.md#1-registry), item 4).
+   Reading the ID3 mode is not a call on a writer: it is a function of the
+   configuration, needed at evaluation, so the writer's calls are items 2–6
+   only.
 2. A new writer is built for each variant at the start of every run, with
    the variant name for its logs
    ([encoder.md §2.1](../../../encoder/spec/encoder.md#21-one-writer-per-destination-stream)).

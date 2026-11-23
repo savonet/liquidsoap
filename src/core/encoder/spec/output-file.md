@@ -22,22 +22,22 @@ different operator ([HLS tree](../../outputs/hls/spec/)).
 
 Beyond those of [output.md §1](../../outputs/spec/output.md#1-common-parameters-methods-and-callbacks):
 
-| Parameter               | Type                             | Default                     | Use                                                                                  |
-| ----------------------- | -------------------------------- | --------------------------- | ------------------------------------------------------------------------------------ |
-| `append`                | bool                             | `false`                     | extend an existing file instead of replacing it (§2.3, §7.4)                         |
-| `perm`                  | int                              | `0o666`                     | mode of a created file, under the process's umask                                    |
-| `dir_perm`              | int                              | `0o777`                     | mode of each created directory, under the umask                                      |
-| `flush`                 | bool                             | `false`                     | hand every write to the system at once (§2.4)                                        |
-| `on_close`              | `(string, ?clean: bool) -> unit` | does nothing                | called with the path after each file is closed, and whether its end was clean (§6.3) |
-| `reopen_on_error`       | `(error?) -> float?`             | returns `fault_retry_delay` | the restart policy (§8)                                                              |
-| `reopen_on_metadata`    | `(metadata) -> bool`             | returns `false`             | reopen trigger (§7.1)                                                                |
-| `reopen_when`           | `() -> bool`                     | returns `false`             | reopen trigger (§7.1)                                                                |
-| `reopen_delay`          | float getter                     | `120.`                      | minimum age of a file, in stream time, before `reopen_when` is asked (§7.1)          |
-| `export_cover_metadata` | bool                             | `true`                      | [output-encoded.md §4.2](output-encoded.md#42-the-exported-form)                     |
-| `in_band_metadata`      | bool                             | `true`                      | offer metadata to a writer that carries it in band (§4)                              |
-| (1st unlabelled)        | format                           |                             |                                                                                      |
-| (2nd unlabelled)        | string getter                    |                             | the path (§2.2)                                                                      |
-| (3rd unlabelled)        | source                           |                             |                                                                                      |
+| Parameter               | Type                             | Default                     | Use                                                                                                      |
+| ----------------------- | -------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `append`                | bool                             | `false`                     | extend an existing file instead of replacing it (§2.3, §7.4)                                             |
+| `perm`                  | int                              | `0o666`                     | mode of a created file, under the process's umask                                                        |
+| `dir_perm`              | int                              | `0o777`                     | mode of each created directory, under the umask                                                          |
+| `flush`                 | bool                             | `false`                     | hand every write to the system at once (§2.4)                                                            |
+| `on_close`              | `(string.{clean: bool}) -> unit` | does nothing                | called with the path after each file is closed; its `clean` method says whether its end was clean (§6.3) |
+| `reopen_on_error`       | `(error?) -> float?`             | returns `fault_retry_delay` | the restart policy (§8)                                                                                  |
+| `reopen_on_metadata`    | `(metadata) -> bool`             | returns `false`             | reopen trigger (§7.1)                                                                                    |
+| `reopen_when`           | `() -> bool`                     | returns `false`             | reopen trigger (§7.1)                                                                                    |
+| `reopen_delay`          | float getter                     | `120.`                      | minimum age of a file, in stream time, before `reopen_when` is asked (§7.1)                              |
+| `export_cover_metadata` | bool                             | `true`                      | [output-encoded.md §4.2](output-encoded.md#42-the-exported-form)                                         |
+| `in_band_metadata`      | bool                             | `true`                      | offer metadata to a writer that carries it in band (§4)                                                  |
+| (1st unlabelled)        | format                           |                             |                                                                                                          |
+| (2nd unlabelled)        | string getter                    |                             | the path (§2.2)                                                                                          |
+| (3rd unlabelled)        | source                           |                             |                                                                                                          |
 
 Method `reopen()`: requests a reopen (§7.1). Callback `on_reopen`
 ([source-contract.md §10](../../source/spec/source-contract.md#10-callbacks)).
@@ -159,8 +159,10 @@ owns `open_hold` and `sink_backlog`):
 
 - Past `open_hold` the open has failed; past `sink_backlog` the destination
   cannot keep up. Each is a sink fault (§8).
-- With `flush` true, every byte handed to the sink is handed to the system
-  before the output's next cycle. With `flush` false, the sink MAY hold up to
+- With `flush` true, the sink's work hands every byte to the system as
+  soon as it runs, without holding up to `write_buffer`. Reason: handing
+  them before the output's next cycle would make the streaming thread wait
+  for the disk, which §2.1 forbids. With `flush` false, the sink MAY hold up to
   `write_buffer` bytes before handing them on. Both apply to every
   configuration that writes into a sink, `%ffmpeg` included.
 - A FIFO or a device never paces the stream: its writes do not block the
@@ -243,10 +245,12 @@ points, and acts on `end` (§6).
   completed: every byte delivered, the header finalised, the descriptor
   closed. From then on the output never touches that file: the callback MAY
   move, rename, delete or upload it.
-- Its optional `clean` argument is `true` after a clean end (§6.1) and
+- The path carries a `clean` method, `true` after a clean end (§6.1) and
   `false` after an abandoned one, whose file holds what was delivered
-  before the fault and its streaming-form header. A callback that takes
-  the path alone is accepted, and is called with the path alone.
+  before the fault and its streaming-form header. A callback that uses the
+  path alone, as a string, is accepted. Reason: a callback taking only the
+  path does not unify with a type that has an optional argument; a string
+  with a method keeps such a callback valid.
 - It runs as work allowed to block. Calls of one output run one at a time,
   in the order the files were closed. The next file's open does not wait for
   them, except when it names the same path, which it opens only after that
@@ -394,8 +398,9 @@ start, an open after a reopen or a retry, a write, the writer.
   sees kind `system`; a `null` policy stops the output and the clock and
   another output go on; with the default policy, the output retries after
   `fault_retry_delay`.
-- **`on_close`.** After a stop it receives `clean=true`, after a write
-  fault `clean=false`; a one-argument callback is called too. A callback
+- **`on_close`.** After a stop its path's `clean` method is `true`,
+  after a write fault `false`; a callback that uses the path as a plain
+  string type-checks and is called too. A callback
   that raises reaches the policy once; with the default policy the output
   goes on with the next file.
 - **Triggers.** `reopen_when={0m}` with defaults gives one file per hour;

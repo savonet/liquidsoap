@@ -78,7 +78,9 @@ lifetime per role, its initial metadata and its markers are
 this section states what SRT adds.
 
 - **Listener.** The sink is the
-  [shared stream](../../../outputs/spec/shared-stream.md). A new peer
+  [shared stream](../../../outputs/spec/shared-stream.md)'s records alone
+  ([shared-stream.md §1](../../../outputs/spec/shared-stream.md#1-model)):
+  the bytes go to the per-peer queues (§5), not to a shared store. A new peer
   starts with no history (`B = 0`,
   [shared-stream.md §3](../../../outputs/spec/shared-stream.md#3-starting-a-reader)):
   its stream begins at the first stream start or access point the writer

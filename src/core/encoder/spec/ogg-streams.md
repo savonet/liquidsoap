@@ -2,9 +2,12 @@
 
 Part A. The private seam between the Ogg muxer ([ogg.md](ogg.md)) and the
 codecs that fill its logical streams. A stream encoder turns one stream's
-share of each piece into packets; the muxer forms every page from them
+share of each piece into packets and submits them into its logical stream's
+packet state, which the muxer owns and pages
 ([ogg.md §5](ogg.md#5-bytes-and-markers)). No stream encoder forms a page,
-writes a byte into a sink or sees a marker. Nothing outside the Ogg writer
+writes a byte into a sink or sees a marker, the Ogg FLAC stream encoder
+excepted: its library forms its pages
+([ogg.md §5.2](ogg.md#52-pages), [ogg-flac.md](ogg-flac.md)). Nothing outside the Ogg writer
 uses this seam.
 
 One file per codec answers every section below under the same number,
@@ -22,16 +25,18 @@ the parameter specification and validation phases
 
 A stream encoder is built for one link and one logical stream.
 
-| Operation          | Given                         | Answers                                                    |
-| ------------------ | ----------------------------- | ---------------------------------------------------------- |
-| create             | configuration, comments       | the stream encoder, or a fault (§3, §13)                   |
-| `headers`          | —                             | the header packets, identification packet first (§4)       |
-| `encode(share)`    | the stream's share of a piece | zero or more data packets (§6, §7)                         |
-| `finish`           | —                             | the final data packets, at least one (§9)                  |
-| `delay`, `padding` | —                             | as [encoder.md §3.7](encoder.md#37-delay-and-padding) (§8) |
+| Operation          | Given                         | Answers                                                      |
+| ------------------ | ----------------------------- | ------------------------------------------------------------ |
+| create             | configuration, comments       | the stream encoder, or a fault (§3, §13)                     |
+| `headers`          | —                             | submits the header packets, identification packet first (§4) |
+| `encode(share)`    | the stream's share of a piece | submits zero or more data packets (§6, §7)                   |
+| `finish`           | —                             | submits the final data packets, at least one (§9)            |
+| `delay`, `padding` | —                             | as [encoder.md §3.7](encoder.md#37-delay-and-padding) (§8)   |
 
-Each packet comes with: its bytes, its granule position, its start and end
-times, and whether it must begin a page (§7, §11).
+Each packet is submitted with its bytes and its granule position. Its start
+and end times come from the stream encoder's granule-to-time function. A
+stream encoder that needs a packet to begin a page asks for it by flushing
+its stream through the muxer before submitting the packet (§7, §11).
 
 ## 1. Format and options
 
@@ -79,7 +84,7 @@ A combination the library refuses is never discovered first at a later link.
 
 ## 4. Header packets
 
-- `headers` answers every header packet of the stream, complete, before any
+- `headers` submits every header packet of the stream, complete, before any
   data packet exists: the identification packet first, then the others in
   the order the mapping defines. The muxer pages them
   ([ogg.md §5.1](ogg.md#51-link-layout)).
@@ -130,23 +135,28 @@ A combination the library refuses is never discovered first at a later link.
 - **Empty share.** A share with no sample (a video-only piece) or no image
   is not handed to the codec. Reason: some libraries read an empty input as
   end of input.
+- **Integer samples.** Where a codec takes integers, the float-to-integer
+  conversion is the media library's existing one
+  ([encoder.md §3.3](encoder.md#33-frames-in)); no other rounding rule
+  applies.
 - **Video.** The share is the images of the piece, in order, each one image
   period. Images are adapted to the configured picture size and pixel format
   before the codec sees them ([encoder.md §3.3](encoder.md#33-frames-in)).
 
 ## 7. Packets
 
-Each data packet the stream encoder answers carries:
+Each data packet the stream encoder submits carries:
 
 - its bytes. A packet is never empty, except a data packet to which the
   codec's mapping gives a meaning (a Theora repeated frame);
 - its granule position, as the mapping defines;
 - its start and end times: the media time, from the link's start, of its
-  first and last sample or image, net of the signalled delay. The muxer
-  interleaves by them ([ogg.md §5.4](ogg.md#54-interleaving));
-- whether it must begin a page (§11).
+  first and last sample or image, net of the signalled delay, given by the
+  granule-to-time function. The muxer interleaves by them
+  ([ogg.md §5.4](ogg.md#54-interleaving));
+- whether it must begin a page, met by a flush before it (§11).
 
-Every packet the codec produces is answered, in order, including the short
+Every packet the codec produces is submitted, in order, including the short
 packets of discontinuous transmission: a packet the codec counts in the
 stream's time is never dropped, so granule positions follow media time.
 
@@ -162,9 +172,10 @@ holds exactly the link's input samples, sample `n` at position `n`.
 `finish` drains, in order: the rate converter's tail, the samples short of a
 codec unit (sent short where the codec accepts a short final unit, else
 padded with silence and the padding signalled), the codec's look-ahead
-([draining.md §2–§4](../../source/spec/draining.md#2-the-rule)). It answers
-at least one data packet, the last of which carries the stream's final
-granule position. Nothing given to the stream encoder is lost. A codec file
+([draining.md §2–§4](../../source/spec/draining.md#2-the-rule)). It submits
+at least one data packet after the muxer last took a page from the stream,
+the last of which carries the stream's final granule position; the muxer
+then flags the stream's end and flushes it ([ogg.md §9](ogg.md#9-end)). Nothing given to the stream encoder is lost. A codec file
 states the final granule position and, where the stream could have received
 nothing, what it encodes.
 
@@ -180,7 +191,8 @@ The muxer's rules ([ogg.md §5](ogg.md#5-bytes-and-markers)) meet every
 mapping's requirements (from memory: the identification packet alone on the
 BOS page, the other header packets starting on a new page, the first data
 packet starting on a new page). A codec file states any further
-requirement, such as packets that must begin a page.
+requirement, such as packets that must begin a page. Ogg FLAC's pages are
+its library's ([ogg-flac.md §11](ogg-flac.md#11-page-constraints)).
 
 ## 12. Concurrency
 

@@ -20,8 +20,9 @@ states only what binds the seam, and links the rest.
   ([hls variants.md §2](../../outputs/hls/spec/variants.md#2-building-a-variant)).
   The variant's ID3 mode, and the refusal of an `id3` field the
   configuration cannot honour, come from the configuration's declarations,
-  read without building a writer
-  ([encoder.md §1](encoder.md#1-registry), item 4). An explicit preamble
+  read at evaluation without building a writer
+  ([encoder.md §1](encoder.md#1-registry), item 4); no writer call
+  initialises them. An explicit preamble
   (`%mp3(id3v2=…)`, an `%ffmpeg` `id3v2_version` above 0) is refused: the
   sink is segmented, and the ID3 the segments carry is the HLS contract's
   ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 5).

@@ -58,10 +58,14 @@ no I/O of its own: devices, and muxers that write their own files, such as
    ([avformat.md §9](../../../modules/synced/ffmpeg/spec/avformat.md#9-options)).
    On a sink, a protocol option (`truncate`, `blocksize`, `seekable`,
    `follow`, `pkt_size`, and every other option of FFmpeg's protocols) has
-   no consumer: it is refused, and the error names it as an option of a
-   destination the output owns. Reason: on a sink the output opens, names,
+   no consumer: it is a leftover, refused with the others (item 4). On a
+   sink, the error names each leftover and states that protocol options have
+   no consumer on a destination the output owns; it need not tell which
+   leftover is a protocol option. Reason: on a sink the output opens, names,
    truncates and appends; an option that claims to do so in the format would
-   be silently ignored.
+   be silently ignored. Telling protocol options apart would need the
+   protocols' option lists, which the outcome (refused at evaluation, named)
+   does not.
 4. Every leftover, container and stream alike, is reported in one error
    ([FE §4](../../optionals/ffmpeg/spec/encoder.md#4-option-handling)).
 5. A `format` that names no muxer of the build is refused, on every
@@ -82,7 +86,11 @@ no I/O of its own: devices, and muxers that write their own files, such as
 
 6. Phases ([formats.md §7](formats.md#7-when-a-format-is-validated)): the
    muxer lookup and the option names are checked at evaluation at the latest,
-   without opening anything (FE §4 states which run at type checking); the
+   without opening anything (FE §4 states which run at type checking). Where
+   the bindings offer no query for a muxer's flags or private options,
+   "without opening anything" allows allocating the muxer over I/O that
+   discards every byte and releasing it at once; it never allows opening a
+   destination or a hardware device. The
    checks against the destination (items 3 and 5, §2) run when the output is
    constructed. None waits for the first piece.
 
@@ -224,7 +232,17 @@ the readiness of copy streams. At the seam:
 - Every piece has at least one sample or one image period
   ([encoder.md §3.3](encoder.md#33-frames-in)). The muxer streams are created
   at the first piece at which every copy field has known parameters (FE §5
-  step 1); the pieces before it are held, not dropped.
+  step 1); the pieces before it are held, not dropped, up to
+  `pending_pieces_bound` of memory. Past it the oldest held pieces are
+  dropped, with one warning per wait giving the stream time dropped; the
+  wait itself stays bounded by `max_keyframe_wait`. Reason: raw or internal
+  video held for the whole of `max_keyframe_wait` is hundreds of megabytes
+  or more; the start of an expert copy stream is worth less than that.
+
+  | Parameter              | Recommended | Protects                                                        |
+  | ---------------------- | ----------- | --------------------------------------------------------------- |
+  | `pending_pieces_bound` | 64 MiB      | Memory held while the copy fields' parameters are not yet known |
+
 - No byte, marker or timestamp depends on the piece boundaries.
 
 ## 5. Bytes and markers
@@ -240,7 +258,12 @@ where units are cut, and which markers it places.
    frames, so a header taken at the first packet, or at whichever call
    happened to flush it, is empty or misplaced. The header write is the one
    moment at which the muxer's header is complete and nothing else has been
-   written.
+   written. One exception: on a `segmented(D)` sink with the ISO family's
+   default `delay_moov`, the muxer writes its movie box with the first
+   fragment, so `header_length` ends at the first `styp`, `sidx` or `moof`
+   box, found by scanning the boxes written. Reason: `delay_moov` is kept
+   there because copied and primed streams need their first packet's
+   parameters in the movie box.
 2. **Entry header.** For the streamable configurations of §2, the bytes of
    the header write are the whole entry header: the EBML header, segment
    information and tracks of Matroska; the file type and empty movie box of
@@ -438,6 +461,10 @@ The segmenting face is
 `segmented(D)` sink applies the segmenting defaults of
 [FE §3](../../optionals/ffmpeg/spec/encoder.md#3-building-an-instance) step 2
 with that `D`, and offers the face for the segmentable configurations of §2.
+The segmenting face is its own interface and its own registry, built with
+the segment duration, beside the stream face; a configuration is
+segmentable exactly when that registry answers it. A `segmented(D)` sink is
+the input of that face, not a capability of the stream face.
 
 ## 13. Delegated destination
 
@@ -490,19 +517,26 @@ Classes of [faults.md §2](../../../spec/faults.md#2-classes). The seam's table
 is [encoder.md §8](encoder.md#8-faults); the FFmpeg tree's is
 [FE §5.2](../../optionals/ffmpeg/spec/encoder.md#52-data-faults-and-output-faults).
 
-| Fault                                                                                                                                                 | Class                                                                              | Outcome                                                                   |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| unknown muxer, `format` missing where no muxer can be guessed, leftover options, a protocol option on a sink (§1)                                     | configuration error                                                                | refused at evaluation; one error names every leftover                     |
-| a declaration or an explicit option that the output's capabilities refuse (§2)                                                                        | configuration error                                                                | refused when the output is constructed                                    |
-| the muxer's open or header write refused for a cause that follows from the configuration and the confirmed capabilities, on the output's first writer | configuration error                                                                | hard error, naming the output, the muxer and FFmpeg's reason              |
-| the same on a later writer (a reopen, a reconnect); a delegated open that fails for any other cause                                                   | output fault                                                                       | creation fails, or the writer is `failed`; the output's restart policy    |
-| a frame or packet the codec or the muxer refuses                                                                                                      | item fault                                                                         | dropped with a warning and counted (FE §5.2)                              |
-| `max_consecutive_faults` item faults in a row on one field                                                                                            | as FE §5.2                                                                         | on an encoded field, an output fault                                      |
-| any other failure during a call, of whatever kind                                                                                                     | output fault                                                                       | the writer is `failed`                                                    |
-| an incompatible copy source with no restart in place (§5 item 5)                                                                                      | as [FE §13.3](../../optionals/ffmpeg/spec/encoder.md#133-incompatible-copy-source) | unrecoverable on a sink; an output fault on a delegated destination (§13) |
-| the sink fails                                                                                                                                        | output fault                                                                       | the writer is ended abandoned                                             |
-| a drain, trailer or flush step fails at a clean end                                                                                                   | not escalated                                                                      | logged at `severe`; the end goes on (§9)                                  |
+| Fault                                                                                                                   | Class                                                                              | Outcome                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| unknown muxer, `format` missing where no muxer can be guessed, leftover options, a protocol option on a sink (§1)       | configuration error                                                                | refused at evaluation; one error names every leftover                     |
+| a declaration or an explicit option that the output's capabilities refuse (§2)                                          | configuration error                                                                | refused when the output is constructed                                    |
+| the muxer's open or header write refused for a cause that follows from the configuration and the confirmed capabilities | refused by the configuration (below)                                               | creation fails, or the writer is `failed`                                 |
+| a delegated open that fails for any other cause                                                                         | output fault                                                                       | creation fails, or the writer is `failed`; the output's restart policy    |
+| a frame or packet the codec or the muxer refuses                                                                        | item fault                                                                         | dropped with a warning and counted (FE §5.2)                              |
+| `max_consecutive_faults` item faults in a row on one field                                                              | as FE §5.2                                                                         | on an encoded field, an output fault                                      |
+| any other failure during a call, of whatever kind                                                                       | output fault                                                                       | the writer is `failed`                                                    |
+| an incompatible copy source with no restart in place (§5 item 5)                                                        | as [FE §13.3](../../optionals/ffmpeg/spec/encoder.md#133-incompatible-copy-source) | unrecoverable on a sink; an output fault on a delegated destination (§13) |
+| the sink fails                                                                                                          | output fault                                                                       | the writer is ended abandoned                                             |
+| a drain, trailer or flush step fails at a clean end                                                                     | not escalated                                                                      | logged at `severe`; the end goes on (§9)                                  |
 
+- **Refused by the configuration.** The writer reports this fault as a kind
+  of its own, carrying the muxer and FFmpeg's reason, and does not class
+  it: whether a writer is the output's first is the output's knowledge, not
+  the writer's. The output classes it as a configuration error on its first
+  writer (a hard error naming the output, the muxer and FFmpeg's reason),
+  and as an output fault on a later one (a reopen, a reconnect), under its
+  restart policy.
 - **A header write is never an item fault.** Its failure fails the writer,
   whatever packet or frame triggered it. Reason: every later packet needs
   the same header, so a header that cannot be written is a stream that
@@ -523,8 +557,10 @@ is [encoder.md §8](encoder.md#8-faults); the FFmpeg tree's is
 | `%ffmpeg(format="mp4", %audio(codec="aac"))` to `output.external`, and to `output.file` on a FIFO path                                                                                          | a fragmented ISO stream that decodes; bytes reach the process within `fragment_duration`                                          |
 | The same with `movflags="+faststart"` to `output.external`, `output.icecast` and `output.file(append=true)`                                                                                     | refused at evaluation, naming the need for a seekable destination                                                                 |
 | The same with `movflags="+faststart"` to `output.file`                                                                                                                                          | the movie box precedes the media box                                                                                              |
-| A muxer whose header write always fails, on the output's first writer                                                                                                                           | the script fails with a hard error naming the output; no output runs writing nothing                                              |
-| `blocksize=4096` or `truncate=0` in an Ogg `%ffmpeg` format given to `output.file`                                                                                                              | refused at evaluation, naming the option as a protocol option                                                                     |
+| A muxer whose header write always fails, on the output's first writer; the same failure appearing only at a reopen                                                                              | the script fails with a hard error naming the output, no output runs writing nothing; an output fault and the restart policy      |
+| A Matroska `%ffmpeg` stream with an H.264 copy field whose parameters arrive after 30 s of raw audio and video                                                                                  | held memory stays within `pending_pieces_bound`; one warning giving the stream time dropped; the stream then starts               |
+| Fragmented MP4 with the default `delay_moov` on a `segmented(D)` sink                                                                                                                           | the `stream_start` header ends where the first `styp`, `sidx` or `moof` box begins, and holds the movie box                       |
+| `blocksize=4096` or `truncate=0` in an Ogg `%ffmpeg` format given to `output.file`                                                                                                              | refused at evaluation, naming the option and stating that protocol options have no consumer on this destination                   |
 | An Ogg `%ffmpeg` format, with each of `ogg`, `oga` and `opus`, and three metadata changes, to `output.file` and to `output.harbor`                                                              | one logical stream; on the file it carries the initial title, on the mount no title; no failure                                   |
 | `output.url` with a `file:` URL, and with a plain path                                                                                                                                          | refused at evaluation, naming `output.file`                                                                                       |
 | `format="nosuchmuxer"` with `output.file` on `x.mp3`, and with `output.external`                                                                                                                | refused at evaluation in both                                                                                                     |

@@ -7,9 +7,10 @@ of §1. It answers [encoder.md §10](encoder.md#10-implementation-files)
 under the same numbers.
 
 Native FLAC is a file format with a valid streaming form: it is accepted on
-every output, shared mounts included. `%ogg(%flac)` is the usual form for
-streaming FLAC to players and servers, which know Ogg pages better than
-native FLAC frames.
+every output, shared mounts included, except a continuing one (§6.3).
+`%ogg(%flac)` is the usual form for streaming FLAC to players and servers,
+which know Ogg pages better than native FLAC frames, and the form that
+appends to an existing file.
 
 It relies on: the contract ([encoder.md](encoder.md)); format values
 ([formats.md](formats.md)); sinks ([sink.md](sink.md)); draining
@@ -50,14 +51,18 @@ Helpers: `extension` `flac`; `mime` `audio/flac`; `bitrate` none (lossless);
 | ------------------ | ------------------------------------------------------------------------ |
 | streamable         | yes: every frame is an access point, the header is the entry header (§5) |
 | needs seekable     | no                                                                       |
-| can continue       | yes: frames only (§6.3)                                                  |
+| can continue       | no (§6.3)                                                                |
 | in-band metadata   | no                                                                       |
 | segmentable        | no                                                                       |
 | needs no byte sink | no                                                                       |
 | accepts delegated  | no                                                                       |
 
 Adapted defaults: the header's form (§6) and the tags (§7). Native FLAC has
-no preamble, and no explicit parameter is refused against capabilities.
+no preamble, and no explicit parameter is refused against capabilities. An
+output whose sink is `continuing` (`output.file(append=true)`) refuses
+`%flac` at its construction, through
+[encoder.md §5.3](encoder.md#53-the-check); the error names `%flac` and
+says to use `%ogg(%flac)` to append.
 
 ## 3. Creation
 
@@ -92,7 +97,6 @@ no preamble, and no explicit parameter is refused against capabilities.
 "fLaC"
 STREAMINFO           block size, frame sizes, rate, channels, sample size, total samples, MD5
 VORBIS_COMMENT       ENCODER=, and the initial metadata as tags (§7)
-[PICTURE]            the cover, on a file sink only (§7)
 [SEEKTABLE]          optional, file form only (§6.1)
 FLAC frame × n       fixed block size, the last one shorter
 ```
@@ -101,12 +105,14 @@ FLAC frame × n       fixed block size, the last one shorter
   last. `stream_start(header_length, t₀)` is written with it, before its
   first byte.
 - `access_point(t)` before every frame, at its frame start code; `t` is the media
-  time of the frame's first sample. Frames are found from their own start
-  code and header, never from the way the library hands its output over.
+  time of the frame's first sample. Frame boundaries are taken from the
+  library's output calls: the library hands over each frame in one call
+  that reports a non-zero sample count, and metadata in calls that report
+  none, as its interface documents. The writer MUST NOT parse the bytes to
+  find frames.
 - A reader starting at an access point is sent the header first (the entry
   header): with it, every frame decodes alone.
-- Frame numbers count from the start of the stream the frames belong to
-  (§6.3 for an appended stream).
+- Frame numbers count from the start of the stream.
 
 ## 6. Header forms and preambles
 
@@ -131,26 +137,13 @@ the stream's header and the entry header of its access points.
 
 ### 6.3 Continuing
 
-On a `continuing` sink, the writer writes frames only. It takes the
-existing stream to be of its own rate, channel count and sample size.
-
-- Its frames carry frame numbers that continue the existing stream's, so
-  that the file is one stream whose numbering a reader can seek by. The
-  writer learns the existing stream's sample count from the existing
-  STREAMINFO, or, where that count is 0, from the last frame's header.
-  It reads them at creation from the existing stream's first and last bytes,
-  which the sink hands over when it opens
-  ([sink.md §2](sink.md#2-operations)); where the last frame lies beyond
-  them, the numbering starts from the STREAMINFO count, and where that is
-  0 too, the writer writes the stream's frames numbered from 0, logged at
-  `info` with the file's name.
-- At a clean end, the sink being seekable, the writer SHOULD rewrite the
-  existing STREAMINFO: the total sample count becomes the sum where the
-  existing count was known, and stays 0 otherwise; the frame and block size
-  bounds cover both streams where they were known; the MD5 signature becomes
-  zeroes (unknown), since the writer did not see the existing samples.
-- A STREAMINFO of another rate, channel count or sample size is left
-  unchanged, logged at `severe` with the file's name.
+Native FLAC cannot continue: the writer declares no continuing form (§2),
+and an output that would append to an existing file is refused at
+evaluation, pointing to `%ogg(%flac)`. Reason: a valid appended native
+FLAC stream needs frame numbers that continue the existing stream's, which
+means reading the existing stream's sample count back and renumbering
+every frame the library writes; an Ogg FLAC file appends as a new link
+with no rewriting.
 
 ## 7. Metadata
 
@@ -159,9 +152,10 @@ existing stream to be of its own rate, channel count and sample size.
   ([encoder.md §3.5](encoder.md#35-header-forms-and-preambles), item 8),
   then, as tags under item 7, the initial metadata
   ([encoder.md §2.2](encoder.md#22-creation)): on a file sink, one
-  `key=value` entry per exported entry, in order, and a cover as a
-  PICTURE block (type 3, front cover); on any other sink, nothing more,
-  `%flac` having no parameter that asks for tags. A key the comment syntax
+  `key=value` entry per exported entry, in order; on any other sink,
+  nothing more, `%flac` having no parameter that asks for tags.
+- No PICTURE block is written: a cover in the initial metadata is not
+  written, on any sink. A key the comment syntax
   cannot hold (an `=` or a byte outside 0x20–0x7D) is dropped with a
   warning; the writer does not fail for it.
 - The writer offers no in-band metadata: native FLAC cannot start a new
@@ -183,7 +177,7 @@ existing stream to be of its own rate, channel count and sample size.
 2. the library is finished: it encodes the last partial block as a shorter
    frame, and its bytes are written;
 3. on a `seekable` sink, STREAMINFO (and a reserved SEEKTABLE) is rewritten
-   (§6.1), or the existing STREAMINFO updated on a continuing sink (§6.3);
+   (§6.1);
 4. `end` is written.
 
 No input sample is lost, at the frame's rate or at another.
@@ -229,6 +223,7 @@ without coordination.
 | Fault                                                           | Class               | When                                |
 | --------------------------------------------------------------- | ------------------- | ----------------------------------- |
 | a value out of range; `bytes_per_page` on native FLAC           | configuration error | type checking or evaluation         |
+| `%flac` given to a continuing output                            | configuration error | construction of the output          |
 | 32 bits with a library that cannot encode them                  | configuration error | evaluation                          |
 | a deferred rate out of range                                    | configuration error | start-up                            |
 | the library refuses its initialisation                          | configuration error | creation; hard error                |
@@ -253,12 +248,12 @@ frame walker, a finite source of a known sample count.
 4. A shared harbor reader starting after 3 s receives the header, then
    frames from a frame boundary, and decodes.
 5. Initial metadata `title="Hé", artist="A"` and a cover, to `output.file`:
-   the VORBIS_COMMENT block holds `ENCODER=` and both entries, and a
-   PICTURE block the cover; with none, the block holds `ENCODER=` alone.
-   The same to a shared harbor mount: `ENCODER=` alone, no PICTURE.
-6. One minute appended to a one-minute file: one header, frame numbers
-   continuous, total covering both minutes, MD5 zeroes; the decode is two
-   minutes.
+   the VORBIS_COMMENT block holds `ENCODER=` and both entries, and no
+   PICTURE block is written; with none, the block holds `ENCODER=` alone.
+   The same to a shared harbor mount: `ENCODER=` alone.
+6. `%flac` to `output.file(append=true)` is refused at evaluation, the
+   error naming `%ogg(%flac)`; every access point the writer marked falls
+   on a frame start the walker finds, one per frame.
 7. `%flac(samplerate=1000000)` and `%flac(bytes_per_page=500)` fail
    `--check`; a configuration the library refuses fails at creation with
    the library's status, never as an empty file.

@@ -124,7 +124,11 @@ and the marker happen.
 
 The streaming work builds the writer from the factory
 ([contracts.md §4](contracts.md#4-encoder)), named with the output's id, with
-its initial metadata. When there is a last metadata, add the marker (`T`,
+its initial metadata: the last metadata at the start, which is what the
+output base's initial-metadata rule gives for a writer built before any
+piece
+([output-encoded.md §3.2](../../../encoder/spec/output-encoded.md#32-initial-metadata)).
+When there is a last metadata, add the marker (`T`,
 last metadata). The writer's first stream start moves `E` and drops the
 candidates of earlier writers
 ([shared-stream.md §4](../shared-stream.md#4-writer-changes)), so no

@@ -19,13 +19,13 @@ file states only what binds the seam, and links the rest.
   that accepts it. The output never rewrites the format.
 - **Local files are `output.file`'s.** A URL with the `file:` scheme, and a
   string that is not a URL (a plain local path), are refused with an
-  invalid-value error on the URL that names `output.file`. A URL whose
-  value is computed is checked when it is first read, as a configuration
-  error. Reason: `output.file` owns naming, permissions, append and
+  invalid-value error on the URL that names `output.file`. The URL is a
+  constant string, so the check always runs at evaluation. Reason: `output.file` owns naming, permissions, append and
   finalisation of local files; through a protocol URL each of them is
   silently lost or done twice.
 - Standard-library wrappers (`output.youtube.live.rtmp` and others) are
-  `output.url` with a computed URL.
+  `output.url` with a URL their own arguments build, a constant string by
+  the time `output.url` receives it.
 
 ## 2. The sink
 
