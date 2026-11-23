@@ -18,6 +18,8 @@ def f() =
       dropped_fired() and rounds() >= 3
     then
       # Collecting the builtins must not close the standard descriptors.
+      test.equal(file.exists("/dev/fd/0"), true)
+      test.equal(file.exists("/dev/fd/2"), true)
       print(
         "standard output still open"
       )
