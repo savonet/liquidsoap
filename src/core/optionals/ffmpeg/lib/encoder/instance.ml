@@ -254,6 +254,23 @@ let take_into t f =
               Buffer.blit t.buffer offset destination destination_offset length);
         })
 
+(* The container header is written as soon as its streams exist and captured
+   from the bytes since [`Pending start]: waiting for the first packet would
+   capture nothing for a codec with a delay, whose first frame's bytes have
+   already been taken by then. *)
+let capture_header t =
+  match (t.header, t.hls) with
+    | `Pending _, Some _ ->
+        Av.write_header t.current.output;
+        t.header <- `Captured Strings.empty
+    | `Pending start, None ->
+        Av.write_header t.current.output;
+        t.header <-
+          `Captured
+            (Strings.of_string
+               (Buffer.sub t.buffer start (Buffer.length t.buffer - start)))
+    | `Captured _, _ -> ()
+
 let hls_flush t () =
   Av.flush t.current.output;
   if t.current.muxer = "mpegts" then
@@ -267,20 +284,9 @@ let encoded_video t =
 
 (* Runs when a packet is due at the muxer: at once outside HLS, in media-time
    order in HLS mode (encoder.md §8.2). The bytes before the first packet are
-   the header; the bindings would only write it with that packet, so it is
-   written here. *)
+   the header, written once the streams exist (capture_header). *)
 let write_packet t field ~key ~time ~write =
-  (match (t.header, t.hls) with
-    | `Pending _, Some _ ->
-        Av.write_header t.current.output;
-        t.header <- `Captured Strings.empty
-    | `Pending start, None ->
-        Av.write_header t.current.output;
-        t.header <-
-          `Captured
-            (Strings.of_string
-               (Buffer.sub t.buffer start (Buffer.length t.buffer - start)))
-    | _ -> ());
+  capture_header t;
   match (t.hls, time) with
     | Some h, Some time ->
         h.media_written <- true;
@@ -358,6 +364,7 @@ let create_streams t frame =
                    { Avutil.num = 1; den = Lazy.Mutexed.force Frame.audio_rate }
                  ~codec:`Timed_id3 c.output)
       | _ -> ());
+    capture_header t;
     t.state <- `Started)
   else (
     let start = Option.value ~default:t.position c.wait_start in

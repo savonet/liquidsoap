@@ -2382,6 +2382,24 @@
   (run %{run_test} ffmpeg_seek_preroll liquidsoap ffmpeg_seek_preroll.liq)))
 
 (rule
+ (alias test_ffmpeg_shared_header)
+ (package liquidsoap)
+ (deps
+  ffmpeg_shared_header.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} ffmpeg_shared_header liquidsoap ffmpeg_shared_header.liq)))
+
+(rule
  (alias test_harbor_source_relay)
  (package liquidsoap)
  (deps
@@ -4063,6 +4081,7 @@
   (alias test_ffmpeg-naming-convention)
   (alias test_ffmpeg_filter_create_after_start)
   (alias test_ffmpeg_seek_preroll)
+  (alias test_ffmpeg_shared_header)
   (alias test_harbor_source_relay)
   (alias test_image_annotate_position)
   (alias test_infallible-shutdown)
