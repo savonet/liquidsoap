@@ -34,6 +34,10 @@ let default_typing_environment () = Env.bindings !type_environment
    [get_builtins]. *)
 let flat_enviroment : (string * (Type.scheme * Value.t)) list ref = ref []
 
+(* Builtins that values evaluated after the script is loaded look up by name. *)
+let runtime_builtins = ref []
+let keep_at_runtime names = runtime_builtins := names @ !runtime_builtins
+
 let clear_toplevel_environments () =
   type_environment := Env.empty;
   flat_enviroment := [];

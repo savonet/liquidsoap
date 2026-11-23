@@ -148,6 +148,16 @@ let _ =
     MenhirLib.Convert.Simplified.traditional2revised
       Parser.time_predicate_string
   in
+  let parse predicate =
+    let lexbuf = Sedlexing.Utf8.from_string predicate in
+    let tokenizer = Preprocessor.mk_tokenizer lexbuf in
+    Term_reducer.to_term
+      ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
+      (processor tokenizer)
+  in
+  (* Predicates are evaluated against the builtins, whenever they are run. *)
+  Environment.keep_at_runtime
+    (Term.Vars.elements (Term.free_vars (parse "not (1h-2h and 3h) or 4h")));
   Lang.add_builtin ~category:`Time ~base:time "predicate"
     ~descr:"Parse a string as a time predicate"
     [("", Lang.string_t, None, None)]
@@ -155,14 +165,8 @@ let _ =
     (fun p ->
       let v = List.assoc "" p in
       let predicate = Lang.to_string v in
-      let lexbuf = Sedlexing.Utf8.from_string predicate in
       try
-        let tokenizer = Preprocessor.mk_tokenizer lexbuf in
-        let predicate =
-          Term_reducer.to_term
-            ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
-            (processor tokenizer)
-        in
+        let predicate = parse predicate in
         Lang.val_fun [] (fun _ -> Evaluation.eval predicate)
       with _ ->
         Lang.raise_error
