@@ -364,7 +364,9 @@ let create_streams t frame =
                    { Avutil.num = 1; den = Lazy.Mutexed.force Frame.audio_rate }
                  ~codec:`Timed_id3 c.output)
       | _ -> ());
-    capture_header t;
+    (* A header the muxer refuses is not an item fault: every later packet
+       would be refused the same way. *)
+    (try capture_header t with exn -> fail t exn);
     t.state <- `Started)
   else (
     let start = Option.value ~default:t.position c.wait_start in
@@ -402,7 +404,7 @@ let encode_frame t frame =
                   (Frame.Fields.string_of_field field)
                   (match c.muxer with "" -> "container" | muxer -> muxer)
                   reason header source))
-      | Avutil.Error _ as exn -> fail t exn);
+      | exn -> fail t exn);
   if length > 0 then t.position <- t.position + length
 
 let close_container t =
