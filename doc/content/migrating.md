@@ -89,6 +89,24 @@ Previously, only metadata from the first source effectively added was relayed. T
 
 If you were relying on the old behavior of only getting metadata from the first source, you may need to filter or prioritize metadata manually using `metadata.map`.
 
+### `video.tile` only tiles video
+
+`video.tile` returns a source with only the tiled video. It used to also mix the
+sources' audio, which gave its result an optional audio track that outputs could
+not accept, and made it fail on video-only sources. To keep the sound, mix it
+separately and put it back:
+
+```liquidsoap
+sources = [s1, s2, s3, s4]
+tiled = video.tile(sources)
+audio = track.audio.add(list.map(fun (s) -> source.tracks(s).audio, sources))
+s = source({audio=audio, video=source.tracks(tiled).video})
+```
+
+Its former `weights` go on each audio track, e.g.
+`list.mapi(fun (i, s) -> source.tracks(s).audio.{weight=list.nth(weights, i)}, sources)`,
+and `normalize` and `power` go to `track.audio.add`.
+
 ### `output.harbor` authentication
 
 The `user` and `password` parameters have been removed from `output.harbor`.
