@@ -1893,6 +1893,24 @@
    clock_started_at_runtime.liq)))
 
 (rule
+ (alias test_closure_replaces)
+ (package liquidsoap)
+ (deps
+  closure_replaces.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} closure_replaces liquidsoap closure_replaces.liq)))
+
+(rule
  (alias test_cross_announcements)
  (package liquidsoap)
  (deps
@@ -3936,6 +3954,7 @@
   (alias test_callback_release_mixed_content)
   (alias test_cleanup)
   (alias test_clock_started_at_runtime)
+  (alias test_closure_replaces)
   (alias test_cross_announcements)
   (alias test_cross_duration_per_track)
   (alias test_cross_reads_when_read)

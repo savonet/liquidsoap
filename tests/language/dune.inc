@@ -69,6 +69,20 @@
   (run %{run_test} bool.liq liquidsoap bool.liq)))
 
 (rule
+ (alias test_closure_methods)
+ (package liquidsoap)
+ (deps
+  closure_methods.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} closure_methods.liq liquidsoap closure_methods.liq)))
+
+(rule
  (alias test_comments)
  (package liquidsoap)
  (deps
@@ -1076,6 +1090,7 @@
   (alias test_argv_list)
   (alias test_atomic)
   (alias test_bool)
+  (alias test_closure_methods)
   (alias test_comments)
   (alias test_conversions)
   (alias test_cron)

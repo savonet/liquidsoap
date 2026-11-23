@@ -60,7 +60,10 @@ val make :
   t
 
 val free_vars : ?bound:Vars.elt list -> t -> Vars.t
-val free_fun_vars : (t, Type.t) func -> Vars.t
+
+(** The free variables of a function, with how its body uses each of them. *)
+val free_fun_vars : (t, Type.t) func -> usage Uses.t
+
 val can_ignore : Type.t -> bool
 val fresh : handler:Type.Fresh.mapper -> t -> t
 

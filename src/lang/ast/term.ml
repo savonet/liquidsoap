@@ -217,61 +217,89 @@ let bound_vars_pat = function
   | `PVar _ -> Vars.empty
   | `PTuple l -> Vars.of_list l
 
-let rec free_term_vars tm =
-  let root_free_vars = function
+let rec merge_usage a b =
+  match (a, b) with
+    | Whole, _ | _, Whole -> Whole
+    | Methods a, Methods b -> Methods (union_uses a b)
+
+and union_uses a b = Uses.union (fun _ a b -> Some (merge_usage a b)) a b
+
+let remove_uses vars uses = Uses.filter (fun x _ -> not (Vars.mem x vars)) uses
+
+let rec path_usage = function
+  | [] -> Whole
+  | meth :: path -> Methods (Uses.singleton meth (path_usage path))
+
+let rec free_term_uses tm =
+  let root_uses = function
     | `Cache_env _ | `Int _ | `Float _ | `String _ | `Bool _ | `Custom _ ->
-        Vars.empty
-    | `Var x -> Vars.singleton x
-    | `Tuple l ->
-        List.fold_left (fun v a -> Vars.union v (free_vars a)) Vars.empty l
-    | `Null -> Vars.empty
+        Uses.empty
+    | `Var x -> Uses.singleton x Whole
+    | `Tuple l -> union_list l
+    | `Null -> Uses.empty
     | `Encoder e ->
         let rec enc (_, p) =
           List.fold_left
             (fun v t ->
               match t with
                 | `Anonymous _ -> v
-                | `Labelled (_, t) -> Vars.union v (free_vars t)
-                | `Encoder e -> Vars.union v (enc e))
-            Vars.empty p
+                | `Labelled (_, t) -> union_uses v (free_uses t)
+                | `Encoder e -> union_uses v (enc e))
+            Uses.empty p
         in
         enc e
-    | `Cast { cast = e } -> free_vars e
-    | `Typeof { holes; body } ->
-        List.fold_left
-          (fun v (_, tm) -> Vars.union v (free_vars tm))
-          (free_vars body) holes
-    | `Seq (a, b) -> Vars.union (free_vars a) (free_vars b)
+    | `Cast { cast = e } -> free_uses e
+    | `Typeof { holes; body } -> union_list (body :: List.map snd holes)
+    | `Seq (a, b) | `Open (a, b) -> union_uses (free_uses a) (free_uses b)
     | `Hide (tm, l) ->
-        free_vars
+        free_uses
           {
             tm with
             methods = Methods.filter (fun n _ -> not (List.mem n l)) tm.methods;
           }
-    | `Invoke { invoked = e; invoke_default } ->
-        Vars.union (free_vars e)
-          (match invoke_default with
-            | None -> Vars.empty
-            | Some d -> free_vars d)
-    | `Open (a, b) -> Vars.union (free_vars a) (free_vars b)
-    | `List l ->
-        List.fold_left (fun v t -> Vars.union v (free_vars t)) Vars.empty l
-    | `App (hd, l) ->
-        List.fold_left
-          (fun v (_, t) -> Vars.union v (free_vars t))
-          (free_vars hd) l
+    | `Invoke { invoked; invoke_default; meth } ->
+        union_uses (invoked_uses invoked [meth]) (default_uses invoke_default)
+    | `List l -> union_list l
+    | `App (hd, l) -> union_list (hd :: List.map snd l)
     | `Fun p -> free_fun_vars p
-    | `Let l ->
-        Vars.union
-          (match l.pat with
-            | `PVar (x :: _ :: _) -> Vars.singleton x
-            | _ -> Vars.empty)
-          (Vars.union (free_vars l.def)
-             (Vars.diff (free_vars l.body) (bound_vars_pat l.pat)))
+    | `Let { pat; replace; def; body } ->
+        (* Both rebuild the bound variable from its current, whole, value. *)
+        let rebuilt =
+          match pat with
+            | `PVar [x] when replace -> Uses.singleton x Whole
+            | `PTuple l when replace ->
+                List.fold_left
+                  (fun uses x -> Uses.add x Whole uses)
+                  Uses.empty l
+            | `PVar (x :: _ :: _) -> Uses.singleton x Whole
+            | _ -> Uses.empty
+        in
+        union_list_uses
+          [
+            rebuilt;
+            free_uses def;
+            remove_uses (bound_vars_pat pat) (free_uses body);
+          ]
   in
   Methods.fold
-    (fun _ meth_term fv -> Vars.union fv (free_vars meth_term))
-    tm.methods (root_free_vars tm.term)
+    (fun _ meth_term uses -> union_uses uses (free_uses meth_term))
+    tm.methods (root_uses tm.term)
+
+(* A chain of method invocations on a variable only uses the invoked path. *)
+and invoked_uses tm path =
+  match tm with
+    | { term = `Var x; methods } when Methods.is_empty methods ->
+        Uses.singleton x (path_usage path)
+    | { term = `Invoke { invoked; invoke_default; meth }; methods }
+      when Methods.is_empty methods ->
+        union_uses
+          (invoked_uses invoked (meth :: path))
+          (default_uses invoke_default)
+    | tm -> free_uses tm
+
+and default_uses = function None -> Uses.empty | Some d -> free_uses d
+and union_list l = union_list_uses (List.map free_uses l)
+and union_list_uses l = List.fold_left union_uses Uses.empty l
 
 and free_fun_vars = function
   | { free_vars = Some fv } -> fv
@@ -282,18 +310,19 @@ and free_fun_vars = function
             Option.value ~default:label as_variable)
           arguments
       in
-      let fv =
-        List.fold_left
-          (fun fv -> function
-            | { default = Some d } -> Vars.union fv (free_vars d) | _ -> fv)
-          Vars.empty arguments
+      let defaults =
+        union_list_uses
+          (List.map (fun { default } -> default_uses default) arguments)
       in
-      let fv = Vars.union fv (free_vars ~bound body) in
+      let fv = union_uses defaults (free_uses ~bound body) in
       p.free_vars <- Some fv;
       fv
 
-and free_vars ?(bound = []) body : Vars.t =
-  Vars.diff (free_term_vars body) (Vars.of_list bound)
+and free_uses ?(bound = []) body =
+  remove_uses (Vars.of_list bound) (free_term_uses body)
+
+let free_vars ?bound body =
+  Uses.fold (fun x _ vars -> Vars.add x vars) (free_uses ?bound body) Vars.empty
 
 (** Values which can be ignored (and will thus not raise a warning if ignored).
 *)
