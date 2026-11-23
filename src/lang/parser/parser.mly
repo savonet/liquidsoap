@@ -117,7 +117,7 @@ open Parser_helper
 %type <string * string> annotate_metadata_entry
 
 %start time_predicate_string
-%type <Parsed_term.t> time_predicate_string
+%type <Parsed_term.time_predicate> time_predicate_string
 
 %start plain_encoder_params
 %type <Parsed_term.encoder_params> plain_encoder_params
@@ -367,13 +367,14 @@ time_predicate_string:
   | time_predicate_expr EOF { $1 }
 
 time_predicate_expr:
-  | time_predicate                           { $1 }
-  | LPAR time_predicate_expr RPAR            { mk ~pos:$loc (`Parenthesis $2) }
-  | NOT time_predicate_expr                  { mk ~pos:$loc (`Not $2) }
+  | INTERVAL                   { { time_pos = $loc; time_descr = `Time_interval $1 } }
+  | TIME                       { { time_pos = $loc; time_descr = `Time $1 } }
+  | LPAR time_predicate_expr RPAR { $2 }
+  | NOT time_predicate_expr    { { time_pos = $loc; time_descr = `Not $2 } }
   | time_predicate_expr AND time_predicate_expr
-                                             { mk ~pos:$loc (`BoolOp ("and", [$1; $3])) }
+                               { { time_pos = $loc; time_descr = `And ($1, $3) } }
   | time_predicate_expr OR time_predicate_expr
-                                             { mk ~pos:$loc (`BoolOp ("or", [$1; $3])) }
+                               { { time_pos = $loc; time_descr = `Or ($1, $3) } }
 
 (* Contextual keywords. These are ordinary identifiers elsewhere, so they are
    matched as variables and their spelling is checked in the action. %inline

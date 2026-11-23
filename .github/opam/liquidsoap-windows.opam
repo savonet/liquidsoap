@@ -36,6 +36,8 @@ depends: [
   "ppx_string-windows" {build}
   "ppx_hash" {build}
   "ppx_hash-windows" {build}
+  "ppx_enumerate" {build}
+  "ppx_enumerate-windows" {build}
   "sedlex" {>= "3.2"}
   "sedlex-windows" {>= "3.2"}
   "fileutils"

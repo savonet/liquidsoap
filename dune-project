@@ -141,6 +141,7 @@
     (re (>= 1.11.0))
     (ppx_string :build)
     (ppx_hash :build)
+    (ppx_enumerate :build)
     (sedlex (>= 3.2))
     (menhir (>= 20240715))
     fileutils

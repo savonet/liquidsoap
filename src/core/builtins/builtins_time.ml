@@ -148,6 +148,18 @@ let _ =
     MenhirLib.Convert.Simplified.traditional2revised
       Parser.time_predicate_string
   in
+  let is_parse_error = function
+    | Parser.Error | Term.Parse_error _ | Sedlexing.MalFormed -> true
+    | Failure s -> s = "lexing: empty token"
+    | _ -> false
+  in
+  let parse predicate =
+    let lexbuf = Sedlexing.Utf8.from_string predicate in
+    let tokenizer = Preprocessor.mk_tokenizer lexbuf in
+    Term_reducer.Time_predicate.to_term (processor tokenizer)
+  in
+  (* Predicates are evaluated against the builtins, whenever they are run. *)
+  Environment.keep_at_runtime Term_reducer.Time_predicate.builtins;
   Lang.add_builtin ~category:`Time ~base:time "predicate"
     ~descr:"Parse a string as a time predicate"
     [("", Lang.string_t, None, None)]
@@ -155,16 +167,10 @@ let _ =
     (fun p ->
       let v = List.assoc "" p in
       let predicate = Lang.to_string v in
-      let lexbuf = Sedlexing.Utf8.from_string predicate in
       try
-        let tokenizer = Preprocessor.mk_tokenizer lexbuf in
-        let predicate =
-          Term_reducer.to_term
-            ~throw:(fun ~bt exn -> Printexc.raise_with_backtrace exn bt)
-            (processor tokenizer)
-        in
+        let predicate = parse predicate in
         Lang.val_fun [] (fun _ -> Evaluation.eval predicate)
-      with _ ->
+      with exn when is_parse_error exn ->
         Lang.raise_error
           ~message:
             (Printf.sprintf "Failed to parse %s as time predicate" predicate)

@@ -48,6 +48,13 @@ val default_typing_environment : unit -> (string * Type.scheme) list
 (** Initial environment (with builtins). *)
 val default_environment : unit -> (string * Value.t) list
 
-(** Clear the typing environments and the builtins' documentation, which only
-    the loading of a script reads. *)
+(** Keep the given top-level builtins once the environments are cleared, for
+    values that look them up by name after the script is loaded. Dotted names
+    are rejected. *)
+val keep_at_runtime : string list -> unit
+
+(** Clear the typing environments, the builtins' documentation and the builtins'
+    values. Only the loading of a script reads them, except the builtins kept
+    with {!keep_at_runtime}, which values evaluated after loading look up by
+    name. *)
 val clear_toplevel_environments : unit -> unit

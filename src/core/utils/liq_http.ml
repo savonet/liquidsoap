@@ -61,7 +61,7 @@ let wait_for ?log ~pending fd (event : event) timeout =
     | `Write -> Tutils.wait_for ?log (`Write fd) timeout
     | `Both -> Tutils.wait_for ?log (`Both fd) timeout
 
-let rec unix_socket ~pos fd =
+let rec unix_socket ?(close_on_collect = true) ~pos fd =
   let s = Cry.unix_socket fd in
   let closed = Atomic.make false in
   let finalise () =
@@ -99,7 +99,7 @@ let rec unix_socket ~pos fd =
         s#close
     end
   in
-  Gc.finalise_last finalise s;
+  if close_on_collect then Gc.finalise_last finalise s;
   s
 
 and unix_transport () =
