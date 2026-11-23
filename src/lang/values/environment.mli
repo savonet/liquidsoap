@@ -52,6 +52,7 @@ val default_environment : unit -> (string * Value.t) list
     look them up by name after the script is loaded. *)
 val keep_at_runtime : string list -> unit
 
-(** Clear the typing environments and the builtins' documentation, which only
-    the loading of a script reads. *)
+(** Clear the typing environments, the builtins' documentation and the builtins'
+    values, except those kept with {!keep_at_runtime}: only the loading of a
+    script reads them. *)
 val clear_toplevel_environments : unit -> unit

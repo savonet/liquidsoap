@@ -40,6 +40,11 @@ let keep_at_runtime names = runtime_builtins := names @ !runtime_builtins
 
 let clear_toplevel_environments () =
   type_environment := Env.empty;
+  (* What the script uses is held by its closures. *)
+  value_environment :=
+    Env.filter
+      (fun name _ -> List.mem name !runtime_builtins)
+      !value_environment;
   flat_enviroment := [];
   Doc.Value.clear ()
 

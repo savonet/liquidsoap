@@ -69,6 +69,20 @@
   (run %{run_test} bool.liq liquidsoap bool.liq)))
 
 (rule
+ (alias test_builtins_dropped)
+ (package liquidsoap)
+ (deps
+  builtins_dropped.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  crontab_test_cases.json
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} builtins_dropped.liq liquidsoap builtins_dropped.liq)))
+
+(rule
  (alias test_closure_methods)
  (package liquidsoap)
  (deps
@@ -1090,6 +1104,7 @@
   (alias test_argv_list)
   (alias test_atomic)
   (alias test_bool)
+  (alias test_builtins_dropped)
   (alias test_closure_methods)
   (alias test_comments)
   (alias test_conversions)
