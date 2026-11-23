@@ -98,6 +98,7 @@
 - `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
 - `video.testsrc`, `video.board`, `video.text` and frei0r source plugins have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
 - `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
+- `process.run`, `process.read` and `process.test` no longer fail at random with `Bad file descriptor` when the command exits right away ([#5708](https://github.com/savonet/liquidsoap/issues/5708)).
 - Metadata inserted with `insert_metadata` while a source produces an empty frame, e.g. a buffered input that just ran dry, is kept for the next frame instead of being lost ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
 - `icecast.server`: a mount keeps its current metadata (in its statistics and status pages) when its source client lags and its input runs dry, instead of losing it until the next update ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
 - `video.add_text.ffmpeg` no longer fails on a text containing `%`: drawtext text expansion is disabled ([#5671](https://github.com/savonet/liquidsoap/pull/5671)).
