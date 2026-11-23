@@ -216,6 +216,7 @@ module Value = struct
 
   let get name = Lazy.Mutexed.force (Map.find name !db)
   let count () = Map.cardinal !db
+  let clear () = db := Map.empty
   let standard_source_methods = ref []
 
   let usage name f =

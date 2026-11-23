@@ -120,6 +120,7 @@
 ## Optimized:
 
 - Scripts typecheck about four times faster with less memory ([#5600](https://github.com/savonet/liquidsoap/pull/5600)).
+- Running scripts use about 5.6 MiB less memory: builtins' documentation is dropped once the script is loaded.
 - Playlists take a lock of their own instead of the process-wide `atomic` lock, so they no longer hold up each other or unrelated sections ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `icecast.server` takes a lock of its own instead of the process-wide `atomic` lock, and waits on it without polling ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 
