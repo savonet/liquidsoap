@@ -70,7 +70,8 @@ type status = [ `Exception of exn | `Status of Unix.process_status ]
 (** Trying to performed an operation on a stopped process. *)
 exception Finished
 
-(** Create a process handler. Decisions returned by the callbacks are applied
+(** Create a process handler. [on_start] is skipped for a process that has
+    already exited. Decisions returned by the callbacks are applied
     synchronously, i.e. when returning [`Stop], the process' stdin is closed
     immediately after the callback has returned. [on_stop] returns the delay in
     seconds before restarting the process; negative means do not restart.*)
@@ -98,14 +99,15 @@ val stop : t -> unit
     running after a grace period. Cleanup happens asynchronously. *)
 val kill : t -> unit
 
-(** Whether the process was stopped. *)
+(** Whether the process' stdin is closed: the process was stopped or has exited.
+*)
 val stopped : t -> bool
 
 (** Write bytes recursively. *)
 val really_write : ?offset:int -> ?length:int -> bytes -> push -> unit
 
 (** Synchronous (blocking) write on the process' stdin. Raises [Finished] if the
-    process has been stopped/killed. *)
+    process has been stopped/killed or has exited. *)
 val on_stdin : t -> (push -> 'a) -> 'a
 
 (** Synchronous (blocking) read on the process' stdout. Raises [Finished] if the

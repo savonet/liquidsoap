@@ -93,14 +93,21 @@ let stop t =
         | Some { in_pipe } -> (
             try ignore (Unix_utils.write in_pipe stop_c 0 1) with _ -> ()))
 
+(* The mutex must be held: [stopped] and the channel change together. *)
+let close_stdin process =
+  if not (Atomic.exchange process.stopped true) then (
+    try close_out process.p.stdin with _ -> ())
+
+(* [None] once stdin is closed. The mutex must be held. *)
+let stdin_fd process =
+  if Atomic.get process.stopped then None
+  else Some (Unix.descr_of_out_channel process.p.stdin)
+
 let send_stop ~log t =
   Mutex.protect t.mutex (fun () ->
       let process = get_process t in
-      match Atomic.exchange process.stopped true with
-        | false -> (
-            log "Closing process's stdin";
-            try close_out process.p.stdin with _ -> ())
-        | _ -> ())
+      if not (Atomic.get process.stopped) then log "Closing process's stdin";
+      close_stdin process)
 
 let kill_grace_period = 5.
 
@@ -186,7 +193,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
              Mutex.protect mutex (fun () ->
                  if Atomic.compare_and_set process.status None (Some status)
                  then (
-                   (try close_out p.stdin with _ -> ());
+                   close_stdin process;
                    ignore (Unix_utils.write in_pipe done_c 0 1)))
            with _ -> ())
          ());
@@ -211,9 +218,9 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
         [(stdout, on_stdout); (stderr, on_stderr)]
     in
     let continue_events =
-      if on_stdin <> None && not (Atomic.get process.stopped) then
-        `Write (Unix.descr_of_out_channel process.p.stdin) :: read_events
-      else read_events
+      match (on_stdin, Mutex.protect t.mutex (fun () -> stdin_fd process)) with
+        | Some _, Some fd -> `Write fd :: read_events
+        | _ -> read_events
     in
     let events =
       match decision with
@@ -231,6 +238,13 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     in
     { Scheduler.Task.priority = Atomic.get process.priority; events; handler }
   in
+  (* A process that already exited has its stdin closed: [on_start] is
+     skipped and the task only waits for the exit notification. *)
+  let start_task handler =
+    match Mutex.protect t.mutex (fun () -> stdin_fd (get_process t)) with
+      | Some fd -> get_task handler (on_start (pusher fd))
+      | None -> get_task handler `Stop
+  in
   let restart_decision handler delay =
     if delay < 0. then begin
       cleanup ~log t;
@@ -239,8 +253,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
     else begin
       let spawn _ =
         create ();
-        let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
-        [get_task handler (on_start (pusher fd))]
+        [start_task handler]
       in
       [{ Scheduler.Task.priority; events = [`Delay delay]; handler = spawn }]
     end
@@ -371,8 +384,7 @@ let run ?priority ?env ?on_start ?on_stdin ?on_stdout ?on_stderr ?on_stop ?log
                 f e;
                 restart_decision (on_stop (`Exception e)))
   in
-  let fd = Unix.descr_of_out_channel (get_process t).p.stdin in
-  Scheduler.Task.add (get_task handler (on_start (pusher fd)));
+  Scheduler.Task.add (start_task handler);
   t
 
 let really_write ?(offset = 0) ?length data push =
@@ -388,15 +400,12 @@ let on_stdout t fn =
   fn (puller fd)
 
 let on_stdin t fn =
-  let process =
+  let fd =
     Mutex.protect t.mutex (fun () ->
-        match t.process with
-          | Some process ->
-              if Atomic.get process.stopped then raise Finished;
-              process
+        match stdin_fd (get_process t) with
+          | Some fd -> fd
           | None -> raise Finished)
   in
-  let fd = Unix.descr_of_out_channel process.p.stdin in
   fn (pusher fd)
 
 let on_stderr t fn =
