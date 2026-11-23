@@ -453,6 +453,11 @@ object
     'a ->
     Frame.t
 
+  (** Where, in the current tick, the data produced so far ends, without
+      producing or consuming any. [0] outside a streaming cycle. Safe to read
+      from any thread. *)
+  method produced_position : int
+
   (** Various information related to the current frame. *)
 
   method frame_position : int

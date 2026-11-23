@@ -2560,6 +2560,24 @@
    output_reopen_on_error_delay.liq)))
 
 (rule
+ (alias test_output_time_thread)
+ (package liquidsoap)
+ (deps
+  output_time_thread.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} output_time_thread liquidsoap output_time_thread.liq)))
+
+(rule
  (alias test_playlist-id)
  (package liquidsoap)
  (deps
@@ -3858,6 +3876,7 @@
   (alias test_output_on_metadata)
   (alias test_output_on_track)
   (alias test_output_reopen_on_error_delay)
+  (alias test_output_time_thread)
   (alias test_playlist-id)
   (alias test_probes_change_nothing)
   (alias test_process_run_timeout_while_starting)
