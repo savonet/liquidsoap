@@ -2462,6 +2462,24 @@
   (run %{run_test} input_rtmp liquidsoap input_rtmp.liq)))
 
 (rule
+ (alias test_mad_seek)
+ (package liquidsoap)
+ (deps
+  mad_seek.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} mad_seek liquidsoap mad_seek.liq)))
+
+(rule
  (alias test_metadata-resolvers-metadata)
  (package liquidsoap)
  (deps
@@ -3929,6 +3947,7 @@
   (alias test_init-error)
   (alias test_initial_request_queue)
   (alias test_input_rtmp)
+  (alias test_mad_seek)
   (alias test_metadata-resolvers-metadata)
   (alias test_metadata_cache)
   (alias test_opus_pre_skip)

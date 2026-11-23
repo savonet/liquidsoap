@@ -658,8 +658,10 @@ CAMLprim value ocaml_mad_skip_frame(value madf) {
     err = mad_header_decode(&mf->frame.header, &mf->stream);
     caml_leave_blocking_section();
 
+    /* One frame skipped: stop there. */
     if (err == 0) {
       mad_timer_add(&mf->timer, mf->frame.header.duration);
+      break;
     } else {
       if (!MAD_RECOVERABLE(mf->stream.error) &&
           mf->stream.error != MAD_ERROR_BUFLEN) {
