@@ -36,7 +36,11 @@ let flat_enviroment : (string * (Type.scheme * Value.t)) list ref = ref []
 
 (* Builtins that values evaluated after the script is loaded look up by name. *)
 let runtime_builtins = ref []
-let keep_at_runtime names = runtime_builtins := names @ !runtime_builtins
+
+(* Only top-level names are kept: "a.b" would never match one. *)
+let keep_at_runtime names =
+  assert (List.for_all (fun name -> not (String.contains name '.')) names);
+  runtime_builtins := names @ !runtime_builtins
 
 let clear_toplevel_environments () =
   type_environment := Env.empty;
