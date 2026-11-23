@@ -134,6 +134,7 @@
 - `%mp3`, `%shine` and `%fdkaac` encode the end of their input: `%mp3` dropped its last buffer, `%shine` its last partial pass and the samples in its delay, and `%fdkaac` its whole delay (about 130 ms with HE-AAC v2), its flush returning nothing.
 - `%ffmpeg`: a container header the muxer refuses (plain MP4 to a pipe, for instance) fails the output with FFmpeg's reason, instead of streaming nothing forever.
 - `%flac` and `%ogg(%flac)`: a configuration libFLAC refuses, or a failed write, fails the output with libFLAC's reason instead of writing an empty file silently.
+- `%wav`: more than two channels or more than 16 bits use the `WAVE_FORMAT_EXTENSIBLE` header with its channel mask; an unknown length is written as the streaming values (`0xFFFFFFFF`); sizes above 2 GiB no longer lose their top bit.
 - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
 - Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
 - `playlist(reload_mode="seconds")`, `input.hls` and `native.request.dynamic` stop polling once shut down ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).

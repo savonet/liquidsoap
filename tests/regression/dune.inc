@@ -4025,6 +4025,24 @@
  (action
   (run %{run_test} video_tile liquidsoap video_tile.liq)))
 
+(rule
+ (alias test_wav_header)
+ (package liquidsoap)
+ (deps
+  wav_header.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} wav_header liquidsoap wav_header.liq)))
+
 (alias
  (name citest)
  (deps
@@ -4237,4 +4255,5 @@
   (alias test_utf8_invalid_sequences)
   (alias test_video-only)
   (alias test_video_fade)
-  (alias test_video_tile)))
+  (alias test_video_tile)
+  (alias test_wav_header)))
