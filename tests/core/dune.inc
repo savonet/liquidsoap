@@ -139,6 +139,34 @@
   (run %{decoder_test})))
 
 (executable
+ (name doc_cleared_test)
+ (modules doc_cleared_test)
+ (libraries
+  liquidsoap_core
+  liquidsoap_builtins
+  liquidsoap_optionals
+  liquidsoap_ffmpeg
+  ffmpeg-avutil
+  ffmpeg-avcodec
+  mm
+  mm.base
+  mm.audio
+  mm.video
+  mm.image
+  dtools
+  duppy.stdlib_utils
+  threads.posix
+  unix))
+
+(rule
+ (alias doc_cleared_test)
+ (package liquidsoap)
+ (deps
+  (:doc_cleared_test doc_cleared_test.exe))
+ (action
+  (run %{doc_cleared_test})))
+
+(executable
  (name encoder_pcm_kind_test)
  (modules encoder_pcm_kind_test)
  (libraries
@@ -1246,6 +1274,7 @@
   (alias child_support_test)
   (alias content_test)
   (alias decoder_test)
+  (alias doc_cleared_test)
   (alias encoder_pcm_kind_test)
   (alias flush_test)
   (alias frame_checksum_test)

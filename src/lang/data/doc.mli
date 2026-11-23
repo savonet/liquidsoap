@@ -104,6 +104,10 @@ module Value : sig
 
   val count : unit -> int
 
+  (** Drop every registered documentation. Its entries hold the full types of
+      the builtins, a large share of the heap once a script is running. *)
+  val clear : unit -> unit
+
   (** Methods every source has, as name and description. The reference lists
       them apart from an operator's own methods. *)
   val standard_source_methods : (string * string) list ref

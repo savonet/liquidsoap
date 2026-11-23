@@ -36,7 +36,8 @@ let flat_enviroment : (string * (Type.scheme * Value.t)) list ref = ref []
 
 let clear_toplevel_environments () =
   type_environment := Env.empty;
-  flat_enviroment := []
+  flat_enviroment := [];
+  Doc.Value.clear ()
 
 let has_builtin name = List.mem_assoc name !flat_enviroment
 let get_builtin name = List.assoc_opt name !flat_enviroment
