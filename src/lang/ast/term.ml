@@ -262,8 +262,10 @@ let rec free_term_vars tm =
           (free_vars hd) l
     | `Fun p -> free_fun_vars p
     | `Let l ->
+        (* Both rebuild the bound variable from its current value. *)
         Vars.union
           (match l.pat with
+            | `PVar [x] when l.replace -> Vars.singleton x
             | `PVar (x :: _ :: _) -> Vars.singleton x
             | _ -> Vars.empty)
           (Vars.union (free_vars l.def)
