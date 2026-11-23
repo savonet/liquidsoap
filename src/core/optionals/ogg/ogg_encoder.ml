@@ -106,10 +106,7 @@ let encoder ~pos { Ogg_format.audio; video } =
         | Some (params, enc) -> enc params :: tracks
         | None -> tracks
     in
-    (* We add a skeleton only
-     * if there are more than one stream for now. *)
-    let skeleton = List.length tracks > 1 in
-    let ogg_enc = Ogg_muxer.create ~skeleton name in
+    let ogg_enc = Ogg_muxer.create name in
     let rec enc =
       {
         Encoder.encode_metadata;

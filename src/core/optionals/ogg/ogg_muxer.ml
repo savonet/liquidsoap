@@ -67,7 +67,7 @@ type state = Eos | Streaming | Bos
    [get_data] hands it over as [flushed_link_start]. *)
 type t = {
   id : string;
-  mutable skeleton : Ogg.Stream.stream option;
+  mutable serials : nativeint list;
   header : Strings.Mutable.t;
   encoded : Strings.Mutable.t;
   mutable link_start : int option;
@@ -93,11 +93,6 @@ type stream_encoder = {
 let os_of_ogg_track x =
   match x with Audio_track x -> x.os | Video_track x -> x.os
 
-let fisbone_data_of_ogg_track x =
-  match x with
-    | Audio_track x -> x.fisbone_data
-    | Video_track x -> x.fisbone_data
-
 let stream_start_of_ogg_track x =
   match x with Audio_track x -> x.start_page | Video_track x -> x.start_page
 
@@ -109,12 +104,22 @@ let set_remaining_of_ogg_track x v =
     | Audio_track x -> x.remaining <- v
     | Video_track x -> x.remaining <- v
 
-(** As per specifications, we need a random injective sequence of nativeint.
-    This might not be assumed here, but chances are very low.. *)
+(* RFC 3533: serials are random 32-bit values, distinct across the links of
+   one stream. The generator is shared by every encoder, hence the lock. *)
 let random_state = Random.State.make_self_init ()
+let random_lock = Mutex.create ()
 
-let get_serial () =
-  Random.State.nativeint random_state (Nativeint.of_int 0x3FFFFFFF)
+let get_serial encoder =
+  let rec draw () =
+    let serial =
+      Nativeint.of_int32
+        (Mutex.protect random_lock (fun () -> Random.State.bits32 random_state))
+    in
+    if List.mem serial encoder.serials then draw () else serial
+  in
+  let serial = draw () in
+  encoder.serials <- serial :: encoder.serials;
+  serial
 
 let state encoder = encoder.state
 
@@ -149,34 +154,18 @@ let flush_pages os =
 let add_flushed_pages ?header encoder os =
   List.iter (add_page ?header encoder) (flush_pages os)
 
-let init_skeleton encoder =
-  let serial = get_serial () in
-  let os = Ogg.Stream.create ~serial () in
-  Ogg.Stream.put_packet os (Ogg.Skeleton.fishead ());
-
-  (* Output first page at beginning of content. *)
-  add_page encoder ~header:true (Ogg.Stream.get_page os);
-  os
-
-let create ~skeleton id =
-  let skeleton encoder =
-    if skeleton then Some (init_skeleton encoder) else None
-  in
-  let encoder =
-    {
-      id;
-      skeleton = None;
-      header = Strings.Mutable.empty ();
-      encoded = Strings.Mutable.empty ();
-      link_start = Some 0;
-      flushed_link_start = None;
-      position = 0.;
-      tracks = Hashtbl.create 10;
-      state = Bos;
-    }
-  in
-  encoder.skeleton <- skeleton encoder;
-  encoder
+let create id =
+  {
+    id;
+    serials = [];
+    header = Strings.Mutable.empty ();
+    encoded = Strings.Mutable.empty ();
+    link_start = Some 0;
+    flushed_link_start = None;
+    position = 0.;
+    tracks = Hashtbl.create 10;
+    state = Bos;
+  }
 
 let register_track ?fill encoder track_encoder =
   if encoder.state = Streaming then (
@@ -185,12 +174,10 @@ let register_track ?fill encoder track_encoder =
   if encoder.state = Eos then (
     log#info "%s: Starting new sequentialized ogg stream." encoder.id;
     encoder.link_start <- Some (Strings.Mutable.length encoder.encoded);
-    if encoder.skeleton <> None then
-      encoder.skeleton <- Some (init_skeleton encoder);
     encoder.state <- Bos);
 
   (* Initiate a new logical stream *)
-  let serial = get_serial () in
+  let serial = get_serial encoder in
   let os = Ogg.Stream.create ~serial () in
   (* Encode headers *)
   let p = track_encoder.header_encoder os in
@@ -231,18 +218,6 @@ let register_track ?fill encoder track_encoder =
 let streams_start encoder =
   log#info "%s: Starting %d track(s)" encoder.id (Hashtbl.length encoder.tracks);
 
-  (* Add skeleton information first. *)
-  begin match encoder.skeleton with
-    | Some os ->
-        Hashtbl.iter
-          (fun _ x ->
-            let sos = os_of_ogg_track x in
-            let f = fisbone_data_of_ogg_track x in
-            match f sos with Some p -> Ogg.Stream.put_packet os p | None -> ())
-          encoder.tracks;
-        add_flushed_pages ~header:true encoder os
-    | None -> ()
-  end;
   Hashtbl.iter
     (fun _ t ->
       let os = os_of_ogg_track t in
@@ -250,15 +225,6 @@ let streams_start encoder =
       let pages = stream_start os in
       List.iter (add_page ~header:true encoder) pages)
     encoder.tracks;
-
-  (* Finish skeleton stream now. *)
-  begin match encoder.skeleton with
-    | Some os ->
-        Ogg.Stream.put_packet os (Ogg.Skeleton.eos ());
-        let p = Ogg.Stream.flush_page os in
-        add_page ~header:true encoder p
-    | None -> ()
-  end;
   encoder.state <- Streaming
 
 (** Get the first pages of each streams. *)
@@ -386,10 +352,6 @@ let end_of_track encoder id =
 
 (** Flush data from all tracks in the stream. *)
 let flush encoder =
-  begin match encoder.skeleton with
-    | Some os -> add_flushed_pages encoder os
-    | None -> ()
-  end;
   while Hashtbl.length encoder.tracks > 0 do
     Hashtbl.iter (fun id _ -> end_of_track encoder id) encoder.tracks
   done

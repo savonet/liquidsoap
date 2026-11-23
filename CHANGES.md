@@ -168,6 +168,7 @@
 - `smooth_add` fades the special source out before the end of its track, instead of cutting it at full volume ([#3714](https://github.com/savonet/liquidsoap/issues/3714)).
 - Fixed `let replaces x = ...` and `let replaces (x, y) = ...` inside a function failing with `variable x not in environment` when the variables are defined outside of it ([#5711](https://github.com/savonet/liquidsoap/pull/5711)).
 - Encoder formats: `%ogg()`, `%ogg(%mp3)` and unsupported channel counts give a positioned error instead of crashing the type checker; printed formats parse back (`%ogg(%theora)`, `%vorbis.abr`, Speex modes, Opus complexity); `%flac`'s MIME type is `audio/flac`, not `audio/flex`; `%ndi` errors no longer print `%%ndi`.
+- `%ogg`: `bytes_per_page` sets the size of data pages; it had no effect. Ogg files with audio and video no longer start with a link holding only a skeleton, which players could not read: no skeleton is written.
 
 ## Optimized:
 
