@@ -273,7 +273,7 @@ def f() =
   test.equal(
     json.stringify(s),
     "\"S\\u0000e\\u0000k\\u0000e\\u0000r\\u0000n\\u0000u\\u0000p\\u0000 \
-     \\u0000K\\u0000i\\u0000n\\u0000g\\u0000e\\u0000r\\u0000p\\u0000\\uFFFD\""
+     \\u0000K\\u0000i\\u0000n\\u0000g\\u0000e\\u0000r\\u0000p\\u0000\\uFFFD\\u0000\""
   )
 
   j = json.object()

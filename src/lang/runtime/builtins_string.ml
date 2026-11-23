@@ -239,7 +239,9 @@ let string_escape =
                          ("", Lang.string (String.sub s ofs len));
                        ])
             | None, `Ascii -> Lang_string.escape_hex_char
-            | None, `Utf8 -> Lang_string.escape_utf8_char ~strict:false
+            (* An invalid sequence is an error, so that the default encoding
+               falls back to ascii. *)
+            | None, `Utf8 -> Lang_string.escape_utf8_char ~strict:true
         in
         let next =
           match encoding with

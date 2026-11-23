@@ -3700,6 +3700,28 @@
   (run %{run_test} unified-pcm-types liquidsoap unified-pcm-types.liq)))
 
 (rule
+ (alias test_utf8_invalid_sequences)
+ (package liquidsoap)
+ (deps
+  utf8_invalid_sequences.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   utf8_invalid_sequences
+   liquidsoap
+   utf8_invalid_sequences.liq)))
+
+(rule
  (alias test_video-only)
  (package liquidsoap)
  (deps
@@ -3949,6 +3971,7 @@
   (alias test_track_sensitive)
   (alias test_type_printing_from_task)
   (alias test_unified-pcm-types)
+  (alias test_utf8_invalid_sequences)
   (alias test_video-only)
   (alias test_video_fade)
   (alias test_video_tile)))

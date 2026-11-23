@@ -22,13 +22,10 @@ let escape ~special_char ~next ~escape_char s =
   in
   if orig_len > 0 then f ([], 0) 0 else ([], 0)
 
-let utf8_next s i =
-  match s.[i] with
-    | '\000' .. '\127' -> i + 1
-    | '\192' .. '\223' -> i + 2
-    | '\224' .. '\239' -> i + 3
-    | '\240' .. '\247' -> i + 4
-    | _ -> failwith "invalid utf8"
+(* An invalid sequence only spans its maximal valid prefix, at least one byte,
+   so that the characters after it are read on their own (Unicode's "maximal
+   subpart" replacement). *)
+let utf8_next s i = i + Uchar.utf_decode_length (String.get_utf_8_uchar s i)
 
 (* Return the utf8 char code of the first utf8 character in the given
    string. *)
@@ -105,13 +102,16 @@ let escape_char ~escape_fun s pos len =
     | '\'', 1 -> "\\'"
     | _ -> escape_fun s pos len
 
+(* Without [strict], the bytes of an invalid sequence are escaped as they are,
+   so that the escaped string still holds them. *)
 let escape_utf8_char ~strict =
-  let utf8_char_code s pos len =
-    try utf8_char_code s pos len
-    with _ when not strict -> Uchar.to_int Uchar.rep
-  in
   escape_char ~escape_fun:(fun s pos len ->
-      Printf.sprintf "\\u%04X" (utf8_char_code s pos len))
+      match utf8_char_code s pos len with
+        | code -> Printf.sprintf "\\u%04X" code
+        | exception _ when not strict ->
+            String.concat ""
+              (List.init len (fun i ->
+                   Printf.sprintf "\\x%02X" (Char.code s.[pos + i]))))
 
 let escape_utf8_formatter ?(strict = false) ?(special_char = utf8_special_char)
     =
