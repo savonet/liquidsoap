@@ -166,6 +166,40 @@ def f() =
     "ok ffmpeg metadata"
   )
 
+  # Helpers and printed forms: the printed form is the format itself, so it
+  # carries every stream and parses back.
+%ifencoder %flac
+  test.equal(encoder.content_type(%flac), "audio/flac")
+%endif
+%ifencoder %opus
+  test.equal(encoder.extension(%ogg(%opus)), "opus")
+  test.equal(
+    string.contains(
+      substring="complexity=5,",
+      "#{%ogg(%opus(complexity = 5))}"
+    ),
+    true
+  )
+%endif
+%ifencoder %vorbis
+  test.equal(encoder.extension(%ogg(%vorbis)), "ogg")
+  test.equal(string.contains(substring=",,", "#{%vorbis.abr}"), false)
+  test.equal(string.contains(substring="(,", "#{%vorbis.abr}"), false)
+%endif
+%ifencoder %theora
+  test.equal(string.contains(substring="%theora(", "#{%ogg(%theora)}"), true)
+  test.equal(string.contains(substring=",,", "#{%ogg(%theora)}"), false)
+%endif
+%ifencoder %speex
+  test.equal(
+    string.contains(
+      substring='mode="wideband"',
+      "#{%ogg(%speex(mode = 'wideband'))}"
+    ),
+    true
+  )
+%endif
+
   test.pass()
 end
 

@@ -34,13 +34,12 @@ let make params =
         | `Labelled (_, v) ->
             Lang_encoder.raise_error ~pos:(Value.pos v) "Invalid parameter!"
         | _ ->
-            Lang_encoder.raise_error ~pos:None
-              "Invalid %%ndi encoder parameter!")
+            Lang_encoder.raise_error ~pos:None "Invalid %ndi encoder parameter!")
       defaults params
   in
   if (not ndi.audio) && not ndi.video then
     Lang_encoder.raise_error ~pos:None
-      "%%ndi encoder needs at least one audio or video field!";
+      "%ndi encoder needs at least one audio or video field!";
   Encoder.NDI ndi
 
 let () = Lang_encoder.register "ndi" make

@@ -117,9 +117,11 @@ let type_of_encoder ~pos ((name, params) : Term.encoder) =
     | None -> raise_error ~pos ("unsupported format: " ^ name)
     | Some type_of_encoder ->
         let fields =
-          try type_of_encoder params
-          with Runtime_error.Runtime_error { kind; msg; pos = [] } ->
-            Runtime_error.raise ~message:msg ~pos:(Option.to_list pos) kind
+          try type_of_encoder params with
+            | Runtime_error.Runtime_error { kind; msg; pos = [] } ->
+                Runtime_error.raise ~message:msg ~pos:(Option.to_list pos) kind
+            | Audio_layout.Unsupported ->
+                raise_error ~pos "unsupported number of audio channels"
         in
         format_t ?pos (Frame_type.make Liquidsoap_lang.Lang.unit_t fields)
 
@@ -186,7 +188,7 @@ let () =
         | false, true -> video_type ()
         | true, false ->
             audio_type ~pcm_kind:Audio_format.kind (!Audio_format.channels ())
-        | _ -> raise_error ~pos:None "Invalid %%ndi encoder parameter!")
+        | _ -> raise_error ~pos:None "Invalid %ndi encoder parameter!")
 
 let () =
   register "ogg" (fun p ->
@@ -207,6 +209,9 @@ let () =
         List.exists (function `Encoder ("theora", _) -> true | _ -> false) p
       in
       match (channels, video) with
+        | 0, false ->
+            raise_error ~pos:None
+              "%ogg needs a vorbis, opus, speex, flac or theora stream"
         | 0, true -> video_type ()
         | _, true -> audio_video_type ~pcm_kind:Audio_format.kind channels
         | _, false -> audio_type ~pcm_kind:Audio_format.kind channels)

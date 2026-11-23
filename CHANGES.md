@@ -71,6 +71,7 @@
 - Bindings without `let` accept destructuring, field paths and type annotations, e.g. `(x, y) = (1, 2)` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
 - String interpolation accepts any expression, e.g. `"#{m["key"]}"` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
 - Integers are implicitly cast to floats ([#2887](https://github.com/savonet/liquidsoap/pull/2887)).
+- `encoder.extension(%ogg(%opus))` is `opus`, the extension RFC 7845 recommends for Ogg files with only Opus.
 
 ## Fixed:
 
@@ -166,6 +167,7 @@
 - LV2 plugins that require host features, such as `options`, are no longer registered: they are instantiated without any host feature, so they could not work. The reason is logged at level 4 ([#2013](https://github.com/savonet/liquidsoap/issues/2013)).
 - `smooth_add` fades the special source out before the end of its track, instead of cutting it at full volume ([#3714](https://github.com/savonet/liquidsoap/issues/3714)).
 - Fixed `let replaces x = ...` and `let replaces (x, y) = ...` inside a function failing with `variable x not in environment` when the variables are defined outside of it ([#5711](https://github.com/savonet/liquidsoap/pull/5711)).
+- Encoder formats: `%ogg()`, `%ogg(%mp3)` and unsupported channel counts give a positioned error instead of crashing the type checker; printed formats parse back (`%ogg(%theora)`, `%vorbis.abr`, Speex modes, Opus complexity); `%flac`'s MIME type is `audio/flac`, not `audio/flex`; `%ndi` errors no longer print `%%ndi`.
 
 ## Optimized:
 

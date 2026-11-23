@@ -40,5 +40,5 @@ type t = { audio : audio option; video : video option }
 
 let to_string { audio; video } =
   let l = match video with Some e -> [string_of_video e] | None -> [] in
-  let l = match audio with Some e -> string_of_audio e :: l | None -> [] in
+  let l = match audio with Some e -> string_of_audio e :: l | None -> l in
   Printf.sprintf "%%ogg(%s)" (String.concat "," l)

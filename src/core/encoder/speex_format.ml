@@ -44,7 +44,7 @@ let string_of_br_ctl x =
 let string_of_mode x =
   match x with
     | Narrowband -> "narrowband"
-    | Wideband -> "widebande"
+    | Wideband -> "wideband"
     | Ultra_wideband -> "ultra-wideband"
 
 let string_of_complexity x =
@@ -52,7 +52,7 @@ let string_of_complexity x =
 
 let to_string m =
   Printf.sprintf
-    "%%speex(%s,%s,samplerate=%d,mode=%s,frames_per_packet=%d%s,dtx=%B,vad=%B)"
+    "%%speex(%s,%s,samplerate=%d,mode=%S,frames_per_packet=%d%s,dtx=%B,vad=%B)"
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_br_ctl m.bitrate_control)
     (Lazy.Mutexed.force m.samplerate)

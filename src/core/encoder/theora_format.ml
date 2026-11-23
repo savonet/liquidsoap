@@ -54,13 +54,23 @@ let print_some_int v x =
 
 let to_string th =
   let f = Lazy.Mutexed.force in
-  Printf.sprintf
-    "%%theora(%s,width=%d,height=%d,picture_width=%d,picture_height=%d,picture_x=%d,picture_y=%d,aspect_numerator=%d,aspect_denominator=%d,keyframe_frequency=%d,%s,soft_target=%b,%s,%s)"
-    (bit_ctl_to_string th.bitrate_control)
-    (f th.width) (f th.height) (f th.picture_width) (f th.picture_height)
-    th.picture_x th.picture_y th.aspect_numerator th.aspect_denominator
-    th.keyframe_frequency
-    (print_some_bool "vp3_compatible" th.vp3_compatible)
-    th.soft_target
-    (print_some_int "buffer_delay" th.buffer_delay)
-    (print_some_int "speed" th.speed)
+  Printf.sprintf "%%theora(%s)"
+    (String.concat ","
+       (List.filter
+          (fun s -> s <> "")
+          [
+            bit_ctl_to_string th.bitrate_control;
+            Printf.sprintf "width=%d" (f th.width);
+            Printf.sprintf "height=%d" (f th.height);
+            Printf.sprintf "picture_width=%d" (f th.picture_width);
+            Printf.sprintf "picture_height=%d" (f th.picture_height);
+            Printf.sprintf "picture_x=%d" th.picture_x;
+            Printf.sprintf "picture_y=%d" th.picture_y;
+            Printf.sprintf "aspect_numerator=%d" th.aspect_numerator;
+            Printf.sprintf "aspect_denominator=%d" th.aspect_denominator;
+            Printf.sprintf "keyframe_frequency=%d" th.keyframe_frequency;
+            print_some_bool "vp3_compatible" th.vp3_compatible;
+            Printf.sprintf "soft_target=%b" th.soft_target;
+            print_some_int "buffer_delay" th.buffer_delay;
+            print_some_int "speed" th.speed;
+          ]))

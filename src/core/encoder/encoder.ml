@@ -114,6 +114,7 @@ let iso_base_file_media_file_format = function
 let extension = function
   | WAV _ -> "wav"
   | AVI _ -> "avi"
+  | Ogg { Ogg_format.audio = Some (Ogg_format.Opus _); video = None } -> "opus"
   | Ogg _ -> "ogg"
   | MP3 _ -> "mp3"
   | Shine _ -> "mp3"
@@ -132,7 +133,7 @@ let mime = function
   | Ogg _ -> "application/ogg"
   | MP3 _ -> "audio/mpeg"
   | Shine _ -> "audio/mpeg"
-  | Flac _ -> "audio/flex"
+  | Flac _ -> "audio/flac"
   | FdkAacEnc _ -> "audio/aac"
   | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.mime m
   | _ -> "application/octet-stream"

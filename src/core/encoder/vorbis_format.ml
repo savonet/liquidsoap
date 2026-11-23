@@ -42,12 +42,18 @@ let string_of_mode = function
       let f v x =
         match x with Some x -> Printf.sprintf "%s=%d," v x | None -> ""
       in
+      (* Each field ends with its own comma. *)
       Printf.sprintf ".abr(%s%s%s" (f "min_bitrate" min) (f "bitrate" avg)
         (f "max_bitrate" max)
   | CBR bitrate -> Printf.sprintf ".cbr(bitrate=%d" bitrate
   | VBR q -> Printf.sprintf "(quality=%.2f" q
 
 let to_string v =
-  Printf.sprintf "%%vorbis%s,channels=%d,samplerate=%d)" (string_of_mode v.mode)
-    v.channels
+  let mode = string_of_mode v.mode in
+  let sep =
+    if String.ends_with ~suffix:"," mode || String.ends_with ~suffix:"(" mode
+    then ""
+    else ","
+  in
+  Printf.sprintf "%%vorbis%s%schannels=%d,samplerate=%d)" mode sep v.channels
     (Lazy.Mutexed.force v.samplerate)
