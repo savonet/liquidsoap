@@ -585,15 +585,29 @@ CAMLprim value ocaml_opus_encoder_create(value _skip, value _comments,
    * so this value is always an integer. */
   enc->samplerate_ratio = 48000 / sr;
 
-  ogg_packet header;
-  pack_header(&header, sr, chans, Int_val(_skip), Int_val(_gain));
-
-  ogg_packet comments;
-  pack_comments(&comments, "ocaml-opus by the Savonet Team.", _comments);
-
   enc->encoder = opus_encoder_create(sr, chans, app, &ret);
 
   check(ret);
+
+  /* A negative pre-skip means the encoder's own delay: its lookahead, in
+     48kHz samples (RFC 7845, section 4.2). */
+  int pre_skip = Int_val(_skip);
+  if (pre_skip < 0) {
+    opus_int32 lookahead = 0;
+    ret = opus_encoder_ctl(enc->encoder, OPUS_GET_LOOKAHEAD(&lookahead));
+    if (ret != OPUS_OK) {
+      opus_encoder_destroy(enc->encoder);
+      free(enc);
+      check(ret);
+    }
+    pre_skip = lookahead * enc->samplerate_ratio;
+  }
+
+  ogg_packet header;
+  pack_header(&header, sr, chans, pre_skip, Int_val(_gain));
+
+  ogg_packet comments;
+  pack_comments(&comments, "ocaml-opus by the Savonet Team.", _comments);
   _enc = caml_alloc_custom(&enc_ops, sizeof(encoder_t *), 0, 1);
   Enc_val(_enc) = enc;
 

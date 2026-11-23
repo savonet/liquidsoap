@@ -92,6 +92,9 @@ module Encoder : sig
 
   type t
 
+  (** [pre_skip] is the number of 48kHz samples decoders drop at the start of
+      the stream. It defaults to the encoder's lookahead, as RFC 7845
+      recommends. *)
   val create :
     ?pre_skip:int ->
     ?comments:(string * string) list ->

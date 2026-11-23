@@ -160,8 +160,10 @@ module Encoder = struct
     encoder * Ogg.Stream.packet * Ogg.Stream.packet
     = "ocaml_opus_encoder_create_byte" "ocaml_opus_encoder_create"
 
-  let create ?(pre_skip = 3840) ?(comments = []) ?(gain = 0) ~samplerate
-      ~channels ~application os =
+  let create ?pre_skip ?(comments = []) ?(gain = 0) ~samplerate ~channels
+      ~application os =
+    (* By default, the encoder's lookahead. *)
+    let pre_skip = Option.value ~default:(-1) pre_skip in
     let comments =
       List.map
         (fun (label, value) -> Printf.sprintf "%s=%s" label value)

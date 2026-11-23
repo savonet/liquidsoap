@@ -78,6 +78,7 @@
 
 - `%mp3` no longer segfaults on musl systems such as Alpine ([#5322](https://github.com/savonet/liquidsoap/pull/5322)).
 - The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
+- Native `%opus` files declare the encoder's lookahead as pre-skip (about 6.5 ms) instead of a fixed 80 ms, so decoders no longer drop the first ~73 ms of audio.
 - `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
 - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
 - Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
