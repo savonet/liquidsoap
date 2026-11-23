@@ -148,6 +148,11 @@ let _ =
     MenhirLib.Convert.Simplified.traditional2revised
       Parser.time_predicate_string
   in
+  let is_parse_error = function
+    | Parser.Error | Term.Parse_error _ | Sedlexing.MalFormed -> true
+    | Failure s -> s = "lexing: empty token"
+    | _ -> false
+  in
   let parse predicate =
     let lexbuf = Sedlexing.Utf8.from_string predicate in
     let tokenizer = Preprocessor.mk_tokenizer lexbuf in
@@ -165,7 +170,7 @@ let _ =
       try
         let predicate = parse predicate in
         Lang.val_fun [] (fun _ -> Evaluation.eval predicate)
-      with _ ->
+      with exn when is_parse_error exn ->
         Lang.raise_error
           ~message:
             (Printf.sprintf "Failed to parse %s as time predicate" predicate)
