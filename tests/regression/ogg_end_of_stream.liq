@@ -1,14 +1,15 @@
 %include "../test.liq"
 
-# Native %opus dropped the input left over from its last whole frame and the
-# encoder's lookahead, then ended the stream with an empty page at granule
-# position + 1. With DTX, packets were dropped without their duration, so the
-# granule position lagged behind the media. The last page must hold the last
-# packet, with the end-of-stream flag and granule position pre-skip + input.
+# Native Ogg streams must end on the page holding their last packet, with the
+# end-of-stream flag and the granule position of the input's end. %opus and
+# %theora appended an empty page at granule position + 1 instead. %opus also
+# dropped the input left over from its last whole frame and the encoder's
+# lookahead, and with DTX dropped packets without their duration, so the
+# granule position lagged behind the media.
 
 settings.frame.audio.samplerate := 48000
 
-pending = ref(2)
+pending = ref(3)
 
 def done() =
   pending := pending() - 1
@@ -43,18 +44,26 @@ def rec last_page(data, offset) =
   end
 end
 
-def pre_skip(data) =
+# 2 seconds of audio at 48kHz, after the pre-skip.
+def opus_end(data) =
   let [head, ..._] = r/OpusHead/.split(data)
-  bytes(data, string.bytes.length(head) + 10, 2)
+  bytes(data, string.bytes.length(head) + 10, 2) + 96000
 end
 
-def run(name, fmt, s) =
+# 2 seconds of video at 25fps, with libtheora's default granule shift: the
+# last key frame's index, shifted, plus the images since.
+def theora_end(_) =
+  key_frames = 1
+  lsl(key_frames, 6) + 50 - key_frames
+end
+
+def run(name, fmt, expected, s) =
   clock.assign_new(sync="none", [s])
 
   def on_close(filename) =
     data = file.contents(filename)
     page = last_page(data, 0)
-    expected = pre_skip(data) + 96000
+    expected = expected(data)
     print(
       "#{name}: last page flags=#{page.flags} segments=#{page.segments} \
        granulepos=#{page.granulepos}, expected #{expected}"
@@ -73,10 +82,16 @@ def run(name, fmt, s) =
     fallible=true,
     on_close=on_close,
     fmt,
-    file.temp(cleanup=true, "opus_end_of_stream_#{name}", ".opus"),
+    file.temp(cleanup=true, "ogg_end_of_stream_#{name}", ".ogg"),
     s
   )
 end
 
-run("sine", %opus(samplerate = 48000), once(sine(duration=2.)))
-run("dtx", %opus(samplerate = 48000, dtx = true), once(blank(duration=2.)))
+run("sine", %opus(samplerate = 48000), opus_end, once(sine(duration=2.)))
+run(
+  "dtx",
+  %opus(samplerate = 48000, dtx = true),
+  opus_end,
+  once(blank(duration=2.))
+)
+run("theora", %ogg(%theora), theora_end, once(video.fill(blank(duration=2.))))

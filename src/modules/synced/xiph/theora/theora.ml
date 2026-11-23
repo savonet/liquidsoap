@@ -147,8 +147,10 @@ module Encoder = struct
     let rec f () = if not (encode_header enc os) then f () in
     f ()
 
-  external encode_buffer : t -> Ogg.Stream.stream -> yuv_buffer -> unit
+  external encode_buffer : t -> Ogg.Stream.stream -> bool -> yuv_buffer -> unit
     = "ocaml_theora_encode_buffer"
+
+  let encode_buffer ?(last = false) enc os yuv = encode_buffer enc os last yuv
 
   let encode_page enc os generator =
     let rec f () =

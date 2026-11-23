@@ -156,8 +156,9 @@ module Encoder : sig
   (** * Encode data until a page is filled. *)
   val encode_page : t -> Ogg.Stream.stream -> (unit -> yuv_buffer) -> Ogg.Page.t
 
-  (** Encode a buffer. *)
-  val encode_buffer : t -> Ogg.Stream.stream -> yuv_buffer -> unit
+  (** Encode a buffer. [last] marks it as the last one: its packet ends the
+      stream. *)
+  val encode_buffer : ?last:bool -> t -> Ogg.Stream.stream -> yuv_buffer -> unit
 
   (** Convert a granulepos to an absolute frame index, starting at 0. * The
       granulepos is interpreted in the context of a given theora_state handle.

@@ -80,7 +80,6 @@ let create_encoder ~theora ~metadata () =
       failwith "Invalid theora width/height (should be a multiple of 16).";
     Theora.Encoder.create info params metadata
   in
-  let started = ref false in
   let header_encoder os =
     Theora.Encoder.encode_header enc os;
     Ogg.Stream.flush_page os
@@ -90,31 +89,34 @@ let create_encoder ~theora ~metadata () =
     Some (Theora.Skeleton.fisbone ~serialno ~info ())
   in
   let stream_start os = Ogg_muxer.flush_pages os in
-  let yuv = Image.YUV420.create width height in
+  let theora_yuv img =
+    {
+      Theora.y_width = width;
+      Theora.y_height = height;
+      Theora.y_stride = Image.YUV420.y_stride img;
+      Theora.u_width = width / 2;
+      Theora.u_height = height / 2;
+      Theora.u_stride = Image.YUV420.uv_stride img;
+      Theora.v_width = width / 2;
+      Theora.v_height = height / 2;
+      Theora.v_stride = Image.YUV420.uv_stride img;
+      Theora.y = Image.YUV420.y img;
+      Theora.u = Image.YUV420.u img;
+      Theora.v = Image.YUV420.v img;
+    }
+  in
+  (* The latest image is held back so that the stream's end can flag the
+     packet of its last image. *)
+  let held = ref None in
   let data_encoder data os _ =
-    if not !started then started := true;
     let b, ofs, len =
       (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
     in
     for i = ofs to ofs + len - 1 do
-      let img = Video.get b i in
-      let theora_yuv =
-        {
-          Theora.y_width = width;
-          Theora.y_height = height;
-          Theora.y_stride = Image.YUV420.y_stride img;
-          Theora.u_width = width / 2;
-          Theora.u_height = height / 2;
-          Theora.u_stride = Image.YUV420.uv_stride img;
-          Theora.v_width = width / 2;
-          Theora.v_height = height / 2;
-          Theora.v_stride = Image.YUV420.uv_stride img;
-          Theora.y = Image.YUV420.y img;
-          Theora.u = Image.YUV420.u img;
-          Theora.v = Image.YUV420.v img;
-        }
-      in
-      Theora.Encoder.encode_buffer enc os theora_yuv
+      Option.iter
+        (fun img -> Theora.Encoder.encode_buffer enc os (theora_yuv img))
+        !held;
+      held := Some (Image.YUV420.copy (Video.get b i))
     done
   in
   let end_of_page p =
@@ -128,27 +130,16 @@ let create_encoder ~theora ~metadata () =
     else Ogg_muxer.Time 0.
   in
   let end_of_stream os =
-    (* Encode at least some data.. *)
-    if not !started then (
-      let theora_yuv =
-        {
-          Theora.y_width = width;
-          Theora.y_height = height;
-          Theora.y_stride = width;
-          Theora.u_width = width / 2;
-          Theora.u_height = height / 2;
-          Theora.u_stride = width / 2;
-          Theora.v_width = width / 2;
-          Theora.v_height = height / 2;
-          Theora.v_stride = width / 2;
-          Theora.y = Image.Data.alloc width;
-          Theora.u = Image.Data.alloc (width / 2);
-          Theora.v = Image.Data.alloc (width / 2);
-        }
-      in
-      Image.YUV420.blank_all yuv;
-      Theora.Encoder.encode_buffer enc os theora_yuv);
-    Ogg.Stream.terminate os
+    let img =
+      match !held with
+        | Some img -> img
+        | None ->
+            let img = Image.YUV420.create width height in
+            Image.YUV420.blank_all img;
+            img
+    in
+    Theora.Encoder.encode_buffer ~last:true enc os (theora_yuv img);
+    Ogg_muxer.flush_pages os
   in
   {
     Ogg_muxer.header_encoder;
