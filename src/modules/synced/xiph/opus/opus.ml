@@ -207,7 +207,12 @@ module Encoder = struct
   let encode_float = mk_encode_float encode_float
   let encode_float_ba = mk_encode_float encode_float_ba
 
-  external eos : Ogg.Stream.stream -> encoder -> unit = "ocaml_opus_encode_eos"
+  external pre_skip : encoder -> int = "ocaml_opus_encoder_pre_skip"
 
-  let eos t = eos t.os t.enc
+  let pre_skip t = pre_skip t.enc
+
+  external eos : Int64.t -> Ogg.Stream.stream -> encoder -> unit
+    = "ocaml_opus_encode_eos"
+
+  let eos ~granulepos t = eos granulepos t.os t.enc
 end

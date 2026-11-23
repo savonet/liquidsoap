@@ -447,11 +447,21 @@ CAMLprim value ocaml_opus_decoder_decode_float_ba_byte(value *argv, int argn) {
 
 /***** Encoder *****/
 
+/* Opus packets are at most this size; also the recommended encode buffer. */
+#define MAX_PACKET_BYTES 4000
+
+/* The latest encoded packet is held back until the next one, or until eos,
+   so that the last packet of the stream carries the end-of-stream flag and
+   the final granule position. */
 typedef struct encoder_t {
   OpusEncoder *encoder;
   int samplerate_ratio;
+  int pre_skip;
   ogg_int64_t granulepos;
   ogg_int64_t packetno;
+  unsigned char held_packet[MAX_PACKET_BYTES];
+  int held_bytes;
+  ogg_int64_t held_granulepos;
 } encoder_t;
 
 #define Enc_val(v) (*(encoder_t **)Data_custom_val(v))
@@ -602,6 +612,8 @@ CAMLprim value ocaml_opus_encoder_create(value _skip, value _comments,
     }
     pre_skip = lookahead * enc->samplerate_ratio;
   }
+  enc->pre_skip = pre_skip;
+  enc->held_bytes = 0;
 
   ogg_packet header;
   pack_header(&header, sr, chans, pre_skip, Int_val(_gain));
@@ -761,13 +773,45 @@ CAMLprim value ocaml_opus_encoder_ctl(value ctl, value _enc) {
   caml_failwith("Unknown opus error");
 }
 
+/* Submits the held packet, if any, into the ogg stream. */
+static int submit_held_packet(encoder_t *handler, ogg_stream_state *os,
+                              int e_o_s, ogg_int64_t granulepos) {
+  ogg_packet op;
+  if (handler->held_bytes == 0)
+    return 0;
+  op.bytes = handler->held_bytes;
+  op.packet = handler->held_packet;
+  op.b_o_s = 0;
+  op.e_o_s = e_o_s;
+  op.packetno = handler->packetno;
+  op.granulepos = granulepos;
+  handler->held_bytes = 0;
+  return ogg_stream_packetin(os, &op);
+}
+
+/* Submits the held packet and holds [data] in its place. */
+static int push_packet(encoder_t *handler, ogg_stream_state *os,
+                       unsigned char *data, int bytes, int frame_size) {
+  int ret = submit_held_packet(handler, os, 0, handler->held_granulepos);
+  handler->granulepos += frame_size * handler->samplerate_ratio;
+  handler->packetno++;
+  memcpy(handler->held_packet, data, bytes);
+  handler->held_bytes = bytes;
+  handler->held_granulepos = handler->granulepos;
+  return ret;
+}
+
+CAMLprim value ocaml_opus_encoder_pre_skip(value _enc) {
+  CAMLparam1(_enc);
+  CAMLreturn(Val_int(Enc_val(_enc)->pre_skip));
+}
+
 CAMLprim value ocaml_opus_encode_float(value _frame_size, value _enc, value _os,
                                        value buf, value _off, value _len) {
   CAMLparam3(_enc, buf, _os);
   encoder_t *handler = Enc_val(_enc);
   OpusEncoder *enc = handler->encoder;
   ogg_stream_state *os = Stream_state_val(_os);
-  ogg_packet op;
   int off = Int_val(_off);
   int len = Int_val(_len);
   int frame_size = Int_val(_frame_size);
@@ -777,7 +821,7 @@ CAMLprim value ocaml_opus_encode_float(value _frame_size, value _enc, value _os,
 
   int chans = Wosize_val(buf);
   /* This is the recommended value */
-  int max_data_bytes = 4000;
+  int max_data_bytes = MAX_PACKET_BYTES;
   unsigned char *data = malloc(max_data_bytes);
   if (data == NULL)
     caml_raise_out_of_memory();
@@ -803,21 +847,9 @@ CAMLprim value ocaml_opus_encode_float(value _frame_size, value _enc, value _os,
       check(ret);
     }
 
-    /* From the documentation: If the return value is 1 byte,
-     * then the packet does not need to be transmitted (DTX). */
-    if (ret < 2)
-      continue;
-
-    handler->granulepos += frame_size * handler->samplerate_ratio;
-    handler->packetno++;
-
-    op.bytes = ret;
-    op.packet = data;
-    op.b_o_s = op.e_o_s = 0;
-    op.packetno = handler->packetno;
-    op.granulepos = handler->granulepos;
-
-    if (ogg_stream_packetin(os, &op) != 0) {
+    /* A 1-byte packet (DTX) still advances the granule position: it is
+       kept so that the granule position follows the media time. */
+    if (push_packet(handler, os, data, ret, frame_size) != 0) {
       free(pcm);
       free(data);
       caml_raise_constant(*caml_named_value("ogg_exn_internal_error"));
@@ -841,7 +873,6 @@ CAMLprim value ocaml_opus_encode_float_ba(value _frame_size, value _enc,
   encoder_t *handler = Enc_val(_enc);
   OpusEncoder *enc = handler->encoder;
   ogg_stream_state *os = Stream_state_val(_os);
-  ogg_packet op;
   int len = Int_val(_len);
   int ofs = Int_val(_ofs);
   int chans = Wosize_val(buf);
@@ -857,7 +888,7 @@ CAMLprim value ocaml_opus_encode_float_ba(value _frame_size, value _enc,
     caml_raise_constant(*caml_named_value("opus_exn_buffer_too_small"));
 
   /* This is the recommended value */
-  int max_data_bytes = 4000;
+  int max_data_bytes = MAX_PACKET_BYTES;
   unsigned char *data = malloc(max_data_bytes);
   if (data == NULL)
     caml_raise_out_of_memory();
@@ -883,21 +914,9 @@ CAMLprim value ocaml_opus_encode_float_ba(value _frame_size, value _enc,
       check(ret);
     }
 
-    /* From the documentation: If the return value is 1 byte,
-     * then the packet does not need to be transmitted (DTX). */
-    if (ret < 2)
-      continue;
-
-    handler->granulepos += frame_size * handler->samplerate_ratio;
-    handler->packetno++;
-
-    op.bytes = ret;
-    op.packet = data;
-    op.b_o_s = op.e_o_s = 0;
-    op.packetno = handler->packetno;
-    op.granulepos = handler->granulepos;
-
-    if (ogg_stream_packetin(os, &op) != 0) {
+    /* A 1-byte packet (DTX) still advances the granule position: it is
+       kept so that the granule position follows the media time. */
+    if (push_packet(handler, os, data, ret, frame_size) != 0) {
       free(pcm);
       free(data);
       caml_raise_constant(*caml_named_value("ogg_exn_internal_error"));
@@ -914,23 +933,16 @@ CAMLprim value ocaml_opus_encode_float_ba_byte(value *argv, int argn) {
                                     argv[5]);
 }
 
-CAMLprim value ocaml_opus_encode_eos(value _os, value _enc) {
-  CAMLparam2(_os, _enc);
+CAMLprim value ocaml_opus_encode_eos(value _granulepos, value _os, value _enc) {
+  CAMLparam3(_granulepos, _os, _enc);
   ogg_stream_state *os = Stream_state_val(_os);
-  ogg_packet op;
   encoder_t *handler = Enc_val(_enc);
-  handler->packetno++;
 
-  op.bytes = 0;
-  op.packet = NULL;
-  op.b_o_s = 0;
-  op.e_o_s = 1;
-  op.packetno = handler->packetno;
-  op.granulepos = handler->granulepos;
+  if (handler->held_bytes == 0)
+    caml_invalid_argument("Opus.Encoder.eos: no packet was encoded");
 
-  if (ogg_stream_packetin(os, &op) != 0)
+  if (submit_held_packet(handler, os, 1, Int64_val(_granulepos)) != 0)
     caml_raise_constant(*caml_named_value("ogg_exn_internal_error"));
-  ;
 
   CAMLreturn(Val_unit);
 }

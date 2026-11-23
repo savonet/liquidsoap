@@ -2690,6 +2690,24 @@
   (run %{run_test} ogg_pages liquidsoap ogg_pages.liq)))
 
 (rule
+ (alias test_opus_end_of_stream)
+ (package liquidsoap)
+ (deps
+  opus_end_of_stream.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} opus_end_of_stream liquidsoap opus_end_of_stream.liq)))
+
+(rule
  (alias test_opus_pre_skip)
  (package liquidsoap)
  (deps
@@ -4191,6 +4209,7 @@
   (alias test_metadata_cache)
   (alias test_ogg_flac_chained)
   (alias test_ogg_pages)
+  (alias test_opus_end_of_stream)
   (alias test_opus_pre_skip)
   (alias test_output_on_metadata)
   (alias test_output_on_track)
