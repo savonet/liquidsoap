@@ -29,32 +29,33 @@ SRT ([tree](../../optionals/srt/spec/README.md)) and HLS
 
 ## Reading order
 
-| File                                   | Content                                                                                                                                                             |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [encoder.md](encoder.md)               | The seam: vocabulary, registry, operations, `protect`, which encoder implements what, the §1–§14 numbering, callers.                                                |
-| [formats.md](formats.md)               | Format values: syntax, typing, evaluation and validation, helpers, printing.                                                                                        |
-| [output-encoded.md](output-encoded.md) | The encoded-output base: cutting frames into pieces at metadata, the call order.                                                                                    |
-| [wav.md](wav.md)                       | `%wav`.                                                                                                                                                             |
-| [avi.md](avi.md)                       | `%avi`.                                                                                                                                                             |
-| [ndi.md](ndi.md)                       | `%ndi` and `output.ndi`.                                                                                                                                            |
-| [external.md](external.md)             | `%external`: a child process.                                                                                                                                       |
-| [mp3.md](mp3.md)                       | `%mp3` (LAME).                                                                                                                                                      |
-| [shine.md](shine.md)                   | `%shine`.                                                                                                                                                           |
-| [fdkaac.md](fdkaac.md)                 | `%fdkaac`.                                                                                                                                                          |
-| [flac.md](flac.md)                     | `%flac`, native.                                                                                                                                                    |
-| [ogg.md](ogg.md)                       | `%ogg` and its muxer.                                                                                                                                               |
-| [ogg-streams.md](ogg-streams.md)       | The muxer's stream-encoder contract, answered by [Vorbis](ogg-vorbis.md), [Opus](ogg-opus.md), [Speex](ogg-speex.md), [FLAC](ogg-flac.md), [Theora](ogg-theora.md). |
-| [ffmpeg.md](ffmpeg.md)                 | `%ffmpeg` at the seam, and its I/O.                                                                                                                                 |
-| [output-file.md](output-file.md)       | `output.file`, including the pipe-output machinery.                                                                                                                 |
-| [output-pipe.md](output-pipe.md)       | `output.external`, the `pipe` operator, the language hooks.                                                                                                         |
-| [output-icecast.md](output-icecast.md) | `output.icecast` and `output.shoutcast`.                                                                                                                            |
-| [output-harbor.md](output-harbor.md)   | `output.harbor`, at the seam.                                                                                                                                       |
-| [output-srt.md](output-srt.md)         | `output.srt`, at the seam.                                                                                                                                          |
-| [output-url.md](output-url.md)         | `output.url`, at the seam.                                                                                                                                          |
-| [output-hls.md](output-hls.md)         | `output.file.hls` and the HLS face, at the seam.                                                                                                                    |
-| [tests.md](tests.md)                   | The cross-cutting encoder tests; each file above describes its own.                                                                                                 |
-| [findings/](findings/README.md)        | Defects, asymmetries, gaps and claims to verify, with their adversarial verification.                                                                               |
-| [language-notes/](language-notes/)     | Part B: OCaml and binding traces, one file per area.                                                                                                                |
+| File                                       | Content                                                                                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [encoder.md](encoder.md)                   | The seam: vocabulary, registry, operations, `protect`, which encoder implements what, the §1–§14 numbering, callers.                                                |
+| [formats.md](formats.md)                   | Format values: syntax, typing, evaluation and validation, helpers, printing.                                                                                        |
+| [output-encoded.md](output-encoded.md)     | The encoded-output base: cutting frames into pieces at metadata, the call order.                                                                                    |
+| [wav.md](wav.md)                           | `%wav`.                                                                                                                                                             |
+| [avi.md](avi.md)                           | `%avi`.                                                                                                                                                             |
+| [ndi.md](ndi.md)                           | `%ndi` and `output.ndi`.                                                                                                                                            |
+| [external.md](external.md)                 | `%external`: a child process.                                                                                                                                       |
+| [mp3.md](mp3.md)                           | `%mp3` (LAME).                                                                                                                                                      |
+| [shine.md](shine.md)                       | `%shine`.                                                                                                                                                           |
+| [fdkaac.md](fdkaac.md)                     | `%fdkaac`.                                                                                                                                                          |
+| [flac.md](flac.md)                         | `%flac`, native.                                                                                                                                                    |
+| [ogg.md](ogg.md)                           | `%ogg` and its muxer.                                                                                                                                               |
+| [ogg-streams.md](ogg-streams.md)           | The muxer's stream-encoder contract, answered by [Vorbis](ogg-vorbis.md), [Opus](ogg-opus.md), [Speex](ogg-speex.md), [FLAC](ogg-flac.md), [Theora](ogg-theora.md). |
+| [ffmpeg.md](ffmpeg.md)                     | `%ffmpeg` at the seam, and its I/O.                                                                                                                                 |
+| [output-file.md](output-file.md)           | `output.file`, including the pipe-output machinery.                                                                                                                 |
+| [output-pipe.md](output-pipe.md)           | `output.external`, the `pipe` operator, the language hooks.                                                                                                         |
+| [output-icecast.md](output-icecast.md)     | `output.icecast` and `output.shoutcast`.                                                                                                                            |
+| [output-harbor.md](output-harbor.md)       | `output.harbor`, at the seam.                                                                                                                                       |
+| [output-srt.md](output-srt.md)             | `output.srt`, at the seam.                                                                                                                                          |
+| [output-url.md](output-url.md)             | `output.url`, at the seam.                                                                                                                                          |
+| [output-hls.md](output-hls.md)             | `output.file.hls` and the HLS face, at the seam.                                                                                                                    |
+| [known-complexity.md](known-complexity.md) | What the history shows to be hard, implementation free, grouped by theme.                                                                                           |
+| [tests.md](tests.md)                       | The cross-cutting encoder tests; each file above describes its own.                                                                                                 |
+| [findings/](findings/README.md)            | Defects, asymmetries, gaps and claims to verify, with their adversarial verification.                                                                               |
+| [language-notes/](language-notes/)         | Part B: OCaml and binding traces, one file per area.                                                                                                                |
 
 Encoder files answer the sections §1–§14 defined in
 [encoder.md §8](encoder.md#8-section-numbering-of-implementation-files).

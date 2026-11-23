@@ -5,17 +5,18 @@ kept out of the as-built text. One file per area, each sorted into
 **Defects**, **Asymmetries**, **Gaps** and **To verify**, each entry marked
 **checked** (something was run) or **read only**.
 
-| File                                                 | Area                                                                  |
-| ---------------------------------------------------- | --------------------------------------------------------------------- |
-| [seam.md](seam.md)                                   | The seam, formats, typing, the previous normative text.               |
-| [simple-encoders.md](simple-encoders.md)             | `%wav`, `%avi`, `%ndi`, `%external`.                                  |
-| [native-codecs.md](native-codecs.md)                 | `%mp3`, `%shine`, `%fdkaac`, `%flac`.                                 |
-| [ogg.md](ogg.md)                                     | `%ogg`, its muxer and stream encoders.                                |
-| [ffmpeg.md](ffmpeg.md)                               | `%ffmpeg` at the seam and its I/O.                                    |
-| [file-callers.md](file-callers.md)                   | The encoded-output base, `output.file`, `output.external`, `pipe`.    |
-| [net-callers.md](net-callers.md)                     | Icecast, harbor, SRT, `output.url`, HLS.                              |
-| [verification-encoders.md](verification-encoders.md) | Adversarial re-check of the defects of the first four files.          |
-| [verification-callers.md](verification-callers.md)   | Adversarial re-check of the defects of the last three, and FFmpeg V1. |
+| File                                                 | Area                                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [seam.md](seam.md)                                   | The seam, formats, typing, the previous normative text.                               |
+| [simple-encoders.md](simple-encoders.md)             | `%wav`, `%avi`, `%ndi`, `%external`.                                                  |
+| [native-codecs.md](native-codecs.md)                 | `%mp3`, `%shine`, `%fdkaac`, `%flac`.                                                 |
+| [ogg.md](ogg.md)                                     | `%ogg`, its muxer and stream encoders.                                                |
+| [ffmpeg.md](ffmpeg.md)                               | `%ffmpeg` at the seam and its I/O.                                                    |
+| [file-callers.md](file-callers.md)                   | The encoded-output base, `output.file`, `output.external`, `pipe`.                    |
+| [net-callers.md](net-callers.md)                     | Icecast, harbor, SRT, `output.url`, HLS.                                              |
+| [known-complexity.md](known-complexity.md)           | Entries of the known-complexity list the as-built text does not cover or contradicts. |
+| [verification-encoders.md](verification-encoders.md) | Adversarial re-check of the defects of the first four files.                          |
+| [verification-callers.md](verification-callers.md)   | Adversarial re-check of the defects of the last three, and FFmpeg V1.                 |
 
 The verification tried to refute every defect: none of the 67 was refuted,
 three are worse than first stated and ten were corrected (cause, location
