@@ -114,7 +114,7 @@
 - Image requests are placed at their `x`/`y` metadata, e.g. `annotate:x=50,y=50:logo.png`, instead of the top-left corner. An explicit `x`/`y` argument still takes precedence ([#3197](https://github.com/savonet/liquidsoap/issues/3197)).
 - LV2 plugins that require host features, such as `options`, are no longer registered: they are instantiated without any host feature, so they could not work. The reason is logged at level 4 ([#2013](https://github.com/savonet/liquidsoap/issues/2013)).
 - `smooth_add` fades the special source out before the end of its track, instead of cutting it at full volume ([#3714](https://github.com/savonet/liquidsoap/issues/3714)).
-- Fixed `let replaces x = ...` inside a function failing with `variable x not in environment` when `x` is defined outside of it ([#5711](https://github.com/savonet/liquidsoap/pull/5711)).
+- Fixed `let replaces x = ...` and `let replaces (x, y) = ...` inside a function failing with `variable x not in environment` when the variables are defined outside of it ([#5711](https://github.com/savonet/liquidsoap/pull/5711)).
 
 ## Optimized:
 

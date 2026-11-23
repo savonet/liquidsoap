@@ -267,6 +267,10 @@ let rec free_term_uses tm =
         let rebuilt =
           match pat with
             | `PVar [x] when replace -> Uses.singleton x Whole
+            | `PTuple l when replace ->
+                List.fold_left
+                  (fun uses x -> Uses.add x Whole uses)
+                  Uses.empty l
             | `PVar (x :: _ :: _) -> Uses.singleton x Whole
             | _ -> Uses.empty
         in
