@@ -67,15 +67,17 @@ def source.composition.default_on_select(
 
       let {id} = source.methods(leaving)
 
+      content = source.content(leaving)
       has_pcm_audio =
         list.map(
           fun ((field, _)) -> field,
           list.filter(
             fun ((_, fmt)) -> null.defined(format.description(fmt)?.pcm),
-            source.content(leaving)
+            content
           )
         ) ==
           ["audio"]
+        and list.length(content) == 1
 
       both_self_sync =
         starting_self_sync() and source.methods(leaving).self_sync()

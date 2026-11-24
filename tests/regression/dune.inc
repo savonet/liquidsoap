@@ -3360,6 +3360,28 @@
    switch_default_transition_self_sync.liq)))
 
 (rule
+ (alias test_switch_default_transition_video)
+ (package liquidsoap)
+ (deps
+  switch_default_transition_video.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   switch_default_transition_video
+   liquidsoap
+   switch_default_transition_video.liq)))
+
+(rule
  (alias test_switch_handover_keeps_next_mark)
  (package liquidsoap)
  (deps
@@ -4068,6 +4090,7 @@
   (alias test_switch_copy_default_on_select)
   (alias test_switch_default_transition_finish)
   (alias test_switch_default_transition_self_sync)
+  (alias test_switch_default_transition_video)
   (alias test_switch_handover_keeps_next_mark)
   (alias test_switch_infallible_across_transition)
   (alias test_switch_jingle_after_insert)
