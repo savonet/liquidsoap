@@ -7,14 +7,14 @@ files onto the code. Not normative; the Part A files govern.
 
 ## Files
 
-| Part A                  | Code                                                                                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ogg.md §1 (format)      | `src/core/encoder/ogg_format.ml`, `lang_ogg.ml`; `Encoder.Ogg` and the Ogg cases of `type_of_format`, `extension`, `mime`, `video_size` in `src/core/encoder/encoder.ml` |
-| ogg.md §2–§9 (instance) | `src/core/optionals/ogg/ogg_encoder.ml` (`encoder`, plug `"ogg"` at :152)                                                                                                |
-| ogg.md §10 (muxer)      | `src/core/optionals/ogg/ogg_muxer.ml` / `.mli`                                                                                                                           |
-| codec §1                | `src/core/encoder/{vorbis,opus,speex,theora,flac}_format.ml`, `lang_{vorbis,opus,speex,theora,flac}.ml` (`Lang_flac.make_ogg`)                                           |
-| codec §2–§13            | `src/core/optionals/{vorbis,opus,speex,theora}/*_encoder.ml`, `src/core/optionals/ogg_flac/ogg_flac_encoder.ml` (+ `ogg_flac_encoder_stubs.c`)                           |
-| libogg, codec bindings  | `src/modules/synced/xiph/{ogg,vorbis,opus,speex,flac,theora}`                                                                                                            |
+| Part A                  | Code                                                                                                                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ogg.md §1 (format)      | `src/core/encoder/formats/ogg_format.ml`, `lang_ogg.ml`; `Encoder.Ogg` and the Ogg cases of `type_of_format`, `extension`, `mime`, `video_size` in `src/core/encoder/encoder.ml` |
+| ogg.md §2–§9 (instance) | `src/core/optionals/ogg/ogg_encoder.ml` (`encoder`, plug `"ogg"` at :152)                                                                                                        |
+| ogg.md §10 (muxer)      | `src/core/optionals/ogg/ogg_muxer.ml` / `.mli`                                                                                                                                   |
+| codec §1                | `src/core/encoder/{vorbis,opus,speex,theora,flac}_format.ml`, `lang_{vorbis,opus,speex,theora,flac}.ml` (`Lang_flac.make_ogg`)                                                   |
+| codec §2–§13            | `src/core/optionals/{vorbis,opus,speex,theora}/*_encoder.ml`, `src/core/optionals/ogg_flac/ogg_flac_encoder.ml` (+ `ogg_flac_encoder_stubs.c`)                                   |
+| libogg, codec bindings  | `src/modules/synced/xiph/{ogg,vorbis,opus,speex,flac,theora}`                                                                                                                    |
 
 ## The seam as OCaml values
 

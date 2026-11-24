@@ -48,11 +48,11 @@ let flac_gen params =
           { f with Flac_format.samplerate = `Value i }
       | `Labelled ("compression", Int { value = i; pos }) ->
           if i < 0 || i > 8 then
-            Lang_encoder.raise_error ~pos "invalid compression value";
+            Format_builders.raise_error ~pos "invalid compression value";
           { f with Flac_format.compression = i }
       | `Labelled ("bits_per_sample", Int { value = i; pos }) ->
           if not (List.mem i accepted_bits_per_sample) then
-            Lang_encoder.raise_error ~pos "invalid bits_per_sample value";
+            Format_builders.raise_error ~pos "invalid bits_per_sample value";
           { f with Flac_format.bits_per_sample = i }
       | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
           { f with Flac_format.fill = Some i }
@@ -60,9 +60,9 @@ let flac_gen params =
           { f with Flac_format.channels = 1 }
       | `Anonymous s when String.lowercase_ascii s = "stereo" ->
           { f with Flac_format.channels = 2 }
-      | t -> Lang_encoder.raise_generic_error t)
+      | t -> Format_builders.raise_generic_error t)
     defaults params
 
 let make_ogg params = Ogg_format.Flac (flac_gen params)
-let make params = Encoder.Flac (flac_gen params)
-let () = Lang_encoder.register "flac" make
+let make params = Format_value.Flac (flac_gen params)
+let () = Format_builders.register "flac" make

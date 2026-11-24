@@ -20,15 +20,27 @@
 
  *****************************************************************************)
 
-(* These live in Metadata_settings: the request resolver and the metadata
-   export code read them from below the encoders. Re-exported here under their
-   historical names. *)
-let conf = Metadata_settings.conf
-let conf_meta = Metadata_settings.conf_meta
-let conf_meta_cover = Metadata_settings.conf_meta_cover
-let conf_export_metadata = Metadata_settings.conf_export_metadata
-let string_of_stereo s = if s then "stereo" else "mono"
+(** A format value: the configuration a [%name(...)] expression describes. *)
+type t =
+  | WAV of Wav_format.t
+  | AVI of Avi_format.t
+  | NDI of Ndi_format.t
+  | Ogg of Ogg_format.t
+  | MP3 of Mp3_format.t
+  | Shine of Shine_format.t
+  | Flac of Flac_format.t
+  | Ffmpeg of Liquidsoap_ffmpeg_formats.Encoder_format.t
+  | FdkAacEnc of Fdkaac_format.t
+  | External of External_encoder_format.t
 
-(** A property its writer adapts to the destination unless the script set it.
-    Only [`Explicit] values are printed and checked against the destination. *)
-type 'a adaptable = [ `Default | `Explicit of 'a ]
+let to_string = function
+  | WAV w -> Wav_format.to_string w
+  | AVI w -> Avi_format.to_string w
+  | Ogg w -> Ogg_format.to_string w
+  | MP3 w -> Mp3_format.to_string w
+  | NDI w -> Ndi_format.to_string w
+  | Shine w -> Shine_format.to_string w
+  | Flac w -> Flac_format.to_string w
+  | Ffmpeg w -> Liquidsoap_ffmpeg_formats.Encoder_format.to_string w
+  | FdkAacEnc w -> Fdkaac_format.to_string w
+  | External w -> External_encoder_format.to_string w

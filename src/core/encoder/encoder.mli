@@ -22,7 +22,7 @@
 
 (** Common infrastructure for encoding streams *)
 
-type format =
+type format = Format_value.t =
   | WAV of Wav_format.t
   | AVI of Avi_format.t
   | NDI of Ndi_format.t

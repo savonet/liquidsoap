@@ -1,4 +1,13 @@
 (library
  (name liquidsoap_ndi)
- (libraries dtools liquidsoap_core mm mm.audio mm.base mm.image mm.video ndi)
+ (libraries
+  dtools
+  liquidsoap_core
+  mm
+  mm.audio
+  mm.base
+  mm.image
+  mm.video
+  ndi
+  liquidsoap_encoder_formats)
  (optional))

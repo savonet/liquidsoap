@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_flac)
  (libraries
+  liquidsoap_encoder_formats
   dtools
   flac
   liquidsoap_core

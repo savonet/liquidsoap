@@ -52,7 +52,7 @@ let make_cbr params =
             { f with Vorbis_format.channels = i }
         | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
             { f with Vorbis_format.fill = Some i }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -97,7 +97,7 @@ let make_abr params =
             { f with Vorbis_format.channels = i }
         | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
             { f with Vorbis_format.fill = Some i }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   Ogg_format.Vorbis vorbis
@@ -118,11 +118,13 @@ let make params =
             { f with Vorbis_format.samplerate = `Value i }
         | `Labelled ("quality", Float { value = q; pos }) ->
             if q < -0.2 || q > 1. then
-              Lang_encoder.raise_error ~pos "quality should be in [(-0.2)..1]";
+              Format_builders.raise_error ~pos
+                "quality should be in [(-0.2)..1]";
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | `Labelled ("quality", Int { value = i; pos }) ->
             if i <> 0 && i <> 1 then
-              Lang_encoder.raise_error ~pos "quality should be in [-(0.2)..1]";
+              Format_builders.raise_error ~pos
+                "quality should be in [-(0.2)..1]";
             let q = float i in
             { f with Vorbis_format.mode = Vorbis_format.VBR q }
         | `Labelled ("stereo", Bool { value = b; _ }) ->
@@ -137,19 +139,21 @@ let make params =
             { f with Vorbis_format.channels = i }
         | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
             { f with Vorbis_format.fill = Some i }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   Ogg_format.Vorbis vorbis
 
 let () =
-  let make p = Encoder.Ogg { Ogg_format.audio = Some (make p); video = None } in
+  let make p =
+    Format_value.Ogg { Ogg_format.audio = Some (make p); video = None }
+  in
   let make_abr p =
-    Encoder.Ogg { Ogg_format.audio = Some (make_abr p); video = None }
+    Format_value.Ogg { Ogg_format.audio = Some (make_abr p); video = None }
   in
   let make_cbr p =
-    Encoder.Ogg { Ogg_format.audio = Some (make_cbr p); video = None }
+    Format_value.Ogg { Ogg_format.audio = Some (make_cbr p); video = None }
   in
-  Lang_encoder.register "vorbis" make;
-  Lang_encoder.register "vorbis.abr" make_abr;
-  Lang_encoder.register "vorbis.cbr" make_cbr
+  Format_builders.register "vorbis" make;
+  Format_builders.register "vorbis.abr" make_abr;
+  Format_builders.register "vorbis.cbr" make_cbr

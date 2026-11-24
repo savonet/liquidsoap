@@ -1,4 +1,10 @@
 (library
  (name liquidsoap_fdkaac)
- (libraries fdkaac liquidsoap_core mm mm.audio mm.base)
+ (libraries
+  fdkaac
+  liquidsoap_core
+  mm
+  mm.audio
+  mm.base
+  liquidsoap_encoder_formats)
  (optional))

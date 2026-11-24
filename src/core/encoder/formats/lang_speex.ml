@@ -50,7 +50,8 @@ let make params =
         | `Labelled ("quality", Int { value = q; pos }) ->
             (* Doc say this should be from 0 to 10. *)
             if q < 0 || q > 10 then
-              Lang_encoder.raise_error ~pos "Speex quality should be in 0..10";
+              Format_builders.raise_error ~pos
+                "Speex quality should be in 0..10";
             { f with Speex_format.bitrate_control = Speex_format.Quality q }
         | `Labelled ("vbr", Int { value = q; _ }) ->
             { f with Speex_format.bitrate_control = Speex_format.Vbr q }
@@ -68,7 +69,7 @@ let make params =
         | `Labelled ("complexity", Value.Int { value = i; pos }) ->
             (* Doc says this should be between 1 and 10. *)
             if i < 1 || i > 10 then
-              Lang_encoder.raise_error ~pos
+              Format_builders.raise_error ~pos
                 "Speex complexity should be in 1..10";
             { f with Speex_format.complexity = Some i }
         | `Labelled ("bytes_per_page", Value.Int { value = i; _ }) ->
@@ -81,11 +82,13 @@ let make params =
             { f with Speex_format.stereo = false }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Speex_format.stereo = true }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   Ogg_format.Speex speex
 
 let () =
-  let make p = Encoder.Ogg { Ogg_format.audio = Some (make p); video = None } in
-  Lang_encoder.register "speex" make
+  let make p =
+    Format_value.Ogg { Ogg_format.audio = Some (make p); video = None }
+  in
+  Format_builders.register "speex" make

@@ -52,20 +52,21 @@ let make params =
             (* According to the doc, this should be a value between
              * 0 and 63. *)
             if i < 0 || i > 63 then
-              Lang_encoder.raise_error ~pos "Theora quality should be in 0..63";
+              Format_builders.raise_error ~pos
+                "Theora quality should be in 0..63";
             { f with Theora_format.bitrate_control = Theora_format.Quality i }
         | `Labelled ("bitrate", Value.Int { value = i; _ }) ->
             { f with Theora_format.bitrate_control = Theora_format.Bitrate i }
         | `Labelled ("width", Value.Int { value = i; pos }) ->
             (* According to the doc: must be a multiple of 16, and less than 1048576. *)
             if i mod 16 <> 0 || i >= 1048576 then
-              Lang_encoder.raise_error ~pos
+              Format_builders.raise_error ~pos
                 "invalid frame width value (should be a multiple of 16)";
             { f with Theora_format.width = `Value i; picture_width = `Value i }
         | `Labelled ("height", Value.Int { value = i; pos }) ->
             (* According to the doc: must be a multiple of 16, and less than 1048576. *)
             if i mod 16 <> 0 || i >= 1048576 then
-              Lang_encoder.raise_error ~pos
+              Format_builders.raise_error ~pos
                 "invalid frame height value (should be a multiple of 16)";
             {
               f with
@@ -96,7 +97,7 @@ let make params =
             { f with Theora_format.speed = Some i }
         | `Labelled ("bytes_per_page", Value.Int { value = i; _ }) ->
             { f with Theora_format.fill = Some i }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   let known = function `Value v -> Some v | `Setting _ -> None in
@@ -108,10 +109,12 @@ let make params =
               | `Labelled (l, v) when l = param -> Value.pos v | _ -> None)
             params
         in
-        Lang_encoder.raise_error ~pos message
+        Format_builders.raise_error ~pos message
     | None -> ());
   theora
 
 let () =
-  let make p = Encoder.Ogg { Ogg_format.audio = None; video = Some (make p) } in
-  Lang_encoder.register "theora" make
+  let make p =
+    Format_value.Ogg { Ogg_format.audio = None; video = Some (make p) }
+  in
+  Format_builders.register "theora" make

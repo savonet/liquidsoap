@@ -53,11 +53,11 @@ let make params =
             { f with Shine_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Shine_format.channels = 2 }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
-  Encoder.Shine shine
+  Format_value.Shine shine
 
 let () =
-  Lang_encoder.register "shine" make;
-  Lang_encoder.register "mp3.fxp" make
+  Format_builders.register "shine" make;
+  Format_builders.register "mp3.fxp" make

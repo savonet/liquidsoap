@@ -51,7 +51,8 @@ let make params =
         | `Labelled ("complexity", Int { value = c; pos }) ->
             (* Doc say this should be from 0 to 10. *)
             if c < 0 || c > 10 then
-              Lang_encoder.raise_error ~pos "Opus complexity should be in 0..10";
+              Format_builders.raise_error ~pos
+                "Opus complexity should be in 0..10";
             { f with Opus_format.complexity = Some c }
         | `Labelled ("max_bandwidth", String { value = "narrow_band" }) ->
             { f with Opus_format.max_bandwidth = Some `Narrow_band }
@@ -66,13 +67,13 @@ let make params =
         | `Labelled ("frame_size", Float { value = size; pos }) ->
             let frame_sizes = [2.5; 5.; 10.; 20.; 40.; 60.] in
             if not (List.mem size frame_sizes) then
-              Lang_encoder.raise_error ~pos
+              Format_builders.raise_error ~pos
                 "Opus frame size should be one of 2.5, 5., 10., 20., 40. or 60.";
             { f with Opus_format.frame_size = size }
         | `Labelled ("samplerate", Value.Int { value = i; pos }) ->
             let samplerates = [8000; 12000; 16000; 24000; 48000] in
             if not (List.mem i samplerates) then
-              Lang_encoder.raise_error ~pos
+              Format_builders.raise_error ~pos
                 "Opus samplerate should be one of 8000, 12000, 16000, 24000 or \
                  48000";
             { f with Opus_format.samplerate = i }
@@ -80,7 +81,8 @@ let make params =
             let i = i * 1000 in
             (* Doc say this should be from 500 to 512000. *)
             if i < 500 || i > 512000 then
-              Lang_encoder.raise_error ~pos "Opus bitrate should be in 5..512";
+              Format_builders.raise_error ~pos
+                "Opus bitrate should be in 5..512";
             { f with Opus_format.bitrate = `Bitrate i }
         | `Labelled ("bitrate", String { value = "auto" }) ->
             { f with Opus_format.bitrate = `Auto }
@@ -96,7 +98,7 @@ let make params =
             { f with Opus_format.channels = 2 }
         | `Labelled ("channels", Value.Int { value = i; pos }) ->
             if i < 1 || i > 2 then
-              Lang_encoder.raise_error ~pos
+              Format_builders.raise_error ~pos
                 "only mono and stereo streams are supported for now";
             { f with Opus_format.channels = i }
         | `Labelled ("vbr", String { value = "none"; _ }) ->
@@ -119,11 +121,13 @@ let make params =
             { f with Opus_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Opus_format.channels = 2 }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   Ogg_format.Opus opus
 
 let () =
-  let make p = Encoder.Ogg { Ogg_format.audio = Some (make p); video = None } in
-  Lang_encoder.register "opus" make
+  let make p =
+    Format_value.Ogg { Ogg_format.audio = Some (make p); video = None }
+  in
+  Format_builders.register "opus" make

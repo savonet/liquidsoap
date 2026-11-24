@@ -25,7 +25,7 @@ open Value
 let make params =
   let check_samplerate ~pos i =
     if not (Fdkaac_format.valid_samplerate i) then
-      Lang_encoder.raise_error ~pos
+      Format_builders.raise_error ~pos
         (Printf.sprintf "invalid samplerate value. Possible values: %s"
            (String.concat ", "
               (List.map string_of_int Fdkaac_format.samplerates)))
@@ -55,7 +55,7 @@ let make params =
             let aot =
               try Fdkaac_format.aot_of_string s
               with Not_found ->
-                Lang_encoder.raise_error ~pos "invalid aot value"
+                Format_builders.raise_error ~pos "invalid aot value"
             in
             { f with Fdkaac_format.aot }
         | `Labelled ("vbr", Value.Int { value = i; pos }) ->
@@ -64,7 +64,7 @@ let make params =
                 Printf.sprintf "invalid vbr mode. Possible values: %s"
                   (String.concat ", " (List.map string_of_int valid_vbr))
               in
-              Lang_encoder.raise_error ~pos err);
+              Format_builders.raise_error ~pos err);
             { f with Fdkaac_format.bitrate_mode = `Variable i }
         | `Labelled ("bandwidth", Value.Int { value = i; _ }) ->
             { f with Fdkaac_format.bandwidth = `Fixed i }
@@ -88,20 +88,20 @@ let make params =
             let transmux =
               try Fdkaac_format.transmux_of_string s
               with Not_found ->
-                Lang_encoder.raise_error ~pos "invalid transmux value"
+                Format_builders.raise_error ~pos "invalid transmux value"
             in
             { f with Fdkaac_format.transmux }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Fdkaac_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->
             { f with Fdkaac_format.channels = 2 }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   let aot = fdkaac.Fdkaac_format.aot in
   if aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2 then
     if fdkaac.Fdkaac_format.channels <> 2 then
       failwith "HE-AAC v2 is only available with 2 channels.";
-  Encoder.FdkAacEnc fdkaac
+  Format_value.FdkAacEnc fdkaac
 
-let () = Lang_encoder.register "fdkaac" make
+let () = Format_builders.register "fdkaac" make

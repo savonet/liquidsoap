@@ -48,17 +48,17 @@ let mp3_base f = function
           | "default" -> Mp3_format.Default
           | "joint_stereo" -> Mp3_format.Joint_stereo
           | "stereo" -> Mp3_format.Stereo
-          | _ -> Lang_encoder.raise_error ~pos "invalid stereo mode"
+          | _ -> Format_builders.raise_error ~pos "invalid stereo mode"
       in
       { f with Mp3_format.stereo_mode = mode }
   | `Labelled ("internal_quality", Int { value = q; pos }) ->
       if q < 0 || q > 9 then
-        Lang_encoder.raise_error ~pos
+        Format_builders.raise_error ~pos
           "internal quality must be a value between 0 and 9";
       { f with Mp3_format.internal_quality = q }
   | `Labelled ("samplerate", Value.Int { value = i; pos }) ->
       if not (Mp3_format.valid_samplerate i) then
-        Lang_encoder.raise_error ~pos "invalid samplerate value";
+        Format_builders.raise_error ~pos "invalid samplerate value";
       { f with Mp3_format.samplerate = `Value i }
   | `Labelled ("id3v2", Bool { value = true; _ }) ->
       { f with Mp3_format.id3v2 = `Explicit (Some 3) }
@@ -72,7 +72,7 @@ let mp3_base f = function
       { f with Mp3_format.stereo = false }
   | `Anonymous s when String.lowercase_ascii s = "stereo" ->
       { f with Mp3_format.stereo = true }
-  | t -> Lang_encoder.raise_generic_error t
+  | t -> Format_builders.raise_generic_error t
 
 let make_cbr params =
   let defaults =
@@ -92,12 +92,12 @@ let make_cbr params =
       (fun f -> function
         | `Labelled ("bitrate", Value.Int { value = i; pos }) ->
             if not (List.mem i allowed_bitrates) then
-              Lang_encoder.raise_error ~pos "invalid bitrate value";
+              Format_builders.raise_error ~pos "invalid bitrate value";
             set_bitrate f i
         | x -> mp3_base f x)
       defaults params
   in
-  Encoder.MP3 mp3
+  Format_value.MP3 mp3
 
 let make_abr_vbr ~default params =
   let set_min_bitrate f b =
@@ -184,26 +184,26 @@ let make_abr_vbr ~default params =
       (fun f -> function
         | `Labelled ("quality", Int { value = q; pos }) when is_vbr f ->
             if q < 0 || q > 9 then
-              Lang_encoder.raise_error ~pos "quality should be in [0..9]";
+              Format_builders.raise_error ~pos "quality should be in [0..9]";
             set_quality f (Some q)
         | `Labelled ("hard_min", Value.Bool { value = b; _ }) ->
             set_hard_min f (Some b)
         | `Labelled ("bitrate", Value.Int { value = i; pos }) ->
             if not (List.mem i allowed_bitrates) then
-              Lang_encoder.raise_error ~pos "invalid bitrate value";
+              Format_builders.raise_error ~pos "invalid bitrate value";
             set_mean_bitrate f (Some i)
         | `Labelled ("min_bitrate", Value.Int { value = i; pos }) ->
             if not (List.mem i allowed_bitrates) then
-              Lang_encoder.raise_error ~pos "invalid bitrate value";
+              Format_builders.raise_error ~pos "invalid bitrate value";
             set_min_bitrate f (Some i)
         | `Labelled ("max_bitrate", Value.Int { value = i; pos }) ->
             if not (List.mem i allowed_bitrates) then
-              Lang_encoder.raise_error ~pos "invalid bitrate value";
+              Format_builders.raise_error ~pos "invalid bitrate value";
             set_max_bitrate f (Some i)
         | x -> mp3_base f x)
       default params
   in
-  Encoder.MP3 mp3
+  Format_value.MP3 mp3
 
 let make_abr p =
   make_abr_vbr
@@ -240,7 +240,7 @@ let make_vbr p =
     p
 
 let () =
-  Lang_encoder.register "mp3" make_cbr;
-  Lang_encoder.register "mp3.cbr" make_cbr;
-  Lang_encoder.register "mp3.abr" make_abr;
-  Lang_encoder.register "mp3.vbr" make_vbr
+  Format_builders.register "mp3" make_cbr;
+  Format_builders.register "mp3.cbr" make_cbr;
+  Format_builders.register "mp3.abr" make_abr;
+  Format_builders.register "mp3.vbr" make_vbr

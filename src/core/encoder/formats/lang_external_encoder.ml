@@ -94,11 +94,11 @@ let make params =
         | `Labelled ("process", String { value = s; _ }) ->
             { f with External_encoder_format.process = s }
         | `Anonymous s -> { f with External_encoder_format.process = s }
-        | t -> Lang_encoder.raise_generic_error t)
+        | t -> Format_builders.raise_generic_error t)
       defaults params
   in
   if ext.External_encoder_format.process = "" then
     raise External_encoder_format.No_process;
-  Encoder.External ext
+  Format_value.External ext
 
-let () = Lang_encoder.register "external" make
+let () = Format_builders.register "external" make

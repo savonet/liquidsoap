@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_ogg)
  (libraries
+  liquidsoap_encoder_formats
   dtools
   liquidsoap_core
   metadata

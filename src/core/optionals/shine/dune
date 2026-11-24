@@ -1,4 +1,10 @@
 (library
  (name liquidsoap_shine)
- (libraries liquidsoap_core mm mm.audio mm.base shine)
+ (libraries
+  liquidsoap_core
+  mm
+  mm.audio
+  mm.base
+  shine
+  liquidsoap_encoder_formats)
  (optional))

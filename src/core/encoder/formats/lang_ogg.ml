@@ -46,6 +46,6 @@ let make p =
       (function `Encoder (e, p) -> ogg_video_opt e p | _ -> None)
       p
   in
-  Encoder.Ogg { Ogg_format.audio; video }
+  Format_value.Ogg { Ogg_format.audio; video }
 
-let () = Lang_encoder.register "ogg" make
+let () = Format_builders.register "ogg" make

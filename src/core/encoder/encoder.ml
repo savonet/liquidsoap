@@ -22,7 +22,7 @@
 
 (** Common infrastructure for encoding streams *)
 
-type format =
+type format = Format_value.t =
   | WAV of Wav_format.t
   | AVI of Avi_format.t
   | NDI of Ndi_format.t
@@ -136,17 +136,7 @@ let type_of_format f =
           audio_video_type channels
         else audio_type channels
 
-let string_of_format = function
-  | WAV w -> Wav_format.to_string w
-  | AVI w -> Avi_format.to_string w
-  | Ogg w -> Ogg_format.to_string w
-  | MP3 w -> Mp3_format.to_string w
-  | NDI w -> Ndi_format.to_string w
-  | Shine w -> Shine_format.to_string w
-  | Flac w -> Flac_format.to_string w
-  | Ffmpeg w -> Liquidsoap_ffmpeg_formats.Encoder_format.to_string w
-  | FdkAacEnc w -> Fdkaac_format.to_string w
-  | External w -> External_encoder_format.to_string w
+let string_of_format = Format_value.to_string
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
