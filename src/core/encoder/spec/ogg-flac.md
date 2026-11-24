@@ -89,8 +89,8 @@ None: FLAC is lossless with no delay; the last frame is short.
 The library is finished: the remaining samples are encoded as a short last
 frame, which carries the final granule position, equal to the link's codec
 sample count. The stream's last page MUST carry the EOS flag; where the
-library's last page does not, the stream encoder sets it and recomputes
-that page's CRC. The stream always received at least one sample
+library's last page does not, the stream encoder sets it and has libogg
+recompute that page's CRC (`ogg_page_checksum_set`). The stream always received at least one sample
 ([ogg-streams.md §6](ogg-streams.md#6-input)).
 
 ## 10. Properties
