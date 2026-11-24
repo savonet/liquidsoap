@@ -677,7 +677,6 @@ let listener_callback name descr register =
     Lang_source.name;
     params = [];
     descr;
-    register_deprecated_argument = false;
     arg_t = [(false, "", Listener.record_t)];
     register =
       (fun ~params:_ s fn -> register s (fun record -> fn [("", record)]));

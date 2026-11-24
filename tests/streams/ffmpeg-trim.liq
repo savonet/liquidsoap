@@ -14,14 +14,13 @@ def f() =
   end
 
   # Test string.trim on url input.
-  output.dummy(
+  s =
     input.ffmpeg(
-      on_connect=on_connect,
-      on_error=on_error,
       " ./file1.mp3\n"
-    ),
-    fallible=true
-  )
+    )
+  s.on_connect(synchronous=true, on_connect)
+  s.on_error(synchronous=true, on_error)
+  output.dummy(s, fallible=true)
 end
 
 test.check(f)

@@ -696,7 +696,6 @@ let _ =
             Lang_source.name = "on_connect";
             params = [];
             descr = "when connection is established.";
-            register_deprecated_argument = true;
             arg_t = [];
             register =
               (fun ~params:_ s on_connect ->
@@ -706,7 +705,6 @@ let _ =
             Lang_source.name = "on_disconnect";
             params = [];
             descr = "when connection stops.";
-            register_deprecated_argument = true;
             arg_t = [];
             register =
               (fun ~params:_ s on_disconnect ->
@@ -724,7 +722,6 @@ let _ =
                connection is not attempted again and no errors are raised. \
                There can only be one single callback registered for this at a \
                time. Every secondary registration replaces the previous one.";
-            register_deprecated_argument = true;
             arg_t =
               [
                 ( false,

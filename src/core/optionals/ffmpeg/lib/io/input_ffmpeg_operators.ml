@@ -178,7 +178,6 @@ let callbacks ~connect_arg_t ~connect_value =
         name = "on_connect";
         params = [];
         descr = "when connected, before the source plays the connection's data.";
-        register_deprecated_argument = true;
         arg_t = connect_arg_t;
         register =
           (fun ~params:_ s f ->
@@ -188,7 +187,6 @@ let callbacks ~connect_arg_t ~connect_value =
         name = "on_disconnect";
         params = [];
         descr = "when a connection whose `on_connect` callbacks ran ends.";
-        register_deprecated_argument = true;
         arg_t = [];
         register =
           (fun ~params:_ s f -> s#register_on_disconnect (fun () -> f []));
@@ -197,7 +195,6 @@ let callbacks ~connect_arg_t ~connect_value =
         name = "on_error";
         params = [];
         descr = "on each connection or feeding failure.";
-        register_deprecated_argument = true;
         arg_t = [(false, "", error_t)];
         register =
           (fun ~params:_ s f ->

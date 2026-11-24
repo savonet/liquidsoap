@@ -32,4 +32,5 @@ def on_stop() =
   if !track_count < 3 then test.fail() end
 end
 
-output.dummy(on_stop=on_stop, fallible=true, s)
+o = output.dummy(fallible=true, s)
+o.on_stop(synchronous=true, on_stop)

@@ -288,7 +288,6 @@ let _ =
              name = "on_error";
              params = [];
              descr = "on each connection or streaming failure.";
-             register_deprecated_argument = true;
              arg_t = [(false, "", Lang.error_t)];
              register =
                (fun ~params:_ s f ->

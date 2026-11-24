@@ -743,7 +743,6 @@ let callbacks () =
       descr =
         "when a source is connected. Its receives the list of headers, of the \
          form: (<label>,<value>). All labels are lowercase.";
-      register_deprecated_argument = true;
       arg_t = [(false, "", Lang.metadata_t)];
       register =
         (fun ~params:_ s on_connect ->
@@ -754,7 +753,6 @@ let callbacks () =
       name = "on_disconnect";
       params = [];
       descr = "when a source is disconnected.";
-      register_deprecated_argument = true;
       arg_t = [];
       register =
         (fun ~params:_ s f -> s#register_on_disconnect (fun () -> f []));
