@@ -68,7 +68,7 @@ type t = {
   bitrate_control : bitrate_control;
   internal_quality : int;
   samplerate : Deferred.t;
-  id3v2 : int option;
+  id3v2 : int option Encoder_formats.adaptable;
 }
 
 let to_string m =
@@ -78,11 +78,14 @@ let to_string m =
       | ABR _ -> "%mp3.abr"
       | CBR _ -> "%mp3"
   in
-  Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%s)" name
+  Printf.sprintf "%s(%s,%s,samplerate=%d%s)" name
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
     (Deferred.peek m.samplerate)
-    (match m.id3v2 with None -> "none" | Some v -> string_of_int v)
+    (match m.id3v2 with
+      | `Default -> ""
+      | `Explicit None -> ",id3v2=false"
+      | `Explicit (Some v) -> Printf.sprintf ",id3v2=%d" v)
 
 let bitrate m =
   match m.bitrate_control with

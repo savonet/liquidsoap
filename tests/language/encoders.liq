@@ -181,6 +181,20 @@ def f() =
     true
   )
 %endif
+%ifencoder %mp3
+  # id3v2 is adaptable: printed and compared only when set explicitly.
+  test.equal(string.contains(substring="id3v2", "#{%mp3}"), false)
+  test.equal(
+    string.contains(substring="id3v2=3", "#{%mp3(id3v2 = true)}"),
+    true
+  )
+  test.equal(
+    string.contains(substring="id3v2=false", "#{%mp3(id3v2 = 'none')}"),
+    true
+  )
+  test.equal(%mp3 == %mp3, true)
+  test.equal(%mp3 == %mp3(id3v2 = false), false)
+%endif
 %ifencoder %vorbis
   test.equal(encoder.extension(%ogg(%vorbis)), "ogg")
   test.equal(string.contains(substring=",,", "#{%vorbis.abr}"), false)

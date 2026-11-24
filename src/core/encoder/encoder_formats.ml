@@ -28,3 +28,7 @@ let conf_meta = Metadata_settings.conf_meta
 let conf_meta_cover = Metadata_settings.conf_meta_cover
 let conf_export_metadata = Metadata_settings.conf_export_metadata
 let string_of_stereo s = if s then "stereo" else "mono"
+
+(** A property its writer adapts to the destination unless the script set it.
+    Only [`Explicit] values are printed and checked against the destination. *)
+type 'a adaptable = [ `Default | `Explicit of 'a ]

@@ -97,7 +97,11 @@ let () =
            in
            (* A tag with no frame is only its 10-byte header. *)
            if String.length tag > 10 then Strings.Mutable.add encoded tag)
-         mp3.id3v2);
+         (* The default writes no tag until writers receive their sink's
+            capabilities, which adapt it (mp3.md §6.4). *)
+           (match mp3.id3v2 with
+           | `Explicit version -> version
+           | `Default -> None));
     let encode_pending len =
       let pcm =
         Content.Audio.get_data

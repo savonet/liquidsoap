@@ -34,7 +34,7 @@ let mp3_base_defaults () =
     samplerate = `Setting `Audio_rate;
     bitrate_control = Mp3_format.CBR 128;
     internal_quality = 2;
-    id3v2 = None;
+    id3v2 = `Default;
   }
 
 let mp3_base f = function
@@ -61,13 +61,13 @@ let mp3_base f = function
         Lang_encoder.raise_error ~pos "invalid samplerate value";
       { f with Mp3_format.samplerate = `Value i }
   | `Labelled ("id3v2", Bool { value = true; _ }) ->
-      { f with Mp3_format.id3v2 = Some 3 }
+      { f with Mp3_format.id3v2 = `Explicit (Some 3) }
   | `Labelled ("id3v2", Bool { value = false; _ }) ->
-      { f with Mp3_format.id3v2 = None }
+      { f with Mp3_format.id3v2 = `Explicit None }
   | `Labelled ("id3v2", Int { value = v }) ->
-      { f with Mp3_format.id3v2 = Some v }
+      { f with Mp3_format.id3v2 = `Explicit (Some v) }
   | `Labelled ("id3v2", String { value = "none"; _ }) ->
-      { f with Mp3_format.id3v2 = None }
+      { f with Mp3_format.id3v2 = `Explicit None }
   | `Anonymous s when String.lowercase_ascii s = "mono" ->
       { f with Mp3_format.stereo = false }
   | `Anonymous s when String.lowercase_ascii s = "stereo" ->
