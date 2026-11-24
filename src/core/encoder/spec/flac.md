@@ -154,8 +154,14 @@ with no rewriting.
   ([encoder.md §2.2](encoder.md#22-creation)): on a file sink, one
   `key=value` entry per exported entry, in order; on any other sink,
   nothing more, `%flac` having no parameter that asks for tags.
-- No PICTURE block is written: a cover in the initial metadata is not
-  written, on any sink. A key the comment syntax
+- On a file sink, a cover in the initial metadata
+  ([output-encoded.md §4.2](output-encoded.md#42-the-exported-form)) is
+  written as a PICTURE block, built by the library: picture type 3 (front
+  cover), the MIME type (`image/jpeg` or `image/png`, as for `APIC` in
+  [mp3.md §7.2](mp3.md#72-id3v2-rendering)), an empty description, and the
+  picture; a FLAC picture block in the metadata is passed as it is. A value
+  that is not a JPEG or PNG picture is not written. No PICTURE block on
+  another sink. A key the comment syntax
   cannot hold (an `=` or a byte outside 0x20–0x7D) is dropped with a
   warning; the writer does not fail for it.
 - The writer offers no in-band metadata: native FLAC cannot start a new
@@ -248,9 +254,10 @@ frame walker, a finite source of a known sample count.
 4. A shared harbor reader starting after 3 s receives the header, then
    frames from a frame boundary, and decodes.
 5. Initial metadata `title="Hé", artist="A"` and a cover, to `output.file`:
-   the VORBIS_COMMENT block holds `ENCODER=` and both entries, and no
-   PICTURE block is written; with none, the block holds `ENCODER=` alone.
-   The same to a shared harbor mount: `ENCODER=` alone.
+   the VORBIS_COMMENT block holds `ENCODER=` and both entries, and a
+   PICTURE block of type 3 holds the cover; with none, the block holds
+   `ENCODER=` alone and no PICTURE block is written. The same to a shared
+   harbor mount: `ENCODER=` alone, no PICTURE block.
 6. `%flac` to `output.file(append=true)` is refused at evaluation, the
    error naming `%ogg(%flac)`; every access point the writer marked falls
    on a frame start the walker finds, one per frame.
