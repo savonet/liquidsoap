@@ -235,7 +235,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     let rate =
       match inferred `Samplerate with
         | Some f -> (Avutil.Audio.frame_format f).sample_rate
-        | None -> Lazy.Mutexed.force a.samplerate
+        | None -> Deferred.force a.samplerate
     in
     let layout =
       match inferred `Channels with
@@ -613,7 +613,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
      wait for the first frame. *)
   let size =
     Lazy.Mutexed.from_fun (fun () ->
-        (Lazy.Mutexed.force v.width, Lazy.Mutexed.force v.height))
+        (Deferred.force v.width, Deferred.force v.height))
   in
   let state = ref None in
   let scaler = ref None in

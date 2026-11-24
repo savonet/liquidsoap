@@ -31,8 +31,8 @@ placement of a smaller image in a larger coded frame).
 | `bytes_per_page`                         | [ogg-streams.md §1](ogg-streams.md#1-format-and-options)       | 4096                                                             |
 
 - `picture_x` ≤ min(`width` − `picture_width`, 255); `picture_y` ≤
-  `height` − `picture_height` and `picture_height` − `picture_y` ≤ 255
-  (Theora header limits, from memory).
+  `height` − `picture_height` and `height` − `picture_height` −
+  `picture_y` ≤ 255 (libtheora's limits).
 - All checks run on the final values, whatever the order of the parameters,
   at the phase of their values; deferred defaults are checked at start-up.
 - The coded size is the frame's video size. A `width` or `height`, explicit

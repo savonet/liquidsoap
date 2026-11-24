@@ -146,7 +146,7 @@ let audio_option (a : F.audio) = function
       Some
         {
           a with
-          samplerate = Lazy.Mutexed.from_val (positive v);
+          samplerate = `Value (positive v);
           written = writes `Samplerate a;
         }
   | `Labelled ("sample_format", v) ->
@@ -165,10 +165,8 @@ let hwaccel v =
 let video_option (vf : F.video) = function
   | `Labelled (("framerate" | "r"), v) ->
       Some { vf with framerate = Some (frame_rate v) }
-  | `Labelled ("width", v) ->
-      Some { vf with width = Lazy.Mutexed.from_val (positive v) }
-  | `Labelled ("height", v) ->
-      Some { vf with height = Lazy.Mutexed.from_val (positive v) }
+  | `Labelled ("width", v) -> Some { vf with width = `Value (positive v) }
+  | `Labelled ("height", v) -> Some { vf with height = `Value (positive v) }
   | `Labelled ("pixel_format", v) -> (
       match string v with
         | "guess" -> Some { vf with pixel_format = None; alpha = false }
@@ -199,14 +197,12 @@ let default_options : F.media -> F.options = function
           F.pcm_kind = `Pcm;
           channels = 2;
           channel_layout = None;
-          samplerate =
-            Lazy.Mutexed.from_fun (fun () ->
-                Lazy.Mutexed.force Frame.audio_rate);
+          samplerate = `Setting `Audio_rate;
           sample_format = None;
           written = [];
         }
   | `Video ->
-      let width, height = Frame.video_dimensions () in
+      let width, height = (`Setting `Video_width, `Setting `Video_height) in
       `Video
         {
           F.framerate = None;

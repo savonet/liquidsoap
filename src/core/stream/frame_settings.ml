@@ -289,3 +289,15 @@ let duration = delayed (fun () -> float !!size /. float !!main_rate)
 let () =
   (Frame_type.default_audio_channels := fun () -> conf_audio_channels#get);
   Frame_type.default_video := fun () -> conf_video_default#get
+
+let () =
+  (Deferred.read_setting :=
+     function
+     | `Audio_rate -> conf_audio_samplerate#get
+     | `Video_width -> conf_video_width#get
+     | `Video_height -> conf_video_height#get);
+  Deferred.fix_setting :=
+    function
+    | `Audio_rate -> !!audio_rate
+    | `Video_width -> !!(fst (video_dimensions ()))
+    | `Video_height -> !!(snd (video_dimensions ()))

@@ -23,32 +23,12 @@
 open Value
 
 let make params =
-  let valid_samplerates =
-    [
-      8000;
-      11025;
-      12000;
-      16000;
-      22050;
-      24000;
-      32000;
-      44100;
-      48000;
-      64000;
-      88200;
-      96000;
-    ]
-  in
   let check_samplerate ~pos i =
-    Lazy.Mutexed.from_fun (fun () ->
-        let i = Lazy.Mutexed.force i in
-        if not (List.mem i valid_samplerates) then (
-          let err =
-            Printf.sprintf "invalid samplerate value. Possible values: %s"
-              (String.concat ", " (List.map string_of_int valid_samplerates))
-          in
-          Lang_encoder.raise_error ~pos err);
-        i)
+    if not (Fdkaac_format.valid_samplerate i) then
+      Lang_encoder.raise_error ~pos
+        (Printf.sprintf "invalid samplerate value. Possible values: %s"
+           (String.concat ", "
+              (List.map string_of_int Fdkaac_format.samplerates)))
   in
   let defaults =
     {
@@ -60,7 +40,7 @@ let make params =
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       channels = 2;
-      samplerate = check_samplerate ~pos:None Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
       sbr_mode = false;
       transmux = `Adts;
     }
@@ -100,11 +80,8 @@ let make params =
         | `Labelled ("channels", Value.Int { value = i; _ }) ->
             { f with Fdkaac_format.channels = i }
         | `Labelled ("samplerate", Value.Int { value = i; pos }) ->
-            {
-              f with
-              Fdkaac_format.samplerate =
-                check_samplerate ~pos (Lazy.Mutexed.from_val i);
-            }
+            check_samplerate ~pos i;
+            { f with Fdkaac_format.samplerate = `Value i }
         | `Labelled ("sbr_mode", Value.Bool { value = b; _ }) ->
             { f with Fdkaac_format.sbr_mode = b }
         | `Labelled ("transmux", Value.String { value = s; pos }) ->

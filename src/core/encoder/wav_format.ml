@@ -21,7 +21,7 @@
  *****************************************************************************)
 
 type t = {
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   samplesize : int;
   channels : int;
   duration : float option;
@@ -35,5 +35,5 @@ let to_string w =
       | Some d -> Printf.sprintf ",duration=%f" d
   in
   Printf.sprintf "%%wav(samplerate=%d,channels=%d,samplesize=%d,header=%b%s)"
-    (Lazy.Mutexed.force w.samplerate)
+    (Deferred.peek w.samplerate)
     w.channels w.samplesize w.header duration

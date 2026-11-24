@@ -27,21 +27,11 @@ let allowed_bitrates =
     8; 16; 24; 32; 40; 48; 56; 64; 80; 96; 112; 128; 144; 160; 192; 224; 256; 320;
   ]
 
-let check_samplerate ~pos i =
-  Lazy.Mutexed.from_fun (fun () ->
-      let i = Lazy.Mutexed.force i in
-      let allowed =
-        [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
-      in
-      if not (List.mem i allowed) then
-        Lang_encoder.raise_error ~pos "invalid samplerate value";
-      i)
-
 let mp3_base_defaults () =
   {
     Mp3_format.stereo = true;
     stereo_mode = Mp3_format.Joint_stereo;
-    samplerate = check_samplerate ~pos:None Frame.audio_rate;
+    samplerate = `Setting `Audio_rate;
     bitrate_control = Mp3_format.CBR 128;
     internal_quality = 2;
     id3v2 = None;
@@ -67,10 +57,9 @@ let mp3_base f = function
           "internal quality must be a value between 0 and 9";
       { f with Mp3_format.internal_quality = q }
   | `Labelled ("samplerate", Value.Int { value = i; pos }) ->
-      {
-        f with
-        Mp3_format.samplerate = check_samplerate ~pos (Lazy.Mutexed.from_val i);
-      }
+      if not (Mp3_format.valid_samplerate i) then
+        Lang_encoder.raise_error ~pos "invalid samplerate value";
+      { f with Mp3_format.samplerate = `Value i }
   | `Labelled ("id3v2", Bool { value = true; _ }) ->
       { f with Mp3_format.id3v2 = Some 3 }
   | `Labelled ("id3v2", Bool { value = false; _ }) ->

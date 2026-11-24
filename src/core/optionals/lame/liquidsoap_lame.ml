@@ -70,7 +70,7 @@ let () =
             Lame.set_vbr_mode enc Lame.Vbr_abr;
             apply_constaints enc c
     end;
-    Lame.set_out_samplerate enc (Lazy.Mutexed.force mp3.Mp3_format.samplerate);
+    Lame.set_out_samplerate enc (Deferred.force mp3.Mp3_format.samplerate);
     Lame.set_bWriteVbrTag enc false;
     Lame.init_params enc;
     enc

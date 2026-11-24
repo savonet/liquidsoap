@@ -26,8 +26,8 @@ type restart_condition = Delay of int | Metadata | No_condition
 
 type t = {
   channels : int;
-  samplerate : int Lazy.Mutexed.t;
-  video : (int Lazy.Mutexed.t * int Lazy.Mutexed.t) option;
+  samplerate : Deferred.t;
+  video : (Deferred.t * Deferred.t) option;
   header : bool;
   restart_on_crash : bool;
   restart : restart_condition;
@@ -45,13 +45,13 @@ let to_string e =
     match e.video with
       | None -> "video=false"
       | Some (w, h) ->
-          Printf.sprintf "video=true,width=%d,height=%d" (Lazy.Mutexed.force w)
-            (Lazy.Mutexed.force h)
+          Printf.sprintf "video=true,width=%d,height=%d" (Deferred.peek w)
+            (Deferred.peek h)
   in
   Printf.sprintf
     "%%external(channels=%i,samplerate=%i,%s,header=%b,restart_on_crash=%b,%s,process=%s)"
     e.channels
-    (Lazy.Mutexed.force e.samplerate)
+    (Deferred.peek e.samplerate)
     video e.header e.restart_on_crash
     (string_of_restart_condition e.restart)
     e.process

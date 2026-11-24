@@ -27,7 +27,7 @@ let make params =
     {
       Speex_format.stereo = true;
       fill = None;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
       bitrate_control = Speex_format.Quality 7;
       mode = Speex_format.Narrowband;
       frames_per_packet = 1;
@@ -44,7 +44,7 @@ let make params =
         | `Labelled ("mono", Value.Bool { value = b; _ }) ->
             { f with Speex_format.stereo = not b }
         | `Labelled ("samplerate", Value.Int { value = i; _ }) ->
-            { f with Speex_format.samplerate = Lazy.Mutexed.from_val i }
+            { f with Speex_format.samplerate = `Value i }
         | `Labelled ("abr", Value.Int { value = i; _ }) ->
             { f with Speex_format.bitrate_control = Speex_format.Abr i }
         | `Labelled ("quality", Int { value = q; pos }) ->

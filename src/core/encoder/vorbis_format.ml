@@ -33,7 +33,7 @@ type mode =
 type t = {
   channels : int;
   mode : mode;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   fill : int option;
 }
 
@@ -56,4 +56,4 @@ let to_string v =
     else ","
   in
   Printf.sprintf "%%vorbis%s%schannels=%d,samplerate=%d)" mode sep v.channels
-    (Lazy.Mutexed.force v.samplerate)
+    (Deferred.peek v.samplerate)

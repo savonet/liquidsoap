@@ -23,13 +23,15 @@
 open Value
 
 let make params =
-  let video_width, video_height = Frame.video_dimensions () in
+  let video_width, video_height =
+    (`Setting `Video_width, `Setting `Video_height)
+  in
   let defaults =
     {
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       Avi_format.channels = 2;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
       width = video_width;
       height = video_height;
     }
@@ -40,11 +42,11 @@ let make params =
         | `Labelled ("channels", Int { value = c }) ->
             { f with Avi_format.channels = c }
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Avi_format.samplerate = Lazy.Mutexed.from_val i }
+            { f with Avi_format.samplerate = `Value i }
         | `Labelled ("width", Int { value = i; _ }) ->
-            { f with Avi_format.width = Lazy.Mutexed.from_val i }
+            { f with Avi_format.width = `Value i }
         | `Labelled ("height", Int { value = i; _ }) ->
-            { f with Avi_format.height = Lazy.Mutexed.from_val i }
+            { f with Avi_format.height = `Value i }
         | t -> Lang_encoder.raise_generic_error t)
       defaults params
   in

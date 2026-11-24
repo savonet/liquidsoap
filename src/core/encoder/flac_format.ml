@@ -23,7 +23,7 @@
 type t = {
   channels : int;
   bits_per_sample : int;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   compression : int;
   fill : int option;
 }
@@ -32,5 +32,5 @@ let to_string m =
   Printf.sprintf
     "%%flac(channels=%i,bits_per_sample=%i,samplerate=%d,compression=%i)"
     m.channels m.bits_per_sample
-    (Lazy.Mutexed.force m.samplerate)
+    (Deferred.peek m.samplerate)
     m.compression

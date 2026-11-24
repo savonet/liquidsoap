@@ -31,7 +31,7 @@ type audio = {
   pcm_kind : pcm_kind;
   channels : int;
   channel_layout : string option;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   sample_format : string option;
   written : [ `Channels | `Samplerate ] list;
 }
@@ -41,8 +41,8 @@ type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
 type video = {
   framerate : (int * int) option;
   raw_key_frame_interval : float option;
-  width : int Lazy.Mutexed.t;
-  height : int Lazy.Mutexed.t;
+  width : Deferred.t;
+  height : Deferred.t;
   pixel_format : string option;
   alpha : bool;
   hwaccel : hwaccel;
@@ -231,7 +231,6 @@ let type_of_format f =
 
 let default_text_to_ass i text = Printf.sprintf "%d,0,Default,,0,0,0,,%s" i text
 let string_literal = Lang_string.quote_string
-let force = Lazy.Mutexed.force
 
 let string_of_value = function
   | `String s -> string_literal s
@@ -289,13 +288,17 @@ let string_of_track (field, track) =
                   | None, _ -> [Printf.sprintf "channels=%d" a.channels])
                 @ (match mode with
                   | `Raw when not (List.mem `Samplerate a.written) -> []
-                  | _ -> [Printf.sprintf "samplerate=%d" (force a.samplerate)])
+                  | _ ->
+                      [
+                        Printf.sprintf "samplerate=%d"
+                          (Deferred.peek a.samplerate);
+                      ])
                 @ opt "sample_format" a.sample_format
             | `Video v ->
                 marker `Video @ opt "codec" codec
                 @ [
-                    Printf.sprintf "width=%d" (force v.width);
-                    Printf.sprintf "height=%d" (force v.height);
+                    Printf.sprintf "width=%d" (Deferred.peek v.width);
+                    Printf.sprintf "height=%d" (Deferred.peek v.height);
                   ]
                 @ (match v.framerate with
                   | None -> []
@@ -375,7 +378,7 @@ let video_size f =
     List.filter_map
       (function
         | _, `Encode { options = `Video { width; height } } ->
-            Some (force width, force height)
+            Some (Deferred.force width, Deferred.force height)
         | _ -> None)
       f.streams
   with

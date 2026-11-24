@@ -54,6 +54,7 @@ let build_variant ~pos ~segment_duration (name, value) =
   let format_value = Lang.demeth value in
   let format = Lang.to_format format_value in
   let fields = parse_fields value in
+  Encoder.resolve_at_start ~pos:(Value.pos format_value) format;
   (try
      let (_ : Encoder.factory) = Encoder.get_factory format in
      ()

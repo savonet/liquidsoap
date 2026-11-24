@@ -101,6 +101,7 @@ module Icecast_v (M : Icecast_t) = struct
   let encoder_data p =
     let v = Lang.assoc "" 1 p in
     let enc = streaming_format (Lang.to_format v) in
+    Encoder.resolve_at_start ~pos:(Value.pos v) enc;
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
     let encoder_factory =
       try Encoder.get_factory enc

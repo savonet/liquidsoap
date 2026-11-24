@@ -30,14 +30,14 @@ let make_cbr params =
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       channels = 2;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
     }
   in
   let vorbis =
     List.fold_left
       (fun f -> function
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Vorbis_format.samplerate = Lazy.Mutexed.from_val i }
+            { f with Vorbis_format.samplerate = `Value i }
         | `Labelled ("bitrate", Int { value = i; _ }) ->
             { f with Vorbis_format.mode = Vorbis_format.CBR i }
         | `Labelled ("stereo", Bool { value = b; _ }) ->
@@ -63,7 +63,7 @@ let make_abr params =
       Vorbis_format.mode = Vorbis_format.ABR (None, None, None);
       channels = 2;
       fill = None;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
     }
   in
   let get_rates x =
@@ -75,7 +75,7 @@ let make_abr params =
     List.fold_left
       (fun f -> function
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Vorbis_format.samplerate = Lazy.Mutexed.from_val i }
+            { f with Vorbis_format.samplerate = `Value i }
         | `Labelled ("bitrate", Int { value = i; _ }) ->
             let x, _, y = get_rates f in
             { f with Vorbis_format.mode = Vorbis_format.ABR (x, Some i, y) }
@@ -108,14 +108,14 @@ let make params =
       Vorbis_format.mode = Vorbis_format.VBR 0.3;
       channels = 2;
       fill = None;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
     }
   in
   let vorbis =
     List.fold_left
       (fun f -> function
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Vorbis_format.samplerate = Lazy.Mutexed.from_val i }
+            { f with Vorbis_format.samplerate = `Value i }
         | `Labelled ("quality", Float { value = q; pos }) ->
             if q < -0.2 || q > 1. then
               Lang_encoder.raise_error ~pos "quality should be in [(-0.2)..1]";

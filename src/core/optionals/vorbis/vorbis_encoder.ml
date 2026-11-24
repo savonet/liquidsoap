@@ -92,7 +92,7 @@ let create ~channels ~samplerate ~quality ~metadata () =
 let create_vorbis = function
   | Ogg_format.Vorbis vorbis ->
       let channels = vorbis.Vorbis_format.channels in
-      let samplerate = Lazy.Mutexed.force vorbis.Vorbis_format.samplerate in
+      let samplerate = Deferred.force vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
         let m = Frame.Metadata.Export.to_metadata m in
         let metas = Hashtbl.create 0 in

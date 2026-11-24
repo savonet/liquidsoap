@@ -2204,6 +2204,28 @@
   (run %{run_test} drawtext_percent liquidsoap drawtext_percent.liq)))
 
 (rule
+ (alias test_encoder_deferred_values)
+ (package liquidsoap)
+ (deps
+  encoder_deferred_values.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   encoder_deferred_values
+   liquidsoap
+   encoder_deferred_values.liq)))
+
+(rule
  (alias test_encoder_tail)
  (package liquidsoap)
  (deps
@@ -4184,6 +4206,7 @@
   (alias test_delay_track_advance)
   (alias test_double-nullable)
   (alias test_drawtext_percent)
+  (alias test_encoder_deferred_values)
   (alias test_encoder_tail)
   (alias test_eval-check-demeth)
   (alias test_external-encoder)

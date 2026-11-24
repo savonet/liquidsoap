@@ -27,6 +27,24 @@ type bandwidth = [ `Auto | `Fixed of int ]
 type bitrate_mode = [ `Constant | `Variable of int ]
 type transmux = [ `Raw | `Adif | `Adts | `Latm | `Latm_out_of_band | `Loas ]
 
+let samplerates =
+  [
+    8000;
+    11025;
+    12000;
+    16000;
+    22050;
+    24000;
+    32000;
+    44100;
+    48000;
+    64000;
+    88200;
+    96000;
+  ]
+
+let valid_samplerate i = List.mem i samplerates
+
 type t = {
   afterburner : bool;
   aot : aot;
@@ -34,7 +52,7 @@ type t = {
   bitrate_mode : bitrate_mode;
   bitrate : int;
   channels : int;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   sbr_mode : bool;
   transmux : transmux;
 }
@@ -86,7 +104,7 @@ let to_string m =
   Printf.sprintf
     "%%fdkaac(afterburner=%b,aot=%S,%s,channels=%d,samplerate=%d,sbr_mode=%b,transmux=%S)"
     m.afterburner (string_of_aot m.aot) br_info m.channels
-    (Lazy.Mutexed.force m.samplerate)
+    (Deferred.peek m.samplerate)
     m.sbr_mode
     (string_of_transmux m.transmux)
 

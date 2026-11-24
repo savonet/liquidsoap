@@ -20,11 +20,11 @@
 
  *****************************************************************************)
 
-type t = { channels : int; samplerate : int Lazy.Mutexed.t; bitrate : int }
+type t = { channels : int; samplerate : Deferred.t; bitrate : int }
 
 let to_string m =
   Printf.sprintf "%%shine(channels=%d,samplerate=%d,bitrate=%d)" m.channels
-    (Lazy.Mutexed.force m.samplerate)
+    (Deferred.peek m.samplerate)
     m.bitrate
 
 let bitrate m = m.bitrate * 1000

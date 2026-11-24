@@ -73,21 +73,21 @@ module Icecast = struct
           {
             quality;
             bitrate;
-            samplerate = Some (Lazy.Mutexed.force m.Mp3_format.samplerate);
+            samplerate = Some (Deferred.force m.Mp3_format.samplerate);
             channels = Some (if m.Mp3_format.stereo then 2 else 1);
           }
       | Encoder.Shine m ->
           {
             quality = None;
             bitrate = Some m.Shine_format.bitrate;
-            samplerate = Some (Lazy.Mutexed.force m.Shine_format.samplerate);
+            samplerate = Some (Deferred.force m.Shine_format.samplerate);
             channels = Some m.Shine_format.channels;
           }
       | Encoder.FdkAacEnc m ->
           {
             quality = None;
             bitrate = Some m.Fdkaac_format.bitrate;
-            samplerate = Some (Lazy.Mutexed.force m.Fdkaac_format.samplerate);
+            samplerate = Some (Deferred.force m.Fdkaac_format.samplerate);
             channels = Some m.Fdkaac_format.channels;
           }
       | Encoder.NDI _ ->
@@ -97,14 +97,14 @@ module Icecast = struct
             quality = None;
             bitrate = None;
             samplerate =
-              Some (Lazy.Mutexed.force m.External_encoder_format.samplerate);
+              Some (Deferred.force m.External_encoder_format.samplerate);
             channels = Some m.External_encoder_format.channels;
           }
       | Encoder.Flac m ->
           {
             quality = Some (string_of_int m.Flac_format.compression);
             bitrate = None;
-            samplerate = Some (Lazy.Mutexed.force m.Flac_format.samplerate);
+            samplerate = Some (Deferred.force m.Flac_format.samplerate);
             channels = Some m.Flac_format.channels;
           }
       | Encoder.Ffmpeg m ->
@@ -114,7 +114,7 @@ module Icecast = struct
                 m.Liquidsoap_ffmpeg_formats.Encoder_format.streams
             with
               | Some (`Encode { options = `Audio a }) ->
-                  ( Some (Lazy.Mutexed.force a.samplerate),
+                  ( Some (Deferred.force a.samplerate),
                     Some a.Liquidsoap_ffmpeg_formats.Encoder_format.channels )
               | _ -> (None, None)
           in
@@ -129,14 +129,14 @@ module Icecast = struct
           {
             quality = None;
             bitrate = None;
-            samplerate = Some (Lazy.Mutexed.force m.Wav_format.samplerate);
+            samplerate = Some (Deferred.force m.Wav_format.samplerate);
             channels = Some m.Wav_format.channels;
           }
       | Encoder.AVI m ->
           {
             quality = None;
             bitrate = None;
-            samplerate = Some (Lazy.Mutexed.force m.Avi_format.samplerate);
+            samplerate = Some (Deferred.force m.Avi_format.samplerate);
             channels = Some m.Avi_format.channels;
           }
       | Encoder.Ogg { Ogg_format.audio; _ } -> (
@@ -152,7 +152,7 @@ module Icecast = struct
                 {
                   quality = Some (string_of_float q);
                   bitrate = None;
-                  samplerate = Some (Lazy.Mutexed.force s);
+                  samplerate = Some (Deferred.force s);
                   channels = Some n;
                 }
             | Some
@@ -166,7 +166,7 @@ module Icecast = struct
                 {
                   quality = None;
                   bitrate = b;
-                  samplerate = Some (Lazy.Mutexed.force s);
+                  samplerate = Some (Deferred.force s);
                   channels = Some n;
                 }
             | Some
@@ -180,7 +180,7 @@ module Icecast = struct
                 {
                   quality = None;
                   bitrate = Some b;
-                  samplerate = Some (Lazy.Mutexed.force s);
+                  samplerate = Some (Deferred.force s);
                   channels = Some n;
                 }
             | _ ->

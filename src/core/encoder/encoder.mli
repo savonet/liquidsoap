@@ -145,6 +145,14 @@ val protect : encoder -> encoder
 (** Return the first available encoder factory for that format. *)
 val get_factory : format -> factory
 
+(** Resolves the deferred values that the format's checks need and runs those
+    checks, raising a positioned error. *)
+val resolve : pos:Pos.t option -> format -> unit
+
+(** Resolves a format given to an output once the script has been evaluated, or
+    at once after that. *)
+val resolve_at_start : pos:Pos.t option -> format -> unit
+
 (** Encoders that can write HLS segments register here. *)
 val hls_plug : (format -> hls_factory option) Plug.t
 

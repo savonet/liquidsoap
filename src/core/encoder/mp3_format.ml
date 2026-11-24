@@ -59,12 +59,15 @@ let string_of_bitrate_control = function
   | ABR c | VBR c -> string_of_bitrate_constraints c
   | CBR br -> Printf.sprintf "bitrate=%d" br
 
+let samplerates = [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
+let valid_samplerate i = List.mem i samplerates
+
 type t = {
   stereo : bool;
   stereo_mode : stereo_mode;
   bitrate_control : bitrate_control;
   internal_quality : int;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   id3v2 : int option;
 }
 
@@ -78,7 +81,7 @@ let to_string m =
   Printf.sprintf "%s(%s,%s,samplerate=%d,id3v2=%s)" name
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
-    (Lazy.Mutexed.force m.samplerate)
+    (Deferred.peek m.samplerate)
     (match m.id3v2 with None -> "none" | Some v -> string_of_int v)
 
 let bitrate m =

@@ -31,7 +31,7 @@ let flac_gen params =
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       channels = 2;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
       bits_per_sample = 16;
       compression = 5;
     }
@@ -45,7 +45,7 @@ let flac_gen params =
       | `Labelled ("channels", Int { value = i; _ }) ->
           { f with Flac_format.channels = i }
       | `Labelled ("samplerate", Int { value = i; _ }) ->
-          { f with Flac_format.samplerate = Lazy.Mutexed.from_val i }
+          { f with Flac_format.samplerate = `Value i }
       | `Labelled ("compression", Int { value = i; pos }) ->
           if i < 0 || i > 8 then
             Lang_encoder.raise_error ~pos "invalid compression value";

@@ -31,7 +31,7 @@ let make params =
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       channels = 2;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
     }
   in
   let wav =
@@ -50,7 +50,7 @@ let make params =
         | `Labelled ("duration", Float { value = d }) ->
             { f with Wav_format.duration = Some d }
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Wav_format.samplerate = Lazy.Mutexed.from_val i }
+            { f with Wav_format.samplerate = `Value i }
         | `Labelled ("samplesize", Int { value = i; pos }) ->
             if i <> 8 && i <> 16 && i <> 24 && i <> 32 then
               Lang_encoder.raise_error ~pos "invalid sample size";

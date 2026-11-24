@@ -28,7 +28,7 @@ let make params =
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       Shine_format.channels = 2;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
       bitrate = 128;
     }
   in
@@ -46,7 +46,7 @@ let make params =
         | `Labelled ("channels", Int { value = i; _ }) ->
             { f with Shine_format.channels = i }
         | `Labelled ("samplerate", Int { value = i; _ }) ->
-            { f with Shine_format.samplerate = Lazy.Mutexed.from_val i }
+            { f with Shine_format.samplerate = `Value i }
         | `Labelled ("bitrate", Int { value = i; _ }) ->
             { f with Shine_format.bitrate = i }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->

@@ -28,7 +28,7 @@ let make params =
       (* We use a hardcoded value in order not to force the evaluation of the
          number of channels too early, see #933. *)
       External_encoder_format.channels = 2;
-      samplerate = Frame.audio_rate;
+      samplerate = `Setting `Audio_rate;
       video = None;
       header = true;
       restart_on_crash = false;
@@ -50,14 +50,11 @@ let make params =
         | `Labelled ("channels", Value.Int { value = c }) ->
             { f with External_encoder_format.channels = c }
         | `Labelled ("samplerate", Value.Int { value = i; _ }) ->
-            {
-              f with
-              External_encoder_format.samplerate = Lazy.Mutexed.from_val i;
-            }
+            { f with External_encoder_format.samplerate = `Value i }
         | `Labelled ("video", Value.Bool { value = b; _ }) ->
             let w, h =
               match f.External_encoder_format.video with
-                | None -> Frame.video_dimensions ()
+                | None -> (`Setting `Video_width, `Setting `Video_height)
                 | Some (w, h) -> (w, h)
             in
             {
@@ -67,18 +64,18 @@ let make params =
         | `Labelled ("width", Int { value = w; _ }) ->
             let _, h =
               match f.External_encoder_format.video with
-                | None -> Frame.video_dimensions ()
+                | None -> (`Setting `Video_width, `Setting `Video_height)
                 | Some (w, h) -> (w, h)
             in
-            let w = Lazy.Mutexed.from_val w in
+            let w = `Value w in
             { f with External_encoder_format.video = Some (w, h) }
         | `Labelled ("height", Int { value = h }) ->
             let w, _ =
               match f.External_encoder_format.video with
-                | None -> Frame.video_dimensions ()
+                | None -> (`Setting `Video_width, `Setting `Video_height)
                 | Some (w, h) -> (w, h)
             in
-            let h = Lazy.Mutexed.from_val h in
+            let h = `Value h in
             { f with External_encoder_format.video = Some (w, h) }
         | `Labelled ("header", Bool { value = h }) ->
             { f with External_encoder_format.header = h }

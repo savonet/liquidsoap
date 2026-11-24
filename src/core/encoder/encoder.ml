@@ -34,6 +34,65 @@ type format =
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
 
+(** Resolves the deferred values a format's checks need and runs those checks.
+    The other deferred values stay unresolved until a writer is built, so that
+    the frame's video size can still be detected from the first decoded file. *)
+let resolve ~pos format =
+  let check_rate ~samplerates = function
+    | `Value _ -> ()
+    | `Setting setting as rate ->
+        let rate = Deferred.force rate in
+        if not (List.mem rate samplerates) then
+          Encoder_types.raise_error ~pos
+            (Printf.sprintf
+               "invalid samplerate value %d, read from %s. Possible values: %s"
+               rate
+               (Deferred.setting_name setting)
+               (String.concat ", " (List.map string_of_int samplerates)))
+  in
+  match format with
+    | MP3 m ->
+        check_rate ~samplerates:Mp3_format.samplerates m.Mp3_format.samplerate
+    | FdkAacEnc m ->
+        check_rate ~samplerates:Fdkaac_format.samplerates
+          m.Fdkaac_format.samplerate
+    | Ogg { Ogg_format.video = Some theora } -> (
+        let known rate = Some (Deferred.force rate) in
+        match Theora_format.picture_error ~known theora with
+          | Some (param, message) ->
+              Encoder_types.raise_error ~pos
+                (Printf.sprintf
+                   "invalid %s value: %s, with the frame's video size %dx%d \
+                    read from settings.frame.video"
+                   param message
+                   (Deferred.force theora.Theora_format.width)
+                   (Deferred.force theora.Theora_format.height))
+          | None -> ())
+    | _ -> ()
+
+(* Formats given to outputs during the script's evaluation, resolved once the
+   script has set its frame settings. *)
+let pending_resolutions = ref []
+let resolutions_done = ref false
+
+(** Resolves [format] at start-up, or now when start-up has passed. *)
+let resolve_at_start ~pos format =
+  if !resolutions_done then resolve ~pos format
+  else pending_resolutions := (pos, format) :: !pending_resolutions
+
+let () =
+  Lifecycle.after_script_parse ~name:"encoder formats resolution" (fun () ->
+      resolutions_done := true;
+      try
+        List.iter
+          (fun (pos, format) -> resolve ~pos format)
+          (List.rev !pending_resolutions);
+        pending_resolutions := []
+      with Runtime_error.Runtime_error _ as exn -> (
+        let bt = Printexc.get_raw_backtrace () in
+        (* A configuration error, reported as the script's own errors are. *)
+        try Runtime.throw ~lexbuf:None ~bt () exn with Runtime.Error -> exit 1))
+
 let audio_type = Encoder_types.audio_type
 let video_format = Encoder_types.video_format
 let audio_video_type = Encoder_types.audio_video_type
@@ -91,7 +150,7 @@ let string_of_format = function
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
-      Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
+      Some (Deferred.force width, Deferred.force height)
   | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.video_size m
   | _ -> None
 

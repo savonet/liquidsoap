@@ -25,7 +25,7 @@ type mode = Narrowband | Wideband | Ultra_wideband
 
 type t = {
   bitrate_control : bitrate_control;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   stereo : bool;
   mode : mode;
   frames_per_packet : int;
@@ -55,7 +55,7 @@ let to_string m =
     "%%speex(%s,%s,samplerate=%d,mode=%S,frames_per_packet=%d%s,dtx=%B,vad=%B)"
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_br_ctl m.bitrate_control)
-    (Lazy.Mutexed.force m.samplerate)
+    (Deferred.peek m.samplerate)
     (string_of_mode m.mode) m.frames_per_packet
     (string_of_complexity m.complexity)
     m.dtx m.vad

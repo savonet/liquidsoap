@@ -178,8 +178,10 @@ let rec send_loop ~(log : Log.t) stream =
 
 class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
   ~infallible ~register_telnet ~autostart source_val =
+  let format = Lang.to_format format_val in
+  let () = Encoder.resolve_at_start ~pos:(Value.pos format_val) format in
   let factory =
-    match Encoder.get_factory (Lang.to_format format_val) with
+    match Encoder.get_factory format with
       | factory -> factory ~pos:(Value.pos format_val)
       | exception Not_found ->
           raise

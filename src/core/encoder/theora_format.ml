@@ -25,10 +25,10 @@ type bitrate_control = Quality of int | Bitrate of int
 type t = {
   (* TODO: framerate ! *)
   bitrate_control : bitrate_control;
-  width : int Lazy.Mutexed.t;
-  height : int Lazy.Mutexed.t;
-  picture_width : int Lazy.Mutexed.t;
-  picture_height : int Lazy.Mutexed.t;
+  width : Deferred.t;
+  height : Deferred.t;
+  picture_width : Deferred.t;
+  picture_height : Deferred.t;
   picture_x : int;
   picture_y : int;
   aspect_numerator : int;
@@ -40,6 +40,39 @@ type t = {
   speed : int option;
   fill : int option;
 }
+
+(** The first picture constraint of the Theora header [th] breaks, as
+    [(parameter, message)]. [known] gives a deferred value, or [None] when it is
+    unknown yet: a constraint that needs one is skipped. The constraints are
+    libtheora's: [pic_x <= min(width - pic_width, 255)],
+    [pic_y <= height - pic_height] and [height - pic_height - pic_y <= 255]. *)
+let picture_error ~known th =
+  (* Equal deferred values cancel without being known. *)
+  let diff a b =
+    if a = b then Some 0
+    else (
+      match (known a, known b) with Some a, Some b -> Some (a - b) | _ -> None)
+  in
+  let breaks constr = function Some v -> not (constr v) | None -> false in
+  let margin_x = diff th.width th.picture_width in
+  let margin_y = diff th.height th.picture_height in
+  if breaks (fun m -> m >= 0) margin_x then
+    Some ("picture_width", "picture width must not be larger than width")
+  else if breaks (fun m -> m >= 0) margin_y then
+    Some ("picture_height", "picture height must not be larger than height")
+  else if breaks (fun m -> th.picture_x <= min m 255) margin_x then
+    Some
+      ( "picture_x",
+        "picture x must not be larger than width - picture width or 255, \
+         whichever is smaller" )
+  else if breaks (fun m -> th.picture_y <= m) margin_y then
+    Some
+      ("picture_y", "picture y must not be larger than height - picture height")
+  else if breaks (fun m -> m - th.picture_y <= 255) margin_y then
+    Some
+      ( "picture_y",
+        "height - picture height - picture y must not be larger than 255" )
+  else None
 
 let bit_ctl_to_string bit_ctl =
   match bit_ctl with
@@ -53,7 +86,7 @@ let print_some_int v x =
   match x with None -> "" | Some x -> Printf.sprintf "%s=%i" v x
 
 let to_string th =
-  let f = Lazy.Mutexed.force in
+  let f = Deferred.peek in
   Printf.sprintf "%%theora(%s)"
     (String.concat ","
        (List.filter

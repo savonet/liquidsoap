@@ -485,6 +485,8 @@ class ffmpeg_file_output ?clock ~format_val ~format p =
 
 let new_file_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
+  Encoder.resolve_at_start ~pos:(Value.pos format_val)
+    (Lang.to_format format_val);
   match Lang.to_format format_val with
     | Encoder.Ffmpeg format ->
         (new ffmpeg_file_output ?clock ~format_val ~format p :> piped_output)
@@ -502,6 +504,10 @@ let output_file =
 
 class external_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
+  let () =
+    Encoder.resolve_at_start ~pos:(Value.pos format_val)
+      (Lang.to_format format_val)
+  in
   let process = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)

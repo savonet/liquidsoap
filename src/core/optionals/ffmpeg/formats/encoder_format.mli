@@ -46,7 +46,7 @@ type audio = {
   pcm_kind : pcm_kind;
   channels : int;
   channel_layout : string option;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   sample_format : string option;
   written : [ `Channels | `Samplerate ] list;
 }
@@ -61,8 +61,8 @@ type video = {
   raw_key_frame_interval : float option;
       (** Seconds between key frames of a raw track with no [framerate], set by
           the HLS output: sized in frames once the source's rate is known. *)
-  width : int Lazy.Mutexed.t;
-  height : int Lazy.Mutexed.t;
+  width : Deferred.t;
+  height : Deferred.t;
   pixel_format : string option;
   alpha : bool;
   hwaccel : hwaccel;
