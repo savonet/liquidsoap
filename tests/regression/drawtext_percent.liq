@@ -33,25 +33,22 @@ s.on_frame(synchronous=true, on_frame)
 clock.assign_new(sync="none", [s])
 
 def on_close(filename) =
-  info =
-    json.parse(
-      default=[("streams", [[("nb_read_packets", "0")]])],
-      test.ffprobe(count_packets=true, filename)
-    )
+  let json.parse (info :
+    {streams: [{codec_type: string?, nb_read_packets: string?}]}
+  ) = test.ffprobe(count_packets=true, filename)
 
-  streams = list.assoc(default=[], "streams", info)
   decoded =
     list.fold(
       fun (n, stream) ->
         if
-          list.assoc(default="", "codec_type", stream) == "video"
+          stream.codec_type == "video"
         then
-          n + int_of_string(list.assoc(default="0", "nb_read_packets", stream))
+          n + int_of_string(stream.nb_read_packets ?? "0")
         else
           n
         end,
       0,
-      streams
+      info.streams
     )
 
   print(
