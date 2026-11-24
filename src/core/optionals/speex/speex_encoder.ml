@@ -20,7 +20,6 @@
 
  *****************************************************************************)
 
-exception Internal
 exception Invalid_settings of string
 
 let create speex ~metadata () =
@@ -74,75 +73,53 @@ let create speex ~metadata () =
     Ogg.Stream.put_packet os p2;
     Ogg_muxer.flush_pages os
   in
-  let remaining_init = if channels > 1 then [| [||]; [||] |] else [| [||] |] in
-  let remaining = ref remaining_init in
-  let data_encoder data os add_page =
-    let b, ofs, len =
-      (data.Ogg_muxer.data, data.Ogg_muxer.offset, data.Ogg_muxer.length)
-    in
-    let buf = Array.map (fun x -> Array.sub x ofs len) b in
+  let packet_length = frame_size * frames_per_packet in
+  let to_int x = max (-32768) (min 32767 (int_of_float (32767. *. x))) in
+  (* Between calls, 1 to [packet_length] samples are pending so that the
+     stream's end always has a last packet to flag. *)
+  let pending = ref (Array.make channels [||]) in
+  let input_samples = ref 0 in
+  let encode_packet ?eos ~granulepos os samples =
+    Speex.Encoder.encode_packet_int ?eos ~granulepos enc os
+      (Array.map (Array.map to_int) samples)
+  in
+  let data_encoder data os _ =
+    let { Ogg_muxer.data; offset; length } = data in
+    input_samples := !input_samples + length;
     let buf =
-      if channels > 1 then
-        [|
-          Array.append !remaining.(0) buf.(0);
-          Array.append !remaining.(1) buf.(1);
-        |]
-      else [| Array.append !remaining.(0) buf.(0) |]
+      Array.mapi
+        (fun c pending ->
+          Array.append pending (Array.sub data.(c) offset length))
+        !pending
     in
-    let len = Array.length buf.(0) in
-    let status = ref 0 in
-    let feed () =
-      let n = !status in
-      if (frame_size * n) + frame_size < len then (
-        status := n + 1;
-
-        (* Speex float API are values in - 32768. <= x <= 32767. ..
-           I don't really trust this, it must be a bug,
-           so using the int API. *)
-        let f x =
-          let x = int_of_float x in
-          max (-32768) (min 32767 x)
-        in
-        let f x = Array.map (fun x -> f (32767. *. x)) x in
-        if channels > 1 then
-          [|
-            f (Array.sub buf.(0) (frame_size * n) frame_size);
-            f (Array.sub buf.(1) (frame_size * n) frame_size);
-          |]
-        else [| f (Array.sub buf.(0) (frame_size * n) frame_size) |])
-      else raise Internal
-    in
-    try
-      while true do
-        let page =
-          if channels > 1 then Speex.Encoder.encode_page_int_stereo enc os feed
-          else (
-            let feed () =
-              let x = feed () in
-              x.(0)
-            in
-            Speex.Encoder.encode_page_int enc os feed)
-        in
-        add_page page
-      done
-    with Internal ->
-      let n = !status in
-      remaining :=
-        if frame_size * n < len then
-          if channels > 1 then
-            [|
-              Array.sub buf.(0) (frame_size * n) (len - (frame_size * n));
-              Array.sub buf.(1) (frame_size * n) (len - (frame_size * n));
-            |]
-          else [| Array.sub buf.(0) (frame_size * n) (len - (frame_size * n)) |]
-        else remaining_init
+    let available = Array.length buf.(0) in
+    let packets = (available - 1) / packet_length in
+    for n = 0 to packets - 1 do
+      let consumed = (n + 1) * packet_length in
+      encode_packet
+        ~granulepos:(Int64.of_int (!input_samples - available + consumed))
+        os
+        (Array.map (fun x -> Array.sub x (n * packet_length) packet_length) buf)
+    done;
+    let consumed = packets * packet_length in
+    pending :=
+      Array.map (fun x -> Array.sub x consumed (available - consumed)) buf
   in
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then Ogg_muxer.Unknown
     else Ogg_muxer.Time (Int64.to_float granulepos /. float rate)
   in
-  let end_of_stream os = Ogg.Stream.terminate os in
+  let end_of_stream os =
+    let samples =
+      Array.map
+        (fun x ->
+          Array.append x (Array.make (packet_length - Array.length x) 0.))
+        !pending
+    in
+    encode_packet ~eos:true ~granulepos:(Int64.of_int !input_samples) os samples;
+    Ogg_muxer.flush_pages os
+  in
   {
     Ogg_muxer.header_encoder;
     fisbone_packet;

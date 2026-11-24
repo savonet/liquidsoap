@@ -1,15 +1,15 @@
 %include "../test.liq"
 
 # Native Ogg streams must end on the page holding their last packet, with the
-# end-of-stream flag and the granule position of the input's end. %opus and
-# %theora appended an empty page at granule position + 1 instead. %opus also
-# dropped the input left over from its last whole frame and the encoder's
-# lookahead, and with DTX dropped packets without their duration, so the
-# granule position lagged behind the media.
+# end-of-stream flag and the granule position of the input's end. %opus,
+# %theora and %speex appended an empty page at granule position + 1 instead.
+# %opus and %speex also dropped the input left over from their last whole
+# frame or packet, and %opus with DTX dropped packets without their duration,
+# so the granule position lagged behind the media.
 
 settings.frame.audio.samplerate := 48000
 
-pending = ref(3)
+pending = ref(4)
 
 def done() =
   pending := pending() - 1
@@ -48,6 +48,11 @@ end
 def opus_end(data) =
   let [head, ..._] = r/OpusHead/.split(data)
   bytes(data, string.bytes.length(head) + 10, 2) + 96000
+end
+
+# 2 seconds of audio at 48kHz.
+def speex_end(_) =
+  96000
 end
 
 # 2 seconds of video at 25fps, with libtheora's default granule shift: the
@@ -95,3 +100,9 @@ run(
   once(blank(duration=2.))
 )
 run("theora", %ogg(%theora), theora_end, once(video.fill(blank(duration=2.))))
+run(
+  "speex",
+  %ogg(%speex(samplerate = 48000, frames_per_packet = 2)),
+  speex_end,
+  once(sine(duration=2.))
+)

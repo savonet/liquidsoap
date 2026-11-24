@@ -246,6 +246,16 @@ module Encoder = struct
     encode_page_int_main e 2 s f
 
   external eos : t -> Ogg.Stream.stream -> unit = "ocaml_speex_encoder_eos"
+
+  external encode_packet_int :
+    t -> int -> Ogg.Stream.stream -> int array -> Int64.t -> bool -> unit
+    = "ocaml_speex_encode_packet_int_byte" "ocaml_speex_encode_packet_int"
+
+  let encode_packet_int ?(eos = false) ~granulepos e s samples =
+    match samples with
+      | [| mono |] -> encode_packet_int e 1 s mono granulepos eos
+      | [| _; _ |] -> encode_packet_int e 2 s (merge samples) granulepos eos
+      | _ -> invalid_arg "Speex.Encoder.encode_packet_int"
 end
 
 module Decoder = struct

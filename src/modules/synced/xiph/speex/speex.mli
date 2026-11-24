@@ -172,6 +172,18 @@ module Encoder : sig
   val encode_page_int_stereo :
     t -> Ogg.Stream.stream -> (unit -> int array array) -> Ogg.Page.t
 
+  (** [encode_packet_int ~granulepos encoder stream samples] encodes one packet
+      of [frames_per_packet] frames, one array per channel (1 or 2), and submits
+      it into [stream] with the given granule position. [eos] flags it as the
+      last packet of the stream. *)
+  val encode_packet_int :
+    ?eos:bool ->
+    granulepos:Int64.t ->
+    t ->
+    Ogg.Stream.stream ->
+    int array array ->
+    unit
+
   (** Set the end of stream for this stream. *)
   val eos : t -> Ogg.Stream.stream -> unit
   [@@alert
