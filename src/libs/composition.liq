@@ -144,6 +144,8 @@ def source.composition.default_on_select(
 
         (
           source.dynamic(
+            # `next` tests the mix, which is never ready before it is awake.
+            init=mix,
             track_sensitive=true,
             merge={handing_over.exchange(false)},
             next
