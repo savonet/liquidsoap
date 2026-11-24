@@ -112,7 +112,9 @@ plays.
 
 The fade only applies when the leaving source carries **PCM audio and nothing
 else**. Video streams and encoded audio (`ffmpeg.copy`) cannot be mixed, so
-those switch immediately instead.
+those switch immediately instead. So do two sources that each control their own
+latency, such as a soundcard input and `input.srt`: fading means reading both at
+once, which a clock cannot do.
 
 This is the general rule for interruptions:
 
