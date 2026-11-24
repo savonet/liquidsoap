@@ -143,13 +143,13 @@ row(
 )
 play(s2)
 
-# Live to file: the file source cuts in at 0.3 s. At 0.5 s it is not asked for
-# any more and the live source cuts back in. It was not aborted: the track is
-# `l1` again.
+# Live to file: the file source cuts in at 0.3 s. At 1.5 s, once the live
+# source has faded out, it is not asked for any more and the live source cuts
+# back in. It was not aborted: the track is `l1` again.
 due = ref(false)
 s3 =
   switch(
-    [(due, numbered(duration=0.4, "a")), ({true}, live(duration=10., "l"))]
+    [(due, numbered(duration=10., "a")), ({true}, live(duration=10., "l"))]
   )
 row(
   label="live to file",
@@ -157,7 +157,7 @@ row(
   script=fun (frames) ->
     begin
       if frames == 15 then due := true end
-      if frames == 25 then due := false end
+      if frames == 75 then due := false end
     end,
   check=fun (starts) ->
     if
@@ -165,9 +165,9 @@ row(
     then
       "the second track should be a1 at 0.3 s"
     elsif
-      title(starts, 2) != "l1" or not near(time(starts, 2), 0.5)
+      title(starts, 2) != "l1" or not near(time(starts, 2), 1.5)
     then
-      "the third track should be l1 again at 0.5 s"
+      "the third track should be l1 again at 1.5 s"
     else
       null
     end,

@@ -44,7 +44,8 @@ radio.on_metadata(
       elsif
         m["title"] == "program"
       then
-        thread.run(delay=0.5, check)
+        # The track is skipped once its fade out is over.
+        thread.run(delay=settings.source.composition.max_fade() + 0.5, check)
       end
     end
 )

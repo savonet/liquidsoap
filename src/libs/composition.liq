@@ -19,7 +19,8 @@ let settings.source.composition.max_fade =
 # Default on_select for both file and live composition profiles. When `ending`
 # is non-null (the ending source was preempted mid-track) and has only PCM audio
 # content: the starting source plays right away and the ending one is mixed
-# underneath it. If the ending source has at most
+# underneath it, unless both control their own latency: they cannot be read
+# together, so the switch is immediate. If the ending source has at most
 # `settings.source.composition.max_fade` seconds remaining, it finishes
 # naturally; otherwise it fades out over `max_fade` seconds. Any other content
 # switches immediately: the body is typed for PCM audio, and the runtime type checks
@@ -32,6 +33,7 @@ def source.composition.default_on_select(
   )
 ) =
   let {id, insert_metadata, last_metadata} = source.methods(starting)
+  starting_self_sync = source.methods(starting).self_sync
 
   # starting can be an active source to insert metadata when the
   # source is about to be used.
@@ -75,10 +77,13 @@ def source.composition.default_on_select(
         ) ==
           ["audio"]
 
+      both_self_sync =
+        starting_self_sync() and source.methods(leaving).self_sync()
+
       max_fade = settings.source.composition.max_fade()
       rem = source.remaining(leaving)
       if
-        not has_pcm_audio
+        not has_pcm_audio or both_self_sync
       then
         starting()
       else
