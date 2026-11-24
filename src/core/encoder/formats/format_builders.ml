@@ -37,5 +37,69 @@ let raise_generic_error = function
 let builders : (string * (Hooks.encoder_params -> Format_value.t)) list ref =
   ref []
 
-let register name build = builders := (name, build) :: !builders
 let find name = List.assoc name !builders
+
+(** Registers a builder whose format is typed some other way. *)
+let register_builder name build = builders := (name, build) :: !builders
+
+(* Parameters that decide the format's type: they must be literals. *)
+let type_deciding = ["stereo"; "mono"; "channels"; "video"]
+
+let literal_value (tm : Term.t) =
+  let pos = tm.Term.t.Type.pos in
+  match tm.Term.term with
+    | `Int i -> Some (Value.make ?pos (`Int i))
+    | `Float f -> Some (Value.make ?pos (`Float f))
+    | `Bool b -> Some (Value.make ?pos (`Bool b))
+    | `String s -> Some (Value.make ?pos (`String s))
+    | _ -> None
+
+(* The parameters given as literals, as the builder reads them, and whether
+   any was left out. *)
+let rec literal_params (params : Term.encoder_params) =
+  List.fold_right
+    (fun param (literals, complete) ->
+      match param with
+        | `Anonymous s -> (`Anonymous s :: literals, complete)
+        | `Encoder (name, params) ->
+            let params, sub_complete = literal_params params in
+            (`Encoder (name, params) :: literals, complete && sub_complete)
+        | `Labelled (label, tm) -> (
+            match literal_value tm with
+              | Some v -> (`Labelled (label, v) :: literals, complete)
+              | None when List.mem label type_deciding ->
+                  raise_error ~pos:tm.Term.t.Type.pos
+                    (Printf.sprintf
+                       "Invalid value %s for %s. Only literal values are \
+                        allowed."
+                       (Term.to_string tm) label)
+              | None -> (literals, false)))
+    params ([], true)
+
+let rec type_deciding_params params =
+  List.filter_map
+    (function
+      | `Labelled (label, _) when not (List.mem label type_deciding) -> None
+      | `Encoder (name, params) ->
+          Some (`Encoder (name, type_deciding_params params))
+      | param -> Some param)
+    params
+
+(* The type is the built format's: the builder is the one reading of the
+   parameters. A literal the builder refuses fails type checking. When computed
+   parameters were left out, a refusal may come from a default standing in for
+   one of them, and the type is taken from the type-deciding parameters. *)
+let type_of_params build params =
+  Encoder_types.reject_pcm_kind_params params;
+  let literals, complete = literal_params params in
+  let format =
+    try build literals
+    with Runtime_error.Runtime_error _ when not complete ->
+      build (type_deciding_params literals)
+  in
+  Format_value.type_of_format ~pos:None format
+
+(** Registers the builder of a format name, which also types it. *)
+let register name build =
+  register_builder name build;
+  Encoder_types.register name (type_of_params build)

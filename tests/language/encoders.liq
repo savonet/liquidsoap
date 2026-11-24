@@ -16,7 +16,9 @@ def f() =
     "-- invalid wav samplesize"
   )
   try
-    enc = %wav(samplesize = 123456)
+    # A literal would fail type checking.
+    samplesize = int_of_string("123456")
+    enc = %wav(samplesize = samplesize)
   catch err do
     if
       err.kind != "encoder"
@@ -180,6 +182,13 @@ def f() =
     ),
     true
   )
+%endif
+%ifencoder %mp3
+  # The type is the built format's: the last channel parameter wins.
+  def last_wins(s) =
+    if false then output.file(%mp3(mono, stereo = true), "", s) end
+  end
+  last_wins((sine() : source(audio=pcm(stereo))))
 %endif
 %ifencoder %mp3
   # id3v2 is adaptable: printed and compared only when set explicitly.

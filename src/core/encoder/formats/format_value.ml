@@ -44,3 +44,48 @@ let to_string = function
   | Ffmpeg w -> Liquidsoap_ffmpeg_formats.Encoder_format.to_string w
   | FdkAacEnc w -> Fdkaac_format.to_string w
   | External w -> External_encoder_format.to_string w
+
+(** The frame type a format value encodes. *)
+let type_of_format ~pos f =
+  let audio_type = Encoder_types.audio_type ~pcm_kind:Audio_format.kind in
+  let audio_video_type =
+    Encoder_types.audio_video_type ~pcm_kind:Audio_format.kind
+  in
+  let video_type = Encoder_types.video_type in
+  match f with
+    | WAV w -> audio_type w.Wav_format.channels
+    | AVI a -> audio_video_type a.Avi_format.channels
+    | MP3 m -> audio_type (if m.Mp3_format.stereo then 2 else 1)
+    | Shine m -> audio_type m.Shine_format.channels
+    | NDI { audio = false; video = false } -> assert false
+    | NDI { audio = true; video = false } ->
+        audio_type (!Audio_format.channels ())
+    | NDI { audio = true; video = true } ->
+        audio_video_type (!Audio_format.channels ())
+    | NDI { audio = false; video = true } -> video_type ()
+    | Flac m -> audio_type m.Flac_format.channels
+    | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.type_of_format m
+    | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
+    | Ogg { Ogg_format.audio; video } -> (
+        let channels =
+          match audio with
+            | Some (Ogg_format.Vorbis { Vorbis_format.channels = n; _ })
+            | Some (Ogg_format.Opus { Opus_format.channels = n; _ })
+            | Some (Ogg_format.Flac { Flac_format.channels = n; _ }) ->
+                Some n
+            | Some (Ogg_format.Speex { Speex_format.stereo; _ }) ->
+                Some (if stereo then 2 else 1)
+            | None -> None
+        in
+        match (channels, video) with
+          | None, None ->
+              Encoder_types.raise_error ~pos
+                "%ogg needs a vorbis, opus, speex, flac or theora stream"
+          | None, Some _ -> video_type ()
+          | Some n, Some _ -> audio_video_type n
+          | Some n, None -> audio_type n)
+    | External e ->
+        let channels = e.External_encoder_format.channels in
+        if e.External_encoder_format.video <> None then
+          audio_video_type channels
+        else audio_type channels

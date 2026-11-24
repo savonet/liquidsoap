@@ -45,7 +45,7 @@ end
 
 let raise_error = Format_builders.raise_error
 let raise_generic_error = Format_builders.raise_generic_error
-let register = Format_builders.register
+let register = Format_builders.register_builder
 
 let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
