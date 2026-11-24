@@ -259,10 +259,10 @@ where units are cut, and which markers it places.
    happened to flush it, is empty or misplaced. The header write is the one
    moment at which the muxer's header is complete and nothing else has been
    written. One exception: on a `segmented(D)` sink with the ISO family's
-   default `delay_moov`, the muxer writes its movie box with the first
-   fragment, so `header_length` ends at the first `styp`, `sidx` or `moof`
-   box, found by scanning the boxes written. Reason: `delay_moov` is kept
-   there because copied and primed streams need their first packet's
+   default `delay_moov`, the muxer writes its movie box just before the
+   first fragment; the header is then the bytes the muxer marks as header
+   data (item 4), never found by scanning boxes. Reason: `delay_moov` is
+   kept there because copied and primed streams need their first packet's
    parameters in the movie box.
 2. **Entry header.** For the streamable configurations of §2, the bytes of
    the header write are the whole entry header: the EBML header, segment
@@ -271,11 +271,15 @@ where units are cut, and which markers it places.
    `fLaC` and its metadata blocks; nothing for `mp3` without preamble,
    `adts`, `ac3`, `eac3` and `mpegts`. A preamble (§6) follows the stream
    start and is not part of the header.
-3. **Cutting units.** The writer makes the muxer end its current unit where
-   an access point must begin:
-   - Matroska and the fragmented ISO family: before every key packet of a
-     video stream, and before the next packet once the unit holds
-     `fragment_duration` of media (§11);
+3. **Cutting units.** Units end where an access point must begin:
+   - Matroska and WebM cut their own clusters: at a video key packet, and
+     once a cluster holds `cluster_time_limit` of media, which the writer
+     sets to `fragment_duration` (§11) unless the script sets it. The
+     writer forces no cut;
+   - the fragmented ISO family: the writer makes the muxer end its fragment
+     before every key packet of a video stream, and before the next packet
+     once the fragment holds `fragment_duration` of media (§11), through
+     the muxer's custom-fragment mode;
    - `mpegts`: the muxer writes its tables (PAT and PMT) again before the
      next key packet of every video stream, and, for audio only, before the
      next packet once `ts_table_interval` has elapsed since the last tables.
@@ -296,14 +300,24 @@ where units are cut, and which markers it places.
    | `wav`, `flac`                         | each packet's first byte                                                                                                                                                                 |
    | another muxer, with `streamable=true` | the start of the write holding each key packet of every video stream, or, audio only, each packet, the I/O being flushed before it; the claim that a reader starts there is the script's |
 
-   Each unit reaches the sink in writes of its own: the writer flushes the
-   I/O after every packet for the frame muxers (`mp3`, `adts`, `ac3`,
-   `eac3`, `wav`, `flac`) and for Ogg, whose muxer hands the I/O whole
-   pages only, and after every cut of item 3 ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 4).
-   It finds the positions from what it asked the muxer to do (a packet, a
-   cut, a table rewrite), never by reading the bytes it writes. `t` is the media time of the first media after the
-   position, from the packets' timestamps
-   ([timestamps.md](../../optionals/ffmpeg/spec/timestamps.md)).
+   Each unit reaches the sink in writes of its own
+   ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 4). The
+   writer takes positions from the muxer, never from the bytes:
+   - muxers that mark their output (Matroska and WebM, the ISO family,
+     FLV, ASF, MXF, MPEG-PS) report each block of bytes with its type
+     through the I/O's data-type callback: header data, a sync point (a
+     cluster or fragment that starts at a key frame, or any unit of an
+     audio-only stream), a boundary point, trailer data. The writer turns
+     header data into the stream start and its length, and each sync point
+     into an access point at its time; the muxer cuts its own units
+     (Matroska at video key frames and per `cluster_time_limit`, fragmented
+     ISO per item 3);
+   - for the others, the writer flushes the I/O after every packet for the
+     frame muxers (`mp3`, `adts`, `ac3`, `eac3`, `wav`, `flac`) and for Ogg,
+     whose muxer hands the I/O whole pages only, and after every table
+     repetition of item 3 for `mpegts`. `t` is the media time of the first media after the
+     position, from the packets' timestamps
+     ([timestamps.md](../../optionals/ffmpeg/spec/timestamps.md)).
 
 5. **Further streams.** A container restart at a copy source switch
    ([FE §13](../../optionals/ffmpeg/spec/encoder.md#13-container-restart))
@@ -440,12 +454,12 @@ produced before the fault that led to it are already in the sink (§3.2).
 
 What holds encoded data, besides the codecs' own look-ahead:
 
-| Stage                              | Bound                                                               |
-| ---------------------------------- | ------------------------------------------------------------------- |
-| the I/O buffer                     | nothing held: written into the sink at the end of every call (§3.2) |
-| the interleaving queue             | `max_interleave_delta`, at most `L` on a `live(L)` sink (§2)        |
-| an Ogg page being filled           | `page_duration`, at most `L` on a `live(L)` sink (§2)               |
-| a fragment or cluster being filled | cut by the writer at most every `fragment_duration` (§5)            |
+| Stage                              | Bound                                                                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| the I/O buffer                     | nothing held: written into the sink at the end of every call (§3.2)                                                         |
+| the interleaving queue             | `max_interleave_delta`, at most `L` on a `live(L)` sink (§2)                                                                |
+| an Ogg page being filled           | `page_duration`, at most `L` on a `live(L)` sink (§2)                                                                       |
+| a fragment or cluster being filled | cut at most every `fragment_duration` (§5): by the writer for a fragment, by the muxer's `cluster_time_limit` for a cluster |
 
 | Parameter           | Recommended                              | Protects                                                                                      |
 | ------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
