@@ -266,7 +266,7 @@ rule 1 is bounded even for a sparse stream (a still image).
   at least every `keyframe_frequency` images, so a link with video has an
   access point at least once per key-frame interval; a link without video
   has one at least once per `max_page_duration`
-  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 5).
+  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 6).
 - `end` follows the final page of the last link (§9).
 
 ## 6. Header forms and preambles

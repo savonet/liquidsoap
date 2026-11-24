@@ -286,20 +286,22 @@ where units are cut, and which markers it places.
 
 4. **Access points.** The writer marks `access_point(t)` at:
 
-   | Muxer                                 | Access point                                                                                                                                                                                                        |
-   | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-   | `mp3`, `adts`, `ac3`, `eac3`          | each frame                                                                                                                                                                                                          |
-   | `mpegts`                              | the tables written by item 3, when every stream's next packet is a key packet                                                                                                                                       |
-   | Ogg muxers                            | each page that begins a packet                                                                                                                                                                                      |
-   | Matroska                              | each cluster whose first block in every video stream is a key frame                                                                                                                                                 |
-   | fragmented ISO family                 | each fragment that begins with a key frame in every video stream                                                                                                                                                    |
-   | `wav`, `flac`                         | each packet's first byte                                                                                                                                                                                            |
-   | another muxer, with `streamable=true` | the first byte the muxer writes for each key packet of every video stream, or, audio only, for each packet, where the writer can locate it from the I/O calls; the claim that a reader starts there is the script's |
+   | Muxer                                 | Access point                                                                                                                                                                             |
+   | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `mp3`, `adts`, `ac3`, `eac3`          | each frame                                                                                                                                                                               |
+   | `mpegts`                              | the tables written by item 3, when every stream's next packet is a key packet                                                                                                            |
+   | Ogg muxers                            | each page that begins a packet                                                                                                                                                           |
+   | Matroska                              | each cluster whose first block in every video stream is a key frame                                                                                                                      |
+   | fragmented ISO family                 | each fragment that begins with a key frame in every video stream                                                                                                                         |
+   | `wav`, `flac`                         | each packet's first byte                                                                                                                                                                 |
+   | another muxer, with `streamable=true` | the start of the write holding each key packet of every video stream, or, audio only, each packet, the I/O being flushed before it; the claim that a reader starts there is the script's |
 
-   The writer finds these positions from what it asked the muxer to do (a
-   cut, a table rewrite), or by reading the framing of the bytes it writes
-   (frame sync words, Ogg capture patterns, box and element identifiers);
-   it MAY do either. `t` is the media time of the first media after the
+   Each unit reaches the sink in writes of its own: the writer flushes the
+   I/O after every packet for the frame muxers (`mp3`, `adts`, `ac3`,
+   `eac3`, `wav`, `flac`) and for Ogg, whose muxer hands the I/O whole
+   pages only, and after every cut of item 3 ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 4).
+   It finds the positions from what it asked the muxer to do (a packet, a
+   cut, a table rewrite), never by reading the bytes it writes. `t` is the media time of the first media after the
    position, from the packets' timestamps
    ([timestamps.md](../../optionals/ffmpeg/spec/timestamps.md)).
 

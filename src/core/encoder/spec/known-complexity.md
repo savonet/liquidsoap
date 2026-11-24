@@ -260,7 +260,7 @@ SRT known-complexity files.
 - **Rule** — The live query is gone. A writer marks where each stream
   starts, with its header's length, and its access points, and writes a
   stream start with the header's bytes, never before them
-  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), items 1–4). The
+  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), items 1–5). The
   shared stream records a copy of each header once its bytes are appended
   and serves every reader the entry header of the start it chose, never
   asking the writer

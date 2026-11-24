@@ -220,7 +220,7 @@ marker sits between two bytes: it refers to the byte that follows it.
 
 | Marker                           | Meaning                                                                                                                                                                                                                               |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stream_start(header_length, t)` | A stream starts at the next byte. Its header is the `header_length` bytes that follow (0 for a format without header), or `unknown` for a writer that cannot know it (item 8). `t` is the media time of the first media that follows. |
+| `stream_start(header_length, t)` | A stream starts at the next byte. Its header is the `header_length` bytes that follow (0 for a format without header), or `unknown` for a writer that cannot know it (item 9). `t` is the media time of the first media that follows. |
 | `access_point(t)`                | The next byte is an access point of the current stream. `t` is the media time of the first media that follows.                                                                                                                        |
 | `end`                            | The writer has written its last byte.                                                                                                                                                                                                 |
 
@@ -233,27 +233,38 @@ marker sits between two bytes: it refers to the byte that follows it.
    header the writer learns only from its codec's first packet (a codec with
    a delay) therefore delimits its stream like any other, and no access
    point is ever marked before the header it needs.
-4. A writer marks every access point it can identify at the boundaries of
-   the units it writes: an Ogg page that begins a packet, an MPEG audio
-   frame, an ADTS or LOAS frame, a WAV sample block, an MPEG-TS table
-   repetition before key access units, a Matroska cluster that starts at a
-   key frame, a movie fragment that starts at a key frame. No access point
-   lies inside a header or inside a unit. A writer whose codec library
-   hands it whole frames on each call (the MPEG audio writers) marks one
-   access point at the start of each call's output that holds bytes, and
-   does not parse frames to find more.
-5. A streamable configuration marks access points in every stream it
-   writes, at least one per unit that can begin one, within a bounded
-   interval of media time: one per key-frame interval of its video, and for
+4. **Whole units.** Every write a writer makes into its sink holds whole
+   units and ends on a unit boundary: the header, MPEG audio frames, ADTS
+   or LOAS frames, Ogg pages, WAV sample blocks, MPEG-TS packets up to a
+   table repetition, Matroska clusters, movie fragments. A writer never
+   writes part of a unit and completes it in a later write. Markers
+   therefore sit only between writes. A writer knows where its units end
+   from the calls that produce them (an encode call that returns whole
+   frames, a page out, a muxer cut followed by an I/O flush), never by
+   parsing the bytes it writes; no sink parses them either. The one
+   exception is a writer whose bytes come from a process it does not parse
+   (`%external`, item 9): it writes them as they come. Reason: a sink can
+   then add a reader, cut a segment or append more bytes at any marker
+   without reading where the stream is.
+5. A writer marks an access point at the start of each write that begins
+   with one: an Ogg page that begins a packet, an MPEG audio, ADTS or LOAS
+   frame, a WAV sample block, an MPEG-TS table repetition before key access
+   units, a Matroska cluster or movie fragment that starts at a key frame.
+   A write that holds several units gets one access point, at its start: a
+   writer whose codec hands it several frames in one call (the MPEG audio
+   and AAC writers) marks the start of that call's output, and does not
+   split it to mark more.
+6. A streamable configuration marks access points in every stream it
+   writes, within a bounded interval of media time: one per key-frame interval of its video, and for
    audio one per unit, the unit being bounded by the writer's own parameter
    (`max_page_duration` for Ogg, `fragment_duration` for fragmented and
    Matroska containers, `ts_table_interval` for MPEG-TS; each
    implementation file names its bound). A configuration that is not
    streamable MAY mark none.
-6. Media times of successive stream starts and access points do not
+7. Media times of successive stream starts and access points do not
    decrease within a stream.
-7. `end` is the last item, after the final bytes of §3.6.
-8. `header_length` is `unknown` only for a writer whose bytes come from a
+8. `end` is the last item, after the final bytes of §3.6.
+9. `header_length` is `unknown` only for a writer whose bytes come from a
    process it does not parse (`%external`). A sink that needs the header (a
    shared stream) takes the entry header of such a stream to be empty; only
    a configuration the script declared streamable (§5.3) reaches such a

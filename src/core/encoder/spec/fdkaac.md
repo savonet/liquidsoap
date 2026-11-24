@@ -116,11 +116,11 @@ The default transport is never ADIF, so nothing is adapted.
 
 ## 5. Bytes and markers
 
-| Transport | Bytes                                                                  | Header | Access points           |
-| --------- | ---------------------------------------------------------------------- | ------ | ----------------------- |
-| ADTS      | (7-byte ADTS header, one raw data block) × n                           | empty  | before every ADTS frame |
-| LOAS      | (start code `0x2B7`, length, AudioMuxElement with StreamMuxConfig) × n | empty  | before every LOAS frame |
-| ADIF      | ADIF header, then raw data blocks                                      | empty  | the stream start only   |
+| Transport | Bytes                                                                  | Header | Access points              |
+| --------- | ---------------------------------------------------------------------- | ------ | -------------------------- |
+| ADTS      | (7-byte ADTS header, one raw data block) × n                           | empty  | at the start of each write |
+| LOAS      | (start code `0x2B7`, length, AudioMuxElement with StreamMuxConfig) × n | empty  | at the start of each write |
+| ADIF      | ADIF header, then raw data blocks                                      | empty  | the stream start only      |
 
 - `stream_start(0, t₀)` before the first byte, for every transport. For
   ADIF the ADIF header is inside the stream's first bytes and is not
@@ -240,8 +240,8 @@ walkers.
    input sample count, the click at its input index to within one sample,
    and the final tone.
 2. ADTS and LOAS files are read by a reference decoder with the configured
-   profile, rate and channels; every frame of the walker is an access point
-   marked by the writer.
+   profile, rate and channels; every access point the writer marks is the
+   start of a frame of the walker.
 3. A shared harbor reader of ADTS and of LOAS starting after 3 s decodes
    from its first byte; `%fdkaac(transmux="adif")` given to a shared harbor
    mount and to `output.icecast` is refused at evaluation.

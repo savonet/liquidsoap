@@ -51,7 +51,7 @@ What stays with each user, and is not stated here:
     the header's bytes are appended; a stream start whose header length is
     `unknown` has an empty header
     ([encoder.md §3.4](../../encoder/spec/encoder.md#34-bytes-and-markers-out),
-    item 8);
+    item 9);
   - each **access point**: its offset;
   - the current writer's **end**, once written.
 - A **candidate** is a stream start or an access point of the current
@@ -94,7 +94,7 @@ A user starts a reader with an amount of history `B`, in bytes, possibly 0.
 5. Choosing a start never waits. A reader waiting for its first candidate
    is owed nothing; it waits at most the writer's spacing of access points
    ([encoder.md §3.4](../../encoder/spec/encoder.md#34-bytes-and-markers-out),
-   item 5).
+   item 6).
 
 A user MAY constrain the history it asks for (harbor reduces the burst by a
 preroll's length, and starts with no history while its source is

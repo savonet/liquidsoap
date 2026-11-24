@@ -198,7 +198,7 @@ its own error.
 - `stream_start(unknown, t)` precedes the first byte of each process's
   output, `t` being the media time of the first piece that process
   received: the writer does not know the header's length
-  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 8).
+  ([encoder.md §3.4](encoder.md#34-bytes-and-markers-out), item 9).
 - Without `streamable=true`, no access point is marked. With it, an
   `access_point(t)` precedes the bytes each call writes, `t` being the
   media time of the first piece the process had received when it printed
