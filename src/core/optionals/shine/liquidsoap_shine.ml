@@ -27,6 +27,12 @@ open Shine_format
 let create_encoder ~samplerate ~bitrate ~channels =
   Shine.create { Shine.channels; samplerate; bitrate }
 
+(* Samples of delay shine adds before the input, as measured. *)
+let shine_delay = 528
+
+(* Samples of delay of an mp3 decoder's synthesis filter. *)
+let mp3_decoder_delay = 529
+
 let encoder ~pos shine =
   let channels = shine.channels in
   let samplerate = Lazy.Mutexed.force shine.samplerate in
@@ -41,6 +47,9 @@ let encoder ~pos shine =
       (Frame.Fields.make ~audio:(Content.Audio.format_of_channels channels) ())
   in
   let encoded = Strings.Mutable.empty () in
+  Strings.Mutable.add encoded
+    (Mp3_info_frame.frame ~vbr:false ~bitrate:shine.bitrate ~samplerate
+       ~channels ~delay:shine_delay ());
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -61,7 +70,38 @@ let encoder ~pos shine =
     done;
     Strings.Mutable.flush encoded
   in
-  let stop () = Strings.of_string (Shine.flush enc) in
+  (* Shine only encodes whole passes: the last one is padded with silence. *)
+  let stop () =
+    let remaining = Generator.length buf in
+    if remaining > 0 then begin
+      let pcm =
+        Content.Audio.get_data
+          (Frame.Fields.find Frame.Fields.audio (Generator.slice buf remaining))
+      in
+      let pass = Shine.samples_per_pass enc in
+      let padded =
+        Array.map
+          (fun channel ->
+            let a = Array.make pass 0. in
+            Array.blit channel 0 a 0 (min pass (Array.length channel));
+            a)
+          pcm
+      in
+      Strings.Mutable.add encoded (Shine.encode_buffer enc padded)
+    end;
+    (* Workaround: shine's flush leaves its last [shine_delay] samples in
+       the encoder, and decoders output [mp3_decoder_delay] samples late:
+       silent passes push both out, adding up to a frame of silence. To drop
+       once shine's flush returns its samples. *)
+    let pass = Shine.samples_per_pass enc in
+    for _ = 1 to (shine_delay + mp3_decoder_delay + pass - 1) / pass do
+      Strings.Mutable.add encoded
+        (Shine.encode_buffer enc
+           (Array.init channels (fun _ -> Array.make pass 0.)))
+    done;
+    Strings.Mutable.add encoded (Shine.flush enc);
+    Strings.Mutable.flush encoded
+  in
   {
     Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);
