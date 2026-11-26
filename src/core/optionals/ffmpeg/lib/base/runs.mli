@@ -31,6 +31,12 @@ module type Item = sig
   val copy : t -> t
 
   val checksum : t -> string
+
+  (** [split ~time_base ~at item] cuts an item [at] main ticks after its start
+      into the parts before and after, in an item with timestamps in [time_base]
+      (§6.4). [None] when the item cannot be split or does not reach past [at]
+      by more than one tick. *)
+  val split : time_base:Avutil.rational -> at:int -> t -> (t * t) option
 end
 
 module type Params = sig

@@ -127,7 +127,11 @@ module Copy = struct
 
         let known { params } = Option.is_some params
       end)
-      (Packet_item)
+      (struct
+        include Packet_item
+
+        let split ~time_base:_ ~at:_ _ = None
+      end)
 
   include Content_base.MkDataBase (Kinds.Copy) (Data)
 
@@ -139,6 +143,33 @@ module Copy = struct
   let incompatibility format params =
     Libav.Copy.incompatibility (get_params format) (unconstrained (Some params))
 end
+
+(* content.md §6.4: a raw audio frame splits at the sample nearest to the
+   cut, each part keeping its timestamp in the run's time base. *)
+let split_audio ~time_base ~at frame =
+  let samples = Avutil.Audio.frame_nb_samples frame in
+  let per_sample =
+    { Avutil.num = 1; den = Avutil.Audio.frame_get_sample_rate frame }
+  in
+  let main = Time_base.main () in
+  let extent = Time_base.rescale ~src:per_sample ~dst:main samples in
+  match (Time_base.rescale ~src:main ~dst:per_sample at, extent) with
+    | Some cut, Some extent when 0 < cut && cut < samples && extent - at > 1 ->
+        let in_time_base n =
+          Option.map Int64.of_int
+            (Time_base.rescale ~src:per_sample ~dst:time_base n)
+        in
+        let part ~offset ~length =
+          let part = Avutil.Audio.sub ~offset ~length frame in
+          Avutil.Frame.set_pts part
+            (Option.bind (Avutil.Frame.pts frame) (fun pts ->
+                 Option.map (Int64.add pts) (in_time_base offset)));
+          Avutil.Frame.set_duration part (in_time_base length);
+          part
+        in
+        Some
+          (part ~offset:0 ~length:cut, part ~offset:cut ~length:(samples - cut))
+    | _ -> None
 
 module Audio = struct
   module Data =
@@ -157,6 +188,7 @@ module Audio = struct
 
         let copy = Fun.id
         let checksum = Raw_checksum.audio
+        let split = split_audio
       end)
 
   include Content_base.MkDataBase (Kinds.Audio) (Data)
@@ -181,6 +213,7 @@ module Video = struct
 
         let copy = Fun.id
         let checksum = Raw_checksum.video
+        let split ~time_base:_ ~at:_ _ = None
       end)
 
   include Content_base.MkDataBase (Kinds.Video) (Data)

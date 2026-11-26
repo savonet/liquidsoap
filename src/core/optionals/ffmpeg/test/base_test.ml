@@ -172,6 +172,7 @@ module Int_runs =
 
       let copy = Fun.id
       let checksum = string_of_int
+      let split ~time_base:_ ~at:_ _ = None
     end)
 
 let positions (d : Int_runs.data) =
@@ -212,6 +213,41 @@ let blit () =
   b.runs <- [(0, { (snd (List.hd b.runs)) with length = 90 })];
   check "checksum sees run length" (Int_runs.checksum a <> Int_runs.checksum b)
 
+(* content.md §6.4: a raw audio frame crossing a cut is split at the sample.
+   The main rate is 44100: 1024 samples at 48 kHz span 940.8 ticks. *)
+let audio_split () =
+  let module A = Ffmpeg_content.Audio.Data in
+  let frame =
+    Avutil.Audio.create_frame `Fltp Avutil.Channel_layout.stereo 48000 1024
+  in
+  Avutil.Frame.set_pts frame (Some 1920L);
+  let params = Raw_params.Audio.of_frame frame in
+  let src =
+    A.of_run params
+      (A.run ~source_id:1 ~time_base:(tb 1 90000) ~length:941 [(0, frame)])
+  in
+  let slice pos len =
+    let dst = A.make params in
+    A.blit src pos dst 0 len;
+    List.concat_map
+      (fun (start, (r : A.run)) ->
+        List.map
+          (fun (p, f) ->
+            ( start + p,
+              Avutil.Audio.frame_nb_samples f,
+              Avutil.Frame.pts f,
+              Avutil.Frame.duration f ))
+          r.items)
+      dst.runs
+  in
+  check "left part of a cut" (slice 0 500 = [(0, 544, Some 1920L, Some 1020L)]);
+  check "right part of a cut" (slice 500 441 = [(0, 480, Some 2940L, Some 900L)]);
+  check "a frame within one tick of the cut stays whole"
+    (slice 0 940 = [(0, 1024, Some 1920L, None)]);
+  check "no part past one tick" (slice 940 1 = []);
+  check "a slice inside the frame"
+    (match slice 100 100 with [(0, 109, _, _)] -> true | _ -> false)
+
 let () =
   Frame_settings.lazy_config_eval := true;
   rescale ();
@@ -219,7 +255,8 @@ let () =
   inline_aac ();
   edge_cases ();
   blit ();
-  let expected = 23 in
+  audio_split ();
+  let expected = 28 in
   if !checks <> expected then
     failwith (Printf.sprintf "ran %d checks, expected %d" !checks expected);
   Printf.printf "base_test: %d checks passed\n" !checks
