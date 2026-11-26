@@ -94,7 +94,7 @@ and track = {
   mutable closed : tenure list;
   mutable track_end : int option;
   mutable last_stored : int option;
-  on_packet : key:bool -> time:int option -> unit;
+  on_packet : key:bool -> time:int option -> write:(unit -> unit) -> unit;
 }
 
 let create ~log ~whole_output ~muxer container =
@@ -223,16 +223,24 @@ let write_packet track ~time_base ~dts ~pts ~duration packet =
     Avcodec.Packet.set_dts p (Some (Int64.of_int dts));
     Avcodec.Packet.set_pts p (Some (Int64.of_int pts));
     Avcodec.Packet.set_duration p (Option.map Int64.of_int duration);
-    track.on_packet
-      ~key:(List.mem `Keyframe (Avcodec.Packet.get_flags p))
-      ~time:(Time_base.rescale ~src:time_base ~dst:(main ()) pts);
-    p
+    (List.mem `Keyframe (Avcodec.Packet.get_flags p), p)
   in
-  match (track.stream, packet) with
-    | Some (`Audio s), `Audio p -> Av.write_packet s time_base (set p)
-    | Some (`Video s), `Video p -> Av.write_packet s time_base (set p)
-    | Some (`Subtitle s), `Subtitle p -> Av.write_packet s time_base (set p)
-    | _ -> failwith "Packet of another media than its stream"
+  let key, write =
+    match (track.stream, packet) with
+      | Some (`Audio s), `Audio p ->
+          let key, p = set p in
+          (key, fun () -> Av.write_packet s time_base p)
+      | Some (`Video s), `Video p ->
+          let key, p = set p in
+          (key, fun () -> Av.write_packet s time_base p)
+      | Some (`Subtitle s), `Subtitle p ->
+          let key, p = set p in
+          (key, fun () -> Av.write_packet s time_base p)
+      | _ -> failwith "Packet of another media than its stream"
+  in
+  track.on_packet ~key
+    ~time:(Time_base.rescale ~src:time_base ~dst:(main ()) pts)
+    ~write
 
 exception Dropped of string
 

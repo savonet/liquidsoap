@@ -42,6 +42,7 @@ type state = [ `Built | `Started | `Failed of exn | `Stopped ]
 (* HLS mode (encoder.md §8). *)
 type hls = {
   split : Hls_split.t;
+  order : Hls_order.t;
   mutable id3 : Encoder.hls_id3_mode;
   mutable id3_version : int;
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
@@ -108,8 +109,9 @@ let close_output c =
     ~finally:(fun () -> Option.iter Unix.close c.appended)
     (fun () -> Av.close c.output)
 
-let open_container ?interrupt ?(on_packet = fun _ ~key:_ ~time:_ -> ()) ~log
-    ~(format : F.t) ~pos ~buffer ?(append = false) () =
+let open_container ?interrupt
+    ?(on_packet = fun _ ~key:_ ~time:_ ~write -> write ()) ~log ~(format : F.t)
+    ~pos ~buffer ?(append = false) () =
   let appended_path = appended_path ~append format in
   let opts =
     Opts.of_list
@@ -266,7 +268,7 @@ let encoded_video t =
       | field, `Encode { F.options = `Video _; _ } -> Some field | _ -> None)
     t.format.F.streams
 
-let on_packet t field ~key ~time =
+let write_packet t field ~key ~time ~write =
   (match (t.header, t.hls) with
     | `Pending _, Some _ ->
         Av.write_header t.current.output;
@@ -281,9 +283,23 @@ let on_packet t field ~key ~time =
   match (t.hls, time) with
     | Some h, Some time ->
         h.media_written <- true;
-        Hls_split.packet h.split ~flush:(hls_flush t) ~field ~key ~time
-    | Some h, None -> h.media_written <- true
-    | None, _ -> ()
+        Hls_split.packet h.split ~flush:(hls_flush t) ~field ~key ~time;
+        write ()
+    | Some h, None ->
+        h.media_written <- true;
+        write ()
+    | None, _ -> write ()
+
+let release_packets ?all h =
+  Hls_order.release ?all h.order ~gating:(Hls_split.inter_coded_fields h.split)
+
+let on_packet t field ~key ~time ~write =
+  match t.hls with
+    | Some h ->
+        Hls_order.push h.order ~field ~time ~write:(fun () ->
+            write_packet t field ~key ~time ~write);
+        release_packets h
+    | None -> write_packet t field ~key ~time ~write
 
 let fail t exn =
   t.state <- `Failed exn;
@@ -370,7 +386,8 @@ let close_container t =
   (try
      if c.streams_created then (
        List.iter (fun track -> track.Encoded_stream.flush ()) (encoded_tracks c);
-       Copy_encoder.flush c.copy ~position:t.position)
+       Copy_encoder.flush c.copy ~position:t.position;
+       Option.iter (release_packets ~all:true) t.hls)
    with exn -> t.log#severe "Draining failed: %s" (Printexc.to_string exn));
   try close_output c
   with exn -> t.log#severe "Closing failed: %s" (Printexc.to_string exn)
@@ -486,8 +503,10 @@ let make ?hls ?interrupt ~pos ~name metadata format =
       | None -> Buffer.create 4096
   in
   let self = ref None in
-  let hook field ~key ~time =
-    Option.iter (fun t -> on_packet t field ~key ~time) !self
+  let hook field ~key ~time ~write =
+    match !self with
+      | Some t -> on_packet t field ~key ~time ~write
+      | None -> write ()
   in
   let t =
     {
@@ -742,6 +761,7 @@ let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
   let h =
     {
       split = Hls_split.create ~fields ~init_length ();
+      order = Hls_order.create ();
       id3 = `None;
       id3_version = 3;
       id3_stream = None;

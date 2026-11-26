@@ -351,8 +351,24 @@ packet is decodable on its own: subtitle streams participate and every
 subtitle packet counts as a key packet. Reason: a segment is fetched and
 decoded on its own, so every stream in it starts at a key packet.
 
-Each stream encoder calls the instance's hook before it gives a packet to the
-muxer, with the packet's key flag and media time ([§12.7](#127-keyframes)).
+Each stream encoder gives every packet to the instance's hook, with the
+packet's key flag, its media time ([§12.7](#127-keyframes)) and the write that
+hands it to the muxer; the hook decides when that write runs. Outside HLS it
+runs at once.
+
+In HLS mode the muxer is not interleaved and the instance orders the packets
+itself. Encoders hand packets over with their own latency: libx264's
+lookahead and B-frames put video packets up to seconds behind audio ones. A
+packet is written once every participating stream that is not all-key has
+handed over packets up to its media time; packets are written earliest first,
+each stream in its own order, and at equal times a stream that is not all-key
+goes first. A packet held for longer than `settings.ffmpeg.copy.max_keyframe_wait`
+behind the latest one handed over is written anyway. Every held packet is
+written before a container closes. Reason: a split point at a key packet
+then has every stream's earlier packets before it and none of the later
+ones, so all streams of a segment start at its split time (#5719). The steps
+below see packets as they are written.
+
 A stream is **all-key** while every packet it has written is flagged key
 (audio, subtitles, intra-only codecs). Candidates are taken only where a cut
 can be useful:

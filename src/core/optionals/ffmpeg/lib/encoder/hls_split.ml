@@ -30,6 +30,9 @@ let inter_coded t field =
 
 let all_key t = List.for_all (fun (_, k) -> !k) t.streams
 
+let inter_coded_fields t =
+  List.filter_map (fun (f, k) -> if !k then None else Some f) t.streams
+
 let request t time =
   match List.rev t.requests with
     | last :: _ when last >= time -> ()
