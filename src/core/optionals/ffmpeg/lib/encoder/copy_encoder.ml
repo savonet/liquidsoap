@@ -37,8 +37,17 @@ type stream =
   | `Video of (Avutil.output, Avutil.video, [ `Packet ]) Av.stream
   | `Subtitle of (Avutil.output, Avutil.subtitle, [ `Packet ]) Av.stream ]
 
+(* A packet's own timestamps, in its run's time base. *)
+type source_times = {
+  time_base : Avutil.rational;
+  source_dts : int option;
+  source_pts : int option;
+  source_duration : int option;
+}
+
 (* A packet as the track reads it: its output position and its timestamps in
-   main ticks. *)
+   main ticks, which place it; [source] is what is compared and written
+   (timestamps.md §6.3). *)
 type held = {
   packet : Ffmpeg_content.copy_packet;
   position : int;
@@ -47,6 +56,7 @@ type held = {
   pts : int option;
   duration : int option;
   extent : int;
+  source : source_times;
 }
 
 type tenure = {
@@ -60,6 +70,7 @@ type tenure = {
   mutable trim_below : int option;
   mutable offset : int option;
   mutable last_dts : int option;
+  mutable last_source_dts : (int * Avutil.rational) option;
   mutable written : int;
   faults : Faults.t;
 }
@@ -196,6 +207,7 @@ let new_tenure track ~source_id ~continues =
     trim_below = None;
     offset = None;
     last_dts = None;
+    last_source_dts = None;
     written = 0;
     faults = Faults.create track.shared.log;
   }
@@ -266,6 +278,15 @@ and restart_group t id =
         g.offset <- None
     | None -> ()
 
+(* The packet's DTS and PTS in its own time base, completed from each other
+   as [write] does in main ticks. *)
+let source_pair { source_dts; source_pts } =
+  match (source_dts, source_pts) with
+    | Some d, Some p -> Some (d, p)
+    | Some d, None -> Some (d, d)
+    | None, Some p -> Some (p, p)
+    | None, None -> None
+
 (* timestamps.md §6.1, §6.3, §6.4. *)
 let write track tenure ~offset h =
   let t = track.shared in
@@ -283,10 +304,20 @@ let write track tenure ~offset h =
     in
     if pts < dts then
       raise (Dropped (Printf.sprintf "PTS %d below DTS %d" pts dts));
+    let source = source_pair h.source in
+    let order =
+      match (tenure.last_source_dts, source) with
+        | Some (last, time_base), Some (d, _)
+          when time_base = h.source.time_base ->
+            Some (d, last)
+        | _ -> Option.map (fun last -> (dts, last)) tenure.last_dts
+    in
+    (match order with
+      | Some (d, last) when d < last ->
+          raise (Dropped (Printf.sprintf "decreasing DTS %d after %d" d last))
+      | Some (d, last) when d = last -> raise (Dropped "equal DTS dropped")
+      | _ -> ());
     (match tenure.last_dts with
-      | Some last when dts < last ->
-          raise (Dropped (Printf.sprintf "decreasing DTS %d after %d" dts last))
-      | Some last when dts = last -> raise (Dropped "equal DTS dropped")
       | Some last
         when dts - last > Frame.main_of_seconds Settings.max_keyframe_wait#get
         ->
@@ -304,7 +335,14 @@ let write track tenure ~offset h =
     let stored_tb, stored_dts, stored_pts, stored_duration =
       if Av.output_started t.container then (
         let tb = stream_time_base track in
-        let d = rescale ~dst:tb dts' in
+        let in_stream ~main_value source_value =
+          match source_value with
+            | Some v ->
+                Option.get (Time_base.rescale ~src:h.source.time_base ~dst:tb v)
+                + rescale ~dst:tb offset
+            | None -> rescale ~dst:tb main_value
+        in
+        let d = in_stream ~main_value:dts' (Option.map fst source) in
         let d =
           match track.last_stored with
             | Some last when d <= last ->
@@ -319,8 +357,10 @@ let write track tenure ~offset h =
         in
         ( tb,
           d,
-          max d (rescale ~dst:tb pts'),
-          Option.map (rescale ~dst:tb) h.duration ))
+          max d (in_stream ~main_value:pts' (Option.map snd source)),
+          match h.source.source_duration with
+            | Some v -> Time_base.rescale ~src:h.source.time_base ~dst:tb v
+            | None -> Option.map (rescale ~dst:tb) h.duration ))
       else (main (), dts', pts', h.duration)
     in
     (try
@@ -334,6 +374,8 @@ let write track tenure ~offset h =
            rescale ~dst:(stream_time_base track) dts'
          else stored_dts);
     tenure.last_dts <- Some dts;
+    tenure.last_source_dts <-
+      Option.map (fun (d, _) -> (d, h.source.time_base)) source;
     tenure.written <- tenure.written + 1;
     Faults.delivered tenure.faults;
     let extent = Option.value ~default:h.extent h.duration in
@@ -741,6 +783,13 @@ let read_run track ~position ~start (r : Ffmpeg_content.Copy.Data.run) =
               pts = to_main pts;
               duration = to_main duration;
               extent = max 0 (next - pos);
+              source =
+                {
+                  time_base = r.time_base;
+                  source_dts = Option.map Int64.to_int dts;
+                  source_pts = Option.map Int64.to_int pts;
+                  source_duration = Option.map Int64.to_int duration;
+                };
             }
           in
           accept track tenure g h;
