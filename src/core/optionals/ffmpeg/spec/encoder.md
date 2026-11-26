@@ -363,8 +363,10 @@ packet is written once every participating stream that is not all-key has
 handed over packets up to its media time; packets are written earliest first,
 each stream in its own order, and at equal times a stream that is not all-key
 goes first. A packet held for longer than `settings.ffmpeg.copy.max_keyframe_wait`
-behind the latest one handed over is written anyway. Every held packet is
-written before a container closes. Reason: a split point at a key packet
+behind the latest one handed over is written anyway. Timed-ID3 tags (§8.5)
+are ordered with the packets, at their time, without gating them. Every held
+packet is written before a container closes; one whose write fails is logged
+and dropped. Reason: a split point at a key packet
 then has every stream's earlier packets before it and none of the later
 ones, so all streams of a segment start at its split time (#5719). The steps
 below see packets as they are written.
