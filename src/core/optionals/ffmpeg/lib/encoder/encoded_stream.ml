@@ -196,25 +196,21 @@ let pcm_resampler ~pcm_kind ~in_layout ~in_rate ~out_layout ~out_format
         in
         M.resampler
 
-(* Samples of an overlapping raw frame are dropped from its front, through
-   planar doubles and back. *)
-let drop_front frame count =
-  let format = Avutil.Audio.frame_format frame in
-  let module In =
-    Swresample.Make (Swresample.Frame) (Swresample.PlanarFloatArray)
-  in
-  let module Out =
-    Swresample.Make (Swresample.PlanarFloatArray) (Swresample.Frame)
-  in
-  let layout = format.channel_layout and rate = format.sample_rate in
-  let planes =
-    In.convert
-      (In.create layout ~in_sample_format:format.sample_format rate layout rate)
-      frame
-  in
-  Out.convert
-    (Out.create layout rate layout ~out_sample_format:format.sample_format rate)
-    (Array.map (fun c -> Array.sub c count (Array.length c - count)) planes)
+(* timestamps.md §3: where raw audio stands on the timeline, from an anchor
+   and the exact count of samples fed since, so that rounding never
+   accumulates. *)
+type raw_clock = { anchor : int; rate : int; mutable fed : int }
+
+let expected_position clock =
+  clock.anchor
+  + rescale ~src:(per_unit clock.rate) ~dst:(Time_base.main ()) clock.fed
+
+(* Positions are rounded to the main tick from timestamps in [time_base]: two
+   of them disagree by up to one unit of each. *)
+let rounding_bound ~time_base =
+  1
+  + Option.value ~default:0
+      (Time_base.rescale ~rounding:`Up ~src:time_base ~dst:(Time_base.main ()) 1)
 
 let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     ~on_packet output =
@@ -224,7 +220,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
   let resampler = ref None in
   let raw_stage = ref None in
   let coverage = { covered = 0; gap = false } in
-  let next_main = ref 0 in
+  let clock = ref None in
   (* encoder.md §13.2: the sample counter starts at the container's
      position. *)
   let started = ref false in
@@ -347,34 +343,59 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
           raw_stage := Some (format, stage);
           stage
   in
-  let encode_raw ~time_base:_ ~abs frame =
-    let format = Avutil.Audio.frame_format frame in
+  let jump_to abs =
+    drain_raw_stage ();
+    Audio_writer.jump
+      (fst (writer ()))
+      (rescale ~src:(Time_base.main ())
+         ~dst:(per_unit (target ()).sample_rate)
+         abs)
+  in
+  let anchor ~rate position =
+    let c = { anchor = position; rate; fed = 0 } in
+    clock := Some c;
+    c
+  in
+  let clock_for ~abs ~rate =
+    match !clock with
+      | Some c when c.rate = rate -> c
+      | Some c -> anchor ~rate (expected_position c)
+      | None -> anchor ~rate abs
+  in
+  let missing ~abs ~rate ticks =
+    Faults.uncounted faults ~kind
+      (Printf.sprintf "%.1f ms of audio missing"
+         (1000. *. Frame.seconds_of_main ticks));
+    jump_to abs;
+    anchor ~rate abs
+  in
+  let ahead ~rate ticks frame =
     let samples = Avutil.Audio.frame_nb_samples frame in
-    let main = Time_base.main () in
+    let excess = rescale ~src:(Time_base.main ()) ~dst:(per_unit rate) ticks in
+    Faults.uncounted faults ~kind
+      (Printf.sprintf "%d samples ahead of their position dropped"
+         (min excess samples));
+    if excess >= samples then None
+    else Some (Avutil.Audio.sub ~offset:excess ~length:(samples - excess) frame)
+  in
+  let encode_raw ~time_base ~abs frame =
+    let format = Avutil.Audio.frame_format frame in
+    let rate = format.sample_rate in
     if coverage.gap then (
       coverage.gap <- false;
-      drain_raw_stage ();
-      Audio_writer.jump
-        (fst (writer ()))
-        (rescale ~src:main ~dst:(per_unit (target ()).sample_rate) abs);
-      next_main := abs);
-    let overlap =
-      if abs >= !next_main then 0
-      else
-        rescale ~src:main ~dst:(per_unit format.sample_rate) (!next_main - abs)
+      jump_to abs;
+      ignore (anchor ~rate abs));
+    let c = clock_for ~abs ~rate in
+    let offset = abs - expected_position c in
+    let bound = rounding_bound ~time_base in
+    let c, frame =
+      if offset > bound then (missing ~abs ~rate offset, Some frame)
+      else if offset < -bound then (c, ahead ~rate (-offset) frame)
+      else (c, Some frame)
     in
-    let frame =
-      if overlap = 0 then Some frame
-      else (
-        item_fault faults ~kind
-          (Printf.sprintf "%d overlapping samples dropped" (min overlap samples));
-        if overlap >= samples then None else Some (drop_front frame overlap))
-    in
-    next_main :=
-      max !next_main
-        (abs + rescale ~src:(per_unit format.sample_rate) ~dst:main samples);
     Option.iter
       (fun frame ->
+        c.fed <- c.fed + Avutil.Audio.frame_nb_samples frame;
         guarded faults ~kind (fun () ->
             match raw_stage_for format with
               | None -> feed frame
