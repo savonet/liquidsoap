@@ -699,6 +699,16 @@ continuing mark, time base and source parameters, holding the items with
 `offset <= pos < offset + len`, each at `pos - offset`, each passed through
 the kind's item copy (§6.7).
 
+A raw audio frame that crosses a bound of the region by more than one main
+tick is split at the sample nearest to the bound, and each side keeps its
+own part: the part after `offset` of a frame starting before it is placed at
+0, and a frame crossing `offset + len` keeps its part before. Every sample
+of the content is thus on exactly one side of a cut, and a cut drops exactly
+the samples of the side it drops. Each part keeps the frame's properties;
+its pts is the frame's, moved by the samples before it, and its duration its
+own, in the run's time base. A video frame or a packet is never split: it
+stays on the side its position is on.
+
 ### 6.5 collapse
 
 Collapse merges runs that continue one another. Two consecutive runs of a

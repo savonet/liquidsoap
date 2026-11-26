@@ -255,6 +255,7 @@ Items: [content.md §2.1](content.md#21-annotation-syntax), [§2.6](content.md#2
 Additional checks, on the content stand-in and on real content:
 
 1. `sub_run` keeps an item at position `p` exactly when `offset ≤ p < offset + len`, at `p − offset` ([content.md §6.4](content.md#64-sub-of-a-run)): items at 10, 30, 50, 70, range 20+40 → 10 and 30; items at 50, 100, 150, range 50+100 → 0 and 50.
+   A raw audio frame of 1024 samples at 48 kHz (940.8 ticks at 44100) cut at 500 ticks splits into 544 and 480 samples, the second's pts moved by 544 samples; cut at 940 ticks it stays whole on the left.
 2. Collapse merges exactly the pairs [content.md §6.5](content.md#65-collapse) lists: a pair differing only in source id, only in time base, or only in copy source parameters stays apart; a pair with a gap between stays apart.
 3. Time bases of runs survive copy, sub, blit and consolidation unchanged (1/48000, 1/44100, 1/90000 in one value).
 4. A copy is independent of its original: changing the original's runs leaves the copy's length and items unchanged.
