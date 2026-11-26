@@ -18,3 +18,6 @@ val push : t -> field:string -> time:int option -> write:(unit -> unit) -> unit
 (** Writes every packet that is ready, earliest first; [all] writes every held
     packet, at the end of a container. *)
 val release : ?all:bool -> t -> gating:string list -> unit
+
+(** Drops every held packet without writing it; returns how many. *)
+val clear : t -> int

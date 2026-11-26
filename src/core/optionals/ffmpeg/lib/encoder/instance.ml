@@ -46,7 +46,7 @@ type hls = {
   mutable id3 : Encoder.hls_id3_mode;
   mutable id3_version : int;
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
-  mutable id3_queue : (unit -> unit) list;
+  mutable id3_queue : (int * (unit -> unit)) list;
   mutable media_written : bool;
 }
 
@@ -254,9 +254,6 @@ let take_into t f =
               Buffer.blit t.buffer offset destination destination_offset length);
         })
 
-(* The hook every stream calls before a packet reaches the muxer. The bytes
-   before the first packet are the header; the bindings would only write it
-   with that packet, so it is written here. *)
 let hls_flush t () =
   Av.flush t.current.output;
   if t.current.muxer = "mpegts" then
@@ -268,6 +265,10 @@ let encoded_video t =
       | field, `Encode { F.options = `Video _; _ } -> Some field | _ -> None)
     t.format.F.streams
 
+(* Runs when a packet is due at the muxer: at once outside HLS, in media-time
+   order in HLS mode (encoder.md §8.2). The bytes before the first packet are
+   the header; the bindings would only write it with that packet, so it is
+   written here. *)
 let write_packet t field ~key ~time ~write =
   (match (t.header, t.hls) with
     | `Pending _, Some _ ->
@@ -290,8 +291,21 @@ let write_packet t field ~key ~time ~write =
         write ()
     | None, _ -> write ()
 
+(* Not a track name: track names are identifiers. *)
+let id3_field = "#id3"
+
 let release_packets ?all h =
   Hls_order.release ?all h.order ~gating:(Hls_split.inter_coded_fields h.split)
+
+(* Before a container closes no packet may stay held: its write targets that
+   container. A write that fails is logged and the others still go out. *)
+let rec drain_held t h =
+  match release_packets ~all:true h with
+    | () -> ()
+    | exception exn ->
+        t.log#severe "Packet dropped at the end of the container: %s"
+          (Printexc.to_string exn);
+        drain_held t h
 
 let on_packet t field ~key ~time ~write =
   match t.hls with
@@ -386,9 +400,9 @@ let close_container t =
   (try
      if c.streams_created then (
        List.iter (fun track -> track.Encoded_stream.flush ()) (encoded_tracks c);
-       Copy_encoder.flush c.copy ~position:t.position;
-       Option.iter (release_packets ~all:true) t.hls)
+       Copy_encoder.flush c.copy ~position:t.position)
    with exn -> t.log#severe "Draining failed: %s" (Printexc.to_string exn));
+  Option.iter (drain_held t) t.hls;
   try close_output c
   with exn -> t.log#severe "Closing failed: %s" (Printexc.to_string exn)
 
@@ -637,11 +651,17 @@ let init_mode t ?id3 () =
     | _, Some true -> Error "the format carries no HLS ID3 metadata"
     | _ -> Ok `None
 
+(* Tags are ordered with the media: written straight away, a tag would come
+   before media still held behind the video encoder's latency. *)
 let run_id3_queue h =
   if h.media_written then (
     let queue = List.rev h.id3_queue in
     h.id3_queue <- [];
-    List.iter (fun f -> f ()) queue)
+    List.iter
+      (fun (time, write) ->
+        Hls_order.push h.order ~field:id3_field ~time:(Some time) ~write)
+      queue;
+    release_packets h)
 
 let hls_encode t h ~boundary frame =
   Hls_split.request h.split boundary;
@@ -679,7 +699,7 @@ let insert_id3 t h ~time m =
                   t.log#important "Timed ID3 tag dropped: %s"
                     (Printexc.to_string exn))
         in
-        h.id3_queue <- write :: h.id3_queue;
+        h.id3_queue <- (time, write) :: h.id3_queue;
         run_id3_queue h;
         None
 

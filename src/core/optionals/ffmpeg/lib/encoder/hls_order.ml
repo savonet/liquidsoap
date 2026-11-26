@@ -1,73 +1,86 @@
-type entry = { field : string; time : int option; write : unit -> unit }
+type entry = { time : int option; write : unit -> unit }
 
-type t = {
-  (* Arrival order. *)
-  mutable held : entry list;
-  reached : (string, int) Hashtbl.t;
-  mutable latest : int option;
+type stream = {
+  field : string;
+  held : entry Queue.t;
+  mutable reached : int option;
 }
 
-let create () = { held = []; reached = Hashtbl.create 4; latest = None }
+type t = { mutable streams : stream list; mutable latest : int option }
+
+let create () = { streams = []; latest = None }
+let later time = Option.fold ~none:time ~some:(max time)
+
+let stream t field =
+  match List.find_opt (fun s -> s.field = field) t.streams with
+    | Some s -> s
+    | None ->
+        let s = { field; held = Queue.create (); reached = None } in
+        t.streams <- t.streams @ [s];
+        s
 
 let push t ~field ~time ~write =
-  (* ponytail: list append, the queue holds one encoder latency of packets. *)
-  t.held <- t.held @ [{ field; time; write }];
+  let s = stream t field in
+  Queue.push { time; write } s.held;
   Option.iter
     (fun time ->
-      let reached =
-        Option.fold ~none:time ~some:(max time)
-          (Hashtbl.find_opt t.reached field)
-      in
-      Hashtbl.replace t.reached field reached;
-      t.latest <- Some (Option.fold ~none:time ~some:(max time) t.latest))
+      s.reached <- Some (later time s.reached);
+      t.latest <- Some (later time t.latest))
     time
 
 (* The time up to which every gating stream has produced packets. *)
 let frontier t gating =
   List.fold_left
     (fun frontier field ->
-      match (frontier, Hashtbl.find_opt t.reached field) with
+      match (frontier, (stream t field).reached) with
         | Some f, Some r -> Some (min f r)
         | _ -> None)
     (Some max_int) gating
 
-(* The oldest packet of each stream, earliest first; a gating stream first at
-   equal times, so that a packet at a key frame's time follows the split. *)
+(* The stream whose oldest packet is earliest; a gating stream first at equal
+   times, so that a packet at a key frame's time follows the split. *)
 let next t gating =
-  let heads =
+  let order s e =
+    (Option.value ~default:min_int e.time, not (List.mem s.field gating))
+  in
+  let best =
     List.fold_left
-      (fun heads e ->
-        if List.exists (fun h -> h.field = e.field) heads then heads
-        else e :: heads)
-      [] t.held
+      (fun best s ->
+        match (Queue.peek_opt s.held, best) with
+          | None, _ -> best
+          | Some e, Some (_, _, o) when order s e >= o -> best
+          | Some e, _ -> Some (s, e, order s e))
+      None t.streams
   in
-  let order e =
-    (Option.value ~default:min_int e.time, not (List.mem e.field gating))
-  in
-  match List.sort (fun a b -> compare (order a) (order b)) heads with
-    | e :: _ -> Some e
-    | [] -> None
+  Option.map (fun (s, e, _) -> (s, e)) best
+
+let stalled t time =
+  match t.latest with
+    | Some latest ->
+        latest - time > Frame.main_of_seconds Settings.max_keyframe_wait#get
+    | None -> false
 
 let rec release ?(all = false) t ~gating =
   match next t gating with
     | None -> ()
-    | Some e ->
-        let stalled time =
-          match t.latest with
-            | Some latest ->
-                latest - time
-                > Frame.main_of_seconds Settings.max_keyframe_wait#get
-            | None -> false
-        in
+    | Some (s, e) ->
         let ready =
           all
           ||
             match (e.time, frontier t gating) with
             | None, _ -> true
-            | Some time, Some frontier -> time <= frontier || stalled time
-            | Some time, None -> stalled time
+            | Some time, Some frontier -> time <= frontier || stalled t time
+            | Some time, None -> stalled t time
         in
         if ready then (
-          t.held <- List.filter (fun h -> h != e) t.held;
+          ignore (Queue.pop s.held);
           e.write ();
           release ~all t ~gating)
+
+let clear t =
+  List.fold_left
+    (fun dropped s ->
+      let n = Queue.length s.held in
+      Queue.clear s.held;
+      dropped + n)
+    0 t.streams
