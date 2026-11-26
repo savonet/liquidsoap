@@ -74,47 +74,55 @@
 
 ## Fixed:
 
-- `%mp3` no longer segfaults on musl systems such as Alpine ([#5322](https://github.com/savonet/liquidsoap/pull/5322)).
-- The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
-- Seeking with the `mad` decoder goes to the requested position instead of the end of the file ([#3584](https://github.com/savonet/liquidsoap/issues/3584)).
-- Native `%opus` files declare the encoder's lookahead as pre-skip (about 6.5 ms) instead of a fixed 80 ms, so decoders no longer drop the first ~73 ms of audio ([#5701](https://github.com/savonet/liquidsoap/pull/5701)).
-- `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
-- The native ogg decoder plays chained ogg/flac streams past their first track, e.g. a `%ogg(%flac)` source client on `input.harbor`, instead of stopping with `Invalid_stream` ([#3010](https://github.com/savonet/liquidsoap/issues/3010)).
-- Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
-- Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
-- `playlist(reload_mode="seconds")`, `input.hls` and `native.request.dynamic` stop polling once shut down ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
-- `output.harbor.hls` and `output.youtube.live.hls` remove their temporary directory when they shut down rather than at exit ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
-- `file.write(atomic=true)` no longer publishes a partial file when its `data` raises, and write errors keep their message ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
-- `file.getter` stops watching its file once dropped ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
-- `output.file.hls` handles transient filesystem errors with `reopen_on_error` ([#5263](https://github.com/savonet/liquidsoap/pull/5263)), rejects unwritable directories at startup ([#5264](https://github.com/savonet/liquidsoap/pull/5264)), and puts ID3 metadata in the first mpegts segment ([#5117](https://github.com/savonet/liquidsoap/pull/5117)).
-- Fixed typechecking running out of memory on some scripts mixing doubly nullable values ([#5601](https://github.com/savonet/liquidsoap/pull/5601)).
-- `time.predicate` parses predicates combined with `and`, `or`, `not` and parentheses ([#5534](https://github.com/savonet/liquidsoap/pull/5534)).
-- A `cross` transition that drops the incoming source no longer loses that track's announcement ([#5383](https://github.com/savonet/liquidsoap/pull/5383)).
-- FFmpeg filter graphs no longer drop the tail their filters hold at end of stream ([#5332](https://github.com/savonet/liquidsoap/pull/5332)).
-- `%ffmpeg` copied video carries its frame rate, and inline `ffmpeg.encode.*` operators report unknown options and keep them past the first track ([#5302](https://github.com/savonet/liquidsoap/pull/5302)).
-- `delay` no longer gets stuck after its first track ([#5282](https://github.com/savonet/liquidsoap/pull/5282)).
-- Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
-- Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
-- `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
-- `blank.strip` resumes after a blank with a new track carrying the source's latest metadata ([#5642](https://github.com/savonet/liquidsoap/pull/5642)).
-- Scripts can catch errors raised by Liquidsoap's internals, such as invalid parameter values (`error.invalid`) or clock conflicts (`error.clock`), in `try`, `thread.run` error handlers and error monitors. Uncaught errors are logged with their script name, message and positions, and with the internal exception and its backtrace at log level 4 ([#5641](https://github.com/savonet/liquidsoap/pull/5641)).
-- Fixed a race on the request pool that could make `request.create` fail with `index out of bounds` when requests are created from several clocks ([#5639](https://github.com/savonet/liquidsoap/pull/5639)).
-- Reading a source's `time()` from another thread, e.g. in `thread.run`, no longer makes the source produce data outside its clock, which could crash an output with "Infallible source produced a partial frame!" ([#5698](https://github.com/savonet/liquidsoap/pull/5698)).
-- `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
-- `video.testsrc`, `video.board`, `video.text` and frei0r source plugins have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
-- `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
-- `process.run`, `process.read` and `process.test` no longer fail at random with `Bad file descriptor` when the command exits right away ([#5708](https://github.com/savonet/liquidsoap/issues/5708)).
-- Metadata inserted with `insert_metadata` while a source produces an empty frame, e.g. a buffered input that just ran dry, is kept for the next frame instead of being lost ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
-- `icecast.server`: a mount keeps its current metadata (in its statistics and status pages) when its source client lags and its input runs dry, instead of losing it until the next update ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
-- `video.add_text.ffmpeg` no longer fails on a text containing `%`: drawtext text expansion is disabled ([#5671](https://github.com/savonet/liquidsoap/pull/5671)).
-- An invalid UTF-8 sequence no longer swallows the characters that follow it: `json.stringify("Coraz\xf3n Serrano")` gives `"Coraz\uFFFDn Serrano"` instead of `"Coraz\uFFFDerrano"`, and `string.escape`/`string.quote` treat any invalid sequence as invalid UTF-8: the default encoding then escapes the whole string as ascii, keeping its bytes, and an explicit `encoding="utf8"` raises an error ([#5284](https://github.com/savonet/liquidsoap/issues/5284)).
-- `video.fade.in` and `video.fade.out` apply their transition: the transformed image was discarded, so no fade was visible. The `fade` and `disc` transitions go to and from black instead of acting on transparency (use `video.opacity` to fade an overlay), and `grow` shows the scaled image instead of an empty frame ([#3180](https://github.com/savonet/liquidsoap/issues/3180)).
-- `video.add_text.ffmpeg` scrolls a text wider than the frame in full before wrapping around, instead of skipping part of it ([#5674](https://github.com/savonet/liquidsoap/pull/5674)).
-- `video.tile` scales its first track into the top-left tile, like the others, instead of showing the top-left part of the full-size image ([#3606](https://github.com/savonet/liquidsoap/issues/3606)).
-- Image requests are placed at their `x`/`y` metadata, e.g. `annotate:x=50,y=50:logo.png`, instead of the top-left corner. An explicit `x`/`y` argument still takes precedence ([#3197](https://github.com/savonet/liquidsoap/issues/3197)).
-- LV2 plugins that require host features, such as `options`, are no longer registered: they are instantiated without any host feature, so they could not work. The reason is logged at level 4 ([#2013](https://github.com/savonet/liquidsoap/issues/2013)).
-- `smooth_add` fades the special source out before the end of its track, instead of cutting it at full volume ([#3714](https://github.com/savonet/liquidsoap/issues/3714)).
-- Fixed `let replaces x = ...` and `let replaces (x, y) = ...` inside a function failing with `variable x not in environment` when the variables are defined outside of it ([#5711](https://github.com/savonet/liquidsoap/pull/5711)).
+- FFmpeg:
+  - Raw `%ffmpeg` audio no longer drifts against video when its sample rate differs from `settings.frame.audio.samplerate`, e.g. 48 kHz input with the default 44.1 kHz: no sample is dropped to timestamp rounding. Cuts split raw audio frames at the sample, audio missing from the input leaves a timestamp gap instead of moving the rest earlier, and copied streams keep their source timestamps exactly ([#5720](https://github.com/savonet/liquidsoap/issues/5720)).
+  - The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
+  - FFmpeg filter graphs no longer drop the tail their filters hold at end of stream ([#5332](https://github.com/savonet/liquidsoap/pull/5332)).
+  - `%ffmpeg` copied video carries its frame rate, and inline `ffmpeg.encode.*` operators report unknown options and keep them past the first track ([#5302](https://github.com/savonet/liquidsoap/pull/5302)).
+  - `video.add_text.ffmpeg` no longer fails on a text containing `%`: drawtext text expansion is disabled ([#5671](https://github.com/savonet/liquidsoap/pull/5671)).
+  - `video.add_text.ffmpeg` scrolls a text wider than the frame in full before wrapping around, instead of skipping part of it ([#5674](https://github.com/savonet/liquidsoap/pull/5674)).
+- Outputs and servers:
+  - `output.harbor`: listeners joining an Ogg stream late can decode it ([#5567](https://github.com/savonet/liquidsoap/pull/5567), [#5547](https://github.com/savonet/liquidsoap/pull/5547)), Ogg streams carry no ICY metadata ([#5567](https://github.com/savonet/liquidsoap/pull/5567)), and ICY titles change at their stream position ([#5580](https://github.com/savonet/liquidsoap/pull/5580)).
+  - `output.file.hls` handles transient filesystem errors with `reopen_on_error` ([#5263](https://github.com/savonet/liquidsoap/pull/5263)), rejects unwritable directories at startup ([#5264](https://github.com/savonet/liquidsoap/pull/5264)), and puts ID3 metadata in the first mpegts segment ([#5117](https://github.com/savonet/liquidsoap/pull/5117)).
+  - `icecast.server`: a mount keeps its current metadata (in its statistics and status pages) when its source client lags and its input runs dry, instead of losing it until the next update ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
+  - Fixed a race when registering harbor endpoints and mounts ([#5293](https://github.com/savonet/liquidsoap/pull/5293)).
+  - `output.harbor.hls` and `output.youtube.live.hls` remove their temporary directory when they shut down rather than at exit ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+- Sources:
+  - Reading a source's `time()` from another thread, e.g. in `thread.run`, no longer makes the source produce data outside its clock, which could crash an output with "Infallible source produced a partial frame!" ([#5698](https://github.com/savonet/liquidsoap/pull/5698)).
+  - Metadata inserted with `insert_metadata` while a source produces an empty frame, e.g. a buffered input that just ran dry, is kept for the next frame instead of being lost ([#5685](https://github.com/savonet/liquidsoap/pull/5685)).
+  - `blank.strip` resumes after a blank with a new track carrying the source's latest metadata ([#5642](https://github.com/savonet/liquidsoap/pull/5642)).
+  - `delay` no longer gets stuck after its first track ([#5282](https://github.com/savonet/liquidsoap/pull/5282)).
+  - A `cross` transition that drops the incoming source no longer loses that track's announcement ([#5383](https://github.com/savonet/liquidsoap/pull/5383)).
+  - `smooth_add` fades the special source out before the end of its track, instead of cutting it at full volume ([#3714](https://github.com/savonet/liquidsoap/issues/3714)).
+  - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
+- Decoders and encoders:
+  - `%mp3` no longer segfaults on musl systems such as Alpine ([#5322](https://github.com/savonet/liquidsoap/pull/5322)).
+  - Native `%opus` files declare the encoder's lookahead as pre-skip (about 6.5 ms) instead of a fixed 80 ms, so decoders no longer drop the first ~73 ms of audio ([#5701](https://github.com/savonet/liquidsoap/pull/5701)).
+  - The native ogg decoder plays chained ogg/flac streams past their first track, e.g. a `%ogg(%flac)` source client on `input.harbor`, instead of stopping with `Invalid_stream` ([#3010](https://github.com/savonet/liquidsoap/issues/3010)).
+  - Seeking with the `mad` decoder goes to the requested position instead of the end of the file ([#3584](https://github.com/savonet/liquidsoap/issues/3584)).
+  - LV2 plugins that require host features, such as `options`, are no longer registered: they are instantiated without any host feature, so they could not work. The reason is logged at level 4 ([#2013](https://github.com/savonet/liquidsoap/issues/2013)).
+- Video:
+  - `video.fade.in` and `video.fade.out` apply their transition: the transformed image was discarded, so no fade was visible. The `fade` and `disc` transitions go to and from black instead of acting on transparency (use `video.opacity` to fade an overlay), and `grow` shows the scaled image instead of an empty frame ([#3180](https://github.com/savonet/liquidsoap/issues/3180)).
+  - `video.tile` scales its first track into the top-left tile, like the others, instead of showing the top-left part of the full-size image ([#3606](https://github.com/savonet/liquidsoap/issues/3606)).
+  - Image requests are placed at their `x`/`y` metadata, e.g. `annotate:x=50,y=50:logo.png`, instead of the top-left corner. An explicit `x`/`y` argument still takes precedence ([#3197](https://github.com/savonet/liquidsoap/issues/3197)).
+  - `video.testsrc`, `video.board`, `video.text` and frei0r source plugins have exactly a video track: using them with an audio output is a type error instead of a crash at runtime ([#5636](https://github.com/savonet/liquidsoap/pull/5636)).
+- Requests, files and processes:
+  - Fixed a race on the request pool that could make `request.create` fail with `index out of bounds` when requests are created from several clocks ([#5639](https://github.com/savonet/liquidsoap/pull/5639)).
+  - `playlist(reload_mode="watch")` keeps the requests already queued when it reloads, so `tmp:` files in a watched folder are no longer deleted before they play ([#5637](https://github.com/savonet/liquidsoap/pull/5637)).
+  - `process.run` terminates commands that hit its timeout, so timed-out `process:` requests such as `s3:` downloads no longer keep running and leave their output file behind ([#5630](https://github.com/savonet/liquidsoap/issues/5630)).
+  - `process.run`, `process.read` and `process.test` no longer fail at random with `Bad file descriptor` when the command exits right away ([#5708](https://github.com/savonet/liquidsoap/issues/5708)).
+  - Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+  - `playlist(reload_mode="seconds")`, `input.hls` and `native.request.dynamic` stop polling once shut down ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+  - `file.write(atomic=true)` no longer publishes a partial file when its `data` raises, and write errors keep their message ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+  - `file.getter` stops watching its file once dropped ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
+  - Fixed a full connection-timeout stall on Windows when a host's first address refuses the connection ([#5533](https://github.com/savonet/liquidsoap/pull/5533)).
+- Language:
+  - Scripts can catch errors raised by Liquidsoap's internals, such as invalid parameter values (`error.invalid`) or clock conflicts (`error.clock`), in `try`, `thread.run` error handlers and error monitors. Uncaught errors are logged with their script name, message and positions, and with the internal exception and its backtrace at log level 4 ([#5641](https://github.com/savonet/liquidsoap/pull/5641)).
+  - An invalid UTF-8 sequence no longer swallows the characters that follow it: `json.stringify("Coraz\xf3n Serrano")` gives `"Coraz\uFFFDn Serrano"` instead of `"Coraz\uFFFDerrano"`, and `string.escape`/`string.quote` treat any invalid sequence as invalid UTF-8: the default encoding then escapes the whole string as ascii, keeping its bytes, and an explicit `encoding="utf8"` raises an error ([#5284](https://github.com/savonet/liquidsoap/issues/5284)).
+  - Fixed typechecking running out of memory on some scripts mixing doubly nullable values ([#5601](https://github.com/savonet/liquidsoap/pull/5601)).
+  - Fixed `let replaces x = ...` and `let replaces (x, y) = ...` inside a function failing with `variable x not in environment` when the variables are defined outside of it ([#5711](https://github.com/savonet/liquidsoap/pull/5711)).
+  - `time.predicate` parses predicates combined with `and`, `or`, `not` and parentheses ([#5534](https://github.com/savonet/liquidsoap/pull/5534)).
+  - `time.zone.set` takes effect ([#5368](https://github.com/savonet/liquidsoap/pull/5368)).
 
 ## Optimized:
 
