@@ -565,6 +565,7 @@ module Audio : sig
   val frame_get_channels : audio frame -> int
   val frame_get_channel_layout : audio frame -> Channel_layout.t
   val frame_nb_samples : audio frame -> int
+  val sub : offset:int -> length:int -> audio frame -> audio frame
   type frame_format = {
     sample_format : Sample_format.t;
     sample_rate : int;
@@ -588,6 +589,14 @@ failure. Any FFmpeg failure releases the frame and raises.
 | `frame_get_channels`       | the channel count of the frame's layout   |
 | `frame_get_channel_layout` | an independent copy of the frame's layout |
 | `frame_nb_samples`         | the number of samples per channel         |
+
+`sub ~offset ~length frame` returns a new frame holding samples
+`[offset, offset + length)` of `frame`, copied with `av_samples_copy`, in a
+buffer allocated as `create_frame` does. It works for every sample format,
+planar or interleaved, without conversion. The other properties are copied
+with `av_frame_copy_props`, except the pts, the best-effort timestamp and the
+duration, which are unset: they are in a time base the frame does not carry.
+An empty range or one outside the frame raises a failure.
 
 `frame_format` is the set of properties a consumer of audio frames is
 configured for. `frame_format frame` reads them with the getters above.
@@ -1225,7 +1234,8 @@ buffers.
 
 ### 8.3 Audio samples
 
-`Avutil` exposes no bigarray view of audio samples.
+`Avutil` exposes no bigarray view of audio samples. `Audio.sub` copies a
+range of samples (§4.12).
 [swresample.md](swresample.md) owns the bigarray paths.
 
 ### 8.4 Subtitle bitmaps — copied

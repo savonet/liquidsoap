@@ -1389,6 +1389,46 @@ CAMLprim value ocaml_avutil_audio_frame_nb_samples(value _frame) {
   return Val_int(Frame_val(_frame)->nb_samples);
 }
 
+CAMLprim value ocaml_avutil_audio_frame_sub(value _frame, value _offset,
+                                            value _length) {
+  CAMLparam3(_frame, _offset, _length);
+  const AVFrame *frame = Frame_val(_frame);
+  long offset = Long_val(_offset);
+  long length = Long_val(_length);
+  AVFrame *sub;
+  int error;
+
+  if (offset < 0 || length < 1 || offset > frame->nb_samples - length)
+    ocaml_avutil_raise_failure("sample range outside the frame");
+
+  sub = av_frame_alloc();
+  if (!sub)
+    caml_raise_out_of_memory();
+
+  sub->format = frame->format;
+  sub->sample_rate = frame->sample_rate;
+  sub->nb_samples = length;
+
+  error = av_channel_layout_copy(&sub->ch_layout, &frame->ch_layout);
+  if (error >= 0)
+    error = av_frame_get_buffer(sub, 0);
+  if (error >= 0)
+    error = av_frame_copy_props(sub, frame);
+  if (error < 0) {
+    av_frame_free(&sub);
+    ocaml_avutil_raise_error(error);
+  }
+
+  sub->pts = AV_NOPTS_VALUE;
+  sub->best_effort_timestamp = AV_NOPTS_VALUE;
+  sub->duration = 0;
+
+  av_samples_copy(sub->extended_data, frame->extended_data, 0, offset, length,
+                  frame->ch_layout.nb_channels, frame->format);
+
+  CAMLreturn(ocaml_avutil_wrap_frame(sub));
+}
+
 CAMLprim value ocaml_avutil_video_create_frame(value _width, value _height,
                                                value _pixel_format) {
   CAMLparam3(_width, _height, _pixel_format);

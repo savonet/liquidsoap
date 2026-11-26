@@ -245,6 +245,41 @@ CAMLprim value test_plane_size(value _frame, value _plane) {
   return Val_long(sizes[Int_val(_plane)]);
 }
 
+/* Writes byte [i mod 251] at byte [i] of every plane of an audio frame. */
+CAMLprim value test_fill_audio(value _frame) {
+  AVFrame *frame = Frame_val(_frame);
+  int planar = av_sample_fmt_is_planar(frame->format);
+  int planes = planar ? frame->ch_layout.nb_channels : 1;
+  int plane_size = frame->nb_samples * av_get_bytes_per_sample(frame->format) *
+                   (planar ? 1 : frame->ch_layout.nb_channels);
+
+  for (int plane = 0; plane < planes; plane++)
+    for (int byte = 0; byte < plane_size; byte++)
+      frame->extended_data[plane][byte] = (uint8_t)((byte + plane) % 251);
+
+  return Val_unit;
+}
+
+/* The sample bytes of every plane of an audio frame. */
+CAMLprim value test_audio_planes(value _frame) {
+  CAMLparam1(_frame);
+  CAMLlocal2(_planes, _plane);
+  const AVFrame *frame = Frame_val(_frame);
+  int planar = av_sample_fmt_is_planar(frame->format);
+  int planes = planar ? frame->ch_layout.nb_channels : 1;
+  int plane_size = frame->nb_samples * av_get_bytes_per_sample(frame->format) *
+                   (planar ? 1 : frame->ch_layout.nb_channels);
+
+  _planes = caml_alloc_tuple(planes);
+  for (int plane = 0; plane < planes; plane++) {
+    _plane = caml_alloc_initialized_string(
+        plane_size, (const char *)frame->extended_data[plane]);
+    Store_field(_planes, plane, _plane);
+  }
+
+  CAMLreturn(_planes);
+}
+
 /* A second frame over the buffers of [_frame]. */
 CAMLprim value test_share_frame(value _frame) {
   CAMLparam1(_frame);
