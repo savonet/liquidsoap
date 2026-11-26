@@ -39,6 +39,7 @@ let standalone_tests =
     ("subtitle_reencode.liq", ["test-subtitle.srt"]);
     ("hls_harbor_serving_fmp4.liq", []);
     ("ffmpeg_fractional_framerate.liq", []);
+    ("ffmpeg_raw_audio_timing.liq", []);
   ]
 
 let audio_formats = Test_media_formats.audio_formats
