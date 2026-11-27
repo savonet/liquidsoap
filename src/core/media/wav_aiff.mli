@@ -82,3 +82,9 @@ val wav_header :
 (** Returns the duration of the data. Warning: value may not be accurate for
     streams. *)
 val duration : 'a t -> float
+
+(** The largest value of a 32-bit size field. *)
+val max_size : int
+
+(** A 32-bit little-endian size field. *)
+val int_string : int -> string

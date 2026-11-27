@@ -70,8 +70,10 @@ class virtual base ?clock ~source:source_val ~name p =
         mark = (fun _ -> ());
         seek = None;
         read = None;
+        size = None;
       }
 
+    method private capabilities = Encoder.fresh_stream
     method create_encoder = encoder <- `Pending
 
     method get_encoder =
@@ -83,7 +85,7 @@ class virtual base ?clock ~source:source_val ~name p =
                 {
                   Encoder.pos = None;
                   name = self#id;
-                  capabilities = Encoder.fresh_stream;
+                  capabilities = self#capabilities;
                   sink = self#sink;
                   initial_metadata = self#initial_metadata;
                 }
@@ -396,15 +398,60 @@ class virtual ['a] file_output_base p =
 
 class file_output ?clock ~format_val p =
   object
-    inherit piped_output ?clock ~name:"output.file" p
+    inherit piped_output ?clock ~name:"output.file" p as base
     inherit [out_channel] chan_output p
     inherit [out_channel] file_output_base p
     method private create_writer = create_writer format_val
+    val mutable file_capabilities = Encoder.fresh_stream
+    method! private capabilities = file_capabilities
 
+    (* An appended file is opened without O_APPEND, at its end: its writer may
+       seek back to rewrite a header. *)
     method open_out_gen mode perm filename =
-      let fd = open_out_gen mode perm filename in
-      set_binary_mode_out fd true;
-      fd
+      let appending = List.mem Open_append mode in
+      let mode = List.filter (fun flag -> flag <> Open_append) mode in
+      let channel = open_out_gen mode perm filename in
+      set_binary_mode_out channel true;
+      let regular =
+        (Unix.fstat (Unix.descr_of_out_channel channel)).Unix.st_kind
+        = Unix.S_REG
+      in
+      let existing = if regular then out_channel_length channel else 0 in
+      if appending && regular then seek_out channel existing;
+      file_capabilities <-
+        {
+          Encoder.fresh_stream with
+          seekable = regular;
+          continuing = appending && 0 < existing;
+        };
+      channel
+
+    method! private sink =
+      let channel () = Option.get chan in
+      let read offset length =
+        Stdlib.flush (channel ());
+        In_channel.with_open_bin
+          (Option.get (Atomic.get current_filename))
+          (fun input ->
+            In_channel.seek input (Int64.of_int offset);
+            Option.value ~default:""
+              (In_channel.really_input_string input length))
+      in
+      let seekable = file_capabilities.Encoder.seekable in
+      {
+        (base#sink) with
+        Encoder.seek =
+          (if seekable then Some (fun offset -> seek_out (channel ()) offset)
+           else None);
+        read = (if seekable then Some read else None);
+        size =
+          (if seekable then
+             Some
+               (fun () ->
+                 Stdlib.flush (channel ());
+                 out_channel_length (channel ()))
+           else None);
+      }
 
     method output_substring = output_substring
     method flush = flush

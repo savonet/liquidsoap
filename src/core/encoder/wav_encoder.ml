@@ -26,7 +26,28 @@ open Mm
 
 open Wav_format
 
-let encoder ~pos wav =
+let log = Log.make ["encoder"; "wav"]
+
+(* The sizes of a header: the RIFF size at 4, the data size in its last four
+   bytes. *)
+let rewrite_sizes (sink : Encoder.sink) ~header_length ~payload ~padding =
+  match sink.seek with
+    | Some seek when payload <= Wav_aiff.max_size - (header_length - 8) ->
+        seek 4;
+        sink.write
+          (Strings.of_string
+             (Wav_aiff.int_string (header_length - 8 + payload + padding)));
+        seek (header_length - 4);
+        sink.write (Strings.of_string (Wav_aiff.int_string payload))
+    | _ -> ()
+
+let same_header header existing =
+  let without_sizes header = String.sub header 8 (String.length header - 12) in
+  String.length existing = String.length header
+  && String.sub existing 0 4 = "RIFF"
+  && without_sizes existing = without_sizes header
+
+let encoder ~pos wav { Encoder.capabilities; sink; name; _ } =
   let channels = wav.channels in
   let sample_rate = Deferred.force wav.samplerate in
   let sample_size = wav.samplesize in
@@ -34,19 +55,15 @@ let encoder ~pos wav =
     float sample_rate /. float (Lazy.Mutexed.force Frame.audio_rate)
   in
   let converter = Audio_converter.Samplerate.create channels in
-  let len =
-    match wav.duration with
-      | None -> None
-      | Some d ->
-          Some
-            (int_of_float
-               (d *. float channels *. float sample_rate *. float sample_size
-              /. 8.))
-  in
-  let header =
-    Wav_aiff.wav_header ?len ~channels ~sample_rate ~sample_size ()
-  in
-  let need_header = ref wav.header in
+  if wav.duration <> None then
+    log#important
+      "%s: the duration parameter of %%wav is deprecated and ignored" name;
+  let header = Wav_aiff.wav_header ~channels ~sample_rate ~sample_size () in
+  let header_length = String.length header in
+  (* A continuing writer extends the stream already there. *)
+  let need_header = ref (wav.header && not capabilities.Encoder.continuing) in
+  let wrote_header = !need_header in
+  let payload = ref 0 in
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -64,27 +81,55 @@ let encoder ~pos wav =
         | _ -> Lang_encoder.raise_error ~pos "Unsupported sample size"
     in
     of_audio b start s 0 len;
+    payload := !payload + Bytes.length s;
     let s = Bytes.unsafe_to_string s in
     if !need_header then (
       need_header := false;
       Strings.of_list [header; s])
     else Strings.of_string s
   in
-  {
-    Encoder.encode_metadata = (fun _ -> ());
-    encode;
-    header =
-      (fun () ->
-        if wav.header && not !need_header then Strings.of_string header
-        else Strings.empty);
-    stop = (fun () -> Strings.empty);
-    bitrate = (fun () -> None);
-    encode_into = None;
-    restart_offset = (fun () -> None);
-  }
+  (* On a seekable sink the header's sizes cover what the file holds. *)
+  let finalise () =
+    match (wav.header, sink.Encoder.read, sink.Encoder.size) with
+      | true, _, _ when wrote_header ->
+          let padding = !payload land 1 in
+          if 0 < padding && sink.Encoder.seek <> None then
+            sink.write (Strings.of_string "\000");
+          rewrite_sizes sink ~header_length ~payload:!payload ~padding
+      | true, Some read, Some size when capabilities.Encoder.continuing ->
+          if same_header header (read 0 header_length) then
+            rewrite_sizes sink ~header_length
+              ~payload:(size () - header_length)
+              ~padding:0
+          else
+            log#severe
+              "%s: the file does not start with a WAV header of this format, \
+               its header is left unchanged"
+              name
+      | _ -> ()
+  in
+  ( finalise,
+    {
+      Encoder.encode_metadata = (fun _ -> ());
+      encode;
+      header =
+        (fun () ->
+          if wrote_header && not !need_header then Strings.of_string header
+          else Strings.empty);
+      stop = (fun () -> Strings.empty);
+      bitrate = (fun () -> None);
+      encode_into = None;
+      restart_offset = (fun () -> None);
+    } )
 
 let () =
-  Plug.register Encoder.plug "wav" ~doc:"Native wav encoder."
-    (Encoder.of_encoders (function
-      | Encoder.WAV w -> Some (fun ~pos _ _ -> encoder ~pos w)
-      | _ -> None))
+  Plug.register Encoder.plug "wav" ~doc:"Native wav encoder." (function
+    | Encoder.WAV w ->
+        Some
+          (fun creation ->
+            let before_end, encoder =
+              encoder ~pos:creation.Encoder.pos w creation
+            in
+            Encoder.writer_of_encoder ~before_end ~unit_aligned:true encoder
+              creation.Encoder.sink)
+    | _ -> None)

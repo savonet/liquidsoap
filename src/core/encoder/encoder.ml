@@ -215,6 +215,7 @@ type sink = {
   mark : marker -> unit;
   seek : (int -> unit) option;
   read : (int -> int -> string) option;
+  size : (unit -> int) option;
 }
 
 type capabilities = {
@@ -288,7 +289,8 @@ let unit_aligned = function
   | FdkAacEnc { Fdkaac_format.transmux = `Adts | `Loas; _ } -> true
   | _ -> false
 
-let writer_of_encoder ~unit_aligned (encoder : encoder) (sink : sink) =
+let writer_of_encoder ?(before_end = fun () -> ()) ~unit_aligned
+    (encoder : encoder) (sink : sink) =
   let started = ref false in
   let time = ref 0 in
   let start_stream () =
@@ -325,6 +327,7 @@ let writer_of_encoder ~unit_aligned (encoder : encoder) (sink : sink) =
       (function
       | `Clean ->
           write_bytes (encoder.stop ());
+          before_end ();
           sink.mark `End
       | `Abandoned -> ( try ignore (encoder.stop ()) with _ -> ()));
     writer_bitrate = encoder.bitrate;
@@ -409,7 +412,7 @@ let buffered ?pos ~name ~capabilities ~initial_metadata format =
         pos;
         name;
         capabilities;
-        sink = { write; mark; seek = None; read = None };
+        sink = { write; mark; seek = None; read = None; size = None };
         initial_metadata;
       }
   in

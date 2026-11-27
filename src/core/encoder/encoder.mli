@@ -150,6 +150,7 @@ type sink = {
   mark : marker -> unit;  (** Refers to the next byte written. *)
   seek : (int -> unit) option;
   read : (int -> int -> string) option;  (** [read offset length] *)
+  size : (unit -> int) option;  (** Bytes the destination holds. *)
 }
 
 (** What the destination is, known when a writer is created. *)
@@ -192,8 +193,14 @@ type plugin = format -> (creation -> writer) option
 
 val plug : plugin Plug.t
 
-(** A plug-in whose writers are encoders returning their bytes: the stream start
-    comes from the encoder's header and restart offset. *)
+(** The writer of an encoder returning its bytes: the stream start comes from
+    its header and restart offset, and, with [unit_aligned], each call's output
+    starts at an access point. [before_end] runs at a clean end once the final
+    bytes are written. *)
+val writer_of_encoder :
+  ?before_end:(unit -> unit) -> unit_aligned:bool -> encoder -> sink -> writer
+
+(** A plug-in whose writers are such encoders. *)
 val of_encoders :
   (format ->
   (pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder) option) ->
