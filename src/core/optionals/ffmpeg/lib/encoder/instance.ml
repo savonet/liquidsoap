@@ -860,7 +860,11 @@ let create ?interrupt ?direct ?filename ~pos ~name metadata format =
       (fun () ->
         match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
     encode = encode t;
-    access_points = Some (fun () -> t.returned_access_points);
+    (* ponytail: the muxer's sync points (t.returned_access_points) are not
+       reported: with them, an icecast server relaying a Matroska source
+       starved its listeners 3 times out of 4, for a cause not found yet. Each
+       call's output starts a unit, as before. *)
+    access_points = None;
     stop = (fun () -> stop t);
     bitrate = (fun () -> bitrate t);
     restart_offset = (fun () -> t.returned_link_start);

@@ -123,6 +123,17 @@ let stream_value (stream : Stream_description.stream) =
   in
   Lang.record (field :: fields)
 
+(* A demuxer's names list the formats it reads ("matroska,webm"): the
+   muxer that writes the stream back is the first of them that is one. *)
+let muxer_of_demuxer name =
+  let is_muxer name =
+    match Av.Format.guess_output_format ~short_name:name () with
+      | Some muxer -> Av.Format.get_output_name muxer = name
+      | None -> false
+  in
+  Option.value ~default:name
+    (List.find_opt is_muxer (String.split_on_char ',' name))
+
 (* io.md §10.5. *)
 let copy_encoder ~(description : Stream_description.t) ~mime_type =
   Lang.val_fun
@@ -132,8 +143,8 @@ let copy_encoder ~(description : Stream_description.t) ~mime_type =
     (fun p ->
       let format =
         match Lang.to_valued_option Lang.to_string (List.assoc "format" p) with
-          | Some f -> Some f
-          | None -> description.format
+          | Some f -> Some (muxer_of_demuxer f)
+          | None -> Option.map muxer_of_demuxer description.format
       in
       let opts =
         List.map
