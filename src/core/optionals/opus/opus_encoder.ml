@@ -136,10 +136,7 @@ let create_encoder ~opus ~comments () =
 let create_opus = function
   | Ogg_format.Opus opus ->
       let reset ogg_enc m =
-        let comments =
-          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
-        in
-        let enc = create_encoder ~opus ~comments () in
+        let enc = create_encoder ~opus ~comments:(Ogg_encoder.comments m) () in
         Ogg_muxer.register_track ?fill:opus.Opus_format.fill ogg_enc enc
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in

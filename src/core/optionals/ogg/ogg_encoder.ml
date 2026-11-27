@@ -30,6 +30,14 @@ type track = {
   mutable id : nativeint option;
 }
 
+(* The comments of a link: the metadata without an [encoder] key of its own,
+   which the encoder identification replaces. *)
+let tags metadata =
+  List.filter
+    (fun (key, _) -> String.lowercase_ascii key <> "encoder")
+    (Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata metadata))
+
+let comments metadata = ("ENCODER", Configure.vendor) :: tags metadata
 let audio_encoders = Hashtbl.create 3
 let theora_encoder = ref None
 
@@ -70,6 +78,10 @@ let encode_video encoder id frame =
             { Ogg_muxer.data = Array.of_list data; offset = 0; length }
         in
         Ogg_muxer.encode encoder id data
+
+(* Pages hold whole audio packets or their continuation: a reader can start at
+   any of them. With video, only a stream start is known to be one. *)
+let unit_aligned { Ogg_format.video; _ } = video = None
 
 let encoder_name = function
   | Ogg_format.Vorbis _ -> "vorbis"
@@ -147,13 +159,16 @@ let encoder ~pos { Ogg_format.audio; video } =
     enc
 
 let () =
-  Plug.register Encoder.plug "ogg" ~doc:"ogg encoder."
-    (Encoder.of_encoders (function
-      | Encoder.Ogg ({ Ogg_format.audio; video } as m)
-        when Option.fold ~none:true
-               ~some:(fun audio ->
-                 Hashtbl.mem audio_encoders (encoder_name audio))
-               audio
-             && (video = None || !theora_encoder <> None) ->
-          Some (fun ~pos v -> encoder ~pos m v)
-      | _ -> None))
+  Plug.register Encoder.plug "ogg" ~doc:"ogg encoder." (function
+    | Encoder.Ogg ({ Ogg_format.audio; video } as m)
+      when Option.fold ~none:true
+             ~some:(fun audio ->
+               Hashtbl.mem audio_encoders (encoder_name audio))
+             audio
+           && (video = None || !theora_encoder <> None) ->
+        Some
+          (fun { Encoder.pos; name; sink; initial_metadata; _ } ->
+            Encoder.writer_of_encoder ~unit_aligned:(unit_aligned m)
+              (encoder ~pos m name initial_metadata)
+              sink)
+    | _ -> None)

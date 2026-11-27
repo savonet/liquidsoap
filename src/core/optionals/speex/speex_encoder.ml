@@ -132,18 +132,7 @@ let create speex ~metadata () =
 let create_speex = function
   | Ogg_format.Speex speex ->
       let reset ogg_enc m =
-        let m = Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m) in
-        let title =
-          try List.assoc "title" m
-          with Not_found -> (
-            try
-              let s = List.assoc "uri" m in
-              let title = Filename.basename s in
-              try String.sub title 0 (String.rindex title '.')
-              with Not_found -> title
-            with Not_found -> "Unknown")
-        in
-        let metadata = [("title", title)] @ List.remove_assoc "title" m in
+        let metadata = Ogg_encoder.comments m in
         let enc = create speex ~metadata () in
         Ogg_muxer.register_track ?fill:speex.Speex_format.fill ogg_enc enc
       in
