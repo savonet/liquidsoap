@@ -122,8 +122,11 @@ let encoder id ext =
         let width, height = Option.get ext.video in
         let width = Deferred.force width in
         let height = Deferred.force height in
-        Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width ~height
-          frame)
+        let video, audio =
+          Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width
+            ~height frame
+        in
+        Strings.append video audio)
       else (
         let b = AFrame.pcm frame in
         let len = AFrame.position frame in

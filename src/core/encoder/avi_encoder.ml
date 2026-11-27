@@ -84,11 +84,63 @@ let encode_frame ~channels ~samplerate ~width ~height ~converter frame =
             Strings.Mutable.add_substring data v (j * uv_stride) (width / 2)
           done))
       vbuf.Content.Video.data;
-    Avi.video_chunk_strings data
+    (* A frame of the stream with no image adds no image to the file. *)
+    if vbuf.Content.Video.data = [] then Strings.empty
+    else Avi.video_chunk_strings data
   in
-  Strings.add video audio
+  (video, Strings.of_string audio)
 
-let encoder avi =
+(* What the file form completes at the end: the sizes the streaming form
+   leaves at their maximum, and an index of the chunks, which the writer wrote
+   itself. *)
+type index = {
+  mutable data_length : int;
+  mutable video_chunks : int;
+  mutable audio_samples : int;
+  entries : Buffer.t;
+}
+
+let dword n =
+  let b = Bytes.create 4 in
+  Bytes.set_int32_le b 0 (Int32.of_int n);
+  Bytes.unsafe_to_string b
+
+let add_entry index id chunk =
+  let length = Strings.length chunk in
+  Buffer.add_string index.entries id;
+  Buffer.add_string index.entries (dword 0x10);
+  (* Offsets count from the "movi" fourcc. *)
+  Buffer.add_string index.entries (dword (4 + index.data_length));
+  Buffer.add_string index.entries (dword (length - 8));
+  index.data_length <- index.data_length + length
+
+let complete (sink : Encoder.sink) ~header index seek =
+  let header_length = String.length header in
+  let idx1 = Buffer.contents index.entries in
+  sink.write (Strings.of_list ["idx1"; dword (String.length idx1); idx1]);
+  let total = header_length + index.data_length + 8 + String.length idx1 in
+  let patch offset value =
+    seek offset;
+    sink.write (Strings.of_string (dword value))
+  in
+  (* The stream lengths of the two stream headers, the video's first. *)
+  let rec strh_offsets from =
+    if from + 4 > header_length then []
+    else if String.sub header from 4 = "strh" then
+      from :: strh_offsets (from + 4)
+    else strh_offsets (from + 1)
+  in
+  patch 4 (total - 8);
+  patch 44 0x0110;
+  patch 48 index.video_chunks;
+  (match strh_offsets 0 with
+    | [video; audio] ->
+        patch (video + 8 + 32) index.video_chunks;
+        patch (audio + 8 + 32) index.audio_samples
+    | _ -> ());
+  patch (header_length - 8) (4 + index.data_length)
+
+let writer avi { Encoder.capabilities; sink; _ } =
   let channels = avi.channels in
   let samplerate = Deferred.force avi.samplerate in
   let converter = Audio_converter.Samplerate.create channels in
@@ -96,32 +148,64 @@ let encoder avi =
   let height = Deferred.force avi.height in
   log#info "Encoding at %dx%d, %d channels, %d Hz.%!" width height channels
     samplerate;
-  (* TODO: use duration *)
   let header = Avi.header ~width ~height ~channels ~samplerate () in
+  let index =
+    match sink.Encoder.seek with
+      | Some seek when Encoder.file_form capabilities ->
+          Some
+            ( seek,
+              {
+                data_length = 0;
+                video_chunks = 0;
+                audio_samples = 0;
+                entries = Buffer.create 4096;
+              } )
+      | _ -> None
+  in
   let need_header = ref true in
   let encode frame =
-    let ans =
+    let video, audio =
       encode_frame ~channels ~samplerate ~width ~height ~converter frame
     in
+    Option.iter
+      (fun (_, index) ->
+        if not (Strings.is_empty video) then (
+          add_entry index "00db" video;
+          index.video_chunks <- index.video_chunks + 1);
+        add_entry index "01wb" audio;
+        index.audio_samples <-
+          index.audio_samples + ((Strings.length audio - 8) / (2 * channels)))
+      index;
+    let ans = Strings.append video audio in
     if !need_header then (
       need_header := false;
       Strings.dda header ans)
     else ans
   in
-  {
-    Encoder.encode_metadata = (fun _ -> ());
-    encode;
-    header =
-      (fun () ->
-        if !need_header then Strings.empty else Strings.of_string header);
-    stop = (fun () -> Strings.empty);
-    bitrate = (fun () -> None);
-    access_points = None;
-    restart_offset = (fun () -> None);
-  }
+  let before_end () =
+    Option.iter (fun (seek, index) -> complete sink ~header index seek) index
+  in
+  Encoder.writer_of_encoder ~before_end
+    {
+      Encoder.encode_metadata = (fun _ -> ());
+      encode;
+      header =
+        (fun () ->
+          if !need_header then Strings.empty else Strings.of_string header);
+      stop = (fun () -> Strings.empty);
+      bitrate =
+        (fun () ->
+          Some
+            ((width * height * 12 * Lazy.Mutexed.force Frame.video_rate)
+            + (16 * channels * samplerate)));
+      (* Each call's output starts with a video chunk: a reader can start
+         there. *)
+      access_points = None;
+      restart_offset = (fun () -> None);
+    }
+    sink
 
 let () =
-  Plug.register Encoder.plug "avi" ~doc:"Native avi encoder."
-    (Encoder.of_encoders (function
-      | Encoder.AVI avi -> Some (fun ~pos:_ _ _ -> encoder avi)
-      | _ -> None))
+  Plug.register Encoder.plug "avi" ~doc:"Native avi encoder." (function
+    | Encoder.AVI avi -> Some (writer avi)
+    | _ -> None)
