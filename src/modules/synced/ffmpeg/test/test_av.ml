@@ -1428,6 +1428,23 @@ let dependent_handles () =
   collect ();
   check true "an output collected without close is released"
 
+let deferred_packets () =
+  let path = file "deferred.mkv" in
+  let output = Av.open_output path in
+  let stream = video_stream ~bindings:[("bf", `Int 0)] output in
+  let held = ref [] in
+  let hold _ packet = held := packet :: !held in
+  for index = 0 to 9 do
+    Av.encode_packets stream (Some (picture index)) hold
+  done;
+  Av.encode_packets stream None hold;
+  equal 10 (List.length !held) "every frame gives a packet to the caller";
+  List.iter (Av.write_encoded_packet stream) (List.rev !held);
+  Av.close output;
+  equal 10
+    (List.length (video_frames (Av.open_input path)))
+    "the packets written later decode"
+
 let requirements =
   [
     ("3.1", requirement_3_1);
@@ -1457,6 +1474,7 @@ let requirements =
     ("3.25", requirement_3_25);
     ("3.26", requirement_3_26);
     ("av.container-options", container_options);
+    ("av.deferred-packets", deferred_packets);
     ("av.formats", formats);
     ("kc.av-concurrent-use", concurrent_use);
     ("kc.av-dependent-handles", dependent_handles);

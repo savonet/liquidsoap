@@ -94,7 +94,7 @@ and track = {
   mutable closed : tenure list;
   mutable track_end : int option;
   mutable last_stored : int option;
-  on_packet : key:bool -> time:int option -> unit;
+  on_packet : key:bool -> time:int option -> write:(unit -> unit) -> unit;
 }
 
 let create ~log ~whole_output ~muxer container =
@@ -217,22 +217,40 @@ let stream_time_base track =
 
 let rescale ~dst v = Option.get (Time_base.rescale ~src:(main ()) ~dst v)
 
-let write_packet track ~time_base ~dts ~pts ~duration packet =
+(* The write may run after this returns (HLS ordering, encoder.md §8.2): the
+   muxer's verdict on the packet is reported then, through [written] or
+   [rejected]. *)
+let write_packet track ~time_base ~dts ~pts ~duration ~written ~rejected packet
+    =
   let set p =
     let p = Avcodec.Packet.dup p in
     Avcodec.Packet.set_dts p (Some (Int64.of_int dts));
     Avcodec.Packet.set_pts p (Some (Int64.of_int pts));
     Avcodec.Packet.set_duration p (Option.map Int64.of_int duration);
-    track.on_packet
-      ~key:(List.mem `Keyframe (Avcodec.Packet.get_flags p))
-      ~time:(Time_base.rescale ~src:time_base ~dst:(main ()) pts);
-    p
+    (List.mem `Keyframe (Avcodec.Packet.get_flags p), p)
   in
-  match (track.stream, packet) with
-    | Some (`Audio s), `Audio p -> Av.write_packet s time_base (set p)
-    | Some (`Video s), `Video p -> Av.write_packet s time_base (set p)
-    | Some (`Subtitle s), `Subtitle p -> Av.write_packet s time_base (set p)
-    | _ -> failwith "Packet of another media than its stream"
+  let key, write =
+    match (track.stream, packet) with
+      | Some (`Audio s), `Audio p ->
+          let key, p = set p in
+          (key, fun () -> Av.write_packet s time_base p)
+      | Some (`Video s), `Video p ->
+          let key, p = set p in
+          (key, fun () -> Av.write_packet s time_base p)
+      | Some (`Subtitle s), `Subtitle p ->
+          let key, p = set p in
+          (key, fun () -> Av.write_packet s time_base p)
+      | _ -> failwith "Packet of another media than its stream"
+  in
+  let write () =
+    match write () with
+      | () -> written ()
+      | exception (Avutil.Error (`Invalid_data | `Other -22) as exn) ->
+          rejected (Printexc.to_string exn)
+  in
+  track.on_packet ~key
+    ~time:(Time_base.rescale ~src:time_base ~dst:(main ()) pts)
+    ~write
 
 exception Dropped of string
 
@@ -265,6 +283,11 @@ and restart_group t id =
         g.started <- false;
         g.offset <- None
     | None -> ()
+
+let dropped track tenure message =
+  item_fault track tenure
+    (Printf.sprintf "Track %s, source %d: %s" (name track) tenure.source_id
+       message)
 
 (* timestamps.md §6.1, §6.3, §6.4. *)
 let write track tenure ~offset h =
@@ -323,11 +346,11 @@ let write track tenure ~offset h =
           Option.map (rescale ~dst:tb) h.duration ))
       else (main (), dts', pts', h.duration)
     in
-    (try
-       write_packet track ~time_base:stored_tb ~dts:stored_dts ~pts:stored_pts
-         ~duration:stored_duration h.packet
-     with Avutil.Error (`Invalid_data | `Other -22) as exn ->
-       raise (Dropped (Printexc.to_string exn)));
+    write_packet track ~time_base:stored_tb ~dts:stored_dts ~pts:stored_pts
+      ~duration:stored_duration
+      ~written:(fun () -> Faults.delivered tenure.faults)
+      ~rejected:(fun message -> dropped track tenure message)
+      h.packet;
     track.last_stored <-
       Some
         (if Av.output_started t.container && stored_tb = main () then
@@ -335,7 +358,6 @@ let write track tenure ~offset h =
          else stored_dts);
     tenure.last_dts <- Some dts;
     tenure.written <- tenure.written + 1;
-    Faults.delivered tenure.faults;
     let extent = Option.value ~default:h.extent h.duration in
     track.track_end <-
       Some
@@ -344,10 +366,7 @@ let write track tenure ~offset h =
           | None -> dts' + extent)
   with
     | Exit -> ()
-    | Dropped message ->
-        item_fault track tenure
-          (Printf.sprintf "Track %s, source %d: %s" (name track)
-             tenure.source_id message)
+    | Dropped message -> dropped track tenure message
 
 let candidate t track (f : held) =
   let anchor = f.position - t.skipped in

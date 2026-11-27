@@ -29,10 +29,11 @@
     [create] raises the [encoder] error of a configuration it cannot build;
     [mk_stream] raises it for a stream the codec or the muxer rejects. [encode]
     raises [Failure] once a field reaches the fault bound. The [on_packet] hook
-    is called before each packet reaches the muxer, with its key flag and its
-    media time in main ticks (encoder.md §8.2). *)
+    receives each packet's key flag, its media time in main ticks and the
+    [write] that gives it to the muxer, which the hook runs when the packet is
+    due (encoder.md §8.2). *)
 
-type on_packet = key:bool -> time:int option -> unit
+type on_packet = key:bool -> time:int option -> write:(unit -> unit) -> unit
 
 type t = {
   mk_stream : Frame.t -> unit;

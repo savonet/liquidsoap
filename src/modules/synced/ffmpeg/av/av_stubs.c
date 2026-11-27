@@ -1963,6 +1963,45 @@ CAMLprim value ocaml_av_write_encoded(value _container, value _index) {
   CAMLreturn(Val_unit);
 }
 
+/* The packet ocaml_av_stream_receive_packet holds, handed to OCaml; its
+   timestamps stay in the encoder's time base. */
+CAMLprim value ocaml_av_take_encoded(value _container, value _index) {
+  CAMLparam2(_container, _index);
+  CAMLlocal1(_packet);
+  container *record = output_stream(_container, _index, 1);
+  stream_state *stream = &record->streams[Int_val(_index)];
+  AVPacket *packet = stream->encoded;
+
+  stream->encoded = NULL;
+  done(record, packet ? 0 : AVERROR(EINVAL));
+  _packet = ocaml_avcodec_wrap_packet(packet);
+
+  CAMLreturn(_packet);
+}
+
+CAMLprim value ocaml_av_write_encoded_packet(value _container, value _index,
+                                             value _packet) {
+  CAMLparam3(_container, _index, _packet);
+  container *record = output_stream(_container, _index, 1);
+  int index = Int_val(_index);
+  AVRational time_base = record->streams[index].codec->time_base;
+  AVPacket *reference = av_packet_alloc();
+  int error = AVERROR(ENOMEM);
+
+  if (reference)
+    error = av_packet_ref(reference, Packet_val(_packet));
+  if (error < 0) {
+    av_packet_free(&reference);
+  } else {
+    caml_release_runtime_system();
+    error = write_owned_packet(record, index, reference, time_base);
+    caml_acquire_runtime_system();
+  }
+  done(record, error);
+
+  CAMLreturn(Val_unit);
+}
+
 /* Encodes a subtitle into [packet]. Called without the lock; returns the
    size of the packet, 0 when the subtitle encodes to nothing. */
 static int encode_subtitle(AVCodecContext *encoder, AVStream *stream,
