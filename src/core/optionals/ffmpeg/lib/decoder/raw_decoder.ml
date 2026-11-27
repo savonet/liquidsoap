@@ -119,13 +119,9 @@ let audio ~output ~faults ~log ~source_id ~format
               Avutil.Audio.frame_get_sample_rate frame ));
       trim =
         (fun frame excess ->
-          let trimmed =
-            Avutil.Audio.sub ~offset:excess
-              ~length:(Avutil.Audio.frame_nb_samples frame - excess)
-              frame
-          in
-          Avutil.Frame.set_pts trimmed (Avutil.Frame.pts frame);
-          trimmed);
+          Avutil.Audio.sub ~offset:excess
+            ~length:(Avutil.Audio.frame_nb_samples frame - excess)
+            frame);
     }
   in
   let c =

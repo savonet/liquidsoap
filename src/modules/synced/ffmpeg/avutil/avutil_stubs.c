@@ -1421,6 +1421,7 @@ CAMLprim value ocaml_avutil_audio_frame_sub(value _frame, value _offset,
 
   sub->pts = AV_NOPTS_VALUE;
   sub->best_effort_timestamp = AV_NOPTS_VALUE;
+  sub->pkt_dts = AV_NOPTS_VALUE;
   sub->duration = 0;
 
   av_samples_copy(sub->extended_data, frame->extended_data, 0, offset, length,

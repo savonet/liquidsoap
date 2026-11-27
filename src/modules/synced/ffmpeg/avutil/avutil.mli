@@ -673,7 +673,7 @@ module Audio : sig
 
   (** [sub ~offset ~length frame] is a new frame holding samples
       [[offset, offset + length)] of [frame], copied, in its format, layout and
-      rate. The other properties are copied too, except the timestamp and the
+      rate. The other properties are copied too, except the timestamps and the
       duration, which are unset.
 
       @raise Error

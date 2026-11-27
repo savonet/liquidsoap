@@ -594,7 +594,7 @@ failure. Any FFmpeg failure releases the frame and raises.
 `[offset, offset + length)` of `frame`, copied with `av_samples_copy`, in a
 buffer allocated as `create_frame` does. It works for every sample format,
 planar or interleaved, without conversion. The other properties are copied
-with `av_frame_copy_props`, except the pts, the best-effort timestamp and the
+with `av_frame_copy_props`, except the pts, the packet DTS, the best-effort timestamp and the
 duration, which are unset: they are in a time base the frame does not carry.
 An empty range or one outside the frame raises a failure.
 

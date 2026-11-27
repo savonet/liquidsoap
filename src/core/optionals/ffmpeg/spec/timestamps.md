@@ -133,7 +133,11 @@ rounded up to main ticks, with no audio missing or repeated; within that
 bound the frame is fed whole. Decoded raw audio is already placed by its samples
 within the drift bound
 ([common.md §6.7](common.md#67-continuity-of-raw-audio)), so past the
-rounding bound a difference is a gap or overlap left in the content. The anchor is the first frame's position, and
+rounding bound a difference is a gap or overlap left in the content. The encoder needs no drift
+tolerance of its own: filter graph inputs are fed from that content, graph
+outputs derive their timestamps from sample counts, and inline decoders get
+the exact timestamps of the inline encoder, so no producer adds jitter after
+decoding. A producer that did would need the drift bound here too. The anchor is the first frame's position, and
 moves at every jump below; at a change of sample rate it is the expected
 position, the count starting again.
 

@@ -385,6 +385,11 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
       ignore (anchor ~rate abs));
     let c = clock_for ~abs ~rate in
     let offset = abs - expected_position c in
+    (* Rounding only, no drift tolerance: no producer adds timestamp jitter
+       after decoding. The raw decoder absorbs it (common.md §6.7), filter
+       graph inputs are fed from that content, graph outputs derive pts from
+       sample counts, and inline decoders get the inline encoder's exact pts.
+       A wider bound is only needed for a producer that breaks this. *)
     let bound = Time_base.rounding_bound time_base in
     let c, frame =
       if offset > bound then (missing ~abs ~rate offset, Some frame)

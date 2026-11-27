@@ -267,8 +267,14 @@ let continuity () =
   let continuity =
     {
       Duration.max_drift = Frame.main_of_seconds 0.02;
+      (* 1000-sample items are at 44.1 kHz, the others at 48 kHz. *)
       samples =
-        (fun i -> Option.map (fun d -> (Int64.to_int d, 48000)) i.duration);
+        (fun i ->
+          Option.map
+            (fun d ->
+              let d = Int64.to_int d in
+              (d, if d = 1000 then 44100 else 48000))
+            i.duration);
       trim =
         (fun i n ->
           {
@@ -298,14 +304,39 @@ let continuity () =
     Option.get (Time_base.rescale ~src:(tb 1 48000) ~dst:(Time_base.main ()) n)
   in
   let near expected l = abs (l - samples expected) <= 1 in
+  let jittered =
+    frames ~size:1024 (List.init 100 (fun i -> if i mod 2 = 1 then 480 else 0))
+  in
   check "jitter follows the samples"
     (near (100 * 1024)
-       (length (List.init 100 (fun i -> if i mod 2 = 1 then 480 else 0))));
+       (snd
+          (totals
+             (Duration.create ~continuity ~convert_ts:false ~src:(tb 1 48000)
+                ~faults:(faults ()) accessors)
+             jittered)));
+  check "placed timestamps follow the samples"
+    (List.for_all2
+       (fun i n -> i.ts = Some (Int64.of_int (n * 1024)))
+       jittered (List.init 100 Fun.id));
   check "a 10 ms gap is absorbed" (near (4 * 1024) (length [0; 0; 480; 480]));
   check "a 10 ms overlap is absorbed"
     (near (4 * 1024) (length [0; 0; -480; -480]));
   check "a 50 ms gap is kept"
     (near ((4 * 1024) + 2400) (length [0; 0; 2400; 2400]));
+  let rate_change =
+    frames ~size:1024 [0; 0]
+    @ [{ ts = Some (Int64.of_int ((2 * 1024) + 96000)); duration = Some 1000L }]
+  in
+  check "a rate change across a 2 s gap keeps the gap"
+    (abs
+       (snd
+          (totals
+             (Duration.create ~continuity ~convert_ts:false ~src:(tb 1 48000)
+                ~faults:(faults ()) accessors)
+             rate_change)
+       - (samples ((2 * 1024) + 96000) + Frame.main_of_seconds (1000. /. 44100.))
+       )
+    <= 1);
   check "a 50 ms overlap is dropped"
     (near ((4 * 4800) - 2400) (length ~size:4800 [0; 0; -2400; -2400]))
 
@@ -318,7 +349,7 @@ let () =
   blit ();
   audio_split ();
   continuity ();
-  let expected = 34 in
+  let expected = 36 in
   if !checks <> expected then
     failwith (Printf.sprintf "ran %d checks, expected %d" !checks expected);
   Printf.printf "base_test: %d checks passed\n" !checks

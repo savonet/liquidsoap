@@ -800,6 +800,7 @@ let audio_sub () =
     let frame = Audio.create_frame format Channel_layout.stereo 48000 1024 in
     fill_audio frame;
     Frame.set_pts frame (Some 5000L);
+    Frame.set_pkt_dts frame (Some 5000L);
     let channels = if interleaved then 2 else 1 in
     let expect ~offset ~length =
       let sub = Audio.sub ~offset ~length frame in
@@ -807,6 +808,7 @@ let audio_sub () =
       equal format (Audio.frame_get_sample_format sub) "sub sample format";
       equal 48000 (Audio.frame_get_sample_rate sub) "sub sample rate";
       equal None (Frame.pts sub) "sub pts unset";
+      equal None (Frame.pkt_dts sub) "sub pkt_dts unset";
       let width = bytes_per_sample * channels in
       Array.iteri
         (fun i plane ->

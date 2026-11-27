@@ -117,13 +117,15 @@ let place t ~continuity ~position item =
   match (continuity.samples item, t.clock) with
     | None, _ -> Some (position, item)
     | Some (samples, rate), None -> anchor ~rate position samples
-    | Some (samples, rate), Some clock when clock.rate <> rate ->
-        anchor ~rate (expected clock) samples
     | Some (samples, rate), Some clock ->
         let expected = expected clock in
         let drift = position - expected in
         let follow item samples =
-          t.clock <- Some { clock with fed = clock.fed + samples };
+          t.clock <-
+            Some
+              (if clock.rate = rate then
+                 { clock with fed = clock.fed + samples }
+               else { anchor = expected; rate; fed = samples });
           Some (expected, item)
         in
         if abs drift <= drift_bound t continuity then follow item samples
@@ -184,7 +186,7 @@ let within_drift t ts =
     | _ -> false
 
 (* The item at position [p] joins the group, or closes it. *)
-let accept t ~origin ~ts ~converted ~converted_origin ~p item =
+let accept t ~origin ~ts ~converted ~converted_origin ~position ~p item =
   let closes = match t.group_pos with Some g -> p > g | None -> false in
   if (not closes) && t.group_size >= max_group_items then group_full t
   else (
@@ -194,8 +196,16 @@ let accept t ~origin ~ts ~converted ~converted_origin ~p item =
         | _ -> item_end t ~ts ~converted_origin item
     in
     t.origin <- Some origin;
-    t.accessors.set_ts item
-      (Some (Int64.of_int (if t.convert_ts then converted else ts)));
+    (* A placed item's timestamp follows its placement. *)
+    let shift = p - position in
+    let written =
+      if t.convert_ts then converted + shift
+      else
+        ts
+        + Option.value ~default:0
+            (Time_base.rescale ~src:t.dst ~dst:t.src shift)
+    in
+    t.accessors.set_ts item (Some (Int64.of_int written));
     t.last_ts <-
       Some (match t.last_ts with Some last -> max last ts | None -> ts);
     Faults.delivered t.faults;
@@ -233,7 +243,8 @@ let push_timestamped t item ts =
               match placed with
                 | None -> `Nothing
                 | Some (p, item) ->
-                    accept t ~origin ~ts ~converted ~converted_origin ~p item)
+                    accept t ~origin ~ts ~converted ~converted_origin ~position
+                      ~p item)
           | _ ->
               drop t
                 (Printf.sprintf "Timestamp %d out of range converting from %s"
