@@ -1,23 +1,20 @@
 %include "../test.liq"
 
-# A configuration libFLAC refuses fails the output. Its statuses were never
-# checked, so the output wrote a 0-byte file and reported nothing.
-
-def on_error(_) =
-  print(
-    "error raised"
-  )
-  test.pass()
-  null
-end
+# A configuration libFLAC would refuse is refused with the format: a literal
+# when the script is checked, a computed value when it is evaluated. It used to
+# reach the library, which wrote a 0-byte file and reported nothing.
 
 %ifencoder %flac
-output.file(
-  reopen_on_error=on_error,
-  %flac(samplerate = 1000000),
-  file.temp(cleanup=true, "flac_refused", ".flac"),
-  sine()
-)
+samplerate = int_of_string("1000000")
+try
+  ignore(%flac(samplerate = samplerate))
+  test.fail()
+catch err do
+  print(
+    "refused: #{err.message}"
+  )
+  if err.kind == "encoder" then test.pass() else test.fail() end
+end
 %else
 test.skip()
 %endif
