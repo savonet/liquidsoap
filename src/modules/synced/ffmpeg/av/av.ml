@@ -607,6 +607,32 @@ let encode ?on_packet { container; index } frame =
 let write_frame ?on_packet stream frame = encode ?on_packet stream (Some frame)
 let flush_encoder ?on_packet stream = encode ?on_packet stream None
 
+external take_encoded : output container -> int -> _ Avcodec.Packet.t
+  = "ocaml_av_take_encoded"
+
+external write_encoded_stream_packet :
+  output container -> int -> _ Avcodec.Packet.t -> unit
+  = "ocaml_av_write_encoded_packet"
+
+let rec take_available on_packet container index =
+  match receive_packet container index with
+    | Nothing -> ()
+    | Packet (key, pts, dts, time_base) ->
+        let packet = take_encoded container index in
+        on_packet { key; pts; dts; time_base } packet;
+        take_available on_packet container index
+
+let encode_packets { container; index } frame on_packet =
+  let rec send () =
+    take_available on_packet container index;
+    if not (send_frame container index frame) then send ()
+  in
+  send ();
+  take_available on_packet container index
+
+let write_encoded_packet { container; index } packet =
+  write_encoded_stream_packet container index packet
+
 external write_subtitle : output container -> int -> Subtitle.frame -> unit
   = "ocaml_av_write_subtitle"
 

@@ -788,6 +788,29 @@ val flush_encoder :
   (output, 'media, [ `Frame ]) stream ->
   unit
 
+(** [encode_packets stream frame on_packet] encodes [frame] with the encoder of
+    the stream, as {!write_frame} does, but gives every packet that becomes
+    available to [on_packet] instead of the muxer. Its timestamps are in the
+    time base of the encoder; {!write_encoded_packet} writes it. [None] drains
+    the encoder, as {!flush_encoder} does.
+
+    @raise Error with [`Failure] when the stream has no encoder. *)
+val encode_packets :
+  (output, 'media, [ `Frame ]) stream ->
+  'media frame option ->
+  (encoded_packet -> 'media Avcodec.Packet.t -> unit) ->
+  unit
+
+(** [write_encoded_packet stream packet] writes a packet that {!encode_packets}
+    gave for [stream], converting its timestamps from the time base of the
+    encoder to the stream's. The header is written first when it is not written
+    yet. [packet] is unchanged.
+
+    @raise Error with the mapped FFmpeg code when the header or the write fails.
+*)
+val write_encoded_packet :
+  (output, 'media, [ `Frame ]) stream -> 'media Avcodec.Packet.t -> unit
+
 (** [write_subtitle_frame stream subtitle] encodes a subtitle and writes it as
     one packet. The header of the output is written first when it is not written
     yet. It releases the runtime lock.

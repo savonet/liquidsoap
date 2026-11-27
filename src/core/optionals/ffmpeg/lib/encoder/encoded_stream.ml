@@ -22,14 +22,19 @@
 
 module F = Liquidsoap_ffmpeg_formats.Encoder_format
 
-let report (on_packet : key:bool -> time:int option -> unit)
-    (packet : Av.encoded_packet) =
-  on_packet ~key:packet.key
-    ~time:
-      (Option.bind packet.pts
-         (Time_base.rescale_int64 ~src:packet.time_base ~dst:(Time_base.main ())))
+type on_packet = key:bool -> time:int option -> write:(unit -> unit) -> unit
 
-type on_packet = key:bool -> time:int option -> unit
+let encode (on_packet : on_packet) stream frame =
+  Av.encode_packets stream frame (fun (info : Av.encoded_packet) packet ->
+      on_packet ~key:info.key
+        ~time:
+          (Option.bind info.pts
+             (Time_base.rescale_int64 ~src:info.time_base
+                ~dst:(Time_base.main ())))
+        ~write:(fun () -> Av.write_encoded_packet stream packet))
+
+let write_frame on_packet stream frame = encode on_packet stream (Some frame)
+let flush_encoder on_packet stream = encode on_packet stream None
 
 type t = {
   mk_stream : Frame.t -> unit;
@@ -284,7 +289,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
             ~priming:
               (Avcodec.Audio.get_initial_padding (Av.get_codec_params stream))
             ~start:0
-            (Av.write_frame ~on_packet:(report on_packet) stream),
+            (write_frame on_packet stream),
           params );
     audio_stream := Some stream;
     match mode with
@@ -419,8 +424,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
       guarded faults ~kind (fun () -> Audio_writer.flush (fst (writer ())));
       Option.iter
         (fun stream ->
-          guarded faults ~kind (fun () ->
-              Av.flush_encoder ~on_packet:(report on_packet) stream))
+          guarded faults ~kind (fun () -> flush_encoder on_packet stream))
         !audio_stream)
   in
   let stream () = !audio_stream in
@@ -472,7 +476,7 @@ module Video_writer = struct
           Avutil.Frame.set_duration frame
             (Option.map Int64.of_int (rescale duration));
           t.last_pts <- Some pts;
-          Av.write_frame ~on_packet:(report t.on_packet) t.stream frame
+          write_frame t.on_packet t.stream frame
       | _ ->
           t.log#debug "Video frame at %d dropped: not after the previous one"
             abs
@@ -501,7 +505,7 @@ module Video_writer = struct
     if slot >= t.next_slot then (
       Avutil.Frame.set_pts frame (Some (Int64.of_int slot));
       t.next_slot <- slot + 1;
-      Av.write_frame ~on_packet:(report t.on_packet) t.stream frame)
+      write_frame t.on_packet t.stream frame)
 
   let drain t =
     match t.stage with
@@ -790,9 +794,7 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
       let w = writer () in
       guarded faults ~kind (fun () -> Video_writer.drain w);
       guarded faults ~kind (fun () ->
-          Av.flush_encoder
-            ~on_packet:(report w.Video_writer.on_packet)
-            w.Video_writer.stream))
+          flush_encoder w.Video_writer.on_packet w.Video_writer.stream))
   in
   let stream () = Option.map (fun (w, _) -> w.Video_writer.stream) !state in
   {
@@ -871,9 +873,9 @@ let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts
         pts = Some (Int64.of_int pts);
       }
     in
-    on_packet ~key:true ~time:(Some abs);
-    Av.write_subtitle_frame (Option.get !stream)
-      (Avutil.Subtitle.create_frame content)
+    on_packet ~key:true ~time:(Some abs) ~write:(fun () ->
+        Av.write_subtitle_frame (Option.get !stream)
+          (Avutil.Subtitle.create_frame content))
   in
   let encode ~position frame =
     match Frame.get frame field with

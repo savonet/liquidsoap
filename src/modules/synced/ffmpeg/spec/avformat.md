@@ -825,6 +825,22 @@ sees the packets of the frames the encoder held, before `close`.
   ``Error `Eof``.
 
 ```ocaml
+val encode_packets :
+  (output, 'media, [ `Frame ]) stream -> 'media frame option ->
+  (encoded_packet -> 'media Avcodec.Packet.t -> unit) -> unit
+val write_encoded_packet :
+  (output, 'media, [ `Frame ]) stream -> 'media Avcodec.Packet.t -> unit
+```
+
+`encode_packets` encodes as `write_frame` does, `None` draining as
+`flush_encoder` does, but gives each packet to the callback instead of the
+muxer, with its timestamps in the encoder's time base. `write_encoded_packet`
+writes such a packet to its stream later, with the timestamp conversion and
+header rules of `write_frame`; the caller's packet is unchanged (A4). A
+caller that orders packets across streams itself (an HLS segmenter on a
+non-interleaved output) holds them in between.
+
+```ocaml
 val write_subtitle_frame :
   (output, subtitle, [ `Frame ]) stream -> Avutil.Subtitle.frame -> unit
 ```

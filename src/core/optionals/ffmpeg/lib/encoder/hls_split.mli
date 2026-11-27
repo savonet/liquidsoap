@@ -25,6 +25,9 @@ val inter_coded : t -> string -> unit
 (** Every participating stream has written only key packets. *)
 val all_key : t -> bool
 
+(** The streams that are not all-key: their key frames are split points. *)
+val inter_coded_fields : t -> string list
+
 (** Adds a request: a media time at which a split point is wanted. It stays
     pending until a candidate is taken at it. *)
 val request : t -> int -> unit
