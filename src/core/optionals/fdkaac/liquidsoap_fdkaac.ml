@@ -76,8 +76,7 @@ let encoder ~pos aac =
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
-  let n = Utils.buflen in
-  let buf = Strings.Mutable.empty () in
+  (* The library takes any number of samples: it holds less than a frame. *)
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -85,34 +84,26 @@ let encoder ~pos aac =
       Audio_converter.Samplerate.resample samplerate_converter
         (dst_freq /. src_freq) b 0 len
     in
-    let encoded = Strings.Mutable.empty () in
-    Strings.Mutable.add buf (Audio.S16LE.make b start len);
-    while Strings.Mutable.length buf >= n do
-      let data = Bytes.create n in
-      Strings.blit (Strings.sub (Strings.Mutable.to_strings buf) 0 n) data 0;
-      let data = Bytes.unsafe_to_string data in
-      Strings.Mutable.drop buf n;
-      Strings.Mutable.add encoded (Fdkaac.Encoder.encode enc data 0 n)
-    done;
-    Strings.Mutable.to_strings encoded
+    if len = 0 then Strings.empty
+    else (
+      let data = Audio.S16LE.make b start len in
+      Strings.of_string (Fdkaac.Encoder.encode enc data 0 (String.length data)))
   in
-  let stop () =
-    let rem =
-      Strings.Mutable.map
-        (fun rem ofs len ->
-          let rem = Fdkaac.Encoder.encode enc rem ofs len in
-          (rem, 0, String.length rem))
-        buf
-    in
-    Strings.Mutable.add rem (Fdkaac.Encoder.flush enc);
-    Strings.Mutable.to_strings rem
+  let stop () = Strings.of_string (Fdkaac.Encoder.flush enc) in
+  let bitrate () =
+    match aac.Fdkaac_format.bitrate_mode with
+      | `Variable _ -> None
+      | `Constant -> (
+          match Fdkaac.Encoder.get enc `Bitrate with
+            | `Bitrate bitrate -> Some bitrate
+            | _ -> None)
   in
   {
     Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.empty);
     encode;
     stop;
-    bitrate = (fun () -> None);
+    bitrate;
     access_points = None;
     restart_offset = (fun () -> None);
   }
