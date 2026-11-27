@@ -34,16 +34,14 @@ Nothing at this level.
 
 ### 3.1 Current metadata
 
-1. An output holds a **current metadata**: the metadata in effect at the
-   position the output has reached in its stream. It is the output's view of
-   its source's last metadata
+1. An output's **current metadata** is its source's last metadata
    ([source-contract.md §4](../../source/spec/source-contract.md#4-metadata)):
-   - a metadata at position `p` of a frame becomes current from `p`; several
-     metadata at one position are merged in frame order, a later one winning
-     key by key;
-   - a track mark at position `p` with no metadata at `p` empties it from
-     `p`. Reason: a new track that carries no metadata is not the previous
-     track, and a file or a link labelled with the previous one misleads.
+   the source owns it, and the output keeps no copy. It is the last
+   metadata of the frames the source has produced, and a track mark with no
+   metadata empties it. Reason: a new track that carries no metadata is not
+   the previous track, and a file or a link labelled with the previous one
+   misleads. Within a frame holding several metadata, it is the last one
+   from the frame's first piece on.
 2. The current metadata is kept in full. Its exported form (§4.2) is what
    writers get; the full form is what the output's own uses read (a file
    name, a script callback), unless a caller file says otherwise.

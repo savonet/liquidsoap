@@ -33,12 +33,13 @@ let encoder_factory format_val =
         raise
           (Error.Invalid_value (format_val, "Unsupported encoding format", []))
 
-let base_proto =
+let cover_proto ~default =
   ( "export_cover_metadata",
     Lang.bool_t,
-    Some (Lang.bool true),
+    Some (Lang.bool default),
     Some "Export cover metadata." )
-  :: Output.proto
+
+let base_proto = Output.proto
 
 class virtual base ?clock ~source:source_val ~name p =
   let e f v = f (List.assoc v p) in
@@ -58,7 +59,6 @@ class virtual base ?clock ~source:source_val ~name p =
     val mutable encoder : [ `None | `Pending | `Created of Encoder.encoder ] =
       `None
 
-    val mutable current_metadata = None
     method virtual start : unit
     method virtual stop : unit
 
@@ -71,13 +71,7 @@ class virtual base ?clock ~source:source_val ~name p =
       match encoder with
         | `None -> None
         | `Pending ->
-            let enc = self#encoder_factory self#id in
-            let meta =
-              match current_metadata with
-                | Some m -> m
-                | None -> Frame.Metadata.Export.empty
-            in
-            let enc = enc meta in
+            let enc = self#encoder_factory self#id self#initial_metadata in
             encoder <- `Created enc;
             Some enc
         | `Created enc -> Some enc
@@ -105,11 +99,12 @@ class virtual base ?clock ~source:source_val ~name p =
     method virtual write_pipe : string -> int -> int -> unit
     method send b = Strings.iter self#write_pipe b
 
+    (* A writer yet to be built starts with the current metadata, which holds
+       this one. *)
     method encode_metadata m =
-      if not (Frame.Metadata.Export.is_empty m) then (
-        match self#get_encoder with
-          | None -> ()
-          | Some encoder -> encoder.Encoder.encode_metadata m)
+      match encoder with
+        | `Created encoder -> encoder.Encoder.encode_metadata m
+        | `Pending | `None -> ()
   end
 
 (** Piped virtual class: open/close pipe, implements metadata interpolation and
@@ -226,14 +221,10 @@ class virtual piped_output ?clock ~name p =
     method virtual is_open : bool
 
     method interpolate ?(subst = fun x -> x) s =
-      let current_metadata =
-        match current_metadata with
-          | Some m ->
-              let m = Frame.Metadata.Export.to_metadata m in
-              fun x -> subst (Frame.Metadata.find x m)
-          | None -> fun _ -> raise Not_found
-      in
-      Utils.interpolate current_metadata s
+      let current_metadata = self#current_metadata in
+      Utils.interpolate
+        (fun x -> subst (Frame.Metadata.find x current_metadata))
+        s
 
     method prepare_pipe =
       self#open_pipe;
@@ -287,10 +278,8 @@ class virtual piped_output ?clock ~name p =
         | _ -> ());
       base#encode frame
 
-    method! encode_metadata metadata =
-      if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then
-        self#reopen;
-      base#encode_metadata metadata
+    method! private on_metadata metadata =
+      if reopen_on_metadata metadata then self#reopen
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to
@@ -417,6 +406,7 @@ class file_output ?clock ~format_val p =
 
 let file_proto frame_t =
   [
+    cover_proto ~default:true;
     ( "append",
       Lang.bool_t,
       Some (Lang.bool false),
@@ -530,13 +520,14 @@ class external_output ?clock p =
   end
 
 let pipe_proto frame_t descr =
-  ( "self_sync",
-    Lang.bool_t,
-    Some (Lang.bool false),
-    Some
-      "Set to `true` if the process is expected to control the output's \
-       latency. Typical example: `ffmpeg` with the `-re` command-line option."
-  )
+  cover_proto ~default:false
+  :: ( "self_sync",
+       Lang.bool_t,
+       Some (Lang.bool false),
+       Some
+         "Set to `true` if the process is expected to control the output's \
+          latency. Typical example: `ffmpeg` with the `-re` command-line \
+          option." )
   :: chan_proto frame_t descr
 
 let _ =

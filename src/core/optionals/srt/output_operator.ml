@@ -296,7 +296,7 @@ class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
         | [], _ -> None
         | _, Some enc -> Some enc
         | _, None ->
-            let enc = factory self#id Frame.Metadata.Export.empty in
+            let enc = factory self#id self#initial_metadata in
             encoder <- Some enc;
             List.iter (fun s -> s.joined <- true) streams;
             Some enc

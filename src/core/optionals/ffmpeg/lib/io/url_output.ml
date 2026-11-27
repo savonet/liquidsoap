@@ -258,7 +258,7 @@ let _ =
     @ [
         ( "export_cover_metadata",
           Lang.bool_t,
-          Some (Lang.bool true),
+          Some (Lang.bool false),
           Some "Export cover metadata." );
         ("url", Lang.string_t, None, Some "Output URL, handed to the muxer.");
         ( "restart_delay",

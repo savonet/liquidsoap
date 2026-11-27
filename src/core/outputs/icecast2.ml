@@ -602,7 +602,7 @@ class output p =
 
     method icecast_start =
       assert (encoder = None);
-      let enc = data.factory self#id Frame.Metadata.Export.empty in
+      let enc = data.factory self#id self#initial_metadata in
       encoder <- Some enc;
       assert (Cry.get_status connection = Cry.Disconnected);
       begin match dumpfile with

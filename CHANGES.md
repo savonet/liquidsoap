@@ -72,6 +72,7 @@
 - String interpolation accepts any expression, e.g. `"#{m["key"]}"` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
 - Integers are implicitly cast to floats ([#2887](https://github.com/savonet/liquidsoap/pull/2887)).
 - `encoder.extension(%ogg(%opus))` is `opus`, the extension RFC 7845 recommends for Ogg files with only Opus.
+- `output.external` and `output.url`: `export_cover_metadata` defaults to `false`. Set it to `true` to keep handing cover art to the encoder.
 
 ## Fixed:
 
@@ -142,6 +143,7 @@
 - `%mp3` prints `id3v2` only when the script sets it, as `id3v2=false` or `id3v2=<version>` instead of `id3v2=none`, which did not parse back, and two `%mp3` formats differing only in whether `id3v2` was set are no longer equal.
 - Native encoder formats are typed from the same reading of their parameters that builds them: when a channel parameter is given twice the last one wins in the type too, `%external(video=false)` is accepted, and a literal parameter the format refuses (`%mp3(samplerate=1234)`) fails `--check` at its position instead of failing at evaluation.
 - A format this build cannot encode (`%ogg(%opus)` without libopus, for instance) fails type checking with error 12 instead of failing when its output starts, and `%ifencoder` no longer takes it as available. `%ifnencoder` is taken for a name the language does not know.
+- `output.file` and `output.external`: `$(title)` and other metadata in the file name or command are the source's last metadata again (they were always empty), a file or process opened later starts with it, and `reopen_on_metadata` receives the full metadata instead of its exported keys only. Several metadata at one position of a frame are merged instead of all but the first being dropped.
 - ID3v2 tags (`%mp3(id3v2=…)`, HLS timed metadata, `metadata.id3v2.render`): `date` and `year` are written as `TYER` (v2.3) or `TDRC` (v2.4) instead of `TDAT`, which holds a day and month; `genre` and `albumartist` are written; a key given twice gives one frame, the last; `%mp3` writes no tag when no key maps.
 - Active inputs replaced through `source.dynamic` are stopped and released ([#5391](https://github.com/savonet/liquidsoap/pull/5391)).
 - Failed http downloads and failed external decodes no longer leave their temporary file behind, and `video.cover` deletes its cover files once played ([#5668](https://github.com/savonet/liquidsoap/pull/5668)).
