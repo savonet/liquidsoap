@@ -410,3 +410,38 @@ let streamable f =
               && (flag "frag_keyframe" || flag "frag_custom")
               && not (flag "delay_moov"))
     | _ -> false
+
+(* An FFmpeg integer option: digits, then an SI suffix. *)
+let int_option = function
+  | `Int i -> Some i
+  | `Int64 i -> Some (Int64.to_int i)
+  | `Float f -> Some (int_of_float f)
+  | `String s -> (
+      let s = String.trim s in
+      let length = String.length s in
+      let multiplier, digits =
+        match if length = 0 then ' ' else s.[length - 1] with
+          | 'k' | 'K' -> (1_000, String.sub s 0 (length - 1))
+          | 'M' -> (1_000_000, String.sub s 0 (length - 1))
+          | _ -> (1, s)
+      in
+      match float_of_string_opt digits with
+        | Some value -> Some (int_of_float (value *. float multiplier))
+        | None -> None)
+  | _ -> None
+
+(** The bit rate the script set: the sum of the [b] of every encoded stream,
+    when each has one and no stream is copied. *)
+let explicit_bitrate f =
+  let rates =
+    List.filter_map
+      (function
+        | _, `Drop -> None
+        | _, `Encode (encoded : encoded) ->
+            Some (Option.bind (List.assoc_opt "b" encoded.opts) int_option)
+        | _, `Copy _ -> Some None)
+      f.streams
+  in
+  if rates <> [] && List.for_all Option.is_some rates then
+    Some (List.fold_left (fun sum rate -> sum + Option.get rate) 0 rates)
+  else None

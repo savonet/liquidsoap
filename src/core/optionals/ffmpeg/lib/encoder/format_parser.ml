@@ -344,8 +344,23 @@ let parse params =
       (fun (f : F.t) -> function
         | `Labelled ("format", Value.String { value = "none" }) ->
             { f with format = None }
-        | `Labelled ("format", Value.String { value }) ->
-            { f with format = Some value }
+        | `Labelled ("format", (Value.String { value } as v)) ->
+            (* A muxer's name, or a file extension that names one (mkv). *)
+            let named =
+              match Av.Format.guess_output_format ~short_name:value () with
+                | Some muxer when Av.Format.get_output_name muxer = value ->
+                    Some muxer
+                | _ ->
+                    Av.Format.guess_output_format ~filename:("file." ^ value) ()
+            in
+            let muxer =
+              match named with
+                | Some muxer -> Av.Format.get_output_name muxer
+                | None ->
+                    error ?pos:(pos v)
+                      (Printf.sprintf "No ffmpeg muxer named %S" value)
+            in
+            { f with format = Some muxer }
         | `Labelled ("metadata", v) -> { f with metadata = metadata v }
         | `Labelled ("streamable", Value.Bool { value }) ->
             { f with streamable = value }

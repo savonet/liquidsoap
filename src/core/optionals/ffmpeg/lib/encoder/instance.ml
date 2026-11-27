@@ -29,7 +29,6 @@ type track =
 
 type container = {
   output : Avutil.output Avutil.container;
-  appended : Unix.file_descr option;
   muxer : string;
   copy : Copy_encoder.t;
   tracks : (string * track) list;
@@ -95,23 +94,7 @@ let convert_container_opts pos opts =
     opts
 
 let non_drop format = List.filter (fun (_, t) -> t <> `Drop) format.F.streams
-
-(* FFmpeg's [file] protocol has no append mode: [truncate] = 0 writes from the
-   start of the file. An appending file output writes through a descriptor
-   opened for appending; [output.file] asks for it with [truncate] = 0. *)
-let appended_path ~append (format : F.t) =
-  match format.output with
-    | `Url u
-      when String.starts_with ~prefix:"file:" u
-           && (append || List.assoc_opt "truncate" format.opts = Some (`Int 0))
-      ->
-        Some (String.sub u 5 (String.length u - 5))
-    | _ -> None
-
-let close_output c =
-  Fun.protect
-    ~finally:(fun () -> Option.iter Unix.close c.appended)
-    (fun () -> Av.close c.output)
+let close_output c = Av.close c.output
 
 (* Muxers that tell the I/O what they write: a reader can start at the units
    they mark as sync points, and the I/O is flushed around them. *)
@@ -122,97 +105,91 @@ let marking_muxers =
 let open_container ?interrupt
     ?(on_packet = fun _ ~key:_ ~time:_ ~write -> write ())
     ?(on_sync_point = fun () -> ()) ?direct ?filename ~log ~(format : F.t) ~pos
-    ~buffer ?(append = false) () =
-  let appended_path = appended_path ~append format in
-  let opts =
-    Opts.of_list
-      (convert_container_opts pos
-         (if appended_path = None then format.opts
-          else List.remove_assoc "truncate" format.opts))
-  in
+    ~buffer () =
+  let opts = Opts.of_list (convert_container_opts pos format.opts) in
   let interleaved =
     match format.interleaved with
       | `True -> true
       | `False -> false
       | `Default -> List.length (non_drop format) > 1
   in
+  (* A named muxer is that muxer or none: a guess from the file name or the
+     MIME type would write another format than the script asked for. *)
   let guess () =
-    Av.Format.guess_output_format ?short_name:format.format
-      ?filename:
-        (match format.output with `Url u -> Some u | `Stream -> filename)
-      ?mime:format.mime_type ()
+    match format.format with
+      | Some short_name -> (
+          match Av.Format.guess_output_format ~short_name () with
+            | Some muxer when Av.Format.get_output_name muxer = short_name ->
+                Some muxer
+            | _ -> None)
+      | None ->
+          Av.Format.guess_output_format
+            ?filename:
+              (match format.output with
+                | `Url u -> Some u
+                | `Stream -> filename)
+            ?mime:format.mime_type ()
   in
-  let appended =
-    Option.map
-      (fun path ->
-        Unix.openfile path [Unix.O_WRONLY; Unix.O_APPEND; Unix.O_CREAT] 0o644)
-      appended_path
-  in
-  let close_appended () = Option.iter Unix.close appended in
   let output =
-    try
-      match (format.output, appended) with
-        | `Url _, Some fd -> (
-            match guess () with
-              | None ->
-                  error ?pos "No ffmpeg format could be found for this file"
-              | Some muxer ->
-                  Av.open_output_stream ~opts ~interleaved
-                    (fun bytes offset length ->
-                      Unix.write fd bytes offset length)
-                    muxer)
-        | `Stream, _ -> (
-            match (format.format, guess ()) with
-              | None, None -> error ?pos "Format is required!"
-              | Some f, None ->
-                  error ?pos
-                    (Printf.sprintf
-                       "No ffmpeg format could be found for format=%S" f)
-              | _, Some muxer when direct <> None ->
-                  let sink : Encoder.sink = Option.get direct in
-                  let sink_seek = Option.get sink.seek in
-                  let position = ref 0 in
-                  let write bytes offset length =
-                    sink.write
-                      (Strings.of_string (Bytes.sub_string bytes offset length));
-                    position := !position + length;
-                    length
-                  in
-                  let seek offset whence =
-                    (position :=
-                       match (whence, sink.size) with
-                         | Unix.SEEK_SET, _ -> offset
-                         | Unix.SEEK_CUR, _ -> !position + offset
-                         | Unix.SEEK_END, Some size -> size () + offset
-                         | Unix.SEEK_END, None ->
-                             failwith "the destination has no known size");
-                    sink_seek !position;
-                    !position
-                  in
-                  Av.open_output_stream ~opts ~interleaved ~seek write muxer
-              | _, Some muxer ->
-                  let write bytes offset length =
-                    Buffer.add_subbytes buffer bytes offset length;
-                    length
-                  in
-                  let marker kind _ =
-                    match kind with
-                      | Av.Sync_point -> on_sync_point ()
-                      | Av.Header | Av.Boundary_point | Av.Unknown | Av.Trailer
-                        ->
-                          ()
-                  in
-                  Av.open_output_stream ~opts ~interleaved ~marker write muxer)
-        | `Url url, None ->
-            Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
-    with exn ->
-      close_appended ();
-      raise exn
+    match format.output with
+      | `Stream -> (
+          match (format.format, guess ()) with
+            | None, None -> error ?pos "Format is required!"
+            | Some f, None ->
+                error ?pos
+                  (Printf.sprintf
+                     "No ffmpeg format could be found for format=%S" f)
+            | _, Some muxer when direct <> None ->
+                let sink : Encoder.sink = Option.get direct in
+                let sink_seek = Option.get sink.seek in
+                let position = ref 0 in
+                let write bytes offset length =
+                  sink.write
+                    (Strings.of_string (Bytes.sub_string bytes offset length));
+                  position := !position + length;
+                  length
+                in
+                let seek offset whence =
+                  (position :=
+                     match (whence, sink.size) with
+                       | Unix.SEEK_SET, _ -> offset
+                       | Unix.SEEK_CUR, _ -> !position + offset
+                       | Unix.SEEK_END, Some size -> size () + offset
+                       | Unix.SEEK_END, None ->
+                           failwith "the destination has no known size");
+                  sink_seek !position;
+                  !position
+                in
+                (* What the muxer reads back when it moves data in its
+                     output: up to [length] bytes, fewer at the end. *)
+                let read_back =
+                  Option.map
+                    (fun read offset buffer length ->
+                      let data = read offset length in
+                      Bytes.blit_string data 0 buffer 0 (String.length data);
+                      String.length data)
+                    sink.read
+                in
+                Av.open_output_stream ~opts ~interleaved ~seek ?read_back write
+                  muxer
+            | _, Some muxer ->
+                let write bytes offset length =
+                  Buffer.add_subbytes buffer bytes offset length;
+                  length
+                in
+                let marker kind _ =
+                  match kind with
+                    | Av.Sync_point -> on_sync_point ()
+                    | Av.Header | Av.Boundary_point | Av.Unknown | Av.Trailer ->
+                        ()
+                in
+                Av.open_output_stream ~opts ~interleaved ~marker write muxer)
+      | `Url url ->
+          Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
   in
   (match Opts.unused_message [("container", opts)] with
     | Some message ->
         (try Av.close output with _ -> ());
-        close_appended ();
         error ?pos message
     | None -> ());
   let muxer =
@@ -220,7 +197,6 @@ let open_container ?interrupt
   in
   let release_and_raise exn =
     (try Av.close output with _ -> ());
-    close_appended ();
     raise exn
   in
   try
@@ -253,15 +229,7 @@ let open_container ?interrupt
                        ~on_packet:(on_packet field) encoded output) ))
         format.streams
     in
-    {
-      output;
-      appended;
-      muxer;
-      copy;
-      tracks;
-      streams_created = false;
-      wait_start = None;
-    }
+    { output; muxer; copy; tracks; streams_created = false; wait_start = None }
   with exn -> release_and_raise exn
 
 let copy_tracks c =
@@ -519,7 +487,7 @@ let restart t =
     open_container ?interrupt:t.interrupt ~on_packet:(on_packet t)
       ~on_sync_point:(fun () -> access_point t)
       ?direct:t.direct ?filename:t.filename ~log:t.log ~format:t.format
-      ~pos:t.pos ~buffer:t.buffer ~append:true ();
+      ~pos:t.pos ~buffer:t.buffer ();
   t.header <- `Pending (Buffer.length t.buffer);
   t.link_start <- Some (Buffer.length t.buffer);
   t.position <- 0;
@@ -804,10 +772,13 @@ let codec_attrs t =
     None)
 
 let bitrate t =
-  let rates = List.map (fun a -> a.bitrate) (streams_attrs t) in
-  if rates <> [] && List.for_all Option.is_some rates then
-    Some (List.fold_left (fun sum b -> sum + Option.get b) 0 rates)
-  else None
+  match F.explicit_bitrate t.format with
+    | Some bitrate -> Some bitrate
+    | None ->
+        let rates = List.map (fun a -> a.bitrate) (streams_attrs t) in
+        if rates <> [] && List.for_all Option.is_some rates then
+          Some (List.fold_left (fun sum b -> sum + Option.get b) 0 rates)
+        else None
 
 let video_size t =
   match List.filter_map (fun a -> a.video_size) (streams_attrs t) with

@@ -309,9 +309,19 @@ let _ =
                      "Encoding format does not support output url!",
                      [] ))
       in
+      let url_val = List.assoc "url" p in
+      let url = Lang.to_string url_val in
+      (* A file is output.file's: it opens, names and reopens it. *)
+      (match String.index_opt url ':' with
+        | Some i
+          when i > 1 && String.lowercase_ascii (String.sub url 0 i) <> "file" ->
+            ()
+        | _ ->
+            raise
+              (Error.Invalid_value
+                 (url_val, "This is not a URL: use output.file for a file", [])));
       new url_output
-        ~url:(Lang.to_string (List.assoc "url" p))
-        ~format ~format_val
+        ~url ~format ~format_val
         ~restart_delay:
           (Lang.to_valued_option Lang.to_float (List.assoc "restart_delay" p))
         ~timeout:(Lang.to_float (List.assoc "timeout" p))

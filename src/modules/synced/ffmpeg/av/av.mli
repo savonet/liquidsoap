@@ -205,6 +205,10 @@ type data_marker = Header | Sync_point | Boundary_point | Unknown | Trailer
 
 type marker = data_marker -> int64 -> unit
 
+(** [read_back offset buffer length] reads up to [length] bytes the output
+    wrote, from [offset], into [buffer], and returns how many; 0 at the end. *)
+type read_back = int -> bytes -> int -> int
+
 (** [open_input_stream read] opens an input that reads through [read] instead of
     a URL, and probes its streams, as {!open_input} does. It takes no interrupt
     function and no stream configuration. It blocks while FFmpeg opens and
@@ -542,12 +546,17 @@ val open_output_format :
       are and their time, in microseconds, when it knows it. Muxers that mark
       their output (Matroska, the ISO family, FLV, ASF, MXF, MPEG-PS) end a
       write at each change.
+    @param read_back
+      what the muxer reads its own output back with, when it moves data in it
+      (an MP4 with [movflags=+faststart]): FFmpeg reopens the output through it,
+      at a position of its own.
     @raise Error with [`Failure] when the format needs no file. *)
 val open_output_stream :
   ?opts:opts ->
   ?interleaved:bool ->
   ?seek:seek ->
   ?marker:marker ->
+  ?read_back:read_back ->
   write ->
   (output, _) format ->
   output container

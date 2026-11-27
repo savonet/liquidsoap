@@ -162,7 +162,14 @@ let mime = function
   | Shine _ -> "audio/mpeg"
   | Flac _ -> "audio/flac"
   | FdkAacEnc _ -> "audio/aac"
-  | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.mime m
+  | Ffmpeg m -> (
+      let module F = Liquidsoap_ffmpeg_formats.Encoder_format in
+      match (m.F.mime_type, F.mime m, m.F.format) with
+        | Some mime, _, _ -> mime
+        | None, "application/octet-stream", Some muxer ->
+            Option.value ~default:"application/octet-stream"
+              (Utils.mime_of_container_format muxer)
+        | None, mime, _ -> mime)
   | _ -> "application/octet-stream"
 
 (** Bitrate estimation in bits per second. *)
@@ -170,6 +177,10 @@ let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
+  | Ffmpeg m -> (
+      match Liquidsoap_ffmpeg_formats.Encoder_format.explicit_bitrate m with
+        | Some bitrate -> bitrate
+        | None -> raise Not_found)
   | _ -> raise Not_found
 
 (** An encoder, once initialized, is something that consumes frames, insert

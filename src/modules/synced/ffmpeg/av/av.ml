@@ -66,6 +66,7 @@ type write = bytes -> int -> int -> int
 type seek = int -> Unix.seek_command -> int
 type data_marker = Header | Sync_point | Boundary_point | Unknown | Trailer
 type marker = data_marker -> int64 -> unit
+type read_back = int -> bytes -> int -> int
 
 (* The media kinds a stream is listed and tagged under; the order is the
    one of the C side. *)
@@ -78,7 +79,12 @@ type source =
 type target =
   | No_file
   | To_url of { url : string; interrupt : (unit -> bool) option }
-  | To_custom of { write : write; seek : seek option; marker : marker option }
+  | To_custom of {
+      write : write;
+      seek : seek option;
+      marker : marker option;
+      read_back : read_back option;
+    }
 
 external alloc_container : unit -> 'line container = "ocaml_av_alloc_container"
 external release : _ container -> unit = "ocaml_av_release"
@@ -414,8 +420,10 @@ let open_output ?interrupt ?format ?interleaved ?opts url =
 let open_output_format ?interleaved ?opts format =
   open_target ~format ?interleaved ?opts No_file
 
-let open_output_stream ?opts ?interleaved ?seek ?marker write format =
-  open_target ~format ?interleaved ?opts (To_custom { write; seek; marker })
+let open_output_stream ?opts ?interleaved ?seek ?marker ?read_back write format
+    =
+  open_target ~format ?interleaved ?opts
+    (To_custom { write; seek; marker; read_back })
 
 external output_started : output container -> bool = "ocaml_av_output_started"
 

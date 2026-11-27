@@ -81,22 +81,13 @@ module Icecast_v (M : Icecast_t) = struct
   let aac = M.format_of_content aac_mime
   let flac = M.format_of_content flac_mime
 
+  (* The format helper's MIME type, the one table of every output. *)
   let format_of_encoder = function
-    | Encoder.MP3 _ -> Some mpeg
-    | Encoder.Shine _ -> Some mpeg
-    | Encoder.Ffmpeg
-        { Liquidsoap_ffmpeg_formats.Encoder_format.mime_type = Some m } ->
-        Some (M.format_of_content m)
-    | Encoder.Ffmpeg { format = Some f } ->
-        Option.map M.format_of_content (Utils.mime_of_container_format f)
-    | Encoder.Ffmpeg _ -> None
-    | Encoder.FdkAacEnc _ -> Some aac
-    | Encoder.External _ -> None
-    | Encoder.NDI _ -> None
-    | Encoder.Flac _ -> Some flac
-    | Encoder.WAV _ -> Some wav
-    | Encoder.AVI _ -> Some avi
-    | Encoder.Ogg _ -> Some ogg
+    | Encoder.External _ | Encoder.NDI _ -> None
+    | format -> (
+        match Encoder.mime format with
+          | "application/octet-stream" -> None
+          | mime -> Some (M.format_of_content mime))
 
   let encoder_data ?(capabilities = Encoder.live_stream) p =
     let v = Lang.assoc "" 1 p in

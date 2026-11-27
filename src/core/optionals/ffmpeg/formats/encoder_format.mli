@@ -172,3 +172,7 @@ val default_text_to_ass : int -> string -> string
     the muxers whose units are self-delimited, the ISO family fragmented, or any
     format with [streamable=true]. *)
 val streamable : t -> bool
+
+(** The bit rate the script set: the sum of the [b] option of every encoded
+    stream, when each has one and no stream is copied. *)
+val explicit_bitrate : t -> int option

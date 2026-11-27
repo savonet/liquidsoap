@@ -533,8 +533,18 @@ class file_output ?clock ~format_val p =
               (Option.get (Atomic.get current_filename))
               (fun input ->
                 In_channel.seek input (Int64.of_int offset);
-                Option.value ~default:""
-                  (In_channel.really_input_string input length)))
+                (* Up to [length] bytes: fewer at the end of the file. *)
+                let buffer = Bytes.create length in
+                let rec fill filled =
+                  if filled = length then filled
+                  else (
+                    match
+                      In_channel.input input buffer filled (length - filled)
+                    with
+                      | 0 -> filled
+                      | n -> fill (filled + n))
+                in
+                Bytes.sub_string buffer 0 (fill 0)))
       in
       let seekable = file_capabilities.Encoder.seekable in
       {
@@ -586,53 +596,6 @@ let file_proto frame_t =
   ]
   @ chan_proto frame_t "Filename where to output the stream."
 
-(* A %ffmpeg format writes the file itself, so that seekable containers can
-   finalise their header: the output only creates the file and names it. *)
-class ffmpeg_file_output ?clock ~format_val ~format p =
-  let append = Lang.to_bool (List.assoc "append" p) in
-  object
-    inherit piped_output ?clock ~name:"output.file" p
-    inherit [string] chan_output p
-    inherit [string] file_output_base p
-
-    method private create_writer creation =
-      match Atomic.get current_filename with
-        | None -> failwith "output.file: no file is open"
-        | Some filename ->
-            let format =
-              {
-                format with
-                Liquidsoap_ffmpeg_formats.Encoder_format.output =
-                  `Url ("file:" ^ filename);
-                opts =
-                  Liquidsoap_ffmpeg_formats.Encoder_format.set
-                    format.Liquidsoap_ffmpeg_formats.Encoder_format.opts
-                    "truncate"
-                    (`Int (if append then 0 else 1));
-              }
-            in
-            Encoder.create_writer (Encoder.Ffmpeg format)
-              { creation with Encoder.pos = Value.pos format_val }
-
-    method open_out_gen _ perm filename =
-      Unix.close (Unix.openfile filename [Unix.O_WRONLY; Unix.O_CREAT] perm);
-      filename
-
-    method output_substring _ _ _ _ = ()
-    method seek_chan _ _ = ()
-    method flush _ = ()
-    method close_out _ = ()
-  end
-
-let ffmpeg_reads_back format =
-  match
-    List.assoc_opt "movflags"
-      format.Liquidsoap_ffmpeg_formats.Encoder_format.opts
-  with
-    | Some (`String flags) ->
-        List.mem "faststart" (String.split_on_char '+' flags)
-    | _ -> false
-
 let new_file_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
   let capabilities =
@@ -642,12 +605,10 @@ let new_file_output ?clock p =
       continuing = Lang.to_bool (List.assoc "append" p);
     }
   in
-  match Lang_encoder.output_format ~capabilities format_val with
-    (* Moving the index of a file to its start makes the muxer read its output
-       back, which it can only do on a file it opened itself. *)
-    | Encoder.Ffmpeg format when ffmpeg_reads_back format ->
-        (new ffmpeg_file_output ?clock ~format_val ~format p :> piped_output)
-    | _ -> (new file_output ?clock ~format_val p :> piped_output)
+  let (_ : Encoder.format) =
+    Lang_encoder.output_format ~capabilities format_val
+  in
+  (new file_output ?clock ~format_val p :> piped_output)
 
 let output_file =
   let return_t = Lang.univ_t () in
