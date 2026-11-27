@@ -132,14 +132,14 @@ let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
     take ()
   in
   (* The library hands over whole frames: a call's output starts on one. *)
-  Encoder.writer_of_encoder ~unit_aligned:true
+  Encoder.writer_of_encoder
     {
       Encoder.encode_metadata = (fun _ -> ());
       header = (fun () -> header);
       encode;
       stop;
       bitrate = (fun () -> None);
-      encode_into = None;
+      access_points = None;
       restart_offset = (fun () -> None);
     }
     sink

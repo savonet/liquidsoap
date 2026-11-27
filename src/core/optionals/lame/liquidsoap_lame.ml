@@ -131,14 +131,14 @@ let () =
       Strings.Mutable.add encoded (Lame.encode_flush enc);
       Strings.Mutable.flush encoded
     in
-    Encoder.writer_of_encoder ~before_end:write_info_frame ~unit_aligned:true
+    Encoder.writer_of_encoder ~before_end:write_info_frame
       {
         encode_metadata = (fun _ -> ());
         encode;
         header = (fun () -> Strings.empty);
         stop;
         bitrate = (fun () -> None);
-        encode_into = None;
+        access_points = None;
         restart_offset = (fun () -> None);
       }
       sink

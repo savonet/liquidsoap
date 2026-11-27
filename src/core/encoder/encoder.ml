@@ -157,11 +157,6 @@ let bitrate = function
   | FdkAacEnc w -> Fdkaac_format.bitrate w
   | _ -> raise Not_found
 
-(** The bytes of one encoder output, readable only during the call that hands
-    them over: [blit offset destination destination_offset length] copies a
-    range of them. *)
-type output = { length : int; blit : int -> bytes -> int -> int -> unit }
-
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
     is really meant for inline metadata, i.e. in most cases, stream sources.
@@ -175,7 +170,7 @@ type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
-  encode_into : (Frame.t -> (output -> unit) -> unit) option;
+  access_points : (unit -> int list) option;
   stop : unit -> Strings.t;
   bitrate : unit -> int option;
   restart_offset : unit -> int option;
@@ -350,39 +345,61 @@ let refusal { continuing; live; segmented; _ } = function
   | NDI _ -> Some "%ndi can only be used with output.ndi"
   | _ -> None
 
-(* Formats whose encoders return whole frames on each call: the start of a
-   call's output is an access point. *)
-let unit_aligned = function
-  | MP3 _ | Shine _ | WAV _ -> true
-  | FdkAacEnc { Fdkaac_format.transmux = `Adts | `Loas; _ } -> true
-  | _ -> false
-
-let writer_of_encoder ?(before_end = fun () -> ()) ~unit_aligned
-    (encoder : encoder) (sink : sink) =
+(* The writer of an encoder returning its bytes. The stream start comes from
+   its header and restart offset. Its access points are the offsets it gives
+   or, when it gives none, the start of each call's output: encoders return
+   whole units. *)
+let writer_of_encoder ?(before_end = fun () -> ()) (encoder : encoder)
+    (sink : sink) =
   let started = ref false in
   let time = ref 0 in
-  let start_stream () =
-    started := true;
-    sink.mark
-      (`Stream_start
-         {
-           header_length = Some (Strings.length (encoder.header ()));
-           time = !time;
-         })
-  in
   let write_bytes bytes =
     if not (Strings.is_empty bytes) then (
-      match (encoder.restart_offset (), !started) with
-        | Some offset, _ ->
-            if 0 < offset then sink.write (Strings.sub bytes 0 offset);
-            start_stream ();
-            sink.write (Strings.drop bytes offset)
-        | None, false ->
-            start_stream ();
-            sink.write bytes
-        | None, true ->
-            if unit_aligned then sink.mark (`Access_point !time);
-            sink.write bytes)
+      let length = Strings.length bytes in
+      let stream_start =
+        match (encoder.restart_offset (), !started) with
+          | Some offset, _ -> Some offset
+          | None, false -> Some 0
+          | None, true -> None
+      in
+      let access_points =
+        match encoder.access_points with
+          | Some access_points -> access_points ()
+          | None -> [0]
+      in
+      let marks =
+        List.sort_uniq
+          (fun (offset, _) (offset', _) -> Int.compare offset offset')
+          (Option.to_list
+             (Option.map (fun offset -> (offset, `Start)) stream_start)
+          @ List.filter_map
+              (fun offset ->
+                if Some offset = stream_start || length <= offset then None
+                else Some (offset, `Point))
+              access_points)
+      in
+      let write_slice start stop =
+        if start < stop then sink.write (Strings.sub bytes start (stop - start))
+      in
+      let written =
+        List.fold_left
+          (fun written (offset, mark) ->
+            write_slice written offset;
+            (match mark with
+              | `Start ->
+                  started := true;
+                  sink.mark
+                    (`Stream_start
+                       {
+                         header_length =
+                           Some (Strings.length (encoder.header ()));
+                         time = !time;
+                       })
+              | `Point -> sink.mark (`Access_point !time));
+            offset)
+          0 marks
+      in
+      write_slice written length)
   in
   {
     write =
@@ -406,44 +423,30 @@ let protect_encoder
     {
       encode_metadata;
       encode;
-      encode_into;
+      access_points;
       stop;
       header;
       bitrate;
       restart_offset;
     } =
   let m = Mutex.create () in
-  let encode_metadata metadata =
-    Mutex.protect m (fun () -> encode_metadata metadata)
-  in
-  let header () = Mutex.protect m header in
-  let encode frame = Mutex.protect m (fun () -> encode frame) in
-  let encode_into =
-    Option.map
-      (fun encode_into frame f ->
-        Mutex.protect m (fun () -> encode_into frame f))
-      encode_into
-  in
-  let stop () = Mutex.protect m stop in
-  let bitrate () = Mutex.protect m bitrate in
-  let restart_offset () = Mutex.protect m restart_offset in
+  let p f = Mutex.protect m f in
   {
-    encode_metadata;
-    encode;
-    encode_into;
-    stop;
-    header;
-    bitrate;
-    restart_offset;
+    encode_metadata = (fun metadata -> p (fun () -> encode_metadata metadata));
+    header = (fun () -> p header);
+    encode = (fun frame -> p (fun () -> encode frame));
+    access_points =
+      Option.map (fun access_points () -> p access_points) access_points;
+    stop = (fun () -> p stop);
+    bitrate = (fun () -> p bitrate);
+    restart_offset = (fun () -> p restart_offset);
   }
 
 (** A plug-in whose writers are encoders returning their bytes. *)
 let of_encoders plugin format =
   Option.map
     (fun create { pos; name; sink; initial_metadata; _ } ->
-      writer_of_encoder ~unit_aligned:(unit_aligned format)
-        (create ~pos name initial_metadata)
-        sink)
+      writer_of_encoder (create ~pos name initial_metadata) sink)
     (plugin format)
 
 let buffered ?pos ~name ~capabilities ~initial_metadata format =
@@ -451,6 +454,8 @@ let buffered ?pos ~name ~capabilities ~initial_metadata format =
   let pending = ref Strings.empty in
   let pending_start = ref None in
   let taken_start = ref None in
+  let pending_points = ref [] in
+  let taken_points = ref [] in
   let header = ref Strings.empty in
   let header_missing = ref 0 in
   let write bytes =
@@ -463,15 +468,20 @@ let buffered ?pos ~name ~capabilities ~initial_metadata format =
   let mark = function
     | `Stream_start { header_length; _ } ->
         pending_start := Some (Strings.length !pending);
+        pending_points := Strings.length !pending :: !pending_points;
         header := Strings.empty;
         header_missing := Option.value ~default:0 header_length
-    | `Access_point _ | `End -> ()
+    | `Access_point _ ->
+        pending_points := Strings.length !pending :: !pending_points
+    | `End -> ()
   in
   let take () =
     let bytes = !pending in
     pending := Strings.empty;
     taken_start := !pending_start;
     pending_start := None;
+    taken_points := List.rev !pending_points;
+    pending_points := [];
     bytes
   in
   let writer =
@@ -493,7 +503,7 @@ let buffered ?pos ~name ~capabilities ~initial_metadata format =
       (fun () ->
         writer.finish `Clean;
         take ());
-    encode_into = None;
+    access_points = Some (fun () -> !taken_points);
     encode_metadata = writer.metadata;
     header = (fun () -> !header);
     restart_offset = (fun () -> !taken_start);

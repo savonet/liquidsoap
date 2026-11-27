@@ -35,7 +35,7 @@ let encoder ~pos _ =
     encode = (fun _ -> error ());
     stop = error;
     bitrate = (fun () -> None);
-    encode_into = None;
+    access_points = None;
     restart_offset = (fun () -> None);
   }
 

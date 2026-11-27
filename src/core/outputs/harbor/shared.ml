@@ -23,7 +23,12 @@ type t = {
   mutable encoder : Encoder.encoder option;
 }
 
-type encoded = { data : Strings.t; restart : int option }
+(* [access_points] are the offsets in [data] at which a listener can start. *)
+type encoded = {
+  data : Strings.t;
+  restart : int option;
+  access_points : int list;
+}
 
 let create ~factory ~buffer ~burst ~metaint () =
   {
@@ -60,9 +65,8 @@ let prune t snapshot =
   in
   { snapshot with starts; markers = markers snapshot.markers }
 
-let append t { data; restart } =
+let append t { data; restart; access_points } =
   let tail = Store.tail t.store in
-  let length = Strings.length data in
   let snapshot = Atomic.get t.snapshot in
   let snapshot =
     match restart with
@@ -70,14 +74,30 @@ let append t { data; restart } =
       | None -> snapshot
   in
   let snapshot =
-    if length > 0 then { snapshot with starts = tail :: snapshot.starts }
-    else snapshot
+    {
+      snapshot with
+      starts =
+        List.rev_append
+          (List.map (fun offset -> tail + offset) access_points)
+          snapshot.starts;
+    }
   in
   Atomic.set t.snapshot (prune t snapshot);
   Strings.iter
     (fun bytes offset length ->
       Store.append t.store (Bytes.unsafe_of_string bytes) offset length)
     data
+
+(* What an encoder just returned, with where a listener can start in it. *)
+let encoded (encoder : Encoder.encoder) data =
+  {
+    data;
+    restart = encoder.restart_offset ();
+    access_points =
+      (match encoder.access_points with
+        | Some access_points -> access_points ()
+        | None -> if Strings.is_empty data then [] else [0]);
+  }
 
 let start t ~name ~last =
   Mutex.protect t.lock (fun () ->
@@ -106,7 +126,7 @@ let stop t =
         | Some encoder ->
             t.encoder <- None;
             let data = encoder.Encoder.stop () in
-            append t { data; restart = encoder.Encoder.restart_offset () })
+            append t (encoded encoder data))
 
 let hold t = Atomic.set t.held true
 
@@ -114,10 +134,8 @@ let encode t frame =
   Atomic.set t.held false;
   Mutex.protect t.lock (fun () ->
       match t.encoder with
-        | None -> { data = Strings.empty; restart = None }
-        | Some encoder ->
-            let data = encoder.Encoder.encode frame in
-            { data; restart = encoder.Encoder.restart_offset () })
+        | None -> { data = Strings.empty; restart = None; access_points = [] }
+        | Some encoder -> encoded encoder (encoder.Encoder.encode frame))
 
 let send t encoded = Mutex.protect t.lock (fun () -> append t encoded)
 

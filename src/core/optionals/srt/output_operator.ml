@@ -298,24 +298,38 @@ class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
             List.iter (fun s -> s.joined <- true) streams;
             Some enc
 
+    (* A peer starts at a stream start, or at an access point after the
+       stream's header; it gets nothing before. *)
     method private distribute enc data =
       let restart = enc.Encoder.restart_offset () in
+      let access_point =
+        match enc.Encoder.access_points with
+          | Some access_points -> List.nth_opt (access_points ()) 0
+          | None -> if Strings.is_empty data then None else Some 0
+      in
+      let from offset =
+        Strings.sub data offset (Strings.length data - offset)
+      in
       List.iter
         (fun stream ->
           let data =
-            if stream.joined then data
+            if stream.joined then Some data
             else (
-              stream.joined <- true;
-              match restart with
-                | Some offset ->
-                    Strings.sub data offset (Strings.length data - offset)
-                | None -> Strings.append (enc.Encoder.header ()) data)
+              match (restart, access_point) with
+                | Some offset, _ -> Some (from offset)
+                | None, Some offset ->
+                    Some (Strings.append (enc.Encoder.header ()) (from offset))
+                | None, None -> None)
           in
-          if
-            not
-              (Mutex.protect stream.m (fun () ->
-                   push ~now:stream_time stream data))
-          then stream.handle.fail ())
+          Option.iter
+            (fun data ->
+              stream.joined <- true;
+              if
+                not
+                  (Mutex.protect stream.m (fun () ->
+                       push ~now:stream_time stream data))
+              then stream.handle.fail ())
+            data)
         streams
 
     method private encode frame =

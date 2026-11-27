@@ -113,7 +113,7 @@ let encoder ~pos aac =
     encode;
     stop;
     bitrate = (fun () -> None);
-    encode_into = None;
+    access_points = None;
     restart_offset = (fun () -> None);
   }
 

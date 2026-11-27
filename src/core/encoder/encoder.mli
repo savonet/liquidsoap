@@ -56,11 +56,6 @@ val video_size : format -> (int * int) option
 (** Bitrate estimation in bits per second. *)
 val bitrate : format -> int
 
-(** The bytes of one encoder output, readable only during the call that hands
-    them over: [blit offset destination destination_offset length] copies a
-    range of them. *)
-type output = { length : int; blit : int -> bytes -> int -> int -> unit }
-
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
     is really meant for inline metadata, i.e. in most cases, stream sources.
@@ -79,14 +74,15 @@ type output = { length : int; blit : int -> bytes -> int -> int -> unit }
     link after a metadata change); [None] when those bytes start none. A
     streaming output starts a late listener there rather than before it.
 
-    [encode_into frame f], when given, encodes as [encode] does and hands the
-    bytes to [f] instead of returning them, so that the caller copies them where
-    it keeps them, with no allocation. *)
+    [access_points ()], when given, are the offsets, in the bytes the latest
+    [encode] or [stop] returned, at which a reader can start; an encoder that
+    gives none returns whole units, and a reader can start at the first byte of
+    each call's output. *)
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
-  encode_into : (Frame.t -> (output -> unit) -> unit) option;
+  access_points : (unit -> int list) option;
   stop : unit -> Strings.t;
   bitrate : unit -> int option;
   restart_offset : unit -> int option;
@@ -194,11 +190,9 @@ type plugin = format -> (creation -> writer) option
 val plug : plugin Plug.t
 
 (** The writer of an encoder returning its bytes: the stream start comes from
-    its header and restart offset, and, with [unit_aligned], each call's output
-    starts at an access point. [before_end] runs at a clean end once the final
-    bytes are written. *)
-val writer_of_encoder :
-  ?before_end:(unit -> unit) -> unit_aligned:bool -> encoder -> sink -> writer
+    its header and restart offset, the access points from its [access_points].
+    [before_end] runs at a clean end once the final bytes are written. *)
+val writer_of_encoder : ?before_end:(unit -> unit) -> encoder -> sink -> writer
 
 (** A plug-in whose writers are such encoders. *)
 val of_encoders :
@@ -235,8 +229,9 @@ val refusal : capabilities -> format -> string option
 
 (** A writer for an output that queues bytes itself, as an encoder returning
     them: [header ()] is the header of the current stream, for a reader that
-    starts after it, and [restart_offset ()] the offset, in the bytes last
-    returned, at which a stream started. *)
+    starts after it, [restart_offset ()] the offset, in the bytes last returned,
+    at which a stream started, and [access_points ()] the offsets in them at
+    which a reader can start. *)
 val buffered :
   ?pos:Pos.t ->
   name:string ->

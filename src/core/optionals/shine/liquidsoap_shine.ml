@@ -145,14 +145,14 @@ let writer shine { Encoder.capabilities; sink; initial_metadata; _ } =
                 ~padding)))
       info_frame
   in
-  Encoder.writer_of_encoder ~before_end:write_info_frame ~unit_aligned:true
+  Encoder.writer_of_encoder ~before_end:write_info_frame
     {
       Encoder.encode_metadata = (fun _ -> ());
       header = (fun () -> Strings.empty);
       encode;
       stop;
       bitrate = (fun () -> None);
-      encode_into = None;
+      access_points = None;
       restart_offset = (fun () -> None);
     }
     sink

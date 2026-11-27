@@ -79,10 +79,6 @@ let encode_video encoder id frame =
         in
         Ogg_muxer.encode encoder id data
 
-(* Pages hold whole audio packets or their continuation: a reader can start at
-   any of them. With video, only a stream start is known to be one. *)
-let unit_aligned { Ogg_format.video; _ } = video = None
-
 let encoder_name = function
   | Ogg_format.Vorbis _ -> "vorbis"
   | Ogg_format.Opus _ -> "opus"
@@ -126,7 +122,10 @@ let encoder ~pos { Ogg_format.audio; video } =
         header = (fun () -> Ogg_muxer.get_header ogg_enc);
         stop;
         bitrate = (fun () -> None);
-        encode_into = None;
+        (* Pages hold whole audio packets or their continuation: a reader can
+           start at any of them. With video, only a stream start is known to be
+           an access point. *)
+        access_points = (if video = None then None else Some (fun () -> []));
         restart_offset = (fun () -> Ogg_muxer.last_link_start ogg_enc);
       }
     and streams_start () =
@@ -168,7 +167,7 @@ let () =
            && (video = None || !theora_encoder <> None) ->
         Some
           (fun { Encoder.pos; name; sink; initial_metadata; _ } ->
-            Encoder.writer_of_encoder ~unit_aligned:(unit_aligned m)
+            Encoder.writer_of_encoder
               (encoder ~pos m name initial_metadata)
               sink)
     | _ -> None)

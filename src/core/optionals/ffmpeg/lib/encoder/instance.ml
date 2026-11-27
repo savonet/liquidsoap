@@ -68,6 +68,8 @@ type t = {
   mutable header : [ `Pending of int | `Captured of Strings.t ];
   mutable link_start : int option;
   mutable returned_link_start : int option;
+  mutable access_points : int list;
+  mutable returned_access_points : int list;
   hls : hls option;
 }
 
@@ -109,9 +111,16 @@ let close_output c =
     ~finally:(fun () -> Option.iter Unix.close c.appended)
     (fun () -> Av.close c.output)
 
+(* Muxers that tell the I/O what they write: a reader can start at the units
+   they mark as sync points, and the I/O is flushed around them. *)
+let marking_muxers =
+  ["matroska"; "webm"; "flv"; "asf"; "asf_stream"; "mxf"; "mpeg"; "vob"; "dvd"]
+  @ F.iso_family
+
 let open_container ?interrupt
-    ?(on_packet = fun _ ~key:_ ~time:_ ~write -> write ()) ~log ~(format : F.t)
-    ~pos ~buffer ?(append = false) () =
+    ?(on_packet = fun _ ~key:_ ~time:_ ~write -> write ())
+    ?(on_sync_point = fun () -> ()) ~log ~(format : F.t) ~pos ~buffer
+    ?(append = false) () =
   let appended_path = appended_path ~append format in
   let opts =
     Opts.of_list
@@ -161,7 +170,14 @@ let open_container ?interrupt
                     Buffer.add_subbytes buffer bytes offset length;
                     length
                   in
-                  Av.open_output_stream ~opts ~interleaved write muxer)
+                  let marker kind _ =
+                    match kind with
+                      | Av.Sync_point -> on_sync_point ()
+                      | Av.Header | Av.Boundary_point | Av.Unknown | Av.Trailer
+                        ->
+                          ()
+                  in
+                  Av.open_output_stream ~opts ~interleaved ~marker write muxer)
         | `Url url, None ->
             Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
     with exn ->
@@ -233,26 +249,14 @@ let reset t =
   Buffer.clear t.buffer;
   t.returned_link_start <- t.link_start;
   t.link_start <- None;
+  t.returned_access_points <- List.rev t.access_points;
+  t.access_points <- [];
   match t.header with `Pending _ -> t.header <- `Pending 0 | `Captured _ -> ()
 
 let take t =
   let s = Buffer.contents t.buffer in
   reset t;
   Strings.of_string s
-
-(* The pending bytes handed to [f] straight from [buffer], which keeps its
-   capacity: nothing is allocated. *)
-let take_into t f =
-  Fun.protect
-    ~finally:(fun () -> reset t)
-    (fun () ->
-      f
-        {
-          Encoder.length = Buffer.length t.buffer;
-          blit =
-            (fun offset destination destination_offset length ->
-              Buffer.blit t.buffer offset destination destination_offset length);
-        })
 
 (* The container header is written as soon as its streams exist and captured
    from the bytes since [`Pending start]: waiting for the first packet would
@@ -282,11 +286,41 @@ let encoded_video t =
       | field, `Encode { F.options = `Video _; _ } -> Some field | _ -> None)
     t.format.F.streams
 
+(* The video streams: the encoded ones, and the copied ones by their name. *)
+let video_fields t =
+  List.filter_map
+    (function
+      | field, `Encode { F.options = `Video _; _ } -> Some field
+      | field, `Copy _ when String.starts_with ~prefix:"video" field ->
+          Some field
+      | _ -> None)
+    t.format.F.streams
+
+(* The next byte written starts a unit a reader can start at. *)
+let access_point t =
+  let offset = Buffer.length t.buffer in
+  if List.nth_opt t.access_points 0 <> Some offset then
+    t.access_points <- offset :: t.access_points
+
+(* A muxer that does not mark its output writes one packet after the other:
+   with the I/O flushed between two packets, a reader can start at a key packet
+   of the video, or at any packet of a stream without video. *)
+let packet_access_point t field ~key =
+  if
+    t.hls = None
+    && (not (List.mem t.current.muxer marking_muxers))
+    && key
+    && (video_fields t = [] || List.mem field (video_fields t))
+  then (
+    Av.flush_io t.current.output;
+    access_point t)
+
 (* Runs when a packet is due at the muxer: at once outside HLS, in media-time
    order in HLS mode (encoder.md §8.2). The bytes before the first packet are
    the header, written once the streams exist (capture_header). *)
 let write_packet t field ~key ~time ~write =
   capture_header t;
+  packet_access_point t field ~key;
   match (t.hls, time) with
     | Some h, Some time ->
         h.media_written <- true;
@@ -457,8 +491,9 @@ let hls_restart t h =
 let restart t =
   close_container t;
   t.current <-
-    open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
-      ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:true ();
+    open_container ?interrupt:t.interrupt ~on_packet:(on_packet t)
+      ~on_sync_point:(fun () -> access_point t)
+      ~log:t.log ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:true ();
   t.header <- `Pending (Buffer.length t.buffer);
   t.link_start <- Some (Buffer.length t.buffer);
   t.position <- 0;
@@ -491,10 +526,6 @@ let encode_pending t frame =
 let encode t frame =
   encode_pending t frame;
   take t
-
-let encode_into t frame f =
-  encode_pending t frame;
-  take_into t f
 
 let encode_metadata t m =
   let m = Frame.Metadata.Export.to_list m in
@@ -534,6 +565,7 @@ let make ?hls ?interrupt ~pos ~name metadata format =
       | Some t -> on_packet t field ~key ~time ~write
       | None -> write ()
   in
+  let on_sync_point () = Option.iter access_point !self in
   let t =
     {
       log;
@@ -543,12 +575,15 @@ let make ?hls ?interrupt ~pos ~name metadata format =
       buffer;
       metadata = format.F.metadata;
       current =
-        open_container ?interrupt ~on_packet:hook ~log ~format ~pos ~buffer ();
+        open_container ?interrupt ~on_packet:hook ~on_sync_point ~log ~format
+          ~pos ~buffer ();
       state = `Built;
       position = 0;
       header = `Pending 0;
       link_start = None;
       returned_link_start = None;
+      access_points = [];
+      returned_access_points = [];
       hls;
     }
   in
@@ -835,7 +870,7 @@ let create ?interrupt ~pos ~name metadata format =
       (fun () ->
         match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
     encode = encode t;
-    encode_into = Some (encode_into t);
+    access_points = Some (fun () -> t.returned_access_points);
     stop = (fun () -> stop t);
     bitrate = (fun () -> bitrate t);
     restart_offset = (fun () -> t.returned_link_start);

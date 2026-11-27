@@ -64,6 +64,8 @@ type 'media stream_config = {
 type read = bytes -> int -> int -> int
 type write = bytes -> int -> int -> int
 type seek = int -> Unix.seek_command -> int
+type data_marker = Header | Sync_point | Boundary_point | Unknown | Trailer
+type marker = data_marker -> int64 -> unit
 
 (* The media kinds a stream is listed and tagged under; the order is the
    one of the C side. *)
@@ -76,7 +78,7 @@ type source =
 type target =
   | No_file
   | To_url of { url : string; interrupt : (unit -> bool) option }
-  | To_custom of { write : write; seek : seek option }
+  | To_custom of { write : write; seek : seek option; marker : marker option }
 
 external alloc_container : unit -> 'line container = "ocaml_av_alloc_container"
 external release : _ container -> unit = "ocaml_av_release"
@@ -412,8 +414,8 @@ let open_output ?interrupt ?format ?interleaved ?opts url =
 let open_output_format ?interleaved ?opts format =
   open_target ~format ?interleaved ?opts No_file
 
-let open_output_stream ?opts ?interleaved ?seek write format =
-  open_target ~format ?interleaved ?opts (To_custom { write; seek })
+let open_output_stream ?opts ?interleaved ?seek ?marker write format =
+  open_target ~format ?interleaved ?opts (To_custom { write; seek; marker })
 
 external output_started : output container -> bool = "ocaml_av_output_started"
 
@@ -641,4 +643,5 @@ let write_subtitle_frame stream subtitle =
 
 external write_header : output container -> unit = "ocaml_av_write_header"
 external flush : output container -> unit = "ocaml_av_flush"
+external flush_io : output container -> unit = "ocaml_av_flush_io"
 external tell : _ container -> int option = "ocaml_av_tell"

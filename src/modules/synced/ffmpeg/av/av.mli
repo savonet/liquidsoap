@@ -198,6 +198,13 @@ type write = bytes -> int -> int -> int
     without calling the function. *)
 type seek = int -> Unix.seek_command -> int
 
+(** What a muxer says the bytes it writes are: its header, a unit a reader can
+    start at, a unit boundary a reader cannot start at, anything else, or its
+    trailer. *)
+type data_marker = Header | Sync_point | Boundary_point | Unknown | Trailer
+
+type marker = data_marker -> int64 -> unit
+
 (** [open_input_stream read] opens an input that reads through [read] instead of
     a URL, and probes its streams, as {!open_input} does. It takes no interrupt
     function and no stream configuration. It blocks while FFmpeg opens and
@@ -530,11 +537,17 @@ val open_output_format :
     released. The writes, {!flush} and {!close} call the functions.
 
     @param seek the function FFmpeg calls to reposition the output.
+    @param marker
+      the function called before each [write] with what the muxer says the bytes
+      are and their time, in microseconds, when it knows it. Muxers that mark
+      their output (Matroska, the ISO family, FLV, ASF, MXF, MPEG-PS) end a
+      write at each change.
     @raise Error with [`Failure] when the format needs no file. *)
 val open_output_stream :
   ?opts:opts ->
   ?interleaved:bool ->
   ?seek:seek ->
+  ?marker:marker ->
   write ->
   (output, _) format ->
   output container
@@ -838,6 +851,12 @@ val write_header : output container -> unit
     hold are written by {!close}. On an output whose header is not written it
     does nothing. It blocks, with the runtime lock released. *)
 val flush : output container -> unit
+
+(** Hands the bytes the muxer has written so far to the output's I/O, leaving
+    the packets the muxer holds where they are: between two packets, what the
+    I/O then holds ends on a packet. It blocks, with the runtime lock released.
+*)
+val flush_io : output container -> unit
 
 (** The byte position of the I/O of the container; [None] for a container with
     no I/O of its own. It takes the container exclusively, so it raises the

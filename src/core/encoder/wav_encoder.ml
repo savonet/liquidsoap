@@ -118,7 +118,7 @@ let encoder ~pos wav { Encoder.capabilities; sink; name; _ } =
           else Strings.empty);
       stop = (fun () -> Strings.empty);
       bitrate = (fun () -> None);
-      encode_into = None;
+      access_points = None;
       restart_offset = (fun () -> None);
     } )
 
@@ -130,6 +130,5 @@ let () =
             let before_end, encoder =
               encoder ~pos:creation.Encoder.pos w creation
             in
-            Encoder.writer_of_encoder ~before_end ~unit_aligned:true encoder
-              creation.Encoder.sink)
+            Encoder.writer_of_encoder ~before_end encoder creation.Encoder.sink)
     | _ -> None)
