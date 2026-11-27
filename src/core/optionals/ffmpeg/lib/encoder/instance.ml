@@ -42,7 +42,7 @@ type state = [ `Built | `Started | `Failed of exn | `Stopped ]
 (* HLS mode (encoder.md §8). *)
 type hls = {
   split : Hls_split.t;
-  order : Hls_order.t;
+  order : [ `Track of string | `Id3 ] Hls_order.t;
   mutable id3 : Encoder.hls_id3_mode;
   mutable id3_version : int;
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
@@ -291,11 +291,13 @@ let write_packet t field ~key ~time ~write =
         write ()
     | None, _ -> write ()
 
-(* Not a track name: track names are identifiers. *)
-let id3_field = "#id3"
-
 let release_packets ?all h =
-  Hls_order.release ?all h.order ~gating:(Hls_split.inter_coded_fields h.split)
+  Hls_order.release ?all
+    ~gating:
+      (List.map
+         (fun field -> `Track field)
+         (Hls_split.inter_coded_fields h.split))
+    h.order
 
 (* Before a container closes no packet may stay held: its write targets that
    container. A write that fails is logged and the others still go out. *)
@@ -310,8 +312,9 @@ let rec drain_held t h =
 let on_packet t field ~key ~time ~write =
   match t.hls with
     | Some h ->
-        Hls_order.push h.order ~field ~time ~write:(fun () ->
-            write_packet t field ~key ~time ~write);
+        Hls_order.push ~stream:(`Track field) ~time
+          ~write:(fun () -> write_packet t field ~key ~time ~write)
+          h.order;
         release_packets h
     | None -> write_packet t field ~key ~time ~write
 
@@ -659,7 +662,7 @@ let run_id3_queue h =
     h.id3_queue <- [];
     List.iter
       (fun (time, write) ->
-        Hls_order.push h.order ~field:id3_field ~time:(Some time) ~write)
+        Hls_order.push ~stream:`Id3 ~time:(Some time) ~write h.order)
       queue;
     release_packets h)
 

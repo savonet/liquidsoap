@@ -1,26 +1,29 @@
 type entry = { time : int option; write : unit -> unit }
 
-type stream = {
-  field : string;
+type 'stream queue = {
+  stream : 'stream;
   held : entry Queue.t;
   mutable reached : int option;
 }
 
-type t = { mutable streams : stream list; mutable latest : int option }
+type 'stream t = {
+  mutable queues : 'stream queue list;
+  mutable latest : int option;
+}
 
-let create () = { streams = []; latest = None }
+let create () = { queues = []; latest = None }
 let later time = Option.fold ~none:time ~some:(max time)
 
-let stream t field =
-  match List.find_opt (fun s -> s.field = field) t.streams with
-    | Some s -> s
+let queue t stream =
+  match List.find_opt (fun q -> q.stream = stream) t.queues with
+    | Some q -> q
     | None ->
-        let s = { field; held = Queue.create (); reached = None } in
-        t.streams <- t.streams @ [s];
-        s
+        let q = { stream; held = Queue.create (); reached = None } in
+        t.queues <- t.queues @ [q];
+        q
 
-let push t ~field ~time ~write =
-  let s = stream t field in
+let push ~stream ~time ~write t =
+  let s = queue t stream in
   Queue.push { time; write } s.held;
   Option.iter
     (fun time ->
@@ -31,8 +34,8 @@ let push t ~field ~time ~write =
 (* The time up to which every gating stream has produced packets. *)
 let frontier t gating =
   List.fold_left
-    (fun frontier field ->
-      match (frontier, (stream t field).reached) with
+    (fun frontier stream ->
+      match (frontier, (queue t stream).reached) with
         | Some f, Some r -> Some (min f r)
         | _ -> None)
     (Some max_int) gating
@@ -41,7 +44,7 @@ let frontier t gating =
    times, so that a packet at a key frame's time follows the split. *)
 let next t gating =
   let order s e =
-    (Option.value ~default:min_int e.time, not (List.mem s.field gating))
+    (Option.value ~default:min_int e.time, not (List.mem s.stream gating))
   in
   let best =
     List.fold_left
@@ -50,7 +53,7 @@ let next t gating =
           | None, _ -> best
           | Some e, Some (_, _, o) when order s e >= o -> best
           | Some e, _ -> Some (s, e, order s e))
-      None t.streams
+      None t.queues
   in
   Option.map (fun (s, e, _) -> (s, e)) best
 
@@ -60,7 +63,7 @@ let stalled t time =
         latest - time > Frame.main_of_seconds Settings.max_keyframe_wait#get
     | None -> false
 
-let rec release ?(all = false) t ~gating =
+let rec release ?(all = false) ~gating t =
   match next t gating with
     | None -> ()
     | Some (s, e) ->
@@ -75,12 +78,4 @@ let rec release ?(all = false) t ~gating =
         if ready then (
           ignore (Queue.pop s.held);
           e.write ();
-          release ~all t ~gating)
-
-let clear t =
-  List.fold_left
-    (fun dropped s ->
-      let n = Queue.length s.held in
-      Queue.clear s.held;
-      dropped + n)
-    0 t.streams
+          release ~all ~gating t)
