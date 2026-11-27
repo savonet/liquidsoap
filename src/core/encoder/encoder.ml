@@ -531,6 +531,27 @@ let buffered ?pos ~name ~capabilities ~initial_metadata format =
     bitrate = writer.writer_bitrate;
   }
 
+(* The HLS ID3 transport of a format, for a variant's [id3] field: in the
+   stream for MPEG-TS, before each segment for packed audio (RFC 8216 §3.4),
+   none otherwise. *)
+let hls_id3_mode ?id3 format =
+  let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"] in
+  let muxer =
+    match format with
+      | MP3 _ | Shine _ | FdkAacEnc _ -> Some "mp3"
+      | Ffmpeg f -> f.Liquidsoap_ffmpeg_formats.Encoder_format.format
+      | _ -> Some ""
+  in
+  match (muxer, id3) with
+    | None, _ -> Error "a format is required"
+    | Some "mpegts", Some false -> Ok `None
+    | Some "mpegts", _ -> Ok `In_stream
+    | Some m, Some false when List.mem m packed_audio ->
+        Error "packed audio requires ID3 (RFC 8216 §3.4)"
+    | Some m, _ when List.mem m packed_audio -> Ok `Prepended
+    | _, Some true -> Error "the format carries no HLS ID3 metadata"
+    | _ -> Ok `None
+
 let hls_plug : (format -> hls_factory option) Plug.t =
   Plug.create ~doc:"Methods to encode HLS segments." "hls encoding formats"
 

@@ -15,11 +15,10 @@ let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
   {
     init =
       (fun ?id3 ?id3_version () ->
-        match id3 with
-          | Some false -> Error "packed audio requires ID3 (RFC 8216 §3.4)"
-          | _ ->
-              Option.iter (fun v -> version := v) id3_version;
-              Ok `Prepended);
+        let mode = Encoder.hls_id3_mode ?id3 format in
+        if Result.is_ok mode then
+          Option.iter (fun v -> version := v) id3_version;
+        mode);
     init_encode =
       (fun ~boundary:_ frame ->
         Init { init = None; pieces = [Bytes (encode frame)] });

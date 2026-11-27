@@ -715,16 +715,7 @@ let mp4_init_length buffer offset =
   in
   scan offset
 
-let init_mode t ?id3 () =
-  match (t.current.muxer, id3) with
-    | "", _ -> Error "a format is required"
-    | "mpegts", Some false -> Ok `None
-    | "mpegts", _ -> Ok `In_stream
-    | m, Some false when List.mem m packed_audio ->
-        Error "packed audio requires ID3 (RFC 8216 §3.4)"
-    | m, _ when List.mem m packed_audio -> Ok `Prepended
-    | _, Some true -> Error "the format carries no HLS ID3 metadata"
-    | _ -> Ok `None
+let init_mode t ?id3 () = Encoder.hls_id3_mode ?id3 (Encoder.Ffmpeg t.format)
 
 (* Tags are ordered with the media: written straight away, a tag would come
    before media still held behind the video encoder's latency. *)

@@ -255,6 +255,10 @@ val resolve : pos:Pos.t option -> format -> unit
     at once after that. *)
 val resolve_at_start : pos:Pos.t option -> format -> unit
 
+(** The HLS ID3 transport of a format, for a variant's [id3] field, or why that
+    field is refused. *)
+val hls_id3_mode : ?id3:bool -> format -> (hls_id3_mode, string) result
+
 (** Encoders that can write HLS segments register here. *)
 val hls_plug : (format -> hls_factory option) Plug.t
 
