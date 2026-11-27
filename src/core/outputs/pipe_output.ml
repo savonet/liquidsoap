@@ -24,11 +24,11 @@
 
 let output = Modules.output
 
-let encoder_factory format_val =
-  let format = Lang.to_format format_val in
-  match Encoder.get_factory format with
-    | factory ->
-        fun name metadata -> factory ~pos:(Value.pos format_val) name metadata
+let create_writer format_val =
+  match Encoder.create_writer (Lang.to_format format_val) with
+    | create_writer ->
+        fun creation ->
+          create_writer { creation with Encoder.pos = Value.pos format_val }
     | exception Not_found ->
         raise
           (Error.Invalid_value (format_val, "Unsupported encoding format", []))
@@ -52,18 +52,25 @@ class virtual base ?clock ~source:source_val ~name p =
   in
   object (self)
     inherit
-      [Strings.t] Output.encoded
+      [unit] Output.encoded
         ?clock ~infallible ~register_telnet ~autostart ~export_cover_metadata
           ~output_kind:"output.file" ~name source_val
 
-    val mutable encoder : [ `None | `Pending | `Created of Encoder.encoder ] =
+    val mutable encoder : [ `None | `Pending | `Created of Encoder.writer ] =
       `None
 
     method virtual start : unit
     method virtual stop : unit
+    method virtual private create_writer : Encoder.creation -> Encoder.writer
+    method virtual write_pipe : string -> int -> int -> unit
 
-    method virtual private encoder_factory
-        : string -> Frame.Metadata.Export.t -> Encoder.encoder
+    method private sink =
+      {
+        Encoder.write = Strings.iter self#write_pipe;
+        mark = (fun _ -> ());
+        seek = None;
+        read = None;
+      }
 
     method create_encoder = encoder <- `Pending
 
@@ -71,39 +78,46 @@ class virtual base ?clock ~source:source_val ~name p =
       match encoder with
         | `None -> None
         | `Pending ->
-            let enc = self#encoder_factory self#id self#initial_metadata in
+            let enc =
+              self#create_writer
+                {
+                  Encoder.pos = None;
+                  name = self#id;
+                  capabilities =
+                    {
+                      Encoder.seekable = false;
+                      continuing = false;
+                      live = false;
+                    };
+                  sink = self#sink;
+                  initial_metadata = self#initial_metadata;
+                }
+            in
             encoder <- `Created enc;
             Some enc
         | `Created enc -> Some enc
 
-    (* Make sure to call stop on the encoder to close any open
-       connection. *)
+    (* The writer's final bytes go to the pipe: it is still open. *)
     method close_encoder =
-      let flushed =
-        match encoder with
-          | `None | `Pending -> Strings.empty
-          | `Created enc -> ( try enc.Encoder.stop () with _ -> Strings.empty)
-      in
+      let writer = encoder in
       encoder <- `None;
-      flushed
+      match writer with
+        | `None | `Pending -> ()
+        | `Created writer -> writer.Encoder.finish `Clean
 
     method! reset = ()
 
     method encode frame =
-      if 0 < Frame.position frame then (
-        match self#get_encoder with
-          | None -> Strings.empty
-          | Some encoder -> encoder.Encoder.encode frame)
-      else Strings.empty
+      if 0 < Frame.position frame then
+        Option.iter (fun writer -> writer.Encoder.write frame) self#get_encoder
 
-    method virtual write_pipe : string -> int -> int -> unit
-    method send b = Strings.iter self#write_pipe b
+    method send () = ()
 
     (* A writer yet to be built starts with the current metadata, which holds
        this one. *)
     method encode_metadata m =
       match encoder with
-        | `Created encoder -> encoder.Encoder.encode_metadata m
+        | `Created writer -> writer.Encoder.metadata m
         | `Pending | `None -> ()
   end
 
@@ -234,7 +248,7 @@ class virtual piped_output ?clock ~name p =
 
     method cleanup_pipe =
       if self#is_open then (
-        (try base#send self#close_encoder with _ -> ());
+        (try self#close_encoder with _ -> ());
         self#close_pipe)
 
     val on_reopen = Callbacks.create ()
@@ -263,8 +277,6 @@ class virtual piped_output ?clock ~name p =
           let bt = Printexc.get_raw_backtrace () in
           (try self#cleanup_pipe with _ -> ());
           self#reopen_on_error ~bt exn)
-
-    method! send b = if self#is_open then base#send b
 
     method! encode frame =
       (match self#is_open with
@@ -392,7 +404,7 @@ class file_output ?clock ~format_val p =
     inherit piped_output ?clock ~name:"output.file" p
     inherit [out_channel] chan_output p
     inherit [out_channel] file_output_base p
-    method encoder_factory = encoder_factory format_val
+    method private create_writer = create_writer format_val
 
     method open_out_gen mode perm filename =
       let fd = open_out_gen mode perm filename in
@@ -445,7 +457,7 @@ class ffmpeg_file_output ?clock ~format_val ~format p =
     inherit [string] chan_output p
     inherit [string] file_output_base p
 
-    method encoder_factory name metadata =
+    method private create_writer creation =
       match Atomic.get current_filename with
         | None -> failwith "output.file: no file is open"
         | Some filename ->
@@ -461,8 +473,8 @@ class ffmpeg_file_output ?clock ~format_val ~format p =
                     (`Int (if append then 0 else 1));
               }
             in
-            (Encoder.get_factory (Encoder.Ffmpeg format))
-              ~pos:(Value.pos format_val) name metadata
+            Encoder.create_writer (Encoder.Ffmpeg format)
+              { creation with Encoder.pos = Value.pos format_val }
 
     method open_out_gen _ perm filename =
       Unix.close (Unix.openfile filename [Unix.O_WRONLY; Unix.O_CREAT] perm);
@@ -503,7 +515,7 @@ class external_output ?clock p =
   object (self)
     inherit piped_output ?clock ~name:"output.external" p
     inherit [out_channel] chan_output p
-    method encoder_factory = encoder_factory format_val
+    method private create_writer = create_writer format_val
     method private self_sync = (`Static, self#source_sync self_sync)
 
     method open_chan =

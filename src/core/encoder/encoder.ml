@@ -267,6 +267,89 @@ let get_factory fmt =
 
 let () = Format_builders.supported := fun fmt -> find_factory fmt <> None
 
+type stream_start = { header_length : int option; time : int }
+type marker = [ `Stream_start of stream_start | `Access_point of int | `End ]
+
+type sink = {
+  write : Strings.t -> unit;
+  mark : marker -> unit;
+  seek : (int -> unit) option;
+  read : (int -> int -> string) option;
+}
+
+type capabilities = { seekable : bool; continuing : bool; live : bool }
+
+type creation = {
+  pos : Pos.t option;
+  name : string;
+  capabilities : capabilities;
+  sink : sink;
+  initial_metadata : Frame.Metadata.Export.t;
+}
+
+type writer = {
+  write : Frame.t -> unit;
+  metadata : Frame.Metadata.Export.t -> unit;
+  finish : [ `Clean | `Abandoned ] -> unit;
+  writer_bitrate : unit -> int option;
+}
+
+(* Formats whose encoders return whole frames on each call: the start of a
+   call's output is an access point. *)
+let unit_aligned = function
+  | MP3 _ | Shine _ | WAV _ -> true
+  | FdkAacEnc { Fdkaac_format.transmux = `Adts | `Loas; _ } -> true
+  | _ -> false
+
+let writer_of_encoder ~unit_aligned (encoder : encoder) (sink : sink) =
+  let started = ref false in
+  let time = ref 0 in
+  let start_stream () =
+    started := true;
+    sink.mark
+      (`Stream_start
+         {
+           header_length = Some (Strings.length (encoder.header ()));
+           time = !time;
+         })
+  in
+  let write_bytes bytes =
+    if not (Strings.is_empty bytes) then (
+      match (encoder.restart_offset (), !started) with
+        | Some offset, _ ->
+            if 0 < offset then sink.write (Strings.sub bytes 0 offset);
+            start_stream ();
+            sink.write (Strings.drop bytes offset)
+        | None, false ->
+            start_stream ();
+            sink.write bytes
+        | None, true ->
+            if unit_aligned then sink.mark (`Access_point !time);
+            sink.write bytes)
+  in
+  {
+    write =
+      (fun frame ->
+        let bytes = encoder.encode frame in
+        write_bytes bytes;
+        time := !time + Frame.position frame);
+    metadata = encoder.encode_metadata;
+    finish =
+      (function
+      | `Clean ->
+          write_bytes (encoder.stop ());
+          sink.mark `End
+      | `Abandoned -> ( try ignore (encoder.stop ()) with _ -> ()));
+    writer_bitrate = encoder.bitrate;
+  }
+
+let create_writer format =
+  let factory = get_factory format in
+  fun { pos; name; sink; initial_metadata; _ } ->
+    writer_of_encoder ~unit_aligned:(unit_aligned format)
+      (factory ~pos name initial_metadata)
+      sink
+
 let hls_plug : (format -> hls_factory option) Plug.t =
   Plug.create ~doc:"Methods to encode HLS segments." "hls encoding formats"
 

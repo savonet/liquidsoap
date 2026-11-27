@@ -145,6 +145,56 @@ val protect : encoder -> encoder
 (** Return the first available encoder factory for that format. *)
 val get_factory : format -> factory
 
+(** {1 Writers}
+
+    A writer writes whole units into a sink its output owns: every [write] of
+    the sink ends on a unit boundary, and markers sit between writes. Times are
+    media times of the writer's run, in main ticks. *)
+
+type stream_start = {
+  header_length : int option;
+      (** The header is the bytes that follow; [None] when the writer cannot
+          tell. *)
+  time : int;
+}
+
+type marker = [ `Stream_start of stream_start | `Access_point of int | `End ]
+
+type sink = {
+  write : Strings.t -> unit;
+  mark : marker -> unit;  (** Refers to the next byte written. *)
+  seek : (int -> unit) option;
+  read : (int -> int -> string) option;  (** [read offset length] *)
+}
+
+(** What the destination is, known when a writer is created. *)
+type capabilities = {
+  seekable : bool;
+  continuing : bool;  (** It holds a stream that this writer extends. *)
+  live : bool;  (** Readers start in the middle of the stream. *)
+}
+
+type creation = {
+  pos : Pos.t option;
+  name : string;
+  capabilities : capabilities;
+  sink : sink;
+  initial_metadata : Frame.Metadata.Export.t;
+}
+
+type writer = {
+  write : Frame.t -> unit;
+  metadata : Frame.Metadata.Export.t -> unit;  (** In-band offer. *)
+  finish : [ `Clean | `Abandoned ] -> unit;
+      (** [`Clean] writes the final bytes then [`End]; [`Abandoned] releases the
+          writer and writes nothing. *)
+  writer_bitrate : unit -> int option;
+}
+
+(** The writer of the first plug-in answering that format; [Not_found] when none
+    does. *)
+val create_writer : format -> creation -> writer
+
 (** Resolves the deferred values that the format's checks need and runs those
     checks, raising a positioned error. *)
 val resolve : pos:Pos.t option -> format -> unit
