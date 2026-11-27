@@ -71,6 +71,7 @@ class virtual base ?clock ~source:source_val ~name p =
         seek = None;
         read = None;
         size = None;
+        name = None;
       }
 
     method private capabilities = Encoder.fresh_stream
@@ -440,7 +441,8 @@ class file_output ?clock ~format_val p =
       let seekable = file_capabilities.Encoder.seekable in
       {
         (base#sink) with
-        Encoder.seek =
+        Encoder.name = Atomic.get current_filename;
+        seek =
           (if seekable then Some (fun offset -> seek_out (channel ()) offset)
            else None);
         read = (if seekable then Some read else None);
@@ -527,6 +529,15 @@ class ffmpeg_file_output ?clock ~format_val ~format p =
     method close_out _ = ()
   end
 
+let ffmpeg_reads_back format =
+  match
+    List.assoc_opt "movflags"
+      format.Liquidsoap_ffmpeg_formats.Encoder_format.opts
+  with
+    | Some (`String flags) ->
+        List.mem "faststart" (String.split_on_char '+' flags)
+    | _ -> false
+
 let new_file_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
   let capabilities =
@@ -537,7 +548,9 @@ let new_file_output ?clock p =
     }
   in
   match Lang_encoder.output_format ~capabilities format_val with
-    | Encoder.Ffmpeg format ->
+    (* Moving the index of a file to its start makes the muxer read its output
+       back, which it can only do on a file it opened itself. *)
+    | Encoder.Ffmpeg format when ffmpeg_reads_back format ->
         (new ffmpeg_file_output ?clock ~format_val ~format p :> piped_output)
     | _ -> (new file_output ?clock ~format_val p :> piped_output)
 

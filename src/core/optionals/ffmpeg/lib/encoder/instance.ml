@@ -70,6 +70,8 @@ type t = {
   mutable returned_link_start : int option;
   mutable access_points : int list;
   mutable returned_access_points : int list;
+  direct : Encoder.sink option;
+  filename : string option;
   hls : hls option;
 }
 
@@ -119,8 +121,8 @@ let marking_muxers =
 
 let open_container ?interrupt
     ?(on_packet = fun _ ~key:_ ~time:_ ~write -> write ())
-    ?(on_sync_point = fun () -> ()) ~log ~(format : F.t) ~pos ~buffer
-    ?(append = false) () =
+    ?(on_sync_point = fun () -> ()) ?direct ?filename ~log ~(format : F.t) ~pos
+    ~buffer ?(append = false) () =
   let appended_path = appended_path ~append format in
   let opts =
     Opts.of_list
@@ -136,7 +138,8 @@ let open_container ?interrupt
   in
   let guess () =
     Av.Format.guess_output_format ?short_name:format.format
-      ?filename:(match format.output with `Url u -> Some u | `Stream -> None)
+      ?filename:
+        (match format.output with `Url u -> Some u | `Stream -> filename)
       ?mime:format.mime_type ()
   in
   let appended =
@@ -160,12 +163,34 @@ let open_container ?interrupt
                     muxer)
         | `Stream, _ -> (
             match (format.format, guess ()) with
-              | None, _ -> error ?pos "Format is required!"
+              | None, None -> error ?pos "Format is required!"
               | Some f, None ->
                   error ?pos
                     (Printf.sprintf
                        "No ffmpeg format could be found for format=%S" f)
-              | Some _, Some muxer ->
+              | _, Some muxer when direct <> None ->
+                  let sink : Encoder.sink = Option.get direct in
+                  let sink_seek = Option.get sink.seek in
+                  let position = ref 0 in
+                  let write bytes offset length =
+                    sink.write
+                      (Strings.of_string (Bytes.sub_string bytes offset length));
+                    position := !position + length;
+                    length
+                  in
+                  let seek offset whence =
+                    (position :=
+                       match (whence, sink.size) with
+                         | Unix.SEEK_SET, _ -> offset
+                         | Unix.SEEK_CUR, _ -> !position + offset
+                         | Unix.SEEK_END, Some size -> size () + offset
+                         | Unix.SEEK_END, None ->
+                             failwith "the destination has no known size");
+                    sink_seek !position;
+                    !position
+                  in
+                  Av.open_output_stream ~opts ~interleaved ~seek write muxer
+              | _, Some muxer ->
                   let write bytes offset length =
                     Buffer.add_subbytes buffer bytes offset length;
                     length
@@ -493,7 +518,8 @@ let restart t =
   t.current <-
     open_container ?interrupt:t.interrupt ~on_packet:(on_packet t)
       ~on_sync_point:(fun () -> access_point t)
-      ~log:t.log ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:true ();
+      ?direct:t.direct ?filename:t.filename ~log:t.log ~format:t.format
+      ~pos:t.pos ~buffer:t.buffer ~append:true ();
   t.header <- `Pending (Buffer.length t.buffer);
   t.link_start <- Some (Buffer.length t.buffer);
   t.position <- 0;
@@ -552,7 +578,7 @@ let stop t =
         t.state <- `Stopped;
         take t
 
-let make ?hls ?interrupt ~pos ~name metadata format =
+let make ?hls ?interrupt ?direct ?filename ~pos ~name metadata format =
   let log = Log.make ["ffmpeg"; "encoder"; name] in
   let buffer =
     match hls with
@@ -575,8 +601,8 @@ let make ?hls ?interrupt ~pos ~name metadata format =
       buffer;
       metadata = format.F.metadata;
       current =
-        open_container ?interrupt ~on_packet:hook ~on_sync_point ~log ~format
-          ~pos ~buffer ();
+        open_container ?interrupt ~on_packet:hook ~on_sync_point ?direct
+          ?filename ~log ~format ~pos ~buffer ();
       state = `Built;
       position = 0;
       header = `Pending 0;
@@ -584,6 +610,8 @@ let make ?hls ?interrupt ~pos ~name metadata format =
       returned_link_start = None;
       access_points = [];
       returned_access_points = [];
+      direct;
+      filename;
       hls;
     }
   in
@@ -862,8 +890,8 @@ let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
     hls_video_size = (fun () -> video_size t);
   }
 
-let create ?interrupt ~pos ~name metadata format =
-  let t = make ?interrupt ~pos ~name metadata format in
+let create ?interrupt ?direct ?filename ~pos ~name metadata format =
+  let t = make ?interrupt ?direct ?filename ~pos ~name metadata format in
   {
     Encoder.encode_metadata = encode_metadata t;
     header =
@@ -877,11 +905,22 @@ let create ?interrupt ~pos ~name metadata format =
   }
 
 let () =
-  Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder."
-    (Encoder.of_encoders (function
-      | Encoder.Ffmpeg format ->
-          Some (fun ~pos name metadata -> create ~pos ~name metadata format)
-      | _ -> None));
+  Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder." (function
+    | Encoder.Ffmpeg format ->
+        Some
+          (fun { Encoder.pos; name; capabilities; sink; initial_metadata } ->
+            (* A file written from its first byte: the muxer writes and seeks
+               in the sink itself, and completes its header at the end. *)
+            let direct =
+              if Encoder.file_form capabilities && sink.Encoder.seek <> None
+              then Some sink
+              else None
+            in
+            Encoder.writer_of_encoder
+              (create ?direct ?filename:sink.Encoder.name ~pos ~name
+                 initial_metadata format)
+              sink)
+    | _ -> None);
   Plug.register Encoder.hls_plug "ffmpeg" ~doc:"FFmpeg HLS segments." (function
     | Encoder.Ffmpeg format when segment_muxer format.F.format ->
         Some

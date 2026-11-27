@@ -211,6 +211,7 @@ type sink = {
   seek : (int -> unit) option;
   read : (int -> int -> string) option;
   size : (unit -> int) option;
+  name : string option;
 }
 
 type capabilities = {
@@ -490,7 +491,8 @@ let buffered ?pos ~name ~capabilities ~initial_metadata format =
         pos;
         name;
         capabilities;
-        sink = { write; mark; seek = None; read = None; size = None };
+        sink =
+          { write; mark; seek = None; read = None; size = None; name = None };
         initial_metadata;
       }
   in

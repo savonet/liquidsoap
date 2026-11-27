@@ -147,6 +147,9 @@ type sink = {
   seek : (int -> unit) option;
   read : (int -> int -> string) option;  (** [read offset length] *)
   size : (unit -> int) option;  (** Bytes the destination holds. *)
+  name : string option;
+      (** The destination's name, for a writer that guesses its format from one.
+      *)
 }
 
 (** What the destination is, known when a writer is created. *)
