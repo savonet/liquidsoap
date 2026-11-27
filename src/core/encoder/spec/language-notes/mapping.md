@@ -22,55 +22,61 @@ drift as the code changes; the names are the reference.
   stream start. The ID3 mode is part of the plug-in's declarations
   (`hls_plug` → `{ id3_mode; create }`), read at evaluation.
 - **Faults** ([encoder.md §8](../encoder.md), [sink.md §7](../sink.md)).
-  "A value carrying its class" is an exception carrying the fault record
-  (`Encoder.Fault`). `Encoder.protect`, the one wrapper every writer goes
-  through, classes any other exception as an output fault.
+  Classes follow from where a fault arises: `encoder` runtime errors for
+  configuration errors, item faults counted by the writer (FFmpeg's
+  `Faults`), and any other exception to the output's restart policy
+  (`reopen_on_error`, icecast's `on_error`).
 - **Buffering sinks** ([sink.md §2](../sink.md)). Icecast, harbor, SRT and
-  HLS packed audio collect a call's bytes and markers and hand them on when
-  the call returns.
+  HLS packed audio use `Encoder.buffered`: a writer over a collecting sink,
+  seen as an encoder returning a call's bytes, its stream start, header and
+  access points.
 - **Shared stream** ([shared-stream.md](../../../outputs/spec/shared-stream.md)).
   The store is harbor's `Store` (`src/core/outputs/harbor/store.ml`); the
-  records and start choice are extracted from `harbor/shared.ml` into a
-  module of `liquidsoap_core_outputs`. SRT uses the records alone, with its
-  per-peer queues bounded by `peer_backlog_limit`.
-- **Icecast sink** ([output-icecast.md](../output-icecast.md)). One worker
-  per output runs `Cry`, the existing blocking client, with its timeouts,
-  behind the bounded queue.
-- **Process sink** ([output-pipe.md](../output-pipe.md)). `Process_handler`
-  (`src/core/utils/process_handler.ml`) for both `output.external` and
-  `pipe`; it reads the process's standard output and error, which is also
-  how it detects the exit.
+  records and start choice stay in `harbor/shared.ml`, fed with the
+  writer's access points. SRT starts a peer at a stream start or an access
+  point, with its per-peer queues bounded by `peer_backlog_limit`.
+- **Icecast sink** ([output-icecast.md](../output-icecast.md)). `Cry`, the
+  existing blocking client, with its timeouts, called by the output's
+  streaming work. The output declares `blocking_io`, so its clock runs on a
+  thread of its own: a slow server stalls that clock only. A cycle's bytes go
+  out in one write.
+- **Process sink** ([output-pipe.md](../output-pipe.md)). `output.external`
+  writes through `chan_output`'s worker thread, closes the process's input
+  to end it and reaps it on a thread; `pipe` and `%external` use
+  `Process_handler` (`src/core/utils/process_handler.ml`), which reads the
+  process's standard output and error, which is also how it detects the
+  exit.
 - **Float-to-integer samples** ([encoder.md §3.3](../encoder.md)). mm's
   `Audio.*.of_audio` conversions, unchanged.
 
 ## 2. The seam
 
-| Spec concept                                 | Code element that is, or becomes, it                                                                                                                                                                                                                       |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Format value                                 | `Encoder.format` (encoder.mli:25), held in `Lang_encoder.V` (lang_encoder.ml:26)                                                                                                                                                                           |
-| Configuration                                | the same value: `Deferred.t` fields (`core/formats/deferred.ml`); `Encoder.resolve` forces the ones a check needs at start-up, the writer's creation forces the rest                                                                                       |
-| Parameter specification                      | each `lang_<name>.ml` builder fold (`Lang_encoder.register`, lang_encoder.ml:60). It becomes the only one: the per-name typers of `types/encoder_types.ml:106-212` are replaced by a dry build                                                             |
-| Typing                                       | `Encoder_types.type_of_encoder` (encoder_types.ml:115), hook `Hooks.type_of_encoder`; `Encoder.type_of_format` (encoder.ml:42) is the second computation, used at evaluation (source/lang_source.ml:1077)                                                  |
-| Registry, plug-in                            | `Encoder.plug` and `get_factory` (encoder.ml:181-227), `Plug` (utils/plug.ml)                                                                                                                                                                              |
-| Availability                                 | none today. New: a component table in `Encoder_types` (`requires name`, `provide component`)                                                                                                                                                               |
-| `%ifencoder`                                 | `term_reducer.ml:63-69` with `Hooks.make_encoder` and `Hooks.has_encoder` (hooks_implementations.ml:117)                                                                                                                                                   |
-| Factory                                      | `Encoder.factory` (encoder.mli:95): a function. It becomes the record of §0                                                                                                                                                                                |
-| Container writer, stream face                | `Encoder.encoder` (encoder.mli:85), extended (sink record, optional `encode_metadata`, `stop` with the end kind, `delay`/`padding`)                                                                                                                        |
-| Writer contract enforcement (§2.3, §8, §9.3) | `Encoder.protect` (encoder.ml:186), extended                                                                                                                                                                                                               |
-| Marker `stream_start`                        | today `restart_offset` (Ogg link start only, `ogg_muxer.ml:187`) and `header ()`                                                                                                                                                                           |
-| Marker `access_point`                        | none. Harbor treats every append's first byte as a candidate (`harbor/shared.ml:73`)                                                                                                                                                                       |
-| Segmenting face                              | `Encoder.hls_encoder` / `hls_plug` (encoder.mli:109-154), `Split` = access point, `Restart` = stream start                                                                                                                                                 |
-| Sink                                         | none at the seam. Per output: `Pipe_output.base#send`/`write_pipe` (pipe_output.ml:105), icecast `send`, `Harbor.Shared.append` (shared.ml:63), SRT `distribute` (output_operator.ml:302). Lent bytes: `Encoder.output` (encoder.mli:62) and `encode_into` |
-| Capabilities, declarations                   | none. Callers branch on the format's kind (`pipe_output.ml:487`, `icecast_utils.ml:84`)                                                                                                                                                                    |
-| §5.3 check site                              | the three lookup copies: `pipe_output.ml:26`, `icecast_utils.ml:106`, `srt/output_operator.ml:182`, plus `hls_operator.ml:58,73`. Each becomes a call to `Output.encoder_factory ~declared`                                                                |
-| Delegated destination                        | `Encoder_format.output = `Url u`rewritten by`pipe_output.ml:458-475`and`url_output.ml:76-87`; `Instance.create ~interrupt`                                                                                                                                 |
-| Encoded-output base                          | `['a] Output.encoded` (output.ml:310-360)                                                                                                                                                                                                                  |
-| Current metadata                             | `Pipe_output.base.current_metadata` (pipe_output.ml:61), never assigned. It moves to the base                                                                                                                                                              |
-| Exported form                                | `Frame.Metadata.Export.from_metadata ~cover` (stream/metadata_base.ml:51), `export_cover_metadata`                                                                                                                                                         |
-| Order in-band / out-of-band / piece          | `encoding_order` (output.ml:321-345), set only by `icecast2.ml:480`                                                                                                                                                                                        |
-| Shared stream                                | `Harbor.Shared` (outputs/harbor/shared.ml), and SRT's `distribute`                                                                                                                                                                                         |
-| Faults                                       | untyped exceptions: `Runtime_error` kind `encoder`, `Failure`, library exceptions. New: `Encoder.Fault`                                                                                                                                                    |
-| Helpers                                      | `Encoder.extension/mime/bitrate/video_size/iso_base_file_media_file_format` (encoder.ml:71-124); script `encoder.content_type`/`extension` (builtins/builtins_sys.ml:56-72)                                                                                |
+| Spec concept                                 | Code element that is, or becomes, it                                                                                                                                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Format value                                 | `Encoder.format` (encoder.mli:25), held in `Lang_encoder.V` (lang_encoder.ml:26)                                                                                                                                      |
+| Configuration                                | the same value: `Deferred.t` fields (`core/formats/deferred.ml`); `Encoder.resolve` forces the ones a check needs at start-up, the writer's creation forces the rest                                                  |
+| Parameter specification                      | each `lang_<name>.ml` builder fold (`Lang_encoder.register`, lang_encoder.ml:60). It becomes the only one: the per-name typers of `types/encoder_types.ml:106-212` are replaced by a dry build                        |
+| Typing                                       | `Encoder_types.type_of_encoder` (encoder_types.ml:115), hook `Hooks.type_of_encoder`; `Encoder.type_of_format` (encoder.ml:42) is the second computation, used at evaluation (source/lang_source.ml:1077)             |
+| Registry, plug-in                            | `Encoder.plug`: a plug-in answers `format -> (creation -> writer) option`; `Encoder.create_writer` (encoder.ml), `Encoder.supported`; `Format_builders` builds and types formats (core/encoder/formats)               |
+| Availability                                 | none today. New: a component table in `Encoder_types` (`requires name`, `provide component`)                                                                                                                          |
+| `%ifencoder`                                 | `term_reducer.ml:63-69` with `Hooks.make_encoder` and `Hooks.has_encoder` (hooks_implementations.ml:117)                                                                                                              |
+| Factory                                      | none: a plug-in answers with what creates its writer from an `Encoder.creation` (position, name, capabilities, sink, initial metadata)                                                                                |
+| Container writer, stream face                | `Encoder.writer` (`write`, `metadata`, `finish`, `writer_bitrate`). Plug-ins built on a bytes encoder (`Encoder.encoder`) go through `Encoder.writer_of_encoder ?before_end` or `Encoder.of_encoders`                 |
+| Writer contract enforcement (§2.3, §8, §9.3) | `Encoder.protect`, applied by `create_writer`: serialised calls, one end, no call after it, empty or unchanged in-band offers dropped                                                                                 |
+| Marker `stream_start`                        | today `restart_offset` (Ogg link start only, `ogg_muxer.ml:187`) and `header ()`                                                                                                                                      |
+| Marker `access_point`                        | none. Harbor treats every append's first byte as a candidate (`harbor/shared.ml:73`)                                                                                                                                  |
+| Segmenting face                              | `Encoder.hls_encoder` / `hls_plug` (encoder.mli:109-154), `Split` = access point, `Restart` = stream start                                                                                                            |
+| Sink                                         | `Encoder.sink` (`write`, `mark`, `seek`, `read`, `size`, `name`). `output.file`/`output.external`: `Pipe_output.base#sink` over a worker thread (`chan_output`); icecast, harbor, SRT, HLS packed: `Encoder.buffered` |
+| Capabilities, declarations                   | `Encoder.capabilities` (`seekable`, `continuing`, `live`, `segmented`, `shared`), declared by each output; a configuration's declarations are the cases of `Encoder.refusal` over the closed format variant           |
+| §5.3 check site                              | `Lang_encoder.output_format ~capabilities`: support, `Encoder.refusal`, deferred values registered for start-up                                                                                                       |
+| Delegated destination                        | `Encoder_format.output = `Url u`rewritten by`pipe_output.ml:458-475`and`url_output.ml:76-87`; `Instance.create ~interrupt`                                                                                            |
+| Encoded-output base                          | `['a] Output.encoded` (output.ml:310-360)                                                                                                                                                                             |
+| Current metadata                             | `Pipe_output.base.current_metadata` (pipe_output.ml:61), never assigned. It moves to the base                                                                                                                         |
+| Exported form                                | `Frame.Metadata.Export.from_metadata ~cover` (stream/metadata_base.ml:51), `export_cover_metadata`                                                                                                                    |
+| Order in-band / out-of-band / piece          | `encoding_order` (output.ml:321-345), set only by `icecast2.ml:480`                                                                                                                                                   |
+| Shared stream                                | `Harbor.Shared` (outputs/harbor/shared.ml), and SRT's `distribute`                                                                                                                                                    |
+| Faults                                       | by where they arise (§8): `encoder` errors at evaluation and creation, item faults counted by the writer (FFmpeg `Faults`), any other exception to the output's restart policy                                        |
+| Helpers                                      | `Encoder.extension/mime/bitrate/video_size/iso_base_file_media_file_format` (encoder.ml:71-124); script `encoder.content_type`/`extension` (builtins/builtins_sys.ml:56-72)                                           |
 
 ## 3. Native writers
 

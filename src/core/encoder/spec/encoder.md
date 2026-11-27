@@ -669,13 +669,16 @@ path and the configuration's need.
 
 ## 8. Faults
 
-A writer reports every fault as a value that carries its class
-([faults.md §2](../../../spec/faults.md#2-classes)), the cause, the writer's
-name, and for a configuration error the parameter and the format's
-position. No untyped failure leaves a writer; a failure the writer cannot
-classify is an output fault. The value MAY be raised as an exception that
-carries it: every writer's calls then go through one enforcement point,
-which classes any other failure as an output fault.
+A fault's class ([faults.md §2](../../../spec/faults.md#2-classes)) follows
+from where it arises, and each class has one owner. A configuration error
+is refused with the format, at type checking or evaluation, or raised at
+creation, as an `encoder` error naming the cause and the format's
+position. An item fault is counted by the writer that met it, which drops
+the item. Any other failure a writer raises is an output fault: it reaches
+the output's restart policy, the one enforcement point every writer's calls
+go through. A writer therefore needs no fault value of its own; one that
+wants to name the parameter or the class of a failure MAY raise a value
+carrying them.
 
 | Fault                                                                                                                               | Class               | Outcome                                                                                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
