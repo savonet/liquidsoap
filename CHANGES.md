@@ -71,6 +71,7 @@
 - Bindings without `let` accept destructuring, field paths and type annotations, e.g. `(x, y) = (1, 2)` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
 - String interpolation accepts any expression, e.g. `"#{m["key"]}"` ([#5310](https://github.com/savonet/liquidsoap/pull/5310)).
 - Integers are implicitly cast to floats ([#2887](https://github.com/savonet/liquidsoap/pull/2887)).
+- `encoder.extension(%fdkaac(transmux="loas"))` is `loas`, and a VBR `%fdkaac` format no longer declares its unused `bitrate` to HLS and icecast.
 - `encoder.extension(%ogg(%opus))` is `opus`, the extension RFC 7845 recommends for Ogg files with only Opus.
 - `output.external` and `output.url`: `export_cover_metadata` defaults to `false`. Set it to `true` to keep handing cover art to the encoder.
 

@@ -108,4 +108,7 @@ let to_string m =
     m.sbr_mode
     (string_of_transmux m.transmux)
 
-let bitrate m = m.bitrate * 1000
+let bitrate m =
+  match m.bitrate_mode with
+    | `Constant -> m.bitrate * 1000
+    | `Variable _ -> raise Not_found

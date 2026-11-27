@@ -231,6 +231,10 @@ def f() =
   test.equal(%mp3 == %mp3, true)
   test.equal(%mp3 == %mp3(id3v2 = false), false)
 %endif
+%ifencoder %fdkaac
+  test.equal(encoder.extension(%fdkaac), "aac")
+  test.equal(encoder.extension(%fdkaac(transmux = "loas")), "loas")
+%endif
 %ifencoder %vorbis
   test.equal(encoder.extension(%ogg(%vorbis)), "ogg")
   test.equal(string.contains(substring=",,", "#{%vorbis.abr}"), false)

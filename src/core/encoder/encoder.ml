@@ -130,6 +130,7 @@ let extension = function
   | MP3 _ -> "mp3"
   | Shine _ -> "mp3"
   | Flac _ -> "flac"
+  | FdkAacEnc { Fdkaac_format.transmux = `Loas; _ } -> "loas"
   | FdkAacEnc _ -> "aac"
   | Ffmpeg m -> (
       match Liquidsoap_ffmpeg_formats.Encoder_format.extension m with
