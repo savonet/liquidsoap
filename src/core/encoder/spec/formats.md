@@ -199,21 +199,23 @@ evaluation otherwise.
 
 ## 8. Availability and `%ifencoder`
 
-- A name is **available** when every component its format needs with its
-  defaults is in the build: the library of its codec, the Ogg muxer and the
-  stream codec of an Ogg name (`%vorbis` needs the Ogg muxer and the Vorbis
-  library), FFmpeg for `%ffmpeg`. Components a format names in its
-  parameters (an FFmpeg codec or muxer) are available when the build has
-  them; the FFmpeg tree states when that is checked.
+- A name is **available** when the build can encode its default format:
+  a registered writer answers the format the name builds with no parameter
+  (`%vorbis` needs the Ogg writer and the Vorbis stream codec, `%ffmpeg`
+  needs FFmpeg). The writers are the one owner of that answer: there is no
+  separate list of components. The Ogg writer answers a format only when
+  the codec of each of its streams is in the build.
 - `%ndi` is available when the NDI sender is in the build, although no
   writer answers it ([encoder.md §1](encoder.md#1-registry), item 7).
-- A format that uses a component the build lacks is a configuration error
-  that names the missing component and the format's position: at type
-  checking for a component its name implies, at the phase of the parameter
-  (§7) for a component a parameter names.
+- A format no writer of the build answers is a configuration error that
+  gives the format and its position, at type checking; a component a
+  parameter names (an FFmpeg codec or muxer) is checked at the phase of
+  the parameter (§7), as the FFmpeg tree states.
 - `%ifencoder %name` decides from availability alone, before type checking:
-  it builds nothing and validates nothing. A name the language does not know
-  counts as not available. No other failure is read as "not available".
+  it builds the name's default format, which has no effect, and validates
+  nothing else. A name the language does not know counts as not available,
+  for `%ifencoder` and `%ifnencoder` alike. No other failure is read as
+  "not available".
 
 ## 9. Helpers
 

@@ -20,8 +20,6 @@
 
  *****************************************************************************)
 
-exception No_process
-
 type restart_condition = Delay of int | Metadata | No_condition
 
 type t = {

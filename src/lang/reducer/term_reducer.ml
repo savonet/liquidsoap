@@ -60,13 +60,8 @@ let static_branch ~env { static_cond; static_then; static_else } =
             | `Gt, v -> v > 0
             | `Lt, v -> v < 0
             | _ -> false)
-      | `Encoder (negative, name) -> (
-          try
-            let encoder = Hooks.get Hooks.make_encoder ~pos:None (name, []) in
-            Hooks.get Hooks.has_encoder encoder <> negative
-            (* An unknown encoder name is treated as "not available", i.e. the
-               else branch, for both %ifencoder and %ifnencoder. *)
-          with _ -> false)
+      | `Encoder (negative, name) ->
+          Hooks.get Hooks.encoder_available name <> negative
   in
   if taken then static_then.block_body
   else (match static_else with Some b -> b.block_body | None -> [])

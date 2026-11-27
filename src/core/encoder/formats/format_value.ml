@@ -89,3 +89,10 @@ let type_of_format ~pos f =
         if e.External_encoder_format.video <> None then
           audio_video_type channels
         else audio_type channels
+
+(** Refuses a format that lacks a parameter it cannot do without. Evaluation
+    runs it; type checking builds formats without their computed parameters. *)
+let check_complete ~pos = function
+  | External { External_encoder_format.process = ""; _ } ->
+      Encoder_types.raise_error ~pos "%external needs a process"
+  | _ -> ()

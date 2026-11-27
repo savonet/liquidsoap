@@ -46,10 +46,12 @@ end
 let raise_error = Format_builders.raise_error
 let raise_generic_error = Format_builders.raise_generic_error
 let register = Format_builders.register_builder
+let available = Format_builders.available
 
 let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
     let e = (Format_builders.find e) p in
+    Format_value.check_complete ~pos e;
     let (_ : Encoder.factory) = Encoder.get_factory e in
     V.to_value ?pos e
   with Not_found -> raise_error ~pos "unsupported format"

@@ -97,8 +97,6 @@ let make params =
         | t -> Format_builders.raise_generic_error t)
       defaults params
   in
-  if ext.External_encoder_format.process = "" then
-    raise External_encoder_format.No_process;
   Format_value.External ext
 
 let () = Format_builders.register "external" make

@@ -28,7 +28,7 @@ and encoder = string * encoder_params
 let make_encoder =
   make "make_encoder" (fun ~pos:_ _ -> failwith "Encoders are not implemented!")
 
-let has_encoder = make "has_encoder" (fun _ -> false)
+let encoder_available = make "encoder_available" (fun _ -> false)
 let liq_libs_dir = make "liq_libs_dir" (fun () -> raise Not_found)
 
 type hasher = { update : string -> int -> int -> unit; digest : unit -> int64 }

@@ -39,6 +39,17 @@ let builders : (string * (Hooks.encoder_params -> Format_value.t)) list ref =
 
 let find name = List.assoc name !builders
 
+(** Whether this build can encode a format. Whoever links the encoders
+    implements it; a process that only typechecks takes every format. *)
+let supported : (Format_value.t -> bool) ref = ref (fun _ -> true)
+
+(** A name is available when the build can encode its default format; a name
+    with no builder is not. *)
+let available name =
+  match find name with
+    | build -> !supported (build [])
+    | exception Not_found -> false
+
 (** Registers a builder whose format is typed some other way. *)
 let register_builder name build = builders := (name, build) :: !builders
 
@@ -97,6 +108,8 @@ let type_of_params build params =
     with Runtime_error.Runtime_error _ when not complete ->
       build (type_deciding_params literals)
   in
+  if not (!supported format) then
+    raise (Term.Unsupported_encoder (None, Format_value.to_string format));
   Format_value.type_of_format ~pos:None format
 
 (** Registers the builder of a format name, which also types it. *)

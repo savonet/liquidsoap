@@ -183,6 +183,33 @@ def f() =
     true
   )
 %endif
+
+  # A name the language does not know is not available.
+%ifencoder %nosuchencoder
+  test.fail()
+%endif
+  unknown_is_unavailable = ref(false)
+%ifnencoder %nosuchencoder
+  unknown_is_unavailable := true
+%endif
+  test.equal(unknown_is_unavailable(), true)
+
+  # A computed parameter is left to evaluation, where a missing one is refused.
+  process = "cat"
+  test.equal(
+    string.contains(substring="process=cat", "#{%external(process = process)}"),
+    true
+  )
+  try
+    ignore(%external(process = ""))
+    test.fail()
+  catch err do
+    test.equal(
+      err.message,
+      "%external needs a process"
+    )
+  end
+
 %ifencoder %mp3
   # The type is the built format's: the last channel parameter wins.
   def last_wins(s) =

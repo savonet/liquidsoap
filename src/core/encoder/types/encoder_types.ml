@@ -79,6 +79,8 @@ let type_of_encoder ~pos ((name, params) : Term.encoder) =
           try type_of_encoder params with
             | Runtime_error.Runtime_error { kind; msg; pos = [] } ->
                 Runtime_error.raise ~message:msg ~pos:(Option.to_list pos) kind
+            | Term.Unsupported_encoder (None, format) ->
+                raise (Term.Unsupported_encoder (pos, format))
             | Audio_layout.Unsupported ->
                 raise_error ~pos "unsupported number of audio channels"
         in

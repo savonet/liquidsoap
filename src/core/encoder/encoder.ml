@@ -251,13 +251,20 @@ let protect
     restart_offset;
   }
 
-(** Return the first available encoder factory for that format. *)
-let get_factory fmt =
+let find_factory fmt =
   try
     Plug.iter plug (fun _ f ->
         match f fmt with Some factory -> raise (Found factory) | None -> ());
-    raise Not_found
-  with Found factory -> fun ~pos name m -> protect (factory ~pos name m)
+    None
+  with Found factory -> Some factory
+
+(** Return the first available encoder factory for that format. *)
+let get_factory fmt =
+  match find_factory fmt with
+    | Some factory -> fun ~pos name m -> protect (factory ~pos name m)
+    | None -> raise Not_found
+
+let () = Format_builders.supported := fun fmt -> find_factory fmt <> None
 
 let hls_plug : (format -> hls_factory option) Plug.t =
   Plug.create ~doc:"Methods to encode HLS segments." "hls encoding formats"
