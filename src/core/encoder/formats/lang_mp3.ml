@@ -60,14 +60,8 @@ let mp3_base f = function
       if not (Mp3_format.valid_samplerate i) then
         Format_builders.raise_error ~pos "invalid samplerate value";
       { f with Mp3_format.samplerate = `Value i }
-  | `Labelled ("id3v2", Bool { value = true; _ }) ->
-      { f with Mp3_format.id3v2 = `Explicit (Some 3) }
-  | `Labelled ("id3v2", Bool { value = false; _ }) ->
-      { f with Mp3_format.id3v2 = `Explicit None }
-  | `Labelled ("id3v2", Int { value = v }) ->
-      { f with Mp3_format.id3v2 = `Explicit (Some v) }
-  | `Labelled ("id3v2", String { value = "none"; _ }) ->
-      { f with Mp3_format.id3v2 = `Explicit None }
+  | `Labelled ("id3v2", v) ->
+      { f with Mp3_format.id3v2 = Format_builders.id3v2 v }
   | `Anonymous s when String.lowercase_ascii s = "mono" ->
       { f with Mp3_format.stereo = false }
   | `Anonymous s when String.lowercase_ascii s = "stereo" ->

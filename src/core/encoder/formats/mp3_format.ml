@@ -82,10 +82,7 @@ let to_string m =
     (Encoder_formats.string_of_stereo m.stereo)
     (string_of_bitrate_control m.bitrate_control)
     (Deferred.peek m.samplerate)
-    (match m.id3v2 with
-      | `Default -> ""
-      | `Explicit None -> ",id3v2=false"
-      | `Explicit (Some v) -> Printf.sprintf ",id3v2=%d" v)
+    (Encoder_formats.string_of_id3v2 m.id3v2)
 
 let bitrate m =
   match m.bitrate_control with

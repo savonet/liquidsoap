@@ -79,9 +79,7 @@ let () =
       { Encoder.capabilities; sink; initial_metadata = metadata; _ } =
     (* The file form: a tag, and a frame describing the whole stream, which a
        reader in the middle of a stream or of an appended file must not get. *)
-    let file_form =
-      capabilities.Encoder.seekable && not capabilities.Encoder.continuing
-    in
+    let file_form = Encoder.file_form capabilities in
     let enc = create_encoder ~info_frame:file_form mp3 in
     let channels = if mp3.Mp3_format.stereo then 2 else 1 in
     (* Lame accepts data of a fixed length.. *)
@@ -93,23 +91,7 @@ let () =
            ())
     in
     let encoded = Strings.Mutable.empty () in
-    let id3v2_version =
-      match mp3.id3v2 with
-        | `Explicit version -> version
-        | `Default -> if file_form then Some 3 else None
-    in
-    let tag =
-      match id3v2_version with
-        | None -> ""
-        | Some version ->
-            let tag =
-              Utils.id3v2_of_metadata ~version
-                (Frame.Metadata.to_list
-                   (Frame.Metadata.Export.to_metadata metadata))
-            in
-            (* A tag with no frame is only its 10-byte header. *)
-            if String.length tag > 10 then tag else ""
-    in
+    let tag = Encoder.id3v2_tag ~capabilities mp3.id3v2 metadata in
     Strings.Mutable.add encoded tag;
     (* LAME's placeholder is the first frame, right after the tag. *)
     let write_info_frame () =

@@ -216,6 +216,19 @@ val supported : format -> bool
     [Not_found] when none does. *)
 val create_writer : format -> creation -> writer
 
+(** Whether a destination takes the file form of a format: a file written from
+    its first byte, whose writer can come back to complete what describes the
+    whole stream. *)
+val file_form : capabilities -> bool
+
+(** The ID3v2 tag an MPEG audio stream starts with for that [id3v2] parameter:
+    by default on a file only; empty for none. *)
+val id3v2_tag :
+  capabilities:capabilities ->
+  int option Encoder_formats.adaptable ->
+  Frame.Metadata.Export.t ->
+  string
+
 (** Why a destination cannot take a format, when it cannot: an explicit
     parameter or a format it contradicts. *)
 val refusal : capabilities -> format -> string option

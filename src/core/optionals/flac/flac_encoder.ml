@@ -57,9 +57,7 @@ let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
   in
   (* The file form: tags, a cover, and a STREAMINFO block completed at the
      end. *)
-  let file_form =
-    capabilities.Encoder.seekable && not capabilities.Encoder.continuing
-  in
+  let file_form = Encoder.file_form capabilities in
   let picture =
     if file_form then
       Option.map

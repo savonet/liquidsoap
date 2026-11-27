@@ -20,11 +20,17 @@
 
  *****************************************************************************)
 
-type t = { channels : int; samplerate : Deferred.t; bitrate : int }
+type t = {
+  channels : int;
+  samplerate : Deferred.t;
+  bitrate : int;
+  id3v2 : int option Encoder_formats.adaptable;
+}
 
 let to_string m =
-  Printf.sprintf "%%shine(channels=%d,samplerate=%d,bitrate=%d)" m.channels
+  Printf.sprintf "%%shine(channels=%d,samplerate=%d,bitrate=%d%s)" m.channels
     (Deferred.peek m.samplerate)
     m.bitrate
+    (Encoder_formats.string_of_id3v2 m.id3v2)
 
 let bitrate m = m.bitrate * 1000

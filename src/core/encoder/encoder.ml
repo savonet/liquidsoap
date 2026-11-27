@@ -306,6 +306,29 @@ let create_writer format =
           protect ~initial_metadata:creation.initial_metadata (create creation)
     | None -> raise Not_found
 
+(* The file form of a format that has one: a file written from its first byte,
+   whose writer can come back to complete what describes the whole stream. *)
+let file_form { seekable; continuing; _ } = seekable && not continuing
+
+(* The ID3v2 tag an MPEG audio file starts with: by default on a file only. *)
+let id3v2_tag ~capabilities (id3v2 : int option Encoder_formats.adaptable)
+    metadata =
+  let version =
+    match id3v2 with
+      | `Explicit version -> version
+      | `Default -> if file_form capabilities then Some 3 else None
+  in
+  match version with
+    | None -> ""
+    | Some version ->
+        let tag =
+          Utils.id3v2_of_metadata ~version
+            (Frame.Metadata.to_list
+               (Frame.Metadata.Export.to_metadata metadata))
+        in
+        (* A tag with no frame is only its 10-byte header. *)
+        if String.length tag > 10 then tag else ""
+
 (** Why a destination cannot take a format, when it cannot. *)
 let refusal { continuing; live; segmented; _ } = function
   | Flac _ when continuing ->
@@ -315,6 +338,7 @@ let refusal { continuing; live; segmented; _ } = function
          chained stream"
   | AVI _ when continuing -> Some "%avi cannot extend an existing file"
   | MP3 { Mp3_format.id3v2 = `Explicit (Some _); _ }
+  | Shine { Shine_format.id3v2 = `Explicit (Some _); _ }
     when live || continuing || segmented ->
       Some
         "an ID3v2 tag would land in the middle of the stream on this output: \

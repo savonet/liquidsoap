@@ -1,9 +1,10 @@
 %include "../test.liq"
 
-# On a file, %mp3 writes an ID3v2 tag by default and an encoder-information
-# frame with the final frame count; a process gets neither.
+# On a file, %mp3 and %shine write an ID3v2 tag by default and an
+# encoder-information frame with the final frame count, delay and padding: the
+# file decodes to its input's length. A process gets neither.
 
-pending = ref(2)
+pending = ref(3)
 
 def done(name, ok) =
   print(
@@ -30,7 +31,7 @@ def source() =
   s
 end
 
-def on_close(filename) =
+def on_close(name, filename) =
   contents = file.contents(filename)
 
   # The frame count follows the identifier and its four bytes of flags.
@@ -46,23 +47,42 @@ def on_close(filename) =
         string.sub(encoding="ascii", contents, start=info + 8, length=4)
       )
     end
+  decoded =
+    int_of_string(
+      default=0,
+      string.trim(
+        process.read(
+          "ffmpeg -v quiet -i #{process.quote(filename)} -f s16le - | wc -c"
+        )
+      )
+    )
   print(
-    "file: #{frames} frames"
+    "#{name}: #{frames} frames, #{decoded} bytes decoded"
   )
   done(
-    "file",
-    string.sub(encoding="ascii", contents, start=0, length=3) == "ID3"
+    name,
+    decoded == 88200
+    and string.sub(encoding="ascii", contents, start=0, length=3) == "ID3"
     and frames > 10
   )
 end
 
-output.file(
-  fallible=true,
-  on_close=on_close,
-  %mp3,
-  file.temp(cleanup=true, "mp3_file_form", ".mp3"),
-  source()
-)
+def check_file(name, format) =
+  output.file(
+    fallible=true,
+    on_close=fun (filename) -> on_close(name, filename),
+    format,
+    file.temp(cleanup=true, "mp3_file_form_#{name}", ".mp3"),
+    source()
+  )
+end
+
+check_file("lame", %mp3)
+%ifencoder %shine
+check_file("shine", %shine)
+%else
+pending := pending() - 1
+%endif
 
 piped = file.temp(cleanup=true, "mp3_file_form_pipe", ".mp3")
 o =

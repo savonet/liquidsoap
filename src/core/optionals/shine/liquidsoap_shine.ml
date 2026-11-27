@@ -33,9 +33,24 @@ let shine_delay = 528
 (* Samples of delay of an mp3 decoder's synthesis filter. *)
 let mp3_decoder_delay = 529
 
-let encoder ~pos shine =
+let writer shine { Encoder.capabilities; sink; initial_metadata; _ } =
   let channels = shine.channels in
   let samplerate = Deferred.force shine.samplerate in
+  let tag = Encoder.id3v2_tag ~capabilities shine.id3v2 initial_metadata in
+  (* The file form: libshine writes no encoder-information frame. *)
+  let info_frame =
+    match sink.Encoder.seek with
+      | Some seek when Encoder.file_form capabilities ->
+          Some
+            ( seek,
+              Mpeg_info_frame.create ~samplerate ~channels
+                ~bitrate:shine.bitrate )
+      | _ -> None
+  in
+  let frames = ref 0 in
+  let audio_bytes = ref 0 in
+  let audio_crc = ref 0 in
+  let input_samples = ref 0 in
   let enc = create_encoder ~samplerate ~bitrate:shine.bitrate ~channels in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
   let src_freq = float (Frame.audio_of_seconds 1.) in
@@ -47,6 +62,24 @@ let encoder ~pos shine =
       (Frame.Fields.make ~audio:(Content.Audio.format_of_channels channels) ())
   in
   let encoded = Strings.Mutable.empty () in
+  Strings.Mutable.add encoded tag;
+  Option.iter
+    (fun (_, info_frame) ->
+      Strings.Mutable.add encoded
+        (Mpeg_info_frame.render info_frame ~frames:0 ~bytes:0 ~music_crc:0
+           ~delay:shine_delay ~padding:0))
+    info_frame;
+  let add_audio bytes =
+    audio_bytes := !audio_bytes + String.length bytes;
+    if info_frame <> None then
+      audio_crc := Mpeg_info_frame.crc16_update !audio_crc bytes;
+    Strings.Mutable.add encoded bytes
+  in
+  (* One pass is one frame. *)
+  let encode_pass pcm =
+    incr frames;
+    add_audio (Shine.encode_buffer enc pcm)
+  in
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -54,6 +87,7 @@ let encoder ~pos shine =
       Audio_converter.Samplerate.resample samplerate_converter
         (dst_freq /. src_freq) b 0 len
     in
+    input_samples := !input_samples + len;
     let start = Frame.main_of_audio start in
     let len = Frame.main_of_audio len in
     Generator.put buf Frame.Fields.audio
@@ -63,7 +97,7 @@ let encoder ~pos shine =
         Content.Audio.get_data
           (Frame.Fields.find Frame.Fields.audio (Generator.slice buf samples))
       in
-      Strings.Mutable.add encoded (Shine.encode_buffer enc pcm)
+      encode_pass pcm
     done;
     Strings.Mutable.flush encoded
   in
@@ -83,32 +117,48 @@ let encoder ~pos shine =
             padded)
           pcm
       in
-      Strings.Mutable.add encoded (Shine.encode_buffer enc padded)
+      encode_pass padded
     end;
     (* Workaround: shine's flush leaves its last [shine_delay] samples in the
        encoder, and decoders output [mp3_decoder_delay] samples late: silent
        passes push both out, adding up to a frame of silence. To drop once
        shine's flush returns its samples. *)
     for _ = 1 to (shine_delay + mp3_decoder_delay + pass - 1) / pass do
-      Strings.Mutable.add encoded
-        (Shine.encode_buffer enc
-           (Array.init channels (fun _ -> Array.make pass 0.)))
+      encode_pass (Array.init channels (fun _ -> Array.make pass 0.))
     done;
-    Strings.Mutable.add encoded (Shine.flush enc);
+    add_audio (Shine.flush enc);
     Strings.Mutable.flush encoded
   in
-  {
-    Encoder.encode_metadata = (fun _ -> ());
-    header = (fun () -> Strings.empty);
-    encode;
-    stop;
-    bitrate = (fun () -> None);
-    encode_into = None;
-    restart_offset = (fun () -> None);
-  }
+  (* The placeholder follows the tag: the final frame goes over it. *)
+  let write_info_frame () =
+    Option.iter
+      (fun (seek, info_frame) ->
+        let padding =
+          (!frames * Mpeg_info_frame.samples_per_frame info_frame)
+          - shine_delay - !input_samples
+        in
+        seek (String.length tag);
+        sink.Encoder.write
+          (Strings.of_string
+             (Mpeg_info_frame.render info_frame ~frames:!frames
+                ~bytes:!audio_bytes ~music_crc:!audio_crc ~delay:shine_delay
+                ~padding)))
+      info_frame
+  in
+  Encoder.writer_of_encoder ~before_end:write_info_frame ~unit_aligned:true
+    {
+      Encoder.encode_metadata = (fun _ -> ());
+      header = (fun () -> Strings.empty);
+      encode;
+      stop;
+      bitrate = (fun () -> None);
+      encode_into = None;
+      restart_offset = (fun () -> None);
+    }
+    sink
 
 let () =
   Plug.register Encoder.plug "shine" ~doc:"SHINE fixed-point mp3 encoder."
-    (Encoder.of_encoders (function
-      | Encoder.Shine m -> Some (fun ~pos _ _ -> encoder ~pos m)
-      | _ -> None))
+    (function
+    | Encoder.Shine m -> Some (writer m)
+    | _ -> None)

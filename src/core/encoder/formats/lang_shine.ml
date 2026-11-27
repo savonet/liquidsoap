@@ -30,6 +30,7 @@ let make params =
       Shine_format.channels = 2;
       samplerate = `Setting `Audio_rate;
       bitrate = 128;
+      id3v2 = `Default;
     }
   in
   let shine =
@@ -49,6 +50,8 @@ let make params =
             { f with Shine_format.samplerate = `Value i }
         | `Labelled ("bitrate", Int { value = i; _ }) ->
             { f with Shine_format.bitrate = i }
+        | `Labelled ("id3v2", v) ->
+            { f with Shine_format.id3v2 = Format_builders.id3v2 v }
         | `Anonymous s when String.lowercase_ascii s = "mono" ->
             { f with Shine_format.channels = 1 }
         | `Anonymous s when String.lowercase_ascii s = "stereo" ->

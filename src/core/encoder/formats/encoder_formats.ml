@@ -25,3 +25,9 @@ let string_of_stereo s = if s then "stereo" else "mono"
 (** A property its writer adapts to the destination unless the script set it.
     Only [`Explicit] values are printed and checked against the destination. *)
 type 'a adaptable = [ `Default | `Explicit of 'a ]
+
+(* The id3v2 parameter of the MPEG audio formats, printed only when set. *)
+let string_of_id3v2 : int option adaptable -> string = function
+  | `Default -> ""
+  | `Explicit None -> ",id3v2=false"
+  | `Explicit (Some version) -> Printf.sprintf ",id3v2=%d" version

@@ -34,6 +34,16 @@ let raise_generic_error = function
            (Value.to_string v))
   | `Encoder _ -> raise_error ~pos:None "unexpected subencoder"
 
+(* The id3v2 parameter of the MPEG audio formats. *)
+let id3v2 : Value.t -> int option Encoder_formats.adaptable = function
+  | Value.Bool { value = true; _ } -> `Explicit (Some 3)
+  | Value.Bool { value = false; _ } | Value.String { value = "none"; _ } ->
+      `Explicit None
+  | Value.Int { value = (3 | 4) as version; _ } -> `Explicit (Some version)
+  | value ->
+      raise_error ~pos:(Value.pos value)
+        "id3v2 is true, false, \"none\", or the version 3 or 4"
+
 let builders : (string * (Hooks.encoder_params -> Format_value.t)) list ref =
   ref []
 
