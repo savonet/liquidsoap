@@ -25,7 +25,12 @@ module type Item = sig
 
   val copy : t -> t
   val checksum : t -> string
-  val split : time_base:Avutil.rational -> at:int -> t -> (t * t) option
+
+  val split :
+    time_base:Avutil.rational ->
+    at:int ->
+    t ->
+    [ `Before | `After | `Split of t * t ]
 end
 
 module type Params = sig
@@ -112,16 +117,18 @@ module Make (P : Params) (I : Item) = struct
     let split at = I.split ~time_base ~at item in
     let start =
       if from <= pos then Some (pos, item)
-      else Option.map (fun (_, after) -> (from, after)) (split (from - pos))
+      else (
+        match split (from - pos) with
+          | `Split (_, after) -> Some (from, after)
+          | `After -> Some (from, item)
+          | `Before -> None)
     in
     match start with
-      | Some (pos, item) when pos < until ->
-          let item =
-            match I.split ~time_base ~at:(until - pos) item with
-              | Some (before, _) -> before
-              | None -> I.copy item
-          in
-          Some (pos - from, item)
+      | Some (pos, item) when pos < until -> (
+          match I.split ~time_base ~at:(until - pos) item with
+            | `Split (before, _) -> Some (pos - from, before)
+            | `Before -> Some (pos - from, I.copy item)
+            | `After -> None)
       | _ -> None
 
   let sub_run (run : run) offset len =

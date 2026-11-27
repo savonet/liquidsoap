@@ -172,7 +172,7 @@ module Int_runs =
 
       let copy = Fun.id
       let checksum = string_of_int
-      let split ~time_base:_ ~at:_ _ = None
+      let split ~time_base:_ ~at:_ _ = `Before
     end)
 
 let positions (d : Int_runs.data) =
@@ -245,6 +245,20 @@ let audio_split () =
   check "a frame within one tick of the cut stays whole"
     (slice 0 940 = [(0, 1024, Some 1920L, None)]);
   check "no part past one tick" (slice 940 1 = []);
+  let low =
+    Avutil.Audio.create_frame `Fltp Avutil.Channel_layout.stereo 11025 1024
+  in
+  let src =
+    A.of_run
+      (Raw_params.Audio.of_frame low)
+      (A.run ~source_id:1 ~time_base:(tb 1 11025) ~length:4096 [(0, low)])
+  in
+  let dst = A.make (Raw_params.Audio.of_frame low) in
+  A.blit src 1 dst 0 4095;
+  check "a cut rounding to the first sample keeps the frame after it"
+    (match dst.runs with
+      | [(_, { A.items = [(0, f)] })] -> Avutil.Audio.frame_nb_samples f = 1024
+      | _ -> false);
   check "a slice inside the frame"
     (match slice 100 100 with [(0, 109, _, _)] -> true | _ -> false)
 
@@ -256,7 +270,7 @@ let () =
   edge_cases ();
   blit ();
   audio_split ();
-  let expected = 28 in
+  let expected = 29 in
   if !checks <> expected then
     failwith (Printf.sprintf "ran %d checks, expected %d" !checks expected);
   Printf.printf "base_test: %d checks passed\n" !checks

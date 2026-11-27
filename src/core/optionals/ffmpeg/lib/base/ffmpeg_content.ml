@@ -130,7 +130,7 @@ module Copy = struct
       (struct
         include Packet_item
 
-        let split ~time_base:_ ~at:_ _ = None
+        let split ~time_base:_ ~at:_ _ = `Before
       end)
 
   include Content_base.MkDataBase (Kinds.Copy) (Data)
@@ -154,7 +154,8 @@ let split_audio ~time_base ~at frame =
   let main = Time_base.main () in
   let extent = Time_base.rescale ~src:per_sample ~dst:main samples in
   match (Time_base.rescale ~src:main ~dst:per_sample at, extent) with
-    | Some cut, Some extent when 0 < cut && cut < samples && extent - at > 1 ->
+    | Some cut, _ when cut <= 0 -> `After
+    | Some cut, Some extent when cut < samples && extent - at > 1 ->
         let in_time_base n =
           Option.map Int64.of_int
             (Time_base.rescale ~src:per_sample ~dst:time_base n)
@@ -167,9 +168,9 @@ let split_audio ~time_base ~at frame =
           Avutil.Frame.set_duration part (in_time_base length);
           part
         in
-        Some
+        `Split
           (part ~offset:0 ~length:cut, part ~offset:cut ~length:(samples - cut))
-    | _ -> None
+    | _ -> `Before
 
 module Audio = struct
   module Data =
@@ -213,7 +214,7 @@ module Video = struct
 
         let copy = Fun.id
         let checksum = Raw_checksum.video
-        let split ~time_base:_ ~at:_ _ = None
+        let split ~time_base:_ ~at:_ _ = `Before
       end)
 
   include Content_base.MkDataBase (Kinds.Video) (Data)

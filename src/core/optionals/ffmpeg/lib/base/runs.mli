@@ -34,9 +34,14 @@ module type Item = sig
 
   (** [split ~time_base ~at item] cuts an item [at] main ticks after its start
       into the parts before and after, in an item with timestamps in [time_base]
-      (§6.4). [None] when the item cannot be split or does not reach past [at]
-      by more than one tick. *)
-  val split : time_base:Avutil.rational -> at:int -> t -> (t * t) option
+      (§6.4), or tells which side of [at] the whole item belongs to: [`Before]
+      when it cannot be split or does not reach past [at] by more than one tick,
+      [`After] when [at] rounds to its start. *)
+  val split :
+    time_base:Avutil.rational ->
+    at:int ->
+    t ->
+    [ `Before | `After | `Split of t * t ]
 end
 
 module type Params = sig
