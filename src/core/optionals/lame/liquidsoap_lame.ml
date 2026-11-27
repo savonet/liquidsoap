@@ -26,7 +26,7 @@ open Encoder
 open Mp3_format
 
 let () =
-  let create_encoder mp3 =
+  let create_encoder ~info_frame mp3 =
     let enc = Lame.create_encoder () in
     (* Input settings *)
     Lame.set_in_samplerate enc (Lazy.Mutexed.force Frame.audio_rate);
@@ -71,12 +71,18 @@ let () =
             apply_constaints enc c
     end;
     Lame.set_out_samplerate enc (Deferred.force mp3.Mp3_format.samplerate);
-    Lame.set_bWriteVbrTag enc false;
+    Lame.set_bWriteVbrTag enc info_frame;
     Lame.init_params enc;
     enc
   in
-  let mp3_encoder ~pos mp3 metadata =
-    let enc = create_encoder mp3 in
+  let mp3_encoder mp3
+      { Encoder.capabilities; sink; initial_metadata = metadata; _ } =
+    (* The file form: a tag, and a frame describing the whole stream, which a
+       reader in the middle of a stream or of an appended file must not get. *)
+    let file_form =
+      capabilities.Encoder.seekable && not capabilities.Encoder.continuing
+    in
+    let enc = create_encoder ~info_frame:file_form mp3 in
     let channels = if mp3.Mp3_format.stereo then 2 else 1 in
     (* Lame accepts data of a fixed length.. *)
     let frame_size = Frame.main_of_audio (Lame.frame_size enc) in
@@ -87,21 +93,34 @@ let () =
            ())
     in
     let encoded = Strings.Mutable.empty () in
-    ignore
-      (Option.map
-         (fun version ->
-           let tag =
-             Utils.id3v2_of_metadata ~version
-               (Frame.Metadata.to_list
-                  (Frame.Metadata.Export.to_metadata metadata))
-           in
-           (* A tag with no frame is only its 10-byte header. *)
-           if String.length tag > 10 then Strings.Mutable.add encoded tag)
-         (* The default writes no tag until writers receive their sink's
-            capabilities, which adapt it (mp3.md §6.4). *)
-           (match mp3.id3v2 with
-           | `Explicit version -> version
-           | `Default -> None));
+    let id3v2_version =
+      match mp3.id3v2 with
+        | `Explicit version -> version
+        | `Default -> if file_form then Some 3 else None
+    in
+    let tag =
+      match id3v2_version with
+        | None -> ""
+        | Some version ->
+            let tag =
+              Utils.id3v2_of_metadata ~version
+                (Frame.Metadata.to_list
+                   (Frame.Metadata.Export.to_metadata metadata))
+            in
+            (* A tag with no frame is only its 10-byte header. *)
+            if String.length tag > 10 then tag else ""
+    in
+    Strings.Mutable.add encoded tag;
+    (* LAME's placeholder is the first frame, right after the tag. *)
+    let write_info_frame () =
+      match sink.Encoder.seek with
+        | Some seek when file_form ->
+            let frame = Lame.lametag_frame enc in
+            if frame <> "" then (
+              seek (String.length tag);
+              sink.Encoder.write (Strings.of_string frame))
+        | _ -> ()
+    in
     let encode_pending len =
       let pcm =
         Content.Audio.get_data
@@ -130,17 +149,18 @@ let () =
       Strings.Mutable.add encoded (Lame.encode_flush enc);
       Strings.Mutable.flush encoded
     in
-    {
-      encode_metadata = (fun _ -> ());
-      encode;
-      header = (fun () -> Strings.empty);
-      stop;
-      bitrate = (fun () -> None);
-      encode_into = None;
-      restart_offset = (fun () -> None);
-    }
+    Encoder.writer_of_encoder ~before_end:write_info_frame ~unit_aligned:true
+      {
+        encode_metadata = (fun _ -> ());
+        encode;
+        header = (fun () -> Strings.empty);
+        stop;
+        bitrate = (fun () -> None);
+        encode_into = None;
+        restart_offset = (fun () -> None);
+      }
+      sink
   in
-  Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder."
-    (Encoder.of_encoders (function
-      | Encoder.MP3 mp3 -> Some (fun ~pos _ meta -> mp3_encoder ~pos mp3 meta)
-      | _ -> None))
+  Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function
+    | Encoder.MP3 mp3 -> Some (mp3_encoder mp3)
+    | _ -> None)
