@@ -80,13 +80,9 @@ let writer shine { Encoder.capabilities; sink; initial_metadata; _ } =
     incr frames;
     add_audio (Shine.encode_buffer enc pcm)
   in
-  let encode frame =
-    let b = AFrame.pcm frame in
-    let len = AFrame.position frame in
-    let b, start, len =
-      Audio_converter.Samplerate.resample samplerate_converter
-        (dst_freq /. src_freq) b 0 len
-    in
+  (* Encodes samples at the stream's rate: those of a frame, and at the end
+     those the rate converter still holds. *)
+  let encode_converted b start len =
     input_samples := !input_samples + len;
     let start = Frame.main_of_audio start in
     let len = Frame.main_of_audio len in
@@ -101,7 +97,21 @@ let writer shine { Encoder.capabilities; sink; initial_metadata; _ } =
     done;
     Strings.Mutable.flush encoded
   in
+  let encode frame =
+    let b = AFrame.pcm frame in
+    let len = AFrame.position frame in
+    let b, start, len =
+      Audio_converter.Samplerate.resample samplerate_converter
+        (dst_freq /. src_freq) b 0 len
+    in
+    encode_converted b start len
+  in
+  let encode_drained () =
+    let tail = Audio_converter.Samplerate.drain samplerate_converter in
+    encode_converted tail 0 (Mm.Audio.length tail)
+  in
   let stop () =
+    let tail = encode_drained () in
     let pass = Shine.samples_per_pass enc in
     let remaining = Generator.length buf in
     if remaining > 0 then begin
@@ -127,7 +137,7 @@ let writer shine { Encoder.capabilities; sink; initial_metadata; _ } =
       encode_pass (Array.init channels (fun _ -> Array.make pass 0.))
     done;
     add_audio (Shine.flush enc);
-    Strings.Mutable.flush encoded
+    Strings.append tail (Strings.Mutable.flush encoded)
   in
   (* The placeholder follows the tag: the final frame goes over it. *)
   let write_info_frame () =

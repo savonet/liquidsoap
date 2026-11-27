@@ -77,6 +77,14 @@ let encoder ~pos aac =
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   (* The library takes any number of samples: it holds less than a frame. *)
+  (* Encodes samples at the stream's rate: those of a frame, and at the end
+     those the rate converter still holds. *)
+  let encode_converted b start len =
+    if len = 0 then Strings.empty
+    else (
+      let data = Audio.S16LE.make b start len in
+      Strings.of_string (Fdkaac.Encoder.encode enc data 0 (String.length data)))
+  in
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -84,12 +92,16 @@ let encoder ~pos aac =
       Audio_converter.Samplerate.resample samplerate_converter
         (dst_freq /. src_freq) b 0 len
     in
-    if len = 0 then Strings.empty
-    else (
-      let data = Audio.S16LE.make b start len in
-      Strings.of_string (Fdkaac.Encoder.encode enc data 0 (String.length data)))
+    encode_converted b start len
   in
-  let stop () = Strings.of_string (Fdkaac.Encoder.flush enc) in
+  let encode_drained () =
+    let tail = Audio_converter.Samplerate.drain samplerate_converter in
+    encode_converted tail 0 (Mm.Audio.length tail)
+  in
+  let stop () =
+    let tail = encode_drained () in
+    Strings.append tail (Strings.of_string (Fdkaac.Encoder.flush enc))
+  in
   let bitrate () =
     match aac.Fdkaac_format.bitrate_mode with
       | `Variable _ -> None

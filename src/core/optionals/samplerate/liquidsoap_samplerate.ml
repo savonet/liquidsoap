@@ -64,11 +64,26 @@ let samplerate_converter channels =
   let convert converter ratio b ofs len =
     Samplerate.process_alloc converter ratio b ofs len
   in
-  fun ratio b ofs len ->
-    let data =
-      Array.mapi (fun i b -> convert converters.(i) ratio b ofs len) b
+  (* With no input, libsamplerate returns what it holds, a block at a time. *)
+  let drain_channel converter ratio =
+    let rec drain blocks =
+      match Samplerate.process_alloc converter ratio [||] 0 0 with
+        | [||] -> Array.concat (List.rev blocks)
+        | block -> drain (block :: blocks)
     in
-    (data, 0, Audio.length data)
+    let tail = drain [] in
+    Samplerate.reset converter;
+    tail
+  in
+  {
+    Audio_converter.Samplerate.convert =
+      (fun ratio b ofs len ->
+        let data =
+          Array.mapi (fun i b -> convert converters.(i) ratio b ofs len) b
+        in
+        (data, 0, Audio.length data));
+    drain = (fun ratio -> Array.map (fun c -> drain_channel c ratio) converters);
+  }
 
 let () =
   Plug.register Audio_converter.Samplerate.converters "libsamplerate"

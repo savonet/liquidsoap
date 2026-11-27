@@ -27,6 +27,8 @@ open Mm
 type track = {
   encode : Ogg_muxer.t -> nativeint -> Frame.t -> unit;
   reset : Ogg_muxer.t -> Frame.Metadata.Export.t -> nativeint;
+  drain : Ogg_muxer.t -> nativeint -> unit;
+      (** Encodes what the track still holds, before its stream ends. *)
   mutable id : nativeint option;
 }
 
@@ -58,7 +60,14 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
     in
     Ogg_muxer.encode encoder id data
   in
-  encode
+  let drain encoder id =
+    let buf = Audio_converter.Samplerate.drain samplerate_converter in
+    let length = Audio.length buf in
+    if 0 < length then
+      Ogg_muxer.encode encoder id
+        (Ogg_muxer.Audio_data { Ogg_muxer.data = buf; offset = 0; length })
+  in
+  (encode, drain)
 
 (** Helper to encode video. *)
 let encode_video encoder id frame =
@@ -144,7 +153,10 @@ let encoder ~pos { Ogg_format.audio; video } =
       List.iter f tracks;
       Ogg_muxer.get_data ogg_enc
     and ogg_stop () =
-      let f track = track.id <- None in
+      let f track =
+        Option.iter (track.drain ogg_enc) track.id;
+        track.id <- None
+      in
       List.iter f tracks;
       Ogg_muxer.end_of_stream ogg_enc
     and stop () =

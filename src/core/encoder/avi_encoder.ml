@@ -192,7 +192,24 @@ let writer avi { Encoder.capabilities; sink; _ } =
       header =
         (fun () ->
           if !need_header then Strings.empty else Strings.of_string header);
-      stop = (fun () -> Strings.empty);
+      (* A last audio chunk with what the rate converter still holds. *)
+      stop =
+        (fun () ->
+          let tail = Audio_converter.Samplerate.drain converter in
+          let len = Audio.length tail in
+          if len = 0 then Strings.empty
+          else (
+            let data = Bytes.create (2 * channels * len) in
+            Audio.S16LE.of_audio tail 0 data 0 len;
+            let chunk =
+              Strings.of_string (Avi.audio_chunk (Bytes.unsafe_to_string data))
+            in
+            Option.iter
+              (fun (_, index) ->
+                add_entry index "01wb" chunk;
+                index.audio_samples <- index.audio_samples + len)
+              index;
+            chunk));
       bitrate =
         (fun () ->
           Some

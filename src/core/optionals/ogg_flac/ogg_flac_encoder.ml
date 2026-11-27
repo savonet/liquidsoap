@@ -117,8 +117,10 @@ let create_flac = function
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float (Deferred.force flac.Flac_format.samplerate) in
       let channels = flac.Flac_format.channels in
-      let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      { Ogg_encoder.encode; reset; id = None }
+      let encode, drain =
+        Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
+      in
+      { Ogg_encoder.encode; reset; drain; id = None }
   | _ -> assert false
 
 let () = Hashtbl.replace Ogg_encoder.audio_encoders "flac" create_flac

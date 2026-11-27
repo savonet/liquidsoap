@@ -29,8 +29,17 @@ val converter_conf : Dtools.Conf.ut
 module Samplerate : sig
   exception Invalid_data
 
-  type converter =
-    float -> Content_audio.data -> int -> int -> Content_audio.data * int * int
+  (** [convert ratio data offset length] converts samples; [drain ratio] returns
+      the samples a converter still holds, at the end of its input. *)
+  type converter = {
+    convert :
+      float ->
+      Content_audio.data ->
+      int ->
+      int ->
+      Content_audio.data * int * int;
+    drain : float -> Content_audio.data;
+  }
 
   type converter_plug = int -> converter
   type t
@@ -51,6 +60,10 @@ module Samplerate : sig
     int ->
     int ->
     Content_audio.data * int * int
+
+  (** The samples the converter still holds once its input has ended. It can
+      convert a new input afterwards. *)
+  val drain : t -> Content_audio.data
 end
 
 module Channel_layout : sig

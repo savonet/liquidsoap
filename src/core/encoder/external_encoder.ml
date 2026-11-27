@@ -154,7 +154,22 @@ let encoder id ext =
           ());
     Strings.Mutable.flush buf
   in
+  (* The process gets what the rate converter still holds, audio only. *)
+  let write_drained () =
+    if ext.video = None then (
+      let tail = Audio_converter.Samplerate.drain converter in
+      let len = Audio.length tail in
+      if 0 < len then (
+        let sbuf = Bytes.create (2 * len * Array.length tail) in
+        Audio.S16LE.of_audio tail 0 sbuf 0 len;
+        try
+          Process_handler.on_stdin process (fun push ->
+              Process_handler.really_write ~offset:0 ~length:(Bytes.length sbuf)
+                sbuf push)
+        with Process_handler.Finished -> ()))
+  in
   let stop () =
+    write_drained ();
     Mutex.protect mutex (fun () ->
         is_stop := true;
         Process_handler.stop process;

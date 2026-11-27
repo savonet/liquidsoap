@@ -47,13 +47,19 @@ let quality_of_string = function
               \"linear\".",
              [] ))
 
-let samplerate_converter _ =
+(* Each call converts its samples on their own: nothing is held between
+   calls, so there is nothing to drain. *)
+let samplerate_converter channels =
   let mode = quality_of_string quality_conf#get in
-  fun r data ofs len ->
-    if r = 1. then (data, ofs, len)
-    else (
-      let data = Audio.resample ~mode r data ofs len in
-      (data, 0, Audio.length data))
+  {
+    Audio_converter.Samplerate.convert =
+      (fun r data ofs len ->
+        if r = 1. then (data, ofs, len)
+        else (
+          let data = Audio.resample ~mode r data ofs len in
+          (data, 0, Audio.length data)));
+    drain = (fun _ -> Array.make channels [||]);
+  }
 
 let () =
   Plug.register Audio_converter.Samplerate.converters "native"

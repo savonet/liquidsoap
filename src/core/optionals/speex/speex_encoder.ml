@@ -139,8 +139,10 @@ let create_speex = function
       let channels = if speex.Speex_format.stereo then 2 else 1 in
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float (Deferred.force speex.Speex_format.samplerate) in
-      let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      { Ogg_encoder.reset; encode; id = None }
+      let encode, drain =
+        Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
+      in
+      { Ogg_encoder.reset; encode; drain; id = None }
   | _ -> assert false
 
 let () = Hashtbl.replace Ogg_encoder.audio_encoders "speex" create_speex

@@ -158,6 +158,11 @@ let create_theora theora =
     let enc = create_encoder ~theora ~metadata () in
     Ogg_muxer.register_track ?fill:theora.Theora_format.fill ogg_enc enc
   in
-  { Ogg_encoder.encode = Ogg_encoder.encode_video; reset; id = None }
+  {
+    Ogg_encoder.encode = Ogg_encoder.encode_video;
+    reset;
+    drain = (fun _ _ -> ());
+    id = None;
+  }
 
 let () = Ogg_encoder.theora_encoder := Some create_theora

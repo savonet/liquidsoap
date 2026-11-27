@@ -116,6 +116,13 @@ let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
           Strings.append header bytes
       | None -> bytes
   in
+  (* Encodes samples at the stream's rate: those of a frame, and at the end
+     those the rate converter still holds. *)
+  let encode_converted b start len =
+    let b = Audio.sub b start len in
+    Flac.Encoder.process enc b;
+    take ()
+  in
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -123,13 +130,16 @@ let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
       Audio_converter.Samplerate.resample samplerate_converter
         (dst_freq /. src_freq) b 0 len
     in
-    let b = Audio.sub b start len in
-    Flac.Encoder.process enc b;
-    take ()
+    encode_converted b start len
+  in
+  let encode_drained () =
+    let tail = Audio_converter.Samplerate.drain samplerate_converter in
+    encode_converted tail 0 (Mm.Audio.length tail)
   in
   let stop () =
+    let tail = encode_drained () in
     Flac.Encoder.finish enc;
-    take ()
+    Strings.append tail (take ())
   in
   (* The library hands over whole frames: a call's output starts on one. *)
   Encoder.writer_of_encoder

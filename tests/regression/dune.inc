@@ -3024,6 +3024,24 @@
    request_pool_concurrent.liq)))
 
 (rule
+ (alias test_resampler_drain)
+ (package liquidsoap)
+ (deps
+  resampler_drain.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} resampler_drain liquidsoap resampler_drain.liq)))
+
+(rule
  (alias test_rotate_merge_rounds)
  (package liquidsoap)
  (deps
@@ -4324,6 +4342,7 @@
   (alias test_protocol_http_failed_download)
   (alias test_replaygain)
   (alias test_request_pool_concurrent)
+  (alias test_resampler_drain)
   (alias test_rotate_merge_rounds)
   (alias test_rotate_under_child_clock)
   (alias test_runtime_file_descriptors)

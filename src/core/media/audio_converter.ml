@@ -44,11 +44,23 @@ module Samplerate = struct
 
   (** A converter takes a conversion ratio (output samplerate / input
       samplerate), an audio buffer, and returns a resampled buffer. *)
-  type converter =
-    float -> Content_audio.data -> int -> int -> Content_audio.data * int * int
+  type converter = {
+    convert :
+      float ->
+      Content_audio.data ->
+      int ->
+      int ->
+      Content_audio.data * int * int;
+    drain : float -> Content_audio.data;
+  }
 
   type converter_plug = int -> converter
-  type t = { channels : int; converter : converter }
+
+  type t = {
+    channels : int;
+    converter : converter;
+    mutable last_ratio : float option;
+  }
 
   let samplerate_conf =
     Dtools.Conf.void
@@ -83,12 +95,21 @@ module Samplerate = struct
       in
       f converters_conf#get
     in
-    { channels; converter = converter channels }
+    { channels; converter = converter channels; last_ratio = None }
 
-  let resample { channels; converter } ratio data ofs len =
-    if channels <> Array.length data then raise Invalid_data;
+  let resample t ratio data ofs len =
+    if t.channels <> Array.length data then raise Invalid_data;
     if ratio = 1. then (Audio.copy data ofs len, 0, len)
-    else converter ratio data ofs len
+    else (
+      t.last_ratio <- Some ratio;
+      t.converter.convert ratio data ofs len)
+
+  let drain t =
+    match t.last_ratio with
+      | None -> Array.make t.channels [||]
+      | Some ratio ->
+          t.last_ratio <- None;
+          t.converter.drain ratio
 
   (** Log which converter is used at start. *)
   let () =

@@ -142,8 +142,10 @@ let create_opus = function
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float opus.Opus_format.samplerate in
       let channels = opus.Opus_format.channels in
-      let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      { Ogg_encoder.encode; reset; id = None }
+      let encode, drain =
+        Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
+      in
+      { Ogg_encoder.encode; reset; drain; id = None }
   | _ -> assert false
 
 let () = Hashtbl.replace Ogg_encoder.audio_encoders "opus" create_opus

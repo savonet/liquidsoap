@@ -64,13 +64,9 @@ let encoder ~pos wav { Encoder.capabilities; sink; name; _ } =
   let need_header = ref (wav.header && not capabilities.Encoder.continuing) in
   let wrote_header = !need_header in
   let payload = ref 0 in
-  let encode frame =
-    let b = AFrame.pcm frame in
-    let len = AFrame.position frame in
-    (* Resample if needed. *)
-    let b, start, len =
-      Audio_converter.Samplerate.resample converter ratio b 0 len
-    in
+  (* Encodes samples at the stream's rate: those of a frame, and at the end
+     those the rate converter still holds. *)
+  let encode_converted b start len =
     let s = Bytes.create (sample_size / 8 * len * channels) in
     let of_audio =
       match sample_size with
@@ -87,6 +83,18 @@ let encoder ~pos wav { Encoder.capabilities; sink; name; _ } =
       need_header := false;
       Strings.of_list [header; s])
     else Strings.of_string s
+  in
+  let encode frame =
+    let b = AFrame.pcm frame in
+    let len = AFrame.position frame in
+    let b, start, len =
+      Audio_converter.Samplerate.resample converter ratio b 0 len
+    in
+    encode_converted b start len
+  in
+  let encode_drained () =
+    let tail = Audio_converter.Samplerate.drain converter in
+    encode_converted tail 0 (Mm.Audio.length tail)
   in
   (* On a seekable sink the header's sizes cover what the file holds. *)
   let finalise () =
@@ -116,7 +124,7 @@ let encoder ~pos wav { Encoder.capabilities; sink; name; _ } =
         (fun () ->
           if wrote_header && not !need_header then Strings.of_string header
           else Strings.empty);
-      stop = (fun () -> Strings.empty);
+      stop = encode_drained;
       bitrate = (fun () -> None);
       access_points = None;
       restart_offset = (fun () -> None);

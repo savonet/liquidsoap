@@ -135,6 +135,7 @@
 - The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
 - Seeking with the `mad` decoder goes to the requested position instead of the end of the file ([#3584](https://github.com/savonet/liquidsoap/issues/3584)).
 - Native `%opus` files declare the encoder's lookahead as pre-skip (about 6.5 ms) instead of a fixed 80 ms, so decoders no longer drop the first ~73 ms of audio ([#5701](https://github.com/savonet/liquidsoap/pull/5701)).
+- Encoders that convert the frame's sample rate (`%wav`, `%flac`, `%ogg` streams, `%shine`, `%fdkaac`, `%avi`, `%external`) drain the converter at the end of their stream: its last samples were lost, about 20 samples per stop at 48 kHz.
 - Native `%opus` streams end on their last packet with the exact input length: the last frame and the encoder's lookahead are no longer dropped (about 20 ms per stream), no empty page is appended, and with `dtx=true` silent packets are kept so that timestamps no longer lag behind the audio.
 - Native `%theora` streams end on the packet of their last image instead of an empty page.
 - Every native Ogg stream (`%opus`, `%ogg(%flac)`, `%speex`, as `%vorbis` already did) carries one `ENCODER` comment naming Liquidsoap, replacing an `encoder` metadata; `%speex` no longer makes up a `title` from the file name.
