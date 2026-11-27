@@ -72,6 +72,10 @@ them), with
   computed from absolute timestamps
   ([decoder.md §9.1](decoder.md#91-grouping-by-timestamp-increments)). Frames
   at equal positions, and frames with no PTS, travel in one group.
+- Audio frames are placed with continuity
+  ([common.md §6.7](common.md#67-continuity-of-raw-audio)): within the drift
+  bound they follow the samples before them, so jitter in their timestamps
+  never cuts samples.
 - Decreasing PTS never reach the decoder
   ([decoder.md §9.2](decoder.md#92-discontinuities-and-invalid-timestamps)).
 

@@ -25,6 +25,12 @@ module type Item = sig
 
   val copy : t -> t
   val checksum : t -> string
+
+  val split :
+    time_base:Avutil.rational ->
+    at:int ->
+    t ->
+    [ `Before | `After | `Split of t * t ]
 end
 
 module type Params = sig
@@ -105,16 +111,33 @@ module Make (P : Params) (I : Item) = struct
   let length (d : data) = d.length
   let params d = d.params
 
+  (* content.md §6.4: an item crossing a bound is split there, each part
+     going to its own side. *)
+  let clip ~time_base ~from ~until (pos, item) =
+    let split at = I.split ~time_base ~at item in
+    let start =
+      if from <= pos then Some (pos, item)
+      else (
+        match split (from - pos) with
+          | `Split (_, after) -> Some (from, after)
+          | `After -> Some (from, item)
+          | `Before -> None)
+    in
+    match start with
+      | Some (pos, item) when pos < until -> (
+          match I.split ~time_base ~at:(until - pos) item with
+            | `Split (before, _) -> Some (pos - from, before)
+            | `Before -> Some (pos - from, I.copy item)
+            | `After -> None)
+      | _ -> None
+
   let sub_run (run : run) offset len =
     {
       run with
       length = len;
       items =
         List.filter_map
-          (fun (pos, item) ->
-            if offset <= pos && pos < offset + len then
-              Some (pos - offset, I.copy item)
-            else None)
+          (clip ~time_base:run.time_base ~from:offset ~until:(offset + len))
           run.items;
     }
 

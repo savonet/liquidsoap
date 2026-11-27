@@ -457,6 +457,11 @@ module Audio = struct
   external frame_nb_samples : audio frame -> int
     = "ocaml_avutil_audio_frame_nb_samples"
 
+  external frame_sub : audio frame -> int -> int -> audio frame
+    = "ocaml_avutil_audio_frame_sub"
+
+  let sub ~offset ~length frame = frame_sub frame offset length
+
   type frame_format = {
     sample_format : Sample_format.t;
     sample_rate : int;

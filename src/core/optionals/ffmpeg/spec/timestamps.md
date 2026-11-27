@@ -121,16 +121,41 @@ Audio timestamps count samples; the encoder ignores input timestamps.
    the stream time base.
 
 The sample counter stays on the output position, computed from absolute
-positions. The encoder realigns its counter; it never invents samples. When
-raw audio content has a gap in positions, the resampler is drained and the
+positions. The encoder realigns its counter; it never invents samples.
+
+Raw audio frames are placed by their positions, which are rounded from their
+timestamps; the samples are exact. The encoder knows where a frame is
+expected from an anchor and the count of samples fed since, rescaled once to
+main ticks, so the rounding of each frame's position never accumulates
+(§1.2). A frame's position differs from where it is expected by up to the
+**rounding bound**, one main tick plus one unit of its run's time base
+rounded up to main ticks, with no audio missing or repeated; within that
+bound the frame is fed whole. Decoded raw audio is already placed by its samples
+within the drift bound
+([common.md §6.7](common.md#67-continuity-of-raw-audio)), so past the
+rounding bound a difference is a gap or overlap left in the content. The encoder needs no drift
+tolerance of its own: filter graph inputs are fed from that content, graph
+outputs derive their timestamps from sample counts, and inline decoders get
+the exact timestamps of the inline encoder, so no producer adds jitter after
+decoding. A producer that did would need the drift bound here too. The anchor is the first frame's position, and
+moves at every jump below; at a change of sample rate it is the expected
+position, the count starting again.
+
+When raw audio content has a gap in positions, the resampler is drained and the
 counter jumps to the position of the next frame at the target rate, so the
-stream carries a timestamp gap where the content had no audio. The re-framer
+stream carries a timestamp gap where the content had no audio. A frame placed
+past where it is expected by more than the rounding bound is the same: audio
+is missing from the source (lost packets), and the counter jumps to the
+frame's position. The re-framer
 of a fixed-frame-size codec is not drained (the codec accepts a short frame
 only as a stream's last): its partial frame is completed by the samples after
 the gap, and the jump applies at that frame's start, so the gap lands less
-than one codec frame early. No sample is invented or lost. When frames overlap in
-position, the samples before the counter's position are dropped with a
-warning. The mechanism is the conversion's
+than one codec frame early. No sample is invented or lost. A frame placed
+before where it is expected by more than the rounding bound holds samples
+the timeline has no room for: the source's samples run ahead of its
+timestamps. Those at the front of the frame are dropped, which keeps the
+stream on the timeline. Both corrections are logged as warnings at a bounded
+rate and are not counted as faults: they describe the input. The mechanism is the conversion's
 ([encoder-internal.md §4.2](encoder-internal.md#42-audio-raw)). Reason: a
 gap in the content is the content's; filling it with silence would stand in
 for missing source content. A new source
@@ -143,6 +168,12 @@ Conformance:
 - Raw audio content with a 1 s gap: the output carries a pts gap equal to
   the content gap within one codec frame, and the sample count equals the
   input's.
+- Raw 48 kHz audio with main ticks at `1/44100`: the output's sample count
+  equals the input's.
+- Raw audio from a source missing packets: the output spans the input's
+  duration and its sample count equals the input's.
+- Raw audio whose timestamps advance 1% slower than its samples: the output
+  spans the timestamps' duration.
 - Re-encode decoded audio from a 44.1 kHz file followed by a 48 kHz file:
   output duration equals input duration to within one codec frame.
 - After any run, the last audio pts differs from the output position by at
@@ -251,7 +282,12 @@ For each packet a track writes
 1. Missing values are filled (§6.4).
 2. Written values: `pts' = pts_m + O`, `dts' = dts_m + O`, duration `dur_m`.
    One offset applies to PTS and DTS, so the source's reordering delay is
-   kept.
+   kept. These place the packet on the timeline. Once the header is written,
+   the stored values are `dts` and `pts` rescaled from `tb` to the stream
+   time base, plus `O` rescaled once to that time base, and `dur` rescaled
+   from `tb`: each is rounded once from the source's own value, so a stream
+   copied into its own time base keeps its spacing exactly. A value the
+   packet lacks is stored from its main-tick value.
 3. The monotonicity rule (§6.3) may drop the packet.
 4. The track's end becomes `max(end, dts' + extent)`, `extent` = `dur_m`, or,
    when the packet has no duration, the span from its position to the next
@@ -352,9 +388,10 @@ cases that can break it each have their own rule:
 | the first packets of a late member whose `dts'` falls below the track's end                                                         | none: join overlap                                           | dropped, counted, logged at info                                                                        |
 | a stored DTS equal to the previous one although `dts` increased (rounding to a coarser stream time base)                            | none: container precision                                    | stored as previous + 1 unit                                                                             |
 
-DTS values within a tenure are compared as times: each value times its run's
-time base, exactly (or, equivalently for this rule, in main ticks before the
-offset). A change of time base within one tenure is legal. A DTS that jumps
+DTS values within a tenure are compared as times, in their run's time base:
+two DTS less than one main tick apart are distinct. A change of time base
+within one tenure is legal; across one, the values are compared in main
+ticks. A DTS that jumps
 forward within one source by more than `max_keyframe_wait`
 ([encoder-copy.md §12.3](encoder-copy.md#123-readiness-and-group-start)) is
 written as it is and logged at warning level with the jump; it is not
@@ -418,6 +455,10 @@ Conformance:
   warning and the output carries it again from its next keyframe.
 - Copied DTS that differ by less than one unit of the output stream time base,
   isolated: the output keeps running.
+- A source whose DTS are one unit of `1/48000` apart, with main ticks at
+  `1/44100`: no packet is dropped.
+- AAC copied from mpegts to mpegts: every stored DTS step equals the
+  source's.
 - At no point does the muxer report a non-monotonic DTS.
 
 ### 6.4 Missing values

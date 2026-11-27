@@ -671,6 +671,15 @@ module Audio : sig
   (** The number of samples per channel the frame holds. *)
   val frame_nb_samples : audio frame -> int
 
+  (** [sub ~offset ~length frame] is a new frame holding samples
+      [[offset, offset + length)] of [frame], copied, in its format, layout and
+      rate. The other properties are copied too, except the timestamps and the
+      duration, which are unset.
+
+      @raise Error
+        with [`Failure] when the range is empty or outside the frame. *)
+  val sub : offset:int -> length:int -> audio frame -> audio frame
+
   (** What a consumer of audio frames is configured for: a frame whose format
       differs from the one before needs that consumer set up again. *)
   type frame_format = {

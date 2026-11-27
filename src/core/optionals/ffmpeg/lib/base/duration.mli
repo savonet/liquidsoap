@@ -35,6 +35,16 @@ type 'item accessors = {
   get_duration : 'item -> Int64.t option;
 }
 
+(** Placement of audio items by their samples (common.md §6.7): [samples] gives
+    an item's sample count and rate, [trim item n] the item without its first
+    [n] samples; [max_drift], in main ticks, is how far an item's position may
+    differ from the end of the samples before it while it still follows them. *)
+type 'item continuity = {
+  max_drift : int;
+  samples : 'item -> (int * int) option;
+  trim : 'item -> int -> 'item;
+}
+
 type 'item t
 
 (** [offset] is added to every timestamp read, in [src]; [start] is the position
@@ -43,6 +53,7 @@ type 'item t
 val create :
   ?offset:int ->
   ?start:int ->
+  ?continuity:'item continuity ->
   convert_ts:bool ->
   src:Time_base.t ->
   faults:Faults.t ->

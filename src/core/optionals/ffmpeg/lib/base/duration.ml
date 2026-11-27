@@ -26,6 +26,14 @@ type 'item accessors = {
   get_duration : 'item -> Int64.t option;
 }
 
+type 'item continuity = {
+  max_drift : int;
+  samples : 'item -> (int * int) option;
+  trim : 'item -> int -> 'item;
+}
+
+(* Samples fed since [anchor], at [rate]. *)
+type clock = { anchor : int; rate : int; fed : int }
 type 'item chunk = { length : int; items : 'item list }
 
 type 'item result =
@@ -41,6 +49,8 @@ type 'item t = {
   start : int;
   faults : Faults.t;
   accessors : 'item accessors;
+  continuity : 'item continuity option;
+  mutable clock : clock option;
   mutable origin : int option;
   mutable last_ts : int option;
   (* Items of the held group, latest first. *)
@@ -53,7 +63,8 @@ type 'item t = {
   mutable ended : bool;
 }
 
-let create ?(offset = 0) ?(start = 0) ~convert_ts ~src ~faults accessors =
+let create ?(offset = 0) ?(start = 0) ?continuity ~convert_ts ~src ~faults
+    accessors =
   {
     src;
     dst = Time_base.main ();
@@ -62,6 +73,8 @@ let create ?(offset = 0) ?(start = 0) ~convert_ts ~src ~faults accessors =
     start;
     faults;
     accessors;
+    continuity;
+    clock = None;
     origin = None;
     last_ts = None;
     group = [];
@@ -74,6 +87,60 @@ let create ?(offset = 0) ?(start = 0) ~convert_ts ~src ~faults accessors =
   }
 
 let rescale t ts = Time_base.rescale ~src:t.src ~dst:t.dst ts
+
+let samples_length ~rate samples =
+  Option.value ~default:0
+    (Time_base.rescale
+       ~src:{ Avutil.num = 1; den = rate }
+       ~dst:(Time_base.main ()) samples)
+
+let expected clock = clock.anchor + samples_length ~rate:clock.rate clock.fed
+
+let drift_bound t continuity =
+  max (Time_base.rounding_bound t.src) continuity.max_drift
+
+let log_drift t drift =
+  Faults.uncounted t.faults ~kind:"audio"
+    (Printf.sprintf
+       (if drift > 0 then "%.1f ms gap in audio timestamps"
+        else "%.1f ms of audio ahead of its timestamps dropped")
+       (1000. *. Frame.seconds_of_main (abs drift)))
+
+(* common.md §6.7: within the drift bound, an audio item follows the samples
+   before it. Past it, a later item keeps its position, leaving a gap, and an
+   earlier one loses the samples that overlap those before it. *)
+let place t ~continuity ~position item =
+  let anchor ~rate position samples =
+    t.clock <- Some { anchor = position; rate; fed = samples };
+    Some (position, item)
+  in
+  match (continuity.samples item, t.clock) with
+    | None, _ -> Some (position, item)
+    | Some (samples, rate), None -> anchor ~rate position samples
+    | Some (samples, rate), Some clock ->
+        let expected = expected clock in
+        let drift = position - expected in
+        let follow item samples =
+          t.clock <-
+            Some
+              (if clock.rate = rate then
+                 { clock with fed = clock.fed + samples }
+               else { anchor = expected; rate; fed = samples });
+          Some (expected, item)
+        in
+        if abs drift <= drift_bound t continuity then follow item samples
+        else (
+          log_drift t drift;
+          if drift > 0 then anchor ~rate position samples
+          else (
+            let excess =
+              Option.value ~default:samples
+                (Time_base.rescale ~src:(Time_base.main ())
+                   ~dst:{ Avutil.num = 1; den = rate }
+                   (-drift))
+            in
+            if excess >= samples then None
+            else follow (continuity.trim item excess) (samples - excess)))
 
 let group_full t =
   `Discontinuity
@@ -108,10 +175,57 @@ let item_end t ~ts ~converted_origin item =
           (fun e -> t.start + e - converted_origin)
           (rescale t (ts + Int64.to_int duration))
 
+let within_drift t ts =
+  match (t.continuity, t.clock, t.origin) with
+    | Some continuity, Some clock, Some origin -> (
+        match (rescale t ts, rescale t origin) with
+          | Some converted, Some converted_origin ->
+              abs (t.start + converted - converted_origin - expected clock)
+              <= drift_bound t continuity
+          | _ -> false)
+    | _ -> false
+
+(* The item at position [p] joins the group, or closes it. *)
+let accept t ~origin ~ts ~converted ~converted_origin ~position ~p item =
+  let closes = match t.group_pos with Some g -> p > g | None -> false in
+  if (not closes) && t.group_size >= max_group_items then group_full t
+  else (
+    let item_end =
+      match Option.map (fun c -> c.samples item) t.continuity with
+        | Some (Some (samples, rate)) -> Some (p + samples_length ~rate samples)
+        | _ -> item_end t ~ts ~converted_origin item
+    in
+    t.origin <- Some origin;
+    (* A placed item's timestamp follows its placement. *)
+    let shift = p - position in
+    let written =
+      if t.convert_ts then converted + shift
+      else
+        ts
+        + Option.value ~default:0
+            (Time_base.rescale ~src:t.dst ~dst:t.src shift)
+    in
+    t.accessors.set_ts item (Some (Int64.of_int written));
+    t.last_ts <-
+      Some (match t.last_ts with Some last -> max last ts | None -> ts);
+    Faults.delivered t.faults;
+    let result =
+      match t.group_pos with
+        | Some group_pos when closes -> `Chunk (emit t ~length:(p - group_pos))
+        | _ -> `Nothing
+    in
+    t.group_pos <- Some p;
+    t.group_end <-
+      (match (t.group_end, item_end) with
+        | Some e, Some e' -> Some (max e e')
+        | e, None | None, e -> e);
+    append t item;
+    result)
+
 let push_timestamped t item ts =
   let ts = ts + t.offset in
   match t.last_ts with
-    | Some last when ts < last ->
+    | Some last when ts < last && not (within_drift t ts) ->
         drop t
           (Printf.sprintf "Decreasing timestamp %d after %d (time base %s)" ts
              last
@@ -119,33 +233,18 @@ let push_timestamped t item ts =
     | _ -> (
         let origin = Option.value ~default:ts t.origin in
         match (rescale t ts, rescale t origin) with
-          | Some converted, Some converted_origin ->
-              let p = t.start + converted - converted_origin in
-              let closes =
-                match t.group_pos with Some g -> p > g | None -> false
+          | Some converted, Some converted_origin -> (
+              let position = t.start + converted - converted_origin in
+              let placed =
+                match t.continuity with
+                  | Some continuity -> place t ~continuity ~position item
+                  | None -> Some (position, item)
               in
-              if (not closes) && t.group_size >= max_group_items then
-                group_full t
-              else (
-                let item_end = item_end t ~ts ~converted_origin item in
-                t.origin <- Some origin;
-                t.accessors.set_ts item
-                  (Some (Int64.of_int (if t.convert_ts then converted else ts)));
-                t.last_ts <- Some ts;
-                Faults.delivered t.faults;
-                let result =
-                  match t.group_pos with
-                    | Some group_pos when closes ->
-                        `Chunk (emit t ~length:(p - group_pos))
-                    | _ -> `Nothing
-                in
-                t.group_pos <- Some p;
-                t.group_end <-
-                  (match (t.group_end, item_end) with
-                    | Some e, Some e' -> Some (max e e')
-                    | e, None | None, e -> e);
-                append t item;
-                result)
+              match placed with
+                | None -> `Nothing
+                | Some (p, item) ->
+                    accept t ~origin ~ts ~converted ~converted_origin ~position
+                      ~p item)
           | _ ->
               drop t
                 (Printf.sprintf "Timestamp %d out of range converting from %s"
@@ -157,6 +256,13 @@ let push t item =
   match t.accessors.get_ts item with
     | None when t.group_size >= max_group_items -> group_full t
     | None ->
+        (match (t.continuity, t.clock) with
+          | Some continuity, Some clock -> (
+              match continuity.samples item with
+                | Some (samples, rate) when rate = clock.rate ->
+                    t.clock <- Some { clock with fed = clock.fed + samples }
+                | _ -> ())
+          | _ -> ());
         append t item;
         `Nothing
     | Some ts -> push_timestamped t item (Int64.to_int ts)

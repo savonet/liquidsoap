@@ -142,12 +142,17 @@ position ([timestamps.md §3](timestamps.md#3-audio-internal-and-raw)):
   Its partial frame is completed by the samples after the gap, and the jump
   is applied to that frame's start instead. The gap's timing then moves
   earlier by less than one codec frame; no sample is invented or lost.
-- **Overlap.** Samples before the counter's position are dropped with a
-  warning naming the overlap: an item fault
-  ([faults.md §2](../../../../spec/faults.md#2-classes)), counted with the others of
-  [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults).
+- **Missing audio.** A frame placed past where it is expected by more than
+  the rounding bound
+  ([timestamps.md §3](timestamps.md#3-audio-internal-and-raw)) is a gap the
+  source left inside its content: handled as a gap.
+- **Samples ahead.** A frame placed before where it is expected by more than
+  the rounding bound: its samples before the expected position are dropped.
+- Within the rounding bound, the frame is fed whole.
 
-Both are computed from absolute positions, never accumulated.
+Missing audio and samples ahead are logged as warnings at a bounded rate,
+not counted as faults. Where a frame is expected comes from an anchor and an
+exact sample count, never from accumulated rounded durations.
 
 ### 4.3 Re-framing
 

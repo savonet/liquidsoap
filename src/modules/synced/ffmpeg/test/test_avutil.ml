@@ -36,6 +36,8 @@ external set_video_properties : video frame -> unit
 external plane_size : video frame -> int -> int = "test_plane_size"
 external touch_frame : _ frame -> unit = "test_touch_frame"
 external share_frame : video frame -> video frame = "test_share_frame"
+external fill_audio : audio frame -> unit = "test_fill_audio"
+external audio_planes : audio frame -> string array = "test_audio_planes"
 external hardware_frame : unit -> video frame = "test_hardware_frame"
 external option_class : unit -> Options.t = "test_option_class"
 external no_option_class : unit -> Options.t = "test_no_option_class"
@@ -793,6 +795,44 @@ let audio_frames () =
   raises is_error "a frame with no sample format" (fun () ->
       Audio.create_frame `None Channel_layout.stereo 48000 16)
 
+let audio_sub () =
+  let check ~format ~bytes_per_sample ~interleaved =
+    let frame = Audio.create_frame format Channel_layout.stereo 48000 1024 in
+    fill_audio frame;
+    Frame.set_pts frame (Some 5000L);
+    Frame.set_pkt_dts frame (Some 5000L);
+    let channels = if interleaved then 2 else 1 in
+    let expect ~offset ~length =
+      let sub = Audio.sub ~offset ~length frame in
+      equal length (Audio.frame_nb_samples sub) "sub sample count";
+      equal format (Audio.frame_get_sample_format sub) "sub sample format";
+      equal 48000 (Audio.frame_get_sample_rate sub) "sub sample rate";
+      equal None (Frame.pts sub) "sub pts unset";
+      equal None (Frame.pkt_dts sub) "sub pkt_dts unset";
+      let width = bytes_per_sample * channels in
+      Array.iteri
+        (fun i plane ->
+          equal
+            (String.sub plane (offset * width) (length * width))
+            (audio_planes sub).(i)
+            "sub sample bytes")
+        (audio_planes frame)
+    in
+    expect ~offset:0 ~length:100;
+    expect ~offset:924 ~length:100;
+    expect ~offset:300 ~length:1;
+    expect ~offset:0 ~length:1024;
+    raises is_failure "an empty range" (fun () ->
+        Audio.sub ~offset:10 ~length:0 frame);
+    raises is_failure "a range past the end" (fun () ->
+        Audio.sub ~offset:1000 ~length:25 frame);
+    raises is_failure "a negative offset" (fun () ->
+        Audio.sub ~offset:(-1) ~length:10 frame)
+  in
+  check ~format:`S16 ~bytes_per_sample:2 ~interleaved:true;
+  check ~format:`Fltp ~bytes_per_sample:4 ~interleaved:false;
+  check ~format:`S64p ~bytes_per_sample:8 ~interleaved:false
+
 let video_properties () =
   let frame = Video.create_frame 322 243 `Yuv422p in
   equal 322 (Video.frame_get_width frame) "width";
@@ -1011,6 +1051,7 @@ let requirements =
     ("1.15", requirement_1_15);
     ("avutil.interface", interface);
     ("avutil.audio-frames", audio_frames);
+    ("avutil.audio-sub", audio_sub);
     ("avutil.video-properties", video_properties);
     ("avutil.pixel-formats", pixel_formats);
     ("avutil.services", services);

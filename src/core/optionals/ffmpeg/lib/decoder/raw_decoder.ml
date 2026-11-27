@@ -39,7 +39,7 @@ type 'item chunker = {
   set_source : Source_id.t -> unit;
 }
 
-let chunker ~faults ~put
+let chunker ?continuity ~faults ~put
     ~(make_chunk :
        source_id:Source_id.t ->
        time_base:Avutil.rational ->
@@ -75,8 +75,8 @@ let chunker ~faults ~put
           let start = Option.value ~default:!filled position in
           gap ~time_base (start - !filled);
           let h =
-            Duration.create ~start:(max start !filled) ~convert_ts:false
-              ~src:time_base ~faults (accessors ())
+            Duration.create ?continuity ~start:(max start !filled)
+              ~convert_ts:false ~src:time_base ~faults (accessors ())
           in
           helper := Some (time_base, h);
           h
@@ -109,7 +109,24 @@ let audio ~output ~faults ~log ~source_id ~format
          (Ffmpeg_content.Audio.Data.run ~source_id ~time_base ~length
             (List.map (fun f -> (0, f)) frames)))
   in
-  let c = chunker ~faults ~put:output.Per_stream.put ~make_chunk () in
+  let continuity =
+    {
+      Duration.max_drift = Frame.main_of_seconds Settings.max_audio_drift#get;
+      samples =
+        (fun frame ->
+          Some
+            ( Avutil.Audio.frame_nb_samples frame,
+              Avutil.Audio.frame_get_sample_rate frame ));
+      trim =
+        (fun frame excess ->
+          Avutil.Audio.sub ~offset:excess
+            ~length:(Avutil.Audio.frame_nb_samples frame - excess)
+            frame);
+    }
+  in
+  let c =
+    chunker ~continuity ~faults ~put:output.Per_stream.put ~make_chunk ()
+  in
   c.set_source source_id;
   let position = ref None in
   let outcome = ref `Ok in

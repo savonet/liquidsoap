@@ -364,6 +364,64 @@ helper without flushing it.
 - `flush` on an empty helper returns nothing. `flush` returns each held item
   once. `push` after `flush` raises.
 
+### 6.7 Continuity of raw audio
+
+A source that stamps capture or send time rather than counting samples gives
+audio frames whose timestamps wander around their samples. Placed by those
+timestamps, a frame whose next one comes early gets a chunk shorter than its
+samples, and its tail is cut where the chunk ends
+([content.md §6.4](content.md#64-sub-of-a-run)). The raw audio decoder
+creates its helpers with **continuity**: the sample count and rate of an
+item, a way to drop an item's first samples, and the **drift bound**, the
+larger of one main tick plus one unit of `src` rounded up, and
+`settings.ffmpeg.content.raw.max_audio_drift` (default 40 ms).
+
+The helper keeps an anchor, a rate and the count of samples since the anchor.
+The expected position is the anchor plus that count rescaled once to main
+ticks. For an item with timestamp at position `p` (§6.1):
+
+1. With no anchor, the item is placed at `p` and anchors there.
+2. `|p − expected| ≤ drift bound`: the item is placed at the expected
+   position. Small gaps and overlaps are absorbed.
+3. `p − expected > drift bound`: audio is missing. The item is placed at `p`
+   and anchors there; the chunk before it is longer than its samples.
+4. `expected − p > drift bound`: the samples run ahead of the timestamps. The
+   item loses its samples before the expected position, or is dropped when
+   all are, and the rest is placed at the expected position.
+
+The count then grows by the item's samples (after dropping). At a change of
+rate, the item is measured against the expected position the same way, and
+the anchor moves to where it is placed, the count restarting at the new
+rate. A placed item's timestamp is rewritten to match its placement, so
+timestamps in raw audio content follow the samples. Placements
+replace `p` in §6.2 step 2.4; an item without a timestamp adds its samples to
+the count. A decreasing timestamp within the drift bound of the expected
+position is placed, not dropped. Cases 3 and 4 log a warning at a bounded
+rate and are not faults: they describe the input.
+
+`flush` measures the held group to the end of its samples.
+
+Reason: the drift bound keeps every sample through jitter while bounding the
+offset of audio from its timestamps, which is also its offset from video
+placed by timestamps; lip sync is noticed past about 45 ms.
+
+Only the raw audio decoder uses continuity. Raw audio from filter graph
+outputs ([filters.md](filters.md)) and inline decoders
+([inline-codecs.md](inline-codecs.md)) is placed by timestamps: their
+timestamps come from FFmpeg and follow the samples, but jittered timestamps
+reaching them would be cut as above.
+
+Conformance (1024-sample frames at 48 kHz, drift bound 20 ms):
+
+- Every other frame 10 ms late: the total length is that of the samples
+  within one tick.
+- A 10 ms gap and a 10 ms overlap are absorbed: the length is that of the
+  samples.
+- A 50 ms gap is kept in the length.
+- A 50 ms overlap (100 ms frames) drops 50 ms of samples.
+- A change to 44.1 kHz after a 2 s gap keeps the gap.
+- Jittered frames are written back with the timestamps of their samples.
+
 ## 7. Pixel formats
 
 | Name                                   | Value      |

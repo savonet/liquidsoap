@@ -172,6 +172,7 @@ module Int_runs =
 
       let copy = Fun.id
       let checksum = string_of_int
+      let split ~time_base:_ ~at:_ _ = `Before
     end)
 
 let positions (d : Int_runs.data) =
@@ -212,6 +213,133 @@ let blit () =
   b.runs <- [(0, { (snd (List.hd b.runs)) with length = 90 })];
   check "checksum sees run length" (Int_runs.checksum a <> Int_runs.checksum b)
 
+(* content.md §6.4: a raw audio frame crossing a cut is split at the sample.
+   The main rate is 44100: 1024 samples at 48 kHz span 940.8 ticks. *)
+let audio_split () =
+  let module A = Ffmpeg_content.Audio.Data in
+  let frame =
+    Avutil.Audio.create_frame `Fltp Avutil.Channel_layout.stereo 48000 1024
+  in
+  Avutil.Frame.set_pts frame (Some 1920L);
+  let params = Raw_params.Audio.of_frame frame in
+  let src =
+    A.of_run params
+      (A.run ~source_id:1 ~time_base:(tb 1 90000) ~length:941 [(0, frame)])
+  in
+  let slice pos len =
+    let dst = A.make params in
+    A.blit src pos dst 0 len;
+    List.concat_map
+      (fun (start, (r : A.run)) ->
+        List.map
+          (fun (p, f) ->
+            ( start + p,
+              Avutil.Audio.frame_nb_samples f,
+              Avutil.Frame.pts f,
+              Avutil.Frame.duration f ))
+          r.items)
+      dst.runs
+  in
+  check "left part of a cut" (slice 0 500 = [(0, 544, Some 1920L, Some 1020L)]);
+  check "right part of a cut" (slice 500 441 = [(0, 480, Some 2940L, Some 900L)]);
+  check "a frame within one tick of the cut stays whole"
+    (slice 0 940 = [(0, 1024, Some 1920L, None)]);
+  check "no part past one tick" (slice 940 1 = []);
+  let low =
+    Avutil.Audio.create_frame `Fltp Avutil.Channel_layout.stereo 11025 1024
+  in
+  let src =
+    A.of_run
+      (Raw_params.Audio.of_frame low)
+      (A.run ~source_id:1 ~time_base:(tb 1 11025) ~length:4096 [(0, low)])
+  in
+  let dst = A.make (Raw_params.Audio.of_frame low) in
+  A.blit src 1 dst 0 4095;
+  check "a cut rounding to the first sample keeps the frame after it"
+    (match dst.runs with
+      | [(_, { A.items = [(0, f)] })] -> Avutil.Audio.frame_nb_samples f = 1024
+      | _ -> false);
+  check "a slice inside the frame"
+    (match slice 100 100 with [(0, 109, _, _)] -> true | _ -> false)
+
+(* common.md §6.7: 1024-sample frames in 1/48000, 20 ms of drift allowed. *)
+let continuity () =
+  let continuity =
+    {
+      Duration.max_drift = Frame.main_of_seconds 0.02;
+      (* 1000-sample items are at 44.1 kHz, the others at 48 kHz. *)
+      samples =
+        (fun i ->
+          Option.map
+            (fun d ->
+              let d = Int64.to_int d in
+              (d, if d = 1000 then 44100 else 48000))
+            i.duration);
+      trim =
+        (fun i n ->
+          {
+            i with
+            duration =
+              Option.map (fun d -> Int64.sub d (Int64.of_int n)) i.duration;
+          });
+    }
+  in
+  let frames ~size offsets =
+    List.mapi
+      (fun i offset ->
+        {
+          ts = Some (Int64.of_int ((i * size) + offset));
+          duration = Some (Int64.of_int size);
+        })
+      offsets
+  in
+  let length ?(size = 1024) offsets =
+    snd
+      (totals
+         (Duration.create ~continuity ~convert_ts:false ~src:(tb 1 48000)
+            ~faults:(faults ()) accessors)
+         (frames ~size offsets))
+  in
+  let samples n =
+    Option.get (Time_base.rescale ~src:(tb 1 48000) ~dst:(Time_base.main ()) n)
+  in
+  let near expected l = abs (l - samples expected) <= 1 in
+  let jittered =
+    frames ~size:1024 (List.init 100 (fun i -> if i mod 2 = 1 then 480 else 0))
+  in
+  check "jitter follows the samples"
+    (near (100 * 1024)
+       (snd
+          (totals
+             (Duration.create ~continuity ~convert_ts:false ~src:(tb 1 48000)
+                ~faults:(faults ()) accessors)
+             jittered)));
+  check "placed timestamps follow the samples"
+    (List.for_all2
+       (fun i n -> i.ts = Some (Int64.of_int (n * 1024)))
+       jittered (List.init 100 Fun.id));
+  check "a 10 ms gap is absorbed" (near (4 * 1024) (length [0; 0; 480; 480]));
+  check "a 10 ms overlap is absorbed"
+    (near (4 * 1024) (length [0; 0; -480; -480]));
+  check "a 50 ms gap is kept"
+    (near ((4 * 1024) + 2400) (length [0; 0; 2400; 2400]));
+  let rate_change =
+    frames ~size:1024 [0; 0]
+    @ [{ ts = Some (Int64.of_int ((2 * 1024) + 96000)); duration = Some 1000L }]
+  in
+  check "a rate change across a 2 s gap keeps the gap"
+    (abs
+       (snd
+          (totals
+             (Duration.create ~continuity ~convert_ts:false ~src:(tb 1 48000)
+                ~faults:(faults ()) accessors)
+             rate_change)
+       - (samples ((2 * 1024) + 96000) + Frame.main_of_seconds (1000. /. 44100.))
+       )
+    <= 1);
+  check "a 50 ms overlap is dropped"
+    (near ((4 * 4800) - 2400) (length ~size:4800 [0; 0; -2400; -2400]))
+
 let () =
   Frame_settings.lazy_config_eval := true;
   rescale ();
@@ -219,7 +347,9 @@ let () =
   inline_aac ();
   edge_cases ();
   blit ();
-  let expected = 23 in
+  audio_split ();
+  continuity ();
+  let expected = 36 in
   if !checks <> expected then
     failwith (Printf.sprintf "ran %d checks, expected %d" !checks expected);
   Printf.printf "base_test: %d checks passed\n" !checks
