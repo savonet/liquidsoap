@@ -271,9 +271,13 @@ module Encoder : sig
   (** Check if a comment value is valid *)
   val vorbiscomment_entry_value_is_legal : string -> bool
 
+  (** A front-cover picture, written as a PICTURE block. *)
+  type picture = { mime_type : string; picture : string }
+
   (** Create an encoder *)
   val create :
     ?comments:comments ->
+    ?picture:picture ->
     ?seek:(int64 -> unit) ->
     ?tell:(unit -> int64) ->
     write:(bytes -> unit) ->

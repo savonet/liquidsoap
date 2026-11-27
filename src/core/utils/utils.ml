@@ -671,3 +671,38 @@ let generate_id =
         base_id.counter <- base_id.counter + 1;
         Gc.finalise_last (fun () -> ignore (Sys.opaque_identity base_id)) id;
         id)
+
+type cover = { mime_type : string; picture : string }
+
+(* The picture formats tags carry. *)
+let image_mime_type picture =
+  if String.starts_with ~prefix:"\xff\xd8\xff" picture then Some "image/jpeg"
+  else if String.starts_with ~prefix:"\x89PNG\r\n\x1a\n" picture then
+    Some "image/png"
+  else None
+
+let cover_of_picture picture =
+  Option.map (fun mime_type -> { mime_type; picture }) (image_mime_type picture)
+
+let cover_of_metadata metadata =
+  let flac_picture block =
+    let parse block =
+      (Metadata.FLAC.parse_picture block).Metadata.FLAC.picture_data
+    in
+    try parse block with _ -> parse (Lang_string.decode64 block)
+  in
+  let decoders =
+    [
+      ("metadata_block_picture", flac_picture);
+      ("apic", fun apic -> (Metadata.ID3v2.parse_apic apic).Metadata.ID3v2.data);
+      ("pic", fun pic -> (Metadata.ID3v2.parse_pic pic).Metadata.ID3v2.pic_data);
+      ("coverart", Lang_string.decode64);
+      ("cover", Fun.id);
+    ]
+  in
+  List.find_map
+    (fun (key, decode) ->
+      match List.assoc_opt key metadata with
+        | None -> None
+        | Some value -> ( try cover_of_picture (decode value) with _ -> None))
+    decoders

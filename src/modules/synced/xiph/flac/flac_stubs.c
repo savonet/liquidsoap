@@ -623,6 +623,8 @@ static void finalize_encoder(value e) {
     FLAC__stream_encoder_delete(enc->encoder);
   if (enc->meta != NULL)
     FLAC__metadata_object_delete(enc->meta);
+  if (enc->picture != NULL)
+    FLAC__metadata_object_delete(enc->picture);
   if (enc->buf != NULL)
     free(enc->buf);
   if (enc->lines != NULL)
@@ -755,6 +757,7 @@ CAMLprim value ocaml_flac_encoder_alloc(value comments, value seek, value tell,
 
   caml_enc->buf = NULL;
   caml_enc->lines = NULL;
+  caml_enc->picture = NULL;
 
   // Fill custom value
   ret = caml_alloc_custom(&encoder_ops, sizeof(ocaml_flac_encoder *), 1, 0);
@@ -784,6 +787,39 @@ CAMLprim value ocaml_flac_encoder_alloc(value comments, value seek, value tell,
   FLAC__stream_encoder_set_metadata(enc, &caml_enc->meta, 1);
 
   CAMLreturn(ret);
+}
+
+/* Adds a front-cover PICTURE block after the comments. Call it before the
+   encoder is initialised. */
+CAMLprim value ocaml_flac_encoder_set_picture(value _encoder, value _mime_type,
+                                              value _picture) {
+  CAMLparam3(_encoder, _mime_type, _picture);
+  ocaml_flac_encoder *encoder = Encoder_val(_encoder);
+  FLAC__StreamMetadata *blocks[2];
+
+  if (encoder->picture != NULL)
+    FLAC__metadata_object_delete(encoder->picture);
+
+  encoder->picture = FLAC__metadata_object_new(FLAC__METADATA_TYPE_PICTURE);
+  if (encoder->picture == NULL)
+    caml_raise_out_of_memory();
+
+  encoder->picture->data.picture.type =
+      FLAC__STREAM_METADATA_PICTURE_TYPE_FRONT_COVER;
+
+  if (!FLAC__metadata_object_picture_set_mime_type(
+          encoder->picture, (char *)String_val(_mime_type), true) ||
+      !FLAC__metadata_object_picture_set_data(
+          encoder->picture, (FLAC__byte *)String_val(_picture),
+          caml_string_length(_picture), true))
+    caml_raise_out_of_memory();
+
+  /* libFLAC copies the array of pointers, not the blocks. */
+  blocks[0] = encoder->meta;
+  blocks[1] = encoder->picture;
+  FLAC__stream_encoder_set_metadata(encoder->encoder, blocks, 2);
+
+  CAMLreturn(Val_unit);
 }
 
 /* libFLAC reports a refused configuration or a failed write only through
