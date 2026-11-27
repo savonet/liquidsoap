@@ -909,9 +909,9 @@ let video_sink t ~element ~field ~pass_metadata =
   }
 
 (* §8.2: an output, in the liquidsoap sense, of the input clock. *)
-class graph_input ~name ~take (source : Source.source) =
+class graph_input ~clock ~name ~take (source : Source.source) =
   object (self)
-    inherit Source.active_operator ~name [source]
+    inherit Source.active_operator ~clock ~name [source]
     initializer Typing.(source#frame_type <: self#frame_type)
     method! source_type = `Output (self :> Source.active)
     method fallible = true
@@ -988,13 +988,14 @@ let output_pad t (e : D.element) (media : ('m, _) media) : 'm D.pad =
 (* §8.2. *)
 let add_input t media ~pos ~id ~pass_metadata
     ((field, source) : Frame.field * Source.source) =
+  (* Before anything is created: a refused source leaves nothing behind. *)
+  Clock.unify ~pos source#clock t.input_clock;
   let e = D.element t.description "input" in
   let input, take =
     make_input t media ~element:e ~pass_metadata ~field source
   in
-  let operator = new graph_input ~name:id ~take source in
   (* An output in a clock of its own is started by the next start pass. *)
-  Clock.unify ~pos operator#clock t.input_clock;
+  let operator = new graph_input ~clock:t.input_clock ~name:id ~take source in
   t.inputs <-
     { input with i_operator = (operator :> Source.source) } :: t.inputs;
   D.add t.description (fun mode config ->

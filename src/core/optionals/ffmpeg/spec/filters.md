@@ -369,8 +369,9 @@ Category `Source / FFmpeg filter`.
 4. Release the probe config: from now on the graph value is out of scope.
 5. Return the function's result.
 
-A graph input joins the input clock when it is created (§8.2), and the graph
-source the output clock (§9.2), never at the end of `create`. Reason: a graph
+A graph input is created in the input clock (§8.2), and the graph source
+joins the output clock when it is created (§9.2), never at the end of
+`create`. Reason: a graph
 input is an output, and an output left in a clock of its own is started by
 the start pass that follows the function, as a top-level clock that can no
 longer be unified.
@@ -421,6 +422,10 @@ upstream source's ([content.md §3](content.md#3-parameters)).
 
 ### 8.2 What it creates
 
+First, the clock of the track's source is unified with the input clock. A
+clock conflict raises at the position of the input builtin, before anything
+below is created.
+
 1. A graph input operator for the track's source and field: an output, in
    the liquidsoap sense, fallible, not registered on telnet, started with
    the graph, in the input clock (§10). It takes a frame only between its
@@ -466,8 +471,9 @@ metadata out of the graph (§14). Both are in category
 
 ### 9.2 What an output creates
 
-1. The graph source, on the first output of the graph (§9.3). A graph with
-   no output has no graph source and never runs.
+1. The graph source, on the first output of the graph (§9.3), its clock
+   unified with the output clock (§10). A graph with no output has no graph
+   source and never runs.
 2. A field of the graph source: the `n`-th audio output of the graph (from 0) gets field `audio` for `n = 0` and `audio_<n+1>` otherwise (`audio`,
    `audio_2`, `audio_3`, …), likewise `video`, `video_2`, … for video.
 3. A sink for that field (§13.2).
