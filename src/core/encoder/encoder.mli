@@ -216,6 +216,10 @@ val supported : format -> bool
     [Not_found] when none does. *)
 val create_writer : format -> creation -> writer
 
+(** Why a destination cannot take a format, when it cannot: an explicit
+    parameter or a format it contradicts. *)
+val refusal : capabilities -> format -> string option
+
 (** A writer for an output that queues bytes itself, as an encoder returning
     them: [header ()] is the header of the current stream, for a reader that
     starts after it, and [restart_offset ()] the offset, in the bytes last

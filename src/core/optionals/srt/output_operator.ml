@@ -178,13 +178,8 @@ let rec send_loop ~(log : Log.t) stream =
 
 class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
   ~infallible ~register_telnet ~autostart source_val =
-  let format = Lang.to_format format_val in
-  let () = Encoder.resolve_at_start ~pos:(Value.pos format_val) format in
-  let () =
-    if not (Encoder.supported format) then
-      raise
-        (Error.Invalid_value
-           (format_val, "Cannot get a stream encoder for that format", []))
+  let format =
+    Lang_encoder.output_format ~capabilities:Encoder.live_stream format_val
   in
   let factory name initial_metadata =
     Encoder.buffered ?pos:(Value.pos format_val) ~name

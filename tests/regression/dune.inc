@@ -2226,6 +2226,24 @@
    encoder_deferred_values.liq)))
 
 (rule
+ (alias test_encoder_refusals)
+ (package liquidsoap)
+ (deps
+  encoder_refusals.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} encoder_refusals liquidsoap encoder_refusals.liq)))
+
+(rule
  (alias test_encoder_tail)
  (package liquidsoap)
  (deps
@@ -4229,6 +4247,7 @@
   (alias test_double-nullable)
   (alias test_drawtext_percent)
   (alias test_encoder_deferred_values)
+  (alias test_encoder_refusals)
   (alias test_encoder_tail)
   (alias test_eval-check-demeth)
   (alias test_external-encoder)

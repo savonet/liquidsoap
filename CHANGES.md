@@ -74,6 +74,8 @@
 - `encoder.extension(%fdkaac(transmux="loas"))` is `loas`, and a VBR `%fdkaac` format no longer declares its unused `bitrate` to HLS and icecast.
 - `encoder.extension(%ogg(%opus))` is `opus`, the extension RFC 7845 recommends for Ogg files with only Opus.
 - `output.external` and `output.url`: `export_cover_metadata` defaults to `false`. Set it to `true` to keep handing cover art to the encoder.
+- A format its destination cannot take is refused when the output is created, instead of producing a broken stream: `%flac` (use `%ogg(%flac)`) and `%avi` with `output.file(append=true)`; an explicit `id3v2` tag on `%mp3` with `append=true`, with `output.icecast`, `output.harbor` and `output.srt`, and in HLS; `%fdkaac(transmux="adif")` on streaming outputs and with `append=true`.
+- Encoders are offered a metadata only when it differs from the one their stream carries: repeating the same metadata no longer starts a new Ogg logical stream.
 
 ## Fixed:
 

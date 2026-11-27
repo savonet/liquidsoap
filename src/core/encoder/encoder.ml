@@ -267,20 +267,64 @@ let find_writer format =
 let supported format = find_writer format <> None
 let () = Format_builders.supported := supported
 
-(* A writer's calls are serialised. *)
-let protect { write; metadata; finish; writer_bitrate } =
+(* The contract every writer is held to: its calls are serialised, it ends
+   once, nothing follows its end, and an in-band offer that is empty or that the
+   stream already carries is dropped. *)
+let protect ~initial_metadata { write; metadata; finish; writer_bitrate } =
   let lock = Mutex.create () in
+  let ended = ref false in
+  let carried = ref initial_metadata in
+  let running name f =
+    Mutex.protect lock (fun () ->
+        if !ended then failwith ("Encoder." ^ name ^ ": the writer has ended");
+        f ())
+  in
   {
-    write = (fun frame -> Mutex.protect lock (fun () -> write frame));
-    metadata = (fun m -> Mutex.protect lock (fun () -> metadata m));
-    finish = (fun how -> Mutex.protect lock (fun () -> finish how));
+    write = (fun frame -> running "write" (fun () -> write frame));
+    metadata =
+      (fun m ->
+        running "metadata" (fun () ->
+            if
+              (not (Frame.Metadata.Export.is_empty m))
+              && not (Frame.Metadata.Export.equal m !carried)
+            then (
+              carried := m;
+              metadata m)));
+    finish =
+      (fun how ->
+        Mutex.protect lock (fun () ->
+            if not !ended then (
+              ended := true;
+              finish how)));
     writer_bitrate = (fun () -> Mutex.protect lock writer_bitrate);
   }
 
 let create_writer format =
   match find_writer format with
-    | Some create -> fun creation -> protect (create creation)
+    | Some create ->
+        fun creation ->
+          protect ~initial_metadata:creation.initial_metadata (create creation)
     | None -> raise Not_found
+
+(** Why a destination cannot take a format, when it cannot. *)
+let refusal { continuing; live; segmented; _ } = function
+  | Flac _ when continuing ->
+      Some
+        "native FLAC cannot extend an existing file: its frames are numbered \
+         from the start of their stream. Use %ogg(%flac), which appends a new \
+         chained stream"
+  | AVI _ when continuing -> Some "%avi cannot extend an existing file"
+  | MP3 { Mp3_format.id3v2 = `Explicit (Some _); _ }
+    when live || continuing || segmented ->
+      Some
+        "an ID3v2 tag would land in the middle of the stream on this output: \
+         remove the id3v2 parameter"
+  | FdkAacEnc { Fdkaac_format.transmux = `Adif; _ } when live || continuing ->
+      Some
+        "transmux=\"adif\" has a single header at the start of its stream: it \
+         cannot be read from the middle nor extended"
+  | NDI _ -> Some "%ndi can only be used with output.ndi"
+  | _ -> None
 
 (* Formats whose encoders return whole frames on each call: the start of a
    call's output is an access point. *)

@@ -48,6 +48,18 @@ let raise_generic_error = Format_builders.raise_generic_error
 let register = Format_builders.register_builder
 let available = Format_builders.available
 
+(** The format an output was given, for a destination it declares: refused when
+    this build cannot encode it or when the destination cannot take it. Its
+    deferred values are resolved at start-up. *)
+let output_format ~capabilities value =
+  let format = V.of_value value in
+  let invalid message = raise (Error.Invalid_value (value, message, [])) in
+  if not (Encoder.supported format) then
+    invalid "This build cannot encode that format";
+  Option.iter invalid (Encoder.refusal capabilities format);
+  Encoder.resolve_at_start ~pos:(Value.pos value) format;
+  format
+
 let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
     let e = (Format_builders.find e) p in

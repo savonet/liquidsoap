@@ -100,11 +100,11 @@ module Icecast_v (M : Icecast_t) = struct
 
   let encoder_data p =
     let v = Lang.assoc "" 1 p in
-    let enc = streaming_format (Lang.to_format v) in
-    Encoder.resolve_at_start ~pos:(Value.pos v) enc;
+    let enc =
+      streaming_format
+        (Lang_encoder.output_format ~capabilities:Encoder.live_stream v)
+    in
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
-    if not (Encoder.supported enc) then
-      raise (Error.Invalid_value (v, "No encoder found for that format", []));
     let factory name initial_metadata =
       Encoder.buffered ?pos:(Value.pos v) ~name
         ~capabilities:Encoder.live_stream ~initial_metadata enc
