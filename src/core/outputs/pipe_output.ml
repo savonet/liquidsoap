@@ -638,8 +638,23 @@ class external_output ?clock p =
       let process = self#interpolate process in
       Unix.open_process_out process
 
+    (* Closing its input ends the process; it is reaped off the streaming
+       thread, which never waits for it to exit. *)
     method close_chan chan =
-      try ignore (Unix.close_process_out chan) with Sys_error _ -> ()
+      let pid = Unix.process_out_pid chan in
+      (try close_out chan with Sys_error _ -> ());
+      ignore
+        (Tutils.create
+           (fun () ->
+             try
+               match snd (Unix.waitpid [] pid) with
+                 | Unix.WEXITED 0 -> ()
+                 | Unix.WEXITED code ->
+                     self#log#important "Process exited with code %d." code
+                 | Unix.WSIGNALED signal | Unix.WSTOPPED signal ->
+                     self#log#important "Process stopped by signal %d." signal
+             with Unix.Unix_error _ -> ())
+           () "output.external process reaper")
 
     method seek_chan _ _ = failwith "a process cannot seek"
     method output_substring = output_substring
