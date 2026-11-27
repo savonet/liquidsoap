@@ -577,9 +577,9 @@ class output p =
     method icecast_send b =
       try
         if Cry.get_status connection = Cry.Disconnected then self#icecast_start;
-        Strings.iter
-          (fun s offset length -> Cry.send connection ~offset ~length s)
-          b;
+        (* One write per call: many small ones stall a TCP connection. *)
+        if not (Strings.is_empty b) then
+          Cry.send connection (Strings.to_string b);
         match dump with
           | Some s -> Strings.iter (output_substring s) b
           | None -> ()
