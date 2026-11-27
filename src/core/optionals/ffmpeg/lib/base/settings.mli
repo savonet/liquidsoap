@@ -40,3 +40,4 @@ val scaling_threads : int Dtools.Conf.t
 val filter_max_buffer : float Dtools.Conf.t
 val relaxed_compatibility_check : bool Dtools.Conf.t
 val max_keyframe_wait : float Dtools.Conf.t
+val max_audio_drift : float Dtools.Conf.t

@@ -1,8 +1,9 @@
 %include "../test.liq"
 
 # Raw and copied audio against a main clock at 1/44100 (#5720): 48 kHz frames
-# are 940.8 ticks long, so their positions carry rounding that the encoder
-# must not turn into dropped samples or packets.
+# are 940.8 ticks long, so their positions carry rounding that must not turn
+# into dropped samples or packets. Timestamp jitter within
+# settings.ffmpeg.content.raw.max_audio_drift must not either.
 settings.decoder.decoders := ["ffmpeg"]
 
 dir = file.temp_dir(cleanup=true, "raw-audio-timing")
@@ -40,6 +41,10 @@ ffmpeg(
 )
 ffmpeg(
   "-i #{path("audio.ts")} -c copy -bsf:a setts=ts=TS*99/100 #{path("ahead.ts")}"
+)
+ffmpeg(
+  "-i #{path("audio.ts")} -map 0:a -c copy -bsf:a \
+   \"setts=ts=TS+if(mod(N\\,2)\\,900\\,0)\" #{path("jitter.mkv")}"
 )
 ffmpeg(
   "-i #{path("audio.ts")} -map 0:a -c copy -bsf:a \
@@ -121,10 +126,10 @@ def done() =
     pending() == 0
   then
     if
-      list.length(checks()) != 7
+      list.length(checks()) != 8
     then
       test.fail(
-        "ran #{list.length(checks())} checks, expected 7"
+        "ran #{list.length(checks())} checks, expected 8"
       )
     elsif
       list.for_all(fun (ok) -> ok, checks())
@@ -156,6 +161,9 @@ def encode(input, ~name, format, on_close) =
     s
   )
 end
+
+# Corrections wait for the drift to exceed this.
+drift = settings.ffmpeg.content.raw.max_audio_drift() + 0.002
 
 raw = %ffmpeg(format = "matroska", %audio.raw(codec = "pcm_s16le"))
 
@@ -194,8 +202,24 @@ encode(
       let duration' = stop' - start'
       check(
         "missing audio keeps the input's span",
-        duration > 19. and abs(duration' - duration) <= 0.002,
+        duration > 19. and abs(duration' - duration) <= drift,
         "#{duration'} for #{duration}"
+      )
+    end
+)
+
+encode(
+  "jitter.mkv",
+  name="raw_jitter.mkv",
+  raw,
+  fun (out) ->
+    begin
+      let expected = samples(path("jitter.mkv"))
+      let got = samples(out)
+      check(
+        "jittered timestamps keep every sample",
+        expected > 0 and got == expected,
+        "#{got} of #{expected}"
       )
     end
 )
@@ -212,7 +236,7 @@ encode(
       let duration' = stop' - start'
       check(
         "samples ahead follow the timestamps",
-        duration > 19. and abs(duration' - duration) <= 0.002,
+        duration > 19. and abs(duration' - duration) <= drift,
         "#{duration'} for #{duration}"
       )
     end

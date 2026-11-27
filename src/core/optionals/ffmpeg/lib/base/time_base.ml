@@ -103,3 +103,6 @@ let frames ~seconds { Avutil.num; den } =
        (Float.round (seconds *. float_of_int num /. float_of_int den)))
 
 let to_main ~src t = rescale ~src ~dst:(main ()) t
+
+let rounding_bound src =
+  1 + Option.value ~default:0 (rescale ~rounding:`Up ~src ~dst:(main ()) 1)

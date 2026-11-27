@@ -130,7 +130,10 @@ main ticks, so the rounding of each frame's position never accumulates
 (§1.2). A frame's position differs from where it is expected by up to the
 **rounding bound**, one main tick plus one unit of its run's time base
 rounded up to main ticks, with no audio missing or repeated; within that
-bound the frame is fed whole. The anchor is the first frame's position, and
+bound the frame is fed whole. Decoded raw audio is already placed by its samples
+within the drift bound
+([common.md §6.7](common.md#67-continuity-of-raw-audio)), so past the
+rounding bound a difference is a gap or overlap left in the content. The anchor is the first frame's position, and
 moves at every jump below; at a change of sample rate it is the expected
 position, the count starting again.
 

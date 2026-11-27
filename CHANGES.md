@@ -75,7 +75,7 @@
 ## Fixed:
 
 - FFmpeg:
-  - Raw `%ffmpeg` audio no longer drifts against video when its sample rate differs from `settings.frame.audio.samplerate`, e.g. 48 kHz input with the default 44.1 kHz: no sample is dropped to timestamp rounding. Cuts split raw audio frames at the sample, audio missing from the input leaves a timestamp gap instead of moving the rest earlier, and copied streams keep their source timestamps exactly ([#5720](https://github.com/savonet/liquidsoap/issues/5720)).
+  - Raw `%ffmpeg` audio no longer drifts against video when its sample rate differs from `settings.frame.audio.samplerate`, e.g. 48 kHz input with the default 44.1 kHz: no sample is dropped to timestamp rounding, and timestamp jitter up to `settings.ffmpeg.content.raw.max_audio_drift` (40 ms by default) no longer cuts samples. Cuts split raw audio frames at the sample, audio missing from the input leaves a timestamp gap instead of moving the rest earlier, and copied streams keep their source timestamps exactly ([#5720](https://github.com/savonet/liquidsoap/issues/5720)).
   - The FFmpeg decoder no longer leaves up to 150 ms of silence after a seek, which made CUE playlists click ([#5324](https://github.com/savonet/liquidsoap/pull/5324)).
   - FFmpeg filter graphs no longer drop the tail their filters hold at end of stream ([#5332](https://github.com/savonet/liquidsoap/pull/5332)).
   - `%ffmpeg` copied video carries its frame rate, and inline `ffmpeg.encode.*` operators report unknown options and keep them past the first track ([#5302](https://github.com/savonet/liquidsoap/pull/5302)).

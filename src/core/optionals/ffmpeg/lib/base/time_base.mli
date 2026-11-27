@@ -63,4 +63,8 @@ val frames : seconds:float -> Avutil.rational -> int
 (** [to_main ~src t] is {!rescale} into {!main}. *)
 val to_main : src:t -> int -> int option
 
+(** Positions rounded to main ticks from timestamps in [src] disagree by up to
+    this many main ticks: one, plus one unit of [src] rounded up. *)
+val rounding_bound : t -> int
+
 val to_string : t -> string

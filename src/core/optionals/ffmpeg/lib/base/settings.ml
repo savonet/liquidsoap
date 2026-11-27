@@ -137,6 +137,24 @@ let content =
   Dtools.Conf.void ~p:(conf#plug "content") "Content settings"
     ~comments:["Settings for FFmpeg content."]
 
+let raw =
+  Dtools.Conf.void ~p:(content#plug "raw") "Raw settings"
+    ~comments:["Settings for raw FFmpeg content."]
+
+let max_audio_drift =
+  Dtools.Conf.float
+    ~p:(raw#plug "max_audio_drift")
+    "Max audio drift" ~d:0.04
+    ~comments:
+      [
+        "Largest difference, in seconds, between the timestamps of decoded raw \
+         audio frames and their sample count that is treated as jitter: within \
+         it, frames are placed one after the other and every sample is kept. \
+         Beyond it, frames follow their timestamps: a later one leaves a gap, \
+         an earlier one cuts the end of the audio before it. This is also the \
+         largest offset of audio against video it lets through.";
+      ]
+
 let copy =
   Dtools.Conf.void ~p:(content#plug "copy") "Copy settings"
     ~comments:["Settings for copied FFmpeg content."]

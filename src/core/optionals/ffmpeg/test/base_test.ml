@@ -262,6 +262,53 @@ let audio_split () =
   check "a slice inside the frame"
     (match slice 100 100 with [(0, 109, _, _)] -> true | _ -> false)
 
+(* common.md §6.7: 1024-sample frames in 1/48000, 20 ms of drift allowed. *)
+let continuity () =
+  let continuity =
+    {
+      Duration.max_drift = Frame.main_of_seconds 0.02;
+      samples =
+        (fun i -> Option.map (fun d -> (Int64.to_int d, 48000)) i.duration);
+      trim =
+        (fun i n ->
+          {
+            i with
+            duration =
+              Option.map (fun d -> Int64.sub d (Int64.of_int n)) i.duration;
+          });
+    }
+  in
+  let frames ~size offsets =
+    List.mapi
+      (fun i offset ->
+        {
+          ts = Some (Int64.of_int ((i * size) + offset));
+          duration = Some (Int64.of_int size);
+        })
+      offsets
+  in
+  let length ?(size = 1024) offsets =
+    snd
+      (totals
+         (Duration.create ~continuity ~convert_ts:false ~src:(tb 1 48000)
+            ~faults:(faults ()) accessors)
+         (frames ~size offsets))
+  in
+  let samples n =
+    Option.get (Time_base.rescale ~src:(tb 1 48000) ~dst:(Time_base.main ()) n)
+  in
+  let near expected l = abs (l - samples expected) <= 1 in
+  check "jitter follows the samples"
+    (near (100 * 1024)
+       (length (List.init 100 (fun i -> if i mod 2 = 1 then 480 else 0))));
+  check "a 10 ms gap is absorbed" (near (4 * 1024) (length [0; 0; 480; 480]));
+  check "a 10 ms overlap is absorbed"
+    (near (4 * 1024) (length [0; 0; -480; -480]));
+  check "a 50 ms gap is kept"
+    (near ((4 * 1024) + 2400) (length [0; 0; 2400; 2400]));
+  check "a 50 ms overlap is dropped"
+    (near ((4 * 4800) - 2400) (length ~size:4800 [0; 0; -2400; -2400]))
+
 let () =
   Frame_settings.lazy_config_eval := true;
   rescale ();
@@ -270,7 +317,8 @@ let () =
   edge_cases ();
   blit ();
   audio_split ();
-  let expected = 29 in
+  continuity ();
+  let expected = 34 in
   if !checks <> expected then
     failwith (Printf.sprintf "ran %d checks, expected %d" !checks expected);
   Printf.printf "base_test: %d checks passed\n" !checks

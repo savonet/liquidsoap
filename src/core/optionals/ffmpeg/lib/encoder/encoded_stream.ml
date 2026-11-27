@@ -205,13 +205,6 @@ let expected_position clock =
   clock.anchor
   + rescale ~src:(per_unit clock.rate) ~dst:(Time_base.main ()) clock.fed
 
-(* Positions are rounded to the main tick from timestamps in [time_base]: two
-   of them disagree by up to one unit of each. *)
-let rounding_bound ~time_base =
-  1
-  + Option.value ~default:0
-      (Time_base.rescale ~rounding:`Up ~src:time_base ~dst:(Time_base.main ()) 1)
-
 let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     ~on_packet output =
   let faults = Faults.create log in
@@ -387,7 +380,7 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
       ignore (anchor ~rate abs));
     let c = clock_for ~abs ~rate in
     let offset = abs - expected_position c in
-    let bound = rounding_bound ~time_base in
+    let bound = Time_base.rounding_bound time_base in
     let c, frame =
       if offset > bound then (missing ~abs ~rate offset, Some frame)
       else if offset < -bound then (c, ahead ~rate (-offset) frame)
