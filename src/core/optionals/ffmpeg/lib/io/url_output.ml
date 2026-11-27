@@ -82,7 +82,7 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
       in
       let m = metadata in
       Atomic.set built_metadata m;
-      Encoder.protect
+      Encoder.protect_encoder
         (Instance.create ~interrupt:(self#interrupt attempt)
            ~pos:(Value.pos format_val) ~name:self#id m format)
 

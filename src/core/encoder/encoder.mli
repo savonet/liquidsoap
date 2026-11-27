@@ -92,8 +92,6 @@ type encoder = {
   restart_offset : unit -> int option;
 }
 
-type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
-
 (** The HLS encoder seam (spec of the HLS output, encoder-contract.md). Times
     are media time of the run, in main ticks. [init] answers the variant's ID3
     mode or rejects its [id3] field with a reason; the other calls follow the
@@ -132,19 +130,6 @@ type hls_encoder = {
 type hls_factory =
   pos:Pos.t option -> segment_duration:float -> string -> hls_encoder
 
-(** A plugin might or might not accept a given format. If it accepts it, it
-    gives a function creating suitable encoders. *)
-type plugin = format -> factory option
-
-val plug : plugin Plug.t
-
-(** [protect encoder] serialises the calls to [encoder] with a mutex, as every
-    encoder from {!get_factory} is. *)
-val protect : encoder -> encoder
-
-(** Return the first available encoder factory for that format. *)
-val get_factory : format -> factory
-
 (** {1 Writers}
 
     A writer writes whole units into a sink its output owns: every [write] of
@@ -172,7 +157,17 @@ type capabilities = {
   seekable : bool;
   continuing : bool;  (** It holds a stream that this writer extends. *)
   live : bool;  (** Readers start in the middle of the stream. *)
+  segmented : bool;  (** The output cuts the stream into segments. *)
 }
+
+(** A destination written once from its first byte: a pipe, a process, a new
+    file that cannot seek. *)
+val fresh_stream : capabilities
+
+(** A server or a set of listeners. *)
+val live_stream : capabilities
+
+val segmented : capabilities
 
 type creation = {
   pos : Pos.t option;
@@ -191,9 +186,40 @@ type writer = {
   writer_bitrate : unit -> int option;
 }
 
-(** The writer of the first plug-in answering that format; [Not_found] when none
-    does. *)
+(** A plug-in answers the formats it can write, with what creates their writer.
+*)
+type plugin = format -> (creation -> writer) option
+
+val plug : plugin Plug.t
+
+(** A plug-in whose writers are encoders returning their bytes: the stream start
+    comes from the encoder's header and restart offset. *)
+val of_encoders :
+  (format ->
+  (pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder) option) ->
+  plugin
+
+(** Serialises the calls of an encoder used without the plug. *)
+val protect_encoder : encoder -> encoder
+
+(** Whether a plug-in answers that format. *)
+val supported : format -> bool
+
+(** The writer of the first plug-in answering that format, its calls serialised;
+    [Not_found] when none does. *)
 val create_writer : format -> creation -> writer
+
+(** A writer for an output that queues bytes itself, as an encoder returning
+    them: [header ()] is the header of the current stream, for a reader that
+    starts after it, and [restart_offset ()] the offset, in the bytes last
+    returned, at which a stream started. *)
+val buffered :
+  ?pos:Pos.t ->
+  name:string ->
+  capabilities:capabilities ->
+  initial_metadata:Frame.Metadata.Export.t ->
+  format ->
+  encoder
 
 (** Resolves the deferred values that the format's checks need and runs those
     checks, raising a positioned error. *)

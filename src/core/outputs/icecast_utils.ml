@@ -103,10 +103,11 @@ module Icecast_v (M : Icecast_t) = struct
     let enc = streaming_format (Lang.to_format v) in
     Encoder.resolve_at_start ~pos:(Value.pos v) enc;
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
-    let encoder_factory =
-      try Encoder.get_factory enc
-      with Not_found ->
-        raise (Error.Invalid_value (v, "No encoder found for that format", []))
+    if not (Encoder.supported enc) then
+      raise (Error.Invalid_value (v, "No encoder found for that format", []));
+    let factory name initial_metadata =
+      Encoder.buffered ?pos:(Value.pos v) ~name
+        ~capabilities:Encoder.live_stream ~initial_metadata enc
     in
     let format =
       let f = Lang.to_string (List.assoc "format" p) in
@@ -121,5 +122,5 @@ module Icecast_v (M : Icecast_t) = struct
                      "No format (mime) found, please specify one.",
                      [] )))
     in
-    { factory = encoder_factory ~pos:(Value.pos v); format; info }
+    { factory; format; info }
 end

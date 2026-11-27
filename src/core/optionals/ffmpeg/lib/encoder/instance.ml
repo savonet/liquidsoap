@@ -842,10 +842,11 @@ let create ?interrupt ~pos ~name metadata format =
   }
 
 let () =
-  Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder." (function
-    | Encoder.Ffmpeg format ->
-        Some (fun ~pos name metadata -> create ~pos ~name metadata format)
-    | _ -> None);
+  Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder."
+    (Encoder.of_encoders (function
+      | Encoder.Ffmpeg format ->
+          Some (fun ~pos name metadata -> create ~pos ~name metadata format)
+      | _ -> None));
   Plug.register Encoder.hls_plug "ffmpeg" ~doc:"FFmpeg HLS segments." (function
     | Encoder.Ffmpeg format when segment_muxer format.F.format ->
         Some

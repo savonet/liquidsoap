@@ -52,6 +52,6 @@ let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
     let e = (Format_builders.find e) p in
     Format_value.check_complete ~pos e;
-    let (_ : Encoder.factory) = Encoder.get_factory e in
+    if not (Encoder.supported e) then raise Not_found;
     V.to_value ?pos e
   with Not_found -> raise_error ~pos "unsupported format"

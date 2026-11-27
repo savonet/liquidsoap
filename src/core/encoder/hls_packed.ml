@@ -45,6 +45,6 @@ let () =
             Some
               (fun ~pos ~segment_duration:_ name ->
                 make ~format
-                  ((Encoder.get_factory format)
-                     ~pos name Frame.Metadata.Export.empty))
+                  (Encoder.buffered ?pos ~name ~capabilities:Encoder.segmented
+                     ~initial_metadata:Frame.Metadata.Export.empty format))
         | _ -> None)

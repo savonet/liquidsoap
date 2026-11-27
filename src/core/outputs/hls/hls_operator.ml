@@ -55,10 +55,7 @@ let build_variant ~pos ~segment_duration (name, value) =
   let format = Lang.to_format format_value in
   let fields = parse_fields value in
   Encoder.resolve_at_start ~pos:(Value.pos format_value) format;
-  (try
-     let (_ : Encoder.factory) = Encoder.get_factory format in
-     ()
-   with Not_found -> invalid value "Unsupported format");
+  if not (Encoder.supported format) then invalid value "Unsupported format";
   let extname =
     match fields.extname with
       | Some e -> e

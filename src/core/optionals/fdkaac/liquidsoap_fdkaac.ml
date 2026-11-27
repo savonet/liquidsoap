@@ -118,6 +118,7 @@ let encoder ~pos aac =
   }
 
 let () =
-  Plug.register Encoder.plug "fdkaac" ~doc:"" (function
-    | Encoder.FdkAacEnc m -> Some (fun ~pos _ _ -> encoder ~pos m)
-    | _ -> None)
+  Plug.register Encoder.plug "fdkaac" ~doc:""
+    (Encoder.of_encoders (function
+      | Encoder.FdkAacEnc m -> Some (fun ~pos _ _ -> encoder ~pos m)
+      | _ -> None))

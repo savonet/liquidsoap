@@ -109,6 +109,6 @@ let encoder ~pos shine =
 
 let () =
   Plug.register Encoder.plug "shine" ~doc:"SHINE fixed-point mp3 encoder."
-    (function
-    | Encoder.Shine m -> Some (fun ~pos _ _ -> encoder ~pos m)
-    | _ -> None)
+    (Encoder.of_encoders (function
+      | Encoder.Shine m -> Some (fun ~pos _ _ -> encoder ~pos m)
+      | _ -> None))

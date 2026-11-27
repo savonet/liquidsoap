@@ -181,7 +181,6 @@ type encoder = {
   restart_offset : unit -> int option;
 }
 
-type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 type hls_id3_mode = [ `None | `In_stream | `Prepended ]
 
 type hls_piece =
@@ -208,65 +207,6 @@ type hls_encoder = {
 type hls_factory =
   pos:Pos.t option -> segment_duration:float -> string -> hls_encoder
 
-(** A plugin might or might not accept a given format. If it accepts it, it
-    gives a function creating suitable encoders. *)
-type plugin = format -> factory option
-
-let plug : plugin Plug.t =
-  Plug.create ~doc:"Methods to encode streams." "stream encoding formats"
-
-exception Found of factory
-
-let protect
-    {
-      encode_metadata;
-      encode;
-      encode_into;
-      stop;
-      header;
-      bitrate;
-      restart_offset;
-    } =
-  let m = Mutex.create () in
-  let encode_metadata metadata =
-    Mutex.protect m (fun () -> encode_metadata metadata)
-  in
-  let header () = Mutex.protect m header in
-  let encode frame = Mutex.protect m (fun () -> encode frame) in
-  let encode_into =
-    Option.map
-      (fun encode_into frame f ->
-        Mutex.protect m (fun () -> encode_into frame f))
-      encode_into
-  in
-  let stop () = Mutex.protect m stop in
-  let bitrate () = Mutex.protect m bitrate in
-  let restart_offset () = Mutex.protect m restart_offset in
-  {
-    encode_metadata;
-    encode;
-    encode_into;
-    stop;
-    header;
-    bitrate;
-    restart_offset;
-  }
-
-let find_factory fmt =
-  try
-    Plug.iter plug (fun _ f ->
-        match f fmt with Some factory -> raise (Found factory) | None -> ());
-    None
-  with Found factory -> Some factory
-
-(** Return the first available encoder factory for that format. *)
-let get_factory fmt =
-  match find_factory fmt with
-    | Some factory -> fun ~pos name m -> protect (factory ~pos name m)
-    | None -> raise Not_found
-
-let () = Format_builders.supported := fun fmt -> find_factory fmt <> None
-
 type stream_start = { header_length : int option; time : int }
 type marker = [ `Stream_start of stream_start | `Access_point of int | `End ]
 
@@ -277,7 +217,18 @@ type sink = {
   read : (int -> int -> string) option;
 }
 
-type capabilities = { seekable : bool; continuing : bool; live : bool }
+type capabilities = {
+  seekable : bool;
+  continuing : bool;
+  live : bool;
+  segmented : bool;
+}
+
+let fresh_stream =
+  { seekable = false; continuing = false; live = false; segmented = false }
+
+let live_stream = { fresh_stream with live = true }
+let segmented = { fresh_stream with segmented = true }
 
 type creation = {
   pos : Pos.t option;
@@ -293,6 +244,42 @@ type writer = {
   finish : [ `Clean | `Abandoned ] -> unit;
   writer_bitrate : unit -> int option;
 }
+
+(** A plug-in answers the formats it can write, with what creates their writer.
+*)
+type plugin = format -> (creation -> writer) option
+
+let plug : plugin Plug.t =
+  Plug.create ~doc:"Methods to encode streams." "stream encoding formats"
+
+exception Found of (creation -> writer)
+
+let find_writer format =
+  try
+    Plug.iter plug (fun _ answer ->
+        match answer format with
+          | Some create -> raise (Found create)
+          | None -> ());
+    None
+  with Found create -> Some create
+
+let supported format = find_writer format <> None
+let () = Format_builders.supported := supported
+
+(* A writer's calls are serialised. *)
+let protect { write; metadata; finish; writer_bitrate } =
+  let lock = Mutex.create () in
+  {
+    write = (fun frame -> Mutex.protect lock (fun () -> write frame));
+    metadata = (fun m -> Mutex.protect lock (fun () -> metadata m));
+    finish = (fun how -> Mutex.protect lock (fun () -> finish how));
+    writer_bitrate = (fun () -> Mutex.protect lock writer_bitrate);
+  }
+
+let create_writer format =
+  match find_writer format with
+    | Some create -> fun creation -> protect (create creation)
+    | None -> raise Not_found
 
 (* Formats whose encoders return whole frames on each call: the start of a
    call's output is an access point. *)
@@ -343,12 +330,104 @@ let writer_of_encoder ~unit_aligned (encoder : encoder) (sink : sink) =
     writer_bitrate = encoder.bitrate;
   }
 
-let create_writer format =
-  let factory = get_factory format in
-  fun { pos; name; sink; initial_metadata; _ } ->
-    writer_of_encoder ~unit_aligned:(unit_aligned format)
-      (factory ~pos name initial_metadata)
-      sink
+(* Serialises the calls of an encoder used without the plug. *)
+let protect_encoder
+    {
+      encode_metadata;
+      encode;
+      encode_into;
+      stop;
+      header;
+      bitrate;
+      restart_offset;
+    } =
+  let m = Mutex.create () in
+  let encode_metadata metadata =
+    Mutex.protect m (fun () -> encode_metadata metadata)
+  in
+  let header () = Mutex.protect m header in
+  let encode frame = Mutex.protect m (fun () -> encode frame) in
+  let encode_into =
+    Option.map
+      (fun encode_into frame f ->
+        Mutex.protect m (fun () -> encode_into frame f))
+      encode_into
+  in
+  let stop () = Mutex.protect m stop in
+  let bitrate () = Mutex.protect m bitrate in
+  let restart_offset () = Mutex.protect m restart_offset in
+  {
+    encode_metadata;
+    encode;
+    encode_into;
+    stop;
+    header;
+    bitrate;
+    restart_offset;
+  }
+
+(** A plug-in whose writers are encoders returning their bytes. *)
+let of_encoders plugin format =
+  Option.map
+    (fun create { pos; name; sink; initial_metadata; _ } ->
+      writer_of_encoder ~unit_aligned:(unit_aligned format)
+        (create ~pos name initial_metadata)
+        sink)
+    (plugin format)
+
+let buffered ?pos ~name ~capabilities ~initial_metadata format =
+  let create = create_writer format in
+  let pending = ref Strings.empty in
+  let pending_start = ref None in
+  let taken_start = ref None in
+  let header = ref Strings.empty in
+  let header_missing = ref 0 in
+  let write bytes =
+    if 0 < !header_missing then (
+      let length = min !header_missing (Strings.length bytes) in
+      header := Strings.append !header (Strings.sub bytes 0 length);
+      header_missing := !header_missing - length);
+    pending := Strings.append !pending bytes
+  in
+  let mark = function
+    | `Stream_start { header_length; _ } ->
+        pending_start := Some (Strings.length !pending);
+        header := Strings.empty;
+        header_missing := Option.value ~default:0 header_length
+    | `Access_point _ | `End -> ()
+  in
+  let take () =
+    let bytes = !pending in
+    pending := Strings.empty;
+    taken_start := !pending_start;
+    pending_start := None;
+    bytes
+  in
+  let writer =
+    create
+      {
+        pos;
+        name;
+        capabilities;
+        sink = { write; mark; seek = None; read = None };
+        initial_metadata;
+      }
+  in
+  {
+    encode =
+      (fun frame ->
+        writer.write frame;
+        take ());
+    stop =
+      (fun () ->
+        writer.finish `Clean;
+        take ());
+    encode_into = None;
+    encode_metadata = writer.metadata;
+    header = (fun () -> !header);
+    restart_offset = (fun () -> !taken_start);
+    bitrate = writer.writer_bitrate;
+  }
 
 let hls_plug : (format -> hls_factory option) Plug.t =
   Plug.create ~doc:"Methods to encode HLS segments." "hls encoding formats"

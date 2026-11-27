@@ -147,12 +147,13 @@ let encoder ~pos { Ogg_format.audio; video } =
     enc
 
 let () =
-  Plug.register Encoder.plug "ogg" ~doc:"ogg encoder." (function
-    | Encoder.Ogg ({ Ogg_format.audio; video } as m)
-      when Option.fold ~none:true
-             ~some:(fun audio ->
-               Hashtbl.mem audio_encoders (encoder_name audio))
-             audio
-           && (video = None || !theora_encoder <> None) ->
-        Some (fun ~pos v -> encoder ~pos m v)
-    | _ -> None)
+  Plug.register Encoder.plug "ogg" ~doc:"ogg encoder."
+    (Encoder.of_encoders (function
+      | Encoder.Ogg ({ Ogg_format.audio; video } as m)
+        when Option.fold ~none:true
+               ~some:(fun audio ->
+                 Hashtbl.mem audio_encoders (encoder_name audio))
+               audio
+             && (video = None || !theora_encoder <> None) ->
+          Some (fun ~pos v -> encoder ~pos m v)
+      | _ -> None))

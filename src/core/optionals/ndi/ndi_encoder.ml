@@ -41,6 +41,7 @@ let encoder ~pos _ =
 
 let () =
   Plug.register Encoder.plug "ndi"
-    ~doc:"NDI encoder. Only used with `output.ndi`." (function
-    | Encoder.NDI m -> Some (fun ~pos _ _ -> encoder ~pos m)
-    | _ -> None)
+    ~doc:"NDI encoder. Only used with `output.ndi`."
+    (Encoder.of_encoders (function
+      | Encoder.NDI m -> Some (fun ~pos _ _ -> encoder ~pos m)
+      | _ -> None))

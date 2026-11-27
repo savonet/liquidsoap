@@ -140,6 +140,7 @@ let () =
       restart_offset = (fun () -> None);
     }
   in
-  Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function
-    | Encoder.MP3 mp3 -> Some (fun ~pos _ meta -> mp3_encoder ~pos mp3 meta)
-    | _ -> None)
+  Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder."
+    (Encoder.of_encoders (function
+      | Encoder.MP3 mp3 -> Some (fun ~pos _ meta -> mp3_encoder ~pos mp3 meta)
+      | _ -> None))

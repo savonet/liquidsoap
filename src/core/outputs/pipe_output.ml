@@ -83,12 +83,7 @@ class virtual base ?clock ~source:source_val ~name p =
                 {
                   Encoder.pos = None;
                   name = self#id;
-                  capabilities =
-                    {
-                      Encoder.seekable = false;
-                      continuing = false;
-                      live = false;
-                    };
+                  capabilities = Encoder.fresh_stream;
                   sink = self#sink;
                   initial_metadata = self#initial_metadata;
                 }
