@@ -1104,12 +1104,8 @@ CAMLprim value ocaml_av_set_output_option(value _container, value _name,
                                           value _option_value) {
   CAMLparam3(_container, _name, _option_value);
   container *record = exclusive(_container);
-  void *private_data = record->context->priv_data;
-  int error = AVERROR_OPTION_NOT_FOUND;
-
-  if (private_data)
-    error = av_opt_set(private_data, String_val(_name),
-                       String_val(_option_value), AV_OPT_SEARCH_CHILDREN);
+  int error = av_opt_set(record->context, String_val(_name),
+                         String_val(_option_value), AV_OPT_SEARCH_CHILDREN);
   done(record, error);
 
   CAMLreturn(Val_unit);

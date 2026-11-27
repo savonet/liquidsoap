@@ -319,6 +319,9 @@ class output p =
     val mutable life = Asleep
     val mutable main = `Due
     val mutable pending_metadata = None
+
+    (* Whether this run's variants share their timestamp offset yet. *)
+    val mutable offset_set = false
     val tag_cut = Atomic.make `None
     method private self_sync = (Lang.to_source source_val)#cached_self_sync
     method variants = variants
@@ -822,6 +825,7 @@ class output p =
         | Awake ({ runs; _ } as l) -> life <- Awake { l with runs = runs + 1 }
         | Asleep | Restore_failed -> ());
       main <- `Due;
+      offset_set <- false;
       state <- `Running
 
     method private start =
@@ -1024,11 +1028,27 @@ class output p =
                 variants)
         pieces
 
+    (* spec/operator.md §4.1: one offset for every variant, the largest
+       initial delay, so that the same media time has the same timestamp in
+       each and none is negative. *)
+    method private settle_offset chunk =
+      let encoders =
+        List.map (fun v -> (Option.get v.Variant.run).encoder) variants
+      in
+      let delays = List.map (fun e -> e.Encoder.initial_delay chunk) encoders in
+      if List.for_all Option.is_some delays then (
+        let offset =
+          List.fold_left (fun m d -> max m (Option.get d)) 0 delays
+        in
+        List.iter (fun e -> e.Encoder.set_offset offset) encoders;
+        offset_set <- true)
+
     (* spec/operator.md §4, for one chunk. *)
     method private encode chunk =
       let length = Frame.position chunk in
-      if length > 0 then (
-        if state <> `Running then self#begin_run;
+      if length > 0 && state <> `Running then self#begin_run;
+      if length > 0 && not offset_set then self#settle_offset chunk;
+      if length > 0 && offset_set then (
         let time =
           match (List.hd variants).run with
             | Some r -> Segmenter.media_time r.segmenter

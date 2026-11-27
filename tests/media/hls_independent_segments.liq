@@ -7,6 +7,13 @@
 settings.frame.video.width := 320
 settings.frame.video.height := 240
 
+# libx265 reports no reordering delay before FFmpeg commit 695768baed, which
+# the HLS output needs for its initial offset: enable it once released FFmpeg
+# carries that fix.
+x265_reports_delay = false
+codecs =
+  [("x264", "libx264"), ...(x265_reports_delay ? [("x265", "libx265")] : [])]
+
 root = file.temp_dir(cleanup=true, "hls-independent")
 s = source({video = source.tracks(video.testsrc.ffmpeg()).video})
 clock.assign_new(sync="none", [s])
@@ -80,10 +87,13 @@ def make(name, codec) =
       begin
         check(name, dir)
         ref.incr(stopped)
-        if stopped() == 2 then hls_test.done(10) end
+        if
+          stopped() == list.length(codecs)
+        then
+          hls_test.done(5 * list.length(codecs))
+        end
       end
   )
 end
 
-make("x264", "libx264")
-make("x265", "libx265")
+list.iter(fun (c) -> make(fst(c), snd(c)), codecs)

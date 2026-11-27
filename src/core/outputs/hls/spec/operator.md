@@ -148,10 +148,13 @@ non-empty chunk, in order:
 1. Metadata starting in the chunk is given to every variant
    ([metadata.md §1](metadata.md#1-track-metadata)); a cut on metadata is
    requested if due ([metadata.md §4](metadata.md#4-cuts-on-metadata-and-tags)).
-2. For each variant: open a segment if none is open
+2. Until the run's offset is set, the offset step of
+   [encoder-contract.md §2](encoder-contract.md#2-calls-and-order); a chunk
+   it drops skips the steps below.
+3. For each variant: open a segment if none is open
    ([segmenting.md §6](segmenting.md#6-opening-a-segment)); encode
    (`init_encode` until the init segment is known, then `split_encode`).
-3. For each variant: the media time advances by the chunk's length, then
+4. For each variant: the media time advances by the chunk's length, then
    the pieces are applied
    ([segmenting.md §3](segmenting.md#3-applying-pieces)).
 

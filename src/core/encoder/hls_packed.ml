@@ -6,6 +6,7 @@ let bitrate format = try Some (Encoder.bitrate format) with Not_found -> None
 
 let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
   let time = ref 0 in
+  let offset = ref 0 in
   let version = ref 3 in
   let encode frame =
     let bytes = encoder.encode frame in
@@ -27,7 +28,11 @@ let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
       (fun ~boundary:_ frame ->
         let split = Encoder.Split { time = !time } in
         [split; Bytes (encode frame)]);
-    insert_id3 = (fun ~time m -> Some (Hls_id3.make ~version:!version ~time m));
+    insert_id3 =
+      (fun ~time m ->
+        Some (Hls_id3.make ~version:!version ~time:(time + !offset) m));
+    initial_delay = (fun _ -> Some 0);
+    set_offset = (fun o -> offset := o);
     hls_stop = (fun () -> { init = None; pieces = [Bytes (encoder.stop ())] });
     codec_attrs = (fun () -> codecs format);
     independent_segments = (fun () -> true);

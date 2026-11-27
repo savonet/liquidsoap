@@ -1394,6 +1394,7 @@
   (alias test_hls_codecs_at_stop)
   (alias test_hls_x264_lookahead)
   (alias test_hls_audio_video_start)
+  (alias test_hls_mpegts_initial_offset)
   (alias test_hls_id3_video_latency)
   (alias test_hls_independent_segments)
   (alias test_hls_fmp4_extname_restart)
@@ -2077,6 +2078,24 @@
    "HLS audio and video segment starts"
    liquidsoap
    hls_audio_video_start.liq)))
+
+(rule
+ (alias test_hls_mpegts_initial_offset)
+ (package liquidsoap)
+ (deps
+  hls_lib.liq
+  hls_mpegts_initial_offset.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "HLS mpegts initial offset"
+   liquidsoap
+   hls_mpegts_initial_offset.liq)))
 
 (rule
  (alias test_hls_id3_video_latency)

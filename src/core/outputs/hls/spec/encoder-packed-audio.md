@@ -12,7 +12,8 @@ holding its timestamp. These encoders build that tag.
 ## 2. Calls and order
 
 As the contract. The adapter counts media time as the sum of the chunk
-lengths it has encoded.
+lengths it has encoded. `initial_delay` answers 0; `set_offset` is added to
+every timestamp of §7.
 
 ## 3. `init`
 
@@ -50,15 +51,15 @@ version, with these frames:
    with its terminating zero byte, then the timestamp as 8 bytes
    big-endian, its upper 31 bits zero.
 
-**Timestamp**: `round(time × 90000 / ticks per second) mod 2^33`, with
-`time` the segment's start in ticks. Reason: the value is a 33-bit MPEG-2
+**Timestamp**: `round((time + offset) × 90000 / ticks per second) mod 2^33`,
+with `time` the segment's start in ticks and `offset` the run's offset (§2). Reason: the value is a 33-bit MPEG-2
 timestamp; computing it from the tick count, not per frame, keeps it exact
 when a frame is not a whole number of 90 kHz units. What is not promised:
 the timestamp is the segment's start as the output counts it; an encoder's
 own delay (priming, buffering) offsets the first sample from it by up to
 that delay, which can differ from another variant's timestamps.
 
-Example, the first bytes of a segment starting at 184 s, `%mp3`, metadata
+Example, the first bytes of a segment starting at 184 s, offset 0, `%mp3`, metadata
 `title = "T1"`, version 3:
 
 ```

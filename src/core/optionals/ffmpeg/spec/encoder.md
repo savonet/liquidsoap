@@ -87,11 +87,12 @@ In order:
      `"+frag_custom+dash+delay_moov"` (fragments are cut only when the
      encoder asks, §8.2).
    - `format="mpegts"`: container option `avoid_negative_ts` defaults to
-     `"disabled"`. Reason: the muxer would otherwise shift the timeline by
-     the first packet's negative timestamp, which is the codec's priming,
-     so variants of one output with different codecs (AAC-LC, HE-AAC) would
-     carry different timestamps for the same media time. MPEG-TS stores
-     timestamps after its own positive delay.
+     `"disabled"`. Reason: the muxer would otherwise shift each variant by
+     its own first timestamp, so variants of one output with different
+     codecs (AAC-LC, HE-AAC) would carry different timestamps for the same
+     media time; and it sets that shift from the first packet it receives,
+     which with non-interleaved writes need not be the lowest. The output's
+     shared offset (§8.9) keeps timestamps positive instead.
    - Every encoded video track: `+cgop` (closed GOP) is added to `flags`,
      combined the way step 1 combines the global-header flag, unless the
      written `flags` names `cgop` or is a number. Reason: every key frame is
@@ -525,6 +526,31 @@ What this encoder provides to them:
   20 s within one internal frame.
 - An MP4 variant: the init segment is non-empty and the first media
   segment holds the first frame.
+- MPEG-TS, AAC and H.264 with and without B-frames, 2 s segments: no
+  timestamp of the first segment is negative or wrapped, and it lasts 2 s
+  within one video frame.
+
+### 8.9 Initial offset
+
+`initial_delay frame` creates the streams from `frame` when they are not
+created yet, without encoding it. While copied streams wait for their
+parameters it answers none and counts the frame towards the keyframe wait
+(§12). Once the streams exist it answers the largest initial delay of the
+encoded streams, in main ticks, rounded up: an audio stream's priming
+(`initial_padding` samples), a video stream's reordering delay
+(`video_delay` frames at the stream's frame rate), 0 for subtitles and
+copied streams.
+
+`set_offset offset` sets the container option `output_ts_offset` to
+`offset`, rounded up to the microsecond, on the current container and on
+every container a restart opens (§13): the muxer adds it to every packet,
+timed ID3 included. A prepended ID3 tag's timestamp is `time + offset`.
+Media time, split times and the ordering of §8.2 do not include it.
+
+Before a packet reaches the muxer, its DTS plus the offset MUST be at least
+0; a packet below is a broken offset and the instance asserts. Reason:
+MPEG-TS timestamps are 33-bit and wrap, so a negative one reads as a
+segment of 26 hours.
 
 ## 9. Outputs with a URL or file target
 

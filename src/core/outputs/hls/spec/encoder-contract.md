@@ -33,13 +33,25 @@ output's.
    seconds ([segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration),
    [encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 2. `init` once, before the first chunk.
-3. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
-4. At every segment open: `insert_id3` when the variant's ID3 mode is
+3. Until the run's offset is set: per chunk, `initial_delay chunk` on every
+   variant. It prepares the encoder from the chunk without encoding it and
+   answers how far before media time 0 its first timestamp lies (codec
+   priming, reordering delay), or none while it cannot tell yet (copied
+   streams waiting for their parameters). While any variant answers none,
+   the chunk is dropped by every variant and media time does not advance.
+   Once every variant answers, `set_offset` with the largest answer on
+   every variant, then the chunk is encoded as below. Every timestamp an
+   encoder writes from then on, ID3 timestamps included, is media time plus
+   the offset. Reason: matching content in variants has matching timestamps
+   (RFC 8216 §6.2.4), and none is negative, which MPEG-TS cannot store: its
+   33-bit timestamps wrap.
+4. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
+5. At every segment open: `insert_id3` when the variant's ID3 mode is
    prepended, also before the first `init_encode`, since the first segment
    opens first. `insert_id3` for in-stream ID3 at
    the times of [metadata.md §2](metadata.md#2-id3).
-5. `stop()` once, at the end of a run that ends on a `stop`.
-6. Properties (§6) after `init_encode` has returned `Init`.
+6. `stop()` once, at the end of a run that ends on a `stop`.
+7. Properties (§6) after `init_encode` has returned `Init`.
 
 Every instance serialises its own calls
 ([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)). The output never uses the encoder's

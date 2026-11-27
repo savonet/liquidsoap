@@ -29,11 +29,14 @@
     [create] raises the [encoder] error of a configuration it cannot build;
     [mk_stream] raises it for a stream the codec or the muxer rejects. [encode]
     raises [Failure] once a field reaches the fault bound. The [on_packet] hook
-    receives each packet's key flag, its media time in main ticks and the
-    [write] that gives it to the muxer, which the hook runs when the packet is
-    due (encoder.md §8.2). *)
+    receives each packet's key flag, its media time and its DTS in main ticks
+    and the [write] that gives it to the muxer, which the hook runs when the
+    packet is due (encoder.md §8.2). [initial_delay], once [mk_stream] ran, is
+    how far before its media time the stream's first DTS lies, in main ticks:
+    the audio codec's priming, the video codec's reordering delay. *)
 
-type on_packet = key:bool -> time:int option -> write:(unit -> unit) -> unit
+type on_packet =
+  key:bool -> time:int option -> dts:int option -> write:(unit -> unit) -> unit
 
 type t = {
   mk_stream : Frame.t -> unit;
@@ -42,6 +45,7 @@ type t = {
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;
+  initial_delay : unit -> int;
 }
 
 val audio_codec_attr : (_, Avutil.audio, _) Av.stream -> string option

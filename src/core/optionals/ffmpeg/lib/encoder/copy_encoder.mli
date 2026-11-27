@@ -54,15 +54,15 @@ val create :
   Avutil.output Avutil.container ->
   t
 
-(** [on_packet] receives each packet's key flag, media time and the [write] that
-    gives it to the muxer (encoder.md §8.2). [codec_tag] replaces the source's
-    tag on the stream. *)
+(** [on_packet] receives each packet's key flag, media time, DTS and the [write]
+    that gives it to the muxer (encoder.md §8.2). [codec_tag] replaces the
+    source's tag on the stream. *)
 val track :
   ?codec_tag:int ->
   t ->
   field:Frame.field ->
   keyframe:Liquidsoap_ffmpeg_formats.Encoder_format.keyframe ->
-  on_packet:(key:bool -> time:int option -> write:(unit -> unit) -> unit) ->
+  on_packet:Encoded_stream.on_packet ->
   track
 
 (** The known parameters of the field's first run that has them, in this frame.

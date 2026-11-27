@@ -105,7 +105,7 @@ and track = {
   mutable closed : tenure list;
   mutable track_end : int option;
   mutable last_stored : int option;
-  on_packet : key:bool -> time:int option -> write:(unit -> unit) -> unit;
+  on_packet : Encoded_stream.on_packet;
 }
 
 let create ~log ~whole_output ~muxer container =
@@ -260,9 +260,8 @@ let write_packet track ~time_base ~dts ~pts ~duration ~written ~rejected packet
       | exception (Avutil.Error (`Invalid_data | `Other -22) as exn) ->
           rejected (Printexc.to_string exn)
   in
-  track.on_packet ~key
-    ~time:(Time_base.rescale ~src:time_base ~dst:(main ()) pts)
-    ~write
+  let main = Time_base.rescale ~src:time_base ~dst:(main ()) in
+  track.on_packet ~key ~time:(main pts) ~dts:(main dts) ~write
 
 exception Dropped of string
 

@@ -57,6 +57,7 @@ let requirement_3_27 () =
   in
   check (String.length after > 0) "packets follow the call";
   equal 1 (pat_count after) "resend_headers writes the table once more";
+  Av.set_output_option output "output_ts_offset" "21334us";
   raises
     (function Error `Option_not_found -> true | _ -> false)
     "an unknown option"
