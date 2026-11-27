@@ -90,7 +90,6 @@ object
   method private reset : unit
   method virtual private start : unit
   method virtual private stop : unit
-  method private set_encoding_order : [ `Data_first | `Metadata_first ] -> unit
 end
 
 class dummy :

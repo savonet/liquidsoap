@@ -318,11 +318,6 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
     method virtual private encode : Frame.t -> 'a
     method virtual private send : 'a -> unit
 
-    val mutable encoding_order : [ `Data_first | `Metadata_first ] =
-      `Metadata_first
-
-    method private set_encoding_order v = encoding_order <- v
-
     (* A metadata at the end of a frame labels the next frame's first piece. *)
     val mutable pending_metadata = None
 
@@ -371,11 +366,8 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
       let send_piece start stop =
         let piece_metadata = List.assoc_opt start metadata in
         Option.iter self#on_metadata piece_metadata;
-        if encoding_order = `Metadata_first then
-          Option.iter self#offer_metadata piece_metadata;
-        self#send (self#encode (Frame.sub frame start (stop - start)));
-        if encoding_order = `Data_first then
-          Option.iter self#offer_metadata piece_metadata
+        Option.iter self#offer_metadata piece_metadata;
+        self#send (self#encode (Frame.sub frame start (stop - start)))
       in
       let cuts =
         List.filter (fun p -> 0 < p && p < length) (List.map fst metadata)

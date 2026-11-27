@@ -474,10 +474,9 @@ class output p =
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~name source_val
 
-    initializer
-      (* When sending ICY metadata, the update requires an active connection,
-         so metadata must come after send (which establishes the connection). *)
-      if send_icy_metadata then self#set_encoding_order `Data_first
+    (* An ICY update needs a connection: one offered before the connection
+       exists is sent once it does. *)
+    val mutable unsent_metadata = None
 
     (** In this operator, we don't exactly follow the start/stop mechanism of
         Output.encoded because we want to control in a more subtle way the
@@ -543,6 +542,7 @@ class output p =
     method encode_metadata m =
       (* Update metadata using ICY if told to.. *)
       if send_icy_metadata then (
+        let exported = m in
         let f = Charset.convert ~target:out_enc in
         let icy_meta = Hashtbl.create 10 in
         let m = Frame.Metadata.Export.to_metadata m in
@@ -567,7 +567,7 @@ class output p =
                   (Printf.sprintf
                      "Metadata update may have failed with error: %s"
                      (Printexc.to_string e)))
-          | Cry.Disconnected -> ())
+          | Cry.Disconnected -> unsent_metadata <- Some exported)
       else (
         (* Encoder is not always present.. *)
           match encoder with
@@ -643,12 +643,15 @@ class output p =
         Cry.connect connection handler;
         self#log#important "Connection setup was successful.";
 
-        (match source#last_metadata with
-          | Some (_, m) when send_last_metadata_on_connect -> (
+        let unsent = unsent_metadata in
+        unsent_metadata <- None;
+        (match (source#last_metadata, unsent) with
+          | Some (_, m), _ when send_last_metadata_on_connect -> (
               try
                 self#encode_metadata
                   (Frame.Metadata.Export.from_metadata ~cover:false m)
               with _ -> ())
+          | _, Some m -> ( try self#encode_metadata m with _ -> ())
           | _ -> ());
 
         List.iter (fun fn -> fn ()) (Callbacks.elements on_connect)
