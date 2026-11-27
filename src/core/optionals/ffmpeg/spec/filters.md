@@ -353,7 +353,8 @@ Category `Source / FFmpeg filter`.
 
 ### 7.2 Steps
 
-1. Create the probe config and an empty description.
+1. Create the probe config, an empty description, the output clock and the
+   input clock (§10).
 2. Apply the function to the graph value. Everything the script states with
    the graph happens here, and each statement is replayed into the probe
    config at its script position: filter attaches (§4.4), links (§6.3),
@@ -365,11 +366,14 @@ Category `Source / FFmpeg filter`.
    of every instance in the probe config is linked. An unlinked pad raises
    error kind `ffmpeg.filter` at the position of the `create` call, naming
    the instance and the pad.
-4. Create the output clock and the input clock (§10). Unify the clock of
-   each graph input with the input clock, and the clock of the graph source,
-   when there is one, with the output clock.
-5. Release the probe config: from now on the graph value is out of scope.
-6. Return the function's result.
+4. Release the probe config: from now on the graph value is out of scope.
+5. Return the function's result.
+
+A graph input joins the input clock when it is created (§8.2), and the graph
+source the output clock (§9.2), never at the end of `create`. Reason: a graph
+input is an output, and an output left in a clock of its own is started by
+the start pass that follows the function, as a top-level clock that can no
+longer be unified.
 
 The first generation is built during streaming (§12.2), never at script
 time.

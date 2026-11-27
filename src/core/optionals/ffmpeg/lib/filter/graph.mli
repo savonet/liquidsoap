@@ -62,10 +62,12 @@ val link_input :
   ([ `Attached ], 'm, [ `Input ]) Avfilter.pad list) ->
   unit
 
-(** A graph input reading the field of a source, named [id]. *)
+(** A graph input reading the field of a source, named [id], in the input clock.
+*)
 val add_input :
   t ->
   ('m, _) media ->
+  pos:Pos.t option ->
   id:string ->
   pass_metadata:bool ->
   Frame.field * Source.source ->
@@ -118,6 +120,6 @@ val parse :
 val process_command :
   t -> Description.element -> fast:bool -> string -> string -> string
 
-(** Checks completeness and sets up the clocks (§7.2 steps 3 to 5).
+(** Checks completeness and releases the probe config (§7.2 steps 3 and 4).
     @raise Failure naming an unlinked pad. *)
-val close : t -> pos:Pos.t option -> unit
+val close : t -> unit

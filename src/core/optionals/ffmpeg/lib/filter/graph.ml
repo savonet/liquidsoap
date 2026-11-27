@@ -195,8 +195,8 @@ type t = {
   mutable buffer : Generator.t;
   mutable source : Source.source option;
   mutable pending_fault : (string * bool) option;
-  mutable output_clock : Clock.t option;
-  mutable input_clock : Clock.t option;
+  output_clock : Clock.t;
+  input_clock : Clock.t;
 }
 
 let counter = Atomic.make 0
@@ -205,6 +205,12 @@ let create () =
   let gid = Atomic.fetch_and_add counter 1 in
   let id = Printf.sprintf "ffmpeg.filter.%d" gid in
   let log = Log.make ["ffmpeg"; "filter"] in
+  let output_clock = Clock.create ~id:"ffmpeg.filter" () in
+  let input_clock =
+    Clock.create ~id:"ffmpeg.filter.input" ~sync:`Passive ~parent:output_clock
+      ~owner:{ Clock.kind = "ffmpeg filter graph"; id }
+      ()
+  in
   {
     description = D.create ~gid ();
     id;
@@ -221,8 +227,8 @@ let create () =
     buffer = Generator.create Frame.Fields.empty;
     source = None;
     pending_fault = None;
-    output_clock = None;
-    input_clock = None;
+    output_clock;
+    input_clock;
   }
 
 let locked t fn = Mutex.protect t.mutex fn
@@ -326,7 +332,6 @@ let is_ready t =
   if t.exhausted && t.inputs <> [] && not inputs_ready then t.exhausted <- false;
   (not (failed t)) && (not t.exhausted) && inputs_ready
 
-let input_clock t = Option.get t.input_clock
 let field_short t size s = Generator.field_length t.buffer s.field < size
 
 (* §12.3, output buffer. *)
@@ -407,7 +412,7 @@ let fill t =
         if running t then end_generation t ~drain:true ~forget_format:true)
       else (
         try_build t;
-        Clock.tick (input_clock t);
+        Clock.tick t.input_clock;
         (match t.pending_fault with
           | Some (message, drain) ->
               t.pending_fault <- None;
@@ -953,10 +958,10 @@ class graph_source t =
           t.failed_until <- None;
           t.after_fault <- false;
           t.pending_fault <- None;
-          Clock.register ~parent:self#clock (input_clock t));
+          Clock.register ~parent:self#clock t.input_clock);
       self#on_sleep (fun () ->
           end_generation t ~drain:false ~forget_format:true;
-          Clock.deregister ~parent:self#clock (input_clock t))
+          Clock.deregister ~parent:self#clock t.input_clock)
   end
 
 let description t = t.description
@@ -981,13 +986,15 @@ let output_pad t (e : D.element) (media : ('m, _) media) : 'm D.pad =
       List.hd (media.output_pads (D.attached e)))
 
 (* §8.2. *)
-let add_input t media ~id ~pass_metadata
+let add_input t media ~pos ~id ~pass_metadata
     ((field, source) : Frame.field * Source.source) =
   let e = D.element t.description "input" in
   let input, take =
     make_input t media ~element:e ~pass_metadata ~field source
   in
   let operator = new graph_input ~name:id ~take source in
+  (* An output in a clock of its own is started by the next start pass. *)
+  Clock.unify ~pos operator#clock t.input_clock;
   t.inputs <-
     { input with i_operator = (operator :> Source.source) } :: t.inputs;
   D.add t.description (fun mode config ->
@@ -1006,6 +1013,7 @@ let graph_source t =
     | Some s -> s
     | None ->
         let s = (new graph_source t :> Source.source) in
+        Clock.unify ~pos:None s#clock t.output_clock;
         t.source <- Some s;
         s
 
@@ -1164,21 +1172,11 @@ let process_command t (e : D.element) ~fast cmd arg =
           t.log#important "Command %s refused by %s: %s" cmd e.name message;
           message)
 
-(* §7.2, steps 3 to 5. *)
-let close t ~pos =
+(* §7.2, steps 3 and 4. *)
+let close t =
   (match D.first_unlinked t.description with
     | Some pad -> failwith (Printf.sprintf "Unconnected %s" pad)
     | None -> ());
-  let output_clock = Clock.create ~id:"ffmpeg.filter" () in
-  let input_clock =
-    Clock.create ~id:"ffmpeg.filter.input" ~sync:`Passive ~parent:output_clock
-      ~owner:{ Clock.kind = "ffmpeg filter graph"; id = t.id }
-      ()
-  in
-  t.output_clock <- Some output_clock;
-  t.input_clock <- Some input_clock;
-  List.iter (fun i -> Clock.unify ~pos i.i_operator#clock input_clock) t.inputs;
-  Option.iter (fun s -> Clock.unify ~pos s#clock output_clock) t.source;
   let reached =
     D.reached t.description ~from:(List.map (fun i -> i.i_element) t.inputs)
   in

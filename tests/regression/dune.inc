@@ -2342,6 +2342,28 @@
    ffmpeg-naming-convention.liq)))
 
 (rule
+ (alias test_ffmpeg_filter_create_after_start)
+ (package liquidsoap)
+ (deps
+  ffmpeg_filter_create_after_start.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   ffmpeg_filter_create_after_start
+   liquidsoap
+   ffmpeg_filter_create_after_start.liq)))
+
+(rule
  (alias test_ffmpeg_seek_preroll)
  (package liquidsoap)
  (deps
@@ -4039,6 +4061,7 @@
   (alias test_fallible_ogg)
   (alias test_ffmpeg-copy-encode)
   (alias test_ffmpeg-naming-convention)
+  (alias test_ffmpeg_filter_create_after_start)
   (alias test_ffmpeg_seek_preroll)
   (alias test_harbor_source_relay)
   (alias test_image_annotate_position)
