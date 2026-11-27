@@ -28,6 +28,7 @@ type t = {
   video : (Deferred.t * Deferred.t) option;
   header : bool;
   restart_on_crash : bool;
+  streamable : bool;
   restart : restart_condition;
   process : string;
 }
@@ -46,10 +47,17 @@ let to_string e =
           Printf.sprintf "video=true,width=%d,height=%d" (Deferred.peek w)
             (Deferred.peek h)
   in
-  Printf.sprintf
-    "%%external(channels=%i,samplerate=%i,%s,header=%b,restart_on_crash=%b,%s,process=%s)"
-    e.channels
-    (Deferred.peek e.samplerate)
-    video e.header e.restart_on_crash
-    (string_of_restart_condition e.restart)
-    e.process
+  Printf.sprintf "%%external(%s)"
+    (String.concat ","
+       (List.filter
+          (fun s -> s <> "")
+          [
+            Printf.sprintf "channels=%i" e.channels;
+            Printf.sprintf "samplerate=%i" (Deferred.peek e.samplerate);
+            video;
+            Printf.sprintf "header=%b" e.header;
+            Printf.sprintf "restart_on_crash=%b" e.restart_on_crash;
+            string_of_restart_condition e.restart;
+            (if e.streamable then "streamable=true" else "");
+            "process=" ^ Lang_string.quote_string e.process;
+          ]))

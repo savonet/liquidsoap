@@ -158,6 +158,7 @@ type capabilities = {
   continuing : bool;  (** It holds a stream that this writer extends. *)
   live : bool;  (** Readers start in the middle of the stream. *)
   segmented : bool;  (** The output cuts the stream into segments. *)
+  shared : bool;  (** One stream serves readers that start in its middle. *)
 }
 
 (** A destination written once from its first byte: a pipe, a process, a new
@@ -168,6 +169,9 @@ val fresh_stream : capabilities
 val live_stream : capabilities
 
 val segmented : capabilities
+
+(** Listeners of one stream that start in its middle. *)
+val shared_stream : capabilities
 
 type creation = {
   pos : Pos.t option;

@@ -234,7 +234,12 @@ class output p =
   let register_telnet = Lang.to_bool (List.assoc "register_telnet" p) in
   let source = Lang.assoc "" 2 p in
   let pos = Lang.pos p in
-  let { Mime.factory; format = mime; _ } = Mime.encoder_data p in
+  let { Mime.factory; format = mime; _ } =
+    Mime.encoder_data
+      ~capabilities:
+        (if dedicated then Encoder.live_stream else Encoder.shared_stream)
+      p
+  in
   object (self)
     inherit
       [unit -> unit] Output.encoded

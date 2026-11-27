@@ -59,6 +59,7 @@ let mime_of_format name =
       output = `Stream;
       streams = [];
       interleaved = `Default;
+      streamable = false;
       metadata = [];
       opts = [];
     }
@@ -158,6 +159,7 @@ let copy_encoder ~(description : Stream_description.t) ~mime_type =
              output = `Stream;
              streams;
              interleaved = `Default;
+             streamable = false;
              metadata = [];
              opts;
            }))

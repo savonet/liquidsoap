@@ -76,6 +76,8 @@
 - `output.external` and `output.url`: `export_cover_metadata` defaults to `false`. Set it to `true` to keep handing cover art to the encoder.
 - A format its destination cannot take is refused when the output is created, instead of producing a broken stream: `%flac` (use `%ogg(%flac)`) and `%avi` with `output.file(append=true)`; an explicit `id3v2` tag on `%mp3` with `append=true`, with `output.icecast`, `output.harbor` and `output.srt`, and in HLS; `%fdkaac(transmux="adif")` on streaming outputs and with `append=true`.
 - Encoders are offered a metadata only when it differs from the one their stream carries: repeating the same metadata no longer starts a new Ogg logical stream.
+- `output.harbor` shared mounts and `output.srt` in listener mode refuse a format whose stream cannot be read from its middle, where their listeners start: a `%ffmpeg` muxer that is not streamable (a plain MP4 with `movflags=+faststart`, AVI…), and `%external`. `streamable=true` on `%ffmpeg` and `%external` states that the format is.
+- `%ffmpeg(format="mp4")` written to anything but a file is fragmented by default (`frag_keyframe` or one-second fragments, `empty_moov`), so that it can be read; explicit `movflags` are left as they are.
 
 ## Fixed:
 

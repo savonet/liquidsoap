@@ -334,6 +334,7 @@ let parse params =
       output = `Stream;
       streams = [];
       interleaved = `Default;
+      streamable = false;
       metadata = [];
       opts = [];
     }
@@ -346,6 +347,8 @@ let parse params =
         | `Labelled ("format", Value.String { value }) ->
             { f with format = Some value }
         | `Labelled ("metadata", v) -> { f with metadata = metadata v }
+        | `Labelled ("streamable", Value.Bool { value }) ->
+            { f with streamable = value }
         | `Labelled ("interleaved", Value.Bool { value = true }) ->
             { f with interleaved = `True }
         | `Labelled ("interleaved", Value.Bool { value = false }) ->

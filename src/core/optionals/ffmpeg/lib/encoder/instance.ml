@@ -904,6 +904,42 @@ let create ?interrupt ?direct ?filename ~pos ~name metadata format =
     restart_offset = (fun () -> t.returned_link_start);
   }
 
+(* An ISO file that is not a file written from its first byte can only be
+   read when fragmented: a movie box first, then fragments that start at a key
+   frame of the video, or of one second of audio. Explicit [movflags] are the
+   script's. *)
+let fragmented (format : F.t) =
+  let iso =
+    match format.format with
+      | Some muxer -> List.mem muxer F.iso_family
+      | None -> false
+  in
+  let has_video =
+    List.exists
+      (function
+        | _, `Encode { F.options = `Video _; _ } -> true
+        | field, `Copy _ -> String.starts_with ~prefix:"video" field
+        | _ -> false)
+      format.streams
+  in
+  if (not iso) || List.mem_assoc "movflags" format.opts then format
+  else if has_video then
+    {
+      format with
+      opts =
+        F.set format.opts "movflags"
+          (`String "+frag_keyframe+empty_moov+default_base_moof");
+    }
+  else
+    {
+      format with
+      opts =
+        F.set
+          (F.set format.opts "movflags"
+             (`String "+empty_moov+default_base_moof"))
+          "frag_duration" (`Int 1_000_000);
+    }
+
 let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder." (function
     | Encoder.Ffmpeg format ->
@@ -911,11 +947,11 @@ let () =
           (fun { Encoder.pos; name; capabilities; sink; initial_metadata } ->
             (* A file written from its first byte: the muxer writes and seeks
                in the sink itself, and completes its header at the end. *)
-            let direct =
-              if Encoder.file_form capabilities && sink.Encoder.seek <> None
-              then Some sink
-              else None
+            let file =
+              Encoder.file_form capabilities && sink.Encoder.seek <> None
             in
+            let direct = if file then Some sink else None in
+            let format = if file then format else fragmented format in
             Encoder.writer_of_encoder
               (create ?direct ?filename:sink.Encoder.name ~pos ~name
                  initial_metadata format)

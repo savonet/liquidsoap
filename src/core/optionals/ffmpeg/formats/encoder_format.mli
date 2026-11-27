@@ -103,6 +103,7 @@ type t = {
   output : [ `Stream | `Url of string ];
   streams : (string * track) list;
   interleaved : [ `Default | `True | `False ];
+  streamable : bool;  (** Readable from the middle, on the script's word. *)
   metadata : (string * string) list;
   opts : opts;
 }
@@ -166,3 +167,8 @@ val mime : t -> string
 val video_size : t -> (int * int) option
 
 val default_text_to_ass : int -> string -> string
+
+(** Whether a reader can start in the middle of the stream, given its header:
+    the muxers whose units are self-delimited, the ISO family fragmented, or any
+    format with [streamable=true]. *)
+val streamable : t -> bool

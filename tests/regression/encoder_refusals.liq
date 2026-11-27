@@ -83,6 +83,78 @@ def f() =
   )
 %endif
 
+%ifencoder %ffmpeg
+  # Listeners of a shared mount start in the middle of the stream.
+  refused(
+    "faststart shared",
+    {
+      output.harbor(
+        start=false,
+        port=9471,
+        mount="d",
+        %ffmpeg(format = "mp4", movflags = "+faststart", %audio(codec = "aac")),
+        s
+      )
+    }
+  )
+  refused(
+    "avi shared",
+    {
+      output.harbor(
+        start=false,
+        port=9471,
+        mount="e",
+        %ffmpeg(format = "avi", %audio(codec = "pcm_s16le")),
+        s
+      )
+    }
+  )
+  output.harbor(
+    start=false,
+    port=9471,
+    mount="f",
+    %ffmpeg(format = "avi", streamable = true, %audio(codec = "pcm_s16le")),
+    s
+  )
+  output.harbor(
+    start=false,
+    port=9471,
+    mount="g",
+    %ffmpeg(format = "mp4", %audio(codec = "aac")),
+    s
+  )
+  output.harbor(
+    start=false,
+    port=9471,
+    mount="h",
+    dedicated_encoder=true,
+    %ffmpeg(format = "mp4", movflags = "+faststart", %audio(codec = "aac")),
+    s
+  )
+%endif
+
+  refused(
+    "external shared",
+    {
+      output.harbor(
+        start=false,
+        port=9471,
+        mount="i",
+        format="audio/aac",
+        %external(process = "cat"),
+        s
+      )
+    }
+  )
+  output.harbor(
+    start=false,
+    port=9471,
+    mount="j",
+    format="audio/aac",
+    %external(process = "cat", streamable = true),
+    s
+  )
+
   test.pass()
 end
 

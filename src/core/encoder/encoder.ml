@@ -219,13 +219,21 @@ type capabilities = {
   continuing : bool;
   live : bool;
   segmented : bool;
+  shared : bool;
 }
 
 let fresh_stream =
-  { seekable = false; continuing = false; live = false; segmented = false }
+  {
+    seekable = false;
+    continuing = false;
+    live = false;
+    segmented = false;
+    shared = false;
+  }
 
 let live_stream = { fresh_stream with live = true }
 let segmented = { fresh_stream with segmented = true }
+let shared_stream = { live_stream with shared = true }
 
 type creation = {
   pos : Pos.t option;
@@ -326,7 +334,7 @@ let id3v2_tag ~capabilities (id3v2 : int option Encoder_formats.adaptable)
         if String.length tag > 10 then tag else ""
 
 (** Why a destination cannot take a format, when it cannot. *)
-let refusal { continuing; live; segmented; _ } = function
+let refusal { continuing; live; segmented; shared; _ } = function
   | Flac _ when continuing ->
       Some
         "native FLAC cannot extend an existing file: its frames are numbered \
@@ -343,6 +351,17 @@ let refusal { continuing; live; segmented; _ } = function
       Some
         "transmux=\"adif\" has a single header at the start of its stream: it \
          cannot be read from the middle nor extended"
+  | Ffmpeg f
+    when shared && not (Liquidsoap_ffmpeg_formats.Encoder_format.streamable f)
+    ->
+      Some
+        "this %ffmpeg format cannot be read from the middle of its stream, \
+         where listeners of this output start: use a streamable muxer, or set \
+         streamable=true if it is one"
+  | External { External_encoder_format.streamable = false; _ } when shared ->
+      Some
+        "listeners of this output start in the middle of the stream: set \
+         streamable=true if the process's output can be read from there"
   | NDI _ -> Some "%ndi can only be used with output.ndi"
   | _ -> None
 

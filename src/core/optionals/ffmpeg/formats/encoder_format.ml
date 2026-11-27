@@ -77,6 +77,7 @@ type t = {
   output : [ `Stream | `Url of string ];
   streams : (string * track) list;
   interleaved : [ `Default | `True | `False ];
+  streamable : bool;  (** Readable from the middle, on the script's word. *)
   metadata : (string * string) list;
   opts : opts;
 }
@@ -339,6 +340,7 @@ let to_string f =
           | `True -> "interleaved=true"
           | `False -> "interleaved=false");
       ]
+    @ (if f.streamable then ["streamable=true"] else [])
     @ List.map string_of_track f.streams
     @ string_of_opts
         (List.sort (fun (k, _) (k', _) -> String.compare k k') f.opts)
@@ -384,3 +386,27 @@ let video_size f =
   with
     | [size] -> Some size
     | _ -> None
+
+(* A muxer whose stream a reader can start in the middle of, given its header:
+   for the ISO family, a fragmented one. *)
+let streamable f =
+  let flag name =
+    match List.assoc_opt "movflags" f.opts with
+      | Some (`String flags) -> List.mem name (String.split_on_char '+' flags)
+      | _ -> false
+  in
+  f.streamable
+  ||
+    match f.format with
+    | Some
+        ( "mp3" | "adts" | "ac3" | "eac3" | "mpegts" | "ogg" | "oga" | "ogv"
+        | "opus" | "spx" | "matroska" | "webm" | "wav" | "flac" ) ->
+        true
+    | Some muxer when List.mem muxer iso_family -> (
+        match List.assoc_opt "movflags" f.opts with
+          | None -> true
+          | Some _ ->
+              flag "empty_moov"
+              && (flag "frag_keyframe" || flag "frag_custom")
+              && not (flag "delay_moov"))
+    | _ -> false

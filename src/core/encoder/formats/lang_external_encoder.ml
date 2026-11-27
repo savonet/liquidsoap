@@ -32,6 +32,7 @@ let make params =
       video = None;
       header = true;
       restart_on_crash = false;
+      streamable = false;
       restart = External_encoder_format.No_condition;
       process = "";
     }
@@ -79,6 +80,8 @@ let make params =
             { f with External_encoder_format.video = Some (w, h) }
         | `Labelled ("header", Bool { value = h }) ->
             { f with External_encoder_format.header = h }
+        | `Labelled ("streamable", Bool { value }) ->
+            { f with External_encoder_format.streamable = value }
         | `Labelled ("restart_on_crash", Bool { value = h }) ->
             { f with External_encoder_format.restart_on_crash = h }
         | `Anonymous s when String.lowercase_ascii s = "restart_on_metadata" ->

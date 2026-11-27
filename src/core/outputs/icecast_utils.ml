@@ -98,16 +98,13 @@ module Icecast_v (M : Icecast_t) = struct
     | Encoder.AVI _ -> Some avi
     | Encoder.Ogg _ -> Some ogg
 
-  let encoder_data p =
+  let encoder_data ?(capabilities = Encoder.live_stream) p =
     let v = Lang.assoc "" 1 p in
-    let enc =
-      streaming_format
-        (Lang_encoder.output_format ~capabilities:Encoder.live_stream v)
-    in
+    let enc = streaming_format (Lang_encoder.output_format ~capabilities v) in
     let info, format = (M.info_of_encoder enc, format_of_encoder enc) in
     let factory name initial_metadata =
-      Encoder.buffered ?pos:(Value.pos v) ~name
-        ~capabilities:Encoder.live_stream ~initial_metadata enc
+      Encoder.buffered ?pos:(Value.pos v) ~name ~capabilities ~initial_metadata
+        enc
     in
     let format =
       let f = Lang.to_string (List.assoc "format" p) in
