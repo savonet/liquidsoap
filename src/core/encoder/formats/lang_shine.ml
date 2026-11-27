@@ -59,6 +59,16 @@ let make params =
         | t -> Format_builders.raise_generic_error t)
       defaults params
   in
+  if shine.Shine_format.channels <> 1 && shine.Shine_format.channels <> 2 then
+    Format_builders.raise_error ~pos:None "%shine takes 1 or 2 channels";
+  (match shine.Shine_format.samplerate with
+    | `Value samplerate ->
+        if not (Mp3_format.valid_samplerate samplerate) then
+          Format_builders.raise_error ~pos:None "invalid samplerate value";
+        Option.iter
+          (Format_builders.raise_error ~pos:None)
+          (Mp3_format.bitrate_error ~samplerate [shine.Shine_format.bitrate])
+    | `Setting _ -> ());
   Format_value.Shine shine
 
 let () =

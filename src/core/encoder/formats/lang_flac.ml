@@ -24,7 +24,7 @@ open Value
 
 let accepted_bits_per_sample = [8; 16; 24; 32]
 
-let flac_gen params =
+let flac_gen ~ogg params =
   let defaults =
     {
       Flac_format.fill = None;
@@ -36,33 +36,46 @@ let flac_gen params =
       compression = 5;
     }
   in
-  List.fold_left
-    (fun f -> function
-      | `Labelled ("stereo", Bool { value = b; _ }) ->
-          { f with Flac_format.channels = (if b then 2 else 1) }
-      | `Labelled ("mono", Bool { value = b; _ }) ->
-          { f with Flac_format.channels = (if b then 1 else 2) }
-      | `Labelled ("channels", Int { value = i; _ }) ->
-          { f with Flac_format.channels = i }
-      | `Labelled ("samplerate", Int { value = i; _ }) ->
-          { f with Flac_format.samplerate = `Value i }
-      | `Labelled ("compression", Int { value = i; pos }) ->
-          if i < 0 || i > 8 then
-            Format_builders.raise_error ~pos "invalid compression value";
-          { f with Flac_format.compression = i }
-      | `Labelled ("bits_per_sample", Int { value = i; pos }) ->
-          if not (List.mem i accepted_bits_per_sample) then
-            Format_builders.raise_error ~pos "invalid bits_per_sample value";
-          { f with Flac_format.bits_per_sample = i }
-      | `Labelled ("bytes_per_page", Int { value = i; _ }) ->
-          { f with Flac_format.fill = Some i }
-      | `Anonymous s when String.lowercase_ascii s = "mono" ->
-          { f with Flac_format.channels = 1 }
-      | `Anonymous s when String.lowercase_ascii s = "stereo" ->
-          { f with Flac_format.channels = 2 }
-      | t -> Format_builders.raise_generic_error t)
-    defaults params
+  let flac =
+    List.fold_left
+      (fun f -> function
+        | `Labelled ("stereo", Bool { value = b; _ }) ->
+            { f with Flac_format.channels = (if b then 2 else 1) }
+        | `Labelled ("mono", Bool { value = b; _ }) ->
+            { f with Flac_format.channels = (if b then 1 else 2) }
+        | `Labelled ("channels", Int { value = i; _ }) ->
+            { f with Flac_format.channels = i }
+        | `Labelled ("samplerate", Int { value = i; _ }) ->
+            { f with Flac_format.samplerate = `Value i }
+        | `Labelled ("compression", Int { value = i; pos }) ->
+            if i < 0 || i > 8 then
+              Format_builders.raise_error ~pos "invalid compression value";
+            { f with Flac_format.compression = i }
+        | `Labelled ("bits_per_sample", Int { value = i; pos }) ->
+            if not (List.mem i accepted_bits_per_sample) then
+              Format_builders.raise_error ~pos "invalid bits_per_sample value";
+            { f with Flac_format.bits_per_sample = i }
+        | `Labelled ("bytes_per_page", Int { value = i; pos }) ->
+            if not ogg then
+              Format_builders.raise_error ~pos
+                "native FLAC has no pages: use %ogg(%flac(bytes_per_page=...))";
+            { f with Flac_format.fill = Some i }
+        | `Anonymous s when String.lowercase_ascii s = "mono" ->
+            { f with Flac_format.channels = 1 }
+        | `Anonymous s when String.lowercase_ascii s = "stereo" ->
+            { f with Flac_format.channels = 2 }
+        | t -> Format_builders.raise_generic_error t)
+      defaults params
+  in
+  if flac.Flac_format.channels < 1 || flac.Flac_format.channels > 8 then
+    Format_builders.raise_error ~pos:None "FLAC takes 1 to 8 channels";
+  (match flac.Flac_format.samplerate with
+    | `Value samplerate when samplerate < 1 || samplerate > 655350 ->
+        Format_builders.raise_error ~pos:None
+          "FLAC sample rates are 1 to 655350 Hz"
+    | _ -> ());
+  flac
 
-let make_ogg params = Ogg_format.Flac (flac_gen params)
-let make params = Format_value.Flac (flac_gen params)
+let make_ogg params = Ogg_format.Flac (flac_gen ~ogg:true params)
+let make params = Format_value.Flac (flac_gen ~ogg:false params)
 let () = Format_builders.register "flac" make

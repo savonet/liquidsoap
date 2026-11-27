@@ -62,6 +62,25 @@ let string_of_bitrate_control = function
 let samplerates = [8000; 11025; 12000; 16000; 22050; 24000; 32000; 44100; 48000]
 let valid_samplerate i = List.mem i samplerates
 
+(* MPEG-1 Layer III, then MPEG-2 and 2.5, whose rates are a half and a
+   quarter of MPEG-1's. *)
+let bitrates_of_samplerate samplerate =
+  if List.mem samplerate [32000; 44100; 48000] then
+    [32; 40; 48; 56; 64; 80; 96; 112; 128; 160; 192; 224; 256; 320]
+  else [8; 16; 24; 32; 40; 48; 56; 64; 80; 96; 112; 128; 144; 160]
+
+(* The first bit rate the rate's MPEG version does not have, with the list it
+   has. *)
+let bitrate_error ~samplerate bitrates =
+  let allowed = bitrates_of_samplerate samplerate in
+  Option.map
+    (fun bitrate ->
+      Printf.sprintf
+        "bitrate %d is not a bit rate of the %d Hz MPEG version: %s" bitrate
+        samplerate
+        (String.concat ", " (List.map string_of_int allowed)))
+    (List.find_opt (fun bitrate -> not (List.mem bitrate allowed)) bitrates)
+
 type t = {
   stereo : bool;
   stereo_mode : stereo_mode;
@@ -89,3 +108,30 @@ let bitrate m =
     | VBR _ -> raise Not_found
     | CBR n -> n * 1000
     | ABR c -> Option.get c.mean_bitrate * 1000
+
+let bitrates m =
+  match m.bitrate_control with
+    | CBR bitrate -> [bitrate]
+    | ABR c | VBR c ->
+        List.filter_map Fun.id [c.min_bitrate; c.mean_bitrate; c.max_bitrate]
+
+(* The checks of the whole configuration: bit rates against the rate's MPEG
+   version, when the rate is known, and their order. *)
+let check ~samplerate m =
+  let order =
+    match m.bitrate_control with
+      | CBR _ -> None
+      | ABR c | VBR c ->
+          let ordered =
+            List.filter_map Fun.id
+              [c.min_bitrate; c.mean_bitrate; c.max_bitrate]
+          in
+          if List.sort Int.compare ordered = ordered then None
+          else Some "min_bitrate <= bitrate <= max_bitrate does not hold"
+  in
+  match
+    Option.bind samplerate (fun samplerate ->
+        bitrate_error ~samplerate (bitrates m))
+  with
+    | Some error -> Some error
+    | None -> order

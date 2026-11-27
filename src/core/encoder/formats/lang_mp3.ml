@@ -27,6 +27,18 @@ let allowed_bitrates =
     8; 16; 24; 32; 40; 48; 56; 64; 80; 96; 112; 128; 144; 160; 192; 224; 256; 320;
   ]
 
+(* Literal rates are checked here, deferred ones at start-up. *)
+let checked mp3 =
+  let samplerate =
+    match mp3.Mp3_format.samplerate with
+      | `Value r -> Some r
+      | `Setting _ -> None
+  in
+  Option.iter
+    (Format_builders.raise_error ~pos:None)
+    (Mp3_format.check ~samplerate mp3);
+  Format_value.MP3 mp3
+
 let mp3_base_defaults () =
   {
     Mp3_format.stereo = true;
@@ -42,6 +54,11 @@ let mp3_base f = function
       { f with Mp3_format.stereo = b }
   | `Labelled ("mono", Value.Bool { value = b; _ }) ->
       { f with Mp3_format.stereo = not b }
+  | `Labelled ("channels", Value.Int { value = (1 | 2) as channels; _ }) ->
+      { f with Mp3_format.stereo = channels = 2 }
+  | `Labelled ("channels", (Value.Int _ as v)) ->
+      Format_builders.raise_error ~pos:(Value.pos v)
+        "%mp3 takes 1 or 2 channels"
   | `Labelled ("stereo_mode", String { value = m; pos }) ->
       let mode =
         match m with
@@ -91,7 +108,7 @@ let make_cbr params =
         | x -> mp3_base f x)
       defaults params
   in
-  Format_value.MP3 mp3
+  checked mp3
 
 let make_abr_vbr ~default params =
   let set_min_bitrate f b =
@@ -182,6 +199,9 @@ let make_abr_vbr ~default params =
             set_quality f (Some q)
         | `Labelled ("hard_min", Value.Bool { value = b; _ }) ->
             set_hard_min f (Some b)
+        | `Labelled ("bitrate", Value.Int { pos; _ }) when is_vbr f ->
+            Format_builders.raise_error ~pos
+              "%mp3.vbr takes no bitrate: its quality decides the bit rate"
         | `Labelled ("bitrate", Value.Int { value = i; pos }) ->
             if not (List.mem i allowed_bitrates) then
               Format_builders.raise_error ~pos "invalid bitrate value";
@@ -197,7 +217,7 @@ let make_abr_vbr ~default params =
         | x -> mp3_base f x)
       default params
   in
-  Format_value.MP3 mp3
+  checked mp3
 
 let make_abr p =
   make_abr_vbr

@@ -51,8 +51,23 @@ let resolve ~pos format =
                (String.concat ", " (List.map string_of_int samplerates)))
   in
   match format with
-    | MP3 m ->
-        check_rate ~samplerates:Mp3_format.samplerates m.Mp3_format.samplerate
+    | MP3 m -> (
+        check_rate ~samplerates:Mp3_format.samplerates m.Mp3_format.samplerate;
+        match m.Mp3_format.samplerate with
+          | `Setting _ as rate ->
+              Option.iter
+                (Encoder_types.raise_error ~pos)
+                (Mp3_format.check ~samplerate:(Some (Deferred.force rate)) m)
+          | `Value _ -> ())
+    | Shine m -> (
+        check_rate ~samplerates:Mp3_format.samplerates m.Shine_format.samplerate;
+        match m.Shine_format.samplerate with
+          | `Setting _ as rate ->
+              Option.iter
+                (Encoder_types.raise_error ~pos)
+                (Mp3_format.bitrate_error ~samplerate:(Deferred.force rate)
+                   [m.Shine_format.bitrate])
+          | `Value _ -> ())
     | FdkAacEnc m ->
         check_rate ~samplerates:Fdkaac_format.samplerates
           m.Fdkaac_format.samplerate

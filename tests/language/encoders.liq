@@ -197,7 +197,10 @@ def f() =
   # A computed parameter is left to evaluation, where a missing one is refused.
   process = "cat"
   test.equal(
-    string.contains(substring="process=cat", "#{%external(process = process)}"),
+    string.contains(
+      substring='process="cat"',
+      "#{%external(process = process)}"
+    ),
     true
   )
   try

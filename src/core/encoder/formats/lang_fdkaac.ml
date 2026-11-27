@@ -98,10 +98,37 @@ let make params =
         | t -> Format_builders.raise_generic_error t)
       defaults params
   in
-  let aot = fdkaac.Fdkaac_format.aot in
-  if aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2 then
-    if fdkaac.Fdkaac_format.channels <> 2 then
-      failwith "HE-AAC v2 is only available with 2 channels.";
+  let error = Format_builders.raise_error ~pos:None in
+  let given label =
+    List.exists (function `Labelled (l, _) -> l = label | _ -> false) params
+  in
+  if given "bitrate" && given "vbr" then
+    error "bitrate and vbr are two rate controls: give one";
+  let { Fdkaac_format.aot; channels; transmux; _ } = fdkaac in
+  if not (List.mem channels [1; 2; 6]) then
+    error "%fdkaac takes 1, 2 or 6 channels";
+  if (aot = `Mpeg_4 `HE_AAC_v2 || aot = `Mpeg_2 `HE_AAC_v2) && channels <> 2
+  then error "HE-AAC v2 is only available with 2 channels";
+  (match transmux with
+    | `Raw | `Latm | `Latm_out_of_band ->
+        error
+          "this transport is not a byte stream an output can carry: use adts, \
+           loas or adif, or %ffmpeg"
+    | (`Adts | `Adif)
+      when given "transmux" && (aot = `Mpeg_4 `AAC_LD || aot = `Mpeg_4 `AAC_ELD)
+      ->
+        error "low-delay object types are carried by loas"
+    | `Loas when match aot with `Mpeg_2 _ -> true | _ -> false ->
+        error "MPEG-2 object types are not carried by loas"
+    | _ -> ());
+  let fdkaac =
+    (* Low-delay object types are carried by LOAS by default. *)
+    if
+      (not (given "transmux"))
+      && (aot = `Mpeg_4 `AAC_LD || aot = `Mpeg_4 `AAC_ELD)
+    then { fdkaac with Fdkaac_format.transmux = `Loas }
+    else fdkaac
+  in
   Format_value.FdkAacEnc fdkaac
 
 let () = Format_builders.register "fdkaac" make

@@ -78,6 +78,7 @@
 - Encoders are offered a metadata only when it differs from the one their stream carries: repeating the same metadata no longer starts a new Ogg logical stream.
 - `output.harbor` shared mounts and `output.srt` in listener mode refuse a format whose stream cannot be read from its middle, where their listeners start: a `%ffmpeg` muxer that is not streamable (a plain MP4 with `movflags=+faststart`, AVI…), and `%external`. `streamable=true` on `%ffmpeg` and `%external` states that the format is.
 - `%ffmpeg(format="mp4")` written to anything but a file is fragmented by default (`frag_keyframe` or one-second fragments, `empty_moov`), so that it can be read; explicit `movflags` are left as they are.
+- Native encoder parameters are checked when the script is checked: `%mp3` and `%shine` bit rates against the MPEG version of their rate, `min_bitrate <= bitrate <= max_bitrate`, `%mp3.vbr` refuses `bitrate`, `channels` is 1 or 2 (`%mp3` now takes `channels=`); `%fdkaac` takes 1, 2 or 6 channels, refuses `bitrate` with `vbr` and the `raw`, `latm` and `latm_out_of_band` transports, and carries low-delay object types in LOAS by default; native `%flac` refuses `bytes_per_page` and checks its channels and rate. A configuration these refuse used to fail when its output started, or to be silently changed.
 
 ## Fixed:
 
