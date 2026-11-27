@@ -87,9 +87,7 @@ let () =
                  Lang.apply (List.assoc "" p)
                    [("", V.Graph_value.to_value graph)]
                in
-               at ~pos (fun () ->
-                   Graph.close graph
-                     ~pos:(match pos with p :: _ -> Some p | [] -> None));
+               at ~pos (fun () -> Graph.close graph);
                result)
          in
          result))
@@ -115,18 +113,21 @@ let input ~base ~media ~kind ~pad_t ~to_value =
          in
          let pass_metadata = Lang.to_bool (List.assoc "pass_metadata" p) in
          let track = Lang.to_track (Lang.assoc "" 2 p) in
-         at ~pos:(Lang.pos p) (fun () ->
-             to_value graph ~id ~pass_metadata track)))
+         let pos = Lang.pos p in
+         at ~pos (fun () ->
+             to_value graph
+               ~pos:(match pos with p :: _ -> Some p | [] -> None)
+               ~id ~pass_metadata track)))
 
 let () =
   input ~base:audio_module ~media:`Audio ~kind:Ffmpeg_content.Audio.kind
-    ~pad_t:V.Audio_pad.t ~to_value:(fun graph ~id ~pass_metadata track ->
+    ~pad_t:V.Audio_pad.t ~to_value:(fun graph ~pos ~id ~pass_metadata track ->
       V.Audio_pad.to_value
-        (Graph.add_input graph Graph.audio ~id ~pass_metadata track));
+        (Graph.add_input graph Graph.audio ~pos ~id ~pass_metadata track));
   input ~base:video_module ~media:`Video ~kind:Ffmpeg_content.Video.kind
-    ~pad_t:V.Video_pad.t ~to_value:(fun graph ~id ~pass_metadata track ->
+    ~pad_t:V.Video_pad.t ~to_value:(fun graph ~pos ~id ~pass_metadata track ->
       V.Video_pad.to_value
-        (Graph.add_input graph Graph.video ~id ~pass_metadata track))
+        (Graph.add_input graph Graph.video ~pos ~id ~pass_metadata track))
 
 (* §9. *)
 let output ~base ~kind ~pad_t ~add =
