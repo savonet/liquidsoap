@@ -332,36 +332,46 @@ let write track tenure ~offset h =
             (name track) tenure.source_id;
           raise Exit
       | _ -> ());
+    let shifted ~time_base d =
+      match track.last_stored with
+        | Some last when d <= last ->
+            if last + 1 - d > max_rounding_shift then
+              raise
+                (Dropped
+                   (Printf.sprintf "DTS needs more than %d unit of time base %s"
+                      max_rounding_shift
+                      (Time_base.to_string time_base)));
+            last + 1
+        | _ -> d
+    in
     let stored_tb, stored_dts, stored_pts, stored_duration =
       if Av.output_started t.container then (
         let tb = stream_time_base track in
+        let from_source v =
+          match Time_base.rescale ~src:h.source.time_base ~dst:tb v with
+            | Some v -> v
+            | None -> raise (Dropped "timestamp out of range")
+        in
         let in_stream ~main_value source_value =
           match source_value with
-            | Some v ->
-                Option.get (Time_base.rescale ~src:h.source.time_base ~dst:tb v)
-                + rescale ~dst:tb offset
+            | Some v -> from_source v + rescale ~dst:tb offset
             | None -> rescale ~dst:tb main_value
         in
-        let d = in_stream ~main_value:dts' (Option.map fst source) in
         let d =
-          match track.last_stored with
-            | Some last when d <= last ->
-                if last + 1 - d > max_rounding_shift then
-                  raise
-                    (Dropped
-                       (Printf.sprintf
-                          "DTS needs more than %d unit of time base %s"
-                          max_rounding_shift (Time_base.to_string tb)));
-                last + 1
-            | _ -> d
+          shifted ~time_base:tb
+            (in_stream ~main_value:dts' (Option.map fst source))
         in
         ( tb,
           d,
           max d (in_stream ~main_value:pts' (Option.map snd source)),
           match h.source.source_duration with
-            | Some v -> Time_base.rescale ~src:h.source.time_base ~dst:tb v
+            | Some v -> Some (from_source v)
             | None -> Option.map (rescale ~dst:tb) h.duration ))
-      else (main (), dts', pts', h.duration)
+      else (
+        (* Before the header, packets are written in main ticks, where DTS
+           apart by less than a tick are equal. *)
+        let d = shifted ~time_base:(main ()) dts' in
+        (main (), d, max d pts', h.duration))
     in
     (try
        write_packet track ~time_base:stored_tb ~dts:stored_dts ~pts:stored_pts
