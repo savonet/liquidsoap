@@ -303,6 +303,13 @@ let chan_proto frame_t arg_doc =
   ]
   @ pipe_proto frame_t arg_doc
 
+(* What an output's channel is asked to do, off the streaming thread. *)
+type operation = Write of string | Seek of int | Stop
+
+(* Bytes an output may owe its channel before the streaming thread waits for
+   it to catch up. *)
+let max_pending = 16 * 1024 * 1024
+
 class virtual ['a] chan_output p =
   let flush = Lang.to_bool (List.assoc "flush" p) in
   object (self)
@@ -310,24 +317,116 @@ class virtual ['a] chan_output p =
     method virtual open_chan : 'a
     method virtual close_chan : 'a -> unit
     method virtual output_substring : 'a -> string -> int -> int -> unit
+    method virtual seek_chan : 'a -> int -> unit
     method virtual flush : 'a -> unit
+
+    (* The writes run on a worker: a slow disk or a slow process holds the
+       worker, not the clock. The first failure is raised by the next call of
+       the streaming thread, for the output's restart policy. *)
+    val lock = Mutex.create ()
+    val changed = Condition.create ()
+    val queue : operation Queue.t = Queue.create ()
+    val mutable pending = 0
+    val mutable busy = false
+    val mutable failure = None
+    val mutable worker = None
+
+    method private run_worker =
+      let rec loop () =
+        let operation =
+          Mutex.protect lock (fun () ->
+              while Queue.is_empty queue do
+                Condition.wait changed lock
+              done;
+              busy <- true;
+              Queue.pop queue)
+        in
+        (try
+           match (operation, chan) with
+             | Write data, Some channel ->
+                 self#output_substring channel data 0 (String.length data);
+                 if flush then self#flush channel
+             | Seek offset, Some channel ->
+                 self#flush channel;
+                 self#seek_chan channel offset
+             | (Write _ | Seek _), None | Stop, _ -> ()
+         with exn ->
+           Mutex.protect lock (fun () ->
+               if failure = None then failure <- Some exn));
+        Mutex.protect lock (fun () ->
+            (match operation with
+              | Write data -> pending <- pending - String.length data
+              | _ -> ());
+            busy <- false;
+            Condition.broadcast changed);
+        if operation <> Stop then loop ()
+      in
+      loop ()
+
+    method private raise_failure =
+      match Mutex.protect lock (fun () -> failure) with
+        | None -> ()
+        | Some exn ->
+            Mutex.protect lock (fun () -> failure <- None);
+            Lang.raise_as_runtime ~bt:(Printexc.get_callstack 0) ~kind:"system"
+              exn
+
+    method private push operation =
+      self#raise_failure;
+      if worker = None then
+        worker <-
+          Some (Tutils.create (fun () -> self#run_worker) () "output writer");
+      Mutex.protect lock (fun () ->
+          while pending > max_pending do
+            Condition.wait changed lock
+          done;
+          (match operation with
+            | Write data -> pending <- pending + String.length data
+            | _ -> ());
+          Queue.push operation queue;
+          Condition.broadcast changed)
+
+    (* Waits for every operation asked so far to be done. *)
+    method private drain =
+      if worker <> None then
+        Mutex.protect lock (fun () ->
+            while busy || not (Queue.is_empty queue) do
+              Condition.wait changed lock
+            done);
+      self#raise_failure
+
     method open_pipe = chan <- Some self#open_chan
+    method write_pipe b ofs len = self#push (Write (String.sub b ofs len))
+    method private seek_pipe offset = self#push (Seek offset)
 
-    method write_pipe b ofs len =
-      let chan = Option.get chan in
-      try
-        self#output_substring chan b ofs len;
-        if flush then self#flush chan
-      with Sys_error _ as exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"system" exn
+    (* Runs [f] with the channel once the writes asked before are done. *)
+    method private with_drained_chan : 'b. ('a -> 'b) -> 'b =
+      fun f ->
+        self#drain;
+        let channel = Option.get chan in
+        self#flush channel;
+        f channel
 
+    (* The channel is closed whatever the worker met, then its failure is
+       raised. *)
     method close_pipe =
-      match chan with
+      let failure =
+        try
+          self#drain;
+          None
+        with exn -> Some exn
+      in
+      if worker <> None then (
+        Mutex.protect lock (fun () ->
+            Queue.push Stop queue;
+            Condition.broadcast changed);
+        worker <- None);
+      (match chan with
         | None -> ()
         | Some ch ->
-            self#close_chan ch;
-            chan <- None
+            chan <- None;
+            self#close_chan ch);
+      Option.iter raise failure
 
     method is_open = chan <> None
   end
@@ -398,7 +497,7 @@ class virtual ['a] file_output_base p =
   end
 
 class file_output ?clock ~format_val p =
-  object
+  object (self)
     inherit piped_output ?clock ~name:"output.file" p as base
     inherit [out_channel] chan_output p
     inherit [out_channel] file_output_base p
@@ -428,33 +527,28 @@ class file_output ?clock ~format_val p =
       channel
 
     method! private sink =
-      let channel () = Option.get chan in
       let read offset length =
-        Stdlib.flush (channel ());
-        In_channel.with_open_bin
-          (Option.get (Atomic.get current_filename))
-          (fun input ->
-            In_channel.seek input (Int64.of_int offset);
-            Option.value ~default:""
-              (In_channel.really_input_string input length))
+        self#with_drained_chan (fun _ ->
+            In_channel.with_open_bin
+              (Option.get (Atomic.get current_filename))
+              (fun input ->
+                In_channel.seek input (Int64.of_int offset);
+                Option.value ~default:""
+                  (In_channel.really_input_string input length)))
       in
       let seekable = file_capabilities.Encoder.seekable in
       {
         (base#sink) with
         Encoder.name = Atomic.get current_filename;
-        seek =
-          (if seekable then Some (fun offset -> seek_out (channel ()) offset)
-           else None);
+        seek = (if seekable then Some self#seek_pipe else None);
         read = (if seekable then Some read else None);
         size =
           (if seekable then
-             Some
-               (fun () ->
-                 Stdlib.flush (channel ());
-                 out_channel_length (channel ()))
+             Some (fun () -> self#with_drained_chan out_channel_length)
            else None);
       }
 
+    method seek_chan = seek_out
     method output_substring = output_substring
     method flush = flush
     method close_out = close_out
@@ -525,6 +619,7 @@ class ffmpeg_file_output ?clock ~format_val ~format p =
       filename
 
     method output_substring _ _ _ _ = ()
+    method seek_chan _ _ = ()
     method flush _ = ()
     method close_out _ = ()
   end
@@ -585,6 +680,7 @@ class external_output ?clock p =
     method close_chan chan =
       try ignore (Unix.close_process_out chan) with Sys_error _ -> ()
 
+    method seek_chan _ _ = failwith "a process cannot seek"
     method output_substring = output_substring
     method flush = flush
     method close_out = close_out
