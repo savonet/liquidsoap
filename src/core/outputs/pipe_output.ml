@@ -416,11 +416,16 @@ class virtual ['a] chan_output p =
           None
         with exn -> Some exn
       in
-      if worker <> None then (
-        Mutex.protect lock (fun () ->
-            Queue.push Stop queue;
-            Condition.broadcast changed);
-        worker <- None);
+      (* The worker ends before another can start: two would share the queue
+         and the in-flight flag. *)
+      Option.iter
+        (fun thread ->
+          Mutex.protect lock (fun () ->
+              Queue.push Stop queue;
+              Condition.broadcast changed);
+          Thread.join thread;
+          worker <- None)
+        worker;
       (match chan with
         | None -> ()
         | Some ch ->
@@ -641,19 +646,20 @@ class external_output ?clock p =
     (* Closing its input ends the process; it is reaped off the streaming
        thread, which never waits for it to exit. *)
     method close_chan chan =
-      let pid = Unix.process_out_pid chan in
       (try close_out chan with Sys_error _ -> ());
+      (* [close_process_out] also forgets the channel in Unix's table of
+         processes, which would otherwise keep it forever. *)
       ignore
         (Tutils.create
            (fun () ->
              try
-               match snd (Unix.waitpid [] pid) with
+               match Unix.close_process_out chan with
                  | Unix.WEXITED 0 -> ()
                  | Unix.WEXITED code ->
                      self#log#important "Process exited with code %d." code
                  | Unix.WSIGNALED signal | Unix.WSTOPPED signal ->
                      self#log#important "Process stopped by signal %d." signal
-             with Unix.Unix_error _ -> ())
+             with Unix.Unix_error _ | Sys_error _ -> ())
            () "output.external process reaper")
 
     method seek_chan _ _ = failwith "a process cannot seek"

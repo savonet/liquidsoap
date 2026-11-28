@@ -152,18 +152,20 @@ let encoder ~pos { Ogg_format.audio; video } =
       let f track = track.encode ogg_enc (Option.get track.id) frame in
       List.iter f tracks;
       Ogg_muxer.get_data ogg_enc
-    and ogg_stop () =
+    (* The rate converter is drained only at the stream's end: across links it
+       keeps its history, so a new link does not start on a cold filter. *)
+    and ogg_stop ~drain =
       let f track =
-        Option.iter (track.drain ogg_enc) track.id;
+        if drain then Option.iter (track.drain ogg_enc) track.id;
         track.id <- None
       in
       List.iter f tracks;
       Ogg_muxer.end_of_stream ogg_enc
     and stop () =
-      ogg_stop ();
+      ogg_stop ~drain:true;
       Ogg_muxer.get_data ogg_enc
     and encode_metadata m =
-      ogg_stop ();
+      ogg_stop ~drain:false;
       let f track = track.id <- Some (track.reset ogg_enc m) in
       List.iter f tracks
     in
