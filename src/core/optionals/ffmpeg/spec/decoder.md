@@ -1106,14 +1106,15 @@ ends the track in two steps, then adds a track mark:
 
 A copy-only mapping thus keeps every packet: in
 [timestamps.md §11.1](timestamps.md#111-container-start), the final audio
-packet ends after the video and MUST reach the output. A decoded field
-loses its tail past the shortest field. The rule holds for files and
+packet ends after the video and MUST reach the output. With a decoded
+field, every field, copied ones included, loses its tail past the shortest
+field. The rule holds for files and
 streams alike: a stream input keeps one buffer across connections, and a
 tail left there would lead its field into the next connection by that
 length, adding up at each reconnection.
 
 `end_track` ends the track in the same way without draining, for an input
-that cannot be read further ([io.md §2.5](io.md)).
+that cannot be read further ([io.md §2.5](io.md#25-end-of-a-connection)).
 
 Conformance:
 
@@ -1122,8 +1123,9 @@ Conformance:
   packets, frames or samples as the file holds, the last copied packet
   included, with and without a video field. For an all-copy mapping the
   count is the whole file's; for a mapping that mixes decoded streams with
-  copied video, the count is from the start point (§8.5). A decoded field
-  counts up to where the fields line up.
+  copied video, the count is from the start point (§8.5). With a decoded
+  field, every field, copied ones included, counts up to where the fields
+  line up: copied packets past the shortest decoded field are dropped.
 - An input that reconnects after each connection ends with decoded video
   past its audio keeps the same audio/video skew at every reconnection.
 

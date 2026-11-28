@@ -393,19 +393,27 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
       if Atomic.compare_and_set connection_state current (`Starting attempt)
       then (
         (match cause with
-          | `End_of_input -> (
+          | `End_of_input ->
               self#log#info "End of input";
-              try Decode_loop.eof connection.loop connection.decoder_buffer
-              with exn ->
-                self#log#severe "Draining failed: %s" (Printexc.to_string exn);
-                Generator.add_track_mark self#buffer)
+              self#end_track ~step:"Draining" (fun () ->
+                  Decode_loop.eof connection.loop connection.decoder_buffer)
           | `Fault (exn, bt) ->
               self#log_fault ~bt
                 (Printf.sprintf "Feeding failed: %s" (self#describe exn));
-              Decode_loop.end_track connection.loop connection.decoder_buffer;
+              self#end_track ~step:"Ending the track" (fun () ->
+                  Decode_loop.end_track connection.loop
+                    connection.decoder_buffer);
               self#report ~bt exn);
         self#close_connection connection;
         self#schedule ~delay attempt)
+
+    (* A failure here must not keep the connection from ending: the track
+       still ends, at the buffer's current length. *)
+    method private end_track ~step f =
+      try f ()
+      with exn ->
+        self#log#severe "%s failed: %s" step (Printexc.to_string exn);
+        Generator.add_track_mark self#buffer
 
     method private bound_buffer =
       let max = Frame.main_of_seconds max_buffer in
