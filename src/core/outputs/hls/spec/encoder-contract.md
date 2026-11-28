@@ -33,19 +33,22 @@ output's.
    seconds ([segmenting.md §1](segmenting.md#1-time-the-grid-and-the-target-duration),
    [encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 2. `init` once, before the first chunk.
-3. Until the run's offset is set: per chunk, `initial_delay chunk` on every
-   variant. It prepares the encoder from the chunk without encoding it and
-   answers how far before media time 0 its first timestamp lies (codec
-   priming, reordering delay), or none while it cannot tell yet (copied
-   streams waiting for their parameters). While any variant answers none,
-   the chunk is dropped by every variant and media time does not advance.
-   Once every variant answers, `set_offset` with the largest answer on
-   every variant, then the chunk is encoded as below. Every timestamp an
-   encoder writes from then on, ID3 timestamps included, is media time plus
-   the offset. Reason: matching content in variants has matching timestamps
-   (RFC 8216 §6.2.4), and none is negative, which MPEG-TS cannot store: its
-   33-bit timestamps wrap.
-4. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
+3. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
+4. Until the run's offset is set, after each chunk: `initial_delay ()` on
+   every variant. It answers how far before media time 0 the variant's
+   first timestamp lies, the lowest first DTS of its audio and video
+   streams, or none while one of them has produced no packet. Until the
+   offset is set the encoder holds its output: `init_encode` returns
+   `Pending`. Once every variant answers, or after 10 s of media time or at
+   a stop with the answers known so far (none counting as 0, and logged),
+   `set_offset` with the largest answer on every variant, and each
+   variant's first segment opens at media time 0. Every timestamp an
+   encoder writes, ID3 timestamps included, is media time plus the offset.
+   Reason: one offset for all streams and variants keeps their timestamps
+   matching (lip-sync, and RFC 8216 §6.2.4 across variants), and none is
+   negative, which MPEG-TS cannot store: its 33-bit timestamps wrap. The
+   first DTS is measured, not read from the codec: an encoder may report a
+   reordering delay below its real one.
 5. At every segment open: `insert_id3` when the variant's ID3 mode is
    prepended, also before the first `init_encode`, since the first segment
    opens first. `insert_id3` for in-stream ID3 at

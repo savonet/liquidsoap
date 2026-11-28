@@ -44,7 +44,6 @@ type t = {
   codec_attr : unit -> string option;
   bitrate : unit -> int option;
   video_size : unit -> (int * int) option;
-  initial_delay : unit -> int;
 }
 
 let error ?pos message = Lang_encoder.raise_error ~pos message
@@ -442,17 +441,6 @@ let audio ~(log : Log.t) ~pos ~field ~mode ~codec ~(a : F.audio) ~opts
     codec_attr = (fun () -> Option.bind (stream ()) audio_codec_attr);
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
     video_size = (fun () -> None);
-    initial_delay =
-      (fun () ->
-        match stream () with
-          | None -> 0
-          | Some stream ->
-              let params = Av.get_codec_params stream in
-              Option.value ~default:0
-                (Time_base.rescale ~rounding:`Up
-                   ~src:(per_unit (Avcodec.Audio.get_sample_rate params))
-                   ~dst:(Time_base.main ())
-                   (Avcodec.Audio.get_initial_padding params)));
   }
 
 module Video_writer = struct
@@ -823,19 +811,6 @@ let video ~(log : Log.t) ~pos ~field ~mode ~codec ~(v : F.video) ~opts
     bitrate = (fun () -> Option.bind (stream ()) Av.bitrate);
     video_size =
       (fun () -> Option.map (fun _ -> Lazy.Mutexed.force size) (stream ()));
-    initial_delay =
-      (fun () ->
-        match !state with
-          | None -> 0
-          | Some (w, _) ->
-              let frames =
-                Avcodec.Video.get_video_delay
-                  (Av.get_codec_params w.Video_writer.stream)
-              in
-              Option.value ~default:0
-                (Time_base.rescale ~rounding:`Up
-                   ~src:(Time_base.per_frame w.frame_rate)
-                   ~dst:(Time_base.main ()) frames));
   }
 
 let text_to_ass (s : F.subtitle) =
@@ -924,7 +899,6 @@ let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts
     codec_attr = (fun () -> Option.bind !stream Av.codec_attr);
     bitrate = (fun () -> Option.bind !stream Av.bitrate);
     video_size = (fun () -> None);
-    initial_delay = (fun () -> 0);
   }
 
 let find_codec ?pos find name =

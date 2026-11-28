@@ -34,7 +34,7 @@ type container = {
   copy : Copy_encoder.t;
   tracks : (string * track) list;
   mutable streams_created : bool;
-  mutable waited : int;
+  mutable wait_start : int option;
 }
 
 type state = [ `Built | `Started | `Failed of exn | `Stopped ]
@@ -48,6 +48,10 @@ type hls = {
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
   mutable id3_queue : (int * (unit -> unit)) list;
   mutable media_written : bool;
+  (* encoder.md §8.9: the audio and video fields, and the first DTS of those
+     that produced a packet. *)
+  mutable counted : string list;
+  mutable first_dts : (string * int) list;
   mutable offset : int option;
 }
 
@@ -220,7 +224,7 @@ let open_container ?interrupt
       copy;
       tracks;
       streams_created = false;
-      waited = 0;
+      wait_start = None;
     }
   with exn -> release_and_raise exn
 
@@ -260,6 +264,12 @@ let hls_flush t () =
   if t.current.muxer = "mpegts" then
     Av.set_output_option t.current.output "mpegts_flags" "+resend_headers"
 
+let subtitle_fields t =
+  List.filter_map
+    (function
+      | field, `Encode { F.options = `Subtitle _; _ } -> Some field | _ -> None)
+    t.format.F.streams
+
 let encoded_video t =
   List.filter_map
     (function
@@ -292,17 +302,49 @@ let write_packet t field ~key ~time ~write =
         write ()
     | None, _ -> write ()
 
+(* encoder.md §8.9: nothing reaches the muxer before the offset is set. *)
 let release_packets ?all h =
-  Hls_order.release ?all
-    ~gating:
-      (List.map
-         (fun field -> `Track field)
-         (Hls_split.inter_coded_fields h.split))
-    h.order
+  if h.offset <> None then
+    Hls_order.release ?all
+      ~gating:
+        (List.map
+           (fun field -> `Track field)
+           (Hls_split.inter_coded_fields h.split))
+      h.order
+
+(* The variant's own delay: the lowest first DTS, fields without a packet
+   counting as 0. *)
+let own_delay h =
+  List.fold_left (fun delay (_, dts) -> max delay (-dts)) 0 h.first_dts
+
+let rec set_offset t h offset =
+  h.offset <- Some offset;
+  apply_offset t h;
+  release_packets h
+
+(* encoder.md §8.9: the muxer adds the offset to every packet it writes. *)
+and apply_offset t h =
+  Option.iter
+    (fun offset ->
+      let micros =
+        Option.get
+          (Time_base.rescale ~rounding:`Up ~src:(Time_base.main ())
+             ~dst:{ Avutil.num = 1; den = 1_000_000 }
+             offset)
+      in
+      Av.set_output_option t.current.output "output_ts_offset"
+        (Printf.sprintf "%dus" micros))
+    h.offset
 
 (* Before a container closes no packet may stay held: its write targets that
    container. A write that fails is logged and the others still go out. *)
 let rec drain_held t h =
+  if h.offset = None then (
+    if h.first_dts <> [] then
+      t.log#important
+        "Container closed before the output's offset was set: using this \
+         variant's own";
+    set_offset t h (own_delay h));
   match release_packets ~all:true h with
     | () -> ()
     | exception exn ->
@@ -322,9 +364,17 @@ let check_offset t field h dts =
         assert false
     | _ -> ()
 
+let record_first_dts h field dts =
+  match dts with
+    | Some dts
+      when List.mem field h.counted && not (List.mem_assoc field h.first_dts) ->
+        h.first_dts <- (field, dts) :: h.first_dts
+    | _ -> ()
+
 let on_packet t field ~key ~time ~dts ~write =
   match t.hls with
     | Some h ->
+        record_first_dts h field dts;
         check_offset t field h dts;
         Hls_order.push ~stream:(`Track field) ~time
           ~write:(fun () -> write_packet t field ~key ~time ~write)
@@ -361,7 +411,19 @@ let create_streams t frame =
                    && not (Copy_encoder.intra_only track) ->
                 Hls_split.inter_coded h.split field
             | _ -> ())
-          c.tracks)
+          c.tracks;
+        if h.offset = None then
+          h.counted <-
+            List.filter_map
+              (function
+                | field, `Encoded _ when List.mem field (subtitle_fields t) ->
+                    None
+                | field, `Copy track
+                  when Copy_encoder.media track = Some `Subtitle ->
+                    None
+                | _, `Drop -> None
+                | field, _ -> Some field)
+              c.tracks)
       t.hls;
     (match t.hls with
       | Some ({ id3 = `In_stream; _ } as h) ->
@@ -374,8 +436,10 @@ let create_streams t frame =
       | _ -> ());
     t.state <- `Started)
   else (
-    c.waited <- c.waited + Frame.position frame;
-    if c.waited > Frame.main_of_seconds Settings.max_keyframe_wait#get then
+    let start = Option.value ~default:t.position c.wait_start in
+    c.wait_start <- Some start;
+    if t.position - start > Frame.main_of_seconds Settings.max_keyframe_wait#get
+    then
       fail t
         (Failure
            "Copy fields received no parameters within the keyframe wait: the \
@@ -439,20 +503,6 @@ let continued_format (format : F.t) =
             F.set format.opts "movflags" (`String (flags ^ "+frag_discont"));
         }
     | _ -> format
-
-(* encoder.md §8.9: the muxer adds the offset to every packet it writes. *)
-let apply_offset t h =
-  Option.iter
-    (fun offset ->
-      let micros =
-        Option.get
-          (Time_base.rescale ~rounding:`Up ~src:(Time_base.main ())
-             ~dst:{ Avutil.num = 1; den = 1_000_000 }
-             offset)
-      in
-      Av.set_output_option t.current.output "output_ts_offset"
-        (Printf.sprintf "%dus" micros))
-    h.offset
 
 (* encoder.md §13.2: an HLS restart keeps the variant's timeline. *)
 let hls_restart t h =
@@ -693,25 +743,14 @@ let run_id3_queue h =
       queue;
     release_packets h)
 
-(* encoder.md §8.9: [None] while the streams wait for their parameters; the
-   frame is then dropped, as [encode_frame] drops it. *)
-let initial_delay t frame =
-  let c = t.current in
-  (match t.state with
-    | `Failed exn -> raise exn
-    | `Stopped -> failwith "Encoder used after stop"
-    | `Built | `Started -> ());
-  if not c.streams_created then create_streams t frame;
-  if c.streams_created then
-    Some
-      (List.fold_left
-         (fun delay track -> max delay (track.Encoded_stream.initial_delay ()))
-         0 (encoded_tracks c))
+(* encoder.md §8.9: known once every audio and video field produced a
+   packet. *)
+let initial_delay t h =
+  if
+    t.current.streams_created
+    && List.for_all (fun field -> List.mem_assoc field h.first_dts) h.counted
+  then Some (own_delay h)
   else None
-
-let set_offset t h offset =
-  h.offset <- Some offset;
-  apply_offset t h
 
 let hls_encode t h ~boundary frame =
   Hls_split.request h.split boundary;
@@ -839,6 +878,8 @@ let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
       id3_stream = None;
       id3_queue = [];
       media_written = false;
+      counted = [];
+      first_dts = [];
       offset = None;
     }
   in
@@ -860,7 +901,7 @@ let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
     split_encode =
       (fun ~boundary frame -> (hls_encode t h ~boundary frame).pieces);
     insert_id3 = (fun ~time m -> insert_id3 t h ~time m);
-    initial_delay = (fun frame -> initial_delay t frame);
+    initial_delay = (fun () -> initial_delay t h);
     set_offset = (fun offset -> set_offset t h offset);
     hls_stop = (fun () -> hls_stop t h);
     codec_attrs = (fun () -> codec_attrs t);

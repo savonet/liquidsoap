@@ -6,7 +6,10 @@ let bitrate format = try Some (Encoder.bitrate format) with Not_found -> None
 
 let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
   let time = ref 0 in
-  let offset = ref 0 in
+  (* Until the output's offset is set, the bytes are held: the first
+     segment's tag carries it. *)
+  let offset = ref None in
+  let held = ref Strings.empty in
   let version = ref 3 in
   let encode frame =
     let bytes = encoder.encode frame in
@@ -23,17 +26,28 @@ let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
               Ok `Prepended);
     init_encode =
       (fun ~boundary:_ frame ->
-        Init { init = None; pieces = [Bytes (encode frame)] });
+        held := Strings.append !held (encode frame);
+        match !offset with
+          | None -> Pending
+          | Some _ ->
+              let bytes = !held in
+              held := Strings.empty;
+              Init { init = None; pieces = [Bytes bytes] });
     split_encode =
       (fun ~boundary:_ frame ->
         let split = Encoder.Split { time = !time } in
         [split; Bytes (encode frame)]);
     insert_id3 =
       (fun ~time m ->
-        Some (Hls_id3.make ~version:!version ~time:(time + !offset) m));
-    initial_delay = (fun _ -> Some 0);
-    set_offset = (fun o -> offset := o);
-    hls_stop = (fun () -> { init = None; pieces = [Bytes (encoder.stop ())] });
+        let offset = Option.value ~default:0 !offset in
+        Some (Hls_id3.make ~version:!version ~time:(time + offset) m));
+    initial_delay = (fun () -> Some 0);
+    set_offset = (fun o -> offset := Some o);
+    hls_stop =
+      (fun () ->
+        let bytes = Strings.append !held (encoder.stop ()) in
+        held := Strings.empty;
+        { init = None; pieces = [Bytes bytes] });
     codec_attrs = (fun () -> codecs format);
     independent_segments = (fun () -> true);
     free_split = (fun () -> true);

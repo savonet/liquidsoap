@@ -92,6 +92,9 @@ val codec_attr : track -> string option
 val bitrate : track -> int option
 val video_size : track -> (int * int) option
 
+(** The media of the track's stream, once it exists. *)
+val media : track -> [ `Audio | `Video | `Subtitle ] option
+
 (** [continue_from t ~from] gives [t]'s tracks the end of [from]'s track of the
     same field, and its skipped time: an HLS restart keeps the variant's
     timeline (timestamps.md §6.5). *)

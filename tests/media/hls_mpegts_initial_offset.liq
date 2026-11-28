@@ -42,7 +42,13 @@ def check_first_segment(name) =
       ),
     packets
   )
-  (first("audio", packets), first("video", packets))
+  audio = first("audio", packets)
+  video = first("video", packets)
+  hls_test.check(
+    audio < infinity and video < infinity,
+    "#{seg.uri}: audio starts at #{audio}, video at #{video}"
+  )
+  (audio, video)
 end
 
 def check() =

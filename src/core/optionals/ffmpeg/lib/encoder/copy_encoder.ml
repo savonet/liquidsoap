@@ -846,6 +846,13 @@ let bitrate track =
     | Some (`Subtitle s) -> Av.bitrate s
     | None -> None
 
+let media track =
+  match track.stream with
+    | Some (`Audio _) -> Some `Audio
+    | Some (`Video _) -> Some `Video
+    | Some (`Subtitle _) -> Some `Subtitle
+    | None -> None
+
 let video_size track =
   match track.header with
     | Some { Copy_params.media = `Video p } ->

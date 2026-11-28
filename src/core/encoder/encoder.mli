@@ -106,13 +106,12 @@ type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
     - [Restart]: a split point that also starts a new container, with its init
       segment.
 
-    Before the first [init_encode], the output's variants share one timestamp
-    offset: [initial_delay chunk] prepares the encoder from the run's first
-    chunk without encoding it and answers how far its first timestamps lie
-    before media time 0, [None] while it cannot tell yet (the chunk is then
-    dropped by every variant). [set_offset] gives the largest answer of all
-    variants, once, before the first [init_encode]: every timestamp the encoder
-    writes, ID3 ones included, is shifted by it. *)
+    The output's variants share one timestamp offset. Until it is set, an
+    encoder holds its output and [initial_delay ()] answers how far before media
+    time 0 its first timestamps lie, [None] while its streams have not all
+    produced a packet. [set_offset] gives the largest answer of all variants,
+    once: every timestamp the encoder writes, ID3 ones included, is shifted by
+    it, and the held output follows. *)
 
 type hls_id3_mode = [ `None | `In_stream | `Prepended ]
 
@@ -129,7 +128,7 @@ type hls_encoder = {
   init_encode : boundary:int -> Frame.t -> hls_init;
   split_encode : boundary:int -> Frame.t -> hls_piece list;
   insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
-  initial_delay : Frame.t -> int option;
+  initial_delay : unit -> int option;
   set_offset : int -> unit;
   hls_stop : unit -> hls_ready;
   codec_attrs : unit -> string option;

@@ -11,6 +11,9 @@ type t = {
   mutable candidates : candidate list;
   (* Requests without their candidate yet, increasing. *)
   mutable requests : int list;
+  (* Fields with a packet in the current container, and its start time. *)
+  mutable started : string list;
+  mutable container_time : int;
 }
 
 let create ~fields ~init_length () =
@@ -21,6 +24,8 @@ let create ~fields ~init_length () =
     marks = [];
     candidates = [];
     requests = [];
+    started = [];
+    container_time = 0;
   }
 
 let buffer t = t.buffer
@@ -63,6 +68,12 @@ let packet t ~flush ~field ~key ~time =
     | None -> ()
     | Some all_key ->
         let at_request = List.exists (fun r -> r <= time) t.requests in
+        (* A field's first packet in a container splits at the container's
+           start: at its own time, it would cut a segment of what precedes
+           it in the other fields. *)
+        let first = not (List.mem field t.started) in
+        if first then t.started <- field :: t.started;
+        let split_time = if first then t.container_time else time in
         let takes = key && ((not !all_key) || at_request) in
         decide t ~field ~key ~superseded:takes;
         if at_request then
@@ -74,13 +85,17 @@ let packet t ~flush ~field ~key ~time =
               (fun (f, k) -> if f <> field && not !k then Some f else None)
               t.streams
           in
-          let c = { offset = Buffer.length t.buffer; time; waiting } in
+          let c =
+            { offset = Buffer.length t.buffer; time = split_time; waiting }
+          in
           if waiting = [] then accept t c
           else t.candidates <- t.candidates @ [c]);
         if not key then all_key := false
 
 let container_start t ~first ~time =
   t.candidates <- [];
+  t.started <- [];
+  t.container_time <- time;
   t.marks <- t.marks @ [(Buffer.length t.buffer, Start { time; first })]
 
 type taken = { init : string option option; pieces : Encoder.hls_piece list }

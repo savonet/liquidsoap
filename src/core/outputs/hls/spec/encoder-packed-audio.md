@@ -12,8 +12,9 @@ holding its timestamp. These encoders build that tag.
 ## 2. Calls and order
 
 As the contract. The adapter counts media time as the sum of the chunk
-lengths it has encoded. `initial_delay` answers 0; `set_offset` is added to
-every timestamp of §7.
+lengths it has encoded. `initial_delay` answers 0. Its bytes are held, and
+`init_encode` returns `Pending`, until `set_offset`, which is added to every
+timestamp of §7.
 
 ## 3. `init`
 

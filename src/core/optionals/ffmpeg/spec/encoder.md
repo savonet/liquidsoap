@@ -392,6 +392,9 @@ can be useful:
    A candidate decided by a key packet that takes a candidate of its own is
    dropped in favour of that one: the two are one split point, and keeping
    both would leave a segment of a few packets between them.
+   The candidate before a stream's first packet in a container has the
+   container's start time, not the packet's: at the packet's time it would
+   cut a segment of the other streams' earlier packets alone.
 3. Bytes written after an undecided candidate are held by the instance and
    returned in order once it is decided; no byte is dropped.
 
@@ -526,25 +529,29 @@ What this encoder provides to them:
   20 s within one internal frame.
 - An MP4 variant: the init segment is non-empty and the first media
   segment holds the first frame.
-- MPEG-TS, AAC and H.264 with and without B-frames, 2 s segments: no
-  timestamp of the first segment is negative or wrapped, and it lasts 2 s
-  within one video frame.
+- Two MPEG-TS variants, AAC with H.264 with and without B-frames, 1 s
+  segments: no timestamp of either first segment is negative or wrapped,
+  each holds audio and video, and both start at the same audio and video
+  timestamps.
 
 ### 8.9 Initial offset
 
-`initial_delay frame` creates the streams from `frame` when they are not
-created yet, without encoding it. While copied streams wait for their
-parameters it answers none and counts the frame towards the keyframe wait
-(§12). Once the streams exist it answers the largest initial delay of the
-encoded streams, in main ticks, rounded up: an audio stream's priming
-(`initial_padding` samples), a video stream's reordering delay
-(`video_delay` frames at the stream's frame rate), 0 for subtitles and
-copied streams.
+The instance records the DTS of the first packet of each audio and video
+field, encoded or copied, in main ticks. Subtitle fields and the timed-ID3
+stream do not count: they may stay without a packet for long, and never
+start before media time 0. `initial_delay ()` answers none until every
+counted field has a first DTS, then `max 0 (−lowest first DTS)`. Reason:
+DTS only increases within a stream, so its first packet's is its lowest,
+whatever the codec reports of its priming or reordering delay.
 
-`set_offset offset` sets the container option `output_ts_offset` to
-`offset`, rounded up to the microsecond, on the current container and on
-every container a restart opens (§13): the muxer adds it to every packet,
-timed ID3 included. A prepended ID3 tag's timestamp is `time + offset`.
+Until the offset is set, no packet leaves the ordering of §8.2: the muxer
+receives nothing and the header is not written. `set_offset offset` sets
+the container option `output_ts_offset` to `offset`, rounded up to the
+microsecond, on the current container and on every container a restart
+opens (§13), then releases the held packets: the muxer adds it to every
+packet, timed ID3 included. A container that closes before the offset is
+set uses the variant's own `initial_delay`, fields without a packet
+counting as 0, and logs it. A prepended ID3 tag's timestamp is `time + offset`.
 Media time, split times and the ordering of §8.2 do not include it.
 
 Before a packet reaches the muxer, its DTS plus the offset MUST be at least

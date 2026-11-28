@@ -640,9 +640,9 @@ val set_output_option : output container -> string -> string -> unit
 ```
 
 `set_output_option output name value` sets the option `name` of the
-output's muxer to `value`, searching the generic muxer options, then the
-muxer's private options and their children (`av_opt_set` on the format
-context with `AV_OPT_SEARCH_CHILDREN`).
+output's muxer to `value`, searching the muxer's private options and their
+children, then the generic muxer options (`av_opt_set` on the format context
+with `AV_OPT_SEARCH_CHILDREN`, which searches children first).
 It is accepted on an open and on a started output, so a muxer option can
 change between two packet writes; a one-shot flag such as the mpegts muxer's
 `mpegts_flags=+resend_headers` takes effect at the next packet, and
