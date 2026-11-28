@@ -11,12 +11,13 @@
 (rule
  (target fakeroot)
  (deps
-  (glob_files_rec %{workspace_root}/.git/**)
+  (glob_files %{workspace_root}/.git/HEAD)
+  (glob_files %{workspace_root}/.git/packed-refs)
+  (glob_files_rec %{workspace_root}/.git/refs/**)
   (sandbox preserve_file_kind))
  (action
-  (progn
-   (run mkdir -p fakeroot)
-   (run cp -rf %{workspace_root}/.git/ fakeroot/.git))))
+  (system
+   "mkdir -p fakeroot/.git/objects && cp -rf %{workspace_root}/.git/HEAD %{workspace_root}/.git/packed-refs %{workspace_root}/.git/refs fakeroot/.git/ 2>/dev/null || true")))
 
 (rule
  (target git_sha)
