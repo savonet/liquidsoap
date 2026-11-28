@@ -341,6 +341,8 @@ module State = struct
     (* Raised while a tick or an activation of a passive clock runs: it rejects a
        concurrent one and leaves the wind-down to the one in progress. *)
     ticking : bool Atomic.t;
+    (* Raised while the clock awaits the next start pass. *)
+    start_candidate : bool Atomic.t;
     (* Sources activated since creation, for the leak warning. *)
     activated : int Atomic.t;
     self : t option Atomic.t;
