@@ -46,6 +46,9 @@ module Registry : sig
   val remove : clock -> unit
   val by_creation : clock list -> clock list
   val waiting_clocks : unit -> clock list
+  val waiting_count : unit -> int
+  val candidate : clock -> unit
+  val take_candidates : unit -> clock list
   val running_clocks : unit -> clock list
   val move_id : from:clock -> into:clock -> string -> unit
   val drop_id : clock -> unit

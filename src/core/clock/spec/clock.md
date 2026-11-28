@@ -127,7 +127,11 @@ parent.
 - A top-level clock MUST be in exactly one of the two for as long as
   something other than the registry refers to it.
 - The registry MUST NOT be what keeps a stopped clock alive: memory MUST NOT
-  grow with the number of clocks created and discarded without being started.
+  grow with the number of clocks created and discarded without being started,
+  nor with the number of clocks stopped and discarded. This holds while start
+  passes keep running: a pass MUST NOT refer to a waiting clock that did not
+  change since the previous pass, because a runtime may keep alive what is
+  looked up through a weak reference while it collects.
 - No set holds one clock twice, and no set holds a clock merged away by a
   unification ([unification.md §5](unification.md#5-guarantees)).
 
@@ -152,15 +156,18 @@ clocks it created stay in `waiting`, and the error is passed on. An error
 MUST NOT have the side effect of starting clocks.
 
 **Start pass.** For each non-passive clock in `waiting` that can start, and
-whose stop reason is `never started` or `no sources`: start it. A start pass
-also runs once when the application starts. A clock stopped for any other
+whose stop reason is `never started` or `no sources`: start it. Whether a
+waiting clock can start changes only when it joins `waiting`, when a source
+is attached to it, and when the application starts: a pass examines the
+clocks that joined `waiting` or got a source since the previous pass, and the
+pass that runs once when the application starts examines all of `waiting`. A clock stopped for any other
 reason starts again by an explicit start only, so that a stop holds. A start
 pass MUST NOT fail: a clock that cannot start when the pass reaches it,
 including because the global stop was set meanwhile, stays as it is.
 
-- A pass MUST cost at most a time proportional to the number of waiting
-  clocks.
-- With nothing waiting it MUST cost a constant.
+- A pass MUST cost at most a time proportional to the number of clocks it
+  examines.
+- With nothing to examine it MUST cost a constant.
 
 **Can start.** All of:
 

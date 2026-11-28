@@ -480,16 +480,18 @@ let starts_by_itself c =
     | `Stopped (`Never_started | `No_sources) -> true
     | _ -> false
 
-(* Starts every waiting clock that may start by itself, and returns how many
-   were waiting. *)
-let start_pass () =
-  let waiting = Registry.waiting_clocks () in
+let start_clocks clocks =
   List.iter
     (fun c ->
       if c.sync_mode <> `Passive && starts_by_itself c then (
         try start_clock ~force:false c with Cannot_start _ -> ()))
-    waiting;
-  List.length waiting
+    clocks
+
+(* Starts the clocks that may start by themselves, among those that changed
+   since the last pass, and returns how many clocks are waiting. *)
+let start_pass () =
+  start_clocks (Registry.take_candidates ());
+  Registry.waiting_count ()
 
 (* Runs [fn], then a start pass for the clocks it created. *)
 let start_scope fn =
@@ -500,7 +502,8 @@ let start_scope fn =
 (* Opens the application to clock starts and runs the first start pass. *)
 let application_start () =
   Atomic.set application_started true;
-  ignore (start_pass ())
+  ignore (Registry.take_candidates ());
+  start_clocks (Registry.waiting_clocks ())
 
 (* Sets a sub-clock's registration count, and drops its entry at 0. *)
 let set_registrants c sub registrants =

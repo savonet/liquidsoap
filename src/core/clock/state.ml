@@ -182,12 +182,41 @@ module Registry = struct
   let release_id identity id =
     if Hashtbl.find_opt ids id = Some identity then Hashtbl.remove ids id
 
-  let drain () =
+  let by_creation clocks =
+    List.sort (fun a b -> Int.compare a.identity b.identity) clocks
+
+  let weak c =
+    let weak = Weak.create 1 in
+    Weak.set weak 0 (Some c);
+    weak
+
+  (* Clocks the next start pass examines: those that joined [waiting] or got a
+     source since the last one. Reading a weak pointer during a major
+     collection marks what it reads, so a pass that read all of [waiting]
+     would keep every stopped clock alive. *)
+  let candidates : clock Weak.t list Atomic.t = Atomic.make []
+
+  let candidate c =
+    if not (Atomic.exchange c.start_candidate true) then
+      push candidates (weak c)
+
+  (* ponytail: one walk of the candidates per batch of collected clocks, which
+     is linear in clocks changed since the last start pass. *)
+  let prune_candidates () =
     List.iter
-      (fun (identity, id) ->
-        Hashtbl.remove waiting identity;
-        Option.iter (release_id identity) id)
-      (Atomic.exchange dead [])
+      (fun weak -> if Weak.check weak 0 then push candidates weak)
+      (Atomic.exchange candidates [])
+
+  let drain () =
+    match Atomic.exchange dead [] with
+      | [] -> ()
+      | dead ->
+          List.iter
+            (fun (identity, id) ->
+              Hashtbl.remove waiting identity;
+              Option.iter (release_id identity) id)
+            dead;
+          prune_candidates ()
 
   (* Runs [fn] under the registry lock, on drained tables. *)
   let locked fn =
@@ -195,15 +224,26 @@ module Registry = struct
         drain ();
         fn ())
 
+  let take_candidates () =
+    List.sort_uniq
+      (fun a b -> Int.compare a.identity b.identity)
+      (List.filter_map
+         (fun weak ->
+           let c = Weak.get weak 0 in
+           Option.iter (fun c -> Atomic.set c.start_candidate false) c;
+           c)
+         (Atomic.exchange candidates []))
+
+  let waiting_count () = locked (fun () -> Hashtbl.length waiting)
+
   (* Queues a clock's entries for removal when it is collected. *)
   let watch c = Gc.finalise (fun c -> push dead (c.identity, clock_id c)) c
 
   let wait c =
     locked (fun () ->
         Hashtbl.remove running c.identity;
-        let weak = Weak.create 1 in
-        Weak.set weak 0 (Some c);
-        Hashtbl.replace waiting c.identity weak)
+        Hashtbl.replace waiting c.identity (weak c));
+    candidate c
 
   let run c =
     locked (fun () ->
@@ -215,9 +255,6 @@ module Registry = struct
     locked (fun () ->
         Hashtbl.remove waiting c.identity;
         Hashtbl.remove running c.identity)
-
-  let by_creation clocks =
-    List.sort (fun a b -> Int.compare a.identity b.identity) clocks
 
   let waiting_clocks () =
     locked (fun () ->

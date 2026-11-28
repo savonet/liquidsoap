@@ -9,6 +9,7 @@ let rec add_pending c source =
     (not (List.memq source pending))
     && not (Atomic.compare_and_set c.pending pending (pending @ [source]))
   then add_pending c source
+  else if is_top_level c then Registry.candidate c
 
 (* Outputs attached and not activated yet. Until its clock starts, nothing else
    may refer to an output, which must still start then: an output built in a
