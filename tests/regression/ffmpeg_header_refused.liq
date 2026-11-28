@@ -1,8 +1,6 @@
 %include "../test.liq"
 
-# A container header the muxer refuses fails the output. It used to count as
-# a fault of each item, reset by every frame that produced no packet, so the
-# output streamed nothing forever with one log line: here, an MP4 with
+# A container header the muxer refuses fails the output: here, an MP4 with
 # movflags that do not fragment it, to a pipe, which it cannot write without
 # seeking.
 

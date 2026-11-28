@@ -302,7 +302,8 @@ let packet_access_point t field ~key =
   if
     t.hls = None
     && (not (List.mem t.current.muxer marking_muxers))
-    && key
+    && key && t.direct = None
+    && (match t.format.F.output with `Stream -> true | _ -> false)
     && (video_fields t = [] || List.mem field (video_fields t))
   then (
     Av.flush_io t.current.output;
@@ -912,11 +913,16 @@ let () =
             (* A muxer that needs no file (image2, segment, hls, tee) opens
                its own files, from the output's file name. *)
             let opens_its_files =
-              match format.F.format with
-                | Some short_name -> (
-                    match Av.Format.guess_output_format ~short_name () with
-                      | Some muxer -> not (Av.Format.output_needs_file muxer)
-                      | None -> false)
+              let muxer =
+                match (format.F.format, sink.Encoder.name) with
+                  | Some short_name, _ ->
+                      Av.Format.guess_output_format ~short_name ()
+                  | None, Some filename ->
+                      Av.Format.guess_output_format ~filename ()
+                  | None, None -> None
+              in
+              match muxer with
+                | Some muxer -> not (Av.Format.output_needs_file muxer)
                 | None -> false
             in
             let file =

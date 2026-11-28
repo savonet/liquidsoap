@@ -373,7 +373,8 @@ let refusal { continuing; live; segmented; shared; _ } = function
       Some
         "an ID3v2 tag would land in the middle of the stream on this output: \
          remove the id3v2 parameter"
-  | FdkAacEnc { Fdkaac_format.transmux = `Adif; _ } when live || continuing ->
+  | FdkAacEnc { Fdkaac_format.transmux = `Adif; _ }
+    when live || continuing || segmented ->
       Some
         "transmux=\"adif\" has a single header at the start of its stream: it \
          cannot be read from the middle nor extended"

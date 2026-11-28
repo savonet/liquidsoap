@@ -1,8 +1,7 @@
 %include "../test.liq"
 
 # A configuration libFLAC would refuse is refused with the format: a literal
-# when the script is checked, a computed value when it is evaluated. It used to
-# reach the library, which wrote a 0-byte file and reported nothing.
+# when the script is checked, a computed value when it is evaluated.
 
 %ifencoder %flac
 samplerate = int_of_string("1000000")

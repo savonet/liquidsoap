@@ -1,9 +1,8 @@
 %include "../test.liq"
 
 # A reader starting mid-stream on a shared harbor mount gets the container
-# header first. With a codec that has a delay (AAC, LAME), the header used to
-# leave with the first bytes and never be captured, so late readers got
-# Matroska clusters with no EBML header.
+# header first, also with a codec that has a delay (AAC, LAME), whose header
+# leaves with the first bytes.
 
 port = 18461
 s = sine()

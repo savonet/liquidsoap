@@ -86,7 +86,10 @@ module Icecast = struct
       | Encoder.FdkAacEnc m ->
           {
             quality = None;
-            bitrate = Some m.Fdkaac_format.bitrate;
+            bitrate =
+              (match m.Fdkaac_format.bitrate_mode with
+                | `Variable _ -> None
+                | _ -> Some m.Fdkaac_format.bitrate);
             samplerate = Some (Deferred.force m.Fdkaac_format.samplerate);
             channels = Some m.Fdkaac_format.channels;
           }

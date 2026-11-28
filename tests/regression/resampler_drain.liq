@@ -1,8 +1,7 @@
 %include "../test.liq"
 
 # A writer converting the frame's rate drains its converter at the end: half a
-# second at 44.1 kHz written at 48 kHz holds 24000 samples, not the 23979 the
-# converter used to keep.
+# second at 44.1 kHz written at 48 kHz holds 24000 samples.
 
 def on_close(filename) =
   samples =

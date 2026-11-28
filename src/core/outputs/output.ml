@@ -320,6 +320,7 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
 
     (* A metadata at the end of a frame labels the next frame's first piece. *)
     val mutable pending_metadata = None
+    initializer self#on_stop (fun () -> pending_metadata <- None)
 
     (* What the source is playing: a writer built later starts with it. *)
     method private current_metadata =

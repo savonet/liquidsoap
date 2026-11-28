@@ -114,7 +114,7 @@ let add_entry index id chunk =
   Buffer.add_string index.entries (dword (length - 8));
   index.data_length <- index.data_length + length
 
-let complete (sink : Encoder.sink) ~header index seek =
+let complete_sizes (sink : Encoder.sink) ~header index seek =
   let header_length = String.length header in
   let idx1 = Buffer.contents index.entries in
   sink.write (Strings.of_list ["idx1"; dword (String.length idx1); idx1]);
@@ -139,6 +139,14 @@ let complete (sink : Encoder.sink) ~header index seek =
         patch (audio + 8 + 32) index.audio_samples
     | _ -> ());
   patch (header_length - 8) (4 + index.data_length)
+
+(* RIFF sizes are 32-bit: past 4 GiB, the file keeps the sizes of its streaming
+   form and has no index. *)
+let complete sink ~header index seek =
+  let total =
+    String.length header + index.data_length + 8 + Buffer.length index.entries
+  in
+  if total <= 0xffffffff then complete_sizes sink ~header index seek
 
 let writer avi { Encoder.capabilities; sink; _ } =
   let channels = avi.channels in
