@@ -539,8 +539,12 @@ What this encoder provides to them:
 The instance records the DTS of the first packet of each audio and video
 field, encoded or copied, in main ticks. Subtitle fields and the timed-ID3
 stream do not count: they may stay without a packet for long, and never
-start before media time 0. `initial_delay ()` answers none until every
-counted field has a first DTS, then `max 0 (−lowest first DTS)`. Reason:
+start before media time 0. `initial_delay ~final ()` answers
+`max 0 (−lowest first DTS)`, fields without a packet not counting:
+`Known` once every counted field has a first DTS, `Partial` before. With
+`~final:true` the codecs are flushed first, their packets held, and the
+answer is `Known`; the container's close does not flush them again. Once an
+offset is set, the answer is `Known` with it. Reason:
 DTS only increases within a stream, so its first packet's is its lowest,
 whatever the codec reports of its priming or reordering delay.
 
@@ -550,12 +554,13 @@ the container option `output_ts_offset` to `offset`, rounded up to the
 microsecond, on the current container and on every container a restart
 opens (§13), then releases the held packets: the muxer adds it to every
 packet, timed ID3 included. A container that closes before the offset is
-set uses the variant's own `initial_delay`, fields without a packet
-counting as 0, and logs it. A prepended ID3 tag's timestamp is `time + offset`.
+set uses the variant's own delay, after flushing its codecs, and logs it; a
+later `set_offset` applies to the next containers. A prepended ID3 tag's timestamp is `time + offset`.
 Media time, split times and the ordering of §8.2 do not include it.
 
-Before a packet reaches the muxer, its DTS plus the offset MUST be at least
-0; a packet below is a broken offset and the instance asserts. Reason:
+Before a packet reaches the muxer, its DTS plus the offset MUST be at least 0. A packet below is dropped and logged when its field had no first DTS
+when the offset was set; otherwise it is a broken offset and the instance
+asserts. Reason:
 MPEG-TS timestamps are 33-bit and wrap, so a negative one reads as a
 segment of 26 hours.
 

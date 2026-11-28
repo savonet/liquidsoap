@@ -34,15 +34,21 @@ output's.
    [encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 2. `init` once, before the first chunk.
 3. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
-4. Until the run's offset is set, after each chunk: `initial_delay ()` on
-   every variant. It answers how far before media time 0 the variant's
-   first timestamp lies, the lowest first DTS of its audio and video
-   streams, or none while one of them has produced no packet. Until the
-   offset is set the encoder holds its output: `init_encode` returns
-   `Pending`. Once every variant answers, or after 10 s of media time or at
-   a stop with the answers known so far (none counting as 0, and logged),
-   `set_offset` with the largest answer on every variant, and each
-   variant's first segment opens at media time 0. Every timestamp an
+4. Until the run's offset is set, after each chunk: `initial_delay
+~final:false ()` on every variant. It answers how far before media
+   time 0 the variant's first timestamp lies, the lowest first DTS of its
+   audio and video streams: `Known`, or `Partial` with the lowest so far
+   while one of them has produced no packet. Until the offset is set the
+   encoder holds its output: `init_encode` returns `Pending`, except after a
+   container restart, which writes the held output with the variant's own
+   offset. Once every variant answers `Known`, or after 10 s of media time,
+   or when an `Init` with pieces comes back first (the partial answers counting, and
+   logged), `set_offset` with the largest answer on every variant, and each
+   variant's first segment opens at media time 0. At a stop of a run with
+   media, `initial_delay ~final:true ()` flushes the codecs first, so that
+   every answer is `Known`; a failure there is logged and the stop goes on.
+   A packet of a stream that had none when the offset was set, and that
+   falls below it, is dropped and logged. Every timestamp an
    encoder writes, ID3 timestamps included, is media time plus the offset.
    Reason: one offset for all streams and variants keeps their timestamps
    matching (lip-sync, and RFC 8216 §6.2.4 across variants), and none is

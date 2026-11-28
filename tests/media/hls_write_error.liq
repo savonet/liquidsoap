@@ -182,6 +182,12 @@ def run() =
       end,
     segments_before
   )
+
+  # A segment may be in flight between its write and its rename.
+  wait_for(
+    "the in-flight temporary files",
+    {temp_files() == []}
+  )
   hls_test.check(
     temp_files() == [],
     "temporary files left: #{temp_files()}"

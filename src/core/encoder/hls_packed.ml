@@ -41,7 +41,7 @@ let make ~format (encoder : Encoder.encoder) : Encoder.hls_encoder =
       (fun ~time m ->
         let offset = Option.value ~default:0 !offset in
         Some (Hls_id3.make ~version:!version ~time:(time + offset) m));
-    initial_delay = (fun () -> Some 0);
+    initial_delay = (fun ~final:_ () -> `Known 0);
     set_offset = (fun o -> offset := Some o);
     hls_stop =
       (fun () ->

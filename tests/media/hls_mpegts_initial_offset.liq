@@ -37,7 +37,7 @@ def check_first_segment(name) =
   list.iter(
     fun (p) ->
       hls_test.check(
-        p.dts >= 0. and p.pts >= 0. and p.pts < 10.,
+        p.dts >= 0. and p.dts < 10. and p.pts >= 0. and p.pts < 10.,
         "#{seg.uri}: #{p.type} packet at pts #{p.pts}, dts #{p.dts}"
       ),
     packets

@@ -34,6 +34,7 @@ type container = {
   copy : Copy_encoder.t;
   tracks : (string * track) list;
   mutable streams_created : bool;
+  mutable flushed : bool;
   mutable wait_start : int option;
 }
 
@@ -48,11 +49,12 @@ type hls = {
   mutable id3_stream : (Avutil.output, [ `Data ], [ `Packet ]) Av.stream option;
   mutable id3_queue : (int * (unit -> unit)) list;
   mutable media_written : bool;
-  (* encoder.md §8.9: the audio and video fields, and the first DTS of those
-     that produced a packet. *)
+  (* encoder.md §8.9: the audio and video fields, the first DTS of those
+     that produced a packet, and those that had none when the offset was set. *)
   mutable counted : string list;
   mutable first_dts : (string * int) list;
   mutable offset : int option;
+  mutable late : string list;
 }
 
 (* [header] is the current container's header (encoder.md §10): [`Pending
@@ -224,6 +226,7 @@ let open_container ?interrupt
       copy;
       tracks;
       streams_created = false;
+      flushed = false;
       wait_start = None;
     }
   with exn -> release_and_raise exn
@@ -317,13 +320,8 @@ let release_packets ?all h =
 let own_delay h =
   List.fold_left (fun delay (_, dts) -> max delay (-dts)) 0 h.first_dts
 
-let rec set_offset t h offset =
-  h.offset <- Some offset;
-  apply_offset t h;
-  release_packets h
-
 (* encoder.md §8.9: the muxer adds the offset to every packet it writes. *)
-and apply_offset t h =
+let apply_offset t h =
   Option.iter
     (fun offset ->
       let micros =
@@ -336,6 +334,16 @@ and apply_offset t h =
         (Printf.sprintf "%dus" micros))
     h.offset
 
+let fix_offset t h offset =
+  h.offset <- Some offset;
+  h.late <-
+    List.filter (fun field -> not (List.mem_assoc field h.first_dts)) h.counted;
+  apply_offset t h
+
+let set_offset t h offset =
+  fix_offset t h offset;
+  release_packets h
+
 (* Before a container closes no packet may stay held: its write targets that
    container. A write that fails is logged and the others still go out. *)
 let rec drain_held t h =
@@ -344,7 +352,7 @@ let rec drain_held t h =
       t.log#important
         "Container closed before the output's offset was set: using this \
          variant's own";
-    set_offset t h (own_delay h));
+    fix_offset t h (own_delay h));
   match release_packets ~all:true h with
     | () -> ()
     | exception exn ->
@@ -353,16 +361,21 @@ let rec drain_held t h =
         drain_held t h
 
 (* encoder.md §8.9: the shared offset keeps every timestamp of the
-   container positive. *)
-let check_offset t field h dts =
+   container positive. Only a field without a first packet when the offset was
+   set may fall below it. *)
+let above_offset t field h dts =
   match (h.offset, dts) with
     | Some offset, Some dts when dts + offset < 0 ->
-        t.log#critical
-          "Track %s: DTS %.3fs is below the output's initial offset %.3fs" field
+        let log =
+          if List.mem field h.late then t.log#severe else t.log#critical
+        in
+        log "Track %s: DTS %.3fs is below the output's initial offset %.3fs"
+          field
           (Frame.seconds_of_main dts)
           (Frame.seconds_of_main offset);
-        assert false
-    | _ -> ()
+        assert (List.mem field h.late);
+        false
+    | _ -> true
 
 let record_first_dts h field dts =
   match dts with
@@ -375,11 +388,11 @@ let on_packet t field ~key ~time ~dts ~write =
   match t.hls with
     | Some h ->
         record_first_dts h field dts;
-        check_offset t field h dts;
-        Hls_order.push ~stream:(`Track field) ~time
-          ~write:(fun () -> write_packet t field ~key ~time ~write)
-          h.order;
-        release_packets h
+        if above_offset t field h dts then (
+          Hls_order.push ~stream:(`Track field) ~time
+            ~write:(fun () -> write_packet t field ~key ~time ~write)
+            h.order;
+          release_packets h)
     | None -> write_packet t field ~key ~time ~write
 
 let fail t exn =
@@ -474,13 +487,18 @@ let encode_frame t frame =
       | Avutil.Error _ as exn -> fail t exn);
   if length > 0 then t.position <- t.position + length
 
+let flush_codecs t =
+  let c = t.current in
+  if c.streams_created && not c.flushed then (
+    c.flushed <- true;
+    try
+      List.iter (fun track -> track.Encoded_stream.flush ()) (encoded_tracks c);
+      Copy_encoder.flush c.copy ~position:t.position
+    with exn -> t.log#severe "Draining failed: %s" (Printexc.to_string exn))
+
 let close_container t =
   let c = t.current in
-  (try
-     if c.streams_created then (
-       List.iter (fun track -> track.Encoded_stream.flush ()) (encoded_tracks c);
-       Copy_encoder.flush c.copy ~position:t.position)
-   with exn -> t.log#severe "Draining failed: %s" (Printexc.to_string exn));
+  flush_codecs t;
   Option.iter (drain_held t) t.hls;
   try close_output c
   with exn -> t.log#severe "Closing failed: %s" (Printexc.to_string exn)
@@ -744,13 +762,20 @@ let run_id3_queue h =
     release_packets h)
 
 (* encoder.md §8.9: known once every audio and video field produced a
-   packet. *)
-let initial_delay t h =
-  if
-    t.current.streams_created
-    && List.for_all (fun field -> List.mem_assoc field h.first_dts) h.counted
-  then Some (own_delay h)
-  else None
+   packet, or once flushed codecs produced all they will. *)
+let initial_delay t h ~final =
+  match h.offset with
+    | Some offset -> `Known offset
+    | None ->
+        if final then flush_codecs t;
+        if
+          final
+          || t.current.streams_created
+             && List.for_all
+                  (fun field -> List.mem_assoc field h.first_dts)
+                  h.counted
+        then `Known (own_delay h)
+        else `Partial (own_delay h)
 
 let hls_encode t h ~boundary frame =
   Hls_split.request h.split boundary;
@@ -881,6 +906,7 @@ let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
       counted = [];
       first_dts = [];
       offset = None;
+      late = [];
     }
   in
   let t = make ~hls:h ~pos ~name Frame.Metadata.Export.empty format in
@@ -901,7 +927,7 @@ let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
     split_encode =
       (fun ~boundary frame -> (hls_encode t h ~boundary frame).pieces);
     insert_id3 = (fun ~time m -> insert_id3 t h ~time m);
-    initial_delay = (fun () -> initial_delay t h);
+    initial_delay = (fun ~final () -> initial_delay t h ~final);
     set_offset = (fun offset -> set_offset t h offset);
     hls_stop = (fun () -> hls_stop t h);
     codec_attrs = (fun () -> codec_attrs t);

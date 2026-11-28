@@ -156,7 +156,7 @@ non-empty chunk, in order:
    ([segmenting.md §3](segmenting.md#3-applying-pieces)).
 4. Until the run's offset is set, the offset step of
    [encoder-contract.md §2](encoder-contract.md#2-calls-and-order). A stop
-   before it is set runs that step first.
+   before it is set runs that step first, final, when the run has media.
 
 ## 5. Methods and callbacks
 
