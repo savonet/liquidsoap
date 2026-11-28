@@ -84,7 +84,27 @@ let encoder ~pos wav { Encoder.capabilities; sink; name; _ } =
       Strings.of_list [header; s])
     else Strings.of_string s
   in
+  (* An existing stream of odd length ends on a pad byte: appended samples
+     replace it. *)
+  let continuation_checked = ref false in
+  let skip_pad_byte () =
+    continuation_checked := true;
+    match (sink.Encoder.read, sink.Encoder.size, sink.Encoder.seek) with
+      | Some read, Some size, Some seek
+        when wav.header && capabilities.Encoder.continuing ->
+          let size = size () in
+          let existing = read 0 header_length in
+          if size > header_length && same_header header existing then (
+            let data =
+              Int32.to_int (String.get_int32_le existing (header_length - 4))
+              land 0xffffffff
+            in
+            if data land 1 = 1 && size = header_length + data + 1 then
+              seek (size - 1))
+      | _ -> ()
+  in
   let encode frame =
+    if not !continuation_checked then skip_pad_byte ();
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
     let b, start, len =
@@ -105,10 +125,11 @@ let encoder ~pos wav { Encoder.capabilities; sink; name; _ } =
             sink.write (Strings.of_string "\000");
           rewrite_sizes sink ~header_length ~payload:!payload ~padding
       | true, Some read, Some size when capabilities.Encoder.continuing ->
-          if same_header header (read 0 header_length) then
-            rewrite_sizes sink ~header_length
-              ~payload:(size () - header_length)
-              ~padding:0
+          if same_header header (read 0 header_length) then (
+            let payload = size () - header_length in
+            let padding = payload land 1 in
+            if 0 < padding then sink.write (Strings.of_string "\000");
+            rewrite_sizes sink ~header_length ~payload ~padding)
           else
             log#severe
               "%s: the file does not start with a WAV header of this format, \
