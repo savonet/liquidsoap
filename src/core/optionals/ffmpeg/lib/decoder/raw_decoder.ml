@@ -20,11 +20,36 @@
 
  *****************************************************************************)
 
-let accessors () =
+(* One frame at [frame_rate], in [time_base]. *)
+let frame_period ~time_base ~frame_rate =
+  let { Avutil.num = tb_num; den = tb_den } = time_base
+  and { Avutil.num = fr_num; den = fr_den } = frame_rate in
+  if tb_num <= 0 || fr_num <= 0 then None
+  else (
+    match
+      Int64.(
+        div
+          (mul (of_int tb_den) (of_int fr_den))
+          (mul (of_int tb_num) (of_int fr_num)))
+    with
+      | d when d > 0L -> Some d
+      | _ -> None)
+
+(* A frame without a duration plays one frame at [frame_rate], so the last
+   frame of a track keeps a realistic length (common.md §6.3). *)
+let accessors ?frame_rate ~time_base () =
+  let fallback =
+    Option.bind frame_rate (fun frame_rate ->
+        frame_period ~time_base ~frame_rate)
+  in
   {
     Duration.get_ts = Avutil.Frame.pts;
     set_ts = (fun frame ts -> Avutil.Frame.set_pts frame ts);
-    get_duration = Avutil.Frame.duration;
+    get_duration =
+      (fun frame ->
+        match Avutil.Frame.duration frame with
+          | Some d when d > 0L -> Some d
+          | _ -> fallback);
   }
 
 (* Frames into chunks on the field: one duration helper per time base, a
@@ -39,7 +64,7 @@ type 'item chunker = {
   set_source : Source_id.t -> unit;
 }
 
-let chunker ?continuity ~faults ~put
+let chunker ?continuity ?frame_rate ~faults ~put
     ~(make_chunk :
        source_id:Source_id.t ->
        time_base:Avutil.rational ->
@@ -76,7 +101,8 @@ let chunker ?continuity ~faults ~put
           gap ~time_base (start - !filled);
           let h =
             Duration.create ?continuity ~start:(max start !filled)
-              ~convert_ts:false ~src:time_base ~faults (accessors ())
+              ~convert_ts:false ~src:time_base ~faults
+              (accessors ?frame_rate ~time_base ())
           in
           helper := Some (time_base, h);
           h
@@ -177,7 +203,12 @@ let video ~output ~faults ~log ~source_id ~format
             ~length
             (List.map (fun f -> (0, f)) frames)))
   in
-  let c = chunker ~faults ~put:output.Per_stream.put ~make_chunk () in
+  let frame_rate =
+    match stream.media with `Video (_, frame_rate) -> frame_rate | _ -> None
+  in
+  let c =
+    chunker ?frame_rate ~faults ~put:output.Per_stream.put ~make_chunk ()
+  in
   c.set_source source_id;
   let position = ref None in
   let outcome = ref `Ok in

@@ -402,7 +402,7 @@ class input ~kind ~url ~options ~format ~poll_delay ~timeout ~max_buffer
           | `Fault (exn, bt) ->
               self#log_fault ~bt
                 (Printf.sprintf "Feeding failed: %s" (self#describe exn));
-              Generator.add_track_mark self#buffer;
+              Decode_loop.end_track connection.loop connection.decoder_buffer;
               self#report ~bt exn);
         self#close_connection connection;
         self#schedule ~delay attempt)

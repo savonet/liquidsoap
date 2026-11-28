@@ -52,6 +52,11 @@ val create :
 val decode : t -> Decoder.buffer -> unit
 val eof : t -> Decoder.buffer -> unit
 
+(** Ends the track where its fields line up (decoder.md §13.1), without
+    draining: for an input that cannot be read further. [eof] ends its track the
+    same way after draining. *)
+val end_track : t -> Decoder.buffer -> unit
+
 (** [seek t x] moves [x] main ticks and returns the ticks moved. *)
 val seek : t -> int -> int
 
