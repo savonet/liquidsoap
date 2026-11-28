@@ -184,6 +184,8 @@ type hls_encoder = {
   init_encode : boundary:int -> Frame.t -> hls_init;
   split_encode : boundary:int -> Frame.t -> hls_piece list;
   insert_id3 : time:int -> Frame.Metadata.Export.t -> string option;
+  initial_delay : final:bool -> unit -> [ `Known of int | `Partial of int ];
+  set_offset : int -> unit;
   hls_stop : unit -> hls_ready;
   codec_attrs : unit -> string option;
   independent_segments : unit -> bool;
@@ -261,6 +263,8 @@ let protect_hls e =
     init_encode = (fun ~boundary f -> p (fun () -> e.init_encode ~boundary f));
     split_encode = (fun ~boundary f -> p (fun () -> e.split_encode ~boundary f));
     insert_id3 = (fun ~time m -> p (fun () -> e.insert_id3 ~time m));
+    initial_delay = (fun ~final () -> p (fun () -> e.initial_delay ~final ()));
+    set_offset = (fun offset -> p (fun () -> e.set_offset offset));
     hls_stop = (fun () -> p e.hls_stop);
     codec_attrs = (fun () -> p e.codec_attrs);
     independent_segments = (fun () -> p e.independent_segments);

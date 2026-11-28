@@ -641,11 +641,14 @@ val set_output_option : output container -> string -> string -> unit
 
 `set_output_option output name value` sets the option `name` of the
 output's muxer to `value`, searching the muxer's private options and their
-children (`av_opt_set` on the private data with `AV_OPT_SEARCH_CHILDREN`).
+children, then the I/O context's options (`pb`, and its protocol's), then
+the generic muxer options (`av_opt_set` on the format context with
+`AV_OPT_SEARCH_CHILDREN`, which searches children first).
 It is accepted on an open and on a started output, so a muxer option can
 change between two packet writes; a one-shot flag such as the mpegts muxer's
-`mpegts_flags=+resend_headers` takes effect at the next packet. A muxer with
-no such option, or with no private options, raises
+`mpegts_flags=+resend_headers` takes effect at the next packet, and
+`output_ts_offset` shifts the packets written after it. A name that is
+neither a generic nor a private option raises
 ``Error `Option_not_found``; an invalid value raises the mapped FFmpeg code.
 It is a setter: it takes the container exclusively and keeps the runtime
 lock.

@@ -19,6 +19,8 @@ With the HLS flag the instance runs in its HLS mode
 ([encoder.md §8](../../../optionals/ffmpeg/spec/encoder.md#8-hls)).
 The container header is the init segment.
 
+`initial_delay` and `set_offset`: [encoder.md §8.9](../../../optionals/ffmpeg/spec/encoder.md#89-initial-offset).
+
 ## 3. `init`
 
 By muxer: MPEG-TS, mode in-stream unless `id3 = false`; ADTS, MP3, AC-3

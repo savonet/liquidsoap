@@ -34,12 +34,33 @@ output's.
    [encoder.md §2](../../../encoder/spec/encoder.md#2-instances)).
 2. `init` once, before the first chunk.
 3. Per chunk: `init_encode` until it returns `Init`, then `split_encode`.
-4. At every segment open: `insert_id3` when the variant's ID3 mode is
+4. Until the run's offset is set, after each chunk: `initial_delay
+~final:false ()` on every variant. It answers how far before media
+   time 0 the variant's first timestamp lies, the lowest first DTS of its
+   audio and video streams: `Known`, or `Partial` with the lowest so far
+   while one of them has produced no packet. Until the offset is set the
+   encoder holds its output: `init_encode` returns `Pending`, except after a
+   container restart, which writes the held output with the variant's own
+   offset. Once every variant answers `Known`, or after 10 s of media time,
+   or when an `Init` with pieces comes back first (the partial answers counting, and
+   logged), `set_offset` with the largest answer on every variant, and each
+   variant's first segment opens at media time 0. At a stop of a run with
+   media, `initial_delay ~final:true ()` flushes the codecs first, so that
+   every answer is `Known`; a failure there is logged and the stop goes on.
+   A packet of a stream that had none when the offset was set, and that
+   falls below it, is dropped and logged. Every timestamp an
+   encoder writes, ID3 timestamps included, is media time plus the offset.
+   Reason: one offset for all streams and variants keeps their timestamps
+   matching (lip-sync, and RFC 8216 §6.2.4 across variants), and none is
+   negative, which MPEG-TS cannot store: its 33-bit timestamps wrap. The
+   first DTS is measured, not read from the codec: an encoder may report a
+   reordering delay below its real one.
+5. At every segment open: `insert_id3` when the variant's ID3 mode is
    prepended, also before the first `init_encode`, since the first segment
    opens first. `insert_id3` for in-stream ID3 at
    the times of [metadata.md §2](metadata.md#2-id3).
-5. `stop()` once, at the end of a run that ends on a `stop`.
-6. Properties (§6) after `init_encode` has returned `Init`.
+6. `stop()` once, at the end of a run that ends on a `stop`.
+7. Properties (§6) after `init_encode` has returned `Init`.
 
 Every instance serialises its own calls
 ([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)). The output never uses the encoder's

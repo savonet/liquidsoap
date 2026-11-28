@@ -63,8 +63,8 @@ val current : 'a t -> 'a option
     boundary at or after the media time, or an earlier pending sync. *)
 val request : 'a t -> int
 
-(** Opens a segment at the media time when none is open. *)
-val ensure_open : 'a t -> unit
+(** Opens a segment at [start], by default the media time, when none is open. *)
+val ensure_open : ?start:int -> 'a t -> unit
 
 val advance : 'a t -> int -> unit
 val add_bytes : 'a t -> Strings.t -> unit

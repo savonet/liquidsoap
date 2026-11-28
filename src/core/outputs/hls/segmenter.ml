@@ -182,10 +182,11 @@ let sync_cut t =
         cut t s ~cause:`Sync ~discontinuous:(List.exists snd due) latest
     | _ -> ()
 
-let ensure_open t =
+let ensure_open ?start t =
   if t.segment = None then
-    open_segment t ~start:t.media ~discontinuous:false ~bytes:Strings.empty
-      ~splits:[]
+    open_segment t
+      ~start:(Option.value ~default:t.media start)
+      ~discontinuous:false ~bytes:Strings.empty ~splits:[]
 
 let advance t length = t.media <- t.media + length
 

@@ -22,15 +22,16 @@
 
 module F = Liquidsoap_ffmpeg_formats.Encoder_format
 
-type on_packet = key:bool -> time:int option -> write:(unit -> unit) -> unit
+type on_packet =
+  key:bool -> time:int option -> dts:int option -> write:(unit -> unit) -> unit
 
 let encode (on_packet : on_packet) stream frame =
   Av.encode_packets stream frame (fun (info : Av.encoded_packet) packet ->
-      on_packet ~key:info.key
-        ~time:
-          (Option.bind info.pts
-             (Time_base.rescale_int64 ~src:info.time_base
-                ~dst:(Time_base.main ())))
+      let main ts =
+        Option.bind ts
+          (Time_base.rescale_int64 ~src:info.time_base ~dst:(Time_base.main ()))
+      in
+      on_packet ~key:info.key ~time:(main info.pts) ~dts:(main info.dts)
         ~write:(fun () -> Av.write_encoded_packet stream packet))
 
 let write_frame on_packet stream frame = encode on_packet stream (Some frame)
@@ -878,7 +879,7 @@ let subtitle ~(log : Log.t) ~pos ~field ~codec ~(s : F.subtitle) ~opts
         pts = Some (Int64.of_int pts);
       }
     in
-    on_packet ~key:true ~time:(Some abs) ~write:(fun () ->
+    on_packet ~key:true ~time:(Some abs) ~dts:(Some abs) ~write:(fun () ->
         Av.write_subtitle_frame (Option.get !stream)
           (Avutil.Subtitle.create_frame content))
   in

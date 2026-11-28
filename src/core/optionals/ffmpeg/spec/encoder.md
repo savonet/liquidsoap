@@ -87,11 +87,12 @@ In order:
      `"+frag_custom+dash+delay_moov"` (fragments are cut only when the
      encoder asks, §8.2).
    - `format="mpegts"`: container option `avoid_negative_ts` defaults to
-     `"disabled"`. Reason: the muxer would otherwise shift the timeline by
-     the first packet's negative timestamp, which is the codec's priming,
-     so variants of one output with different codecs (AAC-LC, HE-AAC) would
-     carry different timestamps for the same media time. MPEG-TS stores
-     timestamps after its own positive delay.
+     `"disabled"`. Reason: the muxer would otherwise shift each variant by
+     its own first timestamp, so variants of one output with different
+     codecs (AAC-LC, HE-AAC) would carry different timestamps for the same
+     media time; and it sets that shift from the first packet it receives,
+     which with non-interleaved writes need not be the lowest. The output's
+     shared offset (§8.9) keeps timestamps positive instead.
    - Every encoded video track: `+cgop` (closed GOP) is added to `flags`,
      combined the way step 1 combines the global-header flag, unless the
      written `flags` names `cgop` or is a number. Reason: every key frame is
@@ -391,6 +392,9 @@ can be useful:
    A candidate decided by a key packet that takes a candidate of its own is
    dropped in favour of that one: the two are one split point, and keeping
    both would leave a segment of a few packets between them.
+   The candidate before a stream's first packet in a container has the
+   container's start time, not the packet's: at the packet's time it would
+   cut a segment of the other streams' earlier packets alone.
 3. Bytes written after an undecided candidate are held by the instance and
    returned in order once it is decided; no byte is dropped.
 
@@ -525,6 +529,40 @@ What this encoder provides to them:
   20 s within one internal frame.
 - An MP4 variant: the init segment is non-empty and the first media
   segment holds the first frame.
+- Two MPEG-TS variants, AAC with H.264 with and without B-frames, 1 s
+  segments: no timestamp of either first segment is negative or wrapped,
+  each holds audio and video, and both start at the same audio and video
+  timestamps.
+
+### 8.9 Initial offset
+
+The instance records the DTS of the first packet of each audio and video
+field, encoded or copied, in main ticks. Subtitle fields and the timed-ID3
+stream do not count: they may stay without a packet for long, and never
+start before media time 0. `initial_delay ~final ()` answers
+`max 0 (−lowest first DTS)`, fields without a packet not counting:
+`Known` once every counted field has a first DTS, `Partial` before. With
+`~final:true` the codecs are flushed first, their packets held, and the
+answer is `Known`; the container's close does not flush them again. Once an
+offset is set, the answer is `Known` with it. Reason:
+DTS only increases within a stream, so its first packet's is its lowest,
+whatever the codec reports of its priming or reordering delay.
+
+Until the offset is set, no packet leaves the ordering of §8.2: the muxer
+receives nothing and the header is not written. `set_offset offset` sets
+the container option `output_ts_offset` to `offset`, rounded up to the
+microsecond, on the current container and on every container a restart
+opens (§13), then releases the held packets: the muxer adds it to every
+packet, timed ID3 included. A container that closes before the offset is
+set uses the variant's own delay, after flushing its codecs, and logs it; a
+later `set_offset` applies to the next containers. A prepended ID3 tag's timestamp is `time + offset`.
+Media time, split times and the ordering of §8.2 do not include it.
+
+Before a packet reaches the muxer, its DTS plus the offset MUST be at least 0. A packet below is dropped and logged when its field had no first DTS
+when the offset was set; otherwise it is a broken offset and the instance
+asserts. Reason:
+MPEG-TS timestamps are 33-bit and wrap, so a negative one reads as a
+segment of 26 hours.
 
 ## 9. Outputs with a URL or file target
 
