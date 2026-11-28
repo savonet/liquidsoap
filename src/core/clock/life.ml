@@ -480,18 +480,25 @@ let starts_by_itself c =
     | `Stopped (`Never_started | `No_sources) -> true
     | _ -> false
 
-let start_clocks clocks =
-  List.iter
-    (fun c ->
+(* A start that fails hands the clocks not started yet to the next pass. *)
+let rec start_clocks = function
+  | [] -> ()
+  | c :: rest as remaining ->
       if c.sync_mode <> `Passive && starts_by_itself c then (
-        try start_clock ~force:false c with Cannot_start _ -> ()))
-    clocks
+        try start_clock ~force:false c with
+          | Cannot_start _ -> ()
+          | error ->
+              let backtrace = Printexc.get_raw_backtrace () in
+              List.iter Registry.candidate remaining;
+              Printexc.raise_with_backtrace error backtrace);
+      start_clocks rest
 
-(* Starts the clocks that may start by themselves, among those that changed
-   since the last pass, and returns how many clocks are waiting. *)
+(* Examines the clocks that joined [waiting] or got a source since the last
+   pass, and returns how many. *)
 let start_pass () =
-  start_clocks (Registry.take_candidates ());
-  Registry.waiting_count ()
+  let clocks = Registry.take_candidates () in
+  start_clocks clocks;
+  List.length clocks
 
 (* Runs [fn], then a start pass for the clocks it created. *)
 let start_scope fn =

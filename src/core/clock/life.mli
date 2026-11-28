@@ -13,7 +13,7 @@ val start_sub : force:bool -> State.streaming -> State.clock -> unit
 
 val start : ?force:bool -> State.t -> unit
 
-(** Returns how many waiting clocks it examined. *)
+(** Returns how many clocks it examined. *)
 val start_pass : unit -> int
 
 val start_scope : (unit -> 'a) -> 'a
