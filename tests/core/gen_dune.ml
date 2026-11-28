@@ -60,6 +60,7 @@ let () =
   liquidsoap_core
   liquidsoap_builtins
   liquidsoap_optionals
+  liquidsoap_encoder_formats
   liquidsoap_ffmpeg
   ffmpeg-avutil
   ffmpeg-avcodec

@@ -1,6 +1,7 @@
 (library
  (name liquidsoap_opus)
  (libraries
+  liquidsoap_encoder_formats
   dtools
   liquidsoap_core
   liquidsoap_ogg

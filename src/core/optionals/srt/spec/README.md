@@ -69,8 +69,8 @@ mapped onto SRT's threads in [concurrency.md](concurrency.md). SRT's own:
 - **One predicate drives connections**: a role connects while the operator
   wants a connection and releases everything when it stops wanting one
   ([common.md §5](common.md#5-connection-wanted)).
-- **One connection carries one stream**, from its start or its header to
-  its end ([output.md §4](output.md#4-encoder)).
+- **One connection carries one stream**, from a stream start, or an access point
+  after its entry header, to its end ([output.md §4](output.md#4-encoder)).
 
 ## Reading order
 

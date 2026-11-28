@@ -74,12 +74,22 @@ object
   inherit output
   method private send_frame : Frame.t -> unit
   method virtual private encode : Frame.t -> 'a
+
+  (** The metadata in effect at the position the output has reached. *)
+  method private current_metadata : Frame.Metadata.t
+
+  (** The output's own reaction to a piece's metadata, given in full, before its
+      exported form is offered to the writer. *)
+  method private on_metadata : Frame.Metadata.t -> unit
+
+  (** Its exported form: what a writer built now starts with. *)
+  method private initial_metadata : Frame.Metadata.Export.t
+
   method virtual private encode_metadata : Frame.Metadata.Export.t -> unit
   method virtual private send : 'a -> unit
   method private reset : unit
   method virtual private start : unit
   method virtual private stop : unit
-  method private set_encoding_order : [ `Data_first | `Metadata_first ] -> unit
 end
 
 class dummy :

@@ -96,7 +96,7 @@ type state = Eos | Streaming | Bos
 
     Encoding:
 
-    - [create ~skeleton name] : create a new encoder
+    - [create name] : create a new encoder
     - [register_track encoder stream_encoder] : register a new track
     - ibid
     - (...)
@@ -120,8 +120,8 @@ type state = Eos | Streaming | Bos
     specifications of an ogg stream. This API reflects exactly what is
     recommended to do. *)
 
-(** Create a new encoder. Add an ogg skeleton if [skeleton] is [true]. *)
-val create : skeleton:bool -> string -> t
+(** Create a new encoder. *)
+val create : string -> t
 
 (** Get the state of an encoder. *)
 val state : t -> state

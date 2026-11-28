@@ -42,6 +42,7 @@ Specific to `output.harbor`:
 | `burst`                | int?                           | `65534`                 | Bytes of already-encoded stream a new listener receives first. Null: none. Shared mode only.                                                                                                                                                                            |
 | `headers`              | [(string, string)]             | `[]`                    | Extra response headers, fixed for the output ([connection.md §5](connection.md#5-the-response-head)). Request-dependent ones come from the decision's `headers`.                                                                                                        |
 | `dedicated_encoder`    | bool                           | `false`                 | Selects the encoder mode ([modes.md](modes.md)).                                                                                                                                                                                                                        |
+| `in_band_metadata`     | bool                           | `true`                  | Offer metadata in band to a writer that offers it, such as native `%ogg` ([output-harbor.md §4](../../../encoder/spec/output-harbor.md#4-pieces-and-metadata)). `false`: one logical stream, titles through ICY only.                                                   |
 | `allow_unsynced_clock` | bool                           | `false`                 | Allow running on a clock that is not paced in real time ([§7](#7-lifecycle)).                                                                                                                                                                                           |
 | `override_mount`       | bool                           | `false`                 | Advanced. Take over a mount another registration on the port already serves ([connection.md §1](connection.md#1-routing)).                                                                                                                                              |
 | `keep_listeners`       | bool                           | `false`                 | With a fallible source: when the source is unavailable the output stays started and keeps its listeners ([§7](#7-lifecycle)).                                                                                                                                           |
@@ -63,22 +64,31 @@ argument it names
    unsupported format fails with `No encoder found for that format`; no MIME
    type from either `format` or the encoder fails with
    `No format (mime) found, please specify one.` Both on the format argument.
-2. `mount` MUST NOT be empty.
-3. `metaint` and `buffer` MUST be positive; `timeout` MUST be positive.
-4. In shared mode, when `burst` is not null, `burst ≤ buffer`; otherwise the
+2. The format is checked against the output's declarations
+   ([output-harbor.md §1](../../../encoder/spec/output-harbor.md#1-formats-and-declarations)),
+   each refusal an invalid-value error on the format argument. In shared
+   mode a configuration that is not streamable is refused, and the message
+   names `dedicated_encoder=true` and, where the configuration takes it
+   (`%ffmpeg` with a muxer the writer does not know, `%external`), an
+   explicit `streamable=true` as the alternatives. Reason: a listener of a
+   shared stream starts mid-stream, and a configuration with no access
+   points gives it nothing it can decode.
+3. `mount` MUST NOT be empty.
+4. `metaint` and `buffer` MUST be positive; `timeout` MUST be positive.
+5. In shared mode, when `burst` is not null, `burst ≤ buffer`; otherwise the
    error is on `buffer`: `Maximum buffering inferior to burst length`. A burst
-   longer than the allowed lag would put a joiner in overflow on its first
+   longer than the allowed lag would put a new listener in overflow on its first
    write. In dedicated mode `burst` is ignored and MUST NOT be checked: its
    default is not null, so a check would reject valid dedicated scripts.
-5. Every pair of `headers` MUST have a name that is an HTTP token and a value
+6. Every pair of `headers` MUST have a name that is an HTTP token and a value
    with no CR or LF. A line break in a value would end the response head or
    inject headers. The same rule applies, at admission, to the headers of a
    decision's refusal and to its admit headers
    ([connection.md §4](connection.md#4-admission-predicate)).
-6. A non-empty `encoding` MUST name a charset the converter knows. An unknown
+7. A non-empty `encoding` MUST name a charset the converter knows. An unknown
    name would otherwise fail later, on the streaming path, at the first
    metadata.
-7. The output base checks that the source is infallible unless `fallible`
+8. The output base checks that the source is infallible unless `fallible`
    is true ([output.md §1](../output.md#1-common-parameters-methods-and-callbacks)),
    and unifies the frame types.
 
@@ -181,7 +191,7 @@ passive one fails with an error naming the clock, and
 **Start**:
 
 1. Check the clock, as above.
-2. Create the encoder state of the mode ([modes.md §7](modes.md#7-start)).
+2. Create the writer state of the mode ([modes.md §7](modes.md#7-start)).
 3. Create the delivery groups ([delivery.md §1](delivery.md#1-delivery-groups)).
 4. Register the mount on the port ([connection.md §1](connection.md#1-routing)).
    Registration takes effect when the server has started; before that it is
@@ -190,7 +200,7 @@ passive one fails with an error naming the clock, and
 **Stop**:
 
 1. Remove the mount's registration, so no new request reaches the output.
-2. Stop the encoder state of the mode and queue its final bytes for the
+2. End the writers of the mode clean and queue their final bytes for the
    listeners ([modes.md §8](modes.md#8-stop), [§11](modes.md#11-final-bytes)).
 3. Run one last delivery pass for every group
    ([delivery.md §7](delivery.md#7-stopping)), then mark every listener closed.
@@ -202,10 +212,17 @@ with both callbacks ([delivery.md §7](delivery.md#7-stopping)).
 
 **Restart.** A stop followed by a start, a reset included
 ([output.md §4](../output.md#4-reset)), creates new delivery groups and a new
-encoder state. The listener id counter and the last metadata
+writer state. The listener id counter and the last metadata
 ([icy.md §4](icy.md#4-cadence-and-change-detection)) are kept; no byte the
-previous encoder produced reaches a listener admitted after the restart
+previous writer produced reaches a listener admitted after the restart
 ([shared-encoder.md §7](shared-encoder.md#7-start)).
+
+**Writer faults.** An output fault of the shared writer ends it
+`abandoned`; the output keeps its listeners and builds a new writer from the
+first piece received `fault_retry_delay` after the fault, dropping the
+pieces in between. A fault of a dedicated listener's writer closes that
+listener only. The policy is
+[output-harbor.md §8](../../../encoder/spec/output-harbor.md#8-faults-and-restart-policy).
 
 **Process shutdown.** When the core is about to shut down, every listener of
 every `output.harbor` MUST be marked closed, from the shutdown hook itself:
@@ -237,7 +254,7 @@ unavailable source does not stop the output:
   response head and what the mode sends first
   ([modes.md §2](modes.md#2-initial-bytes)), without a burst of pre-gap stream
   ([shared-encoder.md §2](shared-encoder.md#2-initial-bytes));
-- when the source is available again the output serves again, and the encoder
+- when the source is available again the output serves again, and the writer
   follows the source as for any switch of source
   ([encoder-copy.md §12](../../../optionals/ffmpeg/spec/encoder-copy.md#12-source-switching-and-per-source-state));
 - the output stops only by `stop`, by `shutdown()` or by process shutdown, which

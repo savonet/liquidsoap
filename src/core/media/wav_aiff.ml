@@ -251,18 +251,52 @@ let int_string n =
   Bytes.set s 0 (char_of_int (n land 0xff));
   Bytes.set s 1 (char_of_int ((n land 0xff00) lsr 8));
   Bytes.set s 2 (char_of_int ((n land 0xff0000) lsr 16));
-  Bytes.set s 3 (char_of_int ((n land 0x7f000000) lsr 24));
+  Bytes.set s 3 (char_of_int ((n land 0xff000000) lsr 24));
   Bytes.unsafe_to_string s
 
+(* WAVEFORMATEXTENSIBLE speaker masks, by channel count, in the default
+   layout order (mono, stereo, 3.0, 4.0, 5.0, 5.1, 6.1, 7.1). *)
+let channel_mask = function
+  | 1 -> 0x4
+  | 2 -> 0x3
+  | 3 -> 0x7
+  | 4 -> 0x107
+  | 5 -> 0x37
+  | 6 -> 0x3f
+  | 7 -> 0x13f
+  | 8 -> 0x63f
+  | _ -> 0
+
+(* KSDATAFORMAT_SUBTYPE_PCM. *)
+let pcm_subformat =
+  "\x01\x00\x00\x00\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71"
+
+let max_size = 0xffffffff
+
 let wav_header ?len ~channels ~sample_rate ~sample_size () =
-  (* The data lengths are set to their maximum possible values. *)
-  let header_len, data_len =
-    match len with
-      | None -> ("\255\255\255\239", "\219\255\255\239")
-      | Some v -> (int_string (v + 36), int_string v)
+  (* The plain format tag is defined for at most two channels of at most 16
+     bits; readers take more channels' positions from the extensible mask. *)
+  let extensible = channels > 2 || sample_size > 16 in
+  let fmt =
+    let block_align = channels * sample_size / 8 in
+    let common =
+      short_string channels ^ int_string sample_rate
+      ^ int_string (channels * sample_rate * sample_size / 8)
+      ^ short_string block_align ^ short_string sample_size
+    in
+    if extensible then
+      int_string 40 ^ short_string 0xfffe ^ common ^ short_string 22
+      ^ short_string sample_size
+      ^ int_string (channel_mask channels)
+      ^ pcm_subformat
+    else int_string 16 ^ short_string 1 ^ common
   in
-  "RIFF" ^ header_len ^ "WAVEfmt " ^ int_string 16 ^ short_string 1
-  ^ short_string channels ^ int_string sample_rate
-  ^ int_string (* bytes per second *) (channels * sample_rate * sample_size / 8)
-  ^ short_string (* block size *) (channels * sample_size / 8)
-  ^ short_string sample_size ^ "data" ^ data_len
+  let header_length = 4 + 4 + 4 + 4 + String.length fmt + 4 + 4 in
+  (* With no length, the sizes readers take as "to the end of the stream". *)
+  let riff_size, data_size =
+    match len with
+      | None -> (max_size, max_size - (header_length - 8))
+      | Some v -> (min max_size (v + header_length - 8), min max_size v)
+  in
+  "RIFF" ^ int_string riff_size ^ "WAVEfmt " ^ fmt ^ "data"
+  ^ int_string data_size

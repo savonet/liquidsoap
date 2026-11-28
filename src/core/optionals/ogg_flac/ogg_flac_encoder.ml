@@ -24,7 +24,7 @@ external set_stream_eos : Ogg.Stream.stream -> unit
   = "liq_ocaml_ogg_stream_set_eos"
 
 let create_encoder ~flac ~comments () =
-  let samplerate = Lazy.Mutexed.force flac.Flac_format.samplerate in
+  let samplerate = Deferred.force flac.Flac_format.samplerate in
   let p =
     {
       Flac.Encoder.channels = flac.Flac_format.channels;
@@ -111,17 +111,16 @@ let create_encoder ~flac ~comments () =
 let create_flac = function
   | Ogg_format.Flac flac ->
       let reset ogg_enc m =
-        let comments =
-          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
-        in
-        let enc = create_encoder ~flac ~comments () in
+        let enc = create_encoder ~flac ~comments:(Ogg_encoder.comments m) () in
         Ogg_muxer.register_track ?fill:flac.Flac_format.fill ogg_enc enc
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in
-      let dst_freq = float (Lazy.Mutexed.force flac.Flac_format.samplerate) in
+      let dst_freq = float (Deferred.force flac.Flac_format.samplerate) in
       let channels = flac.Flac_format.channels in
-      let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      { Ogg_encoder.encode; reset; id = None }
+      let encode, drain =
+        Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
+      in
+      { Ogg_encoder.encode; reset; drain; id = None }
   | _ -> assert false
 
 let () = Hashtbl.replace Ogg_encoder.audio_encoders "flac" create_flac

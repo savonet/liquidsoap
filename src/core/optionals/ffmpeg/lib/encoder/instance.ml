@@ -29,7 +29,6 @@ type track =
 
 type container = {
   output : Avutil.output Avutil.container;
-  appended : Unix.file_descr option;
   muxer : string;
   copy : Copy_encoder.t;
   tracks : (string * track) list;
@@ -68,6 +67,10 @@ type t = {
   mutable header : [ `Pending of int | `Captured of Strings.t ];
   mutable link_start : int option;
   mutable returned_link_start : int option;
+  mutable access_points : int list;
+  mutable returned_access_points : int list;
+  direct : Encoder.sink option;
+  filename : string option;
   hls : hls option;
 }
 
@@ -91,87 +94,102 @@ let convert_container_opts pos opts =
     opts
 
 let non_drop format = List.filter (fun (_, t) -> t <> `Drop) format.F.streams
+let close_output c = Av.close c.output
 
-(* FFmpeg's [file] protocol has no append mode: [truncate] = 0 writes from the
-   start of the file. An appending file output writes through a descriptor
-   opened for appending; [output.file] asks for it with [truncate] = 0. *)
-let appended_path ~append (format : F.t) =
-  match format.output with
-    | `Url u
-      when String.starts_with ~prefix:"file:" u
-           && (append || List.assoc_opt "truncate" format.opts = Some (`Int 0))
-      ->
-        Some (String.sub u 5 (String.length u - 5))
-    | _ -> None
-
-let close_output c =
-  Fun.protect
-    ~finally:(fun () -> Option.iter Unix.close c.appended)
-    (fun () -> Av.close c.output)
+(* Muxers that tell the I/O what they write: a reader can start at the units
+   they mark as sync points, and the I/O is flushed around them. *)
+let marking_muxers =
+  ["matroska"; "webm"; "flv"; "asf"; "asf_stream"; "mxf"; "mpeg"; "vob"; "dvd"]
+  @ F.iso_family
 
 let open_container ?interrupt
-    ?(on_packet = fun _ ~key:_ ~time:_ ~write -> write ()) ~log ~(format : F.t)
-    ~pos ~buffer ?(append = false) () =
-  let appended_path = appended_path ~append format in
-  let opts =
-    Opts.of_list
-      (convert_container_opts pos
-         (if appended_path = None then format.opts
-          else List.remove_assoc "truncate" format.opts))
-  in
+    ?(on_packet = fun _ ~key:_ ~time:_ ~write -> write ())
+    ?(on_sync_point = fun () -> ()) ?direct ?filename ~log ~(format : F.t) ~pos
+    ~buffer () =
+  let opts = Opts.of_list (convert_container_opts pos format.opts) in
   let interleaved =
     match format.interleaved with
       | `True -> true
       | `False -> false
       | `Default -> List.length (non_drop format) > 1
   in
+  (* A named muxer is that muxer or none: a guess from the file name or the
+     MIME type would write another format than the script asked for. *)
   let guess () =
-    Av.Format.guess_output_format ?short_name:format.format
-      ?filename:(match format.output with `Url u -> Some u | `Stream -> None)
-      ?mime:format.mime_type ()
+    match format.format with
+      | Some short_name -> (
+          match Av.Format.guess_output_format ~short_name () with
+            | Some muxer when Av.Format.get_output_name muxer = short_name ->
+                Some muxer
+            | _ -> None)
+      | None ->
+          Av.Format.guess_output_format
+            ?filename:
+              (match format.output with
+                | `Url u -> Some u
+                | `Stream -> filename)
+            ?mime:format.mime_type ()
   in
-  let appended =
-    Option.map
-      (fun path ->
-        Unix.openfile path [Unix.O_WRONLY; Unix.O_APPEND; Unix.O_CREAT] 0o644)
-      appended_path
-  in
-  let close_appended () = Option.iter Unix.close appended in
   let output =
-    try
-      match (format.output, appended) with
-        | `Url _, Some fd -> (
-            match guess () with
-              | None ->
-                  error ?pos "No ffmpeg format could be found for this file"
-              | Some muxer ->
-                  Av.open_output_stream ~opts ~interleaved
-                    (fun bytes offset length ->
-                      Unix.write fd bytes offset length)
-                    muxer)
-        | `Stream, _ -> (
-            match (format.format, guess ()) with
-              | None, _ -> error ?pos "Format is required!"
-              | Some f, None ->
-                  error ?pos
-                    (Printf.sprintf
-                       "No ffmpeg format could be found for format=%S" f)
-              | Some _, Some muxer ->
-                  let write bytes offset length =
-                    Buffer.add_subbytes buffer bytes offset length;
-                    length
-                  in
-                  Av.open_output_stream ~opts ~interleaved write muxer)
-        | `Url url, None ->
-            Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
-    with exn ->
-      close_appended ();
-      raise exn
+    match format.output with
+      | `Stream -> (
+          match (format.format, guess ()) with
+            | None, None -> error ?pos "Format is required!"
+            | Some f, None ->
+                error ?pos
+                  (Printf.sprintf
+                     "No ffmpeg format could be found for format=%S" f)
+            | _, Some muxer when direct <> None ->
+                let sink : Encoder.sink = Option.get direct in
+                let sink_seek = Option.get sink.seek in
+                let position = ref 0 in
+                let write bytes offset length =
+                  sink.write
+                    (Strings.of_string (Bytes.sub_string bytes offset length));
+                  position := !position + length;
+                  length
+                in
+                let seek offset whence =
+                  (position :=
+                     match (whence, sink.size) with
+                       | Unix.SEEK_SET, _ -> offset
+                       | Unix.SEEK_CUR, _ -> !position + offset
+                       | Unix.SEEK_END, Some size -> size () + offset
+                       | Unix.SEEK_END, None ->
+                           failwith "the destination has no known size");
+                  sink_seek !position;
+                  !position
+                in
+                (* What the muxer reads back when it moves data in its
+                     output: up to [length] bytes, fewer at the end. *)
+                let read_back =
+                  Option.map
+                    (fun read offset buffer length ->
+                      let data = read offset length in
+                      Bytes.blit_string data 0 buffer 0 (String.length data);
+                      String.length data)
+                    sink.read
+                in
+                Av.open_output_stream ~opts ~interleaved ~seek ?read_back write
+                  muxer
+            | _, Some muxer ->
+                let write bytes offset length =
+                  Buffer.add_subbytes buffer bytes offset length;
+                  length
+                in
+                let marker kind _ =
+                  match kind with
+                    | Av.Sync_point -> on_sync_point ()
+                    | Av.Header | Av.Boundary_point | Av.Unknown | Av.Trailer ->
+                        ()
+                in
+                Av.open_output_stream ~opts ~interleaved ~marker write muxer)
+      | `Url url ->
+          Av.open_output ?interrupt ?format:(guess ()) ~interleaved ~opts url
   in
   (match Opts.unused_message [("container", opts)] with
     | Some message ->
         (try Av.close output with _ -> ());
-        close_appended ();
         error ?pos message
     | None -> ());
   let muxer =
@@ -179,7 +197,6 @@ let open_container ?interrupt
   in
   let release_and_raise exn =
     (try Av.close output with _ -> ());
-    close_appended ();
     raise exn
   in
   try
@@ -212,15 +229,7 @@ let open_container ?interrupt
                        ~on_packet:(on_packet field) encoded output) ))
         format.streams
     in
-    {
-      output;
-      appended;
-      muxer;
-      copy;
-      tracks;
-      streams_created = false;
-      wait_start = None;
-    }
+    { output; muxer; copy; tracks; streams_created = false; wait_start = None }
   with exn -> release_and_raise exn
 
 let copy_tracks c =
@@ -233,6 +242,8 @@ let reset t =
   Buffer.clear t.buffer;
   t.returned_link_start <- t.link_start;
   t.link_start <- None;
+  t.returned_access_points <- List.rev t.access_points;
+  t.access_points <- [];
   match t.header with `Pending _ -> t.header <- `Pending 0 | `Captured _ -> ()
 
 let take t =
@@ -240,19 +251,22 @@ let take t =
   reset t;
   Strings.of_string s
 
-(* The pending bytes handed to [f] straight from [buffer], which keeps its
-   capacity: nothing is allocated. *)
-let take_into t f =
-  Fun.protect
-    ~finally:(fun () -> reset t)
-    (fun () ->
-      f
-        {
-          Encoder.length = Buffer.length t.buffer;
-          blit =
-            (fun offset destination destination_offset length ->
-              Buffer.blit t.buffer offset destination destination_offset length);
-        })
+(* The container header is written as soon as its streams exist and captured
+   from the bytes since [`Pending start]: waiting for the first packet would
+   capture nothing for a codec with a delay, whose first frame's bytes have
+   already been taken by then. *)
+let capture_header t =
+  match (t.header, t.hls) with
+    | `Pending _, Some _ ->
+        Av.write_header t.current.output;
+        t.header <- `Captured Strings.empty
+    | `Pending start, None ->
+        Av.write_header t.current.output;
+        t.header <-
+          `Captured
+            (Strings.of_string
+               (Buffer.sub t.buffer start (Buffer.length t.buffer - start)))
+    | `Captured _, _ -> ()
 
 let hls_flush t () =
   Av.flush t.current.output;
@@ -265,22 +279,42 @@ let encoded_video t =
       | field, `Encode { F.options = `Video _; _ } -> Some field | _ -> None)
     t.format.F.streams
 
+(* The video streams: the encoded ones, and the copied ones by their name. *)
+let video_fields t =
+  List.filter_map
+    (function
+      | field, `Encode { F.options = `Video _; _ } -> Some field
+      | field, `Copy _ when String.starts_with ~prefix:"video" field ->
+          Some field
+      | _ -> None)
+    t.format.F.streams
+
+(* The next byte written starts a unit a reader can start at. *)
+let access_point t =
+  let offset = Buffer.length t.buffer in
+  if List.nth_opt t.access_points 0 <> Some offset then
+    t.access_points <- offset :: t.access_points
+
+(* A muxer that does not mark its output writes one packet after the other:
+   with the I/O flushed between two packets, a reader can start at a key packet
+   of the video, or at any packet of a stream without video. *)
+let packet_access_point t field ~key =
+  if
+    t.hls = None
+    && (not (List.mem t.current.muxer marking_muxers))
+    && key && t.direct = None
+    && (match t.format.F.output with `Stream -> true | _ -> false)
+    && (video_fields t = [] || List.mem field (video_fields t))
+  then (
+    Av.flush_io t.current.output;
+    access_point t)
+
 (* Runs when a packet is due at the muxer: at once outside HLS, in media-time
    order in HLS mode (encoder.md §8.2). The bytes before the first packet are
-   the header; the bindings would only write it with that packet, so it is
-   written here. *)
+   the header, written once the streams exist (capture_header). *)
 let write_packet t field ~key ~time ~write =
-  (match (t.header, t.hls) with
-    | `Pending _, Some _ ->
-        Av.write_header t.current.output;
-        t.header <- `Captured Strings.empty
-    | `Pending start, None ->
-        Av.write_header t.current.output;
-        t.header <-
-          `Captured
-            (Strings.of_string
-               (Buffer.sub t.buffer start (Buffer.length t.buffer - start)))
-    | _ -> ());
+  capture_header t;
+  packet_access_point t field ~key;
   match (t.hls, time) with
     | Some h, Some time ->
         h.media_written <- true;
@@ -358,6 +392,9 @@ let create_streams t frame =
                    { Avutil.num = 1; den = Lazy.Mutexed.force Frame.audio_rate }
                  ~codec:`Timed_id3 c.output)
       | _ -> ());
+    (* A header the muxer refuses is not an item fault: every later packet
+       would be refused the same way. *)
+    (try capture_header t with exn -> fail t exn);
     t.state <- `Started)
   else (
     let start = Option.value ~default:t.position c.wait_start in
@@ -395,7 +432,7 @@ let encode_frame t frame =
                   (Frame.Fields.string_of_field field)
                   (match c.muxer with "" -> "container" | muxer -> muxer)
                   reason header source))
-      | Avutil.Error _ as exn -> fail t exn);
+      | exn -> fail t exn);
   if length > 0 then t.position <- t.position + length
 
 let close_container t =
@@ -448,8 +485,10 @@ let hls_restart t h =
 let restart t =
   close_container t;
   t.current <-
-    open_container ?interrupt:t.interrupt ~on_packet:(on_packet t) ~log:t.log
-      ~format:t.format ~pos:t.pos ~buffer:t.buffer ~append:true ();
+    open_container ?interrupt:t.interrupt ~on_packet:(on_packet t)
+      ~on_sync_point:(fun () -> access_point t)
+      ?direct:t.direct ?filename:t.filename ~log:t.log ~format:t.format
+      ~pos:t.pos ~buffer:t.buffer ();
   t.header <- `Pending (Buffer.length t.buffer);
   t.link_start <- Some (Buffer.length t.buffer);
   t.position <- 0;
@@ -483,10 +522,6 @@ let encode t frame =
   encode_pending t frame;
   take t
 
-let encode_into t frame f =
-  encode_pending t frame;
-  take_into t f
-
 let encode_metadata t m =
   let m = Frame.Metadata.Export.to_list m in
   t.metadata <-
@@ -512,7 +547,7 @@ let stop t =
         t.state <- `Stopped;
         take t
 
-let make ?hls ?interrupt ~pos ~name metadata format =
+let make ?hls ?interrupt ?direct ?filename ~pos ~name metadata format =
   let log = Log.make ["ffmpeg"; "encoder"; name] in
   let buffer =
     match hls with
@@ -525,6 +560,7 @@ let make ?hls ?interrupt ~pos ~name metadata format =
       | Some t -> on_packet t field ~key ~time ~write
       | None -> write ()
   in
+  let on_sync_point () = Option.iter access_point !self in
   let t =
     {
       log;
@@ -534,12 +570,17 @@ let make ?hls ?interrupt ~pos ~name metadata format =
       buffer;
       metadata = format.F.metadata;
       current =
-        open_container ?interrupt ~on_packet:hook ~log ~format ~pos ~buffer ();
+        open_container ?interrupt ~on_packet:hook ~on_sync_point ?direct
+          ?filename ~log ~format ~pos ~buffer ();
       state = `Built;
       position = 0;
       header = `Pending 0;
       link_start = None;
       returned_link_start = None;
+      access_points = [];
+      returned_access_points = [];
+      direct;
+      filename;
       hls;
     }
   in
@@ -643,16 +684,7 @@ let mp4_init_length buffer offset =
   in
   scan offset
 
-let init_mode t ?id3 () =
-  match (t.current.muxer, id3) with
-    | "", _ -> Error "a format is required"
-    | "mpegts", Some false -> Ok `None
-    | "mpegts", _ -> Ok `In_stream
-    | m, Some false when List.mem m packed_audio ->
-        Error "packed audio requires ID3 (RFC 8216 §3.4)"
-    | m, _ when List.mem m packed_audio -> Ok `Prepended
-    | _, Some true -> Error "the format carries no HLS ID3 metadata"
-    | _ -> Ok `None
+let init_mode t ?id3 () = Encoder.hls_id3_mode ?id3 (Encoder.Ffmpeg t.format)
 
 (* Tags are ordered with the media: written straight away, a tag would come
    before media still held behind the video encoder's latency. *)
@@ -741,10 +773,13 @@ let codec_attrs t =
     None)
 
 let bitrate t =
-  let rates = List.map (fun a -> a.bitrate) (streams_attrs t) in
-  if rates <> [] && List.for_all Option.is_some rates then
-    Some (List.fold_left (fun sum b -> sum + Option.get b) 0 rates)
-  else None
+  match F.explicit_bitrate t.format with
+    | Some bitrate -> Some bitrate
+    | None ->
+        let rates = List.map (fun a -> a.bitrate) (streams_attrs t) in
+        if rates <> [] && List.for_all Option.is_some rates then
+          Some (List.fold_left (fun sum b -> sum + Option.get b) 0 rates)
+        else None
 
 let video_size t =
   match List.filter_map (fun a -> a.video_size) (streams_attrs t) with
@@ -818,24 +853,94 @@ let create_hls ~pos ~segment_duration ~name format : Encoder.hls_encoder =
     hls_video_size = (fun () -> video_size t);
   }
 
-let create ?interrupt ~pos ~name metadata format =
-  let t = make ?interrupt ~pos ~name metadata format in
+let create ?interrupt ?direct ?filename ~pos ~name metadata format =
+  let t = make ?interrupt ?direct ?filename ~pos ~name metadata format in
   {
     Encoder.encode_metadata = encode_metadata t;
     header =
       (fun () ->
         match t.header with `Captured h -> h | `Pending _ -> Strings.empty);
     encode = encode t;
-    encode_into = Some (encode_into t);
+    access_points = Some (fun () -> t.returned_access_points);
     stop = (fun () -> stop t);
     bitrate = (fun () -> bitrate t);
     restart_offset = (fun () -> t.returned_link_start);
   }
 
+(* An ISO file that is not a file written from its first byte can only be
+   read when fragmented: a movie box first, then fragments that start at a key
+   frame of the video, or of one second of audio. Explicit [movflags] are the
+   script's. *)
+let fragmented (format : F.t) =
+  let iso =
+    match format.format with
+      | Some muxer -> List.mem muxer F.iso_family
+      | None -> false
+  in
+  let has_video =
+    List.exists
+      (function
+        | _, `Encode { F.options = `Video _; _ } -> true
+        | field, `Copy _ -> String.starts_with ~prefix:"video" field
+        | _ -> false)
+      format.streams
+  in
+  if (not iso) || List.mem_assoc "movflags" format.opts then format
+  else if has_video then
+    {
+      format with
+      opts =
+        F.set format.opts "movflags"
+          (`String "+frag_keyframe+empty_moov+default_base_moof");
+    }
+  else
+    {
+      format with
+      opts =
+        F.set
+          (F.set format.opts "movflags"
+             (`String "+empty_moov+default_base_moof"))
+          "frag_duration" (`Int 1_000_000);
+    }
+
 let () =
   Plug.register Encoder.plug "ffmpeg" ~doc:"FFmpeg encoder." (function
     | Encoder.Ffmpeg format ->
-        Some (fun ~pos name metadata -> create ~pos ~name metadata format)
+        Some
+          (fun { Encoder.pos; name; capabilities; sink; initial_metadata } ->
+            (* A file written from its first byte: the muxer writes and seeks
+               in the sink itself, and completes its header at the end. *)
+            (* A muxer that needs no file (image2, segment, hls, tee) opens
+               its own files, from the output's file name. *)
+            let opens_its_files =
+              let muxer =
+                match (format.F.format, sink.Encoder.name) with
+                  | Some short_name, _ ->
+                      Av.Format.guess_output_format ~short_name ()
+                  | None, Some filename ->
+                      Av.Format.guess_output_format ~filename ()
+                  | None, None -> None
+              in
+              match muxer with
+                | Some muxer -> not (Av.Format.output_needs_file muxer)
+                | None -> false
+            in
+            let file =
+              Encoder.file_form capabilities && sink.Encoder.seek <> None
+            in
+            let direct =
+              if file && not opens_its_files then Some sink else None
+            in
+            let format =
+              match sink.Encoder.name with
+                | Some filename when opens_its_files ->
+                    { format with F.output = `Url filename }
+                | _ -> if file then format else fragmented format
+            in
+            Encoder.writer_of_encoder
+              (create ?direct ?filename:sink.Encoder.name ~pos ~name
+                 initial_metadata format)
+              sink)
     | _ -> None);
   Plug.register Encoder.hls_plug "ffmpeg" ~doc:"FFmpeg HLS segments." (function
     | Encoder.Ffmpeg format when segment_muxer format.F.format ->

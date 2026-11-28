@@ -317,11 +317,9 @@ CAMLprim value ocaml_ogg_stream_pageout(value o_stream_state, value fill) {
   ogg_page og;
   int ret;
 
-#ifdef HAVE_PAGEOUT_FILL
   if (fill != Val_unit)
     ret = ogg_stream_pageout_fill(os, &og, Int_val(fill));
   else
-#endif
     ret = ogg_stream_pageout(os, &og);
 
   if (!ret)

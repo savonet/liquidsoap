@@ -1,35 +1,44 @@
 # Packed-audio encoders with ID3 timestamps
 
-Part A. `%mp3`, `%shine` and `%fdkaac` write raw MPEG audio or ADTS. One adapter
-around their plain encoding function implements the seam. Sections follow
+Part A. `%mp3`, `%shine` and `%fdkaac` with ADTS transport write raw MPEG
+audio or ADTS. Each is a single-stream writer; on a `segmented(D)` sink it
+offers the segmenting face itself
+([encoder.md §4](../../../encoder/spec/encoder.md#4-the-segmenting-face)),
+with no inner writer and none built at evaluation. Sections follow
 [encoder-contract.md](encoder-contract.md).
 
 ## 1. Role
 
 RFC 8216 §3.4 requires every packed-audio segment to start with an ID3 tag
-holding its timestamp. These encoders build that tag.
+holding its timestamp. These writers build that tag.
 
 ## 2. Calls and order
 
-As the contract. The adapter counts media time as the sum of the chunk
-lengths it has encoded.
+As the contract. The writer counts media time as the sum of the chunk
+lengths it has received.
 
-## 3. `init`
+## 3. ID3 mode
 
-ID3 mode prepended. `id3 = false` is rejected
-([encoder-contract.md §3](encoder-contract.md#3-init)). `id3_version` is
-recorded, default 3.
+Declared `prepended`. `id3 = false` is rejected
+([encoder-contract.md §3](encoder-contract.md#3-id3-mode)). The variant's
+`id3_version` is used, default 3.
 
-## 4. `init_encode`
+The format's own ID3v2 preamble is never written on a segmented sink, and an
+explicit one (`%mp3(id3v2=…)`) is refused at construction
+([mp3.md §2](../../../encoder/spec/mp3.md#2-declarations)): the tag that
+starts each segment is this contract's (§7).
 
-The first call returns `Init (none, [Bytes (encode chunk)])`: no init
-segment.
+## 4. The first stream start
 
-## 5. `split_encode`
+The writer's first item is a stream start with an empty header
+(`header_length` 0): no init segment.
 
-Returns `[Split {time = media time before this chunk}; Bytes (encode
-chunk)]`: every chunk start is a split point. MPEG
-audio and ADTS frames decode on their own, bit reservoir aside.
+## 5. Access points and restarts
+
+Every frame boundary is an access point, with the media time of the
+frame's first sample ([mp3.md §12](../../../encoder/spec/mp3.md#12-segmenting-face)):
+MPEG audio and ADTS frames decode on their own, bit reservoir aside. No
+restart.
 
 ## 6. Properties
 
@@ -40,12 +49,12 @@ are true.
 
 ## 7. `insert_id3`
 
-Always returns a tag, also with empty metadata: ID3v2 of the recorded
+Always returns a tag, also with empty metadata: ID3v2 of the variant's
 version, with these frames:
 
-1. One text frame per metadata entry whose key maps to an ID3 frame id
-   (`title` → `TIT2`, …); others are dropped. Text is UTF-16 with BOM for
-   version 3 and below, UTF-8 for version 4.
+1. One text frame per metadata entry whose key maps to an ID3 frame, as
+   [mp3.md §7.2](../../../encoder/spec/mp3.md#72-id3v2-rendering) renders
+   them (key table, text encodings, frame sizes); other keys are dropped.
 2. A `PRIV` frame: the owner `com.apple.streaming.transportStreamTimestamp`
    with its terminating zero byte, then the timestamp as 8 bytes
    big-endian, its upper 31 bits zero.
@@ -76,7 +85,9 @@ The audio frames follow.
 
 ## 8. Stop
 
-`stop()` returns no init and `[Bytes]` of the encoder's own final bytes.
+`end(clean)` writes the writer's final frames and their access points
+([encoder.md §3.6](../../../encoder/spec/encoder.md#36-draining-and-final-bytes)).
+No init segment: §4.
 
 ## 9. Conformance
 

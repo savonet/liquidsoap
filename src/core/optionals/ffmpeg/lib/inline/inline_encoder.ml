@@ -88,7 +88,7 @@ let audio ~(log : Log.t) ~(encoded : F.encoded) ~(a : F.audio) :
  fun output ~input ->
   let faults = Faults.create log in
   let kind = Frame.Fields.string_of_field output.field in
-  let rate = Lazy.Mutexed.force a.samplerate in
+  let rate = Deferred.force a.samplerate in
   let target_tb = per_unit rate in
   let record, base, start = join input ~unit:target_tb in
   let source_id = Source_ids.id record in
@@ -218,8 +218,8 @@ let video ~(log : Log.t) ~(encoded : F.encoded) ~(v : F.video) :
   let input_width, input_height =
     Content.Video.dimensions_of_format input_format
   in
-  let width = Lazy.Mutexed.force v.width in
-  let height = Lazy.Mutexed.force v.height in
+  let width = Deferred.force v.width in
+  let height = Deferred.force v.height in
   let frame_rate = Time_base.frame_rate v.framerate in
   let codec =
     match encoded.mode with

@@ -194,7 +194,7 @@ When a source client sends both forms the first one received wins. A value
 containing a line break MUST be dropped: it would end the response head.
 The identity belongs to the mount's current feeder, not to the mount output:
 the server builds the `icy-*` headers for each listener reply from the
-feeder at that moment, so a listener that joins after a source client
+feeder at that moment, so a listener that connects after a source client
 reconnected with other headers gets the new ones. What the identity is while
 no source client feeds the mount is [mounts.md §4](mounts.md#4-the-mount-output)'s.
 
@@ -379,7 +379,7 @@ Every other rule holds under every value.
   `mount_remove` fire once each, to their own URL, with the fields above.
 - Identity headers reach listeners under the `icy-*` names and a header with a
   line break does not; the packets of a stream are relayed byte-identical. A
-  listener joining after the source client reconnected with a new `ice-name`
+  listener connecting after the source client reconnected with a new `ice-name`
   gets the new `icy-name`.
 - Admin requests: a mount command is served with the source's credentials, or
   the admin's when `admin_password` is set, whether or not it is set; an admin

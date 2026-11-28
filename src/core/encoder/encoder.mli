@@ -22,7 +22,7 @@
 
 (** Common infrastructure for encoding streams *)
 
-type format =
+type format = Format_value.t =
   | WAV of Wav_format.t
   | AVI of Avi_format.t
   | NDI of Ndi_format.t
@@ -56,11 +56,6 @@ val video_size : format -> (int * int) option
 (** Bitrate estimation in bits per second. *)
 val bitrate : format -> int
 
-(** The bytes of one encoder output, readable only during the call that hands
-    them over: [blit offset destination destination_offset length] copies a
-    range of them. *)
-type output = { length : int; blit : int -> bytes -> int -> int -> unit }
-
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
     is really meant for inline metadata, i.e. in most cases, stream sources.
@@ -79,20 +74,19 @@ type output = { length : int; blit : int -> bytes -> int -> int -> unit }
     link after a metadata change); [None] when those bytes start none. A
     streaming output starts a late listener there rather than before it.
 
-    [encode_into frame f], when given, encodes as [encode] does and hands the
-    bytes to [f] instead of returning them, so that the caller copies them where
-    it keeps them, with no allocation. *)
+    [access_points ()], when given, are the offsets, in the bytes the latest
+    [encode] or [stop] returned, at which a reader can start; an encoder that
+    gives none returns whole units, and a reader can start at the first byte of
+    each call's output. *)
 type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
-  encode_into : (Frame.t -> (output -> unit) -> unit) option;
+  access_points : (unit -> int list) option;
   stop : unit -> Strings.t;
   bitrate : unit -> int option;
   restart_offset : unit -> int option;
 }
-
-type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 
 (** The HLS encoder seam (spec of the HLS output, encoder-contract.md). Times
     are media time of the run, in main ticks. [init] answers the variant's ID3
@@ -132,18 +126,138 @@ type hls_encoder = {
 type hls_factory =
   pos:Pos.t option -> segment_duration:float -> string -> hls_encoder
 
-(** A plugin might or might not accept a given format. If it accepts it, it
-    gives a function creating suitable encoders. *)
-type plugin = format -> factory option
+(** {1 Writers}
+
+    A writer writes whole units into a sink its output owns: every [write] of
+    the sink ends on a unit boundary, and markers sit between writes. Times are
+    media times of the writer's run, in main ticks. *)
+
+type stream_start = {
+  header_length : int option;
+      (** The header is the bytes that follow; [None] when the writer cannot
+          tell. *)
+  time : int;
+}
+
+type marker = [ `Stream_start of stream_start | `Access_point of int | `End ]
+
+type sink = {
+  write : Strings.t -> unit;
+  mark : marker -> unit;  (** Refers to the next byte written. *)
+  seek : (int -> unit) option;
+  read : (int -> int -> string) option;  (** [read offset length] *)
+  size : (unit -> int) option;  (** Bytes the destination holds. *)
+  name : string option;
+      (** The destination's name, for a writer that guesses its format from one.
+      *)
+}
+
+(** What the destination is, known when a writer is created. *)
+type capabilities = {
+  seekable : bool;
+  continuing : bool;  (** It holds a stream that this writer extends. *)
+  live : bool;  (** Readers start in the middle of the stream. *)
+  segmented : bool;  (** The output cuts the stream into segments. *)
+  shared : bool;  (** One stream serves readers that start in its middle. *)
+}
+
+(** A destination written once from its first byte: a pipe, a process, a new
+    file that cannot seek. *)
+val fresh_stream : capabilities
+
+(** A server or a set of listeners. *)
+val live_stream : capabilities
+
+val segmented : capabilities
+
+(** Listeners of one stream that start in its middle. *)
+val shared_stream : capabilities
+
+type creation = {
+  pos : Pos.t option;
+  name : string;
+  capabilities : capabilities;
+  sink : sink;
+  initial_metadata : Frame.Metadata.Export.t;
+}
+
+type writer = {
+  write : Frame.t -> unit;
+  metadata : Frame.Metadata.Export.t -> unit;  (** In-band offer. *)
+  finish : [ `Clean | `Abandoned ] -> unit;
+      (** [`Clean] writes the final bytes then [`End]; [`Abandoned] releases the
+          writer and writes nothing. *)
+  writer_bitrate : unit -> int option;
+}
+
+(** A plug-in answers the formats it can write, with what creates their writer.
+*)
+type plugin = format -> (creation -> writer) option
 
 val plug : plugin Plug.t
 
-(** [protect encoder] serialises the calls to [encoder] with a mutex, as every
-    encoder from {!get_factory} is. *)
-val protect : encoder -> encoder
+(** The writer of an encoder returning its bytes: the stream start comes from
+    its header and restart offset, the access points from its [access_points].
+    [before_end] runs at a clean end once the final bytes are written. *)
+val writer_of_encoder : ?before_end:(unit -> unit) -> encoder -> sink -> writer
 
-(** Return the first available encoder factory for that format. *)
-val get_factory : format -> factory
+(** A plug-in whose writers are such encoders. *)
+val of_encoders :
+  (format ->
+  (pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder) option) ->
+  plugin
+
+(** Serialises the calls of an encoder used without the plug. *)
+val protect_encoder : encoder -> encoder
+
+(** Whether a plug-in answers that format. *)
+val supported : format -> bool
+
+(** The writer of the first plug-in answering that format, its calls serialised;
+    [Not_found] when none does. *)
+val create_writer : format -> creation -> writer
+
+(** Whether a destination takes the file form of a format: a file written from
+    its first byte, whose writer can come back to complete what describes the
+    whole stream. *)
+val file_form : capabilities -> bool
+
+(** The ID3v2 tag an MPEG audio stream starts with for that [id3v2] parameter:
+    by default on a file only; empty for none. *)
+val id3v2_tag :
+  capabilities:capabilities ->
+  int option Encoder_formats.adaptable ->
+  Frame.Metadata.Export.t ->
+  string
+
+(** Why a destination cannot take a format, when it cannot: an explicit
+    parameter or a format it contradicts. *)
+val refusal : capabilities -> format -> string option
+
+(** A writer for an output that queues bytes itself, as an encoder returning
+    them: [header ()] is the header of the current stream, for a reader that
+    starts after it, [restart_offset ()] the offset, in the bytes last returned,
+    at which a stream started, and [access_points ()] the offsets in them at
+    which a reader can start. *)
+val buffered :
+  ?pos:Pos.t ->
+  name:string ->
+  capabilities:capabilities ->
+  initial_metadata:Frame.Metadata.Export.t ->
+  format ->
+  encoder
+
+(** Resolves the deferred values that the format's checks need and runs those
+    checks, raising a positioned error. *)
+val resolve : pos:Pos.t option -> format -> unit
+
+(** Resolves a format given to an output once the script has been evaluated, or
+    at once after that. *)
+val resolve_at_start : pos:Pos.t option -> format -> unit
+
+(** The HLS ID3 transport of a format, for a variant's [id3] field, or why that
+    field is refused. *)
+val hls_id3_mode : ?id3:bool -> format -> (hls_id3_mode, string) result
 
 (** Encoders that can write HLS segments register here. *)
 val hls_plug : (format -> hls_factory option) Plug.t

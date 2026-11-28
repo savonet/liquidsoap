@@ -87,4 +87,8 @@ let flush t = guarded t (fun () -> drain t)
 let () =
   Plug.register Audio_converter.Samplerate.converters "ffmpeg"
     ~doc:"Resample audio with FFmpeg's swresample." (fun channels ->
-      convert (create channels))
+      let t = create channels in
+      {
+        Audio_converter.Samplerate.convert = convert t;
+        drain = (fun _ -> flush t);
+      })

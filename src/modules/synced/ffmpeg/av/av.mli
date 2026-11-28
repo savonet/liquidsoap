@@ -74,6 +74,11 @@ module Format : sig
   (** The descriptive name of an output format. *)
   val get_output_long_name : (output, _) format -> string
 
+  (** Whether the muxer writes through the output's I/O. A muxer that needs no
+      file (image2, segment, hls, tee, null) opens its own files from the
+      output's name. *)
+  val output_needs_file : (output, _) format -> bool
+
   (** [find_input_format name] is FFmpeg's input format of that short name, or
       [None] when there is none. The media parameter of the result is chosen by
       the caller and is not checked. *)
@@ -197,6 +202,17 @@ type write = bytes -> int -> int -> int
     exception fails the seek. FFmpeg's size queries are answered as unsupported
     without calling the function. *)
 type seek = int -> Unix.seek_command -> int
+
+(** What a muxer says the bytes it writes are: its header, a unit a reader can
+    start at, a unit boundary a reader cannot start at, anything else, or its
+    trailer. *)
+type data_marker = Header | Sync_point | Boundary_point | Unknown | Trailer
+
+type marker = data_marker -> int64 -> unit
+
+(** [read_back offset buffer length] reads up to [length] bytes the output
+    wrote, from [offset], into [buffer], and returns how many; 0 at the end. *)
+type read_back = int -> bytes -> int -> int
 
 (** [open_input_stream read] opens an input that reads through [read] instead of
     a URL, and probes its streams, as {!open_input} does. It takes no interrupt
@@ -530,11 +546,22 @@ val open_output_format :
     released. The writes, {!flush} and {!close} call the functions.
 
     @param seek the function FFmpeg calls to reposition the output.
+    @param marker
+      the function called before each [write] with what the muxer says the bytes
+      are and their time, in microseconds, when it knows it. Muxers that mark
+      their output (Matroska, the ISO family, FLV, ASF, MXF, MPEG-PS) end a
+      write at each change.
+    @param read_back
+      what the muxer reads its own output back with, when it moves data in it
+      (an MP4 with [movflags=+faststart]): FFmpeg reopens the output through it,
+      at a position of its own.
     @raise Error with [`Failure] when the format needs no file. *)
 val open_output_stream :
   ?opts:opts ->
   ?interleaved:bool ->
   ?seek:seek ->
+  ?marker:marker ->
+  ?read_back:read_back ->
   write ->
   (output, _) format ->
   output container
@@ -838,6 +865,12 @@ val write_header : output container -> unit
     hold are written by {!close}. On an output whose header is not written it
     does nothing. It blocks, with the runtime lock released. *)
 val flush : output container -> unit
+
+(** Hands the bytes the muxer has written so far to the output's I/O, leaving
+    the packets the muxer holds where they are: between two packets, what the
+    I/O then holds ends on a packet. It blocks, with the runtime lock released.
+*)
+val flush_io : output container -> unit
 
 (** The byte position of the I/O of the container; [None] for a container with
     no I/O of its own. It takes the container exclusively, so it raises the

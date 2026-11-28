@@ -73,21 +73,24 @@ module Icecast = struct
           {
             quality;
             bitrate;
-            samplerate = Some (Lazy.Mutexed.force m.Mp3_format.samplerate);
+            samplerate = Some (Deferred.force m.Mp3_format.samplerate);
             channels = Some (if m.Mp3_format.stereo then 2 else 1);
           }
       | Encoder.Shine m ->
           {
             quality = None;
             bitrate = Some m.Shine_format.bitrate;
-            samplerate = Some (Lazy.Mutexed.force m.Shine_format.samplerate);
+            samplerate = Some (Deferred.force m.Shine_format.samplerate);
             channels = Some m.Shine_format.channels;
           }
       | Encoder.FdkAacEnc m ->
           {
             quality = None;
-            bitrate = Some m.Fdkaac_format.bitrate;
-            samplerate = Some (Lazy.Mutexed.force m.Fdkaac_format.samplerate);
+            bitrate =
+              (match m.Fdkaac_format.bitrate_mode with
+                | `Variable _ -> None
+                | _ -> Some m.Fdkaac_format.bitrate);
+            samplerate = Some (Deferred.force m.Fdkaac_format.samplerate);
             channels = Some m.Fdkaac_format.channels;
           }
       | Encoder.NDI _ ->
@@ -97,14 +100,14 @@ module Icecast = struct
             quality = None;
             bitrate = None;
             samplerate =
-              Some (Lazy.Mutexed.force m.External_encoder_format.samplerate);
+              Some (Deferred.force m.External_encoder_format.samplerate);
             channels = Some m.External_encoder_format.channels;
           }
       | Encoder.Flac m ->
           {
             quality = Some (string_of_int m.Flac_format.compression);
             bitrate = None;
-            samplerate = Some (Lazy.Mutexed.force m.Flac_format.samplerate);
+            samplerate = Some (Deferred.force m.Flac_format.samplerate);
             channels = Some m.Flac_format.channels;
           }
       | Encoder.Ffmpeg m ->
@@ -114,7 +117,7 @@ module Icecast = struct
                 m.Liquidsoap_ffmpeg_formats.Encoder_format.streams
             with
               | Some (`Encode { options = `Audio a }) ->
-                  ( Some (Lazy.Mutexed.force a.samplerate),
+                  ( Some (Deferred.force a.samplerate),
                     Some a.Liquidsoap_ffmpeg_formats.Encoder_format.channels )
               | _ -> (None, None)
           in
@@ -129,14 +132,14 @@ module Icecast = struct
           {
             quality = None;
             bitrate = None;
-            samplerate = Some (Lazy.Mutexed.force m.Wav_format.samplerate);
+            samplerate = Some (Deferred.force m.Wav_format.samplerate);
             channels = Some m.Wav_format.channels;
           }
       | Encoder.AVI m ->
           {
             quality = None;
             bitrate = None;
-            samplerate = Some (Lazy.Mutexed.force m.Avi_format.samplerate);
+            samplerate = Some (Deferred.force m.Avi_format.samplerate);
             channels = Some m.Avi_format.channels;
           }
       | Encoder.Ogg { Ogg_format.audio; _ } -> (
@@ -152,7 +155,7 @@ module Icecast = struct
                 {
                   quality = Some (string_of_float q);
                   bitrate = None;
-                  samplerate = Some (Lazy.Mutexed.force s);
+                  samplerate = Some (Deferred.force s);
                   channels = Some n;
                 }
             | Some
@@ -166,7 +169,7 @@ module Icecast = struct
                 {
                   quality = None;
                   bitrate = b;
-                  samplerate = Some (Lazy.Mutexed.force s);
+                  samplerate = Some (Deferred.force s);
                   channels = Some n;
                 }
             | Some
@@ -180,7 +183,7 @@ module Icecast = struct
                 {
                   quality = None;
                   bitrate = Some b;
-                  samplerate = Some (Lazy.Mutexed.force s);
+                  samplerate = Some (Deferred.force s);
                   channels = Some n;
                 }
             | _ ->
@@ -474,10 +477,9 @@ class output p =
         ~output_kind:"output.icecast" ~infallible ~register_telnet ~autostart
           ~export_cover_metadata:false ~name source_val
 
-    initializer
-      (* When sending ICY metadata, the update requires an active connection,
-         so metadata must come after send (which establishes the connection). *)
-      if send_icy_metadata then self#set_encoding_order `Data_first
+    (* An ICY update needs a connection: one offered before the connection
+       exists is sent once it does. *)
+    val mutable unsent_metadata = None
 
     (** In this operator, we don't exactly follow the start/stop mechanism of
         Output.encoded because we want to control in a more subtle way the
@@ -543,6 +545,7 @@ class output p =
     method encode_metadata m =
       (* Update metadata using ICY if told to.. *)
       if send_icy_metadata then (
+        let exported = m in
         let f = Charset.convert ~target:out_enc in
         let icy_meta = Hashtbl.create 10 in
         let m = Frame.Metadata.Export.to_metadata m in
@@ -567,7 +570,7 @@ class output p =
                   (Printf.sprintf
                      "Metadata update may have failed with error: %s"
                      (Printexc.to_string e)))
-          | Cry.Disconnected -> ())
+          | Cry.Disconnected -> unsent_metadata <- Some exported)
       else (
         (* Encoder is not always present.. *)
           match encoder with
@@ -577,9 +580,9 @@ class output p =
     method icecast_send b =
       try
         if Cry.get_status connection = Cry.Disconnected then self#icecast_start;
-        Strings.iter
-          (fun s offset length -> Cry.send connection ~offset ~length s)
-          b;
+        (* One write per call: many small ones stall a TCP connection. *)
+        if not (Strings.is_empty b) then
+          Cry.send connection (Strings.to_string b);
         match dump with
           | Some s -> Strings.iter (output_substring s) b
           | None -> ()
@@ -602,7 +605,7 @@ class output p =
 
     method icecast_start =
       assert (encoder = None);
-      let enc = data.factory self#id Frame.Metadata.Export.empty in
+      let enc = data.factory self#id self#initial_metadata in
       encoder <- Some enc;
       assert (Cry.get_status connection = Cry.Disconnected);
       begin match dumpfile with
@@ -643,12 +646,15 @@ class output p =
         Cry.connect connection handler;
         self#log#important "Connection setup was successful.";
 
-        (match source#last_metadata with
-          | Some (_, m) when send_last_metadata_on_connect -> (
+        let unsent = unsent_metadata in
+        unsent_metadata <- None;
+        (match (source#last_metadata, unsent) with
+          | Some (_, m), _ when send_last_metadata_on_connect -> (
               try
                 self#encode_metadata
                   (Frame.Metadata.Export.from_metadata ~cover:false m)
               with _ -> ())
+          | _, Some m -> ( try self#encode_metadata m with _ -> ())
           | _ -> ());
 
         List.iter (fun fn -> fn ()) (Callbacks.elements on_connect)

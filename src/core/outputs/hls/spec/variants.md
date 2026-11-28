@@ -34,9 +34,13 @@ At construction:
 1. The encoder factory for the format is looked up; none: `Unsupported
 format`.
 2. The extension is derived (§3); none is a construction error.
-3. A first encoder is created and its `init` called
-   ([encoder-contract.md §3](encoder-contract.md#3-init)); its answer is
-   the variant's ID3 mode. A rejection stops the script.
+3. The configuration's declarations are read, without building a writer
+   ([encoder.md §1](../../../encoder/spec/encoder.md#1-registry), item 4):
+   a configuration that is not segmentable is refused, naming the variant
+   ([encoder.md §5.3](../../../encoder/spec/encoder.md#53-the-check)), and
+   the declared ID3 mode, checked against the variant's `id3` field, is the
+   variant's ([encoder-contract.md §3](encoder-contract.md#3-id3-mode)). A
+   rejection stops the script.
 4. The variant's container MUST be a segment format of RFC 8216 §3:
    MPEG-TS, fragmented MP4, packed audio (ADTS, MP3, AC-3, E-AC-3) or
    WebVTT. Any other is rejected, naming the variant: "Transport of other
@@ -46,8 +50,9 @@ format`.
    the ISO base media family (`mp4`, `mov`, `ipod`, `ismv`), written as
    fragmented MP4. Every other encoder is rejected.
 
-At the start of every run each variant gets a new encoder, built the same
-way ([encoder-contract.md §2](encoder-contract.md#2-calls-and-order)).
+At the start of every run each variant gets a new writer, built with its
+`segmented(D)` sink
+([encoder-contract.md §2](encoder-contract.md#2-calls-and-order)).
 
 ## 3. Derived properties
 

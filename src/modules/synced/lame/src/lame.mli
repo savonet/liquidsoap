@@ -198,6 +198,11 @@ val encode_flush : encoder -> string
     frame. This function will not write id3v1 tags into the bitstream. *)
 val encode_flush_nogap : encoder -> string
 
+(** The final Xing or Info frame, to write over the placeholder LAME wrote as
+    the stream's first frame when [set_bWriteVbrTag] is on. Call it after
+    [encode_flush]. Empty when no such frame was written. *)
+val lametag_frame : encoder -> string
+
 (** {2 Id3 tags} *)
 
 module Id3tag : sig

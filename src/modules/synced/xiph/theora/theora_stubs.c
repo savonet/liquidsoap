@@ -431,8 +431,8 @@ CAMLprim value ocaml_theora_encode_header(value t_state, value o_stream_state) {
 }
 
 CAMLprim value ocaml_theora_encode_buffer(value t_state, value o_stream_state,
-                                          value frame) {
-  CAMLparam3(t_state, o_stream_state, frame);
+                                          value _last, value frame) {
+  CAMLparam4(t_state, o_stream_state, _last, frame);
   CAMLlocal1(v);
   enc_state_t *state = Theora_enc_state_val(t_state);
   ogg_stream_state *os = Stream_state_val(o_stream_state);
@@ -457,7 +457,7 @@ CAMLprim value ocaml_theora_encode_buffer(value t_state, value o_stream_state,
 
   ret = 1;
   while (ret > 0) {
-    ret = th_encode_packetout(state->ts, 0, &op);
+    ret = th_encode_packetout(state->ts, Bool_val(_last), &op);
     if (ret > 0) {
       state->granulepos = op.granulepos;
       state->packetno = op.packetno;

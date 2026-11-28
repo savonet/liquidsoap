@@ -31,7 +31,7 @@ type audio = {
   pcm_kind : pcm_kind;
   channels : int;
   channel_layout : string option;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   sample_format : string option;
   written : [ `Channels | `Samplerate ] list;
 }
@@ -41,8 +41,8 @@ type hwaccel = [ `Auto | `None | `Internal | `Device | `Frame ]
 type video = {
   framerate : (int * int) option;
   raw_key_frame_interval : float option;
-  width : int Lazy.Mutexed.t;
-  height : int Lazy.Mutexed.t;
+  width : Deferred.t;
+  height : Deferred.t;
   pixel_format : string option;
   alpha : bool;
   hwaccel : hwaccel;
@@ -77,6 +77,7 @@ type t = {
   output : [ `Stream | `Url of string ];
   streams : (string * track) list;
   interleaved : [ `Default | `True | `False ];
+  streamable : bool;  (** Readable from the middle, on the script's word. *)
   metadata : (string * string) list;
   opts : opts;
 }
@@ -231,7 +232,6 @@ let type_of_format f =
 
 let default_text_to_ass i text = Printf.sprintf "%d,0,Default,,0,0,0,,%s" i text
 let string_literal = Lang_string.quote_string
-let force = Lazy.Mutexed.force
 
 let string_of_value = function
   | `String s -> string_literal s
@@ -289,13 +289,17 @@ let string_of_track (field, track) =
                   | None, _ -> [Printf.sprintf "channels=%d" a.channels])
                 @ (match mode with
                   | `Raw when not (List.mem `Samplerate a.written) -> []
-                  | _ -> [Printf.sprintf "samplerate=%d" (force a.samplerate)])
+                  | _ ->
+                      [
+                        Printf.sprintf "samplerate=%d"
+                          (Deferred.peek a.samplerate);
+                      ])
                 @ opt "sample_format" a.sample_format
             | `Video v ->
                 marker `Video @ opt "codec" codec
                 @ [
-                    Printf.sprintf "width=%d" (force v.width);
-                    Printf.sprintf "height=%d" (force v.height);
+                    Printf.sprintf "width=%d" (Deferred.peek v.width);
+                    Printf.sprintf "height=%d" (Deferred.peek v.height);
                   ]
                 @ (match v.framerate with
                   | None -> []
@@ -336,6 +340,7 @@ let to_string f =
           | `True -> "interleaved=true"
           | `False -> "interleaved=false");
       ]
+    @ (if f.streamable then ["streamable=true"] else [])
     @ List.map string_of_track f.streams
     @ string_of_opts
         (List.sort (fun (k, _) (k', _) -> String.compare k k') f.opts)
@@ -375,9 +380,68 @@ let video_size f =
     List.filter_map
       (function
         | _, `Encode { options = `Video { width; height } } ->
-            Some (force width, force height)
+            Some (Deferred.force width, Deferred.force height)
         | _ -> None)
       f.streams
   with
     | [size] -> Some size
     | _ -> None
+
+(* A muxer whose stream a reader can start in the middle of, given its header:
+   for the ISO family, a fragmented one. *)
+let streamable f =
+  let flag name =
+    match List.assoc_opt "movflags" f.opts with
+      | Some (`String flags) -> List.mem name (String.split_on_char '+' flags)
+      | _ -> false
+  in
+  f.streamable
+  ||
+    match f.format with
+    | Some
+        ( "mp3" | "adts" | "ac3" | "eac3" | "mpegts" | "ogg" | "oga" | "ogv"
+        | "opus" | "spx" | "matroska" | "webm" | "wav" | "flac" ) ->
+        true
+    | Some muxer when List.mem muxer iso_family -> (
+        match List.assoc_opt "movflags" f.opts with
+          | None -> true
+          | Some _ ->
+              flag "empty_moov"
+              && (flag "frag_keyframe" || flag "frag_custom")
+              && not (flag "delay_moov"))
+    | _ -> false
+
+(* An FFmpeg integer option: digits, then an SI suffix. *)
+let int_option = function
+  | `Int i -> Some i
+  | `Int64 i -> Some (Int64.to_int i)
+  | `Float f -> Some (int_of_float f)
+  | `String s -> (
+      let s = String.trim s in
+      let length = String.length s in
+      let multiplier, digits =
+        match if length = 0 then ' ' else s.[length - 1] with
+          | 'k' | 'K' -> (1_000, String.sub s 0 (length - 1))
+          | 'M' -> (1_000_000, String.sub s 0 (length - 1))
+          | _ -> (1, s)
+      in
+      match float_of_string_opt digits with
+        | Some value -> Some (int_of_float (value *. float multiplier))
+        | None -> None)
+  | _ -> None
+
+(** The bit rate the script set: the sum of the [b] of every encoded stream,
+    when each has one and no stream is copied. *)
+let explicit_bitrate f =
+  let rates =
+    List.filter_map
+      (function
+        | _, `Drop -> None
+        | _, `Encode (encoded : encoded) ->
+            Some (Option.bind (List.assoc_opt "b" encoded.opts) int_option)
+        | _, `Copy _ -> Some None)
+      f.streams
+  in
+  if rates <> [] && List.for_all Option.is_some rates then
+    Some (List.fold_left (fun sum rate -> sum + Option.get rate) 0 rates)
+  else None

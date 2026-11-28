@@ -475,24 +475,25 @@ let concat_with_last ~last sep l =
     | x :: l ->
         Printf.sprintf "%s %s %s" (String.concat sep (List.rev l)) last x
 
-let frame_id_of_string = function
+(* [version] decides the date frame: TYER in v2.3, TDRC in v2.4 (TDAT holds
+   a day and month, not a date). *)
+let frame_id_of_string ~version = function
   | "comment" -> Some `COMM
   | "album" -> Some `TALB
   | "bpm" -> Some `TBPM
   | "composer" -> Some `TCOM
-  | "content" -> Some `TCON
+  | "content" | "genre" -> Some `TCON
   | "copyright" -> Some `TCOP
-  | "date" -> Some `TDAT
+  | "date" | "year" -> Some (if version < 4 then `TYER else `TDRC)
   | "encoder" -> Some `TENC
   | "title" -> Some `TIT2
   | "language" -> Some `TLAN
   | "length" -> Some `TLEN
   | "performer" -> Some `TOPE
   | "artist" -> Some `TPE1
-  | "band" -> Some `TPE2
+  | "band" | "albumartist" -> Some `TPE2
   | "publisher" -> Some `TPUB
   | "tracknumber" -> Some `TRCK
-  | "year" -> Some `TYER
   | "url" -> Some `WXXX
   | v -> Metadata.ID3v2.frame_id_of_string v
 
@@ -502,7 +503,7 @@ let id3v2_of_metadata ?(extra_frames = []) ~version m =
   let frames =
     List.fold_left
       (fun frames (k, v) ->
-        match frame_id_of_string k with
+        match frame_id_of_string ~version k with
           | Some id ->
               {
                 Metadata.ID3v2.id;
@@ -518,6 +519,16 @@ let id3v2_of_metadata ?(extra_frames = []) ~version m =
               :: frames
           | None -> frames)
       [] m
+  in
+  (* When several entries give one frame, the last one wins: [frames] is in
+     reverse order. *)
+  let frames =
+    List.fold_left
+      (fun kept (frame : Metadata.ID3v2.frame) ->
+        if List.exists (fun (f : Metadata.ID3v2.frame) -> f.id = frame.id) kept
+        then kept
+        else frame :: kept)
+      [] frames
   in
   Metadata.ID3v2.make ~version (frames @ extra_frames)
 
@@ -660,3 +671,38 @@ let generate_id =
         base_id.counter <- base_id.counter + 1;
         Gc.finalise_last (fun () -> ignore (Sys.opaque_identity base_id)) id;
         id)
+
+type cover = { mime_type : string; picture : string }
+
+(* The picture formats tags carry. *)
+let image_mime_type picture =
+  if String.starts_with ~prefix:"\xff\xd8\xff" picture then Some "image/jpeg"
+  else if String.starts_with ~prefix:"\x89PNG\r\n\x1a\n" picture then
+    Some "image/png"
+  else None
+
+let cover_of_picture picture =
+  Option.map (fun mime_type -> { mime_type; picture }) (image_mime_type picture)
+
+let cover_of_metadata metadata =
+  let flac_picture block =
+    let parse block =
+      (Metadata.FLAC.parse_picture block).Metadata.FLAC.picture_data
+    in
+    try parse block with _ -> parse (Lang_string.decode64 block)
+  in
+  let decoders =
+    [
+      ("metadata_block_picture", flac_picture);
+      ("apic", fun apic -> (Metadata.ID3v2.parse_apic apic).Metadata.ID3v2.data);
+      ("pic", fun pic -> (Metadata.ID3v2.parse_pic pic).Metadata.ID3v2.pic_data);
+      ("coverart", Lang_string.decode64);
+      ("cover", Fun.id);
+    ]
+  in
+  List.find_map
+    (fun (key, decode) ->
+      match List.assoc_opt key metadata with
+        | None -> None
+        | Some value -> ( try cover_of_picture (decode value) with _ -> None))
+    decoders

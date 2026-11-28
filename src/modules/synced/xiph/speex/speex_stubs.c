@@ -538,6 +538,72 @@ CAMLprim value ocaml_speex_encode_page_int(value e_state, value o_chans,
   CAMLreturn(ret);
 }
 
+/* Encodes one packet of the encoder's frames per packet from interleaved
+   samples and submits it with the given granule position and end-of-stream
+   flag. */
+CAMLprim value ocaml_speex_encode_packet_int(value _encoder, value _channels,
+                                             value _stream, value _samples,
+                                             value _granulepos,
+                                             value _end_of_stream) {
+  CAMLparam5(_encoder, _channels, _stream, _samples, _granulepos);
+  CAMLxparam1(_end_of_stream);
+  ogg_stream_state *stream = Stream_state_val(_stream);
+  cenc_t *encoder = Enc_val(_encoder);
+  int channels = Int_val(_channels);
+  int frames_per_packet = encoder->fpp;
+  int frame_size;
+  speex_encoder_ctl(encoder->enc, SPEEX_GET_FRAME_SIZE, &frame_size);
+  int frame_length = frame_size * channels;
+  ogg_packet packet;
+
+  if (Wosize_val(_samples) != frames_per_packet * frame_length)
+    caml_raise_constant(*caml_named_value("ocaml_speex_invfrlen_exn"));
+
+  /* A packet holds at most 2 bytes per sample. */
+  int max_bytes = 2 * frames_per_packet * frame_size;
+  spx_int16_t *frame = malloc(sizeof(spx_int16_t) * frame_length);
+  char *packet_data = malloc(max_bytes);
+  if (frame == NULL || packet_data == NULL) {
+    free(frame);
+    free(packet_data);
+    caml_raise_out_of_memory();
+  }
+
+  for (int frame_index = 0; frame_index < frames_per_packet; frame_index++) {
+    for (int sample = 0; sample < frame_length; sample++)
+      frame[sample] =
+          Int_val(Field(_samples, frame_index * frame_length + sample));
+    caml_enter_blocking_section();
+    if (channels == 2)
+      speex_encode_stereo_int(frame, frame_size, &encoder->bits);
+    speex_encode_int(encoder->enc, frame, &encoder->bits);
+    caml_leave_blocking_section();
+  }
+  free(frame);
+
+  speex_bits_insert_terminator(&encoder->bits);
+  packet.bytes = speex_bits_write(&encoder->bits, packet_data, max_bytes);
+  speex_bits_reset(&encoder->bits);
+  packet.packet = (unsigned char *)packet_data;
+  packet.b_o_s = 0;
+  packet.e_o_s = Bool_val(_end_of_stream);
+  packet.granulepos = Int64_val(_granulepos);
+  packet.packetno = 2 + encoder->position / frames_per_packet;
+  encoder->position += frames_per_packet;
+
+  int packetin_result = ogg_stream_packetin(stream, &packet);
+  free(packet_data);
+  if (packetin_result != 0)
+    caml_raise_constant(*caml_named_value("ogg_exn_internal_error"));
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value ocaml_speex_encode_packet_int_byte(value *argv, int argn) {
+  return ocaml_speex_encode_packet_int(argv[0], argv[1], argv[2], argv[3],
+                                       argv[4], argv[5]);
+}
+
 CAMLprim value ocaml_speex_encoder_eos(value v, value o_stream_state) {
   CAMLparam2(v, o_stream_state);
   ogg_packet op;

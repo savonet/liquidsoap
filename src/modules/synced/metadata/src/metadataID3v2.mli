@@ -68,6 +68,7 @@ type frame_id =
   | `TCON
   | `TCOP
   | `TDAT
+  | `TDRC
   | `TDLY
   | `TENC
   | `TEXT

@@ -5,7 +5,7 @@ on the operator since 2010, of which about twenty fix behaviour, plus the
 issues and pull requests behind them. Each entry is stated without reference
 to any implementation, then answered by a rule of the specification.
 
-## K1. A late listener must join at a point a decoder can start from
+## K1. A late listener must start where a decoder can start
 
 Seen 6 times.
 
@@ -17,30 +17,30 @@ Seen 6 times.
 - **What went wrong.** A listener received the current link's header
   followed by pages of the previous link: undecodable (`Cannot identify new
 stream`). A burst started in the middle of a page, right after the header.
-  Before that, a joiner got no header at all, or a header fixed at start that
+  Before that, a late listener got no header at all, or a header fixed at start that
   no longer matched the stream, so Ogg streams were empty or garbled for every
-  client. An mp3 joiner received an ID3v2 tag and a Xing frame mid-stream.
-  On an Ogg/Opus mount relayed by the Icecast emulation, a joiner after the
+  client. An mp3 late listener received an ID3v2 tag and a Xing frame mid-stream.
+  On an Ogg/Opus mount relayed by the Icecast emulation, a late listener after the
   burst no longer reached the stream's start got pages with no `OpusHead`:
   the captured container header was empty, and in-band link headers hid it in
   the tests that changed metadata often.
-- **Why it is hard.** The valid join points are known only to the encoder, and
+- **Why it is hard.** The valid start points are known only to the encoder, and
   they move as the stream goes. Tolerant decoders resynchronise on the next
   page, so a listening test sounds fine while the bytes are invalid. The
   failure appears only when a structural boundary falls inside the burst
   window, which a short test may never hit.
 - **How to tell.** Stream Ogg with a metadata change every second, through
-  every Ogg-producing encoder; join after many changes with a burst shorter
+  every Ogg-producing encoder; connect after many changes with a burst shorter
   than the stream so far. _Binding_: the received bytes, parsed directly, are
   whole consecutive pages from the first byte; the first page begins a
   logical stream; every page belongs to the logical stream whose beginning
-  came last; at least two stream changes are seen. Also: an mp3 joiner's
+  came last; at least two stream changes are seen. Also: an mp3 late listener's
   bytes contain no ID3v2 tag and no Xing frame. Also, with a source whose
-  metadata never changes (a single Ogg link) and a short burst: a joiner's
+  metadata never changes (a single Ogg link) and a short burst: a late listener's
   first page is `OggS` with the codec's identification header. Decoding
   success alone is not binding.
 
-**Answered by.** Join points: candidates are encoder output starts at or after the current logical stream and the current encoder's first byte [shared-encoder.md §2](shared-encoder.md#2-initial-bytes); markers published before bytes [shared-encoder.md §5](shared-encoder.md#5-encode-and-send); a restart starts a new epoch, so no joiner receives a previous encoder's bytes [shared-encoder.md §7](shared-encoder.md#7-start); the encoder's first byte a join point only where a stream start is reported; complete headers and no mid-stream mp3 preambles [contracts.md §2, §4](contracts.md#4-encoder). The check also runs across a stop and start ([tests.md](tests.md#delivery)).
+**Answered by.** The writer marks its stream starts and access points, and the shared stream records them with each stream's header: a listener starts only at a candidate of the current writer and is sent the entry header recorded for it, never one asked of the writer [shared-stream.md §1, §3](../shared-stream.md#3-starting-a-reader), [shared-encoder.md §2](shared-encoder.md#2-initial-bytes); records published before bytes [shared-stream.md §5](../shared-stream.md#5-store-and-concurrency); a new writer drops the earlier writers' candidates, so no listener admitted after a restart receives a previous writer's bytes [shared-stream.md §4](../shared-stream.md#4-writer-changes); a non-streamable configuration is refused on a shared mount [operator.md §2](operator.md#2-validation-at-construction); complete headers and no preamble on a live sink [contracts.md §4](contracts.md#4-encoder). The check also runs across a stop and start ([tests.md](tests.md#delivery)).
 
 ## K2. Per-listener work must not scale the streaming cycle
 
@@ -63,7 +63,7 @@ Seen 4 times.
   stays bounded; non-reading listeners are disconnected; the process stays
   up. _Incidental_: the exact thresholds.
 
-**Answered by.** One append per encoder output on the streaming clock, whatever the audience [shared-encoder.md](shared-encoder.md); delivery as fast I/O tasks in independent groups, run in parallel at the scheduler's choice [delivery.md §1](delivery.md#1-delivery-groups); goals for per-listener memory, cycle cost and time to first byte [delivery.md](delivery.md); non-blocking writes on every transport, encrypted ones included [contracts.md §1](contracts.md#1-harbor-server). The dedicated mode keeps a per-listener encoding cost on the streaming clock by its nature, stated with its cost and a permission to spread it [dedicated-encoder.md](dedicated-encoder.md).
+**Answered by.** One append per writer call on the streaming work, whatever the audience [shared-encoder.md](shared-encoder.md); delivery as fast I/O tasks in independent groups, run in parallel at the scheduler's choice [delivery.md §1](delivery.md#1-delivery-groups); goals for per-listener memory, cycle cost and time to first byte [delivery.md](delivery.md); non-blocking writes on every transport, encrypted ones included [contracts.md §1](contracts.md#1-harbor-server). The dedicated mode keeps a per-listener encoding cost on the streaming clock by its nature, stated with its cost and a permission to spread it [dedicated-encoder.md](dedicated-encoder.md).
 
 ## K3. A listener that falls behind is disconnected, never trimmed
 
@@ -176,7 +176,7 @@ Seen 3 times.
 
 Seen 4 times.
 
-- **Situation.** Several ICY listeners, joining at different times, with
+- **Situation.** Several ICY listeners, connecting at different times, with
   metadata changing.
 - **What went wrong.** No ICY metadata was sent at all. ICY was never
   negotiated because the request header was looked up with its original
@@ -187,7 +187,7 @@ Seen 4 times.
 - **Why it is hard.** Header names are case-insensitive. Metadata belongs to
   the output, but "already sent" belongs to each listener. Asking for ICY does
   not mean the client can take it: the right answer depends on the format.
-- **How to tell.** Two ICY listeners, one joining late, with the request header
+- **How to tell.** Two ICY listeners, one connecting late, with the request header
   in mixed case. _Binding_: both get `icy-metaint`; both receive a block with
   each new title; an unchanged title gives empty blocks. An Ogg mount asked
   for ICY answers without `icy-metaint` and sends no blocks.
@@ -225,7 +225,7 @@ Seen 3 times, root cause outside the operator in at least one.
 - **How to tell.** _Binding_: resident memory with one listener over several
   hours stays within a bound independent of uptime, on each platform.
 
-**Answered by.** Delivery adds no threads and runs on the scheduler's domains; per-listener memory independent of uptime; bounded store memory with space released after a large output [delivery.md](delivery.md), [ring.md §2](ring.md#2-guarantees). A platform primitive leaking per call is outside the operator; the check stays binding.
+**Answered by.** Delivery adds no threads and runs on the scheduler's domains; per-listener memory independent of uptime; bounded store memory with space released after a large output [delivery.md](delivery.md), [shared-stream.md §2](../shared-stream.md#2-history). A platform primitive leaking per call is outside the operator; the check stays binding.
 
 ## K11. One port, many users
 

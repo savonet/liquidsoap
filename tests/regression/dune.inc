@@ -2204,6 +2204,64 @@
   (run %{run_test} drawtext_percent liquidsoap drawtext_percent.liq)))
 
 (rule
+ (alias test_encoder_deferred_values)
+ (package liquidsoap)
+ (deps
+  encoder_deferred_values.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   encoder_deferred_values
+   liquidsoap
+   encoder_deferred_values.liq)))
+
+(rule
+ (alias test_encoder_refusals)
+ (package liquidsoap)
+ (deps
+  encoder_refusals.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} encoder_refusals liquidsoap encoder_refusals.liq)))
+
+(rule
+ (alias test_encoder_tail)
+ (package liquidsoap)
+ (deps
+  encoder_tail.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} encoder_tail liquidsoap encoder_tail.liq)))
+
+(rule
  (alias test_eval-check-demeth)
  (package liquidsoap)
  (deps
@@ -2364,6 +2422,28 @@
    ffmpeg_filter_create_after_start.liq)))
 
 (rule
+ (alias test_ffmpeg_header_refused)
+ (package liquidsoap)
+ (deps
+  ffmpeg_header_refused.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   ffmpeg_header_refused
+   liquidsoap
+   ffmpeg_header_refused.liq)))
+
+(rule
  (alias test_ffmpeg_seek_preroll)
  (package liquidsoap)
  (deps
@@ -2380,6 +2460,60 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} ffmpeg_seek_preroll liquidsoap ffmpeg_seek_preroll.liq)))
+
+(rule
+ (alias test_ffmpeg_shared_header)
+ (package liquidsoap)
+ (deps
+  ffmpeg_shared_header.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} ffmpeg_shared_header liquidsoap ffmpeg_shared_header.liq)))
+
+(rule
+ (alias test_flac_file_form)
+ (package liquidsoap)
+ (deps
+  flac_file_form.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} flac_file_form liquidsoap flac_file_form.liq)))
+
+(rule
+ (alias test_flac_refused)
+ (package liquidsoap)
+ (deps
+  flac_refused.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} flac_refused liquidsoap flac_refused.liq)))
 
 (rule
  (alias test_harbor_source_relay)
@@ -2578,6 +2712,42 @@
   (run %{run_test} metadata_cache liquidsoap metadata_cache.liq)))
 
 (rule
+ (alias test_mp3_file_form)
+ (package liquidsoap)
+ (deps
+  mp3_file_form.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} mp3_file_form liquidsoap mp3_file_form.liq)))
+
+(rule
+ (alias test_ogg_end_of_stream)
+ (package liquidsoap)
+ (deps
+  ogg_end_of_stream.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} ogg_end_of_stream liquidsoap ogg_end_of_stream.liq)))
+
+(rule
  (alias test_ogg_flac_chained)
  (package liquidsoap)
  (deps
@@ -2596,6 +2766,24 @@
   (run %{run_test} ogg_flac_chained liquidsoap ogg_flac_chained.liq)))
 
 (rule
+ (alias test_ogg_pages)
+ (package liquidsoap)
+ (deps
+  ogg_pages.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} ogg_pages liquidsoap ogg_pages.liq)))
+
+(rule
  (alias test_opus_pre_skip)
  (package liquidsoap)
  (deps
@@ -2612,6 +2800,28 @@
   (:run_test ../run_test.exe))
  (action
   (run %{run_test} opus_pre_skip liquidsoap opus_pre_skip.liq)))
+
+(rule
+ (alias test_output_current_metadata)
+ (package liquidsoap)
+ (deps
+  output_current_metadata.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   output_current_metadata
+   liquidsoap
+   output_current_metadata.liq)))
 
 (rule
  (alias test_output_on_metadata)
@@ -2812,6 +3022,24 @@
    request_pool_concurrent
    liquidsoap
    request_pool_concurrent.liq)))
+
+(rule
+ (alias test_resampler_drain)
+ (package liquidsoap)
+ (deps
+  resampler_drain.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} resampler_drain liquidsoap resampler_drain.liq)))
 
 (rule
  (alias test_rotate_merge_rounds)
@@ -3931,6 +4159,24 @@
  (action
   (run %{run_test} video_tile liquidsoap video_tile.liq)))
 
+(rule
+ (alias test_wav_header)
+ (package liquidsoap)
+ (deps
+  wav_header.liq
+  (glob_files ../media/**)
+  ../liquidsoap-test-assets
+  ../../src/bin/liquidsoap.exe
+  ../streams/file1.png
+  ../streams/file1.mp3
+  ./theora-test.mp4
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run %{run_test} wav_header liquidsoap wav_header.liq)))
+
 (alias
  (name citest)
  (deps
@@ -4054,6 +4300,9 @@
   (alias test_delay_track_advance)
   (alias test_double-nullable)
   (alias test_drawtext_percent)
+  (alias test_encoder_deferred_values)
+  (alias test_encoder_refusals)
+  (alias test_encoder_tail)
   (alias test_eval-check-demeth)
   (alias test_external-encoder)
   (alias test_external_decoder_failure)
@@ -4062,7 +4311,11 @@
   (alias test_ffmpeg-copy-encode)
   (alias test_ffmpeg-naming-convention)
   (alias test_ffmpeg_filter_create_after_start)
+  (alias test_ffmpeg_header_refused)
   (alias test_ffmpeg_seek_preroll)
+  (alias test_ffmpeg_shared_header)
+  (alias test_flac_file_form)
+  (alias test_flac_refused)
   (alias test_harbor_source_relay)
   (alias test_image_annotate_position)
   (alias test_infallible-shutdown)
@@ -4073,8 +4326,12 @@
   (alias test_mad_seek)
   (alias test_metadata-resolvers-metadata)
   (alias test_metadata_cache)
+  (alias test_mp3_file_form)
+  (alias test_ogg_end_of_stream)
   (alias test_ogg_flac_chained)
+  (alias test_ogg_pages)
   (alias test_opus_pre_skip)
+  (alias test_output_current_metadata)
   (alias test_output_on_metadata)
   (alias test_output_on_track)
   (alias test_output_reopen_on_error_delay)
@@ -4085,6 +4342,7 @@
   (alias test_protocol_http_failed_download)
   (alias test_replaygain)
   (alias test_request_pool_concurrent)
+  (alias test_resampler_drain)
   (alias test_rotate_merge_rounds)
   (alias test_rotate_under_child_clock)
   (alias test_runtime_file_descriptors)
@@ -4138,4 +4396,5 @@
   (alias test_utf8_invalid_sequences)
   (alias test_video-only)
   (alias test_video_fade)
-  (alias test_video_tile)))
+  (alias test_video_tile)
+  (alias test_wav_header)))

@@ -230,6 +230,14 @@ The empty list means an open with these options would apply every entry. The
 table is not modified (§9).
 
 ```ocaml
+val encoder_options : (_, encode) codec -> Avutil.Options.t option
+```
+
+The encoder's private option class (`priv_class`), for checking stream
+option names and values at evaluation without opening a codec; `None` when
+the encoder has none.
+
+```ocaml
 val params : 'media encoder -> 'media params
 ```
 

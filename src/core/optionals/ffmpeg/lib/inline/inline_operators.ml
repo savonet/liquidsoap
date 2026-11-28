@@ -97,7 +97,7 @@ let startup_check value (encoded : F.encoded) () =
            match encoded.options with
              | `Audio (a : F.audio) ->
                  let codec = Avcodec.Audio.find_encoder_by_name name in
-                 let rate = Lazy.Mutexed.force a.samplerate in
+                 let rate = Deferred.force a.samplerate in
                  ignore
                    (Avcodec.Audio.create_encoder ~opts
                       ~channel_layout:
@@ -118,8 +118,8 @@ let startup_check value (encoded : F.encoded) () =
                       ~pixel_format:
                         (Pixel_formats.for_encoder ?configured:v.pixel_format
                            ~alpha:v.alpha codec)
-                      ~width:(Lazy.Mutexed.force v.width)
-                      ~height:(Lazy.Mutexed.force v.height)
+                      ~width:(Deferred.force v.width)
+                      ~height:(Deferred.force v.height)
                       ~time_base:(Time_base.per_frame rate) codec)
              | `Subtitle _ -> ()
          with Avutil.Error e -> invalid value (Avutil.string_of_error e));

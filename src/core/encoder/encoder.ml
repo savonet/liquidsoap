@@ -22,7 +22,7 @@
 
 (** Common infrastructure for encoding streams *)
 
-type format =
+type format = Format_value.t =
   | WAV of Wav_format.t
   | AVI of Avi_format.t
   | NDI of Ndi_format.t
@@ -34,64 +34,90 @@ type format =
   | FdkAacEnc of Fdkaac_format.t
   | External of External_encoder_format.t
 
+(** Resolves the deferred values a format's checks need and runs those checks.
+    The other deferred values stay unresolved until a writer is built, so that
+    the frame's video size can still be detected from the first decoded file. *)
+let resolve ~pos format =
+  let check_rate ~samplerates = function
+    | `Value _ -> ()
+    | `Setting setting as rate ->
+        let rate = Deferred.force rate in
+        if not (List.mem rate samplerates) then
+          Encoder_types.raise_error ~pos
+            (Printf.sprintf
+               "invalid samplerate value %d, read from %s. Possible values: %s"
+               rate
+               (Deferred.setting_name setting)
+               (String.concat ", " (List.map string_of_int samplerates)))
+  in
+  match format with
+    | MP3 m -> (
+        check_rate ~samplerates:Mp3_format.samplerates m.Mp3_format.samplerate;
+        match m.Mp3_format.samplerate with
+          | `Setting _ as rate ->
+              Option.iter
+                (Encoder_types.raise_error ~pos)
+                (Mp3_format.check ~samplerate:(Some (Deferred.force rate)) m)
+          | `Value _ -> ())
+    | Shine m -> (
+        check_rate ~samplerates:Mp3_format.samplerates m.Shine_format.samplerate;
+        match m.Shine_format.samplerate with
+          | `Setting _ as rate ->
+              Option.iter
+                (Encoder_types.raise_error ~pos)
+                (Mp3_format.bitrate_error ~samplerate:(Deferred.force rate)
+                   [m.Shine_format.bitrate])
+          | `Value _ -> ())
+    | FdkAacEnc m ->
+        check_rate ~samplerates:Fdkaac_format.samplerates
+          m.Fdkaac_format.samplerate
+    | Ogg { Ogg_format.video = Some theora } -> (
+        let known rate = Some (Deferred.force rate) in
+        match Theora_format.picture_error ~known theora with
+          | Some (param, message) ->
+              Encoder_types.raise_error ~pos
+                (Printf.sprintf
+                   "invalid %s value: %s, with the frame's video size %dx%d \
+                    read from settings.frame.video"
+                   param message
+                   (Deferred.force theora.Theora_format.width)
+                   (Deferred.force theora.Theora_format.height))
+          | None -> ())
+    | _ -> ()
+
+(* Formats given to outputs during the script's evaluation, resolved once the
+   script has set its frame settings. *)
+let pending_resolutions = ref []
+let resolutions_done = ref false
+
+(** Resolves [format] at start-up, or now when start-up has passed. *)
+let resolve_at_start ~pos format =
+  if !resolutions_done then resolve ~pos format
+  else pending_resolutions := (pos, format) :: !pending_resolutions
+
+let () =
+  Lifecycle.after_script_parse ~name:"encoder formats resolution" (fun () ->
+      resolutions_done := true;
+      try
+        List.iter
+          (fun (pos, format) -> resolve ~pos format)
+          (List.rev !pending_resolutions);
+        pending_resolutions := []
+      with Runtime_error.Runtime_error _ as exn -> (
+        let bt = Printexc.get_raw_backtrace () in
+        (* A configuration error, reported as the script's own errors are. *)
+        try Runtime.throw ~lexbuf:None ~bt () exn with Runtime.Error -> exit 1))
+
 let audio_type = Encoder_types.audio_type
 let video_format = Encoder_types.video_format
 let audio_video_type = Encoder_types.audio_video_type
 let video_type = Encoder_types.video_type
-
-let type_of_format f =
-  let audio_type = audio_type ~pcm_kind:Content_audio.kind in
-  let audio_video_type = audio_video_type ~pcm_kind:Content_audio.kind in
-  match f with
-    | WAV w -> audio_type w.Wav_format.channels
-    | AVI a -> audio_video_type a.Avi_format.channels
-    | MP3 m -> audio_type (if m.Mp3_format.stereo then 2 else 1)
-    | Shine m -> audio_type m.Shine_format.channels
-    | NDI { audio = false; video = false } -> assert false
-    | NDI { audio = true; video = false } ->
-        audio_type (Lazy.Mutexed.force Frame.audio_channels)
-    | NDI { audio = true; video = true } ->
-        audio_video_type (Lazy.Mutexed.force Frame.audio_channels)
-    | NDI { audio = false; video = true } -> video_type ()
-    | Flac m -> audio_type m.Flac_format.channels
-    | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.type_of_format m
-    | FdkAacEnc m -> audio_type m.Fdkaac_format.channels
-    | Ogg { Ogg_format.audio; video } -> (
-        let channels =
-          match audio with
-            | Some (Ogg_format.Vorbis { Vorbis_format.channels = n; _ })
-            | Some (Ogg_format.Opus { Opus_format.channels = n; _ })
-            | Some (Ogg_format.Flac { Flac_format.channels = n; _ }) ->
-                n
-            | Some (Ogg_format.Speex { Speex_format.stereo; _ }) ->
-                if stereo then 2 else 1
-            | None -> 0
-        in
-        match (channels, video) with
-          | 0, Some _ -> video_type ()
-          | n, Some _ -> audio_video_type n
-          | n, None -> audio_type n)
-    | External e ->
-        let channels = e.External_encoder_format.channels in
-        if e.External_encoder_format.video <> None then
-          audio_video_type channels
-        else audio_type channels
-
-let string_of_format = function
-  | WAV w -> Wav_format.to_string w
-  | AVI w -> Avi_format.to_string w
-  | Ogg w -> Ogg_format.to_string w
-  | MP3 w -> Mp3_format.to_string w
-  | NDI w -> Ndi_format.to_string w
-  | Shine w -> Shine_format.to_string w
-  | Flac w -> Flac_format.to_string w
-  | Ffmpeg w -> Liquidsoap_ffmpeg_formats.Encoder_format.to_string w
-  | FdkAacEnc w -> Fdkaac_format.to_string w
-  | External w -> External_encoder_format.to_string w
+let type_of_format f = Format_value.type_of_format ~pos:None f
+let string_of_format = Format_value.to_string
 
 let video_size = function
   | Ogg { Ogg_format.video = Some { Theora_format.width; height } } ->
-      Some (Lazy.Mutexed.force width, Lazy.Mutexed.force height)
+      Some (Deferred.force width, Deferred.force height)
   | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.video_size m
   | _ -> None
 
@@ -114,10 +140,12 @@ let iso_base_file_media_file_format = function
 let extension = function
   | WAV _ -> "wav"
   | AVI _ -> "avi"
+  | Ogg { Ogg_format.audio = Some (Ogg_format.Opus _); video = None } -> "opus"
   | Ogg _ -> "ogg"
   | MP3 _ -> "mp3"
   | Shine _ -> "mp3"
   | Flac _ -> "flac"
+  | FdkAacEnc { Fdkaac_format.transmux = `Loas; _ } -> "loas"
   | FdkAacEnc _ -> "aac"
   | Ffmpeg m -> (
       match Liquidsoap_ffmpeg_formats.Encoder_format.extension m with
@@ -132,9 +160,16 @@ let mime = function
   | Ogg _ -> "application/ogg"
   | MP3 _ -> "audio/mpeg"
   | Shine _ -> "audio/mpeg"
-  | Flac _ -> "audio/flex"
+  | Flac _ -> "audio/flac"
   | FdkAacEnc _ -> "audio/aac"
-  | Ffmpeg m -> Liquidsoap_ffmpeg_formats.Encoder_format.mime m
+  | Ffmpeg m -> (
+      let module F = Liquidsoap_ffmpeg_formats.Encoder_format in
+      match (m.F.mime_type, F.mime m, m.F.format) with
+        | Some mime, _, _ -> mime
+        | None, "application/octet-stream", Some muxer ->
+            Option.value ~default:"application/octet-stream"
+              (Utils.mime_of_container_format muxer)
+        | None, mime, _ -> mime)
   | _ -> "application/octet-stream"
 
 (** Bitrate estimation in bits per second. *)
@@ -142,12 +177,11 @@ let bitrate = function
   | MP3 w -> Mp3_format.bitrate w
   | Shine w -> Shine_format.bitrate w
   | FdkAacEnc w -> Fdkaac_format.bitrate w
+  | Ffmpeg m -> (
+      match Liquidsoap_ffmpeg_formats.Encoder_format.explicit_bitrate m with
+        | Some bitrate -> bitrate
+        | None -> raise Not_found)
   | _ -> raise Not_found
-
-(** The bytes of one encoder output, readable only during the call that hands
-    them over: [blit offset destination destination_offset length] copies a
-    range of them. *)
-type output = { length : int; blit : int -> bytes -> int -> int -> unit }
 
 (** An encoder, once initialized, is something that consumes frames, insert
     metadata and that you eventually close (triggers flushing). Insert metadata
@@ -162,13 +196,12 @@ type encoder = {
   encode_metadata : Frame.Metadata.Export.t -> unit;
   header : unit -> Strings.t;
   encode : Frame.t -> Strings.t;
-  encode_into : (Frame.t -> (output -> unit) -> unit) option;
+  access_points : (unit -> int list) option;
   stop : unit -> Strings.t;
   bitrate : unit -> int option;
   restart_offset : unit -> int option;
 }
 
-type factory = pos:Pos.t option -> string -> Frame.Metadata.Export.t -> encoder
 type hls_id3_mode = [ `None | `In_stream | `Prepended ]
 
 type hls_piece =
@@ -195,57 +228,356 @@ type hls_encoder = {
 type hls_factory =
   pos:Pos.t option -> segment_duration:float -> string -> hls_encoder
 
-(** A plugin might or might not accept a given format. If it accepts it, it
-    gives a function creating suitable encoders. *)
-type plugin = format -> factory option
+type stream_start = { header_length : int option; time : int }
+type marker = [ `Stream_start of stream_start | `Access_point of int | `End ]
+
+type sink = {
+  write : Strings.t -> unit;
+  mark : marker -> unit;
+  seek : (int -> unit) option;
+  read : (int -> int -> string) option;
+  size : (unit -> int) option;
+  name : string option;
+}
+
+type capabilities = {
+  seekable : bool;
+  continuing : bool;
+  live : bool;
+  segmented : bool;
+  shared : bool;
+}
+
+let fresh_stream =
+  {
+    seekable = false;
+    continuing = false;
+    live = false;
+    segmented = false;
+    shared = false;
+  }
+
+let live_stream = { fresh_stream with live = true }
+let segmented = { fresh_stream with segmented = true }
+let shared_stream = { live_stream with shared = true }
+
+type creation = {
+  pos : Pos.t option;
+  name : string;
+  capabilities : capabilities;
+  sink : sink;
+  initial_metadata : Frame.Metadata.Export.t;
+}
+
+type writer = {
+  write : Frame.t -> unit;
+  metadata : Frame.Metadata.Export.t -> unit;
+  finish : [ `Clean | `Abandoned ] -> unit;
+  writer_bitrate : unit -> int option;
+}
+
+(** A plug-in answers the formats it can write, with what creates their writer.
+*)
+type plugin = format -> (creation -> writer) option
 
 let plug : plugin Plug.t =
   Plug.create ~doc:"Methods to encode streams." "stream encoding formats"
 
-exception Found of factory
+exception Found of (creation -> writer)
 
-let protect
+let find_writer format =
+  try
+    Plug.iter plug (fun _ answer ->
+        match answer format with
+          | Some create -> raise (Found create)
+          | None -> ());
+    None
+  with Found create -> Some create
+
+let supported format = find_writer format <> None
+let () = Format_builders.supported := supported
+
+(* The contract every writer is held to: its calls are serialised, it ends
+   once, nothing follows its end, and an in-band offer that is empty or that the
+   stream already carries is dropped. *)
+let protect ~initial_metadata { write; metadata; finish; writer_bitrate } =
+  let lock = Mutex.create () in
+  let ended = ref false in
+  let carried = ref initial_metadata in
+  let running name f =
+    Mutex.protect lock (fun () ->
+        if !ended then failwith ("Encoder." ^ name ^ ": the writer has ended");
+        f ())
+  in
+  {
+    write = (fun frame -> running "write" (fun () -> write frame));
+    metadata =
+      (fun m ->
+        running "metadata" (fun () ->
+            if
+              (not (Frame.Metadata.Export.is_empty m))
+              && not (Frame.Metadata.Export.equal m !carried)
+            then (
+              carried := m;
+              metadata m)));
+    finish =
+      (fun how ->
+        Mutex.protect lock (fun () ->
+            if not !ended then (
+              ended := true;
+              finish how)));
+    writer_bitrate = (fun () -> Mutex.protect lock writer_bitrate);
+  }
+
+let create_writer format =
+  match find_writer format with
+    | Some create ->
+        fun creation ->
+          protect ~initial_metadata:creation.initial_metadata (create creation)
+    | None -> raise Not_found
+
+(* The file form of a format that has one: a file written from its first byte,
+   whose writer can come back to complete what describes the whole stream. *)
+let file_form { seekable; continuing; _ } = seekable && not continuing
+
+(* The ID3v2 tag an MPEG audio file starts with: by default on a file only. *)
+let id3v2_tag ~capabilities (id3v2 : int option Encoder_formats.adaptable)
+    metadata =
+  let version =
+    match id3v2 with
+      | `Explicit version -> version
+      | `Default -> if file_form capabilities then Some 3 else None
+  in
+  match version with
+    | None -> ""
+    | Some version ->
+        let tag =
+          Utils.id3v2_of_metadata ~version
+            (Frame.Metadata.to_list
+               (Frame.Metadata.Export.to_metadata metadata))
+        in
+        (* A tag with no frame is only its 10-byte header. *)
+        if String.length tag > 10 then tag else ""
+
+(** Why a destination cannot take a format, when it cannot. *)
+let refusal { continuing; live; segmented; shared; _ } = function
+  | Flac _ when continuing ->
+      Some
+        "native FLAC cannot extend an existing file: its frames are numbered \
+         from the start of their stream. Use %ogg(%flac), which appends a new \
+         chained stream"
+  | AVI _ when continuing -> Some "%avi cannot extend an existing file"
+  | MP3 { Mp3_format.id3v2 = `Explicit (Some _); _ }
+  | Shine { Shine_format.id3v2 = `Explicit (Some _); _ }
+    when live || continuing || segmented ->
+      Some
+        "an ID3v2 tag would land in the middle of the stream on this output: \
+         remove the id3v2 parameter"
+  | FdkAacEnc { Fdkaac_format.transmux = `Adif; _ }
+    when live || continuing || segmented ->
+      Some
+        "transmux=\"adif\" has a single header at the start of its stream: it \
+         cannot be read from the middle nor extended"
+  | Ffmpeg f
+    when shared && not (Liquidsoap_ffmpeg_formats.Encoder_format.streamable f)
+    ->
+      Some
+        "this %ffmpeg format cannot be read from the middle of its stream, \
+         where listeners of this output start: use a streamable muxer, or set \
+         streamable=true if it is one"
+  | External { External_encoder_format.streamable = false; _ } when shared ->
+      Some
+        "listeners of this output start in the middle of the stream: set \
+         streamable=true if the process's output can be read from there"
+  | NDI _ -> Some "%ndi can only be used with output.ndi"
+  | _ -> None
+
+(* The writer of an encoder returning its bytes. The stream start comes from
+   its header and restart offset. Its access points are the offsets it gives
+   or, when it gives none, the start of each call's output: encoders return
+   whole units. *)
+let writer_of_encoder ?(before_end = fun () -> ()) (encoder : encoder)
+    (sink : sink) =
+  let started = ref false in
+  let time = ref 0 in
+  let write_bytes bytes =
+    if not (Strings.is_empty bytes) then (
+      let length = Strings.length bytes in
+      let stream_start =
+        match (encoder.restart_offset (), !started) with
+          | Some offset, _ -> Some offset
+          | None, false -> Some 0
+          | None, true -> None
+      in
+      let access_points =
+        match encoder.access_points with
+          | Some access_points -> access_points ()
+          | None -> [0]
+      in
+      let marks =
+        List.sort_uniq
+          (fun (offset, _) (offset', _) -> Int.compare offset offset')
+          (Option.to_list
+             (Option.map (fun offset -> (offset, `Start)) stream_start)
+          @ List.filter_map
+              (fun offset ->
+                if Some offset = stream_start || length <= offset then None
+                else Some (offset, `Point))
+              access_points)
+      in
+      let write_slice start stop =
+        if start < stop then sink.write (Strings.sub bytes start (stop - start))
+      in
+      let written =
+        List.fold_left
+          (fun written (offset, mark) ->
+            write_slice written offset;
+            (match mark with
+              | `Start ->
+                  started := true;
+                  sink.mark
+                    (`Stream_start
+                       {
+                         header_length =
+                           Some (Strings.length (encoder.header ()));
+                         time = !time;
+                       })
+              | `Point -> sink.mark (`Access_point !time));
+            offset)
+          0 marks
+      in
+      write_slice written length)
+  in
+  {
+    write =
+      (fun frame ->
+        let bytes = encoder.encode frame in
+        write_bytes bytes;
+        time := !time + Frame.position frame);
+    metadata = encoder.encode_metadata;
+    finish =
+      (function
+      | `Clean ->
+          write_bytes (encoder.stop ());
+          before_end ();
+          sink.mark `End
+      | `Abandoned -> ( try ignore (encoder.stop ()) with _ -> ()));
+    writer_bitrate = encoder.bitrate;
+  }
+
+(* Serialises the calls of an encoder used without the plug. *)
+let protect_encoder
     {
       encode_metadata;
       encode;
-      encode_into;
+      access_points;
       stop;
       header;
       bitrate;
       restart_offset;
     } =
   let m = Mutex.create () in
-  let encode_metadata metadata =
-    Mutex.protect m (fun () -> encode_metadata metadata)
-  in
-  let header () = Mutex.protect m header in
-  let encode frame = Mutex.protect m (fun () -> encode frame) in
-  let encode_into =
-    Option.map
-      (fun encode_into frame f ->
-        Mutex.protect m (fun () -> encode_into frame f))
-      encode_into
-  in
-  let stop () = Mutex.protect m stop in
-  let bitrate () = Mutex.protect m bitrate in
-  let restart_offset () = Mutex.protect m restart_offset in
+  let p f = Mutex.protect m f in
   {
-    encode_metadata;
-    encode;
-    encode_into;
-    stop;
-    header;
-    bitrate;
-    restart_offset;
+    encode_metadata = (fun metadata -> p (fun () -> encode_metadata metadata));
+    header = (fun () -> p header);
+    encode = (fun frame -> p (fun () -> encode frame));
+    access_points =
+      Option.map (fun access_points () -> p access_points) access_points;
+    stop = (fun () -> p stop);
+    bitrate = (fun () -> p bitrate);
+    restart_offset = (fun () -> p restart_offset);
   }
 
-(** Return the first available encoder factory for that format. *)
-let get_factory fmt =
-  try
-    Plug.iter plug (fun _ f ->
-        match f fmt with Some factory -> raise (Found factory) | None -> ());
-    raise Not_found
-  with Found factory -> fun ~pos name m -> protect (factory ~pos name m)
+(** A plug-in whose writers are encoders returning their bytes. *)
+let of_encoders plugin format =
+  Option.map
+    (fun create { pos; name; sink; initial_metadata; _ } ->
+      writer_of_encoder (create ~pos name initial_metadata) sink)
+    (plugin format)
+
+let buffered ?pos ~name ~capabilities ~initial_metadata format =
+  let create = create_writer format in
+  let pending = ref Strings.empty in
+  let pending_start = ref None in
+  let taken_start = ref None in
+  let pending_points = ref [] in
+  let taken_points = ref [] in
+  let header = ref Strings.empty in
+  let header_missing = ref 0 in
+  let write bytes =
+    if 0 < !header_missing then (
+      let length = min !header_missing (Strings.length bytes) in
+      header := Strings.append !header (Strings.sub bytes 0 length);
+      header_missing := !header_missing - length);
+    pending := Strings.append !pending bytes
+  in
+  let mark = function
+    | `Stream_start { header_length; _ } ->
+        pending_start := Some (Strings.length !pending);
+        pending_points := Strings.length !pending :: !pending_points;
+        header := Strings.empty;
+        header_missing := Option.value ~default:0 header_length
+    | `Access_point _ ->
+        pending_points := Strings.length !pending :: !pending_points
+    | `End -> ()
+  in
+  let take () =
+    let bytes = !pending in
+    pending := Strings.empty;
+    taken_start := !pending_start;
+    pending_start := None;
+    taken_points := List.rev !pending_points;
+    pending_points := [];
+    bytes
+  in
+  let writer =
+    create
+      {
+        pos;
+        name;
+        capabilities;
+        sink =
+          { write; mark; seek = None; read = None; size = None; name = None };
+        initial_metadata;
+      }
+  in
+  {
+    encode =
+      (fun frame ->
+        writer.write frame;
+        take ());
+    stop =
+      (fun () ->
+        writer.finish `Clean;
+        take ());
+    access_points = Some (fun () -> !taken_points);
+    encode_metadata = writer.metadata;
+    header = (fun () -> !header);
+    restart_offset = (fun () -> !taken_start);
+    bitrate = writer.writer_bitrate;
+  }
+
+(* The HLS ID3 transport of a format, for a variant's [id3] field: in the
+   stream for MPEG-TS, before each segment for packed audio (RFC 8216 §3.4),
+   none otherwise. *)
+let hls_id3_mode ?id3 format =
+  let packed_audio = ["adts"; "mp3"; "ac3"; "eac3"] in
+  let muxer =
+    match format with
+      | MP3 _ | Shine _ | FdkAacEnc _ -> Some "mp3"
+      | Ffmpeg f -> f.Liquidsoap_ffmpeg_formats.Encoder_format.format
+      | _ -> Some ""
+  in
+  match (muxer, id3) with
+    | None, _ -> Error "a format is required"
+    | Some "mpegts", Some false -> Ok `None
+    | Some "mpegts", _ -> Ok `In_stream
+    | Some m, Some false when List.mem m packed_audio ->
+        Error "packed audio requires ID3 (RFC 8216 §3.4)"
+    | Some m, _ when List.mem m packed_audio -> Ok `Prepended
+    | _, Some true -> Error "the format carries no HLS ID3 metadata"
+    | _ -> Ok `None
 
 let hls_plug : (format -> hls_factory option) Plug.t =
   Plug.create ~doc:"Methods to encode HLS segments." "hls encoding formats"

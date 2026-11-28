@@ -425,6 +425,7 @@ let () =
                   (f, `Copy Liquidsoap_ffmpeg_formats.Encoder_format.copy))
                 fields;
             interleaved = `Default;
+            streamable = false;
             metadata = [];
             opts = [];
           }

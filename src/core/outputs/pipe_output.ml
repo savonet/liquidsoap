@@ -24,21 +24,22 @@
 
 let output = Modules.output
 
-let encoder_factory format_val =
-  let format = Lang.to_format format_val in
-  match Encoder.get_factory format with
-    | factory ->
-        fun name metadata -> factory ~pos:(Value.pos format_val) name metadata
+let create_writer format_val =
+  match Encoder.create_writer (Lang.to_format format_val) with
+    | create_writer ->
+        fun creation ->
+          create_writer { creation with Encoder.pos = Value.pos format_val }
     | exception Not_found ->
         raise
           (Error.Invalid_value (format_val, "Unsupported encoding format", []))
 
-let base_proto =
+let cover_proto ~default =
   ( "export_cover_metadata",
     Lang.bool_t,
-    Some (Lang.bool true),
+    Some (Lang.bool default),
     Some "Export cover metadata." )
-  :: Output.proto
+
+let base_proto = Output.proto
 
 class virtual base ?clock ~source:source_val ~name p =
   let e f v = f (List.assoc v p) in
@@ -51,65 +52,71 @@ class virtual base ?clock ~source:source_val ~name p =
   in
   object (self)
     inherit
-      [Strings.t] Output.encoded
+      [unit] Output.encoded
         ?clock ~infallible ~register_telnet ~autostart ~export_cover_metadata
           ~output_kind:"output.file" ~name source_val
 
-    val mutable encoder : [ `None | `Pending | `Created of Encoder.encoder ] =
+    val mutable encoder : [ `None | `Pending | `Created of Encoder.writer ] =
       `None
 
-    val mutable current_metadata = None
     method virtual start : unit
     method virtual stop : unit
+    method virtual private create_writer : Encoder.creation -> Encoder.writer
+    method virtual write_pipe : string -> int -> int -> unit
 
-    method virtual private encoder_factory
-        : string -> Frame.Metadata.Export.t -> Encoder.encoder
+    method private sink =
+      {
+        Encoder.write = Strings.iter self#write_pipe;
+        mark = (fun _ -> ());
+        seek = None;
+        read = None;
+        size = None;
+        name = None;
+      }
 
+    method private capabilities = Encoder.fresh_stream
     method create_encoder = encoder <- `Pending
 
     method get_encoder =
       match encoder with
         | `None -> None
         | `Pending ->
-            let enc = self#encoder_factory self#id in
-            let meta =
-              match current_metadata with
-                | Some m -> m
-                | None -> Frame.Metadata.Export.empty
+            let enc =
+              self#create_writer
+                {
+                  Encoder.pos = None;
+                  name = self#id;
+                  capabilities = self#capabilities;
+                  sink = self#sink;
+                  initial_metadata = self#initial_metadata;
+                }
             in
-            let enc = enc meta in
             encoder <- `Created enc;
             Some enc
         | `Created enc -> Some enc
 
-    (* Make sure to call stop on the encoder to close any open
-       connection. *)
+    (* The writer's final bytes go to the pipe: it is still open. *)
     method close_encoder =
-      let flushed =
-        match encoder with
-          | `None | `Pending -> Strings.empty
-          | `Created enc -> ( try enc.Encoder.stop () with _ -> Strings.empty)
-      in
+      let writer = encoder in
       encoder <- `None;
-      flushed
+      match writer with
+        | `None | `Pending -> ()
+        | `Created writer -> writer.Encoder.finish `Clean
 
     method! reset = ()
 
     method encode frame =
-      if 0 < Frame.position frame then (
-        match self#get_encoder with
-          | None -> Strings.empty
-          | Some encoder -> encoder.Encoder.encode frame)
-      else Strings.empty
+      if 0 < Frame.position frame then
+        Option.iter (fun writer -> writer.Encoder.write frame) self#get_encoder
 
-    method virtual write_pipe : string -> int -> int -> unit
-    method send b = Strings.iter self#write_pipe b
+    method send () = ()
 
+    (* A writer yet to be built starts with the current metadata, which holds
+       this one. *)
     method encode_metadata m =
-      if not (Frame.Metadata.Export.is_empty m) then (
-        match self#get_encoder with
-          | None -> ()
-          | Some encoder -> encoder.Encoder.encode_metadata m)
+      match encoder with
+        | `Created writer -> writer.Encoder.metadata m
+        | `Pending | `None -> ()
   end
 
 (** Piped virtual class: open/close pipe, implements metadata interpolation and
@@ -226,14 +233,10 @@ class virtual piped_output ?clock ~name p =
     method virtual is_open : bool
 
     method interpolate ?(subst = fun x -> x) s =
-      let current_metadata =
-        match current_metadata with
-          | Some m ->
-              let m = Frame.Metadata.Export.to_metadata m in
-              fun x -> subst (Frame.Metadata.find x m)
-          | None -> fun _ -> raise Not_found
-      in
-      Utils.interpolate current_metadata s
+      let current_metadata = self#current_metadata in
+      Utils.interpolate
+        (fun x -> subst (Frame.Metadata.find x current_metadata))
+        s
 
     method prepare_pipe =
       self#open_pipe;
@@ -243,7 +246,7 @@ class virtual piped_output ?clock ~name p =
 
     method cleanup_pipe =
       if self#is_open then (
-        (try base#send self#close_encoder with _ -> ());
+        (try self#close_encoder with _ -> ());
         self#close_pipe)
 
     val on_reopen = Callbacks.create ()
@@ -273,8 +276,6 @@ class virtual piped_output ?clock ~name p =
           (try self#cleanup_pipe with _ -> ());
           self#reopen_on_error ~bt exn)
 
-    method! send b = if self#is_open then base#send b
-
     method! encode frame =
       (match self#is_open with
         | false when open_date <= Unix.gettimeofday () -> self#prepare_pipe
@@ -287,10 +288,8 @@ class virtual piped_output ?clock ~name p =
         | _ -> ());
       base#encode frame
 
-    method! encode_metadata metadata =
-      if reopen_on_metadata (Frame.Metadata.Export.to_metadata metadata) then
-        self#reopen;
-      base#encode_metadata metadata
+    method! private on_metadata metadata =
+      if reopen_on_metadata metadata then self#reopen
   end
 
 (** Out channel virtual class: takes care of current out channel and writing to
@@ -304,6 +303,13 @@ let chan_proto frame_t arg_doc =
   ]
   @ pipe_proto frame_t arg_doc
 
+(* What an output's channel is asked to do, off the streaming thread. *)
+type operation = Write of string | Seek of int | Stop
+
+(* Bytes an output may owe its channel before the streaming thread waits for
+   it to catch up. *)
+let max_pending = 16 * 1024 * 1024
+
 class virtual ['a] chan_output p =
   let flush = Lang.to_bool (List.assoc "flush" p) in
   object (self)
@@ -311,24 +317,121 @@ class virtual ['a] chan_output p =
     method virtual open_chan : 'a
     method virtual close_chan : 'a -> unit
     method virtual output_substring : 'a -> string -> int -> int -> unit
+    method virtual seek_chan : 'a -> int -> unit
     method virtual flush : 'a -> unit
+
+    (* The writes run on a worker: a slow disk or a slow process holds the
+       worker, not the clock. The first failure is raised by the next call of
+       the streaming thread, for the output's restart policy. *)
+    val lock = Mutex.create ()
+    val changed = Condition.create ()
+    val queue : operation Queue.t = Queue.create ()
+    val mutable pending = 0
+    val mutable busy = false
+    val mutable failure = None
+    val mutable worker = None
+
+    method private run_worker =
+      let rec loop () =
+        let operation =
+          Mutex.protect lock (fun () ->
+              while Queue.is_empty queue do
+                Condition.wait changed lock
+              done;
+              busy <- true;
+              Queue.pop queue)
+        in
+        (try
+           match (operation, chan) with
+             | Write data, Some channel ->
+                 self#output_substring channel data 0 (String.length data);
+                 if flush then self#flush channel
+             | Seek offset, Some channel ->
+                 self#flush channel;
+                 self#seek_chan channel offset
+             | (Write _ | Seek _), None | Stop, _ -> ()
+         with exn ->
+           Mutex.protect lock (fun () ->
+               if failure = None then failure <- Some exn));
+        Mutex.protect lock (fun () ->
+            (match operation with
+              | Write data -> pending <- pending - String.length data
+              | _ -> ());
+            busy <- false;
+            Condition.broadcast changed);
+        if operation <> Stop then loop ()
+      in
+      loop ()
+
+    method private raise_failure =
+      match Mutex.protect lock (fun () -> failure) with
+        | None -> ()
+        | Some exn ->
+            Mutex.protect lock (fun () -> failure <- None);
+            Lang.raise_as_runtime ~bt:(Printexc.get_callstack 0) ~kind:"system"
+              exn
+
+    method private push operation =
+      self#raise_failure;
+      if worker = None then
+        worker <-
+          Some (Tutils.create (fun () -> self#run_worker) () "output writer");
+      Mutex.protect lock (fun () ->
+          while pending > max_pending do
+            Condition.wait changed lock
+          done;
+          (match operation with
+            | Write data -> pending <- pending + String.length data
+            | _ -> ());
+          Queue.push operation queue;
+          Condition.broadcast changed)
+
+    (* Waits for every operation asked so far to be done. *)
+    method private drain =
+      if worker <> None then
+        Mutex.protect lock (fun () ->
+            while busy || not (Queue.is_empty queue) do
+              Condition.wait changed lock
+            done);
+      self#raise_failure
+
     method open_pipe = chan <- Some self#open_chan
+    method write_pipe b ofs len = self#push (Write (String.sub b ofs len))
+    method private seek_pipe offset = self#push (Seek offset)
 
-    method write_pipe b ofs len =
-      let chan = Option.get chan in
-      try
-        self#output_substring chan b ofs len;
-        if flush then self#flush chan
-      with Sys_error _ as exn ->
-        let bt = Printexc.get_raw_backtrace () in
-        Lang.raise_as_runtime ~bt ~kind:"system" exn
+    (* Runs [f] with the channel once the writes asked before are done. *)
+    method private with_drained_chan : 'b. ('a -> 'b) -> 'b =
+      fun f ->
+        self#drain;
+        let channel = Option.get chan in
+        self#flush channel;
+        f channel
 
+    (* The channel is closed whatever the worker met, then its failure is
+       raised. *)
     method close_pipe =
-      match chan with
+      let failure =
+        try
+          self#drain;
+          None
+        with exn -> Some exn
+      in
+      (* The worker ends before another can start: two would share the queue
+         and the in-flight flag. *)
+      Option.iter
+        (fun thread ->
+          Mutex.protect lock (fun () ->
+              Queue.push Stop queue;
+              Condition.broadcast changed);
+          Thread.join thread;
+          worker <- None)
+        worker;
+      (match chan with
         | None -> ()
         | Some ch ->
-            self#close_chan ch;
-            chan <- None
+            chan <- None;
+            self#close_chan ch);
+      Option.iter raise failure
 
     method is_open = chan <> None
   end
@@ -399,17 +502,68 @@ class virtual ['a] file_output_base p =
   end
 
 class file_output ?clock ~format_val p =
-  object
-    inherit piped_output ?clock ~name:"output.file" p
+  object (self)
+    inherit piped_output ?clock ~name:"output.file" p as base
     inherit [out_channel] chan_output p
     inherit [out_channel] file_output_base p
-    method encoder_factory = encoder_factory format_val
+    method private create_writer = create_writer format_val
+    val mutable file_capabilities = Encoder.fresh_stream
+    method! private capabilities = file_capabilities
 
+    (* An appended file is opened without O_APPEND, at its end: its writer may
+       seek back to rewrite a header. *)
     method open_out_gen mode perm filename =
-      let fd = open_out_gen mode perm filename in
-      set_binary_mode_out fd true;
-      fd
+      let appending = List.mem Open_append mode in
+      let mode = List.filter (fun flag -> flag <> Open_append) mode in
+      let channel = open_out_gen mode perm filename in
+      set_binary_mode_out channel true;
+      let regular =
+        (Unix.fstat (Unix.descr_of_out_channel channel)).Unix.st_kind
+        = Unix.S_REG
+      in
+      let existing = if regular then out_channel_length channel else 0 in
+      if appending && regular then seek_out channel existing;
+      file_capabilities <-
+        {
+          Encoder.fresh_stream with
+          seekable = regular;
+          continuing = appending && 0 < existing;
+        };
+      channel
 
+    method! private sink =
+      let read offset length =
+        self#with_drained_chan (fun _ ->
+            In_channel.with_open_bin
+              (Option.get (Atomic.get current_filename))
+              (fun input ->
+                In_channel.seek input (Int64.of_int offset);
+                (* Up to [length] bytes: fewer at the end of the file. *)
+                let buffer = Bytes.create length in
+                let rec fill filled =
+                  if filled = length then filled
+                  else (
+                    match
+                      In_channel.input input buffer filled (length - filled)
+                    with
+                      | 0 -> filled
+                      | n -> fill (filled + n))
+                in
+                Bytes.sub_string buffer 0 (fill 0)))
+      in
+      let seekable = file_capabilities.Encoder.seekable in
+      {
+        (base#sink) with
+        Encoder.name = Atomic.get current_filename;
+        seek = (if seekable then Some self#seek_pipe else None);
+        read = (if seekable then Some read else None);
+        size =
+          (if seekable then
+             Some (fun () -> self#with_drained_chan out_channel_length)
+           else None);
+      }
+
+    method seek_chan = seek_out
     method output_substring = output_substring
     method flush = flush
     method close_out = close_out
@@ -417,6 +571,7 @@ class file_output ?clock ~format_val p =
 
 let file_proto frame_t =
   [
+    cover_proto ~default:true;
     ( "append",
       Lang.bool_t,
       Some (Lang.bool false),
@@ -446,49 +601,19 @@ let file_proto frame_t =
   ]
   @ chan_proto frame_t "Filename where to output the stream."
 
-(* A %ffmpeg format writes the file itself, so that seekable containers can
-   finalise their header: the output only creates the file and names it. *)
-class ffmpeg_file_output ?clock ~format_val ~format p =
-  let append = Lang.to_bool (List.assoc "append" p) in
-  object
-    inherit piped_output ?clock ~name:"output.file" p
-    inherit [string] chan_output p
-    inherit [string] file_output_base p
-
-    method encoder_factory name metadata =
-      match Atomic.get current_filename with
-        | None -> failwith "output.file: no file is open"
-        | Some filename ->
-            let format =
-              {
-                format with
-                Liquidsoap_ffmpeg_formats.Encoder_format.output =
-                  `Url ("file:" ^ filename);
-                opts =
-                  Liquidsoap_ffmpeg_formats.Encoder_format.set
-                    format.Liquidsoap_ffmpeg_formats.Encoder_format.opts
-                    "truncate"
-                    (`Int (if append then 0 else 1));
-              }
-            in
-            (Encoder.get_factory (Encoder.Ffmpeg format))
-              ~pos:(Value.pos format_val) name metadata
-
-    method open_out_gen _ perm filename =
-      Unix.close (Unix.openfile filename [Unix.O_WRONLY; Unix.O_CREAT] perm);
-      filename
-
-    method output_substring _ _ _ _ = ()
-    method flush _ = ()
-    method close_out _ = ()
-  end
-
 let new_file_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
-  match Lang.to_format format_val with
-    | Encoder.Ffmpeg format ->
-        (new ffmpeg_file_output ?clock ~format_val ~format p :> piped_output)
-    | _ -> (new file_output ?clock ~format_val p :> piped_output)
+  let capabilities =
+    {
+      Encoder.fresh_stream with
+      seekable = true;
+      continuing = Lang.to_bool (List.assoc "append" p);
+    }
+  in
+  let (_ : Encoder.format) =
+    Lang_encoder.output_format ~capabilities format_val
+  in
+  (new file_output ?clock ~format_val p :> piped_output)
 
 let output_file =
   let return_t = Lang.univ_t () in
@@ -502,12 +627,15 @@ let output_file =
 
 class external_output ?clock p =
   let format_val = Lang.assoc "" 1 p in
+  let (_ : Encoder.format) =
+    Lang_encoder.output_format ~capabilities:Encoder.fresh_stream format_val
+  in
   let process = Lang.to_string_getter (Lang.assoc "" 2 p) in
   let self_sync = Lang.to_bool (List.assoc "self_sync" p) in
   object (self)
     inherit piped_output ?clock ~name:"output.external" p
     inherit [out_channel] chan_output p
-    method encoder_factory = encoder_factory format_val
+    method private create_writer = create_writer format_val
     method private self_sync = (`Static, self#source_sync self_sync)
 
     method open_chan =
@@ -515,22 +643,40 @@ class external_output ?clock p =
       let process = self#interpolate process in
       Unix.open_process_out process
 
+    (* Closing its input ends the process; it is reaped off the streaming
+       thread, which never waits for it to exit. *)
     method close_chan chan =
-      try ignore (Unix.close_process_out chan) with Sys_error _ -> ()
+      (try close_out chan with Sys_error _ -> ());
+      (* [close_process_out] also forgets the channel in Unix's table of
+         processes, which would otherwise keep it forever. *)
+      ignore
+        (Tutils.create
+           (fun () ->
+             try
+               match Unix.close_process_out chan with
+                 | Unix.WEXITED 0 -> ()
+                 | Unix.WEXITED code ->
+                     self#log#important "Process exited with code %d." code
+                 | Unix.WSIGNALED signal | Unix.WSTOPPED signal ->
+                     self#log#important "Process stopped by signal %d." signal
+             with Unix.Unix_error _ | Sys_error _ -> ())
+           () "output.external process reaper")
 
+    method seek_chan _ _ = failwith "a process cannot seek"
     method output_substring = output_substring
     method flush = flush
     method close_out = close_out
   end
 
 let pipe_proto frame_t descr =
-  ( "self_sync",
-    Lang.bool_t,
-    Some (Lang.bool false),
-    Some
-      "Set to `true` if the process is expected to control the output's \
-       latency. Typical example: `ffmpeg` with the `-re` command-line option."
-  )
+  cover_proto ~default:false
+  :: ( "self_sync",
+       Lang.bool_t,
+       Some (Lang.bool false),
+       Some
+         "Set to `true` if the process is expected to control the output's \
+          latency. Typical example: `ffmpeg` with the `-re` command-line \
+          option." )
   :: chan_proto frame_t descr
 
 let _ =

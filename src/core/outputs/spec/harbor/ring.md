@@ -1,37 +1,24 @@
 # The shared stream store
 
-The store the shared mode appends encoder output to and every listener reads
-from ([shared-encoder.md](shared-encoder.md)). The streaming clock is its only
-writer; delivery passes of every group read it concurrently.
+The store of the shared stream ([shared-stream.md §5](../shared-stream.md#5-store-and-concurrency)),
+used by the shared mode ([shared-encoder.md](shared-encoder.md)) and by any
+other user of the store. The output's streaming work is its
+only writer; delivery passes of every group read it concurrently.
 
 ## 1. Model
 
-- **Offsets** are absolute: the `k`-th byte appended since creation has
-  offset `k − 1`. The **tail** `T` is the offset of the next byte to be
-  appended.
-- The store **retains** a window of offsets ending at `T`. The shared mode
-  states which offsets must stay readable
-  ([shared-encoder.md](shared-encoder.md), `[N − buffer, T)`); the store's
-  size follows from it.
-- `read(o, len)` copies offsets `o … o + len − 1` and reports whether every
-  copied byte is the one appended at its offset.
+Offsets, the tail `T` and the window of offsets that must stay readable are
+[shared-stream.md §1–§2](../shared-stream.md#1-model); harbor's window is
+`[N − buffer, T)` ([shared-encoder.md](shared-encoder.md)).
+`read(o, len)` copies offsets `o … o + len − 1` and reports whether every
+copied byte is the one appended at its offset.
 
 ## 2. Guarantees
 
-1. **No blocking.** A read never blocks the writer or another read; an append
-   never waits for a reader. The streaming clock's timing depends on it.
-2. **No torn bytes.** A read MUST report invalid any range of which a byte
-   may have been overwritten before or during the copy, including by an append
-   that has not finished yet. A range reported valid holds exactly the bytes
-   appended at those offsets. A torn range handed to a listener would corrupt
-   its stream with no way to detect it; reported invalid, it becomes an
-   overflow.
-3. **Retention.** Every offset in the window the shared mode requires is
-   readable until the window moves past it, including after an append longer
-   than the store's current size.
-4. **Bounded memory.** The store's memory is bounded by the required window,
-   `buffer` plus the newest output, up to a constant factor. Space taken for
-   one large output SHOULD be released once the window no longer needs it.
+No blocking, no torn bytes, publication order, retention and bounded memory
+are [shared-stream.md §5](../shared-stream.md#5-store-and-concurrency). A
+range reported invalid is an overflow of the listener that read it
+([shared-encoder.md §4](shared-encoder.md#4-flush)).
 
 ## 3. A design that meets them
 

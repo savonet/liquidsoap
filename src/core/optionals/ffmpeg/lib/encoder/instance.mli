@@ -26,8 +26,12 @@
     linked. The factory's [interrupt] covers every blocking I/O of a [`Url]
     target (encoder.md §1). *)
 
+(** With [direct], the muxer writes and seeks in that sink itself, and the
+    encoder returns no bytes. *)
 val create :
   ?interrupt:(unit -> bool) ->
+  ?direct:Encoder.sink ->
+  ?filename:string ->
   pos:Pos.t option ->
   name:string ->
   Frame.Metadata.Export.t ->

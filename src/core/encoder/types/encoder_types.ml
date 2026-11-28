@@ -62,47 +62,6 @@ let reject_pcm_kind_params p =
       | _ -> ())
     p
 
-let channels_of_params ?(default = 2) p =
-  reject_pcm_kind_params p;
-  match
-    List.find_map
-      (function
-        | `Anonymous s when String.lowercase_ascii s = "mono" -> Some 1
-        | `Anonymous s when String.lowercase_ascii s = "stereo" -> Some 2
-        | `Labelled ("stereo", { Term.term = `Bool b; _ }) ->
-            Some (if b then 2 else 1)
-        | `Labelled ("stereo", ({ Term.t = { Type.pos } } as tm)) ->
-            raise_error ~pos
-              (Printf.sprintf
-                 "Invalid value %s for stereo mode. Only static `true` or \
-                  `false` are allowed."
-                 (Term.to_string tm))
-        | `Labelled ("mono", { Term.term = `Bool b; _ }) ->
-            Some (if b then 1 else 2)
-        | `Labelled ("mono", ({ Term.t = { Type.pos } } as tm)) ->
-            raise_error ~pos
-              (Printf.sprintf
-                 "Invalid value %s for mono mode. Only static `true` or \
-                  `false` are allowed."
-                 (Term.to_string tm))
-        | `Labelled ("channels", { Term.term = `Int n }) -> Some n
-        | `Labelled ("channels", ({ Term.t = { Type.pos } } as tm)) ->
-            raise_error ~pos
-              (Printf.sprintf
-                 "Invalid value %s for channels mode. Only static numbers are \
-                  allowed."
-                 (Term.to_string tm))
-        | _ -> None)
-      p
-  with
-    | Some n -> n
-    | None -> default
-
-(* The frame type of an encoder that takes plain PCM audio and nothing else:
-   what every audio-only encoder format uses. *)
-let pcm_audio_type_of_encoder p =
-  audio_type ~pcm_kind:Audio_format.kind (channels_of_params p)
-
 let encoders = Hashtbl.create 16
 
 let register name type_of_encoder =
@@ -110,103 +69,21 @@ let register name type_of_encoder =
 
 let find name = Hashtbl.find_opt encoders name
 
-(* Computing this from a term rather than from an encoder means a script's
-   types are known without building anything it describes. *)
+(* Each name registers how to type its terms: native formats build a format
+   from their literal parameters (Format_builders), %ffmpeg types its own. *)
 let type_of_encoder ~pos ((name, params) : Term.encoder) =
   match find name with
     | None -> raise_error ~pos ("unsupported format: " ^ name)
     | Some type_of_encoder ->
         let fields =
-          try type_of_encoder params
-          with Runtime_error.Runtime_error { kind; msg; pos = [] } ->
-            Runtime_error.raise ~message:msg ~pos:(Option.to_list pos) kind
+          try type_of_encoder params with
+            | Runtime_error.Runtime_error { kind; msg; pos = [] } ->
+                Runtime_error.raise ~message:msg ~pos:(Option.to_list pos) kind
+            | Term.Unsupported_encoder (None, format) ->
+                raise (Term.Unsupported_encoder (pos, format))
+            | Audio_layout.Unsupported ->
+                raise_error ~pos "unsupported number of audio channels"
         in
         format_t ?pos (Frame_type.make Liquidsoap_lang.Lang.unit_t fields)
 
 let () = Hooks.implement Hooks.type_of_encoder type_of_encoder
-
-let () =
-  List.iter
-    (fun name -> register name pcm_audio_type_of_encoder)
-    [
-      "fdkaac";
-      "flac";
-      "mp3";
-      "mp3.abr";
-      "mp3.cbr";
-      "mp3.fxp";
-      "mp3.vbr";
-      "opus";
-      "shine";
-      "speex";
-      "vorbis";
-      "vorbis.abr";
-      "vorbis.cbr";
-      "wav";
-    ]
-
-let () =
-  register "avi" (fun p ->
-      audio_video_type ~pcm_kind:Audio_format.kind (channels_of_params p));
-  register "theora" (fun _ -> video_type ())
-
-let () =
-  register "external" (fun p ->
-      let channels = channels_of_params p in
-      match
-        List.find_map
-          (function `Labelled ("video", p) -> Some p | _ -> None)
-          p
-      with
-        | Some { Term.term = `Bool true } ->
-            audio_video_type ~pcm_kind:Audio_format.kind channels
-        | Some ({ Term.t = { Type.pos } } as tm) ->
-            raise_error ~pos
-              (Printf.sprintf
-                 "Invalid value %s for value mode. Only `true` or `false is \
-                  allowed."
-                 (Term.to_string tm))
-        | _ -> audio_type ~pcm_kind:Audio_format.kind channels)
-
-let () =
-  register "ndi" (fun p ->
-      match
-        List.fold_left
-          (fun (audio, video) -> function
-            | `Encoder ("audio", []) -> (true, video)
-            | `Encoder ("audio.none", []) -> (false, video)
-            | `Encoder ("video", []) -> (audio, true)
-            | `Encoder ("video.none", []) -> (audio, false)
-            | _ -> (audio, video))
-          (true, true) p
-      with
-        | true, true ->
-            audio_video_type ~pcm_kind:Audio_format.kind
-              (!Audio_format.channels ())
-        | false, true -> video_type ()
-        | true, false ->
-            audio_type ~pcm_kind:Audio_format.kind (!Audio_format.channels ())
-        | _ -> raise_error ~pos:None "Invalid %%ndi encoder parameter!")
-
-let () =
-  register "ogg" (fun p ->
-      let audio =
-        ["vorbis"; "vorbis.cbr"; "vorbis.abr"; "opus"; "speex"; "flac"]
-      in
-      let audio =
-        List.find_map
-          (function
-            | `Encoder (e, p) -> if List.mem e audio then Some p else None
-            | _ -> None)
-          p
-      in
-      let channels =
-        match audio with None -> 0 | Some p -> channels_of_params p
-      in
-      let video =
-        List.exists (function `Encoder ("theora", _) -> true | _ -> false) p
-      in
-      match (channels, video) with
-        | 0, true -> video_type ()
-        | _, true -> audio_video_type ~pcm_kind:Audio_format.kind channels
-        | _, false -> audio_type ~pcm_kind:Audio_format.kind channels)

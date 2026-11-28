@@ -36,6 +36,14 @@ they differ; rules that depend on it say what each value does.
 - A mount's removal is reported as any disconnection ([sources.md
   §8](sources.md#8-lifecycle), [sources.md §7](sources.md#7-notifications)).
 - On server shutdown with feeders connected, mounts end without hanging.
+- A source client ends its stream at a clean stop: it sends the stream's
+  final bytes (the end-of-stream pages of an Ogg body, a container's
+  trailer) before it closes, and reconnects only once its previous
+  connection has closed; Liquidsoap's own source client does both
+  ([output-icecast.md §6–§7](../../../../core/encoder/spec/output-icecast.md#6-end)).
+  The server delivers those final bytes to the mount's listeners as part of
+  the stream, and the feeder that leaves is gone once its connection has
+  closed, so a reconnecting feeder finds the mount free.
 
 ### 1.1 Linger
 
@@ -123,7 +131,8 @@ switches between must be packet-compatible. A mount has a **format**: the
 container and, for each stream, its codec. Bit rate, metadata and Ogg stream
 serials are not part of it. Sample rate and channel count are part of it only
 for a container that fixes them in one header written once (Matroska and WebM,
-native FLAC): a listener who joined cannot be told of a change there. MP3 and
+native FLAC): a listener that started reading such a stream cannot be told
+of a change there. MP3 and
 ADTS frames, and Ogg links, carry their parameters in the stream and players
 follow a change.
 
@@ -155,7 +164,7 @@ source on a Vorbis mount) fails the mount's copy encoder, which stops the
 clock it shares: it is a script error and stops the server.
 
 Rationale for the strict rule on fallbacks and attached sources: a listener
-who joined a Matroska stream cannot follow another codec or layout, and a
+reading a Matroska stream cannot follow another codec or layout, and a
 fallback is switched in without its consent. Departure from Icecast, which
 compares only the content type.
 
@@ -174,6 +183,9 @@ client's identity is its own; an attached Liquidsoap source's is the `headers`
 given to `attach_source`, none when there are none; while the mount follows a
 fallback mount, it is that mount's feeder's, and none for a fallback that is a
 Liquidsoap source; while a `linger` runs, it is the departed feeder's. The
+identity texts are converted to the charset named by the mount output's
+`encoding`, as its metadata is
+([harbor icy.md §5](../../../../core/outputs/spec/harbor/icy.md#5-charset)). The
 parameters it reads when it is created, and those read at use, are
 [parameters.md](parameters.md)'s ([§2.2](parameters.md#22-read-points),
 [§4.1](parameters.md#41-fields)). The header list is
@@ -183,9 +195,26 @@ the rule that uses per-reply headers is
 
 ## 5. `dedicated_encoder`
 
-`dedicated_encoder` gives each listener its own encoder, so each stream starts
-with its own container header and a listener can join any streamable container
-at any time. It costs one encoder per listener. The mount's value wins over
+`dedicated_encoder` gives each listener its own writer, so each listener's
+stream starts at a writer's first byte, with its own container header, and
+a listener can start any configuration at any time, streamable or not. It
+costs one writer per listener.
+
+A shared-encoder mount (`dedicated_encoder` false) serves only a streamable
+format: its listeners start mid-stream
+([harbor operator.md §2](../../../../core/outputs/spec/harbor/operator.md#2-validation-at-construction)).
+The server checks the feeder's format against its declarations
+([formats.md §9](../../../../core/encoder/spec/formats.md#9-helpers)) before
+it creates or replaces the mount's output. A feeder whose format is not
+streamable on a mount whose `dedicated_encoder` is false is refused: a
+source client as a stream that cannot be served, like one that cannot be
+parsed ([sources.md §4](sources.md#4-replies)), an attached Liquidsoap source
+with a named error kind ([parameters.md](parameters.md)), a fallback skipped
+as one that does not match ([§3](#3-the-format-match-rule)). The refusal is
+logged at `severe`, naming the mount, the format and `dedicated_encoder` as
+the alternative. Rationale: the server never switches a mount's mode
+behind the operator's back, and a shared stream of a format with no access
+points gives late listeners nothing they can decode. The mount's value wins over
 the server's. It is a property of the mount output, fixed at creation; its delivery is the harbor output's
 ([dedicated-encoder.md](../../../../core/outputs/spec/harbor/dedicated-encoder.md)).
 
@@ -346,6 +375,11 @@ Every other rule here holds under every value.
   title, the event and the playlist log in order.
 - Dump file: one file per feeder connection, name expansion, both limits stop
   the recording and not the stream.
+- A non-streamable feeder format on a shared-encoder mount is refused, with
+  a log naming `dedicated_encoder`; the same format with `dedicated_encoder`
+  is served.
+- A source client's clean stop delivers its final bytes (an Ogg body's
+  end-of-stream pages) to a reading listener.
 
 **Incidental**: how soon the switch is seen (within a frame of the output),
 ordering between mounts, the form of statistics, the file's byte layout beyond

@@ -121,6 +121,8 @@ external encode_flush : encoder -> string = "ocaml_lame_encode_flush"
 external encode_flush_nogap : encoder -> string
   = "ocaml_lame_encode_flush_nogap"
 
+external lametag_frame : encoder -> string = "ocaml_lame_get_lametag_frame"
+
 module Id3tag = struct
   external init : encoder -> unit = "ocaml_lame_id3tag_init"
   external set_title : encoder -> string -> unit = "ocaml_lame_id3tag_set_title"

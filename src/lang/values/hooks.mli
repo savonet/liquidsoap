@@ -49,7 +49,9 @@ and encoder = string * encoder_params
 
 val make_encoder : (pos:Pos.Option.t -> encoder -> Value.t) t
 val type_of_encoder : (pos:Pos.Option.t -> Term.encoder -> Type.t) t
-val has_encoder : (Value.t -> bool) t
+
+(* Whether this build can encode the default format of a name. *)
+val encoder_available : (string -> bool) t
 
 val mk_source_ty :
   (?pos:Term.parsed_pos -> string -> Parsed_term.source_annotation -> Type.t) t

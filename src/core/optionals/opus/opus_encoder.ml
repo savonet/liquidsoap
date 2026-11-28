@@ -35,7 +35,6 @@ let create_encoder ~opus ~comments () =
     match opus.Opus_format.application with None -> `Audio | Some a -> a
   in
   let enc = ref None in
-  let started = ref false in
   let get_enc os =
     match !enc with
       | Some x -> x
@@ -77,13 +76,8 @@ let create_encoder ~opus ~comments () =
     Ogg.Stream.put_packet os (Opus.Encoder.comments enc);
     Ogg_muxer.flush_pages os
   in
-  let data_encoder { Ogg_muxer.data; offset; length } os _ =
-    started := true;
-    let enc = get_enc os in
-    let content = Content.Audio.lift_data data in
-    let offset = Frame.main_of_audio offset in
-    let length = Frame.main_of_audio length in
-    Generator.put gen Frame.Fields.audio (Content.sub content offset length);
+  let input_samples = ref 0 in
+  let encode_frames enc =
     while Generator.length gen >= frame_size_in_main do
       let content =
         Frame.Fields.find Frame.Fields.audio
@@ -97,23 +91,38 @@ let create_encoder ~opus ~comments () =
       assert (ret = frame_size)
     done
   in
-  let empty_data () =
-    {
-      Ogg_muxer.offset = 0;
-      length = 1;
-      data =
-        Array.make (Lazy.Mutexed.force Frame.audio_channels) (Array.make 1 0.);
-    }
+  let data_encoder { Ogg_muxer.data; offset; length } os _ =
+    let enc = get_enc os in
+    input_samples := !input_samples + length;
+    let content = Content.Audio.lift_data data in
+    let offset = Frame.main_of_audio offset in
+    let length = Frame.main_of_audio length in
+    Generator.put gen Frame.Fields.audio (Content.sub content offset length);
+    encode_frames enc
   in
+  let ratio = 48000 / samplerate in
   let end_of_page p =
     let granulepos = Ogg.Page.granulepos p in
     if granulepos < Int64.zero then Ogg_muxer.Unknown
     else Ogg_muxer.Time (Int64.to_float granulepos /. 48000.)
   in
+  (* Silence pushes the remainder and the encoder's look-ahead out in whole
+     frames. The final granule position trims it back to the input. *)
   let end_of_stream os =
-    (* Assert that at least some data was encoded.. *)
-    if not !started then data_encoder (empty_data ()) os ();
-    Ogg.Stream.terminate os
+    let enc = get_enc os in
+    let pre_skip = Opus.Encoder.pre_skip enc in
+    let pending = Frame.audio_of_main (Generator.length gen) in
+    let needed = pending + (pre_skip / ratio) in
+    let frames = max 1 ((needed + frame_size - 1) / frame_size) in
+    let padding = (frames * frame_size) - pending in
+    Generator.put gen Frame.Fields.audio
+      (Content.Audio.lift_data
+         (Array.init channels (fun _ -> Array.make padding 0.)));
+    encode_frames enc;
+    Opus.Encoder.eos
+      ~granulepos:(Int64.of_int (pre_skip + (!input_samples * ratio)))
+      enc;
+    Ogg_muxer.flush_pages os
   in
   {
     Ogg_muxer.header_encoder;
@@ -127,17 +136,16 @@ let create_encoder ~opus ~comments () =
 let create_opus = function
   | Ogg_format.Opus opus ->
       let reset ogg_enc m =
-        let comments =
-          Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata m)
-        in
-        let enc = create_encoder ~opus ~comments () in
+        let enc = create_encoder ~opus ~comments:(Ogg_encoder.comments m) () in
         Ogg_muxer.register_track ?fill:opus.Opus_format.fill ogg_enc enc
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float opus.Opus_format.samplerate in
       let channels = opus.Opus_format.channels in
-      let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      { Ogg_encoder.encode; reset; id = None }
+      let encode, drain =
+        Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
+      in
+      { Ogg_encoder.encode; reset; drain; id = None }
   | _ -> assert false
 
 let () = Hashtbl.replace Ogg_encoder.audio_encoders "opus" create_opus

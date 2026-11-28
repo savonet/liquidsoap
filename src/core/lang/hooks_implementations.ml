@@ -114,13 +114,7 @@ let register () =
       { Hooks.update = Xxh.update state; digest = (fun () -> Xxh.digest state) });
   Hooks.implement Hooks.build_id (fun () ->
       String.get_int64_le (Code_digest.get ()) 0);
-  Hooks.implement Hooks.has_encoder (fun fmt ->
-      try
-        let (_ : Encoder.factory) =
-          Encoder.get_factory (Lang_encoder.V.of_value fmt)
-        in
-        true
-      with _ -> false);
+  Hooks.implement Hooks.encoder_available Lang_encoder.available;
   Hooks.getpwnam := Unix.getpwnam;
   Hooks.implement Hooks.source_methods_t (fun () ->
       Lang_source.source_t ~methods:true (Lang.univ_t ()))

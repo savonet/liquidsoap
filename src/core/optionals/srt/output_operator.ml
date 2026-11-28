@@ -178,13 +178,15 @@ let rec send_loop ~(log : Log.t) stream =
 
 class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
   ~infallible ~register_telnet ~autostart source_val =
-  let factory =
-    match Encoder.get_factory (Lang.to_format format_val) with
-      | factory -> factory ~pos:(Value.pos format_val)
-      | exception Not_found ->
-          raise
-            (Error.Invalid_value
-               (format_val, "Cannot get a stream encoder for that format", []))
+  let capabilities =
+    match params.Connection.mode with
+      | `Listener -> Encoder.shared_stream
+      | `Caller -> Encoder.live_stream
+  in
+  let format = Lang_encoder.output_format ~capabilities format_val in
+  let factory name initial_metadata =
+    Encoder.buffered ?pos:(Value.pos format_val) ~name ~capabilities
+      ~initial_metadata format
   in
   let source = Lang.to_source source_val in
   object (self)
@@ -294,29 +296,43 @@ class output ~params ~write_timeout ~max_clients ~max_payload_delay ~format_val
         | [], _ -> None
         | _, Some enc -> Some enc
         | _, None ->
-            let enc = factory self#id Frame.Metadata.Export.empty in
+            let enc = factory self#id self#initial_metadata in
             encoder <- Some enc;
             List.iter (fun s -> s.joined <- true) streams;
             Some enc
 
+    (* A peer starts at a stream start, or at an access point after the
+       stream's header; it gets nothing before. *)
     method private distribute enc data =
       let restart = enc.Encoder.restart_offset () in
+      let access_point =
+        match enc.Encoder.access_points with
+          | Some access_points -> List.nth_opt (access_points ()) 0
+          | None -> if Strings.is_empty data then None else Some 0
+      in
+      let from offset =
+        Strings.sub data offset (Strings.length data - offset)
+      in
       List.iter
         (fun stream ->
           let data =
-            if stream.joined then data
+            if stream.joined then Some data
             else (
-              stream.joined <- true;
-              match restart with
-                | Some offset ->
-                    Strings.sub data offset (Strings.length data - offset)
-                | None -> Strings.append (enc.Encoder.header ()) data)
+              match (restart, access_point) with
+                | Some offset, _ -> Some (from offset)
+                | None, Some offset ->
+                    Some (Strings.append (enc.Encoder.header ()) (from offset))
+                | None, None -> None)
           in
-          if
-            not
-              (Mutex.protect stream.m (fun () ->
-                   push ~now:stream_time stream data))
-          then stream.handle.fail ())
+          Option.iter
+            (fun data ->
+              stream.joined <- true;
+              if
+                not
+                  (Mutex.protect stream.m (fun () ->
+                       push ~now:stream_time stream data))
+              then stream.handle.fail ())
+            data)
         streams
 
     method private encode frame =

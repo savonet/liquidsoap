@@ -34,6 +34,8 @@ enum {
   ROOT_READ,
   ROOT_WRITE,
   ROOT_SEEK,
+  ROOT_MARKER,
+  ROOT_READ_BACK,
   ROOT_BUFFER,
   ROOT_COUNT
 };
@@ -395,6 +397,148 @@ static int write_callback(void *opaque, const uint8_t *buffer, int size) {
   return result;
 }
 
+static int locked_marker(container *record, int type, int64_t time) {
+  CAMLparam0();
+  CAMLlocal2(_time, _result);
+
+  _time = caml_copy_int64(time);
+  _result =
+      caml_callback2_exn(record->roots[ROOT_MARKER], Val_int(type), _time);
+
+  CAMLreturnT(int, closure_raised(&_result) ? AVERROR_EXTERNAL : 0);
+}
+
+/* The data types are the constructors of Av.data_marker, in order. Flush
+   points are not handed to this callback. */
+static int write_data_type_callback(void *opaque, const uint8_t *buffer,
+                                    int size, enum AVIODataMarkerType type,
+                                    int64_t time) {
+  container *record = opaque;
+  int marker;
+  int result;
+
+  switch (type) {
+  case AVIO_DATA_MARKER_HEADER:
+    marker = 0;
+    break;
+  case AVIO_DATA_MARKER_SYNC_POINT:
+    marker = 1;
+    break;
+  case AVIO_DATA_MARKER_BOUNDARY_POINT:
+    marker = 2;
+    break;
+  case AVIO_DATA_MARKER_TRAILER:
+    marker = 4;
+    break;
+  default:
+    marker = 3;
+  }
+
+  ocaml_avutil_register_thread();
+  caml_acquire_runtime_system();
+  result = locked_marker(record, marker, time);
+  if (result >= 0)
+    result = locked_write(record, buffer, size);
+  caml_release_runtime_system();
+
+  return result;
+}
+
+/* A context reading back what a custom output wrote, at its own position:
+   the muxer reads it while it keeps writing through the main one. */
+typedef struct {
+  container *record;
+  int64_t position;
+} read_back;
+
+static int locked_read_back(read_back *reader, uint8_t *buffer, int size) {
+  CAMLparam0();
+  CAMLlocal1(_result);
+  container *record = reader->record;
+  int length = size < CUSTOM_IO_BUFFER_SIZE ? size : CUSTOM_IO_BUFFER_SIZE;
+  int result;
+
+  _result = caml_callback3_exn(record->roots[ROOT_READ_BACK],
+                               Val_long(reader->position),
+                               record->roots[ROOT_BUFFER], Val_int(length));
+  result = io_result(&_result, length);
+  if (result > 0) {
+    memcpy(buffer, Bytes_val(record->roots[ROOT_BUFFER]), result);
+    reader->position += result;
+  }
+
+  CAMLreturnT(int, result == 0 ? AVERROR_EOF : result);
+}
+
+static int read_back_callback(void *opaque, uint8_t *buffer, int size) {
+  int result;
+
+  ocaml_avutil_register_thread();
+  caml_acquire_runtime_system();
+  result = locked_read_back(opaque, buffer, size);
+  caml_release_runtime_system();
+
+  return result;
+}
+
+static int64_t read_back_seek(void *opaque, int64_t offset, int whence) {
+  read_back *reader = opaque;
+
+  switch (whence & ~AVSEEK_FORCE) {
+  case SEEK_SET:
+    reader->position = offset;
+    return offset;
+  case SEEK_CUR:
+    reader->position += offset;
+    return reader->position;
+  default:
+    return AVERROR(ENOSYS);
+  }
+}
+
+/* The muxer reopens its own output for reading to move data (an MP4 index
+   moved to the start); anything else is not a file this output has. */
+static int read_back_open(struct AVFormatContext *context, AVIOContext **io,
+                          const char *url, int flags, AVDictionary **options) {
+  container *record = context->opaque;
+  read_back *reader;
+  uint8_t *buffer;
+
+  (void)options;
+
+  if (!(flags & AVIO_FLAG_READ) || (flags & AVIO_FLAG_WRITE) || !url ||
+      !context->url || strcmp(url, context->url))
+    return AVERROR(ENOSYS);
+
+  reader = av_mallocz(sizeof(read_back));
+  buffer = av_malloc(CUSTOM_IO_BUFFER_SIZE);
+  if (!reader || !buffer) {
+    av_free(reader);
+    av_free(buffer);
+    return AVERROR(ENOMEM);
+  }
+  reader->record = record;
+
+  *io = avio_alloc_context(buffer, CUSTOM_IO_BUFFER_SIZE, 0, reader,
+                           read_back_callback, NULL, read_back_seek);
+  if (!*io) {
+    av_free(reader);
+    av_free(buffer);
+    return AVERROR(ENOMEM);
+  }
+
+  return 0;
+}
+
+static int read_back_close(struct AVFormatContext *context, AVIOContext *io) {
+  if (io == context->pb)
+    return 0;
+  av_free(io->opaque);
+  av_freep(&io->buffer);
+  avio_context_free(&io);
+  return 0;
+}
+
 static int64_t locked_seek(container *record, int64_t offset, int whence) {
   CAMLparam0();
   CAMLlocal1(_result);
@@ -464,8 +608,9 @@ static void install_interrupt(container *record, value _interrupt) {
 /* Creates the custom I/O context of a container whose read or write closure
    is rooted, with [_seek], a seek closure option. Returns 0 when memory is
    short. */
-static int create_custom_io(container *record, int write, value _seek) {
-  CAMLparam1(_seek);
+static int create_custom_io(container *record, int write, value _seek,
+                            value _marker) {
+  CAMLparam2(_seek, _marker);
   CAMLlocal1(_buffer);
   uint8_t *buffer;
 
@@ -484,6 +629,10 @@ static int create_custom_io(container *record, int write, value _seek) {
                                          Is_some(_seek) ? seek_callback : NULL);
   if (!record->custom_io)
     av_free(buffer);
+  else if (Is_some(_marker)) {
+    set_root(record, ROOT_MARKER, Some_val(_marker));
+    record->custom_io->write_data_type = write_data_type_callback;
+  }
 
   CAMLreturnT(int, record->custom_io != NULL);
 }
@@ -541,6 +690,11 @@ CAMLprim value ocaml_av_output_format_name(value _format) {
 CAMLprim value ocaml_av_output_format_long_name(value _format) {
   CAMLparam1(_format);
   CAMLreturn(copy_text(OutputFormat_val(_format)->long_name));
+}
+
+CAMLprim value ocaml_av_output_format_needs_file(value _format) {
+  CAMLparam1(_format);
+  CAMLreturn(Val_bool(!(OutputFormat_val(_format)->flags & AVFMT_NOFILE)));
 }
 
 CAMLprim value ocaml_av_find_input_format(value _name) {
@@ -648,7 +802,7 @@ CAMLprim value ocaml_av_open_input(value _container, value _source,
 
   if (custom) {
     set_root(record, ROOT_READ, Field(_source, 0));
-    if (!create_custom_io(record, 0, Field(_source, 1)))
+    if (!create_custom_io(record, 0, Field(_source, 1), Val_none))
       fail_open(record, &options, AVERROR(ENOMEM), NULL);
     record->context->pb = record->custom_io;
   } else {
@@ -1486,8 +1640,17 @@ CAMLprim value ocaml_av_open_output(value _container, value _target,
 
   if (custom) {
     set_root(record, ROOT_WRITE, Field(_target, 0));
-    if (!create_custom_io(record, 1, Field(_target, 1)))
+    if (!create_custom_io(record, 1, Field(_target, 1), Field(_target, 2)))
       fail_open(record, &options, AVERROR(ENOMEM), NULL);
+    if (Is_some(Field(_target, 3))) {
+      set_root(record, ROOT_READ_BACK, Some_val(Field(_target, 3)));
+      record->context->opaque = record;
+      record->context->io_open = read_back_open;
+      record->context->io_close2 = read_back_close;
+      /* The muxer reopens its output by its name. */
+      if (!record->context->url)
+        record->context->url = av_strdup("custom-output");
+    }
     record->context->pb = record->custom_io;
     record->context->flags |= AVFMT_FLAG_CUSTOM_IO;
   }
@@ -2109,6 +2272,21 @@ CAMLprim value ocaml_av_flush(value _container) {
     caml_acquire_runtime_system();
   }
   done(record, error < 0 ? error : 0);
+
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value ocaml_av_flush_io(value _container) {
+  CAMLparam1(_container);
+  container *record = exclusive(_container);
+  int error = 0;
+
+  if (record->is_output) {
+    caml_release_runtime_system();
+    error = flush_io(record);
+    caml_acquire_runtime_system();
+  }
+  done(record, error);
 
   CAMLreturn(Val_unit);
 }

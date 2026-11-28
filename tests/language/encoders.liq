@@ -16,7 +16,9 @@ def f() =
     "-- invalid wav samplesize"
   )
   try
-    enc = %wav(samplesize = 123456)
+    # A literal would fail type checking.
+    samplesize = int_of_string("123456")
+    enc = %wav(samplesize = samplesize)
   catch err do
     if
       err.kind != "encoder"
@@ -165,6 +167,95 @@ def f() =
   print(
     "ok ffmpeg metadata"
   )
+
+  # Helpers and printed forms: the printed form is the format itself, so it
+  # carries every stream and parses back.
+%ifencoder %flac
+  test.equal(encoder.content_type(%flac), "audio/flac")
+%endif
+%ifencoder %opus
+  test.equal(encoder.extension(%ogg(%opus)), "opus")
+  test.equal(
+    string.contains(
+      substring="complexity=5,",
+      "#{%ogg(%opus(complexity = 5))}"
+    ),
+    true
+  )
+%endif
+
+  # A name the language does not know is not available.
+%ifencoder %nosuchencoder
+  test.fail()
+%endif
+  unknown_is_unavailable = ref(false)
+%ifnencoder %nosuchencoder
+  unknown_is_unavailable := true
+%endif
+  test.equal(unknown_is_unavailable(), true)
+
+  # A computed parameter is left to evaluation, where a missing one is refused.
+  process = "cat"
+  test.equal(
+    string.contains(
+      substring='process="cat"',
+      "#{%external(process = process)}"
+    ),
+    true
+  )
+  try
+    ignore(%external(process = ""))
+    test.fail()
+  catch err do
+    test.equal(
+      err.message,
+      "%external needs a process"
+    )
+  end
+
+%ifencoder %mp3
+  # The type is the built format's: the last channel parameter wins.
+  def last_wins(s) =
+    if false then output.file(%mp3(mono, stereo = true), "", s) end
+  end
+  last_wins((sine() : source(audio=pcm(stereo))))
+%endif
+%ifencoder %mp3
+  # id3v2 is adaptable: printed and compared only when set explicitly.
+  test.equal(string.contains(substring="id3v2", "#{%mp3}"), false)
+  test.equal(
+    string.contains(substring="id3v2=3", "#{%mp3(id3v2 = true)}"),
+    true
+  )
+  test.equal(
+    string.contains(substring="id3v2=false", "#{%mp3(id3v2 = 'none')}"),
+    true
+  )
+  test.equal(%mp3 == %mp3, true)
+  test.equal(%mp3 == %mp3(id3v2 = false), false)
+%endif
+%ifencoder %fdkaac
+  test.equal(encoder.extension(%fdkaac), "aac")
+  test.equal(encoder.extension(%fdkaac(transmux = "loas")), "loas")
+%endif
+%ifencoder %vorbis
+  test.equal(encoder.extension(%ogg(%vorbis)), "ogg")
+  test.equal(string.contains(substring=",,", "#{%vorbis.abr}"), false)
+  test.equal(string.contains(substring="(,", "#{%vorbis.abr}"), false)
+%endif
+%ifencoder %theora
+  test.equal(string.contains(substring="%theora(", "#{%ogg(%theora)}"), true)
+  test.equal(string.contains(substring=",,", "#{%ogg(%theora)}"), false)
+%endif
+%ifencoder %speex
+  test.equal(
+    string.contains(
+      substring='mode="wideband"',
+      "#{%ogg(%speex(mode = 'wideband'))}"
+    ),
+    true
+  )
+%endif
 
   test.pass()
 end

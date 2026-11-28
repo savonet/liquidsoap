@@ -9,6 +9,7 @@ own tree and links here for what all outputs share.
 | -------------------------------------------- | ---------------------------------------------------------------------- |
 | [output.md](output.md)                       | Part A. The output base: parameters, states, the cycle, reset, pacing. |
 | [encoder spec](../../encoder/spec/README.md) | The encoder interface outputs drive.                                   |
+| [shared-stream.md](shared-stream.md)         | Part A. Serving one writer's stream to readers that start mid-stream.  |
 | [harbor/](harbor/README.md)                  | `output.harbor`.                                                       |
 | [HLS](../hls/spec/README.md)                 | `output.file.hls` and its wrappers.                                    |
 | [SRT](../../optionals/srt/spec/README.md)    | `output.srt`, with `input.srt`.                                        |

@@ -120,9 +120,12 @@ module Encoder : sig
     int ->
     int
 
-  val eos : t -> unit
-  [@@alert
-    deprecated
-      "This function generates invalid bitstream. Please use \
-       Ogg.Stream.terminate instead!"]
+  (** Pre-skip written in the header, in 48kHz samples. *)
+  val pre_skip : t -> int
+
+  (** The latest encoded packet is submitted when the next one is encoded.
+      [eos ~granulepos t] submits it as the last packet of the stream, with the
+      end-of-stream flag and the given granule position. Raises
+      [Invalid_argument] if nothing was encoded. *)
+  val eos : granulepos:Int64.t -> t -> unit
 end

@@ -52,12 +52,10 @@ let parse_fields value =
 
 let build_variant ~pos ~segment_duration (name, value) =
   let format_value = Lang.demeth value in
-  let format = Lang.to_format format_value in
+  let format =
+    Lang_encoder.output_format ~capabilities:Encoder.segmented format_value
+  in
   let fields = parse_fields value in
-  (try
-     let (_ : Encoder.factory) = Encoder.get_factory format in
-     ()
-   with Not_found -> invalid value "Unsupported format");
   let extname =
     match fields.extname with
       | Some e -> e
@@ -79,14 +77,12 @@ let build_variant ~pos ~segment_duration (name, value) =
                 defined (RFC 8216 §3.1)"
                name)
   in
-  let encoder = factory ~pos ~segment_duration name in
   let id3_mode =
-    match encoder.init ?id3:fields.id3 ?id3_version:fields.id3_version () with
+    match Encoder.hls_id3_mode ?id3:fields.id3 format with
       | Ok mode -> mode
       | Error reason ->
           invalid value (Printf.sprintf "Variant %s: %s" name reason)
   in
-  (try ignore (encoder.hls_stop ()) with _ -> ());
   {
     Variant.name;
     format_value;

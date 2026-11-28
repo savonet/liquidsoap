@@ -37,10 +37,10 @@ containers as `container_options`. It cannot fail (I1).
 - **Ownership**: the container owns its format context, every per-stream
   codec context, and its I/O context.
 - **Keeps alive**: the closures installed on it — interrupt, custom read,
-  write and seek — from installation until release (C3, L8).
+  write, seek and size — from installation until release (C3, L8).
 - **Kept alive by**: every stream value, every `uninitialized_stream_copy`,
   and the value `input_obj` returns (L3).
-- **Release**: `close`, or collection.
+- **Release**: `close`, `abandon` (outputs), or collection.
 - **Guard**: §6.2.
 
 #### Release
@@ -61,6 +61,15 @@ trailer write or of the final I/O flush is reported like any other.
 
 An output with no stream, or with only copy and data streams to which nothing
 was written, is closed without a header or a trailer.
+
+`abandon` (outputs only) releases an output on purpose, without finishing
+it: it performs step 3 only. No encoder is flushed, no header and no trailer
+is written, and nothing more reaches the I/O; the bytes the closures or the
+URL received before stay as they are. It raises nothing a write could have
+raised. On a closed container it returns. Reason: a caller ending an output
+whose destination failed, or that it gives up on, needs a release that
+neither blocks on that destination nor writes a trailer that would describe
+a stream it did not finish.
 
 Release by collection performs step 3 only (L7). An output that is collected
 without `close` is truncated: its encoders are not flushed and it has no
@@ -89,11 +98,16 @@ decoder to the opened state.
 **Open** (header not written) → **Started** (header written) → **Closed**. An
 open output can also become **Failed**.
 
-The header is written by the first `write_packet`, `write_frame` or
-`write_subtitle_frame`, or by `close` (above). A failed header write leaves
-the output Open; the next write attempts it again. No operation writes the
-header by itself: what the muxer fixes when it writes the header, the time
-bases of the streams among them, is known after the first write.
+The header is written explicitly by `write_header`, called once every
+stream is added and before any packet or frame is written: its bytes are
+then exactly what that call hands the I/O, and a caller that needs to know
+where the header ends (to send it again to a reader starting later) learns
+it there. A caller that does not call it gets the header written by the
+first `write_packet`, `write_frame` or `write_subtitle_frame`, before that
+call sends its frame or packet, whether or not a packet results, or by
+`close` (above). A failed header write leaves the output Open; the next
+write attempts it again. What the muxer fixes when it writes the header, the
+time bases of the streams among them, is known once it is written.
 
 | Operation                                                          | Open                           | Started                       | Failed                   | Closed       |
 | ------------------------------------------------------------------ | ------------------------------ | ----------------------------- | ------------------------ | ------------ |
@@ -105,10 +119,12 @@ bases of the streams among them, is known after the first write.
 | `write_packet`, `write_frame`, `write_subtitle_frame`              | writes the header, then writes | writes                        | failed error             | closed error |
 | `write_header`                                                     | writes the header, flushes I/O | nothing                       | failed error             | closed error |
 | `flush`                                                            | nothing                        | flushes the muxer and the I/O | failed error             | closed error |
+| `flush_io`                                                         | flushes the I/O                | flushes the I/O               | failed error             | closed error |
 | `output_started`                                                   | `false`                        | `true`                        | failed error             | closed error |
 | `output_wants_global_header`                                       | performed                      | performed                     | failed error             | closed error |
 | getters                                                            | performed                      | performed                     | failed error             | closed error |
 | `close`                                                            | per "Release"                  | per "Release"                 | releases, writes nothing | nothing      |
+| `abandon`                                                          | releases, writes nothing       | releases, writes nothing      | releases, writes nothing | nothing      |
 | collection                                                         | releases                       | releases                      | releases                 | nothing      |
 
 **Failed.** FFmpeg has no call that removes a stream from a muxer. A stream
@@ -246,6 +262,30 @@ FFmpeg's guess from any of a short name, a file name and a MIME type
 when FFmpeg guesses nothing.
 
 ```ocaml
+val find_output_format : string -> (output, 'a) format option
+```
+
+The output format whose short name, or one of whose comma-separated
+aliases, is exactly the argument; `None` when there is none. Unlike
+`guess_output_format`, it never answers a format of another name. Reason: a
+caller that refuses an unknown muxer must not have another one substituted
+for it.
+
+```ocaml
+val output_needs_file : (output, _) format -> bool
+```
+
+Whether the output format opens I/O at all: `false` exactly when its flags
+hold `AVFMT_NOFILE` (devices, and muxers that write their own files).
+
+```ocaml
+val output_options : (output, _) format -> Avutil.Options.t option
+```
+
+The muxer's private option class (`priv_class`), for checking option names
+and values without opening anything; `None` when the muxer has none.
+
+```ocaml
 val get_audio_codec_id : (output, audio) format -> Avcodec.Audio.id
 val get_video_codec_id : (output, video) format -> Avcodec.Video.id
 val get_subtitle_codec_id : (output, subtitle) format -> Avcodec.Subtitle.id
@@ -309,11 +349,14 @@ everything and removes the interrupt closure before it reaches the caller
 
 ```ocaml
 type read = bytes -> int -> int -> int
+type read_at = int -> bytes -> int -> int -> int
 type write = bytes -> int -> int -> int
 type seek = int -> Unix.seek_command -> int
 ```
 
-The custom I/O closures (§7.1).
+The custom I/O closures (§7.1). `read` is an input's sequential read;
+`read_at` is an output's positional read back, whose first argument is the
+position in the destination (§7.1.1).
 
 ```ocaml
 val open_input_stream :
@@ -605,12 +648,40 @@ that needs a file raises a failure.
 
 ```ocaml
 val open_output_stream :
-  ?opts:opts -> ?interleaved:bool -> ?seek:seek -> write ->
-  (output, _) format -> output container
+  ?opts:opts -> ?interleaved:bool -> ?seek:seek -> ?size:(unit -> int) ->
+  ?read:read_at -> write -> (output, _) format -> output container
 ```
 
 Opens an output of the given format that writes through the closures. A
 format that needs no file raises a failure.
+
+- `write` receives every byte the muxer writes (§7.1.2).
+- `seek`, when given, moves the position (§7.1.3). Without it the muxer sees
+  a destination that cannot seek, and writes the form it writes on a stream.
+- `size`, when given, answers FFmpeg's size query (§7.1.3); without it the
+  query is answered "not supported".
+- `read`, when given, reads back bytes already written (§7.1.1), from the
+  position it is given: the binding tracks each I/O context's position and
+  passes it, so `read` never depends on where `seek` last moved the
+  output. A muxer that reads back what it wrote (to move its
+  index to the front at its trailer) needs `seek` and `read`; without
+  `read`, a read it asks for fails with an I/O error.
+- **Reopening the destination.** Some muxers open their own destination a
+  second time while they write their trailer, through FFmpeg's I/O-open
+  callback: the ISO family's `faststart` reopens it for reading to shift the
+  data behind the index it moves to the front. On an output opened by this
+  function, the binding installs that callback: a request to open the
+  output's own destination is answered with an I/O context over the same
+  closures (`read`, `seek`, `size`, and `write` for a write request), and
+  closing that context leaves the output's own I/O open. A reopened context
+  keeps a position of its own, which its reads advance and its seeks move;
+  the output's own position is unaffected. Reason: the muxer interleaves
+  reads on the reopened context with writes on its own at other offsets;
+  with one shared position the reads land where the writes moved it. A request to open
+  any other name is refused with an I/O error: an output with custom I/O
+  has no file system of its own. Reason: without the callback, FFmpeg opens
+  the destination's name as a file, which on custom I/O does not exist, and
+  the trailer fails after the whole stream was written.
 
 ```ocaml
 val output_started : output container -> bool
@@ -872,6 +943,17 @@ the I/O. Encoders are not flushed. On an output whose header is not written
 it does nothing.
 
 ```ocaml
+val flush_io : output container -> unit
+```
+
+Hands every byte the I/O context buffers to the write closure, or to the
+URL. The muxer is not asked to write anything: its interleaving queue and a
+unit it is filling (a fragment, a cluster, a page) stay as they are, and no
+unit is ended early. Reason: a caller that must have every byte a call
+produced at its destination before the call returns would otherwise end the
+muxer's units at every call.
+
+```ocaml
 val tell : _ container -> int option
 ```
 
@@ -880,6 +962,7 @@ of its own, or when FFmpeg reports no position. Positions beyond 32 bits are ret
 
 ```ocaml
 val close : _ container -> unit
+val abandon : output container -> unit
 ```
 
 §2.1, "Release".
@@ -944,6 +1027,10 @@ content is meaningful only during the call, and the closure MUST NOT keep it.
 
 - The closure fills at most `length` bytes of `buffer` from `offset` and
   returns the number of bytes it stored. `length` is at least 1.
+- On an output, the closure is `read_at position buffer offset length`: it
+  reads from `position` in the destination, the position of the I/O
+  context FFmpeg reads on (§4.4, "Reopening the destination"), and keeps no
+  position of its own.
 - 0 means end of input.
 - A negative result is given to FFmpeg as the error code of the read.
 - A result greater than `length`, and an exception, are failures of the
@@ -968,7 +1055,8 @@ hands over at a time.
 
 - Called for `SEEK_SET`, `SEEK_CUR` and `SEEK_END` (§3); it returns the new
   position.
-- A size query is answered as "not supported" without calling the closure.
+- A size query is answered by the `size` closure when the output was given
+  one, and as "not supported" otherwise; it never calls `seek`.
 - A negative result is given to FFmpeg as an error code. An exception gives
   `AVERROR_EXTERNAL`.
 
@@ -979,6 +1067,15 @@ hands over at a time.
 - `true` aborts the blocking operation, which then raises ``Error `Exit``.
 - An exception aborts it too.
 - It is never called after the container's release completed (L8).
+
+#### 7.1.5 I/O open — on outputs opened with custom I/O
+
+- FFmpeg calls it when the muxer opens a destination by name, with the name
+  and the read or write flag; the binding answers it without calling OCaml
+  code of its own (§4.4, `open_output_stream`, "Reopening the destination").
+- An I/O context it opened is closed by FFmpeg's matching close callback;
+  closing it frees that context only, never the output's own I/O.
+- It is installed with the closures and dropped at release, as they are.
 
 ### 7.2 Functions the binding calls
 

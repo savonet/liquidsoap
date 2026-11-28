@@ -1,4 +1,11 @@
 (library
  (name liquidsoap_lame)
- (libraries lame liquidsoap_core metadata mm mm.audio mm.base)
+ (libraries
+  lame
+  liquidsoap_core
+  metadata
+  mm
+  mm.audio
+  mm.base
+  liquidsoap_encoder_formats)
  (optional))

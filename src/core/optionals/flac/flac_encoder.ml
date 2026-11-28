@@ -24,13 +24,51 @@ open Mm
 
 (** FLAC encoder *)
 
-let encoder flac meta =
-  let comments =
-    Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata meta)
+let log = Log.make ["encoder"; "flac"]
+
+(* The comments: the encoder identification on every sink, the tags on a file
+   only. *)
+let comments ~tags metadata =
+  let legal (key, value) =
+    let legal =
+      Flac.Encoder.vorbiscomment_entry_name_is_legal key
+      && Flac.Encoder.vorbiscomment_entry_value_is_legal value
+    in
+    if not legal then
+      log#important "Metadata %S cannot be written as a FLAC comment: dropped"
+        key;
+    legal
+  in
+  let cover_keys = Metadata_settings.conf_meta_cover#get in
+  let tags =
+    if tags then
+      List.filter
+        (fun (key, _) ->
+          let key = String.lowercase_ascii key in
+          key <> "encoder" && not (List.mem key cover_keys))
+        metadata
+    else []
+  in
+  ("ENCODER", Configure.vendor) :: List.filter legal tags
+
+let writer flac { Encoder.capabilities; sink; initial_metadata; _ } =
+  let metadata =
+    Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata initial_metadata)
+  in
+  (* The file form: tags, a cover, and a STREAMINFO block completed at the
+     end. *)
+  let file_form = Encoder.file_form capabilities in
+  let picture =
+    if file_form then
+      Option.map
+        (fun { Utils.mime_type; picture } ->
+          { Flac.Encoder.mime_type; picture })
+        (Utils.cover_of_metadata metadata)
+    else None
   in
   let channels = flac.Flac_format.channels in
   let samplerate_converter = Audio_converter.Samplerate.create channels in
-  let samplerate = Lazy.Mutexed.force flac.Flac_format.samplerate in
+  let samplerate = Deferred.force flac.Flac_format.samplerate in
   let src_freq = float (Frame.audio_of_seconds 1.) in
   let dst_freq = float samplerate in
   let p =
@@ -43,9 +81,50 @@ let encoder flac meta =
     }
   in
   let buf = Strings.Mutable.empty () in
-  let write chunk = Strings.Mutable.add_bytes buf chunk in
-  let enc = Flac.Encoder.create ~comments ~write p in
-  let enc = ref enc in
+  (* Where the library is in the stream: it seeks back to complete its
+     STREAMINFO block once it has written everything. *)
+  let position = ref 0 in
+  let write chunk =
+    position := !position + Bytes.length chunk;
+    Strings.Mutable.add_bytes buf chunk
+  in
+  (* The fLaC header the library writes when created, until it is handed on. *)
+  let pending_header = ref None in
+  let take () =
+    let bytes = Strings.Mutable.flush buf in
+    match !pending_header with
+      | Some header ->
+          pending_header := None;
+          Strings.append header bytes
+      | None -> bytes
+  in
+  let seek, tell =
+    match sink.Encoder.seek with
+      | Some seek when file_form ->
+          ( Some
+              (fun offset ->
+                sink.Encoder.write (take ());
+                position := Int64.to_int offset;
+                seek !position),
+            Some (fun () -> Int64.of_int !position) )
+      | _ -> (None, None)
+  in
+  let enc =
+    Flac.Encoder.create
+      ~comments:(comments ~tags:file_form metadata)
+      ?picture ?seek ?tell ~write p
+  in
+  (* What the library writes when it is created: fLaC and its metadata
+     blocks. *)
+  let header = Strings.Mutable.flush buf in
+  pending_header := Some header;
+  (* Encodes samples at the stream's rate: those of a frame, and at the end
+     those the rate converter still holds. *)
+  let encode_converted b start len =
+    let b = Audio.sub b start len in
+    Flac.Encoder.process enc b;
+    take ()
+  in
   let encode frame =
     let b = AFrame.pcm frame in
     let len = AFrame.position frame in
@@ -53,27 +132,30 @@ let encoder flac meta =
       Audio_converter.Samplerate.resample samplerate_converter
         (dst_freq /. src_freq) b 0 len
     in
-    let b = Audio.sub b start len in
-    Flac.Encoder.process !enc b;
-    Strings.Mutable.flush buf
+    encode_converted b start len
   in
+  (* The drained samples stay in the library's output until [finish]: its seek
+     back to STREAMINFO writes everything pending first. *)
   let stop () =
-    Flac.Encoder.finish !enc;
-    Strings.Mutable.flush buf
+    let tail = Audio_converter.Samplerate.drain samplerate_converter in
+    if 0 < Mm.Audio.length tail then Flac.Encoder.process enc tail;
+    Flac.Encoder.finish enc;
+    take ()
   in
-  {
-    Encoder.encode_metadata = (fun _ -> ());
-    (* Flac encoder do not support header
-     * for now. It will probably never do.. *)
-    header = (fun () -> Strings.empty);
-    encode;
-    stop;
-    bitrate = (fun () -> None);
-    encode_into = None;
-    restart_offset = (fun () -> None);
-  }
+  (* The library hands over whole frames: a call's output starts on one. *)
+  Encoder.writer_of_encoder
+    {
+      Encoder.encode_metadata = (fun _ -> ());
+      header = (fun () -> header);
+      encode;
+      stop;
+      bitrate = (fun () -> None);
+      access_points = None;
+      restart_offset = (fun () -> None);
+    }
+    sink
 
 let () =
   Plug.register Encoder.plug "flac" ~doc:"Flac encoder." (function
-    | Encoder.Flac m -> Some (fun ~pos:_ _ -> encoder m)
+    | Encoder.Flac m -> Some (writer m)
     | _ -> None)

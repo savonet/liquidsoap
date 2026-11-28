@@ -318,43 +318,67 @@ class virtual ['a] encoded ~output_kind ?clock ~name ~infallible
     method virtual private encode : Frame.t -> 'a
     method virtual private send : 'a -> unit
 
-    val mutable encoding_order : [ `Data_first | `Metadata_first ] =
-      `Metadata_first
+    (* A metadata at the end of a frame labels the next frame's first piece. *)
+    val mutable pending_metadata = None
+    initializer self#on_stop (fun () -> pending_metadata <- None)
 
-    method private set_encoding_order v = encoding_order <- v
+    (* What the source is playing: a writer built later starts with it. *)
+    method private current_metadata =
+      match (Lang.to_source source)#last_metadata with
+        | Some (_, m) -> m
+        | None -> Frame.Metadata.empty
 
-    method private send_metadata frame start stop =
-      match
-        List.find_map
-          (fun (pos, m) -> if start <= pos && pos < stop then Some m else None)
-          (Frame.get_all_metadata frame)
-      with
-        | None -> ()
-        | Some m ->
-            self#encode_metadata
-              (Frame.Metadata.Export.from_metadata ~cover:export_cover_metadata
-                 m)
+    method private export_metadata =
+      Frame.Metadata.Export.from_metadata ~cover:export_cover_metadata
+
+    method private initial_metadata = self#export_metadata self#current_metadata
+
+    (* The output's own reaction to a metadata, given in full. *)
+    method private on_metadata (_ : Frame.Metadata.t) = ()
+
+    method private offer_metadata m =
+      let m = self#export_metadata m in
+      if not (Frame.Metadata.Export.is_empty m) then self#encode_metadata m
+
+    (* Metadata by position, those at one position merged in frame order,
+       the pending one under the frame's own at 0. *)
+    method private metadata_by_position frame =
+      let merge positions (position, m) =
+        match positions with
+          | (last, m') :: rest when last = position ->
+              (position, Frame.Metadata.append m' m) :: rest
+          | positions -> (position, m) :: positions
+      in
+      let pending =
+        match pending_metadata with Some m -> [(0, m)] | None -> []
+      in
+      pending_metadata <- None;
+      List.rev
+        (List.fold_left merge []
+           (pending
+           @ List.stable_sort
+               (fun (p, _) (p', _) -> Int.compare p p')
+               (Frame.get_all_metadata frame)))
 
     method private send_frame frame =
-      let rec output_chunks frame =
-        let f start stop =
-          if encoding_order = `Metadata_first then
-            self#send_metadata frame start stop;
-          let data = self#encode (Frame.sub frame start (stop - start)) in
-          self#send data;
-          if encoding_order = `Data_first then
-            self#send_metadata frame start stop
-        in
-        function
-        | [] -> assert false
-        | [i] -> assert (i = Lazy.Mutexed.force Frame.size || not infallible)
-        | start :: stop :: l ->
-            if start < stop then f start stop else assert (start = stop);
-            output_chunks frame (stop :: l)
+      let length = Frame.position frame in
+      assert (length = Lazy.Mutexed.force Frame.size || not infallible);
+      let metadata = self#metadata_by_position frame in
+      let send_piece start stop =
+        let piece_metadata = List.assoc_opt start metadata in
+        Option.iter self#on_metadata piece_metadata;
+        Option.iter self#offer_metadata piece_metadata;
+        self#send (self#encode (Frame.sub frame start (stop - start)))
       in
-      output_chunks frame
-        (0
-        :: List.sort compare
-             (List.map fst (Frame.get_all_metadata frame)
-             @ [Frame.position frame]))
+      let cuts =
+        List.filter (fun p -> 0 < p && p < length) (List.map fst metadata)
+      in
+      let rec send_pieces start = function
+        | stop :: cuts ->
+            send_piece start stop;
+            send_pieces stop cuts
+        | [] -> if start < length then send_piece start length
+      in
+      send_pieces 0 cuts;
+      pending_metadata <- List.assoc_opt length metadata
   end

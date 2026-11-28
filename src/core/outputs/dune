@@ -9,6 +9,7 @@
  (preprocess
   (pps ppx_string))
  (libraries
+  liquidsoap_encoder_formats
   cry
   dtools
   duppy

@@ -43,28 +43,27 @@ module L = struct
   let format = V.to_value
 end
 
-let raise_error = Encoder_types.raise_error
+let raise_error = Format_builders.raise_error
+let raise_generic_error = Format_builders.raise_generic_error
+let register = Format_builders.register_builder
+let available = Format_builders.available
 
-let raise_generic_error = function
-  | `Anonymous s -> raise_error ~pos:None ("Unknown encoder parameter: " ^ s)
-  | `Labelled (l, v) ->
-      raise_error ~pos:(Value.pos v)
-        (Printf.sprintf
-           "unknown parameter name (%s) or invalid parameter value (%s)" l
-           (Value.to_string v))
-  | `Encoder _ -> raise_error ~pos:None "unexpected subencoder"
-
-let encoders = ref []
-
-(** Register how to build an encoder; what it produces, as a type, is
-    [Encoder_types]. *)
-let register name make = encoders := (name, make) :: !encoders
-
-let find_encoder name = List.assoc name !encoders
+(** The format an output was given, for a destination it declares: refused when
+    this build cannot encode it or when the destination cannot take it. Its
+    deferred values are resolved at start-up. *)
+let output_format ~capabilities value =
+  let format = V.of_value value in
+  let invalid message = raise (Error.Invalid_value (value, message, [])) in
+  if not (Encoder.supported format) then
+    invalid "This build cannot encode that format";
+  Option.iter invalid (Encoder.refusal capabilities format);
+  Encoder.resolve_at_start ~pos:(Value.pos value) format;
+  format
 
 let make_encoder ~pos ((e, p) : Hooks.encoder) =
   try
-    let e = (find_encoder e) p in
-    let (_ : Encoder.factory) = Encoder.get_factory e in
+    let e = (Format_builders.find e) p in
+    Format_value.check_complete ~pos e;
+    if not (Encoder.supported e) then raise Not_found;
     V.to_value ?pos e
   with Not_found -> raise_error ~pos "unsupported format"

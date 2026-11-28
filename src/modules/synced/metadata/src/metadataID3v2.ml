@@ -297,6 +297,7 @@ type frame_id =
   | `TCON
   | `TCOP
   | `TDAT
+  | `TDRC
   | `TDLY
   | `TENC
   | `TEXT
@@ -379,6 +380,7 @@ let frame_id_of_string = function
   | "TCON" -> Some `TCON
   | "TCOP" -> Some `TCOP
   | "TDAT" -> Some `TDAT
+  | "TDRC" -> Some `TDRC
   | "TDLY" -> Some `TDLY
   | "TENC" -> Some `TENC
   | "TEXT" -> Some `TEXT
@@ -456,6 +458,7 @@ let string_of_frame_id = function
   | `TCON -> "TCON"
   | `TCOP -> "TCOP"
   | `TDAT -> "TDAT"
+  | `TDRC -> "TDRC"
   | `TDLY -> "TDLY"
   | `TENC -> "TENC"
   | `TEXT -> "TEXT"

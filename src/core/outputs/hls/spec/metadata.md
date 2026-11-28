@@ -24,9 +24,9 @@ segment.
 
 ## 2. ID3
 
-Per variant, the encoder's `init` decides the ID3 mode from the variant's
-`id3` and `id3_version` fields
-([encoder-contract.md §3](encoder-contract.md#3-init)):
+Per variant, the configuration's declaration and the variant's `id3`
+field decide the ID3 mode at construction; `id3_version` sets the tags'
+version ([encoder-contract.md §3](encoder-contract.md#3-id3-mode)):
 
 - **none**: no ID3;
 - **in-stream**: the encoder carries tags inside its container, at a media
@@ -42,7 +42,7 @@ called with the media time `t` of the chunk that carried `m`, after any cut
 made at `t`, and the state becomes sent `m`: the tag is on time whether or
 not a cut follows. When a segment opens with sent `m` and `replay_id3` true,
 `insert_id3` is called with the segment's start and `m` if that start is
-after the variant's last in-stream tag: a player joining at that segment
+after the variant's last in-stream tag: a player starting at that segment
 sees the current track. Reason: in-stream tag times MUST strictly increase.
 A cut can land at a split point before the last tag's time, and a replay
 there would label earlier media with the new track, and a muxer drops a tag
@@ -89,7 +89,7 @@ Pending tags, and the tags of the open segment at a stop, are kept
 ## 4. Cuts on metadata and tags
 
 A cut on metadata makes a new segment start at the metadata's media time,
-so that a prepended tag, or a player joining at that segment, has the new
+so that a prepended tag, or a player starting at that segment, has the new
 track from the start. A cut on an inserted tag makes the tag's segment
 start when it is inserted, so a cue or a marker is on time. Both are sync
 cuts ([segmenting.md §7](segmenting.md#7-output-wide-cuts)), not

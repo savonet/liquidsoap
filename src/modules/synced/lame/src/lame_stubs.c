@@ -368,6 +368,20 @@ CAMLprim value ocaml_lame_encode_flush_nogap(value l) {
   CAMLreturn(ret);
 }
 
+CAMLprim value ocaml_lame_get_lametag_frame(value _encoder) {
+  CAMLparam1(_encoder);
+  CAMLlocal1(_frame);
+  lame_global_flags *encoder = Lame_val(_encoder);
+  /* With no buffer, LAME answers the size the frame needs. */
+  size_t frame_size = lame_get_lametag_frame(encoder, NULL, 0);
+
+  _frame = caml_alloc_string(frame_size);
+  if (frame_size > 0)
+    lame_get_lametag_frame(encoder, Bytes_val(_frame), frame_size);
+
+  CAMLreturn(_frame);
+}
+
 /***** Id3 tags *****/
 
 CAMLprim value ocaml_lame_id3tag_init(value l) {

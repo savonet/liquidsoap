@@ -1,0 +1,76 @@
+(*****************************************************************************
+
+  Liquidsoap, a programmable stream generator.
+  Copyright 2003-2026 Savonet team
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details, fully stated in the COPYING
+  file at the root of the liquidsoap distribution.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+
+ *****************************************************************************)
+
+open Value
+
+let make params =
+  let defaults =
+    {
+      (* We use a hardcoded value in order not to force the evaluation of the
+         number of channels too early, see #933. *)
+      Shine_format.channels = 2;
+      samplerate = `Setting `Audio_rate;
+      bitrate = 128;
+      id3v2 = `Default;
+    }
+  in
+  let shine =
+    List.fold_left
+      (fun f -> function
+        | `Labelled ("stereo", Bool { value = b; _ }) ->
+            { f with Shine_format.channels = (if b then 2 else 1) }
+        | `Labelled ("mono", Bool { value = b; _ }) ->
+            { f with Shine_format.channels = (if b then 1 else 2) }
+        | `Anonymous s when String.lowercase_ascii s = "mono" ->
+            { f with Shine_format.channels = 1 }
+        | `Anonymous s when String.lowercase_ascii s = "stereo" ->
+            { f with Shine_format.channels = 2 }
+        | `Labelled ("channels", Int { value = i; _ }) ->
+            { f with Shine_format.channels = i }
+        | `Labelled ("samplerate", Int { value = i; _ }) ->
+            { f with Shine_format.samplerate = `Value i }
+        | `Labelled ("bitrate", Int { value = i; _ }) ->
+            { f with Shine_format.bitrate = i }
+        | `Labelled ("id3v2", v) ->
+            { f with Shine_format.id3v2 = Format_builders.id3v2 v }
+        | `Anonymous s when String.lowercase_ascii s = "mono" ->
+            { f with Shine_format.channels = 1 }
+        | `Anonymous s when String.lowercase_ascii s = "stereo" ->
+            { f with Shine_format.channels = 2 }
+        | t -> Format_builders.raise_generic_error t)
+      defaults params
+  in
+  if shine.Shine_format.channels <> 1 && shine.Shine_format.channels <> 2 then
+    Format_builders.raise_error ~pos:None "%shine takes 1 or 2 channels";
+  (match shine.Shine_format.samplerate with
+    | `Value samplerate ->
+        if not (Mp3_format.valid_samplerate samplerate) then
+          Format_builders.raise_error ~pos:None "invalid samplerate value";
+        Option.iter
+          (Format_builders.raise_error ~pos:None)
+          (Mp3_format.bitrate_error ~samplerate [shine.Shine_format.bitrate])
+    | `Setting _ -> ());
+  Format_value.Shine shine
+
+let () =
+  Format_builders.register "shine" make;
+  Format_builders.register "mp3.fxp" make

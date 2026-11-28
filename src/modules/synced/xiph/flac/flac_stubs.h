@@ -80,6 +80,7 @@ typedef struct ocaml_flac_encoder_callbacks {
 typedef struct ocaml_flac_encoder {
   FLAC__StreamEncoder *encoder;
   FLAC__StreamMetadata *meta;
+  FLAC__StreamMetadata *picture;
   FLAC__int32 **buf;
   FLAC__int32 *lines;
   ocaml_flac_encoder_callbacks callbacks;

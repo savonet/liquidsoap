@@ -26,7 +26,7 @@ open Encoder
 open Mp3_format
 
 let () =
-  let create_encoder mp3 =
+  let create_encoder ~info_frame mp3 =
     let enc = Lame.create_encoder () in
     (* Input settings *)
     Lame.set_in_samplerate enc (Lazy.Mutexed.force Frame.audio_rate);
@@ -70,13 +70,17 @@ let () =
             Lame.set_vbr_mode enc Lame.Vbr_abr;
             apply_constaints enc c
     end;
-    Lame.set_out_samplerate enc (Lazy.Mutexed.force mp3.Mp3_format.samplerate);
-    Lame.set_bWriteVbrTag enc false;
+    Lame.set_out_samplerate enc (Deferred.force mp3.Mp3_format.samplerate);
+    Lame.set_bWriteVbrTag enc info_frame;
     Lame.init_params enc;
     enc
   in
-  let mp3_encoder ~pos mp3 metadata =
-    let enc = create_encoder mp3 in
+  let mp3_encoder mp3
+      { Encoder.capabilities; sink; initial_metadata = metadata; _ } =
+    (* The file form: a tag, and a frame describing the whole stream, which a
+       reader in the middle of a stream or of an appended file must not get. *)
+    let file_form = Encoder.file_form capabilities in
+    let enc = create_encoder ~info_frame:file_form mp3 in
     let channels = if mp3.Mp3_format.stereo then 2 else 1 in
     (* Lame accepts data of a fixed length.. *)
     let frame_size = Frame.main_of_audio (Lame.frame_size enc) in
@@ -87,44 +91,58 @@ let () =
            ())
     in
     let encoded = Strings.Mutable.empty () in
-    ignore
-      (Option.map
-         (fun version ->
-           Strings.Mutable.add encoded
-             (Utils.id3v2_of_metadata ~version
-                (Frame.Metadata.to_list
-                   (Frame.Metadata.Export.to_metadata metadata))))
-         mp3.id3v2);
+    let tag = Encoder.id3v2_tag ~capabilities mp3.id3v2 metadata in
+    Strings.Mutable.add encoded tag;
+    (* LAME's placeholder is the first frame, right after the tag. *)
+    let write_info_frame () =
+      match sink.Encoder.seek with
+        | Some seek when file_form ->
+            let frame = Lame.lametag_frame enc in
+            if frame <> "" then (
+              seek (String.length tag);
+              sink.Encoder.write (Strings.of_string frame))
+        | _ -> ()
+    in
+    let encode_pending len =
+      let pcm =
+        Content.Audio.get_data
+          (Frame.Fields.find Frame.Fields.audio
+             (Generator.slice pending_data len))
+      in
+      Strings.Mutable.add encoded
+        (if channels = 1 then
+           Lame.encode_buffer_float_part enc pcm.(0) pcm.(0) 0
+             (Array.length pcm.(0))
+         else
+           Lame.encode_buffer_float_part enc pcm.(0) pcm.(1) 0
+             (Array.length pcm.(0)))
+    in
     let encode frame =
       Generator.put pending_data Frame.Fields.audio
         (Frame.get frame Frame.Fields.audio);
       while Generator.length pending_data > frame_size do
-        let pcm =
-          Content.Audio.get_data
-            (Frame.Fields.find Frame.Fields.audio
-               (Generator.slice pending_data frame_size))
-        in
-        Strings.Mutable.add encoded
-          (if channels = 1 then
-             Lame.encode_buffer_float_part enc pcm.(0) pcm.(0) 0
-               (Array.length pcm.(0))
-           else
-             Lame.encode_buffer_float_part enc pcm.(0) pcm.(1) 0
-               (Array.length pcm.(0)))
+        encode_pending frame_size
       done;
       Strings.Mutable.flush encoded
     in
-    let stop () = Strings.of_string (Lame.encode_flush enc) in
-    {
-      encode_metadata = (fun _ -> ());
-      encode;
-      header = (fun () -> Strings.empty);
-      stop;
-      bitrate = (fun () -> None);
-      encode_into = None;
-      restart_offset = (fun () -> None);
-    }
+    let stop () =
+      let remaining = Generator.length pending_data in
+      if remaining > 0 then encode_pending remaining;
+      Strings.Mutable.add encoded (Lame.encode_flush enc);
+      Strings.Mutable.flush encoded
+    in
+    Encoder.writer_of_encoder ~before_end:write_info_frame
+      {
+        encode_metadata = (fun _ -> ());
+        encode;
+        header = (fun () -> Strings.empty);
+        stop;
+        bitrate = (fun () -> None);
+        access_points = None;
+        restart_offset = (fun () -> None);
+      }
+      sink
   in
   Plug.register Encoder.plug "lame" ~doc:"LAME mp3 encoder." (function
-    | Encoder.MP3 mp3 -> Some (fun ~pos _ meta -> mp3_encoder ~pos mp3 meta)
+    | Encoder.MP3 mp3 -> Some (mp3_encoder mp3)
     | _ -> None)

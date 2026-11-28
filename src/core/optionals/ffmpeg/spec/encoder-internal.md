@@ -21,7 +21,8 @@ draining rule of [draining.md](../../../source/spec/draining.md). Timestamps are
 | video    | creates the stream (§2.2) | drains the frame-rate converter (§8)          | the stream's width and height |
 | subtitle | creates the stream (§2.3) | nothing                                       | none                          |
 
-`codec_attr` and `bitrate` come from the stream (§9).
+`codec_attr` and `bitrate` come from the stream; `delay` and `padding` from
+the codec (§9).
 
 ## 2. Stream creation
 
@@ -268,11 +269,11 @@ Subtitles: `write_subtitle_frame`. A frame or subtitle the codec rejects, and
 a packet the muxer rejects, is an item fault: dropped with a warning, and the
 stream goes on, up to the bound of
 [encoder.md §5.2](encoder.md#52-data-faults-and-output-faults). An I/O error
-of the byte sink is an output fault ([faults.md §2](../../../../spec/faults.md#2-classes)).
+of the sink is an output fault ([faults.md §2](../../../../spec/faults.md#2-classes)).
 
 ## 7. Keyframes
 
-Every packet goes through the instance's hook with its key flag before it
+Every packet goes through the writer's hook with its key flag before it
 reaches the muxer ([encoder.md §8.2](encoder.md#82-keyframe-hooks)). Subtitle
 packets count as key packets.
 
@@ -294,14 +295,14 @@ key-frame interval defaults from the segment duration
 - **Subtitle.** Nothing is held.
 
 Then the codec of an audio or video stream is drained, each packet through
-the instance's hook (§7) before it reaches the muxer. Reason: the HLS mode
-takes split points before packets ([encoder.md §8.2](encoder.md#82-keyframe-hooks)),
+the writer's hook (§7) before it reaches the muxer. Reason: on a segmented
+sink the writer takes split points before packets ([encoder.md §8.2](encoder.md#82-keyframe-hooks)),
 and an encoder with lookahead holds the packets of its last frames until
 this drain. The container close finds the codec drained
-([encoder.md §7](encoder.md#7-stop)). `flush` runs at `stop` and before a
+([encoder.md §7](encoder.md#7-end)). `flush` runs at `end clean` and before a
 container restart ([encoder.md §13.2](encoder.md#132-what-a-restart-does)); a
 restart then builds new stream encoders, with new stages and a new codec.
-Under HLS the new stream encoder continues its predecessor's sample count or
+On a segmented sink the new stream encoder continues its predecessor's sample count or
 output frame number, so the new codec's first pts follows the old codec's
 last frame (encoder.md §13.2, "Timelines").
 
@@ -319,6 +320,19 @@ last frame (encoder.md §13.2, "Timelines").
 `codec_attr` and `bitrate` come from the stream; `video_size` from the video
 stream's codec parameters. All are none before `mk_stream`
 ([encoder.md §8.6](encoder.md#86-properties)).
+
+- `delay`: for an audio stream, the codec's initial
+  padding in samples at the codec's rate, read when the codec opens at
+  `mk_stream`; none before. It is what the stream's parameters and
+  timestamps carry ([timestamps.md §3](timestamps.md#3-audio-internal-and-raw)).
+  A video or subtitle stream reports none.
+- `padding`: for audio, the samples the last frame holds beyond the input
+  (the silence a short last frame was padded with, §8), known once `flush`
+  has drained the re-framer and the codec; none before, and none for video
+  and subtitles.
+
+The writer reports both per stream
+([ffmpeg.md §8](../../../encoder/spec/ffmpeg.md#8-delay-and-padding)).
 
 ## 10. Options and errors
 

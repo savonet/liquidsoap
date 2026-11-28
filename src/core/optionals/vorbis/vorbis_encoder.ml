@@ -92,12 +92,10 @@ let create ~channels ~samplerate ~quality ~metadata () =
 let create_vorbis = function
   | Ogg_format.Vorbis vorbis ->
       let channels = vorbis.Vorbis_format.channels in
-      let samplerate = Lazy.Mutexed.force vorbis.Vorbis_format.samplerate in
+      let samplerate = Deferred.force vorbis.Vorbis_format.samplerate in
       let reset ogg_enc m =
-        let m = Frame.Metadata.Export.to_metadata m in
-        let metas = Hashtbl.create 0 in
-        Frame.Metadata.iter (fun k v -> Hashtbl.replace metas k v) m;
-        let metadata = Vorbis.tags metas () in
+        (* The binding adds the encoder identification. *)
+        let metadata = Ogg_encoder.tags m in
         let enc =
           (* For ABR, a value of -1 means unset.. *)
           let f x = match x with Some x -> x | None -> -1 in
@@ -117,8 +115,10 @@ let create_vorbis = function
       in
       let src_freq = float (Frame.audio_of_seconds 1.) in
       let dst_freq = float samplerate in
-      let encode = Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq () in
-      { Ogg_encoder.reset; encode; id = None }
+      let encode, drain =
+        Ogg_encoder.encode_audio ~channels ~dst_freq ~src_freq ()
+      in
+      { Ogg_encoder.reset; encode; drain; id = None }
   | _ -> assert false
 
 let () = Hashtbl.replace Ogg_encoder.audio_encoders "vorbis" create_vorbis

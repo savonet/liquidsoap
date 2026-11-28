@@ -27,9 +27,19 @@ open Mm
 type track = {
   encode : Ogg_muxer.t -> nativeint -> Frame.t -> unit;
   reset : Ogg_muxer.t -> Frame.Metadata.Export.t -> nativeint;
+  drain : Ogg_muxer.t -> nativeint -> unit;
+      (** Encodes what the track still holds, before its stream ends. *)
   mutable id : nativeint option;
 }
 
+(* The comments of a link: the metadata without an [encoder] key of its own,
+   which the encoder identification replaces. *)
+let tags metadata =
+  List.filter
+    (fun (key, _) -> String.lowercase_ascii key <> "encoder")
+    (Frame.Metadata.to_list (Frame.Metadata.Export.to_metadata metadata))
+
+let comments metadata = ("ENCODER", Configure.vendor) :: tags metadata
 let audio_encoders = Hashtbl.create 3
 let theora_encoder = ref None
 
@@ -50,7 +60,14 @@ let encode_audio ~channels ~src_freq ~dst_freq () =
     in
     Ogg_muxer.encode encoder id data
   in
-  encode
+  let drain encoder id =
+    let buf = Audio_converter.Samplerate.drain samplerate_converter in
+    let length = Audio.length buf in
+    if 0 < length then
+      Ogg_muxer.encode encoder id
+        (Ogg_muxer.Audio_data { Ogg_muxer.data = buf; offset = 0; length })
+  in
+  (encode, drain)
 
 (** Helper to encode video. *)
 let encode_video encoder id frame =
@@ -106,10 +123,7 @@ let encoder ~pos { Ogg_format.audio; video } =
         | Some (params, enc) -> enc params :: tracks
         | None -> tracks
     in
-    (* We add a skeleton only
-     * if there are more than one stream for now. *)
-    let skeleton = List.length tracks > 1 in
-    let ogg_enc = Ogg_muxer.create ~skeleton name in
+    let ogg_enc = Ogg_muxer.create name in
     let rec enc =
       {
         Encoder.encode_metadata;
@@ -117,7 +131,10 @@ let encoder ~pos { Ogg_format.audio; video } =
         header = (fun () -> Ogg_muxer.get_header ogg_enc);
         stop;
         bitrate = (fun () -> None);
-        encode_into = None;
+        (* Pages hold whole audio packets or their continuation: a reader can
+           start at any of them. With video, only a stream start is known to be
+           an access point. *)
+        access_points = (if video = None then None else Some (fun () -> []));
         restart_offset = (fun () -> Ogg_muxer.last_link_start ogg_enc);
       }
     and streams_start () =
@@ -135,15 +152,20 @@ let encoder ~pos { Ogg_format.audio; video } =
       let f track = track.encode ogg_enc (Option.get track.id) frame in
       List.iter f tracks;
       Ogg_muxer.get_data ogg_enc
-    and ogg_stop () =
-      let f track = track.id <- None in
+    (* The rate converter is drained only at the stream's end: across links it
+       keeps its history, so a new link does not start on a cold filter. *)
+    and ogg_stop ~drain =
+      let f track =
+        if drain then Option.iter (track.drain ogg_enc) track.id;
+        track.id <- None
+      in
       List.iter f tracks;
       Ogg_muxer.end_of_stream ogg_enc
     and stop () =
-      ogg_stop ();
+      ogg_stop ~drain:true;
       Ogg_muxer.get_data ogg_enc
     and encode_metadata m =
-      ogg_stop ();
+      ogg_stop ~drain:false;
       let f track = track.id <- Some (track.reset ogg_enc m) in
       List.iter f tracks
     in
@@ -151,5 +173,15 @@ let encoder ~pos { Ogg_format.audio; video } =
 
 let () =
   Plug.register Encoder.plug "ogg" ~doc:"ogg encoder." (function
-    | Encoder.Ogg m -> Some (fun ~pos v -> encoder ~pos m v)
+    | Encoder.Ogg ({ Ogg_format.audio; video } as m)
+      when Option.fold ~none:true
+             ~some:(fun audio ->
+               Hashtbl.mem audio_encoders (encoder_name audio))
+             audio
+           && (video = None || !theora_encoder <> None) ->
+        Some
+          (fun { Encoder.pos; name; sink; initial_metadata; _ } ->
+            Encoder.writer_of_encoder
+              (encoder ~pos m name initial_metadata)
+              sink)
     | _ -> None)

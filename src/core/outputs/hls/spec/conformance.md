@@ -139,6 +139,12 @@ check here, cited by its number.
 - Init segments (KC21): non-empty; the first media segment holds the first
   frame; deleted once no retained segment refers to them.
 - Large covers in metadata keep memory flat over an hour (KC19).
+- Evaluating an HLS output builds no writer and starts no codec library;
+  the ID3 mode and segmentability come from declarations
+  ([encoder-contract.md §3](encoder-contract.md#3-id3-mode)). A variant
+  `%mp3(id3v2=3)` is refused at construction, naming the variant.
+- After a streaming error, every writer of the aborted run was ended
+  `abandoned` exactly once ([operator.md §6](operator.md#6-errors-and-reopening)).
 
 ## 5. Files
 

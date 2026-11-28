@@ -54,20 +54,21 @@ operator.
 
 ## 2. Format and MIME derivation
 
-Shared with `output.icecast`. From the encoding format argument:
+Shared with `output.icecast` and owned by the encoder tree:
 
-- the format used for encoding is the given one, except an `%ffmpeg` mp3
-  format, which gets `id3v2_version=0` and `write_xing=0` unless set
-  ([FFmpeg io.md §12](../../../optionals/ffmpeg/spec/io.md#12-other-outputs-special-casing-ffmpeg)):
-  an ID3v2 tag or a Xing frame in the middle of a live stream is garbage to
-  a joiner;
-- the encoder factory for that format, or the error of
-  [operator.md §2](operator.md#2-validation-at-construction);
-- the MIME type: the `format` parameter when non-empty; otherwise by encoder:
-  `%mp3` and `%shine` → `audio/mpeg`; `%fdkaac` → `audio/aac`; `%flac` →
-  `audio/flac`; `%wav` → `audio/wav`; `%avi` → `video/avi`; `%ogg` →
-  `application/ogg`; `%ffmpeg` → its `mime_type`, else the MIME of its
-  container name, else none; `%external` and `%ndi` → none.
+- the factory lookup, the declarations and the checks at evaluation are
+  [output-harbor.md §1](../../../encoder/spec/output-harbor.md#1-formats-and-declarations);
+  the errors are [operator.md §2](operator.md#2-validation-at-construction);
+- the content type is the `format` parameter when non-empty, else the
+  format's `mime` helper ([formats.md §9](../../../encoder/spec/formats.md#9-helpers)),
+  as for the source client
+  ([output-icecast.md §1](../../../encoder/spec/output-icecast.md#1-formats-and-declarations),
+  item 4).
+
+The output never rewrites the format: the writer adapts its defaults to the
+live sink by itself
+([encoder.md §3.5](../../../encoder/spec/encoder.md#35-header-forms-and-preambles),
+item 6).
 
 ## 3. Output base
 
@@ -93,13 +94,28 @@ addition:
 
 ## 4. Encoder
 
-The stream face of [encoder.md §3](../../../encoder/spec/encoder.md#3-the-stream-face),
-created by its factory with the output's name and the initial metadata, with
-an instance per run that serialises its own calls
-([encoder.md §2](../../../encoder/spec/encoder.md#2-instances)). Harbor
-uses `encode_into` when offered, so that it keeps the bytes without an
-allocation, and relies on `header()` and `restart_offset()` for joiners. The
-FFmpeg encoder's side of this contract is in
+The container writer of [encoder.md](../../../encoder/spec/encoder.md), seen
+through [output-harbor.md](../../../encoder/spec/output-harbor.md), which
+answers the caller numbering for this output:
+
+- a writer is built by its factory with the capabilities of its sink
+  (`fresh`, `live(L)`), the output's name and the initial metadata
+  ([encoder.md §2.2](../../../encoder/spec/encoder.md#22-creation)); one
+  writer per run in shared mode, one per listener in dedicated mode
+  ([output-harbor.md §3](../../../encoder/spec/output-harbor.md#3-writer-lifetime));
+- **one caller**: only the output's streaming work calls a writer
+  ([encoder.md §7](../../../encoder/spec/encoder.md#7-concurrency)); an
+  admission, a delivery pass or a teardown never does;
+- the writer writes its bytes and markers into the mode's sink: the shared
+  stream in shared mode
+  ([shared-stream.md](../shared-stream.md)), which records its stream
+  starts, access points and entry headers; a listener's queue in dedicated
+  mode, which ignores every marker but `end`;
+- every stream a writer writes starts with its complete header, and a live
+  sink gets no preamble
+  ([encoder.md §3.5](../../../encoder/spec/encoder.md#35-header-forms-and-preambles)).
+
+The FFmpeg writer's side of this contract is in
 [FFmpeg encoder.md](../../../optionals/ffmpeg/spec/encoder.md).
 
 ## 5. Scheduler

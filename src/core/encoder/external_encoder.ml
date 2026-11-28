@@ -48,14 +48,14 @@ let encoder id ext =
   let header =
     if ext.video <> None then (
       let width, height = Option.get ext.video in
-      let width = Lazy.Mutexed.force width in
-      let height = Lazy.Mutexed.force height in
+      let width = Deferred.force width in
+      let height = Deferred.force height in
       Avi.header ~width ~height ~channels:ext.channels
-        ~samplerate:(Lazy.Mutexed.force ext.samplerate)
+        ~samplerate:(Deferred.force ext.samplerate)
         ())
     else if ext.header then
       Wav_aiff.wav_header ~channels:ext.channels
-        ~sample_rate:(Lazy.Mutexed.force ext.samplerate)
+        ~sample_rate:(Deferred.force ext.samplerate)
         ~sample_size:16 ()
     else ""
   in
@@ -112,19 +112,21 @@ let encoder id ext =
   in
   let converter = Audio_converter.Samplerate.create ext.channels in
   let ratio =
-    float (Lazy.Mutexed.force ext.samplerate)
-    /. float (Frame.audio_of_seconds 1.)
+    float (Deferred.force ext.samplerate) /. float (Frame.audio_of_seconds 1.)
   in
   let encode frame =
     let channels = ext.channels in
-    let samplerate = Lazy.Mutexed.force ext.samplerate in
+    let samplerate = Deferred.force ext.samplerate in
     let sbuf =
       if ext.video <> None then (
         let width, height = Option.get ext.video in
-        let width = Lazy.Mutexed.force width in
-        let height = Lazy.Mutexed.force height in
-        Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width ~height
-          frame)
+        let width = Deferred.force width in
+        let height = Deferred.force height in
+        let video, audio =
+          Avi_encoder.encode_frame ~channels ~samplerate ~converter ~width
+            ~height frame
+        in
+        Strings.append video audio)
       else (
         let b = AFrame.pcm frame in
         let len = AFrame.position frame in
@@ -152,7 +154,22 @@ let encoder id ext =
           ());
     Strings.Mutable.flush buf
   in
+  (* The process gets what the rate converter still holds, audio only. *)
+  let write_drained () =
+    if ext.video = None then (
+      let tail = Audio_converter.Samplerate.drain converter in
+      let len = Audio.length tail in
+      if 0 < len then (
+        let sbuf = Bytes.create (2 * len * Array.length tail) in
+        Audio.S16LE.of_audio tail 0 sbuf 0 len;
+        try
+          Process_handler.on_stdin process (fun push ->
+              Process_handler.really_write ~offset:0 ~length:(Bytes.length sbuf)
+                sbuf push)
+        with Process_handler.Finished -> ()))
+  in
   let stop () =
+    write_drained ();
     Mutex.protect mutex (fun () ->
         is_stop := true;
         Process_handler.stop process;
@@ -165,12 +182,12 @@ let encoder id ext =
     encode;
     stop;
     bitrate = (fun () -> None);
-    encode_into = None;
+    access_points = None;
     restart_offset = (fun () -> None);
   }
 
 let () =
   Plug.register Encoder.plug "external" ~doc:"Encode using external programs."
-    (function
-    | Encoder.External m -> Some (fun ~pos:_ s _ -> encoder s m)
-    | _ -> None)
+    (Encoder.of_encoders (function
+      | Encoder.External m -> Some (fun ~pos:_ s _ -> encoder s m)
+      | _ -> None))

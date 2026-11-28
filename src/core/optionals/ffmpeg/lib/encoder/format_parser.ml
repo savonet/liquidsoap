@@ -146,7 +146,7 @@ let audio_option (a : F.audio) = function
       Some
         {
           a with
-          samplerate = Lazy.Mutexed.from_val (positive v);
+          samplerate = `Value (positive v);
           written = writes `Samplerate a;
         }
   | `Labelled ("sample_format", v) ->
@@ -165,10 +165,8 @@ let hwaccel v =
 let video_option (vf : F.video) = function
   | `Labelled (("framerate" | "r"), v) ->
       Some { vf with framerate = Some (frame_rate v) }
-  | `Labelled ("width", v) ->
-      Some { vf with width = Lazy.Mutexed.from_val (positive v) }
-  | `Labelled ("height", v) ->
-      Some { vf with height = Lazy.Mutexed.from_val (positive v) }
+  | `Labelled ("width", v) -> Some { vf with width = `Value (positive v) }
+  | `Labelled ("height", v) -> Some { vf with height = `Value (positive v) }
   | `Labelled ("pixel_format", v) -> (
       match string v with
         | "guess" -> Some { vf with pixel_format = None; alpha = false }
@@ -199,14 +197,12 @@ let default_options : F.media -> F.options = function
           F.pcm_kind = `Pcm;
           channels = 2;
           channel_layout = None;
-          samplerate =
-            Lazy.Mutexed.from_fun (fun () ->
-                Lazy.Mutexed.force Frame.audio_rate);
+          samplerate = `Setting `Audio_rate;
           sample_format = None;
           written = [];
         }
   | `Video ->
-      let width, height = Frame.video_dimensions () in
+      let width, height = (`Setting `Video_width, `Setting `Video_height) in
       `Video
         {
           F.framerate = None;
@@ -338,6 +334,7 @@ let parse params =
       output = `Stream;
       streams = [];
       interleaved = `Default;
+      streamable = false;
       metadata = [];
       opts = [];
     }
@@ -347,9 +344,26 @@ let parse params =
       (fun (f : F.t) -> function
         | `Labelled ("format", Value.String { value = "none" }) ->
             { f with format = None }
-        | `Labelled ("format", Value.String { value }) ->
-            { f with format = Some value }
+        | `Labelled ("format", (Value.String { value } as v)) ->
+            (* A muxer's name, or a file extension that names one (mkv). *)
+            let named =
+              match Av.Format.guess_output_format ~short_name:value () with
+                | Some muxer when Av.Format.get_output_name muxer = value ->
+                    Some muxer
+                | _ ->
+                    Av.Format.guess_output_format ~filename:("file." ^ value) ()
+            in
+            let muxer =
+              match named with
+                | Some muxer -> Av.Format.get_output_name muxer
+                | None ->
+                    error ?pos:(pos v)
+                      (Printf.sprintf "No ffmpeg muxer named %S" value)
+            in
+            { f with format = Some muxer }
         | `Labelled ("metadata", v) -> { f with metadata = metadata v }
+        | `Labelled ("streamable", Value.Bool { value }) ->
+            { f with streamable = value }
         | `Labelled ("interleaved", Value.Bool { value = true }) ->
             { f with interleaved = `True }
         | `Labelled ("interleaved", Value.Bool { value = false }) ->

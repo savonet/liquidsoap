@@ -141,19 +141,19 @@ let next_chunk listener =
 
 (* Copies an encoder output into the listener's chunks and queues it. Called
    with [queue_lock] held. *)
-let enqueue_output t listener ~stamp { Encoder.length; blit } =
+let enqueue_output t listener ~stamp data =
   open_output listener ~kind:`Stream;
-  let rec go offset =
-    if offset < length then (
+  let rec copy bytes offset length =
+    if 0 < length then (
       let chunk, fill = next_chunk listener in
-      let n = min (length - offset) (chunk_size - fill) in
-      blit offset chunk.bytes fill n;
+      let n = min length (chunk_size - fill) in
+      Bytes.blit_string bytes offset chunk.bytes fill n;
       listener.tail <- Some (chunk, fill + n);
       enqueue t listener ~kind:`Stream ~stamp ~start:fill ~stop:(fill + n)
         (`Chunk chunk);
-      go (offset + n))
+      copy bytes (offset + n) (length - n))
   in
-  go 0
+  Strings.iter copy data
 
 let check_overflow listener overflow =
   if overflow then Listener.close_for_overflow listener.base
@@ -161,13 +161,7 @@ let check_overflow listener overflow =
 let append t listener ~stamp data =
   check_overflow listener
     (Mutex.protect listener.queue_lock (fun () ->
-         enqueue_string t listener ~kind:`Stream ~stamp (Strings.to_string data);
-         listener.older_owed > t.buffer))
-
-let append_output t listener ~stamp output =
-  check_overflow listener
-    (Mutex.protect listener.queue_lock (fun () ->
-         enqueue_output t listener ~stamp output;
+         enqueue_output t listener ~stamp data;
          listener.older_owed > t.buffer))
 
 (* Runs [f] on the listener's encoder unless it is stopped or the listener is
@@ -219,15 +213,8 @@ let send_one t ~stamp frame listener =
   if not (prerolling listener) then
     ignore
       (with_encoder listener (fun e ->
-           match e.Encoder.encode_into with
-             | Some encode_into ->
-                 encode_into frame (fun output ->
-                     if output.Encoder.length > 0 then
-                       append_output t listener ~stamp output)
-             | None ->
-                 let data = e.Encoder.encode frame in
-                 if not (Strings.is_empty data) then
-                   append t listener ~stamp data))
+           let data = e.Encoder.encode frame in
+           if not (Strings.is_empty data) then append t listener ~stamp data))
 
 (* ponytail: fixed batch size, tune from measurements if dispatch dominates. *)
 let batch_size = 32

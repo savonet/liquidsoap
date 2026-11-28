@@ -82,7 +82,7 @@ class url_output ~url ~format ~format_val ~restart_delay ~timeout ~self_sync p =
       in
       let m = metadata in
       Atomic.set built_metadata m;
-      Encoder.protect
+      Encoder.protect_encoder
         (Instance.create ~interrupt:(self#interrupt attempt)
            ~pos:(Value.pos format_val) ~name:self#id m format)
 
@@ -258,7 +258,7 @@ let _ =
     @ [
         ( "export_cover_metadata",
           Lang.bool_t,
-          Some (Lang.bool true),
+          Some (Lang.bool false),
           Some "Export cover metadata." );
         ("url", Lang.string_t, None, Some "Output URL, handed to the muxer.");
         ( "restart_delay",
@@ -309,9 +309,19 @@ let _ =
                      "Encoding format does not support output url!",
                      [] ))
       in
+      let url_val = List.assoc "url" p in
+      let url = Lang.to_string url_val in
+      (* A file is output.file's: it opens, names and reopens it. *)
+      (match String.index_opt url ':' with
+        | Some i
+          when i > 1 && String.lowercase_ascii (String.sub url 0 i) <> "file" ->
+            ()
+        | _ ->
+            raise
+              (Error.Invalid_value
+                 (url_val, "This is not a URL: use output.file for a file", [])));
       new url_output
-        ~url:(Lang.to_string (List.assoc "url" p))
-        ~format ~format_val
+        ~url ~format ~format_val
         ~restart_delay:
           (Lang.to_valued_option Lang.to_float (List.assoc "restart_delay" p))
         ~timeout:(Lang.to_float (List.assoc "timeout" p))

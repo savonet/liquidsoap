@@ -4,8 +4,8 @@ This file owns the operators that move bytes between Liquidsoap and the
 network or a device through libavformat: `input.ffmpeg`, `input.http`, the
 script wrappers built on them (`input.v4l2`, `input.rtmp`,
 `video.testsrc.ffmpeg`, `input.hls`), `input.harbor.dynamic` /
-`input.harbor.dynamic.regexp`, `output.url`, and the places where
-`output.icecast` / `output.harbor` special-case a `%ffmpeg` format. It owns
+`input.harbor.dynamic.regexp`, `output.url`, and what `output.icecast` /
+`output.harbor` read from a `%ffmpeg` format. It owns
 their connection lifecycles (states, transitions, races, ownership of what a
 connection holds), failure classes and retries, interruption of blocking
 calls, buffering, metadata and clock behaviour. It relies on the decoder
@@ -47,17 +47,17 @@ Three principles hold for every operator of this file:
 
 ## 1. Operators
 
-| Operator                      | Defined as                                     | Category                | Availability                         |
-| ----------------------------- | ---------------------------------------------- | ----------------------- | ------------------------------------ |
-| `input.ffmpeg`                | builtin                                        | Source / Input / Active | FFmpeg support built                 |
-| `input.http`                  | builtin, `input.ffmpeg` plus HTTP options      | Source / Input / Active | FFmpeg support built                 |
-| `input.v4l2`                  | script, over `input.ffmpeg`                    | Source / Input / Active | `%ifdef input.ffmpeg`                |
-| `input.rtmp`                  | script, over `input.ffmpeg`                    | Source / Input / Active | `%ifdef input.ffmpeg`                |
-| `video.testsrc.ffmpeg`        | script, over `input.ffmpeg`                    | Source / Input / Active | `%ifdef input.ffmpeg`                |
-| `input.hls`                   | script; `input.ffmpeg` replaces the native one | Source / Input / Active | `%ifdef input.ffmpeg`                |
-| `input.harbor.dynamic.regexp` | builtin                                        | Source / Input / Active | FFmpeg support built                 |
-| `input.harbor.dynamic`        | script, over the regexp form                   | Source / Input / Active | `%ifdef input.harbor.dynamic.regexp` |
-| `output.url`                  | builtin (core outputs)                         | Source / Output         | always; accepts only `%ffmpeg`       |
+| Operator                      | Defined as                                     | Category                | Availability                                                                          |
+| ----------------------------- | ---------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| `input.ffmpeg`                | builtin                                        | Source / Input / Active | FFmpeg support built                                                                  |
+| `input.http`                  | builtin, `input.ffmpeg` plus HTTP options      | Source / Input / Active | FFmpeg support built                                                                  |
+| `input.v4l2`                  | script, over `input.ffmpeg`                    | Source / Input / Active | `%ifdef input.ffmpeg`                                                                 |
+| `input.rtmp`                  | script, over `input.ffmpeg`                    | Source / Input / Active | `%ifdef input.ffmpeg`                                                                 |
+| `video.testsrc.ffmpeg`        | script, over `input.ffmpeg`                    | Source / Input / Active | `%ifdef input.ffmpeg`                                                                 |
+| `input.hls`                   | script; `input.ffmpeg` replaces the native one | Source / Input / Active | `%ifdef input.ffmpeg`                                                                 |
+| `input.harbor.dynamic.regexp` | builtin                                        | Source / Input / Active | FFmpeg support built                                                                  |
+| `input.harbor.dynamic`        | script, over the regexp form                   | Source / Input / Active | `%ifdef input.harbor.dynamic.regexp`                                                  |
+| `output.url`                  | builtin (core outputs)                         | Source / Output         | always; accepts only a configuration that accepts a delegated destination (`%ffmpeg`) |
 
 ### 1.1 `input.ffmpeg` and `input.http`
 
@@ -252,17 +252,27 @@ output.url : (?id : string?, ?export_cover_metadata : bool, ?fallible : bool,
 
 | Argument                                                        | Default                  | Meaning                                                                                                  |
 | --------------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `url`                                                           | required                 | Output URL handed to the muxer.                                                                          |
+| `url`                                                           | required                 | Protocol URL the writer opens itself, a delegated destination.                                           |
 | `restart_delay`                                                 | `2.0`                    | Seconds before a retry after a transient failure; `null`: the output stops at its first failure (§11.3). |
 | `self_sync`                                                     | `false`                  | Declares a sync source (§11.4).                                                                          |
-| `timeout`                                                       | `10.0`                   | Longest a single blocking write may last (§3); stream time held while connecting (§11.1).                |
+| `timeout`                                                       | `10.0`                   | Longest a single blocking write may last (§3); the bound of the queue of pieces, in stream time (§11.1). |
 | `fallible`, `start`, `register_telnet`, `export_cover_metadata` | generic output arguments |                                                                                                          |
 
-The format must be `%ffmpeg`; any other is a script error raised on the
-format value (example message:
-`Encoding format does not support output url!`). The output's encoder writes to the URL instead of returning bytes.
-Callback `on_error : (error) -> unit`, error kind `"output"`, plus the generic
-output callbacks (`on_start`, `on_stop`, `on_output`).
+The destination is delegated: the writer opens the URL, writes to it and
+closes it itself, and no byte crosses the seam
+([output-url.md](../../../encoder/spec/output-url.md),
+[encoder.md §6](../../../encoder/spec/encoder.md#6-the-delegated-destination)).
+At evaluation, with an invalid-value error
+([output-url.md §1](../../../encoder/spec/output-url.md#1-formats-and-declarations)):
+
+- a format whose configuration does not accept a delegated destination is
+  refused on the format argument; `%ffmpeg` is the one that does;
+- a URL with the `file:` scheme, and a string that is not a URL (a plain
+  local path), are refused on the URL, with a message that names
+  `output.file`. `url` is a constant string, so this check always runs at
+  evaluation.
+  Callback `on_error : (error) -> unit`, error kind `"output"`, plus the generic
+  output callbacks (`on_start`, `on_stop`, `on_output`).
 
 `output.youtube.live.rtmp` is `output.url(url="#{url}/#{key}", encoder, s)`
 with `url` default `"rtmp://a.rtmp.youtube.com/live2"`.
@@ -534,8 +544,8 @@ Every blocking call these operators make:
 | input read inside `decode` (§4)                          | streaming thread                 | the same interrupt, for the connection's lifetime | `timeout` unless listening; `input.http` also passes it as `rw_timeout` |
 | decoder and container close                              | the thread ending the connection | the same interrupt                                | —                                                                       |
 | harbor client read ([§10.3](#103-opening-the-container)) | client task                      | the client ending, `shutdown`                     | `timeout` per wait                                                      |
-| `output.url` open ([§11.2](#112-start-encode-stop))      | connect task                     | interrupt: the attempt's abort flag or `shutdown` | — (the protocol's own)                                                  |
-| `output.url` write inside `encode`                       | streaming thread                 | the same interrupt                                | `timeout`                                                               |
+| `output.url` open ([§11.2](#112-start-encode-stop))      | the output's task                | interrupt: the attempt's abort flag or `shutdown` | — (the protocol's own)                                                  |
+| `output.url` write, inside a writer call                 | the output's task                | the same interrupt                                | `timeout`                                                               |
 
 The interrupt function is installed when the container is opened and covers
 every blocking call of that container ([avformat.md §7.1.4](../../../../modules/synced/ffmpeg/spec/avformat.md#714-interrupt--interrupt-)).
@@ -545,11 +555,12 @@ The abort flag is per attempt: a stop sets it, so a pending open of attempt
 `a` aborts while a later attempt `b` has its own flag. Once connected, the
 same flag aborts every later read or write of that connection.
 
-A read or write on the streaming thread blocks the clock for as long as it
-lasts. That is how a self-paced input or output paces its clock (§7, §11.4).
-Its bound against a stalled remote is the operator's `timeout`: the
-interrupt function also returns true once the read or write in progress has
-lasted `timeout` seconds. The bound lives in the interrupt rather than in a
+A read on the streaming thread blocks the clock for as long as it lasts.
+That is how a self-paced input paces its clock (§7). An `output.url` write
+never runs on the streaming thread (§11.2). The bound of a read or a write
+against a stalled remote is the operator's `timeout`: the interrupt function
+also returns true once the read or write in progress has lasted `timeout`
+seconds. The bound lives in the interrupt rather than in a
 protocol option because a device or a lavfi input consumes no protocol
 option. An input read past its bound is a source fault (§2.5); an
 `output.url` write past its bound is an output fault (§11.3). A stop or a
@@ -966,25 +977,37 @@ the client.
 
 ### 11.1 States
 
-| State                | Carries                                      | Frames  |
-| -------------------- | -------------------------------------------- | ------- |
-| `Stopped`            | nothing                                      | —       |
-| `Connecting a`       | attempt `a`, its abort flag, held frames     | held    |
-| `Connected (a, enc)` | the encoder instance `enc`, writing to `url` | encoded |
-| `Waiting t`          | the retry time `t`                           | dropped |
+| State                | Carries                                    | Pieces                      |
+| -------------------- | ------------------------------------------ | --------------------------- |
+| `Stopped`            | nothing                                    | —                           |
+| `Connecting a`       | attempt `a`, its abort flag, queued pieces | queued                      |
+| `Connected (a, enc)` | the writer `enc`, writing to `url`         | queued, written by the task |
+| `Waiting t`          | the retry time `t`                         | dropped                     |
+| `Fatal e`            | the configuration error `e` (§11.3)        | dropped                     |
+
+`Fatal e` is entered from the task when a configuration error shows only
+at the first open or the first piece. The task cannot fail the script
+itself: the streaming work finds the state at its next cycle and raises
+`e` under the clock's source error rule (§11.3 item 2). No transition
+leaves `Fatal`.
 
 The output also keeps its **current metadata**: the last metadata it
 received, whatever the state.
 
 Transitions are compare-and-set as in §2.1, with the same ownership rule:
-the attempt owns the encoder it built until it moves the state into
-`Connected`; whoever moves the state out of `Connected` ends the encoder.
+the attempt owns the writer it built until it moves the state into
+`Connected`; whoever moves the state out of `Connected` ends the writer.
 
-Frames that arrive in `Connecting a` are held, up to `timeout` seconds of
-stream time, and encoded in order as soon as the output connects, so that
-the start of the stream reaches the server. Past the bound the oldest held
-frames are dropped with a warning. Frames that arrive in `Waiting` are
-dropped. Rationale: a live output has no place to keep the stream while the
+The streaming work hands every piece, in `Connecting` and in `Connected`,
+to the output's task through one bounded queue, and never waits for it
+([encoder.md §6](../../../encoder/spec/encoder.md#6-the-delegated-destination)
+item 3; `delegated_queue_bound` is `timeout`, in stream time). Pieces
+queued in `Connecting a` are written in order as soon as the output
+connects, so that the start of the stream reaches the server; past the
+bound, the oldest are dropped with a warning. In `Connected`, a queue past
+its bound is a destination that cannot keep up: an output fault (§11.3),
+and the interrupt aborts the pending call. Pieces that arrive in `Waiting`
+are dropped. Rationale: a live output has no place to keep the stream while the
 URL is unreachable for longer than an open takes; holding more grows memory
 without bound and delivers stale data. When the output connects after
 dropping, it logs at warning level the stream time it dropped.
@@ -994,27 +1017,34 @@ nor hastens a retry.
 
 ### 11.2 Start, encode, stop
 
-- **Start** (`Stopped` → `Connecting a`): schedule attempt `a`. The attempt
-  runs on a scheduler task, never on the streaming thread. It builds the
-  `%ffmpeg` encoder instance with the output id and the current metadata;
-  building it opens the URL with the bindings' `open_output` and the
-  interrupt function "`a`'s abort flag or `shutdown`" ([encoder.md §3](encoder.md#3-building-an-instance)).
-  Then `Connecting a` → `Connected (a, enc)`. When that transition fails (a
-  stop won), the attempt stops `enc`, which has received no data and writes
-  nothing ([encoder.md §7](encoder.md#7-stop)).
-- **Encode a frame**: in `Connected`, pass the frame to `enc` on the
-  streaming thread (a frame of length 0 is skipped); the encoder writes to the
-  URL itself. In `Connecting a`, hold the frame (§11.1). In `Waiting t`
-  with now ≥ `t`: `Waiting t` → `Connecting a`, then hold the frame. In
-  `Waiting t` before `t`, drop the frame. On `Connecting a` →
-  `Connected (a, enc)`, the held frames are encoded first, in order.
-- **Metadata**: in `Connected`, pass it to `enc`'s metadata insertion; a
-  failure there is handled as an encode failure (§11.3). In every state it
-  becomes the current metadata.
-- **Stop** (any state → `Stopped`): in `Connected`, stop `enc`: it drains
-  every stage and writes the trailer ([draining.md](../../../source/spec/draining.md),
-  [encoder.md §7](encoder.md#7-stop)). In `Connecting a`, set `a`'s abort
-  flag. In `Waiting`, nothing more.
+Every call on a writer, its creation and its end included, runs on the
+output's task, as work allowed to block, in the order handed
+([output-url.md §9](../../../encoder/spec/output-url.md#9-concurrency)). The
+streaming work only queues pieces and posts starts and stops.
+
+- **Start** (`Stopped` → `Connecting a`): schedule attempt `a` on the
+  output's task. It builds the `%ffmpeg` writer with `delegated(url)`, the
+  interrupt "`a`'s abort flag or `shutdown`", the output id and the current
+  metadata as initial metadata; building it opens the URL
+  ([encoder.md §3](encoder.md#3-building-an-instance)). Then
+  `Connecting a` → `Connected (a, enc)`. When that transition fails (a stop
+  won), the attempt ends `enc` abandoned: it has received no piece and
+  writes nothing ([encoder.md §7](encoder.md#7-end)).
+- **Pieces**: queued in every state but `Waiting` (§11.1). In `Waiting t`
+  with now ≥ `t`: `Waiting t` → `Connecting a`, then queue the piece. In
+  `Waiting t` before `t`, drop the piece. The task hands each queued piece to
+  `enc`'s `write` once `Connected`.
+- **Metadata**: nothing is passed in band: a delegated writer offers no
+  metadata call, and the output has no out-of-band channel. In every state,
+  a metadata change becomes the current metadata, which reaches the
+  destination as the initial metadata of the next writer
+  ([output-url.md §4](../../../encoder/spec/output-url.md#4-pieces-and-metadata)).
+- **Stop** (any state → `Stopped`): in `Connected`, post `end clean` to the
+  task: it writes the pieces queued before the stop, drains every stage and
+  writes the trailer ([draining.md](../../../source/spec/draining.md),
+  [encoder.md §7](encoder.md#7-end)), bounded by `timeout` through the
+  interrupt. In `Connecting a`, set `a`'s abort flag. In `Waiting`, nothing
+  more. The stop returns at once.
 - **Reset**: nothing.
 
 The script `on_start` and `on_stop` callbacks are the generic output ones:
@@ -1022,11 +1052,11 @@ they run once per start and stop of the output, not per connection.
 
 ### 11.3 Errors
 
-A failure of the attempt (§11.2 Start) or of an encode or metadata call in
-`Connected`:
+A failure of the attempt (§11.2 Start), of a `write` in `Connected`, or the
+queue past its bound in `Connected` (§11.1):
 
-1. When in `Connected`: move the state out of it, then release `enc` without
-   draining: a stage in error is released as it is
+1. When in `Connected`: move the state out of it, then end `enc` abandoned,
+   without draining: a stage in error is released as it is
    ([draining.md §5](../../../source/spec/draining.md#5-discarded-on-purpose)). When in
    `Connecting a`: the attempt releases what it built.
 2. Classify the failure ([faults.md §2](../../../../spec/faults.md#2-classes)):
@@ -1035,15 +1065,23 @@ A failure of the attempt (§11.2 Start) or of an encode or metadata call in
      not find, an option no consumer recognised, and a stream parameter the
      codec or the muxer rejects for the configured format at the output's
      first start. Wherever the encoder can know it before streaming, it is
-     raised at evaluation or start-up
-     ([encoder.md §4](encoder.md#4-option-handling)). When it shows only at
-     the first open or the first frame, it is a hard error then: it is raised
-     under the clock's source error rule
+     raised at evaluation
+     ([encoder.md §4](encoder.md#4-option-handling)). The writer reports a
+     failure of this kind as refused by the configuration, without knowing
+     whether it is the output's first writer; the output classes it: a
+     configuration error when no writer of this output ever connected, an
+     output fault otherwise. When it shows only at the first open or the
+     first piece, it is a hard error then: the task moves the state to
+     `Fatal e` (§11.1), and the streaming work raises it under the clock's
+     source error rule
      ([clock.md §11](../../../clock/spec/clock.md#11-failure)) and the script
      fails, naming the output and the cause.
    - **Output fault**: every other failure. This includes a stream parameter
      rejected because of the source's data, an HTTP 4xx answer, the URL
-     open's network errors, every write and a write past `timeout`, and any
+     open's network errors, every write and a write past `timeout`, a queue
+     past its bound once connected, a container restart at a copy source
+     switch ([encoder.md §13.1](encoder.md#131-containers-with-a-clean-restart)),
+     and any
      failure at a later open (a reconnect), hardware errors included: a
      hardware session cap or a device reset is not known to be
      unrecoverable. An output fault restarts or stops the output under its
@@ -1061,28 +1099,31 @@ A failure of the attempt (§11.2 Start) or of an encode or metadata call in
    `Error while connecting: <error>`), and run `on_error` with a runtime error of kind `"output"`.
 
 Data faults are contained before they reach this section. A packet or frame
-the encoder cannot write is dropped with a warning by the encoder
+the writer cannot write is dropped with a warning by the writer
 ([encoder.md](encoder.md), [timestamps.md](timestamps.md)); only a failure of
-the connection or of the encoder as a whole reaches `output.url`. An
+the connection or of the writer as a whole reaches `output.url`. An
 incompatible copied source ([encoder-copy.md §12.7](encoder-copy.md#127-parameters-across-sources))
 is a transient failure here: the next connection is a new stream to the
-server, a clean restart whose new encoder takes the current source's
+server, a clean restart whose new writer takes the current source's
 parameters.
 
-Each
-connection builds a new encoder instance: a new connection to the server, its
+Each connection builds a new writer: a new connection to the server, its
 container and timestamps starting fresh ([timestamps.md §2](timestamps.md#2-lifetimes-what-resets-what)).
 
 **Conformance.**
 
-- A metadata update that triggers the failure runs `on_error` and waits
-  `restart_delay`, exactly as a failing frame does.
+- A metadata change while connected is not sent: the next connection's
+  container carries it as its initial metadata.
+- A failing piece runs `on_error` and waits `restart_delay`.
 - An unknown codec option fails the script, at evaluation when the encoder
   can know it, else at the open.
 - With `restart_delay=null`, a failing output stops; another output on the
   same clock keeps streaming.
 - Stopping the output while the open is pending returns at once and leaves
   no open connection.
+- A peer that accepts and never reads: the streaming thread's latency stays
+  bounded, another output on the clock keeps its rate, and the output
+  reports a fault within `timeout`.
 - A clean stop of a connected output writes the container's trailer.
 
 ### 11.4 Clock
@@ -1094,33 +1135,33 @@ clock's single sync source slot and the clock keeps pacing.
 
 ## 12. Other outputs special-casing `%ffmpeg`
 
-`output.icecast` and `output.harbor` derive their stream MIME type and
-encoder from a `%ffmpeg` format through one shared step:
+No output special-cases a `%ffmpeg` format, and none rewrites it: the writer
+adapts its own defaults to the sink it is given, the mp3 muxer's ID3v2 tag
+and encoder-information frame included
+([ffmpeg.md §2](../../../encoder/spec/ffmpeg.md#2-declarations)). What
+`output.icecast` and `output.harbor` read from a `%ffmpeg` format:
 
-- MIME of a `%ffmpeg` format: its `mime_type` when set, else the MIME of its
-  container format name in Liquidsoap's container table (e.g. `adts` →
-  `audio/aac`, `ac3` → `audio/x-ac3`; this table differs from
-  [encoder-format.md §12](encoder-format.md#12-file-extension-and-mime-type)), else none. With none,
-  the user must pass `format=`, or the output fails at evaluation (example
-  message: `No format (mime) found, please specify one.`).
-- When the `%ffmpeg` format name is `mp3`, the output's encoder is built from
-  a copy of the format with the option `id3v2_version` set to int `0` and
-  `write_xing` to int `0`, each unless the user set it. Reason: a listener
-  joining mid-stream must not receive an ID3v2 header or a Xing frame in the
-  middle of the stream. The script's format value is not modified: an
-  output never mutates a format value it is given, since the same value can
-  feed other outputs.
-
-`output.icecast` stream info for a `%ffmpeg` format: bitrate is the encoder's
-reported bitrate divided by 1000 (when known); samplerate and channels come
-from the `audio` field when it is an encoded stream, internal or raw; none
-for a copied stream. Quality is none.
+- **MIME type**: the format's `mime` helper, from the one table of
+  [encoder-format.md §12](encoder-format.md#12-file-extension-and-mime-type),
+  unless the output's `format` parameter overrides it
+  ([output-icecast.md §1](../../../encoder/spec/output-icecast.md#1-formats-and-declarations)
+  item 4).
+- **`output.icecast` stream info**: `bitrate` is the writer's `bitrate`
+  property in kbit/s, known from creation when every stream has an explicit
+  `b` codec option
+  ([ffmpeg.md §10](../../../encoder/spec/ffmpeg.md#10-properties)), so that
+  the first request head announces it; samplerate and channels come from the
+  `audio` field when it is an encoded stream, internal or raw; none for a
+  copied stream. Quality is none.
 
 **Conformance.**
 
 - Printing an mp3 `%ffmpeg` format after creating an `output.harbor` with it
-  shows the format unchanged; an `output.file` with the same format writes
-  an ID3v2 header and a Xing frame as the format asks.
+  shows the format unchanged. The mount's bytes hold no ID3v2 tag and no
+  encoder-information frame; an `output.file` with the same format writes
+  both.
+- `output.icecast` with `%ffmpeg(format="mp3", %audio(codec="libmp3lame",
+b="128k"))` announces 128 kb/s in its first request head.
 
 ## 13. Timestamps across reconnects
 
@@ -1136,7 +1177,7 @@ for a copied stream. Quality is none.
 - A seek on a connected input is a source switch in the same way (§1.1).
 - `input.harbor.dynamic`: one source per client; a reconnecting client is a
   new source with a new decoder.
-- `output.url`: each connection is a new encoder instance and a new stream to
+- `output.url`: each connection is a new writer and a new stream to
   the server (§11.3).
 
 The I/O layer keeps no offset or timestamp state of its own.

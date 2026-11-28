@@ -191,12 +191,20 @@ module Encoder = struct
   external cleanup : priv -> unit = "ocaml_flac_cleanup_encoder"
   external init : priv -> unit = "ocaml_flac_encoder_init"
 
-  let create ?(comments = []) ?seek ?tell ~write p =
+  external set_picture : priv -> string -> string -> unit
+    = "ocaml_flac_encoder_set_picture"
+
+  type picture = { mime_type : string; picture : string }
+
+  let create ?(comments = []) ?picture ?seek ?tell ~write p =
     if p.channels <= 0 then raise Invalid_data;
     let comments = Array.of_list comments in
     let write b len = write (Bytes.sub b 0 len) in
     let enc = alloc comments ~seek ~tell ~write p in
     Gc.finalise cleanup enc;
+    Option.iter
+      (fun { mime_type; picture } -> set_picture enc mime_type picture)
+      picture;
     init enc;
     (enc, p)
 

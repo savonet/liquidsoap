@@ -247,6 +247,7 @@ CAMLprim value ocaml_fdkaac_flush(value e) {
   int outelsize = 1;
   void *outptr = &outbuf;
 
+  outBuf.numBufs = 1;
   outBuf.bufferIdentifiers = &outid;
   outBuf.bufSizes = &outlen;
   outBuf.bufElSizes = &outelsize;

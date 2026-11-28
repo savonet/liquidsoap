@@ -170,3 +170,11 @@ val name_of_sockaddr :
   ?rev_dns:bool -> ?show_port:bool -> Unix.sockaddr -> string
 
 val generate_id : category:string -> string -> string
+
+(** A JPEG or PNG picture found in metadata. *)
+type cover = { mime_type : string; picture : string }
+
+(** The cover a metadata carries under one of the cover keys ([apic], [pic],
+    [metadata_block_picture], [coverart], [cover]), when it is a JPEG or PNG
+    picture. *)
+val cover_of_metadata : (string * string) list -> cover option

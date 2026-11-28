@@ -46,7 +46,7 @@ type audio = {
   pcm_kind : pcm_kind;
   channels : int;
   channel_layout : string option;
-  samplerate : int Lazy.Mutexed.t;
+  samplerate : Deferred.t;
   sample_format : string option;
   written : [ `Channels | `Samplerate ] list;
 }
@@ -61,8 +61,8 @@ type video = {
   raw_key_frame_interval : float option;
       (** Seconds between key frames of a raw track with no [framerate], set by
           the HLS output: sized in frames once the source's rate is known. *)
-  width : int Lazy.Mutexed.t;
-  height : int Lazy.Mutexed.t;
+  width : Deferred.t;
+  height : Deferred.t;
   pixel_format : string option;
   alpha : bool;
   hwaccel : hwaccel;
@@ -103,6 +103,7 @@ type t = {
   output : [ `Stream | `Url of string ];
   streams : (string * track) list;
   interleaved : [ `Default | `True | `False ];
+  streamable : bool;  (** Readable from the middle, on the script's word. *)
   metadata : (string * string) list;
   opts : opts;
 }
@@ -166,3 +167,12 @@ val mime : t -> string
 val video_size : t -> (int * int) option
 
 val default_text_to_ass : int -> string -> string
+
+(** Whether a reader can start in the middle of the stream, given its header:
+    the muxers whose units are self-delimited, the ISO family fragmented, or any
+    format with [streamable=true]. *)
+val streamable : t -> bool
+
+(** The bit rate the script set: the sum of the [b] option of every encoded
+    stream, when each has one and no stream is copied. *)
+val explicit_bitrate : t -> int option

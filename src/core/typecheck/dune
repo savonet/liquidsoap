@@ -32,4 +32,5 @@
   liquidsoap-lang.types
   liquidsoap-lang.values
   encoder_types
+  liquidsoap_encoder_formats
   liquidsoap_core_formats))
