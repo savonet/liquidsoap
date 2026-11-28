@@ -18,8 +18,8 @@ let check label cond =
   incr checks;
   if not cond then failwith label
 
-(* An encoder whose bytes count up modulo 251, in outputs of [sizes] in turn,
-   handed over with [encode_into]. [produced] keeps what it emitted. *)
+(* An encoder whose bytes count up modulo 251, in outputs of [sizes] in turn.
+   [produced] keeps what it emitted. *)
 let encoder produced =
   let position = ref 0 and outputs = ref sizes in
   let next () =
@@ -39,17 +39,7 @@ let encoder produced =
     Encoder.encode_metadata = (fun _ -> ());
     header = (fun () -> Strings.of_string header);
     encode;
-    encode_into =
-      Some
-        (fun _ f ->
-          let data = next () in
-          f
-            {
-              Encoder.length = Bytes.length data;
-              blit =
-                (fun offset destination destination_offset length ->
-                  Bytes.blit data offset destination destination_offset length);
-            });
+    access_points = None;
     stop = (fun () -> Strings.empty);
     bitrate = (fun () -> None);
     restart_offset = (fun () -> None);

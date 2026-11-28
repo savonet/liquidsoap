@@ -1,6 +1,6 @@
 (* Test a stream decoder. ffmpeg/audio only for now. *)
 
-(* Encoder.get_factory picks among every registered encoder, so the plug has
+(* Encoder.create_writer picks among every registered encoder, so the plug has
    to be complete first. The application gets there through Lifecycle.load;
    a test binary has to say so itself. *)
 let () = Lifecycle.load ()
@@ -34,11 +34,24 @@ let () =
   let generator = Generator.create ~log ctype in
   let buffer = Decoder.mk_buffer ~ctype generator in
   let mp3_format = Lang_mp3.mp3_base_defaults () in
-  let create_encoder = Encoder.get_factory (Encoder.MP3 mp3_format) in
-  let encoder =
-    create_encoder ~pos:None "test stream" Frame.Metadata.Export.empty
+  let writer =
+    Encoder.create_writer (Encoder.MP3 mp3_format)
+      {
+        Encoder.pos = None;
+        name = "test stream";
+        capabilities = Encoder.fresh_stream;
+        sink =
+          {
+            Encoder.write;
+            mark = (fun _ -> ());
+            seek = None;
+            read = None;
+            size = None;
+            name = None;
+          };
+        initial_metadata = Frame.Metadata.Export.empty;
+      }
   in
-  write (encoder.Encoder.header ());
   let size = Lazy.Mutexed.force Frame.size in
   try
     while true do
@@ -47,10 +60,10 @@ let () =
           decoder.Decoder.decode buffer
         done;
         let frame = Generator.slice generator size in
-        write (encoder.Encoder.encode frame)
+        writer.Encoder.write frame
       with Avutil.Error `Invalid_data -> ()
     done
   with End_of_file ->
-    write (encoder.Encoder.stop ());
+    writer.Encoder.finish `Clean;
     close_out out_fd;
     close_in in_fd
