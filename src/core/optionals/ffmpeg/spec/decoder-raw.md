@@ -39,7 +39,11 @@ configures it.
    ([content.md §9](content.md#9-raw-video-conformance)): the first frame
    decides the undecided parameters of the format; a later frame in another
    format is fitted to it, without a track mark.
-3. A duration helper in PTS mode on the stream time base.
+3. A duration helper in PTS mode on the stream time base. A frame without a
+   positive duration lasts one frame at the stream's average frame rate,
+   when the stream declares one, so the last frame of a track, which the
+   helper sizes by its duration ([common.md §6.3](common.md#63-flush-t)),
+   keeps a realistic length.
 
 ## 3. Input
 

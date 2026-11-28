@@ -864,27 +864,48 @@ let decode t buffer =
       t.buffer <- Some buffer;
       step t)
 
-(* The track ends at the end of its longest field; shorter copy fields end
-   with a gap, which carries no data. *)
-let pad_fields t buffer =
-  let generator = buffer.Decoder.generator in
-  let fields = List.filter (fun e -> e.kind = `Copy) t.entries in
+(* Copy fields shorter than the longest field end with a gap, which carries no
+   data. *)
+let pad_copy_fields t generator =
   let longest =
     List.fold_left
       (fun l e -> max l (Generator.field_length generator e.stream.field))
-      0 fields
+      0 (non_sparse t)
   in
   List.iter
     (fun e ->
       let field = e.stream.Stream_description.field in
       let missing = longest - Generator.field_length generator field in
-      if missing > 0 then
+      if e.kind = `Copy && missing > 0 then
         Generator.put generator field
           (Ffmpeg_content.Copy.lift_data
              (Ffmpeg_content.Copy.Data.make ~length:missing
                 (Ffmpeg_content.Copy.unconstrained
                    (Stream_description.copy_params e.stream)))))
-    fields
+    (non_sparse t)
+
+(* Decoded content past the shortest field cannot be aligned with the other
+   fields. Left in place, it would lead them into the next track. *)
+let cut_to_shortest t generator =
+  let fields = List.map (fun e -> e.stream.field) (non_sparse t) in
+  match List.map (Generator.field_length generator) fields with
+    | [] -> ()
+    | lengths ->
+        let shortest = List.fold_left min max_int lengths in
+        List.iter
+          (fun field ->
+            if Generator.field_length generator field > shortest then
+              Generator.set_field generator field
+                (Content.sub (Generator.get_field generator field) 0 shortest))
+          fields
+
+let end_track_unlocked t buffer =
+  let generator = buffer.Decoder.generator in
+  pad_copy_fields t generator;
+  cut_to_shortest t generator;
+  Generator.add_track_mark generator
+
+let end_track t buffer = locked t (fun () -> end_track_unlocked t buffer)
 
 let eof t buffer =
   locked t (fun () ->
@@ -895,8 +916,7 @@ let eof t buffer =
        with exn ->
          log#severe "Error while draining the decoder: %s"
            (Printexc.to_string exn));
-      pad_fields t buffer;
-      Generator.add_track_mark buffer.generator)
+      end_track_unlocked t buffer)
 
 let position t =
   match t.mapping_start with

@@ -1092,18 +1092,29 @@ distinct from an error; a normal end of file logs at info level at most.
    queue is released.
 2. Every per-stream decoder of the mapping receives `Flush`. Timed ID3 holds
    nothing.
-3. The decoder adds a track mark.
+3. The decoder ends the track where its fields line up (below).
 
-What `Flush` puts goes into the generic file decoder's buffer like any other
-content. This layer requires of that buffer, and of the generic frame code
-behind it, that every field's content put before the track mark is
-delivered. When fields have different lengths at that point (a copied audio
-stream that ends 60 ms after its video, for instance), the track ends at
-the end of the longest field and the longest is never cut to the shortest.
-The tail of a shorter field carries no data: a gap, never invented content
-([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)). Example:
-in [timestamps.md §11.1](timestamps.md#111-container-start),
-the final audio packet ends after the video and MUST reach the output.
+What `Flush` puts goes into the caller's buffer like any other content. When
+the non-sparse fields have different lengths at that point, the decoder
+ends the track in two steps, then adds a track mark:
+
+1. Every copied field shorter than the longest field is padded to it with a
+   gap, which carries no data, never invented content
+   ([faults.md §3](../../../../spec/faults.md#3-source-faults-reach-the-script)).
+2. Every field longer than the shortest is cut back to it. Decoded content
+   past that point has nothing to line up with in the other fields.
+
+A copy-only mapping thus keeps every packet: in
+[timestamps.md §11.1](timestamps.md#111-container-start), the final audio
+packet ends after the video and MUST reach the output. With a decoded
+field, every field, copied ones included, loses its tail past the shortest
+field. The rule holds for files and
+streams alike: a stream input keeps one buffer across connections, and a
+tail left there would lead its field into the next connection by that
+length, adding up at each reconnection.
+
+`end_track` ends the track in the same way without draining, for an input
+that cannot be read further ([io.md §2.5](io.md#25-end-of-a-connection)).
 
 Conformance:
 
@@ -1112,7 +1123,11 @@ Conformance:
   packets, frames or samples as the file holds, the last copied packet
   included, with and without a video field. For an all-copy mapping the
   count is the whole file's; for a mapping that mixes decoded streams with
-  copied video, the count is from the start point (§8.5).
+  copied video, the count is from the start point (§8.5). With a decoded
+  field, every field, copied ones included, counts up to where the fields
+  line up: copied packets past the shortest decoded field are dropped.
+- An input that reconnects after each connection ends with decoded video
+  past its audio keeps the same audio/video skew at every reconnection.
 
 ### 13.2 Errors
 

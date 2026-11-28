@@ -1349,6 +1349,54 @@
    --
    hls-gop4.ts)))
 
+(rule
+ (alias mediatest)
+ (package liquidsoap)
+ (target video-past-audio.ts)
+ (action
+  (run
+   ffmpeg
+   -hide_banner
+   -loglevel
+   error
+   -f
+   lavfi
+   -i
+   "testsrc=duration=2:size=320x240:rate=25"
+   -f
+   lavfi
+   -i
+   "sine=duration=1.5:sample_rate=48000"
+   -c:v
+   libx264
+   -pix_fmt
+   yuv420p
+   -c:a
+   aac
+   -f
+   mpegts
+   %{target})))
+
+(rule
+ (alias test_ffmpeg_input_reconnect_sync)
+ (package liquidsoap)
+ (deps
+  video-past-audio.ts
+  test_ffmpeg_input_reconnect_sync.liq
+  ../../src/bin/liquidsoap.exe
+  (package liquidsoap)
+  (source_tree ../../src/libs)
+  ../test.liq
+  (:run_test ../run_test.exe))
+ (action
+  (run
+   %{run_test}
+   "FFmpeg input stays in sync across reconnections"
+   liquidsoap
+   test_ffmpeg_input_reconnect_sync.liq
+   --
+   video-past-audio.ts)))
+
 (alias
  (name mediatest)
  (deps
@@ -1368,6 +1416,7 @@
   (alias test_ffmpeg_filter_array_args)
   (alias test_ffmpeg_raw_detect_dimensions)
   (alias test_ffmpeg_raw_source_frame_rate)
+  (alias test_ffmpeg_input_reconnect_sync)
   (alias test_lufs_integrated)
   (alias test_image_decoder_duration)
   (alias test_bitmap_subtitle_to_video)
